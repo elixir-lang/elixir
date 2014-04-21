@@ -32,19 +32,19 @@ defmodule HashDictTest do
     dict = filled_dict(8)
     list = dict |> HashDict.to_list
     assert length(list) == 8
-    assert { 1, 1 } in list
+    assert {1, 1} in list
     assert list == Enum.to_list(dict)
 
     dict = filled_dict(20)
     list = dict |> HashDict.to_list
     assert length(list) == 20
-    assert { 1, 1 } in list
+    assert {1, 1} in list
     assert list == Enum.to_list(dict)
 
     dict = filled_dict(120)
     list = dict |> HashDict.to_list
     assert length(list) == 120
-    assert { 1, 1 } in list
+    assert {1, 1} in list
     assert list == Enum.to_list(dict)
   end
 
@@ -57,22 +57,22 @@ defmodule HashDictTest do
   end
 
   defp smoke_test(range) do
-    { dict, _ } = Enum.reduce range, { HashDict.new, 1 }, fn(x, { acc, i }) ->
+    {dict, _} = Enum.reduce range, {HashDict.new, 1}, fn(x, {acc, i}) ->
       acc = HashDict.put(acc, x, x)
       assert HashDict.size(acc) == i
-      { acc, i + 1 }
+      {acc, i + 1}
     end
 
     Enum.each range, fn(x) ->
       assert HashDict.get(dict, x) == x
     end
 
-    { dict, _ } = Enum.reduce range, { dict, Enum.count(range) }, fn(x, { acc, i }) ->
+    {dict, _} = Enum.reduce range, {dict, Enum.count(range)}, fn(x, {acc, i}) ->
       assert HashDict.size(acc) == i
       acc = HashDict.delete(acc, x)
       assert HashDict.size(acc) == i - 1
       assert HashDict.get(acc, x) == nil
-      { acc, i - 1 }
+      {acc, i - 1}
     end
 
     assert dict == HashDict.new

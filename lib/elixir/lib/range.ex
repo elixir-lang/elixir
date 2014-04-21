@@ -3,27 +3,27 @@ defmodule Range do
   Defines a Range.
   """
 
-  @type t :: { Range, any, any }
-  @type t(first, last) :: { Range, first, last }
+  @type t :: {Range, any, any}
+  @type t(first, last) :: {Range, first, last}
 
   @doc """
   Creates a new range.
   """
   def new(first, last) do
-    { Range, first, last }
+    {Range, first, last}
   end
 
   @doc """
   Returns the first item of the range.
   """
-  def first({ Range, first, _ }) do
+  def first({Range, first, _}) do
     first
   end
 
   @doc """
   Returns the last item of the range.
   """
-  def last({ Range, _, last }) do
+  def last({Range, _, last}) do
     last
   end
 
@@ -39,7 +39,7 @@ defmodule Range do
       false
 
   """
-  def range?({ Range, _, _ }), do: true
+  def range?({Range, _, _}), do: true
   def range?(_), do: false
 end
 
@@ -60,36 +60,36 @@ defimpl Enumerable, for: Range do
     reduce(first, last, acc, fun, Range.Iterator.next(first, range), last >= first)
   end
 
-  defp reduce(_x, _y, { :halt, acc }, _fun, _next, _up) do
-    { :halted, acc }
+  defp reduce(_x, _y, {:halt, acc}, _fun, _next, _up) do
+    {:halted, acc}
   end
 
-  defp reduce(x, y, { :suspend, acc }, fun, next, up) do
-    { :suspended, acc, &reduce(x, y, &1, fun, next, up) }
+  defp reduce(x, y, {:suspend, acc}, fun, next, up) do
+    {:suspended, acc, &reduce(x, y, &1, fun, next, up)}
   end
 
-  defp reduce(x, y, { :cont, acc }, fun, next, true) when x <= y do
+  defp reduce(x, y, {:cont, acc}, fun, next, true) when x <= y do
     reduce(next.(x), y, fun.(x, acc), fun, next, true)
   end
 
-  defp reduce(x, y, { :cont, acc }, fun, next, false) when x >= y do
+  defp reduce(x, y, {:cont, acc}, fun, next, false) when x >= y do
     reduce(next.(x), y, fun.(x, acc), fun, next, false)
   end
 
-  defp reduce(_, _, { :cont, acc }, _fun, _next, _up) do
-    { :done, acc }
+  defp reduce(_, _, {:cont, acc}, _fun, _next, _up) do
+    {:done, acc}
   end
 
   def member?(first .. last, value) do
     if first <= last do
-      { :ok, first <= value and value <= last }
+      {:ok, first <= value and value <= last}
     else
-      { :ok, last <= value and value <= first }
+      {:ok, last <= value and value <= first}
     end
   end
 
   def count(first .. _ = range) do
-    { :ok, Range.Iterator.count(first, range) }
+    {:ok, Range.Iterator.count(first, range)}
   end
 end
 

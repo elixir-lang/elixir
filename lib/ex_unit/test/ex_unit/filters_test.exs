@@ -8,8 +8,8 @@ defmodule ExUnit.FiltersTest do
   test "evaluating filters" do
     assert ExUnit.Filters.eval([], [:os], [])                == :ok
     assert ExUnit.Filters.eval([], [os: :win], [os: :unix])  == :ok
-    assert ExUnit.Filters.eval([], [:os], [os: :unix])       == { :error, :os }
-    assert ExUnit.Filters.eval([], [os: :unix], [os: :unix]) == { :error, :os }
+    assert ExUnit.Filters.eval([], [:os], [os: :unix])       == {:error, :os}
+    assert ExUnit.Filters.eval([], [os: :unix], [os: :unix]) == {:error, :os}
 
     assert ExUnit.Filters.eval([os: :win], [], [])            == :ok
     assert ExUnit.Filters.eval([os: :win], [], [os: :unix])   == :ok

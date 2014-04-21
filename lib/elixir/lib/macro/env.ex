@@ -9,7 +9,7 @@ defmodule Macro.Env do
   * `module` - the current module name.
   * `file` - the current file name as a binary
   * `line` - the current line as an integer
-  * `function` - a tuple as `{ atom, integer` }, where the first
+  * `function` - a tuple as `{atom, integer`}, where the first
     element is the function name and the seconds its arity. Returns
     `nil` if not inside a function
   * `context` - the context of the environment. It can be nil
@@ -21,23 +21,23 @@ defmodule Macro.Env do
   * `macros` - a list of macros imported from each module
   * `macro_aliases` - a list of aliases defined inside the current macro
   * `context_modules` - a list of modules defined in the current context
-  * `vars` - a list keeping all defined variables as { var, context }
+  * `vars` - a list keeping all defined variables as {var, context}
   * `export_vars` - a list keeping all variables to be exported in a construct (may be nil)
   * `lexical_tracker` - PID to the lexical tracker which is responsible to keep user info
   * `local` - the module to expand local functions to
   """
 
-  @type name_arity :: { atom, non_neg_integer }
+  @type name_arity :: {atom, non_neg_integer}
   @type file :: binary
   @type line :: non_neg_integer
-  @type aliases :: [{ module, module }]
-  @type macro_aliases :: [{ module, { integer, module } }]
+  @type aliases :: [{module, module}]
+  @type macro_aliases :: [{module, {integer, module}}]
   @type context :: :match | :guard | nil
   @type requires :: [module]
-  @type functions :: [{ module, [name_arity] }]
-  @type macros :: [{ module, [name_arity] }]
+  @type functions :: [{module, [name_arity]}]
+  @type macros :: [{module, [name_arity]}]
   @type context_modules :: [module]
-  @type vars :: [{ atom, atom | non_neg_integer }]
+  @type vars :: [{atom, atom | non_neg_integer}]
   @type export_vars :: vars | nil
   @type lexical_tracker :: pid
   @type local :: module | nil
@@ -81,12 +81,12 @@ defmodule Macro.Env do
   def stacktrace(record) do
     cond do
       nil?(record.module) ->
-        [{ :elixir_compiler, :__FILE__, 1, relative_location(record) }]
+        [{:elixir_compiler, :__FILE__, 1, relative_location(record)}]
       nil?(record.function) ->
-        [{ module(record), :__MODULE__, 0, relative_location(record) }]
+        [{module(record), :__MODULE__, 0, relative_location(record)}]
       true ->
-        { name, arity } = record.function
-        [{ module(record), name, arity, relative_location(record) }]
+        {name, arity} = record.function
+        [{module(record), name, arity, relative_location(record)}]
     end
   end
 

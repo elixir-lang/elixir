@@ -8,7 +8,7 @@ defmodule Mix.Tasks.RunTest do
       [ app: :get_app,
         version: "0.1.0",
         deps: [
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
         ] ]
     end
   end
@@ -19,10 +19,10 @@ defmodule Mix.Tasks.RunTest do
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Run.run ["-r", git_repo, "-e", "Mix.shell.info GitRepo.hello"]
-      assert_received { :mix_shell, :info, ["World"] }
+      assert_received {:mix_shell, :info, ["World"]}
 
       Mix.Tasks.Run.run ["-pr", git_repo, "-e", "Mix.shell.info GitRepo.hello"]
-      assert_received { :mix_shell, :info, ["World"] }
+      assert_received {:mix_shell, :info, ["World"]}
     end
   after
     purge [GitRepo]

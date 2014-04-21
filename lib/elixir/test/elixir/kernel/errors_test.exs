@@ -188,11 +188,11 @@ defmodule Kernel.ErrorsTest do
   test :literal_on_map_and_struct do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: '}'",
-      '%{ { :a, :b } }'
+      '%{{:a, :b}}'
 
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: '{'",
-      '%{ :a, :b }{ a: :b }'
+      '%{:a, :b}{a: :b}'
   end
 
   test :struct_fields_on_defstruct do
@@ -220,11 +220,11 @@ defmodule Kernel.ErrorsTest do
   test :unbound_map_key_var do
     assert_compile_fail CompileError,
       "nofile:1: illegal use of variable x in map key",
-      '%{ x => 1 } = %{}'
+      '%{x => 1} = %{}'
 
     assert_compile_fail CompileError,
       "nofile:1: illegal use of variable x in map key",
-      '%{ x = 1 => 1 }'
+      '%{x = 1 => 1}'
   end
 
   test :struct_errors do
@@ -244,13 +244,13 @@ defmodule Kernel.ErrorsTest do
 
     defmodule GoodStruct do
       def __struct__ do
-        %{ name: "josé" }
+        %{name: "josé"}
       end
     end
 
     assert_compile_fail CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
-      '%#{GoodStruct}{ age: 27 }'
+      '%#{GoodStruct}{age: 27}'
   end
 
   test :name_for_defmodule do
@@ -431,7 +431,7 @@ defmodule Kernel.ErrorsTest do
       '''
       defmodule ErrorsTest do
         defmacrop oops do
-          { :foo, :bar, :baz, :bat }
+          {:foo, :bar, :baz, :bat}
         end
 
         def test, do: oops

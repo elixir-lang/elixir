@@ -36,11 +36,11 @@ defmodule ListDict do
   end
 
   def keys(dict) do
-    for { key, _ } <- dict, do: key
+    for {key, _} <- dict, do: key
   end
 
   def values(dict) do
-    for { _, value } <- dict, do: value
+    for {_, value} <- dict, do: value
   end
 
   def size(dict) do
@@ -52,37 +52,37 @@ defmodule ListDict do
     do_has_key?(dict, key)
   end
 
-  defp do_has_key?([{ key, _ }|_], key), do: true
-  defp do_has_key?([{ _, _ }|t], key), do: do_has_key?(t, key)
+  defp do_has_key?([{key, _}|_], key), do: true
+  defp do_has_key?([{_, _}|t], key), do: do_has_key?(t, key)
   defp do_has_key?([], _key), do: false
 
   def get(dict, key, default \\ nil) do
     deprecated(key)
     do_get(dict, key, default)
   end
-  defp do_get([{ key, value }|_], key, _default), do: value
-  defp do_get([{ _, _ }|t], key, default), do: do_get(t, key, default)
+  defp do_get([{key, value}|_], key, _default), do: value
+  defp do_get([{_, _}|t], key, default), do: do_get(t, key, default)
   defp do_get([], _key, default), do: default
 
   def fetch(dict, key) do
     deprecated(key)
     do_fetch(dict, key)
   end
-  defp do_fetch([{ key, value }|_], key), do: { :ok, value }
-  defp do_fetch([{ _, _ }|t], key), do: do_fetch(t, key)
+  defp do_fetch([{key, value}|_], key), do: {:ok, value}
+  defp do_fetch([{_, _}|t], key), do: do_fetch(t, key)
   defp do_fetch([], _key), do: :error
 
   def fetch!(dict, key) do
     deprecated(key)
     case fetch(dict, key) do
-      { :ok, value } -> value
+      {:ok, value} -> value
       :error -> raise(KeyError, key: key, term: dict)
     end
   end
 
   def pop(dict, key, default \\ nil) do
     deprecated(key)
-    { do_get(dict, key, default), do_delete(dict, key) }
+    {do_get(dict, key, default), do_delete(dict, key)}
   end
 
   def put(dict, key, val) do
@@ -103,24 +103,24 @@ defmodule ListDict do
     do_delete(dict, key)
   end
 
-  defp do_delete([{ key, _ }|t], key), do: t
-  defp do_delete([{ _, _ } = h|t], key), do: [h|do_delete(t, key)]
+  defp do_delete([{key, _}|t], key), do: t
+  defp do_delete([{_, _} = h|t], key), do: [h|do_delete(t, key)]
   defp do_delete([], _key), do: []
 
   def merge(dict, enum, callback \\ fn(_k, _v1, v2) -> v2 end) do
-    Enum.reduce enum, dict, fn { k, v2 }, acc ->
+    Enum.reduce enum, dict, fn {k, v2}, acc ->
       update(acc, k, v2, fn(v1) -> callback.(k, v1, v2) end)
     end
   end
 
   def split(dict, keys) do
-    acc = { [], [] }
+    acc = {[], []}
 
-    {take, drop} = Enum.reduce dict, acc, fn({ k, v }, { take, drop }) ->
+    {take, drop} = Enum.reduce dict, acc, fn({k, v}, {take, drop}) ->
       if k in keys do
-        { [{k, v}|take], drop }
+        {[{k, v}|take], drop}
       else
-        { take, [{k, v}|drop] }
+        {take, [{k, v}|drop]}
       end
     end
 
@@ -128,11 +128,11 @@ defmodule ListDict do
   end
 
   def take(dict, keys) do
-    for { k, _ } = tuple <- dict, k in keys, do: tuple
+    for {k, _} = tuple <- dict, k in keys, do: tuple
   end
 
   def drop(dict, keys) do
-    for { k, _ } = tuple <- dict, not k in keys, do: tuple
+    for {k, _} = tuple <- dict, not k in keys, do: tuple
   end
 
   def update!(list, key, fun) do

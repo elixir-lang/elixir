@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   Runs this task.
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
     project      = Mix.project
     source_paths = project[:erlc_paths]
@@ -72,8 +72,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
     erlc_options = Enum.map erlc_options, fn
-      { kind, dir } when kind in [:i, :outdit] ->
-        { kind, to_erl_file(dir) }
+      {kind, dir} when kind in [:i, :outdit] ->
+        {kind, to_erl_file(dir)}
       opt ->
         opt
     end
@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   would be implemented like:
 
       compile_mappings ".compile.lfe",
-                       [{ "src", "ebin" }],
+                       [{"src", "ebin"}],
                        :lfe, :beam, opts[:force], fn
         input, output ->
           :lfe_comp.file(to_erl_file(input),
@@ -127,12 +127,12 @@ defmodule Mix.Tasks.Compile.Erlang do
   4. Remove any output in the manifest that that does not
      have an equivalent source;
 
-  The callback must return `{ :ok, mod }` or `:error` in case
+  The callback must return `{:ok, mod}` or `:error` in case
   of error. An error is raised at the end if any of the
   files failed to compile.
   """
   def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
-    files = for { src, dest } <- mappings do
+    files = for {src, dest} <- mappings do
               extract_targets(src, src_ext, dest, dest_ext, force)
             end |> Enum.concat
 
@@ -158,9 +158,9 @@ defmodule Mix.Tasks.Compile.Erlang do
     erl_file = Erl[file: file, module: module_from_artifact(file)]
 
     case Epp.parse_file(to_erl_file(file), include_paths, []) do
-      { :ok, forms } ->
+      {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
-      { :error, _error } ->
+      {:error, _error} ->
         acc
     end
   end
@@ -214,9 +214,9 @@ defmodule Mix.Tasks.Compile.Erlang do
     beam   = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
 
     if force || Mix.Utils.stale?([erl.file|erl.includes], [beam]) do
-      { erl.file, erl.module, beam }
+      {erl.file, erl.module, beam}
     else
-      { erl.file, erl.module, nil }
+      {erl.file, erl.module, nil}
     end
   end
 
@@ -232,16 +232,16 @@ defmodule Mix.Tasks.Compile.Erlang do
       target = Path.join(dir2, module <> "." <> to_string(dest_ext))
 
       if force || Mix.Utils.stale?([file], [target]) do
-        { file, module, target }
+        {file, module, target}
       else
-        { file, module, nil }
+        {file, module, nil}
       end
     end
   end
 
   defp compile_mappings(manifest, tuples, callback) do
     # Stale files are the ones with a destination
-    stale = for { src, _mod, dest } <- tuples, dest != nil, do: { src, dest }
+    stale = for {src, _mod, dest} <- tuples, dest != nil, do: {src, dest}
 
     # Get the previous entries from the manifest
     entries = Mix.Utils.read_manifest(manifest)
@@ -250,7 +250,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     # manifest but they no longer have a source
     removed = Enum.filter(entries, fn entry ->
       module = module_from_artifact(entry)
-      not Enum.any?(tuples, fn { _src, mod, _dest } -> module == mod end)
+      not Enum.any?(tuples, fn {_src, mod, _dest} -> module == mod end)
     end)
 
     if stale == [] && removed == [] do
@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       Enum.each(removed, &File.rm/1)
 
       # Compile stale files and print the results
-      results = for { input, output } <- stale do
+      results = for {input, output} <- stale do
         interpret_result(input, callback.(input, output))
       end
 
@@ -279,7 +279,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp interpret_result(file, result) do
     case result do
-      { :ok, _ } -> Mix.shell.info "Compiled #{file}"
+      {:ok, _} -> Mix.shell.info "Compiled #{file}"
       :error -> :error
     end
     result

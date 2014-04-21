@@ -14,11 +14,11 @@ defprotocol Access do
       iex> keywords[:a]
       1
 
-      iex> map = %{ a: 1, b: 2 }
+      iex> map = %{a: 1, b: 2}
       iex> map[:a]
       1
 
-      iex> star_ratings = %{ 1.0 => "★", 1.5 => "★☆", 2.0 => "★★" }
+      iex> star_ratings = %{1.0 => "★", 1.5 => "★☆", 2.0 => "★★"}
       iex> star_ratings[1.5]
       "★☆"
 
@@ -43,15 +43,15 @@ defimpl Access, for: List do
     do_access(dict, key)
   end
 
-  defp do_access([{ key, value }|_], key), do: value
-  defp do_access([{ _, _ }|t], key), do: access(t, key)
+  defp do_access([{key, value}|_], key), do: value
+  defp do_access([{_, _}|t], key), do: access(t, key)
   defp do_access([], _key), do: nil
 end
 
 defimpl Access, for: Map do
   def access(map, key) do
     case :maps.find(key, map) do
-      { :ok, value } -> value
+      {:ok, value} -> value
       :error -> nil
     end
   end

@@ -71,11 +71,11 @@ defmodule Kernel.FnTest do
   end
 
   test "capture and partially apply tuples" do
-    assert (&{ &1, &2 }).(1, 2) == { 1, 2 }
-    assert (&{ &1, &2, &3 }).(1, 2, 3) == { 1, 2, 3 }
+    assert (&{&1, &2}).(1, 2) == {1, 2}
+    assert (&{&1, &2, &3}).(1, 2, 3) == {1, 2, 3}
 
-    assert (&{ 1, &1 }).(2) == { 1, 2 }
-    assert (&{ 1, &1, &2 }).(2, 3) == { 1, 2, 3 }
+    assert (&{1, &1}).(2) == {1, 2}
+    assert (&{1, &1, &2}).(2, 3) == {1, 2, 3}
   end
 
   test "capture and partially apply lists" do

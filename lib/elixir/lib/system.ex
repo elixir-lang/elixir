@@ -11,7 +11,7 @@ defmodule System do
 
   defp read_stripped(path) do
     case :file.read_file(path) do
-      { :ok, binary } ->
+      {:ok, binary} ->
         strip_re(binary, "^\s+|\s+$")
       _ -> ""
     end
@@ -31,7 +31,7 @@ defmodule System do
   defmacrop get_describe do
     dirpath = :filename.join(__DIR__, "../../../.git")
     case :file.read_file_info(dirpath) do
-      { :ok, _ } ->
+      {:ok, _} ->
         if :os.find_executable('git') do
           data = :os.cmd('git describe --always --tags')
           strip_re(data, "\n")
@@ -83,7 +83,7 @@ defmodule System do
   """
   @spec argv([String.t]) :: :ok
   def argv(args) do
-    :elixir_code_server.cast({ :argv, args })
+    :elixir_code_server.cast({:argv, args})
   end
 
   @doc """
@@ -94,7 +94,7 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, base } -> String.from_char_data!(base)
+      {:ok, base} -> String.from_char_data!(base)
       _ -> nil
     end
   end
@@ -117,7 +117,7 @@ defmodule System do
   """
   def user_home do
     case :os.type() do
-      { :win32, _ } -> get_windows_home
+      {:win32, _} -> get_windows_home
       _             -> get_unix_home
     end
   end
@@ -193,13 +193,13 @@ defmodule System do
       {:ok, info} ->
         type_index = File.Stat.__record__(:index, :type)
         access_index = File.Stat.__record__(:index, :access)
-        case { elem(info, type_index), elem(info, access_index) } do
-          { :directory, access } when access in [:read_write, :write] ->
+        case {elem(info, type_index), elem(info, access_index)} do
+          {:directory, access} when access in [:read_write, :write] ->
             String.from_char_data!(dir)
           _ ->
             nil
         end
-      { :error, _ } -> nil
+      {:error, _} -> nil
     end
   end
 
@@ -214,7 +214,7 @@ defmodule System do
   as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    :elixir_code_server.cast { :at_exit, fun }
+    :elixir_code_server.cast {:at_exit, fun}
   end
 
   @doc """

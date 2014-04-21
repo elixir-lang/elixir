@@ -79,7 +79,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process([line | rest], indent, colors) do
-    { stripped, count } = strip_spaces(line, 0)
+    {stripped, count} = strip_spaces(line, 0)
     case stripped do
       <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
         process_list(item, rest, count, indent, colors)
@@ -93,7 +93,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp strip_spaces(rest, acc) do
-    { rest, acc }
+    {rest, acc}
   end
 
   ## Headings
@@ -115,7 +115,7 @@ defmodule IO.ANSI.Docs do
 
   defp process_list(line, rest, count, indent, colors) do
     IO.write indent <> "• "
-    { contents, rest, done } = process_list_next(rest, count, false, [])
+    {contents, rest, done} = process_list_next(rest, count, false, [])
     process_text(contents, [line], indent <> "  ", true, colors)
     if done, do: IO.puts(IO.ANSI.reset)
     process(rest, indent, colors)
@@ -129,13 +129,13 @@ defmodule IO.ANSI.Docs do
   #
   defp process_list_next([" " <> _ = line | rest], count, _done, acc) do
     case list_next(line, count) do
-      :done    -> { Enum.reverse(acc), [line|rest], false }
+      :done    -> {Enum.reverse(acc), [line|rest], false}
       chopped  -> process_list_next(rest, count, false, [chopped|acc])
     end
   end
 
   defp process_list_next([<<bullet, ?\s, _ :: binary>> | _] = rest, _count, _done, acc) when bullet in @bullets do
-    { Enum.reverse(acc), rest, false }
+    {Enum.reverse(acc), rest, false}
   end
 
   defp process_list_next(["" | rest], count, _done, acc) do
@@ -143,7 +143,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_list_next(rest, _count, done, acc) do
-    { Enum.reverse(acc), rest, done }
+    {Enum.reverse(acc), rest, done}
   end
 
   defp list_next(<<bullet, ?\s, _ :: binary>>, 0) when bullet in @bullets, do: :done
@@ -166,7 +166,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_text([line | rest], para, indent, true, colors) do
-    { stripped, count } = strip_spaces(line, 0)
+    {stripped, count} = strip_spaces(line, 0)
     case stripped do
       <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
         write_text(Enum.reverse(para), indent, true, colors)
@@ -227,7 +227,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_with_wrap(words, available, indent, first) do
-    { words, rest } = take_words(words, available, [])
+    {words, rest} = take_words(words, available, [])
     IO.puts (if first, do: "", else: indent) <> Enum.join(words, " ")
     write_with_wrap(rest, available, indent, false)
   end
@@ -242,16 +242,16 @@ defmodule IO.ANSI.Docs do
 
       # No space but we got no words
       acc == [] ->
-        { [word], words }
+        {[word], words}
 
       # Otherwise
       true ->
-        { Enum.reverse(acc), [word|words] }
+        {Enum.reverse(acc), [word|words]}
     end
   end
 
   defp take_words([], _available, acc) do
-    { Enum.reverse(acc), [] }
+    {Enum.reverse(acc), []}
   end
 
   defp length_without_escape(<< ?\e, ?[, _, _, ?m, rest :: binary >>, count) do
@@ -264,7 +264,7 @@ defmodule IO.ANSI.Docs do
 
   defp length_without_escape(rest, count) do
     case String.next_grapheme(rest) do
-      { _, rest }  -> length_without_escape(rest, count + 1)
+      {_, rest}  -> length_without_escape(rest, count + 1)
       nil -> count
     end
   end
@@ -370,7 +370,7 @@ defmodule IO.ANSI.Docs do
 
   defp column_width() do
     case :io.columns do
-      { :ok, width } -> min(width, 80)
+      {:ok, width} -> min(width, 80)
       _              -> 80
     end
   end

@@ -34,16 +34,16 @@ defmodule Mix.Tasks.Compile do
                task = Mix.Task.task_name(module),
                match?("compile." <> _, task),
                doc = Mix.Task.moduledoc(module) do
-      { task, first_line(doc) }
+      {task, first_line(doc)}
     end
 
-    max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
+    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
       max(size(task), acc)
     end
 
     sorted = Enum.sort(docs)
 
-    Enum.each sorted, fn({ task, doc }) ->
+    Enum.each sorted, fn({task, doc}) ->
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 

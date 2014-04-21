@@ -2,8 +2,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, []),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, []),
+  {Value, Binding}.
 
 function_arg_do_end_test() ->
   {3, _} = eval("if true do\n1 + 2\nend"),
@@ -18,14 +18,14 @@ function_stab_end_test() ->
   3 = Fun3().
 
 function_stab_many_test() ->
-  {_, [{a, Fun}]} = eval("a = fn\n{ :foo, x } -> x\n{ :bar, x } -> x\nend"),
-  1 = Fun({ foo, 1 }),
-  2 = Fun({ bar, 2 }).
+  {_, [{a, Fun}]} = eval("a = fn\n{:foo, x} -> x\n{:bar, x} -> x\nend"),
+  1 = Fun({foo, 1}),
+  2 = Fun({bar, 2}).
 
 function_stab_inline_test() ->
-  {_, [{a, Fun}]} = eval("a = fn { :foo, x } -> x; { :bar, x } -> x end"),
-  1 = Fun({ foo, 1 }),
-  2 = Fun({ bar, 2 }).
+  {_, [{a, Fun}]} = eval("a = fn {:foo, x} -> x; {:bar, x} -> x end"),
+  1 = Fun({foo, 1}),
+  2 = Fun({bar, 2}).
 
 function_with_args_test() ->
   {Fun, _} = eval("fn(a, b) -> a + b end"),
@@ -119,9 +119,9 @@ function_call_with_parens_args_and_nested_when_test() ->
 %% Partial application
 
 require_partial_application_test() ->
-  { Fun, _ } = eval("&List.flatten(&1)"),
+  {Fun, _} = eval("&List.flatten(&1)"),
   Fun = fun 'Elixir.List':flatten/1.
 
 import_partial_application_test() ->
-  { Fun, _ } = eval("&is_atom(&1)"),
+  {Fun, _} = eval("&is_atom(&1)"),
   Fun = fun erlang:is_atom/1.

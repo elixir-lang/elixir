@@ -29,8 +29,8 @@ defmodule Mix.Utils do
 
   defp path_separator do
     case :os.type do
-      { :win32, _ } -> ";"
-      { :unix, _ }  -> ":"
+      {:win32, _} -> ";"
+      {:unix, _}  -> ":"
     end
   end
 
@@ -39,13 +39,13 @@ defmodule Mix.Utils do
   with the command name converted to a module name
   in the given `at` scope.
 
-  Returns `{ :module, module }` in case a module
-  exists and is loaded, `{ :error, reason }` otherwise.
+  Returns `{:module, module}` in case a module
+  exists and is loaded, `{:error, reason}` otherwise.
 
   ## Examples
 
       iex> Mix.Utils.command_to_module("compile", Mix.Tasks)
-      { :module, Mix.Tasks.Compile }
+      {:module, Mix.Tasks.Compile}
 
   """
   def command_to_module(command, at \\ Elixir) do
@@ -78,7 +78,7 @@ defmodule Mix.Utils do
     end)
   end
 
-  defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
+  defp source_mtime({_, {{_, _, _}, {_, _, _}} = source}) do
     source
   end
 
@@ -88,8 +88,8 @@ defmodule Mix.Utils do
 
   defp last_modified(path) do
     case File.stat(path) do
-      { :ok, File.Stat[mtime: mtime] } -> mtime
-      { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
+      {:ok, File.Stat[mtime: mtime]} -> mtime
+      {:error, _} -> {{1970, 1, 1}, {0, 0, 0}}
     end
   end
 
@@ -105,8 +105,8 @@ defmodule Mix.Utils do
   """
   def read_manifest(file) do
     case File.read(file) do
-      { :ok, contents } -> String.split(contents, "\n")
-      { :error, _ } -> []
+      {:ok, contents} -> String.split(contents, "\n")
+      {:error, _} -> []
     end
   end
 
@@ -339,19 +339,19 @@ defmodule Mix.Utils do
     if File.exists?(source) do
       source_list = List.from_char_data!(source)
       case :file.read_link(target) do
-        { :ok, ^source_list } ->
+        {:ok, ^source_list} ->
           :ok
-        { :ok, _ } ->
+        {:ok, _} ->
           File.rm!(target)
           do_symlink_or_copy(source, target)
-        { :error, :enoent } ->
+        {:error, :enoent} ->
           do_symlink_or_copy(source, target)
-        { :error, _ } ->
+        {:error, _} ->
           File.rm_rf!(target)
           do_symlink_or_copy(source, target)
       end
     else
-      { :error, :enoent }
+      {:error, :enoent}
     end
   end
 
@@ -359,7 +359,7 @@ defmodule Mix.Utils do
     symlink_source = make_relative_path(source, target)
     case :file.make_symlink(symlink_source, target) do
       :ok -> :ok
-      { :error, _ } -> File.cp_r!(source, target)
+      {:error, _} -> File.cp_r!(source, target)
     end
   end
 
@@ -403,15 +403,15 @@ defmodule Mix.Utils do
     :ssl.start
     :inets.start
 
-    headers = [ { 'user-agent', 'Mix/#{System.version}' } ]
-    request = { :binary.bin_to_list(path), headers }
+    headers = [ {'user-agent', 'Mix/#{System.version}'} ]
+    request = {:binary.bin_to_list(path), headers}
 
     case :httpc.request(:get, request, [], body_format: :binary) do
-      { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
+      {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
-      { :ok, { { _, status, _ }, _, _ } } ->
+      {:ok, {{_, status, _}, _, _}} ->
         raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
-      { :error, reason } ->
+      {:error, reason} ->
         raise Mix.Error, message: "Could not access url #{path}, error: #{inspect reason}"
     end
   end

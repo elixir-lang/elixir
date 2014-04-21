@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Archive do
   """
 
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, aliases: [o: :output, i: :input],
+    {opts, _, _} = OptionParser.parse(args, aliases: [o: :output, i: :input],
                                         switches: [force: :boolean, no_compile: :boolean])
 
     project = Mix.Project.get

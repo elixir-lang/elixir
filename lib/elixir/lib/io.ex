@@ -25,13 +25,13 @@ defmodule IO.Stream do
       stream
     end
 
-    def into(%{ device: device, raw: raw } = stream) do
-      { :ok, into(stream, device, raw) }
+    def into(%{device: device, raw: raw} = stream) do
+      {:ok, into(stream, device, raw)}
     end
 
     defp into(stream, device, raw) do
       fn
-        :ok, { :cont, x } ->
+        :ok, {:cont, x} ->
           case raw do
             true  -> IO.binwrite(device, x)
             false -> IO.write(device, x)
@@ -42,7 +42,7 @@ defmodule IO.Stream do
   end
 
   defimpl Enumerable do
-    def reduce(%{ device: device, raw: raw, line_or_bytes: line_or_bytes }, acc, fun) do
+    def reduce(%{device: device, raw: raw, line_or_bytes: line_or_bytes}, acc, fun) do
       next_fun =
         case raw do
           true  -> &IO.each_binstream(&1, line_or_bytes)
@@ -52,11 +52,11 @@ defmodule IO.Stream do
     end
 
     def count(_stream) do
-      { :error, __MODULE__ }
+      {:error, __MODULE__}
     end
 
     def member?(_stream, _term) do
-      { :error, __MODULE__ }
+      {:error, __MODULE__}
     end
   end
 end
@@ -80,7 +80,7 @@ defmodule IO do
   """
 
   @type device :: atom | pid
-  @type nodata :: { :error, term } | :eof
+  @type nodata :: {:error, term} | :eof
 
   import :erlang, only: [group_leader: 0]
 
@@ -130,14 +130,14 @@ defmodule IO do
 
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
-      { :ok, data } -> data
+      {:ok, data} -> data
       other -> other
     end
   end
 
   def binread(device, count) when count >= 0 do
     case :file.read(map_dev(device), count) do
-      { :ok, data } -> data
+      {:ok, data} -> data
       other -> other
     end
   end
@@ -168,7 +168,7 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
-  @spec binwrite(device, iodata) :: :ok | { :error, term }
+  @spec binwrite(device, iodata) :: :ok | {:error, term}
   def binwrite(device \\ group_leader(), item) when is_iodata(item) do
     :file.write map_dev(device), item
   end
@@ -211,8 +211,8 @@ defmodule IO do
 
     unless Keyword.get(opts, :width) do
       opts = case :io.columns(device) do
-        { :ok, width } -> [width: width] ++ opts
-        { :error, _ }  -> opts
+        {:ok, width} -> [width: width] ++ opts
+        {:error, _}  -> opts
       end
     end
 
@@ -301,7 +301,7 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    %IO.Stream{ device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints }
+    %IO.Stream{device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints}
   end
 
   @doc """
@@ -319,7 +319,7 @@ defmodule IO do
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    %IO.Stream{ device: map_dev(device), raw: true, line_or_bytes: line_or_bytes }
+    %IO.Stream{device: map_dev(device), raw: true, line_or_bytes: line_or_bytes}
   end
 
   @doc false
@@ -327,10 +327,10 @@ defmodule IO do
     case read(device, what) do
       :eof ->
         nil
-      { :error, reason } ->
+      {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        { data, device }
+        {data, device}
     end
   end
 
@@ -339,10 +339,10 @@ defmodule IO do
     case binread(device, what) do
       :eof ->
         nil
-      { :error, reason } ->
+      {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        { data, device }
+        {data, device}
     end
   end
 

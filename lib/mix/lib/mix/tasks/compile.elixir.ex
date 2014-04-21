@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       all_entries = read_manifest(manifest)
 
       removed =
-        for { _b, _m, source, _d } <- all_entries, not(source in all), do: source
+        for {_b, _m, source, _d} <- all_entries, not(source in all), do: source
 
       changed =
         if Enum.any?(changed, &not(&1 in all)) do
@@ -20,11 +20,11 @@ defmodule Mix.Tasks.Compile.Elixir do
           # Otherwise compile changed plus each entry in all that's
           # not in the manifest (i.e. new files)
           (changed ++ for i <- all,
-                         not Enum.any?(all_entries, fn { _b, _m, s, _d } -> s == i end),
+                         not Enum.any?(all_entries, fn {_b, _m, s, _d} -> s == i end),
                          do: i)
         end
 
-      { entries, changed } = remove_stale_entries(all_entries, removed ++ changed, [], [])
+      {entries, changed} = remove_stale_entries(all_entries, removed ++ changed, [], [])
 
       # Remove files are not going to be compiled
       stale = changed -- removed
@@ -36,13 +36,13 @@ defmodule Mix.Tasks.Compile.Elixir do
 
           # Starts a server responsible for keeping track which files
           # were compiled and the dependencies in between them.
-          { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
+          {:ok, pid} = :gen_server.start_link(__MODULE__, entries, [])
 
           try do
             Kernel.ParallelCompiler.files :lists.usort(stale),
               each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
               each_file: &each_file(&1)
-            :gen_server.cast(pid, { :write, manifest })
+            :gen_server.cast(pid, {:write, manifest})
           after
             :gen_server.call(pid, :stop)
           end
@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Compile.Elixir do
              |> :lists.usort |> Enum.map(&atom_to_binary(&1))
 
       relative = if cwd, do: Path.relative_to(source, cwd), else: source
-      :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
+      :gen_server.cast(pid, {:store, beam, bin, relative, deps, binary})
     end
 
     defp each_file(file) do
@@ -77,14 +77,14 @@ defmodule Mix.Tasks.Compile.Elixir do
     # all the files that changed (thanks to the dependencies) and
     # return their sources as the remaining entries.
     defp remove_stale_entries(all, []) do
-      { all, [] }
+      {all, []}
     end
 
     defp remove_stale_entries(all, changed) do
       remove_stale_entries(all, :lists.usort(changed), [], [])
     end
 
-    defp remove_stale_entries([{ beam, module, source, _d } = entry|t], changed, removed, acc) do
+    defp remove_stale_entries([{beam, module, source, _d} = entry|t], changed, removed, acc) do
       if source in changed do
         File.rm(beam)
         remove_stale_entries(t, changed, [module|removed], acc)
@@ -96,12 +96,12 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp remove_stale_entries([], changed, removed, acc) do
       # If any of the dependencies for the remaining entries
       # were removed, get its source so we can removed them.
-      next_changed = for { _b, _m, source, deps } <- acc,
+      next_changed = for {_b, _m, source, deps} <- acc,
                       Enum.any?(deps, &(&1 in removed)),
                       do: source
 
-      { acc, next } = remove_stale_entries(Enum.reverse(acc), next_changed)
-      { acc, next ++ changed }
+      {acc, next} = remove_stale_entries(Enum.reverse(acc), next_changed)
+      {acc, next ++ changed}
     end
 
     ## Manifest handling
@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       Enum.reduce Mix.Utils.read_manifest(manifest), [], fn x, acc ->
         case String.split(x, "\t") do
           [beam, module, source|deps] ->
-            [{ beam, module, source, deps }|acc]
+            [{beam, module, source, deps}|acc]
           _ ->
             acc
         end
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp write_manifest(manifest, entries) do
       lines = Enum.map(entries, fn
-        { beam, module, source, deps, binary } ->
+        {beam, module, source, deps, binary} ->
           if binary, do: File.write!(beam, binary)
           [beam, module, source | deps] |> Enum.join("\t")
       end)
@@ -136,24 +136,24 @@ defmodule Mix.Tasks.Compile.Elixir do
     # Callbacks
 
     def init(entries) do
-      { :ok, Enum.map(entries, &Tuple.insert_at(&1, 4, nil)) }
+      {:ok, Enum.map(entries, &Tuple.insert_at(&1, 4, nil))}
     end
 
     def handle_call(:stop, _from, entries) do
-      { :stop, :normal, :ok, entries }
+      {:stop, :normal, :ok, entries}
     end
 
     def handle_call(msg, from, state) do
       super(msg, from, state)
     end
 
-    def handle_cast({ :write, manifest }, entries) do
+    def handle_cast({:write, manifest}, entries) do
       write_manifest(manifest, entries)
-      { :noreply, entries }
+      {:noreply, entries}
     end
 
-    def handle_cast({ :store, beam, module, source, deps, binary }, entries) do
-      { :noreply, :lists.keystore(beam, 1, entries, { beam, module, source, deps, binary }) }
+    def handle_cast({:store, beam, module, source, deps, binary}, entries) do
+      {:noreply, :lists.keystore(beam, 1, entries, {beam, module, source, deps, binary})}
     end
 
     def handle_cast(msg, state) do
@@ -223,7 +223,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   Runs this task.
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: @switches)
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     project       = Mix.project
     compile_path  = Mix.Project.compile_path(project)

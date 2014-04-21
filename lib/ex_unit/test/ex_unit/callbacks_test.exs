@@ -4,17 +4,17 @@ defmodule ExUnit.CallbacksTest do
   use ExUnit.Case, async: true
 
   setup_all do
-    { :ok, [context: :setup_all] }
+    {:ok, [context: :setup_all]}
   end
 
   setup do
-    { :ok, [initial_setup: true] }
+    {:ok, [initial_setup: true]}
   end
 
   setup context do
     assert context[:initial_setup]
     assert context[:context] == :setup_all
-    { :ok, [context: :setup] }
+    {:ok, [context: :setup]}
   end
 
   setup context do
@@ -28,7 +28,7 @@ defmodule ExUnit.CallbacksTest do
 
   teardown context do
     assert context[:context] == :setup
-    { :ok, context: :teardown }
+    {:ok, context: :teardown}
   end
 
   teardown context do

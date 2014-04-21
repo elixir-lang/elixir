@@ -8,7 +8,7 @@ defmodule ModuleTest.ToBeUsed do
     Module.put_attribute(target, :has_callback, false)
     Module.put_attribute(target, :before_compile, __MODULE__)
     Module.put_attribute(target, :after_compile, __MODULE__)
-    Module.put_attribute(target, :before_compile, { __MODULE__, :callback })
+    Module.put_attribute(target, :before_compile, {__MODULE__, :callback})
     quote do: (def line, do: __ENV__.line)
   end
 
@@ -41,7 +41,7 @@ defmodule ModuleTest do
   @register_example :it_works
   @register_example :still_works
 
-  contents = quote do: (def eval_quoted_info, do: { __MODULE__, __ENV__.file, __ENV__.line })
+  contents = quote do: (def eval_quoted_info, do: {__MODULE__, __ENV__.file, __ENV__.line})
   Module.eval_quoted __MODULE__, contents, [], file: "sample.ex", line: 13
 
   defmacrop in_module(block) do
@@ -55,7 +55,7 @@ defmodule ModuleTest do
   ## Eval
 
   test :eval_quoted do
-    assert eval_quoted_info() == { ModuleTest, "sample.ex", 13 }
+    assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
   end
 
   test :line_from_macro do
@@ -90,7 +90,7 @@ defmodule ModuleTest do
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{ :foo, _, _ }, { :bar, _ , _ }] = args
+    assert [{:foo, _, _}, {:bar, _ , _}] = args
     assert [] = guards
     assert {{:., _, [:erlang, :+]}, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
@@ -125,7 +125,7 @@ defmodule ModuleTest do
 
   test :registered_attributes do
     assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
-      Enum.filter __MODULE__.__info__(:attributes), &match?({ :register_example, _ }, &1)
+      Enum.filter __MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)
   end
 
   @some_attribute  [1]
@@ -168,13 +168,13 @@ defmodule ModuleTest do
   ## Creation
 
   test :defmodule do
-    assert match?({ :module, Defmodule, binary, 3 } when is_binary(binary), defmodule Defmodule do
+    assert match?({:module, Defmodule, binary, 3} when is_binary(binary), defmodule Defmodule do
       1 + 2
     end)
   end
 
   test :defmodule_with_atom do
-    assert match?({ :module, :root_defmodule, _, _ }, defmodule :root_defmodule do
+    assert match?({:module, :root_defmodule, _, _}, defmodule :root_defmodule do
       :ok
     end)
   end
@@ -184,7 +184,7 @@ defmodule ModuleTest do
       quote do
         def world, do: true
       end
-    { :module, ModuleCreateSample, _, _ } =
+    {:module, ModuleCreateSample, _, _} =
       Module.create(ModuleCreateSample, contents, __ENV__)
     assert ModuleCreateSample.world
   end
@@ -199,18 +199,18 @@ defmodule ModuleTest do
 
   test :defines? do
     in_module do
-      refute Module.defines? __MODULE__, { :foo, 0 }
+      refute Module.defines? __MODULE__, {:foo, 0}
       def foo(), do: bar()
-      assert Module.defines? __MODULE__, { :foo, 0 }
-      assert Module.defines? __MODULE__, { :foo, 0 }, :def
+      assert Module.defines? __MODULE__, {:foo, 0}
+      assert Module.defines? __MODULE__, {:foo, 0}, :def
 
-      refute Module.defines? __MODULE__, { :bar, 0 }, :defp
+      refute Module.defines? __MODULE__, {:bar, 0}, :defp
       defp bar(), do: :ok
-      assert Module.defines? __MODULE__, { :bar, 0 }, :defp
+      assert Module.defines? __MODULE__, {:bar, 0}, :defp
 
-      refute Module.defines? __MODULE__, { :baz, 0 }, :defmacro
+      refute Module.defines? __MODULE__, {:baz, 0}, :defmacro
       defmacro baz(), do: :ok
-      assert Module.defines? __MODULE__, { :baz, 0 }, :defmacro
+      assert Module.defines? __MODULE__, {:baz, 0}, :defmacro
     end
   end
 

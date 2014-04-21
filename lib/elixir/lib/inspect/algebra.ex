@@ -122,7 +122,7 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(%{ __struct__: struct } = map, opts) when is_atom(struct) and is_record(opts, Inspect.Opts) do
+  def to_doc(%{__struct__: struct} = map, opts) when is_atom(struct) and is_record(opts, Inspect.Opts) do
     if opts.structs do
       try do
         Inspect.inspect(map, opts)
@@ -415,7 +415,7 @@ defmodule Inspect.Algebra do
   @typep mode :: :flat | :break
 
   @doc false
-  @spec fits?(integer, [{ integer, mode, t }]) :: boolean
+  @spec fits?(integer, [{integer, mode, t}]) :: boolean
   def fits?(w, _) when w < 0,                               do: false
   def fits?(_, []),                                         do: true
   def fits?(_, [{_, _, :doc_line} | _]),                    do: true
@@ -428,7 +428,7 @@ defmodule Inspect.Algebra do
   def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
 
   @doc false
-  @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: [binary]
+  @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   def format(_, _, []),                                        do: []
   def format(w, _, [{i, _, :doc_line} | t]),                   do: [indent(i) | format(w, i, t)]
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)

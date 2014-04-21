@@ -36,7 +36,7 @@ defmodule Mix do
   def env do
     # env is not available on bootstrapping
     case :application.get_env(:mix, :env) do
-      { :ok, env } -> env
+      {:ok, env} -> env
       :undefined -> :dev
     end
   end
@@ -69,7 +69,7 @@ defmodule Mix do
   """
   def shell do
     case :application.get_env(:mix, :shell) do
-      { :ok, shell } -> shell
+      {:ok, shell} -> shell
       :undefined -> Mix.Shell.IO
     end
   end

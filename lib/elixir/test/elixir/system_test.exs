@@ -39,7 +39,7 @@ defmodule SystemTest do
 
   test "argv" do
     list = elixir('-e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
-    { args, _ } = Code.eval_string list, []
+    {args, _} = Code.eval_string list, []
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
 
@@ -54,7 +54,7 @@ defmodule SystemTest do
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
 
-    System.put_env(%{ @test_var => "OTHER_SAMPLE" })
+    System.put_env(%{@test_var => "OTHER_SAMPLE"})
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 

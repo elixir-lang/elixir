@@ -298,7 +298,7 @@ defmodule IEx.HelpersTest do
         assert Sample.run == :run
 
         File.write! filename, "defmodule Sample do end"
-        assert { :reloaded, Sample, [Sample] } = r(Sample)
+        assert {:reloaded, Sample, [Sample]} = r(Sample)
         assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
           Sample.run
         end
@@ -320,7 +320,7 @@ defmodule IEx.HelpersTest do
       assert :sample.hello == :world
 
       File.write!(filename, other_erlang_module_code)
-      assert { :reloaded, :sample, [:sample] } = r(:sample)
+      assert {:reloaded, :sample, [:sample]} = r(:sample)
       assert :sample.hello == :bye
     end
   after
@@ -372,7 +372,7 @@ defmodule IEx.HelpersTest do
   end
 
   defp with_file(names, codes, fun) when is_list(names) and is_list(codes) do
-    Enum.each Enum.zip(names, codes), fn { name, code } ->
+    Enum.each Enum.zip(names, codes), fn {name, code} ->
       File.write! name, code
     end
 
@@ -396,7 +396,7 @@ defmodule IEx.HelpersTest do
     Path.expand "../..", __DIR__
   end
 
-  if match? { :win32, _ }, :os.type do
+  if match? {:win32, _}, :os.type do
     defp executable_extension, do: ".bat"
   else
     defp executable_extension, do: ""

@@ -8,7 +8,7 @@ defmodule IO.ANSI.Sequence do
       end
 
       defp escape_sequence(<< unquote(atom_to_binary(name)), rest :: binary >>) do
-        { "\e[#{unquote(code)}#{unquote(terminator)}", rest }
+        {"\e[#{unquote(code)}#{unquote(terminator)}", rest}
       end
     end
   end
@@ -92,7 +92,7 @@ defmodule IO.ANSI do
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
   colors = Enum.zip(0..(length(colors)-1), colors)
 
-  for { code, color } <- colors do
+  for {code, color} <- colors do
     @doc "Sets foreground color to #{color}"
     defsequence color, code + 30
 

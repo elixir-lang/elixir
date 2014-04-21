@@ -10,7 +10,7 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
         assert file =~ "version: \"0.0.1\""
-        assert file =~ "mod: { HelloWorld, [] }"
+        assert file =~ "mod: {HelloWorld, []}"
       end
 
       assert_file "hello_world/README.md", ~r/# HelloWorld/
@@ -30,8 +30,8 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
-      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
-      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
     end
   end
 
@@ -52,8 +52,8 @@ defmodule Mix.Tasks.NewTest do
       assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
-      assert_received { :mix_shell, :info, ["* creating mix.exs"] }
-      assert_received { :mix_shell, :info, ["* creating lib/hello_world.ex"] }
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
     end
   end
 

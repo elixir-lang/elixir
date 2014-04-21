@@ -17,13 +17,13 @@ defmodule Mix.Tasks.Deps.Update do
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available
-    { opts, rest, _ } = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
+    {opts, rest, _} = OptionParser.parse(args, switches: [no_compile: :boolean, all: :boolean])
 
     cond do
       opts[:all] ->
         Mix.Dep.Fetcher.all(Mix.Dep.Lock.read, %{}, [])
       rest != [] ->
-        { old, new } = Dict.split(Mix.Dep.Lock.read, to_app_names(rest))
+        {old, new} = Dict.split(Mix.Dep.Lock.read, to_app_names(rest))
         Mix.Dep.Fetcher.by_name(rest, old, new, [])
       true ->
         raise Mix.Error, message: "mix deps.update expects dependencies as arguments or " <>

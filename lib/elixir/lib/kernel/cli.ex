@@ -11,12 +11,12 @@ defmodule Kernel.CLI do
   def main(argv) do
     argv = for arg <- argv, do: String.from_char_data!(arg)
 
-    { config, argv } = process_argv(argv, Kernel.CLI.Config.new)
+    {config, argv} = process_argv(argv, Kernel.CLI.Config.new)
     System.argv(argv)
 
     run fn ->
       command_results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
-      command_errors  = for { :error, msg } <- command_results, do: msg
+      command_errors  = for {:error, msg} <- command_results, do: msg
       errors          = Enum.reverse(config.errors) ++ command_errors
 
       if errors != [] do
@@ -76,10 +76,10 @@ defmodule Kernel.CLI do
 
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
-      { [h|hs], _ } when h == hd(list) ->
+      {[h|hs], _} when h == hd(list) ->
         new_config = config.update_errors &["#{h} : Unknown option" | &1]
         callback.(hs, new_config)
-      { new_list, new_config } ->
+      {new_list, new_config} ->
         callback.(new_list, new_config)
     end
   end
@@ -100,11 +100,11 @@ defmodule Kernel.CLI do
 
   @elixir_internals [:elixir_compiler, :elixir_module]
 
-  defp prune_stacktrace([{ mod, _, _, _ }|t]) when mod in @elixir_internals do
+  defp prune_stacktrace([{mod, _, _, _}|t]) when mod in @elixir_internals do
     prune_stacktrace(t)
   end
 
-  defp prune_stacktrace([{ __MODULE__, :wrapper, 1, _ }|_]) do
+  defp prune_stacktrace([{__MODULE__, :wrapper, 1, _}|_]) do
     []
   end
 
@@ -162,13 +162,13 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(list, config) do
-    { list, config }
+    {list, config}
   end
 
   # Process init options
 
   defp process_argv(["--"|t], config) do
-    { config, t }
+    {config, t}
   end
 
   defp process_argv(["+elixirc"|t], config) do
@@ -180,7 +180,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_argv(["-S", h|t], config) do
-    { config.update_commands(&[{:script, h}|&1]), t }
+    {config.update_commands(&[{:script, h}|&1]), t}
   end
 
   defp process_argv([h|t] = list, config) do
@@ -188,18 +188,18 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &process_argv(&1, &2)
       _ ->
-        { config.update_commands(&[{:file, h}|&1]), t }
+        {config.update_commands(&[{:file, h}|&1]), t}
     end
   end
 
   defp process_argv([], config) do
-    { config, [] }
+    {config, []}
   end
 
   # Process compiler options
 
   defp process_compiler(["--"|t], config) do
-    { config, t }
+    {config, t}
   end
 
   defp process_compiler(["-o", h|t], config) do
@@ -237,13 +237,13 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler([], config) do
-    { config.update_commands(&[{:compile, config.compile}|&1]), [] }
+    {config.update_commands(&[{:compile, config.compile}|&1]), []}
   end
 
   # Process iex options
 
   defp process_iex(["--"|t], config) do
-    { config, t }
+    {config, t}
   end
 
   # This clause is here so that Kernel.CLI does not error out with "unknown
@@ -257,7 +257,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_iex(["-S", h|t], config) do
-    { config.update_commands(&[{:script, h}|&1]), t }
+    {config.update_commands(&[{:script, h}|&1]), t}
   end
 
   defp process_iex([h|t] = list, config) do
@@ -265,12 +265,12 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &process_iex(&1, &2)
       _ ->
-        { config.update_commands(&[{:file, h}|&1]), t }
+        {config.update_commands(&[{:file, h}|&1]), t}
     end
   end
 
   defp process_iex([], config) do
-    { config, [] }
+    {config, []}
   end
 
   # Process commands
@@ -279,7 +279,7 @@ defmodule Kernel.CLI do
     if Node.alive? do
       wrapper fn -> Node.set_cookie(binary_to_atom(h)) end
     else
-      { :error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)" }
+      {:error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)"}
     end
   end
 
@@ -289,9 +289,9 @@ defmodule Kernel.CLI do
 
   defp process_command({:app, app}, _config) when is_binary(app) do
     case :application.ensure_all_started(binary_to_atom(app)) do
-      { :error, reason } ->
-        { :error, "--app : Could not start application #{app}: #{inspect reason}" }
-      { :ok, _ } ->
+      {:error, reason} ->
+        {:error, "--app : Could not start application #{app}: #{inspect reason}"}
+      {:ok, _} ->
         :ok
     end
   end
@@ -300,7 +300,7 @@ defmodule Kernel.CLI do
     if exec = find_elixir_executable(file) do
       wrapper fn -> Code.require_file(exec) end
     else
-      { :error, "-S : Could not find executable #{file}" }
+      {:error, "-S : Could not find executable #{file}"}
     end
   end
 
@@ -308,7 +308,7 @@ defmodule Kernel.CLI do
     if :filelib.is_regular(file) do
       wrapper fn -> Code.require_file(file) end
     else
-      { :error, "No file named #{file}" }
+      {:error, "No file named #{file}"}
     end
   end
 
@@ -320,7 +320,7 @@ defmodule Kernel.CLI do
     if files != [] do
       wrapper fn -> Enum.map files, &Code.require_file(&1) end
     else
-      { :error, "-r : No files matched pattern #{pattern}" }
+      {:error, "-r : No files matched pattern #{pattern}"}
     end
   end
 
@@ -332,7 +332,7 @@ defmodule Kernel.CLI do
     if files != [] do
       wrapper fn -> Kernel.ParallelRequire.files(files) end
     else
-      { :error, "-pr : No files matched pattern #{pattern}" }
+      {:error, "-pr : No files matched pattern #{pattern}"}
     end
   end
 
@@ -340,24 +340,24 @@ defmodule Kernel.CLI do
     :filelib.ensure_dir(:filename.join(config.output, "."))
 
     case match_regular_files(patterns) do
-      { :ok, [] } ->
-        { :error, "No files matched provided patterns" }
-      { :ok, files } ->
+      {:ok, []} ->
+        {:error, "No files matched provided patterns"}
+      {:ok, files} ->
         wrapper fn ->
           Code.compiler_options(config.compiler_options)
           Kernel.ParallelCompiler.files_to_path(files, config.output,
             each_file: fn file -> if config.verbose_compile do IO.puts "Compiled #{file}" end end)
         end
-      { :missing, missing } ->
-        { :error, "No files matched pattern(s) #{Enum.join(missing, ",")}" }
+      {:missing, missing} ->
+        {:error, "No files matched pattern(s) #{Enum.join(missing, ",")}"}
     end
   end
 
   defp match_regular_files(patterns) do
     matched_files = Enum.map patterns, fn(pattern) ->
       case Path.wildcard(pattern) do
-        []    -> { :missing, pattern }
-        files -> { :ok, files }
+        []    -> {:missing, pattern}
+        files -> {:ok, files}
       end
     end
 
@@ -372,9 +372,9 @@ defmodule Kernel.CLI do
     if missing_patterns == [] do
       files = Enum.uniq(Enum.concat(files))
       files = Enum.filter files, &:filelib.is_regular(&1)
-      { :ok, files }
+      {:ok, files}
     else
-      { :missing,  Enum.uniq(missing_patterns) }
+      {:missing,  Enum.uniq(missing_patterns)}
     end
   end
 
@@ -389,7 +389,7 @@ defmodule Kernel.CLI do
       # a .bat file that must be in the same directory as
       # the actual Elixir executable.
       case :os.type() do
-        { :win32, _ } ->
+        {:win32, _} ->
           exec = Path.rootname(exec)
           if File.regular?(exec), do: exec
         _ ->

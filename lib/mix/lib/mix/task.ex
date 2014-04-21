@@ -56,7 +56,7 @@ defmodule Mix.Task do
   """
   def load_tasks(paths) do
     Enum.reduce(paths, [], fn(path, matches) ->
-      { :ok, files } = :erl_prim_loader.list_dir(path |> to_char_list)
+      {:ok, files} = :erl_prim_loader.list_dir(path |> to_char_list)
       Enum.reduce(files, matches, &match_tasks/2)
     end)
   end
@@ -79,7 +79,7 @@ defmodule Mix.Task do
   Check `load_all/0` if you want to preload all tasks.
   """
   def all_modules do
-    Enum.reduce :code.all_loaded, [], fn({ module, _ }, acc) ->
+    Enum.reduce :code.all_loaded, [], fn({module, _}, acc) ->
       case atom_to_list(module) do
         'Elixir.Mix.Tasks.' ++ _ ->
           if is_task?(module), do: [module|acc], else: acc
@@ -95,7 +95,7 @@ defmodule Mix.Task do
   """
   def moduledoc(module) when is_atom(module) do
     case module.__info__(:moduledoc) do
-      { _line, moduledoc } -> moduledoc
+      {_line, moduledoc} -> moduledoc
       nil -> nil
     end
   end
@@ -106,7 +106,7 @@ defmodule Mix.Task do
   """
   def shortdoc(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :shortdoc, 0 do
-      { :shortdoc, [shortdoc] } -> shortdoc
+      {:shortdoc, [shortdoc]} -> shortdoc
       _ -> nil
     end
   end
@@ -117,7 +117,7 @@ defmodule Mix.Task do
   """
   def recursive(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :recursive, 0 do
-      { :recursive, [setting] } -> setting
+      {:recursive, [setting]} -> setting
       _ -> false
     end
   end
@@ -135,8 +135,8 @@ defmodule Mix.Task do
   """
   def get(task) do
     case Mix.Utils.command_to_module(task, Mix.Tasks) do
-      { :module, module } -> module
-      { :error, _ } -> nil
+      {:module, module} -> module
+      {:error, _} -> nil
     end
   end
 
@@ -176,11 +176,11 @@ defmodule Mix.Task do
   def run(task, args \\ []) do
     task = to_string(task)
 
-    if Mix.TasksServer.call({ :run_task, task, Mix.Project.get }) do
+    if Mix.TasksServer.call({:run_task, task, Mix.Project.get}) do
       module = get!(task)
 
       recur module, fn proj ->
-        Mix.TasksServer.cast({ :put_task, task, proj })
+        Mix.TasksServer.cast({:put_task, task, proj})
         module.run(args)
       end
     else
@@ -204,7 +204,7 @@ defmodule Mix.Task do
     module = get!(task)
 
     recur module, fn project ->
-      Mix.TasksServer.cast({ :delete_task, task, project })
+      Mix.TasksServer.cast({:delete_task, task, project})
     end
   end
 

@@ -43,7 +43,7 @@ defmodule PathHelpers do
     Path.expand("../../../../bin/#{name}#{executable_extension}", __DIR__)
   end
 
-  if match? { :win32, _ }, :os.type do
+  if match? {:win32, _}, :os.type do
     def is_win?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"
@@ -59,7 +59,7 @@ defmodule CompileAssertion do
 
   def assert_compile_fail(exception, string) do
     case format_rescue(string) do
-      { ^exception, _ } -> :ok
+      {^exception, _} -> :ok
       error ->
         raise ExUnit.AssertionError,
           left: inspect(elem(error, 0)),
@@ -70,7 +70,7 @@ defmodule CompileAssertion do
 
   def assert_compile_fail(exception, message, string) do
     case format_rescue(string) do
-      { ^exception, ^message } -> :ok
+      {^exception, ^message} -> :ok
       error ->
         raise ExUnit.AssertionError,
           left: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
@@ -84,7 +84,7 @@ defmodule CompileAssertion do
       :elixir.eval(to_char_list(expr), [])
       nil
     rescue
-      error -> { error.__record__(:name), error.message }
+      error -> {error.__record__(:name), error.message}
     end
 
     result || flunk(message: "Expected expression to fail")

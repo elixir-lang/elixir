@@ -53,7 +53,7 @@ defmodule IEx.Options do
 
   for key <- @supported_options do
     def get(unquote(key)) do
-      { :ok, value } = :application.get_env(:iex, unquote(key))
+      {:ok, value} = :application.get_env(:iex, unquote(key))
       value
     end
   end

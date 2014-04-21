@@ -8,8 +8,8 @@ defmodule Mix.RebarTest do
   defmodule MyPath do
     @behaviour Mix.SCM
 
-    for { name, arity } <- Mix.SCM.Path.__info__(:functions) do
-      args = tl Enum.map 0..arity, &{ :"x#{&1}", [], nil }
+    for {name, arity} <- Mix.SCM.Path.__info__(:functions) do
+      args = tl Enum.map 0..arity, &{:"x#{&1}", [], nil}
       def unquote(name)(unquote_splicing(args)) do
         Mix.SCM.Path.unquote(name)(unquote_splicing(args))
       end
@@ -19,7 +19,7 @@ defmodule Mix.RebarTest do
   setup do
     available = Mix.SCM.available
     :application.set_env(:mix, :scm, [Mix.SCM.Git, MyPath])
-    { :ok, [scm: available] }
+    {:ok, [scm: available]}
   end
 
   teardown context do
@@ -32,7 +32,7 @@ defmodule Mix.RebarTest do
       [ app: :rebar_as_dep,
         version: "0.1.0",
         deps: [
-          { :rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false }
+          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false}
         ]
       ]
     end
@@ -52,20 +52,20 @@ defmodule Mix.RebarTest do
   end
 
   test "parse rebar dependencies" do
-    config = [deps: [{ :git_rebar, '.*', }]]
-    assert [{ :git_rebar, ~r".*", [path: "deps/git_rebar"] }] ==
+    config = [deps: [{:git_rebar, '.*',}]]
+    assert [{:git_rebar, ~r".*", [path: "deps/git_rebar"]}] ==
            Mix.Rebar.deps(config)
 
-    config = [deps: [{ :git_rebar, '.*', }], deps_dir: "other_dir"]
-    assert [{ :git_rebar, ~r".*", [path: "other_dir/git_rebar"] }] ==
+    config = [deps: [{:git_rebar, '.*',}], deps_dir: "other_dir"]
+    assert [{:git_rebar, ~r".*", [path: "other_dir/git_rebar"]}] ==
            Mix.Rebar.deps(config)
 
-    config = [deps: [{ :git_rebar, '0.1..*', { :git, '../../test/fixtures/git_rebar', :master } }]]
-    assert [{ :git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"] }] ==
+    config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar', :master}}]]
+    assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
            Mix.Rebar.deps(config)
 
-    config = [deps: [{ :git_rebar, '0.1..*', { :git, '../../test/fixtures/git_rebar' }, [:raw] }]]
-    assert [{ :git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false] }] ==
+    config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar'}, [:raw]}]]
+    assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false]}] ==
            Mix.Rebar.deps(config)
   end
 
@@ -109,11 +109,11 @@ defmodule Mix.RebarTest do
 
     in_tmp "get and compile dependencies for rebar", fn ->
       Mix.Tasks.Deps.Get.run ["--no-compile"]
-      assert_received { :mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"] }
+      assert_received {:mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"]}
 
       Mix.Tasks.Deps.Compile.run []
-      assert_received { :mix_shell, :info, ["* Compiling git_rebar"] }
-      assert_received { :mix_shell, :info, ["* Compiling rebar_dep"] }
+      assert_received {:mix_shell, :info, ["* Compiling git_rebar"]}
+      assert_received {:mix_shell, :info, ["* Compiling rebar_dep"]}
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 

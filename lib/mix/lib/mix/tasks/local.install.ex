@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Local.Install do
   """
 
   def run(argv) do
-    { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
 
     if url = List.first(argv) do
       URI.Info[path: path] = URI.parse(url)

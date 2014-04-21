@@ -18,12 +18,12 @@ defmodule Mix.Tasks.Deps.Check do
 
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [quiet: :boolean])
     lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
     prune_deps(all)
-    { not_ok, compile } = partition_deps(all, [], [])
+    {not_ok, compile} = partition_deps(all, [], [])
 
     cond do
       not_ok != [] ->
@@ -48,11 +48,11 @@ defmodule Mix.Tasks.Deps.Check do
   end
 
   defp partition_deps([], not_ok, compile) do
-    { Enum.reverse(not_ok), Enum.reverse(compile) }
+    {Enum.reverse(not_ok), Enum.reverse(compile)}
   end
 
-  defp compile?(%Mix.Dep{status: { :elixirlock, _ }}), do: true
-  defp compile?(%Mix.Dep{status: { :noappfile, _ }}), do: true
+  defp compile?(%Mix.Dep{status: {:elixirlock, _}}), do: true
+  defp compile?(%Mix.Dep{status: {:noappfile, _}}), do: true
   defp compile?(%Mix.Dep{status: :compile}), do: true
   defp compile?(%Mix.Dep{}), do: false
 

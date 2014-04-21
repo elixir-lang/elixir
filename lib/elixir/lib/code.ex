@@ -28,7 +28,7 @@ defmodule Code do
   allowing them to be required again.
   """
   def unload_files(files) do
-    :elixir_code_server.cast { :unload_files, files }
+    :elixir_code_server.cast {:unload_files, files}
   end
 
   @doc """
@@ -88,7 +88,7 @@ defmodule Code do
   `:macros` will no longer auto-import `Kernel` macros like `if`, `case`,
   etc.
 
-  Returns a tuple of the form `{ value, binding }`,
+  Returns a tuple of the form `{value, binding}`,
   where `value` is the the value returned from evaluating `string`.
   If an error occurs while evaluating `string` an exception will be raised.
 
@@ -118,14 +118,14 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, Macro.Env[] = env) do
-    { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, env.to_keywords
-    { value, binding }
+    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, env.to_keywords
+    {value, binding}
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    { value, binding, _env, _scope } = :elixir.eval to_char_list(string), binding, opts
-    { value, binding }
+    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, opts
+    {value, binding}
   end
 
   @doc """
@@ -150,14 +150,14 @@ defmodule Code do
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, env.to_keywords
-    { value, binding }
+    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, env.to_keywords
+    {value, binding}
   end
 
   def eval_quoted(quoted, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    { value, binding, _env, _scope } = :elixir.eval_quoted quoted, binding, opts
-    { value, binding }
+    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, opts
+    {value, binding}
   end
 
   defp validate_eval_opts(opts) do
@@ -176,32 +176,32 @@ defmodule Code do
   end
 
   defp validate_aliases(kind, aliases) do
-    valid = is_list(aliases) and Enum.all?(aliases, fn { k, v } ->
+    valid = is_list(aliases) and Enum.all?(aliases, fn {k, v} ->
       is_atom(k) and is_atom(v)
     end)
 
     unless valid do
-      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{ module, module }]"
+      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{module, module}]"
     end
   end
 
   defp validate_imports(kind, imports) do
-    valid = is_list(imports) and Enum.all?(imports, fn { k, v } ->
-      is_atom(k) and is_list(v) and Enum.all?(v, fn { name, arity } ->
+    valid = is_list(imports) and Enum.all?(imports, fn {k, v} ->
+      is_atom(k) and is_list(v) and Enum.all?(v, fn {name, arity} ->
         is_atom(name) and is_integer(arity)
       end)
     end)
 
     unless valid do
-      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{ module, [{ name, arity }] }]"
+      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
     end
   end
 
   @doc """
   Convert the given string to its quoted form.
 
-  Returns `{ :ok, quoted_form }`
-  if it succeeds, `{ :error, { line, error, token } }` otherwise.
+  Returns `{:ok, quoted_form}`
+  if it succeeds, `{:error, {line, error, token}}` otherwise.
 
   ## Options
 
@@ -261,7 +261,7 @@ defmodule Code do
   Accepts `relative_to` as an argument to tell where the file is located.
   If the file was already required/loaded, loads it again.
 
-  It returns a list of tuples `{ ModuleName, <<byte_code>> }`, one tuple for
+  It returns a list of tuples `{ModuleName, <<byte_code>>}`, one tuple for
   each module defined in the file.
 
   Notice that if `load_file` is invoked by different processes concurrently,
@@ -270,9 +270,9 @@ defmodule Code do
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
-    :elixir_code_server.call { :acquire, file }
+    :elixir_code_server.call {:acquire, file}
     loaded = :elixir_compiler.file file
-    :elixir_code_server.cast { :loaded, file }
+    :elixir_code_server.cast {:loaded, file}
     loaded
   end
 
@@ -294,14 +294,14 @@ defmodule Code do
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
-    case :elixir_code_server.call({ :acquire, file }) do
+    case :elixir_code_server.call({:acquire, file}) do
       :loaded  ->
         nil
-      { :queued, ref }  ->
-        receive do { :elixir_code_server, ^ref, :loaded } -> nil end
+      {:queued, ref}  ->
+        receive do {:elixir_code_server, ^ref, :loaded} -> nil end
       :proceed ->
         loaded = :elixir_compiler.file file
-        :elixir_code_server.cast { :loaded, file }
+        :elixir_code_server.cast {:loaded, file}
         loaded
     end
   end
@@ -336,7 +336,7 @@ defmodule Code do
 
   """
   def compiler_options(opts) do
-    :elixir_code_server.cast { :compiler_options, opts }
+    :elixir_code_server.cast {:compiler_options, opts}
   end
 
   @doc """
@@ -367,8 +367,8 @@ defmodule Code do
   If the module is already loaded, this works as no-op. If the module
   was not yet loaded, it tries to load it.
 
-  If it succeeds loading the module, it returns `{ :module, module }`.
-  If not, returns `{ :error, reason }` with the error reason.
+  If it succeeds loading the module, it returns `{:module, module}`.
+  If not, returns `{:error, reason}` with the error reason.
 
   ## Code loading on the Erlang VM
 
@@ -411,7 +411,7 @@ defmodule Code do
   otherwise.
   """
   def ensure_loaded?(module) do
-    match?({ :module, ^module }, ensure_loaded(module))
+    match?({:module, ^module}, ensure_loaded(module))
   end
 
   @doc """
@@ -421,21 +421,21 @@ defmodule Code do
   not loaded yet, it checks if it needs to be compiled first and then
   tries to load it.
 
-  If it succeeds loading the module, it returns `{ :module, module }`.
-  If not, returns `{ :error, reason }` with the error reason.
+  If it succeeds loading the module, it returns `{:module, module}`.
+  If not, returns `{:error, reason}` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
-      { :error, :nofile } = error ->
+      {:error, :nofile} = error ->
         case :erlang.get(:elixir_ensure_compiled) do
           :undefined -> error
           _ ->
             try do
               module.__info__(:module)
-              { :module, module }
+              {:module, module}
             rescue
               UndefinedFunctionError -> error
             end
@@ -452,7 +452,7 @@ defmodule Code do
   Returns `false` otherwise.
   """
   def ensure_compiled?(module) do
-    match?({ :module, ^module }, ensure_compiled(module))
+    match?({:module, ^module}, ensure_compiled(module))
   end
 
   ## Helpers

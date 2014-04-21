@@ -55,7 +55,7 @@ defmodule Mix.Project do
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
         :ok
-      { :error, other } when is_binary(other) ->
+      {:error, other} when is_binary(other) ->
         raise Mix.Error, message: "Trying to load #{inspect atom} from #{inspect file}" <>
           " but another project with the same name was already defined at #{inspect other}"
     end
@@ -86,7 +86,7 @@ defmodule Mix.Project do
   """
   def get do
     case Mix.ProjectStack.peek do
-      { name, _config, _file } -> name
+      {name, _config, _file} -> name
       _ -> nil
     end
   end
@@ -110,7 +110,7 @@ defmodule Mix.Project do
   """
   def config do
     case Mix.ProjectStack.peek do
-      { _name, config, _file } -> config
+      {_name, config, _file} -> config
       _ -> default_config
     end
   end
@@ -276,7 +276,7 @@ defmodule Mix.Project do
     cond do
       opts[:symlink_ebin] ->
         Mix.Utils.symlink_or_copy(source, target)
-      match?({ :ok, _ }, :file.read_link(target)) ->
+      match?({:ok, _}, :file.read_link(target)) ->
         File.rm_rf!(target)
         File.mkdir_p!(target)
       true ->
@@ -304,7 +304,7 @@ defmodule Mix.Project do
     Mix.ProjectStack.post_config(post_config)
 
     if cached = Mix.ProjectStack.read_cache(app) do
-      { project, file } = cached
+      {project, file} = cached
       push(project, file)
       project
     else
@@ -323,7 +323,7 @@ defmodule Mix.Project do
         push new_proj, file
       end
 
-      Mix.ProjectStack.write_cache(app, { new_proj, file })
+      Mix.ProjectStack.write_cache(app, {new_proj, file})
       new_proj
     end
   end
@@ -340,7 +340,7 @@ defmodule Mix.Project do
       erlc_include_path: "include",
       erlc_options: [:debug_info],
       lockfile: "mix.lock",
-      preferred_cli_env: [{ "test", :test }] ]
+      preferred_cli_env: [{"test", :test}] ]
   end
 
   defp get_project_config(nil), do: []

@@ -62,46 +62,46 @@ env_for_eval(Opts) ->
     requires = elixir_dispatch:default_requires(),
     functions = elixir_dispatch:default_functions(),
     macros = elixir_dispatch:default_macros()
-  }, Opts).
+ }, Opts).
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of
-    { line, RawLine } when is_integer(RawLine) -> RawLine;
+    {line, RawLine} when is_integer(RawLine) -> RawLine;
     false -> Env#elixir_env.line
   end,
 
   File = case lists:keyfind(file, 1, Opts) of
-    { file, RawFile } when is_binary(RawFile) -> RawFile;
+    {file, RawFile} when is_binary(RawFile) -> RawFile;
     false -> Env#elixir_env.file
   end,
 
   Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    { delegate_locals_to, LocalOpt } -> LocalOpt;
+    {delegate_locals_to, LocalOpt} -> LocalOpt;
     false -> Env#elixir_env.local
   end,
 
   Aliases = case lists:keyfind(aliases, 1, Opts) of
-    { aliases, AliasesOpt } -> AliasesOpt;
+    {aliases, AliasesOpt} -> AliasesOpt;
     false -> Env#elixir_env.aliases
   end,
 
   Requires = case lists:keyfind(requires, 1, Opts) of
-    { requires, List } -> ordsets:from_list(List);
+    {requires, List} -> ordsets:from_list(List);
     false -> Env#elixir_env.requires
   end,
 
   Functions = case lists:keyfind(functions, 1, Opts) of
-    { functions, FunctionsOpt } -> FunctionsOpt;
+    {functions, FunctionsOpt} -> FunctionsOpt;
     false -> Env#elixir_env.functions
   end,
 
   Macros = case lists:keyfind(macros, 1, Opts) of
-    { macros, MacrosOpt } -> MacrosOpt;
+    {macros, MacrosOpt} -> MacrosOpt;
     false -> Env#elixir_env.macros
   end,
 
   Module = case lists:keyfind(module, 1, Opts) of
-    { module, ModuleOpt } when is_atom(ModuleOpt) -> ModuleOpt;
+    {module, ModuleOpt} when is_atom(ModuleOpt) -> ModuleOpt;
     false -> nil
   end,
 
@@ -109,7 +109,7 @@ env_for_eval(Env, Opts) ->
     file=File, local=Local, module=Module,
     macros=Macros, functions=Functions,
     requires=Requires, aliases=Aliases, line=Line
-  }.
+ }.
 
 %% String evaluation
 
@@ -139,16 +139,16 @@ eval_forms(Tree, Binding, #elixir_env{} = E) ->
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, env_for_eval(Opts)).
 eval_forms(Tree, Binding, Env, Scope) ->
-  { ParsedBinding, ParsedScope } = elixir_scope:load_binding(Binding, Scope),
+  {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
   ParsedEnv = Env#elixir_env{vars=[K || {K,_} <- ParsedScope#elixir_scope.vars]},
-  { Erl, NewEnv, NewScope } = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
+  {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of
-    { atom, _, Atom } ->
-      { Atom, Binding, NewEnv, NewScope };
+    {atom, _, Atom} ->
+      {Atom, Binding, NewEnv, NewScope};
     _  ->
-      { value, Value, NewBinding } = erl_eval:expr(Erl, ParsedBinding),
-      { Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope }
+      {value, Value, NewBinding} = erl_eval:expr(Erl, ParsedBinding),
+      {Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
 %% Converts a quoted expression to erlang abstract format
@@ -157,29 +157,29 @@ quoted_to_erl(Quoted, Env) ->
   quoted_to_erl(Quoted, Env, elixir_env:env_to_scope(Env)).
 
 quoted_to_erl(Quoted, Env, Scope) ->
-  { Expanded, NewEnv } = elixir_exp:expand(Quoted, Env),
-  { Erl, NewScope }    = elixir_translator:translate(Expanded, Scope),
-  { Erl, NewEnv, NewScope }.
+  {Expanded, NewEnv} = elixir_exp:expand(Quoted, Env),
+  {Erl, NewScope}    = elixir_translator:translate(Expanded, Scope),
+  {Erl, NewEnv, NewScope}.
 
 %% Converts a given string (char list) into quote expression
 
 string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
-  case elixir_tokenizer:tokenize(String, StartLine, [{ file, File }|Opts]) of
-    { ok, _Line, Tokens } ->
+  case elixir_tokenizer:tokenize(String, StartLine, [{file, File}|Opts]) of
+    {ok, _Line, Tokens} ->
       try elixir_parser:parse(Tokens) of
-        { ok, Forms } -> { ok, Forms };
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, to_binary(Error), to_binary(Token) } }
+        {ok, Forms} -> {ok, Forms};
+        {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       catch
-        { error, { Line, _, [Error, Token] } } -> { error, { Line, to_binary(Error), to_binary(Token) } }
+        {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       end;
-    { error, { Line, Error, Token }, _Rest, _SoFar } -> { error, { Line, to_binary(Error), to_binary(Token) } }
+    {error, {Line, Error, Token}, _Rest, _SoFar} -> {error, {Line, to_binary(Error), to_binary(Token)}}
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->
   case string_to_quoted(String, StartLine, File, Opts) of
-    { ok, Forms } ->
+    {ok, Forms} ->
       Forms;
-    { error, { Line, Error, Token } } ->
+    {error, {Line, Error, Token}} ->
       elixir_errors:parse_error(Line, File, Error, Token)
   end.
 

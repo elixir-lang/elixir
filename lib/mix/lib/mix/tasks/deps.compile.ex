@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Compile do
   The compilation can be customized by passing a `compile` option
   in the dependency:
 
-      { :some_dependency, "0.1.0", git: "...", compile: "command to compile" }
+      {:some_dependency, "0.1.0", git: "...", compile: "command to compile"}
 
   ## Command line options
 
@@ -34,9 +34,9 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get! # Require the project to be available
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
-      { opts, [], _ } ->
+      {opts, [], _} ->
         compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
-      { opts, tail, _ } ->
+      {opts, tail, _} ->
         compile(loaded_by_name(tail, env: Mix.env), opts)
     end
   end
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Deps.Compile do
     available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
-  defp check_unavailable!(app, { :unavailable, _ }) do
+  defp check_unavailable!(app, {:unavailable, _}) do
     raise Mix.Error, message: "Cannot compile dependency #{app} because " <>
       "it isn't available, run `mix deps.get` first"
   end

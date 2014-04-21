@@ -20,7 +20,7 @@ defmodule Mix.CLI do
 
   defp proceed(args) do
     args = load_mixfile(args)
-    { task, args } = get_task(args)
+    {task, args} = get_task(args)
     change_env(task)
     run_task(task, args)
   end
@@ -40,11 +40,11 @@ defmodule Mix.CLI do
   end
 
   defp get_task([h|t]) do
-    { h, t }
+    {h, t}
   end
 
   defp get_task([]) do
-    { Mix.project[:default_task], [] }
+    {Mix.project[:default_task], []}
   end
 
   defp run_task(name, args) do
@@ -87,7 +87,7 @@ defmodule Mix.CLI do
     if nil?(System.get_env("MIX_ENV")) && (env = Mix.project[:preferred_cli_env][task]) do
       Mix.env(env)
       if project = Mix.Project.pop do
-        { project, _config, file } = project
+        {project, _config, file} = project
         Mix.Project.push project, file
       end
     end

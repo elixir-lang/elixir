@@ -90,7 +90,7 @@ defmodule MixTest.Case do
       File.cd! dest, function
     after
       :code.set_path(get_path)
-      Enum.each (:code.all_loaded -- previous), fn { mod, file } ->
+      Enum.each (:code.all_loaded -- previous), fn {mod, file} ->
         if is_list(file) and :lists.prefix(flag, file) do
           purge [mod]
         end
@@ -196,7 +196,7 @@ unless File.dir?(target) do
     def project do
       [ app: :deps_on_git_repo,
         version: "0.2.0",
-        deps: [{ :git_repo, git: MixTest.Case.fixture_path("git_repo") }] ]
+        deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}] ]
     end
   end
   """

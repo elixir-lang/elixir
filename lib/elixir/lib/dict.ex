@@ -45,7 +45,7 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
-  defcallback fetch(t, key) :: { :ok, value } | :error
+  defcallback fetch(t, key) :: {:ok, value} | :error
   defcallback fetch!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
   defcallback keys(t) :: [key]
@@ -164,14 +164,14 @@ defmodule Dict do
   end
 
   @doc """
-  Returns `{ :ok, value }` associated with `key` in `dict`.
+  Returns `{:ok, value}` associated with `key` in `dict`.
   If `dict` does not contain `key`, returns `:error`.
 
   ## Examples
 
       iex> d = Enum.into([a: 1], dict_impl.new)
       iex> Dict.fetch(d, :a)
-      { :ok, 1 }
+      {:ok, 1}
       iex> Dict.fetch(d, :b)
       :error
 
@@ -287,8 +287,8 @@ defmodule Dict do
     if target1 == target2 do
       target1.merge(dict1, dict2, fun)
     else
-      Enumerable.reduce(dict2, { :cont, dict1 }, fn({ k, v }, acc) ->
-        { :cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end) }
+      Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
+        {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
       end) |> elem(1)
     end
   end
@@ -365,19 +365,19 @@ defmodule Dict do
   ## Examples
 
       iex> d = Enum.into([a: 1, b: 2, c: 3, d: 4], dict_impl.new)
-      iex> { d1, d2 } = Dict.split(d, [:a, :c, :e])
-      iex> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) |> Enum.sort }
-      { [a: 1, c: 3], [b: 2, d: 4] }
+      iex> {d1, d2} = Dict.split(d, [:a, :c, :e])
+      iex> {Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) |> Enum.sort}
+      {[a: 1, c: 3], [b: 2, d: 4]}
 
       iex> d = Enum.into([], dict_impl.new)
-      iex> { d1, d2 } = Dict.split(d, [:a, :c])
-      iex> { Dict.to_list(d1), Dict.to_list(d2) }
-      { [], [] }
+      iex> {d1, d2} = Dict.split(d, [:a, :c])
+      iex> {Dict.to_list(d1), Dict.to_list(d2)}
+      {[], []}
 
       iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> { d1, d2 } = Dict.split(d, [:a, :b, :c])
-      iex> { Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) }
-      { [a: 1, b: 2], [] }
+      iex> {d1, d2} = Dict.split(d, [:a, :b, :c])
+      iex> {Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2)}
+      {[a: 1, b: 2], []}
 
   """
   @spec split(t, [key]) :: {t, t}
@@ -464,10 +464,10 @@ defmodule Dict do
         target1.equal?(dict1, dict2)
 
       target1.size(dict1) == target2.size(dict2) ->
-        Enumerable.reduce(dict2, { :cont, true }, fn({ k, v }, _acc) ->
+        Enumerable.reduce(dict2, {:cont, true}, fn({k, v}, _acc) ->
           case target1.fetch(dict1, k) do
-            { :ok, ^v } -> { :cont, true }
-            _           -> { :halt, false }
+            {:ok, ^v} -> {:cont, true}
+            _           -> {:halt, false}
           end
         end) |> elem(1)
 

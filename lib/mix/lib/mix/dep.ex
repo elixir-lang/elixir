@@ -57,7 +57,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    { deps, _, _ } = Mix.Dep.Converger.all(nil, nil, opts, &{ &1, &2, &3 })
+    {deps, _, _} = Mix.Dep.Converger.all(nil, nil, opts, &{&1, &2, &3})
     Mix.Dep.Converger.topsort(deps)
   end
 
@@ -107,8 +107,8 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def unloaded(acc, lock, opts, callback) do
-    { deps, acc, lock } = Mix.Dep.Converger.all(acc, lock, opts, callback)
-    { Mix.Dep.Converger.topsort(deps), acc, lock }
+    {deps, acc, lock} = Mix.Dep.Converger.all(acc, lock, opts, callback)
+    {Mix.Dep.Converger.topsort(deps), acc, lock}
   end
 
   @doc """
@@ -142,21 +142,21 @@ defmodule Mix.Dep do
   @doc """
   Formats the status of a dependency.
   """
-  def format_status(%Mix.Dep{status: { :ok, _vsn }}),
+  def format_status(%Mix.Dep{status: {:ok, _vsn}}),
     do: "ok"
 
-  def format_status(%Mix.Dep{status: { :noappfile, path }}),
+  def format_status(%Mix.Dep{status: {:noappfile, path}}),
     do: "could not find an app file at #{Path.relative_to_cwd(path)}, " <>
         "this may happen when you specified the wrong application name in your deps " <>
         "or if the dependency did not compile (which can be amended with `#{mix_env_var}mix deps.compile`)"
 
-  def format_status(%Mix.Dep{status: { :invalidapp, path }}),
+  def format_status(%Mix.Dep{status: {:invalidapp, path}}),
     do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
 
-  def format_status(%Mix.Dep{status: { :invalidvsn, vsn }}),
+  def format_status(%Mix.Dep{status: {:invalidvsn, vsn}}),
     do: "the app file contains an invalid version: #{inspect vsn}"
 
-  def format_status(%Mix.Dep{status: { :nomatchvsn, vsn }, requirement: req}),
+  def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{app: app, status: :noscm, from: from}) do
@@ -165,7 +165,7 @@ defmodule Mix.Dep do
     ":git, :path or :in_umbrella as option"
   end
 
-  def format_status(%Mix.Dep{status: { :lockmismatch, _ }}),
+  def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
     do: "lock mismatch: the dependency is out of date"
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
@@ -177,7 +177,7 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: :compile}),
     do: "the dependency build is outdated, please run `#{mix_env_var}mix deps.compile`"
 
-  def format_status(%Mix.Dep{app: app, status: { :divergedreq, other }} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
     "the dependency #{app} defined\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
@@ -185,19 +185,19 @@ defmodule Mix.Dep do
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(%Mix.Dep{app: app, status: { :diverged, other }} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(%Mix.Dep{app: app, status: { :overridden, other }} = dep) do
+  def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
     "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
   end
 
-  def format_status(%Mix.Dep{status: { :unavailable, _ }, scm: scm}) do
+  def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
     if scm.fetchable? do
       "the dependency is not available, run `mix deps.get`"
     else
@@ -205,11 +205,11 @@ defmodule Mix.Dep do
     end
   end
 
-  def format_status(%Mix.Dep{status: { :elixirlock, _ }}),
+  def format_status(%Mix.Dep{status: {:elixirlock, _}}),
     do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
-    info = { app, req, Dict.drop(opts, [:dest, :lock, :env, :build]) }
+    info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
@@ -224,14 +224,14 @@ defmodule Mix.Dep do
     if scm && available?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
-          status = if rev, do: { :lockmismatch, rev }, else: :nolock
+          status = if rev, do: {:lockmismatch, rev}, else: :nolock
           %{dep | status: status, opts: opts}
         :outdated ->
           # Don't include the lock in the dependency if it is outdated
           %{dep | status: :lockoutdated}
         :ok ->
           if vsn = old_elixir_lock(dep) do
-            %{dep | status: { :elixirlock, vsn }, opts: opts}
+            %{dep | status: {:elixirlock, vsn}, opts: opts}
           else
             %{dep | opts: opts}
           end
@@ -244,17 +244,17 @@ defmodule Mix.Dep do
   @doc """
   Returns true if the dependency is ok.
   """
-  def ok?(%Mix.Dep{status: { :ok, _ }}), do: true
+  def ok?(%Mix.Dep{status: {:ok, _}}), do: true
   def ok?(%Mix.Dep{}), do: false
 
   @doc """
   Checks if a dependency is available. Available dependencies
   are the ones that can be loaded.
   """
-  def available?(%Mix.Dep{status: { :overridden, _ }}),   do: false
-  def available?(%Mix.Dep{status: { :diverged, _ }}),     do: false
-  def available?(%Mix.Dep{status: { :divergedreq, _ }}),  do: false
-  def available?(%Mix.Dep{status: { :unavailable, _ }}),  do: false
+  def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
+  def available?(%Mix.Dep{status: {:diverged, _}}),     do: false
+  def available?(%Mix.Dep{status: {:divergedreq, _}}),  do: false
+  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
   def available?(%Mix.Dep{}), do: true
 
   @doc """
@@ -263,7 +263,7 @@ defmodule Mix.Dep do
   def format_dep(%Mix.Dep{scm: scm, app: app, status: status, opts: opts}) do
     version =
       case status do
-        { :ok, vsn } when vsn != nil -> " #{vsn}"
+        {:ok, vsn} when vsn != nil -> " #{vsn}"
         _ -> ""
       end
 

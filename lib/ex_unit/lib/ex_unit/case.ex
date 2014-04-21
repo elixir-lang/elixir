@@ -36,8 +36,8 @@ defmodule ExUnit.Case do
         use ExUnit.Case
 
         setup do
-          { :ok, pid } = KV.start_link
-          { :ok, [pid: pid] }
+          {:ok, pid} = KV.start_link
+          {:ok, [pid: pid]}
         end
 
         test "stores key-values", context do
@@ -65,7 +65,7 @@ defmodule ExUnit.Case do
           if cd = context[:cd] do
             prev_cwd = File.cwd!
             File.cd!(cd)
-            { :ok, [prev_cd: prev_cd] }
+            {:ok, [prev_cd: prev_cd]}
           else
             :ok
           end

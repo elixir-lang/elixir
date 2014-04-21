@@ -52,13 +52,13 @@ defmodule ProtocolTest do
 
   defmodule NoImplStruct do
     def __struct__ do
-      %{ a: 0, b: 0 }
+      %{a: 0, b: 0}
     end
   end
 
   defmodule ImplStruct do
     def __struct__ do
-      %{ a: 0, b: 0 }
+      %{a: 0, b: 0}
     end
 
     defimpl Sample do
@@ -104,7 +104,7 @@ defmodule ProtocolTest do
   test "protocol implementation with any and records fallback" do
     assert WithAny.impl_for(ImplRec[])   == WithAny.ProtocolTest.ImplRec
     assert WithAny.impl_for(NoImplRec[]) == WithAny.Tuple
-    assert WithAny.impl_for({ :foo })    == WithAny.Tuple
+    assert WithAny.impl_for({:foo})    == WithAny.Tuple
     assert WithAny.impl_for({})          == WithAny.Tuple
     assert WithAny.impl_for(self)        == WithAny.Any
   end
@@ -112,7 +112,7 @@ defmodule ProtocolTest do
   test "protocol implementation with any and structs fallback" do
     assert WithAny.impl_for(%ImplStruct{})          == WithAny.ProtocolTest.ImplStruct
     assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
-    assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
+    assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{})                    == WithAny.Map
     assert WithAny.impl_for(self)                   == WithAny.Any
   end
@@ -125,8 +125,8 @@ defmodule ProtocolTest do
 
   test "protocol documentation" do
     docs = Sample.__info__(:docs)
-    assert { { :ok, 1 }, _, :def, [{ :thing, _, nil }], "Ok" } =
-           List.keyfind(docs, { :ok, 1 }, 0)
+    assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
+           List.keyfind(docs, {:ok, 1}, 0)
   end
 
   test "protocol keeps underlying UndefinedFunctionError" do
@@ -155,11 +155,11 @@ defmodule ProtocolTest do
 
     defimpl Attribute, for: ImplStruct do
       def test(_) do
-        { @protocol, @for }
+        {@protocol, @for}
       end
     end
 
-    assert Attribute.test(%ImplStruct{}) == { Attribute, ImplStruct }
+    assert Attribute.test(%ImplStruct{}) == {Attribute, ImplStruct}
     assert Attribute.ProtocolTest.ImplStruct.__impl__(:protocol) == Attribute
     assert Attribute.ProtocolTest.ImplStruct.__impl__(:for) == ImplStruct
     assert Attribute.ProtocolTest.ImplStruct.__info__(:attributes)[:impl] ==
@@ -180,8 +180,8 @@ defmodule ProtocolTest do
   end
 
   defp get_callbacks(module, name, arity) do
-    callbacks = for { :callback, info } <- module.__info__(:attributes), do: hd(info)
-    List.keyfind(callbacks, { name, arity }, 0) |> elem(1)
+    callbacks = for {:callback, info} <- module.__info__(:attributes), do: hd(info)
+    List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
   end
 end
 
@@ -191,7 +191,7 @@ end
 # path = Path.expand("../ebin", __DIR__)
 # File.mkdir_p!(path)
 #
-# compile = fn { :module, module, binary, _ } ->
+# compile = fn {:module, module, binary, _} ->
 #   :code.purge(module)
 #   :code.delete(module)
 #   File.write!("#{path}/#{module}.beam", binary)
@@ -219,24 +219,24 @@ end
 #
 #   defmodule NoImplStruct do
 #     def __struct__ do
-#       %{ a: 0, b: 0 }
+#       %{a: 0, b: 0}
 #     end
 #   end
 #
 #   defmodule ImplStruct do
 #     def __struct__ do
-#       %{ a: 0, b: 0 }
+#       %{a: 0, b: 0}
 #     end
 #   end
 #
 #   Code.append_path(path)
 #
 #   # Any is ignored because there is no fallback
-#   { :ok, binary } = Protocol.Consolidation.apply_to(Sample, [Any, ImplStruct])
+#   {:ok, binary} = Protocol.Consolidation.apply_to(Sample, [Any, ImplStruct])
 #   :code.load_binary(Sample, 'protocol_test.exs', binary)
 #
 #   # Any should be moved to the end
-#   { :ok, binary } = Protocol.Consolidation.apply_to(WithAny, [Any, ImplStruct, Map])
+#   {:ok, binary} = Protocol.Consolidation.apply_to(WithAny, [Any, ImplStruct, Map])
 #   :code.load_binary(WithAny, 'protocol_test.exs', binary)
 #
 #   test "consolidated implementations without any" do
@@ -265,26 +265,26 @@ end
 #   test "consolidated implementations with any and tuple fallback" do
 #     assert WithAny.impl_for(%ImplStruct{})          == WithAny.Protocol.ConsolidationTest.ImplStruct
 #     assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
-#     assert WithAny.impl_for(%{ __struct__: "foo" }) == WithAny.Map
+#     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
 #     assert WithAny.impl_for(%{})                    == WithAny.Map
 #     assert WithAny.impl_for(self)                   == WithAny.Any
 #   end
 #
 #   test "consolidation keeps docs" do
 #     docs = Sample.__info__(:docs)
-#     assert { { :ok, 1 }, _, :def, [{ :thing, _, nil }], "Ok" } =
-#            List.keyfind(docs, { :ok, 1 }, 0)
+#     assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
+#            List.keyfind(docs, {:ok, 1}, 0)
 #   end
 #
 #   test "consolidated keeps callbacks" do
-#     callbacks = for { :callback, info } <- Sample.__info__(:attributes), do: hd(info)
+#     callbacks = for {:callback, info} <- Sample.__info__(:attributes), do: hd(info)
 #     assert callbacks != []
 #   end
 #
 #   test "consolidation errors on missing beams" do
 #     defprotocol NoBeam, do: nil
-#     assert Protocol.Consolidation.apply_to(String, [])  == { :error, :not_a_protocol }
-#     assert Protocol.Consolidation.apply_to(NoBeam, [])  == { :error, :no_beam_info }
+#     assert Protocol.Consolidation.apply_to(String, [])  == {:error, :not_a_protocol}
+#     assert Protocol.Consolidation.apply_to(NoBeam, [])  == {:error, :no_beam_info}
 #   end
 #
 #   test "consolidation updates attributes" do

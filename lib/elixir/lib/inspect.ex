@@ -165,7 +165,7 @@ defimpl Inspect, for: BitString do
     escape(t, char, << binary :: binary, ?\\, char >>)
   end
   defp escape(<<?#, ?{, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?#, ?{ >>)
+    escape(t, char, << binary :: binary, ?\\, ?#, ?{>>)
   end
   defp escape(<<?\a, t :: binary>>, char, binary) do
     escape(t, char, << binary :: binary, ?\\, ?a >>)
@@ -299,7 +299,7 @@ defimpl Inspect, for: List do
     end
   end
 
-  def keyword?([{ key, _value } | rest]) when is_atom(key) do
+  def keyword?([{key, _value} | rest]) when is_atom(key) do
     case atom_to_list(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
@@ -352,10 +352,10 @@ defimpl Inspect, for: Tuple do
     )
   end
 
-  defp zip_fields([{ key, _ }|tk], [value|tv]) do
+  defp zip_fields([{key, _}|tk], [value|tv]) do
     case atom_to_binary(key) do
       "_" <> _ -> zip_fields(tk, tv)
-      key -> [{ key, value }|zip_fields(tk, tv)]
+      key -> [{key, value}|zip_fields(tk, tv)]
     end
   end
 
@@ -363,7 +363,7 @@ defimpl Inspect, for: Tuple do
     []
   end
 
-  defp keyword({ k, v }, opts) do
+  defp keyword({k, v}, opts) do
     concat(k <> ": ", to_doc(v, opts))
   end
 end

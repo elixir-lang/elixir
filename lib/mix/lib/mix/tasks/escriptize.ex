@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Escriptize do
 
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 
     # Require the project to be available
     Mix.Project.get!
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Escriptize do
         tuples = Enum.uniq(tuples, fn {name, _} -> name end)
 
         case :zip.create 'mem', tuples, [:memory] do
-          { :ok, { 'mem', zip } } ->
+          {:ok, {'mem', zip}} ->
             shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
             comment  = project[:escript_comment]  || "%%\n"
             emu_args = project[:escript_emu_args] || "%%!\n"
@@ -152,12 +152,12 @@ defmodule Mix.Tasks.Escriptize do
 
   defp to_tuples(files) do
     for f <- files do
-      { List.from_char_data!(Path.basename(f)), File.read!(f) }
+      {List.from_char_data!(Path.basename(f)), File.read!(f)}
     end
   end
 
   defp gen_main(name, module, app) do
-    { :module, ^name, binary, _ } =
+    {:module, ^name, binary, _} =
       defmodule name do
         @module module
         @app app
@@ -180,14 +180,14 @@ defmodule Mix.Tasks.Escriptize do
 
         defp start_app(app) do
           case :application.ensure_all_started(app) do
-            { :ok, _ } -> :ok
-            { :error, reason } ->
+            {:ok, _} -> :ok
+            {:error, reason} ->
               IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
               System.halt(1)
           end
         end
       end
 
-    [{ '#{name}.beam', binary }]
+    [{'#{name}.beam', binary}]
   end
 end

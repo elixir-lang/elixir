@@ -24,7 +24,7 @@ defmodule Mix.RemoteConverger do
   """
   def get do
     case :application.get_env(:mix, :remote_converger) do
-      { :ok, converger } -> converger
+      {:ok, converger} -> converger
       :undefined -> nil
     end
   end

@@ -42,10 +42,10 @@ defmodule Mix.Dep.Loader do
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
 
-    { dep, children } =
+    {dep, children} =
       cond do
         not ok?(dep.status) ->
-          { dep, [] }
+          {dep, []}
 
         manager == :rebar ->
           rebar_dep(dep)
@@ -57,10 +57,10 @@ defmodule Mix.Dep.Loader do
           rebar_dep(%{dep | manager: :rebar})
 
         make?(dest) ->
-          { %{dep | manager: :make}, [] }
+          {%{dep | manager: :make}, []}
 
         true ->
-          { dep, [] }
+          {dep, []}
       end
 
     %{validate_path(validate_app(dep)) | deps: children}
@@ -77,9 +77,9 @@ defmodule Mix.Dep.Loader do
       actual =~ req
     else
       case Version.parse(actual) do
-        { :ok, version } ->
+        {:ok, version} ->
           case Version.parse_requirement(req) do
-            { :ok, req } ->
+            {:ok, req} ->
               Version.match?(version, req)
             :error ->
               raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
@@ -99,15 +99,15 @@ defmodule Mix.Dep.Loader do
     %{with_scm_and_app(tuple, scms) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({ app, opts }, scms) when is_list(opts) do
-    with_scm_and_app({ app, nil, opts }, scms)
+  defp with_scm_and_app({app, opts}, scms) when is_list(opts) do
+    with_scm_and_app({app, nil, opts}, scms)
   end
 
-  defp with_scm_and_app({ app, req }, scms) do
-    with_scm_and_app({ app, req, [] }, scms)
+  defp with_scm_and_app({app, req}, scms) do
+    with_scm_and_app({app, req, []}, scms)
   end
 
-  defp with_scm_and_app({ app, req, opts } = other, scms) when is_atom(app) and is_list(opts) do
+  defp with_scm_and_app({app, req, opts} = other, scms) when is_atom(app) and is_list(opts) do
     unless is_binary(req) or Regex.regex?(req) or nil?(req) do
       invalid_dep_format(other)
     end
@@ -120,8 +120,8 @@ defmodule Mix.Dep.Loader do
             |> Keyword.put(:dest, dest)
             |> Keyword.put(:build, build)
 
-    { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
-      (new = scm.accepts_options(app, opts)) && { scm, new }
+    {scm, opts} = Enum.find_value scms, {nil, []}, fn(scm) ->
+      (new = scm.accepts_options(app, opts)) && {scm, new}
     end
 
     %Mix.Dep{
@@ -129,7 +129,7 @@ defmodule Mix.Dep.Loader do
       app: app,
       requirement: req,
       status: scm_status(scm, opts),
-      opts: opts }
+      opts: opts}
   end
 
   defp with_scm_and_app(other, _scms) do
@@ -141,13 +141,13 @@ defmodule Mix.Dep.Loader do
       nil?(scm) ->
         :noscm
       scm.checked_out?(opts) ->
-        { :ok, nil }
+        {:ok, nil}
       true ->
-        { :unavailable, opts[:dest] }
+        {:unavailable, opts[:dest]}
     end
   end
 
-  defp ok?({ :ok, _ }), do: true
+  defp ok?({:ok, _}), do: true
   defp ok?(_), do: false
 
   defp mix?(dest) do
@@ -172,7 +172,7 @@ defmodule Mix.Dep.Loader do
 
     Expected:
 
-        { app, opts } | { app, requirement } | { app, requirement, opts }
+        {app, opts} | {app, requirement} | {app, requirement, opts}
 
     Where:
 
@@ -201,7 +201,7 @@ defmodule Mix.Dep.Loader do
 
       children = children(env: opts[:env] || :prod)
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      { dep, children }
+      {dep, children}
     end)
   end
 
@@ -210,7 +210,7 @@ defmodule Mix.Dep.Loader do
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}
-      { dep, rebar_children(rebar) }
+      {dep, rebar_children(rebar)}
     end)
   end
 
@@ -251,22 +251,22 @@ defmodule Mix.Dep.Loader do
 
   defp app_status(app_path, app, req) do
     case :file.consult(app_path) do
-      { :ok, [{ :application, ^app, config }] } ->
+      {:ok, [{:application, ^app, config}]} ->
         case List.keyfind(config, :vsn, 0) do
-          { :vsn, actual } when is_list(actual) ->
+          {:vsn, actual} when is_list(actual) ->
             actual = iodata_to_binary(actual)
             if vsn_match?(req, actual, app) do
-              { :ok, actual }
+              {:ok, actual}
             else
-              { :nomatchvsn, actual }
+              {:nomatchvsn, actual}
             end
-          { :vsn, actual } ->
-            { :invalidvsn, actual }
+          {:vsn, actual} ->
+            {:invalidvsn, actual}
           nil ->
-            { :invalidvsn, nil }
+            {:invalidvsn, nil}
         end
-      { :ok, _ } -> { :invalidapp, app_path }
-      { :error, _ } -> { :noappfile, app_path }
+      {:ok, _} -> {:invalidapp, app_path}
+      {:error, _} -> {:noappfile, app_path}
     end
   end
 

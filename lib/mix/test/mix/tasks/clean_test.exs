@@ -9,8 +9,8 @@ defmodule Mix.Tasks.CleanTest do
         app: :sample,
         version: "0.1.0",
         deps: [
-          { :ok, "0.1.0", path: "deps/ok" },
-          { :unknown, "0.1.0", git: "deps/unknown" }
+          {:ok, "0.1.0", path: "deps/ok"},
+          {:unknown, "0.1.0", git: "deps/unknown"}
         ]
       ]
     end
@@ -38,10 +38,10 @@ defmodule Mix.Tasks.CleanTest do
 
       assert File.exists?("_build/dev")
       refute File.exists?("_build/dev/lib/ok")
-      assert_received { :mix_shell, :info, ["* Cleaning ok"] }
+      assert_received {:mix_shell, :info, ["* Cleaning ok"]}
 
       # Assert we don't choke on unfetched deps
-      assert_received { :mix_shell, :info, ["* Cleaning unknown"] }
+      assert_received {:mix_shell, :info, ["* Cleaning unknown"]}
     end
   end
 
@@ -52,8 +52,8 @@ defmodule Mix.Tasks.CleanTest do
 
       assert File.exists?("_build/dev")
       refute File.exists?("_build/dev/lib")
-      assert_received { :mix_shell, :info, ["* Cleaning ok"] }
-      assert_received { :mix_shell, :info, ["* Cleaning unknown"] }
+      assert_received {:mix_shell, :info, ["* Cleaning ok"]}
+      assert_received {:mix_shell, :info, ["* Cleaning unknown"]}
     end
   end
 end

@@ -6,7 +6,7 @@ defmodule Mix.Shell.Process do
   When a developer calls `info("hello")`, the following
   message will be sent to the current process:
 
-      { :mix_shell, :info, ["hello"] }
+      {:mix_shell, :info, ["hello"]}
 
   This is mainly useful in tests, allowing us to assert
   if given messages were received or not. Since we need
@@ -28,10 +28,10 @@ defmodule Mix.Shell.Process do
   """
   def flush(callback \\ fn(x) -> x end) do
     receive do
-      { :mix_shell, _, _ } = message ->
+      {:mix_shell, _, _} = message ->
         callback.(message)
         flush(callback)
-      { :mix_shell_input, _, _ } = message ->
+      {:mix_shell_input, _, _} = message ->
         callback.(message)
         flush(callback)
     after
@@ -46,7 +46,7 @@ defmodule Mix.Shell.Process do
   def cmd(command) do
     put_app
     Mix.Shell.cmd(command, fn(data) ->
-      send self, { :mix_shell, :run, [data] }
+      send self, {:mix_shell, :run, [data]}
     end)
   end
 
@@ -55,7 +55,7 @@ defmodule Mix.Shell.Process do
   """
   def info(message) do
     put_app
-    send self, { :mix_shell, :info, [IO.ANSI.escape(message, false)] }
+    send self, {:mix_shell, :info, [IO.ANSI.escape(message, false)]}
   end
 
   @doc """
@@ -63,24 +63,24 @@ defmodule Mix.Shell.Process do
   """
   def error(message) do
     put_app
-    send self, { :mix_shell, :error, [IO.ANSI.escape(message, false)] }
+    send self, {:mix_shell, :error, [IO.ANSI.escape(message, false)]}
   end
 
   @doc """
   Forwards the message to the current process.
   It also checks the inbox for an input message matching:
 
-      { :mix_shell_input, :prompt, value }
+      {:mix_shell_input, :prompt, value}
 
   If one does not exist, it will abort since there was no shell
   process inputs given. Value must be a string.
   """
   def prompt(message) do
     put_app
-    send self, { :mix_shell, :prompt, [IO.ANSI.escape(message, false)] }
+    send self, {:mix_shell, :prompt, [IO.ANSI.escape(message, false)]}
 
     receive do
-      { :mix_shell_input, :prompt, response } -> response
+      {:mix_shell_input, :prompt, response} -> response
     after
       0 -> raise Mix.Error, message: "No shell process input given for prompt/1"
     end
@@ -90,17 +90,17 @@ defmodule Mix.Shell.Process do
   Forwards the message to the current process.
   It also checks the inbox for an input message matching:
 
-      { :mix_shell_input, :yes?, value }
+      {:mix_shell_input, :yes?, value}
 
   If one does not exist, it will abort since there was no shell
   process inputs given. Value must be `true` or `false`.
   """
   def yes?(message) do
     put_app
-    send self, { :mix_shell, :yes?, [IO.ANSI.escape(message, false)] }
+    send self, {:mix_shell, :yes?, [IO.ANSI.escape(message, false)]}
 
     receive do
-      { :mix_shell_input, :yes?, response } -> response
+      {:mix_shell_input, :yes?, response} -> response
     after
       0 -> raise Mix.Error, message: "No shell process input given for yes?/1"
     end
@@ -108,7 +108,7 @@ defmodule Mix.Shell.Process do
 
   defp put_app do
     if Mix.Shell.output_app? do
-      send self, { :mix_shell, :info, ["==> #{Mix.project[:app]}"] }
+      send self, {:mix_shell, :info, ["==> #{Mix.project[:app]}"]}
     end
   end
 end

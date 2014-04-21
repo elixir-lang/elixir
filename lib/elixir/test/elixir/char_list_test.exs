@@ -44,11 +44,11 @@ bar '''
   end
 
   test :from_char_data do
-    assert List.from_char_data("æß")  == { :ok, [?æ, ?ß] }
-    assert List.from_char_data("abc") == { :ok, [?a, ?b, ?c] }
+    assert List.from_char_data("æß")  == {:ok, [?æ, ?ß]}
+    assert List.from_char_data("abc") == {:ok, [?a, ?b, ?c]}
 
-    assert List.from_char_data(<< 0xDF, 0xFF >>) == { :error, [], << 223, 255 >> }
-    assert List.from_char_data(<< 106, 111, 115, 195 >>) == { :incomplete, 'jos', << 195 >> }
+    assert List.from_char_data(<< 0xDF, 0xFF >>) == {:error, [], << 223, 255 >>}
+    assert List.from_char_data(<< 106, 111, 115, 195 >>) == {:incomplete, 'jos', << 195 >>}
   end
 
   test :from_char_data! do

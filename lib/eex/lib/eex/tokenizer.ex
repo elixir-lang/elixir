@@ -5,11 +5,11 @@ defmodule EEx.Tokenizer do
   Tokenizes the given char list or binary.
   It returns 4 different types of tokens as result:
 
-  * { :text, contents }
-  * { :expr, line, marker, contents }
-  * { :start_expr, line, marker, contents }
-  * { :middle_expr, line, marker, contents }
-  * { :end_expr, line, marker, contents }
+  * {:text, contents}
+  * {:expr, line, marker, contents}
+  * {:start_expr, line, marker, contents}
+  * {:middle_expr, line, marker, contents}
+  * {:end_expr, line, marker, contents}
 
   """
   def tokenize(bin, line) when is_binary(bin) do
@@ -21,22 +21,22 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%%' ++ t, line, buffer, acc) do
-    { buffer, new_line, rest } = tokenize_expr t, line, [?%, ?<|buffer]
+    {buffer, new_line, rest} = tokenize_expr t, line, [?%, ?<|buffer]
     tokenize rest, new_line, [?>, ?%|buffer], acc
   end
 
   defp tokenize('<%#' ++ t, line, buffer, acc) do
-    { _, new_line, rest } = tokenize_expr t, line, []
+    {_, new_line, rest} = tokenize_expr t, line, []
     tokenize rest, new_line, buffer, acc
   end
 
   defp tokenize('<%' ++ t, line, buffer, acc) do
-    { marker, t } = retrieve_marker(t)
-    { expr, new_line, rest } = tokenize_expr t, line, []
+    {marker, t} = retrieve_marker(t)
+    {expr, new_line, rest} = tokenize_expr t, line, []
 
     token = token_name(expr)
     acc   = tokenize_text(buffer, acc)
-    final = { token, line, marker, Enum.reverse(expr) }
+    final = {token, line, marker, Enum.reverse(expr)}
     tokenize rest, new_line, [], [final | acc]
   end
 
@@ -55,17 +55,17 @@ defmodule EEx.Tokenizer do
   # Retrieve marker for <%
 
   defp retrieve_marker('=' ++ t) do
-    { "=", t }
+    {"=", t}
   end
 
   defp retrieve_marker(t) do
-    { "", t }
+    {"", t}
   end
 
   # Tokenize an expression until we find %>
 
   defp tokenize_expr([?%, ?>|t], line, buffer) do
-    { buffer, line, t }
+    {buffer, line, t}
   end
 
   defp tokenize_expr('\n' ++ t, line, buffer) do
@@ -104,7 +104,7 @@ defmodule EEx.Tokenizer do
     # token and, if so, it is not followed by an "end"
     # token. If this is the case, we are on a start expr.
     case :elixir_tokenizer.tokenize(rest, 1, file: "eex", check_terminators: false) do
-      { :ok, _line, tokens } ->
+      {:ok, _line, tokens} ->
         tokens   = Enum.reverse(tokens)
         fn_index = fn_index(tokens)
 
@@ -130,14 +130,14 @@ defmodule EEx.Tokenizer do
 
   defp fn_index(tokens) do
     Enum.find_index tokens, fn
-      { :fn_paren, _ } -> true
-      { :fn, _ }       -> true
+      {:fn_paren, _} -> true
+      {:fn, _}       -> true
       _                -> false
     end
   end
 
   defp end_index(tokens) do
-    Enum.find_index(tokens, &match?({ :end, _ }, &1)) || :infinity
+    Enum.find_index(tokens, &match?({:end, _}, &1)) || :infinity
   end
 
   defp check_spaces(string, token) do
@@ -156,6 +156,6 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize_text(buffer, acc) do
-    [{ :text, Enum.reverse(buffer) } | acc]
+    [{:text, Enum.reverse(buffer)} | acc]
   end
 end

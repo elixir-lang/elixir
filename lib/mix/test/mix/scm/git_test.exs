@@ -23,6 +23,6 @@ defmodule Mix.SCM.GitTest do
   end
 
   defp lock(opts \\ []) do
-    [lock: { :git, "/repo", "abcdef0123456789", opts }]
+    [lock: {:git, "/repo", "abcdef0123456789", opts}]
   end
 end

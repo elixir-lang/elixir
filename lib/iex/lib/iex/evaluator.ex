@@ -29,16 +29,16 @@ defmodule IEx.Evaluator do
 
   defp loop(server) do
     receive do
-      { :eval, ^server, code, config } ->
-        send server, { :evaled, self, eval(code, config) }
+      {:eval, ^server, code, config} ->
+        send server, {:evaled, self, eval(code, config)}
         loop(server)
-      { :done, ^server } ->
+      {:done, ^server} ->
         IEx.History.reset
         :ok
 
-      { :EXIT, _other, :normal } ->
+      {:EXIT, _other, :normal} ->
         loop(server)
-      { :EXIT, other, reason } ->
+      {:EXIT, other, reason} ->
         print_exit(other, reason)
         loop(server)
     end
@@ -70,7 +70,7 @@ defmodule IEx.Evaluator do
       env  = :elixir.env_for_eval(config.env, file: path)
 
       # Evaluate the contents in the same environment server_loop will run in
-      { _result, binding, env, _scope } =
+      {_result, binding, env, _scope} =
         :elixir.eval(List.from_char_data!(code), config.binding, env)
 
       config.binding(binding).env(:elixir.env_for_eval(env, file: "iex"))
@@ -120,14 +120,14 @@ defmodule IEx.Evaluator do
     line = config.counter
 
     case Code.string_to_quoted(code, [line: line, file: "iex"]) do
-      { :ok, forms } ->
-        { result, new_binding, env, scope } =
+      {:ok, forms} ->
+        {result, new_binding, env, scope} =
           :elixir.eval_forms(forms, config.binding, config.env, config.scope)
         unless result == IEx.dont_display_result, do: io_put result
         update_history(line, code, result)
         config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).env(env)
 
-      { :error, { line, error, token } } ->
+      {:error, {line, error, token}} ->
         if token == "" do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
@@ -140,7 +140,7 @@ defmodule IEx.Evaluator do
   end
 
   defp update_history(counter, cache, result) do
-    IEx.History.append({ counter, cache, result }, counter, IEx.Options.get(:history_size))
+    IEx.History.append({counter, cache, result}, counter, IEx.Options.get(:history_size))
   end
 
   defp io_put(result) do
@@ -154,15 +154,15 @@ defmodule IEx.Evaluator do
   defp inspect_opts do
     opts = IEx.Options.get(:inspect)
     case :io.columns(:standard_input) do
-      { :ok, width } -> [width: min(width, 80)] ++ opts
-      { :error, _ }  -> opts
+      {:ok, width} -> [width: min(width, 80)] ++ opts
+      {:error, _}  -> opts
     end
   end
 
   ## Error handling
 
   defp print_error(:error, exception, stacktrace) do
-    { exception, stacktrace } = normalize_exception(exception, stacktrace)
+    {exception, stacktrace} = normalize_exception(exception, stacktrace)
     print_stacktrace stacktrace, fn ->
       "** (#{inspect exception.__record__(:name)}) #{exception.message}"
     end
@@ -178,12 +178,12 @@ defmodule IEx.Evaluator do
     io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
   end
 
-  defp normalize_exception(:undef, [{ IEx.Helpers, fun, arity, _ }|t]) do
-    { RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t }
+  defp normalize_exception(:undef, [{IEx.Helpers, fun, arity, _}|t]) do
+    {RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t}
   end
 
   defp normalize_exception(exception, stacktrace) do
-    { Exception.normalize(:error, exception), stacktrace }
+    {Exception.normalize(:error, exception), stacktrace}
   end
 
   defp format_function(fun, arity) do
@@ -208,8 +208,8 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp prune_stacktrace([{ :erl_eval, _, _, _ }|_]),  do: []
-  defp prune_stacktrace([{ __MODULE__, _, _, _ }|_]), do: []
+  defp prune_stacktrace([{:erl_eval, _, _, _}|_]),  do: []
+  defp prune_stacktrace([{__MODULE__, _, _, _}|_]), do: []
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
 
@@ -220,7 +220,7 @@ defmodule IEx.Evaluator do
         split_entry(Exception.format_stacktrace_entry(entry))
       end
 
-    width = Enum.reduce entries, 0, fn { app, _ }, acc ->
+    width = Enum.reduce entries, 0, fn {app, _}, acc ->
       max(String.length(app), acc)
     end
 
@@ -231,15 +231,15 @@ defmodule IEx.Evaluator do
     case entry do
       "(" <> _ ->
         case :binary.split(entry, ") ") do
-          [left, right] -> { left <> ")", right }
-          _ -> { "", entry }
+          [left, right] -> {left <> ")", right}
+          _ -> {"", entry}
         end
       _ ->
-        { "", entry }
+        {"", entry}
     end
   end
 
-  defp format_entry({ app, info }, width) do
+  defp format_entry({app, info}, width) do
     app = String.rjust(app, width)
     "#{IEx.color(:stack_app, app)} #{IEx.color(:stack_info, info)}"
   end

@@ -105,7 +105,7 @@ defmodule Record.PrivateTest do
   end
 
   test "defmacros" do
-    assert { :_macro, 2, 3 } = Macros.macro()
+    assert {:_macro, 2, 3} = Macros.macro()
   end
 
   defrecordp :match, [:name]

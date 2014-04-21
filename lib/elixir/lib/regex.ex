@@ -63,7 +63,7 @@ defmodule Regex do
   """
 
   defrecordp :regex, Regex, [:re_pattern, :source, :options]
-  @type t :: { Regex, term, binary, binary, [atom] | nil }
+  @type t :: {Regex, term, binary, binary, [atom] | nil}
 
   defexception CompileError, message: "regex could not be compiled"
 
@@ -74,8 +74,8 @@ defmodule Regex do
   representing the same regex options given to the `~r` sigil,
   or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
 
-  It returns `{ :ok, regex }` in case of success,
-  `{ :error, reason }` otherwise.
+  It returns `{:ok, regex}` in case of success,
+  `{:error, reason}` otherwise.
 
   ## Examples
 
@@ -86,13 +86,13 @@ defmodule Regex do
       {:error, {'nothing to repeat', 0}}
 
   """
-  @spec compile(binary, binary | [term]) :: { :ok, t } | { :error, any }
+  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
   def compile(source, options \\ "")
 
   def compile(source, options) when is_binary(options) do
     case translate_options(options) do
-      { :error, rest } ->
-        { :error, { :invalid_option, rest } }
+      {:error, rest} ->
+        {:error, {:invalid_option, rest}}
 
       translated_options ->
         compile(source, translated_options, options)
@@ -105,8 +105,8 @@ defmodule Regex do
 
   defp compile(source, opts, doc_opts) when is_binary(source) do
     case :re.compile(source, opts) do
-      { :ok, re_pattern } ->
-        { :ok, regex(re_pattern: re_pattern, source: source, options: doc_opts) }
+      {:ok, re_pattern} ->
+        {:ok, regex(re_pattern: re_pattern, source: source, options: doc_opts)}
       error ->
         error
     end
@@ -118,8 +118,8 @@ defmodule Regex do
   """
   def compile!(source, options \\ "") do
     case compile(source, options) do
-      { :ok, regex } -> regex
-      { :error, { reason, at } } -> raise Regex.CompileError, message: "#{reason} at position #{at}"
+      {:ok, regex} -> regex
+      {:error, {reason, at}} -> raise Regex.CompileError, message: "#{reason} at position #{at}"
     end
   end
 
@@ -136,7 +136,7 @@ defmodule Regex do
 
   """
   def match?(regex(re_pattern: compiled), string) when is_binary(string) do
-    :re.run(string, compiled, [{ :capture, :none }]) == :match
+    :re.run(string, compiled, [{:capture, :none}]) == :match
   end
 
   @doc """
@@ -189,10 +189,10 @@ defmodule Regex do
         others  -> others
       end
 
-    case :re.run(string, compiled, [{ :capture, captures, return }]) do
+    case :re.run(string, compiled, [{:capture, captures, return}]) do
       :nomatch -> nil
       :match   -> []
-      { :match, results } -> results
+      {:match, results} -> results
     end
   end
 
@@ -204,10 +204,10 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
-      %{ "foo" => "d" }
+      %{"foo" => "d"}
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
-      %{ "bar" => "d", "foo" => "b" }
+      %{"bar" => "d", "foo" => "b"}
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
@@ -263,7 +263,7 @@ defmodule Regex do
 
   """
   def names(regex(re_pattern: re_pattern)) do
-    { :namelist, names } = :re.inspect(re_pattern, :namelist)
+    {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
 
@@ -309,11 +309,11 @@ defmodule Regex do
         others -> others
       end
 
-    options = [{ :capture, captures, return }, :global]
+    options = [{:capture, captures, return}, :global]
     case :re.run(string, compiled, options) do
       :match -> []
       :nomatch -> []
-      { :match, results } -> results
+      {:match, results} -> results
     end
   end
 
@@ -400,11 +400,11 @@ defmodule Regex do
 
   def replace(regex(re_pattern: compiled), string, replacement, options) when is_binary(string) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
-    opts = [{ :return, :binary }|opts]
+    opts = [{:return, :binary}|opts]
     :re.replace(string, compiled, replacement, opts)
   end
 
-  { :ok, pattern } = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])
+  {:ok, pattern} = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
   @doc ~S"""
@@ -421,7 +421,7 @@ defmodule Regex do
   """
   @spec escape(String.t) :: String.t
   def escape(string) when is_binary(string) do
-    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, :binary }])
+    :re.replace(string, @escape_pattern, "\\\\&", [:global, {:return, :binary}])
   end
 
   # Helpers
@@ -451,5 +451,5 @@ defmodule Regex do
   defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<>>), do: []
-  defp translate_options(rest), do: { :error, rest }
+  defp translate_options(rest), do: {:error, rest}
 end

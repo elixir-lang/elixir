@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.AssertionsTest.Value do
-  def tuple, do: { 2, 1 }
+  def tuple, do: {2, 1}
   def falsy, do: false
   def truthy, do: true
 end
@@ -72,7 +72,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match when equal" do
-    { 2, 1 } = (assert { 2, 1 } = Value.tuple)
+    {2, 1} = (assert {2, 1} = Value.tuple)
   end
 
   test "assert receive waits" do
@@ -96,8 +96,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert received leaks" do
-    send self, { :hello, :world }
-    assert_received { :hello, world }
+    send self, {:hello, :world}
+    assert_received {:hello, world}
     :world = world
   end
 
@@ -150,12 +150,12 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match" do
-    { :ok, true } = assert { :ok, _ } = { :ok, true }
+    {:ok, true} = assert {:ok, _} = {:ok, true}
   end
 
   test "assert match when no match" do
     try do
-      "This should never be tested" = assert { :ok, _ } = "bar"
+      "This should never be tested" = assert {:ok, _} = "bar"
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed"   = error.message

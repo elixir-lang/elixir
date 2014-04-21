@@ -4,22 +4,22 @@ defmodule Stream.Reducers do
 
   defmacro chunk(n, step, limit, f \\ nil) do
     quote do
-      fn entry, acc(h, { buffer, count }, t) ->
+      fn entry, acc(h, {buffer, count}, t) ->
         buffer = [entry|buffer]
         count  = count + 1
 
         new =
           if count >= unquote(limit) do
             left = count - unquote(step)
-            { Enum.take(buffer, left), left }
+            {Enum.take(buffer, left), left}
           else
-            { buffer, count }
+            {buffer, count}
           end
 
         if count == unquote(n) do
           cont_with_acc(unquote(f), :lists.reverse(buffer), h, new, t)
         else
-          { :cont, acc(h, new, t) }
+          {:cont, acc(h, new, t)}
         end
       end
     end
@@ -28,15 +28,15 @@ defmodule Stream.Reducers do
   defmacro chunk_by(callback, f \\ nil) do
     quote do
       fn
-        entry, acc(h, { buffer, value }, t) ->
+        entry, acc(h, {buffer, value}, t) ->
           new_value = unquote(callback).(entry)
           if new_value == value do
-            { :cont, acc(h, { [entry|buffer], value }, t) }
+            {:cont, acc(h, {[entry|buffer], value}, t)}
           else
-            cont_with_acc(unquote(f), :lists.reverse(buffer), h, { [entry], new_value }, t)
+            cont_with_acc(unquote(f), :lists.reverse(buffer), h, {[entry], new_value}, t)
           end
         entry, acc(h, nil, t) ->
-          { :cont, acc(h, { [entry], unquote(callback).(entry) }, t) }
+          {:cont, acc(h, {[entry], unquote(callback).(entry)}, t)}
       end
     end
   end
@@ -45,7 +45,7 @@ defmodule Stream.Reducers do
     quote do
       fn
         _entry, acc(h, n, t) when n > 0 ->
-          { :cont, acc(h, n-1, t) }
+          {:cont, acc(h, n-1, t)}
         entry, acc(h, n, t) ->
           cont_with_acc(unquote(f), entry, h, n, t)
       end
@@ -56,7 +56,7 @@ defmodule Stream.Reducers do
     quote do
       fn entry, acc(h, bool, t) = orig ->
         if bool and unquote(callback).(entry) do
-          { :cont, orig }
+          {:cont, orig}
         else
           cont_with_acc(unquote(f), entry, h, false, t)
         end
@@ -70,7 +70,7 @@ defmodule Stream.Reducers do
         if unquote(callback).(entry) do
           cont(unquote(f), entry, acc)
         else
-          { :cont, acc }
+          {:cont, acc}
         end
       end
     end
@@ -82,7 +82,7 @@ defmodule Stream.Reducers do
         if unquote(filter).(entry) do
           cont(unquote(f), unquote(mapper).(entry), acc)
         else
-          { :cont, acc }
+          {:cont, acc}
         end
       end
     end
@@ -102,7 +102,7 @@ defmodule Stream.Reducers do
         unless unquote(callback).(entry) do
           cont(unquote(f), entry, acc)
         else
-          { :cont, acc }
+          {:cont, acc}
         end
       end
     end
@@ -112,10 +112,10 @@ defmodule Stream.Reducers do
     quote do
       fn
         entry, acc(h, :first, t) ->
-          cont_with_acc(unquote(f), entry, h, { :ok, entry }, t)
-        entry, acc(h, { :ok, acc }, t) ->
+          cont_with_acc(unquote(f), entry, h, {:ok, entry}, t)
+        entry, acc(h, {:ok, acc}, t) ->
           value = unquote(callback).(entry, acc)
-          cont_with_acc(unquote(f), value, h, { :ok, value }, t)
+          cont_with_acc(unquote(f), value, h, {:ok, value}, t)
       end
     end
   end
@@ -135,7 +135,7 @@ defmodule Stream.Reducers do
         if n >= 1 do
           cont_with_acc(unquote(f), entry, h, n-1, t)
         else
-          { :halt, orig }
+          {:halt, orig}
         end
       end
     end
@@ -148,7 +148,7 @@ defmodule Stream.Reducers do
                             when n === unquote(nth) ->
           cont_with_acc(unquote(f), entry, h, 1, t)
         entry, acc(h, n, t) ->
-          { :cont, acc(h, n+1, t) }
+          {:cont, acc(h, n+1, t)}
       end
     end
   end
@@ -159,7 +159,7 @@ defmodule Stream.Reducers do
         if unquote(callback).(entry) do
           cont(unquote(f), entry, acc)
         else
-          { :halt, acc }
+          {:halt, acc}
         end
       end
     end
@@ -170,7 +170,7 @@ defmodule Stream.Reducers do
       fn(entry, acc(h, prev, t) = acc) ->
         value = unquote(callback).(entry)
         if :lists.member(value, prev) do
-          { :cont, acc }
+          {:cont, acc}
         else
           cont_with_acc(unquote(f), entry, h, [value|prev], t)
         end
@@ -181,7 +181,7 @@ defmodule Stream.Reducers do
   defmacro with_index(f \\ nil) do
     quote do
       fn(entry, acc(h, counter, t)) ->
-        cont_with_acc(unquote(f), { entry, counter }, h, counter + 1, t)
+        cont_with_acc(unquote(f), {entry, counter}, h, counter + 1, t)
       end
     end
   end

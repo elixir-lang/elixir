@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Test do
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
-      if :application.get_env(:cover, :started) != { :ok, true } do
+      if :application.get_env(:cover, :started) != {:ok, true} do
         output = opts[:output]
 
         System.at_exit fn(_) ->
@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Test do
   @cover [output: "cover", tool: Cover]
 
   def run(args) do
-    { opts, files, _ } = OptionParser.parse(args, switches: @switches)
+    {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       raise Mix.Error, message: "mix test is running on environment #{Mix.env}. If you are " <>

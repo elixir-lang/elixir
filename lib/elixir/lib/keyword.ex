@@ -27,13 +27,13 @@ defmodule Keyword do
   @type value :: any
 
   @type t :: [{key, value}]
-  @type t(value) :: [{ key, value }]
+  @type t(value) :: [{key, value}]
 
   @doc """
   Checks if the given argument is a keywords list or not.
   """
   @spec keyword?(term) :: boolean
-  def keyword?([{ key, _value } | rest]) when is_atom(key) do
+  def keyword?([{key, _value} | rest]) when is_atom(key) do
     keyword?(rest)
   end
 
@@ -63,7 +63,7 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.reduce pairs, [], fn { k, v }, keywords ->
+    Enum.reduce pairs, [], fn {k, v}, keywords ->
       put(keywords, k, v)
     end
   end
@@ -84,7 +84,7 @@ defmodule Keyword do
   @spec new(Enum.t, ({key, value} -> {key, value})) :: t
   def new(pairs, transform) do
     Enum.reduce pairs, [], fn i, keywords ->
-      { k, v } = transform.(i)
+      {k, v} = transform.(i)
       put(keywords, k, v)
     end
   end
@@ -113,7 +113,7 @@ defmodule Keyword do
   @spec get(t, key, value) :: value
   def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
-      { ^key, value } -> value
+      {^key, value} -> value
       false -> default
     end
   end
@@ -125,7 +125,7 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.fetch([a: 1], :a)
-      { :ok, 1 }
+      {:ok, 1}
 
       iex> Keyword.fetch([a: 1], :b)
       :error
@@ -134,7 +134,7 @@ defmodule Keyword do
   @spec fetch(t, key) :: value
   def fetch(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
-      { ^key, value } -> { :ok, value }
+      {^key, value} -> {:ok, value}
       false -> :error
     end
   end
@@ -155,7 +155,7 @@ defmodule Keyword do
   @spec fetch!(t, key) :: value | no_return
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
-      { ^key, value } -> value
+      {^key, value} -> value
       false -> raise(KeyError, key: key, term: keywords)
     end
   end
@@ -171,7 +171,7 @@ defmodule Keyword do
   """
   @spec get_values(t, key) :: [value]
   def get_values(keywords, key) when is_list(keywords) and is_atom(key) do
-    for { k, v } <- keywords, key == k, do: v
+    for {k, v} <- keywords, key == k, do: v
   end
 
   @doc """
@@ -189,7 +189,7 @@ defmodule Keyword do
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    for { key, _ } <- keywords, do: key
+    for {key, _} <- keywords, do: key
   end
 
   @doc """
@@ -203,7 +203,7 @@ defmodule Keyword do
   """
   @spec values(t) :: [value]
   def values(keywords) when is_list(keywords) do
-    for { _, value } <- keywords, do: value
+    for {_, value} <- keywords, do: value
   end
 
   @doc """
@@ -224,7 +224,7 @@ defmodule Keyword do
   """
   @spec delete(t, key, value) :: t
   def delete(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    for { k, v } = tuple <- keywords, key != k or value != v, do: tuple
+    for {k, v} = tuple <- keywords, key != k or value != v, do: tuple
   end
 
   @doc """
@@ -247,7 +247,7 @@ defmodule Keyword do
   """
   @spec delete(t, key) :: t
   def delete(keywords, key) when is_list(keywords) and is_atom(key) do
-    for { k, _ } = tuple <- keywords, key != k, do: tuple
+    for {k, _} = tuple <- keywords, key != k, do: tuple
   end
 
   @doc """
@@ -304,7 +304,7 @@ defmodule Keyword do
   @spec put_new(t, key, value) :: t
   def put_new(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
-      { ^key, _ } -> keywords
+      {^key, _} -> keywords
       false -> [{key, value}|keywords]
     end
   end
@@ -336,7 +336,7 @@ defmodule Keyword do
   """
   @spec merge(t, t) :: t
   def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    d2 ++ for({ k, _ } = tuple <- d1, not has_key?(d2, k), do: tuple)
+    d2 ++ for({k, _} = tuple <- d1, not has_key?(d2, k), do: tuple)
   end
 
   @doc """
@@ -356,7 +356,7 @@ defmodule Keyword do
     do_merge(d2, d1, fun)
   end
 
-  defp do_merge([{ k, v2 }|t], acc, fun) do
+  defp do_merge([{k, v2}|t], acc, fun) do
     do_merge t, update(acc, k, v2, fn(v1) -> fun.(k, v1, v2) end), fun
   end
 
@@ -445,24 +445,24 @@ defmodule Keyword do
 
       iex> d = [a: 1, b: 2, c: 3, d: 4]
       iex> Keyword.split(d, [:a, :c, :e])
-      { [a: 1, c: 3], [b: 2, d: 4] }
+      {[a: 1, c: 3], [b: 2, d: 4]}
 
       iex> d = [a: 1, b: 2, c: 3, d: 4, a: 5]
       iex> Keyword.split(d, [:a, :c, :e])
-      { [a: 1, c: 3, a: 5], [b: 2, d: 4] }
+      {[a: 1, c: 3, a: 5], [b: 2, d: 4]}
 
   """
   def split(keywords, keys) when is_list(keywords) do
-    acc = { [], [] }
+    acc = {[], []}
 
-    { take, drop } = Enum.reduce keywords, acc, fn({ k, v }, { take, drop }) ->
+    {take, drop} = Enum.reduce keywords, acc, fn({k, v}, {take, drop}) ->
       case k in keys do
-        true  -> { [{k, v}|take], drop }
-        false -> { take, [{k, v}|drop] }
+        true  -> {[{k, v}|take], drop}
+        false -> {take, [{k, v}|drop]}
       end
     end
 
-    { Enum.reverse(take), Enum.reverse(drop) }
+    {Enum.reverse(take), Enum.reverse(drop)}
   end
 
   @doc """
@@ -481,7 +481,7 @@ defmodule Keyword do
 
   """
   def take(keywords, keys) when is_list(keywords) do
-    for { k, _ } = tuple <- keywords, k in keys, do: tuple
+    for {k, _} = tuple <- keywords, k in keys, do: tuple
   end
 
   @doc """
@@ -500,7 +500,7 @@ defmodule Keyword do
 
   """
   def drop(keywords, keys) when is_list(keywords) do
-    for { k, _ } = tuple <- keywords, not k in keys, do: tuple
+    for {k, _} = tuple <- keywords, not k in keys, do: tuple
   end
 
   @doc """
@@ -529,7 +529,7 @@ defmodule Keyword do
 
   """
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    { get(keywords, key, default), delete(keywords, key) }
+    {get(keywords, key, default), delete(keywords, key)}
   end
 
   @doc """
@@ -558,6 +558,6 @@ defmodule Keyword do
 
   """
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
-    { get(keywords, key, default), delete_first(keywords, key) }
+    {get(keywords, key, default), delete_first(keywords, key)}
   end
 end

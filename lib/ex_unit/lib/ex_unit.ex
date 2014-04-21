@@ -64,8 +64,8 @@ defmodule ExUnit do
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
-  @type state   :: nil | :passed | { :failed, failed } | { :skip, binary } | { :invalid, invalid }
-  @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
+  @type state   :: nil | :passed | {:failed, failed} | {:skip, binary} | {:invalid, invalid}
+  @type failed  :: {:error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple]}
   @type invalid :: module
 
   defrecord Test, [:name, :case, :state, :time, :tags] do
@@ -109,7 +109,7 @@ defmodule ExUnit do
 
     configure(options)
 
-    if :application.get_env(:ex_unit, :autorun) != { :ok, false } do
+    if :application.get_env(:ex_unit, :autorun) != {:ok, false} do
       :application.set_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
@@ -152,7 +152,7 @@ defmodule ExUnit do
   * `:seed` - An integer seed value to randomize the test suite
   """
   def configure(options) do
-    Enum.each options, fn { k, v } ->
+    Enum.each options, fn {k, v} ->
       :application.set_env(:ex_unit, k, v)
     end
   end
@@ -171,7 +171,7 @@ defmodule ExUnit do
   Returns the number of failures.
   """
   def run do
-    { async, sync, load_us } = ExUnit.Server.start_run
+    {async, sync, load_us} = ExUnit.Server.start_run
     ExUnit.Runner.run async, sync, configuration, load_us
   end
 end

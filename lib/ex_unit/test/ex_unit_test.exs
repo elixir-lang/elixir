@@ -28,7 +28,7 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == %{ failures: 2, total: 2 }
+    assert ExUnit.run == %{failures: 2, total: 2}
   end
 
   test "it doesn't hang on exists" do
@@ -43,7 +43,7 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == %{ failures: 1, total: 1 }
+    assert ExUnit.run == %{failures: 1, total: 1}
   end
 
   test "it doesn't choke on setup_all errors" do
@@ -107,22 +107,22 @@ defmodule ExUnitTest do
     test_cases = ExUnit.Server.start_run
 
     assert run_with_filter([], test_cases) ==
-           %{ failures: 1, total: 4 }
+           %{failures: 1, total: 4}
 
     assert run_with_filter([exclude: [even: true]], test_cases) ==
-           %{ failures: 0, total: 3 }
+           %{failures: 0, total: 3}
 
     assert run_with_filter([exclude: :even], test_cases) ==
-           %{ failures: 0, total: 1 }
+           %{failures: 0, total: 1}
 
     assert run_with_filter([exclude: :even, include: [even: true]], test_cases) ==
-           %{ failures: 1, total: 2 }
+           %{failures: 1, total: 2}
 
     assert run_with_filter([exclude: :test, include: [even: true]], test_cases) ==
-           %{ failures: 1, total: 1 }
+           %{failures: 1, total: 1}
   end
 
-  defp run_with_filter(filters, { async, sync, load_us }) do
+  defp run_with_filter(filters, {async, sync, load_us}) do
     opts = Keyword.merge(ExUnit.configuration, filters)
     ExUnit.Runner.run(async, sync, opts, load_us)
   end

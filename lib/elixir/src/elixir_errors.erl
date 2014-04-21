@@ -13,7 +13,7 @@ warn(Warning) ->
   CompilerPid = get(elixir_compiler_pid),
   if
     CompilerPid =/= undefined ->
-      elixir_code_server:cast({ register_warning, CompilerPid });
+      elixir_code_server:cast({register_warning, CompilerPid});
     true -> false
   end,
   io:put_chars(standard_error, Warning).
@@ -68,26 +68,26 @@ deprecation(Meta, File, Message, Args) ->
 %% Handle warnings and errors (called during module compilation)
 
 %% Ignore on bootstrap
-handle_file_warning(true, _File, { _Line, sys_core_fold, nomatch_guard }) -> [];
-handle_file_warning(true, _File, { _Line, sys_core_fold, { nomatch_shadow, _ } }) -> [];
+handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> [];
+handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> [];
 
 %% Ignore always
-handle_file_warning(_, _File, { _Line, sys_core_fold, useless_building }) -> [];
+handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> [];
 
-%% This is an Erlang bug, it considers { tuple, _ }.call to always fail
-handle_file_warning(_, _File, { _Line, v3_kernel, bad_call }) -> [];
+%% This is an Erlang bug, it considers {tuple, _}.call to always fail
+handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> [];
 
 %% We handle unused local warnings ourselves
-handle_file_warning(_, _File, { _Line, erl_lint, { unused_function, _ } }) -> [];
+handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> [];
 
 %% Make no_effect clauses pretty
-handle_file_warning(_, File, { Line, sys_core_fold, { no_effect, { erlang, F, A } } }) ->
-  { Fmt, Args } = case erl_internal:comp_op(F, A) of
-    true -> { "use of operator ~ts has no effect", [translate_comp_op(F)] };
+handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}}) ->
+  {Fmt, Args} = case erl_internal:comp_op(F, A) of
+    true -> {"use of operator ~ts has no effect", [translate_comp_op(F)]};
     false ->
       case erl_internal:bif(F, A) of
-        false -> { "the call to :erlang.~ts/~B has no effect", [F,A] };
-        true -> { "the call to ~ts/~B has no effect", [F,A] }
+        false -> {"the call to :erlang.~ts/~B has no effect", [F,A]};
+        true -> {"the call to ~ts/~B has no effect", [F,A]}
       end
   end,
   Message = io_lib:format(Fmt, Args),
@@ -95,10 +95,10 @@ handle_file_warning(_, File, { Line, sys_core_fold, { no_effect, { erlang, F, A 
 
 %% Rewrite undefined behaviour to check for protocols
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
-  { DefKind, Def, DefArity } =
+  {DefKind, Def, DefArity} =
     case atom_to_list(Fun) of
-      "MACRO-" ++ Rest -> { macro, list_to_atom(Rest), Arity - 1 };
-      _ -> { function, Fun, Arity }
+      "MACRO-" ++ Rest -> {macro, list_to_atom(Rest), Arity - 1};
+      _ -> {function, Fun, Arity}
     end,
 
   Kind    = protocol_or_behaviour(Module),
@@ -124,7 +124,7 @@ handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
 
 %% Properly format other unused vars
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
-  Message = format_error(erl_lint, { unused_var, format_var(Var) }),
+  Message = format_error(erl_lint, {unused_var, format_var(Var)}),
   warn(Line, File, Message);
 
 %% Default behaviour
@@ -195,10 +195,10 @@ protocol_or_behaviour(Module) ->
 
 is_protocol(Module) ->
   case code:ensure_loaded(Module) of
-    { module, _ } ->
+    {module, _} ->
       erlang:function_exported(Module, '__protocol__', 1) andalso
         Module:'__protocol__'(name) == Module;
-    { error, _ } ->
+    {error, _} ->
       false
   end.
 

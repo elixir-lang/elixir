@@ -1,3 +1,3 @@
-{ application, invalidvsn, [
+{application, invalidvsn, [
   {vsn,ok}
-] }.
+]}.

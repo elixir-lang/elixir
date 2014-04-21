@@ -146,20 +146,20 @@ defmodule StreamTest do
     par = self
     pid = spawn_link fn ->
       Enum.each Stream.drop(&inbox_stream/2, -3),
-                fn x -> send par, { :stream, x } end
+                fn x -> send par, {:stream, x} end
     end
 
-    send pid, { :stream, 1 }
-    send pid, { :stream, 2 }
-    send pid, { :stream, 3 }
-    refute_receive { :stream, 1 }
+    send pid, {:stream, 1}
+    send pid, {:stream, 2}
+    send pid, {:stream, 3}
+    refute_receive {:stream, 1}
 
-    send pid, { :stream, 4 }
-    assert_receive { :stream, 1 }
+    send pid, {:stream, 4}
+    assert_receive {:stream, 1}
 
-    send pid, { :stream, 5 }
-    assert_receive { :stream, 2 }
-    refute_receive { :stream, 3 }
+    send pid, {:stream, 5}
+    assert_receive {:stream, 2}
+    refute_receive {:stream, 3}
   end
 
   test "drop_while/2" do
@@ -246,7 +246,7 @@ defmodule StreamTest do
     stream = Stream.flat_map [1,2,3],
       fn i ->
         Stream.resource(fn -> i end,
-                        fn acc -> { acc, acc + 1 } end,
+                        fn acc -> {acc, acc + 1} end,
                         fn _ -> Process.put(:stream_flat_map, true) end)
       end
 
@@ -257,7 +257,7 @@ defmodule StreamTest do
 
   test "flat_map/2 does not leave outer stream suspended" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_flat_map, true) end)
     stream = Stream.flat_map(stream, fn i -> [i, i + 1, i + 2] end)
 
@@ -268,7 +268,7 @@ defmodule StreamTest do
 
   test "flat_map/2 closes on error" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_flat_map, true) end)
     stream = Stream.flat_map(stream, fn _ -> throw(:error) end)
 
@@ -324,19 +324,19 @@ defmodule StreamTest do
   end
 
   test "transform/3" do
-    stream = Stream.transform([1, 2, 3], 0, &{ [&1, &2], &1 + &2 })
+    stream = Stream.transform([1, 2, 3], 0, &{[&1, &2], &1 + &2})
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1, 0, 2, 1, 3, 3]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.transform(nats, 0, &{ [&1, &2], &1 + &2 }) |> Enum.take(6) == [1, 0, 2, 1, 3, 3]
+    assert Stream.transform(nats, 0, &{[&1, &2], &1 + &2}) |> Enum.take(6) == [1, 0, 2, 1, 3, 3]
   end
 
   test "transform/3 with halt" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_transform, true) end)
-    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: { [i], acc + 1 }, else: { :halt, acc } end)
+    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: {[i], acc + 1}, else: {:halt, acc} end)
 
     Process.put(:stream_transform, false)
     assert Enum.to_list(stream) == [1,2,3]
@@ -383,7 +383,7 @@ defmodule StreamTest do
 
   test "resource/3 closes on errors" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_resource, true) end)
 
     Process.put(:stream_resource, false)
@@ -395,7 +395,7 @@ defmodule StreamTest do
   test "resource/3 is zippable" do
     stream = Stream.resource(fn -> 1 end,
                              fn 10 -> nil
-                                acc -> { acc, acc + 1 }
+                                acc -> {acc, acc + 1}
                              end,
                              fn _ -> Process.put(:stream_resource, true) end)
 
@@ -434,7 +434,7 @@ defmodule StreamTest do
     assert Stream.take(stream, 5) |> Enum.to_list == [6,7,8,9,10]
 
     stream = 1..5 |> Stream.take(10) |> Stream.drop(15)
-    assert { [], [] } = Enum.split(stream, 5)
+    assert {[], []} = Enum.split(stream, 5)
 
     stream = 1..20 |> Stream.take(10 + 5) |> Stream.drop(4)
     assert Enum.to_list(stream) == [5,6,7,8,9,10,11,12,13,14,15]
@@ -522,7 +522,7 @@ defmodule StreamTest do
 
   test "zip/2 does not leave streams suspended" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_zip, true) end)
 
     Process.put(:stream_zip, false)
@@ -530,13 +530,13 @@ defmodule StreamTest do
     assert Process.get(:stream_zip)
 
     Process.put(:stream_zip, false)
-    assert Stream.zip(stream, [:a, :b, :c]) |> Enum.to_list == [{ 1, :a }, { 2, :b }, { 3, :c }]
+    assert Stream.zip(stream, [:a, :b, :c]) |> Enum.to_list == [{1, :a}, {2, :b}, {3, :c}]
     assert Process.get(:stream_zip)
   end
 
   test "zip/2 does not leave streams suspended on halt" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> { acc, acc + 1 } end,
+                             fn acc -> {acc, acc + 1} end,
                              fn _ -> Process.put(:stream_zip, :done) end)
 
     assert Stream.zip([:a, :b, :c, :d, :e], stream) |> Enum.take(3) ==
@@ -579,23 +579,23 @@ defmodule StreamTest do
 
   defp collectable_pdict do
     fn
-      _, { :cont, x } -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
+      _, {:cont, x} -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
       _, :done -> Process.put(:stream_done, true)
       _, :halt -> Process.put(:stream_halt, true)
     end
   end
 
-  defp inbox_stream({ :suspend, acc }, f) do
-    { :suspended, acc, &inbox_stream(&1, f) }
+  defp inbox_stream({:suspend, acc}, f) do
+    {:suspended, acc, &inbox_stream(&1, f)}
   end
 
-  defp inbox_stream({ :halt, acc }, _f) do
-    { :halted, acc }
+  defp inbox_stream({:halt, acc}, _f) do
+    {:halted, acc}
   end
 
-  defp inbox_stream({ :cont, acc }, f) do
+  defp inbox_stream({:cont, acc}, f) do
     receive do
-      { :stream, item } ->
+      {:stream, item} ->
         inbox_stream(f.(item, acc), f)
     end
   end

@@ -15,16 +15,16 @@ defmodule Record.Backend do
     raise ArgumentError, message: "#{tag} fields must be a keyword list, got: #{Macro.to_string other}"
   end
 
-  defp split_fields_and_types(tag, [{ field, { :::, _, [default, type] }}|t], fields, types) do
-    split_fields_and_types(tag, t, [{ field, default }|fields], [{ field, type }|types])
+  defp split_fields_and_types(tag, [{field, {:::, _, [default, type]}}|t], fields, types) do
+    split_fields_and_types(tag, t, [{field, default}|fields], [{field, type}|types])
   end
 
-  defp split_fields_and_types(tag, [{ field, default }|t], fields, types) when is_atom(field) do
-    split_fields_and_types(tag, t, [{ field, default }|fields], [{ field, quote(do: term) }|types])
+  defp split_fields_and_types(tag, [{field, default}|t], fields, types) when is_atom(field) do
+    split_fields_and_types(tag, t, [{field, default}|fields], [{field, quote(do: term)}|types])
   end
 
   defp split_fields_and_types(tag, [field|t], fields, types) when is_atom(field) do
-    split_fields_and_types(tag, t, [{ field, nil }|fields], [{ field, quote(do: term) }|types])
+    split_fields_and_types(tag, t, [{field, nil}|fields], [{field, quote(do: term)}|types])
   end
 
   defp split_fields_and_types(tag, [other|_], _fields, _types) do
@@ -32,7 +32,7 @@ defmodule Record.Backend do
   end
 
   defp split_fields_and_types(_tag, [], fields, types) do
-    { :lists.reverse(fields), :lists.reverse(types) }
+    {:lists.reverse(fields), :lists.reverse(types)}
   end
 
   @doc """
@@ -82,26 +82,26 @@ defmodule Record.Backend do
   def create(atom, fields, keyword, caller) do
     in_match = caller.in_match?
 
-    { match, remaining } =
-      Enum.map_reduce(fields, keyword, fn({ field, default }, each_keyword) ->
+    {match, remaining} =
+      Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
         new_fields =
           case Keyword.has_key?(each_keyword, field) do
             true  -> Keyword.get(each_keyword, field)
             false ->
               case in_match do
-                true  -> { :_, [], nil }
+                true  -> {:_, [], nil}
                 false -> Macro.escape(default)
               end
           end
 
-        { new_fields, Keyword.delete(each_keyword, field) }
+        {new_fields, Keyword.delete(each_keyword, field)}
       end)
 
     case remaining do
       [] ->
-        { :{}, [], [atom|match] }
+        {:{}, [], [atom|match]}
       _  ->
-        keys = for { key, _ } <- remaining, do: key
+        keys = for {key, _} <- remaining, do: key
         raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
     end
   end
@@ -114,7 +114,7 @@ defmodule Record.Backend do
       raise ArgumentError, message: "cannot invoke update style macro inside match"
     end
 
-    Enum.reduce keyword, var, fn({ key, value }, acc) ->
+    Enum.reduce keyword, var, fn({key, value}, acc) ->
       index = find_index(fields, key, 0)
       if index do
         quote do
@@ -140,7 +140,7 @@ defmodule Record.Backend do
     end
   end
 
-  defp find_index([{ k, _ }|_], k, i), do: i + 2
-  defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)
+  defp find_index([{k, _}|_], k, i), do: i + 2
+  defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
 end

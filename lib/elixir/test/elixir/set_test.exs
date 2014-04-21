@@ -3,18 +3,18 @@ Code.require_file "test_helper.exs", __DIR__
 # A TestSet implementation used only for testing.
 defmodule TestSet do
   def new(list \\ []) when is_list(list) do
-    { TestSet, list }
+    {TestSet, list}
   end
 
-  def reduce({ TestSet, list }, acc, fun) do
+  def reduce({TestSet, list}, acc, fun) do
     Enumerable.reduce(list, acc, fun)
   end
 
-  def member?({ TestSet, list }, v) do
+  def member?({TestSet, list}, v) do
     v in list
   end
 
-  def size({ TestSet, list }) do
+  def size({TestSet, list}) do
     length(list)
   end
 end

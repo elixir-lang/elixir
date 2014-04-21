@@ -37,7 +37,7 @@ defmodule Map do
   def fetch(map, key), do: :maps.find(key, map)
 
   def pop(map, key, default \\ nil) do
-    { get(map, key, default), delete(map, key) }
+    {get(map, key, default), delete(map, key)}
   end
 
   def put(map, key, val) do
@@ -60,13 +60,13 @@ defmodule Map do
   end
 
   def split(map, keys) do
-    acc = { %{}, %{} }
+    acc = {%{}, %{}}
 
-    :maps.fold fn k, v, { take, drop } ->
+    :maps.fold fn k, v, {take, drop} ->
       if k in keys do
-        { put(take, k, v), drop }
+        {put(take, k, v), drop}
       else
-        { take, put(drop, k, v) }
+        {take, put(drop, k, v)}
       end
     end, acc, map
   end
@@ -75,7 +75,7 @@ defmodule Map do
     case :maps.find(key, map) do
       :error ->
         raise(KeyError, key: key, term: map)
-      { :ok, val } ->
+      {:ok, val} ->
         :maps.put(key, fun.(val), map)
     end
   end
@@ -84,7 +84,7 @@ defmodule Map do
     case :maps.find(key, map) do
       :error ->
         :maps.put(key, initial, map)
-      { :ok, val } ->
+      {:ok, val} ->
         :maps.put(key, fun.(val), map)
     end
   end

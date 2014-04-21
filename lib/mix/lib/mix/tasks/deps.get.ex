@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Deps.Get do
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available
-    { opts, rest, _ } = OptionParser.parse(args, switches: [quiet: :boolean])
+    {opts, rest, _} = OptionParser.parse(args, switches: [quiet: :boolean])
 
     # Fetch all deps by default unless --only is given
     if only = opts[:only] do

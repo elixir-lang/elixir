@@ -6,7 +6,7 @@ defmodule IO.ANSITest do
   test :escape_single do
     assert IO.ANSI.escape("Hello, %{red}world!", true) ==
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
-    assert IO.ANSI.escape("Hello, %{ red }world!", true) ==
+    assert IO.ANSI.escape("Hello, %{red}world!", true) ==
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
   end
 

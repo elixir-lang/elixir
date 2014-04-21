@@ -21,7 +21,7 @@ defmodule HashSet do
 
   # Inline common instructions
   @compile :inline_list_funcs
-  @compile { :inline, key_hash: 1, key_mask: 1, key_shift: 1 }
+  @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
   @doc """
   Creates a new empty set.
@@ -79,19 +79,19 @@ defmodule HashSet do
   end
 
   def subset?(trie() = set1, trie() = set2) do
-    reduce(set1, { :cont, true }, fn member, acc ->
+    reduce(set1, {:cont, true}, fn member, acc ->
       case member?(set2, member) do
-        true -> { :cont, acc }
-        _    -> { :halt, false }
+        true -> {:cont, acc}
+        _    -> {:halt, false}
       end
     end) |> elem(1)
   end
 
   def disjoint?(trie() = set1, trie() = set2) do
-    reduce(set2, { :cont, true }, fn member, acc ->
+    reduce(set2, {:cont, true}, fn member, acc ->
       case member?(set1, member) do
-        false -> { :cont, acc }
-        _     -> { :halt, false }
+        false -> {:cont, acc}
+        _     -> {:halt, false}
       end
     end) |> elem(1)
   end
@@ -115,7 +115,7 @@ defmodule HashSet do
   @doc false
   def reduce(trie(root: root), acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
-      {:suspend, acc} -> {:suspended, acc, &{ :done, elem(&1, 1) }}
+      {:suspend, acc} -> {:suspended, acc, &{:done, elem(&1, 1)}}
       {:halt, acc}    -> {:halted, acc}
       {:cont, acc}    -> {:done, acc}
     end)
@@ -260,8 +260,8 @@ end
 
 defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun), do: HashSet.reduce(set, acc, fun)
-  def member?(set, v),       do: { :ok, HashSet.member?(set, v) }
-  def count(set),            do: { :ok, HashSet.size(set) }
+  def member?(set, v),       do: {:ok, HashSet.member?(set, v)}
+  def count(set),            do: {:ok, HashSet.size(set)}
 end
 
 defimpl Collectable, for: HashSet do
@@ -270,10 +270,10 @@ defimpl Collectable, for: HashSet do
   end
 
   def into(original) do
-    { original, fn
-      set, { :cont, x } -> HashSet.put(set, x)
+    {original, fn
+      set, {:cont, x} -> HashSet.put(set, x)
       set, :done -> set
       _, :halt -> :ok
-    end }
+    end}
   end
 end

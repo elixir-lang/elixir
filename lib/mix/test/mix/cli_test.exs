@@ -5,13 +5,13 @@ defmodule Mix.CLITest do
 
   test "env" do
     in_fixture "only_mixfile", fn ->
-      if match? { :win32, _ }, :os.type do
+      if match? {:win32, _}, :os.type do
         temp_env = "set MIX_ENV=prod &"
       else
         temp_env = "MIX_ENV=prod"
       end
 
-      env = System.cmd ~s(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect { Mix.env, System.argv }" -- 1 2 3)
+      env = System.cmd ~s(#{temp_env} #{elixir_executable} #{mix_executable} run -e "IO.inspect {Mix.env, System.argv}" -- 1 2 3)
       assert env =~ ~s({:prod, ["1", "2", "3"]})
     end
   end

@@ -70,7 +70,7 @@ defmodule Protocol.Consolidation do
 
   defp list_dir(path) when is_list(path) do
     case :file.list_dir(path) do
-      { :ok, files } -> files
+      {:ok, files} -> files
       _ -> []
     end
   end
@@ -85,7 +85,7 @@ defmodule Protocol.Consolidation do
 
   defp extract_from_beam(file, callback) do
     case :beam_lib.chunks(file, [:attributes]) do
-      {:ok, { module, [attributes: attributes] } } ->
+      {:ok, {module, [attributes: attributes]}} ->
         callback.(module, attributes)
        _ ->
          nil
@@ -95,7 +95,7 @@ defmodule Protocol.Consolidation do
   defmacrop if_ok(expr, call) do
     quote do
       case unquote(expr) do
-        { :ok, var } -> unquote(Macro.pipe(quote(do: var), call, 0))
+        {:ok, var} -> unquote(Macro.pipe(quote(do: var), call, 0))
         other -> other
       end
     end
@@ -121,9 +121,9 @@ defmodule Protocol.Consolidation do
   nor loads the new bytecode for the compiled module.
   """
   @spec apply_to(module, [module]) ::
-    { :ok, binary } |
-    { :error, :not_a_protocol } |
-    { :error, :no_beam_info }
+    {:ok, binary} |
+    {:error, :not_a_protocol} |
+    {:error, :no_beam_info}
   def apply_to(protocol, types) when is_atom(protocol) do
     raise ArgumentError, "consolidation is disabled as we can't consolidate records " <>
                          "and structs at once. Consolidation will be added back once " <>
@@ -136,16 +136,16 @@ defmodule Protocol.Consolidation do
   # Ensure the given module is loaded and is a protocol.
   defp ensure_protocol(protocol) do
     case :beam_lib.chunks(beam_file(protocol), [:abstract_code, :attributes]) do
-      { :ok, { ^protocol, [abstract_code: { _raw, abstract_code },
-                           attributes: attributes] } } ->
+      {:ok, {^protocol, [abstract_code: {_raw, abstract_code},
+                           attributes: attributes]}} ->
         case attributes[:protocol] do
           [fallback_to_any: any, consolidated: _] ->
-            { :ok, { protocol, any, abstract_code } }
+            {:ok, {protocol, any, abstract_code}}
           _ ->
-            { :error, :not_a_protocol }
+            {:error, :not_a_protocol}
         end
       _ ->
-        { :error, :no_beam_info }
+        {:error, :no_beam_info}
     end
   end
 
@@ -158,23 +158,23 @@ defmodule Protocol.Consolidation do
 
   # Change the debug information to the optimized
   # impl_for/1 dispatch version.
-  defp change_debug_info({ protocol, any, code }, types) do
+  defp change_debug_info({protocol, any, code}, types) do
     types   = if any, do: types, else: List.delete(types, Any)
-    all     = [Any] ++ for { _guard, mod } <- Protocol.builtin, do: mod
+    all     = [Any] ++ for {_guard, mod} <- Protocol.builtin, do: mod
     structs = types -- all
     change_impl_for(code, protocol, types, structs, false, [])
   end
 
-  defp change_impl_for([{ :attribute, line, :protocol, opts }|t], protocol, types, structs, _, acc) do
+  defp change_impl_for([{:attribute, line, :protocol, opts}|t], protocol, types, structs, _, acc) do
     opts = [fallback_to_any: opts[:fallback_to_any], consolidated: true]
     change_impl_for(t, protocol, types, structs, true,
-                    [{ :attribute, line, :protocol, opts }|acc])
+                    [{:attribute, line, :protocol, opts}|acc])
   end
 
-  defp change_impl_for([{ :function, line, :impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
 
-    clauses = for { guard, mod } <- Protocol.builtin,
+    clauses = for {guard, mod} <- Protocol.builtin,
                   mod in types,
                   do: builtin_clause_for(mod, guard, protocol, line)
 
@@ -182,16 +182,16 @@ defmodule Protocol.Consolidation do
               [fallback_clause_for(fallback, protocol, line)]
 
     change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{ :function, line, :impl_for, 1, clauses }|acc])
+                    [{:function, line, :impl_for, 1, clauses}|acc])
   end
 
-  defp change_impl_for([{ :function, line, :struct_impl_for, 1, _ }|t], protocol, types, structs, is_protocol, acc) do
+  defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
     fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
     change_impl_for(t, protocol, types, structs, is_protocol,
-                    [{ :function, line, :struct_impl_for, 1, clauses }|acc])
+                    [{:function, line, :struct_impl_for, 1, clauses}|acc])
   end
 
   defp change_impl_for([h|t], protocol, info, types, is_protocol, acc) do
@@ -200,9 +200,9 @@ defmodule Protocol.Consolidation do
 
   defp change_impl_for([], protocol, _info, _types, is_protocol, acc) do
     if is_protocol do
-      { :ok, { protocol, Enum.reverse(acc) } }
+      {:ok, {protocol, Enum.reverse(acc)}}
     else
-      { :error, :not_a_protocol }
+      {:error, :not_a_protocol}
     end
   end
 
@@ -212,7 +212,7 @@ defmodule Protocol.Consolidation do
       [[{:call, line,
           {:remote, line, {:atom, line, :erlang}, {:atom, line, guard}},
           [{:var, line, :x}],
-      }]],
+     }]],
       [{:atom, line, Module.concat(protocol, mod)}]}
   end
 
@@ -224,7 +224,7 @@ defmodule Protocol.Consolidation do
       [[{:call, line,
           {:remote, line, {:atom, line, :erlang}, {:atom, line, :is_atom}},
           [{:var, line, :x}],
-      }]],
+     }]],
       [{:call, line,
           {:atom, line, :struct_impl_for},
           [{:var, line, :x}]}]}
@@ -237,13 +237,13 @@ defmodule Protocol.Consolidation do
 
   defp fallback_clause_for(value, _protocol, line) do
     {:clause, line, [{:var, line, :_}], [],
-      [{ :atom, line, value }]}
+      [{:atom, line, value}]}
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile({ protocol, code }) do
+  defp compile({protocol, code}) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
-    { :ok, ^protocol, binary, _warnings } = :compile.forms(code, [:return|opts])
-    { :ok, binary }
+    {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
+    {:ok, binary}
   end
 end

@@ -49,7 +49,7 @@ defmodule Mix.Archive do
     source_path = Path.expand(source)
     target_path = Path.expand(target)
     dir = dir(target_path) |> List.from_char_data!
-    {:ok, _ } = :zip.create(target_path,
+    {:ok, _} = :zip.create(target_path,
                   files_to_add(source_path, dir),
                   uncompress: ['.beam', '.app'])
   end
@@ -61,9 +61,9 @@ defmodule Mix.Archive do
 
       Enum.reduce ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
-          { :ok, bin } ->
-            [{ :filename.join(dir, f), bin }|acc]
-          { :error, _ } ->
+          {:ok, bin} ->
+            [{:filename.join(dir, f), bin}|acc]
+          {:error, _} ->
             acc
         end
       end

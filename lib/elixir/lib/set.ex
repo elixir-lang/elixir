@@ -98,8 +98,8 @@ defmodule Set do
     if target1 == target2 do
       target1.difference(set1, set2)
     else
-      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
-        { :cont, target1.delete(acc, v) }
+      target2.reduce(set2, {:cont, set1}, fn v, acc ->
+        {:cont, target1.delete(acc, v)}
       end) |> elem(1)
     end
   end
@@ -128,10 +128,10 @@ defmodule Set do
     if target1 == target2 do
       target1.disjoint?(set1, set2)
     else
-      target2.reduce(set2, { :cont, true }, fn member, acc ->
+      target2.reduce(set2, {:cont, true}, fn member, acc ->
         case target1.member?(set1, member) do
-          false -> { :cont, acc }
-          _     -> { :halt, false }
+          false -> {:cont, acc}
+          _     -> {:halt, false}
         end
       end) |> elem(1)
     end
@@ -200,8 +200,8 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce(set1, { :cont, Collectable.empty(set1) }, fn v, acc ->
-        { :cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc) }
+      target1.reduce(set1, {:cont, Collectable.empty(set1)}, fn v, acc ->
+        {:cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc)}
       end) |> elem(1)
     end
   end
@@ -317,17 +317,17 @@ defmodule Set do
     if target1 == target2 do
       target1.union(set1, set2)
     else
-      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
-        { :cont, target1.put(acc, v) }
+      target2.reduce(set2, {:cont, set1}, fn v, acc ->
+        {:cont, target1.put(acc, v)}
       end) |> elem(1)
     end
   end
 
   defp do_subset?(target1, target2, set1, set2) do
-    target1.reduce(set1, { :cont, true }, fn member, acc ->
+    target1.reduce(set1, {:cont, true}, fn member, acc ->
       case target2.member?(set2, member) do
-        true -> { :cont, acc }
-        _    -> { :halt, false }
+        true -> {:cont, acc}
+        _    -> {:halt, false}
       end
     end) |> elem(1)
   end

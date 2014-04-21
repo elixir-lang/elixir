@@ -7,22 +7,22 @@
 expand(Meta, Args, E) ->
   case E#elixir_env.context of
     match ->
-      { EArgs, EA } = expand_bitstr(fun elixir_exp:expand/2, Args, [], E),
-      { { '<<>>', Meta, EArgs }, EA };
+      {EArgs, EA} = expand_bitstr(fun elixir_exp:expand/2, Args, [], E),
+      {{'<<>>', Meta, EArgs}, EA};
     _ ->
-      { EArgs, { EC, EV } } = expand_bitstr(fun elixir_exp:expand_arg/2, Args, [], { E, E }),
-      { { '<<>>', Meta, EArgs }, elixir_env:mergea(EV, EC) }
+      {EArgs, {EC, EV}} = expand_bitstr(fun elixir_exp:expand_arg/2, Args, [], {E, E}),
+      {{'<<>>', Meta, EArgs}, elixir_env:mergea(EV, EC)}
   end.
 
 expand_bitstr(_Fun, [], Acc, E) ->
-  { lists:reverse(Acc), E };
+  {lists:reverse(Acc), E};
 expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
-  { ELeft, EL } = Fun(Left, E),
+  {ELeft, EL} = Fun(Left, E),
 
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
   case E of
-    { ER, _ } -> ok;                    %% expand_arg,  no assigns
+    {ER, _} -> ok;                    %% expand_arg,  no assigns
     _ -> ER = E#elixir_env{context=nil} %% expand_each, revert assigns
   end,
 
@@ -30,7 +30,7 @@ expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
   expand_bitstr(Fun, T, [{'::',Meta,[ELeft,ERight]}|Acc], EL);
 
 expand_bitstr(Fun, [H|T], Acc, E) ->
-  { Expr, ES } = Fun(H, E),
+  {Expr, ES} = Fun(H, E),
   expand_bitstr(Fun, T, [Expr|Acc], ES).
 
 %% Expand bit info
@@ -41,25 +41,25 @@ expand_bit_info(Meta, Info, E) when is_list(Info) ->
 expand_bit_info(Meta, Info, E) ->
   expand_bit_info(Meta, [Info], E).
 
-expand_bit_info(Meta, [{ Expr, ExprMeta, Args }|T], Size, Types, E) when is_atom(Expr) ->
+expand_bit_info(Meta, [{Expr, ExprMeta, Args}|T], Size, Types, E) when is_atom(Expr) ->
   ListArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
   case expand_bit_type_or_size(Expr, ListArgs) of
     type ->
-      { EArgs, EE } = elixir_exp:expand_args(ListArgs, E),
-      expand_bit_info(Meta, T, Size, [{ Expr, [], EArgs }|Types], EE);
+      {EArgs, EE} = elixir_exp:expand_args(ListArgs, E),
+      expand_bit_info(Meta, T, Size, [{Expr, [], EArgs}|Types], EE);
     size ->
       case Size of
         default -> ok;
         _ -> elixir_errors:compile_error(Meta, E#elixir_env.file, "duplicated size definition in bitstring")
       end,
-      { EArgs, EE } = elixir_exp:expand_args(ListArgs, E),
-      expand_bit_info(Meta, T, { Expr, [], EArgs }, Types, EE);
+      {EArgs, EE} = elixir_exp:expand_args(ListArgs, E),
+      expand_bit_info(Meta, T, {Expr, [], EArgs}, Types, EE);
     none ->
-      handle_unknown_bit_info(Meta, { Expr, ExprMeta, ListArgs }, T, Size, Types, E)
+      handle_unknown_bit_info(Meta, {Expr, ExprMeta, ListArgs}, T, Size, Types, E)
   end;
 
 expand_bit_info(Meta, [Int|T], Size, Types, E) when is_integer(Int) ->
-  expand_bit_info(Meta, [{ size, [], [Int] }|T], Size, Types, E);
+  expand_bit_info(Meta, [{size, [], [Int]}|T], Size, Types, E);
 
 expand_bit_info(Meta, [Expr|_], _Size, _Types, E) ->
   elixir_errors:compile_error(Meta, E#elixir_env.file,
@@ -89,8 +89,8 @@ expand_bit_type_or_size(unit, [_])     -> type;
 expand_bit_type_or_size(size, [_])     -> size;
 expand_bit_type_or_size(_, _)          -> none.
 
-handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
-  case 'Elixir.Macro':expand(Expr, elixir_env:env_to_ex({ ?line(ExprMeta), E })) of
+handle_unknown_bit_info(Meta, {_, ExprMeta, _} = Expr, T, Size, Types, E) ->
+  case 'Elixir.Macro':expand(Expr, elixir_env:env_to_ex({?line(ExprMeta), E})) of
     Expr ->
       elixir_errors:compile_error(ExprMeta, E#elixir_env.file,
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
@@ -101,8 +101,8 @@ handle_unknown_bit_info(Meta, { _, ExprMeta, _ } = Expr, T, Size, Types, E) ->
 
 %% Translation
 
-has_size({ bin, _, Elements }) ->
-  not lists:any(fun({ bin_element, _Line, _Expr, Size, Types }) ->
+has_size({bin, _, Elements}) ->
+  not lists:any(fun({bin_element, _Line, _Expr, Size, Types}) ->
     (Types /= default) andalso (Size == default) andalso
       lists:any(fun(X) -> lists:member(X, Types) end,
                 [bits, bytes, bitstring, binary])
@@ -117,14 +117,14 @@ translate(Meta, Args, S) ->
   end.
 
 build_bitstr(Fun, Exprs, Meta, S) ->
-  { Final, FinalS } = build_bitstr_each(Fun, Exprs, Meta, S, []),
-  { { bin, ?line(Meta), lists:reverse(Final) }, FinalS }.
+  {Final, FinalS} = build_bitstr_each(Fun, Exprs, Meta, S, []),
+  {{bin, ?line(Meta), lists:reverse(Final)}, FinalS}.
 
 build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
-  { Acc, S };
+  {Acc, S};
 
 build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Meta, S, Acc) ->
-  { Size, Types } = extract_bit_info(Meta, V, S#elixir_scope{context=nil}),
+  {Size, Types} = extract_bit_info(Meta, V, S#elixir_scope{context=nil}),
   build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
 
 build_bitstr_each(Fun, [H|T], Meta, S, Acc) ->
@@ -136,11 +136,11 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
       true ->
         %% See explanation in elixir_utils:elixir_to_erl/1 to know
         %% why we can simply convert the binary to a list.
-        { bin_element, ?line(Meta), { string, 0, binary_to_list(H) }, default, default };
+        {bin_element, ?line(Meta), {string, 0, binary_to_list(H)}, default, default};
       false ->
         case types_require_conversion(Types) of
           true ->
-            { bin_element, ?line(Meta), { string, 0, elixir_utils:characters_to_list(H) }, default, Types };
+            {bin_element, ?line(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types};
           false ->
             elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid types for literal string in <<>>. "
               "Accepted types are: little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring")
@@ -157,16 +157,16 @@ build_bitstr_each(_Fun, _T, Meta, S, _Acc, H, _Size, _Types) when is_list(H); is
     ['Elixir.Macro':to_string(H)]);
 
 build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
-  { Expr, NS } = Fun(H, S),
+  {Expr, NS} = Fun(H, S),
 
   case Expr of
-    { bin, _, Elements } ->
+    {bin, _, Elements} ->
       case (Size == default) andalso types_allow_splice(Types, Elements) of
         true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements) ++ Acc);
-        false -> build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc])
+        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?line(Meta), Expr, Size, Types}|Acc])
       end;
     _ ->
-      build_bitstr_each(Fun, T, Meta, NS, [{ bin_element, ?line(Meta), Expr, Size, Types }|Acc])
+      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?line(Meta), Expr, Size, Types}|Acc])
   end.
 
 types_require_conversion([End|T]) when End == little; End == big -> types_require_conversion(T);
@@ -201,23 +201,23 @@ unit_size([], Guess)           -> Guess.
 
 %% Extra bitstring specifiers
 
-extract_bit_info(Meta, [{ size, _, [Arg] }|T], S) ->
+extract_bit_info(Meta, [{size, _, [Arg]}|T], S) ->
   case elixir_translator:translate(Arg, S) of
-    { { Kind, _, _ } = Size, _ } when Kind == integer; Kind == var ->
-      { Size, extract_bit_type(Meta, T, S) };
+    {{Kind, _, _} = Size, _} when Kind == integer; Kind == var ->
+      {Size, extract_bit_type(Meta, T, S)};
     _ ->
       elixir_errors:compile_error(Meta, S#elixir_scope.file,
         "size in bitstring expects an integer or a variable as argument, got: ~ts", ['Elixir.Macro':to_string(Arg)])
   end;
 extract_bit_info(Meta, T, S) ->
-  { default, extract_bit_type(Meta, T, S) }.
+  {default, extract_bit_type(Meta, T, S)}.
 
-extract_bit_type(Meta, [{ unit, _, [Arg] }|T], S) when is_integer(Arg) ->
-  [{ unit, Arg }|extract_bit_type(Meta, T, S)];
-extract_bit_type(Meta, [{ unit, _, [Arg] }|_], S) ->
+extract_bit_type(Meta, [{unit, _, [Arg]}|T], S) when is_integer(Arg) ->
+  [{unit, Arg}|extract_bit_type(Meta, T, S)];
+extract_bit_type(Meta, [{unit, _, [Arg]}|_], S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file,
     "unit in bitstring expects an integer as argument, got: ~ts", ['Elixir.Macro':to_string(Arg)]);
-extract_bit_type(Meta, [{ Other, _, [] }|T], S) ->
+extract_bit_type(Meta, [{Other, _, []}|T], S) ->
   [Other|extract_bit_type(Meta, T, S)];
 extract_bit_type(_Meta, [], _S) ->
   [].

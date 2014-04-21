@@ -61,9 +61,9 @@ defmodule ExUnit.Assertions do
       lhs:  10
       rhs:  15
   """
-  defmacro assert({ :=, _, [left, right] } = assertion) do
+  defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
-    { :case, meta, args } =
+    {:case, meta, args} =
       quote do
         case right do
           unquote(left) ->
@@ -78,7 +78,7 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{ :export_head, true }|meta], args })
+      unquote({:case, [{:export_head, true}|meta], args})
     end
   end
 
@@ -111,9 +111,9 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
-  defmacro refute({ :=, _, [left, right] } = assertion) do
+  defmacro refute({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
-    { :case, meta, args } =
+    {:case, meta, args} =
       quote do
         case right do
           unquote(left) ->
@@ -128,12 +128,12 @@ defmodule ExUnit.Assertions do
 
     quote do
       right = unquote(right)
-      unquote({ :case, [{ :export_head, true }|meta], args })
+      unquote({:case, [{:export_head, true}|meta], args})
     end
   end
 
   defmacro refute(assertion) do
-    case translate_assertion({ :!, [], [assertion] }) do
+    case translate_assertion({:!, [], [assertion]}) do
       nil ->
         quote do
           value = unquote(assertion)
@@ -148,7 +148,7 @@ defmodule ExUnit.Assertions do
         end
 
       value ->
-        { :!, [], [value] }
+        {:!, [], [value]}
     end
   end
 
@@ -156,7 +156,7 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({ operator, _, [left, right] } = expr) when operator in @operator  do
+  defp translate_assertion({operator, _, [left, right]} = expr) when operator in @operator  do
     expr = Macro.escape(expr)
     quote do
       left  = unquote(left)
@@ -169,7 +169,7 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({ :!, [], [{ operator, _, [left, right] } = expr] }) when operator in @operator do
+  defp translate_assertion({:!, [], [{operator, _, [left, right]} = expr]}) when operator in @operator do
     expr = Macro.escape(expr)
     quote do
       left  = unquote(left)
@@ -238,10 +238,10 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      assert_receive { :hello, _ }
+      assert_receive {:hello, _}
 
       x = 5
-      assert_receive { :count, ^x }
+      assert_receive {:count, ^x}
 
   """
   defmacro assert_receive(expected, timeout \\ 100, message \\ nil) do
@@ -261,8 +261,8 @@ defmodule ExUnit.Assertions do
 
   You can also match against specific patterns:
 
-      send self, { :hello, "world" }
-      assert_received { :hello, _ }
+      send self, {:hello, "world"}
+      assert_received {:hello, _}
 
   """
   defmacro assert_received(expected, message \\ nil) do
@@ -273,7 +273,7 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(expected)
     message = message || "No message matching #{binary}"
 
-    { :receive, meta, args } =
+    {:receive, meta, args} =
       quote do
         receive do
           unquote(expected) = received -> received
@@ -283,7 +283,7 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    { :receive, [{:export_head, true}|meta], args }
+    {:receive, [{:export_head, true}|meta], args}
   end
 
   @doc """

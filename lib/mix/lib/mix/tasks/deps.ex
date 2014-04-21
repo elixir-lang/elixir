@@ -11,9 +11,9 @@ defmodule Mix.Tasks.Deps do
   Dependencies must be specified in the `mix.exs` file in one of
   the following formats:
 
-      { app, requirement }
-      { app, opts }
-      { app, requirement, opts }
+      {app, requirement}
+      {app, opts}
+      {app, requirement, opts}
 
   Where:
 
@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Deps do
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available
-    { opts, _, _ } = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args)
 
     if opts[:all] do
       loaded_opts = []

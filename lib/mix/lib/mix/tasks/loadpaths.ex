@@ -10,14 +10,14 @@ defmodule Mix.Tasks.Loadpaths do
 
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args)
 
     unless opts[:no_elixir_version_check] do
       config = Mix.project
 
       if req = config[:elixir] do
         case Version.parse_requirement(req) do
-          { :ok, req } ->
+          {:ok, req} ->
             unless Version.match?(System.version, req) do
               raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
                                             expected: req,

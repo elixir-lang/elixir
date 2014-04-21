@@ -308,7 +308,7 @@ defmodule String do
   """
   @spec capitalize(t) :: t
   def capitalize(string) when is_binary(string) do
-    { char, rest } = String.Unicode.titlecase_once(string)
+    {char, rest} = String.Unicode.titlecase_once(string)
     char <> downcase(rest)
   end
 
@@ -640,10 +640,10 @@ defmodule String do
   ## Examples
 
       iex> String.next_codepoint("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_codepoint: 1 }
+  @compile {:inline, next_codepoint: 1}
   @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
 
@@ -731,11 +731,11 @@ defmodule String do
   ## Examples
 
       iex> String.next_grapheme("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_grapheme: 1 }
-  @spec next_grapheme(t) :: { grapheme, t } | nil
+  @compile {:inline, next_grapheme: 1}
+  @spec next_grapheme(t) :: {grapheme, t} | nil
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
@@ -754,7 +754,7 @@ defmodule String do
   @spec first(t) :: grapheme | nil
   def first(string) do
     case next_grapheme(string) do
-      { char, _ } -> char
+      {char, _} -> char
       nil -> nil
     end
   end
@@ -1166,13 +1166,13 @@ defmodule String do
   ## Examples
 
       iex> String.from_char_data([0x00E6, 0x00DF])
-      { :ok, "æß" }
+      {:ok, "æß"}
 
       iex> String.from_char_data([0x0061, "bc"])
-      { :ok, "abc" }
+      {:ok, "abc"}
 
   """
-  @spec from_char_data(char_data) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
+  @spec from_char_data(char_data) :: {:ok, String.t} | {:error, binary, binary} | {:incomplete, binary, binary}
   def from_char_data(binary) when is_binary(binary) do
     binary
   end
@@ -1180,12 +1180,12 @@ defmodule String do
   def from_char_data(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
-        { :ok, result }
+        {:ok, result}
 
-      { :error, _, _ } = error ->
+      {:error, _, _} = error ->
         error
 
-      { :incomplete, _, _ } = incomplete ->
+      {:incomplete, _, _} = incomplete ->
         incomplete
     end
   end
@@ -1215,10 +1215,10 @@ defmodule String do
       result when is_binary(result) ->
         result
 
-      { :error, encoded, rest } ->
+      {:error, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
-      { :incomplete, encoded, rest } ->
+      {:incomplete, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end

@@ -50,7 +50,7 @@ defmodule FileTest do
       File.mkdir(dest)
 
       try do
-        assert File.cp(src, dest) == { :error, :eisdir }
+        assert File.cp(src, dest) == {:error, :eisdir}
       after
         File.rm_rf dest
       end
@@ -72,7 +72,7 @@ defmodule FileTest do
     test :cp_with_src_dir do
       src   = fixture_path("cp_r")
       dest  = tmp_path("tmp.file")
-      assert File.cp(src, dest) == { :error, :eisdir }
+      assert File.cp(src, dest) == {:error, :eisdir}
     end
 
     test :cp_with_conflict do
@@ -141,7 +141,7 @@ defmodule FileTest do
 
       try do
         assert File.exists?(dest)
-        assert File.cp_r(src, dest) == { :ok, [dest] }
+        assert File.cp_r(src, dest) == {:ok, [dest]}
         assert File.exists?(dest)
       after
         File.rm(dest)
@@ -167,7 +167,7 @@ defmodule FileTest do
 
       try do
         refute File.exists?(dest)
-        assert File.cp_r(src, dest) == { :ok, [dest] }
+        assert File.cp_r(src, dest) == {:ok, [dest]}
         assert File.exists?(dest)
       after
         File.rm_rf dest
@@ -185,7 +185,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        { :ok, files } = File.cp_r(src, dest)
+        {:ok, files} = File.cp_r(src, dest)
         assert length(files) == 7
         assert tmp_path("tmp/a") in files
         assert tmp_path("tmp/a/1.txt") in files
@@ -219,7 +219,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        { :ok, files } = File.cp_r(src, dest)
+        {:ok, files} = File.cp_r(src, dest)
         assert length(files) == 7
 
         assert File.exists?(tmp_path("tmp/a/1.txt"))
@@ -233,7 +233,7 @@ defmodule FileTest do
     test :cp_r_with_src_unknown do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert File.cp_r(src, dest) == { :error, :enoent, src }
+      assert File.cp_r(src, dest) == {:error, :enoent, src}
     end
 
     test :cp_r_with_dir_and_file_conflict do
@@ -260,7 +260,7 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
 
-        { :ok, files } = File.cp_r(src, dest)
+        {:ok, files} = File.cp_r(src, dest)
         assert length(files) == 7
         assert Enum.all?(files, &is_binary/1)
 
@@ -379,11 +379,11 @@ defmodule FileTest do
   end
 
   test :ls do
-    { :ok, value } = File.ls(fixture_path)
+    {:ok, value} = File.ls(fixture_path)
     assert "code_sample.exs" in value
     assert "file.txt" in value
 
-    { :error, :enoent } = File.ls(fixture_path("non-existent-subdirectory"))
+    {:error, :enoent} = File.ls(fixture_path("non-existent-subdirectory"))
   end
 
   test :ls! do
@@ -400,17 +400,17 @@ defmodule FileTest do
     use Elixir.FileCase
 
     test :read_with_binary do
-      assert { :ok, "FOO\n" } = File.read(fixture_path("file.txt"))
-      assert { :error, :enoent } = File.read(fixture_path("missing.txt"))
+      assert {:ok, "FOO\n"} = File.read(fixture_path("file.txt"))
+      assert {:error, :enoent} = File.read(fixture_path("missing.txt"))
     end
 
     test :read_with_list do
-      assert { :ok, "FOO\n" } = File.read(Path.expand('fixtures/file.txt', __DIR__))
-      assert { :error, :enoent } = File.read(Path.expand('fixtures/missing.txt', __DIR__))
+      assert {:ok, "FOO\n"} = File.read(Path.expand('fixtures/file.txt', __DIR__))
+      assert {:error, :enoent} = File.read(Path.expand('fixtures/missing.txt', __DIR__))
     end
 
     test :read_with_utf8 do
-      assert { :ok, "Русский\n日\n" } = File.read(Path.expand('fixtures/utf8.txt', __DIR__))
+      assert {:ok, "Русский\n日\n"} = File.read(Path.expand('fixtures/utf8.txt', __DIR__))
     end
 
     test :read! do
@@ -427,7 +427,7 @@ defmodule FileTest do
       try do
         refute File.exists?(fixture)
         assert File.write(fixture, 'test text') == :ok
-        assert File.read(fixture) == { :ok, "test text" }
+        assert File.read(fixture) == {:ok, "test text"}
       after
         File.rm(fixture)
       end
@@ -438,7 +438,7 @@ defmodule FileTest do
       try do
         refute File.exists?(fixture)
         assert File.write(fixture, "Русский\n日\n") == :ok
-        assert { :ok, "Русский\n日\n" } == File.read(fixture)
+        assert {:ok, "Русский\n日\n"} == File.read(fixture)
       after
         File.rm(fixture)
       end
@@ -450,32 +450,32 @@ defmodule FileTest do
         refute File.exists?(fixture)
         assert File.write(fixture, "Русский\n日\n") == :ok
         assert File.write(fixture, "test text", [:append]) == :ok
-        assert { :ok, "Русский\n日\ntest text" } == File.read(fixture)
+        assert {:ok, "Русский\n日\ntest text"} == File.read(fixture)
       after
         File.rm(fixture)
       end
     end
 
     test :open_file_without_modes do
-      { :ok, file } = File.open(fixture_path("file.txt"))
+      {:ok, file} = File.open(fixture_path("file.txt"))
       assert IO.gets(file, "") == "FOO\n"
       assert File.close(file) == :ok
     end
 
     test :open_file_with_char_list do
-      { :ok, file } = File.open(fixture_path("file.txt"), [:char_list])
+      {:ok, file} = File.open(fixture_path("file.txt"), [:char_list])
       assert IO.gets(file, "") == 'FOO\n'
       assert File.close(file) == :ok
     end
 
     test :open_utf8_by_default do
-      { :ok, file } = File.open(fixture_path("utf8.txt"), [:utf8])
+      {:ok, file} = File.open(fixture_path("utf8.txt"), [:utf8])
       assert IO.gets(file, "") == "Русский\n"
       assert File.close(file) == :ok
     end
 
     test :open_readonly_by_default do
-      { :ok, file } = File.open(fixture_path("file.txt"))
+      {:ok, file} = File.open(fixture_path("file.txt"))
       assert_raise ArgumentError, fn -> IO.write(file, "foo") end
       assert File.close(file) == :ok
     end
@@ -483,10 +483,10 @@ defmodule FileTest do
     test :open_with_write_permission do
       fixture = tmp_path("tmp_text.txt")
       try do
-        { :ok, file } = File.open(fixture, [:write])
+        {:ok, file} = File.open(fixture, [:write])
         assert IO.write(file, "foo") == :ok
         assert File.close(file) == :ok
-        assert File.read(fixture) == { :ok, "foo" }
+        assert File.read(fixture) == {:ok, "foo"}
       after
         File.rm(fixture)
       end
@@ -495,23 +495,23 @@ defmodule FileTest do
     test :open_with_binwrite_permission do
       fixture = tmp_path("tmp_text.txt")
       try do
-        { :ok, file } = File.open(fixture, [:write])
+        {:ok, file} = File.open(fixture, [:write])
         assert IO.binwrite(file, "Русский") == :ok
         assert File.close(file) == :ok
-        assert File.read(fixture) == { :ok, "Русский" }
+        assert File.read(fixture) == {:ok, "Русский"}
       after
         File.rm(fixture)
       end
     end
 
     test :open_utf8_and_charlist do
-      { :ok, file } = File.open(fixture_path("utf8.txt"), [:char_list, :utf8])
+      {:ok, file} = File.open(fixture_path("utf8.txt"), [:char_list, :utf8])
       assert IO.gets(file, "") == [1056, 1091, 1089, 1089, 1082, 1080, 1081, 10]
       assert File.close(file) == :ok
     end
 
     test :open_respects_encoding do
-      { :ok, file } = File.open(fixture_path("utf8.txt"), [{:encoding, :latin1}])
+      {:ok, file} = File.open(fixture_path("utf8.txt"), [{:encoding, :latin1}])
       assert IO.gets(file, "") == <<195, 144, 194, 160, 195, 145, 194, 131, 195, 145, 194, 129, 195, 145, 194, 129, 195, 144, 194, 186, 195, 144, 194, 184, 195, 144, 194, 185, 10>>
       assert File.close(file) == :ok
     end
@@ -522,7 +522,7 @@ defmodule FileTest do
 
     test :open_a_file_with_function do
       file = fixture_path("file.txt")
-      assert File.open(file, &IO.read(&1, :line)) == { :ok, "FOO\n" }
+      assert File.open(file, &IO.read(&1, :line)) == {:ok, "FOO\n"}
     end
 
     test :open_a_missing_file! do
@@ -673,7 +673,7 @@ defmodule FileTest do
     end
 
     defp io_error?(result) do
-      { :error, errorcode } = result
+      {:error, errorcode} = result
       errorcode in [:enotdir, :eio, :enoent, :eisdir]
     end
   end
@@ -690,11 +690,11 @@ defmodule FileTest do
     end
 
     test :rm_file_with_dir do
-      assert File.rm(fixture_path) == { :error, :eperm }
+      assert File.rm(fixture_path) == {:error, :eperm}
     end
 
     test :rm_nonexistent_file do
-      assert File.rm('missing.txt') == { :error, :enoent }
+      assert File.rm('missing.txt') == {:error, :enoent}
     end
 
     test :rm! do
@@ -747,7 +747,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
-      { :ok, files } = File.rm_rf(fixture)
+      {:ok, files} = File.rm_rf(fixture)
       assert length(files) == 7
       assert fixture in files
       assert tmp_path("tmp/a/1.txt") in files
@@ -769,7 +769,7 @@ defmodule FileTest do
       if File.exists?(from) or not is_win? do
         assert File.exists?(from)
 
-        { :ok, files } = File.rm_rf(from)
+        {:ok, files} = File.rm_rf(from)
         assert length(files) == 1
 
         assert File.exists?(Path.join(to, "hello"))
@@ -788,7 +788,7 @@ defmodule FileTest do
       assert File.exists?(tmp_path("tmp/a/a/2.txt"))
       assert File.exists?(tmp_path("tmp/b/3.txt"))
 
-      { :ok, files } = File.rm_rf(fixture)
+      {:ok, files} = File.rm_rf(fixture)
       assert length(files) == 7
       assert tmp_path("tmp") in files
       assert Enum.all?(files, &is_binary/1)
@@ -802,17 +802,17 @@ defmodule FileTest do
     test :rm_rf_with_file do
       fixture = tmp_path("tmp")
       File.write(fixture, "hello")
-      assert File.rm_rf(fixture) == { :ok, [fixture] }
+      assert File.rm_rf(fixture) == {:ok, [fixture]}
     end
 
     test :rm_rf_with_unknown do
       fixture = tmp_path("tmp.unknown")
-      assert File.rm_rf(fixture) == { :ok, [] }
+      assert File.rm_rf(fixture) == {:ok, []}
     end
 
     test :rm_rf_with_invalid do
       fixture = fixture_path "file.txt/path"
-      assert File.rm_rf(fixture) == { :ok, [] }
+      assert File.rm_rf(fixture) == {:ok, []}
     end
 
     test :rm_rf! do
@@ -855,7 +855,7 @@ defmodule FileTest do
   end
 
   test :stat_with_invalid_file do
-    assert { :error, _ } = File.stat("./invalid_file")
+    assert {:error, _} = File.stat("./invalid_file")
   end
 
   test :stat_with_invalid_file! do
@@ -873,7 +873,7 @@ defmodule FileTest do
       File.open dest, [:write], fn(target) ->
         Enum.into stream, IO.stream(target, :line), &String.replace(&1, "O", "A")
       end
-      assert File.read(dest) == { :ok, "FAA\n" }
+      assert File.read(dest) == {:ok, "FAA\n"}
     after
       File.rm(dest)
     end
@@ -888,7 +888,7 @@ defmodule FileTest do
       File.open dest, [:write], fn(target) ->
         Enum.into stream, IO.binstream(target, :line), &String.replace(&1, "O", "A")
       end
-      assert File.read(dest) == { :ok, "FAA\n" }
+      assert File.read(dest) == {:ok, "FAA\n"}
     after
       File.rm(dest)
     end
@@ -905,7 +905,7 @@ defmodule FileTest do
     src = fixture_path("file.txt")
     stream = File.stream!(src, [:utf8], 10)
     assert %File.Stream{} = stream
-    assert stream.modes == [{ :encoding, :utf8 }, :binary]
+    assert stream.modes == [{:encoding, :utf8}, :binary]
     refute stream.raw
     assert stream.line_or_bytes == 10
   end
@@ -921,7 +921,7 @@ defmodule FileTest do
           IO.write target, String.replace(line, "O", "A")
         end
       end
-      assert File.read(dest) == { :ok, "FAA\n" }
+      assert File.read(dest) == {:ok, "FAA\n"}
     after
       File.rm(dest)
     end
@@ -938,7 +938,7 @@ defmodule FileTest do
           IO.write target, String.replace(line, "OO", "AA")
         end
       end
-      assert File.read(dest) == { :ok, "FOO\n" }
+      assert File.read(dest) == {:ok, "FOO\n"}
     after
       File.rm(dest)
     end
@@ -955,7 +955,7 @@ defmodule FileTest do
           IO.write target, String.replace(line, "O", "A")
         end
       end
-      assert File.read(dest) == { :ok, "FAA\n" }
+      assert File.read(dest) == {:ok, "FAA\n"}
     after
       File.rm(dest)
     end
@@ -972,7 +972,7 @@ defmodule FileTest do
           IO.write target, String.replace(line, "OO", "AA")
         end
       end
-      assert File.read(dest) == { :ok, "FOO\n" }
+      assert File.read(dest) == {:ok, "FOO\n"}
     after
       File.rm(dest)
     end
@@ -991,7 +991,7 @@ defmodule FileTest do
                  |> Enum.into(original)
 
       assert stream == original
-      assert File.read(dest) == { :ok, "FAA\n" }
+      assert File.read(dest) == {:ok, "FAA\n"}
     after
       File.rm(dest)
     end
@@ -1012,7 +1012,7 @@ defmodule FileTest do
       File.stream!(src, [:append])
       |> Enum.into(original)
 
-      assert File.read(dest) == { :ok, "FAA\nFOO\n" }
+      assert File.read(dest) == {:ok, "FAA\nFOO\n"}
     after
       File.rm(dest)
     end
@@ -1023,8 +1023,8 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
-      assert File.copy(src, dest) == { :ok, 4 }
-      assert File.read(dest) == { :ok, "FOO\n" }
+      assert File.copy(src, dest) == {:ok, 4}
+      assert File.read(dest) == {:ok, "FOO\n"}
     after
       File.rm(dest)
     end
@@ -1035,8 +1035,8 @@ defmodule FileTest do
     dest = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(dest)
-      assert File.copy(src, dest, 2) == { :ok, 2 }
-      assert { :ok, "FO" } == File.read(dest)
+      assert File.copy(src, dest, 2) == {:ok, 2}
+      assert {:ok, "FO"} == File.read(dest)
     after
       File.rm(dest)
     end
@@ -1045,7 +1045,7 @@ defmodule FileTest do
   test :copy_with_invalid_file do
     src  = fixture_path("invalid.txt")
     dest = tmp_path("tmp_test.txt")
-    assert File.copy(src, dest, 2) == { :error, :enoent }
+    assert File.copy(src, dest, 2) == {:error, :enoent}
   end
 
   test :copy! do
@@ -1054,7 +1054,7 @@ defmodule FileTest do
     try do
       refute File.exists?(dest)
       assert File.copy!(src, dest) == 4
-      assert { :ok, "FOO\n" } == File.read(dest)
+      assert {:ok, "FOO\n"} == File.read(dest)
     after
       File.rm(dest)
     end
@@ -1066,7 +1066,7 @@ defmodule FileTest do
     try do
       refute File.exists?(dest)
       assert File.copy!(src, dest, 2) == 2
-      assert { :ok, "FO" } == File.read(dest)
+      assert {:ok, "FO"} == File.read(dest)
     after
       File.rm(dest)
     end
@@ -1081,7 +1081,7 @@ defmodule FileTest do
   end
 
   test :cwd_and_cd do
-    { :ok, current } = File.cwd
+    {:ok, current} = File.cwd
     try do
       assert File.cd(fixture_path) == :ok
       assert File.exists?("file.txt")
@@ -1122,12 +1122,12 @@ defmodule FileTest do
 
   test :touch_with_no_file do
     fixture = tmp_path("tmp_test.txt")
-    time = { { 2010, 4, 17 }, { 14, 0, 0 }}
+    time = {{2010, 4, 17}, {14, 0, 0}}
 
     try do
       refute File.exists?(fixture)
       assert File.touch(fixture, time) == :ok
-      assert { :ok, "" } == File.read(fixture)
+      assert {:ok, ""} == File.read(fixture)
       assert File.stat!(fixture).mtime == time
     after
       File.rm(fixture)
@@ -1261,12 +1261,12 @@ defmodule FileTest do
     last_year :calendar.local_time
   end
 
-  defp last_year({ { year, month, day }, time }) do
-    { { year - 1, month, day }, time }
+  defp last_year({{year, month, day}, time}) do
+    {{year - 1, month, day}, time}
   end
 
   defp io_error?(result) do
-    { :error, errorcode } = result
+    {:error, errorcode} = result
     errorcode in [:enotdir, :eio, :enoent, :eisdir]
   end
 end

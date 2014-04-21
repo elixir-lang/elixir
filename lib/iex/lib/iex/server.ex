@@ -34,29 +34,29 @@ defmodule IEx.Server do
   current process.
   """
   @spec take_over(binary, Keyword.t, pos_integer) ::
-        :ok | { :error, :no_iex } | { :error, :refused }
+        :ok | {:error, :no_iex} | {:error, :refused}
   def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
     cond do
       nil?(server) ->
-        { :error, :no_iex }
+        {:error, :no_iex}
       true ->
         ref = make_ref()
-        send server, { :take?, self, ref }
+        send server, {:take?, self, ref}
 
         receive do
           ^ref ->
             opts = [evaluator: self] ++ opts
-            send server, { :take, self, identifier, ref, opts }
+            send server, {:take, self, identifier, ref, opts}
 
             receive do
-              { ^ref, nil } ->
-                { :error, :refused }
-              { ^ref, leader } ->
+              {^ref, nil} ->
+                {:error, :refused}
+              {^ref, leader} ->
                 IEx.Evaluator.start(server, leader)
             end
         after
           timeout ->
-            { :error, :no_iex }
+            {:error, :no_iex}
         end
     end
   end
@@ -77,29 +77,29 @@ defmodule IEx.Server do
   """
   @spec start(list, fun) :: :ok
   def start(opts, callback) do
-    { pid, ref } = Process.spawn_monitor(callback)
+    {pid, ref} = Process.spawn_monitor(callback)
     start_loop(opts, pid, ref)
   end
 
   defp start_loop(opts, pid, ref) do
     receive do
-      { :take?, other, ref } ->
+      {:take?, other, ref} ->
         send other, ref
         start_loop(opts, pid, ref)
 
-      { :take, other, identifier, ref, opts } ->
+      {:take, other, identifier, ref, opts} ->
         if allow_take?(identifier) do
-          send other, { ref, Process.group_leader }
+          send other, {ref, Process.group_leader}
           run(opts)
         else
-          send other, { ref, nil }
+          send other, {ref, nil}
           start_loop(opts, pid, ref)
         end
 
-      { :DOWN, ^ref, :process, ^pid,  :normal } ->
+      {:DOWN, ^ref, :process, ^pid,  :normal} ->
         run(opts)
 
-      { :DOWN, ^ref, :process, ^pid,  _reason } ->
+      {:DOWN, ^ref, :process, ^pid,  _reason} ->
         :ok
     end
   end
@@ -126,7 +126,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
     if done? do
-      send evaluator, { :done, self }
+      send evaluator, {:done, self}
     end
     :ok
   end
@@ -144,15 +144,15 @@ defmodule IEx.Server do
     receive do
       # Input handling.
       # Message either go back to the main loop or exit.
-      { :input, ^input, code } when is_binary(code) ->
-        send evaluator, { :eval, self, code, config }
+      {:input, ^input, code} when is_binary(code) ->
+        send evaluator, {:eval, self, code, config}
         wait_eval(evaluator, evaluator_ref)
-      { :input, ^input, { :error, :interrupted } } ->
+      {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
         loop(config.cache(''), evaluator, evaluator_ref)
-      { :input, ^input, :eof } ->
+      {:input, ^input, :eof} ->
         exit_loop(evaluator, evaluator_ref)
-      { :input, ^input, { :error, :terminated } } ->
+      {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
 
       # Take process.
@@ -160,27 +160,27 @@ defmodule IEx.Server do
       # go back to wait for the same input. The take message
       # needs to take hold of the IO, so it kills the input,
       # re-runs the server OR goes back to the main loop.
-      { :take?, other, ref } ->
+      {:take?, other, ref} ->
         send other, ref
         wait_input(config, evaluator, evaluator_ref, input)
-      { :take, other, identifier, ref, opts } ->
+      {:take, other, identifier, ref, opts} ->
         kill_input(input)
 
         if allow_take?(identifier) do
-          send other, { ref, Process.group_leader }
+          send other, {ref, Process.group_leader}
           reset_loop(opts, evaluator, evaluator_ref)
         else
-          send other, { ref, nil }
+          send other, {ref, nil}
           loop(config, evaluator, evaluator_ref)
         end
 
       # Evaluator handling.
       # We always kill the input to run a new one or to exit for real.
-      { :respawn, ^evaluator } ->
+      {:respawn, ^evaluator} ->
         kill_input(input)
         IO.puts("")
         reset_loop([], evaluator, evaluator_ref)
-      { :DOWN, ^evaluator_ref, :process, ^evaluator,  reason } ->
+      {:DOWN, ^evaluator_ref, :process, ^evaluator,  reason} ->
         io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
         kill_input(input)
         exit_loop(evaluator, evaluator_ref)
@@ -189,17 +189,17 @@ defmodule IEx.Server do
 
   defp wait_eval(evaluator, evaluator_ref) do
     receive do
-      { :evaled, ^evaluator, config } ->
+      {:evaled, ^evaluator, config} ->
         loop(config, evaluator, evaluator_ref)
-      { :take?, other, ref } ->
+      {:take?, other, ref} ->
         send other, ref
         wait_eval(evaluator, evaluator_ref)
-      { :take, other, identifier, ref, opts } ->
+      {:take, other, identifier, ref, opts} ->
         if allow_take?(identifier) do
-          send other, { ref, Process.group_leader }
+          send other, {ref, Process.group_leader}
           reset_loop(opts, evaluator, evaluator_ref)
         else
-          send other, { ref, nil }
+          send other, {ref, nil}
           wait_eval(evaluator, evaluator_ref)
         end
     end
@@ -226,7 +226,7 @@ defmodule IEx.Server do
         :elixir.env_for_eval(file: "iex", delegate_locals_to: locals)
       end
 
-    { _, _, env, scope } = :elixir.eval('require IEx.Helpers', [], env)
+    {_, _, env, scope} = :elixir.eval('require IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
@@ -242,15 +242,15 @@ defmodule IEx.Server do
 
   defp io_get(pid, prefix, counter) do
     prompt = prompt(prefix, counter)
-    send pid, { :input, self, IO.gets(:stdio, prompt) }
+    send pid, {:input, self, IO.gets(:stdio, prompt)}
   end
 
   defp prompt(prefix, counter) do
-    { mode, prefix } =
+    {mode, prefix} =
       if Node.alive? do
-        { :alive, prefix || remote_prefix }
+        {:alive, prefix || remote_prefix}
       else
-        { :default, prefix || "iex" }
+        {:default, prefix || "iex"}
       end
 
     prompt = IEx.Options.get(:prompt)[mode]

@@ -10,8 +10,8 @@ defmodule Record.AccessTest do
   end
 
   test "access with keywords" do
-    assert User[] == { User, 0, nil }
-    assert User[age: 1] == { User, 1, nil }
+    assert User[] == {User, 0, nil}
+    assert User[age: 1] == {User, 1, nil}
   end
 
   test "access with variable inside match" do
@@ -21,8 +21,8 @@ defmodule Record.AccessTest do
 
   test "access match on record name" do
     assert is_user(User.new) == true
-    assert is_user({ Access.AtomTest, 1 }) == false
-    assert is_user({ User, 1, 2, 3 }) == false
+    assert is_user({Access.AtomTest, 1}) == false
+    assert is_user({User, 1, 2, 3}) == false
   end
 
   test "access with field match" do

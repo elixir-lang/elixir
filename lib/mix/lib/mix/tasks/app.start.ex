@@ -17,7 +17,7 @@ defmodule Mix.Tasks.App.Start do
 
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args)
 
     Mix.Task.run "deps.loadpaths", args
     Mix.Task.run "loadpaths", args
@@ -35,10 +35,10 @@ defmodule Mix.Tasks.App.Start do
   def start(app) do
     if app do
       case :application.ensure_all_started(app) do
-        { :ok, _ } -> :ok
-        { :error, { app, { :bad_return, _ } } } ->
+        {:ok, _} -> :ok
+        {:error, {app, {:bad_return, _}}} ->
           raise Mix.Error, message: "Could not start application #{app}, please see report above"
-        { :error, { app, reason } } ->
+        {:error, {app, reason}} ->
           raise Mix.Error, message: "Could not start application #{app}: #{inspect reason}"
       end
     else

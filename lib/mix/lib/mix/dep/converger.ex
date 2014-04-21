@@ -53,27 +53,27 @@ defmodule Mix.Dep.Converger do
     result =
       all(main, [], [], apps, callback, acc, lock, fn dep ->
         if not nil?(lock) && converger && converger.remote?(dep) do
-          { :loaded, dep }
+          {:loaded, dep}
         else
-          { :unloaded, dep }
+          {:unloaded, dep}
         end
       end)
 
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
     case converger && result do
-      { deps, rest, lock } when not nil?(lock) ->
+      {deps, rest, lock} when not nil?(lock) ->
         new_lock = converger.converge(main, lock)
 
         deps = deps
                |> Enum.reject(&converger.remote?(&1))
-               |> Enum.into(HashDict.new, &{ &1.app, &1 })
+               |> Enum.into(HashDict.new, &{&1.app, &1})
 
         all(main, [], [], apps, callback, rest, new_lock, fn dep ->
           if cached = deps[dep.app] do
-            { :loaded, cached }
+            {:loaded, cached}
           else
-            { :unloaded, dep }
+            {:unloaded, dep}
           end
         end)
       _ ->
@@ -127,10 +127,10 @@ defmodule Mix.Dep.Converger do
       true ->
         dep =
           case cache.(dep) do
-            { :loaded, cached_dep } ->
+            {:loaded, cached_dep} ->
               cached_dep
-            { :unloaded, dep } ->
-              { dep, rest, lock } = callback.(dep, rest, lock)
+            {:unloaded, dep} ->
+              {dep, rest, lock} = callback.(dep, rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
@@ -139,13 +139,13 @@ defmodule Mix.Dep.Converger do
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
-        { acc, rest, lock } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, cache)
+        {acc, rest, lock} = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, cache)
         all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, lock, cache)
     end
   end
 
   defp all([], acc, _upper, _current, _callback, rest, lock, _cache) do
-    { acc, rest, lock }
+    {acc, rest, lock}
   end
 
   # Look for divergence in dependencies.
@@ -162,20 +162,20 @@ defmodule Mix.Dep.Converger do
     %Mix.Dep{app: app} = dep
     in_upper? = app in upper_breadths
 
-    { acc, match } =
+    {acc, match} =
       Enum.map_reduce list, false, fn(other, match) ->
         %Mix.Dep{app: other_app, opts: other_opts} = other
 
         cond do
           app != other_app ->
-            { other, match }
+            {other, match}
           in_upper? && other_opts[:override] ->
-            { other, true }
+            {other, true}
           converge?(other, dep) ->
-            { with_matching_req(other, dep), true }
+            {with_matching_req(other, dep), true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
-            { %{other | status: { tag, dep }}, true }
+            {%{other | status: {tag, dep}}, true}
         end
       end
 
@@ -194,11 +194,11 @@ defmodule Mix.Dep.Converger do
 
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
-      { :ok, vsn } when not nil?(vsn) ->
+      {:ok, vsn} when not nil?(vsn) ->
         if Mix.Dep.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
           other
         else
-          %{other | status: { :divergedreq, dep }}
+          %{other | status: {:divergedreq, dep}}
         end
       _ ->
         other

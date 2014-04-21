@@ -65,7 +65,7 @@ defmodule IEx.CLI do
   # to do it just once.
   defp tty_works? do
     try do
-      port = Port.open { :spawn, 'tty_sl -c -e' }, [:eof]
+      port = Port.open {:spawn, 'tty_sl -c -e'}, [:eof]
       Port.close(port)
     catch
       _, _ -> false
@@ -76,10 +76,10 @@ defmodule IEx.CLI do
     if remote = get_remsh(:init.get_plain_arguments) do
       if Node.alive? do
         case :rpc.call remote, :code, :ensure_loaded, [IEx] do
-          { :badrpc, reason } ->
+          {:badrpc, reason} ->
             abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
-          { :module, IEx } ->
-            { remote, :erlang, :apply, [remote_start_function, []] }
+          {:module, IEx} ->
+            {remote, :erlang, :apply, [remote_start_function, []]}
           _ ->
             abort "Could not find IEx on remote node #{remote}. Aborting..."
         end
@@ -87,7 +87,7 @@ defmodule IEx.CLI do
         abort "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
       end
     else
-      { :erlang, :apply, [local_start_function, []] }
+      {:erlang, :apply, [local_start_function, []]}
     end
   end
 
@@ -105,16 +105,16 @@ defmodule IEx.CLI do
 
     parent = spawn_link fn ->
       receive do
-        { :begin, ^ref, other } ->
+        {:begin, ^ref, other} ->
           :elixir.start_cli
-          send other, { :done, ref }
+          send other, {:done, ref}
       end
     end
 
     fn ->
       IEx.start(config, fn ->
-        send parent, { :begin, ref, self }
-        receive do: ({ :done, ^ref } -> :ok)
+        send parent, {:begin, ref, self}
+        receive do: ({:done, ^ref} -> :ok)
       end)
     end
   end
@@ -128,7 +128,7 @@ defmodule IEx.CLI do
       IO.puts(:stderr, msg)
       System.halt(1)
     end
-    { :erlang, :apply, [function, []] }
+    {:erlang, :apply, [function, []]}
   end
 
   defp find_dot_iex(['--dot-iex', h|_]), do: String.from_char_data!(h)

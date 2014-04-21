@@ -6,25 +6,25 @@ defmodule Mix.DepTest do
   defmodule DepsApp do
     def project do
       [ deps: [
-          { :ok,         "0.1.0", github: "elixir-lang/ok" },
-          { :invalidvsn, "0.2.0", path: "deps/invalidvsn" },
-          { :invalidapp, "0.1.0", path: "deps/invalidapp" },
-          { :noappfile,  "0.1.0", path: "deps/noappfile" },
-          { :uncloned,            git: "https://github.com/elixir-lang/uncloned.git" },
-          { :optional,            git: "https://github.com/elixir-lang/optional.git", optional: true }
+          {:ok,         "0.1.0", github: "elixir-lang/ok"},
+          {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
+          {:invalidapp, "0.1.0", path: "deps/invalidapp"},
+          {:noappfile,  "0.1.0", path: "deps/noappfile"},
+          {:uncloned,            git: "https://github.com/elixir-lang/uncloned.git"},
+          {:optional,            git: "https://github.com/elixir-lang/optional.git", optional: true}
         ] ]
     end
   end
 
   defmodule MixVersionApp do
     def project do
-      [ deps: [ { :ok, "~> 0.1", github: "elixir-lang/ok" } ] ]
+      [ deps: [ {:ok, "~> 0.1", github: "elixir-lang/ok"} ] ]
     end
   end
 
   defmodule InvalidDepsReq do
     def project do
-      [ deps: [ { :ok, "+- 0.1.0", github: "elixir-lang/ok" } ] ]
+      [ deps: [ {:ok, "+- 0.1.0", github: "elixir-lang/ok"} ] ]
     end
   end
 
@@ -34,12 +34,12 @@ defmodule Mix.DepTest do
     in_fixture "deps_status", fn ->
       deps = Mix.Dep.loaded([])
       assert length(deps) == 6
-      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: { :ok, _ }}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidvsn, status: { :invalidvsn, :ok }}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidapp, status: { :invalidapp, _ }}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :noappfile, status: { :noappfile, _ }}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :uncloned, status: { :unavailable, _ }}, &1)
-      assert Enum.find deps, &match?(%Mix.Dep{app: :optional, status: { :unavailable, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidvsn, status: {:invalidvsn, :ok}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :invalidapp, status: {:invalidapp, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :noappfile, status: {:noappfile, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :uncloned, status: {:unavailable, _}}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :optional, status: {:unavailable, _}}, &1)
     end
   end
 
@@ -48,7 +48,7 @@ defmodule Mix.DepTest do
 
     in_fixture "deps_status", fn ->
       deps = Mix.Dep.loaded([])
-      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: { :ok, _ }}, &1)
+      assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1)
     end
   end
 
@@ -58,10 +58,10 @@ defmodule Mix.DepTest do
     # the proper manager.
     Mix.Project.push DepsApp
 
-    { _, true, _ } =
+    {_, true, _} =
       Mix.Dep.unloaded(false, [], nil, fn dep, acc, lock ->
         assert nil?(dep.manager)
-        { dep, acc or true, lock }
+        {dep, acc or true, lock}
       end)
   end
 
@@ -81,7 +81,7 @@ defmodule Mix.DepTest do
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          { :deps_repo, "0.1.0", path: "custom/deps_repo" }
+          {:deps_repo, "0.1.0", path: "custom/deps_repo"}
         ]
       ]
     end
@@ -108,7 +108,7 @@ defmodule Mix.DepTest do
             app: :deps_repo,
             version: "0.1.0",
             deps: [
-              { :git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true }
+              {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}
             ]
           ]
         end
@@ -125,8 +125,8 @@ defmodule Mix.DepTest do
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          { :deps_repo, "0.1.0", path: "custom/deps_repo" },
-          { :git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo") }
+          {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
         ]
       ]
     end
@@ -153,7 +153,7 @@ defmodule Mix.DepTest do
             app: :deps_repo,
             version: "0.1.0",
             deps: [
-              { :git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true }
+              {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), optional: true}
             ]
           ]
         end
@@ -183,7 +183,7 @@ defmodule Mix.DepTest do
       Mix.Tasks.Deps.Get.run([])
 
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert_received { :mix_shell, :info, [^message] }
+      assert_received {:mix_shell, :info, [^message]}
 
       assert Process.get(:remote_converger)
     end
@@ -193,8 +193,8 @@ defmodule Mix.DepTest do
 
   defmodule OnlyDeps do
     def project do
-      [ deps: [ { :foo, github: "elixir-lang/foo" },
-                { :bar, github: "elixir-lang/bar", only: :other_env }  ] ]
+      [ deps: [ {:foo, github: "elixir-lang/foo"},
+                {:bar, github: "elixir-lang/bar", only: :other_env}  ] ]
     end
   end
 
@@ -202,13 +202,13 @@ defmodule Mix.DepTest do
     Mix.Project.push OnlyDeps
 
     in_fixture "deps_status", fn ->
-      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [env: :other_env], &{ &1, &2, &3 })
+      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [env: :other_env], &{&1, &2, &3})
       assert length(deps) == 2
 
-      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [], &{ &1, &2, &3 })
+      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [], &{&1, &2, &3})
       assert length(deps) == 2
 
-      { deps, _acc, _lock } = Mix.Dep.unloaded([], nil, [env: :prod], &{ &1, &2, &3 })
+      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [env: :prod], &{&1, &2, &3})
       assert length(deps) == 1
       assert Enum.find deps, &match?(%Mix.Dep{app: :foo}, &1)
     end
@@ -218,7 +218,7 @@ defmodule Mix.DepTest do
     def project do
       [ app: :raw_sample,
         version: "0.1.0",
-        deps: [ { :only_deps, path: fixture_path("only_deps") } ] ]
+        deps: [ {:only_deps, path: fixture_path("only_deps")} ] ]
     end
   end
 
@@ -228,7 +228,7 @@ defmodule Mix.DepTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run([])
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      refute_received { :mix_shell, :info, [^message] }
+      refute_received {:mix_shell, :info, [^message]}
     end
   end
 
@@ -236,7 +236,7 @@ defmodule Mix.DepTest do
     def project do
       [ app: :raw_sample,
         version: "0.1.0",
-        deps: [ { :only, github: "elixir-lang/only", only: :dev } ] ]
+        deps: [ {:only, github: "elixir-lang/only", only: :dev} ] ]
     end
   end
 
@@ -245,7 +245,7 @@ defmodule Mix.DepTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Get.run(["--only", "prod"])
-      refute_received { :mix_shell, :info, ["* Getting" <> _] }
+      refute_received {:mix_shell, :info, ["* Getting" <> _]}
 
       assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
         Mix.Tasks.Deps.Check.run([])

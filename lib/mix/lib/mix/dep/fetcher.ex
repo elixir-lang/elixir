@@ -16,7 +16,7 @@ defmodule Mix.Dep.Fetcher do
   """
   def all(old_lock, new_lock, opts) do
     result = Mix.Dep.unloaded([], new_lock, opts, &do_fetch/3)
-    { apps, _deps } = do_finalize(result, old_lock, opts)
+    {apps, _deps} = do_finalize(result, old_lock, opts)
     apps
   end
 
@@ -28,7 +28,7 @@ defmodule Mix.Dep.Fetcher do
   def by_name(names, old_lock, new_lock, opts) do
     fetcher = fetch_by_name(names, new_lock)
     result = Mix.Dep.unloaded([], new_lock, opts, fetcher)
-    { apps, deps } = do_finalize(result, old_lock, opts)
+    {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
     Mix.Dep.loaded_by_name(names, deps, opts)
@@ -44,7 +44,7 @@ defmodule Mix.Dep.Fetcher do
       if app in names or lock[app] != new_lock[app] do
         do_fetch(dep, acc, new_lock)
       else
-        { dep, acc, new_lock }
+        {dep, acc, new_lock}
       end
     end
   end
@@ -55,7 +55,7 @@ defmodule Mix.Dep.Fetcher do
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
       not scm.fetchable? ->
-        { dep, [app|acc], lock }
+        {dep, [app|acc], lock}
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
@@ -69,24 +69,24 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          { dep, [app|acc], Map.put(lock, app, new) }
+          {dep, [app|acc], Map.put(lock, app, new)}
         else
-          { dep, acc, lock }
+          {dep, acc, lock}
         end
 
       # The dependency is ok or has some other error
       true ->
-        { dep, acc, lock }
+        {dep, acc, lock}
     end
   end
 
-  defp out_of_date?(%Mix.Dep{status: { :lockmismatch, _ }}), do: true
+  defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
   defp out_of_date?(%Mix.Dep{status: :lockoutdated}),        do: true
   defp out_of_date?(%Mix.Dep{status: :nolock}),              do: true
-  defp out_of_date?(%Mix.Dep{status: { :unavailable, _ }}),  do: true
+  defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
   defp out_of_date?(%Mix.Dep{}),                             do: false
 
-  defp do_finalize({ all_deps, apps, new_lock }, old_lock, opts) do
+  defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
@@ -112,7 +112,7 @@ defmodule Mix.Dep.Fetcher do
     Mix.Dep.Lock.write(lock)
 
     require_compilation(deps)
-    { apps, all_deps }
+    {apps, all_deps}
   end
 
   defp require_compilation(deps) do

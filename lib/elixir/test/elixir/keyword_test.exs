@@ -4,14 +4,14 @@ defmodule KeywordTest do
   use ExUnit.Case, async: true
 
   test "has a literal syntax" do
-    assert [B: 1] == [{ :B, 1 }]
+    assert [B: 1] == [{:B, 1}]
     assert [foo?: :bar] == [{:foo?, :bar}]
     assert [||: 2, +: 1] == [{:||, 2}, {:+, 1}]
-    assert [1, 2, three: :four] == [1, 2, { :three, :four }]
+    assert [1, 2, three: :four] == [1, 2, {:three, :four}]
   end
 
   test "is a :: operator on ambiguity" do
-    assert [{ :::, _, [{ :a, _, _ }, { :b, _, _ }] }] = quote(do: [a::b])
+    assert [{:::, _, [{:a, _, _}, {:b, _, _}]}] = quote(do: [a::b])
   end
 
   test "supports optional comma" do
@@ -38,7 +38,7 @@ defmodule KeywordTest do
   end
 
   test "new/2" do
-    assert Keyword.new([:a, :b], fn x -> { x, x } end) ==
+    assert Keyword.new([:a, :b], fn x -> {x, x} end) ==
            [b: :b, a: :a]
   end
 

@@ -23,16 +23,16 @@ defmodule Mix.Tasks.Help do
 
     docs = for module <- modules,
         doc = Mix.Task.shortdoc(module) do
-      { "mix " <> Mix.Task.task_name(module), doc }
+      {"mix " <> Mix.Task.task_name(module), doc}
     end
 
-    max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
+    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
       max(size(task), acc)
     end
 
     display_default_task_doc(max)
 
-    Enum.each Enum.sort(docs), fn({ task, doc }) ->
+    Enum.each Enum.sort(docs), fn({task, doc}) ->
       shell.info format_task(task, max, doc)
     end
 

@@ -10,13 +10,13 @@ defmodule ExUnit.Runner do
   def run(async, sync, opts, load_us) do
     opts = normalize_opts(opts)
 
-    { :ok, pid } = EM.start_link
+    {:ok, pid} = EM.start_link
     formatters = [ExUnit.RunnerStats|opts[:formatters]]
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
     config = Config[manager: pid].update(opts)
 
-    { run_us, _ } =
+    {run_us, _} =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)
         loop config.async_cases(shuffle(config, async)).sync_cases(shuffle(config, sync))
@@ -34,7 +34,7 @@ defmodule ExUnit.Runner do
         Keyword.put(opts, :trace, false)
       end
 
-    { include, exclude } = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
+    {include, exclude} = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
 
     opts
     |> Keyword.put(:exclude, exclude)
@@ -54,7 +54,7 @@ defmodule ExUnit.Runner do
 
       # Slots are available, start with async cases
       tuple = take_async_cases(config, available) ->
-        { config, cases } = tuple
+        {config, cases} = tuple
         spawn_cases(config, cases)
 
       # No more async cases, wait for them to finish
@@ -63,7 +63,7 @@ defmodule ExUnit.Runner do
 
       # So we can start all sync cases
       tuple = take_sync_cases(config) ->
-        { config, cases } = tuple
+        {config, cases} = tuple
         spawn_cases(config, cases)
 
       # No more cases, we are done!
@@ -77,7 +77,7 @@ defmodule ExUnit.Runner do
   # cases counter and attempt to spawn new ones.
   defp wait_until_available(config) do
     receive do
-      { _pid, :case_finished, _test_case } ->
+      {_pid, :case_finished, _test_case} ->
         loop config.update_taken_cases(&(&1-1))
     end
   end
@@ -102,9 +102,9 @@ defmodule ExUnit.Runner do
     # run and which ones were skipped.
     tests = prepare_tests(config, test_case.tests)
 
-    { test_case, failed } =
+    {test_case, failed} =
       if Enum.all?(tests, &(&1.state)) do
-        { test_case.state(:passed), tests }
+        {test_case.state(:passed), tests}
       else
         spawn_case(config, test_case, tests)
       end
@@ -114,7 +114,7 @@ defmodule ExUnit.Runner do
     # entities involved.
     Enum.each failed, &run_test(config, &1, [])
     EM.case_finished(config.manager, test_case)
-    send pid, { self, :case_finished, test_case }
+    send pid, {self, :case_finished, test_case}
   end
 
   defp prepare_tests(config, tests) do
@@ -126,7 +126,7 @@ defmodule ExUnit.Runner do
       tags = Keyword.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
         :ok             -> test.tags(tags)
-        { :error, tag } -> test.state({ :skip, "due to #{tag} filter" })
+        {:error, tag} -> test.state({:skip, "due to #{tag} filter"})
       end
     end
   end
@@ -134,34 +134,34 @@ defmodule ExUnit.Runner do
   defp spawn_case(config, test_case, tests) do
     self_pid = self
 
-    { case_pid, case_ref } =
+    {case_pid, case_ref} =
       Process.spawn_monitor(fn ->
         case exec_case_setup(test_case) do
-          { :ok, { test_case, context } } ->
+          {:ok, {test_case, context}} ->
             Enum.each(tests, &run_test(config, &1, context))
             test_case = exec_case_teardown(test_case, context)
-            send self_pid, { self, :case_finished, test_case, [] }
+            send self_pid, {self, :case_finished, test_case, []}
 
-          { :error, test_case } ->
-            failed_tests = Enum.map(tests, &(&1.state({ :invalid, test_case })))
-            send self_pid, { self, :case_finished, test_case, failed_tests }
+          {:error, test_case} ->
+            failed_tests = Enum.map(tests, &(&1.state({:invalid, test_case})))
+            send self_pid, {self, :case_finished, test_case, failed_tests}
         end
       end)
 
     receive do
-      { ^case_pid, :case_finished, test_case, tests } ->
-        { test_case, tests }
-      { :DOWN, ^case_ref, :process, ^case_pid, error } ->
-        { test_case.state({ :failed, { :EXIT, error, [] } }), [] }
+      {^case_pid, :case_finished, test_case, tests} ->
+        {test_case, tests}
+      {:DOWN, ^case_ref, :process, ^case_pid, error} ->
+        {test_case.state({:failed, {:EXIT, error, []}}), []}
     end
   end
 
   defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
-    { :ok, context } = case_name.__ex_unit__(:setup_all, [case: case_name])
-    { :ok, { test_case.state(:passed), context } }
+    {:ok, context} = case_name.__ex_unit__(:setup_all, [case: case_name])
+    {:ok, {test_case.state(:passed), context}}
   catch
     kind, error ->
-      { :error, test_case.state({ :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }) }
+      {:error, test_case.state({:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}})}
   end
 
   defp exec_case_teardown(ExUnit.TestCase[name: case_name] = test_case, context) do
@@ -169,7 +169,7 @@ defmodule ExUnit.Runner do
     test_case
   catch
     kind, error ->
-      test_case.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+      test_case.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
   end
 
   defp run_test(config, test, context) do
@@ -185,38 +185,38 @@ defmodule ExUnit.Runner do
   defp spawn_test(_config, test, context) do
     self_pid = self
 
-    { test_pid, test_ref } =
+    {test_pid, test_ref} =
       Process.spawn_monitor(fn ->
-        { us, test } =
+        {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
-              { :ok, { test, context } } ->
+              {:ok, {test, context}} ->
                 if nil?(test.state) do
                   test = exec_test(test, context)
                 end
                 exec_test_teardown(test, context)
-              { :error, test } ->
+              {:error, test} ->
                 test
             end
           end)
 
-        send self_pid, { self, :test_finished, test.time(us) }
+        send self_pid, {self, :test_finished, test.time(us)}
       end)
 
     receive do
-      { ^test_pid, :test_finished, test } ->
+      {^test_pid, :test_finished, test} ->
         test
-      { :DOWN, ^test_ref, :process, ^test_pid, error } ->
-        test.state { :failed, { :EXIT, error, [] } }
+      {:DOWN, ^test_ref, :process, ^test_pid, error} ->
+        test.state {:failed, {:EXIT, error, []}}
     end
   end
 
   defp exec_test_setup(ExUnit.Test[] = test, context) do
-    { :ok, context } = test.case.__ex_unit__(:setup, context)
-    { :ok, { test, context } }
+    {:ok, context} = test.case.__ex_unit__(:setup, context)
+    {:ok, {test, context}}
   catch
     kind2, error2 ->
-      { :error, test.state({ :failed, { kind2, Exception.normalize(kind2, error2), pruned_stacktrace } }) }
+      {:error, test.state({:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace}})}
   end
 
   defp exec_test(ExUnit.Test[] = test, context) do
@@ -224,16 +224,16 @@ defmodule ExUnit.Runner do
     test.state(:passed)
   catch
     kind, error ->
-      test.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+      test.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
   end
 
   defp exec_test_teardown(ExUnit.Test[] = test, context) do
-    { :ok, _context } = test.case.__ex_unit__(:teardown, context)
+    {:ok, _context} = test.case.__ex_unit__(:teardown, context)
     test
   catch
     kind, error ->
       if nil?(test.state) do
-        test.state { :failed, { kind, Exception.normalize(kind, error), pruned_stacktrace } }
+        test.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
       else
         test
       end
@@ -254,14 +254,14 @@ defmodule ExUnit.Runner do
     case config.async_cases do
       [] -> nil
       cases ->
-        { response, remaining } = Enum.split(cases, count)
-        { config.async_cases(remaining), response }
+        {response, remaining} = Enum.split(cases, count)
+        {config.async_cases(remaining), response}
     end
   end
 
   defp take_sync_cases(Config[] = config) do
     case config.sync_cases do
-      [h|t] -> { config.sync_cases(t), [h] }
+      [h|t] -> {config.sync_cases(t), [h]}
       []    -> nil
     end
   end
@@ -269,10 +269,10 @@ defmodule ExUnit.Runner do
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)
 
   # Assertions can pop-up in the middle of the stack
-  defp prune_stacktrace([{ ExUnit.Assertions, _, _, _ }|t]), do: prune_stacktrace(t)
+  defp prune_stacktrace([{ExUnit.Assertions, _, _, _}|t]), do: prune_stacktrace(t)
 
   # As soon as we see a Runner, it is time to ignore the stacktrace
-  defp prune_stacktrace([{ ExUnit.Runner, _, _, _ }|_]), do: []
+  defp prune_stacktrace([{ExUnit.Runner, _, _, _}|_]), do: []
 
   # All other cases
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]

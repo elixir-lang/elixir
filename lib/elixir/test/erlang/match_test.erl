@@ -4,8 +4,8 @@
 eval(Content) -> eval(Content, []).
 
 eval(Content, Initial) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, Initial),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, Initial),
+  {Value, Binding}.
 
 no_assignment_test() ->
   {nil, []} = eval("").
@@ -30,9 +30,9 @@ not_single_assignment_test() ->
 
 duplicated_assignment_on_module_with_tuple_test() ->
   F = fun() ->
-    eval("defmodule Foo do\ndef v({ a, _left }, { a, _right }), do: a\nend"),
-    {1,_} = eval("Foo.v({ 1, :foo }, { 1, :bar })"),
-    ?assertError(function_clause, eval("Foo.v({ 1, :foo }, { 2, :bar })"))
+    eval("defmodule Foo do\ndef v({a, _left}, {a, _right}), do: a\nend"),
+    {1,_} = eval("Foo.v({1, :foo}, {1, :bar})"),
+    ?assertError(function_clause, eval("Foo.v({1, :foo}, {2, :bar})"))
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
@@ -67,7 +67,7 @@ underscore_assignment_test() ->
   {1, []} = eval("_ = 1").
 
 assignment_precedence_test() ->
-  {_, [{x,{ '__block__', _, [1,2,3]}}]} = eval("x = quote do\n1\n2\n3\nend").
+  {_, [{x,{'__block__', _, [1,2,3]}}]} = eval("x = quote do\n1\n2\n3\nend").
 
 % Tuples match
 simple_tuple_test() ->

@@ -21,7 +21,7 @@ defmodule Record.Extractor do
     [app|path] = :filename.split(List.from_char_data!(file))
 
     case :code.lib_dir(list_to_atom(app)) do
-      { :error, _ } ->
+      {:error, _} ->
         raise ArgumentError, message: "lib file #{file} could not be found"
       libpath ->
         extract_record name, :filename.join([libpath|path])
@@ -41,7 +41,7 @@ defmodule Record.Extractor do
 
   # Parse the given file and extract all existent records.
   defp extract_records(form) do
-    for { :attribute, _, :record, record } <- form, do: record
+    for {:attribute, _, :record, record} <- form, do: record
   end
 
   # Read a file and return its abstract syntax form that also
@@ -49,7 +49,7 @@ defmodule Record.Extractor do
   # by using Erlang's epp_dodger.
   defp read_file(file) do
     case :epp_dodger.quick_parse_file(file) do
-      { :ok, form } ->
+      {:ok, form} ->
         form
       other ->
         raise "error parsing file #{file}, got: #{inspect(other)}"
@@ -59,34 +59,34 @@ defmodule Record.Extractor do
   # Parse a tuple with name and fields and returns a
   # list of tuples where the first element is the field
   # and the second is its default value.
-  defp parse_record({ _name, fields }, form) do
-    cons = List.foldr fields, { nil, 0 }, fn f, acc ->
-      { :cons, 0, parse_field(f), acc }
+  defp parse_record({_name, fields}, form) do
+    cons = List.foldr fields, {nil, 0}, fn f, acc ->
+      {:cons, 0, parse_field(f), acc}
     end
     eval_record(cons, form)
   end
 
-  defp parse_field({ :typed_record_field, record_field, _type }) do
+  defp parse_field({:typed_record_field, record_field, _type}) do
     parse_field(record_field)
   end
 
-  defp parse_field({ :record_field, _, key }) do
-    { :tuple, 0, [key, {:atom, 0, :undefined}] }
+  defp parse_field({:record_field, _, key}) do
+    {:tuple, 0, [key, {:atom, 0, :undefined}]}
   end
 
-  defp parse_field({ :record_field, _, key, value }) do
-    { :tuple, 0, [key, value] }
+  defp parse_field({:record_field, _, key, value}) do
+    {:tuple, 0, [key, value]}
   end
 
   defp eval_record(cons, form) do
     form = form ++
-      [ { :function, 0, :hello, 0, [
-          { :clause, 0, [], [], [ cons ] } ] } ]
+      [ {:function, 0, :hello, 0, [
+          {:clause, 0, [], [], [ cons ]} ]} ]
 
-    { :function, 0, :hello, 0, [
-      { :clause, 0, [], [], [ record_ast ] } ] } = :erl_expand_records.module(form, []) |> List.last
+    {:function, 0, :hello, 0, [
+      {:clause, 0, [], [], [ record_ast ]} ]} = :erl_expand_records.module(form, []) |> List.last
 
-    { :value, record, _ } = :erl_eval.expr(record_ast, [])
+    {:value, record, _} = :erl_eval.expr(record_ast, [])
     record
   end
 end

@@ -152,7 +152,7 @@ defmodule ExUnit.DocTest do
 
     tests = quote bind_quoted: binding do
       file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
-      for { name, test } <- ExUnit.DocTest.__doctests__(mod, opts) do
+      for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
         @file file
         test name, do: unquote(test)
       end
@@ -168,7 +168,7 @@ defmodule ExUnit.DocTest do
     extract(module)
     |> filter_by_opts(opts)
     |> Stream.with_index
-    |> Enum.map(fn { test, acc } ->
+    |> Enum.map(fn {test, acc} ->
       compile_test(test, module, do_import, acc + 1)
     end)
   end
@@ -186,29 +186,29 @@ defmodule ExUnit.DocTest do
   ## Compilation of extracted tests
 
   defp compile_test(test, module, do_import, n) do
-    { test_name(test, module, n), test_content(test, module, do_import) }
+    {test_name(test, module, n), test_content(test, module, do_import)}
   end
 
   defp test_name(Test[fun_arity: nil], m, n) do
     "moduledoc at #{inspect m} (#{n})"
   end
 
-  defp test_name(Test[fun_arity: { f, a }], m, n) do
+  defp test_name(Test[fun_arity: {f, a}], m, n) do
     "doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
   defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
     file     = module.__info__(:compile)[:source] |> String.from_char_data!
     location = [line: line, file: Path.relative_to_cwd(file)]
-    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
+    stack    = Macro.escape [{module, :__MODULE__, 0, location}]
 
     if multiple_exceptions?(exprs) do
-      { fun, arity } = fun_arity
+      {fun, arity} = fun_arity
       raise Error, message: "multiple exceptions in one doctest case are not supported. "
                             "Invalid doctest for #{inspect module}.#{fun}/#{arity}"
     end
 
-    tests = Enum.map exprs, fn { expr, expected } ->
+    tests = Enum.map exprs, fn {expr, expected} ->
       test_case_content(expr, expected, module, line, file, stack)
     end
 
@@ -224,7 +224,7 @@ defmodule ExUnit.DocTest do
 
   defp multiple_exceptions?(exprs) do
     Enum.count(exprs, fn
-      { _, {:error, _, _} } -> true
+      {_, {:error, _, _}} -> true
       _ -> false
     end) > 1
   end
@@ -248,7 +248,7 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, { :test, expected }, module, line, file, stack) do
+  defp test_case_content(expr, {:test, expected}, module, line, file, stack) do
     expr_ast     = string_to_quoted(module, line, file, expr)
     expected_ast = string_to_quoted(module, line, file, expected)
 
@@ -266,7 +266,7 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, { :inspect, expected }, module, line, file, stack) do
+  defp test_case_content(expr, {:inspect, expected}, module, line, file, stack) do
     expr_ast     = quote do: inspect(unquote(string_to_quoted(module, line, file, expr)))
     expected_ast = string_to_quoted(module, line, file, expected)
 
@@ -284,7 +284,7 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, { :error, exception, message }, module, line, file, stack) do
+  defp test_case_content(expr, {:error, exception, message}, module, line, file, stack) do
     expr_ast = string_to_quoted(module, line, file, expr)
 
     quote do
@@ -321,7 +321,7 @@ defmodule ExUnit.DocTest do
 
   defp string_to_quoted(module, line, file, expr) do
     location = [line: line, file: Path.relative_to_cwd(file)]
-    stack    = Macro.escape [{ module, :__MODULE__, 0, location }]
+    stack    = Macro.escape [{module, :__MODULE__, 0, location}]
     try do
       Code.string_to_quoted!(expr, location)
     rescue e ->
@@ -355,7 +355,7 @@ defmodule ExUnit.DocTest do
 
   defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []
 
-  defp extract_from_doc({ fa, line, _, _, doc}) do
+  defp extract_from_doc({fa, line, _, _, doc}) do
     for test <- extract_tests(line, doc) do
       test.fun_arity(fa)
     end
@@ -442,13 +442,13 @@ defmodule ExUnit.DocTest do
 
   # End of input and we've still got a test pending.
   defp extract_tests([], _, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
     Enum.reverse(reverse_last_test([test|t]))
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
   defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], newtest) when expr_acc != "" and expected_acc != "" do
-    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
     extract_tests(list, line, "", "", [test|t], newtest)
   end
 
@@ -491,13 +491,13 @@ defmodule ExUnit.DocTest do
 
   # Encountered an empty line, store pending test
   defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{ expr_acc, {:test, expected_acc} } | exprs])
+    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
     extract_tests(lines, line,  "", "", [test|t], true)
   end
 
   # Exception test.
   defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=Test[exprs: exprs]|t], newtest) do
-    test = test.exprs([{ expr_acc, extract_error(string, "") } | exprs])
+    test = test.exprs([{expr_acc, extract_error(string, "")} | exprs])
     extract_tests(lines, line,  "", "", [test|t], newtest)
   end
 
@@ -505,7 +505,7 @@ defmodule ExUnit.DocTest do
   defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
     if expected =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
       expected = expected_acc <> "\n" <> inspect(expected)
-      test = test.exprs([{ expr_acc, { :inspect, expected } } | exprs])
+      test = test.exprs([{expr_acc, {:inspect, expected}} | exprs])
       extract_tests(lines, line,  "", "", [test|t], newtest)
     else
       extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
@@ -513,7 +513,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_error(<< ")", t :: binary >>, acc) do
-    { :error, Module.concat([acc]), String.strip(t) }
+    {:error, Module.concat([acc]), String.strip(t)}
   end
 
   defp extract_error(<< h, t :: binary >>, acc) do

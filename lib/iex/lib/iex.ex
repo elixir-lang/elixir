@@ -224,7 +224,7 @@ defmodule IEx do
   Returns registered `after_spawn` callbacks.
   """
   def after_spawn do
-    { :ok, list } = :application.get_env(:iex, :after_spawn)
+    {:ok, list} = :application.get_env(:iex, :after_spawn)
     list
   end
 
@@ -232,7 +232,7 @@ defmodule IEx do
   Returns `true` if IEx was properly started.
   """
   def started? do
-    :application.get_env(:iex, :started) == { :ok, true }
+    :application.get_env(:iex, :started) == {:ok, true}
   end
 
   @doc """
@@ -311,9 +311,9 @@ defmodule IEx do
 
       # We cannot use colors because IEx may be off.
       case res do
-        { :error, :self } = err ->
+        {:error, :self} = err ->
           IO.puts :stdio, "IEx cannot pry itself."
-        { :error, :no_iex } = err ->
+        {:error, :no_iex} = err ->
           IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
         _ ->
           :ok
@@ -355,7 +355,7 @@ defmodule IEx do
 
       # Disable ANSI-escape-sequence-based coloring on Windows
       # Can be overriden in .iex
-      if match?({ :win32, _ }, :os.type()) do
+      if match?({:win32, _}, :os.type()) do
         IEx.Options.set :colors, enabled: false
       end
     end
@@ -377,8 +377,8 @@ defmodule IEx do
 
   defp ensure_module_exists(node, mod) do
     unless :rpc.call node, :code, :is_loaded, [mod] do
-      { m, b, f } = :code.get_object_code mod
-      { :module, _ } = :rpc.call node, :code, :load_binary, [m, f, b]
+      {m, b, f} = :code.get_object_code mod
+      {:module, _} = :rpc.call node, :code, :load_binary, [m, f, b]
     end
   end
 

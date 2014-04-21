@@ -9,7 +9,7 @@ defmodule RegexTest do
   end
 
   test :precedence do
-    assert { "aa", :unknown } |> elem(0) =~ ~r/(a)\1/
+    assert {"aa", :unknown} |> elem(0) =~ ~r/(a)\1/
   end
 
   test :backreference do
@@ -25,14 +25,14 @@ defmodule RegexTest do
   end
 
   test :compile do
-    { :ok, regex } = Regex.compile("foo")
+    {:ok, regex} = Regex.compile("foo")
     assert Regex.regex?(regex)
-    assert { :error, _ } = Regex.compile("*foo")
-    assert { :error, _ } = Regex.compile("foo", "y")
+    assert {:error, _} = Regex.compile("*foo")
+    assert {:error, _} = Regex.compile("foo", "y")
   end
 
   test :compile_with_erl_opts do
-    { :ok, regex } = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
+    {:ok, regex} = Regex.compile("foo\\sbar", [:dotall, {:newline, :anycrlf}])
     assert "foo\nbar" =~ regex
   end
 
@@ -75,10 +75,10 @@ defmodule RegexTest do
   end
 
   test :named_captures do
-    assert Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd") == %{ "bar" => "d", "foo" => "c" }
-    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == %{ "foo" => "d" }
+    assert Regex.named_captures(~r/(?<foo>c)(?<bar>d)/, "abcd") == %{"bar" => "d", "foo" => "c"}
+    assert Regex.named_captures(~r/c(?<foo>d)/, "abcd") == %{"foo" => "d"}
     assert Regex.named_captures(~r/c(?<foo>d)/, "no_match") == nil
-    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == %{ "foo" => "d" }
+    assert Regex.named_captures(~r/c(?<foo>d|e)/, "abcd abce") == %{"foo" => "d"}
     assert Regex.named_captures(~r/c(.)/, "cat") == %{}
   end
 

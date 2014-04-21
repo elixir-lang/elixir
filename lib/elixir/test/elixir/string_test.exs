@@ -10,8 +10,8 @@ defmodule StringTest do
   end
 
   test :next_codepoint do
-    assert String.next_codepoint("ésoj") == { "é", "soj" }
-    assert String.next_codepoint(<<255>>) == { <<255>>, "" }
+    assert String.next_codepoint("ésoj") == {"é", "soj"}
+    assert String.next_codepoint(<<255>>) == {<<255>>, ""}
     assert String.next_codepoint("") == nil
   end
 
@@ -430,10 +430,10 @@ defmodule StringTest do
   end
 
   test :from_char_list do
-    assert String.from_char_data([?æ, ?ß]) == { :ok, "æß" }
-    assert String.from_char_data([?a, ?b, ?c]) == { :ok, "abc" }
+    assert String.from_char_data([?æ, ?ß]) == {:ok, "æß"}
+    assert String.from_char_data([?a, ?b, ?c]) == {:ok, "abc"}
 
-    assert String.from_char_data([0xDFFF]) == { :error, "", [0xDFFF] }
+    assert String.from_char_data([0xDFFF]) == {:error, "", [0xDFFF]}
   end
 
   test :from_char_list! do

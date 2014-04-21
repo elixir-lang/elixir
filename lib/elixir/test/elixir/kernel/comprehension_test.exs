@@ -51,7 +51,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions generators precedence" do
-    assert (for { _, _ } = x <- [foo: :bar], do: x) ==
+    assert (for {_, _} = x <- [foo: :bar], do: x) ==
            [foo: :bar]
   end
 
@@ -121,7 +121,7 @@ defmodule Kernel.ComprehensionTest do
 
   defp collectable_pdict do
     fn
-      _, { :cont, x } -> Process.put(:into_cont, [x|Process.get(:into_cont)])
+      _, {:cont, x} -> Process.put(:into_cont, [x|Process.get(:into_cont)])
       _, :done -> Process.put(:into_done, true)
       _, :halt -> Process.put(:into_halt, true)
     end
@@ -247,7 +247,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test :generator_precedence do
-    assert lc { _, _ } = x inlist [foo: :bar], do: x
+    assert lc {_, _} = x inlist [foo: :bar], do: x
   end
 
   test :bit_comprehensions do

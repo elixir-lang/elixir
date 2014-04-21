@@ -810,7 +810,7 @@
   * [ExUnit] Support context data in `setup_all`, `setup`, `teardown` and `teardown_all` callbacks
   * [IEx] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
-  * [Kernel] Allow partial application on literals, for example: `{ &1, &2 }` to build tuples or `[&1|&2]` to build cons cells
+  * [Kernel] Allow partial application on literals, for example: `{&1, &2}` to build tuples or `[&1|&2]` to build cons cells
   * [Kernel] Added `integer_to_binary` and `binary_to_integer`
   * [Kernel] Added `float_to_binary` and `binary_to_float`
   * [Kernel] Many improvements to `unquote` and `unquote_splicing`. For example, `unquote(foo).unquote(bar)(args)` is supported and no longer need to be written via `apply`
@@ -863,7 +863,7 @@
   * [Kernel] Deprecate `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`
   * [Kernel] Deprecate `in_guard` in favor of `__CALLER__.in_guard?`
   * [Kernel] `refer` is deprecated in favor of `alias`
-  * [Module] `Module.add_compile_callback(module, target, callback)` is deprecated in favor of `Module.put_attribute(module, :before_compile, { target, callback })`
+  * [Module] `Module.add_compile_callback(module, target, callback)` is deprecated in favor of `Module.put_attribute(module, :before_compile, {target, callback})`
   * [Module] `Module.function_defined?` is deprecated in favor of `Module.defines?`
   * [Module] `Module.defined_functions` is deprecated in favor of `Module.definitions_in`
 

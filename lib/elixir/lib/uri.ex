@@ -16,9 +16,9 @@ defmodule URI do
     "ldap"  => 389,
     "sftp"  => 22,
     "tftp"  => 69,
-  }
+ }
 
-  Enum.each @ports, fn { scheme, port } ->
+  Enum.each @ports, fn {scheme, port} ->
     def normalize_scheme(unquote(scheme)), do: unquote(scheme)
     def default_port(unquote(scheme)),     do: unquote(port)
   end
@@ -45,7 +45,7 @@ defmodule URI do
 
   """
   def default_port(scheme) when is_binary(scheme) do
-    { :ok, dict } = :application.get_env(:elixir, :uri)
+    {:ok, dict} = :application.get_env(:elixir, :uri)
     Map.get(dict, scheme)
   end
 
@@ -53,7 +53,7 @@ defmodule URI do
   Registers a scheme with a default port.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
-    { :ok, dict } = :application.get_env(:elixir, :uri)
+    {:ok, dict} = :application.get_env(:elixir, :uri)
     :application.set_env(:elixir, :uri, Map.put(dict, scheme, port))
   end
 
@@ -92,7 +92,7 @@ defmodule URI do
 
   """
   def decode_query(q, dict \\ %{}) when is_binary(q) do
-    Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
+    Enum.reduce query_decoder(q), dict, fn({k, v}, acc) -> Dict.put(acc, k, v) end
   end
 
   @doc """
@@ -114,19 +114,19 @@ defmodule URI do
   end
 
   defp do_decoder(q) do
-    { first, next } =
+    {first, next} =
       case :binary.split(q, "&") do
-        [first, rest] -> { first, rest }
-        [first]       -> { first, "" }
+        [first, rest] -> {first, rest}
+        [first]       -> {first, ""}
       end
 
     current =
       case :binary.split(first, "=") do
-        [ key, value ] -> { decode(key), decode(value) }
-        [ key ]        -> { decode(key), nil }
+        [ key, value ] -> {decode(key), decode(value)}
+        [ key ]        -> {decode(key), nil}
       end
 
-    { current, next }
+    {current, next}
   end
 
   defp pair({k, _}) when is_list(k) do
@@ -224,7 +224,7 @@ defmodule URI do
     parts = nillify(Regex.run(regex, s))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
-    { userinfo, host, port } = split_authority(authority)
+    {userinfo, host, port} = split_authority(authority)
 
     if authority do
       authority = ""
@@ -256,7 +256,7 @@ defmodule URI do
     port = if port, do: binary_to_integer(port)
     host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
 
-    { userinfo, host, port }
+    {userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
