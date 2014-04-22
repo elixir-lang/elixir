@@ -250,6 +250,53 @@ defmodule String do
   end
 
   @doc """
+  Splits a string into two at the specified offset. When the offset given is
+  negative, location is counted from the end of the string.
+
+  The offset is capped to the length of the string.
+
+  Returns a tuple with two elements.
+
+  ## Examples
+
+      iex> String.split_at "sweetelixir", 5
+      {"sweet", "elixir"}
+
+      iex> String.split_at "sweetelixir", -6
+      {"sweet", "elixir"}
+
+      iex> String.split_at "abc", 0
+      {"", "abc"}
+
+      iex> String.split_at "abc", 1000
+      {"abc", ""}
+
+      iex> String.split_at "abc", -1000
+      {"", "abc"}
+
+  """
+  @spec split_at(t, integer) :: {t, t}
+  def split_at(string, offset)
+
+  def split_at(binary, index) when index == 0, do:
+    {"", binary}
+
+  def split_at(binary, index) when index > 0, do:
+    do_split_at(next_grapheme(binary), 0, index, "")
+
+  def split_at(binary, index) when index < 0, do:
+    do_split_at(next_grapheme(binary), 0, max(0, byte_size(binary)+index), "")
+
+  defp do_split_at(nil, _, _, acc), do:
+    {acc, ""}
+
+  defp do_split_at({grapheme, rest}, current_pos, target_pos, acc) when current_pos < target_pos, do:
+    do_split_at(next_grapheme(rest), current_pos+1, target_pos, acc <> grapheme)
+
+  defp do_split_at({grapheme, rest}, pos, pos, acc), do:
+    {acc, grapheme <> rest}
+
+  @doc """
   Convert all characters on the given string to uppercase.
 
   ## Examples

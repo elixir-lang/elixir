@@ -65,6 +65,23 @@ defmodule StringTest do
     assert String.split("a,b", ~r{\.}) == ["a,b"]
   end
 
+  test :split_at do
+    assert String.split_at("", 0) == {"", ""}
+    assert String.split_at("", -1) == {"", ""}
+    assert String.split_at("", 1) == {"", ""}
+
+    assert String.split_at("abc", 0) == {"", "abc"}
+    assert String.split_at("abc", 2) == {"ab", "c"}
+    assert String.split_at("abc", 3) == {"abc", ""}
+    assert String.split_at("abc", 4) == {"abc", ""}
+    assert String.split_at("abc", 1000) == {"abc", ""}
+
+    assert String.split_at("abc", -1) == {"ab", "c"}
+    assert String.split_at("abc", -3) == {"", "abc"}
+    assert String.split_at("abc", -4) == {"", "abc"}
+    assert String.split_at("abc", -1000) == {"", "abc"}
+  end
+
   test :upcase do
     assert String.upcase("123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz") == "123 ABCD 456 EFG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ"
     assert String.upcase("") == ""
