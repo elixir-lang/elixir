@@ -159,7 +159,7 @@ extract_key_val_op(_TUpdate, #elixir_scope{context=match}) ->
     fun(X, Acc) -> elixir_translator:translate(X, Acc#elixir_scope{extra=map_key}) end,
     fun elixir_translator:translate/2};
 extract_key_val_op(TUpdate, S) ->
-  KS = #elixir_scope{extra=map_key},
+  KS = S#elixir_scope{extra=map_key},
   Op = if TUpdate == nil -> map_field_assoc; true -> map_field_exact end,
   {Op,
     fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, KS) end,
