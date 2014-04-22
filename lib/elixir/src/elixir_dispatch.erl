@@ -15,6 +15,7 @@
 -define(node, 'Elixir.Node').
 -define(process, 'Elixir.Process').
 -define(system, 'Elixir.System').
+-define(map, 'Elixir.Map').
 
 default_functions() ->
   [ {?kernel, elixir_imported_functions()} ].
@@ -323,22 +324,30 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
-rewrite(?kernel, atom_to_binary, [Arg], 1) ->
+rewrite(?kernel, atom_to_binary, [Arg], _) ->
   {ok, erlang, atom_to_binary, [Arg, utf8]};
-rewrite(?kernel, binary_to_atom, [Arg], 1) ->
+rewrite(?kernel, binary_to_atom, [Arg], _) ->
   {ok, erlang, binary_to_atom, [Arg, utf8]};
-rewrite(?kernel, binary_to_existing_atom, [Arg], 1) ->
+rewrite(?kernel, binary_to_existing_atom, [Arg], _) ->
   {ok, erlang, binary_to_existing_atom, [Arg, utf8]};
-rewrite(?kernel, elem, [Tuple, Index], 2) ->
+rewrite(?kernel, elem, [Tuple, Index], _) ->
   {ok, erlang, element, [increment(Index), Tuple]};
-rewrite(?kernel, set_elem, [Tuple, Index, Value], 2) ->
+rewrite(?kernel, set_elem, [Tuple, Index, Value], _) ->
   {ok, erlang, setelement, [increment(Index), Tuple, Value]};
-rewrite(?process, monitor, [Arg], 1) ->
+rewrite(?process, monitor, [Arg], _) ->
   {ok, erlang, monitor, [process, Arg]};
+rewrite(?map, 'has_key?', [Map, Key], _) ->
+  {ok, maps, is_key, [Key, Map]};
+rewrite(?map, fetch, [Map, Key], _) ->
+  {ok, maps, find, [Key, Map]};
+rewrite(?map, put, [Map, Key, Value], _) ->
+  {ok, maps, put, [Key, Value, Map]};
+rewrite(?map, delete, [Map, Key], _) ->
+  {ok, maps, remove, [Key, Map]};
 rewrite(Receiver, Name, Args, Arity) ->
   case inline(Receiver, Name, Arity) of
     {AR, AN} -> {ok, AR, AN, Args};
-    false      -> false
+    false    -> false
   end.
 
 increment(Number) when is_number(Number) ->
@@ -455,5 +464,11 @@ inline(?node, spawn_monitor, 2) -> {erlang, spawn_monitor};
 inline(?node, spawn_monitor, 4) -> {erlang, spawn_monitor};
 
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
+
+inline(?map, keys, 1) -> {maps, keys};
+inline(?map, merge, 2) -> {maps, merge};
+inline(?map, size, 1) -> {maps, size};
+inline(?map, values, 1) -> {maps, values};
+inline(?map, to_list, 1) -> {maps, to_list};
 
 inline(_, _, _) -> false.

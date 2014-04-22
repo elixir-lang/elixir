@@ -13,7 +13,7 @@ defmodule Map do
 
   use Dict.Behaviour
 
-  defdelegate [keys(map), values(map), size(map), merge(map1, map2)], to: :maps
+  defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
 
   @doc """
   Returns a new empty map.
@@ -91,6 +91,4 @@ defmodule Map do
 
   def equal?(map, map), do: true
   def equal?(_, _), do: false
-
-  def to_list(map), do: :maps.to_list map
 end

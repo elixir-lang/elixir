@@ -865,7 +865,7 @@ defmodule Enum do
     list ++ to_list(collection)
   end
 
-  def into(collection, %{} = map) when is_list(collection) and (map_size(map) == 0) do
+  def into(collection, %{} = map) when is_list(collection) and map_size(map) == 0 do
     :maps.from_list(collection)
   end
 

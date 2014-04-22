@@ -195,8 +195,8 @@ defmodule Mix.Dep.Loader do
       end
 
       if req = old_elixir_req(config) do
-        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} but you " <>
-                        "are running on v#{System.version}, please run mix deps.update #{dep.app} to update it"
+        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
+                        "but you are running on v#{System.version}"
       end
 
       children = children(env: opts[:env] || :prod)
