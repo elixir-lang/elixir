@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Compile.App do
         [:kernel, :stdlib, :elixir] ++ apps 
       end)
 
-      properties = ensure_correct_properties(app, properties)
+      properties = ensure_correct_properties(app, config, properties)
       contents   = {:application, app, properties}
 
       Mix.Project.build_structure(config)
@@ -127,9 +127,9 @@ defmodule Mix.Tasks.Compile.App do
     Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> binary_to_atom)
   end
 
-  defp ensure_correct_properties(app, properties) do
+  defp ensure_correct_properties(app, config, properties) do
     properties
-    |> Keyword.put_new(:description, to_char_list(app))
+    |> Keyword.put_new(:description, to_char_list(config[:description] || app))
     |> Keyword.put_new(:registered, [])
     |> validate_properties
   end
