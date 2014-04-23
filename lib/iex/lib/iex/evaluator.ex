@@ -1,8 +1,6 @@
 defmodule IEx.Evaluator do
   @moduledoc false
 
-  alias IEx.Config
-
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -73,7 +71,7 @@ defmodule IEx.Evaluator do
       {_result, binding, env, _scope} =
         :elixir.eval(List.from_char_data!(code), config.binding, env)
 
-      config.binding(binding).env(:elixir.env_for_eval(env, file: "iex"))
+      %{config | binding: binding, env: :elixir.env_for_eval(env, file: "iex")}
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -94,7 +92,6 @@ defmodule IEx.Evaluator do
   # The first two clauses provide support for the break-trigger allowing to
   # break out from a pending incomplete expression. See
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
-  #
   @break_trigger '#iex:break\n'
 
   defp eval(code, config) do
@@ -103,11 +100,11 @@ defmodule IEx.Evaluator do
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
-        config.cache('')
+        %{config | cache: ''}
     end
   end
 
-  defp do_eval(@break_trigger, config=Config[cache: '']) do
+  defp do_eval(@break_trigger, config=%IEx.Config{cache: ''}) do
     config
   end
 
@@ -125,13 +122,16 @@ defmodule IEx.Evaluator do
           :elixir.eval_forms(forms, config.binding, config.env, config.scope)
         unless result == IEx.dont_display_result, do: io_put result
         update_history(line, code, result)
-        config.update_counter(&(&1+1)).cache('').binding(new_binding).scope(scope).env(env)
-
+        %{config | env: env,
+                   cache: '',
+                   scope: scope,
+                   binding: new_binding,
+                   counter: config.counter + 1}
       {:error, {line, error, token}} ->
         if token == "" do
           # Update config.cache so that IEx continues to add new input to
           # the unfinished expression in `code`
-          config.cache(code)
+          %{config | cache: code}
         else
           # Encountered malformed expression
           :elixir_errors.parse_error(line, "iex", error, token)

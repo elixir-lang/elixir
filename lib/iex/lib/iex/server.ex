@@ -1,9 +1,10 @@
-defrecord IEx.Config, binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
+defmodule IEx.Config do
+  @moduledoc false
+  defstruct binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
+end
 
 defmodule IEx.Server do
   @moduledoc false
-
-  alias IEx.Config
 
   @doc """
   Finds where the current IEx server is located.
@@ -149,7 +150,7 @@ defmodule IEx.Server do
         wait_eval(evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
-        loop(config.cache(''), evaluator, evaluator_ref)
+        loop(%{config | cache: ''}, evaluator, evaluator_ref)
       {:input, ^input, :eof} ->
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
@@ -230,7 +231,7 @@ defmodule IEx.Server do
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
-    config  = Config[binding: binding, scope: scope, prefix: prefix, env: env]
+    config  = %IEx.Config{binding: binding, scope: scope, prefix: prefix, env: env}
 
     case opts[:dot_iex_path] do
       ""   -> config
