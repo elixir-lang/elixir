@@ -50,8 +50,7 @@ defmodule Mix.Tasks.CleanTest do
       assert File.exists?("_build/dev/lib/ok")
       Mix.Tasks.Clean.run ["--all"]
 
-      assert File.exists?("_build/dev")
-      refute File.exists?("_build/dev/lib")
+      refute File.exists?("_build")
       assert_received {:mix_shell, :info, ["* Cleaning ok"]}
       assert_received {:mix_shell, :info, ["* Cleaning unknown"]}
     end
