@@ -9,13 +9,6 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  defmodule EnvProject do
-    def project do
-      [ hello: "world", app_path: "this/is/private",
-        env: [ prod: [hello: "new"] ] ]
-    end
-  end
-
   test "push and pop projects" do
     refute Mix.Project.get
     Mix.Project.push(SampleProject, "sample")
@@ -49,12 +42,6 @@ defmodule Mix.ProjectTest do
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
     assert nil? Mix.project[:app_path]
-  end
-
-  test "reads environment info when a project is set" do
-    Mix.env(:prod)
-    Mix.Project.push(EnvProject)
-    assert Mix.project[:hello] == "new"
   end
 
   test "retrieves configuration even when a project is not set" do

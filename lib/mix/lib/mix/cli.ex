@@ -26,7 +26,7 @@ defmodule Mix.CLI do
   end
 
   defp load_mixfile(args) do
-    file = "mix.exs"
+    file = System.get_env("MIX_EXS") || "mix.exs"
     if File.regular?(file) do
       Code.load_file(file)
     end

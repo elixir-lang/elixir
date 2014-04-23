@@ -347,6 +347,10 @@ defmodule Mix.Project do
   defp get_project_config(atom) do
     config = atom.project
 
+    if Keyword.has_key?(config, :env) do
+      IO.puts :stderr, "The :env key in #{inspect atom} project configuration is deprecated"
+    end
+
     if env = config[:env][Mix.env] do
       config |> Keyword.delete(:env) |> Keyword.merge(env)
     else

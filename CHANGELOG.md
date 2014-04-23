@@ -1,12 +1,14 @@
 # v0.13.1-dev
 
 * Enhancements
+  * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
 
 * Bug fixes
   * [ExUnit] Ensure doctest failures are properly reported
 
 * Deprecations
   * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iodata_to_binary`
+  * [Mix] `:env` key in project configuration is deprecated
   * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
   * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1`
   * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1`
