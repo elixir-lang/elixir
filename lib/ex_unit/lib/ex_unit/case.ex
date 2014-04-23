@@ -63,7 +63,7 @@ defmodule ExUnit.Case do
         setup context do
           # Read the :cd tag value
           if cd = context[:cd] do
-            prev_cwd = File.cwd!
+            prev_cd = File.cwd!
             File.cd!(cd)
             { :ok, [prev_cd: prev_cd] }
           else
