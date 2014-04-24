@@ -140,8 +140,9 @@ defmodule Mix.Rebar do
       {:error, error} ->
         reason = :file.format_error(error)
         Mix.shell.error("Error evaluating rebar config script #{script_path}: #{reason}")
+        Mix.shell.error("You may solve this issue by adding rebar as a dependency to your project")
         Mix.shell.error("Any dependency defined in the script won't be available " <>
-          "unless you add them to your Mix project")
+                        "unless you add them to your Mix project")
         config
     end
   end
