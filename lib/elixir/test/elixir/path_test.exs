@@ -22,32 +22,16 @@ defmodule PathTest do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
-
-      assert Path.relative('/usr/local/bin')   == 'usr/local/bin'
-      assert Path.relative('usr/local/bin')    == 'usr/local/bin'
-      assert Path.relative('../usr/local/bin') == '../usr/local/bin'
-
-      assert List.flatten(Path.relative(['/usr/', 'local/bin']))   == 'usr/local/bin'
-      assert List.flatten(Path.relative(['usr/', 'local/bin']))    == 'usr/local/bin'
-      assert List.flatten(Path.relative(['../usr', '/local/bin'])) == '../usr/local/bin'
     end
 
     test :type do
       assert Path.type("C:/usr/local/bin")    == :absolute
-      assert Path.type("C:\\usr\\local\\bin") == :absolute
+      assert Path.type('C:\\usr\\local\\bin') == :absolute
       assert Path.type("C:usr\\local\\bin")   == :volumerelative
 
       assert Path.type("/usr/local/bin")   == :volumerelative
-      assert Path.type("usr/local/bin")    == :relative
-      assert Path.type("../usr/local/bin") == :relative
-
-      assert Path.type('/usr/local/bin')   == :volumerelative
       assert Path.type('usr/local/bin')    == :relative
-      assert Path.type('../usr/local/bin') == :relative
-
-      assert Path.type(['/usr/', 'local/bin'])   == :volumerelative
-      assert Path.type(['usr/', 'local/bin'])    == :relative
-      assert Path.type(['../usr', '/local/bin']) == :relative
+      assert Path.type("../usr/local/bin") == :relative
     end
   else
     test :relative do
@@ -82,11 +66,11 @@ defmodule PathTest do
 
   test :absname do
     assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
-    assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar/"
+    assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
     assert (Path.absname("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar/../bar"
 
     assert Path.absname("bar", "/foo") == "/foo/bar"
-    assert Path.absname("bar/", "/foo") == "/foo/bar/"
+    assert Path.absname("bar/", "/foo") == "/foo/bar"
     assert Path.absname("bar/.", "/foo") == "/foo/bar/."
     assert Path.absname("bar/../bar", "/foo") == "/foo/bar/../bar"
     assert Path.absname("bar/../bar", "foo") == "foo/bar/../bar"
@@ -180,8 +164,7 @@ defmodule PathTest do
     assert Path.join(["foo"]) == "foo"
     assert Path.join(["/", "foo", "bar"]) == "/foo/bar"
     assert Path.join(["~", "foo", "bar"]) == "~/foo/bar"
-    assert Path.join(["/foo/", "/bar/"]) == "/foo/bar/"
-    assert Path.join(['/foo/', "/bar/"]) == "/foo/bar/"
+    assert Path.join(['/foo/', "/bar/"]) == "/foo/bar"
   end
 
   test :join_two do

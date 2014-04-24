@@ -61,7 +61,12 @@ defmodule Path do
     path = String.from_char_data!(path)
     case type(path) do
       :relative -> join(relative_to, path)
-      :absolute -> path
+      :absolute ->
+        if :binary.last(path) == ?/ do
+          binary_part(path, 0, byte_size(path) - 1)
+        else
+          path
+        end
       :volumerelative ->
         relative_to = String.from_char_data!(relative_to)
         absname_vr(split(path), split(relative_to), relative_to)
@@ -381,7 +386,9 @@ defmodule Path do
 
   @doc """
   Returns a string with one or more path components joined by the path separator.
+
   This function should be used to convert a list of strings to a path.
+  Note that any trailing slash is removed on join.
 
   ## Examples
 
@@ -391,7 +398,7 @@ defmodule Path do
       iex> Path.join(["foo"])
       "foo"
 
-      iex> Path.join(["/", "foo", "bar"])
+      iex> Path.join(["/", "foo", "bar/"])
       "/foo/bar"
 
   """
@@ -426,8 +433,8 @@ defmodule Path do
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
-  defp do_join(<<>>, <<>>, result, _os_type), do:
-    iodata_to_binary(:lists.reverse(result))
+  defp do_join(<<>>, <<>>, result, os_type), do:
+    iodata_to_binary(maybe_remove_dirsep(result, os_type))
   defp do_join(<<>>, relativename, [?:|rest], :win32), do:
     do_join(relativename, <<>>, [?:|rest], :win32)
   defp do_join(<<>>, relativename, [?/|result], os_type), do:
@@ -436,6 +443,15 @@ defmodule Path do
     do_join(relativename, <<>>, [?/|result], os_type)
   defp do_join(<<char, rest :: binary>>, relativename, result, os_type), do:
     do_join(rest, relativename, [char|result], os_type)
+
+  defp maybe_remove_dirsep([?/, ?:, letter], :win32), do:
+    [letter, ?:, ?/]
+  defp maybe_remove_dirsep([?/], _), do:
+    [?/]
+  defp maybe_remove_dirsep([?/|name], _), do:
+    :lists.reverse(name)
+  defp maybe_remove_dirsep(name, _), do:
+    :lists.reverse(name)
 
   @doc """
   Returns a list with the path split by the path separator.
