@@ -159,12 +159,6 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: {:nomatchvsn, vsn}, requirement: req}),
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
-  def format_status(%Mix.Dep{app: app, status: :noscm, from: from}) do
-    "the dependency #{app} in #{Path.relative_to_cwd(from)} did not specify a supported scm. " <>
-    "Please ensure a package manager (like http://hex.pm/) is available or give one of " <>
-    ":git, :path or :in_umbrella as option"
-  end
-
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
     do: "lock mismatch: the dependency is out of date"
 
@@ -221,7 +215,7 @@ defmodule Mix.Dep do
       opts = Keyword.put(opts, :lock, rev)
     end
 
-    if scm && available?(dep) do
+    if available?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
           status = if rev, do: {:lockmismatch, rev}, else: :nolock
@@ -267,9 +261,7 @@ defmodule Mix.Dep do
         _ -> ""
       end
 
-    scm_format = if scm, do: " (#{scm.format(opts)})"
-
-    "#{app}#{version}#{scm_format}"
+    "#{app} #{version}(#{scm.format(opts)})"
   end
 
   @doc """

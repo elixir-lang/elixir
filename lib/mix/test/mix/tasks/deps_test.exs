@@ -39,12 +39,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule NoSCMApp do
-    def project do
-      [ deps: [ {:ok, "~> 0.1", not_really: :ok} ] ]
-    end
-  end
-
   test "prints list of dependencies and their status" do
     Mix.Project.push DepsApp
 
@@ -119,19 +113,6 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"]}
-    end
-  end
-
-  test "warns when no SCM is specified" do
-    Mix.Project.push NoSCMApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.run []
-
-      msg = "  the dependency ok in mix.exs did not specify a supported scm. " <>
-            "Please ensure a package manager (like http://hex.pm/) is available or " <>
-            "give one of :git, :path or :in_umbrella as option"
-      assert_received {:mix_shell, :info, [^msg]}
     end
   end
 
@@ -331,19 +312,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule OverridenSCMApp do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          {:noscm_repo, path: "custom/noscm_repo"},
-          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo"), override: true}
-        ]
-      ]
-    end
-  end
-
   test "fails on missing dependencies" do
     Mix.Project.push SuccessfulDepsApp
 
@@ -504,18 +472,6 @@ defmodule Mix.Tasks.DepsTest do
       after
         0 -> flunk "expected overriding error message"
       end
-    end
-  after
-    purge [GitRepo, GitRepo.Mix]
-  end
-
-  test "overrides unspecified SCM" do
-    Mix.Project.push OverridenSCMApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert_received {:mix_shell, :info, [^message]}
     end
   after
     purge [GitRepo, GitRepo.Mix]

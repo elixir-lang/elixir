@@ -22,6 +22,12 @@ defmodule Mix.DepTest do
     end
   end
 
+  defmodule NoSCMApp do
+    def project do
+      [ deps: [ { :ok, "~> 0.1", not_really: :ok } ] ]
+    end
+  end
+
   defmodule InvalidDepsReq do
     def project do
       [ deps: [ {:ok, "+- 0.1.0", github: "elixir-lang/ok"} ] ]
@@ -49,6 +55,16 @@ defmodule Mix.DepTest do
     in_fixture "deps_status", fn ->
       deps = Mix.Dep.loaded([])
       assert Enum.find deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1)
+    end
+  end
+
+  test "raises when no SCM is specified" do
+    Mix.Project.push NoSCMApp
+
+    in_fixture "deps_status", fn ->
+      msg = "Mix.DepTest.NoSCMApp did not specify a supported scm for app :ok, " <>
+            "expected one of :git, :path or :in_umbrella"
+      assert_raise Mix.Error, msg, fn -> Mix.Dep.loaded([]) end
     end
   end
 
