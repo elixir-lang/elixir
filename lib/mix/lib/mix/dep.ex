@@ -257,7 +257,7 @@ defmodule Mix.Dep do
   def format_dep(%Mix.Dep{scm: scm, app: app, status: status, opts: opts}) do
     version =
       case status do
-        {:ok, vsn} when vsn != nil -> " #{vsn}"
+        {:ok, vsn} when vsn != nil -> "#{vsn} "
         _ -> ""
       end
 

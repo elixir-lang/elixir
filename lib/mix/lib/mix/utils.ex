@@ -400,6 +400,7 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
+    :ssl.start
     :inets.start
 
     headers = [{'user-agent', 'Mix/#{System.version}'}]

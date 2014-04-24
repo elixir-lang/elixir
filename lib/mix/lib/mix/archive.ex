@@ -37,6 +37,20 @@ defmodule Mix.Archive do
   end
 
   @doc """
+  Returns the ebin directory inside the given archive path.
+
+  ## Examples
+
+      iex> Mix.Archive.ebin("foo/bar/baz-0.1.0.ez")
+      "foo/bar/baz-0.1.0.ez/baz-0.1.0/ebin"
+
+  """
+  def ebin(path) do
+    dir = dir(path)
+    Path.join [path, dir, "ebin"]
+  end
+
+  @doc """
   Creates an application archive.
 
   It receives the archive file in the format

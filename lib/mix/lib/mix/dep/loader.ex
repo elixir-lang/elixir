@@ -17,9 +17,8 @@ defmodule Mix.Dep.Loader do
   * `:env` - Filter dependencies on given environments
   """
   def children(opts) do
-    scms = Mix.SCM.available
     from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from))
+    deps = Enum.map(Mix.project[:deps] || [], &to_dep(&1, from))
 
     # Filter deps not matching mix environment
     if env = opts[:env] do
@@ -95,19 +94,19 @@ defmodule Mix.Dep.Loader do
 
   ## Helpers
 
-  def to_dep(tuple, scms, from, manager \\ nil) do
-    %{with_scm_and_app(tuple, scms) | from: from, manager: manager}
+  def to_dep(tuple, from, manager \\ nil) do
+    %{with_scm_and_app(tuple) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({app, opts}, scms) when is_list(opts) do
-    with_scm_and_app({app, nil, opts}, scms)
+  defp with_scm_and_app({app, opts}) when is_list(opts) do
+    with_scm_and_app({app, nil, opts})
   end
 
-  defp with_scm_and_app({app, req}, scms) do
-    with_scm_and_app({app, req, []}, scms)
+  defp with_scm_and_app({app, req}) do
+    with_scm_and_app({app, req, []})
   end
 
-  defp with_scm_and_app({app, req, opts} = other, scms) when is_atom(app) and is_list(opts) do
+  defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
     unless is_binary(req) or Regex.regex?(req) or nil?(req) do
       invalid_dep_format(other)
     end
@@ -120,25 +119,44 @@ defmodule Mix.Dep.Loader do
             |> Keyword.put(:dest, dest)
             |> Keyword.put(:build, build)
 
-    {scm, opts} = Enum.find_value scms, {nil, []}, fn(scm) ->
-      (new = scm.accepts_options(app, opts)) && {scm, new}
+    {scm, opts} = get_scm(app, opts)
+
+    unless scm do
+      install_hex(app)
+      {scm, opts} = get_scm(app, opts)
     end
 
-    if scm do
-      %Mix.Dep{
-        scm: scm,
-        app: app,
-        requirement: req,
-        status: scm_status(scm, opts),
-        opts: opts}
-    else
+    unless scm do
       raise Mix.Error,
-        message: "#{inspect Mix.Project.get} did not specify a supported scm for #{inspect app}"
+        message: "could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+    end
+
+    %Mix.Dep{
+      scm: scm,
+      app: app,
+      requirement: req,
+      status: scm_status(scm, opts),
+      opts: opts}
+  end
+
+  defp with_scm_and_app(other) do
+    invalid_dep_format(other)
+  end
+
+  defp get_scm(app, opts) do
+    Enum.find_value Mix.SCM.available, {nil, opts}, fn(scm) ->
+      (new = scm.accepts_options(app, opts)) && {scm, new}
     end
   end
 
-  defp with_scm_and_app(other, _scms) do
-    invalid_dep_format(other)
+  defp install_hex(app) do
+    shell = Mix.shell
+    shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
+
+    if shell.yes?("Shall I install hex?") do
+      Mix.Tasks.Local.Hex.run ["--force"]
+      Hex.start
+    end
   end
 
   defp scm_status(scm, opts) do
@@ -217,10 +235,9 @@ defmodule Mix.Dep.Loader do
   end
 
   defp rebar_children(root_config) do
-    scms = Mix.SCM.available
     from = Path.absname("rebar.config")
     Mix.Rebar.recur(root_config, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, scms, from, :rebar))
+      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
     end) |> Enum.concat
   end
 

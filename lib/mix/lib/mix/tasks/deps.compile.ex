@@ -117,15 +117,15 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp handle_rebar_not_found(app) do
     shell = Mix.shell
-    shell.info "Could not find rebar, which is needed to build #{app}"
+    shell.info "Could not find rebar, which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by mix"
 
-    unless shell.yes?("Shall I install this local copy?") do
+    unless shell.yes?("Shall I install rebar?") do
       raise Mix.Error, message: "Could not find rebar to compile " <>
         "dependency #{app}, please ensure rebar is available"
     end
 
-    Mix.Task.run "local.rebar", []
+    Mix.Tasks.Local.Rebar.run []
     Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar installation failed"
   end
 

@@ -19,10 +19,23 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
+    load_remote()
     args = load_mixfile(args)
     {task, args} = get_task(args)
     change_env(task)
     run_task(task, args)
+  end
+
+  defp load_remote do
+    try do
+      Code.ensure_loaded?(Hex) and Hex.start
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
+                        "`mix local.hex` or uninstalling it with `mix local.uninstall hex`"
+        :erlang.raise(kind, reason, stacktrace)
+    end
   end
 
   defp load_mixfile(args) do

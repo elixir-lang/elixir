@@ -62,8 +62,8 @@ defmodule Mix.DepTest do
     Mix.Project.push NoSCMApp
 
     in_fixture "deps_status", fn ->
-      msg = "Mix.DepTest.NoSCMApp did not specify a supported scm for app :ok, " <>
-            "expected one of :git, :path or :in_umbrella"
+      send self, {:mix_shell_input, :yes?, false}
+      msg = "could not find a SCM for dependency :ok from Mix.DepTest.NoSCMApp"
       assert_raise Mix.Error, msg, fn -> Mix.Dep.loaded([]) end
     end
   end

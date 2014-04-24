@@ -29,6 +29,9 @@ defmodule Mix.Tasks.LocalTest do
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
+      archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
+      assert to_char_list(archive) in :code.get_path
+
       # List it!
       Mix.Local.append_archives
       Mix.Tasks.Local.run []
