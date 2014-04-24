@@ -6,10 +6,10 @@ defmodule Kernel.CLI.InitTest do
   use ExUnit.Case, async: true
 
   test "handles code on initialization" do
-    assert elixir('-e "IO.puts [?3]"') == '3\n'
+    assert to_string(elixir('-e "IO.puts [?3]"')) =~ ~r'3\n'
 
     result = elixir('-e "IO.puts inspect(System.argv)" #{fixture_path("init_sample.exs")} -o 1 2 3')
-    assert result == '#{inspect ["-o", "1", "2", "3"]}\n3\n'
+    assert to_string(result) =~ ~r'#{inspect ["-o", "1", "2", "3"]}\n3\n'
   end
 end
 
