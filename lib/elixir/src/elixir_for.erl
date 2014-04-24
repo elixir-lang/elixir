@@ -69,7 +69,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_translator:translate_block(Expr, Return, SC),
-  SF = elixir_scope:mergef(SI, SE),
+  SF = elixir_scope:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of
     {inline, TIntoExpr} ->

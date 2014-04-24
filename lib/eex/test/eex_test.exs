@@ -282,6 +282,15 @@ foo
     assert_eval "\n\n  Good\n \n", string
   end
 
+  test "for comprehensions" do
+    string = """
+    <%= for _name <- packages || [] do %>
+    <% end %>
+    <%= all || :done %>
+    """
+    assert_eval "\ndone\n", string, packages: nil, all: nil
+  end
+
   test "unicode" do
     template = """
       • <%= "•" %> •
@@ -367,8 +376,8 @@ foo
     assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
   end
 
-  defp assert_eval(expected, actual) do
-    result = EEx.eval_string(actual, [], file: __ENV__.file, engine: EEx.Engine)
+  defp assert_eval(expected, actual, binding \\ []) do
+    result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.Engine)
     assert result == expected
   end
 end

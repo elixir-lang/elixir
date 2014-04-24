@@ -5,6 +5,7 @@
 
 * Bug fixes
   * [ExUnit] Ensure doctest failures are properly reported
+  * [Kernel] Fix a bug where comprehensions arguments were not properly take into account in the variable scope
   * [Mix] Fix issue on rebar install when the endpoint was redirecting to a relative uri
 
 * Deprecations
