@@ -5,9 +5,10 @@
 
 * Bug fixes
   * [ExUnit] Ensure doctest failures are properly reported
+  * [Mix] Fix issue on rebar install when the endpoint was redirecting to a relative uri
 
 * Deprecations
-  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iodata_to_binary`
+  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iodata_to_binary` (this is a soft deprecation, no warnings will be emitted)
   * [Mix] `:env` key in project configuration is deprecated
   * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
   * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1`
