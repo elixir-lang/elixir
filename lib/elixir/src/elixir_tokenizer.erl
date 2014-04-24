@@ -646,7 +646,7 @@ extract_heredoc_header("\r\n" ++ Rest) ->
   {ok, Rest};
 extract_heredoc_header("\n" ++ Rest) ->
   {ok, Rest};
-extract_heredoc_header([_|T]) ->
+extract_heredoc_header([H|T]) when ?is_horizontal_space(H) ->
   extract_heredoc_header(T);
 extract_heredoc_header(_) ->
   error.
