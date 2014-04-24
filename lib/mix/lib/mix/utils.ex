@@ -400,13 +400,16 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
-    :ssl.start
     :inets.start
 
-    headers = [ {'user-agent', 'Mix/#{System.version}'} ]
+    headers = [{'user-agent', 'Mix/#{System.version}'}]
     request = {:binary.bin_to_list(path), headers}
 
-    case :httpc.request(:get, request, [], body_format: :binary) do
+    # We are using relaxed: true because some clients (namely Github pages
+    # which we are using to download rebar) is returning a Location header
+    # with relative paths, which does not follow the spec. This would cause
+    # the request to fail with {:error, :no_scheme} unless :relaxed is given.
+    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary]) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
       {:ok, {{_, status, _}, _, _}} ->
