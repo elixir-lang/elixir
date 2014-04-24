@@ -2,6 +2,7 @@
 
 * Enhancements
   * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
+  * [Mix] Support Hex out of the box. This means users do not need to install Hex directly, instead, Mix will prompt whenever there is a need to have Hex installed
 
 * Bug fixes
   * [ExUnit] Ensure doctest failures are properly reported
@@ -12,8 +13,8 @@
   * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_size` and `iodata_to_binary` (this is a soft deprecation, no warnings will be emitted)
   * [Mix] `:env` key in project configuration is deprecated
   * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
-  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1`
-  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1`
+  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
+  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
