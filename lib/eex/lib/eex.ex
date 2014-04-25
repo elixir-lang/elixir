@@ -38,7 +38,6 @@ defmodule EEx do
               Defaults to the given file the template is read from
               or to "nofile" when compiling from a string;
   * `:engine` - the EEx engine to be used for compilation.
-                Defaults to `EEx.Engine`;
 
   ## Engine
 
