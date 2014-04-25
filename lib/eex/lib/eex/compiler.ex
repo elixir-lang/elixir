@@ -1,6 +1,9 @@
 defmodule EEx.Compiler do
   @moduledoc false
 
+  # when changing this setting, don't forget to update the docs for EEx
+  @default_engine EEx.SmartEngine
+
   @doc """
   This is the compilation entry point. It glues the tokenizer
   and the engine together by handling the tokens and invoking
@@ -10,7 +13,7 @@ defmodule EEx.Compiler do
     file   = opts[:file] || "nofile"
     line   = opts[:line] || 1
     tokens = EEx.Tokenizer.tokenize(source, line)
-    state  = %{engine: opts[:engine] || EEx.SmartEngine,
+    state  = %{engine: opts[:engine] || @default_engine,
                file: file, line: line, quoted: [], start_line: nil}
     generate_buffer(tokens, "", [], state)
   end
