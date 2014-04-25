@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Local.Install do
     files = Enum.map_join(previous_files, ", ", &Path.basename/1)
 
     Mix.shell.yes?("Found existing archives: #{files}.\n" <>
-                   "Do you want to remove them?")
+                   "Are you sure you want to replace them?")
   end
 
   defp previous_versions(src) do
