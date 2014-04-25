@@ -43,6 +43,7 @@ defmodule Mix.Dep.Converger do
   """
   def all(acc, lock, opts, callback) do
     main      = Mix.Dep.Loader.children(opts)
+    main      = Enum.map(main, &(%{&1 | top_level: true}))
     apps      = Enum.map(main, &(&1.app))
     converger = Mix.RemoteConverger.get
 
@@ -50,34 +51,52 @@ defmodule Mix.Dep.Converger do
     # converger. If `rest` is not nil we know dependencies are
     # being updated or fetched for the first time (only then do
     # we want the remote converger to run)
-    result =
+    {deps, rest, lock} =
       all(main, [], [], apps, callback, acc, lock, fn dep ->
         if not nil?(lock) && converger && converger.remote?(dep) do
           {:loaded, dep}
         else
-          {:unloaded, dep}
+          {:unloaded, dep, nil}
         end
       end)
 
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
-    case converger && result do
-      {deps, rest, lock} when not nil?(lock) ->
-        new_lock = converger.converge(main, lock)
+    if converger do
+      Code.ensure_loaded?(converger)
 
-        deps = deps
-               |> Enum.reject(&converger.remote?(&1))
-               |> Enum.into(HashDict.new, &{&1.app, &1})
+      unless function_exported?(converger, :deps, 2) do
+        raise Mix.Error, message: "Update Hex to the latest version"
+      end
 
-        all(main, [], [], apps, callback, rest, new_lock, fn dep ->
-          if cached = deps[dep.app] do
+      # If there is a lock, it means we are doing a get/update
+      # and we need to hit the remote converger which do external
+      # requests and what not. In case of deps.check, deps and so
+      # on, there is no lock, so we won't hit this branch.
+      if lock do
+        lock = converger.converge(deps, lock)
+      end
+
+      deps = deps
+             |> Enum.reject(&converger.remote?(&1))
+             |> Enum.into(HashDict.new, &{&1.app, &1})
+
+      # In case there is no lock, we will read the current lock
+      # which is potentially stale. So converger.deps needs to
+      # always check if the data it finds on the lock is actually
+      # valid.
+      lock_for_converger = lock || Mix.Dep.Lock.read
+
+      all(main, [], [], apps, callback, rest, lock, fn dep ->
+        cond do
+          cached = deps[dep.app] ->
             {:loaded, cached}
-          else
-            {:unloaded, dep}
-          end
-        end)
-      _ ->
-        result
+          true ->
+            {:unloaded, dep, converger.deps(dep, lock_for_converger)}
+        end
+      end)
+    else
+      {deps, rest, lock}
     end
   end
 
@@ -129,13 +148,13 @@ defmodule Mix.Dep.Converger do
           case cache.(dep) do
             {:loaded, cached_dep} ->
               cached_dep
-            {:unloaded, dep} ->
+            {:unloaded, dep, children} ->
               {dep, rest, lock} = callback.(dep, rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              Mix.Dep.Loader.load(dep)
+              Mix.Dep.Loader.load(dep, children)
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}

@@ -189,6 +189,10 @@ defmodule Mix.DepTest do
       Process.put(:remote_converger, true)
       lock
     end
+
+    def deps(_deps, _lock) do
+      []
+    end
   end
 
   test "remote converger" do

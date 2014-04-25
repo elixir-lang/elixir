@@ -36,7 +36,7 @@ defmodule Mix.Dep.Loader do
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep) do
+  def load(dep, children) do
     %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
@@ -44,25 +44,25 @@ defmodule Mix.Dep.Loader do
     {dep, children} =
       cond do
         not ok?(dep.status) ->
-          {dep, []}
+          {dep, children}
 
         manager == :rebar ->
-          rebar_dep(dep)
+          rebar_dep(dep, children)
 
         mix?(dest) ->
-          mix_dep(%{dep | manager: :mix})
+          mix_dep(%{dep | manager: :mix}, children)
 
         rebar?(dest) ->
-          rebar_dep(%{dep | manager: :rebar})
+          rebar_dep(%{dep | manager: :rebar}, children)
 
         make?(dest) ->
-          {%{dep | manager: :make}, []}
+          {%{dep | manager: :make}, children}
 
         true ->
-          {dep, []}
+          {dep, children}
       end
 
-    %{validate_path(validate_app(dep)) | deps: children}
+    %{validate_path(validate_app(dep)) | deps: children || []}
   end
 
   @doc """
@@ -205,7 +205,7 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
@@ -219,18 +219,17 @@ defmodule Mix.Dep.Loader do
                         "but you are running on v#{System.version}"
       end
 
-      children = children(env: opts[:env] || :prod)
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      {dep, children}
+      {dep, children || children(env: opts[:env] || :prod)}
     end)
   end
 
-  defp rebar_dep(%Mix.Dep{} = dep) do
+  defp rebar_dep(%Mix.Dep{} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}
-      {dep, rebar_children(rebar)}
+      {dep, children || rebar_children(rebar)}
     end)
   end
 
