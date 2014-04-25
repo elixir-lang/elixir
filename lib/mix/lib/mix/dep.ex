@@ -11,10 +11,11 @@ defmodule Mix.Dep do
   * `status` - the current status of the dependency, check `Mix.Dep.format_status/1` for more info;
   * `opts` - the options given by the developer
   * `deps` - dependencies of this dependency
+  * `top_level` - true if dependency was defined in the top-level project
   * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
   * `from` - path to the file where the dependency was defined
-  * `extra` - a slot for adding extra configuration based on the scm.
-              the information on this field is private to the scm and
+  * `extra` - a slot for adding extra configuration based on the manager.
+              the information on this field is private to the manager and
               should not be relied on.
 
   A dependency is in two specific states: loaded and unloaded.
@@ -33,7 +34,7 @@ defmodule Mix.Dep do
 
   """
   defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-            deps: [], extra: nil, manager: nil, from: nil
+            deps: [], top_level: false, extra: nil, manager: nil, from: nil
 
   @doc """
   Returns all children dependencies for the current project,
