@@ -1,9 +1,11 @@
-language: erlang
+install:
+  - wget http://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb
+  - sudo dpkg -i erlang-solutions_1.0_all.deb
+  - sudo apt-get update
+  - sudo apt-get install erlang
 script: "make compile && rm -rf .git && make test"
 notifications:
   irc: "irc.freenode.org#elixir-lang"
   recipients:
     - jose.valim@plataformatec.com.br
     - eric.meadows.jonsson@gmail.com
-otp_release:
-  - 17.0
