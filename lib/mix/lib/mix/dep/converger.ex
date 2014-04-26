@@ -63,12 +63,6 @@ defmodule Mix.Dep.Converger do
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
     if converger do
-      Code.ensure_loaded?(converger)
-
-      unless function_exported?(converger, :deps, 2) do
-        raise Mix.Error, message: "Update Hex to the latest version"
-      end
-
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.check, deps and so
