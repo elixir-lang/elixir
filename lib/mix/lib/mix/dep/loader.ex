@@ -36,7 +36,7 @@ defmodule Mix.Dep.Loader do
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep, children) do
+  def load(dep) do
     %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
@@ -44,25 +44,25 @@ defmodule Mix.Dep.Loader do
     {dep, children} =
       cond do
         not ok?(dep.status) ->
-          {dep, children}
+          {dep, []}
 
         manager == :rebar ->
-          rebar_dep(dep, children)
+          rebar_dep(dep)
 
         mix?(dest) ->
-          mix_dep(%{dep | manager: :mix}, children)
+          mix_dep(%{dep | manager: :mix})
 
         rebar?(dest) ->
-          rebar_dep(%{dep | manager: :rebar}, children)
+          rebar_dep(%{dep | manager: :rebar})
 
         make?(dest) ->
-          {%{dep | manager: :make}, children}
+          {%{dep | manager: :make}, []}
 
         true ->
-          {dep, children}
+          {dep, []}
       end
 
-    %{validate_path(validate_app(dep)) | deps: children || []}
+    %{validate_path(validate_app(dep)) | deps: children}
   end
 
   @doc """
@@ -205,7 +205,7 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep) do
     Mix.Dep.in_dependency(dep, fn _ ->
       config    = Mix.project
       umbrella? = Mix.Project.umbrella?
@@ -220,16 +220,16 @@ defmodule Mix.Dep.Loader do
       end
 
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      {dep, children || children(env: opts[:env] || :prod)}
+      {dep, children(env: opts[:env] || :prod)}
     end)
   end
 
-  defp rebar_dep(%Mix.Dep{} = dep, children) do
+  defp rebar_dep(%Mix.Dep{} = dep) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}
-      {dep, children || rebar_children(rebar)}
+      {dep, rebar_children(rebar)}
     end)
   end
 

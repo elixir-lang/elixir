@@ -20,11 +20,10 @@ defmodule Mix.RemoteConverger do
   defcallback converge([Mix.Dep.t], map) :: map
 
   @doc """
-  Returns a loaded list of child dependencies the converger has
-  for the dependency. This list should override what is specified
-  in mix.exs or rebar.config.
+  Returns a child dependencies the converger has  for the
+  dependency. This list should filter the loaded children.
   """
-  defcallback deps(Mix.Dep.t, map) :: [Mix.Dep.t]
+  defcallback deps(Mix.Dep.t, map) :: [atom]
 
 
   @doc """

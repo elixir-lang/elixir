@@ -26,7 +26,7 @@ defmodule Mix.CLI do
     run_task(task, args)
   end
 
-  @hex_requirement ">= 0.1.0-dev"
+  @hex_requirement ">= 0.1.1-dev"
 
   defp load_remote do
     if Code.ensure_loaded?(Hex) do

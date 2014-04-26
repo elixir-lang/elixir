@@ -76,8 +76,8 @@ defmodule Mix.Dep.Converger do
              |> Enum.into(HashDict.new, &{&1.app, &1})
 
       # In case there is no lock, we will read the current lock
-      # which is potentially stale. So converger.deps needs to
-      # always check if the data it finds on the lock is actually
+      # which is potentially stale. So converger.deps/2 needs to
+      # always check if the data it finds in the lock is actually
       # valid.
       lock_for_converger = lock || Mix.Dep.Lock.read
 
@@ -148,7 +148,8 @@ defmodule Mix.Dep.Converger do
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              Mix.Dep.Loader.load(dep, children)
+              dep = Mix.Dep.Loader.load(dep)
+              %{dep | deps: Enum.filter(dep.deps, &(!children || &1.app in children))}
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
