@@ -23,6 +23,8 @@ defmodule Keyword do
   in `Enum` and `List` can also be applied.
   """
 
+  @behaviour Dict
+
   @type key :: atom
   @type value :: any
 
@@ -559,5 +561,17 @@ defmodule Keyword do
   """
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
     {get(keywords, key, default), delete_first(keywords, key)}
+  end
+
+  # Dict callbacks
+
+  @doc false
+  def size(keyword) do
+    length(keyword)
+  end
+
+  @doc false
+  def to_list(keyword) do
+    keyword
   end
 end

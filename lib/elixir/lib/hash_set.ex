@@ -31,24 +31,6 @@ defmodule HashSet do
     trie()
   end
 
-  @doc false
-  @spec new(Enum.t) :: Set.t
-  def new(enum) do
-    IO.write :stderr, "HashSet.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn i, set ->
-      put(set, i)
-    end
-  end
-
-  @doc false
-  @spec new(Enum.t, (term -> term)) :: Set.t
-  def new(enum, transform) when is_function(transform) do
-    IO.write :stderr, "HashSet.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn i, set ->
-      put(set, transform.(i))
-    end
-  end
-
   def union(trie(size: size1) = set1, trie(size: size2) = set2) when size1 <= size2 do
     set_fold set1, set2, fn v, acc -> put(acc, v) end
   end

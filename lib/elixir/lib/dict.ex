@@ -73,7 +73,7 @@ defmodule Dict do
         x when is_tuple(x) ->
           elem(x, 0)
         x when is_list(x) ->
-          ListDict
+          Keyword
         x ->
           unsupported_dict(x)
       end

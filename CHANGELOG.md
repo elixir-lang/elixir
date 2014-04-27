@@ -5,6 +5,8 @@
 * Bug fixes
 
 * Deprecations
+  * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
+  * [Macro] `Macro.safe_terms` is deprecated
 
 * Backwards incompatible changes
 

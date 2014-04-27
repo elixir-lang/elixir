@@ -179,15 +179,8 @@ defmodule Regex do
   def run(regex, string, options \\ [])
 
   def run(regex(re_pattern: compiled), string, options) when is_binary(string) do
-    return = Keyword.get(options, :return, :binary)
-
-    captures =
-      case Keyword.get(options, :capture, :all) do
-        :groups ->
-          IO.write "[WARNING] :groups option is deprecated, please use :all_names option instead\n#{Exception.format_stacktrace}"
-          :all_names
-        others  -> others
-      end
+    return   = Keyword.get(options, :return, :binary)
+    captures = Keyword.get(options, :capture, :all)
 
     case :re.run(string, compiled, [{:capture, captures, return}]) do
       :nomatch -> nil
@@ -267,11 +260,6 @@ defmodule Regex do
     names
   end
 
-  def groups(regex) do
-    IO.write "[WARNING] Regex.groups is deprecated, please use Regex.names instead\n#{Exception.format_stacktrace}"
-    names(regex)
-  end
-
   @doc """
   Same as `run/3`, but scans the target several times collecting all
   matches of the regular expression. A list of lists is returned,
@@ -299,17 +287,10 @@ defmodule Regex do
   def scan(regex, string, options \\ [])
 
   def scan(regex(re_pattern: compiled), string, options) when is_binary(string) do
-    return  = Keyword.get(options, :return, :binary)
+    return   = Keyword.get(options, :return, :binary)
+    captures = Keyword.get(options, :capture, :all)
+    options  = [{:capture, captures, return}, :global]
 
-    captures =
-      case Keyword.get(options, :capture, :all) do
-        :groups ->
-          IO.write "[WARNING] :groups option is deprecated, please use :all_names option instead\n#{Exception.format_stacktrace}"
-          :all_names
-        others -> others
-      end
-
-    options = [{:capture, captures, return}, :global]
     case :re.run(string, compiled, options) do
       :match -> []
       :nomatch -> []

@@ -780,6 +780,7 @@ defmodule Macro do
   which is returned as `{:unsafe, term}`.
   """
   def safe_term(terms) do
+    IO.write :stderr, "Macro.safe_term/1 is deprecated\n#{Exception.format_stacktrace}"
     do_safe_term(terms) || :ok
   end
 

@@ -20,18 +20,6 @@ defmodule Map do
   """
   def new, do: %{}
 
-  @doc false
-  def new(pairs) do
-    IO.write :stderr, "Map.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    :maps.from_list pairs
-  end
-
-  @doc false
-  def new(list, transform) when is_function(transform) do
-    IO.write :stderr, "Map.new/2 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    Enum.map(list, transform) |> :maps.from_list
-  end
-
   def has_key?(map, key), do: :maps.is_key(key, map)
 
   def fetch(map, key), do: :maps.find(key, map)

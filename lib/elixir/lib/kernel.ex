@@ -484,13 +484,13 @@ defmodule Kernel do
 
   @doc false
   def iolist_to_binary(list) do
-    # IO.write :stderr, "Kernel.iolist_to_binary/1 is deprecated, please use Kernel.iodata_to_binary/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Kernel.iolist_to_binary/1 is deprecated, please use Kernel.iodata_to_binary/1 instead\n#{Exception.format_stacktrace}"
     iodata_to_binary(list)
   end
 
   @doc false
   def iolist_size(list) do
-    # IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iolist_size/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iolist_size/1 instead\n#{Exception.format_stacktrace}"
     iodata_size(list)
   end
 

@@ -31,25 +31,6 @@ defmodule HashDict do
     trie()
   end
 
-  @doc false
-  @spec new(Enum.t) :: Dict.t
-  def new(enum) do
-    IO.write :stderr, "HashDict.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn {k, v}, dict ->
-      put(dict, k, v)
-    end
-  end
-
-  @doc false
-  @spec new(Enum.t, (term -> {key :: term, value ::term})) :: Dict.t
-  def new(enum, transform) when is_function(transform) do
-    IO.write :stderr, "HashDict.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn i, dict ->
-      {k, v} = transform.(i)
-      put(dict, k, v)
-    end
-  end
-
   def put(trie(root: root, size: size), key, value) do
     {root, counter} = do_put(root, key, value, key_hash(key))
     trie(root: root, size: size + counter)

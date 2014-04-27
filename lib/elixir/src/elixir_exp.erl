@@ -256,6 +256,7 @@ expand({'try', Meta, [KV]}, E) ->
 %% Comprehensions
 
 expand({Kind, Meta, Args}, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
+  elixir_errors:deprecation(Meta, E#elixir_env.file, "~ts is deprecated, please use for comprehensions instead", [Kind]),
   expand_comprehension(Meta, Kind, Args, E);
 
 expand({for, Meta, Args}, E) when is_list(Args) ->

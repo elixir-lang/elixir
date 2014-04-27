@@ -35,17 +35,15 @@ end
 
 defimpl Access, for: List do
   def access(dict, key) when is_atom(key) do
-    do_access(dict, key)
+    case :lists.keyfind(key, 1, dict) do
+      {^key, value} -> value
+      false -> nil
+    end
   end
 
-  def access(dict, key) do
-    IO.write :stderr, "The access protocol for lists expect the key to be an atom, got: #{inspect key}\n#{Exception.format_stacktrace}"
-    do_access(dict, key)
+  def access(_dict, key) do
+    raise ArgumentError, message: "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
   end
-
-  defp do_access([{key, value}|_], key), do: value
-  defp do_access([{_, _}|t], key), do: access(t, key)
-  defp do_access([], _key), do: nil
 end
 
 defimpl Access, for: Map do

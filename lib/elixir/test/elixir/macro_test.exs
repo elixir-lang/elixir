@@ -426,31 +426,6 @@ defmodule MacroTest do
            "::Bar:.foo(:1:, :2:, :3:):"
   end
 
-  ## safe_term
-
-  test :safe_terms do
-   assert Macro.safe_term(quote do: 1) == :ok
-   assert Macro.safe_term(quote do: 1.1) == :ok
-   assert Macro.safe_term(quote do: -1) == :ok
-   assert Macro.safe_term(quote do: +1) == :ok
-   assert Macro.safe_term(quote do: []) == :ok
-   assert Macro.safe_term(quote do: [1, 2, 3]) == :ok
-   assert Macro.safe_term(quote do: "") == :ok
-   assert Macro.safe_term(quote do: {}) == :ok
-   assert Macro.safe_term(quote do: {1, 2}) == :ok
-   assert Macro.safe_term(quote do: {1, 2, 3}) == :ok
-   assert Macro.safe_term(quote do: {1, 2, 3, 4}) == :ok
-   assert Macro.safe_term(quote do: %{a: 1}) == :ok
-   assert Macro.safe_term(quote do: Alias) == :ok
-  end
-
-  test :unsafe_terms do
-   assert Macro.safe_term(quote do: 1+1)   == {:unsafe, quote do: 1 + 1}
-   assert Macro.safe_term(quote do: [1+1]) == {:unsafe, quote do: 1 + 1}
-   assert Macro.safe_term(quote do: {1+1}) == {:unsafe, quote do: 1 + 1}
-   assert Macro.safe_term(quote do: %{a: 1+1}) == {:unsafe, quote do: 1 + 1}
-  end
-
   ## decompose_call
 
   test :decompose_call do
