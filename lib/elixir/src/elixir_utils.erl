@@ -31,7 +31,7 @@ file_type(File, Op) ->
 relative_to_cwd(Path) ->
   case elixir_compiler:get_opt(internal) of
     true  -> Path;
-    false -> 'Elixir.Path':relative_to_cwd(Path)
+    false -> 'Elixir.List':'from_char_data!'('Elixir.Path':relative_to_cwd(Path))
   end.
 
 characters_to_list(Data) when is_list(Data) ->
