@@ -19,7 +19,7 @@ defmodule MacroTest do
   use ExUnit.Case, async: true
 
   # Changing the lines above will make compilation
-  # fail since we are assertnig on the caller lines
+  # fail since we are asserting on the caller lines
   import Macro.ExternalTest
 
   ## Escape
