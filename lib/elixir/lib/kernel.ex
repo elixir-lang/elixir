@@ -1670,11 +1670,11 @@ defmodule Kernel do
   Raises an error.
 
   Calls `.exception` on the given argument passing
-  the args in order to retrieve the appropriate exception
+  the attributes in order to retrieve the appropriate exception
   structure.
 
   Any module defined via `defexception` automatically
-  implements `exception(args)` callback expected by `raise/2`.
+  implements `exception(attrs)` callback expected by `raise/2`.
 
   ## Examples
 
@@ -1683,9 +1683,9 @@ defmodule Kernel do
 
   """
   @spec raise(tuple | atom, list) :: no_return
-  defmacro raise(exception, args) do
+  defmacro raise(exception, attrs) do
     quote do
-      :erlang.error unquote(exception).exception(unquote(args))
+      :erlang.error unquote(exception).exception(unquote(attrs))
     end
   end
 
@@ -1712,9 +1712,9 @@ defmodule Kernel do
   may change the `System.stacktrace` value.
   """
   @spec raise(tuple | atom, list, list) :: no_return
-  defmacro raise(exception, args, stacktrace) do
+  defmacro raise(exception, attrs, stacktrace) do
     quote do
-      :erlang.raise :error, unquote(exception).exception(unquote(args)), unquote(stacktrace)
+      :erlang.raise :error, unquote(exception).exception(unquote(attrs)), unquote(stacktrace)
     end
   end
 
@@ -2628,7 +2628,7 @@ defmodule Kernel do
       2
 
   """
-  defmacro access(element, args) when is_list(args) do
+  defmacro access(element, attrs) when is_list(attrs) do
     caller = __CALLER__
     atom   = Macro.expand(element, caller)
 
@@ -2653,14 +2653,14 @@ defmodule Kernel do
               end
           end
 
-        Record.Deprecated.access(atom, fields, args, caller)
+        Record.Deprecated.access(atom, fields, attrs, caller)
       false ->
         case caller.in_match? or caller.in_guard? do
           true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
           false -> :ok
         end
 
-        case args do
+        case attrs do
           [h] -> quote do: Access.access(unquote(element), unquote(h))
           _   -> raise ArgumentError, message: "expected one argument in access"
         end
@@ -3348,10 +3348,10 @@ defmodule Kernel do
       record_type message: String.t
 
       @doc false
-      def exception(args), do: new(args)
+      def exception(attrs), do: new(attrs)
 
       @doc false
-      def exception(args, self), do: update(args, self)
+      def exception(attrs, self), do: update(attrs, self)
 
       defoverridable exception: 1, exception: 2
       unquote(Keyword.get do_block, :do)
@@ -3599,7 +3599,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro use(module, args \\ []) do
+  defmacro use(module, opts \\ []) do
     expanded = Macro.expand(module, __CALLER__)
 
     case is_atom(expanded) do
@@ -3608,7 +3608,7 @@ defmodule Kernel do
       true ->
         quote do
           require unquote(expanded)
-          unquote(expanded).__using__(unquote(args))
+          unquote(expanded).__using__(unquote(opts))
         end
     end
   end
