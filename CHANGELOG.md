@@ -1,4 +1,4 @@
-# v0.13.1-dev
+# v0.13.1 (2014-04-27)
 
 * Enhancements
   * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
