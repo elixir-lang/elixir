@@ -696,7 +696,7 @@ unwrap_when(Args) ->
       Args
   end.
 
-to_block([One]) when not is_list(One) -> One;
+to_block([One]) -> One;
 to_block(Other) -> {'__block__', [], reverse(Other)}.
 
 %% Errors
