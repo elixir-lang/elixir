@@ -667,7 +667,7 @@ defmodule Macro do
   # Expand @ calls
   defp do_expand_once({:@, _, [{name, _, args}]} = original, env) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> {Module.get_attribute(module, name), true}
+      true  -> {escape(Module.get_attribute(module, name)), true}
       false -> {original, false}
     end
   end
@@ -675,9 +675,9 @@ defmodule Macro do
   # Expand pseudo-variables
   defp do_expand_once({:__MODULE__, _, atom}, env) when is_atom(atom),
     do: {env.module, true}
-  defp do_expand_once({:__DIR__, _, atom}, env)    when is_atom(atom),
+  defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
     do: {:filename.dirname(env.file), true}
-  defp do_expand_once({:__ENV__, _, atom}, env)    when is_atom(atom),
+  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom),
     do: {{:{}, [], tuple_to_list(env)}, true}
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env) when
       is_atom(atom) and is_atom(field) do

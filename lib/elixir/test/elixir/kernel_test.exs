@@ -59,7 +59,7 @@ defmodule KernelTest do
   end
 
   @at_list  [4,5]
-  @at_range [6,7,8]
+  @at_range 6..8
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list,  do: :at_list
