@@ -40,7 +40,7 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
-  Executes the given command and fowards its messages to
+  Executes the given command and forwards its messages to
   the current process.
   """
   def cmd(command) do
