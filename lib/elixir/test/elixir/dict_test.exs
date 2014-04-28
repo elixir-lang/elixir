@@ -2,15 +2,17 @@ Code.require_file "test_helper.exs", __DIR__
 
 # A TestDict implementation used only for testing.
 defmodule TestDict do
+  defstruct list: []
+
   def new(list \\ []) when is_list(list) do
-    %{__struct__: TestDict, list: list}
+    %TestDict{list: list}
   end
 
-  def size(%{__struct__: TestDict, list: list}) do
+  def size(%TestDict{list: list}) do
     length(list)
   end
 
-  def update(%{__struct__: TestDict, list: list} = map, key, initial, fun) do
+  def update(%TestDict{list: list} = map, key, initial, fun) do
     %{map | list: update(list, key, initial, fun)}
   end
 
