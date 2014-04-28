@@ -3,13 +3,16 @@
 * Enhancements
 
 * Bug fixes
+  * [Kernel] Do not wrap single lists in `:__block__`
+  * [Kernel] Ensure emitted beam code works nicely with dialyzer
+  * [System] Convert remaining functions in System to rely on char data
 
 * Deprecations
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
   * [Macro] `Macro.safe_terms` is deprecated
 
 * Backwards incompatible changes
-
+  * [Kernel] `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
 
 # v0.13.1 (2014-04-27)
 
