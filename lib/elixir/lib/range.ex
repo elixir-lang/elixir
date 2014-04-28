@@ -1,6 +1,19 @@
 defmodule Range do
   @moduledoc """
   Defines a Range.
+
+  A Range are represented internally as a struct. However,
+  the most common form of creating and matching on ranges
+  is via the `../2` macro, auto-imported from Kernel:
+
+      iex> range = 1..3
+      1..3
+      iex> first .. last = range
+      iex> first
+      1
+      iex> last
+      3
+
   """
 
   defstruct first: nil, last: nil
@@ -31,6 +44,10 @@ defmodule Range do
 end
 
 defprotocol Range.Iterator do
+  @moduledoc """
+  A protocol used for iterating range elements.
+  """
+
   @doc """
   Returns the function that calculates the next item.
   """

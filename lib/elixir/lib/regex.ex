@@ -1,8 +1,10 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Regular expressions for Elixir built on top of the `re` module
-  in the Erlang Standard Library. More information can be found
-  in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
+  Regular expressions for Elixir built on top of Erlang's `re` module.
+
+  As the `re` module, Regex is based on PCRE
+  (Perl Compatible Regular Expressions). More information can be
+  found in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
   or using the special form with [`~r`](Kernel.html#sigil_r/2):
@@ -13,8 +15,12 @@ defmodule Regex do
       # A regular expression with case insensitive and unicode options
       ~r/foo/iu
 
-  The `re` module provides several options, the ones available in Elixir, followed by
-  their shortcut in parenthesis, are:
+  A Regex is represented internally as the `Regex` struct. Therefore,
+  `%Regex{}` can be used whenever there is a need to match on them.
+
+  ## Modifiers
+
+  The modifiers available when creating a Regex are:
 
   * `unicode` (u) - enables unicode specific patterns like \p. it expects valid unicode
     strings to be given on match

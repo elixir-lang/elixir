@@ -125,7 +125,7 @@ defmodule ExUnit.Runner do
     for test <- tests do
       tags = Keyword.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
-        :ok             -> test.tags(tags)
+        :ok           -> test.tags(tags)
         {:error, tag} -> test.state({:skip, "due to #{tag} filter"})
       end
     end

@@ -37,7 +37,7 @@ defmodule Dict do
 
   @type key :: any
   @type value :: any
-  @type t :: tuple | list | map
+  @type t :: list | map
 
   defcallback new :: t
   defcallback delete(t, key) :: t
@@ -71,6 +71,7 @@ defmodule Dict do
         %{} ->
           Map
         x when is_tuple(x) ->
+          IO.write :stderr, "Using records with the Dict module is deprecated, please use structs instead\n#{Exception.format_stacktrace}"
           elem(x, 0)
         x when is_list(x) ->
           Keyword

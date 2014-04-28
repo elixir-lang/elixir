@@ -30,7 +30,7 @@ defmodule Set do
 
   @type value :: any
   @type values :: [ value ]
-  @type t :: map | tuple
+  @type t :: map
 
   defcallback new :: t
   defcallback delete(t, value) :: t
@@ -51,6 +51,7 @@ defmodule Set do
         %{__struct__: x} when is_atom(x) ->
           x
         x when is_tuple(x) ->
+          IO.write :stderr, "Using records with the Set module is deprecated, please use structs instead\n#{Exception.format_stacktrace}"
           elem(x, 0)
         x ->
           unsupported_set(x)
