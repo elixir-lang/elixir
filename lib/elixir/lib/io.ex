@@ -87,9 +87,9 @@ defmodule IO do
   * `:standard_io` - when the `:standard_io` atom is given,
     it is treated as a shortcut for `Process.group_leader`
 
-  * `:stdio` - is a shortcut for `:stdio`
+  * `:stdio` - is a shortcut for `:standard_io`
 
-  * `:stderr` - is a shortcut for `:stderr`
+  * `:stderr` - is a shortcut for `:standard_error`
 
   """
 
@@ -359,6 +359,8 @@ defmodule IO do
         {data, device}
     end
   end
+
+  @compile {:inline, map_dev: 1, to_char_data: 1}
 
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
