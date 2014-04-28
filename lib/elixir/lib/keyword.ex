@@ -133,7 +133,7 @@ defmodule Keyword do
       :error
 
   """
-  @spec fetch(t, key) :: value
+  @spec fetch(t, key) :: {:ok, value}
   def fetch(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> {:ok, value}

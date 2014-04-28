@@ -537,7 +537,7 @@ defmodule Kernel do
   """
   @spec iodata_to_binary(iolist | binary) :: binary
   def iodata_to_binary(item) do
-    :erlang.iodata_to_binary(item)
+    :erlang.iolist_to_binary(item)
   end
 
   @doc """
