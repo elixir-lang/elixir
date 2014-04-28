@@ -45,6 +45,10 @@ defmodule Mix.Tasks.DepsGitTest do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
+      # Do not fail checkout if directory already exists
+      File.mkdir_p!("deps/git_repo")
+      File.write!("deps/git_repo/fail", "oops")
+
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received {:mix_shell, :info, [^message]}
