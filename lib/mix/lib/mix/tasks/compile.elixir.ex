@@ -56,14 +56,16 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     defp each_module(pid, compile_path, cwd, source, module, binary) do
-      bin  = atom_to_binary(module)
-      beam = Path.join(compile_path, bin <> ".beam")
+      source = Path.relative_to(source, cwd)
+      bin    = atom_to_binary(module)
+      beam   = Path.join(compile_path, bin <> ".beam")
+               |> Path.relative_to(cwd)
 
       deps = Kernel.LexicalTracker.remotes(module)
-             |> :lists.usort |> Enum.map(&atom_to_binary(&1))
+             |> :lists.usort
+             |> Enum.map(&atom_to_binary(&1))
 
-      relative = if cwd, do: Path.relative_to(source, cwd), else: source
-      :gen_server.cast(pid, {:store, beam, bin, relative, deps, binary})
+      :gen_server.cast(pid, {:store, beam, bin, source, deps, binary})
     end
 
     defp each_file(file) do
