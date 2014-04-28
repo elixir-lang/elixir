@@ -77,6 +77,20 @@ defmodule IO do
 
   The functions starting with `bin*` expects iodata as argument,
   i.e. binaries or lists of bytes and binaries.
+
+  ## IO devices
+
+  An IO device may be an atom or a pid. In case it is an atom,
+  the atom must be the name of a registered process. However,
+  there are three exceptions for this rule:
+
+  * `:standard_io` - when the `:standard_io` atom is given,
+    it is treated as a shortcut for `Process.group_leader`
+
+  * `:stdio` - is a shortcut for `:stdio`
+
+  * `:stderr` - is a shortcut for `:stderr`
+
   """
 
   @type device :: atom | pid
