@@ -235,6 +235,12 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
             TRight,
             TVar]},
 
+          %% TODO There is a bug in dialyzer that makes it fail on
+          %% empty maps. We work around the bug below by using
+          %% the is_map/1 guard instead of matching on map. Hopefully
+          %% we can use a match on 17.1.
+          %%
+          %% http://erlang.org/pipermail/erlang-bugs/2014-April/004338.html
           {{'case', -1, TLeft, [
             {clause, -1,
               [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
@@ -242,9 +248,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
               [TVar]},
             {clause, -1,
               [TVar],
-              [[{call, Line,
-                 {remote, Line, {atom, Line, erlang}, {atom, Line, is_map}},
-                 [TVar]}]],
+              [[?wrap_call(Line, erlang, is_map, [TVar])]],
               [?wrap_call(Line, erlang, error, [TMap])]},
             {clause, -1,
               [TVar],
