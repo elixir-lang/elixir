@@ -2461,7 +2461,7 @@ defmodule Kernel do
 
   """
   defmacro first .. last do
-    {:{}, [], [Elixir.Range, first, last]}
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 
   @doc """
@@ -2720,12 +2720,8 @@ defmodule Kernel do
             unquote(comp(left, x)) or unquote(acc)
           end
         end, comp(left, h), t)
-      {:{}, _, [Elixir.Range, first, last]} ->
+      {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
-      first .. last ->
-        # This range came from a module attribute, so it is a
-        # literal value and we need to escape it.
-        in_range(left, Macro.escape(first), Macro.escape(last))
       _ ->
         raise ArgumentError, message: <<"invalid args for operator in, it expects a compile time list ",
                                         "or range on the right side when used in guard expressions, got: ",

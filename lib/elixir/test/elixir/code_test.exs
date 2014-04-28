@@ -38,9 +38,9 @@ defmodule CodeTest do
   end
 
   test :eval_options do
-    assert Code.eval_string("is_atom(:foo) and is_record(1..2, Range) and K.is_list([])", [],
+    assert Code.eval_string("is_atom(:foo) and K.is_list([])", [],
       functions: [{Kernel, [is_atom: 1]}],
-      macros: [{Kernel, [..: 2, and: 2, is_record: 2]}],
+      macros: [{Kernel, [..: 2, and: 2]}],
       aliases: [{K, Kernel}],
       requires: [Kernel]) == {true, []}
   end

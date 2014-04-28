@@ -667,10 +667,10 @@ defmodule Kernel.ErrorsTest do
 
   test :bad_unquoting do
     assert_compile_fail CompileError,
-      "nofile: invalid quoted expression: {Range, 1, 3}",
+      "nofile: invalid quoted expression: {:foo, 0, 1}",
       '''
       defmodule ErrorsTest do
-        def range(unquote(1..3)), do: :ok
+        def range(unquote({:foo, 0, 1})), do: :ok
       end
       '''
   end

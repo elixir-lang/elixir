@@ -3,28 +3,15 @@ defmodule Range do
   Defines a Range.
   """
 
-  @type t :: {Range, any, any}
-  @type t(first, last) :: {Range, first, last}
+  defstruct first: nil, last: nil
+
+  @type t(first, last) :: %{__struct__: Range, first: first, last: last}
 
   @doc """
   Creates a new range.
   """
   def new(first, last) do
-    {Range, first, last}
-  end
-
-  @doc """
-  Returns the first item of the range.
-  """
-  def first({Range, first, _}) do
-    first
-  end
-
-  @doc """
-  Returns the last item of the range.
-  """
-  def last({Range, _, last}) do
-    last
+    %Range{first: first, last: last}
   end
 
   @doc """
@@ -39,7 +26,7 @@ defmodule Range do
       false
 
   """
-  def range?({Range, _, _}), do: true
+  def range?(%Range{}), do: true
   def range?(_), do: false
 end
 
