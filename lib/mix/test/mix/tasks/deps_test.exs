@@ -563,4 +563,47 @@ defmodule Mix.Tasks.DepsTest do
       refute_received {:mix_shell, :info, [^msg]}
     end
   end
+
+  defmodule CleanDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          {:git_repo, ">= 0.1.0", git: MixTest.Case.fixture_path("git_repo")}
+        ]
+      ]
+    end
+  end
+
+  test "clean all deps" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert File.exists?("deps/git_repo")
+
+      message = "mix deps.clean expects dependencies as arguments or " <>
+                "the --all option to clean all dependencies"
+
+      assert_raise Mix.Error, message, fn ->
+        Mix.Tasks.Deps.Clean.run []
+      end
+
+      Mix.Tasks.Deps.Clean.run ["--all"]
+      refute File.exists?("deps/git_repo")
+    end
+  end
+
+  test "clean single dep" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert File.exists?("deps/git_repo")
+
+      Mix.Tasks.Deps.Clean.run ["git_repo"]
+      refute File.exists?("deps/git_repo")
+    end
+  end
 end
