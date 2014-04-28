@@ -225,9 +225,9 @@ defmodule System do
   the result as a binary.
 
   If `command` is a char list, a char list is returned.
-  Returns a binary otherwise.
+  Otherwise a string, correctly encoded in UTF-8, is expected.
   """
-  @spec cmd(binary) :: binary
+  @spec cmd(String.t)  :: String.t
   @spec cmd(char_list) :: char_list
 
   def cmd(command) when is_list(command) do
@@ -235,9 +235,7 @@ defmodule System do
   end
 
   def cmd(command) when is_binary(command) do
-    # Notice we don't use unicode for conversion
-    # because the OS is expecting and returning raw bytes
-    :binary.list_to_bin :os.cmd(:binary.bin_to_list(command))
+    String.from_char_data! :os.cmd(List.from_char_data!(command))
   end
 
   @doc """
@@ -260,11 +258,9 @@ defmodule System do
   end
 
   def find_executable(program) when is_binary(program) do
-    # Notice we don't use unicode for conversion
-    # because the OS is expecting and returning raw bytes
-    case :os.find_executable(:binary.bin_to_list(program)) do
+    case :os.find_executable(List.from_char_data!(program)) do
       false -> nil
-      other -> :binary.list_to_bin(other)
+      other -> String.from_char_data!(other)
     end
   end
 
@@ -316,7 +312,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv :binary.bin_to_list(varname), List.from_char_data!(value)
+   :os.putenv List.from_char_data!(varname), List.from_char_data!(value)
    :ok
   end
 
@@ -367,7 +363,7 @@ defmodule System do
   * If `:abort`, the runtime system aborts producing a core dump, if that is
     enabled in the operating system;
 
-  * If a char list, an erlang crash dump is produced with status as slogan,
+  * If a string, an erlang crash dump is produced with status as slogan,
     and then the runtime system exits with status code 1;
 
   Note that on many platforms, only the status codes 0-255 are supported
@@ -391,6 +387,6 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(:binary.bin_to_list(status))
+    :erlang.halt(List.from_char_data!(status))
   end
 end
