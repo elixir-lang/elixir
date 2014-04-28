@@ -89,7 +89,7 @@ defmodule Code do
   etc.
 
   Returns a tuple of the form `{value, binding}`,
-  where `value` is the the value returned from evaluating `string`.
+  where `value` is the value returned from evaluating `string`.
   If an error occurs while evaluating `string` an exception will be raised.
 
   `binding` is a keyword list with the value of all variable bindings
