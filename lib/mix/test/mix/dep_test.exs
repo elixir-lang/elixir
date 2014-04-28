@@ -75,7 +75,7 @@ defmodule Mix.DepTest do
     Mix.Project.push DepsApp
 
     {_, true, _} =
-      Mix.Dep.unloaded(false, [], nil, fn dep, acc, lock ->
+      Mix.Dep.Converger.converge(false, [], nil, fn dep, acc, lock ->
         assert nil?(dep.manager)
         {dep, acc or true, lock}
       end)
@@ -222,13 +222,13 @@ defmodule Mix.DepTest do
     Mix.Project.push OnlyDeps
 
     in_fixture "deps_status", fn ->
-      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [env: :other_env], &{&1, &2, &3})
+      deps = Mix.Dep.loaded([env: :other_env])
       assert length(deps) == 2
 
-      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [], &{&1, &2, &3})
+      deps = Mix.Dep.loaded([])
       assert length(deps) == 2
 
-      {deps, _acc, _lock} = Mix.Dep.unloaded([], nil, [env: :prod], &{&1, &2, &3})
+      deps = Mix.Dep.loaded([env: :prod])
       assert length(deps) == 1
       assert Enum.find deps, &match?(%Mix.Dep{app: :foo}, &1)
     end

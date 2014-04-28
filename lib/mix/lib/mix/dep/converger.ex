@@ -34,14 +34,21 @@ defmodule Mix.Dep.Converger do
   end
 
   @doc """
-  Returns all dependencies from the current project,
-  including nested dependencies. There is a callback
-  that is invoked for each dependency and must return
-  an updated dependency in case some processing is done.
+  Converges all dependencies from the current project,
+  including nested dependencies.
+
+  There is a callback that is invoked for each dependency and
+  must return an updated dependency in case some processing
+  is done.
 
   See `Mix.Dep.Loader.children/1` for options.
   """
-  def all(acc, lock, opts, callback) do
+  def converge(acc, lock, opts, callback) do
+    {deps, acc, lock} = all(acc, lock, opts, callback)
+    {topsort(deps), acc, lock}
+  end
+
+  defp all(acc, lock, opts, callback) do
     main      = Mix.Dep.Loader.children(opts)
     main      = Enum.map(main, &(%{&1 | top_level: true}))
     apps      = Enum.map(main, &(&1.app))

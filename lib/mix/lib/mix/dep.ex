@@ -58,8 +58,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    {deps, _, _} = Mix.Dep.Converger.all(nil, nil, opts, &{&1, &2, &3})
-    Mix.Dep.Converger.topsort(deps)
+    Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
   end
 
   @doc """
@@ -87,29 +86,6 @@ defmodule Mix.Dep do
     end
 
     deps
-  end
-
-  @doc """
-  Maps and reduces over all unloaded dependencies, one by one.
-
-  This is useful in case you want to retrieve the dependency
-  tree for a project but process and change them along the way.
-  For example, `mix deps.get` uses it to get all dependencies
-  by first fetching the parent and then updating the tree as it goes.
-
-  The callback expects the current dependency and the accumulator
-  as arguments. The accumulator is returned as result.
-
-  See `Mix.Dep.Converger.all/3` for options.
-
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
-  """
-  def unloaded(acc, lock, opts, callback) do
-    {deps, acc, lock} = Mix.Dep.Converger.all(acc, lock, opts, callback)
-    {Mix.Dep.Converger.topsort(deps), acc, lock}
   end
 
   @doc """

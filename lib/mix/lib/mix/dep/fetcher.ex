@@ -11,23 +11,19 @@ defmodule Mix.Dep.Fetcher do
 
   @doc """
   Fetches all dependencies.
-
-  See `Mix.Dep.unloaded/3` for options.
   """
   def all(old_lock, new_lock, opts) do
-    result = Mix.Dep.unloaded([], new_lock, opts, &do_fetch/3)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, &do_fetch/3)
     {apps, _deps} = do_finalize(result, old_lock, opts)
     apps
   end
 
   @doc """
   Fetches the dependencies with the given names and their children recursively.
-
-  See `Mix.Dep.unloaded_by_name/4` for options.
   """
   def by_name(names, old_lock, new_lock, opts) do
     fetcher = fetch_by_name(names, new_lock)
-    result = Mix.Dep.unloaded([], new_lock, opts, fetcher)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, fetcher)
     {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
