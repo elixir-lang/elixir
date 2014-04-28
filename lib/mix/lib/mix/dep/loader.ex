@@ -122,7 +122,7 @@ defmodule Mix.Dep.Loader do
     {scm, opts} = get_scm(app, opts)
 
     unless scm do
-      install_hex(app)
+      Mix.Tasks.Local.Hex.install_and_load(app)
       {scm, opts} = get_scm(app, opts)
     end
 
@@ -146,16 +146,6 @@ defmodule Mix.Dep.Loader do
   defp get_scm(app, opts) do
     Enum.find_value Mix.SCM.available, {nil, opts}, fn(scm) ->
       (new = scm.accepts_options(app, opts)) && {scm, new}
-    end
-  end
-
-  defp install_hex(app) do
-    shell = Mix.shell
-    shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
-
-    if shell.yes?("Shall I install hex?") do
-      Mix.Tasks.Local.Hex.run ["--force"]
-      Hex.start
     end
   end
 

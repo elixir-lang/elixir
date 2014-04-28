@@ -19,40 +19,11 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    load_remote()
+    Mix.Tasks.Local.Hex.update_and_load()
     args = load_mixfile(args)
     {task, args} = get_task(args)
     change_env(task)
     run_task(task, args)
-  end
-
-  @hex_requirement ">= 0.1.1-dev"
-
-  defp load_remote do
-    if Code.ensure_loaded?(Hex) do
-      unless Version.match?(Hex.version, @hex_requirement) do
-        update_hex()
-      end
-
-      try do
-        Hex.start
-      catch
-        kind, reason ->
-          stacktrace = System.stacktrace
-          Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
-                          "`mix local.hex` or uninstalling it with `mix local.uninstall hex`"
-          :erlang.raise(kind, reason, stacktrace)
-      end
-    end
-  end
-
-  defp update_hex do
-    Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
-
-    if Mix.shell.yes?("Shall I abort the current command and update hex?") do
-      Mix.Tasks.Local.Hex.run ["--force"]
-      exit(0)
-    end
   end
 
   defp load_mixfile(args) do
