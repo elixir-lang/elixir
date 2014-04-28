@@ -125,14 +125,18 @@ defmodule Mix.Tasks.Test do
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
-    Mix.Task.run "app.start", args
+    Mix.Task.run "deps.loadpaths", args
+    Mix.Task.run "loadpaths", args
 
     project = Mix.project
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
+    # Start cover after we load deps but before we start the app.
     if opts[:cover] do
       cover[:tool].start(Mix.Project.compile_path(project), cover)
     end
+
+    Mix.Task.run "app.start", args
 
     :application.load(:ex_unit)
 
