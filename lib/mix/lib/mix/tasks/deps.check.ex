@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Deps.Check do
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer
-  # has a dependnecy defined for them.
+  # have a dependency defined for them.
   #
   # Notice we require the build_path to be nil. If the build_path
   # is not nil, it means it was set by a parent application and

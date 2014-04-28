@@ -60,7 +60,7 @@ defmodule Mix.ProjectStack do
 
   @doc """
   Disables the recursion for the project in the stack.
-  Returns true if recursion was disable or false if there
+  Returns true if recursion was disabled or false if there
   is no project or recursion was not enabled.
   """
   @spec disable_recursion :: boolean
