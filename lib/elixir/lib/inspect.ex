@@ -407,8 +407,8 @@ defimpl Inspect, for: Float do
 end
 
 defimpl Inspect, for: Regex do
-  def inspect(regex, opts) when size(regex) == 4 do
-    concat ["~r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
+  def inspect(regex, opts) do
+    concat ["~r", to_doc(regex.source, opts), regex.opts]
   end
 end
 

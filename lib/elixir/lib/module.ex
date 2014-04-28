@@ -541,7 +541,7 @@ defmodule Module do
 
   defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
     last = List.last(String.split(atom_to_binary(left), "."))
-    atom = binary_to_atom(String.downcase(last))
+    atom = binary_to_atom(downcase(last))
     {atom, [], nil}
   end
 
@@ -563,6 +563,18 @@ defmodule Module do
   defp simplify_signature(other, i) when is_float(other),   do: {:"float#{i}", [], Elixir}
   defp simplify_signature(other, i) when is_binary(other),  do: {:"binary#{i}", [], Elixir}
   defp simplify_signature(_, i), do: {:"arg#{i}", [], Elixir}
+
+  defp downcase(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z do
+    <<c + 32 :: utf8, downcase(rest) :: binary>>
+  end
+
+  defp downcase(<<c, rest :: binary>>) do
+    <<c, downcase(rest) :: binary>>
+  end
+
+  defp downcase(<<>>) do
+    <<>>
+  end
 
   # Merge
 

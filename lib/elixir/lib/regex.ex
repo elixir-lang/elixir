@@ -62,8 +62,7 @@ defmodule Regex do
 
   """
 
-  defrecordp :regex, Regex, [:re_pattern, :source, :options]
-  @type t :: {Regex, term, binary, binary, [atom] | nil}
+  defstruct re_pattern: nil :: term, source: "" :: binary, opts: "" :: binary
 
   defexception CompileError, message: "regex could not be compiled"
 
@@ -106,7 +105,7 @@ defmodule Regex do
   defp compile(source, opts, doc_opts) when is_binary(source) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
-        {:ok, regex(re_pattern: re_pattern, source: source, options: doc_opts)}
+        {:ok, %Regex{re_pattern: re_pattern, source: source, opts: doc_opts}}
       error ->
         error
     end
@@ -135,7 +134,7 @@ defmodule Regex do
       false
 
   """
-  def match?(regex(re_pattern: compiled), string) when is_binary(string) do
+  def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
     :re.run(string, compiled, [{:capture, :none}]) == :match
   end
 
@@ -151,7 +150,7 @@ defmodule Regex do
       false
 
   """
-  def regex?(regex()), do: true
+  def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
   @doc """
@@ -178,7 +177,7 @@ defmodule Regex do
   """
   def run(regex, string, options \\ [])
 
-  def run(regex(re_pattern: compiled), string, options) when is_binary(string) do
+  def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
     return   = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
 
@@ -216,7 +215,7 @@ defmodule Regex do
   @doc """
   Returns the underlying `re_pattern` in the regular expression.
   """
-  def re_pattern(regex(re_pattern: compiled)) do
+  def re_pattern(%Regex{re_pattern: compiled}) do
     compiled
   end
 
@@ -229,7 +228,7 @@ defmodule Regex do
       "foo"
 
   """
-  def source(regex(source: source)) do
+  def source(%Regex{source: source}) do
     source
   end
 
@@ -242,8 +241,8 @@ defmodule Regex do
       "m"
 
   """
-  def opts(regex(options: options)) do
-    options
+  def opts(%Regex{opts: opts}) do
+    opts
   end
 
   @doc """
@@ -255,7 +254,7 @@ defmodule Regex do
       ["foo"]
 
   """
-  def names(regex(re_pattern: re_pattern)) do
+  def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
@@ -286,7 +285,7 @@ defmodule Regex do
   """
   def scan(regex, string, options \\ [])
 
-  def scan(regex(re_pattern: compiled), string, options) when is_binary(string) do
+  def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
     return   = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
     options  = [{:capture, captures, return}, :global]
@@ -332,7 +331,7 @@ defmodule Regex do
 
   def split(regex, string, options \\ [])
 
-  def split(regex(re_pattern: compiled), string, options) when is_binary(string) do
+  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
     parts =
       cond do
         Keyword.get(options, :global) == false -> 2
@@ -379,7 +378,7 @@ defmodule Regex do
   """
   def replace(regex, string, replacement, options \\ [])
 
-  def replace(regex(re_pattern: compiled), string, replacement, options) when is_binary(string) do
+  def replace(%Regex{re_pattern: compiled}, string, replacement, options) when is_binary(string) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
     opts = [{:return, :binary}|opts]
     :re.replace(string, compiled, replacement, opts)

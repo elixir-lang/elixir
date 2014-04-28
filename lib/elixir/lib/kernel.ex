@@ -1819,8 +1819,7 @@ defmodule Kernel do
     :binary.match(left, right) != :nomatch
   end
 
-  def left =~ right when is_binary(left) and is_tuple(right) and
-      tuple_size(right) > 0 and elem(right, 0) == Regex do
+  def left =~ right when is_binary(left) do
     Regex.match?(right, left)
   end
 
