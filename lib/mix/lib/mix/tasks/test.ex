@@ -128,6 +128,10 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run "deps.loadpaths", args
     Mix.Task.run "loadpaths", args
 
+    unless opts[:no_compile] do
+      Mix.Task.run "compile", args
+    end
+
     project = Mix.project
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
@@ -137,7 +141,6 @@ defmodule Mix.Tasks.Test do
     end
 
     Mix.Task.run "app.start", args
-
     :application.load(:ex_unit)
 
     # Configure exunit with command line options before requiring
