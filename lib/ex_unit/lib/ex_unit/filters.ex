@@ -30,23 +30,19 @@ defmodule ExUnit.Filters do
 
   ## Examples
 
-      iex> ExUnit.Filters.parse(["foo:bar", "baz"])
-      [{:foo, "bar"}, :baz]
+      iex> ExUnit.Filters.parse(["foo:bar", "baz", "line:9", "bool:true"])
+      [{:foo, "bar"}, :baz, {:line, "9"}, {:bool, "true"}]
 
   """
   @spec parse([String.t]) :: t
   def parse(filters) do
     Enum.map filters, fn filter ->
       case String.split(filter, ":", global: false) do
-        [key, value] -> {binary_to_atom(key), parse_value(value)}
+        [key, value] -> {binary_to_atom(key), value}
         [key] -> binary_to_atom(key)
       end
     end
   end
-
-  defp parse_value("true"),  do: true
-  defp parse_value("false"), do: false
-  defp parse_value(value),   do: value
 
   @doc """
   Evaluates the include and exclude filters against the
@@ -72,8 +68,13 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({key, value}, tags) when is_atom(key),
-    do: Keyword.fetch(tags, key) == {:ok, value} and key
+  defp has_tag({key, value}, tags) when is_atom(key) do
+    case Keyword.fetch(tags, key) do
+      {:ok, ^value} -> key
+      {:ok, different_value} -> to_string(different_value) == value and key
+      _ -> false
+   end
+  end
   defp has_tag(key, tags) when is_atom(key),
     do: Keyword.has_key?(tags, key) and key
 end
