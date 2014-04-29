@@ -443,7 +443,8 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    case :binary.split(atom_to_binary(name), "-", [:global]) do
+    name = atom_to_binary(name)
+    case :binary.split(name, "-", [:global]) do
       ["", name | _] -> "." <> name
       _ -> "." <> name
     end

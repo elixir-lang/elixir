@@ -1224,7 +1224,7 @@ defmodule File do
   @doc """
   Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chmod!(Path.t, integer) :: :ok | no_return
+  @spec chown!(Path.t, integer) :: :ok | no_return
   def chown!(path, uid) do
     path = String.from_char_data!(path)
     case chown(path, uid) do

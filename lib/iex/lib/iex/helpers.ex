@@ -262,10 +262,7 @@ defmodule IEx.Helpers do
   are recompiled and reloaded.
   """
   def r(module) when is_atom(module) do
-    case do_r(module) do
-      mods when is_list(mods) -> {:reloaded, module, mods}
-      other -> other
-    end
+    {:reloaded, module, do_r(module)}
   end
 
   defp do_r(module) do
