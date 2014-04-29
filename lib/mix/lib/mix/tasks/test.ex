@@ -86,6 +86,11 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external --exclude test
 
+  When filtering tests by line number the following styles are equivalent:
+
+      mix test test/some/particular/file_test.exs:12
+      mix test --only line:12 test/some/particular/file_test.exs
+
   ## Configuration
 
   * `:test_paths` - list of paths containing test files, defaults to `["test"]`.
@@ -154,6 +159,16 @@ defmodule Mix.Tasks.Test do
     Enum.each(test_paths, &require_test_helper(&1))
 
     ExUnit.configure(opts)
+
+    files = case files do
+      [single_file] ->
+        # Check if the single file path matches test/path/to_test.exs:123, if it does
+        # apply `--only line:123` and trim the trailing :123 part.
+        {single_file, opts} = ExUnit.Filters.parse_file_path(single_file)
+        ExUnit.configure(opts)
+        [single_file]
+      _ -> files
+    end
 
     test_paths   = if files == [], do: test_paths, else: files
     test_pattern = project[:test_pattern] || "*_test.exs"
