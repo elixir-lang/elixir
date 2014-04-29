@@ -39,22 +39,22 @@ defmodule ExUnit.FiltersTest do
   end
 
   test "file paths with line numbers" do
-    assert ExUnit.Filters.parse_file_path("test/some/path.exs:123") ==
+    assert ExUnit.Filters.parse_path("test/some/path.exs:123") ==
       {"test/some/path.exs", [exclude: [:test], include: [line: "123"]]}
 
-    assert ExUnit.Filters.parse_file_path("test/some/path.exs") ==
+    assert ExUnit.Filters.parse_path("test/some/path.exs") ==
       {"test/some/path.exs", []}
 
-    assert ExUnit.Filters.parse_file_path("test/some/path.exs:123notreallyalinenumber123") ==
+    assert ExUnit.Filters.parse_path("test/some/path.exs:123notreallyalinenumber123") ==
       {"test/some/path.exs:123notreallyalinenumber123", []}
 
-    assert ExUnit.Filters.parse_file_path("C:\\some\\path.exs:123") ==
+    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123") ==
       {"C:\\some\\path.exs", [exclude: [:test], include: [line: "123"]]}
 
-    assert ExUnit.Filters.parse_file_path("C:\\some\\path.exs") ==
+    assert ExUnit.Filters.parse_path("C:\\some\\path.exs") ==
       {"C:\\some\\path.exs", []}
 
-    assert ExUnit.Filters.parse_file_path("C:\\some\\path.exs:123notreallyalinenumber123") ==
+    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123notreallyalinenumber123") ==
       {"C:\\some\\path.exs:123notreallyalinenumber123", []}
   end
 end

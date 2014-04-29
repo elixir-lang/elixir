@@ -164,7 +164,7 @@ defmodule Mix.Tasks.Test do
       [single_file] ->
         # Check if the single file path matches test/path/to_test.exs:123, if it does
         # apply `--only line:123` and trim the trailing :123 part.
-        {single_file, opts} = ExUnit.Filters.parse_file_path(single_file)
+        {single_file, opts} = ExUnit.Filters.parse_path(single_file)
         ExUnit.configure(opts)
         [single_file]
       _ -> files

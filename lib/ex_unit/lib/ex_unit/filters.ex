@@ -6,12 +6,14 @@ defmodule ExUnit.Filters do
   @type t :: list({atom, any} | atom)
 
   @doc """
+  Parses filters out of a path.
+
   Determines whether a given file path (supplied to ExUnit/Mix as arguments
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_file_path(String.t) :: {String.t, any}
-  def parse_file_path(file) do
+  @spec parse_path(String.t) :: {String.t, any}
+  def parse_path(file) do
     case Regex.run(~r/^(.+):(\d+)$/, file, capture: :all_but_first) do
       [file, line_number] ->
         {file, exclude: [:test], include: [line: line_number]}
@@ -60,8 +62,9 @@ defmodule ExUnit.Filters do
   end
 
   @doc """
-  Evaluates the include and exclude filters against the
-  given tags. Expects filters to be normalized into a keyword
+  Evaluates the include and exclude filters against the given tags.
+
+  Expects filters to be normalized into a keyword
   list where each key is an atom and the value is a list.
 
   ## Examples
