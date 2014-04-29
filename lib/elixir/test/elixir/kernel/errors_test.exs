@@ -17,6 +17,12 @@ defmodule Kernel.ErrorsTest do
       '\end\nlol\nbarbecue'
   end
 
+  test :invalid_string do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"world\"",
+      '"hello" "world"'
+  end
+
   test :invalid_or_reserved_codepoint do
     assert_compile_fail ArgumentError,
       "invalid or reserved unicode codepoint 55296",

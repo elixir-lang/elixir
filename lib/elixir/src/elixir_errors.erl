@@ -51,9 +51,17 @@ parse_error(Meta, File, Error, <<>>) ->
   end,
   raise(Meta, File, 'Elixir.TokenMissingError', Message);
 
+%% Show a nicer message for missing end tokens
 parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
+%% Binaries are wrapped in [<<...>>], so we need to unwrap them
+parse_error(Meta, File, Error, <<"[<<", Token/binary>>) when is_binary(Error) ->
+  Rest = binary_part(Token, 0, byte_size(Token) - 3),
+  Message = <<Error / binary, Rest / binary >>,
+  raise(Meta, File, 'Elixir.SyntaxError', Message);
+
+%% Everything else is fine as is
 parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error / binary, Token / binary >>,
   raise(Meta, File, 'Elixir.SyntaxError', Message).
