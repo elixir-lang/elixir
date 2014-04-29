@@ -118,7 +118,7 @@ defmodule Kernel.ErrorsTest do
   test :clause_with_defaults do
     assert_compile_fail CompileError,
       "nofile:3: def hello/1 has default values and multiple clauses, " <>
-      "use a separate clause for declaring defaults",
+      "define a function head with the defaults",
       ~C'''
       defmodule ErrorsTest do
         def hello(arg \\ 0), do: nil

@@ -348,7 +348,7 @@ format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A -
 
 format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("~ts ~ts/~B has default values and multiple clauses, "
-    "use a separate clause for declaring defaults", [Kind, Name, Arity]);
+    "define a function head with the defaults", [Kind, Name, Arity]);
 
 format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
