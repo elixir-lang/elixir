@@ -511,7 +511,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  @spec basename(t) :: [binary]
+  @spec wildcard(t) :: [binary]
   def wildcard(glob) do
     glob
     |> List.from_char_data!

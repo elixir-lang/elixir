@@ -524,7 +524,7 @@ defmodule File do
   The same as `cp/3`, but raises `File.CopyError` if it fails.
   Returns the list of copied files otherwise.
   """
-  @spec cp(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
+  @spec cp!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
   def cp!(source, destination, callback \\ fn(_, _) -> true end) do
     source = String.from_char_data!(source)
     destination = String.from_char_data!(destination)
