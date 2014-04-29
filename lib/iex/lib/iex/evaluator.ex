@@ -152,11 +152,7 @@ defmodule IEx.Evaluator do
   end
 
   defp inspect_opts do
-    opts = IEx.Options.get(:inspect)
-    case :io.columns(:standard_input) do
-      {:ok, width} -> [width: min(width, 80)] ++ opts
-      {:error, _}  -> opts
-    end
+    [width: IEx.width] ++ IEx.Options.get(:inspect)
   end
 
   ## Error handling

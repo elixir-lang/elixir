@@ -247,6 +247,16 @@ defmodule IEx do
   end
 
   @doc """
+  Get the width to be used on helpers with a maximum (and default) of 80 chars.
+  """
+  def width do
+    case :io.columns(:standard_input) do
+      {:ok, width} -> min(width, 80)
+      {:error, _}  -> 80
+    end
+  end
+
+  @doc """
   Pries into the process environment.
 
   This is useful for debugging a particular chunk of code

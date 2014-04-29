@@ -28,7 +28,9 @@ defmodule IO.ANSI do
   Checks whether the default I/O device is a terminal or a file.
 
   Used to identify whether printing ANSI escape sequences will likely
-  be displayed as intended.
+  be displayed as intended. This is checked by sending a message to
+  the group leader. In case the group leader does not support the message,
+  it will likely lead to a timeout (and a slow down on execution time).
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean

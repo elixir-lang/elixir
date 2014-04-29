@@ -199,12 +199,15 @@ defmodule IO do
   end
 
   @doc """
-  Inspects and writes the given argument to the device
-  followed by a newline. A set of options can be given.
+  Inspects and writes the given argument to the device.
 
-  It sets by default pretty printing to true and the
-  width to be the width of the device, with a minimum
-  of 80 characters.
+  It sets by default pretty printing to true and returns
+  the item itself.
+
+  Note this function does not use the IO device width
+  because some IO devices does not implement the
+  appropriate functions. Setting the width must be done
+  explicitly by passing the `:width` option.
 
   ## Examples
 
@@ -222,14 +225,6 @@ defmodule IO do
   @spec inspect(device, term, Keyword.t) :: term
   def inspect(device, item, opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :pretty, true)
-
-    unless Keyword.get(opts, :width) do
-      opts = case :io.columns(device) do
-        {:ok, width} -> [width: width] ++ opts
-        {:error, _}  -> opts
-      end
-    end
-
     puts device, Kernel.inspect(item, opts)
     item
   end

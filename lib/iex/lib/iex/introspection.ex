@@ -16,9 +16,9 @@ defmodule IEx.Introspection do
           case module.__info__(:moduledoc) do
             {_, binary} when is_binary(binary) ->
               if IO.ANSI.terminal? do
-                colors = IEx.Options.get(:colors)
-                IO.ANSI.Docs.print_heading(inspect(module), colors)
-                IO.ANSI.Docs.print(binary, colors)
+                options = docs_options()
+                IO.ANSI.Docs.print_heading(inspect(module), options)
+                IO.ANSI.Docs.print(binary, options)
               else
                 IO.puts "* #{inspect(module)}\n"
                 IO.puts binary
@@ -160,9 +160,9 @@ defmodule IEx.Introspection do
     doc     = doc || ""
 
     if IO.ANSI.terminal? do
-      colors = IEx.Options.get(:colors)
-      IO.ANSI.Docs.print_heading(heading, colors)
-      IO.ANSI.Docs.print(doc, colors)
+      options = docs_options()
+      IO.ANSI.Docs.print_heading(heading, options)
+      IO.ANSI.Docs.print(doc, options)
     else
       IO.puts "* #{heading}\n"
       IO.puts doc
@@ -175,6 +175,10 @@ defmodule IEx.Introspection do
 
   defp print_doc_arg({var, _, _}) do
     atom_to_binary(var)
+  end
+
+  defp docs_options() do
+    [width: IEx.width] ++ IEx.Options.get(:colors)
   end
 
   @doc """

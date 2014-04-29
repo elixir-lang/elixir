@@ -36,6 +36,10 @@ defmodule ExUnit.Runner do
 
     {include, exclude} = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
 
+    if match?({:win32, _}, :os.type()) do
+      opts = Keyword.put(opts, :color, false)
+    end
+
     opts
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
