@@ -1,4 +1,5 @@
 @echo off
+set debug=0
 set argc=0
 for %%x in (%*) do set /A argc+=1
 if  %argc%== 0 (
@@ -91,6 +92,14 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 )
 SETLOCAL disabledelayedexpansion
 :run
+	If %debug% EQU 1 (
+		echo "ext_libs=%ext_libs%"
+		echo "ELIXIR_ERL_OPTS=%ELIXIR_ERL_OPTS%"
+		echo "parsErlang=%parsErlang%"
+		echo "beforeExtra=%beforeExtra%"
+		echo "AdditionalParams=%*"
+		)
+
 IF %useWerl% EQU 1 (
     werl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
