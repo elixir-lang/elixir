@@ -490,8 +490,14 @@ defmodule Kernel do
 
   @doc false
   def iolist_size(list) do
-    IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iolist_size/1 instead\n#{Exception.format_stacktrace}"
-    iodata_size(list)
+    IO.write :stderr, "Kernel.iolist_size/1 is deprecated, please use Kernel.iodata_length/1 instead\n#{Exception.format_stacktrace}"
+    iodata_length(list)
+  end
+
+  @doc false
+  def iodata_size(list) do
+    IO.write :stderr, "Kernel.iodata_size/1 is deprecated, please use Kernel.iodata_length/1 instead\n#{Exception.format_stacktrace}"
+    iodata_length(list)
   end
 
   @doc """
@@ -501,12 +507,12 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> iodata_size([1, 2|<<3, 4>>])
+      iex> iodata_length([1, 2|<<3, 4>>])
       4
 
   """
-  @spec iodata_size(iolist) :: non_neg_integer
-  def iodata_size(item) do
+  @spec iodata_length(iolist | binary) :: non_neg_integer
+  def iodata_length(item) do
     :erlang.iolist_size(item)
   end
 

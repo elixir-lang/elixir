@@ -401,7 +401,7 @@ inline(?kernel, integer_to_binary, 1) -> {erlang, integer_to_binary};
 inline(?kernel, integer_to_binary, 2) -> {erlang, integer_to_binary};
 inline(?kernel, integer_to_list, 1) -> {erlang, integer_to_list};
 inline(?kernel, integer_to_list, 2) -> {erlang, integer_to_list};
-inline(?kernel, iodata_size, 1) -> {erlang, iolist_size};
+inline(?kernel, iodata_length, 1) -> {erlang, iolist_size};
 inline(?kernel, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?kernel, is_atom, 1) -> {erlang, is_atom};
 inline(?kernel, is_binary, 1) -> {erlang, is_binary};
