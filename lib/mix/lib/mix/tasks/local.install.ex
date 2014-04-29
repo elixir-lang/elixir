@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Local.Install do
     {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
 
     if src = List.first(argv) do
-      URI.Info[path: path] = URI.parse(src)
+      %URI{path: path} = URI.parse(src)
 
       case Path.extname(path) do
         ".ez" -> install_archive(src, opts)
@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Local.Install do
   end
 
   defp basename(path) do
-    URI.Info[path: path] = URI.parse(path)
+    %URI{path: path} = URI.parse(path)
     Path.basename(path)
   end
 

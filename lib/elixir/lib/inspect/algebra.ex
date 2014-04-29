@@ -74,11 +74,21 @@ defmodule Inspect.Algebra do
 
   # Functional interface to `doc` records
 
-  @type t :: :doc_nil | :doc_line | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
-  defrecordp :doc_cons, left: :doc_nil :: t, right: :doc_nil :: t
-  defrecordp :doc_nest, indent: 1 :: non_neg_integer, doc: :doc_nil :: t
-  defrecordp :doc_break, str: " " :: binary
-  defrecordp :doc_group, doc: :doc_nil :: t
+  @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
+
+  require Record
+
+  @opaque doc_cons :: {:doc_cons, t, t}
+  Record.defrecordp :doc_cons, left: :doc_nil, right: :doc_nil
+
+  @opaque doc_nest :: {:doc_nest, non_neg_integer, t}
+  Record.defrecordp :doc_nest, indent: 1, doc: :doc_nil
+
+  @opaque doc_break :: {:doc_break, binary}
+  Record.defrecordp :doc_break, str: " "
+
+  @opaque doc_group :: {:doc_group, t}
+  Record.defrecordp :doc_group, doc: :doc_nil
 
   defmacrop is_doc(doc) do
     if __CALLER__.in_guard? do
@@ -166,7 +176,7 @@ defmodule Inspect.Algebra do
       "TastelessArtosis"
 
   """
-  @spec concat(t, t) :: doc_cons_t
+  @spec concat(t, t) :: doc_cons
   def concat(x, y) when is_doc(x) and is_doc(y) do
     doc_cons(left: x, right: y)
   end
@@ -174,7 +184,7 @@ defmodule Inspect.Algebra do
   @doc """
   Concatenates a list of documents.
   """
-  @spec concat([t]) :: doc_cons_t
+  @spec concat([t]) :: doc_cons
   def concat(docs) do
     folddoc(docs, &concat(&1, &2))
   end
@@ -190,7 +200,7 @@ defmodule Inspect.Algebra do
       " 6"
 
   """
-  @spec nest(t, non_neg_integer) :: doc_nest_t
+  @spec nest(t, non_neg_integer) :: doc_nest
   def nest(x, 0) when is_doc(x) do
     x
   end
@@ -220,23 +230,23 @@ defmodule Inspect.Algebra do
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
   """
-  @spec break(binary) :: doc_break_t
+  @spec break(binary) :: doc_break
   def break(s) when is_binary(s), do: doc_break(str: s)
 
-  @spec break() :: doc_break_t
+  @spec break() :: doc_break
   def break(), do: doc_break(str: @break)
 
   @doc """
   Inserts a break between two docs. See `break/1` for more info.
   """
-  @spec glue(t, t) :: doc_cons_t
+  @spec glue(t, t) :: doc_cons
   def glue(x, y), do: concat(x, concat(break, y))
 
   @doc """
   Inserts a break, passed as the second argument, between two docs,
   the first and the third arguments.
   """
-  @spec glue(t, binary, t) :: doc_cons_t
+  @spec glue(t, binary, t) :: doc_cons
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
 
   @doc ~S"""
@@ -266,7 +276,7 @@ defmodule Inspect.Algebra do
       "Hello,\nA B"
 
   """
-  @spec group(t) :: doc_group_t
+  @spec group(t) :: doc_group
   def group(d) when is_doc(d) do
     doc_group(doc: d)
   end
@@ -281,7 +291,7 @@ defmodule Inspect.Algebra do
       "Hughes Wadler"
 
   """
-  @spec space(t, t) :: doc_cons_t
+  @spec space(t, t) :: doc_cons
   def space(x, y), do: concat(x, concat(" ", y))
 
   @doc ~S"""
@@ -294,7 +304,7 @@ defmodule Inspect.Algebra do
       "Hughes\nWadler"
 
   """
-  @spec line(t, t) :: doc_cons_t
+  @spec line(t, t) :: doc_cons
   def line(x, y), do: concat(x, concat(:doc_line, y))
 
   @doc """

@@ -3,9 +3,9 @@ defmodule URI do
   Utilities for working with and creating URIs.
   """
 
-  defrecord Info, [scheme: nil, path: nil, query: nil,
-                   fragment: nil, authority: nil,
-                   userinfo: nil, host: nil, port: nil]
+  defstruct scheme: nil, path: nil, query: nil,
+            fragment: nil, authority: nil,
+            userinfo: nil, host: nil, port: nil
 
   import Bitwise
 
@@ -16,7 +16,7 @@ defmodule URI do
     "ldap"  => 389,
     "sftp"  => 22,
     "tftp"  => 69,
- }
+  }
 
   Enum.each @ports, fn {scheme, port} ->
     def normalize_scheme(unquote(scheme)), do: unquote(scheme)
@@ -213,9 +213,9 @@ defmodule URI do
   ## Examples
 
       iex> URI.parse("http://elixir-lang.org/")
-      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil,
-               authority: "elixir-lang.org", userinfo: nil,
-               host: "elixir-lang.org", port: 80]
+      %URI{scheme: "http", path: "/", query: nil, fragment: nil,
+           authority: "elixir-lang.org", userinfo: nil,
+           host: "elixir-lang.org", port: 80}
 
   """
   def parse(s) when is_binary(s) do
@@ -240,11 +240,11 @@ defmodule URI do
       port = default_port(scheme)
     end
 
-    URI.Info[
+    %URI{
       scheme: scheme, path: path, query: query,
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
-    ]
+    }
   end
 
   # Split an authority into its userinfo, host and port parts.
@@ -268,12 +268,12 @@ defmodule URI do
   end
 end
 
-defimpl String.Chars, for: URI.Info do
-  def to_string(URI.Info[] = uri) do
+defimpl String.Chars, for: URI do
+  def to_string(uri) do
     scheme = uri.scheme
 
     if scheme && (port = URI.default_port(scheme)) do
-      if uri.port == port, do: uri = uri.port(nil)
+      if uri.port == port, do: uri = %{uri | port: nil}
     end
 
     result = ""

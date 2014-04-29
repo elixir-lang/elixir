@@ -13,6 +13,7 @@
 
 * Backwards incompatible changes
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
+  * [URI] The `URI.Info` record has now become the `URI` struct
 
 # v0.13.1 (2014-04-27)
 

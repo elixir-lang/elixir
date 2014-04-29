@@ -12,7 +12,7 @@ defmodule Behaviour do
         use Behaviour
 
         @doc "Parses the given URL"
-        defcallback parse(uri_info :: URI.Info.t) :: URI.Info.t
+        defcallback parse(uri_info :: URI.t) :: URI.t
 
         @doc "Defines a default port"
         defcallback default_port() :: integer

@@ -5,12 +5,12 @@ keys   = :lists.map(&elem(&1, 0), record)
 vals   = :lists.map(&{&1, [], nil}, keys)
 pairs  = :lists.zip(keys, vals)
 
-defrecord File.Stat do
+defmodule File.Stat do
   @moduledoc """
   A struct responsible to hold file information.
 
   In Erlang, this struct is represented by a `:file_info` record.
-  Therefore this modile also provides functions for converting
+  Therefore this module also provides functions for converting
   in between the Erlang record and the Elixir struct.
 
   Its fields are:
