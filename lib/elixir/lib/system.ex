@@ -189,11 +189,9 @@ defmodule System do
   end
 
   defp write_tmp_dir(dir) do
-    case :file.read_file_info(dir) do
-      {:ok, info} ->
-        type_index = File.Stat.__record__(:index, :type)
-        access_index = File.Stat.__record__(:index, :access)
-        case {elem(info, type_index), elem(info, access_index)} do
+    case File.stat(dir) do
+      {:ok, stat} ->
+        case {stat.type, stat.access} do
           {:directory, access} when access in [:read_write, :write] ->
             String.from_char_data!(dir)
           _ ->

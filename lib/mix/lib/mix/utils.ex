@@ -88,7 +88,7 @@ defmodule Mix.Utils do
 
   defp last_modified(path) do
     case File.stat(path) do
-      {:ok, File.Stat[mtime: mtime]} -> mtime
+      {:ok, %File.Stat{mtime: mtime}} -> mtime
       {:error, _} -> {{1970, 1, 1}, {0, 0, 0}}
     end
   end

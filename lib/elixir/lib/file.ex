@@ -1,8 +1,19 @@
 require Record
 
-defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.hrl") do
+record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+keys   = :lists.map(&elem(&1, 0), record)
+vals   = :lists.map(&{&1, [], nil}, keys)
+pairs  = :lists.zip(keys, vals)
+
+defrecord File.Stat do
   @moduledoc """
-  A record responsible to hold file information. Its fields are:
+  A struct responsible to hold file information.
+
+  In Erlang, this struct is represented by a `:file_info` record.
+  Therefore this modile also provides functions for converting
+  in between the Erlang record and the Elixir struct.
+
+  Its fields are:
 
   * `size` - Size of file in bytes.
   * `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the file.
@@ -31,6 +42,22 @@ defrecord File.Stat, Record.extract(:file_info, from_lib: "kernel/include/file.h
   time type set in options. `{:time, type}` where type can be `:local`,
   `:universal`, or `:posix`. Default is `:local`.
   """
+
+  defstruct unquote(keys)
+
+  @doc """
+  Converts a `File.Stat` struct to a `:file_info` record.
+  """
+  def to_record(%File.Stat{unquote_splicing(pairs)}) do
+    {:file_info, unquote_splicing(vals)}
+  end
+
+  @doc """
+  Converts a `:file_info` record into a `File.Stat`.
+  """
+  def from_record({:file_info, unquote_splicing(vals)}) do
+    %File.Stat{unquote_splicing(pairs)}
+  end
 end
 
 defmodule File.Stream do
@@ -347,7 +374,7 @@ defmodule File do
   def stat(path, opts \\ []) do
     case F.read_file_info(String.from_char_data!(path), opts) do
       {:ok, fileinfo} ->
-        {:ok, set_elem(fileinfo, 0, File.Stat)}
+        {:ok, File.Stat.from_record(fileinfo)}
       error ->
         error
     end
@@ -372,8 +399,8 @@ defmodule File do
   path. Returns `:ok` or `{:error, reason}`.
   """
   @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
-  def write_stat(path, File.Stat[] = stat, opts \\ []) do
-    F.write_file_info(String.from_char_data!(path), set_elem(stat, 0, :file_info), opts)
+  def write_stat(path, stat, opts \\ []) do
+    F.write_file_info(String.from_char_data!(path), File.Stat.to_record(stat), opts)
   end
 
   @doc """
@@ -381,7 +408,7 @@ defmodule File do
   Returns `:ok` otherwise.
   """
   @spec write_stat!(Path.t, File.Stat.t, stat_options) :: :ok | no_return
-  def write_stat!(path, File.Stat[] = stat, opts \\ []) do
+  def write_stat!(path, stat, opts \\ []) do
     path = String.from_char_data!(path)
     case write_stat(path, stat, opts) do
       :ok -> :ok
@@ -616,9 +643,7 @@ defmodule File do
   end
 
   defp copy_file_mode!(src, dest) do
-    src_stat  = stat!(src)
-    dest_stat = stat!(dest)
-    write_stat!(dest, File.Stat.mode(File.Stat.mode(src_stat), dest_stat))
+    write_stat!(dest, %{stat!(dest) | mode: stat!(src).mode})
   end
 
   # Both src and dest are files.

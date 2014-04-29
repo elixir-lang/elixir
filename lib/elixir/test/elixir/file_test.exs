@@ -343,14 +343,14 @@ defmodule FileTest do
      dest = tmp_path("tmp/cp_mode")
 
      File.cp!(src, dest)
-     File.Stat[mode: src_mode] = File.stat! src
-     File.Stat[mode: dest_mode] = File.stat! dest
+     %File.Stat{mode: src_mode} = File.stat! src
+     %File.Stat{mode: dest_mode} = File.stat! dest
      assert src_mode == dest_mode
 
      # On overwrite
      File.cp! src, dest, fn(_, _) -> true end
-     File.Stat[mode: src_mode] = File.stat! src
-     File.Stat[mode: dest_mode] = File.stat! dest
+     %File.Stat{mode: src_mode} = File.stat! src
+     %File.Stat{mode: dest_mode} = File.stat! dest
      assert src_mode == dest_mode
     end
 

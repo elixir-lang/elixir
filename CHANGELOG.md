@@ -12,7 +12,7 @@
   * [Macro] `Macro.safe_terms` is deprecated
 
 * Backwards incompatible changes
-  * [Kernel] `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
+  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
 
 # v0.13.1 (2014-04-27)
 

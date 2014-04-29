@@ -395,9 +395,9 @@ defmodule IEx.Helpers do
 
   defp format_item(path, representation) do
     case File.stat(path) do
-      {:ok, File.Stat[type: :device]} ->
+      {:ok, %File.Stat{type: :device}} ->
         IEx.color(:ls_device, representation)
-      {:ok, File.Stat[type: :directory]} ->
+      {:ok, %File.Stat{type: :directory}} ->
         IEx.color(:ls_directory, representation)
       _ ->
         representation
