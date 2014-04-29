@@ -35,7 +35,8 @@ defmodule IO.ANSI do
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
   def terminal?(device \\ :erlang.group_leader) do
-    match?({:ok, _}, :io.columns(device))
+    !match?({:win32, _}, :os.type()) and
+      match?({:ok, _}, :io.columns(device))
   end
 
   @doc "Resets all attributes"

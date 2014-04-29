@@ -362,12 +362,7 @@ defmodule IEx do
       :application.start(:elixir)
       :application.start(:iex)
       :application.set_env(:iex, :started, true)
-
-      # Disable ANSI-escape-sequence-based coloring on Windows
-      # Can be overriden in .iex
-      if match?({:win32, _}, :os.type()) do
-        IEx.Options.set :colors, enabled: false
-      end
+      IEx.Options.set :colors, enabled: IO.ANSI.terminal?
     end
   end
 
