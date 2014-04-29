@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Test do
 
     # Configure exunit with command line options before requiring
     # test_helper so that the configuration is available in test_helper
-    # Then configure exunit again it so command line options override
+    # Then configure exunit again so that command line options override
     # test_helper
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)

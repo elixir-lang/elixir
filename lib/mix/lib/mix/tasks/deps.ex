@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps do
 
   ## mix deps task
 
-  This taslk lists all dependencies in the following format:
+  This task lists all dependencies in the following format:
 
     * APP VERSION (SCM)
       [locked at REF]

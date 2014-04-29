@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp remove_stale_entries([], changed, removed, acc) do
       # If any of the dependencies for the remaining entries
-      # were removed, get its source so we can removed them.
+      # were removed, get its source so we can remove them.
       next_changed = for {_b, _m, source, deps} <- acc,
                       Enum.any?(deps, &(&1 in removed)),
                       do: source
