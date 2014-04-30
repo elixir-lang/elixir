@@ -17,13 +17,7 @@ defmodule ExUnit do
         #    concurrently with other test cases
         use ExUnit.Case, async: true
 
-        # 4) A test is a function whose name starts with
-        #    `test` and receives a context.
-        def test_always_pass(_) do
-          assert true
-        end
-
-        # 5) Use the `test` macro instead of `def` for clarity.
+        # 4) Use the `test` macro instead of `def` for clarity.
         test "the truth" do
           assert true
         end

@@ -3580,8 +3580,8 @@ defmodule Kernel do
       defmodule AssertionTest do
         use ExUnit.Case, async: true
 
-        def test_always_pass do
-          true = true
+        test "always pass" do
+          assert true
         end
       end
 
@@ -3594,8 +3594,8 @@ defmodule Kernel do
         require ExUnit.Case
         ExUnit.Case.__using__([async: true])
 
-        def test_always_pass do
-          true = true
+        test "always pass" do
+          assert true
         end
       end
 

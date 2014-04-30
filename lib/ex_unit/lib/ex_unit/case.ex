@@ -214,14 +214,9 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      message = if is_binary(message) do
-        :"test #{message}"
-      else
-        :"test_#{message}"
-      end
-
-      ExUnit.Case.__on_definition__(__ENV__, message)
-      def unquote(message)(unquote(var)), do: unquote(contents)
+      test = :"test #{message}"
+      ExUnit.Case.__on_definition__(__ENV__, test)
+      def unquote(test)(unquote(var)), do: unquote(contents)
     end
   end
 
