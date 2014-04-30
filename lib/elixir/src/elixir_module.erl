@@ -208,7 +208,7 @@ translate_spec({Spec, Rest}, Defmacro, Defmacrop) ->
       case ordsets:is_element(Spec, Defmacro) of
         true ->
           {Name, Arity} = Spec,
-          {{?elixir_macro(Name), Arity + 1}, spec_for_macro(Rest)};
+          {{elixir_utils:macro_name(Name), Arity + 1}, spec_for_macro(Rest)};
         false ->
           {Spec, Rest}
       end

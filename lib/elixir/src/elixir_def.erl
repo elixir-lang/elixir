@@ -187,7 +187,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
     true  ->
       FBody = {'match', Line,
         {'var', Line, '__CALLER__'},
-        ?wrap_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
+        elixir_utils:erl_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
      },
       setelement(5, TClause, [FBody|element(5, TClause)]);
     false -> TClause
@@ -240,7 +240,7 @@ unwrap_definition([], _CTable, All, Exports, Private, Def, Defmacro, Functions, 
 unwrap_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   {Fun, [Tuple|Exports], Private, [Tuple|Def], Defmacro};
 unwrap_definition(defmacro, {Name, Arity} = Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  Macro = {?elixir_macro(Name), Arity + 1},
+  Macro = {elixir_utils:macro_name(Name), Arity + 1},
   {setelement(1, Fun, Macro), [Macro|Exports], Private, Def, [Tuple|Defmacro]};
 unwrap_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
   %% {Name, Arity}, Kind, Line, Check, Defaults

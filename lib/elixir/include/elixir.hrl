@@ -1,13 +1,5 @@
--define(wrap_call(Line, Module, Function, Args),
-  {call, Line,
-    {remote, Line, {atom, Line, Module}, {atom, Line, Function}},
-    Args
- }).
-
--define(atom_concat(Atoms), list_to_atom(lists:concat(Atoms))).
--define(elixir_macro(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
--define(line(Opts), elixir_utils:get_line(Opts)).
 -define(m(M, K), maps:get(K, M)).
+-define(line(Opts), elixir_utils:get_line(Opts)).
 
 -record(elixir_scope, {
   context=nil,             %% can be match, guards or nil

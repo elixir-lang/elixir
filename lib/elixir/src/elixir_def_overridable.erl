@@ -26,7 +26,7 @@ name(Module, Function) ->
 
 name(_Module, {Name, _} = Function, Overridable) ->
   {Count, _, _, _} = orddict:fetch(Function, Overridable),
-  ?atom_concat([Name, " (overridable ", Count, ")"]).
+  elixir_utils:atom_concat([Name, " (overridable ", Count, ")"]).
 
 %% Store
 

@@ -2,11 +2,23 @@
 %% for ast manipulation and querying.
 -module(elixir_utils).
 -export([elixir_to_erl/1, get_line/1, split_last/1,
-  characters_to_list/1, characters_to_binary/1,
-  convert_to_boolean/4, returns_boolean/1,
-  file_type/1, file_type/2, relative_to_cwd/1]).
+  characters_to_list/1, characters_to_binary/1, macro_name/1,
+  convert_to_boolean/4, returns_boolean/1, atom_concat/1,
+  file_type/1, file_type/2, relative_to_cwd/1, erl_call/4]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
+
+macro_name(Macro) ->
+  list_to_atom(lists:concat(['MACRO-',Macro])).
+
+atom_concat(Atoms) ->
+  list_to_atom(lists:concat(Atoms)).
+
+erl_call(Line, Module, Function, Args) ->
+  {call, Line,
+    {remote, Line, {atom, Line, Module}, {atom, Line, Function}},
+    Args
+  }.
 
 get_line(Opts) when is_list(Opts) ->
   case lists:keyfind(line, 1, Opts) of
@@ -98,7 +110,8 @@ elixir_to_erl(Function) when is_function(Function) ->
   end;
 
 elixir_to_erl(Pid) when is_pid(Pid) ->
-  ?wrap_call(0, erlang, binary_to_term, [elixir_utils:elixir_to_erl(term_to_binary(Pid))]);
+  elixir_utils:erl_call(0, erlang, binary_to_term,
+    [elixir_utils:elixir_to_erl(term_to_binary(Pid))]);
 
 elixir_to_erl(_Other) ->
   error(badarg).

@@ -77,7 +77,7 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
       {{'case', Line, TUpdate, [
         {clause, Line, [Match], [], [TMap]},
-        {clause, Line, [Var], [], [?wrap_call(Line, erlang, error, [Error])]}
+        {clause, Line, [Var], [], [elixir_utils:erl_call(Line, erlang, error, [Error])]}
       ]}, TS};
     S#elixir_scope.context == match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);

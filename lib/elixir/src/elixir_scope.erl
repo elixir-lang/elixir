@@ -60,7 +60,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 build_var(Key, S) ->
   New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
   Cnt = orddict:fetch(Key, New),
-  {?atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
+  {elixir_utils:atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
 
 %% SCOPE MERGING
 
@@ -120,7 +120,7 @@ load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
   end,
-  InternalName = ?atom_concat(["_@", Counter]),
+  InternalName = elixir_utils:atom_concat(["_@", Counter]),
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
     orddict:store(Actual, {InternalName, 0}, Vars), Counter + 1);

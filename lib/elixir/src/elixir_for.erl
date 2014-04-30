@@ -140,7 +140,7 @@ build_inline(Line, [{enum, Meta, Left, Right, Filters}] = Orig, Expr, Into, Var,
       {'case', -1, Right, [
         {clause, -1,
           [Var],
-          [[?wrap_call(Line, erlang, is_list, [Var])]],
+          [[elixir_utils:erl_call(Line, erlang, is_list, [Var])]],
           [build_comprehension(Line, Clauses, Expr, Into)]},
         {clause, -1,
           [Var],
@@ -164,7 +164,7 @@ build_into(Line, Clauses, Expr, Into, Fun, Acc, S) ->
   IntoExpr  = {call, Line, Fun, [Acc, pair(Line, cont, Expr)]},
   MatchExpr = {match, Line,
     {tuple, Line, [Acc, Fun]},
-    ?wrap_call(Line, 'Elixir.Collectable', into, [Into])
+    elixir_utils:erl_call(Line, 'Elixir.Collectable', into, [Into])
  },
 
   TryExpr =
@@ -177,9 +177,9 @@ build_into(Line, Clauses, Expr, Into, Fun, Acc, S) ->
       [{clause, Line,
         [{tuple, Line, [Kind, Reason, {var, Line, '_'}]}],
         [],
-        [{match, Line, Stack, ?wrap_call(Line, erlang, get_stacktrace, [])},
+        [{match, Line, Stack, elixir_utils:erl_call(Line, erlang, get_stacktrace, [])},
          {call, Line, Fun, [Acc, {atom, Line, halt}]},
-         ?wrap_call(Line, erlang, raise, [Kind, Reason, Stack])]}],
+         elixir_utils:erl_call(Line, erlang, raise, [Kind, Reason, Stack])]}],
       []},
 
   {{block, Line, [MatchExpr, TryExpr]}, SD}.
@@ -190,7 +190,7 @@ build_reduce(Clauses, Expr, false, Acc, S) ->
   build_reduce_clause(Clauses, Expr, {nil, 0}, Acc, S);
 build_reduce(Clauses, Expr, {nil, Line} = Into, Acc, S) ->
   ListExpr = {cons, Line, Expr, Acc},
-  ?wrap_call(Line, lists, reverse,
+  elixir_utils:erl_call(Line, lists, reverse,
     [build_reduce_clause(Clauses, ListExpr, Into, Acc, S)]);
 build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
   {bin, Line, Elements} = Expr,
@@ -219,10 +219,10 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) -
       [join_filters(Line, Filters, True, False)]}|Clauses0],
 
   Args  = [Right, pair(Line, cont, Arg), {'fun', Line, {clauses, Clauses1}}],
-  Tuple = ?wrap_call(Line, 'Elixir.Enumerable', reduce, Args),
+  Tuple = elixir_utils:erl_call(Line, 'Elixir.Enumerable', reduce, Args),
 
   %% Use -1 because in case of no returns we don't care about the result
-  ?wrap_call(-1, erlang, element, [{integer, Line, 2}, Tuple]);
+  elixir_utils:erl_call(-1, erlang, element, [{integer, Line, 2}, Tuple]);
 
 build_reduce_clause([{bin, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
   Line = ?line(Meta),
@@ -251,7 +251,7 @@ build_reduce_clause([{bin, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
       [Acc]},
      {clause, -1,
       [Tail, {var, Line, '_'}], [],
-      [?wrap_call(Line, erlang, error, [pair(Line, badarg, Tail)])]}],
+      [elixir_utils:erl_call(Line, erlang, error, [pair(Line, badarg, Tail)])]}],
 
   {call, Line,
     {named_fun, Line, element(3, Fun), Clauses},
