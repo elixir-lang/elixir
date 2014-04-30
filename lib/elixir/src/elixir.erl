@@ -147,9 +147,37 @@ eval_forms(Tree, Binding, Env, Scope) ->
     {atom, _, Atom} ->
       {Atom, Binding, NewEnv, NewScope};
     _  ->
-      {value, Value, NewBinding} = erl_eval:expr(Erl, ParsedBinding),
+      {value, Value, NewBinding} = erl_eval(Erl, ParsedBinding),
       {Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
+
+erl_eval(Erl, ParsedBinding) ->
+  % Below must be all one line for locations to be the same when the stacktrace
+  % needs to be extended to the full stacktrace.
+  try erl_eval:expr(Erl, ParsedBinding) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end.
+
+get_stacktrace() ->
+  Stacktrace = erlang:get_stacktrace(),
+  % eval_eval and eval_bits can call :erlang.raise/3 without the full
+  % stacktrace. When this occurs re-add the current stacktrace so that no
+  % stack information is lost.
+  try
+    throw(stack)
+  catch
+    throw:stack ->
+      % Ignore stack item for current function.
+      [_ | CurrentStack] = erlang:get_stacktrace(),
+      get_stacktrace(Stacktrace, CurrentStack)
+  end.
+
+% The stacktrace did not include the current stack, re-add it.
+get_stacktrace([], CurrentStack) ->
+  CurrentStack;
+% The stacktrace includes the current stack.
+get_stacktrace(CurrentStack, CurrentStack) ->
+  CurrentStack;
+get_stacktrace([StackItem | Stacktrace], CurrentStack) ->
+  [StackItem | get_stacktrace(Stacktrace, CurrentStack)].
 
 %% Converts a quoted expression to erlang abstract format
 
