@@ -716,7 +716,7 @@ defmodule Macro do
       end
 
       expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args,
-                                              :elixir_env.ex_to_env(env), extra)
+                                              env, extra)
 
       case expand do
         {:ok, receiver, quoted} ->
@@ -737,8 +737,7 @@ defmodule Macro do
     case is_atom(receiver) do
       false -> {original, false}
       true  ->
-        expand = :elixir_dispatch.expand_require(meta, receiver, {right, length(args)},
-          args, :elixir_env.ex_to_env(env))
+        expand = :elixir_dispatch.expand_require(meta, receiver, {right, length(args)}, args, env)
 
         case expand do
           {:ok, receiver, quoted} ->

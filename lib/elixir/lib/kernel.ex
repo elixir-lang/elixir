@@ -2652,7 +2652,7 @@ defmodule Kernel do
               # conflicts.
               case :code.ensure_loaded(atom) do
                 {:error, _} ->
-                  :elixir_aliases.ensure_loaded(caller.line, atom, :elixir_env.ex_to_env(caller))
+                  :elixir_aliases.ensure_loaded(caller.line, atom, caller)
                 _ ->
                   raise ArgumentError, message: "cannot access module #{inspect atom} because it is not a record"
               end

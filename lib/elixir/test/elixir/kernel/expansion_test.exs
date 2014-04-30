@@ -440,7 +440,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   defp expand_env(expr, env) do
-    {expr, env} = :elixir_exp.expand(expr, :elixir_env.ex_to_env(env))
-    {expr, :elixir_env.env_to_ex({0, env})}
+    :elixir_exp.expand(expr, env)
   end
 end

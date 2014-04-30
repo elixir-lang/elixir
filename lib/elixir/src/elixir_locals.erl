@@ -124,8 +124,8 @@ if_tracker(Module, Callback) ->
 
 %% CACHING
 
-cache_env(#elixir_env{module=Module} = RE) ->
-  E = RE#elixir_env{line=nil,vars=[]},
+cache_env(#{module := Module} = RE) ->
+  E = RE#{line := nil,vars := []},
   try ets:lookup_element(Module, ?attr, 2) of
     Pid ->
       {Pid, ?tracker:cache_env(Pid, E)}
@@ -133,9 +133,7 @@ cache_env(#elixir_env{module=Module} = RE) ->
     error:badarg ->
       {Escaped, _} = elixir_quote:escape(E, false),
       Escaped
-  end;
-cache_env(ExEnv) ->
-  cache_env(elixir_env:ex_to_env(ExEnv)).
+  end.
 
 get_cached_env({Pid,Ref}) -> ?tracker:get_cached_env(Pid, Ref);
 get_cached_env(Env) -> Env.

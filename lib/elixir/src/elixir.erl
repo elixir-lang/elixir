@@ -57,47 +57,47 @@ start_cli() ->
 %% EVAL HOOKS
 
 env_for_eval(Opts) ->
-  env_for_eval(#elixir_env{
-    local = nil,
-    requires = elixir_dispatch:default_requires(),
-    functions = elixir_dispatch:default_functions(),
-    macros = elixir_dispatch:default_macros()
+  env_for_eval((elixir_env:new())#{
+    local := nil,
+    requires := elixir_dispatch:default_requires(),
+    functions := elixir_dispatch:default_functions(),
+    macros := elixir_dispatch:default_macros()
  }, Opts).
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of
     {line, RawLine} when is_integer(RawLine) -> RawLine;
-    false -> Env#elixir_env.line
+    false -> ?m(Env, line)
   end,
 
   File = case lists:keyfind(file, 1, Opts) of
     {file, RawFile} when is_binary(RawFile) -> RawFile;
-    false -> Env#elixir_env.file
+    false -> ?m(Env, file)
   end,
 
   Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
     {delegate_locals_to, LocalOpt} -> LocalOpt;
-    false -> Env#elixir_env.local
+    false -> ?m(Env, local)
   end,
 
   Aliases = case lists:keyfind(aliases, 1, Opts) of
     {aliases, AliasesOpt} -> AliasesOpt;
-    false -> Env#elixir_env.aliases
+    false -> ?m(Env, aliases)
   end,
 
   Requires = case lists:keyfind(requires, 1, Opts) of
     {requires, List} -> ordsets:from_list(List);
-    false -> Env#elixir_env.requires
+    false -> ?m(Env, requires)
   end,
 
   Functions = case lists:keyfind(functions, 1, Opts) of
     {functions, FunctionsOpt} -> FunctionsOpt;
-    false -> Env#elixir_env.functions
+    false -> ?m(Env, functions)
   end,
 
   Macros = case lists:keyfind(macros, 1, Opts) of
     {macros, MacrosOpt} -> MacrosOpt;
-    false -> Env#elixir_env.macros
+    false -> ?m(Env, macros)
   end,
 
   Module = case lists:keyfind(module, 1, Opts) of
@@ -105,10 +105,10 @@ env_for_eval(Env, Opts) ->
     false -> nil
   end,
 
-  Env#elixir_env{
-    file=File, local=Local, module=Module,
-    macros=Macros, functions=Functions,
-    requires=Requires, aliases=Aliases, line=Line
+  Env#{
+    file := File, local := Local, module := Module,
+    macros := Macros, functions := Functions,
+    requires := Requires, aliases := Aliases, line := Line
  }.
 
 %% String evaluation
@@ -118,7 +118,7 @@ eval(String, Binding) ->
 
 eval(String, Binding, Opts) when is_list(Opts) ->
   eval(String, Binding, env_for_eval(Opts));
-eval(String, Binding, #elixir_env{line=Line,file=File} = E) when
+eval(String, Binding, #{line := Line, file := File} = E) when
     is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
   Forms = 'string_to_quoted!'(String, Line, File, []),
   eval_forms(Forms, Binding, E).
@@ -127,20 +127,20 @@ eval(String, Binding, #elixir_env{line=Line,file=File} = E) when
 
 eval_quoted(Tree, Binding, Opts) when is_list(Opts) ->
   eval_quoted(Tree, Binding, env_for_eval(Opts));
-eval_quoted(Tree, Binding, #elixir_env{line=Line} = E) ->
+eval_quoted(Tree, Binding, #{line := Line} = E) ->
   eval_forms(elixir_quote:linify(Line, Tree), Binding, E).
 
 %% Handle forms evaluation. The main difference to
 %% to eval_quoted is that it does not linefy the given
 %% args.
 
-eval_forms(Tree, Binding, #elixir_env{} = E) ->
-  eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E));
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
-  eval_forms(Tree, Binding, env_for_eval(Opts)).
+  eval_forms(Tree, Binding, env_for_eval(Opts));
+eval_forms(Tree, Binding, E) ->
+  eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
   {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
-  ParsedEnv = Env#elixir_env{vars=[K || {K,_} <- ParsedScope#elixir_scope.vars]},
+  ParsedEnv = Env#{vars := [K || {K,_} <- ParsedScope#elixir_scope.vars]},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of

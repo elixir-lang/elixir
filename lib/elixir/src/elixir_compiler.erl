@@ -26,7 +26,7 @@ quoted(Forms, File) when is_binary(File) ->
     elixir_lexical:run(File, fun
       (Pid) ->
         Env = elixir:env_for_eval([{line,1},{file,File}]),
-        eval_forms(Forms, [], Env#elixir_env{lexical_tracker=Pid})
+        eval_forms(Forms, [], Env#{lexical_tracker := Pid})
     end),
     lists:reverse(get(elixir_compiled))
   after
@@ -46,7 +46,7 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 %% Evaluation
 
 eval_forms(Forms, Vars, E) ->
-  case (E#elixir_env.module == nil) andalso allows_fast_compilation(Forms) of
+  case (?m(E, module) == nil) andalso allows_fast_compilation(Forms) of
     true  -> eval_compilation(Forms, Vars, E);
     false -> code_loading_compilation(Forms, Vars, E)
   end.
@@ -56,19 +56,19 @@ eval_compilation(Forms, Vars, E) ->
   {Result, _Binding, EE, _S} = elixir:eval_forms(Forms, Binding, E),
   {Result, EE}.
 
-code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
+code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
   Dict = [{{Name, Kind}, {Value, 0}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
   {Module, I} = retrieve_module_name(),
-  Fun  = code_fun(E#elixir_env.module),
-  Form = code_mod(Fun, Expr, Line, E#elixir_env.file, Module, Vars),
+  Fun  = code_fun(?m(E, module)),
+  Form = code_mod(Fun, Expr, Line, ?m(E, file), Module, Vars),
   Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
 
   %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  module(Form, E#elixir_env.file, [{native,false}], true, fun(_, Binary) ->
+  module(Form, ?m(E, file), [{native,false}], true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module

@@ -22,34 +22,31 @@ is_open(Module) ->
 
 %% Compilation hook
 
-compile(Module, Block, Vars, #elixir_env{line=Line} = Env) when is_atom(Module) ->
+compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
-  LexEnv = case Env#elixir_env.function of
-    nil -> Env#elixir_env{module=Module, local=nil};
-    _   -> Env#elixir_env{lexical_tracker=nil, function=nil, module=Module, local=nil}
+  LexEnv = case ?m(Env, function) of
+    nil -> Env#{module := Module, local := nil};
+    _   -> Env#{lexical_tracker := nil, function := nil, module := Module, local := nil}
   end,
 
-  case LexEnv#elixir_env.lexical_tracker of
+  case ?m(LexEnv, lexical_tracker) of
     nil ->
-      elixir_lexical:run(LexEnv#elixir_env.file, fun(Pid) ->
-        do_compile(Line, Module, Block, Vars, LexEnv#elixir_env{lexical_tracker=Pid})
+      elixir_lexical:run(?m(LexEnv, file), fun(Pid) ->
+        do_compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
       do_compile(Line, Module, Block, Vars, LexEnv)
   end;
 
-compile(Module, _Block, _Vars, #elixir_env{line=Line,file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, {invalid_module, Module});
-
-compile(Module, Block, Vars, ExEnv) ->
-  compile(Module, Block, Vars, elixir_env:ex_to_env(ExEnv)).
+compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
+  elixir_errors:form_error(Line, File, ?MODULE, {invalid_module, Module}).
 
 do_compile(Line, Module, Block, Vars, E) ->
-  File = E#elixir_env.file,
+  File = ?m(E, file),
   check_module_availability(Line, File, Module),
-  build(Line, File, Module, E#elixir_env.lexical_tracker),
+  build(Line, File, Module, ?m(E, lexical_tracker)),
 
   try
     {Result, NE} = eval_form(Line, Module, Block, Vars, E),
@@ -124,7 +121,7 @@ build(Line, File, Module, Lexical) ->
 eval_form(Line, Module, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_def_overridable:store_pending(Module),
-  EC = eval_callbacks(Line, Module, before_compile, [elixir_env:env_to_ex({Line, EE})], EE),
+  EC = eval_callbacks(Line, Module, before_compile, [elixir_env:linify({Line, EE})], EE),
   elixir_def_overridable:store_pending(Module),
   {Value, EC}.
 
@@ -231,9 +228,9 @@ compile_opts(Module) ->
     [] -> []
   end.
 
-load_form(Line, Forms, Opts, #elixir_env{file=File} = E) ->
+load_form(Line, Forms, Opts, #{file := File} = E) ->
   elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
-    Env = elixir_env:env_to_ex({Line, E}),
+    Env = elixir_env:linify({Line, E}),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], E),
 
     case get(elixir_compiled) of
@@ -376,7 +373,7 @@ eval_callbacks(Line, Module, Name, Args, E) ->
   end, E, Callbacks).
 
 location(Line, E) ->
-  [{file, elixir_utils:characters_to_list(E#elixir_env.file)}, {line, Line}].
+  [{file, elixir_utils:characters_to_list(?m(E, file))}, {line, Line}].
 
 %% We've reached the elixir_module or eval internals, skip it with the rest
 prune_stacktrace(Info, [{elixir, eval_forms, _, _}|_]) ->

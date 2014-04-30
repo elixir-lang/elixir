@@ -49,13 +49,13 @@ delete_definition(Module, Tuple) ->
 % Each function is then added to the function table.
 
 store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
-  E = (elixir_locals:get_cached_env(Pos))#elixir_env{line=Line},
+  E = (elixir_locals:get_cached_env(Pos))#{line := Line},
   {NameAndArgs, Guards} = elixir_clauses:extract_guards(Call),
 
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
     {N, _, A} when is_atom(N), is_list(A) -> {N, A};
-    _ -> elixir_errors:form_error(Line, E#elixir_env.file, ?MODULE, {invalid_def, Kind, NameAndArgs})
+    _ -> elixir_errors:form_error(Line, ?m(E, file), ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
 
   %% Now that we have verified the call format,
@@ -79,10 +79,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   store_definition(Line, Kind, DoCheckClauses, Name,
                    LinifyArgs, LinifyGuards, LinifyBody, File, E).
 
-store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #elixir_env{module=Module} = ER) ->
+store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
-  E = ER#elixir_env{function=Tuple},
+  E = ER#{function := Tuple},
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(Line, MetaFile, Module),
@@ -91,7 +91,7 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
-  File   = E#elixir_env.file,
+  File   = ?m(E, file),
   Table  = table(Module),
   CTable = clauses_table(Module),
 
@@ -113,7 +113,7 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
     true ->
       ok;
     _ ->
-      Env = elixir_env:env_to_ex({Line, E}),
+      Env = elixir_env:linify({Line, E}),
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
       [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks]
   end.
@@ -145,7 +145,7 @@ retrieve_location(Line, File, Module) ->
 
 %% Compile super
 
-compile_super(Module, true, #elixir_env{function=Function}) ->
+compile_super(Module, true, #{function := Function}) ->
   elixir_def_overridable:store(Module, Function, true);
 compile_super(_Module, _, _E) -> ok.
 
@@ -187,7 +187,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
     true  ->
       FBody = {'match', Line,
         {'var', Line, '__CALLER__'},
-        ?wrap_call(Line, elixir_env, env_to_ex, [{var, Line, '_@CALLER'}])
+        ?wrap_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
      },
       setelement(5, TClause, [FBody|element(5, TClause)]);
     false -> TClause
@@ -319,7 +319,7 @@ check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
 check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(Table, {{Name, '$2'}, '$1', '_', '_', '_', '_', '$3'}),
   [ begin
-      elixir_errors:form_error(Line, E#elixir_env.file, ?MODULE,
+      elixir_errors:form_error(Line, ?m(E, file), ?MODULE,
         {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
     end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
@@ -327,7 +327,7 @@ defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
-assert_no_aliases_name(Line, '__aliases__', [Atom], #elixir_env{file=File}) when is_atom(Atom) ->
+assert_no_aliases_name(Line, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
   elixir_errors:form_error(Line, File, ?MODULE, {no_alias, Atom});
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->

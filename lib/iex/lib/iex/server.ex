@@ -232,7 +232,7 @@ defmodule IEx.Server do
 
     env =
       if env = opts[:env] do
-        :elixir.env_for_eval(:elixir_env.ex_to_env(env), delegate_locals_to: locals)
+        :elixir.env_for_eval(env, delegate_locals_to: locals)
       else
         :elixir.env_for_eval(file: "iex", delegate_locals_to: locals)
       end

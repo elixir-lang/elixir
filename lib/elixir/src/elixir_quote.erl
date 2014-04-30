@@ -177,8 +177,8 @@ do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true} = Q, _) ->
 %% Aliases
 
 do_quote({'__aliases__', Meta, [H|T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E) when is_atom(H) and (H /= 'Elixir') ->
-  Annotation = case elixir_aliases:expand(Alias, E#elixir_env.aliases,
-                      E#elixir_env.macro_aliases, E#elixir_env.lexical_tracker) of
+  Annotation = case elixir_aliases:expand(Alias, ?m(E, aliases),
+                      ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
     Atom when is_atom(Atom) -> Atom;
     Aliases when is_list(Aliases) -> false
   end,
@@ -285,7 +285,7 @@ do_quote_tuple({Left, Meta, Right}, Q, E) ->
   {TRight, RQ} = do_quote(Right, LQ, E),
   {{'{}', [], [TLeft, meta(Meta, Q), TRight]}, RQ}.
 
-file(#elixir_env{file=File}, #elixir_quote{keep=true}) -> File;
+file(#{file := File}, #elixir_quote{keep=true}) -> File;
 file(_, _) -> nil.
 
 meta(Meta, #elixir_quote{keep=true}) ->

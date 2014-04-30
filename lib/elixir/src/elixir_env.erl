@@ -1,85 +1,33 @@
 -module(elixir_env).
 -include("elixir.hrl").
--export([ex_to_env/1, env_to_scope/1, env_to_scope_with_vars/2, env_to_ex/1]).
+-export([new/0, linify/1, env_to_scope/1, env_to_scope_with_vars/2]).
 -export([mergea/2, mergev/2, merge_vars/2, merge_opt_vars/2]).
 
-%% Conversion in between #elixir_env, #elixir_scope and Macro.Env
+new() ->
+  #{'__struct__' => 'Elixir.Macro.Env',
+    module => nil,                         %% the current module
+    file => <<"nofile">>,                  %% the current filename
+    line => 1,                             %% the current line
+    function => nil,                       %% the current function
+    context => nil,                        %% can be match_vars, guards or nil
+    requires => [],                        %% a set with modules required
+    aliases => [],                         %% an orddict with aliases by new -> old names
+    functions => [],                       %% a list with functions imported from module
+    macros => [],                          %% a list with macros imported from module
+    macro_aliases => [],                   %% keep aliases defined inside a macro
+    context_modules => [],                 %% modules defined in the current context
+    vars => [],                            %% a set of defined variables
+    export_vars => nil,                    %% a set of variables to be exported in some constructs
+    lexical_tracker => nil,                %% holds the lexical tracker pid
+    local => nil}.                         %% the module to delegate local functions to
 
-env_to_ex({Line, #elixir_env{
-  module=Module,
-  file=File,
-  function=Function,
-  context=Context,
-  requires=Requires,
-  aliases=Aliases,
-  functions=Functions,
-  macros=Macros,
-  macro_aliases=MacroAliases,
-  context_modules=ContextModules,
-  vars=Vars,
-  export_vars=ExportVars,
-  lexical_tracker=LexicalTracker,
-  local=Local
-}}) ->
-  #{
-    '__struct__' => 'Elixir.Macro.Env',
-    module => Module,
-    file => File,
-    line => Line,
-    function => Function,
-    context => Context,
-    requires => Requires,
-    aliases => Aliases,
-    functions => Functions,
-    macros => Macros,
-    macro_aliases => MacroAliases,
-    context_modules => ContextModules,
-    vars => Vars,
-    export_vars => ExportVars,
-    lexical_tracker => LexicalTracker,
-    local => Local
-  }.
+linify({Line, Env}) ->
+  Env#{line := Line}.
 
-ex_to_env(#{
-  '__struct__' := 'Elixir.Macro.Env',
-  module := Module,
-  file := File,
-  line := Line,
-  function := Function,
-  context := Context,
-  requires := Requires,
-  aliases := Aliases,
-  functions := Functions,
-  macros := Macros,
-  macro_aliases := MacroAliases,
-  context_modules := ContextModules,
-  vars := Vars,
-  export_vars := ExportVars,
-  lexical_tracker := LexicalTracker,
-  local := Local
-}) ->
-  #elixir_env{
-    module=Module,
-    file=File,
-    line=Line,
-    function=Function,
-    context=Context,
-    requires=Requires,
-    aliases=Aliases,
-    functions=Functions,
-    macros=Macros,
-    macro_aliases=MacroAliases,
-    context_modules=ContextModules,
-    vars=Vars,
-    export_vars=ExportVars,
-    lexical_tracker=LexicalTracker,
-    local=Local
-  }.
+env_to_scope(#{module := Module, file := File, function := Function, context := Context}) ->
+  #elixir_scope{module=Module, file=File, function=Function, context=Context}.
 
-env_to_scope(#elixir_env{module=Module,file=File,function=Function,context=Context}) ->
-  #elixir_scope{module=Module,file=File,function=Function,context=Context}.
-
-env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
+env_to_scope_with_vars(Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
     vars=orddict:from_list(Vars),
     counter=[{'_',length(Vars)}]
@@ -90,14 +38,14 @@ env_to_scope_with_vars(#elixir_env{} = Env, Vars) ->
 %% Receives two scopes and return a new scope based on the second
 %% with their variables merged.
 mergev(E1, E2) when is_list(E1) ->
-  E2#elixir_env{
-    vars=merge_vars(E1, E2#elixir_env.vars),
-    export_vars=merge_opt_vars(E1, E2#elixir_env.export_vars)
+  E2#{
+    vars := merge_vars(E1, ?m(E2, vars)),
+    export_vars := merge_opt_vars(E1, ?m(E2, export_vars))
  };
 mergev(E1, E2) ->
-  E2#elixir_env{
-    vars=merge_vars(E1#elixir_env.vars, E2#elixir_env.vars),
-    export_vars=merge_opt_vars(E1#elixir_env.export_vars, E2#elixir_env.export_vars)
+  E2#{
+    vars := merge_vars(?m(E1, vars), ?m(E2, vars)),
+    export_vars := merge_opt_vars(?m(E1, export_vars), ?m(E2, export_vars))
  }.
 
 %% Receives two scopes and return the later scope
@@ -105,7 +53,7 @@ mergev(E1, E2) ->
 %% and everything else are passed forward).
 
 mergea(E1, E2) ->
-  E2#elixir_env{vars=E1#elixir_env.vars}.
+  E2#{vars := ?m(E1, vars)}.
 
 merge_vars(V1, V2) -> ordsets:union(V1, V2).
 

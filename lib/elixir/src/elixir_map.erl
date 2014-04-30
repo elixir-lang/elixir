@@ -16,17 +16,17 @@ expand_struct(Meta, Left, Right, E) ->
   case is_atom(ELeft) of
     true  -> ok;
     false ->
-      compile_error(Meta, E#elixir_env.file, "expected struct name to be a compile "
+      compile_error(Meta, ?m(E, file), "expected struct name to be a compile "
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
   end,
 
   EMeta =
-    case lists:member(ELeft, E#elixir_env.context_modules) of
+    case lists:member(ELeft, ?m(E, context_modules)) of
       true ->
-        case (ELeft == E#elixir_env.module) and
-             (E#elixir_env.function == nil) of
+        case (ELeft == ?m(E, module)) and
+             (?m(E, function) == nil) of
           true ->
-            compile_error(Meta, E#elixir_env.file,
+            compile_error(Meta, ?m(E, file),
               "cannot access struct ~ts in body of the module that defines it as "
               "the struct fields are not yet accessible",
               [elixir_aliases:inspect(ELeft)]);
@@ -39,7 +39,7 @@ expand_struct(Meta, Left, Right, E) ->
 
   case ERight of
     {'%{}', _, _} -> ok;
-    _ -> compile_error(Meta, E#elixir_env.file,
+    _ -> compile_error(Meta, ?m(E, file),
            "expected struct to be followed by a map, got: ~ts",
            ['Elixir.Macro':to_string(ERight)])
   end,

@@ -21,7 +21,7 @@ expand(Meta, Args, E) ->
   {Expr, Opts} =
     case lists:keyfind(do, 1, Block) of
       {do, Do} -> {Do, lists:keydelete(do, 1, Block)};
-      _ -> elixir_errors:compile_error(Meta, E#elixir_env.file,
+      _ -> elixir_errors:compile_error(Meta, ?m(E, file),
             "missing do keyword in for comprehension")
     end,
 

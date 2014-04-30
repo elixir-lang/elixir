@@ -65,7 +65,7 @@ capture(Meta, {'__block__', _, [Expr]}, E) ->
 
 capture(Meta, {'__block__', _, _} = Expr, E) ->
   Message = "invalid args for &, block expressions are not allowed, got: ~ts",
-  compile_error(Meta, E#elixir_env.file, Message, ['Elixir.Macro':to_string(Expr)]);
+  compile_error(Meta, ?m(E, file), Message, ['Elixir.Macro':to_string(Expr)]);
 
 capture(Meta, {Atom, _, Args} = Expr, E) when is_atom(Atom), is_list(Args) ->
   capture_import(Meta, Expr, E, is_sequential_and_not_empty(Args));
@@ -111,13 +111,13 @@ do_capture(Meta, Expr, E, Sequential) ->
 invalid_capture(Meta, Arg, E) ->
   Message = "invalid args for &, expected an expression in the format of &Mod.fun/arity, "
             "&local/arity or a capture containing at least one argument as &1, got: ~ts",
-  compile_error(Meta, E#elixir_env.file, Message, ['Elixir.Macro':to_string(Arg)]).
+  compile_error(Meta, ?m(E, file), Message, ['Elixir.Macro':to_string(Arg)]).
 
 validate(Meta, [{Pos, Var}|T], Pos, E) ->
   [Var|validate(Meta, T, Pos + 1, E)];
 
 validate(Meta, [{Pos, _}|_], Expected, E) ->
-  compile_error(Meta, E#elixir_env.file, "capture &~B cannot be defined without &~B", [Pos, Expected]);
+  compile_error(Meta, ?m(E, file), "capture &~B cannot be defined without &~B", [Pos, Expected]);
 
 validate(_Meta, [], _Pos, _E) ->
   [].
@@ -127,11 +127,11 @@ do_escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
   {Var, orddict:store(Pos, Var, Dict)};
 
 do_escape({'&', Meta, [Pos]}, _Counter, E, _Dict) when is_integer(Pos) ->
-  compile_error(Meta, E#elixir_env.file, "capture &~B is not allowed", [Pos]);
+  compile_error(Meta, ?m(E, file), "capture &~B is not allowed", [Pos]);
 
 do_escape({'&', Meta, _} = Arg, _Counter, E, _Dict) ->
   Message = "nested captures via & are not allowed: ~ts",
-  compile_error(Meta, E#elixir_env.file, Message, ['Elixir.Macro':to_string(Arg)]);
+  compile_error(Meta, ?m(E, file), Message, ['Elixir.Macro':to_string(Arg)]);
 
 do_escape({Left, Meta, Right}, Counter, E, Dict0) ->
   {TLeft, Dict1}  = do_escape(Left, Counter, E, Dict0),

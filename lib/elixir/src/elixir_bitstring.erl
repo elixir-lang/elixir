@@ -5,7 +5,7 @@
 %% Expansion
 
 expand(Meta, Args, E) ->
-  case E#elixir_env.context of
+  case ?m(E, context) of
     match ->
       {EArgs, EA} = expand_bitstr(fun elixir_exp:expand/2, Args, [], E),
       {{'<<>>', Meta, EArgs}, EA};
@@ -22,8 +22,8 @@ expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
   %% Variables defined outside the binary can be accounted
   %% on subparts, however we can't assign new variables.
   case E of
-    {ER, _} -> ok;                    %% expand_arg,  no assigns
-    _ -> ER = E#elixir_env{context=nil} %% expand_each, revert assigns
+    {ER, _} -> ok;               %% expand_arg,  no assigns
+    _ -> ER = E#{context := nil} %% expand_each, revert assigns
   end,
 
   ERight = expand_bit_info(Meta, Right, ER),
@@ -50,7 +50,7 @@ expand_bit_info(Meta, [{Expr, ExprMeta, Args}|T], Size, Types, E) when is_atom(E
     size ->
       case Size of
         default -> ok;
-        _ -> elixir_errors:compile_error(Meta, E#elixir_env.file, "duplicated size definition in bitstring")
+        _ -> elixir_errors:compile_error(Meta, ?m(E, file), "duplicated size definition in bitstring")
       end,
       {EArgs, EE} = elixir_exp:expand_args(ListArgs, E),
       expand_bit_info(Meta, T, {Expr, [], EArgs}, Types, EE);
@@ -62,7 +62,7 @@ expand_bit_info(Meta, [Int|T], Size, Types, E) when is_integer(Int) ->
   expand_bit_info(Meta, [{size, [], [Int]}|T], Size, Types, E);
 
 expand_bit_info(Meta, [Expr|_], _Size, _Types, E) ->
-  elixir_errors:compile_error(Meta, E#elixir_env.file,
+  elixir_errors:compile_error(Meta, ?m(E, file),
     "unknown bitstring specifier ~ts", ['Elixir.Kernel':inspect(Expr)]);
 
 expand_bit_info(_Meta, [], Size, Types, _) ->
@@ -90,9 +90,9 @@ expand_bit_type_or_size(size, [_])     -> size;
 expand_bit_type_or_size(_, _)          -> none.
 
 handle_unknown_bit_info(Meta, {_, ExprMeta, _} = Expr, T, Size, Types, E) ->
-  case 'Elixir.Macro':expand(Expr, elixir_env:env_to_ex({?line(ExprMeta), E})) of
+  case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(ExprMeta), E})) of
     Expr ->
-      elixir_errors:compile_error(ExprMeta, E#elixir_env.file,
+      elixir_errors:compile_error(ExprMeta, ?m(E, file),
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
     Other ->
       List = case is_list(Other) of true -> Other; false -> [Other] end,
