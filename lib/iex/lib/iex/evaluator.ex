@@ -204,10 +204,14 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp prune_stacktrace([{:erl_eval, _, _, _}|_]),  do: []
-  defp prune_stacktrace([{__MODULE__, _, _, _}|_]), do: []
-  defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
-  defp prune_stacktrace([]), do: []
+  defp prune_stacktrace(stacktrace) do
+    stacktrace
+      |> Enum.reverse()
+      |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
+      |> Enum.drop_while(&(elem(&1, 0) == :elixir))
+      |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
+      |> Enum.reverse()
+  end
 
   @doc false
   def format_stacktrace(trace) do
