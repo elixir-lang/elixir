@@ -42,7 +42,7 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 %% Raised on tokenizing/parsing
 
--spec parse_error(line_or_meta(), binary(), iolist() | atom(), binary()) -> no_return().
+-spec parse_error(line_or_meta(), binary(), binary(), binary()) -> no_return().
 
 parse_error(Meta, File, Error, <<>>) ->
   Message = case Error of
