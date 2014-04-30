@@ -205,12 +205,16 @@ defmodule IEx.Evaluator do
   end
 
   defp prune_stacktrace(stacktrace) do
+    # The order in which each drop_while is listed is important.
+    # For example, the user my call Code.eval_string/2 in IEx
+    # and if there is an error we should not remove erl_eval
+    # and eval_bits information from the user stacktrace.
     stacktrace
-      |> Enum.reverse()
-      |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
-      |> Enum.drop_while(&(elem(&1, 0) == :elixir))
-      |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
-      |> Enum.reverse()
+    |> Enum.reverse()
+    |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
+    |> Enum.drop_while(&(elem(&1, 0) == :elixir))
+    |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
+    |> Enum.reverse()
   end
 
   @doc false
