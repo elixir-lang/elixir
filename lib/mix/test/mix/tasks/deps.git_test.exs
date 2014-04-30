@@ -166,7 +166,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ last
 
       Mix.Tasks.Deps.Clean.run ["--all"]
-      refute File.exists?("deps/git_repo/ebin/Elixir.Git.Repo.beam")
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
 
       Mix.Tasks.Deps.Clean.run ["--unlock", "--all"]

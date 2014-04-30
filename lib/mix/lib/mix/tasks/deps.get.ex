@@ -14,20 +14,16 @@ defmodule Mix.Tasks.Deps.Get do
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available
-    {opts, rest, _} = OptionParser.parse(args, switches: [quiet: :boolean])
+    {opts, rest, _} = OptionParser.parse(args, switches: [quiet: :boolean, only: :string])
 
     # Fetch all deps by default unless --only is given
-    if only = opts[:only] do
-      fetcher_opts = [env: :"#{only}"]
-    else
-      fetcher_opts = []
-    end
+    fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
 
     apps =
       if rest != [] do
-        Mix.Dep.Fetcher.by_name(rest, %{}, Mix.Dep.Lock.read, fetcher_opts)
+        Mix.Dep.Fetcher.by_name(rest, %{}, Mix.Dep.Lock.read, fetch_opts)
       else
-        Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, fetcher_opts)
+        Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, fetch_opts)
       end
 
     if apps == [] && !opts[:quiet] do

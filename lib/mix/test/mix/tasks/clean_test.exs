@@ -34,10 +34,9 @@ defmodule Mix.Tasks.CleanTest do
   test "cleans deps" do
     in_fixture "deps_status", fn ->
       assert File.exists?("_build/dev/lib/ok")
-      Mix.Tasks.Deps.Clean.run ["--all"]
+      Mix.Tasks.Clean.run ["--all"]
 
-      assert File.exists?("_build/dev")
-      refute File.exists?("_build/dev/lib/ok")
+      refute File.exists?("_build/dev")
       assert_received {:mix_shell, :info, ["* Cleaning ok"]}
 
       # Assert we don't choke on unfetched deps

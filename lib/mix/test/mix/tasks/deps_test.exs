@@ -580,8 +580,8 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push CleanDepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-      assert File.exists?("deps/git_repo")
+      File.mkdir_p!("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/git_repo")
 
       message = "mix deps.clean expects dependencies as arguments or " <>
                 "the --all option to clean all dependencies"
@@ -595,15 +595,20 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "clean single dep" do
+  test "cleans dependencies" do
     Mix.Project.push CleanDepsApp
 
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-      assert File.exists?("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("_build/test/lib/git_repo")
 
-      Mix.Tasks.Deps.Clean.run ["git_repo"]
-      refute File.exists?("deps/git_repo")
+      Mix.Tasks.Deps.Clean.run ["--only", "dev", "--all"]
+      refute File.exists?("_build/dev/lib/git_repo")
+      assert File.exists?("_build/test/lib/git_repo")
+
+      Mix.Tasks.Deps.Clean.run ["--all"]
+      refute File.exists?("_build/dev/lib/git_repo")
+      refute File.exists?("_build/test/lib/git_repo")
     end
   end
 end

@@ -242,8 +242,9 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns all load paths for the given dependency. Automatically
-  derived from source paths.
+  Returns all load paths for the given dependency.
+
+  Automatically derived from source paths.
   """
   def load_paths(%Mix.Dep{opts: opts} = dep) do
     build_path = Path.dirname(opts[:build])
