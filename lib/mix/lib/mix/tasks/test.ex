@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Test do
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
-             exclude: :keep, seed: :integer]
+             exclude: :keep, seed: :integer, only: :keep]
 
   @cover [output: "cover", tool: Cover]
 

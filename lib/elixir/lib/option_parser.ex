@@ -4,8 +4,10 @@ defmodule OptionParser do
   """
 
   @doc """
-  Parses `argv` and returns a tuple with the parsed options, its
-  arguments, and a list of options that couldn't be parsed.
+  Parses `argv` into a keywords list.
+
+  It returns the parsed values, remaining arguments and the
+  invalid options.
 
   ## Examples
 
@@ -18,36 +20,31 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
-  Notice how Elixir automatically translates the "--source-path"
-  switch to the underscored atom `:source_path`, which better follows
-  Elixir conventions.
+  By default, Elixir will try to automatically parse switches.
+  Switches without an argument, like `--debug` will automatically
+  be set to true. Switches followed by a value will be assigned
+  to the value, always as strings.
 
-  ## Aliases
-
-  A set of aliases can be given as the second argument:
-
-      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
-      {[debug: true], [], []}
+  Note Elixir also converts the switches to underscore atoms, as
+  `--source-path` becomes `:source_path`, to better suit Elixir
+  conventions.
 
   ## Switches
 
-  Extra information about switches can be given as arguments, too.
-  This is useful when a switch must behave as a boolean
-  or if duplicated switches should be kept, overridden or accumulated.
-
-  The following types are supported:
+  Many times though, it is better to explicitly list the available
+  switches and their formats. The following types are supported:
 
   * `:boolean` - Marks the given switch as a boolean. Boolean switches
                  never consume the following value unless it is
                  `true` or `false`;
   * `:integer` - Parses the switch as an integer;
   * `:float`   - Parses the switch as a float;
-  * `:string`  - Returns the switch as is (the default);
+  * `:string`  - Returns the switch as a string;
 
   If a switch can't be parsed, the option is returned in the invalid
   options list (third element of the returned tuple).
 
-  The following extra options are supported:
+  The following extra "types" are supported:
 
   * `:keep` - Keeps duplicated items in the list instead of overriding;
 
@@ -68,16 +65,24 @@ defmodule OptionParser do
 
   ## Negation switches
 
-  Any switches starting with `--no-` are always considered to be
-  booleans and never parse the next value:
+  All switches starting with `--no-` are considered to be booleans and never
+  parse the next value:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"])
       {[no_op: true], ["path/to/file"], []}
 
-  In case the negated switch exists as a boolean, it sets the boolean to false:
+  However, in case the base switch exists, it sets that particular switch to
+  false:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
       {[op: false], ["path/to/file"], []}
+
+  ## Aliases
+
+  A set of aliases can be given as options too:
+
+      iex> OptionParser.parse(["-d"], aliases: [d: :debug])
+      {[debug: true], [], []}
 
   """
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
@@ -122,18 +127,8 @@ defmodule OptionParser do
   defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) do
     {option, value} = split_option(option)
     {option, kinds, value} = normalize_option(option, value, switches, aliases)
-
-    if nil?(value) do
-      {value, t} =
-        if :boolean in kinds do
-          {true, t}
-        else
-          value_from_tail(t)
-        end
-    end
-
+    {value, kinds, t} = normalize_value(value, kinds, t)
     {dict, invalid} = store_option(dict, invalid, option, value, kinds)
-
     parse(t, aliases, switches, dict, args, invalid, all)
   end
 
@@ -148,10 +143,6 @@ defmodule OptionParser do
   defp parse(value, _, _switches, dict, _args, invalid, false) do
     {Enum.reverse(dict), value, Enum.reverse(invalid)}
   end
-
-  defp value_from_tail(["-" <> _|_] = t), do: {true, t}
-  defp value_from_tail([h|t]),            do: {h, t}
-  defp value_from_tail([]),               do: {true, []}
 
   defp store_option(dict, invalid, option, value, kinds) do
     {invalid_option, value} =
@@ -206,16 +197,41 @@ defmodule OptionParser do
   defp normalize_option({:negated, option}, _value, switches) do
     kinds = List.wrap(switches[option])
 
-    if :boolean in kinds do
-      {option, kinds, false}
-    else
-      {option, [:boolean], true}
+    cond do
+      :boolean in kinds ->
+        {option, kinds, false}
+      kinds == [] ->
+        {option, kinds, true}
+      true ->
+        {option, [:invalid], false}
     end
   end
 
   defp normalize_option({:default, option}, value, switches) do
     {option, List.wrap(switches[option]), value}
   end
+
+  defp normalize_value(nil, kinds, t) do
+    cond do
+      :boolean in kinds ->
+        {true, kinds, t}
+      value_in_tail?(t) ->
+        [h|t] = t
+        {h, kinds, t}
+      kinds == [] ->
+        {true, kinds, t}
+      true ->
+        {true, [:invalid], t}
+    end
+  end
+
+  defp normalize_value(value, kinds, t) do
+    {value, kinds, t}
+  end
+
+  defp value_in_tail?(["-" <> _|_]), do: false
+  defp value_in_tail?([]),           do: false
+  defp value_in_tail?(_),            do: true
 
   defp split_option(option) do
     case :binary.split(option, "=") do

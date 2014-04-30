@@ -64,15 +64,25 @@ defmodule OptionParserTest do
   test "keeps options on configured keep" do
     assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"], switches: [require: :keep]) ==
       {[require: "foo", require: "bar"], ["baz"], []}
+
+    assert OptionParser.parse(["--require"], switches: [require: :keep]) ==
+      {[], [], [require: true]}
   end
 
   test "parses configured strings" do
-    assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :string])  == {[value: "1"], ["foo"], []}
+    assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :string]) ==
+           {[value: "1"], ["foo"], []}
+    assert OptionParser.parse(["--value"], switches: [value: :string]) ==
+           {[], [], [value: true]}
+    assert OptionParser.parse(["--no-value"], switches: [value: :string]) ==
+           {[], [], [value: false]}
   end
 
   test "parses configured integers" do
-    assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer])  == {[value: 1], ["foo"], []}
-    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) == {[], ["foo"], [value: "WAT"]}
+    assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer]) ==
+           {[value: 1], ["foo"], []}
+    assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) ==
+           {[], ["foo"], [value: "WAT"]}
   end
 
   test "parses configured integers with keep" do
