@@ -85,15 +85,15 @@ defmodule IEx.Server do
   defp start_loop(opts, pid, ref) do
     receive do
       {:take?, other, ref} ->
-        send other, ref
+        send(other, ref)
         start_loop(opts, pid, ref)
 
       {:take, other, identifier, ref, opts} ->
         if allow_take?(identifier) do
-          send other, {ref, Process.group_leader}
+          send(other, {ref, Process.group_leader})
           run(opts)
         else
-          send other, {ref, nil}
+          send(other, {ref, nil})
           start_loop(opts, pid, ref)
         end
 
@@ -118,8 +118,11 @@ defmodule IEx.Server do
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
+    IO.puts("")
+    # We only kill the evaluator if the new evaluator
+    # is not the same as the current one. Otherwise
+    # we end up killing the process that is taking over.
     exit_loop(evaluator, evaluator_ref, opts[:evaluator] != evaluator)
-    IO.write [IO.ANSI.home, IO.ANSI.clear]
     run(opts)
   end
 
@@ -127,7 +130,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref)
     if done? do
-      send evaluator, {:done, self}
+      send(evaluator, {:done, self})
     end
     :ok
   end
@@ -143,8 +146,6 @@ defmodule IEx.Server do
 
   defp wait_input(config, evaluator, evaluator_ref, input) do
     receive do
-      # Input handling.
-      # Message either go back to the main loop or exit.
       {:input, ^input, code} when is_binary(code) ->
         send evaluator, {:eval, self, code, config}
         wait_eval(evaluator, evaluator_ref)
@@ -156,35 +157,10 @@ defmodule IEx.Server do
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
 
-      # Take process.
-      # The take? message is received out of band, so we can
-      # go back to wait for the same input. The take message
-      # needs to take hold of the IO, so it kills the input,
-      # re-runs the server OR goes back to the main loop.
-      {:take?, other, ref} ->
-        send other, ref
-        wait_input(config, evaluator, evaluator_ref, input)
-      {:take, other, identifier, ref, opts} ->
-        kill_input(input)
-
-        if allow_take?(identifier) do
-          send other, {ref, Process.group_leader}
-          reset_loop(opts, evaluator, evaluator_ref)
-        else
-          send other, {ref, nil}
-          loop(config, evaluator, evaluator_ref)
-        end
-
-      # Evaluator handling.
-      # We always kill the input to run a new one or to exit for real.
-      {:respawn, ^evaluator} ->
-        kill_input(input)
-        IO.puts("")
-        reset_loop([], evaluator, evaluator_ref)
-      {:DOWN, ^evaluator_ref, :process, ^evaluator,  reason} ->
-        io_error "** (EXIT from #{config.prefix} #{inspect evaluator}) #{inspect(reason)}"
-        kill_input(input)
-        exit_loop(evaluator, evaluator_ref)
+      msg ->
+        handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
+          wait_input(config, evaluator, evaluator_ref, input)
+        end)
     end
   end
 
@@ -192,23 +168,57 @@ defmodule IEx.Server do
     receive do
       {:evaled, ^evaluator, config} ->
         loop(config, evaluator, evaluator_ref)
-      {:take?, other, ref} ->
-        send other, ref
-        wait_eval(evaluator, evaluator_ref)
-      {:take, other, identifier, ref, opts} ->
-        if allow_take?(identifier) do
-          send other, {ref, Process.group_leader}
-          reset_loop(opts, evaluator, evaluator_ref)
-        else
-          send other, {ref, nil}
-          wait_eval(evaluator, evaluator_ref)
-        end
+      msg ->
+        handle_take_over(msg, evaluator, evaluator_ref, nil,
+                         fn -> wait_eval(evaluator, evaluator_ref) end)
     end
   end
 
-  defp kill_input(input) do
-    Process.exit(input, :kill)
+  # Take process.
+  #
+  # The take? message is received out of band, so we can
+  # go back to wait for the same input. The take message
+  # needs to take hold of the IO, so it kills the input,
+  # re-runs the server OR goes back to the main loop.
+  #
+  # A take process may also happen if the evaluator dies,
+  # then a new evaluator is created to tackle replace the dead
+  # one.
+  defp handle_take_over({:take?, other, ref}, _evaluator, _evaluator_ref, _input, callback) do
+    send(other, ref)
+    callback.()
   end
+
+  defp handle_take_over({:take, other, identifier, ref, opts}, evaluator, evaluator_ref, input, callback) do
+    kill_input(input)
+
+    if allow_take?(identifier) do
+      send other, {ref, Process.group_leader}
+      reset_loop(opts, evaluator, evaluator_ref)
+    else
+      send other, {ref, nil}
+      callback.()
+    end
+  end
+
+  defp handle_take_over({:respawn, evaluator}, evaluator, evaluator_ref, input, _callback) do
+    kill_input(input)
+    reset_loop([], evaluator, evaluator_ref)
+  end
+
+  defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator,  reason},
+                        evaluator, evaluator_ref, input, _callback) do
+    io_error "** (EXIT from #{inspect evaluator}) #{inspect(reason)}"
+    kill_input(input)
+    reset_loop([], evaluator, evaluator_ref)
+  end
+
+  defp handle_take_over(_, _evaluator, _evaluator_ref, _input, callback) do
+    callback.()
+  end
+
+  defp kill_input(nil),   do: :ok
+  defp kill_input(input), do: Process.exit(input, :kill)
 
   defp allow_take?(identifier) do
     message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")

@@ -13,7 +13,6 @@ defmodule IEx.Evaluator do
   def start(server, leader) do
     IEx.History.init
     old_leader = Process.group_leader
-    old_flag   = Process.flag(:trap_exit, true)
     Process.group_leader(self, leader)
 
     try do
@@ -21,7 +20,6 @@ defmodule IEx.Evaluator do
     after
       IEx.History.reset
       Process.group_leader(self, old_leader)
-      Process.flag(:trap_exit, old_flag)
     end
   end
 
@@ -33,12 +31,6 @@ defmodule IEx.Evaluator do
       {:done, ^server} ->
         IEx.History.reset
         :ok
-
-      {:EXIT, _other, :normal} ->
-        loop(server)
-      {:EXIT, other, reason} ->
-        print_exit(other, reason)
-        loop(server)
     end
   end
 
@@ -168,10 +160,6 @@ defmodule IEx.Evaluator do
     print_stacktrace stacktrace, fn ->
       "** (#{kind}) #{inspect(reason)}"
     end
-  end
-
-  defp print_exit(pid, reason) do
-    io_error "** (EXIT from #{inspect pid}) #{inspect(reason)}"
   end
 
   defp normalize_exception(:undef, [{IEx.Helpers, fun, arity, _}|t]) do

@@ -411,9 +411,7 @@ defmodule IEx.Helpers do
   def respawn do
     if whereis = IEx.Server.whereis do
       send whereis, {:respawn, self}
-      true
-    else
-      false
+      dont_display_result
     end
   end
 
