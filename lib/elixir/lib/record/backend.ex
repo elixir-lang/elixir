@@ -80,7 +80,7 @@ defmodule Record.Backend do
   Creates a new record with the given default fields and keyword values.
   """
   def create(atom, fields, keyword, caller) do
-    in_match = caller.in_match?
+    in_match = Macro.Env.in_match?(caller)
 
     {match, remaining} =
       Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
@@ -110,7 +110,7 @@ defmodule Record.Backend do
   Updates a record given by var with the given keyword.
   """
   def update(atom, fields, var, keyword, caller) do
-    if caller.in_match? do
+    if Macro.Env.in_match?(caller) do
       raise ArgumentError, message: "cannot invoke update style macro inside match"
     end
 

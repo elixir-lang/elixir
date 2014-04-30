@@ -875,7 +875,7 @@ defmodule Kernel.Typespec do
   # Handle local calls
   defp typespec({:string, meta, arguments}, vars, caller) do
     :elixir_errors.warn caller.line, caller.file, "string() type use is discouraged. For character lists, use " <>
-      "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(caller.stacktrace)}"
+      "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(Macro.Env.stacktrace(caller))}"
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
     {:type, line(meta), :string, arguments}
   end

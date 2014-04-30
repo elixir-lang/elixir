@@ -98,7 +98,7 @@ defmodule Record.Deprecated do
     if env == Macro.Env do
       Module.eval_quoted(env, contents, [], [])
     else
-      Module.eval_quoted(env.module, contents, [], env.location)
+      Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
     end
   end
 
@@ -121,7 +121,7 @@ defmodule Record.Deprecated do
       env == Macro.Env ->
         Module.eval_quoted(env, contents, [], [])
       true ->
-        Module.eval_quoted(env.module, contents, [], env.location)
+        Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
     end
   end
 
@@ -149,7 +149,7 @@ defmodule Record.Deprecated do
       end
     end
 
-    Module.eval_quoted(env.module, contents, [], env.location)
+    Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
   end
 
   ## Callbacks
@@ -188,7 +188,7 @@ defmodule Record.Deprecated do
       raise ArgumentError, message: "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
     end
 
-    in_match = caller.in_match?
+    in_match = Macro.Env.in_match?(caller)
 
     has_underscore_value = Keyword.has_key?(keyword, :_)
     underscore_value     = Keyword.get(keyword, :_, {:_, [], nil})
@@ -235,7 +235,7 @@ defmodule Record.Deprecated do
       raise ArgumentError, message: "expected arguments to be compile time keywords"
     end
 
-    if caller.in_match? do
+    if Macro.Env.in_match?(caller) do
       raise ArgumentError, message: "cannot invoke update style macro inside match context"
     end
 

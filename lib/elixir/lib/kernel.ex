@@ -1644,7 +1644,7 @@ defmodule Kernel do
   defmacro raise(msg) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make dialyzer happy.
-    msg = case not is_binary(msg) and bootstraped?(Macro.Env) do
+    msg = case not is_binary(msg) and bootstraped?(Macro) do
       true  -> Macro.expand(msg, __CALLER__)
       false -> msg
     end
@@ -1737,7 +1737,7 @@ defmodule Kernel do
 
   """
   defmacro is_exception(thing) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 1 and
@@ -1767,7 +1767,7 @@ defmodule Kernel do
 
   """
   defmacro is_record(thing, kind) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
@@ -1786,7 +1786,7 @@ defmodule Kernel do
   Checks if the given argument is a record.
   """
   defmacro is_record(thing) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
@@ -2094,7 +2094,7 @@ defmodule Kernel do
       false -> nil
       true  ->
         assert_module_scope(__CALLER__, :@, 1)
-        function? = env_function(__CALLER__) != nil
+        function? = __CALLER__.function != nil
 
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
@@ -2136,7 +2136,7 @@ defmodule Kernel do
 
     case function? do
       true ->
-        attr = Module.get_attribute(env_module(env), name, stack)
+        attr = Module.get_attribute(env.module, name, stack)
         :erlang.element(1, :elixir_quote.escape(attr, false))
       false ->
         escaped = case stack do
@@ -2183,7 +2183,7 @@ defmodule Kernel do
 
   """
   defmacro binding() do
-    do_binding(nil, __CALLER__.vars, __CALLER__.in_match?)
+    do_binding(nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   @doc """
@@ -2202,11 +2202,11 @@ defmodule Kernel do
 
   """
   defmacro binding(list) when is_list(list) do
-    do_binding(list, nil, __CALLER__.vars, __CALLER__.in_match?)
+    do_binding(list, nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   defmacro binding(context) when is_atom(context) do
-    do_binding(context, __CALLER__.vars, __CALLER__.in_match?)
+    do_binding(context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   @doc """
@@ -2228,7 +2228,7 @@ defmodule Kernel do
 
   """
   defmacro binding(list, context) when is_list(list) and is_atom(context) do
-    do_binding(list, context, __CALLER__.vars, __CALLER__.in_match?)
+    do_binding(list, context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   defp do_binding(context, vars, in_match) do
@@ -2660,7 +2660,7 @@ defmodule Kernel do
 
         Record.Deprecated.access(atom, fields, attrs, caller)
       false ->
-        case caller.in_match? or caller.in_guard? do
+        case Macro.Env.in_match?(caller) or Macro.Env.in_guard?(caller) do
           true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
           false -> :ok
         end
@@ -2708,9 +2708,9 @@ defmodule Kernel do
 
   """
   defmacro left in right do
-    cache = (env_context(__CALLER__) == nil)
+    cache = (__CALLER__.context == nil)
 
-    right = case bootstraped?(Macro.Env) do
+    right = case bootstraped?(Macro) do
       true  -> Macro.expand(right, __CALLER__)
       false -> right
     end
@@ -2877,7 +2877,7 @@ defmodule Kernel do
   """
   defmacro defmodule(alias, do: block) do
     env   = __CALLER__
-    boot? = bootstraped?(Macro.Env)
+    boot? = bootstraped?(Macro)
 
     expanded =
       case boot? do
@@ -2892,7 +2892,7 @@ defmodule Kernel do
           full = expand_module(alias, expanded, env)
 
           # Generate the alias for this module definition
-          {new, old} = module_nesting(env_module(env), full)
+          {new, old} = module_nesting(env.module, full)
           meta = [defined: full, context: true] ++ alias_meta(alias)
 
           {full, {:alias, meta, [old, [as: new, warn: false]]}}
@@ -2901,7 +2901,7 @@ defmodule Kernel do
       end
 
     {escaped, _} = :elixir_quote.escape(block, false)
-    module_vars    = module_vars(env_vars(env), 0)
+    module_vars  = module_vars(env.vars, 0)
 
     quote do
       unquote(with_alias)
@@ -3077,7 +3077,7 @@ defmodule Kernel do
   defp define(kind, call, expr, env) do
     assert_module_scope(env, kind, 2)
     assert_no_function_scope(env, kind, 2)
-    line = env_line(env)
+    line = env.line
 
     {call, uc} = :elixir_quote.escape(call, true)
     {expr, ue} = :elixir_quote.escape(expr, true)
@@ -3889,34 +3889,28 @@ defmodule Kernel do
   end
 
   defp assert_module_scope(env, fun, arity) do
-    case env_module(env) do
+    case env.module do
       nil -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} outside module"
       _   -> :ok
     end
   end
 
   defp assert_no_function_scope(env, fun, arity) do
-    case env_function(env) do
+    case env.function do
       nil -> :ok
       _   -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} inside function/macro"
     end
   end
 
-  defp env_module(env),   do: :erlang.element(2, env)
-  defp env_line(env),     do: :erlang.element(4, env)
-  defp env_function(env), do: :erlang.element(5, env)
-  defp env_context(env),  do: :erlang.element(6, env)
-  defp env_vars(env),     do: :erlang.element(13, env)
-
   defp env_stacktrace(env) do
     case bootstraped?(Path) do
-      true  -> env.stacktrace
+      true  -> Macro.Env.stacktrace(env)
       false -> []
     end
   end
 
   defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
   defp expand_compact([{:compact, true}|t]),  do: [:compact|expand_compact(t)]
-  defp expand_compact([h|t]),                   do: [h|expand_compact(t)]
-  defp expand_compact([]),                      do: []
+  defp expand_compact([h|t]),                 do: [h|expand_compact(t)]
+  defp expand_compact([]),                    do: []
 end

@@ -98,16 +98,16 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "__ENV__" do
-    env = __ENV__
+    env = %{__ENV__ | line: 0}
     assert expand_env(quote(do: __ENV__), env) ==
-           {{:{}, [], tuple_to_list(env.line(0))}, env}
+           {{:%{}, [], Map.to_list(env)}, env}
   end
 
   test "__ENV__.accessor" do
-    env = __ENV__
+    env = %{__ENV__ | line: 0}
     assert expand_env(quote(do: __ENV__.file), env) == {__ENV__.file, env}
     assert expand_env(quote(do: __ENV__.unknown), env) ==
-           {quote(do: unquote({:{}, [], tuple_to_list(env.line(0))}).unknown), env}
+           {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
   end
 
   ## Super
@@ -158,7 +158,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "locals: expands to configured local" do
-    assert expand_env(quote(do: a), __ENV__.local(Hello)) |> elem(0) ==
+    assert expand_env(quote(do: a), %{__ENV__ | local: Hello}) |> elem(0) ==
            quote(do: :"Elixir.Hello".a())
   end
 
@@ -441,6 +441,6 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_env(expr, env) do
     {expr, env} = :elixir_exp.expand(expr, :elixir_env.ex_to_env(env))
-    {expr, set_elem(env, 0, Macro.Env)}
+    {expr, :elixir_env.env_to_ex({0, env})}
   end
 end

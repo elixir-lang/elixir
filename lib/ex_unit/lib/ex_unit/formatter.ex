@@ -120,7 +120,7 @@ defmodule ExUnit.Formatter do
 
     fields =
       [note: if_value(record.message, &format_message(&1, formatter)),
-       code: if_value(record.expr, &macro_multiline(&1, width)),
+       code: if_value(record.expr, &code_multiline(&1, width)),
        lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
        rhs:  if_value(record.right, &inspect_multiline(&1, width))]
 
@@ -170,12 +170,13 @@ defmodule ExUnit.Formatter do
     formatter.(:error_info, value)
   end
 
-  defp macro_multiline(expr, _width) when is_binary(expr) do
+  defp code_multiline(expr, _width) when is_binary(expr) do
     expr
+    |> String.replace("\n", "\n" <> @inspect_padding)
   end
 
-  defp macro_multiline(expr, _width) do
-    expr |> Macro.to_string
+  defp code_multiline(expr, width) do
+    code_multiline(expr |> Macro.to_string, width)
   end
 
   defp inspect_multiline(expr, width) do

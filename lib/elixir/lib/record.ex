@@ -57,7 +57,7 @@ defmodule Record do
 
   """
   defmacro record?(data, kind) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
@@ -88,7 +88,7 @@ defmodule Record do
 
   """
   defmacro record?(data) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0

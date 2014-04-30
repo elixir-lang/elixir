@@ -138,12 +138,12 @@ expand({'__CALLER__', _, Atom} = Caller, E) when is_atom(Atom) ->
   {Caller, E};
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
   Env = elixir_env:env_to_ex({?line(Meta), E}),
-  {{'{}', [], tuple_to_list(Env)}, E};
+  {{'%{}', [], maps:to_list(Env)}, E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
   Env = elixir_env:env_to_ex({?line(Meta), E}),
-  case erlang:function_exported('Elixir.Macro.Env', Field, 1) of
-    true  -> {Env:Field(), E};
-    false -> {{{'.', DotMeta, [{'{}', [], tuple_to_list(Env)}, Field]}, CallMeta, []}, E}
+  case maps:is_key(Field, Env) of
+    true  -> {maps:get(Field, Env), E};
+    false -> {{{'.', DotMeta, [{'%{}', [], maps:to_list(Env)}, Field]}, CallMeta, []}, E}
   end;
 
 %% Quote

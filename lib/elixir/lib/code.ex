@@ -117,8 +117,8 @@ defmodule Code do
   """
   def eval_string(string, binding \\ [], opts \\ [])
 
-  def eval_string(string, binding, Macro.Env[] = env) do
-    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, env.to_keywords
+  def eval_string(string, binding, %Macro.Env{} = env) do
+    {value, binding, _env, _scope} = :elixir.eval to_char_list(string), binding, Map.to_list(env)
     {value, binding}
   end
 
@@ -149,8 +149,8 @@ defmodule Code do
   """
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
-  def eval_quoted(quoted, binding, Macro.Env[] = env) do
-    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, env.to_keywords
+  def eval_quoted(quoted, binding, %Macro.Env{} = env) do
+    {value, binding, _env, _scope} = :elixir.eval_quoted quoted, binding, Map.to_list(env)
     {value, binding}
   end
 

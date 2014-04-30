@@ -91,7 +91,6 @@ defmodule Kernel.FnTest do
 
   test "capture and partially apply on call" do
     assert (&(&1.module)).(__ENV__) == __MODULE__
-    assert (&(&1.module(&2))).(__ENV__, Hello).module == Hello
   end
 
   test "capture block like" do

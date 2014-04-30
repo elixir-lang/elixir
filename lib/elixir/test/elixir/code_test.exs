@@ -21,7 +21,7 @@ defmodule CodeTest do
 
   test :eval_string do
     assert Code.eval_string("1 + 2") == {3, []}
-    assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__.location)
+    assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], Macro.Env.location(__ENV__))
   end
 
   test :eval_string_with_other_context do

@@ -16,7 +16,7 @@ defmodule ModuleTest.ToBeUsed do
     quote do: (def before_compile, do: true)
   end
 
-  defmacro __after_compile__(Macro.Env[module: ModuleTest.ToUse], bin) when is_binary(bin) do
+  defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse}, bin) when is_binary(bin) do
     # IO.puts "HELLO"
   end
 

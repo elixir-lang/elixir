@@ -254,7 +254,6 @@ end
 #     assert nil? Sample.impl_for(%{})
 #     assert nil? Sample.impl_for(hd(:erlang.ports))
 #     assert nil? Sample.impl_for(make_ref)
-#     assert nil? Sample.impl_for(Macro.Env[])
 #
 #     assert Sample.impl_for(%ImplStruct{}) ==
 #            Sample.Protocol.ConsolidationTest.ImplStruct

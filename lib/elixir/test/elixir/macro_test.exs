@@ -6,8 +6,8 @@ defmodule Macro.ExternalTest do
     file = __ENV__.file
     ^line = __CALLER__.line
     ^file = __CALLER__.file
-    ^line = __CALLER__.location[:line]
-    ^file = __CALLER__.location[:file]
+    ^line = Macro.Env.location(__CALLER__)[:line]
+    ^file = Macro.Env.location(__CALLER__)[:file]
   end
 
   defmacro oror(left, right) do
@@ -155,10 +155,10 @@ defmodule MacroTest do
   end
 
   test :expand_once_env do
-    env = __ENV__
-    assert Macro.expand_once(quote(do: __ENV__), env) == {:{}, [], tuple_to_list(env)}
+    env = %{__ENV__ | line: 0}
+    assert Macro.expand_once(quote(do: __ENV__), env) == {:%{}, [], Map.to_list(env)}
     assert Macro.expand_once(quote(do: __ENV__.file), env) == env.file
-    assert Macro.expand_once(quote(do: __ENV__.unkown), env) == quote(do: __ENV__.unkown)
+    assert Macro.expand_once(quote(do: __ENV__.unknown), env) == quote(do: __ENV__.unknown)
   end
 
   defmacro local_macro do
@@ -443,12 +443,17 @@ defmodule MacroTest do
   ## env
 
   test :env_stacktrace do
-    env = __ENV__.file("foo").line(12)
-    assert env.stacktrace == [{__MODULE__, :test_env_stacktrace, 1, [file: "foo", line: 12]}]
-    env = env.function(nil)
-    assert env.stacktrace == [{__MODULE__, :__MODULE__, 0, [file: "foo", line: 12]}]
-    env = env.module(nil)
-    assert env.stacktrace == [{:elixir_compiler, :__FILE__, 1, [file: "foo", line: 12]}]
+    env = %{__ENV__ | file: "foo", line: 12}
+    assert Macro.Env.stacktrace(env) ==
+           [{__MODULE__, :test_env_stacktrace, 1, [file: "foo", line: 12]}]
+
+    env = %{env | function: nil}
+    assert Macro.Env.stacktrace(env) ==
+           [{__MODULE__, :__MODULE__, 0, [file: "foo", line: 12]}]
+
+    env = %{env | module: nil}
+    assert Macro.Env.stacktrace(env) ==
+           [{:elixir_compiler, :__FILE__, 1, [file: "foo", line: 12]}]
   end
 
   test :context_modules do

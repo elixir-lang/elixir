@@ -174,6 +174,7 @@ core_file(File) ->
 core_main() ->
   [
     <<"lib/elixir/lib/kernel.ex">>,
+    <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/keyword.ex">>,
     <<"lib/elixir/lib/module.ex">>,
     <<"lib/elixir/lib/list.ex">>,
@@ -181,7 +182,6 @@ core_main() ->
     <<"lib/elixir/lib/record/backend.ex">>,
     <<"lib/elixir/lib/record/deprecated.ex">>,
     <<"lib/elixir/lib/macro.ex">>,
-    <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/exception.ex">>,
     <<"lib/elixir/lib/code.ex">>,
     <<"lib/elixir/lib/module/locals_tracker.ex">>,

@@ -678,12 +678,13 @@ defmodule Macro do
   defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
     do: {:filename.dirname(env.file), true}
   defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom),
-    do: {{:{}, [], tuple_to_list(env)}, true}
+    do: {{:%{}, [], Map.to_list(env)}, true}
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env) when
       is_atom(atom) and is_atom(field) do
-    case :erlang.function_exported(Macro.Env, field, 1) do
-      true  -> {apply(env, field, []), true}
-      false -> {original, false}
+    if Map.has_key?(env, field) do
+      {Map.get(env, field), true}
+    else
+      {original, false}
     end
   end
 

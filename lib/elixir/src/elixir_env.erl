@@ -5,11 +5,76 @@
 
 %% Conversion in between #elixir_env, #elixir_scope and Macro.Env
 
-env_to_ex({Line, #elixir_env{} = Env}) ->
-  erlang:setelement(1, Env#elixir_env{line=Line}, 'Elixir.Macro.Env').
+env_to_ex({Line, #elixir_env{
+  module=Module,
+  file=File,
+  function=Function,
+  context=Context,
+  requires=Requires,
+  aliases=Aliases,
+  functions=Functions,
+  macros=Macros,
+  macro_aliases=MacroAliases,
+  context_modules=ContextModules,
+  vars=Vars,
+  export_vars=ExportVars,
+  lexical_tracker=LexicalTracker,
+  local=Local
+}}) ->
+  #{
+    '__struct__' => 'Elixir.Macro.Env',
+    module => Module,
+    file => File,
+    line => Line,
+    function => Function,
+    context => Context,
+    requires => Requires,
+    aliases => Aliases,
+    functions => Functions,
+    macros => Macros,
+    macro_aliases => MacroAliases,
+    context_modules => ContextModules,
+    vars => Vars,
+    export_vars => ExportVars,
+    lexical_tracker => LexicalTracker,
+    local => Local
+  }.
 
-ex_to_env(Env) when element(1, Env) == 'Elixir.Macro.Env' ->
-  erlang:setelement(1, Env, elixir_env).
+ex_to_env(#{
+  '__struct__' := 'Elixir.Macro.Env',
+  module := Module,
+  file := File,
+  line := Line,
+  function := Function,
+  context := Context,
+  requires := Requires,
+  aliases := Aliases,
+  functions := Functions,
+  macros := Macros,
+  macro_aliases := MacroAliases,
+  context_modules := ContextModules,
+  vars := Vars,
+  export_vars := ExportVars,
+  lexical_tracker := LexicalTracker,
+  local := Local
+}) ->
+  #elixir_env{
+    module=Module,
+    file=File,
+    line=Line,
+    function=Function,
+    context=Context,
+    requires=Requires,
+    aliases=Aliases,
+    functions=Functions,
+    macros=Macros,
+    macro_aliases=MacroAliases,
+    context_modules=ContextModules,
+    vars=Vars,
+    export_vars=ExportVars,
+    lexical_tracker=LexicalTracker,
+    local=Local
+  }.
 
 env_to_scope(#elixir_env{module=Module,file=File,function=Function,context=Context}) ->
   #elixir_scope{module=Module,file=File,function=Function,context=Context}.

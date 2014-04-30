@@ -1,6 +1,6 @@
 defmodule Macro.Env do
   @moduledoc """
-  A record that holds compile time environment information.
+  A struct that holds compile time environment information.
 
   The current environment can be accessed at any time as
   `__ENV__`. Inside macros, the caller environment can be
@@ -42,55 +42,78 @@ defmodule Macro.Env do
   @type lexical_tracker :: pid
   @type local :: module | nil
 
-  fields = [:module, :file, :line, :function, :context, :requires, :aliases, :functions,
-            :macros, :macro_aliases, :context_modules, :vars, :export_vars, :lexical_tracker,
-            :local]
+  @type t :: %{__struct__: __MODULE__,
+               module: module,
+               file: file,
+               line: line,
+               function: name_arity | nil,
+               context: context,
+               requires: requires,
+               aliases: aliases,
+               functions: functions,
+               macros: macros,
+               macro_aliases: aliases,
+               context_modules: context_modules,
+               vars: vars,
+               export_vars: export_vars,
+               lexical_tracker: lexical_tracker,
+               local: local}
 
-  types  = quote do: [module: module, file: file, line: line,
-    function: name_arity, context: context, requires: requires, aliases: aliases,
-    functions: functions, macros: macros,  macro_aliases: aliases,
-    context_modules: context_modules, vars: vars, export_vars: export_vars,
-    lexical_tracker: lexical_tracker, local: local]
-
-  Record.deffunctions(fields, __MODULE__)
-  Record.deftypes(fields, types, __MODULE__)
+  def __struct__ do
+    %{__struct__: __MODULE__,
+      module: nil,
+      file: "nofile",
+      line: 0,
+      function: nil,
+      context: nil,
+      requires: [],
+      aliases: [],
+      functions: [],
+      macros: [],
+      macro_aliases: [],
+      context_modules: [],
+      vars: [],
+      export_vars: nil,
+      lexical_tracker: nil,
+      local: nil}
+  end
 
   @doc """
   Returns a keyword list containing the file and line
   information as keys.
   """
-  def location(record) do
-    [file: file(record), line: line(record)]
+  def location(%{__struct__: Macro.Env, file: file, line: line}) do
+    [file: file, line: line]
   end
 
   @doc """
   Returns whether the compilation environment is currently
   inside a guard.
   """
-  def in_guard?(record), do: context(record) == :guard
+  def in_guard?(%{__struct__: Macro.Env, context: context}), do: context == :guard
 
   @doc """
   Returns whether the compilation environment is currently
   inside a match clause.
   """
-  def in_match?(record), do: context(record) == :match
+  def in_match?(%{__struct__: Macro.Env, context: context}), do: context == :match
 
   @doc """
   Returns the environment stacktrace.
   """
-  def stacktrace(record) do
+  def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
-      nil?(record.module) ->
-        [{:elixir_compiler, :__FILE__, 1, relative_location(record)}]
-      nil?(record.function) ->
-        [{module(record), :__MODULE__, 0, relative_location(record)}]
+      nil?(env.module) ->
+        [{:elixir_compiler, :__FILE__, 1, relative_location(env)}]
+      nil?(env.function) ->
+        [{env.module, :__MODULE__, 0, relative_location(env)}]
       true ->
-        {name, arity} = record.function
-        [{module(record), name, arity, relative_location(record)}]
+        {name, arity} = env.function
+        [{env.module, name, arity, relative_location(env)}]
     end
   end
 
-  defp relative_location(record) do
-    [file: Path.relative_to_cwd(file(record)), line: line(record)]
+  defp relative_location(env) do
+    [file: Path.relative_to_cwd(env.file), line: env.line]
   end
 end

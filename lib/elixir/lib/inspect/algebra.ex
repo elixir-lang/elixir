@@ -91,7 +91,7 @@ defmodule Inspect.Algebra do
   Record.defrecordp :doc_group, doc: :doc_nil
 
   defmacrop is_doc(doc) do
-    if __CALLER__.in_guard? do
+    if Macro.Env.in_guard?(__CALLER__) do
       do_is_doc(doc)
     else
       var = quote do: doc

@@ -1,10 +1,4 @@
 defmodule Module do
-  defmacrop is_env(env) do
-    quote do
-      is_tuple(unquote(env)) and size(unquote(env)) > 1 and elem(unquote(env), 0) == Macro.Env
-    end
-  end
-
   @moduledoc ~S'''
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
@@ -344,12 +338,12 @@ defmodule Module do
   """
   def eval_quoted(module, quoted, binding \\ [], opts \\ [])
 
-  def eval_quoted(env, quoted, binding, opts) when is_env(env) do
-    eval_quoted(env.module, quoted, binding, Keyword.merge(env.to_keywords, opts))
+  def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) do
+    eval_quoted(env.module, quoted, binding, Keyword.merge(Map.to_list(env), opts))
   end
 
-  def eval_quoted(module, quoted, binding, env) when is_env(env) do
-    eval_quoted(module, quoted, binding, env.to_keywords)
+  def eval_quoted(module, quoted, binding, %Macro.Env{} = env) do
+    eval_quoted(module, quoted, binding, Map.to_list(env))
   end
 
   def eval_quoted(module, quoted, binding, opts) do
@@ -372,7 +366,7 @@ defmodule Module do
           def world, do: true
         end
 
-      Module.create(Hello, contents, __ENV__.location)
+      Module.create(Hello, contents, Macro.Env.location(__ENV__))
 
       Hello.world #=> true
 
@@ -391,8 +385,8 @@ defmodule Module do
   """
   def create(module, quoted, opts \\ [])
 
-  def create(module, quoted, env) when is_env(env) do
-    create(module, quoted, env.to_keywords)
+  def create(module, quoted, %Macro.Env{} = env) do
+    create(module, quoted, Map.to_list(env))
   end
 
   def create(module, quoted, opts) when is_atom(module) do
