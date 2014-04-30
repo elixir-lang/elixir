@@ -102,17 +102,16 @@ defmodule ExUnit.Runner do
     # run and which ones were skipped.
     tests = prepare_tests(config, test_case.tests)
 
-    {test_case, failed} =
+    {test_case, pending} =
       if Enum.all?(tests, &(&1.state)) do
-        {test_case.state(:passed), tests}
+        {test_case, tests}
       else
         spawn_case(config, test_case, tests)
       end
 
-    # Run the failed tests. We don't actually spawn those tests
-    # but we do send the notifications to formatter and other
-    # entities involved.
-    Enum.each failed, &run_test(config, &1, [])
+    # Run the pending tests. We don't actually spawn those
+    # tests but we do send the notifications to formatter.
+    Enum.each pending, &run_test(config, &1, [])
     EM.case_finished(config.manager, test_case)
     send pid, {self, :case_finished, test_case}
   end
@@ -158,7 +157,7 @@ defmodule ExUnit.Runner do
 
   defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
     {:ok, context} = case_name.__ex_unit__(:setup_all, [case: case_name])
-    {:ok, {test_case.state(:passed), context}}
+    {:ok, {test_case, context}}
   catch
     kind, error ->
       {:error, test_case.state({:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}})}
@@ -221,7 +220,7 @@ defmodule ExUnit.Runner do
 
   defp exec_test(ExUnit.Test[] = test, context) do
     apply(test.case, test.name, [context])
-    test.state(:passed)
+    test
   catch
     kind, error ->
       test.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}

@@ -13,8 +13,6 @@ defmodule ExUnitTest do
     :ok
   end
 
-  import ExUnit.CaptureIO
-
   test "it supports many runs" do
     defmodule SampleTest do
       use ExUnit.Case, async: false
@@ -44,48 +42,6 @@ defmodule ExUnitTest do
     end
 
     assert ExUnit.run == %{failures: 1, total: 1}
-  end
-
-  test "it doesn't choke on setup_all errors" do
-    defmodule SetupAllTest do
-      use ExUnit.Case, async: false
-
-      setup_all _ do
-        :ok = error
-      end
-
-      test "ok" do
-        :ok
-      end
-
-      defp error, do: :error
-    end
-
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
-
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
-  end
-
-  test "it doesn't choke on teardown_all errors" do
-    defmodule TeardownAllTest do
-      use ExUnit.Case, async: false
-
-      teardown_all _ do
-        :ok = error
-      end
-
-      test "ok" do
-        :ok
-      end
-
-      defp error, do: :error
-    end
-
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
-
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
   end
 
   test "filtering cases with tags" do

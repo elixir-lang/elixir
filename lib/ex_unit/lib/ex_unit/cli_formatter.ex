@@ -27,7 +27,7 @@ defmodule ExUnit.CLIFormatter do
     {:ok, config}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: :passed] = test}, config = Config[]) do
+  def handle_event({:test_finished, ExUnit.Test[state: nil] = test}, config = Config[]) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
@@ -69,7 +69,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_event({:case_finished, test_case}, config = Config[]) do
-    if test_case.state != :passed do
+    if test_case.state do
       config = print_test_case_failure(test_case, config)
       {:ok, config}
     else

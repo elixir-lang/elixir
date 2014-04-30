@@ -63,10 +63,9 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
-  @type state   :: nil | :passed | {:failed, failed} | {:skip, binary} | {:invalid, invalid}
-  @type failed  :: {:error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple]}
-  @type invalid :: module
+  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase."
+  @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
+  @type failed :: {:error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple]}
 
   defrecord Test, [:name, :case, :state, :time, :tags] do
     @moduledoc """

@@ -43,12 +43,94 @@ defmodule ExUnit.CallbacksTest do
     :ok
   end
 
+  import ExUnit.CaptureIO
+
   test "callbacks can run custom code" do
     assert Process.get(:ex_unit_callback) == :"test callbacks can run custom code"
   end
 
   test "receives context from callback", context do
     assert context[:context] == :setup
+  end
+
+  test "doesn't choke on setup errors" do
+    defmodule SetupTest do
+      use ExUnit.Case, async: false
+
+      setup _ do
+        :ok = error
+      end
+
+      test "ok" do
+        :ok
+      end
+
+      defp error, do: :error
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (MatchError) no match of right hand side value: :error"
+  end
+
+  test "doesn't choke on setup_all errors" do
+    defmodule SetupAllTest do
+      use ExUnit.Case, async: false
+
+      setup_all _ do
+        :ok = error
+      end
+
+      test "ok" do
+        :ok
+      end
+
+      defp error, do: :error
+    end
+
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (MatchError) no match of right hand side value: :error"
+  end
+
+  test "doesn't choke on teardown errors" do
+    defmodule TeardownTest do
+      use ExUnit.Case, async: false
+
+      teardown _ do
+        :ok = error
+      end
+
+      test "ok" do
+        :ok
+      end
+
+      defp error, do: :error
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (MatchError) no match of right hand side value: :error"
+  end
+
+  test "doesn't choke on teardown_all errors" do
+    defmodule TeardownAllTest do
+      use ExUnit.Case, async: false
+
+      teardown_all _ do
+        :ok = error
+      end
+
+      test "ok" do
+        :ok
+      end
+
+      defp error, do: :error
+    end
+
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (MatchError) no match of right hand side value: :error"
   end
 end
 
