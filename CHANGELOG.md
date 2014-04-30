@@ -1,8 +1,14 @@
 # v0.13.2-dev
 
 * Enhancements
+  * [Mix] `mix deps.clean` now works accross environments
+  * [Mix] Support line numbers in mix test, e.g. test/some/file_test.exs:12
 
 * Bug fixes
+  * [Code] Ensure we don't lose the caller stacktrace on code evaluation
+  * [IEx] Exit signals now exits the IEx evaluator and a new one is spawned on its place
+  * [IEx] Ensure we don't prune too much stacktrace when reporting failures
+  * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
   * [Kernel] Do not wrap single lists in `:__block__`
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
   * [System] Convert remaining functions in System to rely on char data
@@ -12,7 +18,7 @@
   * [Macro] `Macro.safe_terms` is deprecated
 
 * Backwards incompatible changes
-  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
+  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
   * [URI] The `URI.Info` record has now become the `URI` struct
 
 # v0.13.1 (2014-04-27)
