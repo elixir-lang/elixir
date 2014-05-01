@@ -21,18 +21,19 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   @doc false
-  def install_and_load(app) do
-    shell = Mix.shell
-    shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
+  def maybe_install(app) do
+    unless Code.ensure_loaded?(Hex) do
+      shell = Mix.shell
+      shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
 
-    if shell.yes?("Shall I install hex?") do
-      run ["--force"]
-      start_hex()
+      if shell.yes?("Shall I install hex?") do
+        run ["--force"]
+      end
     end
   end
 
   @doc false
-  def update_and_load do
+  def maybe_update do
     if Code.ensure_loaded?(Hex) do
       unless Version.match?(Hex.version, @hex_requirement) do
         Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
@@ -42,14 +43,13 @@ defmodule Mix.Tasks.Local.Hex do
           exit(0)
         end
       end
-
-      start_hex()
     end
   end
 
-  defp start_hex do
+  @doc false
+  def maybe_start do
     try do
-      Hex.start
+      Code.ensure_loaded?(Hex) && Hex.start
     catch
       kind, reason ->
         stacktrace = System.stacktrace

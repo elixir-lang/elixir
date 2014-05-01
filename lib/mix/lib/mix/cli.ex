@@ -19,7 +19,7 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    Mix.Tasks.Local.Hex.update_and_load()
+    Mix.Tasks.Local.Hex.maybe_update()
     args = load_mixfile(args)
     {task, args} = get_task(args)
     change_env(task)

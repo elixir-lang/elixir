@@ -122,7 +122,8 @@ defmodule Mix.Dep.Loader do
     {scm, opts} = get_scm(app, opts)
 
     unless scm do
-      Mix.Tasks.Local.Hex.install_and_load(app)
+      Mix.Tasks.Local.Hex.maybe_install(app)
+      Mix.Tasks.Local.Hex.maybe_start()
       {scm, opts} = get_scm(app, opts)
     end
 

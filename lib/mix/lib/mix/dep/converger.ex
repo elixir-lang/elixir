@@ -49,18 +49,23 @@ defmodule Mix.Dep.Converger do
   end
 
   defp all(acc, lock, opts, callback) do
-    main      = Mix.Dep.Loader.children(opts)
-    main      = Enum.map(main, &(%{&1 | top_level: true}))
-    apps      = Enum.map(main, &(&1.app))
-    converger = Mix.RemoteConverger.get
+    main = Mix.Dep.Loader.children(opts)
+    main = Enum.map(main, &(%{&1 | top_level: true}))
+    apps = Enum.map(main, &(&1.app))
 
-    # Run converger for all dependencies not handled by remote
-    # converger. If `rest` is not nil we know dependencies are
-    # being updated or fetched for the first time (only then do
-    # we want the remote converger to run)
+    # Run converger for all dependencies, except remote
+    # dependencies. Since the remote converger may be
+    # lazily loaded, we need to check for it on every
+    # iteration.
+    #
+    # Note we use the lock as a flag to know if the remote
+    # converger should be used or not (the lock is passed
+    # only on fetch/get/update).
     {deps, rest, lock} =
       all(main, [], [], apps, callback, acc, lock, fn dep ->
-        if not nil?(lock) && converger && converger.remote?(dep) do
+        if not nil?(lock) &&
+           (converger = Mix.RemoteConverger.get) &&
+           converger.remote?(dep) do
           {:loaded, dep}
         else
           {:unloaded, dep, nil}
@@ -69,7 +74,7 @@ defmodule Mix.Dep.Converger do
 
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
-    if converger do
+    if converger = Mix.RemoteConverger.get do
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.check, deps and so
