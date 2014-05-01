@@ -18,7 +18,7 @@ If tests pass, you are ready to move on to the [Getting Started guide][1] or to 
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang 17.0 or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follows:
 
-    Erlang/OTP 17 [RELEASE CANDIDATE 1] [erts-6.0] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
+    Erlang/OTP 17 [erts-6.0] [source-07b8f44] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
 
 If you have the correct version and tests still fail, feel free to [open an issue][2].
 
