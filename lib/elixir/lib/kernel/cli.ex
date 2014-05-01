@@ -138,19 +138,19 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["--no-halt"|t], config) do
-    process_shared t, config.halt(false)
+    process_shared t, %{config | halt: false}
   end
 
   defp process_shared(["-e", h|t], config) do
-    process_shared t, %{config | commands: [{:eval, h} | config.commands] }
+    process_shared t, %{config | commands: [{:eval, h} | config.commands]}
   end
 
   defp process_shared(["-r", h|t], config) do
-    process_shared t, %{config | commands: [{:require, h} | config.commands] }
+    process_shared t, %{config | commands: [{:require, h} | config.commands]}
   end
 
   defp process_shared(["-pr", h|t], config) do
-    process_shared t, %{config | commands: [{:parallel_require, h} | config.commands] }
+    process_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
   end
 
   defp process_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
@@ -207,19 +207,19 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler(["--no-docs"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options]}
   end
 
   defp process_compiler(["--no-debug-info"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options]}
   end
 
   defp process_compiler(["--ignore-module-conflict"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options]}
   end
 
   defp process_compiler(["--warnings-as-errors"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options]}
   end
 
   defp process_compiler(["--verbose"|t], config) do
@@ -232,7 +232,7 @@ defmodule Kernel.CLI do
         shared_option? list, config, &process_compiler(&1, &2)
       _ ->
         pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
-        process_compiler t, %{config | compile: [pattern | config.compile] }
+        process_compiler t, %{config | compile: [pattern | config.compile]}
     end
   end
 
