@@ -90,6 +90,7 @@ defmodule Stream do
   """
 
   defmodule Lazy do
+    @moduledoc false
     defstruct enum: nil, funs: [], accs: [], done: nil
   end
 

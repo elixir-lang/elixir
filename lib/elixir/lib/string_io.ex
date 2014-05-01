@@ -111,7 +111,7 @@ defmodule StringIO do
 
   defp io_request({:put_chars, m, f, as}, %{output: output} = s) do
     chars = apply(m, f, as)
-    {:ok, %{s| output: << output :: binary, String.from_char_data!(chars) :: binary >>}}
+    {:ok, %{s | output: << output :: binary, String.from_char_data!(chars) :: binary >>}}
   end
 
   defp io_request({:put_chars, _encoding, chars}, s) do
@@ -186,7 +186,7 @@ defmodule StringIO do
           output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
-        {result, %{s| input: input, output: output}}
+        {result, %{s | input: input, output: output}}
     end
   end
 
@@ -234,7 +234,7 @@ defmodule StringIO do
           output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
-        {result, %{s| input: input, output: output}}
+        {result, %{s | input: input, output: output}}
     end
   end
 
@@ -270,7 +270,7 @@ defmodule StringIO do
             _ -> :unicode.characters_to_binary(input, encoding)
           end
 
-        {result, %{s| input: input, output: output}}
+        {result, %{s | input: input, output: output}}
     end
   end
 

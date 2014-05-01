@@ -1,9 +1,9 @@
 defmodule Kernel.CLI do
   @moduledoc false
 
-  @blank_config %{ commands: [], output: ".", compile: [],
-                   halt: true, compiler_options: [], errors: [],
-                   verbose_compile: false }
+  @blank_config %{commands: [], output: ".", compile: [],
+                  halt: true, compiler_options: [], errors: [],
+                  verbose_compile: false}
 
   @doc """
   This is the API invoked by Elixir boot process.
@@ -77,7 +77,7 @@ defmodule Kernel.CLI do
   defp shared_option?(list, config, callback) do
     case process_shared(list, config) do
       {[h|hs], _} when h == hd(list) ->
-        new_config = %{config| errors: ["#{h} : Unknown option" | config.errors]}
+        new_config = %{config | errors: ["#{h} : Unknown option" | config.errors]}
         callback.(hs, new_config)
       {new_list, new_config} ->
         callback.(new_list, new_config)
@@ -134,7 +134,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["--app", h|t], config) do
-    process_shared t, %{config| commands: &[{:app, h}|&1]}
+    process_shared t, %{config | commands: &[{:app, h}|&1]}
   end
 
   defp process_shared(["--no-halt"|t], config) do
@@ -142,15 +142,15 @@ defmodule Kernel.CLI do
   end
 
   defp process_shared(["-e", h|t], config) do
-    process_shared t, %{config| commands: [{:eval, h} | config.commands] }
+    process_shared t, %{config | commands: [{:eval, h} | config.commands] }
   end
 
   defp process_shared(["-r", h|t], config) do
-    process_shared t, %{config| commands: [{:require, h} | config.commands] }
+    process_shared t, %{config | commands: [{:require, h} | config.commands] }
   end
 
   defp process_shared(["-pr", h|t], config) do
-    process_shared t, %{config| commands: [{:parallel_require, h} | config.commands] }
+    process_shared t, %{config | commands: [{:parallel_require, h} | config.commands] }
   end
 
   defp process_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
@@ -180,7 +180,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_argv(["-S", h|t], config) do
-    {%{config| commands: [{:script, h} | config.comamnds]}, t}
+    {%{config | commands: [{:script, h} | config.comamnds]}, t}
   end
 
   defp process_argv([h|t] = list, config) do
@@ -188,7 +188,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &process_argv(&1, &2)
       _ ->
-        {%{config| commands: [{:file, h} | config.commands]}, t}
+        {%{config | commands: [{:file, h} | config.commands]}, t}
     end
   end
 
@@ -203,27 +203,27 @@ defmodule Kernel.CLI do
   end
 
   defp process_compiler(["-o", h|t], config) do
-    process_compiler t, %{config| output: h}
+    process_compiler t, %{config | output: h}
   end
 
   defp process_compiler(["--no-docs"|t], config) do
-    process_compiler t, %{config| compiler_options: [{:docs, false} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options] }
   end
 
   defp process_compiler(["--no-debug-info"|t], config) do
-    process_compiler t, %{config| compiler_options: [{:debug_info, false} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options] }
   end
 
   defp process_compiler(["--ignore-module-conflict"|t], config) do
-    process_compiler t, %{config| compiler_options: [{:ignore_module_conflict, true} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options] }
   end
 
   defp process_compiler(["--warnings-as-errors"|t], config) do
-    process_compiler t, %{config| compiler_options: [{:warnings_as_errors, true} | config.compiler_options] }
+    process_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options] }
   end
 
   defp process_compiler(["--verbose"|t], config) do
-    process_compiler t, %{config| verbose_compile: true}
+    process_compiler t, %{config | verbose_compile: true}
   end
 
   defp process_compiler([h|t] = list, config) do
@@ -232,12 +232,12 @@ defmodule Kernel.CLI do
         shared_option? list, config, &process_compiler(&1, &2)
       _ ->
         pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
-        process_compiler t, %{config| compile: [pattern | config.compile] }
+        process_compiler t, %{config | compile: [pattern | config.compile] }
     end
   end
 
   defp process_compiler([], config) do
-    {%{config| commands: [{:compile, config.compile}|config.commands]}, []}
+    {%{config | commands: [{:compile, config.compile}|config.commands]}, []}
   end
 
   # Process iex options
@@ -257,7 +257,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_iex(["-S", h|t], config) do
-    {%{config| commands: [{:script, h} | config.commands]}, t}
+    {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
   defp process_iex([h|t] = list, config) do
@@ -265,7 +265,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &process_iex(&1, &2)
       _ ->
-        {%{config| commands: [{:file, h} | config.commands]}, t}
+        {%{config | commands: [{:file, h} | config.commands]}, t}
     end
   end
 
