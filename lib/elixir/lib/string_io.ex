@@ -12,8 +12,6 @@ defmodule StringIO do
 
   use GenServer.Behaviour
 
-  defrecordp :state, input: "", output: "", capture_prompt: false
-
   @doc """
   Creates an IO device.
 
@@ -77,7 +75,7 @@ defmodule StringIO do
 
   def init({string, options}) do
     capture_prompt = options[:capture_prompt] || false
-    {:ok, state(input: string, capture_prompt: capture_prompt)}
+    {:ok, %{input: string, output: "", capture_prompt: capture_prompt}}
   end
 
   def handle_info({:io_request, from, reply_as, req}, s) do
@@ -89,11 +87,11 @@ defmodule StringIO do
     super(msg, s)
   end
 
-  def handle_call(:contents, _from, state(input: input, output: output) = s) do
+  def handle_call(:contents, _from, %{input: input, output: output} = s) do
     {:reply, {input, output}, s}
   end
 
-  def handle_call(:close, _from, state(input: input, output: output) = s) do
+  def handle_call(:close, _from, %{input: input, output: output} = s) do
     {:stop, :normal, {:ok, {input, output}}, s}
   end
 
@@ -107,13 +105,13 @@ defmodule StringIO do
     s
   end
 
-  defp io_request({:put_chars, chars}, state(output: output) = s) do
-    {:ok, state(s, output: << output :: binary, String.from_char_data!(chars) :: binary >>)}
+  defp io_request({:put_chars, chars}, %{output: output} = s) do
+    {:ok, %{s | output: << output :: binary, String.from_char_data!(chars) :: binary >>}}
   end
 
-  defp io_request({:put_chars, m, f, as}, state(output: output) = s) do
+  defp io_request({:put_chars, m, f, as}, %{output: output} = s) do
     chars = apply(m, f, as)
-    {:ok, state(s, output: << output :: binary, String.from_char_data!(chars) :: binary >>)}
+    {:ok, %{s| output: << output :: binary, String.from_char_data!(chars) :: binary >>}}
   end
 
   defp io_request({:put_chars, _encoding, chars}, s) do
@@ -179,7 +177,7 @@ defmodule StringIO do
   ## get_chars
 
   defp get_chars(encoding, prompt, n,
-                 state(input: input, output: output, capture_prompt: capture_prompt) = s) do
+                 %{input: input, output: output, capture_prompt: capture_prompt} = s) do
     case do_get_chars(input, encoding, n) do
       {:error, _} = error ->
         {error, s}
@@ -188,7 +186,7 @@ defmodule StringIO do
           output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
-        {result, state(s, input: input, output: output)}
+        {result, %{s| input: input, output: output}}
     end
   end
 
@@ -223,7 +221,7 @@ defmodule StringIO do
   ## get_line
 
   defp get_line(encoding, prompt,
-                state(input: input, output: output, capture_prompt: capture_prompt) = s) do
+                %{input: input, output: output, capture_prompt: capture_prompt} = s) do
     case :unicode.characters_to_list(input, encoding) do
       {:error, _, _} ->
         {{:error, :collect_line}, s}
@@ -236,7 +234,7 @@ defmodule StringIO do
           output = << output :: binary, String.from_char_data!(prompt) :: binary >>
         end
 
-        {result, state(s, input: input, output: output)}
+        {result, %{s| input: input, output: output}}
     end
   end
 
@@ -253,7 +251,7 @@ defmodule StringIO do
   ## get_until
 
   defp get_until(encoding, prompt, mod, fun, args,
-                 state(input: input, output: output, capture_prompt: capture_prompt) = s) do
+                 %{input: input, output: output, capture_prompt: capture_prompt} = s) do
     case :unicode.characters_to_list(input, encoding) do
       {:error, _, _} ->
         {:error, s}
@@ -272,7 +270,7 @@ defmodule StringIO do
             _ -> :unicode.characters_to_binary(input, encoding)
           end
 
-        {result, state(s, input: input, output: output)}
+        {result, %{s| input: input, output: output}}
     end
   end
 
