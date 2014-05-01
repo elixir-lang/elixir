@@ -445,7 +445,7 @@ defmodule MacroTest do
   test :env_stacktrace do
     env = %{__ENV__ | file: "foo", line: 12}
     assert Macro.Env.stacktrace(env) ==
-           [{__MODULE__, :test_env_stacktrace, 1, [file: "foo", line: 12]}]
+           [{__MODULE__, :"test env_stacktrace", 1, [file: "foo", line: 12]}]
 
     env = %{env | function: nil}
     assert Macro.Env.stacktrace(env) ==

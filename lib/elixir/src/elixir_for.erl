@@ -132,7 +132,7 @@ build_inline(Line, [{enum, Meta, Left, Right, Filters}] = Orig, Expr, Into, Var,
   case Right of
     {cons, _, _, _} ->
       build_comprehension(Line, Orig, Expr, Into);
-    {Other, _, _} when Other == tuple; Other == map; Other == integer; Other == atom ->
+    {Other, _, _} when Other == tuple; Other == map ->
       build_reduce(Orig, Expr, Into, Acc, S);
     _ ->
       Clauses = [{enum, Meta, Left, Var, Filters}],

@@ -131,7 +131,7 @@ defmodule KernelTest do
   end
 
   test :function_from___ENV__ do
-    assert __ENV__.function == {:test_function_from___ENV__, 1}
+    assert __ENV__.function == {:"test function_from___ENV__", 1}
   end
 
   test :binding do

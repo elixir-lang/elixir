@@ -29,6 +29,12 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.eval([os: "win"], [], [os: :win])          == :ok
     assert ExUnit.Filters.eval([os: "win"], [os: :unix], [os: :win]) == :ok
     assert ExUnit.Filters.eval([os: "win"], [:os], [os: :win])       == :ok
+    assert ExUnit.Filters.eval([case: "Foo"], [:os], [case: Foo])    == :ok
+  end
+
+  test "evaluating filter matches regexes" do
+    assert ExUnit.Filters.eval([os: ~r"win"], [], [os: :win])           == :ok
+    assert ExUnit.Filters.eval([os: ~r"mac"], [os: :unix], [os: :unix]) == {:error, :os}
   end
 
   test "parsing filters" do

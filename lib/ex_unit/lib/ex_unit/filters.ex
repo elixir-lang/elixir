@@ -86,13 +86,25 @@ defmodule ExUnit.Filters do
     end
   end
 
+  defp has_tag({key, %Regex{} = value}, tags) when is_atom(key) do
+    case Keyword.fetch(tags, key) do
+      {:ok, tag} -> to_string(tag) =~ value and key
+      _ -> false
+    end
+  end
+
   defp has_tag({key, value}, tags) when is_atom(key) do
     case Keyword.fetch(tags, key) do
       {:ok, ^value} -> key
-      {:ok, different_value} -> to_string(different_value) == value and key
+      {:ok, tag} -> compare(to_string(tag), to_string(value)) and key
       _ -> false
-   end
+    end
   end
+
   defp has_tag(key, tags) when is_atom(key),
     do: Keyword.has_key?(tags, key) and key
+
+  defp compare("Elixir." <> tag, tag), do: true
+  defp compare(tag, tag), do: true
+  defp compare(_, _), do: false
 end
