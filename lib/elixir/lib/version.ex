@@ -56,8 +56,12 @@ defmodule Version do
 
   import Kernel, except: [match?: 2]
 
-  defrecord Schema, [:major, :minor, :patch, :pre, :build, :source]
-  defrecord Requirement, [:source, :matchspec]
+  defmodule Schema do
+    defstruct [:major, :minor, :patch, :pre, :build, :source]
+  end
+  defrecord Requirement do
+    defstruct [:source, :matchspec]
+  end
 
   defexception InvalidRequirement, [:message]
   defexception InvalidVersion, [:message]
@@ -96,7 +100,7 @@ defmodule Version do
     end
   end
 
-  def match?(version, Requirement[matchspec: spec]) do
+  def match?(version, %Requirement{matchspec: spec}) do
     {:ok, result} = :ets.test_ms(to_matchable(version), spec)
     result != false
   end
@@ -154,8 +158,8 @@ defmodule Version do
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
       {:ok, {major, minor, patch, pre}} ->
-        vsn = Version.Schema[major: major, minor: minor, patch: patch,
-                             pre: pre, source: string, build: get_build(string)]
+        vsn = %Version.Schema{major: major, minor: minor, patch: patch,
+                              pre: pre, source: string, build: get_build(string)}
         {:ok, vsn}
      :error ->
        :error
@@ -178,13 +182,13 @@ defmodule Version do
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
       {:ok, spec} ->
-        {:ok, Requirement[source: string, matchspec: spec]}
+        {:ok, %Requirement{source: string, matchspec: spec}}
       :error ->
         :error
     end
   end
 
-  defp to_matchable(Schema[major: major, minor: minor, patch: patch, pre: pre]) do
+  defp to_matchable(%Schema{major: major, minor: minor, patch: patch, pre: pre}) do
     {major, minor, patch, pre}
   end
 
@@ -481,7 +485,7 @@ defmodule Version do
 end
 
 defimpl String.Chars, for: Version.Schema do
-  def to_string(Version.Schema[source: source]) do
+  def to_string(%Version.Schema{source: source}) do
     source
   end
 end
@@ -493,13 +497,13 @@ defimpl Inspect, for: Version.Schema do
 end
 
 defimpl String.Chars, for: Version.Requirement do
-  def to_string(Version.Requirement[source: source]) do
+  def to_string(%Version.Requirement{source: source}) do
     source
   end
 end
 
 defimpl Inspect, for: Version.Requirement do
-  def inspect(Version.Requirement[source: source], _opts) do
+  def inspect(%Version.Requirement{source: source}, _opts) do
     "#Version.Requirement<" <> source <> ">"
   end
 end

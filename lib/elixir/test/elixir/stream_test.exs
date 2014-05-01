@@ -574,7 +574,7 @@ defmodule StreamTest do
   end
 
   defp is_lazy(stream) do
-    is_record(stream, Stream.Lazy) or is_function(stream, 2)
+    match?(%Stream.Lazy{}, stream) or is_function(stream, 2)
   end
 
   defp collectable_pdict do

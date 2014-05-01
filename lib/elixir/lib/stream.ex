@@ -89,7 +89,9 @@ defmodule Stream do
   returns an anonymous function may return a struct in future releases.
   """
 
-  defrecord Lazy, enum: nil, funs: [], accs: [], done: nil
+  defmodule Lazy do
+    defstruct enum: nil, funs: [], accs: [], done: nil
+  end
 
   defimpl Enumerable, for: Lazy do
     @compile :inline_list_funs
@@ -109,7 +111,7 @@ defmodule Stream do
       {:error, __MODULE__}
     end
 
-    defp do_reduce(Lazy[enum: enum, funs: funs, accs: accs, done: done], acc, fun) do
+    defp do_reduce(%Lazy{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
       composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
       do_each(&Enumerable.reduce(enum, &1, composed),
               done && {done, fun}, :lists.reverse(accs), acc)
@@ -535,7 +537,7 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def take(_enum, 0), do: Lazy[enum: []]
+  def take(_enum, 0), do: %Lazy{enum: []}
 
   def take(enum, n) when n > 0 do
     lazy enum, n, fn(f1) -> R.take(f1) end
@@ -587,7 +589,7 @@ defmodule Stream do
     lazy enum, n, fn(f1) -> R.take_every(n, f1) end
   end
 
-  def take_every(_enum, 0), do: Lazy[enum: []]
+  def take_every(_enum, 0), do: %Lazy{enum: []}
 
   @doc """
   Lazily takes elements of the enumerable while the given
@@ -1051,18 +1053,18 @@ defmodule Stream do
 
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
-  defp lazy(Lazy[funs: funs] = lazy, fun),
-    do: lazy.funs([fun|funs])
+  defp lazy(%Lazy{funs: funs} = lazy, fun),
+    do: %{lazy | funs: [fun|funs] }
   defp lazy(enum, fun),
-    do: Lazy[enum: enum, funs: [fun]]
+    do: %Lazy{enum: enum, funs: [fun]}
 
-  defp lazy(Lazy[funs: funs, accs: accs] = lazy, acc, fun),
-    do: lazy.funs([fun|funs]).accs([acc|accs])
+  defp lazy(%Lazy{funs: funs, accs: accs} = lazy, acc, fun),
+    do: %{lazy | funs: [fun|funs], accs: [acc|accs] }
   defp lazy(enum, acc, fun),
-    do: Lazy[enum: enum, funs: [fun], accs: [acc]]
+    do: %Lazy{enum: enum, funs: [fun], accs: [acc]}
 
-  defp lazy(Lazy[done: nil, funs: funs, accs: accs] = lazy, acc, fun, done),
-    do: lazy.funs([fun|funs]).accs([acc|accs]).done(done)
+  defp lazy(%Lazy{done: nil, funs: funs, accs: accs} = lazy, acc, fun, done),
+    do: %{lazy | funs: [fun|funs], accs: [acc|accs], done: done}
   defp lazy(enum, acc, fun, done),
-    do: Lazy[enum: enum, funs: [fun], accs: [acc], done: done]
+    do: %Lazy{enum: enum, funs: [fun], accs: [acc], done: done}
 end
