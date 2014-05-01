@@ -78,6 +78,6 @@ defmodule Mix.Dep.Lock do
   end
 
   defp lockfile do
-    Mix.project[:lockfile]
+    Mix.Project.config[:lockfile]
   end
 end

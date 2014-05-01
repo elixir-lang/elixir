@@ -16,6 +16,7 @@
 * Deprecations
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
   * [Macro] `Macro.safe_terms` is deprecated
+  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0` (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar

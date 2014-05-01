@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    project       = Mix.project
+    project       = Mix.Project.config
     compile_path  = Mix.Project.compile_path(project)
     compile_exts  = project[:elixirc_exts]
     watch_exts    = project[:elixirc_watch_exts]

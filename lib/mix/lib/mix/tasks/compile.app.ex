@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Compile.App do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
     project = Mix.Project.get!
-    config  = Mix.project
+    config  = Mix.Project.config
 
     app     = Keyword.fetch!(config, :app)
     version = Keyword.fetch!(config, :version)

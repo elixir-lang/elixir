@@ -108,7 +108,7 @@ defmodule Mix.Shell.Process do
 
   defp put_app do
     if Mix.Shell.output_app? do
-      send self, {:mix_shell, :info, ["==> #{Mix.project[:app]}"]}
+      send self, {:mix_shell, :info, ["==> #{Mix.Project.config[:app]}"]}
     end
   end
 end

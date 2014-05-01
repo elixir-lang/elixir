@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Clean do
       |> Path.dirname
       |> File.rm_rf
     else
-      config = Mix.project
+      config = Mix.Project.config
       Mix.Project.build_path(config)
       |> Path.dirname
       |> Path.join("*/lib/#{config[:app]}")

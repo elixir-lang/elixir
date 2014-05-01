@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Help do
 
   defp display_default_task_doc(max) do
     Mix.shell.info format_task("mix", max,
-                    "Run the default task (current: mix #{Mix.project[:default_task]})")
+                    "Run the default task (current: mix #{Mix.Project.config[:default_task]})")
   end
 
   defp display_iex_task_doc(max) do

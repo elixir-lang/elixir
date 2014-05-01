@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Local.Install do
         _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
       end
     else
-      src = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
+      src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
 
       if File.exists?(src) do
         install_archive(src, opts)

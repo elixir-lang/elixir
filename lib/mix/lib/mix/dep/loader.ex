@@ -18,7 +18,7 @@ defmodule Mix.Dep.Loader do
   """
   def children(opts) do
     from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.project[:deps] || [], &to_dep(&1, from))
+    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
 
     # Filter deps not matching mix environment
     if env = opts[:env] do
@@ -197,7 +197,7 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      config    = Mix.project
+      config    = Mix.Project.config
       umbrella? = Mix.Project.umbrella?
 
       if umbrella? do

@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       Mix.Task.run "deps.check", args
     end
 
-    config = Mix.project
+    config = Mix.Project.config
 
     Mix.Project.build_path(config)
     |> Path.join("lib/*/ebin")

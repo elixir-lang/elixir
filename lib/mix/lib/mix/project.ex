@@ -16,7 +16,7 @@ defmodule Mix.Project do
       end
 
   After being defined, the configuration for this project can be read
-  as `Mix.project/0`. Notice that `Mix.project/0` won't fail if a
+  as `Mix.Project.config/0`. Notice that `config/0` won't fail if a
   project is not defined; this allows many mix tasks to work
   even without a project.
 
@@ -105,9 +105,17 @@ defmodule Mix.Project do
   @doc """
   Returns the project configuration.
 
+  If there is no project defined, it still returns a keyword
+  list with default values. This allows many mix tasks to work
+  without the need for an underlying project.
+
   Note this configuration is cached once the project is
   pushed into the stack. Calling it multiple times won't
   cause it to be recomputed.
+
+  Do not use `Mix.Project.config` to rely on runtime configuration.
+  Use it only to configure aspects of your project (like
+  compilation directories) and not your application runtime.
   """
   def config do
     case Mix.ProjectStack.peek do

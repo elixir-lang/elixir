@@ -5,7 +5,7 @@ defmodule Mix.Dep.Umbrella do
   Gets all umbrella dependencies in unloaded format.
   """
   def unloaded do
-    config = Mix.project
+    config = Mix.Project.config
 
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))

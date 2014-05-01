@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Deps.Check do
   # is not nil, it means it was set by a parent application and
   # the parent application should be the one to do the pruning.
   defp prune_deps(all) do
-    config = Mix.project
+    config = Mix.Project.config
 
     if nil?(config[:build_path]) && config[:build_per_environment] do
       paths = Mix.Project.build_path(config)

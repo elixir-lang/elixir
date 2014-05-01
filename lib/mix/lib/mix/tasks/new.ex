@@ -141,7 +141,7 @@ defmodule Mix.Tasks.New do
 
     try do
       Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
-        path = Mix.project[:apps_path]
+        path = Mix.Project.config[:apps_path]
         path && Path.expand(path) == apps
       end)
     catch

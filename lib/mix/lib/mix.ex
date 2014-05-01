@@ -82,19 +82,9 @@ defmodule Mix do
     :application.set_env(:mix, :shell, shell)
   end
 
-  @doc """
-  Retrieves the current project configuration, with the current
-  environment configuration applied.
-
-  If there is no project defined, it still returns a keyword
-  list with default values. This allows many mix tasks to work
-  without the need for an underlying project.
-
-  Do not use `Mix.project` to rely on runtime configuration.
-  Use it only to configure aspects of your project (like
-  compilation directories) and not your application runtime.
-  """
+  @doc false
   def project do
+    # IO.write :stderr, "Mix.project/0 is deprecated, please use Mix.Project.config/0 instead\n#{Exception.format_stacktrace}"
     Mix.Project.config
   end
 end

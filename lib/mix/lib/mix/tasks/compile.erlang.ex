@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    project      = Mix.project
+    project      = Mix.Project.config
     source_paths = project[:erlc_paths]
     include_path = to_erl_file project[:erlc_include_path]
     compile_path = to_erl_file Mix.Project.compile_path(project)

@@ -36,7 +36,7 @@ defmodule Mix.CLI do
 
   defp get_task(["-" <> _|_]) do
     Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
-                    "please invoke instead: mix #{Mix.project[:default_task]}"
+                    "please invoke instead: mix #{Mix.Project.config[:default_task]}"
     exit(1)
   end
 
@@ -45,7 +45,7 @@ defmodule Mix.CLI do
   end
 
   defp get_task([]) do
-    {Mix.project[:default_task], []}
+    {Mix.Project.config[:default_task], []}
   end
 
   defp run_task(name, args) do
@@ -85,7 +85,7 @@ defmodule Mix.CLI do
   end
 
   defp change_env(task) do
-    if nil?(System.get_env("MIX_ENV")) && (env = Mix.project[:preferred_cli_env][task]) do
+    if nil?(System.get_env("MIX_ENV")) && (env = Mix.Project.config[:preferred_cli_env][task]) do
       Mix.env(env)
       if project = Mix.Project.pop do
         {project, _config, file} = project

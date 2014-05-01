@@ -36,16 +36,16 @@ defmodule Mix.ProjectTest do
 
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
-    assert Mix.project[:hello] == "world"
+    assert Mix.Project.config[:hello] == "world"
   end
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert nil? Mix.project[:app_path]
+    assert nil? Mix.Project.config[:app_path]
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.project[:default_task] == "run"
+    assert Mix.Project.config[:default_task] == "run"
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do

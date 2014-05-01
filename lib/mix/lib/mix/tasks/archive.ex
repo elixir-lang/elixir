@@ -50,8 +50,8 @@ defmodule Mix.Tasks.Archive do
     target = cond do
       output = opts[:output] ->
         output
-      app = Mix.project[:app] ->
-        Mix.Archive.name(app, Mix.project[:version])
+      app = Mix.Project.config[:app] ->
+        Mix.Archive.name(app, Mix.Project.config[:version])
       true ->
         raise Mix.Error, message: "Cannot create archive without a name, " <>
           "please pass -o as an option"

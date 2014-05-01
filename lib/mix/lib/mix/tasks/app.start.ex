@@ -27,7 +27,7 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless opts[:no_start] do
-      start(Mix.project[:app])
+      start(Mix.Project.config[:app])
     end
   end
 

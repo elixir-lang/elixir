@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    project      = Mix.project
+    project      = Mix.Project.config
     source_paths = project[:erlc_paths]
     mappings     = Enum.zip(source_paths, source_paths)
     options      = project[:yecc_options] || []

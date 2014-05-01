@@ -137,7 +137,7 @@ defmodule Mix.Tasks.Test do
       Mix.Task.run "compile", args
     end
 
-    project = Mix.project
+    project = Mix.Project.config
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
     # Start cover after we load deps but before we start the app.
