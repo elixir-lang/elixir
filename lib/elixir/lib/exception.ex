@@ -181,6 +181,13 @@ defmodule Exception do
   @typep location :: Keyword.t
 
   @doc """
+  Gets the message for an exception.
+  """
+  def message(exception) do
+    exception.message
+  end
+
+  @doc """
   Normalizes an exception, converting Erlang exceptions
   to Elixir exceptions.
 
@@ -339,17 +346,20 @@ defmodule Exception do
   "anonymous fn in func/arity"
   """
   def format_mfa(module, fun, arity) when is_atom(fun) do
-    fun =
-      case inspect(fun) do
-        ":" <> fun -> fun
-        fun -> fun
-      end
+    fun = format_fun(fun)
 
     case match?("\"-" <> _, fun) and String.split(fun, "-") do
       [ "\"", outer_fun, "fun", _count, "\"" ] ->
-        "anonymous fn#{format_arity(arity)} in #{inspect module}.#{outer_fun}"
+        "anonymous fn#{format_arity(arity)} in #{inspect module}.#{format_fun(outer_fun)}"
       _ ->
         "#{inspect module}.#{fun}#{format_arity(arity)}"
+    end
+  end
+
+  defp format_fun(fun) do
+    case inspect(fun) do
+      ":" <> fun -> fun
+      fun -> fun
     end
   end
 
