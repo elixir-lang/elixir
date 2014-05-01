@@ -62,6 +62,7 @@ defmodule Process do
   """
   @spec delete :: [{term, term}]
   def delete() do
+    IO.write :stderr, "Process.delete/0 is deprecated\n#{Exception.format_stacktrace}"
     :erlang.erase()
   end
 
