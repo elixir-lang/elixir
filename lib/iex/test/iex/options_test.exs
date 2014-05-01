@@ -35,13 +35,6 @@ defmodule IEx.OptionsTest do
   end
 
   test "inspect opts" do
-    opts = [inspect: [limit: 3, records: false]]
-    assert capture_iex("[1,2,3,4,5]\nArgumentError[]", opts) ==
-              "[1, 2, 3, ...]\n{ArgumentError, :__exception__, \"argument error\"}"
-
-    opts = [inspect: [records: true]]
-    assert capture_iex("ArgumentError[]", opts) == "ArgumentError[message: \"argument error\"]"
-
     opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
     assert capture_iex("<<45,46,47>>\n[45,46,47]\n%IO.Stream{}", opts) ==
               "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"

@@ -17,8 +17,8 @@ defmodule IEx.Options do
       iex(1)> ArgumentError[]
       ArgumentError[message: "argument error"]
 
-      iex(2)> IEx.Options.set :inspect, records: false
-      [limit: 50, records: true]
+      iex(2)> IEx.Options.set :inspect, structs: false
+      [limit: 50, structs: true]
 
       iex(3)> ArgumentError[]
       {ArgumentError,:__exception__,"argument error"}

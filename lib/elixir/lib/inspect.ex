@@ -1,15 +1,6 @@
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
-defrecord Inspect.Opts,
-  records: true,
-  structs: true,
-  binaries: :infer,
-  char_lists: :infer,
-  limit: 50,
-  pretty: false,
-  width: 80
-
 defprotocol Inspect do
   @moduledoc """
   The `Inspect` protocol is responsible for converting any Elixir
@@ -142,7 +133,7 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  def inspect(thing, Inspect.Opts[binaries: bins] = opts) when is_binary(thing) do
+  def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
       << ?", escape(thing, ?") :: binary, ?" >>
     else
@@ -222,7 +213,7 @@ defimpl Inspect, for: BitString do
 
   ## Bitstrings
 
-  defp inspect_bitstring(bitstring, Inspect.Opts[] = opts) do
+  defp inspect_bitstring(bitstring, opts) do
     each_bit(bitstring, opts.limit, "<<") <> ">>"
   end
 
@@ -274,7 +265,7 @@ defimpl Inspect, for: List do
 
   def inspect([], _opts), do: "[]"
 
-  def inspect(thing, Inspect.Opts[char_lists: lists] = opts) do
+  def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
       lists == :as_char_lists or (lists == :infer and :io_lib.printable_list(thing)) ->
         << ?', Inspect.BitString.escape(String.from_char_data!(thing), ?') :: binary, ?' >>
@@ -313,7 +304,7 @@ end
 defimpl Inspect, for: Tuple do
   def inspect({}, _opts), do: "{}"
 
-  def inspect(tuple, Inspect.Opts[] = opts) do
+  def inspect(tuple, opts) do
     if opts.records do
       record_inspect(tuple, opts)
     else
@@ -323,7 +314,7 @@ defimpl Inspect, for: Tuple do
 
   ## Helpers
 
-  defp record_inspect(record, Inspect.Opts[] = opts) do
+  defp record_inspect(record, opts) do
     [name|tail] = tuple_to_list(record)
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
@@ -345,7 +336,7 @@ defimpl Inspect, for: Tuple do
     end
   end
 
-  defp surround_record(name, fields, tail, Inspect.Opts[] = opts) do
+  defp surround_record(name, fields, tail, opts) do
     concat(
       Inspect.Atom.inspect(name, opts),
       surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))

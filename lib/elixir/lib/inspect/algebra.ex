@@ -1,3 +1,41 @@
+defmodule Inspect.Opts do
+  @moduledoc """
+  Defines the Inspect.Opts used by the Inspect protocol.
+
+  The following fields are available:
+
+  * `:structs` - when false, structs are not formatted by the inspect protocol,
+                 they are instead printed as maps, defaults to true;
+
+  * `:binaries` - when `:as_strings` all binaries will be printed as strings,
+                  non-printable bytes will be escaped; when `:as_binaries` all
+                  binaries will be printed in bit syntax; when the default
+                  `:infer`, the binary will be printed as a string if it is
+                  printable, otherwise in bit syntax;
+
+  * `:char_lists` - when `:as_char_lists` all lists will be printed as char lists,
+                    non-printable elements will be escaped; when `:as_lists` all
+                    lists will be printed as lists; when the default `:infer`, the
+                    list will be printed as a char list if it is printable,
+                    otherwise as list;
+
+  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
+               and lists, does not apply to strings nor char lists, defaults to 50;
+
+  * `:pretty` - if set to true enables pretty printing, defaults to false;
+
+  * `:width` - defaults to the 80 characters;
+  """
+
+  defstruct structs: true :: boolean,
+            binaries: :infer :: :infer | :as_binaries | :as_strings,
+            char_lists: :infer :: :infer | :as_lists | :as_char_lists,
+            limit: 50 :: pos_integer,
+            width: 80 :: pos_integer | :infinity,
+            pretty: false :: boolean,
+            records: true :: boolean
+end
+
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
@@ -116,7 +154,8 @@ defmodule Inspect.Algebra do
   according to the inspect protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
-  def to_doc(arg, opts) when is_record(arg) and is_record(opts, Inspect.Opts) do
+  def to_doc(arg, %Inspect.Opts{} = opts) when is_record(arg) do
+    # IO.write :stderr, "inspect records is deprecated (just remove this code when protocols+records are removed)\n#{Exception.format_stacktrace}"
     if opts.records do
       try do
         Inspect.inspect(arg, opts)
@@ -132,7 +171,7 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(%{__struct__: struct} = map, opts) when is_atom(struct) and is_record(opts, Inspect.Opts) do
+  def to_doc(%{__struct__: struct} = map, %Inspect.Opts{} = opts) when is_atom(struct) do
     if opts.structs do
       try do
         Inspect.inspect(map, opts)
@@ -148,7 +187,7 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
+  def to_doc(arg, %Inspect.Opts{} = opts) do
     Inspect.inspect(arg, opts)
   end
 

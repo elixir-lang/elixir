@@ -1836,29 +1836,9 @@ defmodule Kernel do
 
   ## Options
 
-  The following options are supported:
-
-  * `:structs` - when false, structs are not formatted by the inspect protocol,
-                 they are instead printed as maps, defaults to true;
-
-  * `:binaries` - when `:as_strings` all binaries will be printed as strings,
-                  non-printable bytes will be escaped; when `:as_binaries` all
-                  binaries will be printed in bit syntax; when the default
-                  `:infer`, the binary will be printed as a string if it is
-                  printable, otherwise in bit syntax;
-
-  * `:char_lists` - when `:as_char_lists` all lists will be printed as char lists,
-                    non-printable elements will be escaped; when `:as_lists` all
-                    lists will be printed as lists; when the default `:infer`, the
-                    list will be printed as a char list if it is printable,
-                    otherwise as list;
-
-  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
-               and lists, does not apply to strings nor char lists, defaults to 50;
-
-  * `:pretty` - if set to true enables pretty printing, defaults to false;
-
-  * `:width` - defaults to the 80 characters;
+  `inspect/2` accepts a list of options that are internally
+  translated to an `Inspect.Opts` record. Check the docs for
+  `Inspect.Opts` to see the supported options.
 
   ## Examples
 
@@ -1887,7 +1867,7 @@ defmodule Kernel do
   """
   @spec inspect(Inspect.t, Keyword.t) :: String.t
   def inspect(arg, opts \\ []) when is_list(opts) do
-    opts  = Inspect.Opts.new(opts)
+    opts  = struct(Inspect.Opts, opts)
     limit = case opts.pretty do
       true  -> opts.width
       false -> :infinity
