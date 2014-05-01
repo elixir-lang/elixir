@@ -13,14 +13,12 @@ defmodule Mix do
 
   use Application.Behaviour
 
-  # Used internally to start the mix application and its dependencies.
   @doc false
   def start do
     :application.start(:elixir)
     :application.start(:mix)
   end
 
-  # Application behaviour callback
   @doc false
   def start(_, []) do
     res = Mix.Sup.start_link
@@ -42,16 +40,19 @@ defmodule Mix do
   end
 
   @doc """
-  Changes the current mix env. Project configuration loaded
-  per environment will not be reloaded.
+  Changes the current mix env.
+
+  Be careful when invoking this function as any project
+  configuration won't be reloaded.
   """
   def env(env) when is_atom(env) do
     :application.set_env(:mix, :env, env)
   end
 
   @doc """
-  Starts mix and loads the project and dependencies in
-  one step. Useful when invoking mix from an external tool.
+  Starts mix and loads the project and dependencies in one step.
+
+  Useful when invoking mix from an external tool.
   """
   def loadpaths do
     Mix.start
@@ -88,6 +89,10 @@ defmodule Mix do
   If there is no project defined, it still returns a keyword
   list with default values. This allows many mix tasks to work
   without the need for an underlying project.
+
+  Do not use `Mix.project` to rely on runtime configuration.
+  Use it only to configure aspects of your project (like
+  compilation directories) and not your application runtime.
   """
   def project do
     Mix.Project.config
