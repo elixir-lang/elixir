@@ -161,7 +161,8 @@ defmodule ExUnit do
   API used to run the tests. It is invoked automatically
   if ExUnit is started via `ExUnit.start/1`.
 
-  Returns the number of failures.
+  Returns a map containing the number of tests and the number
+  of failures.
   """
   def run do
     {async, sync, load_us} = ExUnit.Server.start_run

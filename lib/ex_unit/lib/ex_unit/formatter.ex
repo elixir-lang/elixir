@@ -100,19 +100,22 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test_case, test, {kind, reason, stack}, counter, width, formatter) do
-    test_info(with_counter(counter, "#{test} (#{inspect test_case})"), formatter)
+  def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
+    ExUnit.Test[name: name, case: case, tags: tags] = test
+    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
+      <> test_location(with_location(tags), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stack, test_case, test, formatter)
+      <> format_stacktrace(stack, case, name, formatter)
   end
 
   @doc """
   Receives a test case and formats its failure.
   """
   def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
-    test_case_info(with_counter(counter, "#{inspect test_case}: "), formatter)
+    ExUnit.TestCase[name: name] = test_case
+    test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stacktrace, test_case, nil, formatter)
+      <> format_stacktrace(stacktrace, name, nil, formatter)
   end
 
   defp format_kind_reason(:error, ExUnit.AssertionError[] = record, width, formatter) do
@@ -189,35 +192,47 @@ defmodule ExUnit.Formatter do
     padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
-  defp format_stacktrace([{test_case, test, _, location}|_], test_case, test, color) do
-    location_info("#{location[:file]}:#{location[:line]}", color)
-  end
-
   defp format_stacktrace([], _case, _test, _color) do
     ""
   end
 
-  defp format_stacktrace(stacktrace, _case, _test, color) do
-    location_info("stacktrace:", color) <>
-      Enum.map_join(stacktrace, fn(s) -> stacktrace_info format_stacktrace_entry(s), color end)
+  defp format_stacktrace(stacktrace, test_case, test, color) do
+    extra_info("stacktrace:", color) <>
+      Enum.map_join(stacktrace,
+        fn(s) -> stacktrace_info format_stacktrace_entry(s, test_case, test), color end)
+  end
+
+  defp format_stacktrace_entry({test_case, test, _, location}, test_case, test) do
+    "#{location[:file]}:#{location[:line]}"
+  end
+
+  defp format_stacktrace_entry(s, _test_case, _test) do
+    format_stacktrace_entry(s)
+  end
+
+  defp with_location(tags) do
+    "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
   end
 
   defp with_counter(counter, msg) when counter < 10  do "  #{counter}) #{msg}" end
   defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
   defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
 
-  defp test_case_info(msg, nil),      do: msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
+  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
   defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
-  defp test_info(msg, nil),      do: msg <> "\n"
+  defp test_info(msg, nil),       do: msg <> "\n"
   defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
 
-  defp error_info(msg, nil),      do: "     " <> msg <> "\n"
+  defp test_location(msg, nil),       do: "     " <> msg <> "\n"
+  defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
+
+  defp error_info(msg, nil),       do: "     " <> msg <> "\n"
   defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
 
-  defp location_info(msg, nil),      do: "     " <> msg <> "\n"
-  defp location_info(msg, formatter), do: location_info(formatter.(:location_info, msg), nil)
+  defp extra_info(msg, nil),       do: "     " <> msg <> "\n"
+  defp extra_info(msg, formatter), do: extra_info(formatter.(:extra_info, msg), nil)
 
-  defp stacktrace_info(msg, nil),      do: "       " <> msg <> "\n"
+  defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"
   defp stacktrace_info(msg, formatter), do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
 end

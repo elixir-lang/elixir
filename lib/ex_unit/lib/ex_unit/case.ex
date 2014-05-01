@@ -118,6 +118,7 @@ defmodule ExUnit.Case do
   * `:case` - the test case module
   * `:test` - the test name
   * `:line` - the line on which the test was defined
+  * `:file` - the file on which the test was defined
 
   ## Filters
 
@@ -233,7 +234,7 @@ defmodule ExUnit.Case do
   def __on_definition__(env, name) do
     mod  = env.module
     tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-    tags = [line: env.line] ++ normalize_tags(tags)
+    tags = [line: env.line, file: env.file] ++ normalize_tags(tags)
 
     Module.put_attribute(mod, :ex_unit_tests,
       ExUnit.Test[name: name, case: mod, tags: tags])
