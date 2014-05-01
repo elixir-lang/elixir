@@ -21,19 +21,19 @@ defmodule Mix.Tasks.Deps do
   * requirement is a version requirement or a regular expression
   * opts is a keyword list of options
 
-  Here are some examples:
+  By default, dependencies are fetched using the [Hex package manager](https://hex.pm/):
+
+      {:plug, ">= 0.4.0"}
+
+  By specifying such dependencies, Mix will automatically install
+  Hex (if it wasn't previously installed and download a package
+  suitable to your project).
+
+  Mix also supports git and path dependencies:
 
       {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
 
-  To specify particular versions, regardless of the tag, do:
-
-      {:barbat, "~> 0.1", github: "elixir-lang/barbat"}
-
-  When using a package manager, options can be skipped:
-
-      {:pkgbaz, "~> 0.1"}
-
-  When using umbrella applications, one may also specify:
+  And also umbrella applications:
 
       {:myapp, in_umbrella: true}
 

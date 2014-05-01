@@ -180,7 +180,11 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
+    #
+    # {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
     #
     # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
     #
