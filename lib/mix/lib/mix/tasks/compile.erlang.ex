@@ -54,9 +54,6 @@ defmodule Mix.Tasks.Compile.Erlang do
      http://www.erlang.org/doc/man/compile.html#file-2
   """
 
-  defrecord Erl, file: nil, module: nil, behaviours: [], compile: [],
-    includes: [], mtime: nil, invalid: false
-
   @doc """
   Runs this task.
   """
@@ -155,8 +152,8 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp scan_source(acc, file, include_paths) do
-    erl_file = Erl[file: file, module: module_from_artifact(file)]
-
+    erl_file = %{file: file, module: module_from_artifact(file), behaviours: [],
+                 compile: [], includes: [], mtime: nil, invalid: false}
     case Epp.parse_file(to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
@@ -165,18 +162,18 @@ defmodule Mix.Tasks.Compile.Erlang do
     end
   end
 
-  defp do_form(file, form, Erl[] = erl) do
+  defp do_form(file, form, erl) do
     case form do
       {:attribute, _, :file, {include_file, _}} when file != include_file ->
         if File.regular?(include_file) do
-          erl.update_includes &[include_file|&1]
+          %{erl| includes: [include_file|erl.includes]}
         else
           erl
         end
       {:attribute, _, :behaviour, behaviour} ->
-        erl.update_behaviours &[behaviour|&1]
+        %{erl| behaviours: [behaviour|erl.behaviours]}
       {:attribute, _, :compile, value} ->
-        erl.update_compile &[value|&1]
+        %{erl| compile: [value|erl.compile]}
       _ ->
         erl
     end

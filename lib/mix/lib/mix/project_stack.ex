@@ -9,10 +9,6 @@ defmodule Mix.ProjectStack do
   @typep config  :: Keyword.t
   @typep project :: {module, config, file}
 
-  defrecord State, stack: [], post_config: [], cache: HashDict.new
-  defrecord Project, name: nil, config: nil, file: nil,
-                     recursing?: false, io_done: false, tasks: HashSet.new
-
   @spec start_link :: {:ok, pid}
   def start_link() do
     :gen_server.start_link({:local, __MODULE__}, __MODULE__, [], [])
@@ -94,64 +90,64 @@ defmodule Mix.ProjectStack do
   ## Callbacks
 
   def init([]) do
-    {:ok, State[]}
+    {:ok, %{stack: [], post_config: [], cache: HashDict.new}}
   end
 
-  def handle_call({:push, name, config, file}, _from, State[stack: stack] = state) do
+  def handle_call({:push, name, config, file}, _from, %{stack: stack} = state) do
     config  = Keyword.merge(config, state.post_config)
-    project = Project[name: name, config: config, file: file]
+    project = %{name: name, config: config, file: file, recursing?: false, io_done: false, tasks: HashSet.new}
 
     cond do
       file = find_project_named(name, stack) ->
         {:reply, {:error, file}, state}
       true ->
-        {:reply, :ok, state.post_config([]).update_stack(&[project|&1])}
+        {:reply, :ok, %{state| post_config: [], stack: [project|state.stack]}}
     end
   end
 
-  def handle_call(:pop, _from, State[stack: stack] = state) do
+  def handle_call(:pop, _from, %{stack: stack} = state) do
     case stack do
-      [h|t] -> {:reply, project_to_tuple(h), state.stack(t)}
+      [h|t] -> {:reply, project_to_tuple(h), %{state| stack: t}}
       [] -> {:reply, nil, state}
     end
   end
 
-  def handle_call(:peek, _from, State[stack: stack] = state) do
+  def handle_call(:peek, _from, %{stack: stack} = state) do
     case stack do
       [h|_] -> {:reply, project_to_tuple(h), state}
       [] -> {:reply, nil, state}
     end
   end
 
-  def handle_call(:output_app?, _from, State[stack: stack] = state) do
+  def handle_call(:output_app?, _from, %{stack: stack} = state) do
     case stack do
-      [Project[]=h|t] ->
+      [h|t] ->
         output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
-        {:reply, output, state.stack([h.io_done(true)|t])}
+        {:reply, output, %{state| stack: [%{h| io_done: true}|t]}}
       [] ->
         {:reply, false, state}
     end
   end
 
-  def handle_call(:enable_recursion, _from, State[stack: stack] = state) do
+  def handle_call(:enable_recursion, _from, %{stack: stack} = state) do
     case stack do
-      [Project[]=h|t] ->
-        {:reply, not h.recursing?, state.stack([h.recursing?(true)|t])}
+      [h|t] ->
+        {:reply, not h.recursing?, %{state| stack: [%{h| recursing?: true}|t]}}
       _ ->
         {:reply, false, state}
     end
   end
 
-  def handle_call(:disable_recursion, _from, State[stack: stack] = state) do
+  def handle_call(:disable_recursion, _from, %{stack: stack} = state) do
     case stack do
-      [Project[]=h|t] ->
-        {:reply, h.recursing?, state.stack([h.recursing?(false)|t])}
+      [h|t] ->
+        {:reply, h.recursing?, %{state| stack: [%{h| recursing?: false}|t]}}
       _ ->
         {:reply, false, state}
     end
   end
 
-  def handle_call({:read_cache, key}, _from, State[cache: cache] = state) do
+  def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
     {:reply, cache[key], state}
   end
 
@@ -159,20 +155,20 @@ defmodule Mix.ProjectStack do
     super(request, from, config)
   end
 
-  def handle_cast({:post_config, value}, State[] = state) do
-    {:noreply, state.update_post_config(&Keyword.merge(&1, value))}
+  def handle_cast({:post_config, value}, state) do
+    {:noreply, %{state| post_config: Keyword.merge(state.post_config, value)}}
   end
 
-  def handle_cast(:clear_stack, State[] = state) do
-    {:noreply, state.stack([]).post_config([])}
+  def handle_cast(:clear_stack, state) do
+    {:noreply, %{state| stack: [], post_config: []}}
   end
 
-  def handle_cast({:write_cache, key, value}, State[] = state) do
-    {:noreply, state.update_cache(&Dict.put(&1, key, value))}
+  def handle_cast({:write_cache, key, value}, state) do
+    {:noreply, %{state| cache: Dict.put(state.cache, key, value)}}
   end
 
-  def handle_cast(:clear_cache, State[] = state) do
-    {:noreply, state.cache(HashDict.new)}
+  def handle_cast(:clear_cache, state) do
+    {:noreply, %{state| cache: HashDict.new}}
   end
 
   def handle_cast(request, state) do
@@ -180,26 +176,26 @@ defmodule Mix.ProjectStack do
   end
 
   defp in_umbrella?(stack) do
-    Enum.any?(stack, fn(Project[config: conf]) ->
+    Enum.any?(stack, fn(%{config: conf}) ->
       conf[:apps_path] != nil
     end)
   end
 
   defp umbrella?(stack) do
     case stack do
-      [Project[name: name, config: config]|_] when name != nil -> config[:apps_path] != nil
+      [%{name: name, config: config}|_] when name != nil -> config[:apps_path] != nil
       _ -> false
     end
   end
 
   defp find_project_named(name, stack) do
     name && Enum.find_value(stack, fn
-      Project[name: n, file: file] when n === name -> file
-      Project[] -> nil
+      %{name: n, file: file} when n === name -> file
+      %{} -> nil
     end)
   end
 
-  defp project_to_tuple(Project[name: name, config: config, file: file]) do
+  defp project_to_tuple(%{name: name, config: config, file: file}) do
     {name, config, file}
   end
 end
