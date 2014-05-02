@@ -18,8 +18,8 @@ defmodule Mix.Tasks.Compile.App do
   * `:applications` - all applications your application depends
     on at runtime. For example, if your application depends on
     Erlang's `:crypto`, it needs to be added to this list. Most
-    of your dependencies must be added as well (unless their are
-    a development or test dependnecy). Mix and other tools use this
+    of your dependencies must be added as well (unless they're
+    a development or test dependency). Mix and other tools use this
     list in order to properly boot your application dependencies
     before starting the application itself;
 
