@@ -13,21 +13,21 @@ defmodule Mix.Tasks.Local do
 
     docs = for module <- modules,
         Mix.Task.is_task?(module) do
-      { Mix.Task.task_name(module), Mix.Task.shortdoc(module) }
+      {Mix.Task.task_name(module), Mix.Task.shortdoc(module)}
     end
 
-    max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
+    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
       max(size(task), acc)
     end
 
     sorted = Enum.sort(docs)
 
-    Enum.each sorted, fn({ task, doc }) ->
+    Enum.each sorted, fn({task, doc}) ->
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) |> String.from_char_list!
+    :io_lib.format(expression, args) |> String.from_char_data!
   end
 end

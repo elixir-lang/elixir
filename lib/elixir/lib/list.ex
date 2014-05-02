@@ -164,10 +164,10 @@ defmodule List do
   ## Examples
 
       iex> List.keyfind([a: 1, b: 2], :a, 0)
-      { :a, 1 }
+      {:a, 1}
 
       iex> List.keyfind([a: 1, b: 2], 2, 1)
-      { :b, 2 }
+      {:b, 2}
 
       iex> List.keyfind([a: 1, b: 2], :c, 0)
       nil
@@ -206,7 +206,7 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 })
+      iex> List.keyreplace([a: 1, b: 2], :a, 0, {:a, 3})
       [a: 3, b: 2]
 
   """
@@ -240,10 +240,10 @@ defmodule List do
 
   ## Examples
 
-      iex> List.keystore([a: 1, b: 2], :a, 0, { :a, 3 })
+      iex> List.keystore([a: 1, b: 2], :a, 0, {:a, 3})
       [a: 3, b: 2]
 
-      iex> List.keystore([a: 1, b: 2], :c, 0, { :c, 3 })
+      iex> List.keystore([a: 1, b: 2], :c, 0, {:c, 3})
       [a: 1, b: 2, c: 3]
 
   """
@@ -453,6 +453,67 @@ defmodule List do
     end
   end
 
+  @doc """
+  Converts char data into a char list.
+
+  A char data is a string or a list of integers and strings and it
+  is converted into a list with each codepoint represented as its
+  respective integer value.
+
+  ## Examples
+
+      iex> List.from_char_data("æß")
+      {:ok, 'æß'}
+      iex> List.from_char_data([?a, "bc"])
+      {:ok, 'abc'}
+
+  """
+  @spec from_char_data(char_data) :: {:ok, char_list} | {:error, list, binary} | {:incomplete, list, binary}
+  def from_char_data(char_data) do
+    case :unicode.characters_to_list(char_data) do
+      result when is_list(result) ->
+        {:ok, result}
+
+      {:error, _, _} = error ->
+        error
+
+      {:incomplete, _, _} = incomplete ->
+        incomplete
+    end
+  end
+
+  @doc """
+  Converts char data into a char list.
+
+  A char data is a string or a list of integers and strings and it
+  is converted into a list with each codepoint represented as its
+  respective integer value.
+
+  In case the conversion fails or is incomplete, it raises a
+  `UnicodeConversionError`.
+
+  ## Examples
+
+      iex> List.from_char_data!("æß")
+      'æß'
+      iex> List.from_char_data!("abc")
+      'abc'
+
+  """
+  @spec from_char_data!(char_data) :: char_list | no_return
+  def from_char_data!(char_data) do
+    case :unicode.characters_to_list(char_data) do
+      result when is_list(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
   ## Helpers
 
   # replace_at
@@ -536,15 +597,15 @@ defmodule List do
   end
 
   defp do_zip_each(_, nil) do
-    { nil, nil }
+    {nil, nil}
   end
 
   defp do_zip_each([h|t], acc) do
-    { t, [h|acc] }
+    {t, [h|acc]}
   end
 
   defp do_zip_each([], _) do
-    { nil, nil }
+    {nil, nil}
   end
 
   defp to_list(tuple) when is_tuple(tuple), do: tuple_to_list(tuple)

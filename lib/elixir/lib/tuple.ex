@@ -12,7 +12,7 @@ defmodule Tuple do
   ## Examples
 
       iex> Tuple.duplicate(:hello, 3)
-      { :hello, :hello, :hello }
+      {:hello, :hello, :hello}
 
   """
   @spec duplicate(term, non_neg_integer) :: tuple
@@ -29,9 +29,9 @@ defmodule Tuple do
 
   ## Examples
 
-      iex> tuple = { :bar, :baz }
+      iex> tuple = {:bar, :baz}
       iex> Tuple.insert_at(tuple, 0, :foo)
-      { :foo, :bar, :baz }
+      {:foo, :bar, :baz}
 
   """
   @spec insert_at(tuple, non_neg_integer, term) :: tuple
@@ -48,9 +48,9 @@ defmodule Tuple do
 
   ## Examples
 
-      iex> tuple = { :foo, :bar, :baz }
+      iex> tuple = {:foo, :bar, :baz}
       iex> Tuple.delete_at(tuple, 0)
-      { :bar, :baz }
+      {:bar, :baz}
 
   """
   @spec delete_at(tuple, non_neg_integer) :: tuple

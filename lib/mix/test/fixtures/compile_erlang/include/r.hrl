@@ -1,1 +1,1 @@
--record(r, { cell=undefined }).
+-record(r, {cell=undefined}).

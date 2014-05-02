@@ -29,7 +29,7 @@ defmodule Kernel.DocsTest do
     ]
 
     assert Docs.__info__(:docs) == expected
-    assert Docs.__info__(:moduledoc) == { 7, "moduledoc" }
+    assert Docs.__info__(:moduledoc) == {7, "moduledoc"}
   end
 
 

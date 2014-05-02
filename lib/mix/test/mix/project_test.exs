@@ -9,19 +9,12 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  defmodule EnvProject do
-    def project do
-      [ hello: "world", app_path: "this/is/private",
-        env: [ prod: [hello: "new"] ] ]
-    end
-  end
-
   test "push and pop projects" do
     refute Mix.Project.get
     Mix.Project.push(SampleProject, "sample")
     assert Mix.Project.get == SampleProject
 
-    assert { SampleProject, _config, "sample" } = Mix.Project.pop
+    assert {SampleProject, _config, "sample"} = Mix.Project.pop
     assert nil = Mix.Project.pop
   end
 
@@ -43,22 +36,16 @@ defmodule Mix.ProjectTest do
 
   test "retrieves configuration from projects" do
     Mix.Project.push(SampleProject)
-    assert Mix.project[:hello] == "world"
+    assert Mix.Project.config[:hello] == "world"
   end
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert nil? Mix.project[:app_path]
-  end
-
-  test "reads environment info when a project is set" do
-    Mix.env(:prod)
-    Mix.Project.push(EnvProject)
-    assert Mix.project[:hello] == "new"
+    assert nil? Mix.Project.config[:app_path]
   end
 
   test "retrieves configuration even when a project is not set" do
-    assert Mix.project[:default_task] == "run"
+    assert Mix.Project.config[:default_task] == "run"
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do
@@ -72,7 +59,7 @@ defmodule Mix.ProjectTest do
       config = [app_path: Path.expand("_build/archive")]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
+      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
     end
   end
 
@@ -82,13 +69,13 @@ defmodule Mix.ProjectTest do
       File.mkdir_p!("include")
 
       assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
-      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
-      assert :file.read_link("_build/archive/include") == { :ok, '../../include' }
+      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
+      assert :file.read_link("_build/archive/include") == {:ok, '../../include'}
 
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == { :ok, '../../priv' }
+      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
     end
   end
 end

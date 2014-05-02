@@ -1,15 +1,6 @@
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
-defrecord Inspect.Opts,
-  records: true,
-  structs: true,
-  binaries: :infer,
-  char_lists: :infer,
-  limit: 50,
-  pretty: false,
-  width: 80
-
 defprotocol Inspect do
   @moduledoc """
   The `Inspect` protocol is responsible for converting any Elixir
@@ -50,10 +41,11 @@ defprotocol Inspect do
   ## Error handling
 
   In case there is an error while your structure is being inspected,
-  Elixir will automatically fall back to tuple inspection for records.
+  Elixir will automatically fall back to a raw representation.
+
   You can however access the underlying error by invoking the Inspect
   implementation directly. For example, to test Inspect.HashSet above,
-  you just need to do:
+  you can invoke it as:
 
       Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
 
@@ -68,26 +60,6 @@ end
 defimpl Inspect, for: Atom do
   require Macro
 
-  @doc """
-  Represents the atom as an Elixir term. The atoms `false`, `true`
-  and `nil` are simply quoted. Modules are properly represented
-  as modules using the dot notation.
-
-  Notice that in Elixir, all operators can be represented using
-  literal atoms (`:+`, `:-`, etc).
-
-  ## Examples
-
-      iex> inspect(:foo)
-      ":foo"
-
-      iex> inspect(nil)
-      "nil"
-
-      iex> inspect(Foo.Bar)
-      "Foo.Bar"
-
-  """
   def inspect(atom, _opts) do
     inspect(atom)
   end
@@ -161,24 +133,7 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
-  @doc ~S"""
-  Represents a string as itself escaping all necessary
-  characters. Binaries that contain non-printable characters
-  are printed using the bitstring syntax.
-
-  ## Examples
-
-      iex> inspect("bar")
-      "\"bar\""
-
-      iex> inspect("f\"oo")
-      "\"f\\\"oo\""
-
-      iex> inspect(<<0,1,2>>)
-      "<<0, 1, 2>>"
-
-  """
-  def inspect(thing, Inspect.Opts[binaries: bins] = opts) when is_binary(thing) do
+  def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
       << ?", escape(thing, ?") :: binary, ?" >>
     else
@@ -201,7 +156,7 @@ defimpl Inspect, for: BitString do
     escape(t, char, << binary :: binary, ?\\, char >>)
   end
   defp escape(<<?#, ?{, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?#, ?{ >>)
+    escape(t, char, << binary :: binary, ?\\, ?#, ?{>>)
   end
   defp escape(<<?\a, t :: binary>>, char, binary) do
     escape(t, char, << binary :: binary, ?\\, ?a >>)
@@ -258,7 +213,7 @@ defimpl Inspect, for: BitString do
 
   ## Bitstrings
 
-  defp inspect_bitstring(bitstring, Inspect.Opts[] = opts) do
+  defp inspect_bitstring(bitstring, opts) do
     each_bit(bitstring, opts.limit, "<<") <> ">>"
   end
 
@@ -310,10 +265,10 @@ defimpl Inspect, for: List do
 
   def inspect([], _opts), do: "[]"
 
-  def inspect(thing, Inspect.Opts[char_lists: lists] = opts) do
+  def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
       lists == :as_char_lists or (lists == :infer and :io_lib.printable_list(thing)) ->
-        << ?', Inspect.BitString.escape(String.from_char_list!(thing), ?') :: binary, ?' >>
+        << ?', Inspect.BitString.escape(String.from_char_data!(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
@@ -335,7 +290,7 @@ defimpl Inspect, for: List do
     end
   end
 
-  def keyword?([{ key, _value } | rest]) when is_atom(key) do
+  def keyword?([{key, _value} | rest]) when is_atom(key) do
     case atom_to_list(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
@@ -347,23 +302,9 @@ defimpl Inspect, for: List do
 end
 
 defimpl Inspect, for: Tuple do
-  @doc """
-  Represents tuples. If the tuple represents a record,
-  it shows it nicely formatted using the access syntax.
-
-  ## Examples
-
-      iex> inspect({1, 2, 3})
-      "{1, 2, 3}"
-
-      iex> inspect(ArgumentError.new)
-      "ArgumentError[message: \\\"argument error\\\"]"
-
-  """
-
   def inspect({}, _opts), do: "{}"
 
-  def inspect(tuple, Inspect.Opts[] = opts) do
+  def inspect(tuple, opts) do
     if opts.records do
       record_inspect(tuple, opts)
     else
@@ -373,7 +314,7 @@ defimpl Inspect, for: Tuple do
 
   ## Helpers
 
-  defp record_inspect(record, Inspect.Opts[] = opts) do
+  defp record_inspect(record, opts) do
     [name|tail] = tuple_to_list(record)
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
@@ -395,17 +336,17 @@ defimpl Inspect, for: Tuple do
     end
   end
 
-  defp surround_record(name, fields, tail, Inspect.Opts[] = opts) do
+  defp surround_record(name, fields, tail, opts) do
     concat(
       Inspect.Atom.inspect(name, opts),
       surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))
     )
   end
 
-  defp zip_fields([{ key, _ }|tk], [value|tv]) do
+  defp zip_fields([{key, _}|tk], [value|tv]) do
     case atom_to_binary(key) do
       "_" <> _ -> zip_fields(tk, tv)
-      key -> [{ key, value }|zip_fields(tk, tv)]
+      key -> [{key, value}|zip_fields(tk, tv)]
     end
   end
 
@@ -413,7 +354,7 @@ defimpl Inspect, for: Tuple do
     []
   end
 
-  defp keyword({ k, v }, opts) do
+  defp keyword({k, v}, opts) do
     concat(k <> ": ", to_doc(v, opts))
   end
 end
@@ -445,51 +386,20 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  @doc """
-  Represents the integer as a string.
-
-  ## Examples
-
-      iex> inspect(1)
-      "1"
-
-  """
   def inspect(thing, _opts) do
     integer_to_binary(thing)
   end
 end
 
 defimpl Inspect, for: Float do
-  @doc """
-  Floats are represented using the shortened, correctly rounded string
-  that converts to float when read back with `binary_to_float/1`. This
-  is done via the Erlang implementation of _Printing Floating-Point
-  Numbers Quickly and Accurately_ in Proceedings of the SIGPLAN '96
-  Conference on Programming Language Design and Implementation.
-
-  ## Examples
-
-      iex> inspect(1.0)
-      "1.0"
-
-  """
   def inspect(thing, _opts) do
-    iolist_to_binary(:io_lib_format.fwrite_g(thing))
+    iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
 
 defimpl Inspect, for: Regex do
-  @doc ~S"""
-  Represents the Regex using the `~r""` syntax.
-
-  ## Examples
-
-      iex> inspect(~r/foo/m)
-      "~r\"foo\"m"
-
-  """
-  def inspect(regex, opts) when size(regex) == 4 do
-    concat ["~r", to_doc(Regex.source(regex), opts), Regex.opts(regex)]
+  def inspect(regex, opts) do
+    concat ["~r", to_doc(regex.source, opts), regex.opts]
   end
 end
 
@@ -524,7 +434,8 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    case :binary.split(atom_to_binary(name), "-", [:global]) do
+    name = atom_to_binary(name)
+    case :binary.split(name, "-", [:global]) do
       ["", name | _] -> "." <> name
       _ -> "." <> name
     end
@@ -538,20 +449,20 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> iolist_to_binary(:erlang.pid_to_list(pid))
+    "#PID" <> iodata_to_binary(:erlang.pid_to_list(pid))
   end
 end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    iolist_to_binary :erlang.port_to_list(port)
+    iodata_to_binary :erlang.port_to_list(port)
   end
 end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> iolist_to_binary(rest)
+    "#Reference" <> iodata_to_binary(rest)
   end
 end
 

@@ -63,7 +63,7 @@ defexception BadArityError, [function: nil, args: nil] do
     fun  = exception.function
     args = exception.args
     insp = Enum.map_join(args, ", ", &inspect/1)
-    { :arity, arity } = :erlang.fun_info(fun, :arity)
+    {:arity, arity} = :erlang.fun_info(fun, :arity)
     "#{inspect(fun)} with arity #{arity} called with #{count(length(args), insp)}"
   end
 
@@ -117,20 +117,37 @@ defexception KeyError, key: nil, term: nil do
   end
 end
 
+defexception UnicodeConversionError, [:encoded, :message] do
+  def exception(opts) do
+    UnicodeConversionError[
+      encoded: opts[:encoded],
+      message: "#{opts[:kind]} #{detail(opts[:rest])}"
+    ]
+  end
+
+  defp detail(rest) when is_binary(rest) do
+    "encoding starting at #{inspect rest}"
+  end
+
+  defp detail([h|_]) do
+    "code point #{h}"
+  end
+end
+
 defexception Enum.OutOfBoundsError, message: "out of bounds error"
 
 defexception Enum.EmptyError, message: "empty error"
 
 defexception File.Error, [reason: nil, action: "", path: nil] do
   def message(exception) do
-    formatted = iolist_to_binary(:file.format_error(reason exception))
+    formatted = iodata_to_binary(:file.format_error(reason exception))
     "could not #{action exception} #{path exception}: #{formatted}"
   end
 end
 
 defexception File.CopyError, [reason: nil, action: "", source: nil, destination: nil, on: nil] do
   def message(exception) do
-    formatted = iolist_to_binary(:file.format_error(reason exception))
+    formatted = iodata_to_binary(:file.format_error(reason exception))
     location  = if on = on(exception), do: ". #{on}", else: ""
     "could not #{action exception} from #{source exception} to " <>
       "#{destination exception}#{location}: #{formatted}"
@@ -157,11 +174,18 @@ defmodule Exception do
   @type stacktrace :: [stacktrace_entry]
 
   @type stacktrace_entry ::
-        { module, function, arity_or_args, location } |
-        { function, arity_or_args, location }
+        {module, function, arity_or_args, location} |
+        {function, arity_or_args, location}
 
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: Keyword.t
+
+  @doc """
+  Gets the message for an exception.
+  """
+  def message(exception) do
+    exception.message
+  end
 
   @doc """
   Normalizes an exception, converting Erlang exceptions
@@ -173,12 +197,6 @@ defmodule Exception do
   """
   def normalize(:error, exception), do: normalize_error(exception)
   def normalize(_kind, payload),    do: payload
-
-  @doc false
-  def normalize(error) do
-    IO.write :stderr, "Exception.normalize/1 is deprecated, please use Exception.normalize/2 instead\n#{Exception.format_stacktrace}"
-    normalize_error(error)
-  end
 
   defp normalize_error(exception) when is_exception(exception) do
     exception
@@ -196,41 +214,41 @@ defmodule Exception do
     SystemLimitError[]
   end
 
-  defp normalize_error({ :badarity, { fun, args } }) do
+  defp normalize_error({:badarity, {fun, args}}) do
     BadArityError[function: fun, args: args]
   end
 
-  defp normalize_error({ :badfun, term }) do
+  defp normalize_error({:badfun, term}) do
     BadFunctionError[term: term]
   end
 
-  defp normalize_error({ :badstruct, struct, term }) do
+  defp normalize_error({:badstruct, struct, term}) do
     BadStructError[struct: struct, term: term]
   end
 
-  defp normalize_error({ :badmatch, term }) do
+  defp normalize_error({:badmatch, term}) do
     MatchError[term: term]
   end
 
-  defp normalize_error({ :case_clause, term }) do
+  defp normalize_error({:case_clause, term}) do
     CaseClauseError[term: term]
   end
 
-  defp normalize_error({ :try_clause, term }) do
+  defp normalize_error({:try_clause, term}) do
     TryClauseError[term: term]
   end
 
   defp normalize_error(:undef) do
-    { mod, fun, arity } = from_stacktrace(:erlang.get_stacktrace)
+    {mod, fun, arity} = from_stacktrace(:erlang.get_stacktrace)
     UndefinedFunctionError[module: mod, function: fun, arity: arity]
   end
 
   defp normalize_error(:function_clause) do
-    { mod, fun, arity } = from_stacktrace(:erlang.get_stacktrace)
+    {mod, fun, arity} = from_stacktrace(:erlang.get_stacktrace)
     FunctionClauseError[module: mod, function: fun, arity: arity]
   end
 
-  defp normalize_error({ :badarg, payload }) do
+  defp normalize_error({:badarg, payload}) do
     ArgumentError[message: "argument error: #{inspect(payload)}"]
   end
 
@@ -245,31 +263,31 @@ defmodule Exception do
   def format_stacktrace_entry(entry)
 
   # From Macro.Env.stacktrace
-  def format_stacktrace_entry({ module, :__MODULE__, 0, location }) do
+  def format_stacktrace_entry({module, :__MODULE__, 0, location}) do
     format_location(location) <> inspect(module) <> " (module)"
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__MODULE__, 1, location }) do
+  def format_stacktrace_entry({_module, :__MODULE__, 1, location}) do
     format_location(location) <> "(module)"
   end
 
   # From :elixir_compiler_*
-  def format_stacktrace_entry({ _module, :__FILE__, 1, location }) do
+  def format_stacktrace_entry({_module, :__FILE__, 1, location}) do
     format_location(location) <> "(file)"
   end
 
-  def format_stacktrace_entry({ module, fun, arity, location }) do
+  def format_stacktrace_entry({module, fun, arity, location}) do
     format_application(module) <> format_location(location) <> format_mfa(module, fun, arity)
   end
 
-  def format_stacktrace_entry({ fun, arity, location }) do
+  def format_stacktrace_entry({fun, arity, location}) do
     format_location(location) <> format_fa(fun, arity)
   end
 
   defp format_application(module) do
     case :application.get_application(module) do
-      { :ok, app } -> "(" <> atom_to_binary(app) <> ") "
+      {:ok, app} -> "(" <> atom_to_binary(app) <> ") "
       :undefined   -> ""
     end
   end
@@ -385,15 +403,15 @@ defmodule Exception do
     format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), " "
   end
 
-  defp from_stacktrace([{ module, function, args, _ }|_]) when is_list(args) do
-    { module, function, length(args) }
+  defp from_stacktrace([{module, function, args, _}|_]) when is_list(args) do
+    {module, function, length(args)}
   end
 
-  defp from_stacktrace([{ module, function, arity, _ }|_]) do
-    { module, function, arity }
+  defp from_stacktrace([{module, function, arity, _}|_]) do
+    {module, function, arity}
   end
 
   defp from_stacktrace(_) do
-    { nil, nil, nil }
+    {nil, nil, nil}
   end
 end

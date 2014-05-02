@@ -17,13 +17,13 @@ extract(Line, _Scope, _Interpol, [], Buffer, 0, Output, []) ->
   finish_extraction(Line, Buffer, Output, []);
 
 extract(Line, _Scope, _Interpol, [], _Buffer, 0, _Output, Last) ->
-  { error, { string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), [] } };
+  {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
 extract(Line, _Scope, _Interpol, [Last|Remaining], Buffer, 0, Output, Last) ->
   finish_extraction(Line, Buffer, Output, Remaining);
 
 extract(Line, _Scope, _Interpol, [], _Buffer, _Search, _Output, Last) ->
-  { error, { string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), [] } };
+  {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
 %% Going through the string
 
@@ -46,13 +46,13 @@ extract(Line, Scope, true, [$#, ${|Rest], Buffer, Search, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
 
   case elixir_tokenizer:tokenize(Rest, Line, Scope) of
-    { error, { EndLine, _, "}" }, [$}|NewRest], Tokens } ->
+    {error, {EndLine, _, "}"}, [$}|NewRest], Tokens} ->
       Output2 = build_interpol(Line, Tokens, Output1),
       extract(EndLine, Scope, true, NewRest, [], Search, Output2, Last);
-    { error, Reason, _, _ } ->
-      { error, Reason };
-    { ok, _EndLine, _ } ->
-      { error, { string, Line, "missing interpolation terminator: }", [] } }
+    {error, Reason, _, _} ->
+      {error, Reason};
+    {ok, _EndLine, _} ->
+      {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
 
 %% Matching () [] {} <> inside sigils
@@ -173,11 +173,11 @@ finish_extraction(Line, Buffer, Output, Remaining) ->
     []    -> Final = [<<>>];
     Final -> []
   end,
-  { Line, lists:reverse(Final), Remaining }.
+  {Line, lists:reverse(Final), Remaining}.
 
 build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) ->
   [elixir_utils:characters_to_binary(lists:reverse(Buffer))|Output].
 
 build_interpol(Line, Buffer, Output) ->
-  [{ Line, lists:reverse(Buffer) }|Output].
+  [{Line, lists:reverse(Buffer)}|Output].

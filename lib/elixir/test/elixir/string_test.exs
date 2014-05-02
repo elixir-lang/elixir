@@ -10,8 +10,8 @@ defmodule StringTest do
   end
 
   test :next_codepoint do
-    assert String.next_codepoint("ésoj") == { "é", "soj" }
-    assert String.next_codepoint(<<255>>) == { <<255>>, "" }
+    assert String.next_codepoint("ésoj") == {"é", "soj"}
+    assert String.next_codepoint(<<255>>) == {<<255>>, ""}
     assert String.next_codepoint("") == nil
   end
 
@@ -63,6 +63,23 @@ defmodule StringTest do
     assert String.split("a,b.c ", ~r{\W}) == ["a", "b", "c", ""]
     assert String.split("a,b.c ", ~r{\W}, trim: false) == ["a", "b", "c", ""]
     assert String.split("a,b", ~r{\.}) == ["a,b"]
+  end
+
+  test :split_at do
+    assert String.split_at("", 0) == {"", ""}
+    assert String.split_at("", -1) == {"", ""}
+    assert String.split_at("", 1) == {"", ""}
+
+    assert String.split_at("abc", 0) == {"", "abc"}
+    assert String.split_at("abc", 2) == {"ab", "c"}
+    assert String.split_at("abc", 3) == {"abc", ""}
+    assert String.split_at("abc", 4) == {"abc", ""}
+    assert String.split_at("abc", 1000) == {"abc", ""}
+
+    assert String.split_at("abc", -1) == {"ab", "c"}
+    assert String.split_at("abc", -3) == {"", "abc"}
+    assert String.split_at("abc", -4) == {"", "abc"}
+    assert String.split_at("abc", -1000) == {"", "abc"}
   end
 
   test :upcase do
@@ -429,43 +446,20 @@ defmodule StringTest do
     end
   end
 
-  test :to_char_list do
-    assert String.to_char_list("æß")  == { :ok, [?æ, ?ß] }
-    assert String.to_char_list("abc") == { :ok, [?a, ?b, ?c] }
-
-    assert String.to_char_list(<< 0xDF, 0xFF >>) == { :error, [], << 223, 255 >> }
-    assert String.to_char_list(<< 106, 111, 115, 195 >>) == { :incomplete, 'jos', << 195 >> }
-  end
-
-  test :to_char_list! do
-    assert String.to_char_list!("æß")  == [?æ, ?ß]
-    assert String.to_char_list!("abc") == [?a, ?b, ?c]
-
-    assert_raise String.UnicodeConversionError,
-                 "invalid encoding starting at <<223, 255>>", fn ->
-      String.to_char_list!(<< 0xDF, 0xFF >>)
-    end
-
-    assert_raise String.UnicodeConversionError,
-                 "incomplete encoding starting at <<195>>", fn ->
-      String.to_char_list!(<< 106, 111, 115, 195 >>)
-    end
-  end
-
   test :from_char_list do
-    assert String.from_char_list([?æ, ?ß]) == { :ok, "æß" }
-    assert String.from_char_list([?a, ?b, ?c]) == { :ok, "abc" }
+    assert String.from_char_data([?æ, ?ß]) == {:ok, "æß"}
+    assert String.from_char_data([?a, ?b, ?c]) == {:ok, "abc"}
 
-    assert String.from_char_list([0xDFFF]) == { :error, "", [0xDFFF] }
+    assert String.from_char_data([0xDFFF]) == {:error, "", [0xDFFF]}
   end
 
   test :from_char_list! do
-    assert String.from_char_list!([?æ, ?ß]) == "æß"
-    assert String.from_char_list!([?a, ?b, ?c]) == "abc"
+    assert String.from_char_data!([?æ, ?ß]) == "æß"
+    assert String.from_char_data!([?a, ?b, ?c]) == "abc"
 
-    assert_raise String.UnicodeConversionError,
+    assert_raise UnicodeConversionError,
                  "invalid code point 57343", fn ->
-      String.from_char_list!([0xDFFF])
+      String.from_char_data!([0xDFFF])
     end
   end
 end

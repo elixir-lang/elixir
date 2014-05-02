@@ -10,7 +10,7 @@ defmodule Mix.Mixfile do
 
   def application do
     [ registered: [Mix.TasksServer, Mix.ProjectStack],
-      mod: { Mix, [] },
+      mod: {Mix, []},
       env: [shell: Mix.Shell.IO,
             env: :dev,
             scm: [Mix.SCM.Git, Mix.SCM.Path]] ]

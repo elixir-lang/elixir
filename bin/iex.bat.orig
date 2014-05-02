@@ -1,0 +1,6 @@
+@echo off
+<<<<<<< HEAD
+call "%~dp0\elixir.bat" +iex --erl "-user Elixir.IEx.CLI" --no-halt %*
+=======
+call "%~dp0\elixir.bat" +iex --erl "-user Elixir.IEx.CLI" --no-halt %*
+>>>>>>> ba40cb8a3e40be79b4b99633fa64f35a544c95d2

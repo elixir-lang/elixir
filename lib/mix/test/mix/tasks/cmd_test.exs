@@ -7,10 +7,10 @@ defmodule Mix.Tasks.CmdTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "cmd", ["echo", "hello"]
-        assert_received { :mix_shell, :info, ["==> bar"] }
-        assert_received { :mix_shell, :run, ["hello\n"] }
-        assert_received { :mix_shell, :info, ["==> foo"] }
-        assert_received { :mix_shell, :run, ["hello\n"] }
+        assert_received {:mix_shell, :info, ["==> bar"]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
+        assert_received {:mix_shell, :info, ["==> foo"]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
       end)
     end
   end

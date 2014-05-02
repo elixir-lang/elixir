@@ -110,7 +110,7 @@ defmodule Record.DeprecatedTest do
 
   defmacrop compose_dynamic(opts) do
     quote do
-      RecordTest.DynamicName[unquote_splicing(opts), { :b, "b" }]
+      RecordTest.DynamicName[unquote_splicing(opts), {:b, "b"}]
     end
   end
 
@@ -138,14 +138,14 @@ defmodule Record.DeprecatedTest do
   end
 
   test :optimizable do
-    assert { :b, 1 } in RecordTest.SomeRecord.__record__(:optimizable)
-    assert { :b, 2 } in RecordTest.SomeRecord.__record__(:optimizable)
-    assert { :update_b, 2 } in RecordTest.SomeRecord.__record__(:optimizable)
-    refute { :update_b, 2 } in RecordTest.DynamicName.__record__(:optimizable)
+    assert {:b, 1} in RecordTest.SomeRecord.__record__(:optimizable)
+    assert {:b, 2} in RecordTest.SomeRecord.__record__(:optimizable)
+    assert {:update_b, 2} in RecordTest.SomeRecord.__record__(:optimizable)
+    refute {:update_b, 2} in RecordTest.DynamicName.__record__(:optimizable)
   end
 
   test :result do
-    assert { :module, _, _, "result"} = (defrecord WithResult, foo: :bar do
+    assert {:module, _, _, "result"} = (defrecord WithResult, foo: :bar do
       "result"
     end)
   end
@@ -181,7 +181,7 @@ defmodule Record.DeprecatedTest do
   end
 
   test :custom_record do
-    { :module, _, binary, _ } =
+    {:module, _, binary, _} =
       defmodule CustomRecord do
         Record.deffunctions [:name, :age], __ENV__
         Record.deftypes [:name, :age], [name: :binary, age: :integer], __ENV__
@@ -192,10 +192,10 @@ defmodule Record.DeprecatedTest do
     record = CustomRecord.new
     assert CustomRecord.__record__(:index, :name) == record.__record__(:index, :name)
 
-    assert Enum.any?(Kernel.Typespec.beam_types(binary), &match?({ :type,{ :t, _, _ } }, &1))
+    assert Enum.any?(Kernel.Typespec.beam_types(binary), &match?({:type,{:t, _, _}}, &1))
   end
 
   defp empty_tuple, do: {}
-  defp a_tuple, do: { :foo, :bar, :baz }
+  defp a_tuple, do: {:foo, :bar, :baz}
   defp a_list,  do: [ :foo, :bar, :baz ]
 end

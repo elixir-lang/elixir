@@ -7,10 +7,10 @@ defmodule IEx.EvaluatorTest do
 
   test "format_stacktrace returns formatted result in columns" do
     frames = [
-      { List,   :one,    1, [file: "loc",    line: 1] },
-      { String, :second, 2, [file: "loc2",   line: 102] },
-      { IEx,    :three,  3, [file: "longer", line: 1234] },
-      { List,   :four,   4, [file: "loc",    line: 1] },
+      {List,   :one,    1, [file: "loc",    line: 1]},
+      {String, :second, 2, [file: "loc2",   line: 102]},
+      {IEx,    :three,  3, [file: "longer", line: 1234]},
+      {List,   :four,   4, [file: "loc",    line: 1]},
     ]
     IEx.Options.set :colors, enabled: false
 

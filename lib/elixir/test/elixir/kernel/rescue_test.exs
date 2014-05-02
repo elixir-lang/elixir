@@ -149,7 +149,7 @@ defmodule Kernel.RescueTest do
 
   test :tuple_badarg_error do
     result = try do
-      :erlang.error({ :badarg, [1, 2, 3] })
+      :erlang.error({:badarg, [1, 2, 3]})
     rescue
       x in [ArgumentError] -> x.message
     end

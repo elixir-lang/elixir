@@ -2,8 +2,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, []),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, []),
+  {Value, Binding}.
 
 separator_test() ->
   {334,[]} = eval("3_34"),

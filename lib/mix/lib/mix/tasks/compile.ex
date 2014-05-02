@@ -34,16 +34,16 @@ defmodule Mix.Tasks.Compile do
                task = Mix.Task.task_name(module),
                match?("compile." <> _, task),
                doc = Mix.Task.moduledoc(module) do
-      { task, first_line(doc) }
+      {task, first_line(doc)}
     end
 
-    max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
+    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
       max(size(task), acc)
     end
 
     sorted = Enum.sort(docs)
 
-    Enum.each sorted, fn({ task, doc }) ->
+    Enum.each sorted, fn({task, doc}) ->
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 
@@ -87,12 +87,12 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp get_compilers do
-    Mix.project[:compilers] ||
+    Mix.Project.config[:compilers] ||
       [:yecc, :leex, :erlang, :elixir, :app]
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) |> iolist_to_binary
+    :io_lib.format(expression, args) |> iodata_to_binary
   end
 
   defp first_line(doc) do

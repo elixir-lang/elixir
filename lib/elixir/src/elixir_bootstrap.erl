@@ -19,14 +19,14 @@
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
 'MACRO-defmodule'(_Caller, Alias, [{do,Block}]) ->
-  { Escaped, _ } = elixir_quote:escape(Block, false),
+  {Escaped, _} = elixir_quote:escape(Block, false),
   Args = [Alias, Escaped, [], env()],
-  { { '.', [], [elixir_module, compile] }, [], Args }.
+  {{'.', [], [elixir_module, compile]}, [], Args}.
 
 '__info__'(functions) ->
   [];
 '__info__'(macros) ->
-  [{ '@', 1 },
+  [{'@', 1},
    {def,1},
    {def,2},
    {defmacro,1},
@@ -36,16 +36,16 @@
    {defp,2}].
 
 define({Line,E}, Kind, Call, Expr) ->
-  { EscapedCall, UC } = elixir_quote:escape(Call, true),
-  { EscapedExpr, UE } = elixir_quote:escape(Expr, true),
+  {EscapedCall, UC} = elixir_quote:escape(Call, true),
+  {EscapedExpr, UE} = elixir_quote:escape(Expr, true),
   Args = [Line, Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_locals:cache_env(E)],
-  { { '.', [], [elixir_def, store_definition] }, [], Args }.
+  {{'.', [], [elixir_def, store_definition]}, [], Args}.
 
 unless_loaded(Fun, Args, Callback) ->
   case code:is_loaded(?kernel) of
-    { _, _} -> apply(?kernel, Fun, Args);
+    {_, _} -> apply(?kernel, Fun, Args);
     false   -> Callback()
   end.
 
 env() ->
-  { '__ENV__', [], nil }.
+  {'__ENV__', [], nil}.

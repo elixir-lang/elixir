@@ -77,7 +77,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = tmp_path |> String.to_char_list!
+    flag = tmp_path |> List.from_char_data!
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -90,7 +90,7 @@ defmodule MixTest.Case do
       File.cd! dest, function
     after
       :code.set_path(get_path)
-      Enum.each (:code.all_loaded -- previous), fn { mod, file } ->
+      Enum.each (:code.all_loaded -- previous), fn {mod, file} ->
         if is_list(file) and :lists.prefix(flag, file) do
           purge [mod]
         end
@@ -99,7 +99,7 @@ defmodule MixTest.Case do
   end
 
   defp delete_tmp_paths do
-    tmp = tmp_path |> String.to_char_list!
+    tmp = tmp_path |> List.from_char_data!
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
     Enum.map to_remove, &(:code.del_path(&1))
   end
@@ -196,7 +196,7 @@ unless File.dir?(target) do
     def project do
       [ app: :deps_on_git_repo,
         version: "0.2.0",
-        deps: [{ :git_repo, git: MixTest.Case.fixture_path("git_repo") }] ]
+        deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}] ]
     end
   end
   """

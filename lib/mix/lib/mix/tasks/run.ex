@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Run do
 
   """
   def run(args) do
-    { opts, head, _ } = OptionParser.parse_head(args,
+    {opts, head, _} = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval],
       switches: [parallel_require: :keep, require: :keep])
 
@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Run do
     # but before requiring and evaling
     Mix.Task.run "app.start", args
 
-    Enum.each opts, fn({ key, value }) ->
+    Enum.each opts, fn({key, value}) ->
       case key do
         :parallel_require ->
           value |> filter_patterns |> Kernel.ParallelRequire.files

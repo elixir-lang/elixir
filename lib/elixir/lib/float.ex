@@ -6,7 +6,7 @@ defmodule Float do
   @doc """
   Parses a binary into a float.
 
-  If successful, returns a tuple of the form `{ float, remainder_of_binary }`.
+  If successful, returns a tuple of the form `{float, remainder_of_binary}`.
   Otherwise `:error`.
 
   ## Examples
@@ -24,11 +24,11 @@ defmodule Float do
       :error
 
   """
-  @spec parse(binary) :: { float, binary } | :error
+  @spec parse(binary) :: {float, binary} | :error
   def parse("-" <> binary) do
     case parse_unsign(binary) do
       :error -> :error
-      { number, remainder } -> { -number, remainder }
+      {number, remainder} -> {-number, remainder}
     end
   end
 
@@ -40,7 +40,7 @@ defmodule Float do
   defp parse_unsign(binary) when is_binary(binary) do
     case Integer.parse binary do
       :error -> :error
-      { integer_part, after_integer } -> parse_unsign after_integer, integer_part
+      {integer_part, after_integer} -> parse_unsign after_integer, integer_part
     end
   end
 
@@ -50,7 +50,7 @@ defmodule Float do
   end
 
   defp parse_unsign(rest, int) do
-    { :erlang.float(int), rest }
+    {:erlang.float(int), rest}
   end
 
   # Handle decimal points
@@ -65,14 +65,14 @@ defmodule Float do
         # the function clause because the current approach copies a binary
         # just on this branch. If we broke it apart in the function clause,
         # the copy would happen when calling Integer.parse/1.
-        { floatify(int, float, decimal), << ?e, after_e :: binary >> }
-      { exponential, after_exponential } ->
-        { floatify(int, float, decimal, exponential), after_exponential }
+        {floatify(int, float, decimal), << ?e, after_e :: binary >>}
+      {exponential, after_exponential} ->
+        {floatify(int, float, decimal, exponential), after_exponential}
     end
   end
 
   defp parse_unsign(bitstring, float, decimal, int) do
-    { floatify(int, float, decimal), bitstring }
+    {floatify(int, float, decimal), bitstring}
   end
 
   defp floatify(int, float, decimal, exponential \\ 0) do

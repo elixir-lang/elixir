@@ -24,26 +24,26 @@ defmodule Mix.Tasks.Local.Install do
 
   ## Command line options
 
-  * `--force` forces installation without a shell prompt. Primarily
+  * `--force` - forces installation without a shell prompt. Primarily
     intended for automation in build systems like make.
 
   """
 
   def run(argv) do
-    { opts, argv, _ } = OptionParser.parse(argv, switches: [force: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
 
-    if url = List.first(argv) do
-      URI.Info[path: path] = URI.parse(url)
+    if src = List.first(argv) do
+      %URI{path: path} = URI.parse(src)
 
       case Path.extname(path) do
-        ".ez" -> install_archive(url, opts)
+        ".ez" -> install_archive(src, opts)
         _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
       end
     else
-      path = Mix.Archive.name(Mix.project[:app], Mix.project[:version])
+      src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
 
-      if File.exists?(path) do
-        install_archive(path, opts)
+      if File.exists?(src) do
+        install_archive(src, opts)
       else
         raise Mix.Error, message: "Expected PATH to be given, please use `mix local.install PATH`"
       end
@@ -52,16 +52,19 @@ defmodule Mix.Tasks.Local.Install do
 
   defp install_archive(src, opts) do
     previous = previous_versions(src)
+
     if opts[:force] || should_install?(src, previous) do
       remove_previous_versions(previous)
-      dest = Mix.Local.archives_path
-      File.mkdir_p! dest
-      create_file Path.join(dest, basename(src)), Mix.Utils.read_path!(src)
+      dest = Mix.Local.archives_path()
+      File.mkdir_p!(dest)
+      archive = Path.join(dest, basename(src))
+      create_file archive, Mix.Utils.read_path!(src)
+      Code.append_path(Mix.Archive.ebin(archive))
     end
   end
 
   defp basename(path) do
-    URI.Info[path: path] = URI.parse(path)
+    %URI{path: path} = URI.parse(path)
     Path.basename(path)
   end
 
@@ -73,11 +76,15 @@ defmodule Mix.Tasks.Local.Install do
     files = Enum.map_join(previous_files, ", ", &Path.basename/1)
 
     Mix.shell.yes?("Found existing archives: #{files}.\n" <>
-                   "Do you want to remove them?")
+                   "Are you sure you want to replace them?")
   end
 
   defp previous_versions(src) do
-    app = Mix.Archive.dir(src) |> String.split("-") |> List.first
+    app = src
+          |> Mix.Archive.dir
+          |> String.split("-")
+          |> List.first
+
     if app do
       Mix.Local.archive_files(app)
     else

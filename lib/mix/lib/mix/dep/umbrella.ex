@@ -5,7 +5,7 @@ defmodule Mix.Dep.Umbrella do
   Gets all umbrella dependencies in unloaded format.
   """
   def unloaded do
-    config = Mix.project
+    config = Mix.Project.config
 
     if apps_path = config[:apps_path] do
       paths = Path.wildcard(Path.join(apps_path, "*"))
@@ -40,26 +40,26 @@ defmodule Mix.Dep.Umbrella do
   defp extract_umbrella(paths) do
     for path <- paths do
       app = path |> Path.basename |> String.downcase |> binary_to_atom
-      { app, path }
+      {app, path}
     end
   end
 
   defp filter_umbrella(pairs, nil), do: pairs
   defp filter_umbrella(pairs, apps) when is_list(apps) do
-    for { app, _ } = pair <- pairs, app in apps, do: pair
+    for {app, _} = pair <- pairs, app in apps, do: pair
   end
 
   defp to_umbrella_dep(paths, build) do
-    Enum.map paths, fn({ app, path }) ->
+    Enum.map paths, fn({app, path}) ->
       opts = [path: path, dest: Path.expand(path),
-              env: Mix.env, build: Path.join([build, "lib", app])]
+              env: Mix.env, build: Path.join([build, "lib", atom_to_binary(app)])]
       %Mix.Dep{
         scm: Mix.SCM.Path,
         app: app,
         requirement: nil,
         manager: :mix,
-        status: { :ok, nil },
-        opts: opts }
+        status: {:ok, nil},
+        opts: opts}
     end
   end
 end

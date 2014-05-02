@@ -16,14 +16,14 @@ defmodule Mix.Tasks.CompileTest do
 
   test "mix compile --list with mixfile" do
     Mix.Tasks.Compile.run ["--list"]
-    assert_received { :mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app"] }
-    assert_received { :mix_shell, :info, ["mix compile.elixir # " <> _] }
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app"]}
+    assert_received {:mix_shell, :info, ["mix compile.elixir # " <> _]}
   end
 
   test "mix compile --list with custom mixfile" do
     Mix.Project.push CustomCompilers
     Mix.Tasks.Compile.run ["--list"]
-    assert_received { :mix_shell, :info, ["\nEnabled compilers: elixir, app, custom"] }
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom"]}
   end
 
   test "compile a project with mixfile" do
@@ -31,8 +31,8 @@ defmodule Mix.Tasks.CompileTest do
       Mix.Tasks.Compile.run []
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
-      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
-      assert_received { :mix_shell, :info, ["Generated sample.app"] }
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Generated sample.app"]}
     end
   end
 

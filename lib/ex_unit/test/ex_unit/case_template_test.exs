@@ -14,12 +14,12 @@ defmodule ExUnit.SampleCase do
   end
 
   setup_all do
-    { :ok, [context: :setup_all, setup_all: 1] }
+    {:ok, [context: :setup_all, setup_all: 1]}
   end
 
   setup context do
     assert context[:context] == :setup_all
-    { :ok, [context: :setup, setup: 1] }
+    {:ok, [context: :setup, setup: 1]}
   end
 
   teardown context do
@@ -37,11 +37,11 @@ defmodule ExUnit.NestedCase do
   use ExUnit.CaseTemplate
 
   setup_all context do
-    { :ok, [setup_all: context[:setup_all] + 1] }
+    {:ok, [setup_all: context[:setup_all] + 1]}
   end
 
   setup context do
-    { :ok, [setup: context[:setup] + 1] }
+    {:ok, [setup: context[:setup] + 1]}
   end
 end
 

@@ -22,7 +22,7 @@ defmodule ProcessTest do
   end
 
   defp expand(expr, env) do
-    { expr, _env } = :elixir_exp.expand(expr, :elixir_env.ex_to_env(env))
+    {expr, _env} = :elixir_exp.expand(expr, env)
     expr
   end
 end

@@ -3,12 +3,12 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, []),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, []),
+  {Value, Binding}.
 
 to_erl(String) ->
   Forms = elixir:'string_to_quoted!'(String, 1, <<"nofile">>, []),
-  { Expr, _, _ } = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
+  {Expr, _, _} = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
   Expr.
 
 % Booleans
@@ -272,28 +272,28 @@ oror_test() ->
 % Optimized
 
 optimized_if_test() ->
-  { 'case', _, _,
+  {'case', _, _,
     [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
      {clause,_,[{atom,_,true}],[],[{atom,_,do}]}]
-  } = to_erl("if is_list([]), do: :do, else: :else").
+ } = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->
-  { 'case', _, _,
+  {'case', _, _,
     [{clause,_,
       [{var,_,Var}],
       [[{op,_,'orelse',_,_}]],
       [{var,_,Var}]},
     {clause,_,[{var,_,'_'}],[],[{atom,0,done}]}]
-  } = to_erl("is_list([]) && :done").
+ } = to_erl("is_list([]) && :done").
 
 optimized_oror_test() ->
-  { 'case', _, _,
+  {'case', _, _,
     [{clause,1,
       [{var,1,_}],
       [[{op,1,'orelse',_,_}]],
       [{atom,0,done}]},
     {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
-  } = to_erl("is_list([]) || :done").
+ } = to_erl("is_list([]) || :done").
 
 no_after_in_try_test() ->
-  { 'try', _, [_], [_], _, [] } = to_erl("try do :foo.bar() else _ -> :ok end").
+  {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").

@@ -47,13 +47,13 @@ defmodule IEx.ServerTest do
   end
 
   test "take over fails when there is no shell" do
-    assert IEx.Server.take_over("iex:13", [], 10) == { :error, :no_iex }
+    assert IEx.Server.take_over("iex:13", [], 10) == {:error, :no_iex}
   end
 
   test "pry wraps around take over" do
     require IEx
     assert capture_io(fn ->
-      assert IEx.pry == { :error, :no_iex }
+      assert IEx.pry == {:error, :no_iex}
     end) =~ "Is an IEx shell running?"
   end
 

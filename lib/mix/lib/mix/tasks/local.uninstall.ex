@@ -11,8 +11,12 @@ defmodule Mix.Tasks.Local.Uninstall do
   """
 
   def run(argv) do
-    { _, argv, _ } = OptionParser.parse(argv)
-    Enum.each argv, &do_uninstall(&1)
+    {_, argv, _} = OptionParser.parse(argv)
+    if argv == [] do
+      raise Mix.Error, message: "No archive was given to uninstall"
+    else
+      Enum.each argv, &do_uninstall(&1)
+    end
   end
 
   defp do_uninstall(name) do

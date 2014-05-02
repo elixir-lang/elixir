@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Test do
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
-      if :application.get_env(:cover, :started) != { :ok, true } do
+      if :application.get_env(:cover, :started) != {:ok, true} do
         output = opts[:output]
 
         System.at_exit fn(_) ->
@@ -86,6 +86,11 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external --exclude test
 
+  When filtering tests by line number the following styles are equivalent:
+
+      mix test test/some/particular/file_test.exs:12
+      mix test --only line:12 test/some/particular/file_test.exs
+
   ## Configuration
 
   * `:test_paths` - list of paths containing test files, defaults to `["test"]`.
@@ -113,32 +118,39 @@ defmodule Mix.Tasks.Test do
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
-             exclude: :keep, seed: :integer]
+             exclude: :keep, seed: :integer, only: :keep]
 
   @cover [output: "cover", tool: Cover]
 
   def run(args) do
-    { opts, files, _ } = OptionParser.parse(args, switches: @switches)
+    {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       raise Mix.Error, message: "mix test is running on environment #{Mix.env}. If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
-    Mix.Task.run "app.start", args
+    Mix.Task.run "deps.loadpaths", args
+    Mix.Task.run "loadpaths", args
 
-    project = Mix.project
+    unless opts[:no_compile] do
+      Mix.Task.run "compile", args
+    end
+
+    project = Mix.Project.config
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
+    # Start cover after we load deps but before we start the app.
     if opts[:cover] do
       cover[:tool].start(Mix.Project.compile_path(project), cover)
     end
 
+    Mix.Task.run "app.start", args
     :application.load(:ex_unit)
 
     # Configure exunit with command line options before requiring
     # test_helper so that the configuration is available in test_helper
-    # Then configure exunit again it so command line options override
+    # Then configure exunit again so that command line options override
     # test_helper
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
@@ -147,6 +159,16 @@ defmodule Mix.Tasks.Test do
     Enum.each(test_paths, &require_test_helper(&1))
 
     ExUnit.configure(opts)
+
+    files = case files do
+      [single_file] ->
+        # Check if the single file path matches test/path/to_test.exs:123, if it does
+        # apply `--only line:123` and trim the trailing :123 part.
+        {single_file, opts} = ExUnit.Filters.parse_path(single_file)
+        ExUnit.configure(opts)
+        [single_file]
+      _ -> files
+    end
 
     test_paths   = if files == [], do: test_paths, else: files
     test_pattern = project[:test_pattern] || "*_test.exs"

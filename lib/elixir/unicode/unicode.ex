@@ -14,7 +14,7 @@ defmodule String.Unicode do
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
-  { codes, whitespace } = Enum.reduce File.stream!(data_path), { [], [] }, fn(line, { cacc, wacc }) ->
+  {codes, whitespace} = Enum.reduce File.stream!(data_path), {[], []}, fn(line, {cacc, wacc}) ->
     [ codepoint, _name, _category,
       _class, bidi, _decomposition,
       _numeric_1, _numeric_2, _numeric_3,
@@ -25,11 +25,11 @@ defmodule String.Unicode do
 
     cond do
       upper != "" or lower != "" or title != "" ->
-        { [{ to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title) } | cacc], wacc }
+        {[{to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title)} | cacc], wacc}
       bidi in ["B", "S", "WS"] ->
-        { cacc, [to_binary.(codepoint) | wacc] }
+        {cacc, [to_binary.(codepoint) | wacc]}
       true ->
-        { cacc, wacc }
+        {cacc, wacc}
     end
   end
 
@@ -38,14 +38,14 @@ defmodule String.Unicode do
   codes = Enum.reduce File.stream!(special_path), codes, fn(line, acc) ->
     [ codepoint, lower, title, upper, _comment ] = :binary.split(line, "; ", [:global])
     key = to_binary.(codepoint)
-    :lists.keystore(key, 1, acc, { key, to_binary.(upper), to_binary.(lower), to_binary.(title) })
+    :lists.keystore(key, 1, acc, {key, to_binary.(upper), to_binary.(lower), to_binary.(title)})
   end
 
   # Downcase
 
-  def downcase(string), do: do_downcase(string) |> iolist_to_binary
+  def downcase(string), do: do_downcase(string) |> iodata_to_binary
 
-  for { codepoint, _upper, lower, _title } <- codes, lower && lower != codepoint do
+  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
     defp do_downcase(unquote(codepoint) <> rest) do
       unquote(:binary.bin_to_list(lower)) ++ downcase(rest)
     end
@@ -59,9 +59,9 @@ defmodule String.Unicode do
 
   # Upcase
 
-  def upcase(string), do: do_upcase(string) |> iolist_to_binary
+  def upcase(string), do: do_upcase(string) |> iodata_to_binary
 
-  for { codepoint, upper, _lower, _title } <- codes, upper && upper != codepoint do
+  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
     defp do_upcase(unquote(codepoint) <> rest) do
       unquote(:binary.bin_to_list(upper)) ++ do_upcase(rest)
     end
@@ -75,16 +75,16 @@ defmodule String.Unicode do
 
   # Titlecase once
 
-  def titlecase_once(""), do: { "", "" }
+  def titlecase_once(""), do: {"", ""}
 
-  for { codepoint, _upper, _lower, title } <- codes, title && title != codepoint do
+  for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
     def titlecase_once(unquote(codepoint) <> rest) do
-      { unquote(title), rest }
+      {unquote(title), rest}
     end
   end
 
   def titlecase_once(<< char, rest :: binary >>) do
-    { << char >>, rest }
+    {<< char >>, rest}
   end
 
   # Strip
@@ -119,7 +119,7 @@ defmodule String.Unicode do
     do_rstrip(rest, nil, [char|acc1])
   end
 
-  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iolist_to_binary
+  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iodata_to_binary
 
   # Split
 
@@ -143,7 +143,7 @@ defmodule String.Unicode do
     add_buffer_to_acc(buffer, acc)
   end
 
-  @compile { :inline, add_buffer_to_acc: 2 }
+  @compile {:inline, add_buffer_to_acc: 2}
 
   defp add_buffer_to_acc("", acc),     do: acc
   defp add_buffer_to_acc(buffer, acc), do: [buffer|acc]
@@ -151,11 +151,11 @@ defmodule String.Unicode do
   # Codepoints
 
   def next_codepoint(<< cp :: utf8, rest :: binary >>) do
-    { <<cp :: utf8>>, rest }
+    {<<cp :: utf8>>, rest}
   end
 
   def next_codepoint(<< cp, rest :: binary >>) do
-    { <<cp>>, rest }
+    {<<cp>>, rest}
   end
 
   def next_codepoint(<<>>) do
@@ -166,7 +166,7 @@ defmodule String.Unicode do
     do_codepoints(next_codepoint(binary))
   end
 
-  defp do_codepoints({ c, rest }) do
+  defp do_codepoints({c, rest}) do
     [c|do_codepoints(next_codepoint(rest))]
   end
 
@@ -209,13 +209,13 @@ defmodule String.Graphemes do
 
   # Don't break CRLF
   def next_grapheme(<< ?\n, ?\r, rest :: binary >>) do
-    { "\n\r", rest }
+    {"\n\r", rest}
   end
 
   # Break on control
   for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      { :binary.part(string, 0, unquote(size(codepoint))), rest }
+      {:binary.part(string, 0, unquote(size(codepoint))), rest}
     end
   end
 
@@ -253,7 +253,7 @@ defmodule String.Graphemes do
   end
 
   def next_grapheme(<< cp, rest :: binary >>) do
-    { <<cp>>, rest }
+    {<<cp>>, rest}
   end
 
   def next_grapheme(<<>>) do
@@ -324,7 +324,7 @@ defmodule String.Graphemes do
   end
 
   defp next_extend(rest, string, size) do
-    { :binary.part(string, 0, size), rest }
+    {:binary.part(string, 0, size), rest}
   end
 
   # Handle Prepend
@@ -335,14 +335,14 @@ defmodule String.Graphemes do
   # end
   #
   # defp next_prepend(rest, string, size) do
-  #   { :binary.part(string, 0, size), rest }
+  #   {:binary.part(string, 0, size), rest}
   # end
 
   def graphemes(binary) when is_binary(binary) do
     do_graphemes(next_grapheme(binary))
   end
 
-  defp do_graphemes({ c, rest }) do
+  defp do_graphemes({c, rest}) do
     [c|do_graphemes(next_grapheme(rest))]
   end
 

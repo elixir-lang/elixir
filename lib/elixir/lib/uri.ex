@@ -3,22 +3,22 @@ defmodule URI do
   Utilities for working with and creating URIs.
   """
 
-  defrecord Info, [scheme: nil, path: nil, query: nil,
-                   fragment: nil, authority: nil,
-                   userinfo: nil, host: nil, port: nil]
+  defstruct scheme: nil, path: nil, query: nil,
+            fragment: nil, authority: nil,
+            userinfo: nil, host: nil, port: nil
 
   import Bitwise
 
-  @ports [
-    { "ftp", 21 },
-    { "http", 80 },
-    { "https", 443 },
-    { "ldap", 389 },
-    { "sftp", 22 },
-    { "tftp", 69 },
-  ]
+  @ports %{
+    "ftp"   => 21,
+    "http"  => 80,
+    "https" => 443,
+    "ldap"  => 389,
+    "sftp"  => 22,
+    "tftp"  => 69,
+  }
 
-  Enum.each @ports, fn { scheme, port } ->
+  Enum.each @ports, fn {scheme, port} ->
     def normalize_scheme(unquote(scheme)), do: unquote(scheme)
     def default_port(unquote(scheme)),     do: unquote(port)
   end
@@ -45,16 +45,16 @@ defmodule URI do
 
   """
   def default_port(scheme) when is_binary(scheme) do
-    { :ok, dict } = :application.get_env(:elixir, :uri)
-    Dict.get(dict, scheme)
+    {:ok, dict} = :application.get_env(:elixir, :uri)
+    Map.get(dict, scheme)
   end
 
   @doc """
   Registers a scheme with a default port.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
-    { :ok, dict } = :application.get_env(:elixir, :uri)
-    :application.set_env(:elixir, :uri, Dict.put(dict, scheme, port))
+    {:ok, dict} = :application.get_env(:elixir, :uri)
+    :application.set_env(:elixir, :uri, Map.put(dict, scheme, port))
   end
 
   @doc """
@@ -92,7 +92,7 @@ defmodule URI do
 
   """
   def decode_query(q, dict \\ %{}) when is_binary(q) do
-    Enum.reduce query_decoder(q), dict, fn({ k, v }, acc) -> Dict.put(acc, k, v) end
+    Enum.reduce query_decoder(q), dict, fn({k, v}, acc) -> Dict.put(acc, k, v) end
   end
 
   @doc """
@@ -114,19 +114,19 @@ defmodule URI do
   end
 
   defp do_decoder(q) do
-    { first, next } =
+    {first, next} =
       case :binary.split(q, "&") do
-        [first, rest] -> { first, rest }
-        [first]       -> { first, "" }
+        [first, rest] -> {first, rest}
+        [first]       -> {first, ""}
       end
 
     current =
       case :binary.split(first, "=") do
-        [ key, value ] -> { decode(key), decode(value) }
-        [ key ]        -> { decode(key), nil }
+        [ key, value ] -> {decode(key), decode(value)}
+        [ key ]        -> {decode(key), nil}
       end
 
-    { current, next }
+    {current, next}
   end
 
   defp pair({k, _}) when is_list(k) do
@@ -213,9 +213,9 @@ defmodule URI do
   ## Examples
 
       iex> URI.parse("http://elixir-lang.org/")
-      URI.Info[scheme: "http", path: "/", query: nil, fragment: nil,
-               authority: "elixir-lang.org", userinfo: nil,
-               host: "elixir-lang.org", port: 80]
+      %URI{scheme: "http", path: "/", query: nil, fragment: nil,
+           authority: "elixir-lang.org", userinfo: nil,
+           host: "elixir-lang.org", port: 80}
 
   """
   def parse(s) when is_binary(s) do
@@ -224,7 +224,7 @@ defmodule URI do
     parts = nillify(Regex.run(regex, s))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts
-    { userinfo, host, port } = split_authority(authority)
+    {userinfo, host, port} = split_authority(authority)
 
     if authority do
       authority = ""
@@ -240,11 +240,11 @@ defmodule URI do
       port = default_port(scheme)
     end
 
-    URI.Info[
+    %URI{
       scheme: scheme, path: path, query: query,
       fragment: fragment, authority: authority,
       userinfo: userinfo, host: host, port: port
-    ]
+    }
   end
 
   # Split an authority into its userinfo, host and port parts.
@@ -256,7 +256,7 @@ defmodule URI do
     port = if port, do: binary_to_integer(port)
     host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
 
-    { userinfo, host, port }
+    {userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
@@ -268,12 +268,12 @@ defmodule URI do
   end
 end
 
-defimpl String.Chars, for: URI.Info do
-  def to_string(URI.Info[] = uri) do
+defimpl String.Chars, for: URI do
+  def to_string(uri) do
     scheme = uri.scheme
 
     if scheme && (port = URI.default_port(scheme)) do
-      if uri.port == port, do: uri = uri.port(nil)
+      if uri.port == port, do: uri = %{uri | port: nil}
     end
 
     result = ""

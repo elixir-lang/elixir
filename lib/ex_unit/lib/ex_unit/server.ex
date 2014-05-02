@@ -7,7 +7,7 @@ defmodule ExUnit.Server do
   defrecord Config, async_cases: [], sync_cases: [], start_load: nil, captured_devices: HashSet.new
 
   def start_link() do
-    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, :ok, [])
+    :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
   end
 
   ## Before run API
@@ -17,11 +17,11 @@ defmodule ExUnit.Server do
   end
 
   def add_async_case(name) do
-    :gen_server.cast(__MODULE__, { :add_async_case, name })
+    :gen_server.cast(__MODULE__, {:add_async_case, name})
   end
 
   def add_sync_case(name) do
-    :gen_server.cast(__MODULE__, { :add_sync_case, name })
+    :gen_server.cast(__MODULE__, {:add_sync_case, name})
   end
 
   ## After run API
@@ -33,17 +33,17 @@ defmodule ExUnit.Server do
   ## Capture Device API
 
   def add_device(device) do
-    :gen_server.call(__MODULE__, { :add_device, device })
+    :gen_server.call(__MODULE__, {:add_device, device})
   end
 
   def remove_device(device) do
-    :gen_server.call(__MODULE__, { :remove_device, device })
+    :gen_server.call(__MODULE__, {:remove_device, device})
   end
 
   ## Callbacks
 
   def init(:ok) do
-    { :ok, Config[] }
+    {:ok, Config[]}
   end
 
   def handle_call(:start_run, _from, config) do
@@ -52,19 +52,19 @@ defmodule ExUnit.Server do
         :timer.now_diff(:os.timestamp, start_load)
       end
 
-    { :reply,
-      { config.async_cases, config.sync_cases, load_us },
-      config.async_cases([]).sync_cases([]).start_load(nil) }
+    {:reply,
+      {config.async_cases, config.sync_cases, load_us},
+      config.async_cases([]).sync_cases([]).start_load(nil)}
   end
 
-  def handle_call({ :add_device, device }, _from, config) do
-    { :reply,
+  def handle_call({:add_device, device}, _from, config) do
+    {:reply,
       not(device in config.captured_devices),
-      config.update_captured_devices(&Set.put(&1, device)) }
+      config.update_captured_devices(&Set.put(&1, device))}
   end
 
-  def handle_call({ :remove_device, device }, _from, config) do
-    { :reply, :ok, config.update_captured_devices(&Set.delete(&1, device)) }
+  def handle_call({:remove_device, device}, _from, config) do
+    {:reply, :ok, config.update_captured_devices(&Set.delete(&1, device))}
   end
 
   def handle_call(request, from, config) do
@@ -72,15 +72,15 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast(:start_load, config) do
-    { :noreply, config.start_load(:os.timestamp) }
+    {:noreply, config.start_load(:os.timestamp)}
   end
 
   def handle_cast({:add_async_case, name}, config) do
-    { :noreply, config.update_async_cases &[name|&1] }
+    {:noreply, config.update_async_cases &[name|&1]}
   end
 
   def handle_cast({:add_sync_case, name}, config) do
-    { :noreply, config.update_sync_cases &[name|&1] }
+    {:noreply, config.update_sync_cases &[name|&1]}
   end
 
   def handle_cast(request, config) do

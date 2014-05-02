@@ -41,9 +41,9 @@ defmodule Mix.Dep.Lock do
   """
   def elixir_vsn(manifest_path) do
     case File.read(manifest(manifest_path)) do
-      { :ok, contents } ->
+      {:ok, contents} ->
         contents
-      { :error, _ } ->
+      {:error, _} ->
         nil
     end
   end
@@ -54,11 +54,11 @@ defmodule Mix.Dep.Lock do
   """
   def read() do
     case File.read(lockfile) do
-      { :ok, info } ->
-        { value, _binding } = Code.eval_string(info)
+      {:ok, info} ->
+        {value, _binding} = Code.eval_string(info)
         # TODO: Remove Enum.into() once apps migrate to new lock
         Enum.into(value || [], %{})
-      { :error, _ } ->
+      {:error, _} ->
         %{}
     end
   end
@@ -69,7 +69,7 @@ defmodule Mix.Dep.Lock do
   def write(map) do
     unless map == read do
       lines =
-        for { app, rev } <- map, rev != nil do
+        for {app, rev} <- map, rev != nil do
           ~s("#{app}": #{inspect rev, limit: :infinity})
         end
       File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
@@ -78,6 +78,6 @@ defmodule Mix.Dep.Lock do
   end
 
   defp lockfile do
-    Mix.project[:lockfile]
+    Mix.Project.config[:lockfile]
   end
 end

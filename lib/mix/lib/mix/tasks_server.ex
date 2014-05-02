@@ -3,7 +3,7 @@ defmodule Mix.TasksServer do
   use GenServer.Behaviour
 
   def start_link() do
-    :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, :ok, [])
+    :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
   end
 
   def call(arg) do
@@ -17,28 +17,28 @@ defmodule Mix.TasksServer do
   ## Callbacks
 
   def init(:ok) do
-    { :ok, HashSet.new }
+    {:ok, HashSet.new}
   end
 
   def handle_call(:clear_tasks, _from, set) do
-    { :reply, set, HashSet.new }
+    {:reply, set, HashSet.new}
   end
 
-  def handle_call({ :run_task, task, proj }, _from, set) do
-    item = { task, proj }
-    { :reply, not(item in set), Set.put(set, item) }
+  def handle_call({:run_task, task, proj}, _from, set) do
+    item = {task, proj}
+    {:reply, not(item in set), Set.put(set, item)}
   end
 
   def handle_call(request, from, config) do
     super(request, from, config)
   end
 
-  def handle_cast({ :put_task, task, proj }, set) do
-    { :noreply, Set.put(set, { task, proj }) }
+  def handle_cast({:put_task, task, proj}, set) do
+    {:noreply, Set.put(set, {task, proj})}
   end
 
-  def handle_cast({ :delete_task, task, proj }, set) do
-    { :noreply, Set.delete(set, { task, proj }) }
+  def handle_cast({:delete_task, task, proj}, set) do
+    {:noreply, Set.delete(set, {task, proj})}
   end
 
   def handle_cast(request, config) do

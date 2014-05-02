@@ -19,14 +19,15 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
+    Mix.Tasks.Local.Hex.maybe_update()
     args = load_mixfile(args)
-    { task, args } = get_task(args)
+    {task, args} = get_task(args)
     change_env(task)
     run_task(task, args)
   end
 
   defp load_mixfile(args) do
-    file = "mix.exs"
+    file = System.get_env("MIX_EXS") || "mix.exs"
     if File.regular?(file) do
       Code.load_file(file)
     end
@@ -35,16 +36,16 @@ defmodule Mix.CLI do
 
   defp get_task(["-" <> _|_]) do
     Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
-                    "please invoke instead: mix #{Mix.project[:default_task]}"
+                    "please invoke instead: mix #{Mix.Project.config[:default_task]}"
     exit(1)
   end
 
   defp get_task([h|t]) do
-    { h, t }
+    {h, t}
   end
 
   defp get_task([]) do
-    { Mix.project[:default_task], [] }
+    {Mix.Project.config[:default_task], []}
   end
 
   defp run_task(name, args) do
@@ -74,7 +75,7 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        if function_exported?(exception, :mix_error, 0) do
+        if function_exported?(exception.__record__(:name), :mix_error, 1) do
           if msg = exception.message, do: Mix.shell.error "** (Mix) #{msg}"
           exit(1)
         else
@@ -84,10 +85,10 @@ defmodule Mix.CLI do
   end
 
   defp change_env(task) do
-    if nil?(System.get_env("MIX_ENV")) && (env = Mix.project[:preferred_cli_env][task]) do
+    if nil?(System.get_env("MIX_ENV")) && (env = Mix.Project.config[:preferred_cli_env][task]) do
       Mix.env(env)
       if project = Mix.Project.pop do
-        { project, _config, file } = project
+        {project, _config, file} = project
         Mix.Project.push project, file
       end
     end

@@ -59,7 +59,7 @@ defmodule Mix.Shell.IO do
 
   defp put_app do
     if Mix.Shell.output_app? do
-      IO.puts "==> #{Mix.project[:app]}"
+      IO.puts "==> #{Mix.Project.config[:app]}"
     end
   end
 end

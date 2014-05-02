@@ -38,7 +38,7 @@ defmodule Mix.Tasks.New do
 
   """
   def run(argv) do
-    { opts, argv, _ } = OptionParser.parse(argv, switches: [bare: :boolean, umbrella: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [bare: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
@@ -102,7 +102,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(mod, false) do
-    "    [ applications: [],\n      mod: { #{mod}, [] } ]"
+    "    [ applications: [],\n      mod: {#{mod}, []} ]"
   end
 
   defp do_generate_umbrella(app, path, _opts) do
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.New do
 
     try do
       Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
-        path = Mix.project[:apps_path]
+        path = Mix.Project.config[:apps_path]
         path && Path.expand(path) == apps
       end)
     catch
@@ -180,9 +180,13 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
     #
-    # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
+    # {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
+    #
+    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -213,7 +217,7 @@ defmodule Mix.Tasks.New do
 
     # List all dependencies in the format:
     #
-    # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
+    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -233,7 +237,7 @@ defmodule Mix.Tasks.New do
 
     # List all dependencies in the format:
     #
-    # { :foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1" }
+    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do

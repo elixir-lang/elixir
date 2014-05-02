@@ -38,9 +38,9 @@ defmodule Mix.Tasks.Compile.Leex do
   Runs this task.
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    project      = Mix.project
+    project      = Mix.Project.config
     source_paths = project[:erlc_paths]
     mappings     = Enum.zip(source_paths, source_paths)
     options      = project[:leex_options] || []

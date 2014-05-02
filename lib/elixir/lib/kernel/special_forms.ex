@@ -33,11 +33,11 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> { 1, 2, 3 }
-      { 1, 2, 3 }
+      iex> {1, 2, 3}
+      {1, 2, 3}
 
-      iex> quote do: { 1, 2, 3 }
-      { :{}, [], [1,2,3] }
+      iex> quote do: {1, 2, 3}
+      {:{}, [], [1,2,3]}
 
   """
   defmacro unquote(:{})(args)
@@ -49,19 +49,19 @@ defmodule Kernel.SpecialForms do
   using the match operator (`===`). Maps can be created with
   the `%{}` special form where keys are associated via `=>`:
 
-      %{ 1 => 2 }
+      %{1 => 2}
 
   Maps also support the keyword notation, as other special forms,
   as long as they are at the end of the argument list:
 
-      %{ hello: :world, with: :keywords }
-      %{ :hello => :world, with: :keywords }
+      %{hello: :world, with: :keywords}
+      %{:hello => :world, with: :keywords}
 
   If a map has duplicated keys, the last key will always have
   higher precedence:
 
-      iex> %{ a: :b, a: :c }
-      %{ a: :c }
+      iex> %{a: :b, a: :c}
+      %{a: :c}
 
   Conveniences for manipulating maps can be found in the
   `Map` module.
@@ -72,7 +72,7 @@ defmodule Kernel.SpecialForms do
   like `Map.get/3` and `Map.fetch/2`, a map can be accessed using the
   `.` operator:
 
-      iex> map = %{ a: :b }
+      iex> map = %{a: :b}
       iex> map.a
       :b
 
@@ -83,9 +83,9 @@ defmodule Kernel.SpecialForms do
 
   Maps also support an update syntax:
 
-      iex> map = %{ :a => :b }
-      iex> %{ map | :a => :c }
-      %{ :a => :c }
+      iex> map = %{:a => :b}
+      iex> %{map | :a => :c}
+      %{:a => :c}
 
   Notice the update syntax requires the given keys to exist.
   Trying to update a key that does not exist will raise an `ArgumentError`.
@@ -96,8 +96,8 @@ defmodule Kernel.SpecialForms do
   always represented internally as a list of two-items tuples
   for simplicity:
 
-      iex> quote do: %{ :a => :b, c: :d }
-      { :%{}, [], [{:a, :b}, {:c, :d}] }
+      iex> quote do: %{:a => :b, c: :d}
+      {:%{}, [], [{:a, :b}, {:c, :d}]}
 
   """
   defmacro unquote(:%{})(args)
@@ -114,7 +114,7 @@ defmodule Kernel.SpecialForms do
 
       defmodule User do
         def __struct__ do
-          %{ name: "josé", age: 27 }
+          %{name: "josé", age: 27}
         end
       end
 
@@ -125,24 +125,24 @@ defmodule Kernel.SpecialForms do
   Underneath, a struct is just a map with a `__struct__` field
   pointing to the User module:
 
-      %User{} == %{ __struct__: User, name: "josé", age: 27 }
+      %User{} == %{__struct__: User, name: "josé", age: 27}
 
   A struct also validates the given keys are part of the defined
   struct. The example below will fail because there is no key
   `:full_name` in the user struct:
 
-      %User{ full_name: "José Valim" }
+      %User{full_name: "José Valim"}
 
   Note that a struct specifies a minimum set of keys required
   for operations. Other keys can be added to structs via the
   regular map operations:
 
       user = %User{}
-      %{ user | a_non_struct_key: :value }
+      Map.put(user, :a_non_struct_key, :value)
 
   An update operation specific for structs is also available:
 
-      %User{ user | age: 28 }
+      %User{user | age: 28}
 
   The syntax above will guarantee the given keys are valid at
   compilation time and it will guarantee at runtime the given
@@ -627,7 +627,7 @@ defmodule Kernel.SpecialForms do
   following example will match:
 
       iex> x = 0
-      iex> { x, ^x } = { 1, 0 }
+      iex> {x, ^x} = {1, 0}
       iex> x
       1
 
@@ -640,7 +640,7 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       quote do: sum(1, 2, 3)
-      #=> { :sum, [], [1, 2, 3] }
+      #=> {:sum, [], [1, 2, 3]}
 
   ## Explanation
 
@@ -648,7 +648,7 @@ defmodule Kernel.SpecialForms do
   The building block of Elixir macros is a tuple with three elements,
   for example:
 
-      { :sum, [], [1, 2, 3] }
+      {:sum, [], [1, 2, 3]}
 
   The tuple above represents a function call to `sum` passing 1, 2 and
   3 as arguments. The tuple elements are:
@@ -1025,7 +1025,7 @@ defmodule Kernel.SpecialForms do
   functions on the fly. Consider this example:
 
       kv = [foo: 1, bar: 2]
-      Enum.each kv, fn { k, v } ->
+      Enum.each kv, fn {k, v} ->
         def unquote(k)(), do: unquote(v)
       end
 
@@ -1034,7 +1034,7 @@ defmodule Kernel.SpecialForms do
   functionality into a macro:
 
       defmacro defkv(kv) do
-        Enum.map kv, fn { k, v } ->
+        Enum.map kv, fn {k, v} ->
           quote do
             def unquote(k)(), do: unquote(v)
           end
@@ -1061,7 +1061,7 @@ defmodule Kernel.SpecialForms do
 
       defmacro defkv(kv) do
         quote do
-          Enum.each unquote(kv), fn { k, v } ->
+          Enum.each unquote(kv), fn {k, v} ->
             def unquote(k)(), do: unquote(v)
           end
         end
@@ -1082,7 +1082,7 @@ defmodule Kernel.SpecialForms do
 
       defmacro defkv(kv) do
         quote bind_quoted: [kv: kv] do
-          Enum.each kv, fn { k, v } ->
+          Enum.each kv, fn {k, v} ->
             def unquote(k)(), do: unquote(v)
           end
         end
@@ -1107,13 +1107,13 @@ defmodule Kernel.SpecialForms do
 
   Which would then return:
 
-      { :sum, [], [1, { :value, [], quoted }, 3] }
+      {:sum, [], [1, {:value, [], quoted}, 3]}
 
   Which is not the expected result. For this, we use unquote:
 
       value = 13
       quote do: sum(1, unquote(value), 3)
-      #=> { :sum, [], [1, 13, 3] }
+      #=> {:sum, [], [1, 13, 3]}
 
   """
   defmacro unquote(:unquote)(expr)
@@ -1126,7 +1126,7 @@ defmodule Kernel.SpecialForms do
 
       values = [2, 3, 4]
       quote do: sum(1, unquote_splicing(values), 5)
-      #=> { :sum, [], [1, 2, 3, 4, 5] }
+      #=> {:sum, [], [1, 2, 3, 4, 5]}
 
   """
   defmacro unquote(:unquote_splicing)(expr)
@@ -1211,7 +1211,7 @@ defmodule Kernel.SpecialForms do
   and should not be invoked directly:
 
       iex> quote do: (1; 2; 3)
-      { :__block__, [], [1, 2, 3] }
+      {:__block__, [], [1, 2, 3]}
 
   """
   defmacro __block__(args)
@@ -1266,7 +1266,7 @@ defmodule Kernel.SpecialForms do
 
       iex> fun = &{&1, &2}
       iex> fun.(1, 2)
-      { 1, 2 }
+      {1, 2}
 
       iex> fun = &[&1|&2]
       iex> fun.(1, 2)
@@ -1336,7 +1336,7 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       case thing do
-        { :selector, i, value } when is_integer(i) ->
+        {:selector, i, value} when is_integer(i) ->
           value
         value ->
           value
@@ -1352,7 +1352,7 @@ defmodule Kernel.SpecialForms do
   outer context:
 
       case data do
-        { :ok, value } -> value
+        {:ok, value} -> value
         :error -> nil
       end
 
@@ -1608,7 +1608,7 @@ defmodule Kernel.SpecialForms do
   ## Examples
 
       receive do
-        { :selector, i, value } when is_integer(i) ->
+        {:selector, i, value} when is_integer(i) ->
           value
         value when is_atom(value) ->
           value
@@ -1620,7 +1620,7 @@ defmodule Kernel.SpecialForms do
   received after the specified period of time:
 
       receive do
-        { :selector, i, value } when is_integer(i) ->
+        {:selector, i, value} when is_integer(i) ->
           value
         value when is_atom(value) ->
           value

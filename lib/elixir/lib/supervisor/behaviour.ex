@@ -25,7 +25,7 @@ defmodule Supervisor.Behaviour do
         end
       end
 
-      { :ok, pid } = :supervisor.start_link(MyServer, [])
+      {:ok, pid} = :supervisor.start_link(MyServer, [])
 
   """
 
@@ -87,7 +87,7 @@ defmodule Supervisor.Behaviour do
     maxR = Keyword.get(options, :max_restarts, 5)
     maxS = Keyword.get(options, :max_seconds, 5)
 
-    { :ok, { { strategy, maxR, maxS }, children } }
+    {:ok, {{strategy, maxR, maxS}, children}}
   end
 
   @child_doc """
@@ -122,7 +122,7 @@ defmodule Supervisor.Behaviour do
 
   * `:transient` - the child process is restarted only if it
     terminates abnormally, i.e. with another exit reason than
-    `:normal`, `:shutdown` or `{ :shutdown, term }`;
+    `:normal`, `:shutdown` or `{:shutdown, term}`;
 
   ## Shutdown values
 
@@ -178,7 +178,7 @@ defmodule Supervisor.Behaviour do
     restart  = Keyword.get(options, :restart, :permanent)
     shutdown = Keyword.get(options, :shutdown, 5000)
 
-    { id, { module, function, args },
-      restart, shutdown, type, modules }
+    {id, {module, function, args},
+      restart, shutdown, type, modules}
   end
 end

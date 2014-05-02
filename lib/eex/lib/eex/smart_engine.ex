@@ -27,12 +27,12 @@ defmodule EEx.TransformerEngine do
         EEx.Engine.handle_expr(buffer, mark, transform(expr))
       end
 
-      defp transform({ a, b, c }) do
-        { transform(a), b, transform(c) }
+      defp transform({a, b, c}) do
+        {transform(a), b, transform(c)}
       end
 
-      defp transform({ a, b }) do
-        { transform(a), transform(b) }
+      defp transform({a, b}) do
+        {transform(a), transform(b)}
       end
 
       defp transform(list) when is_list(list) do
@@ -91,7 +91,7 @@ defmodule EEx.AssignsEngine do
   @doc false
   defmacro __using__(_) do
     quote unquote: false do
-      defp transform({ :@, line, [{ name, _, atom }] }) when is_atom(name) and is_atom(atom) do
+      defp transform({:@, line, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
         quote do: Dict.get(var!(assigns), unquote(name))
       end
 

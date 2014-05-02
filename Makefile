@@ -125,9 +125,6 @@ docs: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
-build_info:
-	$(ELIXIRC) lib/elixir/lib/system.ex -o lib/elixir/ebin
-
 release_zip: compile
 	rm -rf v$(VERSION).zip
 	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md VERSION

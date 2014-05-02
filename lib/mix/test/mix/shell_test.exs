@@ -14,19 +14,19 @@ defmodule Mix.ShellTest do
   test "shell process" do
     Mix.shell.info "abc"
     Mix.shell.error "def"
-    assert_received { :mix_shell, :info, ["abc"] }
-    assert_received { :mix_shell, :error, ["def"] }
+    assert_received {:mix_shell, :info, ["abc"]}
+    assert_received {:mix_shell, :error, ["def"]}
 
-    send self, { :mix_shell_input, :prompt, "world" }
+    send self, {:mix_shell_input, :prompt, "world"}
     assert Mix.shell.prompt("hello?") == "world"
-    assert_received { :mix_shell, :prompt, ["hello?"] }
+    assert_received {:mix_shell, :prompt, ["hello?"]}
 
-    send self, { :mix_shell_input, :yes?, true }
+    send self, {:mix_shell_input, :yes?, true}
     assert Mix.shell.yes?("hello?")
-    assert_received { :mix_shell, :yes?, ["hello?"] }
+    assert_received {:mix_shell, :yes?, ["hello?"]}
 
     assert Mix.shell.cmd("echo first") == 0
-    assert_received { :mix_shell, :run, ["first\n"] }
+    assert_received {:mix_shell, :run, ["first\n"]}
   end
 
   test "shell io" do

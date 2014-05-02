@@ -4,7 +4,7 @@ defmodule Mix.SCMTest do
   use MixTest.Case
 
   setup do
-    { :ok, [scm: Mix.SCM.available] }
+    {:ok, [scm: Mix.SCM.available]}
   end
 
   teardown context do

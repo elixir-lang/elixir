@@ -5,9 +5,9 @@ require EEx
 defmodule EExText.Compiled do
   def before_compile do
     fill_in_stacktrace
-    { __ENV__.line, hd(tl(System.stacktrace)) }
+    {__ENV__.line, hd(tl(System.stacktrace))}
   end
-  { :erlang, 1, 2 }.tuple_to_list
+  {:erlang, 1, 2}.tuple_to_list
   EEx.function_from_string :def, :string_sample, "<%= a + b %>", [:a, :b]
 
   filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
@@ -16,13 +16,13 @@ defmodule EExText.Compiled do
 
   def after_compile do
     fill_in_stacktrace
-    { __ENV__.line, hd(tl(System.stacktrace)) }
+    {__ENV__.line, hd(tl(System.stacktrace))}
   end
 
   @file "unknown"
   def unknown do
     fill_in_stacktrace
-    { __ENV__.line, hd(tl(System.stacktrace)) }
+    {__ENV__.line, hd(tl(System.stacktrace))}
   end
 
   defp fill_in_stacktrace do
@@ -282,6 +282,15 @@ foo
     assert_eval "\n\n  Good\n \n", string
   end
 
+  test "for comprehensions" do
+    string = """
+    <%= for _name <- packages || [] do %>
+    <% end %>
+    <%= all || :done %>
+    """
+    assert_eval "\ndone\n", string, packages: nil, all: nil
+  end
+
   test "unicode" do
     template = """
       • <%= "•" %> •
@@ -320,38 +329,38 @@ foo
 
   test "defined from file do not affect backtrace" do
     assert EExText.Compiled.before_compile ==
-      { 8,
-        { EExText.Compiled,
+      {8,
+        {EExText.Compiled,
           :before_compile,
           0,
           [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 7]
-        }
-      }
+       }
+     }
 
     assert EExText.Compiled.after_compile ==
-      { 19,
-        { EExText.Compiled,
+      {19,
+        {EExText.Compiled,
           :after_compile,
           0,
           [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 18]
-        }
-      }
+       }
+     }
 
     assert EExText.Compiled.unknown ==
-      { 25,
-        { EExText.Compiled,
+      {25,
+        {EExText.Compiled,
           :unknown,
           0,
           [file: 'unknown', line: 24]
-        }
-      }
+       }
+     }
   end
 
   defmodule TestEngine do
     @behaviour EEx.Engine
 
     def handle_body(body) do
-      { :wrapped, body }
+      {:wrapped, body}
     end
 
     def handle_text(buffer, text) do
@@ -364,11 +373,11 @@ foo
   end
 
   test "calls handle_body" do
-    assert { :wrapped, "foo" } = EEx.eval_string("foo", [], engine: TestEngine)
+    assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
   end
 
-  defp assert_eval(expected, actual) do
-    result = EEx.eval_string(actual, [], file: __ENV__.file, engine: EEx.Engine)
+  defp assert_eval(expected, actual, binding \\ []) do
+    result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.Engine)
     assert result == expected
   end
 end
