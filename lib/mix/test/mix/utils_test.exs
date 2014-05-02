@@ -20,28 +20,6 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.command_to_module_name("foo.bar") == "Foo.Bar"
   end
 
-  test :config_merge do
-    old = [
-      foo: "hello",
-      bar: [1, 2],
-      baz: [some: "option"],
-      bat: "man"
-    ]
-
-    new = [
-      foo: "bye",
-      bar: [3, 4],
-      baz: [yet: "another"]
-    ]
-
-    assert Keyword.equal? Mix.Utils.config_merge(old, new), [
-      foo: "bye",
-      bar: [1, 2, 3, 4],
-      baz: [some: "option", yet: "another"],
-      bat: "man"
-    ]
-  end
-
   test :underscore do
     assert Mix.Utils.underscore("foo") == "foo"
     assert Mix.Utils.underscore("foo_bar") == "foo_bar"
@@ -78,10 +56,12 @@ defmodule Mix.UtilsTest do
 
   test :extract_stale do
     time = {{2030, 1, 1}, {0, 0, 0}}
-    assert Mix.Utils.extract_stale([{"hello", time}], [__ENV__.file]) == [{"hello", time}]
+    assert Mix.Utils.extract_stale([__ENV__.file], [time]) == []
 
     time = {{2000, 1, 1}, {0, 0, 0}}
-    assert Mix.Utils.extract_stale([{"hello", time}], [__ENV__.file]) == []
+    assert Mix.Utils.extract_stale([__ENV__.file], [time]) == [__ENV__.file]
+
+    assert Mix.Utils.extract_stale([__ENV__.file], [__ENV__.file]) == []
   end
 
   test :symlink_or_copy do

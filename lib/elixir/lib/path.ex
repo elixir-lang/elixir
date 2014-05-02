@@ -245,6 +245,7 @@ defmodule Path do
   """
   @spec relative_to(t, t) :: binary
   def relative_to(path, from) do
+    path = String.from_char_data!(path)
     relative_to(split(path), split(from), path)
   end
 

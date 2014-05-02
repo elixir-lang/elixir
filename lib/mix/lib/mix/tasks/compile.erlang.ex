@@ -152,8 +152,8 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp scan_source(acc, file, include_paths) do
-    erl_file = %{file: file, module: module_from_artifact(file), behaviours: [],
-                 compile: [], includes: [], mtime: nil, invalid: false}
+    erl_file = %{file: file, module: module_from_artifact(file),
+                 behaviours: [], compile: [], includes: [], invalid: false}
     case Epp.parse_file(to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]

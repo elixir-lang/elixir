@@ -65,6 +65,7 @@ defmodule Mix.Utils do
   Extract all stale `sources` compared to the given `targets`.
   """
   def extract_stale(_sources, []), do: []
+  def extract_stale([], _targets), do: []
 
   def extract_stale(sources, targets) do
     stale_stream(sources, targets) |> Enum.to_list
@@ -74,19 +75,23 @@ defmodule Mix.Utils do
     modified_target = targets |> Enum.map(&last_modified(&1)) |> Enum.min
 
     Stream.filter(sources, fn(source) ->
-      source_mtime(source) > modified_target
+      last_modified(source) > modified_target
     end)
   end
 
-  defp source_mtime({_, {{_, _, _}, {_, _, _}} = source}) do
-    source
+  @doc """
+  Returns the date the given path was last modified.
+
+  If the path does not exist, it returns the unix epoch
+  (1970-01-01 00:00:00).
+  """
+  def last_modified(path)
+
+  def last_modified({{_, _, _}, {_, _, _}} = timestamp) do
+    timestamp
   end
 
-  defp source_mtime(source) do
-    last_modified(source)
-  end
-
-  defp last_modified(path) do
+  def last_modified(path) do
     case File.stat(path) do
       {:ok, %File.Stat{mtime: mtime}} -> mtime
       {:error, _} -> {{1970, 1, 1}, {0, 0, 0}}
@@ -147,24 +152,6 @@ defmodule Mix.Utils do
   defp exclude_files(files) do
     filter = fn(x) -> not match?("." <> _, Path.basename(x)) end
     Enum.filter files, filter
-  end
-
-  @doc """
-  Merges two configs recursively, merging keyword lists
-  and concatenating normal lists.
-  """
-  def config_merge(old, new) do
-    Keyword.merge(old, new, fn(_, x, y) ->
-      if is_list(x) and is_list(y) do
-        if Keyword.keyword?(x) and Keyword.keyword?(y) do
-          config_merge(x, y)
-        else
-          x ++ y
-        end
-      else
-        y
-      end
-    end)
   end
 
   @doc """
