@@ -149,25 +149,19 @@ defmodule IEx.Evaluator do
 
   ## Error handling
 
-  defp print_error(:error, exception, stacktrace) do
-    {exception, stacktrace} = normalize_exception(exception, stacktrace)
+  defp print_error(kind, exception, stacktrace) do
+    {exception, stacktrace} = normalize_exception(kind, exception, stacktrace)
     print_stacktrace stacktrace, fn ->
-      "** (#{inspect exception.__record__(:name)}) #{exception.message}"
+      Exception.format_message(kind, exception, stacktrace)
     end
   end
 
-  defp print_error(kind, reason, stacktrace) do
-    print_stacktrace stacktrace, fn ->
-      "** (#{kind}) #{inspect(reason)}"
-    end
-  end
-
-  defp normalize_exception(:undef, [{IEx.Helpers, fun, arity, _}|t]) do
+  defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
     {RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t}
   end
 
-  defp normalize_exception(exception, stacktrace) do
-    {Exception.normalize(:error, exception), stacktrace}
+  defp normalize_exception(_kind, reason, stacktrace) do
+    {reason, stacktrace}
   end
 
   defp format_function(fun, arity) do
@@ -181,10 +175,10 @@ defmodule IEx.Evaluator do
 
   defp print_stacktrace(trace, callback) do
     try do
-      io_error callback.()
+      message = IEx.color(:eval_error, callback.())
       case prune_stacktrace(trace) do
-        []    -> :ok
-        other -> IO.puts(format_stacktrace(other))
+        []    -> IO.puts(message)
+        other -> IO.puts([message, ?\n | format_stacktrace(other)])
       end
     catch
       type, detail ->
@@ -223,7 +217,7 @@ defmodule IEx.Evaluator do
     case entry do
       "(" <> _ ->
         case :binary.split(entry, ") ") do
-          [left, right] -> {left <> ")", right}
+          [left, right] -> {left <> ") ", right}
           _ -> {"", entry}
         end
       _ ->
@@ -233,6 +227,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({app, info}, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)} #{IEx.color(:stack_info, info)}"
+    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
   end
 end

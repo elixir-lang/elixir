@@ -50,7 +50,7 @@ defmodule Kernel.CLI do
         System.halt(0)
       kind, reason ->
         at_exit(1)
-        print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
+        print_error(kind, reason, System.stacktrace)
         System.halt(1)
     end
   end
@@ -65,7 +65,7 @@ defmodule Kernel.CLI do
         hook.(status)
       catch
         kind, reason ->
-          print_error(kind, Exception.normalize(kind, reason), System.stacktrace)
+          print_error(kind, reason, System.stacktrace)
       end
     end
 
@@ -84,18 +84,8 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp print_error(:error, exception, trace) do
-    IO.puts :stderr, "** (#{inspect exception.__record__(:name)}) #{exception.message}"
-    IO.puts :stderr, format_stacktrace(trace)
-  end
-
   defp print_error(kind, reason, trace) do
-    IO.puts :stderr, "** #{kind} #{inspect(reason)}"
-    IO.puts :stderr, format_stacktrace(trace)
-  end
-
-  defp format_stacktrace(stack) do
-    Exception.format_stacktrace(prune_stacktrace(stack))
+    IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
   end
 
   @elixir_internals [:elixir_compiler, :elixir_module]
@@ -289,8 +279,9 @@ defmodule Kernel.CLI do
 
   defp process_command({:app, app}, _config) when is_binary(app) do
     case :application.ensure_all_started(binary_to_atom(app)) do
-      {:error, reason} ->
-        {:error, "--app : Could not start application #{app}: #{inspect reason}"}
+      {:error, {app, reason}} ->
+        {:error, "--app : Could not start application #{app}: " <>
+          Exception.format_reason(reason)}
       {:ok, _} ->
         :ok
     end
