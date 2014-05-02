@@ -36,7 +36,14 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    File.dir?(Path.join(opts[:dest], ".git"))
+    if File.dir?(Path.join(opts[:dest], ".git")) do
+      File.cd! opts[:dest], fn ->
+        # Make sure git can read the dependency .git folder
+        opts[:dest] == String.strip System.cmd "git rev-parse --show-toplevel"
+      end
+    else
+      false
+    end
   end
 
   def lock_status(opts) do
