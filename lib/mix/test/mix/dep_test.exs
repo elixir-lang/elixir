@@ -6,7 +6,7 @@ defmodule Mix.DepTest do
   defmodule DepsApp do
     def project do
       [ deps: [
-          {:ok,         "0.1.0", github: "elixir-lang/ok"},
+          {:ok,         "0.1.0", path: "deps/ok"},
           {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
           {:invalidapp, "0.1.0", path: "deps/invalidapp"},
           {:noappfile,  "0.1.0", path: "deps/noappfile"},
@@ -18,7 +18,7 @@ defmodule Mix.DepTest do
 
   defmodule MixVersionApp do
     def project do
-      [ deps: [ {:ok, "~> 0.1", github: "elixir-lang/ok"} ] ]
+      [ deps: [ {:ok, "~> 0.1", path: "deps/ok"} ] ]
     end
   end
 
@@ -30,7 +30,7 @@ defmodule Mix.DepTest do
 
   defmodule InvalidDepsReq do
     def project do
-      [ deps: [ {:ok, "+- 0.1.0", github: "elixir-lang/ok"} ] ]
+      [ deps: [ {:ok, "+- 0.1.0", path: "deps/ok"} ] ]
     end
   end
 
@@ -49,7 +49,7 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "use mix version for dependencies" do
+  test "use requirements for dependencies" do
     Mix.Project.push MixVersionApp
 
     in_fixture "deps_status", fn ->

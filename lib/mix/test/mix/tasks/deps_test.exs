@@ -11,7 +11,6 @@ defmodule Mix.Tasks.DepsTest do
           {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
           {:invalidapp, "0.1.0", path: "deps/invalidapp"},
           {:noappfile, "0.1.0",  path: "deps/noappfile"},
-          {:uncloned,            git: "https://github.com/elixir-lang/uncloned.git"}
         ]
       ]
     end
@@ -46,15 +45,13 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is not locked"]}
+      assert_received {:mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp)"]}
       assert_received {:mix_shell, :info, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
       assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
       assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
-      assert_received {:mix_shell, :info, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"]}
     end
   end
 
@@ -101,6 +98,12 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
+      File.cd!("deps/ok", fn -> System.cmd("git init") end)
+
+      Mix.Tasks.Deps.run []
+      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["  the dependency is not locked"]}
+
       Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
@@ -144,13 +147,11 @@ defmodule Mix.Tasks.DepsTest do
       end
 
       assert_received {:mix_shell, :error, ["* ok (git://github.com/elixir-lang/ok.git)"]}
-      assert_received {:mix_shell, :error, ["  the dependency is not locked"]}
+      assert_received {:mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :error, ["* invalidapp (deps/invalidapp)"]}
       assert_received {:mix_shell, :error, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
-      assert_received {:mix_shell, :error, ["* uncloned (https://github.com/elixir-lang/uncloned.git)"]}
-      assert_received {:mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"]}
 
       # This one is compiled automatically
       refute_received {:mix_shell, :error, ["* noappfile (deps/noappfile)"]}
