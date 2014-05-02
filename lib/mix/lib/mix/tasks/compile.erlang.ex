@@ -166,14 +166,14 @@ defmodule Mix.Tasks.Compile.Erlang do
     case form do
       {:attribute, _, :file, {include_file, _}} when file != include_file ->
         if File.regular?(include_file) do
-          %{erl| includes: [include_file|erl.includes]}
+          %{erl | includes: [include_file|erl.includes]}
         else
           erl
         end
       {:attribute, _, :behaviour, behaviour} ->
-        %{erl| behaviours: [behaviour|erl.behaviours]}
+        %{erl | behaviours: [behaviour|erl.behaviours]}
       {:attribute, _, :compile, value} ->
-        %{erl| compile: [value|erl.compile]}
+        %{erl | compile: [value|erl.compile]}
       _ ->
         erl
     end

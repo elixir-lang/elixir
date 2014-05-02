@@ -101,13 +101,13 @@ defmodule Mix.ProjectStack do
       file = find_project_named(name, stack) ->
         {:reply, {:error, file}, state}
       true ->
-        {:reply, :ok, %{state| post_config: [], stack: [project|state.stack]}}
+        {:reply, :ok, %{state | post_config: [], stack: [project|state.stack]}}
     end
   end
 
   def handle_call(:pop, _from, %{stack: stack} = state) do
     case stack do
-      [h|t] -> {:reply, project_to_tuple(h), %{state| stack: t}}
+      [h|t] -> {:reply, project_to_tuple(h), %{state | stack: t}}
       [] -> {:reply, nil, state}
     end
   end
@@ -123,7 +123,7 @@ defmodule Mix.ProjectStack do
     case stack do
       [h|t] ->
         output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
-        {:reply, output, %{state| stack: [%{h| io_done: true}|t]}}
+        {:reply, output, %{state | stack: [%{h | io_done: true}|t]}}
       [] ->
         {:reply, false, state}
     end
@@ -132,7 +132,7 @@ defmodule Mix.ProjectStack do
   def handle_call(:enable_recursion, _from, %{stack: stack} = state) do
     case stack do
       [h|t] ->
-        {:reply, not h.recursing?, %{state| stack: [%{h| recursing?: true}|t]}}
+        {:reply, not h.recursing?, %{state | stack: [%{h | recursing?: true}|t]}}
       _ ->
         {:reply, false, state}
     end
@@ -141,7 +141,7 @@ defmodule Mix.ProjectStack do
   def handle_call(:disable_recursion, _from, %{stack: stack} = state) do
     case stack do
       [h|t] ->
-        {:reply, h.recursing?, %{state| stack: [%{h| recursing?: false}|t]}}
+        {:reply, h.recursing?, %{state | stack: [%{h | recursing?: false}|t]}}
       _ ->
         {:reply, false, state}
     end
@@ -156,19 +156,19 @@ defmodule Mix.ProjectStack do
   end
 
   def handle_cast({:post_config, value}, state) do
-    {:noreply, %{state| post_config: Keyword.merge(state.post_config, value)}}
+    {:noreply, %{state | post_config: Keyword.merge(state.post_config, value)}}
   end
 
   def handle_cast(:clear_stack, state) do
-    {:noreply, %{state| stack: [], post_config: []}}
+    {:noreply, %{state | stack: [], post_config: []}}
   end
 
   def handle_cast({:write_cache, key, value}, state) do
-    {:noreply, %{state| cache: Dict.put(state.cache, key, value)}}
+    {:noreply, %{state | cache: Dict.put(state.cache, key, value)}}
   end
 
   def handle_cast(:clear_cache, state) do
-    {:noreply, %{state| cache: HashDict.new}}
+    {:noreply, %{state | cache: HashDict.new}}
   end
 
   def handle_cast(request, state) do
