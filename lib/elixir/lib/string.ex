@@ -177,7 +177,8 @@ defmodule String do
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
-  default, unless the `global` option is set to `false`.
+  default, but can be controlled via the `parts: num` option.
+  If you pass `parts: 0`, it will return all possible parts.
 
   Empty strings are only removed from the result if the
   `trim` option is set to `true`.
@@ -189,7 +190,7 @@ defmodule String do
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
 
-      iex> String.split("a,b,c", ",", global: false)
+      iex> String.split("a,b,c", ",", parts: 2)
       ["a", "b,c"]
 
       iex> String.split(" a b c ", " ", trim: true)
@@ -205,7 +206,7 @@ defmodule String do
       iex> String.split("a,b,c", ~r{,})
       ["a", "b", "c"]
 
-      iex> String.split("a,b,c", ~r{,}, global: false)
+      iex> String.split("a,b,c", ~r{,}, parts: 2)
       ["a", "b,c"]
 
       iex> String.split(" a b c ", ~r{\s}, trim: true)
@@ -222,7 +223,7 @@ defmodule String do
       iex> String.split("abc", "", trim: true)
       ["a", "b", "c"]
 
-      iex> String.split("abc", "", global: false)
+      iex> String.split("abc", "", parts: 2)
       ["a", "bc"]
 
   """
@@ -236,16 +237,42 @@ defmodule String do
 
   def split(binary, pattern, options) do
     if Regex.regex?(pattern) do
-      Regex.split(pattern, binary, options)
+      case options[:parts] do
+        num when num == 0 ->
+          opts = options -- [parts: num]
+          Regex.split(pattern, binary, opts ++ [global: true])
+        _ ->
+          Regex.split(pattern, binary, options)
+      end
     else
-      opts = if options[:global] != false, do: [:global], else: []
-      splits = :binary.split(binary, pattern, opts)
+      splits = case options[:parts] do
+        num when is_number(num) and num > 0 ->
+          split_parts(binary, pattern, num - 1)
+        num ->
+          if options[:global] != false or num == 0 do
+            :binary.split(binary, pattern, [:global])
+          else
+            :binary.split(binary, pattern, [])
+          end
+      end
 
       if Keyword.get(options, :trim, false) do
         for split <- splits, split != "", do: split
       else
         splits
       end
+    end
+  end
+
+  defp split_parts("", _pattern, _num),         do: [""]
+  defp split_parts(binary, pattern, num),       do: split_parts(binary, pattern, num, [])
+  defp split_parts("", _pattern, _num, parts),  do: parts ++ [""]
+  defp split_parts(binary, _pattern, 0, parts), do: parts ++ [binary]
+  defp split_parts(binary, pattern, num, parts) do
+    [head|tail] = :binary.split(binary, pattern)
+    case tail do
+      []    -> parts ++ [head]
+      [str] -> split_parts(str, pattern, num - 1, parts ++ [head])
     end
   end
 

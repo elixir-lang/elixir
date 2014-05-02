@@ -49,10 +49,18 @@ defmodule StringTest do
 
     assert String.split(" a b c ", " ", trim: true) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, global: false) == ["a b c "]
+    assert String.split(" a b c ", " ", trim: true, parts: 0) == ["a", "b", "c"]
+    assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
 
     assert String.split("abé", "") == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: 0) == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: 1) == ["abé"]
+    assert String.split("abé", "", parts: 2) == ["a", "bé"]
+    assert String.split("abé", "", parts: 10) == ["a", "b", "é", ""]
     assert String.split("abé", "", global: false) == ["a", "bé"]
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: 0) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
   end
 
   test :split_with_regex do
