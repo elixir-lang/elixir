@@ -253,7 +253,8 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
 
 check_module_availability(Line, File, Module) ->
   Reserved = ['Elixir.Atom', 'Elixir.BitString', 'Elixir.Function',
-              'Elixir.PID', 'Elixir.Reference', 'Elixir.Any', 'Elixir.Elixir'],
+              'Elixir.PID', 'Elixir.Reference', 'Elixir.Any', 
+              'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
     true  -> elixir_errors:handle_file_error(File, {Line, ?MODULE, {module_reserved, Module}});
