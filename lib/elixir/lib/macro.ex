@@ -6,10 +6,10 @@ defmodule Macro do
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
-  @type t :: expr | { t, t } | atom | number | binary | pid | fun | [t]
+  @type t :: expr | {t, t} | atom | number | binary | pid | fun | [t]
 
   @typedoc "Expr node (remaining ones are literals)"
-  @type expr :: { expr | atom, Keyword.t, atom | [t] }
+  @type expr :: {expr | atom, Keyword.t, atom | [t]}
 
   @binary_ops [:===, :!==,
     :==, :!=, :<=, :>=,
@@ -27,7 +27,7 @@ defmodule Macro do
   @doc false
   defmacro unary_ops, do: @unary_ops
 
-  @spec binary_op_props(atom) :: { :left | :right, precedence :: integer }
+  @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
   defp binary_op_props(o) do
     case o do
       o when o in [:<-, :inlist, :inbits, :\\, :::]             -> {:left,  40}
@@ -53,31 +53,30 @@ defmodule Macro do
   Raises if the pipeline is ill-formed.
   """
   @spec unpipe(Macro.t) :: [Macro.t]
-  def unpipe({ :|> , _, [left, right] }) do
-    [left|unpipe(right)]
+  def unpipe({:|> , _, [left, right]}) do
+    [{left, 0}|unpipe(right)]
   end
 
   def unpipe(other) do
-    [other]
+    [{other, 0}]
   end
 
   @doc """
-  Pipes `expr` into the `call_expr` as the
-  argument in the given `position`.
+  Pipes `expr` into the `call_args` at the given `position`.
   """
   @spec pipe(Macro.t, Macro.t, integer) :: Macro.t | no_return
-  def pipe(expr, call_args, integer \\ 0)
+  def pipe(expr, call_args, position)
 
-  def pipe(expr, { :&, _, _ } = call_args, _integer) do
+  def pipe(expr, {:&, _, _} = call_args, _integer) do
     raise ArgumentError, message: "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
-  def pipe(expr, { call, line, atom }, integer) when is_atom(atom) do
-    { call, line, List.insert_at([], integer, expr) }
+  def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
+    {call, line, List.insert_at([], integer, expr)}
   end
 
-  def pipe(expr, { call, line, args }, integer) when is_list(args) do
-    { call, line, List.insert_at(args, integer, expr) }
+  def pipe(expr, {call, line, args}, integer) when is_list(args) do
+    {call, line, List.insert_at(args, integer, expr)}
   end
 
   def pipe(expr, call_args, _integer) do
@@ -104,12 +103,12 @@ defmodule Macro do
   @spec update_meta(t, (Keyword.t -> Keyword.t)) :: t
   def update_meta(quoted, fun)
 
-  def update_meta({ left, meta, right }, fun) when is_list(meta) do
-    { update_meta(left, fun), fun.(meta), update_meta(right, fun) }
+  def update_meta({left, meta, right}, fun) when is_list(meta) do
+    {update_meta(left, fun), fun.(meta), update_meta(right, fun)}
   end
 
-  def update_meta({ left, right }, fun) do
-    { update_meta(left, fun), update_meta(right, fun) }
+  def update_meta({left, right}, fun) do
+    {update_meta(left, fun), update_meta(right, fun)}
   end
 
   def update_meta(list, fun) when is_list(list) do
@@ -129,30 +128,30 @@ defmodule Macro do
   ## Examples
 
       iex> Macro.decompose_call(quote do: foo)
-      { :foo, [] }
+      {:foo, []}
 
       iex> Macro.decompose_call(quote do: foo())
-      { :foo, [] }
+      {:foo, []}
 
       iex> Macro.decompose_call(quote do: foo(1, 2, 3))
-      { :foo, [1, 2, 3] }
+      {:foo, [1, 2, 3]}
 
       iex> Macro.decompose_call(quote do: Elixir.M.foo(1, 2, 3))
-      { { :__aliases__, [], [:Elixir, :M] }, :foo, [1, 2, 3] }
+      {{:__aliases__, [], [:Elixir, :M]}, :foo, [1, 2, 3]}
 
       iex> Macro.decompose_call(quote do: 42)
       :error
 
   """
-  @spec decompose_call(Macro.t) :: { atom, [Macro.t] } | { Macro.t, atom, [Macro.t] } | :error
-  def decompose_call({ { :., _, [remote, function] }, _, args }) when is_tuple(remote) or is_atom(remote),
-    do: { remote, function, args }
+  @spec decompose_call(Macro.t) :: {atom, [Macro.t]} | {Macro.t, atom, [Macro.t]} | :error
+  def decompose_call({{:., _, [remote, function]}, _, args}) when is_tuple(remote) or is_atom(remote),
+    do: {remote, function, args}
 
-  def decompose_call({ name, _, args }) when is_atom(name) and is_atom(args),
-    do: { name, [] }
+  def decompose_call({name, _, args}) when is_atom(name) and is_atom(args),
+    do: {name, []}
 
-  def decompose_call({ name, _, args }) when is_atom(name) and is_list(args),
-    do: { name, args }
+  def decompose_call({name, _, args}) when is_atom(name) and is_list(args),
+    do: {name, args}
 
   def decompose_call(_),
     do: :error
@@ -170,10 +169,10 @@ defmodule Macro do
       iex> Macro.escape(:foo)
       :foo
 
-      iex> Macro.escape({ :a, :b, :c })
-      { :{}, [], [:a, :b, :c] }
+      iex> Macro.escape({:a, :b, :c})
+      {:{}, [], [:a, :b, :c]}
 
-      iex> Macro.escape({ :unquote, [], [1] }, unquote: true)
+      iex> Macro.escape({:unquote, [], [1]}, unquote: true)
       1
 
   """
@@ -300,27 +299,27 @@ defmodule Macro do
   def to_string(tree, fun \\ fn(_ast, string) -> string end)
 
   # Variables
-  def to_string({ var, _, atom } = ast, fun) when is_atom(atom) do
+  def to_string({var, _, atom} = ast, fun) when is_atom(atom) do
     fun.(ast, atom_to_binary(var))
   end
 
   # Aliases
-  def to_string({ :__aliases__, _, refs } = ast, fun) do
+  def to_string({:__aliases__, _, refs} = ast, fun) do
     fun.(ast, Enum.map_join(refs, ".", &call_to_string(&1, fun)))
   end
 
   # Blocks
-  def to_string({ :__block__, _, [expr] } = ast, fun) do
+  def to_string({:__block__, _, [expr]} = ast, fun) do
     fun.(ast, to_string(expr, fun))
   end
 
-  def to_string({ :__block__, _, _ } = ast, fun) do
+  def to_string({:__block__, _, _} = ast, fun) do
     block = adjust_new_lines block_to_string(ast, fun), "\n  "
     fun.(ast, "(\n  " <> block <> "\n)")
   end
 
   # Bits containers
-  def to_string({ :<<>>, _, args } = ast, fun) do
+  def to_string({:<<>>, _, args} = ast, fun) do
     fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
       "<" <> rest -> "<< <" <> rest  <> " >>"
       rest -> "<<" <> rest <> ">>"
@@ -328,45 +327,45 @@ defmodule Macro do
   end
 
   # Tuple containers
-  def to_string({ :{}, _, args } = ast, fun) do
+  def to_string({:{}, _, args} = ast, fun) do
     tuple = "{" <> Enum.map_join(args, ", ", &to_string(&1, fun)) <> "}"
     fun.(ast, tuple)
   end
 
   # Map containers
-  def to_string({ :%{}, _, args } = ast, fun) do
+  def to_string({:%{}, _, args} = ast, fun) do
     map = "%{" <> map_to_string(args, fun) <> "}"
     fun.(ast, map)
   end
 
-  def to_string({ :%, _, [structname, map] } = ast, fun) do
-    { :%{}, _, args } = map
+  def to_string({:%, _, [structname, map]} = ast, fun) do
+    {:%{}, _, args} = map
     struct = "%" <> to_string(structname, fun) <> "{" <> map_to_string(args, fun) <> "}"
     fun.(ast, struct)
   end
 
   # Fn keyword
-  def to_string({ :fn, _, [{ :->, _, [_, tuple] }] = arrow } = ast, fun)
+  def to_string({:fn, _, [{:->, _, [_, tuple]}] = arrow} = ast, fun)
       when not is_tuple(tuple) or elem(tuple, 0) != :__block__ do
     fun.(ast, "fn " <> arrow_to_string(arrow, fun) <> " end")
   end
 
-  def to_string({ :fn, _, [{ :->, _, _ }] = block } = ast, fun) do
+  def to_string({:fn, _, [{:->, _, _}] = block} = ast, fun) do
     fun.(ast, "fn " <> block_to_string(block, fun) <> "\nend")
   end
 
-  def to_string({ :fn, _, block } = ast, fun) do
+  def to_string({:fn, _, block} = ast, fun) do
     block = adjust_new_lines block_to_string(block, fun), "\n  "
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
   # left -> right
-  def to_string([{ :->, _, _ }|_] = ast, fun) do
+  def to_string([{:->, _, _}|_] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
   end
 
   # left when right
-  def to_string({ :when, _, [left, right] } = ast, fun) do
+  def to_string({:when, _, [left, right]} = ast, fun) do
     if right != [] and Keyword.keyword?(right) do
       right = kw_list_to_string(right, fun)
     else
@@ -377,38 +376,38 @@ defmodule Macro do
   end
 
   # Binary ops
-  def to_string({ op, _, [left, right] } = ast, fun) when op in unquote(@binary_ops) do
+  def to_string({op, _, [left, right]} = ast, fun) when op in unquote(@binary_ops) do
     fun.(ast, op_to_string(left, fun, op, :left) <> " #{op} " <> op_to_string(right, fun, op, :right))
   end
 
   # Splat when
-  def to_string({ :when, _, args } = ast, fun) do
-    { left, right } = :elixir_utils.split_last(args)
+  def to_string({:when, _, args} = ast, fun) do
+    {left, right} = :elixir_utils.split_last(args)
     fun.(ast, "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun))
   end
 
   # Unary ops
-  def to_string({ unary, _, [{ binary, _, [_, _] } = arg] } = ast, fun)
+  def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
     fun.(ast, atom_to_binary(unary) <> "(" <> to_string(arg, fun) <> ")")
   end
 
-  def to_string({ :not, _, [arg] } = ast, fun)  do
+  def to_string({:not, _, [arg]} = ast, fun)  do
     fun.(ast, "not " <> to_string(arg, fun))
   end
 
-  def to_string({ op, _, [arg] } = ast, fun) when op in unquote(@unary_ops) do
+  def to_string({op, _, [arg]} = ast, fun) when op in unquote(@unary_ops) do
     fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
   end
 
   # Access
-  def to_string({ { :., _, [Kernel, :access] }, _, [left, right] } = ast, fun) do
+  def to_string({{:., _, [Kernel, :access]}, _, [left, right]} = ast, fun) do
     fun.(ast, to_string(left, fun) <> to_string(right, fun))
   end
 
   # All other calls
-  def to_string({ target, _, args } = ast, fun) when is_list(args) do
-    { list, last } = :elixir_utils.split_last(args)
+  def to_string({target, _, args} = ast, fun) when is_list(args) do
+    {list, last} = :elixir_utils.split_last(args)
     fun.(ast, case kw_blocks?(last) do
       true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
       false -> call_to_string_with_args(target, args, fun)
@@ -416,8 +415,8 @@ defmodule Macro do
   end
 
   # Two-item tuples
-  def to_string({ left, right }, fun) do
-    to_string({ :{}, [], [left, right] }, fun)
+  def to_string({left, right}, fun) do
+    to_string({:{}, [], [left, right]}, fun)
   end
 
   # Lists
@@ -426,7 +425,7 @@ defmodule Macro do
       list == [] ->
         "[]"
       :io_lib.printable_list(list) ->
-        "'" <> Inspect.BitString.escape(String.from_char_list!(list), ?') <> "'"
+        "'" <> Inspect.BitString.escape(String.from_char_data!(list), ?') <> "'"
       Keyword.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
       true ->
@@ -449,8 +448,8 @@ defmodule Macro do
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
   defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom)
-  defp call_to_string({ :., _, [arg] }, fun),         do: module_to_string(arg, fun) <> "."
-  defp call_to_string({ :., _, [left, right] }, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
+  defp call_to_string({:., _, [arg]}, fun),         do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),                    do: to_string(other, fun)
 
   defp call_to_string_with_args(target, args, fun) do
@@ -460,7 +459,7 @@ defmodule Macro do
   end
 
   defp args_to_string(args, fun) do
-    { list, last } = :elixir_utils.split_last(args)
+    {list, last} = :elixir_utils.split_last(args)
 
     if last != [] and Keyword.keyword?(last) do
       args = Enum.map_join(list, ", ", &to_string(&1, fun))
@@ -485,14 +484,14 @@ defmodule Macro do
     atom_to_binary(key) <> "\n  " <> block <> "\n"
   end
 
-  defp block_to_string([{ :->, _, _ }|_] = block, fun) do
-    Enum.map_join(block, "\n", fn({ :->, _, [left, right] }) ->
+  defp block_to_string([{:->, _, _}|_] = block, fun) do
+    Enum.map_join(block, "\n", fn({:->, _, [left, right]}) ->
       left = comma_join_or_empty_paren(left, fun, false)
       left <> "->\n  " <> adjust_new_lines block_to_string(right, fun), "\n  "
     end)
   end
 
-  defp block_to_string({ :__block__, _, exprs }, fun) do
+  defp block_to_string({:__block__, _, exprs}, fun) do
     Enum.map_join(exprs, "\n", &to_string(&1, fun))
   end
 
@@ -510,13 +509,13 @@ defmodule Macro do
   end
 
   defp kw_list_to_string(list, fun) do
-    Enum.map_join(list, ", ", fn { key, value } ->
+    Enum.map_join(list, ", ", fn {key, value} ->
       atom_to_binary(key) <> ": " <> to_string(value, fun)
     end)
   end
 
   defp map_list_to_string(list, fun) do
-    Enum.map_join(list, ", ", fn { key, value } ->
+    Enum.map_join(list, ", ", fn {key, value} ->
       to_string(key, fun) <> " => " <> to_string(value, fun)
     end)
   end
@@ -525,9 +524,9 @@ defmodule Macro do
     "(" <> to_string(expr, fun) <> ")"
   end
 
-  defp op_to_string({ op, _, [_, _] } = expr, fun, parent_op, side) when op in unquote(@binary_ops) do
-    { parent_assoc, parent_prec } = binary_op_props(parent_op)
-    { _, prec }                   = binary_op_props(op)
+  defp op_to_string({op, _, [_, _]} = expr, fun, parent_op, side) when op in unquote(@binary_ops) do
+    {parent_assoc, parent_prec} = binary_op_props(parent_op)
+    {_, prec}                   = binary_op_props(op)
     cond do
       parent_prec < prec -> to_string(expr, fun)
       parent_prec > prec -> parenthise(expr, fun)
@@ -544,7 +543,7 @@ defmodule Macro do
   defp op_to_string(expr, fun, _, _), do: to_string(expr, fun)
 
   defp arrow_to_string(pairs, fun, paren \\ false) do
-    Enum.map_join(pairs, "; ", fn({ :->, _, [left, right] }) ->
+    Enum.map_join(pairs, "; ", fn({:->, _, [left, right]}) ->
       left = comma_join_or_empty_paren(left, fun, paren)
       left <> "-> " <> to_string(right, fun)
     end)
@@ -610,7 +609,7 @@ defmodule Macro do
   The compilation will fail because `My.Module` when quoted
   is not an atom, but a syntax tree as follow:
 
-      {:__aliases__, [], [:My, :Module] }
+      {:__aliases__, [], [:My, :Module]}
 
   That said, we need to expand the aliases node above to an
   atom, so we can retrieve its length. Expanding the node is
@@ -646,11 +645,11 @@ defmodule Macro do
     elem(do_expand_once(ast, env), 0)
   end
 
-  defp do_expand_once({ :__aliases__, _, _ } = original, env) do
+  defp do_expand_once({:__aliases__, _, _} = original, env) do
     case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-        { receiver, true }
+        {receiver, true}
       aliases ->
         aliases = for alias <- aliases, do: elem(do_expand_once(alias, env), 0)
 
@@ -658,100 +657,100 @@ defmodule Macro do
           true ->
             receiver = :elixir_aliases.concat(aliases)
             :elixir_lexical.record_remote(receiver, env.lexical_tracker)
-            { receiver, true }
+            {receiver, true}
           false ->
-            { original, false }
+            {original, false}
         end
     end
   end
 
   # Expand @ calls
-  defp do_expand_once({ :@, _, [{ name, _, args }] } = original, env) when is_atom(args) or args == [] do
+  defp do_expand_once({:@, _, [{name, _, args}]} = original, env) when is_atom(args) or args == [] do
     case (module = env.module) && Module.open?(module) do
-      true  -> { Module.get_attribute(module, name), true }
-      false -> { original, false }
+      true  -> {escape(Module.get_attribute(module, name)), true}
+      false -> {original, false}
     end
   end
 
   # Expand pseudo-variables
-  defp do_expand_once({ :__MODULE__, _, atom }, env) when is_atom(atom),
-    do: { env.module, true }
-  defp do_expand_once({ :__DIR__, _, atom }, env)    when is_atom(atom),
-    do: { :filename.dirname(env.file), true }
-  defp do_expand_once({ :__ENV__, _, atom }, env)    when is_atom(atom),
-    do: { { :{}, [], tuple_to_list(env) }, true }
-  defp do_expand_once({ { :., _, [{ :__ENV__, _, atom }, field] }, _, [] } = original, env) when
+  defp do_expand_once({:__MODULE__, _, atom}, env) when is_atom(atom),
+    do: {env.module, true}
+  defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
+    do: {:filename.dirname(env.file), true}
+  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom),
+    do: {{:%{}, [], Map.to_list(env)}, true}
+  defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env) when
       is_atom(atom) and is_atom(field) do
-    case :erlang.function_exported(Macro.Env, field, 1) do
-      true  -> { apply(env, field, []), true }
-      false -> { original, false }
+    if Map.has_key?(env, field) do
+      {Map.get(env, field), true}
+    else
+      {original, false}
     end
   end
 
   # Expand possible macro import invocation
-  defp do_expand_once({ atom, meta, context } = original, env)
+  defp do_expand_once({atom, meta, context} = original, env)
       when is_atom(atom) and is_list(meta) and is_atom(context) do
-    if :lists.member({ atom, Keyword.get(meta, :counter, context) }, env.vars) do
-      { original, false }
+    if :lists.member({atom, Keyword.get(meta, :counter, context)}, env.vars) do
+      {original, false}
     else
-      case do_expand_once({ atom, meta, [] }, env) do
-        { _, true } = exp -> exp
-        { _, false }      -> { original, false }
+      case do_expand_once({atom, meta, []}, env) do
+        {_, true} = exp -> exp
+        {_, false}      -> {original, false}
       end
     end
   end
 
-  defp do_expand_once({ atom, meta, args } = original, env)
+  defp do_expand_once({atom, meta, args} = original, env)
       when is_atom(atom) and is_list(args) and is_list(meta) do
     arity = length(args)
 
     if :elixir_import.special_form(atom, arity) do
-      { original, false }
+      {original, false}
     else
       module = env.module
       extra  = if function_exported?(module, :__info__, 1) do
-        [{ module, module.__info__(:macros) }]
+        [{module, module.__info__(:macros)}]
       else
         []
       end
 
-      expand = :elixir_dispatch.expand_import(meta, { atom, length(args) }, args,
-                                              :elixir_env.ex_to_env(env), extra)
+      expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args,
+                                              env, extra)
 
       case expand do
-        { :ok, receiver, quoted } ->
+        {:ok, receiver, quoted} ->
           next = :elixir_counter.next
-          { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
-        { :ok, _receiver } ->
-          { original, false }
+          {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+        {:ok, _receiver} ->
+          {original, false}
         :error ->
-          { original, false }
+          {original, false}
       end
     end
   end
 
   # Expand possible macro require invocation
-  defp do_expand_once({ { :., _, [left, right] }, meta, args } = original, env) when is_atom(right) do
-    { receiver, _ } = do_expand_once(left, env)
+  defp do_expand_once({{:., _, [left, right]}, meta, args} = original, env) when is_atom(right) do
+    {receiver, _} = do_expand_once(left, env)
 
     case is_atom(receiver) do
-      false -> { original, false }
+      false -> {original, false}
       true  ->
-        expand = :elixir_dispatch.expand_require(meta, receiver, { right, length(args) },
-          args, :elixir_env.ex_to_env(env))
+        expand = :elixir_dispatch.expand_require(meta, receiver, {right, length(args)}, args, env)
 
         case expand do
-          { :ok, receiver, quoted } ->
+          {:ok, receiver, quoted} ->
             next = :elixir_counter.next
-            { :elixir_quote.linify_with_context_counter(0, { receiver, next }, quoted), true }
+            {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
           :error ->
-            { original, false }
+            {original, false}
         end
     end
   end
 
   # Anything else is just returned
-  defp do_expand_once(other, _env), do: { other, false }
+  defp do_expand_once(other, _env), do: {other, false}
 
   @doc """
   Receives an AST node and expands it until it can no longer
@@ -761,14 +760,14 @@ defmodule Macro do
   `expand_once/2` for more information and exmaples.
   """
   def expand(tree, env) do
-    expand_until({ tree, true }, env)
+    expand_until({tree, true}, env)
   end
 
-  defp expand_until({ tree, true }, env) do
+  defp expand_until({tree, true}, env) do
     expand_until(do_expand_once(tree, env), env)
   end
 
-  defp expand_until({ tree, false }, _env) do
+  defp expand_until({tree, false}, _env) do
     tree
   end
 
@@ -778,22 +777,23 @@ defmodule Macro do
 
   Terms are considered safe if they represent data structures and don't actually
   evaluate code. Returns `:ok` unless a given term is unsafe,
-  which is returned as `{ :unsafe, term }`.
+  which is returned as `{:unsafe, term}`.
   """
   def safe_term(terms) do
+    IO.write :stderr, "Macro.safe_term/1 is deprecated\n#{Exception.format_stacktrace}"
     do_safe_term(terms) || :ok
   end
 
-  defp do_safe_term({ local, _, terms }) when local in [:{}, :%{}, :__aliases__] do
+  defp do_safe_term({local, _, terms}) when local in [:{}, :%{}, :__aliases__] do
     do_safe_term(terms)
   end
 
-  defp do_safe_term({ unary, _, [term] }) when unary in [:+, :-] do
+  defp do_safe_term({unary, _, [term]}) when unary in [:+, :-] do
     do_safe_term(term)
   end
 
-  defp do_safe_term({ left, right }), do: do_safe_term(left) || do_safe_term(right)
+  defp do_safe_term({left, right}), do: do_safe_term(left) || do_safe_term(right)
   defp do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, &do_safe_term(&1))
-  defp do_safe_term(terms) when is_tuple(terms), do: { :unsafe, terms }
+  defp do_safe_term(terms) when is_tuple(terms), do: {:unsafe, terms}
   defp do_safe_term(_), do: nil
 end

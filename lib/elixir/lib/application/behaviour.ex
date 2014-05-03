@@ -16,8 +16,8 @@ defmodule Application.Behaviour do
 
   There are two callbacks which must be implemented:
 
-  1. `start(type, args)` - must return `{ :ok, pid }` or
-     `{ :ok, pid, state }`, where `pid` is the process identifier
+  1. `start(type, args)` - must return `{:ok, pid}` or
+     `{:ok, pid, state}`, where `pid` is the process identifier
      of the supervisor tree root and `state` is application defined 
      state information;
 

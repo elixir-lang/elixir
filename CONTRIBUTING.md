@@ -119,12 +119,14 @@ For modules, records, protocols and types say what it is. For example write
 something like:
 
 ```elixir
-defrecord File.Stat, [...] do
+defmodule File.Stat do
   @moduledoc """
   Information about a file.
 
   ...
   """
+
+  defstruct [...]
 end
 ```
 
@@ -154,7 +156,7 @@ def filter(collection, fun) ...
 ```
 
 This makes it easy to test the examples so that they don't go stale and examples
-are often a great help in explaining what a function does. 
+are often a great help in explaining what a function does.
 
 ## Pull requests
 

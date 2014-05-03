@@ -9,11 +9,11 @@ defmodule GenEvent.BehaviourTest do
     # Callbacks
 
     def init(_) do
-      { :ok, [] }
+      {:ok, []}
     end
 
     def handle_event({:notification, x}, notifications) do
-      { :ok, [x|notifications] }
+      {:ok, [x|notifications]}
     end
 
     def handle_call(:notifications, notifications) do
@@ -22,7 +22,7 @@ defmodule GenEvent.BehaviourTest do
   end
 
   test "using defines callbacks" do
-    { :ok, pid } = :gen_event.start_link
+    {:ok, pid} = :gen_event.start_link
     :gen_event.add_handler(pid, MyEventHandler, [])
 
     :gen_event.notify(pid, {:notification, 1})

@@ -17,6 +17,12 @@ defmodule Kernel.ErrorsTest do
       '\end\nlol\nbarbecue'
   end
 
+  test :invalid_string do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"world\"",
+      '"hello" "world"'
+  end
+
   test :invalid_or_reserved_codepoint do
     assert_compile_fail ArgumentError,
       "invalid or reserved unicode codepoint 55296",
@@ -52,7 +58,7 @@ defmodule Kernel.ErrorsTest do
   test :heredoc_start do
     assert_compile_fail TokenMissingError,
       "nofile:1: heredoc start \"\"\" must be followed by a new line",
-      '"""bar'
+      '"""bar\n"""'
   end
 
   test :heredoc_terminator do
@@ -118,7 +124,7 @@ defmodule Kernel.ErrorsTest do
   test :clause_with_defaults do
     assert_compile_fail CompileError,
       "nofile:3: def hello/1 has default values and multiple clauses, " <>
-      "use a separate clause for declaring defaults",
+      "define a function head with the defaults",
       ~C'''
       defmodule ErrorsTest do
         def hello(arg \\ 0), do: nil
@@ -188,11 +194,21 @@ defmodule Kernel.ErrorsTest do
   test :literal_on_map_and_struct do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: '}'",
-      '%{ { :a, :b } }'
+      '%{{:a, :b}}'
 
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: '{'",
-      '%{ :a, :b }{ a: :b }'
+      '%{:a, :b}{a: :b}'
+  end
+
+  test :struct_fields_on_defstruct do
+    assert_compile_fail ArgumentError,
+      "defstruct fields must be a keyword list, got: my_fields",
+      '''
+      defmodule TZ do
+        defstruct my_fields
+      end
+      '''
   end
 
   test :struct_access_on_body do
@@ -210,16 +226,16 @@ defmodule Kernel.ErrorsTest do
   test :unbound_map_key_var do
     assert_compile_fail CompileError,
       "nofile:1: illegal use of variable x in map key",
-      '%{ x => 1 } = %{}'
+      '%{x => 1} = %{}'
 
     assert_compile_fail CompileError,
       "nofile:1: illegal use of variable x in map key",
-      '%{ x = 1 => 1 }'
+      '%{x = 1 => 1}'
   end
 
   test :struct_errors do
-    assert_compile_fail UndefinedFunctionError,
-      "undefined function: BadStruct.__struct__/0",
+    assert_compile_fail CompileError,
+      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
       '%BadStruct{}'
 
     defmodule BadStruct do
@@ -234,13 +250,13 @@ defmodule Kernel.ErrorsTest do
 
     defmodule GoodStruct do
       def __struct__ do
-        %{ name: "josé" }
+        %{name: "josé"}
       end
     end
 
     assert_compile_fail CompileError,
       "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
-      '%#{GoodStruct}{ age: 27 }'
+      '%#{GoodStruct}{age: 27}'
   end
 
   test :name_for_defmodule do
@@ -421,7 +437,7 @@ defmodule Kernel.ErrorsTest do
       '''
       defmodule ErrorsTest do
         defmacrop oops do
-          { :foo, :bar, :baz, :bat }
+          {:foo, :bar, :baz, :bat}
         end
 
         def test, do: oops
@@ -657,10 +673,10 @@ defmodule Kernel.ErrorsTest do
 
   test :bad_unquoting do
     assert_compile_fail CompileError,
-      "nofile: invalid quoted expression: {Range, 1, 3}",
+      "nofile: invalid quoted expression: {:foo, 0, 1}",
       '''
       defmodule ErrorsTest do
-        def range(unquote(1..3)), do: :ok
+        def range(unquote({:foo, 0, 1})), do: :ok
       end
       '''
   end
@@ -696,7 +712,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_compiled_callback do
-    assert [{Kernel.ErrorsTest, :__before_compile__, [Macro.Env[module: ErrorsTest]], _}|_] =
+    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: ErrorsTest}], _}|_] =
       rescue_stacktrace("""
       defmodule ErrorsTest do
         Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)

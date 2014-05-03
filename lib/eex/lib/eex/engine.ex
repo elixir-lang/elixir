@@ -1,7 +1,11 @@
 defmodule EEx.Engine do
   @moduledoc ~S"""
   This is the basic EEx engine that ships with Elixir.
-  An engine needs to implement two functions:
+  An engine needs to implement three functions:
+
+  * `handle_body(quoted)` - receives the final built quoted
+    expression, should do final post-processing and return a
+    quoted expression;
 
   * `handle_text(buffer, text)` - it receives the buffer,
     the text and must return a new quoted expression;
@@ -22,8 +26,17 @@ defmodule EEx.Engine do
 
   use Behaviour
 
+  defcallback handle_body(Macro.t) :: Macro.t
   defcallback handle_text(Macro.t, binary) :: Macro.t
   defcallback handle_expr(Macro.t, binary, Macro.t) :: Macro.t
+
+  @doc """
+  The default implementation implementation simply returns the
+  given expression.
+  """
+  def handle_body(quoted) do
+    quoted
+  end
 
   @doc """
   The default implementation simply concatenates text to the buffer.

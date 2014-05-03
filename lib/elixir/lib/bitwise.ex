@@ -1,6 +1,6 @@
 defmodule Bitwise do
   @moduledoc """
-  This module provide macros and operators for bitwise operators.
+  This module provides macros and operators for bitwise operators.
   These macros can be used in guards.
 
   The easiest way to use is to simply import them into
@@ -15,7 +15,7 @@ defmodule Bitwise do
   You can select to include only or skip operators by passing options:
 
       iex> use Bitwise, only_operators: true
-      ...> 1 &&& 1
+      iex> 1 &&& 1
       1
 
   """

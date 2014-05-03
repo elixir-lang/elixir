@@ -7,43 +7,49 @@ defmodule Mix.Tasks.Deps.Clean do
   Remove the given dependencies' files.
 
   Since this is a destructive action, cleaning of all dependencies
-  can only happen by passing the `--all` command line option.
+  can only happen by passing the `--all` command line option. It
+  also works accross all environments, unless `--only` is given.
 
   Clean does not unlock the dependencies, unless `--unlock` is given.
   """
+  @switches [unlock: :boolean, all: :boolean, only: :string]
+
   def run(args) do
     Mix.Project.get! # Require the project to be available
-
-    { opts, args, _ } = OptionParser.parse(args, switches: [unlock: :boolean, all: :boolean])
-    loaded = Mix.Dep.loaded(env: Mix.env)
+    {opts, args, _} = OptionParser.parse(args, switches: @switches)
 
     cond do
       opts[:all] ->
-        do_clean Enum.map(loaded, &(&1.app)), loaded, opts
+        # Clean all deps by default unless --only is given
+        clean_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
+        apps = Mix.Dep.loaded(clean_opts) |> Enum.map(&(&1.app))
+        do_clean apps, opts
       args != [] ->
-        do_clean args, loaded, opts
+        do_clean args, opts
       true ->
         raise Mix.Error, message: "mix deps.clean expects dependencies as arguments or " <>
                                   "the --all option to clean all dependencies"
     end
   end
 
-  defp do_clean(apps, loaded, opts) do
+  defp do_clean(apps, opts) do
     shell = Mix.shell
-    build = Mix.Project.build_path |> Path.join("lib")
+    build = Mix.Project.build_path
+            |> Path.dirname
+            |> Path.join("#{opts[:only] || :*}/lib")
     deps  = Mix.Project.deps_path
 
     Enum.each apps, fn(app) ->
       shell.info "* Cleaning #{app}"
-      load_paths =
-        if dep = Enum.find(loaded, &(&1.app == app)) do
-          Mix.Dep.load_paths(dep)
-        else
-          [Path.join([build, app, "ebin"])]
-        end
 
-      Enum.each(load_paths, &(&1 |> Path.dirname |> File.rm_rf!))
-      File.rm_rf!(Path.join(deps, app))
+      build
+      |> Path.join(to_string(app))
+      |> Path.wildcard
+      |> Enum.each(&File.rm_rf!/1)
+
+      deps
+      |> Path.join(to_string(app))
+      |> File.rm_rf!
     end
 
     if opts[:unlock] do

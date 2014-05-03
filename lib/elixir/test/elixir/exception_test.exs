@@ -14,9 +14,6 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "normalize" do
-    assert is_record Exception.normalize(:badarg), ArgumentError
-    assert is_record Exception.normalize(ArgumentError[]), ArgumentError
-
     assert Exception.normalize(:throw, :badarg) == :badarg
     assert is_record Exception.normalize(:error, :badarg), ArgumentError
     assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
@@ -52,7 +49,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_stacktrace_entry with fun" do
     assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
-    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ ~r"#Function<.+>/2"
+    assert Exception.format_stacktrace_entry({fn(x, y) -> {x, y} end, 2, []}) =~ ~r"#Function<.+>/2"
   end
 
   test "format_mfa" do
@@ -103,9 +100,9 @@ defmodule Kernel.ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
+    file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 101]} = stacktrace
+           [file: ^file, line: 98]} = stacktrace
   end
 
   test "defexception" do
@@ -116,6 +113,6 @@ defmodule Kernel.ExceptionTest do
   end
 
   defp empty_tuple, do: {}
-  defp a_tuple, do: { :foo, :bar, :baz }
+  defp a_tuple, do: {:foo, :bar, :baz}
   defp a_list,  do: [ :foo, :bar, :baz ]
 end

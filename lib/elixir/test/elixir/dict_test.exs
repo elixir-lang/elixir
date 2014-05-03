@@ -2,16 +2,18 @@ Code.require_file "test_helper.exs", __DIR__
 
 # A TestDict implementation used only for testing.
 defmodule TestDict do
+  defstruct list: []
+
   def new(list \\ []) when is_list(list) do
-    %{__struct__: TestDict, list: list}
+    %TestDict{list: list}
   end
 
-  def size(%{__struct__: TestDict, list: list}) do
+  def size(%TestDict{list: list}) do
     length(list)
   end
 
-  def update(%{__struct__: TestDict, list: list} = map, key, initial, fun) do
-    %{ map | list: update(list, key, initial, fun) }
+  def update(%TestDict{list: list} = map, key, initial, fun) do
+    %{map | list: update(list, key, initial, fun)}
   end
 
   def update([{key, value}|list], key, _initial, fun) do
@@ -277,18 +279,18 @@ defmodule DictTest.Common do
 
       test "split/2 with match" do
         dict = int_dict()
-        { take, drop } = Dict.split(dict, [1])
+        {take, drop} = Dict.split(dict, [1])
         assert take == dict
         assert drop == new_dict([])
 
-        { take, drop } = Dict.split(dict, [1.0])
+        {take, drop} = Dict.split(dict, [1.0])
         assert take == new_dict([])
         assert drop == dict
       end
 
       test "split/2 with enum" do
         dict = int_dict()
-        { take, drop } = Dict.split(dict, 1..3)
+        {take, drop} = Dict.split(dict, 1..3)
         assert take == dict
         assert drop == new_dict([])
       end
@@ -365,10 +367,10 @@ defmodule DictTest.Common do
         dict = new_dict()
         assert Enum.empty?(new_dict([]))
         refute Enum.empty?(dict)
-        assert Enum.member?(dict, { "first_key", 1 })
-        refute Enum.member?(dict, { "first_key", 2 })
+        assert Enum.member?(dict, {"first_key", 1})
+        refute Enum.member?(dict, {"first_key", 2})
         assert Enum.count(dict) == 2
-        assert Enum.reduce(dict, 0, fn({ k, v }, acc) -> v + acc end) == 3
+        assert Enum.reduce(dict, 0, fn({k, v}, acc) -> v + acc end) == 3
       end
 
       test "is collectable" do
@@ -376,7 +378,7 @@ defmodule DictTest.Common do
         assert Dict.size(dict) == 2
         assert Enum.sort(dict) == [{"first_key", 1}, {"second_key", 2}]
 
-        dict = new_dict([{1}, {2}, {3}], fn {x} -> { <<x + 64>>, x } end)
+        dict = new_dict([{1}, {2}, {3}], fn {x} -> {<<x + 64>>, x} end)
         assert Dict.size(dict) == 3
         assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
 
@@ -388,7 +390,7 @@ defmodule DictTest.Common do
         list = Dict.to_list(dict)
         assert Enum.zip(list, list) == Enum.zip(dict, dict)
 
-        dict = new_dict(1..120, fn i -> { i, i } end)
+        dict = new_dict(1..120, fn i -> {i, i} end)
         list = Dict.to_list(dict)
         assert Enum.zip(list, list) == Enum.zip(dict, dict)
       end
@@ -402,14 +404,6 @@ defmodule Dict.HashDictTest do
 
   doctest Dict
   defp dict_impl, do: HashDict
-end
-
-defmodule Dict.ListDictTest do
-  use ExUnit.Case, async: true
-  use DictTest.Common
-
-  doctest Dict
-  defp dict_impl, do: ListDict
 end
 
 defmodule Dict.MapDictTest do

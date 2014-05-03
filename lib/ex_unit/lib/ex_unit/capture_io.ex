@@ -19,8 +19,8 @@ defmodule ExUnit.CaptureIO do
   """
 
   @doc """
-  Captures IO generated when evaluating `fun`. 
-  
+  Captures IO generated when evaluating `fun`.
+
   Returns the binary which is the captured output.
 
   By default, `capture_io` replaces the `group_leader` (`:stdio`)
@@ -42,13 +42,16 @@ defmodule ExUnit.CaptureIO do
 
       iex> capture_io(fn -> IO.write "josé" end) == "josé"
       true
+
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
       true
+
       iex> capture_io("this is input", fn ->
       ...>   input = IO.gets ">"
       ...>   IO.write input
       ...> end) == ">this is input"
       true
+
       iex> capture_io([input: "this is input", capture_prompt: false], fn ->
       ...>   input = IO.gets ">"
       ...>   IO.write input
@@ -89,7 +92,7 @@ defmodule ExUnit.CaptureIO do
     input = Keyword.get(options, :input, "")
 
     original_gl = :erlang.group_leader
-    { :ok, capture_gl } = StringIO.open(input, capture_prompt: prompt_config)
+    {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
     :erlang.group_leader(capture_gl, self)
 
     try do
@@ -112,7 +115,7 @@ defmodule ExUnit.CaptureIO do
     input = Keyword.get(options, :input, "")
 
     Process.unregister(device)
-    { :ok, capture_io } = StringIO.open(input)
+    {:ok, capture_io} = StringIO.open(input)
     Process.register(capture_io, device)
 
     try do

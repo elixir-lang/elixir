@@ -48,16 +48,16 @@ defmodule Mix.Tasks.App.StartTest do
       Mix.Tasks.Compile.run []
       purge [A, B, C]
 
-      assert_received { :mix_shell, :info, ["Compiled lib/a.ex"] }
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert System.version == Mix.Dep.Lock.elixir_vsn
 
       Mix.Task.clear
       File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
-      File.touch!("_build/dev/lib/sample/.compile.lock", { { 2010, 1, 1 }, { 0, 0, 0 } })
+      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.App.Start.run ["--no-start"]
       assert System.version == Mix.Dep.Lock.elixir_vsn
-      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > { { 2010, 1, 1 }, { 0, 0, 0 } }
+      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end
 
@@ -146,7 +146,7 @@ defmodule Mix.Tasks.App.StartTest do
   test "start points to report on bad return" do
     Mix.Project.push BadReturnSample
     in_fixture "no_mixfile", fn ->
-      Process.put(:application_definition, mod: { BadReturnApp, [] })
+      Process.put(:application_definition, mod: {BadReturnApp, []})
       Mix.Tasks.Compile.run []
 
       assert_raise Mix.Error, ~r"Could not start application bad_return_sample, please see report above", fn ->

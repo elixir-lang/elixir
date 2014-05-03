@@ -11,34 +11,47 @@ defmodule Mix.Dep.Fetcher do
 
   @doc """
   Fetches all dependencies.
-
-  See `Mix.Dep.unloaded/3` for options.
   """
   def all(old_lock, new_lock, opts) do
-    deps = Mix.Dep.unloaded({ [], new_lock }, opts, &do_fetch/2)
-    { apps, _deps } = do_finalize(deps, old_lock, opts)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, &do_fetch/3)
+    {apps, _deps} = do_finalize(result, old_lock, opts)
     apps
   end
 
   @doc """
   Fetches the dependencies with the given names and their children recursively.
-
-  See `Mix.Dep.unloaded_by_name/4` for options.
   """
   def by_name(names, old_lock, new_lock, opts) do
-    deps = Mix.Dep.unloaded_by_name(names, { [], new_lock }, opts, &do_fetch/2)
-    { apps, deps } = do_finalize(deps, old_lock, opts)
-    Mix.Dep.loaded_by_name(names, deps, opts) # Check all given dependencies are loaded or fail
+    fetcher = fetch_by_name(names, new_lock)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, fetcher)
+    {apps, deps} = do_finalize(result, old_lock, opts)
+
+    # Check if all given dependencies are loaded or fail
+    Mix.Dep.loaded_by_name(names, deps, opts)
     apps
   end
 
-  defp do_fetch(dep, { acc, lock }) do
+  defp fetch_by_name(given, lock) do
+    names = to_app_names(given)
+
+    fn(%Mix.Dep{app: app} = dep, acc, new_lock) ->
+      # Only fetch if dependency is in given names or if lock has
+      # been changed for dependency by remote converger
+      if app in names or lock[app] != new_lock[app] do
+        do_fetch(dep, acc, new_lock)
+      else
+        {dep, acc, new_lock}
+      end
+    end
+  end
+
+  defp do_fetch(dep, acc, lock) do
     %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep, lock)
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
       not scm.fetchable? ->
-        { dep, { [app|acc], lock } }
+        {dep, [app|acc], lock}
 
       # If the dependency is not available or we have a lock mismatch
       out_of_date?(dep) ->
@@ -52,24 +65,24 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          { dep, { [app|acc], Map.put(lock, app, new) } }
+          {dep, [app|acc], Map.put(lock, app, new)}
         else
-          { dep, { acc, lock } }
+          {dep, acc, lock}
         end
 
       # The dependency is ok or has some other error
       true ->
-        { dep, { acc, lock } }
+        {dep, acc, lock}
     end
   end
 
-  defp out_of_date?(%Mix.Dep{status: { :lockmismatch, _ }}), do: true
+  defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
   defp out_of_date?(%Mix.Dep{status: :lockoutdated}),        do: true
   defp out_of_date?(%Mix.Dep{status: :nolock}),              do: true
-  defp out_of_date?(%Mix.Dep{status: { :unavailable, _ }}),  do: true
+  defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
   defp out_of_date?(%Mix.Dep{}),                             do: false
 
-  defp do_finalize({ all_deps, { apps, new_lock } }, old_lock, opts) do
+  defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
@@ -95,14 +108,14 @@ defmodule Mix.Dep.Fetcher do
     Mix.Dep.Lock.write(lock)
 
     require_compilation(deps)
-    { apps, all_deps }
+    {apps, all_deps}
   end
 
   defp require_compilation(deps) do
     envs = Path.wildcard("_build/*/lib")
 
     for %Mix.Dep{app: app} <- deps, env <- envs do
-      File.touch Path.join [env, app, ".compile"]
+      File.touch Path.join [env, atom_to_binary(app), ".compile"]
     end
   end
 
@@ -122,5 +135,11 @@ defmodule Mix.Dep.Fetcher do
     end
 
     do_with_depending(parents, all_deps) ++ parents
+  end
+
+  defp to_app_names(given) do
+    Enum.map(given, fn(app) ->
+      if is_binary(app), do: binary_to_atom(app), else: app
+    end)
   end
 end

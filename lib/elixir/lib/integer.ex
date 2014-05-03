@@ -26,26 +26,28 @@ defmodule Integer do
   end
 
   @doc """
-  Converts a binary to an integer. 
-  
-  If successful, returns a tuple of the form `{ integer, remainder_of_binary }`.
+  Converts a binary to an integer.
+
+  If successful, returns a tuple of the form `{integer, remainder_of_binary}`.
   Otherwise `:error`.
 
   ## Examples
 
       iex> Integer.parse("34")
       {34,""}
+
       iex> Integer.parse("34.5")
       {34,".5"}
+
       iex> Integer.parse("three")
       :error
 
   """
-  @spec parse(binary) :: { integer, binary } | :error
+  @spec parse(binary) :: {integer, binary} | :error
   def parse(<< ?-, bin :: binary >>) do
     case do_parse(bin) do
       :error -> :error
-      { number, remainder } -> { -number, remainder }
+      {number, remainder} -> {-number, remainder}
     end
   end
 
@@ -65,6 +67,6 @@ defmodule Integer do
   end
 
   defp do_parse(bitstring, acc) do
-    { acc, bitstring }
+    {acc, bitstring}
   end
 end

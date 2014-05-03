@@ -144,7 +144,7 @@ defmodule IEx do
   results in
 
       $ iex
-      Erlang R16B [...]
+      Erlang 17 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -172,7 +172,7 @@ defmodule IEx do
       ### now run the shell ###
 
       $ iex
-      Erlang R16B (erts-5.10.1) [...]
+      Erlang 17 (erts-5.10.1) [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
@@ -224,7 +224,7 @@ defmodule IEx do
   Returns registered `after_spawn` callbacks.
   """
   def after_spawn do
-    { :ok, list } = :application.get_env(:iex, :after_spawn)
+    {:ok, list} = :application.get_env(:iex, :after_spawn)
     list
   end
 
@@ -232,7 +232,7 @@ defmodule IEx do
   Returns `true` if IEx was properly started.
   """
   def started? do
-    :application.get_env(:iex, :started) == { :ok, true }
+    :application.get_env(:iex, :started) == {:ok, true}
   end
 
   @doc """
@@ -244,6 +244,16 @@ defmodule IEx do
     enabled = colors[:enabled]
     IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
       <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
+  end
+
+  @doc """
+  Get the width to be used on helpers with a maximum (and default) of 80 chars.
+  """
+  def width do
+    case :io.columns(:standard_input) do
+      {:ok, width} -> min(width, 80)
+      {:error, _}  -> 80
+    end
   end
 
   @doc """
@@ -311,9 +321,9 @@ defmodule IEx do
 
       # We cannot use colors because IEx may be off.
       case res do
-        { :error, :self } = err ->
+        {:error, :self} = err ->
           IO.puts :stdio, "IEx cannot pry itself."
-        { :error, :no_iex } = err ->
+        {:error, :no_iex} = err ->
           IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
         _ ->
           :ok
@@ -352,12 +362,7 @@ defmodule IEx do
       :application.start(:elixir)
       :application.start(:iex)
       :application.set_env(:iex, :started, true)
-
-      # Disable ANSI-escape-sequence-based coloring on Windows
-      # Can be overriden in .iex
-      if match?({ :win32, _ }, :os.type()) do
-        IEx.Options.set :colors, enabled: false
-      end
+      IEx.Options.set :colors, enabled: IO.ANSI.terminal?
     end
   end
 
@@ -377,8 +382,8 @@ defmodule IEx do
 
   defp ensure_module_exists(node, mod) do
     unless :rpc.call node, :code, :is_loaded, [mod] do
-      { m, b, f } = :code.get_object_code mod
-      { :module, _ } = :rpc.call node, :code, :load_binary, [m, f, b]
+      {m, b, f} = :code.get_object_code mod
+      {:module, _} = :rpc.call node, :code, :load_binary, [m, f, b]
     end
   end
 

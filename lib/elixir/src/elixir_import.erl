@@ -10,28 +10,28 @@
 import(Meta, Ref, Opts, E) ->
   Res =
     case keyfind(only, Opts) of
-      { only, functions } ->
-        { import_functions(Meta, Ref, Opts, E),
-          E#elixir_env.macros };
-      { only, macros } ->
-        { E#elixir_env.functions,
-          import_macros(true, Meta, Ref, Opts, E) };
-      { only, List } when is_list(List) ->
-        { import_functions(Meta, Ref, Opts, E),
-          import_macros(false, Meta, Ref, Opts, E) };
+      {only, functions} ->
+        {import_functions(Meta, Ref, Opts, E),
+          ?m(E, macros)};
+      {only, macros} ->
+        {?m(E, functions),
+          import_macros(true, Meta, Ref, Opts, E)};
+      {only, List} when is_list(List) ->
+        {import_functions(Meta, Ref, Opts, E),
+          import_macros(false, Meta, Ref, Opts, E)};
       false ->
-        { import_functions(Meta, Ref, Opts, E),
-          import_macros(false, Meta, Ref, Opts, E) }
+        {import_functions(Meta, Ref, Opts, E),
+          import_macros(false, Meta, Ref, Opts, E)}
     end,
 
   record_warn(Meta, Ref, Opts, E),
   Res.
 
 import_functions(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, E#elixir_env.functions, E, fun() -> get_functions(Ref) end).
+  calculate(Meta, Ref, Opts, ?m(E, functions), E, fun() -> get_functions(Ref) end).
 
 import_macros(Force, Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, E#elixir_env.macros, E, fun() ->
+  calculate(Meta, Ref, Opts, ?m(E, macros), E, fun() ->
     case Force of
       true  -> get_macros(Meta, Ref, E);
       false -> get_optional_macros(Ref)
@@ -41,29 +41,29 @@ import_macros(Force, Meta, Ref, Opts, E) ->
 record_warn(Meta, Ref, Opts, E) ->
   Warn =
     case keyfind(warn, Opts) of
-      { warn, false } -> false;
-      { warn, true } -> true;
+      {warn, false} -> false;
+      {warn, true} -> true;
       false -> not lists:keymember(context, 1, Meta)
     end,
-  elixir_lexical:record_import(Ref, ?line(Meta), Warn, E#elixir_env.lexical_tracker).
+  elixir_lexical:record_import(Ref, ?line(Meta), Warn, ?m(E, lexical_tracker)).
 
 %% Calculates the imports based on only and except
 
 calculate(Meta, Key, Opts, Old, E, Existing) ->
   New = case keyfind(only, Opts) of
-    { only, Only } when is_list(Only) ->
+    {only, Only} when is_list(Only) ->
       case Only -- get_exports(Key) of
         [{Name,Arity}|_] ->
-          Tuple = { invalid_import, { Key, Name, Arity } },
-          elixir_errors:form_error(Meta, E#elixir_env.file, ?MODULE, Tuple);
+          Tuple = {invalid_import, {Key, Name, Arity}},
+          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
         _ ->
           intersection(Only, Existing())
       end;
     _ ->
       case keyfind(except, Opts) of
         false -> remove_underscored(Existing());
-        { except, [] } -> remove_underscored(Existing());
-        { except, Except } when is_list(Except) ->
+        {except, []} -> remove_underscored(Existing());
+        {except, Except} when is_list(Except) ->
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
             {Key,OldImports} -> OldImports -- Except
@@ -78,8 +78,8 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
   case Final of
     [] -> keydelete(Key, Old);
     _  ->
-      ensure_no_special_form_conflict(Meta, E#elixir_env.file, Key, Final),
-      [{ Key, Final }|keydelete(Key, Old)]
+      ensure_no_special_form_conflict(Meta, ?m(E, file), Key, Final),
+      [{Key, Final}|keydelete(Key, Old)]
   end.
 
 %% Retrieve functions and macros from modules
@@ -103,19 +103,19 @@ get_macros(Meta, Module, E) ->
     Module:'__info__'(macros)
   catch
     error:undef ->
-      Tuple = { no_macros, Module },
-      elixir_errors:form_error(Meta, E#elixir_env.file, ?MODULE, Tuple)
+      Tuple = {no_macros, Module},
+      elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple)
   end.
 
 get_optional_macros(Module)  ->
   case code:ensure_loaded(Module) of
-    { module, Module } ->
+    {module, Module} ->
       try
         Module:'__info__'(macros)
       catch
         error:undef -> []
       end;
-    { error, _ } -> []
+    {error, _} -> []
   end.
 
 %% VALIDATION HELPERS
@@ -123,7 +123,7 @@ get_optional_macros(Module)  ->
 ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T]) ->
   case special_form(Name, Arity) of
     true  ->
-      Tuple = { special_form_conflict, { Key, Name, Arity } },
+      Tuple = {special_form_conflict, {Key, Name, Arity}},
       elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
     false ->
       ensure_no_special_form_conflict(Meta, File, Key, T)
@@ -141,7 +141,7 @@ format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
-format_error({ no_macros, Module }) ->
+format_error({no_macros, Module}) ->
   io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]).
 
 %% LIST HELPERS
@@ -163,7 +163,7 @@ intersection([], _All) -> [].
 %% Internal funs that are never imported etc.
 
 remove_underscored(List) ->
-  lists:filter(fun({ Name, _ }) ->
+  lists:filter(fun({Name, _}) ->
     case atom_to_list(Name) of
       "_" ++ _ -> false;
       _ -> true
@@ -171,8 +171,8 @@ remove_underscored(List) ->
   end, List).
 
 remove_internals(Set) ->
-  ordsets:del_element({ module_info, 1 },
-    ordsets:del_element({ module_info, 0 }, Set)).
+  ordsets:del_element({module_info, 1},
+    ordsets:del_element({module_info, 0}, Set)).
 
 %% Special forms
 

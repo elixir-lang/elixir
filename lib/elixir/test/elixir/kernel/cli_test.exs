@@ -19,15 +19,15 @@ defmodule Kernel.CLI.OptionParsingTest do
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_char_list
     list = elixir('-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path, limit: :infinity)"')
-    { path, _ } = Code.eval_string list, []
+    {path, _} = Code.eval_string list, []
 
     # pa
-    assert Path.expand('ebin', root) in path
-    assert Path.expand('lib', root) in path
-    assert Path.expand('src', root) in path
+    assert to_char_list(Path.expand('ebin', root)) in path
+    assert to_char_list(Path.expand('lib', root)) in path
+    assert to_char_list(Path.expand('src', root)) in path
 
     # pz
-    assert Path.expand('lib/list', root) in path
+    assert to_char_list(Path.expand('lib/list', root)) in path
   end
 end
 

@@ -8,7 +8,7 @@ defmodule IO.ANSI.Sequence do
       end
 
       defp escape_sequence(<< unquote(atom_to_binary(name)), rest :: binary >>) do
-        { "\e[#{unquote(code)}#{unquote(terminator)}", rest }
+        {"\e[#{unquote(code)}#{unquote(terminator)}", rest}
       end
     end
   end
@@ -17,7 +17,7 @@ end
 defmodule IO.ANSI do
   @moduledoc """
   Functionality to render ANSI escape sequences
-  (http:\\en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
+  (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in text used to control formatting, color, and other output options
   on video text terminals.
   """
@@ -28,12 +28,15 @@ defmodule IO.ANSI do
   Checks whether the default I/O device is a terminal or a file.
 
   Used to identify whether printing ANSI escape sequences will likely
-  be displayed as intended.
+  be displayed as intended. This is checked by sending a message to
+  the group leader. In case the group leader does not support the message,
+  it will likely lead to a timeout (and a slow down on execution time).
   """
   @spec terminal? :: boolean
   @spec terminal?(:io.device) :: boolean
   def terminal?(device \\ :erlang.group_leader) do
-    match?({:ok, _}, :io.columns(device))
+    !match?({:win32, _}, :os.type()) and
+      match?({:ok, _}, :io.columns(device))
   end
 
   @doc "Resets all attributes"
@@ -92,7 +95,7 @@ defmodule IO.ANSI do
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
   colors = Enum.zip(0..(length(colors)-1), colors)
 
-  for { code, color } <- colors do
+  for {code, color} <- colors do
     @doc "Sets foreground color to #{color}"
     defsequence color, code + 30
 
@@ -183,6 +186,7 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
       "Hello \e[31m\e[1m\e[32myes"
+
       iex> IO.ANSI.escape_fragment("%{reset}bye", true)
       "\e[0mbye"
 
@@ -209,7 +213,7 @@ defmodule IO.ANSI do
     do_escape(rest, false, emit, emitted, [x|acc])
   end
   defp do_escape("", false, _emit, emitted, acc) do
-    {iolist_to_binary(Enum.reverse(acc)), emitted}
+    {iodata_to_binary(Enum.reverse(acc)), emitted}
   end
 
   defp do_escape_sequence(rest, emit, acc) do

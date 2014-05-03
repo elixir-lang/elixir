@@ -83,14 +83,14 @@ defmodule ListTest do
   end
 
   test :keyfind do
-    assert List.keyfind([a: 1, b: 2], :a, 0) == { :a, 1 }
-    assert List.keyfind([a: 1, b: 2], 2, 1) == { :b, 2 }
+    assert List.keyfind([a: 1, b: 2], :a, 0) == {:a, 1}
+    assert List.keyfind([a: 1, b: 2], 2, 1) == {:b, 2}
     assert List.keyfind([a: 1, b: 2], :c, 0) == nil
   end
 
   test :keyreplace do
-    assert List.keyreplace([a: 1, b: 2], :a, 0, { :a, 3 }) == [a: 3, b: 2]
-    assert List.keyreplace([a: 1], :b, 0, { :b, 2 }) == [a: 1]
+    assert List.keyreplace([a: 1, b: 2], :a, 0, {:a, 3}) == [a: 3, b: 2]
+    assert List.keyreplace([a: 1], :b, 0, {:b, 2}) == [a: 1]
   end
 
   test :keysort do
@@ -99,8 +99,8 @@ defmodule ListTest do
   end
 
   test :keystore do
-    assert List.keystore([a: 1, b: 2], :a, 0, { :a, 3 }) == [a: 3, b: 2]
-    assert List.keystore([a: 1], :b, 0, { :b, 2 }) == [a: 1, b: 2]
+    assert List.keystore([a: 1, b: 2], :a, 0, {:a, 3}) == [a: 3, b: 2]
+    assert List.keystore([a: 1], :b, 0, {:b, 2}) == [a: 1, b: 2]
   end
 
   test :keymember? do
@@ -110,9 +110,9 @@ defmodule ListTest do
   end
 
   test :keydelete do
-    assert List.keydelete([a: 1, b: 2], :a, 0) == [{ :b, 2 }]
-    assert List.keydelete([a: 1, b: 2], 2, 1) == [{ :a, 1 }]
-    assert List.keydelete([a: 1, b: 2], :c, 0) == [{ :a, 1 }, { :b, 2 }]
+    assert List.keydelete([a: 1, b: 2], :a, 0) == [{:b, 2}]
+    assert List.keydelete([a: 1, b: 2], 2, 1) == [{:a, 1}]
+    assert List.keydelete([a: 1, b: 2], :c, 0) == [{:a, 1}, {:b, 2}]
   end
 
   test :insert_at do

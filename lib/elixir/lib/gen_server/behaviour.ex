@@ -17,7 +17,7 @@ defmodule GenServer.Behaviour do
         # Callbacks
 
         def handle_call(:pop, _from, [h|t]) do
-          { :reply, h, t }
+          {:reply, h, t}
         end
 
         def handle_call(request, from, config) do
@@ -25,8 +25,8 @@ defmodule GenServer.Behaviour do
           super(request, from, config)
         end
 
-        def handle_cast({ :push, item }, config) do
-          { :noreply, [item|config] }
+        def handle_cast({:push, item}, config) do
+          {:noreply, [item|config]}
         end
 
         def handle_cast(request, config) do
@@ -34,12 +34,12 @@ defmodule GenServer.Behaviour do
         end
       end
 
-      { :ok, pid } = :gen_server.start_link(MyServer, [:hello], [])
+      {:ok, pid} = :gen_server.start_link(MyServer, [:hello], [])
 
       :gen_server.call(pid, :pop)
       #=> :hello
 
-      :gen_server.cast(pid, { :push, :world })
+      :gen_server.cast(pid, {:push, :world})
       #=> :ok
 
       :gen_server.call(pid, :pop)
@@ -51,14 +51,14 @@ defmodule GenServer.Behaviour do
   GenServer, there are 8 different values a callback such as
   `handle_call` or `handle_cast` can return:
 
-      { :reply, reply, new_state }
-      { :reply, reply, new_state, timeout }
-      { :reply, reply, new_state, :hibernate }
-      { :noreply, new_state }
-      { :noreply, new_state, timeout }
-      { :noreply, new_state, :hibernate }
-      { :stop, reason, new_state }
-      { :stop, reason, reply, new_state }
+      {:reply, reply, new_state}
+      {:reply, reply, new_state, timeout}
+      {:reply, reply, new_state, :hibernate}
+      {:noreply, new_state}
+      {:noreply, new_state, timeout}
+      {:noreply, new_state, :hibernate}
+      {:stop, reason, new_state}
+      {:stop, reason, reply, new_state}
 
   There are 6 callbacks required to be implemented in a GenServer. The
   `GenServer.Behaviour` module defines all of them automatically, but
@@ -90,22 +90,22 @@ defmodule GenServer.Behaviour do
 
       @doc false
       def init(args) do
-        { :ok, args }
+        {:ok, args}
       end
 
       @doc false
       def handle_call(request, _from, state) do
-        { :stop, { :bad_call, request }, state }
+        {:stop, {:bad_call, request}, state}
       end
 
       @doc false
       def handle_info(_msg, state) do
-        { :noreply, state }
+        {:noreply, state}
       end
 
       @doc false
       def handle_cast(msg, state) do
-        { :stop, { :bad_cast, msg }, state }
+        {:stop, {:bad_cast, msg}, state}
       end
 
       @doc false
@@ -115,7 +115,7 @@ defmodule GenServer.Behaviour do
 
       @doc false
       def code_change(_old, state, _extra) do
-        { :ok, state }
+        {:ok, state}
       end
 
       defoverridable [init: 1, handle_call: 3, handle_info: 2,

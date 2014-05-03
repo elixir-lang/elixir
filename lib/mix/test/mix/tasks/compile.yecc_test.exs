@@ -29,14 +29,14 @@ defmodule Mix.Tasks.Compile.YeccTest do
     in_fixture "compile_yecc", fn ->
       assert Mix.Tasks.Compile.Yecc.run([]) == :ok
 
-      assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+      assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
       assert File.regular?("src/test_ok.erl")
 
       assert Mix.Tasks.Compile.Yecc.run([]) == :noop
-      refute_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+      refute_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
 
       assert Mix.Tasks.Compile.Yecc.run(["--force"]) == :ok
-      assert_received { :mix_shell, :info, ["Compiled src/test_ok.yrl"] }
+      assert_received {:mix_shell, :info, ["Compiled src/test_ok.yrl"]}
     end
   end
 

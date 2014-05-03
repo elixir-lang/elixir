@@ -1,12 +1,9 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  defrecord Mod, name: nil, type: nil
-  defrecord Fun, name: nil, arities: []
-
   def expand([]) do
     funs = module_funs(IEx.Helpers) ++ module_funs(Kernel)
-    mods = [Mod[name: "Elixir", type: :elixir]]
+    mods = [%{name: "Elixir", type: :elixir, kind: :module}]
     format_expansion mods ++ funs
   end
 
@@ -46,7 +43,7 @@ defmodule IEx.Autocomplete do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules atom_to_binary(atom)
-      {:ok, { atom, _, nil }} when is_atom(atom) ->
+      {:ok, {atom, _, nil}} when is_atom(atom) ->
         expand_call Kernel, atom_to_binary(atom)
       {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules [], atom_to_binary(root)
@@ -74,11 +71,11 @@ defmodule IEx.Autocomplete do
   end
 
   defp yes(hint, entries) do
-    { :yes, String.to_char_list!(hint), Enum.map(entries, &String.to_char_list!/1) }
+    {:yes, List.from_char_data!(hint), Enum.map(entries, &List.from_char_data!/1)}
   end
 
   defp no do
-    { :no, '', [] }
+    {:no, '', []}
   end
 
   ## Formatting
@@ -116,12 +113,12 @@ defmodule IEx.Autocomplete do
         "Elixir" <> _ ->
           tokens = String.split(mod, ".")
           if length(tokens) == 2 do
-            [Mod.new(name: List.last(tokens), type: :elixir)|acc]
+            [%{kind: :module, name: List.last(tokens), type: :elixir}|acc]
           else
             acc
           end
         _ ->
-          [Mod.new(name: mod, type: :erlang)|acc]
+          [%{kind: :module, name: mod, type: :erlang}|acc]
       end
     end
   end
@@ -134,7 +131,7 @@ defmodule IEx.Autocomplete do
   end
 
   # Elixir.fun
-  defp expand_call({ :__aliases__, _, list }, hint) do
+  defp expand_call({:__aliases__, _, list}, hint) do
     expand_module_funs Module.concat(list), hint
   end
 
@@ -177,7 +174,7 @@ defmodule IEx.Autocomplete do
         tokens = String.split(m, ".")
         if length(tokens) == depth do
           name = List.last(tokens)
-          [Mod.new(type: :elixir, name: name)|acc]
+          [%{kind: :module, type: :elixir, name: name}|acc]
         else
           acc
         end
@@ -192,27 +189,27 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(false) do
-    Enum.map(:code.all_loaded, fn({ m, _ }) -> atom_to_binary(m) end)
+    Enum.map(:code.all_loaded, fn({m, _}) -> atom_to_binary(m) end)
   end
 
   ## Helpers
 
   defp module_funs(mod, hint \\ "") do
     case ensure_loaded(mod) do
-      { :module, _ } ->
+      {:module, _} ->
         falist = get_funs(mod)
 
         list = Enum.reduce falist, [], fn {f, a}, acc ->
           case :lists.keyfind(f, 1, acc) do
             {f, aa} -> :lists.keyreplace(f, 1, acc, {f, [a|aa]})
-            false  -> [{f, [a]}|acc]
+            false -> [{f, [a]}|acc]
           end
         end
 
         for {fun, arities} <- list,
             name = atom_to_binary(fun),
             String.starts_with?(name, hint) do
-          Fun[name: name, arities: arities]
+          %{kind: :function, name: name, arities: arities}
         end
       _ ->
         []
@@ -222,7 +219,7 @@ defmodule IEx.Autocomplete do
   defp get_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
       if docs = mod.__info__(:docs) do
-        for { tuple, _line, _kind, _sign, doc } <- docs, doc != false, do: tuple
+        for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
       else
         (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
       end
@@ -231,32 +228,32 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp ensure_loaded(Elixir), do: { :error, :nofile }
+  defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod),    do: Code.ensure_compiled(mod)
 
   ## Ad-hoc conversions
 
-  defp to_entries(Mod[name: name]) do
+  defp to_entries(%{kind: :module, name: name}) do
     [name]
   end
 
-  defp to_entries(Fun[name: name, arities: arities]) do
+  defp to_entries(%{kind: :function, name: name, arities: arities}) do
     for a <- arities, do: "#{name}/#{a}"
   end
 
-  defp to_uniq_entries(Mod[]) do
+  defp to_uniq_entries(%{kind: :module}) do
     []
   end
 
-  defp to_uniq_entries(Fun[] = fun) do
+  defp to_uniq_entries(%{kind: :function} = fun) do
     to_entries(fun)
   end
 
-  defp to_hint(Mod[name: name], hint) do
-    :binary.part(name, size(hint), size(name)-size(hint)) <> "."
+  defp to_hint(%{kind: :module, name: name}, hint) do
+    :binary.part(name, size(hint), size(name) - size(hint)) <> "."
   end
 
-  defp to_hint(Fun[name: name], hint) do
-    :binary.part(name, size(hint), size(name)-size(hint))
+  defp to_hint(%{kind: :function, name: name}, hint) do
+    :binary.part(name, size(hint), size(name) - size(hint))
   end
 end

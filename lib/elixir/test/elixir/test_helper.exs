@@ -36,14 +36,14 @@ defmodule PathHelpers do
   end
 
   defp runcmd(executable,args) do
-    :os.cmd :binary.bin_to_list("#{executable} #{String.from_char_list!(args)}#{redirect_std_err_on_win}")
+    :os.cmd :binary.bin_to_list("#{executable} #{String.from_char_data!(args)}#{redirect_std_err_on_win}")
   end
 
   defp executable_path(name) do
     Path.expand("../../../../bin/#{name}#{executable_extension}", __DIR__)
   end
 
-  if match? { :win32, _ }, :os.type do
+  if match? {:win32, _}, :os.type do
     def is_win?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"
@@ -55,25 +55,27 @@ defmodule PathHelpers do
 end
 
 defmodule CompileAssertion do
+  import ExUnit.Assertions
+
   def assert_compile_fail(exception, string) do
     case format_rescue(string) do
-      { ^exception, _ } -> :ok
+      {^exception, _} -> :ok
       error ->
-        raise ExUnit.ExpectationError,
-          expected: inspect(exception),
-          actual: inspect(elem(error, 0)),
-          assertion: "match"
+        raise ExUnit.AssertionError,
+          left: inspect(elem(error, 0)),
+          right: inspect(exception),
+          message: "Expected match"
     end
   end
 
   def assert_compile_fail(exception, message, string) do
     case format_rescue(string) do
-      { ^exception, ^message } -> :ok
+      {^exception, ^message} -> :ok
       error ->
-        raise ExUnit.ExpectationError,
-          expected: "#{inspect exception}[message: #{inspect message}]",
-          actual: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
-          assertion: "match"
+        raise ExUnit.AssertionError,
+          left: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
+          right: "#{inspect exception}[message: #{inspect message}]",
+          message: "Expected match"
     end
   end
 
@@ -82,9 +84,9 @@ defmodule CompileAssertion do
       :elixir.eval(to_char_list(expr), [])
       nil
     rescue
-      error -> { error.__record__(:name), error.message }
+      error -> {error.__record__(:name), error.message}
     end
 
-    result || raise(ExUnit.AssertionError, message: "Expected expression to fail")
+    result || flunk(message: "Expected expression to fail")
   end
 end

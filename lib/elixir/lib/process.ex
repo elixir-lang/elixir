@@ -62,6 +62,7 @@ defmodule Process do
   """
   @spec delete :: [{term, term}]
   def delete() do
+    IO.write :stderr, "Process.delete/0 is deprecated\n#{Exception.format_stacktrace}"
     :erlang.erase()
   end
 
@@ -117,7 +118,7 @@ defmodule Process do
   It does the same as `Kernel.send/2`.
   """
   @spec send(dest, msg) :: msg when
-        dest: pid | port | atom | { atom, node },
+        dest: pid | port | atom | {atom, node},
         msg: any
   def send(dest, msg) do
     :erlang.send(dest, msg)
@@ -137,12 +138,12 @@ defmodule Process do
 
   ## Examples
 
-      iex> Process.send({ :name, :node_does_not_exist }, :hi, [:noconnect])
+      iex> Process.send({:name, :node_does_not_exist}, :hi, [:noconnect])
       :noconnect
 
   """
   @spec send(dest, msg, [option]) ::  result when
-        dest: pid | port | atom | { atom, node },
+        dest: pid | port | atom | {atom, node},
         msg: any,
         option: :noconnect | :nosuspend,
         result: :ok | :noconnect | :nosuspend
@@ -457,7 +458,7 @@ defmodule Process do
     nillify :erlang.process_info(pid, spec)
   end
 
-  @compile { :inline, nillify: 1 }
+  @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other
 end

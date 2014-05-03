@@ -8,14 +8,6 @@ defmodule RangeTest do
     assert 1..3 |> Enum.to_list == [1, 2, 3]
   end
 
-  test :first do
-    assert Range.first(1..3) == 1
-  end
-
-  test :last do
-    assert Range.last(1..3) == 3
-  end
-
   test :op do
     assert (1..3).first == 1
     assert (1..3).last  == 3

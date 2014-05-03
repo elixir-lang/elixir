@@ -1,6 +1,6 @@
 defmodule Behaviour do
   @moduledoc """
-  Utilities for defining behaviour intefaces.
+  Utilities for defining behaviour interfaces.
 
   Behaviours can be referenced by other modules
   to ensure they implement required callbacks.
@@ -12,7 +12,7 @@ defmodule Behaviour do
         use Behaviour
 
         @doc "Parses the given URL"
-        defcallback parse(uri_info :: URI.Info.t) :: URI.Info.t
+        defcallback parse(uri_info :: URI.t) :: URI.t
 
         @doc "Defines a default port"
         defcallback default_port() :: integer
@@ -57,34 +57,34 @@ defmodule Behaviour do
     do_defmacrocallback(split_spec(spec, quote(do: Macro.t)), __CALLER__)
   end
 
-  defp split_spec({ :when, _, [{ :::, _, [spec, return] }, guard] }, _default) do
-    { spec, return, guard }
+  defp split_spec({:when, _, [{:::, _, [spec, return]}, guard]}, _default) do
+    {spec, return, guard}
   end
 
-  defp split_spec({ :when, _, [spec, guard] }, default) do
-    { spec, default, guard }
+  defp split_spec({:when, _, [spec, guard]}, default) do
+    {spec, default, guard}
   end
 
-  defp split_spec({ :::, _, [spec, return] }, _default) do
-    { spec, return, [] }
+  defp split_spec({:::, _, [spec, return]}, _default) do
+    {spec, return, []}
   end
 
   defp split_spec(spec, default) do
-    { spec, default, [] }
+    {spec, default, []}
   end
 
-  defp do_defcallback({ spec, return, guards }, caller) do
+  defp do_defcallback({spec, return, guards}, caller) do
     case Macro.decompose_call(spec) do
-      { name, args } ->
+      {name, args} ->
         do_callback(:def, name, args, name, length(args), args, return, guards, caller)
       _ ->
         raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(spec)}"
     end
   end
 
-  defp do_defmacrocallback({ spec, return, guards }, caller) do
+  defp do_defmacrocallback({spec, return, guards}, caller) do
     case Macro.decompose_call(spec) do
-      { name, args } ->
+      {name, args} ->
         do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args],
                     name, length(args), args, return, guards, caller)
       _ ->
@@ -92,9 +92,9 @@ defmodule Behaviour do
     end
   end
 
-  defp do_callback(kind, name, args, docs_name, docs_arity, docs_args, return, guards, caller) do
+  defp do_callback(kind, name, args, docs_name, docs_arity, _docs_args, return, guards, caller) do
     Enum.each args, fn
-      { :::, _, [left, right] } ->
+      {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
         left
@@ -110,7 +110,7 @@ defmodule Behaviour do
     end
   end
 
-  defp ensure_not_default({ :\\, _, [_, _] }) do
+  defp ensure_not_default({:\\, _, [_, _]}) do
     raise ArgumentError, message: "default arguments \\\\ not supported in defcallback/defmacrocallback"
   end
 
@@ -120,7 +120,7 @@ defmodule Behaviour do
   def store_docs(module, line, kind, name, arity) do
     doc = Module.get_attribute module, :doc
     Module.delete_attribute module, :doc
-    Module.put_attribute module, :behaviour_docs, { { name, arity }, line, kind, doc }
+    Module.put_attribute module, :behaviour_docs, {{name, arity}, line, kind, doc}
   end
 
   @doc false

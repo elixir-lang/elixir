@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Compile do
   The compilation can be customized by passing a `compile` option
   in the dependency:
 
-      { :some_dependency, "0.1.0", git: "...", compile: "command to compile" }
+      {:some_dependency, "0.1.0", git: "...", compile: "command to compile"}
 
   ## Command line options
 
@@ -34,9 +34,9 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get! # Require the project to be available
 
     case OptionParser.parse(args, switches: [quiet: :boolean]) do
-      { opts, [], _ } ->
+      {opts, [], _} ->
         compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
-      { opts, tail, _ } ->
+      {opts, tail, _} ->
         compile(loaded_by_name(tail, env: Mix.env), opts)
     end
   end
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Deps.Compile do
     available?(dep) and (manager != :mix or !extra[:umbrella?])
   end
 
-  defp check_unavailable!(app, { :unavailable, _ }) do
+  defp check_unavailable!(app, {:unavailable, _}) do
     raise Mix.Error, message: "Cannot compile dependency #{app} because " <>
       "it isn't available, run `mix deps.get` first"
   end
@@ -117,15 +117,15 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp handle_rebar_not_found(app) do
     shell = Mix.shell
-    shell.info "Could not find rebar, which is needed to build #{app}"
+    shell.info "Could not find rebar, which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by mix"
 
-    unless shell.yes?("Shall I install this local copy?") do
+    unless shell.yes?("Shall I install rebar?") do
       raise Mix.Error, message: "Could not find rebar to compile " <>
         "dependency #{app}, please ensure rebar is available"
     end
 
-    Mix.Task.run "local.rebar", []
+    Mix.Tasks.Local.Rebar.run []
     Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar installation failed"
   end
 

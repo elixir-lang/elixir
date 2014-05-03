@@ -20,4 +20,4 @@ echo ** Options marked with (*) can be given more than once
 echo ** Options given after -- are passed down to the executed code
 echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS" >&2
 :run
-call "%~dp0\elixir.bat" +compile %*
+call "%~dp0\elixir.bat" +elixirc %*

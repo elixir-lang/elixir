@@ -17,7 +17,7 @@ defmodule Mix.ArchiveTest do
 
   defp has_zip_file?(archive, name) do
     :zip.list_dir(archive)
-      |> elem(1)
-      |> Enum.find(&match?({ :zip_file, ^name, _, _, _, _ }, &1))
+    |> elem(1)
+    |> Enum.find(&match?({:zip_file, ^name, _, _, _, _}, &1))
   end
 end

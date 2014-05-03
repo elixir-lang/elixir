@@ -30,13 +30,12 @@ defmodule Set do
 
   @type value :: any
   @type values :: [ value ]
-  @type t :: map | tuple
+  @type t :: map
 
   defcallback new :: t
   defcallback delete(t, value) :: t
   defcallback difference(t, t) :: t
   defcallback disjoint?(t, t) :: boolean
-  defcallback empty(t) :: t
   defcallback equal?(t, t) :: boolean
   defcallback intersection(t, t) :: t
   defcallback member?(t, value) :: boolean
@@ -52,6 +51,7 @@ defmodule Set do
         %{__struct__: x} when is_atom(x) ->
           x
         x when is_tuple(x) ->
+          IO.write :stderr, "Using records with the Set module is deprecated, please use structs instead\n#{Exception.format_stacktrace}"
           elem(x, 0)
         x ->
           unsupported_set(x)
@@ -65,12 +65,13 @@ defmodule Set do
   ## Examples
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 4) |> Enum.sort
+      iex> Set.delete(s, 4) |> Enum.sort
       [1, 2, 3]
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
-      ...> Set.delete(s, 2) |> Enum.sort
+      iex> Set.delete(s, 2) |> Enum.sort
       [1, 3]
+
   """
   @spec delete(t, value) :: t
   def delete(set, value) do
@@ -98,8 +99,8 @@ defmodule Set do
     if target1 == target2 do
       target1.difference(set1, set2)
     else
-      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
-        { :cont, target1.delete(acc, v) }
+      target2.reduce(set2, {:cont, set1}, fn v, acc ->
+        {:cont, target1.delete(acc, v)}
       end) |> elem(1)
     end
   end
@@ -115,6 +116,7 @@ defmodule Set do
 
       iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       true
+
       iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([2, 3], set_impl.new))
       false
 
@@ -127,10 +129,10 @@ defmodule Set do
     if target1 == target2 do
       target1.disjoint?(set1, set2)
     else
-      target2.reduce(set2, { :cont, true }, fn member, acc ->
+      target2.reduce(set2, {:cont, true}, fn member, acc ->
         case target1.member?(set1, member) do
-          false -> { :cont, acc }
-          _     -> { :halt, false }
+          false -> {:cont, acc}
+          _     -> {:halt, false}
         end
       end) |> elem(1)
     end
@@ -153,7 +155,7 @@ defmodule Set do
 
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([2, 1, 1], set_impl.new))
       true
-      
+
       iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
       false
 
@@ -199,8 +201,8 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce(set1, { :cont, Collectable.empty(set1) }, fn v, acc ->
-        { :cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc) }
+      target1.reduce(set1, {:cont, Collectable.empty(set1)}, fn v, acc ->
+        {:cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc)}
       end) |> elem(1)
     end
   end
@@ -213,7 +215,7 @@ defmodule Set do
       iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 2)
       true
 
-      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4) 
+      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4)
       false
 
   """
@@ -264,8 +266,10 @@ defmodule Set do
 
       iex> Set.subset?(Enum.into([1, 2], set_impl.new), Enum.into([1, 2, 3], set_impl.new))
       true
+
       iex> Set.subset?(Enum.into([1, 2, 3], set_impl.new), Enum.into([1, 2], set_impl.new))
       false
+
   """
   @spec subset?(t, t) :: boolean
   def subset?(set1, set2) do
@@ -314,17 +318,17 @@ defmodule Set do
     if target1 == target2 do
       target1.union(set1, set2)
     else
-      target2.reduce(set2, { :cont, set1 }, fn v, acc ->
-        { :cont, target1.put(acc, v) }
+      target2.reduce(set2, {:cont, set1}, fn v, acc ->
+        {:cont, target1.put(acc, v)}
       end) |> elem(1)
     end
   end
 
   defp do_subset?(target1, target2, set1, set2) do
-    target1.reduce(set1, { :cont, true }, fn member, acc ->
+    target1.reduce(set1, {:cont, true}, fn member, acc ->
       case target2.member?(set2, member) do
-        true -> { :cont, acc }
-        _    -> { :halt, false }
+        true -> {:cont, acc}
+        _    -> {:halt, false}
       end
     end) |> elem(1)
   end

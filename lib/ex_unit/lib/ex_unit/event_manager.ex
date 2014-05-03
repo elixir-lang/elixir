@@ -29,26 +29,26 @@ defmodule ExUnit.EventManager do
   end
 
   def suite_started(ref, opts) do
-    :gen_event.notify(ref, { :suite_started, opts })
+    :gen_event.notify(ref, {:suite_started, opts})
   end
 
   def suite_finished(ref, load_us, run_us) do
-    :gen_event.notify(ref, { :suite_finished, load_us, run_us })
+    :gen_event.notify(ref, {:suite_finished, load_us, run_us})
   end
 
   def case_started(ref, test_case) do
-    :gen_event.notify(ref, { :case_started, test_case })
+    :gen_event.notify(ref, {:case_started, test_case})
   end
 
   def case_finished(ref, test_case) do
-    :gen_event.notify(ref, { :case_finished, test_case })
+    :gen_event.notify(ref, {:case_finished, test_case})
   end
 
   def test_started(ref, test) do
-    :gen_event.notify(ref, { :test_started, test })
+    :gen_event.notify(ref, {:test_started, test})
   end
 
   def test_finished(ref, test) do
-    :gen_event.notify(ref, { :test_finished, test })
+    :gen_event.notify(ref, {:test_finished, test})
   end
 end

@@ -26,4 +26,4 @@ readlink_f () {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-exec "$SCRIPT_PATH"/elixir +compile "$@"
+exec "$SCRIPT_PATH"/elixir +elixirc "$@"

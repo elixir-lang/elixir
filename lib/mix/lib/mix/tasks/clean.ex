@@ -7,6 +7,10 @@ defmodule Mix.Tasks.Clean do
   @moduledoc """
   Clean generated application files.
 
+  This command delete all build artifacts for the current application
+  accross all environments. Dependencies are only cleaned up if the
+  `--all` option is given.
+
   ## Command line options
 
   * `--all` - Clean everything, including builds and dependencies
@@ -14,7 +18,7 @@ defmodule Mix.Tasks.Clean do
   """
 
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args)
 
     manifests = Mix.Tasks.Compile.manifests
     Enum.each(manifests, fn(manifest) ->
@@ -25,9 +29,16 @@ defmodule Mix.Tasks.Clean do
 
     if opts[:all] do
       Mix.Task.run("deps.clean", args)
-      File.rm_rf(Path.dirname(Mix.Project.app_path))
+      Mix.Project.build_path
+      |> Path.dirname
+      |> File.rm_rf
     else
-      File.rm_rf(Mix.Project.app_path)
+      config = Mix.Project.config
+      Mix.Project.build_path(config)
+      |> Path.dirname
+      |> Path.join("*/lib/#{config[:app]}")
+      |> Path.wildcard
+      |> Enum.each(&File.rm_rf/1)
     end
   end
 end

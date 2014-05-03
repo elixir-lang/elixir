@@ -1,10 +1,4 @@
 defmodule Module do
-  defmacrop is_env(env) do
-    quote do
-      is_tuple(unquote(env)) and size(unquote(env)) > 1 and elem(unquote(env), 0) == Macro.Env
-    end
-  end
-
   @moduledoc ~S'''
   This module provides many functions to deal with modules during
   compilation time. It allows a developer to dynamically attach
@@ -24,7 +18,7 @@ defmodule Module do
 
       A hook that will be invoked right after the current module is compiled.
 
-      Accepts a module or a tuple `{ <module>, <function atom> }`. The function
+      Accepts a module or a tuple `{<module>, <function atom>}`. The function
       must take two arguments: the module environment and its bytecode.
       When just a module is provided, the function is assumed to be
       `__after_compile__/2`.
@@ -43,7 +37,7 @@ defmodule Module do
 
       A hook that will be invoked before the module is compiled.
 
-      Accepts a module or a tuple `{ <module>, <function/macro atom> }`. The
+      Accepts a module or a tuple `{<module>, <function/macro atom>}`. The
       function/macro must take one argument: the module environment. If it's a
       macro, its returned value will be injected at the end of the module definition
       before the compilation starts.
@@ -94,7 +88,7 @@ defmodule Module do
       ### Example
 
             defmodule M do
-              @compile { :inline, myfun: 1 }
+              @compile {:inline, myfun: 1}
 
               def myfun(arg) do
                 to_string(arg)
@@ -167,7 +161,7 @@ defmodule Module do
       A hook that will be invoked when each function or macro in the current
       module is defined. Useful when annotating functions.
 
-      Accepts a module or a tuple `{ <module>, <function atom> }`. The function
+      Accepts a module or a tuple `{<module>, <function atom>}`. The function
       must take 6 arguments:
 
         - the module environment
@@ -206,7 +200,7 @@ defmodule Module do
             end
 
             defmodule M do
-              @on_definition { H, :on_def }
+              @on_definition {H, :on_def}
 
               def hello(arg) when is_binary(arg) or is_list(arg) do
                 "Hello" <> to_string(arg)
@@ -293,7 +287,7 @@ defmodule Module do
   * `:docs`       - list of all docstrings attached to functions and macros
                     using the `@doc` attribute
 
-  * `:moduledoc`  - tuple `{ <line>, <doc> }` where `line` is the line on
+  * `:moduledoc`  - tuple `{<line>, <doc>}` where `line` is the line on
                     which module definition starts and `doc` is the string
                     attached to the module using the `@moduledoc` attribute
 
@@ -344,20 +338,20 @@ defmodule Module do
   """
   def eval_quoted(module, quoted, binding \\ [], opts \\ [])
 
-  def eval_quoted(env, quoted, binding, opts) when is_env(env) do
-    eval_quoted(env.module, quoted, binding, Keyword.merge(env.to_keywords, opts))
+  def eval_quoted(%Macro.Env{} = env, quoted, binding, opts) do
+    eval_quoted(env.module, quoted, binding, Keyword.merge(Map.to_list(env), opts))
   end
 
-  def eval_quoted(module, quoted, binding, env) when is_env(env) do
-    eval_quoted(module, quoted, binding, env.to_keywords)
+  def eval_quoted(module, quoted, binding, %Macro.Env{} = env) do
+    eval_quoted(module, quoted, binding, Map.to_list(env))
   end
 
   def eval_quoted(module, quoted, binding, opts) do
     assert_not_compiled!(:eval_quoted, module)
     :elixir_def.reset_last(module)
-    { value, binding, _env, _scope } =
+    {value, binding, _env, _scope} =
       :elixir.eval_quoted quoted, binding, Keyword.put(opts, :module, module)
-    { value, binding }
+    {value, binding}
   end
 
   @doc """
@@ -372,7 +366,7 @@ defmodule Module do
           def world, do: true
         end
 
-      Module.create(Hello, contents, __ENV__.location)
+      Module.create(Hello, contents, Macro.Env.location(__ENV__))
 
       Hello.world #=> true
 
@@ -391,8 +385,8 @@ defmodule Module do
   """
   def create(module, quoted, opts \\ [])
 
-  def create(module, quoted, env) when is_env(env) do
-    create(module, quoted, env.to_keywords)
+  def create(module, quoted, %Macro.Env{} = env) do
+    create(module, quoted, Map.to_list(env))
   end
 
   def create(module, quoted, opts) when is_atom(module) do
@@ -406,6 +400,7 @@ defmodule Module do
 
       iex> Module.concat([Foo, Bar])
       Foo.Bar
+
       iex> Module.concat([Foo, "Bar"])
       Foo.Bar
 
@@ -422,6 +417,7 @@ defmodule Module do
 
       iex> Module.concat(Foo, Bar)
       Foo.Bar
+
       iex> Module.concat(Foo, "Bar")
       Foo.Bar
 
@@ -495,7 +491,7 @@ defmodule Module do
   ## Examples
 
       defmodule MyModule do
-        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, { :version, 0 }, [], "Manually added docs")
+        Module.add_doc(__MODULE__, __ENV__.line + 1, :def, {:version, 0}, [], "Manually added docs")
         def version, do: 1
       end
 
@@ -503,7 +499,7 @@ defmodule Module do
   def add_doc(module, line, kind, tuple, signature \\ [], doc)
 
   def add_doc(_module, _line, kind, _tuple, _signature, doc) when kind in [:defp, :defmacrop, :typep] do
-    if doc, do: { :error, :private_doc }, else: :ok
+    if doc, do: {:error, :private_doc}, else: :ok
   end
 
   def add_doc(module, line, kind, tuple, signature, doc) when
@@ -511,56 +507,68 @@ defmodule Module do
     assert_not_compiled!(:add_doc, module)
     table = docs_table_for(module)
 
-    { signature, _ } = Enum.map_reduce signature, 1, fn(x, acc) ->
-      { simplify_signature(x, acc), acc + 1 }
+    {signature, _} = Enum.map_reduce signature, 1, fn(x, acc) ->
+      {simplify_signature(x, acc), acc + 1}
     end
 
     case :ets.lookup(table, tuple) do
       [] ->
-        :ets.insert(table, { tuple, line, kind, signature, doc })
+        :ets.insert(table, {tuple, line, kind, signature, doc})
         :ok
-      [{ tuple, line, _old_kind, old_sign, old_doc }] ->
+      [{tuple, line, _old_kind, old_sign, old_doc}] ->
         :ets.insert(table, {
           tuple,
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
           if(nil?(doc), do: old_doc, else: doc)
-        })
+       })
         :ok
     end
   end
 
   # Simplify signatures to be stored in docs
 
-  defp simplify_signature({ :\\, _, [left, right ] }, i) do
-    { :\\, [], [simplify_signature(left, i), right] }
+  defp simplify_signature({:\\, _, [left, right ]}, i) do
+    {:\\, [], [simplify_signature(left, i), right]}
   end
 
-  defp simplify_signature({ :%, _, [left, _] }, _i) when is_atom(left) do
+  defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
     last = List.last(String.split(atom_to_binary(left), "."))
-    atom = binary_to_atom(String.downcase(last))
-    { atom, [], nil }
+    atom = binary_to_atom(downcase(last))
+    {atom, [], nil}
   end
 
-  defp simplify_signature({ :=, _, [_, right] }, i) do
+  defp simplify_signature({:=, _, [_, right]}, i) do
     simplify_signature(right, i)
   end
 
-  defp simplify_signature({ var, _, atom }, _i) when is_atom(atom) do
+  defp simplify_signature({var, _, atom}, _i) when is_atom(atom) do
     case atom_to_binary(var) do
-      "_" <> rest -> { binary_to_atom(rest), [], Elixir }
-      _           -> { var, [], nil }
+      "_" <> rest -> {binary_to_atom(rest), [], Elixir}
+      _           -> {var, [], nil}
     end
   end
 
-  defp simplify_signature(other, i) when is_integer(other), do: { :"int#{i}", [], Elixir }
-  defp simplify_signature(other, i) when is_boolean(other), do: { :"bool#{i}", [], Elixir }
-  defp simplify_signature(other, i) when is_atom(other),    do: { :"atom#{i}", [], Elixir }
-  defp simplify_signature(other, i) when is_list(other),    do: { :"list#{i}", [], Elixir }
-  defp simplify_signature(other, i) when is_float(other),   do: { :"float#{i}", [], Elixir }
-  defp simplify_signature(other, i) when is_binary(other),  do: { :"binary#{i}", [], Elixir }
-  defp simplify_signature(_, i), do: { :"arg#{i}", [], Elixir }
+  defp simplify_signature(other, i) when is_integer(other), do: {:"int#{i}", [], Elixir}
+  defp simplify_signature(other, i) when is_boolean(other), do: {:"bool#{i}", [], Elixir}
+  defp simplify_signature(other, i) when is_atom(other),    do: {:"atom#{i}", [], Elixir}
+  defp simplify_signature(other, i) when is_list(other),    do: {:"list#{i}", [], Elixir}
+  defp simplify_signature(other, i) when is_float(other),   do: {:"float#{i}", [], Elixir}
+  defp simplify_signature(other, i) when is_binary(other),  do: {:"binary#{i}", [], Elixir}
+  defp simplify_signature(_, i), do: {:"arg#{i}", [], Elixir}
+
+  defp downcase(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z do
+    <<c + 32 :: utf8, downcase(rest) :: binary>>
+  end
+
+  defp downcase(<<c, rest :: binary>>) do
+    <<c, downcase(rest) :: binary>>
+  end
+
+  defp downcase(<<>>) do
+    <<>>
+  end
 
   # Merge
 
@@ -572,23 +580,23 @@ defmodule Module do
     []
   end
 
-  defp merge_signature({ :\\, line, [left, right] }, newer, i) do
-    { :\\, line, [merge_signature(left, newer, i), right] }
+  defp merge_signature({:\\, line, [left, right]}, newer, i) do
+    {:\\, line, [merge_signature(left, newer, i), right]}
   end
 
-  defp merge_signature(older, { :\\, _, [left, _] }, i) do
+  defp merge_signature(older, {:\\, _, [left, _]}, i) do
     merge_signature(older, left, i)
   end
 
   # The older signature, when given, always have higher precedence
-  defp merge_signature({ _, _, nil } = older, _newer, _),        do: older
-  defp merge_signature(_older, { _, _, nil } = newer, _),        do: newer
+  defp merge_signature({_, _, nil} = older, _newer, _),        do: older
+  defp merge_signature(_older, {_, _, nil} = newer, _),        do: newer
 
   # Both are a guess, so check if they are the same guess
-  defp merge_signature({ var, _, _ } = older, { var, _, _ }, _), do: older
+  defp merge_signature({var, _, _} = older, {var, _, _}, _), do: older
 
   # Otherwise, returns a generic guess
-  defp merge_signature({ _, line, _ }, _newer, i), do: { :"arg#{i}", line, Elixir }
+  defp merge_signature({_, line, _}, _newer, i), do: {:"arg#{i}", line, Elixir}
 
   @doc """
   Checks if the module defines the given function or macro.
@@ -597,9 +605,9 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        Module.defines? __MODULE__, { :version, 0 } #=> false
+        Module.defines? __MODULE__, {:version, 0} #=> false
         def version, do: 1
-        Module.defines? __MODULE__, { :version, 0 } #=> true
+        Module.defines? __MODULE__, {:version, 0} #=> true
       end
 
   """
@@ -617,9 +625,9 @@ defmodule Module do
   ## Examples
 
       defmodule Example do
-        Module.defines? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.defines? __MODULE__, {:version, 0}, :defp #=> false
         def version, do: 1
-        Module.defines? __MODULE__, { :version, 0 }, :defp #=> false
+        Module.defines? __MODULE__, {:version, 0}, :defp #=> false
       end
 
   """
@@ -627,7 +635,7 @@ defmodule Module do
     assert_not_compiled!(:defines?, module)
     table = function_table_for(module)
     case :ets.lookup(table, tuple) do
-      [{ _, ^kind, _, _, _, _, _ }] -> true
+      [{_, ^kind, _, _, _, _, _}] -> true
       _ -> false
     end
   end
@@ -646,7 +654,7 @@ defmodule Module do
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    for { tuple, _, _, _, _, _, _ } <- :ets.tab2list(table), do: tuple
+    for {tuple, _, _, _, _, _, _} <- :ets.tab2list(table), do: tuple
   end
 
   @doc """
@@ -665,7 +673,7 @@ defmodule Module do
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
     table = function_table_for(module)
-    for { tuple, stored_kind, _, _, _, _, _ } <- :ets.tab2list(table), stored_kind == kind, do: tuple
+    for {tuple, stored_kind, _, _, _, _, _} <- :ets.tab2list(table), stored_kind == kind, do: tuple
   end
 
   @doc """
@@ -680,7 +688,7 @@ defmodule Module do
     for tuple <- tuples do
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
-          { name, arity } = tuple
+          {name, arity} = tuple
           raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
         clause ->
           :elixir_def.delete_definition(module, tuple)
@@ -692,9 +700,9 @@ defmodule Module do
           end
 
           old    = get_attribute(module, :__overridable)
-          merged = :orddict.update(tuple, fn({ count, _, _, _ }) ->
-            { count + 1, clause, neighbours, false }
-          end, { 1, clause, neighbours, false }, old)
+          merged = :orddict.update(tuple, fn({count, _, _, _}) ->
+            {count + 1, clause, neighbours, false}
+          end, {1, clause, neighbours, false}, old)
 
           put_attribute(module, :__overridable, merged)
       end
@@ -736,7 +744,7 @@ defmodule Module do
         value
       end
 
-    :ets.insert(table, { key, new })
+    :ets.insert(table, {key, new})
   end
 
   @doc """
@@ -858,12 +866,12 @@ defmodule Module do
 
     if Keyword.get(opts, :persist) do
       old = :ets.lookup_element(table, :__persisted_attributes, 2)
-      :ets.insert(table, { :__persisted_attributes,  [new|old] })
+      :ets.insert(table, {:__persisted_attributes,  [new|old]})
     end
 
     if Keyword.get(opts, :accumulate) do
       old = :ets.lookup_element(table, :__acc_attributes, 2)
-      :ets.insert(table, { :__acc_attributes,  [new|old] })
+      :ets.insert(table, {:__acc_attributes,  [new|old]})
     end
   end
 
@@ -887,13 +895,13 @@ defmodule Module do
     module = env.module
     line   = env.line
     arity  = length(args)
-    pair   = { name, arity }
+    pair   = {name, arity}
     doc    = get_attribute(module, :doc)
 
     case add_doc(module, line, kind, pair, args, doc) do
       :ok ->
         :ok
-      { :error, :private_doc } ->
+      {:error, :private_doc} ->
         :elixir_errors.warn line, env.file, "function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
     end
 
@@ -913,13 +921,13 @@ defmodule Module do
         [] -> [value]
       end
 
-    :ets.insert(table, { key, new })
+    :ets.insert(table, {key, new})
   end
 
   ## Helpers
 
   defp normalize_attribute(:on_load, atom) when is_atom(atom) do
-    { atom, 0 }
+    {atom, 0}
   end
 
   defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
@@ -933,7 +941,7 @@ defmodule Module do
 
   defp normalize_attribute(key, atom) when is_atom(atom) and
       key in [:before_compile, :after_compile, :on_definition] do
-    { atom, :"__#{key}__" }
+    {atom, :"__#{key}__"}
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do

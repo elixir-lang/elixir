@@ -13,46 +13,19 @@ defmodule Map do
 
   use Dict.Behaviour
 
-  defdelegate [keys(map), values(map), size(map), merge(map1, map2)], to: :maps
+  defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
 
   @doc """
   Returns a new empty map.
   """
   def new, do: %{}
 
-  @doc """
-  Creates a new map from the given pairs.
-
-  ## Examples
-
-      Map.new [{:b, 1}, {:a, 2}]
-      #=> %{a: 2, b: 1}
-
-  """
-  def new(pairs) do
-    :maps.from_list pairs
-  end
-
-  @doc """
-  Creates a new map from the given pairs
-  via the given transformation function.
-
-  ## Examples
-
-      Map.new ["a", "b"], fn x -> {x, x} end
-      %{"a" => "a", "b" => "b"}
-
-  """
-  def new(list, transform) when is_function(transform) do
-    Enum.map(list, transform) |> :maps.from_list
-  end
-
   def has_key?(map, key), do: :maps.is_key(key, map)
 
   def fetch(map, key), do: :maps.find(key, map)
 
   def pop(map, key, default \\ nil) do
-    { get(map, key, default), delete(map, key) }
+    {get(map, key, default), delete(map, key)}
   end
 
   def put(map, key, val) do
@@ -75,13 +48,13 @@ defmodule Map do
   end
 
   def split(map, keys) do
-    acc = { %{}, %{} }
+    acc = {%{}, %{}}
 
-    :maps.fold fn k, v, { take, drop } ->
+    :maps.fold fn k, v, {take, drop} ->
       if k in keys do
-        { put(take, k, v), drop }
+        {put(take, k, v), drop}
       else
-        { take, put(drop, k, v) }
+        {take, put(drop, k, v)}
       end
     end, acc, map
   end
@@ -89,8 +62,8 @@ defmodule Map do
   def update!(map, key, fun) do
     case :maps.find(key, map) do
       :error ->
-        raise(KeyError, key: key)
-      { :ok, val } ->
+        raise(KeyError, key: key, term: map)
+      {:ok, val} ->
         :maps.put(key, fun.(val), map)
     end
   end
@@ -99,18 +72,11 @@ defmodule Map do
     case :maps.find(key, map) do
       :error ->
         :maps.put(key, initial, map)
-      { :ok, val } ->
+      {:ok, val} ->
         :maps.put(key, fun.(val), map)
     end
   end
 
-  def empty(_) do
-    IO.write :stderr, "Map.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    %{}
-  end
-
   def equal?(map, map), do: true
   def equal?(_, _), do: false
-
-  def to_list(map), do: :maps.to_list map
 end

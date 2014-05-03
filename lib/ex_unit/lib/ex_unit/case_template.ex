@@ -76,7 +76,7 @@ defmodule ExUnit.CaseTemplate do
       defmacro __using__(unquote(var) = opts) do
         parent = unquote(__MODULE__).__proxy__(__MODULE__, opts)
         result = unquote(block)
-        { :__block__, [], [parent, result] }
+        {:__block__, [], [parent, result]}
       end
     end
   end

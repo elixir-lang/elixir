@@ -24,7 +24,7 @@ defmodule KernelTest do
     x = List.first([1])
 
     assert_raise MatchError, fn ->
-      { x, ^x } = { 2, 2 }
+      {x, ^x} = {2, 2}
       x
     end
   end
@@ -59,7 +59,7 @@ defmodule KernelTest do
   end
 
   @at_list  [4,5]
-  @at_range [6,7,8]
+  @at_range 6..8
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list,  do: :at_list
@@ -94,7 +94,7 @@ defmodule KernelTest do
     assert ((); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
-    assert { 1, (), 3 } == { 1, nil, 3 }
+    assert {1, (), 3} == {1, nil, 3}
     assert (Kernel.&& nil, ()) == nil
     assert (Kernel.&& nil, ()) == nil
     assert (() && ()) == nil
@@ -106,11 +106,11 @@ defmodule KernelTest do
   end
 
   test :__info__ do
-    assert { :in, 2 } in Kernel.__info__(:macros)
+    assert {:in, 2} in Kernel.__info__(:macros)
   end
 
   test :__info__not_included do
-    assert not ({ :__info__, 1 } in Kernel.__info__(:functions))
+    assert not ({:__info__, 1} in Kernel.__info__(:functions))
   end
 
   test :macro_exported? do
@@ -131,7 +131,7 @@ defmodule KernelTest do
   end
 
   test :function_from___ENV__ do
-    assert __ENV__.function == { :test_function_from___ENV__, 1 }
+    assert __ENV__.function == {:"test function_from___ENV__", 1}
   end
 
   test :binding do
@@ -155,6 +155,21 @@ defmodule KernelTest do
     x = 1
     assert binding() == [x: 1]
     refute binding() == [x: 2]
+  end
+
+  defmodule User do
+    defstruct name: "jose"
+  end
+
+  test :struct do
+    assert struct(User) == %User{name: "jose"}
+
+    user = struct(User, name: "eric")
+    assert user == %User{name: "eric"}
+
+    assert struct(user, unknown: "key") == user
+    assert struct(user, name: "jose") == %User{name: "jose"}
+    assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
   end
 
   defmodule Conversions do

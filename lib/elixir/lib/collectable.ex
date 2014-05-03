@@ -11,7 +11,7 @@ defprotocol Collectable do
   If a collection implements both `Enumerable` and `Collectable`, both
   operations can be combined with `Enum.traverse/2`:
 
-      iex> Enum.traverse(%{ a: 1, b: 2 }, fn { k, v } -> { k, v * 2 } end)
+      iex> Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v * 2} end)
       %{a: 2, b: 4}
 
   ## Why Collectable?
@@ -38,7 +38,7 @@ defprotocol Collectable do
   and `empty/1`, one can, for example, implement a traversal mechanism.
   """
 
-  @type command :: { :cont, term } | :done | :halt
+  @type command :: {:cont, term} | :done | :halt
 
   @doc """
   Receives a collectable structure and returns an empty one.
@@ -51,7 +51,7 @@ defprotocol Collectable do
   the initial accumulation value.
 
   The returned function receives a collectable and injects a given
-  value into it for every `{ :cont, term }` instruction.
+  value into it for every `{:cont, term}` instruction.
 
   `:done` is passed when no further values will be injected, useful
   for closing resources and normalizing values. A collectable must
@@ -60,7 +60,7 @@ defprotocol Collectable do
   If injection is suddenly interrupted, `:halt` is passed and it can
   return any value, as it won't be used.
   """
-  @spec into(t) :: { term, (term, command -> t | term) }
+  @spec into(t) :: {term, (term, command -> t | term)}
   def into(collectable)
 end
 
@@ -70,11 +70,11 @@ defimpl Collectable, for: List do
   end
 
   def into(original) do
-    { [], fn
-      list, { :cont, x } -> [x|list]
+    {[], fn
+      list, {:cont, x} -> [x|list]
       list, :done -> original ++ :lists.reverse(list)
       _, :halt -> :ok
-    end }
+    end}
   end
 end
 
@@ -84,11 +84,11 @@ defimpl Collectable, for: BitString do
   end
 
   def into(original) do
-    { original, fn
-      bitstring, { :cont, x } -> <<bitstring :: bits, x :: bits>>
+    {original, fn
+      bitstring, {:cont, x} -> <<bitstring :: bits, x :: bits>>
       bitstring, :done -> bitstring
       _, :halt -> :ok
-    end }
+    end}
   end
 end
 
@@ -98,7 +98,7 @@ defimpl Collectable, for: Function do
   end
 
   def into(function) do
-    { function, function }
+    {function, function}
   end
 end
 
@@ -108,10 +108,10 @@ defimpl Collectable, for: Map do
   end
 
   def into(original) do
-    { original, fn
-      map, { :cont, { k, v } } -> :maps.put(k, v, map)
+    {original, fn
+      map, {:cont, {k, v}} -> :maps.put(k, v, map)
       map, :done -> map
       _, :halt -> :ok
-    end }
+    end}
   end
 end

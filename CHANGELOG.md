@@ -1,18 +1,70 @@
-# v0.13.0-dev
+# v0.13.2-dev
+
+* Enhancements
+  * [Mix] `mix deps.clean` now works accross environments
+  * [Mix] Support line numbers in mix test, e.g. test/some/file_test.exs:12
+
+* Bug fixes
+  * [Code] Ensure we don't lose the caller stacktrace on code evaluation
+  * [IEx] Exit signals now exits the IEx evaluator and a new one is spawned on its place
+  * [IEx] Ensure we don't prune too much stacktrace when reporting failures
+  * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
+  * [Kernel] Do not wrap single lists in `:__block__`
+  * [Kernel] Ensure emitted beam code works nicely with dialyzer
+  * [System] Convert remaining functions in System to rely on char data
+
+* Deprecations
+  * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
+  * [Macro] `Macro.safe_terms` is deprecated
+  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0` (this is a soft deprecation, no warnings will be emitted)
+  * [Process] `Process.delete/0` is deprecated
+
+* Backwards incompatible changes
+  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
+  * [URI] The `URI.Info` record has now become the `URI` struct
+
+# v0.13.1 (2014-04-27)
+
+* Enhancements
+  * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
+  * [Mix] Support Hex out of the box. This means users do not need to install Hex directly, instead, Mix will prompt whenever there is a need to have Hex installed
+
+* Bug fixes
+  * [ExUnit] Ensure doctest failures are properly reported
+  * [Kernel] Fix a bug where comprehensions arguments were not properly take into account in the variable scope
+  * [Mix] Fix issue on rebar install when the endpoint was redirecting to a relative uri
+
+* Deprecations
+  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_length` and `iodata_to_binary` (this is a soft deprecation, no warnings will be emitted)
+  * [Mix] `:env` key in project configuration is deprecated
+  * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
+  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
+  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
+
+* Backwards incompatible changes
+  * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
+  * [Path] The functions in Path now only emit strings as result, regardless if the input was a char list or a string
+  * [Path] Atoms are no longer supported in Path functions
+  * [Regex] Regexes are no longer unicode by default. Instead, they must be explicitly marked with the `u` option
+
+# v0.13.0 (2014-04-20)
 
 * Enhancements
   * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
   * [Code] Add `Code.eval_file/2`
   * [Collectable] Add the `Collectable` protocol that empowers `Enum.into/2` and `Stream.into/2` and the `:into` option in comprehensions
   * [Collectable] Implement `Collectable` for lists, dicts, bitstrings, functions and provide both `File.Stream` and `IO.Stream`
+  * [EEx] Add `handle_body/1` callback to `EEx.Engine`
   * [Enum] Add `Enum.group_by/2`, `Enum.into/2`, `Enum.into/3`, `Enum.traverse/2` and `Enum.sum/2`
   * [ExUnit] Randomize cases and tests suite runs, allow seed configuration and the `--seed` flag via `mix test`
   * [ExUnit] Support `--only` for filtering when running tests with `mix test`
   * [ExUnit] Raise an error if another `capture_io` process already captured the device
+  * [ExUnit] Improve formatter to show source code and rely on lhs and rhs (instead of expected and actual)
   * [IEx] Allow prompt configuration with the `:prompt` option
+  * [IEx] Use werl on Windows
   * [Kernel] Support `ERL_PATH` in `bin/elixir`
   * [Kernel] Support interpolation in keyword syntax
-  * [Map] Add a Map module and support R17 maps and structs
+  * [Map] Add a Map module and support 17.0 maps and structs
   * [Mix] Add dependency option `:only` to specify the dependency environment. `mix deps.get` and `mix deps.update` works accross all environment unless `--only` is specified
   * [Mix] Add `Mix.Shell.prompt/1`
   * [Mix] Ensure the project is compiled in case Mix' CLI cannot find a task
@@ -24,16 +76,22 @@
   * [System] Add `System.delete_env/1` to remove a variable from the environment
 
 * Bug fixes
+  * [CLI] Ensure `--app` is handled as an atom before processing
+  * [ExUnit] Ensure `ExUnit.Assertions` does not emit compiler warnings for `assert_receive`
   * [Kernel] Ensure the same pid is not queued twice in the parallel compiler
   * [Macro] `Macro.to_string/2` considers proper precedence when translating `!(foo > bar)` into a string
   * [Mix] Automatically recompile on outdated Elixir version and show proper error messages
   * [Mix] Ensure generated `.app` file includes core dependencies
+  * [Mix] Allow a dependency with no SCM to be overridden
+  * [Mix] Allow queries in `mix local.install` URL
   * [OptionParser] Do not recognize undefined aliases as switches
 
 * Deprecations
   * [Dict] `Dict.empty/1`, `Dict.new/1` and `Dict.new/2` are deprecated
+  * [Exception] `Exception.normalize/1` is deprecated in favor of `Exception.normalize/2`
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
   * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
+  * [Record] `defrecord/2`, `defrecordp/3`, `is_record/1` and `is_record/2` macros in Kernel are deprecated. Instead, use the new macros and API defined in the `Record` module (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
@@ -782,7 +840,7 @@
   * [ExUnit] Support context data in `setup_all`, `setup`, `teardown` and `teardown_all` callbacks
   * [IEx] Support `after_spawn` callbacks which are invoked after each process is spawned
   * [Kernel] Better error messages when invalid options are given to `import`, `alias` or `require`
-  * [Kernel] Allow partial application on literals, for example: `{ &1, &2 }` to build tuples or `[&1|&2]` to build cons cells
+  * [Kernel] Allow partial application on literals, for example: `{&1, &2}` to build tuples or `[&1|&2]` to build cons cells
   * [Kernel] Added `integer_to_binary` and `binary_to_integer`
   * [Kernel] Added `float_to_binary` and `binary_to_float`
   * [Kernel] Many improvements to `unquote` and `unquote_splicing`. For example, `unquote(foo).unquote(bar)(args)` is supported and no longer need to be written via `apply`
@@ -835,7 +893,7 @@
   * [Kernel] Deprecate `__LINE__` and `__FUNCTION__` in favor of `__ENV__.line` and `__ENV__.function`
   * [Kernel] Deprecate `in_guard` in favor of `__CALLER__.in_guard?`
   * [Kernel] `refer` is deprecated in favor of `alias`
-  * [Module] `Module.add_compile_callback(module, target, callback)` is deprecated in favor of `Module.put_attribute(module, :before_compile, { target, callback })`
+  * [Module] `Module.add_compile_callback(module, target, callback)` is deprecated in favor of `Module.put_attribute(module, :before_compile, {target, callback})`
   * [Module] `Module.function_defined?` is deprecated in favor of `Module.defines?`
   * [Module] `Module.defined_functions` is deprecated in favor of `Module.definitions_in`
 

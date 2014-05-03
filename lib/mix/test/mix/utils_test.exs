@@ -5,8 +5,8 @@ defmodule Mix.UtilsTest do
   doctest Mix.Utils
 
   test :command_to_module do
-    assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == { :module, Mix.Tasks.Hello }
-    assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == { :error, :nofile }
+    assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == {:module, Mix.Tasks.Hello}
+    assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == {:error, :nofile}
   end
 
   test :module_name_to_command do
@@ -18,28 +18,6 @@ defmodule Mix.UtilsTest do
   test :command_to_module_name do
     assert Mix.Utils.command_to_module_name("foo")     == "Foo"
     assert Mix.Utils.command_to_module_name("foo.bar") == "Foo.Bar"
-  end
-
-  test :config_merge do
-    old = [
-      foo: "hello",
-      bar: [1, 2],
-      baz: [some: "option"],
-      bat: "man"
-    ]
-
-    new = [
-      foo: "bye",
-      bar: [3, 4],
-      baz: [yet: "another"]
-    ]
-
-    assert Keyword.equal? Mix.Utils.config_merge(old, new), [
-      foo: "bye",
-      bar: [1, 2, 3, 4],
-      baz: [some: "option", yet: "another"],
-      bat: "man"
-    ]
   end
 
   test :underscore do
@@ -77,18 +55,20 @@ defmodule Mix.UtilsTest do
   end
 
   test :extract_stale do
-    time = { { 2030, 1, 1 }, { 0, 0, 0 } }
-    assert Mix.Utils.extract_stale([{ "hello", time }], [__ENV__.file]) == [{ "hello", time }]
+    time = {{2030, 1, 1}, {0, 0, 0}}
+    assert Mix.Utils.extract_stale([__ENV__.file], [time]) == []
 
-    time = { { 2000, 1, 1 }, { 0, 0, 0 } }
-    assert Mix.Utils.extract_stale([{ "hello", time }], [__ENV__.file]) == []
+    time = {{2000, 1, 1}, {0, 0, 0}}
+    assert Mix.Utils.extract_stale([__ENV__.file], [time]) == [__ENV__.file]
+
+    assert Mix.Utils.extract_stale([__ENV__.file], [__ENV__.file]) == []
   end
 
   test :symlink_or_copy do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
+      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
     end
   end
 
@@ -96,7 +76,7 @@ defmodule Mix.UtilsTest do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
       assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
-      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
+      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
     end
   end
 
@@ -105,7 +85,7 @@ defmodule Mix.UtilsTest do
       File.mkdir_p!("_build/archive")
       Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
       Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      assert :file.read_link("_build/archive/ebin") == { :ok, '../../ebin' }
+      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
     end
   end
 

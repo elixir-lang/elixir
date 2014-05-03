@@ -15,11 +15,11 @@ defmodule GenEvent.Behaviour do
         # Callbacks
 
         def init(_) do
-          { :ok, [] }
+          {:ok, []}
         end
 
         def handle_event({:notification, x}, notifications) do
-          { :ok, [x|notifications] }
+          {:ok, [x|notifications]}
         end
 
         def handle_call(:notifications, notifications) do
@@ -27,7 +27,7 @@ defmodule GenEvent.Behaviour do
         end
       end
 
-      { :ok, pid } = :gen_event.start_link
+      {:ok, pid} = :gen_event.start_link
       #=> {:ok,#PID<0.42.0>}
 
       :gen_event.add_handler(pid, MyEventHandler, [])
@@ -63,22 +63,22 @@ defmodule GenEvent.Behaviour do
 
       @doc false
       def init(args) do
-        { :ok, args }
+        {:ok, args}
       end
 
       @doc false
       def handle_event(_event, state) do
-        { :ok, state }
+        {:ok, state}
       end
 
       @doc false
       def handle_call(_request, state) do
-        { :ok, :ok, state }
+        {:ok, :ok, state}
       end
 
       @doc false
       def handle_info(_msg, state) do
-        { :ok, state }
+        {:ok, state}
       end
 
       @doc false
@@ -88,7 +88,7 @@ defmodule GenEvent.Behaviour do
 
       @doc false
       def code_change(_old, state, _extra) do
-        { :ok, state }
+        {:ok, state}
       end
 
       defoverridable [init: 1, 

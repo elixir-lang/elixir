@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   import Mix.Generator, only: [create_file: 2]
 
-  @rebar_url "https://github.com/elixir-lang/elixir/raw/3cf4c21ad1f4627585b80394c37ac9f4d39d3aa8/rebar"
+  @rebar_url "http://elixir-lang.org/rebar"
   @shortdoc  "Install rebar locally"
 
   @moduledoc """
@@ -16,7 +16,7 @@ The local copy is stored in your MIX_HOME (defaults to ~/.mix).
   """
 
   def run(argv) do
-    { _, argv, _ } = OptionParser.parse(argv)
+    {_, argv, _} = OptionParser.parse(argv)
     do_install(case argv do
       []       -> rebar_path
       [path|_] -> path

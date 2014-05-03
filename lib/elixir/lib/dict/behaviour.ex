@@ -71,20 +71,20 @@ defmodule Dict.Behaviour do
 
       def get(dict, key, default \\ nil) do
         case fetch(dict, key) do
-          { :ok, value } -> value
+          {:ok, value} -> value
           :error -> default
         end
       end
 
       def fetch!(dict, key) do
         case fetch(dict, key) do
-          { :ok, value } -> value
-          :error -> raise KeyError, key: key
+          {:ok, value} -> value
+          :error -> raise KeyError, key: key, term: dict
         end
       end
 
       def has_key?(dict, key) do
-        match? { :ok, _ }, fetch(dict, key)
+        match? {:ok, _}, fetch(dict, key)
       end
 
       def put_new(dict, key, value) do
@@ -98,27 +98,27 @@ defmodule Dict.Behaviour do
       def take(dict, keys) do
         Enum.reduce keys, new, fn key, acc ->
           case fetch(dict, key) do
-            { :ok, value } -> put(acc, key, value)
+            {:ok, value} -> put(acc, key, value)
             :error -> acc
           end
         end
       end
 
       def to_list(dict) do
-        reduce(dict, { :cont, [] }, fn
-          kv, acc -> { :cont, [kv|acc] }
+        reduce(dict, {:cont, []}, fn
+          kv, acc -> {:cont, [kv|acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def keys(dict) do
-        reduce(dict, { :cont, [] }, fn
-          {k, _}, acc -> { :cont, [k|acc] }
+        reduce(dict, {:cont, []}, fn
+          {k, _}, acc -> {:cont, [k|acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
       def values(dict) do
-        reduce(dict, { :cont, [] }, fn
-          {_, v}, acc -> { :cont, [v|acc] }
+        reduce(dict, {:cont, []}, fn
+          {_, v}, acc -> {:cont, [v|acc]}
         end) |> elem(1) |> :lists.reverse
       end
 
@@ -129,18 +129,18 @@ defmodule Dict.Behaviour do
         case size(dict1) == size(dict2) do
           false -> false
           true  ->
-            reduce(dict1, { :cont, true }, fn({ k, v }, _acc) ->
+            reduce(dict1, {:cont, true}, fn({k, v}, _acc) ->
               case fetch(dict2, k) do
-                { :ok, ^v } -> { :cont, true }
-                _ -> { :halt, false }
+                {:ok, ^v} -> {:cont, true}
+                _ -> {:halt, false}
               end
             end) |> elem(1)
         end
       end
 
       def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
-        reduce(dict1, { :cont, dict2 }, fn { k, v1 }, acc ->
-          { :cont, update(acc, k, v1, &fun.(k, v1, &1)) }
+        reduce(dict1, {:cont, dict2}, fn {k, v1}, acc ->
+          {:cont, update(acc, k, v1, &fun.(k, v1, &1))}
         end) |> elem(1)
       end
 

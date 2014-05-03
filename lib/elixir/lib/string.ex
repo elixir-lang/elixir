@@ -47,7 +47,7 @@ defmodule String do
   by the letter "e" followed by the accent ́:
 
       iex> string = "\x{0065}\x{0301}"
-      ...> byte_size(string)
+      iex> byte_size(string)
       3
       iex> String.length(string)
       1
@@ -83,13 +83,14 @@ defmodule String do
 
       iex> ?j
       106
+
       iex> ?é
       233
 
   Or also via pattern matching:
 
       iex> << eacute :: utf8 >> = "é"
-      ...> eacute
+      iex> eacute
       233
 
   As we have seen above, codepoints can be inserted into
@@ -159,8 +160,10 @@ defmodule String do
 
       iex> String.split("foo bar")
       ["foo", "bar"]
+
       iex> String.split("foo" <> <<194, 133>> <> "bar")
       ["foo", "bar"]
+
       iex> String.split(" foo bar ")
       ["foo", "bar"]
 
@@ -185,8 +188,10 @@ defmodule String do
 
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
+
       iex> String.split("a,b,c", ",", global: false)
       ["a", "b,c"]
+
       iex> String.split(" a b c ", " ", trim: true)
       ["a", "b", "c"]
 
@@ -199,8 +204,10 @@ defmodule String do
 
       iex> String.split("a,b,c", ~r{,})
       ["a", "b", "c"]
+
       iex> String.split("a,b,c", ~r{,}, global: false)
       ["a", "b,c"]
+
       iex> String.split(" a b c ", ~r{\s}, trim: true)
       ["a", "b", "c"]
 
@@ -208,10 +215,13 @@ defmodule String do
 
       iex> String.split("abc", ~r{})
       ["a", "b", "c", ""]
+
       iex> String.split("abc", "")
       ["a", "b", "c", ""]
+
       iex> String.split("abc", "", trim: true)
       ["a", "b", "c"]
+
       iex> String.split("abc", "", global: false)
       ["a", "bc"]
 
@@ -222,7 +232,7 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, ~r"", options)
+  def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
     if Regex.regex?(pattern) do
@@ -240,14 +250,63 @@ defmodule String do
   end
 
   @doc """
+  Splits a string into two at the specified offset. When the offset given is
+  negative, location is counted from the end of the string.
+
+  The offset is capped to the length of the string.
+
+  Returns a tuple with two elements.
+
+  ## Examples
+
+      iex> String.split_at "sweetelixir", 5
+      {"sweet", "elixir"}
+
+      iex> String.split_at "sweetelixir", -6
+      {"sweet", "elixir"}
+
+      iex> String.split_at "abc", 0
+      {"", "abc"}
+
+      iex> String.split_at "abc", 1000
+      {"abc", ""}
+
+      iex> String.split_at "abc", -1000
+      {"", "abc"}
+
+  """
+  @spec split_at(t, integer) :: {t, t}
+  def split_at(string, offset)
+
+  def split_at(binary, index) when index == 0, do:
+    {"", binary}
+
+  def split_at(binary, index) when index > 0, do:
+    do_split_at(next_grapheme(binary), 0, index, "")
+
+  def split_at(binary, index) when index < 0, do:
+    do_split_at(next_grapheme(binary), 0, max(0, byte_size(binary)+index), "")
+
+  defp do_split_at(nil, _, _, acc), do:
+    {acc, ""}
+
+  defp do_split_at({grapheme, rest}, current_pos, target_pos, acc) when current_pos < target_pos, do:
+    do_split_at(next_grapheme(rest), current_pos+1, target_pos, acc <> grapheme)
+
+  defp do_split_at({grapheme, rest}, pos, pos, acc), do:
+    {acc, grapheme <> rest}
+
+  @doc """
   Convert all characters on the given string to uppercase.
 
   ## Examples
 
       iex> String.upcase("abcd")
       "ABCD"
+
       iex> String.upcase("ab 123 xpto")
       "AB 123 XPTO"
+
       iex> String.upcase("josé")
       "JOSÉ"
 
@@ -262,8 +321,10 @@ defmodule String do
 
       iex> String.downcase("ABCD")
       "abcd"
+
       iex> String.downcase("AB 123 XPTO")
       "ab 123 xpto"
+
       iex> String.downcase("JOSÉ")
       "josé"
 
@@ -284,15 +345,17 @@ defmodule String do
 
       iex> String.capitalize("abcd")
       "Abcd"
+
       iex> String.capitalize("ﬁn")
       "Fin"
+
       iex> String.capitalize("josé")
       "José"
 
   """
   @spec capitalize(t) :: t
   def capitalize(string) when is_binary(string) do
-    { char, rest } = String.Unicode.titlecase_once(string)
+    {char, rest} = String.Unicode.titlecase_once(string)
     char <> downcase(rest)
   end
 
@@ -423,6 +486,7 @@ defmodule String do
 
       iex> String.rjust("abc", 5)
       "  abc"
+
       iex> String.rjust("abc", 5, ?-)
       "--abc"
 
@@ -447,6 +511,7 @@ defmodule String do
 
       iex> String.ljust("abc", 5)
       "abc  "
+
       iex> String.ljust("abc", 5, ?-)
       "abc--"
 
@@ -493,6 +558,7 @@ defmodule String do
 
       iex> String.replace("a,b,c", ",", "-")
       "a-b-c"
+
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
 
@@ -510,8 +576,10 @@ defmodule String do
 
       iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
       "a,[b],c"
+
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
       "a[],b[],c"
+
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
@@ -547,8 +615,10 @@ defmodule String do
 
       iex> String.reverse("abcd")
       "dcba"
+
       iex> String.reverse("hello world")
       "dlrow olleh"
+
       iex> String.reverse("hello ∂og")
       "go∂ olleh"
 
@@ -562,7 +632,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(nil, acc), do: iolist_to_binary(acc)
+  defp do_reverse(nil, acc), do: iodata_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -571,8 +641,10 @@ defmodule String do
 
       iex> String.duplicate("abc", 0)
       ""
+
       iex> String.duplicate("abc", 1)
       "abc"
+
       iex> String.duplicate("abc", 2)
       "abcabc"
 
@@ -589,8 +661,10 @@ defmodule String do
 
       iex> String.codepoints("josé")
       ["j", "o", "s", "é"]
+
       iex> String.codepoints("оптими зации")
       ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+
       iex> String.codepoints("ἅἪῼ")
       ["ἅ","Ἢ","ῼ"]
 
@@ -613,10 +687,10 @@ defmodule String do
   ## Examples
 
       iex> String.next_codepoint("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_codepoint: 1 }
+  @compile {:inline, next_codepoint: 1}
   @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
 
@@ -627,10 +701,13 @@ defmodule String do
 
       iex> String.valid?("a")
       true
+
       iex> String.valid?("ø")
       true
+
       iex> String.valid?(<<0xffff :: 16>>)
       false
+
       iex> String.valid?("asd" <> <<0xffff :: 16>>)
       false
 
@@ -664,8 +741,10 @@ defmodule String do
 
       iex> String.valid_character?("a")
       true
+
       iex> String.valid_character?("ø")
       true
+
       iex> String.valid_character?("\x{ffff}")
       false
 
@@ -699,11 +778,11 @@ defmodule String do
   ## Examples
 
       iex> String.next_grapheme("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_grapheme: 1 }
-  @spec next_grapheme(t) :: { grapheme, t } | nil
+  @compile {:inline, next_grapheme: 1}
+  @spec next_grapheme(t) :: {grapheme, t} | nil
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
@@ -714,6 +793,7 @@ defmodule String do
 
       iex> String.first("elixir")
       "e"
+
       iex> String.first("եոգլի")
       "ե"
 
@@ -721,7 +801,7 @@ defmodule String do
   @spec first(t) :: grapheme | nil
   def first(string) do
     case next_grapheme(string) do
-      { char, _ } -> char
+      {char, _} -> char
       nil -> nil
     end
   end
@@ -734,6 +814,7 @@ defmodule String do
 
       iex> String.last("elixir")
       "r"
+
       iex> String.last("եոգլի")
       "ի"
 
@@ -756,6 +837,7 @@ defmodule String do
 
       iex> String.length("elixir")
       6
+
       iex> String.length("եոգլի")
       5
 
@@ -779,12 +861,16 @@ defmodule String do
 
       iex> String.at("elixir", 0)
       "e"
+
       iex> String.at("elixir", 1)
       "l"
+
       iex> String.at("elixir", 10)
       nil
+
       iex> String.at("elixir", -1)
       "r"
+
       iex> String.at("elixir", -10)
       nil
 
@@ -822,18 +908,25 @@ defmodule String do
 
       iex> String.slice("elixir", 1, 3)
       "lix"
+
       iex> String.slice("elixir", 1, 10)
       "lixir"
+
       iex> String.slice("elixir", 10, 3)
       nil
+
       iex> String.slice("elixir", -4, 4)
       "ixir"
+
       iex> String.slice("elixir", -10, 3)
       nil
+
       iex> String.slice("a", 0, 1500)
       "a"
+
       iex> String.slice("a", 1, 1500)
       ""
+
       iex> String.slice("a", 2, 1500)
       nil
 
@@ -870,26 +963,34 @@ defmodule String do
 
       iex> String.slice("elixir", 1..3)
       "lix"
+
       iex> String.slice("elixir", 1..10)
       "lixir"
+
       iex> String.slice("elixir", 10..3)
       nil
 
       iex> String.slice("elixir", -4..-1)
       "ixir"
+
       iex> String.slice("elixir", 2..-1)
       "ixir"
+
       iex> String.slice("elixir", -4..6)
       "ixir"
+
       iex> String.slice("elixir", -1..-4)
       nil
+
       iex> String.slice("elixir", -10..-7)
       nil
 
       iex> String.slice("a", 0..1500)
       "a"
+
       iex> String.slice("a", 1..1500)
       ""
+
       iex> String.slice("a", 2..1500)
       nil
 
@@ -953,8 +1054,10 @@ defmodule String do
 
       iex> String.starts_with? "elixir", "eli"
       true
+
       iex> String.starts_with? "elixir", ["erlang", "elixir"]
       true
+
       iex> String.starts_with? "elixir", ["erlang", "ruby"]
       false
 
@@ -989,8 +1092,10 @@ defmodule String do
 
       iex> String.ends_with? "language", "age"
       true
+
       iex> String.ends_with? "language", ["youth", "age"]
       true
+
       iex> String.ends_with? "language", ["youth", "elixir"]
       false
 
@@ -1027,6 +1132,7 @@ defmodule String do
 
       iex> String.match?("foo", ~r/foo/)
       true
+
       iex> String.match?("bar", ~r/foo/)
       false
 
@@ -1045,8 +1151,10 @@ defmodule String do
 
       iex> String.contains? "elixir of life", "of"
       true
+
       iex> String.contains? "elixir of life", ["life", "death"]
       true
+
       iex> String.contains? "elixir of life", ["death", "mercury"]
       false
 
@@ -1073,126 +1181,91 @@ defmodule String do
     raise ArgumentError
   end
 
-  defexception UnicodeConversionError, [:encoded, :message] do
-    def exception(opts) do
-      UnicodeConversionError[
-        encoded: opts[:encoded],
-        message: "#{opts[:kind]} #{detail(opts[:rest])}"
-      ]
-    end
+  @doc false
+  def to_char_list(list) do
+    IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data(list)
+  end
 
-    defp detail(rest) when is_binary(rest) do
-      "encoding starting at #{inspect rest}"
-    end
+  @doc false
+  def to_char_list!(list) do
+    IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data!(list)
+  end
 
-    defp detail([h|_]) do
-      "code point #{h}"
-    end
+  @doc false
+  def from_char_list(list) do
+    IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data(list)
+  end
+
+  @doc false
+  def from_char_list!(list) do
+    IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data!(list)
   end
 
   @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
+  Converts char data (a list of integers and strings) into a string.
+
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.to_char_list("æß")
-      { :ok, 'æß' }
-      iex> String.to_char_list("abc")
-      { :ok, 'abc' }
+      iex> String.from_char_data([0x00E6, 0x00DF])
+      {:ok, "æß"}
+
+      iex> String.from_char_data([0x0061, "bc"])
+      {:ok, "abc"}
 
   """
-  @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
-  def to_char_list(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        { :ok, result }
-
-      { :error, _, _ } = error ->
-        error
-
-      { :incomplete, _, _ } = incomplete ->
-        incomplete
-    end
+  @spec from_char_data(char_data) :: {:ok, String.t} | {:error, binary, binary} | {:incomplete, binary, binary}
+  def from_char_data(binary) when is_binary(binary) do
+    binary
   end
 
-  @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
-
-  In case the conversion fails or is incomplete,
-  it raises a `String.UnicodeConversionError`.
-
-  ## Examples
-
-      iex> String.to_char_list!("æß")
-      'æß'
-      iex> String.to_char_list!("abc")
-      'abc'
-
-  """
-  @spec to_char_list!(String.t) :: char_list | no_return
-  def to_char_list!(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        result
-
-      { :error, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      { :incomplete, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
-
-  @doc """
-  Converts a list of integer codepoints to a string.
-
-  ## Examples
-
-      iex> String.from_char_list([0x00E6, 0x00DF])
-      { :ok, "æß" }
-      iex> String.from_char_list([0x0061, 0x0062, 0x0063])
-      { :ok, "abc" }
-
-  """
-  @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
-  def from_char_list(list) when is_list(list) do
+  def from_char_data(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
-        { :ok, result }
+        {:ok, result}
 
-      { :error, _, _ } = error ->
+      {:error, _, _} = error ->
         error
 
-      { :incomplete, _, _ } = incomplete ->
+      {:incomplete, _, _} = incomplete ->
         incomplete
     end
   end
 
   @doc """
-  Converts a list of integer codepoints to a string.
+  Converts char data (a list of integers and strings) into a string.
 
-  In case the conversion fails, it raises a `String.UnicodeConversionError`.
+  In case the conversion fails, it raises a `UnicodeConversionError`.
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.from_char_list!([0x00E6, 0x00DF])
+      iex> String.from_char_data!([0x00E6, 0x00DF])
       "æß"
-      iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
+
+      iex> String.from_char_data!([0x0061, "bc"])
       "abc"
 
   """
-  @spec from_char_list!(char_list) :: String.t | no_return
-  def from_char_list!(list) when is_list(list) do
+  @spec from_char_data!(char_data) :: String.t | no_return
+  def from_char_data!(binary) when is_binary(binary) do
+    binary
+  end
+
+  def from_char_data!(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result
 
-      { :error, encoded, rest } ->
+      {:error, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
-      { :incomplete, encoded, rest } ->
+      {:incomplete, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end

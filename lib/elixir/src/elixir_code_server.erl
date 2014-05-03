@@ -30,121 +30,121 @@ init(ok) ->
   code:ensure_loaded('Elixir.Macro.Env'),
   code:ensure_loaded('Elixir.Module.LocalsTracker'),
   code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
-  { ok, #elixir_code_server{} }.
+  {ok, #elixir_code_server{}}.
 
-handle_call({ acquire, Path }, From, Config) ->
+handle_call({acquire, Path}, From, Config) ->
   Current = Config#elixir_code_server.loaded,
   case orddict:find(Path, Current) of
-    { ok, true } ->
-      { reply, loaded, Config };
-    { ok, { Ref, List } } when is_list(List), is_reference(Ref) ->
-      Queued = orddict:store(Path, { Ref, [From|List] }, Current),
-      { reply, { queued, Ref }, Config#elixir_code_server{loaded=Queued} };
+    {ok, true} ->
+      {reply, loaded, Config};
+    {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
+      Queued = orddict:store(Path, {Ref, [From|List]}, Current),
+      {reply, {queued, Ref}, Config#elixir_code_server{loaded=Queued}};
     error ->
-      Queued = orddict:store(Path, { make_ref(), [] }, Current),
-      { reply, proceed, Config#elixir_code_server{loaded=Queued} }
+      Queued = orddict:store(Path, {make_ref(), []}, Current),
+      {reply, proceed, Config#elixir_code_server{loaded=Queued}}
   end;
 
 handle_call(loaded, _From, Config) ->
-  { reply, [F || { F, true } <- Config#elixir_code_server.loaded], Config };
+  {reply, [F || {F, true} <- Config#elixir_code_server.loaded], Config};
 
 handle_call(at_exit, _From, Config) ->
-  { reply, Config#elixir_code_server.at_exit, Config };
+  {reply, Config#elixir_code_server.at_exit, Config};
 
 handle_call(flush_at_exit, _From, Config) ->
-  { reply, Config#elixir_code_server.at_exit, Config#elixir_code_server{at_exit=[]} };
+  {reply, Config#elixir_code_server.at_exit, Config#elixir_code_server{at_exit=[]}};
 
 handle_call(argv, _From, Config) ->
-  { reply, Config#elixir_code_server.argv, Config };
+  {reply, Config#elixir_code_server.argv, Config};
 
 handle_call(compiler_options, _From, Config) ->
-  { reply, Config#elixir_code_server.compiler_options, Config };
+  {reply, Config#elixir_code_server.compiler_options, Config};
 
-handle_call({ compilation_status, CompilerPid }, _From, Config) ->
+handle_call({compilation_status, CompilerPid}, _From, Config) ->
   CompilationStatusList    = Config#elixir_code_server.compilation_status,
   CompilationStatusListNew = orddict:erase(CompilerPid, CompilationStatusList),
   CompilationStatus        = orddict:fetch(CompilerPid, CompilationStatusList),
-  { reply, CompilationStatus, Config#elixir_code_server{compilation_status=CompilationStatusListNew} };
+  {reply, CompilationStatus, Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
-    { [H|T], Counter } ->
-      { reply, module_tuple(H), Config#elixir_code_server{pool={T,Counter}} };
-    { [], Counter } ->
-      { reply, module_tuple(Counter), Config#elixir_code_server{pool={[],Counter+1}} }
+    {[H|T], Counter} ->
+      {reply, module_tuple(H), Config#elixir_code_server{pool={T,Counter}}};
+    {[], Counter} ->
+      {reply, module_tuple(Counter), Config#elixir_code_server{pool={[],Counter+1}}}
   end;
 
 handle_call(erl_compiler_options, _From, Config) ->
   case Config#elixir_code_server.erl_compiler_options of
     nil ->
       Opts = erl_compiler_options(),
-      { reply, Opts, Config#elixir_code_server{erl_compiler_options=Opts} };
+      {reply, Opts, Config#elixir_code_server{erl_compiler_options=Opts}};
     Opts ->
-      { reply, Opts, Config }
+      {reply, Opts, Config}
   end;
 
 handle_call(Request, _From, Config) ->
-  { stop, { badcall, Request }, Config }.
+  {stop, {badcall, Request}, Config}.
 
-handle_cast({ at_exit, AtExit }, Config) ->
-  { noreply, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]} };
+handle_cast({at_exit, AtExit}, Config) ->
+  {noreply, Config#elixir_code_server{at_exit=[AtExit|Config#elixir_code_server.at_exit]}};
 
-handle_cast({ argv, Argv }, Config) ->
-  { noreply, Config#elixir_code_server{argv=Argv} };
+handle_cast({argv, Argv}, Config) ->
+  {noreply, Config#elixir_code_server{argv=Argv}};
 
-handle_cast({ compiler_options, Options }, Config) ->
+handle_cast({compiler_options, Options}, Config) ->
   Final = orddict:merge(fun(_,_,V) -> V end, Config#elixir_code_server.compiler_options, Options),
-  { noreply, Config#elixir_code_server{compiler_options=Final} };
+  {noreply, Config#elixir_code_server{compiler_options=Final}};
 
-handle_cast({ register_warning, CompilerPid }, Config) ->
+handle_cast({register_warning, CompilerPid}, Config) ->
   CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
   CompilationStatusNew     = orddict:store(CompilerPid, error, CompilationStatusCurrent),
   case orddict:find(warnings_as_errors, Config#elixir_code_server.compiler_options) of
-    { ok, true } -> { noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew} };
-    _ -> { noreply, Config }
+    {ok, true} -> {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
+    _ -> {noreply, Config}
   end;
 
-handle_cast({ reset_warnings, CompilerPid }, Config) ->
+handle_cast({reset_warnings, CompilerPid}, Config) ->
   CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
   CompilationStatusNew     = orddict:store(CompilerPid, ok, CompilationStatusCurrent),
-  { noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew} };
+  {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
 
-handle_cast({ loaded, Path }, Config) ->
+handle_cast({loaded, Path}, Config) ->
   Current = Config#elixir_code_server.loaded,
   case orddict:find(Path, Current) of
-    { ok, true } ->
-      { noreply, Config };
-    { ok, { Ref, List } } when is_list(List), is_reference(Ref) ->
-      [Pid ! { elixir_code_server, Ref, loaded } || { Pid, _Tag } <- lists:reverse(List)],
+    {ok, true} ->
+      {noreply, Config};
+    {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
+      [Pid ! {elixir_code_server, Ref, loaded} || {Pid, _Tag} <- lists:reverse(List)],
       Done = orddict:store(Path, true, Current),
-      { noreply, Config#elixir_code_server{loaded=Done} };
+      {noreply, Config#elixir_code_server{loaded=Done}};
     error ->
       Done = orddict:store(Path, true, Current),
-      { noreply, Config#elixir_code_server{loaded=Done} }
+      {noreply, Config#elixir_code_server{loaded=Done}}
   end;
 
-handle_cast({ unload_files, Files }, Config) ->
+handle_cast({unload_files, Files}, Config) ->
   Current  = Config#elixir_code_server.loaded,
   Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
-  { noreply, Config#elixir_code_server{loaded=Unloaded} };
+  {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
-handle_cast({ return_module_name, H }, #elixir_code_server{pool={T,Counter}} = Config) ->
-  { noreply, Config#elixir_code_server{pool={[H|T],Counter}} };
+handle_cast({return_module_name, H}, #elixir_code_server{pool={T,Counter}} = Config) ->
+  {noreply, Config#elixir_code_server{pool={[H|T],Counter}}};
 
 handle_cast(Request, Config) ->
-  { stop, { badcast, Request }, Config }.
+  {stop, {badcast, Request}, Config}.
 
 handle_info(_Request, Config) ->
-  { noreply, Config }.
+  {noreply, Config}.
 
 terminate(_Reason, _Config) ->
   ok.
 
 code_change(_Old, Config, _Extra) ->
-  { ok, Config }.
+  {ok, Config}.
 
 module_tuple(I) ->
-  { list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I }.
+  {list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I}.
 
 erl_compiler_options() ->
   Key = "ERL_COMPILER_OPTIONS",

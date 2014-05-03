@@ -10,7 +10,7 @@ defmodule Kernel.TypespecTest do
   # module
   defmacrop test_module([{:do, block}]) do
     quote do
-      { :module, _, _binary, result } = defmodule T do
+      {:module, _, _binary, result} = defmodule T do
         unquote(block)
       end
       :code.delete(T)
@@ -120,6 +120,29 @@ defmodule Kernel.TypespecTest do
       @type mytype :: 1..10
     end
     assert {:mytype, {:type, _, :range, [{:integer, _, 1}, {:integer, _, 10}]}, []} = spec
+  end
+
+  test "@type with a map" do
+    spec = test_module do
+      @type mytype :: %{hello: :world}
+    end
+    assert {:mytype,
+             {:type, _, :map, [
+               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+             ]},
+            []} = spec
+  end
+
+  test "@type with a struct" do
+    spec = test_module do
+      @type mytype :: %User{hello: :world}
+    end
+    assert {:mytype,
+             {:type, _, :map, [
+               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, User}},
+               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+             ]},
+            []} = spec
   end
 
   test "@type with a tuple" do
@@ -248,33 +271,15 @@ defmodule Kernel.TypespecTest do
 
   test "@type from structs" do
     types = test_module do
-      defstruct name: nil, age: 0
+      defstruct name: nil, age: 0 :: non_neg_integer
       @type
     end
 
-    assert [{:t, {:type, 251, :map, []}, []}] = types
-  end
-
-  test "@type from records" do
-    types = test_module do
-      defrecordp :user, name: nil, age: 0 :: integer
-      @opaque user :: user_t
-      @type
-    end
-
-    assert [{:user_t, {:type, _, :tuple,
-             [{:atom, _, :user}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
-  end
-
-  test "@type from records with custom tag" do
-    {types, module} = test_module do
-      defrecordp :user, __MODULE__, name: nil, age: 0 :: integer
-      @opaque user :: user_t
-      {@type, __MODULE__}
-    end
-
-    assert [{:user_t, {:type, _, :tuple,
-             [{:atom, _, ^module}, {:type, _, :term, []}, {:type, _, :integer, []}]}, []}] = types
+    assert [{:t, {:type, _, :map, [
+              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :non_neg_integer, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, Kernel.TypespecTest.T}}
+           ]}, []}] = types
   end
 
   test "@type unquote fragment" do
@@ -318,7 +323,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "@spec(spec) with guards" do
-    { spec1, spec2, spec3 } = test_module do
+    {spec1, spec2, spec3} = test_module do
       def myfun1(x), do: x
       spec1 = @spec myfun1(x) :: boolean when [x: integer]
 
@@ -328,7 +333,7 @@ defmodule Kernel.TypespecTest do
       def myfun3(_x, y), do: y
       spec3 = @spec myfun3(x, y) :: y when [y: x, x: var]
 
-      { spec1, spec2, spec3 }
+      {spec1, spec2, spec3}
     end
     assert {{:myfun1, 1}, {:type, _, :bounded_fun, [{:type, _, :fun, [{:type, _, :product, [{:var, _, :x}]}, {:type, _, :boolean, []}]}, [{:type, _, :constraint, [{:atom, _, :is_subtype}, [{:var, _, :x}, {:type, _, :integer, []}]]}]]}} = spec1
     assert {{:myfun2, 1}, {:type, _, :fun, [{:type, _, :product, [{:var, _, :x}]}, {:var, _, :x}]}} = spec2
@@ -348,23 +353,23 @@ defmodule Kernel.TypespecTest do
   end
 
   test "@spec + @callback" do
-    { specs, callbacks } = test_module do
+    {specs, callbacks} = test_module do
       def myfun(x), do: x
       @spec myfun(integer)   :: integer
       @spec myfun(char_list) :: char_list
       @callback cb(integer)  :: integer
-      { @spec, @callback }
+      {@spec, @callback}
     end
 
     assert [
-      { {:cb, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]} }
+      {{:cb, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}}
     ] = Enum.sort(callbacks)
 
     assert [
-      { {:myfun, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]} },
-      { {:myfun, 1}, {:type, _, :fun, [{:type, _, :product, [
+      {{:myfun, 1}, {:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}]}},
+      {{:myfun, 1}, {:type, _, :fun, [{:type, _, :product, [
                       {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]},
-                      {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]} }
+                      {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}]}}
     ] = Enum.sort(specs)
   end
 
@@ -402,6 +407,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
       (quote do: @type ops() :: {+1,-1}),
+      (quote do: @type my_map() :: %{hello: :world}),
+      (quote do: @type my_struct() :: %User{hello: :world}),
     ]
 
     types = test_module do
@@ -411,43 +418,43 @@ defmodule Kernel.TypespecTest do
 
     types = Enum.reverse(types)
 
-    for { type, definition } <- Enum.zip(types, quoted) do
+    for {type, definition} <- Enum.zip(types, quoted) do
       ast = Kernel.Typespec.type_to_ast(type)
       assert Macro.to_string(quote do: @type unquote(ast)) == Macro.to_string(definition)
     end
   end
 
   test "type_to_ast for records" do
-    record_type = { { :record, :my_record },
+    record_type = {{:record, :my_record},
                     [
-                      { :typed_record_field,
-                        { :record_field, 0, { :atom, 0, :field1 }},
-                        { :type, 0, :atom, [] } },
-                      { :typed_record_field,
-                        { :record_field, 0, { :atom, 0, :field2 }},
-                        { :type, 0, :integer, [] } },
+                      {:typed_record_field,
+                        {:record_field, 0, {:atom, 0, :field1}},
+                        {:type, 0, :atom, []}},
+                      {:typed_record_field,
+                        {:record_field, 0, {:atom, 0, :field2}},
+                        {:type, 0, :integer, []}},
                     ],
                     []}
     assert Kernel.Typespec.type_to_ast(record_type) ==
-      { :::, [], [
-        { :my_record, [], [] },
-        { :{}, [], [:my_record,
-          { :::, [line: 0], [
+      {:::, [], [
+        {:my_record, [], []},
+        {:{}, [], [:my_record,
+          {:::, [line: 0], [
             {:field1, 0, nil},
             {:atom, [line: 0], []}
-          ] },
-          { :::, [line: 0], [
+          ]},
+          {:::, [line: 0], [
             {:field2, 0, nil},
             {:integer, [line: 0], []}
-          ] }
-        ] }
-      ] }
+          ]}
+        ]}
+      ]}
   end
 
   test "type_to_ast for paren_type" do
     type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
     assert Kernel.Typespec.type_to_ast(type) ==
-      { :::, [], [{:my_type, [], []}, {:integer, [line: 0], []}] }
+      {:::, [], [{:my_type, [], []}, {:integer, [line: 0], []}]}
   end
 
   test "spec_to_ast" do
@@ -466,7 +473,7 @@ defmodule Kernel.TypespecTest do
       Enum.reverse @spec
     end
 
-    for { { { _, _ }, spec }, definition } <- Enum.zip(compiled, specs) do
+    for {{{_, _}, spec}, definition} <- Enum.zip(compiled, specs) do
       quoted = quote do: @spec unquote(Kernel.Typespec.spec_to_ast(:a, spec))
       assert Macro.to_string(quoted) == Macro.to_string(definition)
     end
@@ -475,7 +482,7 @@ defmodule Kernel.TypespecTest do
   # types/specs retrieval
 
   test "specs retrieval" do
-    { :module, _, binary, _ } = defmodule T do
+    {:module, _, binary, _} = defmodule T do
       @spec a :: any
       def a, do: nil
     end
@@ -488,7 +495,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "types retrieval" do
-    { :module, _, binary, _ } = defmodule T do
+    {:module, _, binary, _} = defmodule T do
       @type a :: any
       @typep b :: any
       @spec t(b) :: b
@@ -507,7 +514,7 @@ defmodule Kernel.TypespecTest do
   end
 
   test "typedoc retrieval" do
-    { :module, _, binary, _ } = defmodule T do
+    {:module, _, binary, _} = defmodule T do
       @typedoc "A"
       @type a :: any
       @typep b :: any

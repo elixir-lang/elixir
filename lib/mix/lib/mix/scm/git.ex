@@ -12,11 +12,11 @@ defmodule Mix.SCM.Git do
 
   def format_lock(opts) do
     case opts[:lock] do
-      { :git, _, lock_rev, lock_opts } ->
+      {:git, _, lock_rev, lock_opts} ->
         lock = String.slice(lock_rev, 0, 7)
         case Enum.find_value [:branch, :ref, :tag], &List.keyfind(lock_opts, &1, 0) do
-          { :ref, _ }  -> lock <> " (ref)"
-          { key, val } -> lock <> " (#{key}: #{val})"
+          {:ref, _}  -> lock <> " (ref)"
+          {key, val} -> lock <> " (#{key}: #{val})"
           nil          -> lock
         end
       _ ->
@@ -36,12 +36,16 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    File.dir?(Path.join(opts[:dest], ".git"))
+    File.dir?(Path.join(opts[:dest], ".git")) &&
+      File.cd!(opts[:dest], fn ->
+        # Make sure git can read the dependency .git folder
+        String.strip(System.cmd "git rev-parse --git-dir") == ".git"
+      end)
   end
 
   def lock_status(opts) do
     case opts[:lock] do
-      { :git, lock_repo, lock_rev, lock_opts } ->
+      {:git, lock_repo, lock_rev, lock_opts} ->
         File.cd!(opts[:dest], fn ->
           rev_info = get_rev_info
           cond do
@@ -67,6 +71,8 @@ defmodule Mix.SCM.Git do
   def checkout(opts) do
     path     = opts[:dest]
     location = opts[:git]
+
+    File.rm_rf!(path)
     command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
 
     run_cmd_or_raise(command)
@@ -81,7 +87,7 @@ defmodule Mix.SCM.Git do
 
       command = "git fetch --force"
 
-      if { 1, 7, 1 } <= git_version() do
+      if {1, 7, 1} <= git_version() do
         command = command <> " --progress"
       end
 
@@ -109,10 +115,10 @@ defmodule Mix.SCM.Git do
 
   defp get_lock(opts) do
     rev_info = get_rev_info
-    { :git, opts[:git], rev_info[:rev], get_lock_opts(opts) }
+    {:git, opts[:git], rev_info[:rev], get_lock_opts(opts)}
   end
 
-  defp get_lock_rev({ :git, _repo, lock, _opts }) when is_binary(lock), do: lock
+  defp get_lock_rev({:git, _repo, lock, _opts}) when is_binary(lock), do: lock
   defp get_lock_rev(_), do: nil
 
   defp get_lock_opts(opts) do
@@ -136,7 +142,7 @@ defmodule Mix.SCM.Git do
   defp get_rev_info do
     destructure [origin, rev],
       System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
-      |> iolist_to_binary
+      |> iodata_to_binary
       |> String.split("\n", trim: true)
     [ origin: origin, rev: rev ]
   end
@@ -154,7 +160,7 @@ defmodule Mix.SCM.Git do
 
   defp git_version do
     case :application.get_env(:mix, :git_version) do
-      { :ok, version } ->
+      {:ok, version} ->
         version
       :undefined ->
         "git version " <> version = String.strip System.cmd("git --version")

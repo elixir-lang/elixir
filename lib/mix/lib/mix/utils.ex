@@ -29,8 +29,8 @@ defmodule Mix.Utils do
 
   defp path_separator do
     case :os.type do
-      { :win32, _ } -> ";"
-      { :unix, _ }  -> ":"
+      {:win32, _} -> ";"
+      {:unix, _}  -> ":"
     end
   end
 
@@ -39,13 +39,13 @@ defmodule Mix.Utils do
   with the command name converted to a module name
   in the given `at` scope.
 
-  Returns `{ :module, module }` in case a module
-  exists and is loaded, `{ :error, reason }` otherwise.
+  Returns `{:module, module}` in case a module
+  exists and is loaded, `{:error, reason}` otherwise.
 
   ## Examples
 
       iex> Mix.Utils.command_to_module("compile", Mix.Tasks)
-      { :module, Mix.Tasks.Compile }
+      {:module, Mix.Tasks.Compile}
 
   """
   def command_to_module(command, at \\ Elixir) do
@@ -65,6 +65,7 @@ defmodule Mix.Utils do
   Extract all stale `sources` compared to the given `targets`.
   """
   def extract_stale(_sources, []), do: []
+  def extract_stale([], _targets), do: []
 
   def extract_stale(sources, targets) do
     stale_stream(sources, targets) |> Enum.to_list
@@ -74,22 +75,26 @@ defmodule Mix.Utils do
     modified_target = targets |> Enum.map(&last_modified(&1)) |> Enum.min
 
     Stream.filter(sources, fn(source) ->
-      source_mtime(source) > modified_target
+      last_modified(source) > modified_target
     end)
   end
 
-  defp source_mtime({ _, { { _, _, _ }, { _, _, _ } } = source }) do
-    source
+  @doc """
+  Returns the date the given path was last modified.
+
+  If the path does not exist, it returns the unix epoch
+  (1970-01-01 00:00:00).
+  """
+  def last_modified(path)
+
+  def last_modified({{_, _, _}, {_, _, _}} = timestamp) do
+    timestamp
   end
 
-  defp source_mtime(source) do
-    last_modified(source)
-  end
-
-  defp last_modified(path) do
+  def last_modified(path) do
     case File.stat(path) do
-      { :ok, File.Stat[mtime: mtime] } -> mtime
-      { :error, _ } -> { { 1970, 1, 1 }, { 0, 0, 0 } }
+      {:ok, %File.Stat{mtime: mtime}} -> mtime
+      {:error, _} -> {{1970, 1, 1}, {0, 0, 0}}
     end
   end
 
@@ -105,8 +110,8 @@ defmodule Mix.Utils do
   """
   def read_manifest(file) do
     case File.read(file) do
-      { :ok, contents } -> String.split(contents, "\n")
-      { :error, _ } -> []
+      {:ok, contents} -> String.split(contents, "\n")
+      {:error, _} -> []
     end
   end
 
@@ -150,24 +155,6 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Merges two configs recursively, merging keyword lists
-  and concatenating normal lists.
-  """
-  def config_merge(old, new) do
-    Keyword.merge(old, new, fn(_, x, y) ->
-      if is_list(x) and is_list(y) do
-        if Keyword.keyword?(x) and Keyword.keyword?(y) do
-          config_merge(x, y)
-        else
-          x ++ y
-        end
-      else
-        y
-      end
-    end)
-  end
-
-  @doc """
   Converts the given atom or binary to underscore format.
 
   If an atom is given, it is assumed to be an Elixir module,
@@ -177,8 +164,10 @@ defmodule Mix.Utils do
 
       iex> Mix.Utils.underscore "FooBar"
       "foo_bar"
+
       iex> Mix.Utils.underscore "Foo.Bar"
       "foo/bar"
+
       iex> Mix.Utils.underscore Foo.Bar
       "foo/bar"
 
@@ -335,21 +324,21 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      source_list = String.to_char_list!(source)
+      source_list = List.from_char_data!(source)
       case :file.read_link(target) do
-        { :ok, ^source_list } ->
+        {:ok, ^source_list} ->
           :ok
-        { :ok, _ } ->
+        {:ok, _} ->
           File.rm!(target)
           do_symlink_or_copy(source, target)
-        { :error, :enoent } ->
+        {:error, :enoent} ->
           do_symlink_or_copy(source, target)
-        { :error, _ } ->
+        {:error, _} ->
           File.rm_rf!(target)
           do_symlink_or_copy(source, target)
       end
     else
-      { :error, :enoent }
+      {:error, :enoent}
     end
   end
 
@@ -357,7 +346,7 @@ defmodule Mix.Utils do
     symlink_source = make_relative_path(source, target)
     case :file.make_symlink(symlink_source, target) do
       :ok -> :ok
-      { :error, _ } -> File.cp_r!(source, target)
+      {:error, _} -> File.cp_r!(source, target)
     end
   end
 
@@ -401,15 +390,19 @@ defmodule Mix.Utils do
     :ssl.start
     :inets.start
 
-    headers = [ { 'user-agent', 'Mix/#{System.version}' } ]
-    request = { :binary.bin_to_list(path), headers }
+    headers = [{'user-agent', 'Mix/#{System.version}'}]
+    request = {:binary.bin_to_list(path), headers}
 
-    case :httpc.request(:get, request, [], body_format: :binary) do
-      { :ok, { { _, status, _ }, _, body } } when status in 200..299 ->
+    # We are using relaxed: true because some clients (namely Github pages
+    # which we are using to download rebar) is returning a Location header
+    # with relative paths, which does not follow the spec. This would cause
+    # the request to fail with {:error, :no_scheme} unless :relaxed is given.
+    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary]) do
+      {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
-      { :ok, { { _, status, _ }, _, _ } } ->
+      {:ok, {{_, status, _}, _, _}} ->
         raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
-      { :error, reason } ->
+      {:error, reason} ->
         raise Mix.Error, message: "Could not access url #{path}, error: #{inspect reason}"
     end
   end

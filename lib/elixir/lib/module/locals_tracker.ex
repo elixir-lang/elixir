@@ -12,21 +12,21 @@
 # We also have can the following vertices:
 #
 # * `Module` - a module that was invoked via an import
-# * `{ name, arity }` - a local function/arity pair
-# * `{ :import, name, arity }` - an invoked function/arity import
+# * `{name, arity}` - a local function/arity pair
+# * `{:import, name, arity}` - an invoked function/arity import
 #
 # Each of those vertices can associate to other vertices
 # as described below:
 #
 # * `Module`
-#   * in neighbours:  `{ :import, name, arity }`
+#   * in neighbours:  `{:import, name, arity}`
 #
-# * `{ name, arity }`
-#   * in neighbours: `:local`, `{ name, arity }`
-#   * out neighbours: `{ :import, name, arity }`
+# * `{name, arity}`
+#   * in neighbours: `:local`, `{name, arity}`
+#   * out neighbours: `{:import, name, arity}`
 #
-# * `{ :import, name, arity }`
-#   * in neighbours: `{ name, arity }`
+# * `{:import, name, arity}`
+#   * in neighbours: `{name, arity}`
 #   * out neighbours: `Module`
 #
 # Note that since this is required for bootstrap, we can't use
@@ -39,21 +39,21 @@ defmodule Module.LocalsTracker do
 
   @type ref :: pid | module
   @type name :: atom
-  @type name_arity :: { name, arity }
+  @type name_arity :: {name, arity}
 
-  @type local :: { name, arity }
-  @type import :: { :import, name, arity }
+  @type local :: {name, arity}
+  @type import :: {:import, name, arity}
 
   # Public API
 
   @doc """
   Returns all imported modules that had the given
-  `{ name, arity }` invoked.
+  `{name, arity}` invoked.
   """
   @spec imports_with_dispatch(ref, name_arity) :: [module]
-  def imports_with_dispatch(ref, { name, arity }) do
+  def imports_with_dispatch(ref, {name, arity}) do
     d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :digraph.out_neighbours(d, { :import, name, arity })
+    :digraph.out_neighbours(d, {:import, name, arity})
   end
 
   @doc """
@@ -71,7 +71,7 @@ defmodule Module.LocalsTracker do
 
   defp reduce_reachable(d, vertex, vertices) do
     neighbours = :digraph.out_neighbours(d, vertex)
-    neighbours = (for { _, _ } = t <- neighbours, do: t) |> :ordsets.from_list
+    neighbours = (for {_, _} = t <- neighbours, do: t) |> :ordsets.from_list
     remaining  = :ordsets.subtract(neighbours, vertices)
     vertices   = :ordsets.union(neighbours, vertices)
     :lists.foldl(&reduce_reachable(d, &1, &2), vertices, remaining)
@@ -80,7 +80,7 @@ defmodule Module.LocalsTracker do
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{ _, val }] = :ets.lookup(table, :__locals_tracker)
+    [{_, val}] = :ets.lookup(table, :__locals_tracker)
     val
   end
 
@@ -89,7 +89,7 @@ defmodule Module.LocalsTracker do
   # Starts the tracker and returns its pid.
   @doc false
   def start_link do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
+    {:ok, pid} = :gen_server.start_link(__MODULE__, [], [])
     pid
   end
 
@@ -99,36 +99,36 @@ defmodule Module.LocalsTracker do
   # a call is made to.
   @doc false
   def add_definition(pid, kind, tuple) when kind in [:def, :defp, :defmacro, :defmacrop] do
-    :gen_server.cast(pid, { :add_definition, kind, tuple })
+    :gen_server.cast(pid, {:add_definition, kind, tuple})
   end
 
   # Adds and tracks defaults for a definition into the tracker.
   @doc false
   def add_defaults(pid, kind, tuple, defaults) when kind in [:def, :defp, :defmacro, :defmacrop] do
-    :gen_server.cast(pid, { :add_defaults, kind, tuple, defaults })
+    :gen_server.cast(pid, {:add_defaults, kind, tuple, defaults})
   end
 
   # Adds a local dispatch to the given target.
   def add_local(pid, to) when is_tuple(to) do
-    :gen_server.cast(pid, { :add_local, :local, to })
+    :gen_server.cast(pid, {:add_local, :local, to})
   end
 
   # Adds a local dispatch from-to the given target.
   @doc false
   def add_local(pid, from, to) when is_tuple(from) and is_tuple(to) do
-    :gen_server.cast(pid, { :add_local, from, to })
+    :gen_server.cast(pid, {:add_local, from, to})
   end
 
   # Adds a import dispatch to the given target.
   @doc false
   def add_import(pid, function, module, target) when is_atom(module) and is_tuple(target) do
-    :gen_server.cast(pid, { :add_import, function, module, target })
+    :gen_server.cast(pid, {:add_import, function, module, target})
   end
 
   # Yanks a local node. Returns its in and out vertices in a tuple.
   @doc false
   def yank(pid, local) do
-    :gen_server.call(to_pid(pid), { :yank, local }, @timeout)
+    :gen_server.call(to_pid(pid), {:yank, local}, @timeout)
   end
 
   # Reattach a previously yanked node
@@ -136,7 +136,7 @@ defmodule Module.LocalsTracker do
   def reattach(pid, kind, tuple, neighbours) do
     pid = to_pid(pid)
     add_definition(pid, kind, tuple)
-    :gen_server.cast(pid, { :reattach, tuple, neighbours })
+    :gen_server.cast(pid, {:reattach, tuple, neighbours})
   end
 
   # Collecting all conflicting imports with the given functions
@@ -144,11 +144,11 @@ defmodule Module.LocalsTracker do
   def collect_imports_conflicts(pid, all_defined) do
     d = :gen_server.call(pid, :digraph, @timeout)
 
-    for { name, arity } <- all_defined,
-        :digraph.in_neighbours(d, { :import, name, arity }) != [],
-        n = :digraph.out_neighbours(d, { :import, name, arity }),
+    for {name, arity} <- all_defined,
+        :digraph.in_neighbours(d, {:import, name, arity}) != [],
+        n = :digraph.out_neighbours(d, {:import, name, arity}),
         n != [] do
-      { n, name, arity }
+      {n, name, arity}
     end
   end
 
@@ -161,40 +161,40 @@ defmodule Module.LocalsTracker do
     :lists.foldl(&collect_unused_locals(&1, &2, reachable), [], private)
   end
 
-  defp collect_unused_locals({ tuple, kind, 0 }, acc, reachable) do
+  defp collect_unused_locals({tuple, kind, 0}, acc, reachable) do
     if :lists.member(tuple, reachable) do
       acc
     else
-      [{ :unused_def, tuple, kind }|acc]
+      [{:unused_def, tuple, kind}|acc]
     end
   end
 
-  defp collect_unused_locals({ tuple, kind, default }, acc, reachable) when default > 0 do
-    { name, arity } = tuple
+  defp collect_unused_locals({tuple, kind, default}, acc, reachable) when default > 0 do
+    {name, arity} = tuple
     min = arity - default
     max = arity
 
-    invoked = for { n, a } <- reachable, n == name, a in min..max, do: a
+    invoked = for {n, a} <- reachable, n == name, a in min..max, do: a
 
     if invoked == [] do
-      [{ :unused_def, tuple, kind }|acc]
+      [{:unused_def, tuple, kind}|acc]
     else
       case :lists.min(invoked) - min do
         0 -> acc
-        ^default -> [{ :unused_args, tuple }|acc]
-        unused_args -> [{ :unused_args, tuple, unused_args }|acc]
+        ^default -> [{:unused_args, tuple}|acc]
+        unused_args -> [{:unused_args, tuple, unused_args}|acc]
       end
     end
   end
 
   @doc false
   def cache_env(pid, env) do
-    :gen_server.call(pid, { :cache_env, env }, @timeout)
+    :gen_server.call(pid, {:cache_env, env}, @timeout)
   end
 
   @doc false
   def get_cached_env(pid, ref) do
-    :gen_server.call(pid, { :get_cached_env, ref }, @timeout)
+    :gen_server.call(pid, {:get_cached_env, ref}, @timeout)
   end
 
   # Stops the gen server
@@ -208,78 +208,78 @@ defmodule Module.LocalsTracker do
   def init([]) do
     d = :digraph.new([:protected])
     :digraph.add_vertex(d, :local)
-    { :ok, { d, [] } }
+    {:ok, {d, []}}
   end
 
-  def handle_call({ :cache_env, env }, _from, { d, cache }) do
+  def handle_call({:cache_env, env}, _from, {d, cache}) do
     case cache do
       [{i,^env}|_] ->
-        { :reply, i, { d, cache } }
+        {:reply, i, {d, cache}}
       t ->
         i = length(t)
-        { :reply, i, { d, [{i,env}|t] } }
+        {:reply, i, {d, [{i,env}|t]}}
     end
   end
 
-  def handle_call({ :get_cached_env, ref }, _from, { _, cache } = state) do
-    { ^ref, env } = :lists.keyfind(ref, 1, cache)
-    { :reply, env, state }
+  def handle_call({:get_cached_env, ref}, _from, {_, cache} = state) do
+    {^ref, env} = :lists.keyfind(ref, 1, cache)
+    {:reply, env, state}
   end
 
-  def handle_call({ :yank, local }, _from, { d, _ } = state) do
+  def handle_call({:yank, local}, _from, {d, _} = state) do
     in_vertices  = :digraph.in_neighbours(d, local)
     out_vertices = :digraph.out_neighbours(d, local)
     :digraph.del_vertex(d, local)
-    { :reply, { in_vertices, out_vertices }, state }
+    {:reply, {in_vertices, out_vertices}, state}
   end
 
-  def handle_call(:digraph, _from, { d, _ } = state) do
-    { :reply, d, state }
+  def handle_call(:digraph, _from, {d, _} = state) do
+    {:reply, d, state}
   end
 
   def handle_call(request, _from, state) do
-    { :stop, { :bad_call, request }, state }
+    {:stop, {:bad_call, request}, state}
   end
 
   def handle_info(_msg, state) do
-    { :noreply, state }
+    {:noreply, state}
   end
 
-  def handle_cast({ :add_local, from, to }, { d, _ } = state) do
+  def handle_cast({:add_local, from, to}, {d, _} = state) do
     handle_add_local(d, from, to)
-    { :noreply, state }
+    {:noreply, state}
   end
 
-  def handle_cast({ :add_import, function, module, { name, arity } }, { d, _ } = state) do
+  def handle_cast({:add_import, function, module, {name, arity}}, {d, _} = state) do
     handle_import(d, function, module, name, arity)
-    { :noreply, state }
+    {:noreply, state}
   end
 
-  def handle_cast({ :add_definition, kind, tuple }, { d, _ } = state) do
+  def handle_cast({:add_definition, kind, tuple}, {d, _} = state) do
     handle_add_definition(d, kind, tuple)
-    { :noreply, state }
+    {:noreply, state}
   end
 
-  def handle_cast({ :add_defaults, kind, { name, arity }, defaults }, { d, _ } = state) do
+  def handle_cast({:add_defaults, kind, {name, arity}, defaults}, {d, _} = state) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      handle_add_definition(d, kind, { name, i })
-      handle_add_local(d, { name, i }, { name, i + 1 })
+      handle_add_definition(d, kind, {name, i})
+      handle_add_local(d, {name, i}, {name, i + 1})
     end
-    { :noreply, state }
+    {:noreply, state}
   end
 
-  def handle_cast({ :reattach, tuple, { in_neigh, out_neigh } }, { d, _ } = state) do
+  def handle_cast({:reattach, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
     for from <- in_neigh, do: replace_edge(d, from, tuple)
     for to <- out_neigh, do: replace_edge(d, tuple, to)
-    { :noreply, state }
+    {:noreply, state}
   end
 
   def handle_cast(:stop, state) do
-    { :stop, :normal, state }
+    {:stop, :normal, state}
   end
 
   def handle_cast(msg, state) do
-    { :stop, { :bad_cast, msg }, state }
+    {:stop, {:bad_cast, msg}, state}
   end
 
   def terminate(_reason, _state) do
@@ -287,13 +287,13 @@ defmodule Module.LocalsTracker do
   end
 
   def code_change(_old, state, _extra) do
-    { :ok, state }
+    {:ok, state}
   end
 
   defp handle_import(d, function, module, name, arity) do
     :digraph.add_vertex(d, module)
 
-    tuple = { :import, name, arity }
+    tuple = {:import, name, arity}
     :digraph.add_vertex(d, tuple)
     replace_edge!(d, tuple, module)
 

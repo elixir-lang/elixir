@@ -21,7 +21,7 @@ defmodule Kernel.LexicalTracker do
     # scope may be long gone, so it has no associated PID.
     if pid = to_pid(arg) do
       ets = :gen_server.call(pid, :ets, @timeout)
-      :ets.match(ets, { :"$1", :_, :_ }) |> List.flatten
+      :ets.match(ets, {:"$1", :_, :_}) |> List.flatten
     else
       []
     end
@@ -30,7 +30,7 @@ defmodule Kernel.LexicalTracker do
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{ _, val }] = :ets.lookup(table, :__lexical_tracker)
+    [{_, val}] = :ets.lookup(table, :__lexical_tracker)
     val
   end
 
@@ -39,7 +39,7 @@ defmodule Kernel.LexicalTracker do
   # Starts the tracker and returns its pid.
   @doc false
   def start_link do
-    { :ok, pid } = :gen_server.start_link(__MODULE__, [], [])
+    {:ok, pid} = :gen_server.start_link(__MODULE__, [], [])
     pid
   end
 
@@ -50,27 +50,27 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def add_import(pid, module, line, warn) do
-    :gen_server.cast(pid, { :add_import, module, line, warn })
+    :gen_server.cast(pid, {:add_import, module, line, warn})
   end
 
   @doc false
   def add_alias(pid, module, line, warn) do
-    :gen_server.cast(pid, { :add_alias, module, line, warn })
+    :gen_server.cast(pid, {:add_alias, module, line, warn})
   end
 
   @doc false
   def remote_dispatch(pid, module) do
-    :gen_server.cast(pid, { :remote_dispatch, module })
+    :gen_server.cast(pid, {:remote_dispatch, module})
   end
 
   @doc false
   def import_dispatch(pid, module) do
-    :gen_server.cast(pid, { :import_dispatch, module })
+    :gen_server.cast(pid, {:import_dispatch, module})
   end
 
   @doc false
   def alias_dispatch(pid, module) do
-    :gen_server.cast(pid, { :alias_dispatch, module })
+    :gen_server.cast(pid, {:alias_dispatch, module})
   end
 
   @doc false
@@ -86,8 +86,8 @@ defmodule Kernel.LexicalTracker do
   defp unused(pid, pos) do
     ets = :gen_server.call(pid, :ets, @timeout)
     :ets.foldl(fn
-      { module, _, _ } = tuple, acc when is_integer(:erlang.element(pos, tuple)) ->
-        [{ module, :erlang.element(pos, tuple) }|acc]
+      {module, _, _} = tuple, acc when is_integer(:erlang.element(pos, tuple)) ->
+        [{module, :erlang.element(pos, tuple)}|acc]
       _, acc ->
         acc
     end, [], ets) |> Enum.sort
@@ -97,52 +97,52 @@ defmodule Kernel.LexicalTracker do
 
 
   def init([]) do
-    { :ok, :ets.new(:lexical, [:protected]) }
+    {:ok, :ets.new(:lexical, [:protected])}
   end
 
   def handle_call(:ets, _from, d) do
-    { :reply, d, d }
+    {:reply, d, d}
   end
 
   def handle_call(request, _from, d) do
-    { :stop, { :bad_call, request }, d }
+    {:stop, {:bad_call, request}, d}
   end
 
-  def handle_cast({ :remote_dispatch, module }, d) do
+  def handle_cast({:remote_dispatch, module}, d) do
     add_module(d, module)
-    { :noreply, d }
+    {:noreply, d}
   end
 
-  def handle_cast({ :import_dispatch, module }, d) do
+  def handle_cast({:import_dispatch, module}, d) do
     add_dispatch(d, module, @import)
-    { :noreply, d }
+    {:noreply, d}
   end
 
-  def handle_cast({ :alias_dispatch, module }, d) do
+  def handle_cast({:alias_dispatch, module}, d) do
     add_dispatch(d, module, @alias)
-    { :noreply, d }
+    {:noreply, d}
   end
 
-  def handle_cast({ :add_import, module, line, warn }, d) do
+  def handle_cast({:add_import, module, line, warn}, d) do
     add_directive(d, module, line, warn, @import)
-    { :noreply, d }
+    {:noreply, d}
   end
 
-  def handle_cast({ :add_alias, module, line, warn }, d) do
+  def handle_cast({:add_alias, module, line, warn}, d) do
     add_directive(d, module, line, warn, @alias)
-    { :noreply, d }
+    {:noreply, d}
   end
 
   def handle_cast(:stop, d) do
-    { :stop, :normal, d }
+    {:stop, :normal, d}
   end
 
   def handle_cast(msg, d) do
-    { :stop, { :bad_cast, msg }, d }
+    {:stop, {:bad_cast, msg}, d}
   end
 
   def handle_info(_msg, d) do
-    { :noreply, d }
+    {:noreply, d}
   end
 
   def terminate(_reason, _d) do
@@ -150,7 +150,7 @@ defmodule Kernel.LexicalTracker do
   end
 
   def code_change(_old, d, _extra) do
-    { :ok, d }
+    {:ok, d}
   end
 
   # Callbacks helpers
@@ -160,16 +160,16 @@ defmodule Kernel.LexicalTracker do
   # If the value is true, it was imported/aliased
   # If the value is a line, it was imported/aliased and has a pending warning
   defp add_module(d, module) do
-    :ets.insert_new(d, { module, false, false })
+    :ets.insert_new(d, {module, false, false})
   end
 
   defp add_dispatch(d, module, pos) do
-    :ets.update_element(d, module, { pos, true })
+    :ets.update_element(d, module, {pos, true})
   end
 
   defp add_directive(d, module, line, warn, pos) do
     add_module(d, module)
     marker = if warn, do: line, else: true
-    :ets.update_element(d, module, { pos, marker })
+    :ets.update_element(d, module, {pos, marker})
   end
 end

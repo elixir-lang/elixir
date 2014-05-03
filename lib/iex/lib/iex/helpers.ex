@@ -68,7 +68,7 @@ defmodule IEx.Helpers do
       raise ArgumentError, message: "expected a binary or a list of binaries as argument"
     end
 
-    { found, not_found } =
+    {found, not_found} =
       files
       |> Enum.map(&Path.expand(&1, path))
       |> Enum.partition(&File.exists?/1)
@@ -77,10 +77,10 @@ defmodule IEx.Helpers do
       raise ArgumentError, message: "could not find files #{Enum.join(not_found, ", ")}"
     end
 
-    { erls, exs } = Enum.partition(found, &String.ends_with?(&1, ".erl"))
+    {erls, exs} = Enum.partition(found, &String.ends_with?(&1, ".erl"))
 
     modules = Enum.map(erls, fn(source) ->
-      { module, binary } = compile_erlang(source)
+      {module, binary} = compile_erlang(source)
       base = source |> Path.basename |> Path.rootname
       File.write!(Path.join(path, base <> ".beam"), binary)
       module
@@ -124,14 +124,14 @@ defmodule IEx.Helpers do
   """
   @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
 
-  defmacro h({ :/, _, [call, arity] } = other) do
+  defmacro h({:/, _, [call, arity]} = other) do
     args =
       case Macro.decompose_call(call) do
-        { _mod, :__info__, [] } when arity == 1 ->
+        {_mod, :__info__, []} when arity == 1 ->
           [Module, :__info__, 1]
-        { mod, fun, [] } ->
+        {mod, fun, []} ->
           [mod, fun, arity]
-        { fun, [] } ->
+        {fun, []} ->
           [@h_modules, fun, arity]
         _ ->
           [other]
@@ -145,11 +145,11 @@ defmodule IEx.Helpers do
   defmacro h(call) do
     args =
       case Macro.decompose_call(call) do
-        { _mod, :__info__, [] } ->
+        {_mod, :__info__, []} ->
           [Module, :__info__, 1]
-        { mod, fun, [] } ->
+        {mod, fun, []} ->
           [mod, fun]
-        { fun, [] } ->
+        {fun, []} ->
           [@h_modules, fun]
         _ ->
           [call]
@@ -172,13 +172,13 @@ defmodule IEx.Helpers do
       t(Enum.t/0)
       t(Enum.t)
   """
-  defmacro t({ :/, _, [{ { :., _, [mod, fun] }, _, [] }, arity] }) do
+  defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
     quote do
       IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
     end
   end
 
-  defmacro t({ { :., _, [mod, fun] }, _, [] }) do
+  defmacro t({{:., _, [mod, fun]}, _, []}) do
     quote do
       IEx.Introspection.t(unquote(mod), unquote(fun))
     end
@@ -205,11 +205,11 @@ defmodule IEx.Helpers do
       s(list_to_atom)
       s(list_to_atom/1)
   """
-  defmacro s({ :/, _, [call, arity] } = other) do
+  defmacro s({:/, _, [call, arity]} = other) do
     args =
       case Macro.decompose_call(call) do
-        { mod, fun, [] } -> [mod, fun, arity]
-        { fun, [] } -> [Kernel, fun, arity]
+        {mod, fun, []} -> [mod, fun, arity]
+        {fun, []} -> [Kernel, fun, arity]
         _ -> [other]
       end
 
@@ -221,8 +221,8 @@ defmodule IEx.Helpers do
   defmacro s(call) do
     args =
       case Macro.decompose_call(call) do
-        { mod, fun, [] } -> [mod, fun]
-        { fun, [] } -> [Kernel, fun]
+        {mod, fun, []} -> [mod, fun]
+        {fun, []} -> [Kernel, fun]
         _ -> [call]
       end
 
@@ -240,7 +240,7 @@ defmodule IEx.Helpers do
     IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
-  defp print_history_entry({ counter, cache, result }, inspect_opts) do
+  defp print_history_entry({counter, cache, result}, inspect_opts) do
     IO.write IEx.color(:eval_info, "#{counter}: #{cache}#=> ")
     IO.puts  IEx.color(:eval_result, "#{inspect result, inspect_opts}\n")
   end
@@ -262,10 +262,7 @@ defmodule IEx.Helpers do
   are recompiled and reloaded.
   """
   def r(module) when is_atom(module) do
-    case do_r(module) do
-      mods when is_list(mods) -> { :reloaded, module, mods }
-      other -> other
-    end
+    {:reloaded, module, do_r(module)}
   end
 
   defp do_r(module) do
@@ -321,7 +318,7 @@ defmodule IEx.Helpers do
 
     case source do
       nil -> nil
-      source -> String.from_char_list!(source)
+      source -> String.from_char_data!(source)
     end
   end
 
@@ -338,7 +335,7 @@ defmodule IEx.Helpers do
   def cd(directory) when is_binary(directory) do
     case File.cd(expand_home(directory)) do
       :ok -> pwd
-      { :error, :enoent } ->
+      {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No directory #{directory}")
     end
   end
@@ -350,14 +347,14 @@ defmodule IEx.Helpers do
   def ls(path \\ ".") when is_binary(path) do
     path = expand_home(path)
     case File.ls(path) do
-      { :ok, items } ->
+      {:ok, items} ->
         sorted_items = Enum.sort(items)
         ls_print(path, sorted_items)
 
-      { :error, :enoent } ->
+      {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No such file or directory #{path}")
 
-      { :error, :enotdir } ->
+      {:error, :enotdir} ->
         IO.puts IEx.color(:eval_info, Path.absname(path))
     end
   end
@@ -398,9 +395,9 @@ defmodule IEx.Helpers do
 
   defp format_item(path, representation) do
     case File.stat(path) do
-      { :ok, File.Stat[type: :device] } ->
+      {:ok, %File.Stat{type: :device}} ->
         IEx.color(:ls_device, representation)
-      { :ok, File.Stat[type: :directory] } ->
+      {:ok, %File.Stat{type: :directory}} ->
         IEx.color(:ls_directory, representation)
       _ ->
         representation
@@ -413,10 +410,8 @@ defmodule IEx.Helpers do
   """
   def respawn do
     if whereis = IEx.Server.whereis do
-      send whereis, { :respawn, self }
-      true
-    else
-      false
+      send whereis, {:respawn, self}
+      dont_display_result
     end
   end
 
@@ -446,14 +441,14 @@ defmodule IEx.Helpers do
     raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
   end
 
-  # Compiles and loads an erlang source file, returns { module, binary }
+  # Compiles and loads an erlang source file, returns {module, binary}
   defp compile_erlang(source) do
-    source = Path.relative_to_cwd(source) |> String.to_char_list!
+    source = Path.relative_to_cwd(source) |> List.from_char_data!
     case :compile.file(source, [:binary, :report]) do
-      { :ok, module, binary } ->
+      {:ok, module, binary} ->
         :code.purge(module)
-        { :module, module } = :code.load_binary(module, source, binary)
-        { module, binary }
+        {:module, module} = :code.load_binary(module, source, binary)
+        {module, binary}
       _ ->
         raise CompileError
     end

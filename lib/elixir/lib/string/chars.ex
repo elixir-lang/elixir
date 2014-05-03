@@ -58,11 +58,12 @@ defimpl String.Chars, for: List do
 
       iex> to_string('foo')
       "foo"
+
       iex> to_string(["foo", 'bar'])
       "foobar"
 
   """
-  def to_string(char_list), do: String.from_char_list!(char_list)
+  def to_string(char_list), do: String.from_char_data!(char_list)
 end
 
 defimpl String.Chars, for: Integer do
@@ -79,6 +80,6 @@ defimpl String.Chars, for: Float do
   Simply converts the float to a string.
   """
   def to_string(thing) do
-    iolist_to_binary(:io_lib_format.fwrite_g(thing))
+    iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end

@@ -5,26 +5,32 @@ defmodule Mix.Tasks.Compile.Elixir do
     use GenServer.Behaviour
     @moduledoc false
 
-    def files_to_path(manifest, changed, all, compile_path, on_start) do
+    def files_to_path(manifest, force, all, compile_path, on_start) do
       all_entries = read_manifest(manifest)
 
       removed =
-        for { _b, _m, source, _d } <- all_entries, not(source in all), do: source
+        for {_b, _m, source, _d, _f} <- all_entries, not(source in all), do: source
 
       changed =
-        if Enum.any?(changed, &not(&1 in all)) do
-          # Any changed file not in all triggers whole compilation
-          # because it is an external file (like config)
+        if force do
+          # A config, path dependency or manifest has
+          # changed, let's just compile everything
           all
         else
-          # Otherwise compile changed plus each entry in all that's
-          # not in the manifest (i.e. new files)
-          (changed ++ for i <- all,
-                         not Enum.any?(all_entries, fn { _b, _m, s, _d } -> s == i end),
-                         do: i)
+          modified = Mix.Utils.last_modified(manifest)
+
+          # Otherwise let's start with the new ones
+          # plus the ones that have changed
+          for(source <- all,
+              not Enum.any?(all_entries, fn {_b, _m, s, _d, _f} -> s == source end),
+              do: source)
+            ++
+          for({_b, _m, source, _d, files} <- all_entries,
+              Mix.Utils.stale?([source|files], [modified]),
+              do: source)
         end
 
-      { entries, changed } = remove_stale_entries(all_entries, removed ++ changed, [], [])
+      {entries, changed} = remove_stale_entries(all_entries, removed ++ changed, [], [])
 
       # Remove files are not going to be compiled
       stale = changed -- removed
@@ -36,13 +42,13 @@ defmodule Mix.Tasks.Compile.Elixir do
 
           # Starts a server responsible for keeping track which files
           # were compiled and the dependencies in between them.
-          { :ok, pid } = :gen_server.start_link(__MODULE__, entries, [])
+          {:ok, pid} = :gen_server.start_link(__MODULE__, entries, [])
 
           try do
             Kernel.ParallelCompiler.files :lists.usort(stale),
               each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
               each_file: &each_file(&1)
-            :gen_server.cast(pid, { :write, manifest })
+            :gen_server.cast(pid, {:write, manifest})
           after
             :gen_server.call(pid, :stop)
           end
@@ -56,14 +62,32 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     defp each_module(pid, compile_path, cwd, source, module, binary) do
-      bin  = atom_to_binary(module)
-      beam = Path.join(compile_path, bin <> ".beam")
+      source = Path.relative_to(source, cwd)
+      bin    = atom_to_binary(module)
+      beam   = Path.join(compile_path, bin <> ".beam")
+               |> Path.relative_to(cwd)
 
       deps = Kernel.LexicalTracker.remotes(module)
-             |> :lists.usort |> Enum.map(&atom_to_binary(&1))
+             |> :lists.usort
+             |> Enum.map(&atom_to_binary(&1))
+             |> Enum.reject(&match?("elixir_" <> _, &1))
 
-      relative = if cwd, do: Path.relative_to(source, cwd), else: source
-      :gen_server.cast(pid, { :store, beam, bin, relative, deps, binary })
+      files = get_beam_files(binary, cwd)
+              |> List.delete(source)
+
+      :gen_server.cast(pid, {:store, beam, bin, source, deps, files, binary})
+    end
+
+    defp get_beam_files(binary, cwd) do
+      case :beam_lib.chunks(binary, [:abstract_code]) do
+        {:ok, {_, [abstract_code: {:raw_abstract_v1, code}]}} ->
+          for {:attribute, _, :file, {file, _}} <- code,
+              File.exists?(file) do
+            Path.relative_to(file, cwd)
+          end
+        _ ->
+          []
+      end
     end
 
     defp each_file(file) do
@@ -77,14 +101,14 @@ defmodule Mix.Tasks.Compile.Elixir do
     # all the files that changed (thanks to the dependencies) and
     # return their sources as the remaining entries.
     defp remove_stale_entries(all, []) do
-      { all, [] }
+      {all, []}
     end
 
     defp remove_stale_entries(all, changed) do
       remove_stale_entries(all, :lists.usort(changed), [], [])
     end
 
-    defp remove_stale_entries([{ beam, module, source, _d } = entry|t], changed, removed, acc) do
+    defp remove_stale_entries([{beam, module, source, _d, _f} = entry|t], changed, removed, acc) do
       if source in changed do
         File.rm(beam)
         remove_stale_entries(t, changed, [module|removed], acc)
@@ -95,13 +119,13 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp remove_stale_entries([], changed, removed, acc) do
       # If any of the dependencies for the remaining entries
-      # were removed, get its source so we can removed them.
-      next_changed = for { _b, _m, source, deps } <- acc,
+      # were removed, get its source so we can remove them.
+      next_changed = for {_b, _m, source, deps, _f} <- acc,
                       Enum.any?(deps, &(&1 in removed)),
                       do: source
 
-      { acc, next } = remove_stale_entries(Enum.reverse(acc), next_changed)
-      { acc, next ++ changed }
+      {acc, next} = remove_stale_entries(Enum.reverse(acc), next_changed)
+      {acc, next ++ changed}
     end
 
     ## Manifest handling
@@ -112,7 +136,12 @@ defmodule Mix.Tasks.Compile.Elixir do
       Enum.reduce Mix.Utils.read_manifest(manifest), [], fn x, acc ->
         case String.split(x, "\t") do
           [beam, module, source|deps] ->
-            [{ beam, module, source, deps }|acc]
+            {deps, files} =
+              case Enum.split_while(deps, &(&1 != "Elixir")) do
+                {deps, ["Elixir"|files]} -> {deps, files}
+                {deps, _} -> {deps, []}
+              end
+            [{beam, module, source, deps, files}|acc]
           _ ->
             acc
         end
@@ -126,9 +155,10 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp write_manifest(manifest, entries) do
       lines = Enum.map(entries, fn
-        { beam, module, source, deps, binary } ->
+        {beam, module, source, deps, files, binary} ->
           if binary, do: File.write!(beam, binary)
-          [beam, module, source | deps] |> Enum.join("\t")
+          tail = deps ++ ["Elixir"] ++ files
+          [beam, module, source | tail] |> Enum.join("\t")
       end)
       Mix.Utils.write_manifest(manifest, lines)
     end
@@ -136,24 +166,25 @@ defmodule Mix.Tasks.Compile.Elixir do
     # Callbacks
 
     def init(entries) do
-      { :ok, Enum.map(entries, &Tuple.insert_at(&1, 4, nil)) }
+      {:ok, Enum.map(entries, &Tuple.insert_at(&1, 5, nil))}
     end
 
     def handle_call(:stop, _from, entries) do
-      { :stop, :normal, :ok, entries }
+      {:stop, :normal, :ok, entries}
     end
 
     def handle_call(msg, from, state) do
       super(msg, from, state)
     end
 
-    def handle_cast({ :write, manifest }, entries) do
+    def handle_cast({:write, manifest}, entries) do
       write_manifest(manifest, entries)
-      { :noreply, entries }
+      {:noreply, entries}
     end
 
-    def handle_cast({ :store, beam, module, source, deps, binary }, entries) do
-      { :noreply, :lists.keystore(beam, 1, entries, { beam, module, source, deps, binary }) }
+    def handle_cast({:store, beam, module, source, deps, files, binary}, entries) do
+      {:noreply, :lists.keystore(beam, 1, entries,
+                                 {beam, module, source, deps, files, binary})}
     end
 
     def handle_cast(msg, state) do
@@ -191,58 +222,34 @@ defmodule Mix.Tasks.Compile.Elixir do
   * `:elixirc_paths` - directories to find source files.
     Defaults to `["lib"]`, can be configured as:
 
-    ```
-    [elixirc_paths: ["lib", "other"]]
-    ```
-
   * `:elixirc_options` - compilation options that apply
      to Elixir's compiler, they are: `:ignore_module_conflict`,
      `:docs` and `:debug_info`. By default, uses the same
      behaviour as Elixir;
 
-  * `:elixirc_exts` - extensions to compile whenever there
-     is a change:
-
-     ```
-     [compile_exts: [:ex]]
-     ```
-
-  * `:elixirc_watch_exts` - extensions to watch in order to trigger
-      a compilation:
-
-      ```
-      [elixirc_watch_exts: [:ex, :eex]]
-      ```
-
   """
 
-  @switches [ force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
-              ignore_module_conflict: :boolean, debug_info: :boolean ]
+  @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
+             ignore_module_conflict: :boolean, debug_info: :boolean]
 
   @doc """
   Runs this task.
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: @switches)
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    project       = Mix.project
+    project       = Mix.Project.config
     compile_path  = Mix.Project.compile_path(project)
-    compile_exts  = project[:elixirc_exts]
-    watch_exts    = project[:elixirc_watch_exts]
     elixirc_paths = project[:elixirc_paths]
 
     manifest   = manifest()
-    to_compile = Mix.Utils.extract_files(elixirc_paths, compile_exts)
-    to_watch   = Mix.Utils.extract_files(elixirc_paths, watch_exts)
-    to_watch   = Mix.Project.config_files ++ Erlang.manifests ++ to_watch
+    to_compile = Mix.Utils.extract_files(elixirc_paths, [:ex])
+    configs    = Mix.Project.config_files ++ Erlang.manifests
 
-    stale = if opts[:force] || path_deps_changed?(manifest) do
-      to_compile
-    else
-      Mix.Utils.extract_stale(to_watch, [manifest])
-    end
+    force = opts[:force] || path_deps_changed?(manifest)
+              || Mix.Utils.stale?(configs, [manifest])
 
-    result = files_to_path(manifest, stale, to_compile, compile_path, fn ->
+    result = files_to_path(manifest, force, to_compile, compile_path, fn ->
       Mix.Project.build_structure(project)
       Code.prepend_path(compile_path)
       set_compiler_opts(project, opts, [])
@@ -273,7 +280,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   in between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  defdelegate files_to_path(manifest, stale, all, path, on_start), to: ManifestCompiler
+  defdelegate files_to_path(manifest, force, all, path, on_start), to: ManifestCompiler
 
   defp set_compiler_opts(project, opts, extra) do
     opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])

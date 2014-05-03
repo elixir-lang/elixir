@@ -6,8 +6,8 @@ defmodule Mix.Tasks.DoTest do
   test "runs given tasks" do
     in_fixture "only_mixfile", fn ->
       Mix.Tasks.Do.run ["compile", "--list,", "help"]
-      assert_received { :mix_shell, :info, ["mix help" <> _] }
-      assert_received { :mix_shell, :info, ["mix compile.app" <> _] }
+      assert_received {:mix_shell, :info, ["mix help" <> _]}
+      assert_received {:mix_shell, :info, ["mix compile.app" <> _]}
     end
   end
 end

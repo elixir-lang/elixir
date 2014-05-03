@@ -4,7 +4,7 @@ defmodule ExUnit.Sup do
   use Supervisor.Behaviour
 
   def start_link() do
-    :supervisor.start_link({ :local, __MODULE__ }, __MODULE__, :ok)
+    :supervisor.start_link({:local, __MODULE__}, __MODULE__, :ok)
   end
 
   def init(:ok) do

@@ -34,54 +34,75 @@ defmodule Mix.Dep.Converger do
   end
 
   @doc """
-  Returns all dependencies from the current project,
-  including nested dependencies. There is a callback
-  that is invoked for each dependency and must return
-  an updated dependency in case some processing is done.
+  Converges all dependencies from the current project,
+  including nested dependencies.
+
+  There is a callback that is invoked for each dependency and
+  must return an updated dependency in case some processing
+  is done.
 
   See `Mix.Dep.Loader.children/1` for options.
   """
-  def all(rest, opts, callback) do
-    main      = Mix.Dep.Loader.children(opts)
-    apps      = Enum.map(main, &(&1.app))
-    converger = Mix.RemoteConverger.get
+  def converge(acc, lock, opts, callback) do
+    {deps, acc, lock} = all(acc, lock, opts, callback)
+    {topsort(deps), acc, lock}
+  end
 
-    # Run converger for all dependencies not handled by remote
-    # converger. If `rest` is not nil we know dependencies are
-    # being updated or fetched for the first time (only then do
-    # we want the remote converger to run)
-    result =
-      all(main, [], [], apps, callback, rest, fn dep ->
-        if not nil?(rest) &&
-           converger &&
+  defp all(acc, lock, opts, callback) do
+    main = Mix.Dep.Loader.children(opts)
+    main = Enum.map(main, &(%{&1 | top_level: true}))
+    apps = Enum.map(main, &(&1.app))
+
+    # Run converger for all dependencies, except remote
+    # dependencies. Since the remote converger may be
+    # lazily loaded, we need to check for it on every
+    # iteration.
+    #
+    # Note we use the lock as a flag to know if the remote
+    # converger should be used or not (the lock is passed
+    # only on fetch/get/update).
+    {deps, rest, lock} =
+      all(main, [], [], apps, callback, acc, lock, fn dep ->
+        if not nil?(lock) &&
+           (converger = Mix.RemoteConverger.get) &&
            converger.remote?(dep) do
-          { :loaded, dep }
+          {:loaded, dep}
         else
-          { :unloaded, dep }
+          {:unloaded, dep, nil}
         end
       end)
 
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
-    case converger && result do
-      { deps, rest } when not nil?(rest) ->
-        to_dict = &{ &1.app, &1 }
+    if converger = Mix.RemoteConverger.get do
+      # If there is a lock, it means we are doing a get/update
+      # and we need to hit the remote converger which do external
+      # requests and what not. In case of deps.check, deps and so
+      # on, there is no lock, so we won't hit this branch.
+      if lock do
+        lock = converger.converge(deps, lock)
+      end
 
-        converged_deps = converger.converge(deps)
-                         |> Enum.into(HashDict.new, to_dict)
-        deps = deps
-               |> Enum.reject(&converger.remote?(&1))
-               |> Enum.into(HashDict.new, to_dict)
+      deps = deps
+             |> Enum.reject(&converger.remote?(&1))
+             |> Enum.into(HashDict.new, &{&1.app, &1})
 
-        all(main, [], [], apps, callback, rest, fn dep ->
-          cond do
-            cached = deps[dep.app] -> { :loaded, cached }
-            cached = converged_deps[dep.app] -> { :unloaded, cached }
-            true -> { :unloaded, dep }
-          end
-        end)
-      _ ->
-        result
+      # In case there is no lock, we will read the current lock
+      # which is potentially stale. So converger.deps/2 needs to
+      # always check if the data it finds in the lock is actually
+      # valid.
+      lock_for_converger = lock || Mix.Dep.Lock.read
+
+      all(main, [], [], apps, callback, rest, lock, fn dep ->
+        cond do
+          cached = deps[dep.app] ->
+            {:loaded, cached}
+          true ->
+            {:unloaded, dep, converger.deps(dep, lock_for_converger)}
+        end
+      end)
+    else
+      {deps, rest, lock}
     end
   end
 
@@ -124,32 +145,33 @@ defmodule Mix.Dep.Converger do
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authorative source.
-  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, cache) do
+  defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
-        all(t, new_acc, upper_breadths, current_breadths, callback, rest, cache)
+        all(t, new_acc, upper_breadths, current_breadths, callback, rest, lock, cache)
       true ->
         dep =
           case cache.(dep) do
-            { :loaded, cached_dep } ->
+            {:loaded, cached_dep} ->
               cached_dep
-            { :unloaded, dep } ->
-              { dep, rest } = callback.(dep, rest)
+            {:unloaded, dep, children} ->
+              {dep, rest, lock} = callback.(dep, rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              Mix.Dep.Loader.load(dep)
+              dep = Mix.Dep.Loader.load(dep)
+              %{dep | deps: Enum.filter(dep.deps, &(!children || &1.app in children))}
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
-        { acc, rest } = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, cache)
-        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, cache)
+        {acc, rest, lock} = all(t, [dep|acc], upper_breadths, current_breadths, callback, rest, lock, cache)
+        all(dep.deps, acc, current_breadths, Enum.map(dep.deps, &(&1.app)) ++ current_breadths, callback, rest, lock, cache)
     end
   end
 
-  defp all([], acc, _upper, _current, _callback, rest, _cache) do
-    { acc, rest }
+  defp all([], acc, _upper, _current, _callback, rest, lock, _cache) do
+    {acc, rest, lock}
   end
 
   # Look for divergence in dependencies.
@@ -166,20 +188,20 @@ defmodule Mix.Dep.Converger do
     %Mix.Dep{app: app} = dep
     in_upper? = app in upper_breadths
 
-    { acc, match } =
+    {acc, match} =
       Enum.map_reduce list, false, fn(other, match) ->
         %Mix.Dep{app: other_app, opts: other_opts} = other
 
         cond do
           app != other_app ->
-            { other, match }
+            {other, match}
           in_upper? && other_opts[:override] ->
-            { other, true }
+            {other, true}
           converge?(other, dep) ->
-            { with_matching_req(other, dep), true }
+            {with_matching_req(other, dep), true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
-            { %{other | status: { tag, dep }}, true }
+            {%{other | status: {tag, dep}}, true}
         end
       end
 
@@ -198,11 +220,11 @@ defmodule Mix.Dep.Converger do
 
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
-      { :ok, vsn } when not nil?(vsn) ->
+      {:ok, vsn} when not nil?(vsn) ->
         if Mix.Dep.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
           other
         else
-          %{other | status: { :divergedreq, dep }}
+          %{other | status: {:divergedreq, dep}}
         end
       _ ->
         other

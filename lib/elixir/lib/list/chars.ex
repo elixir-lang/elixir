@@ -21,7 +21,7 @@ defimpl List.Chars, for: BitString do
   Returns the given binary converted to a char list.
   """
   def to_char_list(thing) when is_binary(thing) do
-    String.to_char_list!(thing)
+    List.from_char_data!(thing)
   end
 
   def to_char_list(thing) do

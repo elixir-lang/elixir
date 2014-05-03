@@ -9,11 +9,11 @@ defmodule ExUnit.Callbacks do
   keyword list with metadata, usually referred to as `context`. The callback
   may optionally put extra data into `context` to be used in the tests.
 
-  If you return `{ :ok, <keyword list> }` from `setup` or `teardown`, the keyword
+  If you return `{:ok, <keyword list>}` from `setup` or `teardown`, the keyword
   list will be merged into the context that will be available in all
   subsequent `setup`, `test` or `teardown` calls.
 
-  Similarly, returning `{ :ok, <keyword list> }` from `setup_all` or
+  Similarly, returning `{:ok, <keyword list>}` from `setup_all` or
   `teardown_all` will merge the keyword list into the context that will be
   available in all subsequent `setup_all` or `teardown_all` calls.
 
@@ -42,7 +42,7 @@ defmodule ExUnit.Callbacks do
           IO.puts "This is a setup callback"
 
           # Return extra metadata, it must be a keyword list
-          { :ok, [hello: "world"] }
+          {:ok, [hello: "world"]}
         end
 
         # Same as `setup`, but receives the context for the current test
@@ -147,16 +147,16 @@ defmodule ExUnit.Callbacks do
 
   @doc false
   def __merge__(_mod, other, :ok) do
-    { :ok, other }
+    {:ok, other}
   end
 
-  def __merge__(_mod, other, { :ok, data }) when is_list(data) do
-    { :ok, Keyword.merge(other, data) }
+  def __merge__(_mod, other, {:ok, data}) when is_list(data) do
+    {:ok, Keyword.merge(other, data)}
   end
 
   def __merge__(mod, _, failure) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          " or { :ok, keywords }, got #{inspect failure} instead"
+          " or {:ok, keywords}, got #{inspect failure} instead"
   end
 
   defp escape(contents) do
@@ -169,12 +169,12 @@ defmodule ExUnit.Callbacks do
     acc =
       case callbacks do
         [] ->
-          quote do: { :ok, context }
+          quote do: {:ok, context}
         [h|t] ->
           Enum.reduce t, compile_merge(h), fn(callback, acc) ->
             quote do
               case unquote(acc) do
-                { :ok, context } ->
+                {:ok, context} ->
                   unquote(compile_merge(callback))
                 other ->
                   other

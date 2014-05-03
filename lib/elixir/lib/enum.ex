@@ -16,8 +16,8 @@ defprotocol Enumerable do
   Internally, `Enum.map/2` is implemented as follows:
 
       def map(enum, fun) do
-        reducer = fn x, acc -> { :cont, [fun.(x)|acc] } end
-        Enumerable.reduce(enum, { :cont, [] }, reducer) |> elem(1) |> :lists.reverse()
+        reducer = fn x, acc -> {:cont, [fun.(x)|acc]} end
+        Enumerable.reduce(enum, {:cont, []}, reducer) |> elem(1) |> :lists.reverse()
       end
 
   Notice the user given function is wrapped into a `reducer` function.
@@ -50,7 +50,7 @@ defprotocol Enumerable do
   In case a reducer function returns a `:suspend` accumulator,
   it must be explicitly handled by the caller and never leak.
   """
-  @type acc :: { :cont, term } | { :halt, term } | { :suspend, term }
+  @type acc :: {:cont, term} | {:halt, term} | {:suspend, term}
 
   @typedoc """
   The reducer function.
@@ -76,7 +76,7 @@ defprotocol Enumerable do
   Furthermore, a `:suspend` call must always be followed by another call,
   eventually halting or continuing until the end.
   """
-  @type result :: { :done, term } | { :halted, term } | { :suspended, term, continuation }
+  @type result :: {:done, term} | {:halted, term} | {:suspended, term, continuation}
 
   @typedoc """
   A partially applied reduce function.
@@ -102,10 +102,10 @@ defprotocol Enumerable do
 
   As an example, here is the implementation of `reduce` for lists:
 
-      def reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
-      def reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
-      def reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
-      def reduce([h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
+      def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
+      def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+      def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+      def reduce([h|t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   """
   @spec reduce(t, acc, reducer) :: result
@@ -114,20 +114,29 @@ defprotocol Enumerable do
   @doc """
   Checks if a value exists within the collection.
 
-  It should return `{ :ok, boolean }` if membership can be tested
-  faster than linear time with the match (`===`) operator, otherwise
-  should return `{ :error, __MODULE__ }`.
+  It should return `{:ok, boolean}`.
+
+  If `{:error, __MODULE__}` is returned a default algorithm using `reduce` and
+  the match (`===`) operator is used. This algorithm runs in linear time.
+
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
-  @spec member?(t, term) :: { :ok, boolean } | { :error, module }
+  @spec member?(t, term) :: {:ok, boolean} | {:error, module}
   def member?(collection, value)
 
   @doc """
   Retrieves the collection's size.
 
-  Should return `{ :ok, size }` if the size is pre-calculated,
-  `{ :error, __MODULE__ }` otherwise.
+  It should return `{:ok, size}`.
+
+  If `{:error, __MODULE__}` is returned a default algorithm using `reduce` and
+  the match (`===`) operator is used. This algorithm runs in linear time.
+
+  Please force use of the default algorithm unless you can implement an
+  algorithm that is significantly faster.
   """
-  @spec count(t) :: { :ok, non_neg_integer } | { :error, module }
+  @spec count(t) :: {:ok, non_neg_integer} | {:error, module}
   def count(collection)
 end
 
@@ -142,10 +151,10 @@ defmodule Enum do
       [2,4,6]
 
   Some particular types, like dictionaries, yield a specific format on
-  enumeration. For dicts, the argument is always a `{ key, value }` tuple:
+  enumeration. For dicts, the argument is always a `{key, value}` tuple:
 
       iex> dict = %{a: 1, b: 2}
-      iex> Enum.map(dict, fn { k, v } -> { k, v * 2 } end)
+      iex> Enum.map(dict, fn {k, v} -> {k, v * 2} end)
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always start
@@ -172,16 +181,16 @@ defmodule Enum do
   require Stream.Reducers, as: R
 
   defmacrop cont(_, entry, acc) do
-    quote do: { :cont, [unquote(entry)|unquote(acc)] }
+    quote do: {:cont, [unquote(entry)|unquote(acc)]}
   end
 
   defmacrop acc(h, n, _) do
-    quote do: { unquote(h), unquote(n) }
+    quote do: {unquote(h), unquote(n)}
   end
 
   defmacrop cont_with_acc(f, entry, h, n, _) do
     quote do
-      { :cont, { [unquote(entry)|unquote(h)], unquote(n) } }
+      {:cont, {[unquote(entry)|unquote(h)], unquote(n)}}
     end
   end
 
@@ -202,6 +211,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, 2, 3])
       true
+
       iex> Enum.all?([1, nil, 3])
       false
 
@@ -216,8 +226,8 @@ defmodule Enum do
   end
 
   def all?(collection, fun) do
-    Enumerable.reduce(collection, { :cont, true }, fn(entry, _) ->
-      if fun.(entry), do: { :cont, true }, else: { :halt, false }
+    Enumerable.reduce(collection, {:cont, true}, fn(entry, _) ->
+      if fun.(entry), do: {:cont, true}, else: {:halt, false}
     end) |> elem(1)
   end
 
@@ -238,6 +248,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, false, false])
       false
+
       iex> Enum.any?([false, true, false])
       true
 
@@ -252,8 +263,8 @@ defmodule Enum do
   end
 
   def any?(collection, fun) do
-    Enumerable.reduce(collection, { :cont, false }, fn(entry, _) ->
-      if fun.(entry), do: { :halt, true }, else: { :cont, false }
+    Enumerable.reduce(collection, {:cont, false}, fn(entry, _) ->
+      if fun.(entry), do: {:halt, true}, else: {:cont, false}
     end) |> elem(1)
   end
 
@@ -265,10 +276,13 @@ defmodule Enum do
 
       iex> Enum.at([2, 4, 6], 0)
       2
+
       iex> Enum.at([2, 4, 6], 2)
       6
+
       iex> Enum.at([2, 4, 6], 4)
       nil
+
       iex> Enum.at([2, 4, 6], 4, :none)
       :none
 
@@ -277,7 +291,7 @@ defmodule Enum do
   @spec at(t, integer, default) :: element | default
   def at(collection, n, default \\ nil) do
     case fetch(collection, n) do
-      { :ok, h } -> h
+      {:ok, h} -> h
       :error     -> default
     end
   end
@@ -305,10 +319,13 @@ defmodule Enum do
 
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 2)
       [[1, 2], [3, 4], [5, 6]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2)
       [[1, 2, 3], [3, 4, 5]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2, [7])
       [[1, 2, 3], [3, 4, 5], [5, 6, 7]]
+
       iex> Enum.chunk([1, 2, 3, 4, 5, 6], 3, 3, [])
       [[1, 2, 3], [4, 5, 6]]
 
@@ -318,8 +335,8 @@ defmodule Enum do
   def chunk(coll, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
-    { _, { acc, { buffer, i } } } =
-      Enumerable.reduce(coll, { :cont, { [], { [], 0 } } }, R.chunk(n, step, limit))
+    {_, {acc, {buffer, i}}} =
+      Enumerable.reduce(coll, {:cont, {[], {[], 0}}}, R.chunk(n, step, limit))
 
     if nil?(pad) || i == 0 do
       :lists.reverse(acc)
@@ -340,11 +357,11 @@ defmodule Enum do
   """
   @spec chunk_by(t, (element -> any)) :: [list]
   def chunk_by(coll, fun) do
-    { _, { acc, res } } =
-      Enumerable.reduce(coll, { :cont, { [], nil } }, R.chunk_by(fun))
+    {_, {acc, res}} =
+      Enumerable.reduce(coll, {:cont, {[], nil}}, R.chunk_by(fun))
 
     case res do
-      { buffer, _ } ->
+      {buffer, _} ->
         :lists.reverse([:lists.reverse(buffer) | acc])
       nil ->
         []
@@ -412,11 +429,11 @@ defmodule Enum do
 
   def count(collection) do
     case Enumerable.count(collection) do
-      { :ok, value } when is_integer(value) ->
+      {:ok, value} when is_integer(value) ->
         value
-      { :error, module } ->
-        module.reduce(collection, { :cont, 0 }, fn
-          _, acc -> { :cont, acc + 1 }
+      {:error, module} ->
+        module.reduce(collection, {:cont, 0}, fn
+          _, acc -> {:cont, acc + 1}
         end) |> elem(1)
     end
   end
@@ -426,14 +443,15 @@ defmodule Enum do
   `fun` returns `true`.
 
   ## Examples
+
       iex> Enum.count([1, 2, 3, 4, 5], fn(x) -> rem(x, 2) == 0 end)
       2
 
   """
   @spec count(t, (element -> as_boolean(term))) :: non_neg_integer
   def count(collection, fun) do
-    Enumerable.reduce(collection, { :cont, 0 }, fn(entry, acc) ->
-      { :cont, if(fun.(entry), do: acc + 1, else: acc) }
+    Enumerable.reduce(collection, {:cont, 0}, fn(entry, acc) ->
+      {:cont, if(fun.(entry), do: acc + 1, else: acc)}
     end) |> elem(1)
   end
 
@@ -449,10 +467,13 @@ defmodule Enum do
 
       iex> Enum.drop([1, 2, 3], 2)
       [3]
+
       iex> Enum.drop([1, 2, 3], 10)
       []
+
       iex> Enum.drop([1, 2, 3], 0)
       [1,2,3]
+
       iex> Enum.drop([1, 2, 3], -1)
       [1,2]
 
@@ -483,6 +504,7 @@ defmodule Enum do
 
       iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
       [3,4,5]
+
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
   def drop_while(collection, fun) when is_list(collection) do
@@ -490,8 +512,8 @@ defmodule Enum do
   end
 
   def drop_while(collection, fun) do
-    { _, { res, _ } } =
-      Enumerable.reduce(collection, { :cont, { [], true } }, R.drop_while(fun))
+    {_, {res, _}} =
+      Enumerable.reduce(collection, {:cont, {[], true}}, R.drop_while(fun))
     :lists.reverse(res)
   end
 
@@ -528,6 +550,7 @@ defmodule Enum do
 
       iex> Enum.empty?([])
       true
+
       iex> Enum.empty?([1, 2, 3])
       false
 
@@ -538,12 +561,12 @@ defmodule Enum do
   end
 
   def empty?(collection) do
-    Enumerable.reduce(collection, { :cont, true }, fn(_, _) -> { :halt, false } end) |> elem(1)
+    Enumerable.reduce(collection, {:cont, true}, fn(_, _) -> {:halt, false} end) |> elem(1)
   end
 
   @doc """
   Finds the element at the given index (zero-based).
-  Returns `{ :ok, element }` if found, otherwise `:error`.
+  Returns `{:ok, element}` if found, otherwise `:error`.
 
   A negative index can be passed, which means the collection is
   enumerated once and the index is counted from the end (i.e.
@@ -552,31 +575,33 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.fetch([2, 4, 6], 0)
-      { :ok, 2 }
+      {:ok, 2}
+
       iex> Enum.fetch([2, 4, 6], 2)
-      { :ok, 6 }
+      {:ok, 6}
+
       iex> Enum.fetch([2, 4, 6], 4)
       :error
 
   """
-  @spec fetch(t, integer) :: { :ok, element } | :error
+  @spec fetch(t, integer) :: {:ok, element} | :error
   def fetch(collection, n) when is_list(collection) and n >= 0 do
     do_fetch(collection, n)
   end
 
   def fetch(collection, n) when n >= 0 do
     res =
-      Enumerable.reduce(collection, { :cont, 0 }, fn(entry, acc) ->
+      Enumerable.reduce(collection, {:cont, 0}, fn(entry, acc) ->
         if acc == n do
-          { :halt, entry }
+          {:halt, entry}
         else
-          { :cont, acc + 1 }
+          {:cont, acc + 1}
         end
       end)
 
     case res do
-      { :halted, entry } -> { :ok, entry }
-      { :done, _ } -> :error
+      {:halted, entry} -> {:ok, entry}
+      {:done, _} -> :error
     end
   end
 
@@ -604,7 +629,7 @@ defmodule Enum do
   @spec fetch!(t, integer) :: element | no_return
   def fetch!(collection, n) do
     case fetch(collection, n) do
-      { :ok, h } -> h
+      {:ok, h} -> h
       :error     -> raise Enum.OutOfBoundsError
     end
   end
@@ -625,7 +650,7 @@ defmodule Enum do
   end
 
   def filter(collection, fun) do
-    Enumerable.reduce(collection, { :cont, [] }, R.filter(fun))
+    Enumerable.reduce(collection, {:cont, []}, R.filter(fun))
     |> elem(1) |> :lists.reverse
   end
 
@@ -644,7 +669,7 @@ defmodule Enum do
   end
 
   def filter_map(collection, filter, mapper) do
-    Enumerable.reduce(collection, { :cont, [] }, R.filter_map(filter, mapper))
+    Enumerable.reduce(collection, {:cont, []}, R.filter_map(filter, mapper))
     |> elem(1) |> :lists.reverse
   end
 
@@ -673,8 +698,8 @@ defmodule Enum do
   end
 
   def find(collection, ifnone, fun) do
-    Enumerable.reduce(collection, { :cont, ifnone }, fn(entry, ifnone) ->
-      if fun.(entry), do: { :halt, entry }, else: { :cont, ifnone }
+    Enumerable.reduce(collection, {:cont, ifnone}, fn(entry, ifnone) ->
+      if fun.(entry), do: {:halt, entry}, else: {:cont, ifnone}
     end) |> elem(1)
   end
 
@@ -700,9 +725,9 @@ defmodule Enum do
   end
 
   def find_value(collection, ifnone, fun) do
-    Enumerable.reduce(collection, { :cont, ifnone }, fn(entry, ifnone) ->
+    Enumerable.reduce(collection, {:cont, ifnone}, fn(entry, ifnone) ->
       fun_entry = fun.(entry)
-      if fun_entry, do: { :halt, fun_entry }, else: { :cont, ifnone }
+      if fun_entry, do: {:halt, fun_entry}, else: {:cont, ifnone}
     end) |> elem(1)
   end
 
@@ -726,13 +751,13 @@ defmodule Enum do
 
   def find_index(collection, fun) do
     res =
-      Enumerable.reduce(collection, { :cont, 0 }, fn(entry, acc) ->
-        if fun.(entry), do: { :halt, acc }, else: { :cont, acc + 1 }
+      Enumerable.reduce(collection, {:cont, 0}, fn(entry, acc) ->
+        if fun.(entry), do: {:halt, acc}, else: {:cont, acc + 1}
       end)
 
     case res do
-      { :halted, entry } -> entry
-      { :done, _ } -> nil
+      {:halted, entry} -> entry
+      {:done, _} -> nil
     end
   end
 
@@ -771,26 +796,26 @@ defmodule Enum do
       iex> enum = 1..100
       iex> n = 3
       iex> Enum.flat_map_reduce(enum, 0, fn i, acc ->
-      ...>   if acc < n, do: { [i], acc + 1 }, else: { :halt, acc }
+      ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
-      { [1,2,3], 3 }
+      {[1,2,3], 3}
 
   """
-  @spec flat_map_reduce(t, acc, fun) :: { [any], any } when
-        fun: (element, acc -> { t, acc } | { :halt, acc }),
+  @spec flat_map_reduce(t, acc, fun) :: {[any], any} when
+        fun: (element, acc -> {t, acc} | {:halt, acc}),
         acc: any
   def flat_map_reduce(collection, acc, fun) do
-    { _, { list, acc } } =
-      Enumerable.reduce(collection, { :cont, { [], acc } }, fn(entry, { list, acc }) ->
+    {_, {list, acc}} =
+      Enumerable.reduce(collection, {:cont, {[], acc}}, fn(entry, {list, acc}) ->
         case fun.(entry, acc) do
-          { :halt, acc } ->
-            { :halt, { list, acc } }
-          { entries, acc } ->
-            { :cont, { reduce(entries, list, &[&1|&2]), acc } }
+          {:halt, acc} ->
+            {:halt, {list, acc}}
+          {entries, acc} ->
+            {:cont, {reduce(entries, list, &[&1|&2]), acc}}
         end
       end)
 
-    { :lists.reverse(list), acc }
+    {:lists.reverse(list), acc}
   end
 
   @doc """
@@ -802,8 +827,10 @@ defmodule Enum do
 
       iex> Enum.intersperse([1, 2, 3], 0)
       [1, 0, 2, 0, 3]
+
       iex> Enum.intersperse([1], 0)
       [1]
+
       iex> Enum.intersperse([], 0)
       []
 
@@ -838,14 +865,14 @@ defmodule Enum do
     list ++ to_list(collection)
   end
 
-  def into(collection, %{}) when is_list(collection) do
+  def into(collection, %{} = map) when is_list(collection) and map_size(map) == 0 do
     :maps.from_list(collection)
   end
 
   def into(collection, collectable) do
-    { initial, fun } = Collectable.into(collectable)
+    {initial, fun} = Collectable.into(collectable)
     into(collection, initial, fun, fn x, acc ->
-      fun.(acc, { :cont, x })
+      fun.(acc, {:cont, x})
     end)
   end
 
@@ -866,9 +893,9 @@ defmodule Enum do
   end
 
   def into(collection, collectable, transform) when is_function(transform, 1) do
-    { initial, fun } = Collectable.into(collectable)
+    {initial, fun} = Collectable.into(collectable)
     into(collection, initial, fun, fn x, acc ->
-      fun.(acc, { :cont, transform.(x) })
+      fun.(acc, {:cont, transform.(x)})
     end)
   end
 
@@ -899,6 +926,7 @@ defmodule Enum do
 
       iex> Enum.join([1, 2, 3])
       "123"
+
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
 
@@ -925,7 +953,7 @@ defmodule Enum do
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
       [2, 4, 6]
 
-      iex> Enum.map([a: 1, b: 2], fn({k, v}) -> { k, -v } end)
+      iex> Enum.map([a: 1, b: 2], fn({k, v}) -> {k, -v} end)
       [a: -1, b: -2]
 
   """
@@ -935,7 +963,7 @@ defmodule Enum do
   end
 
   def map(collection, fun) do
-    Enumerable.reduce(collection, { :cont, [] }, R.map(fun)) |> elem(1) |> :lists.reverse
+    Enumerable.reduce(collection, {:cont, []}, R.map(fun)) |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -952,6 +980,7 @@ defmodule Enum do
 
       iex> Enum.map_join([1, 2, 3], &(&1 * 2))
       "246"
+
       iex> Enum.map_join([1, 2, 3], " = ", &(&1 * 2))
       "2 = 4 = 6"
 
@@ -973,13 +1002,13 @@ defmodule Enum do
   the first element is the mapped collection and the second
   one is the final accumulator.
 
-  For dicts, the first tuple element must be a `{ key, value }`
+  For dicts, the first tuple element must be a `{key, value}`
   tuple.
 
   ## Examples
 
-      iex> Enum.map_reduce([1, 2, 3], 0, fn(x, acc) -> { x * 2, x + acc } end)
-      { [2, 4, 6], 6 }
+      iex> Enum.map_reduce([1, 2, 3], 0, fn(x, acc) -> {x * 2, x + acc} end)
+      {[2, 4, 6], 6}
 
   """
   @spec map_reduce(t, any, (element, any -> any)) :: any
@@ -988,11 +1017,11 @@ defmodule Enum do
   end
 
   def map_reduce(collection, acc, fun) do
-    { list, acc } = reduce(collection, { [], acc }, fn(entry, { list, acc }) ->
-      { new_entry, acc } = fun.(entry, acc)
-      { [new_entry|list], acc }
+    {list, acc} = reduce(collection, {[], acc}, fn(entry, {list, acc}) ->
+      {new_entry, acc} = fun.(entry, acc)
+      {[new_entry|list], acc}
     end)
-    { :lists.reverse(list), acc }
+    {:lists.reverse(list), acc}
   end
 
   @doc """
@@ -1022,9 +1051,9 @@ defmodule Enum do
   """
   @spec max_by(t, (element -> any)) :: element | no_return
   def max_by([h|t], fun) do
-    reduce(t, { h, fun.(h) }, fn(entry, { _, fun_max } = old) ->
+    reduce(t, {h, fun.(h)}, fn(entry, {_, fun_max} = old) ->
       fun_entry = fun.(entry)
-      if(fun_entry > fun_max, do: { entry, fun_entry }, else: old)
+      if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
     end) |> elem(0)
   end
 
@@ -1035,16 +1064,16 @@ defmodule Enum do
   def max_by(collection, fun) do
     result =
       reduce(collection, :first, fn
-        entry, { _, fun_max } = old ->
+        entry, {_, fun_max} = old ->
           fun_entry = fun.(entry)
-          if(fun_entry > fun_max, do: { entry, fun_entry }, else: old)
+          if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
         entry, :first ->
-          { entry, fun.(entry) }
+          {entry, fun.(entry)}
       end)
 
     case result do
       :first       -> raise Enum.EmptyError
-      { entry, _ } -> entry
+      {entry, _} -> entry
     end
   end
 
@@ -1059,6 +1088,7 @@ defmodule Enum do
 
       iex> Enum.member?(1..10, 5)
       true
+
       iex> Enum.member?([:a, :b, :c], :d)
       false
 
@@ -1070,12 +1100,12 @@ defmodule Enum do
 
   def member?(collection, value) do
     case Enumerable.member?(collection, value) do
-      { :ok, value } when is_boolean(value) ->
+      {:ok, value} when is_boolean(value) ->
         value
-      { :error, module } ->
-        module.reduce(collection, { :cont, false }, fn
-          v, _ when v === value -> { :halt, true }
-          _, _                  -> { :cont, false }
+      {:error, module} ->
+        module.reduce(collection, {:cont, false}, fn
+          v, _ when v === value -> {:halt, true}
+          _, _                  -> {:cont, false}
         end) |> elem(1)
     end
   end
@@ -1107,9 +1137,9 @@ defmodule Enum do
   """
   @spec min_by(t, (element -> any)) :: element | no_return
   def min_by([h|t], fun) do
-    reduce(t, { h, fun.(h) }, fn(entry, { _, fun_min } = old) ->
+    reduce(t, {h, fun.(h)}, fn(entry, {_, fun_min} = old) ->
       fun_entry = fun.(entry)
-      if(fun_entry < fun_min, do: { entry, fun_entry }, else: old)
+      if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
     end) |> elem(0)
   end
 
@@ -1120,16 +1150,16 @@ defmodule Enum do
   def min_by(collection, fun) do
     result =
       reduce(collection, :first, fn
-        entry, { _, fun_min } = old ->
+        entry, {_, fun_min} = old ->
           fun_entry = fun.(entry)
-          if(fun_entry < fun_min, do: { entry, fun_entry }, else: old)
+          if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
         entry, :first ->
-          { entry, fun.(entry) }
+          {entry, fun.(entry)}
       end)
 
     case result do
       :first       -> raise Enum.EmptyError
-      { entry, _ } -> entry
+      {entry, _} -> entry
     end
   end
 
@@ -1157,21 +1187,21 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
-      { [2], [1,3] }
+      {[2], [1,3]}
 
   """
   @spec partition(t, (element -> any)) :: {list, list}
   def partition(collection, fun) do
-    { acc1, acc2 } =
-      reduce(collection, { [], [] }, fn(entry, { acc1, acc2 }) ->
+    {acc1, acc2} =
+      reduce(collection, {[], []}, fn(entry, {acc1, acc2}) ->
         if fun.(entry) do
-          { [entry|acc1], acc2 }
+          {[entry|acc1], acc2}
         else
-          { acc1, [entry|acc2] }
+          {acc1, [entry|acc2]}
         end
       end)
 
-    { :lists.reverse(acc1), :lists.reverse(acc2) }
+    {:lists.reverse(acc1), :lists.reverse(acc2)}
   end
 
   @doc """
@@ -1185,10 +1215,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
-      %{ 3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"] }
+      %{3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"]}
 
   """
-  @spec group_by(t, (element -> any)) :: HashDict
+  @spec group_by(t, dict, (element -> any)) :: dict when dict: Dict.t
   def group_by(collection, dict \\ %{}, fun) do
     reduce(collection, dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry|&1])
@@ -1212,8 +1242,8 @@ defmodule Enum do
   end
 
   def reduce(collection, acc, fun) do
-    Enumerable.reduce(collection, { :cont, acc },
-                      fn x, acc -> { :cont, fun.(x, acc) } end) |> elem(1)
+    Enumerable.reduce(collection, {:cont, acc},
+                      fn x, acc -> {:cont, fun.(x, acc)} end) |> elem(1)
   end
 
   @doc """
@@ -1239,16 +1269,16 @@ defmodule Enum do
 
   def reduce(collection, fun) do
     result =
-      Enumerable.reduce(collection, { :cont, :first }, fn
+      Enumerable.reduce(collection, {:cont, :first}, fn
         x, :first ->
-          { :cont, { :acc, x } }
-        x, { :acc, acc } ->
-          { :cont, { :acc, fun.(x, acc) } }
+          {:cont, {:acc, x}}
+        x, {:acc, acc} ->
+          {:cont, {:acc, fun.(x, acc)}}
       end) |> elem(1)
 
     case result do
       :first        -> raise Enum.EmptyError
-      { :acc, acc } -> acc
+      {:acc, acc} -> acc
     end
   end
 
@@ -1267,7 +1297,7 @@ defmodule Enum do
   end
 
   def reject(collection, fun) do
-    Enumerable.reduce(collection, { :cont, [] }, R.reject(fun)) |> elem(1) |> :lists.reverse
+    Enumerable.reduce(collection, {:cont, []}, R.reject(fun)) |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -1323,8 +1353,8 @@ defmodule Enum do
   """
   @spec scan(t, (element, any -> any)) :: list
   def scan(enum, fun) do
-    { _, { res, _ } } =
-      Enumerable.reduce(enum, { :cont, { [], :first } }, R.scan_2(fun))
+    {_, {res, _}} =
+      Enumerable.reduce(enum, {:cont, {[], :first}}, R.scan_2(fun))
     :lists.reverse(res)
   end
 
@@ -1341,8 +1371,8 @@ defmodule Enum do
   """
   @spec scan(t, any, (element, any -> any)) :: list
   def scan(enum, acc, fun) do
-    { _, { res, _ } } =
-      Enumerable.reduce(enum, { :cont, { [], acc } }, R.scan_3(fun))
+    {_, {res, _}} =
+      Enumerable.reduce(enum, {:cont, {[], acc}}, R.scan_3(fun))
     :lists.reverse(res)
   end
 
@@ -1359,16 +1389,16 @@ defmodule Enum do
 
   ## Examples
 
-      iex(1)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 2, 1]
-      iex(2)> Enum.shuffle([1, 2, 3])
+      iex> Enum.shuffle([1, 2, 3])
       [3, 1, 2]
 
   """
   @spec shuffle(t) :: list
   def shuffle(collection) do
     randomized = reduce(collection, [], fn x, acc ->
-      [{ :random.uniform, x }|acc]
+      [{:random.uniform, x}|acc]
     end)
     unwrap(:lists.keysort(1, randomized), [])
   end
@@ -1386,7 +1416,7 @@ defmodule Enum do
   @spec slice(t, integer, non_neg_integer) :: list
 
   def slice(coll, start, count) when start < 0 do
-    { list, new_start } = enumerate_and_count(coll, start)
+    {list, new_start} = enumerate_and_count(coll, start)
     if new_start >= 0, do: slice(list, new_start, count)
   end
 
@@ -1395,13 +1425,13 @@ defmodule Enum do
   end
 
   def slice(coll, start, count) when start >= 0 and count > 0 do
-    { start, _, list } = Enumerable.reduce(coll, { :cont, { start, count, [] } }, fn
-      _entry, { start, count, _list } when start > 0 ->
-        { :cont, { start-1, count, [] } }
-      entry, { start, count, list } when count > 1 ->
-        { :cont, { start, count-1, [entry|list] } }
-      entry, { start, count, list } ->
-        { :halt, { start, count, [entry|list] } }
+    {start, _, list} = Enumerable.reduce(coll, {:cont, {start, count, []}}, fn
+      _entry, {start, count, _list} when start > 0 ->
+        {:cont, {start-1, count, []}}
+      entry, {start, count, list} when count > 1 ->
+        {:cont, {start, count-1, [entry|list]}}
+      entry, {start, count, list} ->
+        {:halt, {start, count, [entry|list]}}
     end) |> elem(1)
 
     if start <= 0, do: :lists.reverse(list)
@@ -1409,8 +1439,8 @@ defmodule Enum do
 
   def slice(coll, start, 0) do
     res =
-      Enumerable.reduce(coll, { :cont, start }, fn _, start ->
-        if start > 0, do: { :cont, start-1 }, else: { :halt, [] }
+      Enumerable.reduce(coll, {:cont, start}, fn _, start ->
+        if start > 0, do: {:cont, start-1}, else: {:halt, []}
       end) |> elem(1)
     if is_list(res), do: res
   end
@@ -1442,7 +1472,7 @@ defmodule Enum do
   end
 
   def slice(coll, first..last) do
-    { list, count } = enumerate_and_count(coll, 0)
+    {list, count} = enumerate_and_count(coll, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
     length = corr_last - corr_first + 1
@@ -1452,12 +1482,14 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sorted list of collection elements. Uses the merge sort algorithm.
+  Sorts the collection according to Elixir's term ordering.
+
+  Uses the merge sort algorithm.
 
   ## Examples
 
       iex> Enum.sort([3, 2, 1])
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec sort(t) :: list
@@ -1470,14 +1502,27 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a list of collection elements sorted by the given function.
+  Sorts the collection by the given function.
 
-  Uses the merge sort algorithm.
+  This function uses the merge sort algorithm. The given function
+  must return false if the first argument is less than right one.
 
   ## Examples
 
       iex> Enum.sort([1, 2, 3], &(&1 > &2))
-      [3,2,1]
+      [3, 2, 1]
+
+  The sorting algorithm will be stable as long as the given function
+  returns true for values considered equal:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) <= byte_size(&2))
+      ["of", "some", "kind", "monster"]
+
+  If the function does not return true, the sorting is not stable and
+  the order of equal terms may be shuffled:
+
+      iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2))
+      ["of", "kind", "some", "monster"]
 
   """
   @spec sort(t, (element, element -> boolean)) :: list
@@ -1502,15 +1547,19 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.split([1, 2, 3], 2)
-      { [1,2], [3] }
+      {[1,2], [3]}
+
       iex> Enum.split([1, 2, 3], 10)
-      { [1,2,3], [] }
+      {[1,2,3], []}
+
       iex> Enum.split([1, 2, 3], 0)
-      { [], [1,2,3] }
+      {[], [1,2,3]}
+
       iex> Enum.split([1, 2, 3], -1)
-      { [1,2], [3] }
+      {[1,2], [3]}
+
       iex> Enum.split([1, 2, 3], -5)
-      { [], [1,2,3] }
+      {[], [1,2,3]}
 
   """
   @spec split(t, integer) :: {list, list}
@@ -1519,16 +1568,16 @@ defmodule Enum do
   end
 
   def split(collection, count) when count >= 0 do
-    { _, list1, list2 } =
-      reduce(collection, { count, [], [] }, fn(entry, { counter, acc1, acc2 }) ->
+    {_, list1, list2} =
+      reduce(collection, {count, [], []}, fn(entry, {counter, acc1, acc2}) ->
         if counter > 0 do
-          { counter - 1, [entry|acc1], acc2 }
+          {counter - 1, [entry|acc1], acc2}
         else
-          { counter, acc1, [entry|acc2] }
+          {counter, acc1, [entry|acc2]}
         end
       end)
 
-    { :lists.reverse(list1), :lists.reverse(list2) }
+    {:lists.reverse(list1), :lists.reverse(list2)}
   end
 
   def split(collection, count) when count < 0 do
@@ -1541,7 +1590,8 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.split_while([1, 2, 3, 4], fn(x) -> x < 3 end)
-      { [1, 2], [3, 4] }
+      {[1, 2], [3, 4]}
+
   """
   @spec split_while(t, (element -> as_boolean(term))) :: {list, list}
   def split_while(collection, fun) when is_list(collection) do
@@ -1549,15 +1599,15 @@ defmodule Enum do
   end
 
   def split_while(collection, fun) do
-    { list1, list2 } =
-      reduce(collection, { [], [] }, fn
-        entry, { acc1, [] } ->
-          if(fun.(entry), do: { [entry|acc1], [] }, else: { acc1, [entry] })
-        entry, { acc1, acc2 } ->
-          { acc1, [entry|acc2] }
+    {list1, list2} =
+      reduce(collection, {[], []}, fn
+        entry, {acc1, []} ->
+          if(fun.(entry), do: {[entry|acc1], []}, else: {acc1, [entry]})
+        entry, {acc1, acc2} ->
+          {acc1, [entry|acc2]}
       end)
 
-    { :lists.reverse(list1), :lists.reverse(list2) }
+    {:lists.reverse(list1), :lists.reverse(list2)}
   end
 
   @doc """
@@ -1572,10 +1622,13 @@ defmodule Enum do
 
       iex> Enum.take([1, 2, 3], 2)
       [1,2]
+
       iex> Enum.take([1, 2, 3], 10)
       [1,2,3]
+
       iex> Enum.take([1, 2, 3], 0)
       []
+
       iex> Enum.take([1, 2, 3], -1)
       [3]
 
@@ -1591,19 +1644,19 @@ defmodule Enum do
   end
 
   def take(collection, count) when count > 0 do
-    { _, { res, _ } } =
-      Enumerable.reduce(collection, { :cont, { [], count } }, fn(entry, { list, count }) ->
+    {_, {res, _}} =
+      Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, count}) ->
         if count > 1 do
-          { :cont, { [entry|list], count - 1 } }
+          {:cont, {[entry|list], count - 1}}
         else
-          { :halt, { [entry|list], count } }
+          {:halt, {[entry|list], count}}
         end
       end)
     :lists.reverse(res)
   end
 
   def take(collection, count) when count < 0 do
-    Stream.take(collection, count).({ :cont, [] }, &{ :cont, [&1|&2] })
+    Stream.take(collection, count).({:cont, []}, &{:cont, [&1|&2]})
     |> elem(1) |> :lists.reverse
   end
 
@@ -1620,8 +1673,8 @@ defmodule Enum do
   @spec take_every(t, integer) :: list
   def take_every(_collection, 0), do: []
   def take_every(collection, nth) do
-    { _, { res, _ } } =
-      Enumerable.reduce(collection, { :cont, { [], :first } }, R.take_every(nth))
+    {_, {res, _}} =
+      Enumerable.reduce(collection, {:cont, {[], :first}}, R.take_every(nth))
     :lists.reverse(res)
   end
 
@@ -1640,7 +1693,7 @@ defmodule Enum do
   end
 
   def take_while(collection, fun) do
-    Enumerable.reduce(collection, { :cont, [] }, R.take_while(fun))
+    Enumerable.reduce(collection, {:cont, []}, R.take_while(fun))
     |> elem(1) |> :lists.reverse
   end
 
@@ -1670,7 +1723,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.traverse(%{a: 1, b: 2}, fn { k, v } -> { k, v * 2 } end)
+      iex> Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v * 2} end)
       %{a: 2, b: 4}
 
   """
@@ -1704,8 +1757,8 @@ defmodule Enum do
   end
 
   def uniq(collection, fun) do
-    { _, { list, _ } } =
-      Enumerable.reduce(collection, { :cont, { [], [] } }, R.uniq(fun))
+    {_, {list, _}} =
+      Enumerable.reduce(collection, {:cont, {[], []}}, R.uniq(fun))
     :lists.reverse(list)
   end
 
@@ -1730,7 +1783,7 @@ defmodule Enum do
   end
 
   def zip(coll1, coll2) do
-    Stream.zip(coll1, coll2).({ :cont, [] }, &{ :cont, [&1|&2] }) |> elem(1) |> :lists.reverse
+    Stream.zip(coll1, coll2).({:cont, []}, &{:cont, [&1|&2]}) |> elem(1) |> :lists.reverse
   end
 
   @doc """
@@ -1743,23 +1796,23 @@ defmodule Enum do
       [{1,0},{2,1},{3,2}]
 
   """
-  @spec with_index(t) :: list({ element, non_neg_integer })
+  @spec with_index(t) :: list({element, non_neg_integer})
   def with_index(collection) do
     map_reduce(collection, 0, fn x, acc ->
-      { { x, acc }, acc + 1 }
+      {{x, acc}, acc + 1}
     end) |> elem(0)
   end
 
   ## Helpers
 
-  @compile { :inline, to_string: 2 }
+  @compile {:inline, to_string: 2}
 
   defp enumerate_and_count(collection, count) when is_list(collection) do
-    { collection, length(collection) - abs(count) }
+    {collection, length(collection) - abs(count)}
   end
 
   defp enumerate_and_count(collection, count) do
-    map_reduce(collection, -abs(count), fn(x, acc) -> { x, acc + 1 } end)
+    map_reduce(collection, -abs(count), fn(x, acc) -> {x, acc + 1} end)
   end
 
   defp to_string(mapper, entry) do
@@ -1801,7 +1854,7 @@ defmodule Enum do
 
   ## fetch
 
-  defp do_fetch([h|_], 0), do: { :ok, h }
+  defp do_fetch([h|_], 0), do: {:ok, h}
   defp do_fetch([_|t], n), do: do_fetch(t, n - 1)
   defp do_fetch([], _),    do: :error
 
@@ -1881,45 +1934,45 @@ defmodule Enum do
 
   ## sort
 
-  defp sort_reducer(entry, { :split, y, x, r, rs, bool }, fun) do
+  defp sort_reducer(entry, {:split, y, x, r, rs, bool}, fun) do
     cond do
       fun.(y, entry) == bool ->
-        { :split, entry, y, [x|r], rs, bool }
+        {:split, entry, y, [x|r], rs, bool}
       fun.(x, entry) == bool ->
-        { :split, y, entry, [x|r], rs, bool }
+        {:split, y, entry, [x|r], rs, bool}
       r == [] ->
-        { :split, y, x, [entry], rs, bool }
+        {:split, y, x, [entry], rs, bool}
       true ->
-        { :pivot, y, x, r, rs, entry, bool }
+        {:pivot, y, x, r, rs, entry, bool}
     end
   end
 
-  defp sort_reducer(entry, { :pivot, y, x, r, rs, s, bool }, fun) do
+  defp sort_reducer(entry, {:pivot, y, x, r, rs, s, bool}, fun) do
     cond do
       fun.(y, entry) == bool ->
-        { :pivot, entry, y, [x | r], rs, s, bool }
+        {:pivot, entry, y, [x | r], rs, s, bool}
       fun.(x, entry) == bool ->
-        { :pivot, y, entry, [x | r], rs, s, bool }
+        {:pivot, y, entry, [x | r], rs, s, bool}
       fun.(s, entry) == bool ->
-        { :split, entry, s, [], [[y, x | r] | rs], bool }
+        {:split, entry, s, [], [[y, x | r] | rs], bool}
       true ->
-        { :split, s, entry, [], [[y, x | r] | rs], bool }
+        {:split, s, entry, [], [[y, x | r] | rs], bool}
     end
   end
 
   defp sort_reducer(entry, [x], fun) do
-    { :split, entry, x, [], [], fun.(x, entry) }
+    {:split, entry, x, [], [], fun.(x, entry)}
   end
 
   defp sort_reducer(entry, acc, _fun) do
     [entry|acc]
   end
 
-  defp sort_terminator({ :split, y, x, r, rs, bool }, fun) do
+  defp sort_terminator({:split, y, x, r, rs, bool}, fun) do
     sort_merge([[y, x | r] | rs], fun, bool)
   end
 
-  defp sort_terminator({ :pivot, y, x, r, rs, s, bool }, fun) do
+  defp sort_terminator({:pivot, y, x, r, rs, s, bool}, fun) do
     sort_merge([[s], [y, x | r] | rs], fun, bool)
   end
 
@@ -1992,11 +2045,11 @@ defmodule Enum do
   end
 
   defp do_split(list, 0, acc) do
-    { :lists.reverse(acc), list }
+    {:lists.reverse(acc), list}
   end
 
   defp do_split([], _, acc) do
-    { :lists.reverse(acc), [] }
+    {:lists.reverse(acc), []}
   end
 
   defp do_split_reverse([h|t], counter, acc) when counter > 0 do
@@ -2004,11 +2057,11 @@ defmodule Enum do
   end
 
   defp do_split_reverse(list, 0, acc) do
-    { :lists.reverse(list), acc }
+    {:lists.reverse(list), acc}
   end
 
   defp do_split_reverse([], _, acc) do
-    { [], acc }
+    {[], acc}
   end
 
   ## split_while
@@ -2017,12 +2070,12 @@ defmodule Enum do
     if fun.(h) do
       do_split_while(t, fun, [h|acc])
     else
-      { :lists.reverse(acc), [h|t] }
+      {:lists.reverse(acc), [h|t]}
     end
   end
 
   defp do_split_while([], _, acc) do
-    { :lists.reverse(acc), [] }
+    {:lists.reverse(acc), []}
   end
 
   ## take
@@ -2070,7 +2123,7 @@ defmodule Enum do
   ## zip
 
   defp do_zip([h1|next1], [h2|next2]) do
-    [{ h1, h2 }|do_zip(next1, next2)]
+    [{h1, h2}|do_zip(next1, next2)]
   end
 
   defp do_zip(_, []), do: []
@@ -2096,15 +2149,15 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
-  def reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
-  def reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &reduce(list, &1, fun) }
-  def reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
-  def reduce([h|t], { :cont, acc }, fun),    do: reduce(t, fun.(h, acc), fun)
+  def reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
+  def reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+  def reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+  def reduce([h|t], {:cont, acc}, fun),    do: reduce(t, fun.(h, acc), fun)
 
   def member?(_list, _value),
-    do: { :error, __MODULE__ }
+    do: {:error, __MODULE__}
   def count(_list),
-    do: { :error, __MODULE__ }
+    do: {:error, __MODULE__}
 end
 
 defimpl Enumerable, for: Map do
@@ -2112,21 +2165,21 @@ defimpl Enumerable, for: Map do
     do_reduce(:maps.to_list(map), acc, fun)
   end
 
-  defp do_reduce(_,     { :halt, acc }, _fun),   do: { :halted, acc }
-  defp do_reduce(list,  { :suspend, acc }, fun), do: { :suspended, acc, &do_reduce(list, &1, fun) }
-  defp do_reduce([],    { :cont, acc }, _fun),   do: { :done, acc }
-  defp do_reduce([h|t], { :cont, acc }, fun),    do: do_reduce(t, fun.(h, acc), fun)
+  defp do_reduce(_,     {:halt, acc}, _fun),   do: {:halted, acc}
+  defp do_reduce(list,  {:suspend, acc}, fun), do: {:suspended, acc, &do_reduce(list, &1, fun)}
+  defp do_reduce([],    {:cont, acc}, _fun),   do: {:done, acc}
+  defp do_reduce([h|t], {:cont, acc}, fun),    do: do_reduce(t, fun.(h, acc), fun)
 
-  def member?(map, { key, value }) do
-    { :ok, match?({ :ok, ^value }, :maps.find(key, map)) }
+  def member?(map, {key, value}) do
+    {:ok, match?({:ok, ^value}, :maps.find(key, map))}
   end
 
   def member?(_map, _other) do
-    { :ok, false }
+    {:ok, false}
   end
 
   def count(map) do
-    { :ok, map_size(map) }
+    {:ok, map_size(map)}
   end
 end
 
@@ -2134,7 +2187,7 @@ defimpl Enumerable, for: Function do
   def reduce(function, acc, fun),
     do: function.(acc, fun)
   def member?(_function, _value),
-    do: { :error, __MODULE__ }
+    do: {:error, __MODULE__}
   def count(_function),
-    do: { :error, __MODULE__ }
+    do: {:error, __MODULE__}
 end

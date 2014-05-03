@@ -34,7 +34,7 @@ defmodule Protocol do
   defp after_defprotocol do
     quote unquote: false do
       # == Deprecated records handling ==
-      { arg, impl } = Protocol.rec_impl_for(__MODULE__)
+      {arg, impl} = Protocol.rec_impl_for(__MODULE__)
       Kernel.def impl_for(unquote(arg)) when Kernel.is_record(unquote(arg)), do: unquote(impl)
       # == Deprecated records handling ==
 
@@ -45,18 +45,19 @@ defmodule Protocol do
       #
       # It simply delegates to struct_impl_for which is then
       # optimized during protocol consolidation.
-      Kernel.def impl_for(%{ __struct__: struct }) when :erlang.is_atom(struct) do
+      Kernel.def impl_for(%{__struct__: struct}) when :erlang.is_atom(struct) do
         struct_impl_for(struct)
       end
 
       # Define the implementation for builtins.
-      for { guard, mod } <- Protocol.builtin do
+      for {guard, mod} <- Protocol.builtin do
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-          unquote(target).__impl__(:name)
-        catch :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-          any_impl_for
+          case impl_for?(unquote(target)) do
+            true  -> unquote(target).__impl__(:name)
+            false -> any_impl_for
+          end
         end
       end
 
@@ -68,10 +69,10 @@ defmodule Protocol do
       # Internal handler for Any
       if @fallback_to_any do
         Kernel.defp any_impl_for do
-          __MODULE__.Any.__impl__(:name)
-        catch
-          :error, :undef, [[{ __MODULE__.Any, :__impl__, [:name], _ }|_]|_] ->
-            nil
+          case impl_for?(__MODULE__.Any) do
+            true  -> __MODULE__.Any.__impl__(:name)
+            false -> nil
+          end
         end
       else
         Kernel.defp any_impl_for, do: nil
@@ -80,17 +81,22 @@ defmodule Protocol do
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
-        try do
-          target.__impl__(:name)
-        catch :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
-          any_impl_for
+        case impl_for?(target) do
+          true  -> target.__impl__(:name)
+          false -> any_impl_for
         end
       end
 
-      # Inline any and struct implementations
-      @compile { :inline, any_impl_for: 0, struct_impl_for: 1 }
+      # Check if compilation is available internally
+      Kernel.defp impl_for?(target) do
+        Code.ensure_compiled?(target) and
+          function_exported?(target, :__impl__, 1)
+      end
 
-      if :code.ensure_loaded(Kernel.Typespec) == { :module, Kernel.Typespec } and
+      # Inline any and struct implementations
+      @compile {:inline, any_impl_for: 0, struct_impl_for: 1, impl_for?: 1}
+
+      if :code.ensure_loaded(Kernel.Typespec) == {:module, Kernel.Typespec} and
          not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
         @type t :: term
       end
@@ -147,7 +153,7 @@ defmodule Protocol do
   @doc false
   def assert_protocol(module) do
     case Code.ensure_compiled(module) do
-      { :module, ^module } -> nil
+      {:module, ^module} -> nil
       _ -> raise ArgumentError, message: "#{inspect module} is not loaded"
     end
 
@@ -162,32 +168,31 @@ defmodule Protocol do
   # Builtin types.
   @doc false
   def builtin do
-    [ is_tuple: Tuple,
-      is_atom: Atom,
-      is_list: List,
-      is_map: Map,
-      is_bitstring: BitString,
-      is_integer: Integer,
-      is_float: Float,
-      is_function: Function,
-      is_pid: PID,
-      is_port: Port,
-      is_reference: Reference ]
+    [is_tuple: Tuple,
+     is_atom: Atom,
+     is_list: List,
+     is_map: Map,
+     is_bitstring: BitString,
+     is_integer: Integer,
+     is_float: Float,
+     is_function: Function,
+     is_pid: PID,
+     is_port: Port,
+     is_reference: Reference]
   end
 
   # Implements the function that detects the protocol and
   # returns the module to dispatch to.
   @doc false
   def rec_impl_for(current) do
-    all = [Any] ++ for { _guard, mod } <- builtin, do: mod
+    all = [Any] ++ for {_guard, mod} <- builtin, do: mod
     arg = quote do: arg
     target = Module.concat(current, Tuple)
 
     fallback = quote do
-      try do
-        unquote(target).__impl__(:name)
-      catch :error, :undef, [[{ unquote(target), :__impl__, [:name], _ }|_]|_] ->
-        any_impl_for
+      case impl_for?(unquote(target)) do
+        true  -> unquote(target).__impl__(:name)
+        false -> any_impl_for
       end
     end
 
@@ -197,18 +202,16 @@ defmodule Protocol do
       case not(atom in unquote(all)) and match?('Elixir.' ++ _, atom_to_list(atom)) do
         true ->
           target = Module.concat(unquote(current), atom)
-          try do
-            target.__impl__(:name)
-          catch
-            :error, :undef, [[{ ^target, :__impl__, [:name], _ }|_]|_] ->
-              unquote(fallback)
+          case impl_for?(target) do
+            true  -> target.__impl__(:name)
+            false -> unquote(fallback)
           end
         false ->
           unquote(fallback)
       end
     end
 
-    { arg, impl_for }
+    {arg, impl_for}
   end
 end
 
@@ -216,18 +219,18 @@ defmodule Protocol.DSL do
   @moduledoc false
 
   @doc false
-  defmacro def({ _, _, args }) when args == [] or is_atom(args) do
+  defmacro def({_, _, args}) when args == [] or is_atom(args) do
     raise ArgumentError, message: "protocol functions expect at least one argument"
   end
 
-  defmacro def({ name, _, args }) when is_atom(name) and is_list(args) do
+  defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
     arity = length(args)
 
     type_args = for _ <- :lists.seq(2, arity), do: quote(do: term)
     type_args = [quote(do: t) | type_args]
 
     call_args = for i <- :lists.seq(2, arity),
-                  do: { binary_to_atom(<<?x, i + 64>>), [], __MODULE__ }
+                  do: {binary_to_atom(<<?x, i + 64>>), [], __MODULE__}
     call_args = [quote(do: t) | call_args]
 
     quote do
@@ -259,17 +262,17 @@ defmodule Protocol.DSL do
   @doc false
   def __spec__?(module, name, arity) do
     case :code.ensure_loaded(Kernel.Typespec) do
-      { :module, Kernel.Typespec } ->
-        tuple = { name, arity }
+      {:module, Kernel.Typespec} ->
+        tuple = {name, arity}
         specs = Module.get_attribute(module, :spec)
 
-        found = for { k, v } <- specs, k == tuple do
+        found = for {k, v} <- specs, k == tuple do
           Kernel.Typespec.define_callback(module, tuple, v)
           true
         end
 
         found != []
-      { :error, _ } ->
+      {:error, _} ->
         true
     end
   end

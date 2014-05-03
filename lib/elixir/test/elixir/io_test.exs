@@ -5,25 +5,25 @@ defmodule IOTest do
   import ExUnit.CaptureIO
 
   test :read_with_count do
-    { :ok, file } = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
     assert 'FOO' == IO.read(file, 3)
     assert File.close(file) == :ok
   end
 
   test :read_with_utf8_and_binary do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский" == IO.read(file, 7)
     assert File.close(file) == :ok
   end
 
   test :binread do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский" == IO.binread(file, 14)
     assert File.close(file) == :ok
   end
 
   test :getn do
-    { :ok, file } = File.open(Path.expand('fixtures/file.txt', __DIR__))
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "F" == IO.getn(file, "")
     assert "O" == IO.getn(file, "")
     assert "O" == IO.getn(file, "")
@@ -33,47 +33,47 @@ defmodule IOTest do
   end
 
   test :getn_with_count do
-    { :ok, file } = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
     assert 'FOO' == IO.getn(file, "", 3)
     assert File.close(file) == :ok
   end
 
   test :getn_with_utf8_and_binary do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский" == IO.getn(file, "", 7)
     assert File.close(file) == :ok
   end
 
   test :gets do
-    { :ok, file } = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:char_list])
     assert 'FOO\n' == IO.gets(file, "")
     assert :eof == IO.gets(file, "")
     assert File.close(file) == :ok
   end
 
   test :gets_with_utf8_and_binary do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский\n" == IO.gets(file, "")
     assert "日\n" == IO.gets(file, "")
     assert File.close(file) == :ok
   end
 
   test :readline do
-    { :ok, file } = File.open(Path.expand('fixtures/file.txt', __DIR__))
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "FOO\n" == IO.read(file, :line)
     assert :eof == IO.read(file, :line)
     assert File.close(file) == :ok
   end
 
   test :readline_with_utf8_and_binary do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский\n" == IO.read(file, :line)
     assert "日\n" == IO.read(file, :line)
     assert File.close(file) == :ok
   end
 
   test :binreadline do
-    { :ok, file } = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский\n" == IO.binread(file, :line)
     assert "日\n" == IO.binread(file, :line)
     assert File.close(file) == :ok

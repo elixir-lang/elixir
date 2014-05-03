@@ -9,7 +9,7 @@ defmodule Mix.Tasks.DepsPathTest do
         app: :raw_sample,
         version: "0.1.0",
         deps: [
-          { :raw_repo, "0.1.0", path: "custom/raw_repo" }
+          {:raw_repo, "0.1.0", path: "custom/raw_repo"}
         ]
       ]
     end
@@ -27,8 +27,8 @@ defmodule Mix.Tasks.DepsPathTest do
       assert File.exists?("_build/test/lib/raw_repo/.compile")
 
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
-      assert_received { :mix_shell, :info, ["* Compiling raw_repo"] }
-      assert_received { :mix_shell, :info, ["world"] }
+      assert_received {:mix_shell, :info, ["* Compiling raw_repo"]}
+      assert_received {:mix_shell, :info, ["world"]}
     end
   end
 
@@ -38,8 +38,8 @@ defmodule Mix.Tasks.DepsPathTest do
     in_fixture "deps_status", fn ->
       Mix.Dep.Lock.write [raw_repo: "abcdef"]
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
-      assert_received { :mix_shell, :info, ["* Compiling raw_repo"] }
-      assert_received { :mix_shell, :info, ["world"] }
+      assert_received {:mix_shell, :info, ["* Compiling raw_repo"]}
+      assert_received {:mix_shell, :info, ["world"]}
     end
   end
 
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.DepsPathTest do
       [
         app: :rebar_as_dep,
         version: "0.1.0",
-        deps: [{ :rebar_dep, path: MixTest.Case.tmp_path("rebar_dep") }]
+        deps: [{:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep")}]
       ]
     end
   end

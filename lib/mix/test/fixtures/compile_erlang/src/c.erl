@@ -3,4 +3,4 @@
 
 -include("r.hrl").
 
-c() -> #r{ cell=specified }.
+c() -> #r{cell=specified}.

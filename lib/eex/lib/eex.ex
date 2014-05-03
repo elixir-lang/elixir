@@ -5,8 +5,8 @@ defmodule EEx do
   EEx stands for Embedded Elixir. It allows you to embed
   Elixir code inside a string in a robust way:
 
-      EEx.eval_string "foo <%= bar %>", [bar: "baz"]
-      #=> "foo baz"
+      iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
+      "foo baz"
 
   ## API
 
@@ -31,14 +31,13 @@ defmodule EEx do
 
   All functions in this module accepts EEx-related options.
   They are:
-  
+
   * `:line` - the line to be used as the template start.
               Defaults to 1;
   * `:file` - the file to be used in the template.
               Defaults to the given file the template is read from
               or to "nofile" when compiling from a string;
   * `:engine` - the EEx engine to be used for compilation.
-                Defaults to `EEx.Engine`;
 
   ## Engine
 
@@ -79,8 +78,8 @@ defmodule EEx do
   An example is the `@` macro which allows easy data access
   in a template:
 
-      EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
-      #=> 1
+      iex> EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
+      "1"
 
   In other words, <%= @foo %> is simply translated to:
 
@@ -97,18 +96,18 @@ defmodule EEx do
 
   ## Examples
 
-      defmodule Sample do
-        require EEx
-        EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
-      end
-
-      Sample.sample(1, 2) #=> "3"
+      iex> defmodule Sample do
+      ...>   require EEx
+      ...>   EEx.function_from_string :def, :sample, "<%= a + b %>", [:a, :b]
+      ...> end
+      iex> Sample.sample(1, 2)
+      "3"
 
   """
   defmacro function_from_string(kind, name, source, args \\ [], options \\ []) do
     quote bind_quoted: binding do
       info = Keyword.merge [file: __ENV__.file, line: __ENV__.line], options
-      args = Enum.map args, fn arg -> { arg, [line: info[:line]], nil } end
+      args = Enum.map args, fn arg -> {arg, [line: info[:line]], nil} end
       compiled = EEx.compile_string(source, info)
 
       case kind do
@@ -144,7 +143,7 @@ defmodule EEx do
   defmacro function_from_file(kind, name, file, args \\ [], options \\ []) do
     quote bind_quoted: binding do
       info = Keyword.merge options, [file: file, line: 1]
-      args = Enum.map args, fn arg -> { arg, [line: 1], nil } end
+      args = Enum.map args, fn arg -> {arg, [line: 1], nil} end
       compiled = EEx.compile_file(file, info)
 
       @file file
@@ -177,8 +176,8 @@ defmodule EEx do
 
   ## Examples
 
-      EEx.eval_string "foo <%= bar %>", [bar: "baz"]
-      #=> "foo baz"
+      iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
+      "foo baz"
 
   """
   def eval_string(source, bindings \\ [], options \\ []) do
@@ -195,8 +194,7 @@ defmodule EEx do
       foo <%= bar %>
 
       # iex
-      EEx.eval_file "sample.ex", [bar: "baz"]
-      #=> "foo baz"
+      EEx.eval_file "sample.ex", [bar: "baz"] #=> "foo baz"
 
   """
   def eval_file(filename, bindings \\ [], options \\ []) do
@@ -208,7 +206,7 @@ defmodule EEx do
   ### Helpers
 
   defp do_eval(compiled, bindings, options) do
-    { result, _ } = Code.eval_quoted(compiled, bindings, options)
+    {result, _} = Code.eval_quoted(compiled, bindings, options)
     result
   end
 end
