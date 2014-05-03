@@ -23,7 +23,10 @@ defmodule Inspect.AtomTest do
   end
 
   test :alias_atom do
+    assert inspect(Foo) == "Foo"
     assert inspect(Foo.Bar) == "Foo.Bar"
+    assert inspect(Elixir) == "Elixir"
+    assert inspect(Elixir.Elixir) == "Elixir.Elixir"
   end
 
   test :with_integers do
