@@ -16,9 +16,6 @@ defmodule ProcessTest do
   test "monitoring functions are inlined by the compiler" do
     assert expand(quote(do: Process.monitor(pid())), __ENV__) ==
            quote(do: :erlang.monitor(:process, pid()))
-
-    assert &Process.spawn_monitor/1 == &:erlang.spawn_monitor/1
-    assert &Process.spawn_monitor/3 == &:erlang.spawn_monitor/3
   end
 
   defp expand(expr, env) do

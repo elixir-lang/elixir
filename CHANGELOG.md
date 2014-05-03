@@ -18,6 +18,7 @@
   * [Macro] `Macro.safe_terms` is deprecated
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0` (this is a soft deprecation, no warnings will be emitted)
   * [Process] `Process.delete/0` is deprecated
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
 
 * Backwards incompatible changes
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar

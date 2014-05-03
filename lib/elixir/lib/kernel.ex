@@ -1078,6 +1078,45 @@ defmodule Kernel do
   end
 
   @doc """
+  Spawns the given function, monitors it and returns its pid
+  and monitoring reference.
+
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      current = Kernel.self
+      spawn_monitor(fn -> send current, {Kernel.self, 1 + 2} end)
+
+  """
+  @spec spawn_monitor((() -> any)) :: {pid, reference}
+  def spawn_monitor(fun) do
+    :erlang.spawn_monitor(fun)
+  end
+
+  @doc """
+  Spawns the given module and function passing the given args,
+  monitors it and returns its pid and monitoring reference.
+
+  Check the modules `Process` and `Node` for other functions
+  to handle processes, including spawning functions in nodes.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      spawn_monitor(SomeModule, :function, [1, 2, 3])
+
+  """
+  @spec spawn_monitor(module, atom, list) :: {pid, reference}
+  def spawn_monitor(module, fun, args) do
+    :erlang.spawn_monitor(module, fun, args)
+  end
+
+  @doc """
   A non-local return from a function. Check `Kernel.SpecialForms.try/1` for more information.
 
   Inlined by the compiler.
