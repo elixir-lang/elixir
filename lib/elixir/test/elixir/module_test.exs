@@ -194,10 +194,9 @@ defmodule ModuleTest do
       quote do
         def world, do: true
       end
-    assert_raise RuntimeError, fn ->  
+    assert_raise CompileError, fn ->  
       {:module, Elixir, _, _} =
         Module.create(Elixir, contents, __ENV__)
-      assert ModuleCreateSample.world
     end
   end
 
