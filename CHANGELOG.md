@@ -13,12 +13,14 @@
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
   * [System] Convert remaining functions in System to rely on char data
 
+* Soft deprecations (no warnings emitted)
+  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
+
 * Deprecations
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
   * [Macro] `Macro.safe_terms` is deprecated
-  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0` (this is a soft deprecation, no warnings will be emitted)
   * [Process] `Process.delete/0` is deprecated
-  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
 
 * Backwards incompatible changes
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
@@ -35,12 +37,14 @@
   * [Kernel] Fix a bug where comprehensions arguments were not properly take into account in the variable scope
   * [Mix] Fix issue on rebar install when the endpoint was redirecting to a relative uri
 
+* Soft deprecations (no warnings emitted)
+  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_length` and `iodata_to_binary`
+  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1`
+  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1`
+
 * Deprecations
-  * [Kernel] `iolist_size` and `iolist_to_binary` are deprecated in favor of `iodata_length` and `iodata_to_binary` (this is a soft deprecation, no warnings will be emitted)
   * [Mix] `:env` key in project configuration is deprecated
   * [Regex] `Regex.groups/1` is deprecated in favor of `Regex.names/1`
-  * [String] `String.to_char_list/1` is deprecated in favor of `List.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
-  * [String] `String.from_char_list/1` is deprecated in favor of `String.from_char_data/1` (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [Macro] `Macro.unpipe/1` now returns tuples and `Macro.pipe/2` was removed in favor of `Macro.pipe/3` which explicitly expects the second element of the tuple returned by the new `Macro.unpipe/1`
@@ -87,12 +91,14 @@
   * [Mix] Allow queries in `mix local.install` URL
   * [OptionParser] Do not recognize undefined aliases as switches
 
+* Soft deprecations (no warnings emitted)
+  * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
+  * [ListDict] `ListDict` is deprecated in favor of `Map`
+  * [Record] `defrecord/2`, `defrecordp/3`, `is_record/1` and `is_record/2` macros in Kernel are deprecated. Instead, use the new macros and API defined in the `Record` module
+
 * Deprecations
   * [Dict] `Dict.empty/1`, `Dict.new/1` and `Dict.new/2` are deprecated
   * [Exception] `Exception.normalize/1` is deprecated in favor of `Exception.normalize/2`
-  * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for` (this is a soft deprecation, no warning will be emitted)
-  * [ListDict] `ListDict` is deprecated in favor of `Map` (this is a soft deprecation, no warning will be emitted)
-  * [Record] `defrecord/2`, `defrecordp/3`, `is_record/1` and `is_record/2` macros in Kernel are deprecated. Instead, use the new macros and API defined in the `Record` module (this is a soft deprecation, no warnings will be emitted)
 
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
