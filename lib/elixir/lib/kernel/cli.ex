@@ -180,7 +180,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_argv(["-S", h|t], config) do
-    {%{config | commands: [{:script, h} | config.comamnds]}, t}
+    {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
   defp process_argv([h|t] = list, config) do
