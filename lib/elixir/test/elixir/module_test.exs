@@ -189,6 +189,18 @@ defmodule ModuleTest do
     assert ModuleCreateSample.world
   end
 
+  test :create_with_elixir_as_a_name do
+    contents =
+      quote do
+        def world, do: true
+      end
+    assert_raise RuntimeError, fn ->  
+      {:module, Elixir, _, _} =
+        Module.create(Elixir, contents, __ENV__)
+      assert ModuleCreateSample.world
+    end
+  end
+
   test :no_function_in_module_body do
     in_module do
       assert __ENV__.function == nil

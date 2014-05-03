@@ -390,7 +390,14 @@ defmodule Module do
   end
 
   def create(module, quoted, opts) when is_atom(module) do
+    check_invalid_name(module)
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
+  end
+
+  defp check_invalid_name(module) do
+    if to_string(module) === "Elixir" do
+      raise "cannot create a module with Elixir as a name"
+    end
   end
 
   @doc """
