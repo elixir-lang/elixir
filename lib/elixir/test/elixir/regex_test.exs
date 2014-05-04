@@ -118,6 +118,9 @@ defmodule RegexTest do
   test :split do
     assert Regex.split(~r",", "") == [""]
     assert Regex.split(~r" ", "foo bar baz") == ["foo", "bar", "baz"]
+    assert Regex.split(~r" ", "foo bar baz", parts: 0) == ["foo", "bar", "baz"]
+    assert Regex.split(~r" ", "foo bar baz", parts: :infinity) == ["foo", "bar", "baz"]
+    assert Regex.split(~r" ", "foo bar baz", parts: 10) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", "foo bar baz", parts: 2) == ["foo", "bar baz"]
     assert Regex.split(~r"\s", "foobar") == ["foobar"]
     assert Regex.split(~r" ", " foo bar baz ") == ["", "foo", "bar", "baz", ""]

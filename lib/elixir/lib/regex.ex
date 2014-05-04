@@ -308,11 +308,11 @@ defmodule Regex do
 
   ## Options
 
-  * `:global` - splits the string in all parts unless set to `false`,
-                which leads the string to be split in 2. Defaults to true;
-
-  * `:parts` - when specified, splits the string into maximum the number
-               of given parts;
+  * `:parts` - when specified, splits the string into the 
+               given number of parts. If not specified, `:parts`
+               is defaulted to `:infinity`, which will split the
+               string into the maximum number of parts possible
+               based on the given pattern.
 
   * `:trim` - when true, remove blank strings from the result;
 
@@ -338,11 +338,14 @@ defmodule Regex do
   def split(regex, string, options \\ [])
 
   def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+    if options[:global] != nil do
+      IO.write :stderr, "Support for :global in Regex.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
+    end
     parts =
       cond do
-        Keyword.get(options, :global) == false -> 2
-        p = Keyword.get(options, :parts)       -> p
-        true                                   -> :infinity
+        Keyword.get(options, :global) == false  -> 2
+        p = Keyword.get(options, :parts)        -> if p == 0, do: :infinity, else: p
+        true                                    -> :infinity
       end
 
     opts   = [return: :binary, parts: parts]
