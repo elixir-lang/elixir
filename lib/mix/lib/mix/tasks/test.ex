@@ -8,17 +8,16 @@ defmodule Mix.Tasks.Test do
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
       if :application.get_env(:cover, :started) != {:ok, true} do
+        :application.set_env(:cover, :started, true)
         output = opts[:output]
 
-        System.at_exit fn(_) ->
+        fn() ->
           Mix.shell.info "\nGenerating cover results ... "
           File.mkdir_p!(output)
           Enum.each :cover.modules, fn(mod) ->
             :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
           end
         end
-
-        :application.set_env(:cover, :started, true)
       end
     end
   end
@@ -113,7 +112,9 @@ defmodule Mix.Tasks.Test do
       test_coverage: [tool: CoverModule]
 
   `CoverModule` can be any module that exports `start/2`, receiving the
-  compilation path and the `test_coverage` options as arguments.
+  compilation path and the `test_coverage` options as arguments. It must
+  return an anonymous function of zero arity that will be run after the
+  test suite is done or nil.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
@@ -141,40 +142,39 @@ defmodule Mix.Tasks.Test do
     cover   = Keyword.merge(@cover, project[:test_coverage] || [])
 
     # Start cover after we load deps but before we start the app.
-    if opts[:cover] do
-      cover[:tool].start(Mix.Project.compile_path(project), cover)
-    end
+    cover =
+      if opts[:cover] do
+        cover[:tool].start(Mix.Project.compile_path(project), cover)
+      end
 
+    # Start the app and configure exunit with command line options
+    # before requiring test_helper.exs so that the configuration is
+    # available in test_helper.exs. Then configure exunit again so
+    # that command line options override test_helper.exs
     Mix.Task.run "app.start", args
     :application.load(:ex_unit)
 
-    # Configure exunit with command line options before requiring
-    # test_helper so that the configuration is available in test_helper
-    # Then configure exunit again so that command line options override
-    # test_helper
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
-
     ExUnit.configure(opts)
 
-    files = case files do
-      [single_file] ->
-        # Check if the single file path matches test/path/to_test.exs:123, if it does
-        # apply `--only line:123` and trim the trailing :123 part.
-        {single_file, opts} = ExUnit.Filters.parse_path(single_file)
-        ExUnit.configure(opts)
-        [single_file]
-      _ -> files
-    end
-
-    test_paths   = if files == [], do: test_paths, else: files
+    # Finally parse, require and load the files
+    test_files   = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
 
-    files = Mix.Utils.extract_files(test_paths, test_pattern)
-    Kernel.ParallelRequire.files files
+    test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    Kernel.ParallelRequire.files(test_files)
+
+    # Run the test suite, coverage tools and register an exit hook
+    %{failures: failures} = ExUnit.run
+    if cover, do: cover.()
+
+    System.at_exit fn _ ->
+      if failures > 0, do: System.halt(1)
+    end
   end
 
   @doc false
@@ -184,7 +184,26 @@ defmodule Mix.Tasks.Test do
            |> filter_opts(:exclude)
            |> filter_only_opts()
 
-    Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
+    # Set autorun to false because Mix
+    # automatically runs the test suite for us.
+    [autorun: false] ++
+      Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
+  end
+
+  defp parse_files([], test_paths) do
+    test_paths
+  end
+
+  defp parse_files([single_file], _test_paths) do
+    # Check if the single file path matches test/path/to_test.exs:123, if it does
+    # apply `--only line:123` and trim the trailing :123 part.
+    {single_file, opts} = ExUnit.Filters.parse_path(single_file)
+    ExUnit.configure(opts)
+    [single_file]
+  end
+
+  defp parse_files(files, _test_paths) do
+    files
   end
 
   defp parse_filters(opts, key) do
