@@ -272,7 +272,7 @@ defmodule System do
   def get_env do
     Enum.into(:os.getenv, %{}, fn var ->
       var = String.from_char_data! var
-      [k, v] = String.split var, "=", global: false
+      [k, v] = String.split var, "=", parts: 2
       {k, v}
     end)
   end
