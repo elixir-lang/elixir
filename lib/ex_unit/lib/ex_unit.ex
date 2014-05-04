@@ -80,7 +80,7 @@ defmodule ExUnit do
     record_type name: module, state: ExUnit.state, tests: [ExUnit.Test.t]
   end
 
-  use Application.Behaviour
+  use Application
 
   @doc false
   def start(_type, []) do

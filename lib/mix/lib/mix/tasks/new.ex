@@ -254,9 +254,9 @@ defmodule Mix.Tasks.New do
 
   embed_template :lib_app, """
   defmodule <%= @mod %> do
-    use Application.Behaviour
+    use Application
 
-    # See http://elixir-lang.org/docs/stable/Application.Behaviour.html
+    # See http://elixir-lang.org/docs/stable/Application.html
     # for more information on OTP Applications
     def start(_type, _args) do
       <%= @mod %>.Supervisor.start_link

@@ -8,12 +8,14 @@ defmodule Mix.Tasks.Compile.App do
 
   An `.app` file is a file containing Erlang terms that defines
   your application. Mix automatically generates this file based on
-  your `mix.exs` configuration.
+  your `mix.exs` configuration. You can learn more about OTP
+  applications by seeing the documentation for the `Application`
+  module.
 
-  In order to generate the file, Mix expects your application to
-  have both `:app` and `:version` keys. Furthermore, you can configure
-  the generated application by defining a `application` function in
-  your `mix.exs` with the following options:
+  In order to generate the `.app` file, Mix expects your application
+  to have both `:app` and `:version` keys. Furthermore, you can
+  configure the generated application by defining an `application`
+  function in your `mix.exs` with the following options:
 
   * `:applications` - all applications your application depends
     on at runtime. For example, if your application depends on
@@ -32,14 +34,14 @@ defmodule Mix.Tasks.Compile.App do
   * `:mod` - specify a module to invoke when the application
     is started, it must be in the format `{Mod, args}` where
     args is often an empty list. The module specified here must
-    implement the callbacks defined by the `Application.Behaviour`
-    behaviour;
+    implement the callbacks defined by the `Application`
+    module;
 
   * `:env` - default values for the application environment.
     The application environment is one of the most common ways
     to configure applications;
 
-  Let's see an example file:
+  Let's see an example `application` function:
 
       def application do
         [mod: {MyApp, []},

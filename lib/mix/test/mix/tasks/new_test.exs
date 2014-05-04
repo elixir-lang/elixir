@@ -18,7 +18,7 @@ defmodule Mix.Tasks.NewTest do
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
         assert file =~ "defmodule HelloWorld do"
-        assert file =~ "use Application.Behaviour"
+        assert file =~ "use Application"
         assert file =~ "HelloWorld.Supervisor.start_link"
       end
 

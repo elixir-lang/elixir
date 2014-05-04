@@ -35,7 +35,7 @@ defmodule ExUnit.CLIFormatter do
     {:ok, config.update_tests_counter(&(&1 + 1))}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {:skip, reason}] = test}, config) do
+  def handle_event({:test_finished, ExUnit.Test[state: {:skip, _}] = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
     {:ok, config}
   end

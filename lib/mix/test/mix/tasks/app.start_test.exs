@@ -118,7 +118,7 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   defmodule BadReturnApp do
-    use Application.Behaviour
+    use Application
 
     def start(_type, _args) do
       :bad # Bad return

@@ -11,7 +11,7 @@ defmodule Mix do
   [Elixir's website](http://elixir-lang.org).
   """
 
-  use Application.Behaviour
+  use Application
 
   @doc false
   def start do
