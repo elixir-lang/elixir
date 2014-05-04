@@ -236,6 +236,9 @@ defmodule String do
   def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
+    if options[:global] != nil do
+      IO.write :stderr, "Support for :global in String.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
+    end
     if Regex.regex?(pattern) do
       case options[:parts] do
         num when num == 0 ->
