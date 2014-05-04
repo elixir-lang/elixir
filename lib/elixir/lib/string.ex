@@ -263,13 +263,13 @@ defmodule String do
 
   defp split_parts("", _pattern, _num),         do: [""]
   defp split_parts(binary, pattern, num),       do: split_parts(binary, pattern, num, [])
-  defp split_parts("", _pattern, _num, parts),  do: parts ++ [""]
-  defp split_parts(binary, _pattern, 0, parts), do: parts ++ [binary]
+  defp split_parts("", _pattern, _num, parts),  do: Enum.reverse([""|parts])
+  defp split_parts(binary, _pattern, 0, parts), do: Enum.reverse([binary|parts])
   defp split_parts(binary, pattern, num, parts) do
     [head|tail] = :binary.split(binary, pattern)
     case tail do
-      []    -> parts ++ [head]
-      [str] -> split_parts(str, pattern, num - 1, parts ++ [head])
+      []    -> Enum.reverse([head|parts])
+      [str] -> split_parts(str, pattern, num - 1, [head|parts])
     end
   end
 

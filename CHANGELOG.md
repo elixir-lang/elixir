@@ -2,7 +2,9 @@
 
 * Enhancements
   * [Mix] `mix deps.clean` now works accross environments
-  * [Mix] Support line numbers in mix test, e.g. test/some/file_test.exs:12
+  * [Mix] Support line numbers in `mix test`, e.g. test/some/file_test.exs:12
+  * [Mix] Use `@file` attributes to detect dependencies in between `.ex` and external files. This means changing an `.eex` file will no longer recompile the whole project only the files that depend directly on it
+  * [String] Support `:parts` in `String.split/3`
 
 * Bug fixes
   * [Code] Ensure we don't lose the caller stacktrace on code evaluation
@@ -11,7 +13,9 @@
   * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
   * [Kernel] Do not wrap single lists in `:__block__`
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
+  * [Kernel] Do not allow a module named `Elixir` to be defined
   * [Mix] Generate `.gitignore` for `--umbrella` projects
+  * [Mix] Verify if a git dependency in deps has a proper git checkout and clean it automatically when it doesn't
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)
@@ -22,10 +26,13 @@
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
   * [Macro] `Macro.safe_terms` is deprecated
   * [Process] `Process.delete/0` is deprecated
+  * [Regex] Deprecate `:global` option in `Regex.split/3` in favor of `parts: :infinity`
+  * [String] Deprecate `:global` option in `String.split/3` in favor of `parts: :infinity`
 
 * Backwards incompatible changes
-  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Macro.Env`, `Range` and `Regex` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
+  * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Inspect.Opts`, `Macro.Env`, `Range`, `Regex` and `Version.Requirement` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
   * [URI] The `URI.Info` record has now become the `URI` struct
+  * [Version] The `Version.Schema` record has now become the `Version` struct
 
 # v0.13.1 (2014-04-27)
 
