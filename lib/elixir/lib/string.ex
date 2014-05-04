@@ -178,7 +178,7 @@ defmodule String do
 
   The string is split into as many parts as possible by
   default, but can be controlled via the `parts: num` option.
-  If you pass `parts: 0`, it will return all possible parts.
+  If you pass `parts: :infinity`, it will return all possible parts.
 
   Empty strings are only removed from the result if the
   `trim` option is set to `true`.
@@ -240,13 +240,7 @@ defmodule String do
       IO.write :stderr, "Support for :global in String.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
     end
     if Regex.regex?(pattern) do
-      case options[:parts] do
-        num when num == 0 ->
-          opts = options -- [parts: num]
-          Regex.split(pattern, binary, opts ++ [global: true])
-        _ ->
-          Regex.split(pattern, binary, options)
-      end
+      Regex.split(pattern, binary, options)
     else
       splits = case options[:parts] do
         num when is_number(num) and num > 0 ->

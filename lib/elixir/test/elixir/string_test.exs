@@ -50,6 +50,7 @@ defmodule StringTest do
     assert String.split(" a b c ", " ", trim: true) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, global: false) == ["a b c "]
     assert String.split(" a b c ", " ", trim: true, parts: 0) == ["a", "b", "c"]
+    assert String.split(" a b c ", " ", trim: true, parts: :infinity) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
 
     assert String.split("abé", "") == ["a", "b", "é", ""]
