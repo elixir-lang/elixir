@@ -98,17 +98,18 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(_mod, true) do
-    "    [ applications: [] ]"
+    "    [applications: []]"
   end
 
   defp otp_app(mod, false) do
-    "    [ applications: [],\n      mod: {#{mod}, []} ]"
+    "    [applications: [],\n     mod: {#{mod}, []}]"
   end
 
   defp do_generate_umbrella(app, path, _opts) do
     mod = camelize(app)
     assigns = [mod: mod]
 
+    create_file ".gitignore", gitignore_text
     create_file "README.md", readme_template(assigns)
     create_file "mix.exs",   mixfile_umbrella_template(assigns)
 

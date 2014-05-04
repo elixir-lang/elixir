@@ -11,6 +11,7 @@
   * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
   * [Kernel] Do not wrap single lists in `:__block__`
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
+  * [Mix] Generate `.gitignore` for `--umbrella` projects
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)

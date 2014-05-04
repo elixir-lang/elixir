@@ -4,7 +4,7 @@ defmodule Mix.Tasks.NewTest do
   use MixTest.Case
 
   test "new" do
-    in_tmp "new with underscore", fn ->
+    in_tmp "new", fn ->
       Mix.Tasks.New.run ["hello_world"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
@@ -36,7 +36,7 @@ defmodule Mix.Tasks.NewTest do
   end
 
   test "new with --bare" do
-    in_tmp "new with underscore", fn ->
+    in_tmp "new bare", fn ->
       Mix.Tasks.New.run ["hello_world", "--bare"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
@@ -54,6 +54,21 @@ defmodule Mix.Tasks.NewTest do
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+    end
+  end
+
+  test "new with --umbrella" do
+    in_tmp "new umbrella", fn ->
+      Mix.Tasks.New.run ["hello_world", "--umbrella"]
+
+      assert_file "hello_world/mix.exs", fn(file) ->
+        assert file =~ "apps_path: \"apps\""
+      end
+
+      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/.gitignore"
+
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
     end
   end
 
