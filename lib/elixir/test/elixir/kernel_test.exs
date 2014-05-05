@@ -161,6 +161,12 @@ defmodule KernelTest do
     defstruct name: "jose"
   end
 
+  defmodule UserTuple do
+    def __struct__({ UserTuple, :ok }) do
+      %User{}
+    end
+  end
+
   test :struct do
     assert struct(User) == %User{name: "jose"}
 
@@ -168,8 +174,11 @@ defmodule KernelTest do
     assert user == %User{name: "eric"}
 
     assert struct(user, unknown: "key") == user
-    assert struct(user, name: "jose") == %User{name: "jose"}
+    assert struct(user, %{name: "jose"}) == %User{name: "jose"}
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
+
+    user_tuple = {UserTuple, :ok}
+    assert struct(user_tuple, name: "eric") == %User{name: "eric"}
   end
 
   defmodule Conversions do

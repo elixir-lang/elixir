@@ -1944,13 +1944,14 @@ defmodule Kernel do
       #=> %User{name: "eric"}
 
   """
+  @spec struct(module | map, Enum.t) :: map
   def struct(struct, kv \\ [])
 
-  def struct(struct, []) when is_atom(struct) do
+  def struct(struct, []) when is_atom(struct) or is_tuple(struct) do
     apply(struct, :__struct__, [])
   end
 
-  def struct(struct, kv) when is_atom(struct) do
+  def struct(struct, kv) when is_atom(struct) or is_tuple(struct) do
     struct(apply(struct, :__struct__, []), kv)
   end
 
