@@ -1,7 +1,6 @@
 defmodule Mix.Project do
   @moduledoc """
-  A module that provides conveniences for defining and working
-  with projects.
+  Defines and manipulate Mix projects.
 
   In order to configure Mix, a developer needs to use
   `Mix.Project` in a module and define a function named
@@ -11,15 +10,13 @@ defmodule Mix.Project do
         use Mix.Project
 
         def project do
-          [
-            app: :my_app,
-            vsn: "0.6.0"
-          ]
+          [app: :my_app,
+           vsn: "0.6.0"]
         end
       end
 
   After being defined, the configuration for this project can be read
-  as `Mix.project/0`. Notice that `Mix.project/0` won't fail if a
+  as `Mix.Project.config/0`. Notice that `config/0` won't fail if a
   project is not defined; this allows many mix tasks to work
   even without a project.
 
@@ -44,8 +41,8 @@ defmodule Mix.Project do
     push env.module, env.file
   end
 
-  # Push a project onto the project stack. Only
-  # the top of the stack can be accessed.
+  # Push a project onto the project stack.
+  # Only the top of the stack can be accessed.
   @doc false
   def push(atom, file \\ "nofile") when is_atom(atom) do
     config = default_config
@@ -55,7 +52,7 @@ defmodule Mix.Project do
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
         :ok
-      { :error, other } when is_binary(other) ->
+      {:error, other} when is_binary(other) ->
         raise Mix.Error, message: "Trying to load #{inspect atom} from #{inspect file}" <>
           " but another project with the same name was already defined at #{inspect other}"
     end
@@ -76,9 +73,10 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Retrieves the current project, `nil` if there is no
-  current project (i.e. there is no mixfile in the current
-  project).
+  Retrieves the current project if there is one.
+
+  Otherwise `nil` is returned. It may happen in cases
+  there is no mixfile in the current directory.
 
   If you expect a project to be defined, i.e. it is a
   requirement of the current task, you should call
@@ -86,7 +84,7 @@ defmodule Mix.Project do
   """
   def get do
     case Mix.ProjectStack.peek do
-      { name, _config, _file } -> name
+      {name, _config, _file} -> name
       _ -> nil
     end
   end
@@ -105,21 +103,32 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Returns the project configuration for the current environment.
-  This configuration is cached once the project is pushed into the stack.
+  Returns the project configuration.
+
+  If there is no project defined, it still returns a keyword
+  list with default values. This allows many mix tasks to work
+  without the need for an underlying project.
+
+  Note this configuration is cached once the project is
+  pushed into the stack. Calling it multiple times won't
+  cause it to be recomputed.
+
+  Do not use `Mix.Project.config` to rely on runtime configuration.
+  Use it only to configure aspects of your project (like
+  compilation directories) and not your application runtime.
   """
   def config do
     case Mix.ProjectStack.peek do
-      { _name, config, _file } -> config
+      {_name, config, _file} -> config
       _ -> default_config
     end
   end
 
   @doc """
-  Returns a list of project configuration files as known by
-  this project. This function is usually used in compilation
-  tasks to trigger a full recompilation whenever such
-  configuration files change.
+  Returns a list of project configuration files for this project.
+
+  This function is usually used in compilation tasks to trigger
+  a full recompilation whenever such configuration files change.
 
   By default it includes the mix.exs file and the lock manifest.
   """
@@ -128,7 +137,7 @@ defmodule Mix.Project do
     opts    = [Mix.Dep.Lock.manifest]
 
     if project && (source = project.__info__(:compile)[:source]) do
-      opts = [String.from_char_list!(source)|opts]
+      opts = [String.from_char_data!(source)|opts]
     end
 
     opts
@@ -142,9 +151,14 @@ defmodule Mix.Project do
   end
 
   @doc """
-  Runs the given `fun` inside the given project by changing
-  the current working directory and loading the given project
-  onto the project stack.
+  Runs the given `fun` inside the given project.
+
+  This function changes the current working directory and
+  loads the project at the given directory onto the project
+  stack.
+
+  A `post_config` can be passed that will be merged into
+  the project configuration.
   """
   def in_project(app, path, post_config \\ [], fun)
 
@@ -166,6 +180,7 @@ defmodule Mix.Project do
 
   @doc """
   Returns the path to store dependencies for this project.
+
   The returned path will be expanded.
 
   ## Examples
@@ -180,6 +195,7 @@ defmodule Mix.Project do
 
   @doc """
   Returns the build path for this project.
+
   The returned path will be expanded.
 
   ## Examples
@@ -187,7 +203,7 @@ defmodule Mix.Project do
       Mix.Project.build_path
       #=> "/path/to/project/_build/shared"
 
-  If :build_per_environment is set to true, it
+  If :build_per_environment is set to true (the default), it
   will create a new build per environment:
 
       Mix.env
@@ -205,8 +221,10 @@ defmodule Mix.Project do
   end
 
   @doc """
-  The path to store manifests. By default they are
-  stored in the same app path but it may be changed
+  The path to store manifests.
+
+  By default they are stored in the app path
+  inside the build directory but it may be changed
   in future releases.
 
   The returned path will be expanded.
@@ -223,6 +241,7 @@ defmodule Mix.Project do
 
   @doc """
   Returns the application path inside the build.
+
   The returned path will be expanded.
 
   ## Examples
@@ -234,7 +253,7 @@ defmodule Mix.Project do
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
-        Path.join([build_path(config), "lib", app])
+        Path.join([build_path(config), "lib", atom_to_binary(app)])
       config[:apps_path] ->
         raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->
@@ -246,6 +265,7 @@ defmodule Mix.Project do
 
   @doc """
   Returns the paths this project compiles to.
+
   The returned path will be expanded.
 
   ## Examples
@@ -276,7 +296,7 @@ defmodule Mix.Project do
     cond do
       opts[:symlink_ebin] ->
         Mix.Utils.symlink_or_copy(source, target)
-      match?({ :ok, _ }, :file.read_link(target)) ->
+      match?({:ok, _}, :file.read_link(target)) ->
         File.rm_rf!(target)
         File.mkdir_p!(target)
       true ->
@@ -304,7 +324,7 @@ defmodule Mix.Project do
     Mix.ProjectStack.post_config(post_config)
 
     if cached = Mix.ProjectStack.read_cache(app) do
-      { project, file } = cached
+      {project, file} = cached
       push(project, file)
       project
     else
@@ -323,34 +343,24 @@ defmodule Mix.Project do
         push new_proj, file
       end
 
-      Mix.ProjectStack.write_cache(app, { new_proj, file })
+      Mix.ProjectStack.write_cache(app, {new_proj, file})
       new_proj
     end
   end
 
   defp default_config do
-    [ build_per_environment: true,
-      default_task: "run",
-      deps: [],
-      deps_path: "deps",
-      elixirc_exts: [:ex],
-      elixirc_paths: ["lib"],
-      elixirc_watch_exts: [:ex, :eex, :exs],
-      erlc_paths: ["src"],
-      erlc_include_path: "include",
-      erlc_options: [:debug_info],
-      lockfile: "mix.lock",
-      preferred_cli_env: [{ "test", :test }] ]
+    [build_per_environment: true,
+     default_task: "run",
+     deps: [],
+     deps_path: "deps",
+     elixirc_paths: ["lib"],
+     erlc_paths: ["src"],
+     erlc_include_path: "include",
+     erlc_options: [:debug_info],
+     lockfile: "mix.lock",
+     preferred_cli_env: %{"test" => :test}]
   end
 
-  defp get_project_config(nil), do: []
-  defp get_project_config(atom) do
-    config = atom.project
-
-    if env = config[:env][Mix.env] do
-      config |> Keyword.delete(:env) |> Keyword.merge(env)
-    else
-      config
-    end
-  end
+  defp get_project_config(nil),  do: []
+  defp get_project_config(atom), do: atom.project
 end

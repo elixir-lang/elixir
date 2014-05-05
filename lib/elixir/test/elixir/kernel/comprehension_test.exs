@@ -10,6 +10,8 @@ defmodule Kernel.ComprehensionTest do
     << x >>
   end
 
+  defp nilly, do: nil
+
   ## Enum comprehensions (the common case)
 
   test "for comprehensions" do
@@ -51,7 +53,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions generators precedence" do
-    assert (for { _, _ } = x <- [foo: :bar], do: x) ==
+    assert (for {_, _} = x <- [foo: :bar], do: x) ==
            [foo: :bar]
   end
 
@@ -116,12 +118,12 @@ defmodule Kernel.ComprehensionTest do
       x + y
     end
 
-    assert iolist_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
+    assert iodata_to_binary(Process.get(:into_cont)) == "roohkpmmfi"
   end
 
   defp collectable_pdict do
     fn
-      _, { :cont, x } -> Process.put(:into_cont, [x|Process.get(:into_cont)])
+      _, {:cont, x} -> Process.put(:into_cont, [x|Process.get(:into_cont)])
       _, :done -> Process.put(:into_done, true)
       _, :halt -> Process.put(:into_halt, true)
     end
@@ -211,76 +213,4 @@ defmodule Kernel.ComprehensionTest do
       nil
     end) == "1\n2\n3\n"
   end
-
-  ## Old comprehensions
-
-  test :list_comprehensions do
-    assert [4] == lc x inlist [1, 2, 3], rem(x, 2) == 0, do: x * 2
-  end
-
-  test :list_comprehensions_with_nil do
-    assert [] == lc x inlist [1, 2, 3], nilly, do: x * 2
-  end
-
-  test :list_comprehensions_with_truthy_object do
-    assert [2, 4, 6] == lc x inlist [1, 2, 3], List.first([x]), do: x * 2
-  end
-
-  test :list_comprehensions_with_inlist_of_bins do
-    assert [2, 4, 6] == lc <<x>> inlist [<<1>>, <<2>>, <<3>>], do: x * 2
-  end
-
-  test :list_comprehensions_with_implicit_inbits do
-    assert [2, 4, 6] == lc <<x>> inbits <<1, 2, 3>>, do: x * 2
-  end
-
-  test :list_comprehensions_with_two_generators do
-    assert [4, 5, 6, 8, 10, 12, 12, 15, 18] == lc x inlist [1, 2, 3], y inlist [4, 5, 6], do: x * y
-  end
-
-  test :list_comprehension_multiline do
-    result = lc x inlist [1, 2, 3] do
-      x * 2
-    end
-
-    assert [2, 4, 6] == result
-  end
-
-  test :generator_precedence do
-    assert lc { _, _ } = x inlist [foo: :bar], do: x
-  end
-
-  test :bit_comprehensions do
-    assert <<4>> == bc x inlist [1, 2, 3], rem(x, 2) == 0, do: <<x * 2>>
-  end
-
-  test :bit_comprehensions_with_nil do
-    assert <<>> == bc x inlist [1, 2, 3], nilly, do: <<x * 2>>
-  end
-
-  test :bit_comprehensions_with_truthy_object do
-    assert <<2, 4, 6>> == bc x inlist [1, 2, 3], List.first([1]), do: <<x * 2>>
-  end
-
-  test :bit_comprehensions_with_inlist_of_bins do
-    assert <<2, 4, 6>> == bc <<x>> inlist [<<1>>, <<2>>, <<3>>], do: <<x * 2>>
-  end
-
-  test :bit_comprehensions_with_explicit_inbits do
-    assert <<2, 4, 6>> == bc <<x>> inbits <<1, 2, 3>>, do: <<x * 2>>
-  end
-
-  test :bit_comprehensions_with_two_generators do
-    assert <<4, 5, 6, 8, 10, 12, 12, 15, 18>> == bc x inlist [1, 2, 3], y inlist [4, 5, 6], do: <<x*y>>
-  end
-
-  test :bit_comprehension_multiline do
-    result = bc x inlist [1, 2, 3] do
-      <<x * 2>>
-    end
-
-    assert <<2, 4, 6>> == result
-  end
-
-  defp nilly, do: nil
 end

@@ -17,13 +17,7 @@ defmodule ExUnit do
         #    concurrently with other test cases
         use ExUnit.Case, async: true
 
-        # 4) A test is a function whose name starts with
-        #    `test` and receives a context.
-        def test_always_pass(_) do
-          assert true
-        end
-
-        # 5) Use the `test` macro instead of `def` for clarity.
+        # 4) Use the `test` macro instead of `def` for clarity.
         test "the truth" do
           assert true
         end
@@ -63,10 +57,9 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
-  @type state   :: nil | :passed | { :failed, failed } | { :skip, binary } | { :invalid, invalid }
-  @type failed  :: { :error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple] }
-  @type invalid :: module
+  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase."
+  @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
+  @type failed :: {:error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple]}
 
   defrecord Test, [:name, :case, :state, :time, :tags] do
     @moduledoc """
@@ -87,7 +80,7 @@ defmodule ExUnit do
     record_type name: module, state: ExUnit.state, tests: [ExUnit.Test.t]
   end
 
-  use Application.Behaviour
+  use Application
 
   @doc false
   def start(_type, []) do
@@ -109,7 +102,7 @@ defmodule ExUnit do
 
     configure(options)
 
-    if :application.get_env(:ex_unit, :autorun) != { :ok, false } do
+    if :application.get_env(:ex_unit, :autorun) != {:ok, false} do
       :application.set_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
@@ -152,7 +145,7 @@ defmodule ExUnit do
   * `:seed` - An integer seed value to randomize the test suite
   """
   def configure(options) do
-    Enum.each options, fn { k, v } ->
+    Enum.each options, fn {k, v} ->
       :application.set_env(:ex_unit, k, v)
     end
   end
@@ -168,10 +161,11 @@ defmodule ExUnit do
   API used to run the tests. It is invoked automatically
   if ExUnit is started via `ExUnit.start/1`.
 
-  Returns the number of failures.
+  Returns a map containing the number of tests and the number
+  of failures.
   """
   def run do
-    { async, sync, load_us } = ExUnit.Server.start_run
+    {async, sync, load_us} = ExUnit.Server.start_run
     ExUnit.Runner.run async, sync, configuration, load_us
   end
 end

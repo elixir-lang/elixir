@@ -15,11 +15,11 @@ defmodule Base do
   b32_alphabet    = Enum.with_index 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
   b32hex_alphabet = Enum.with_index '0123456789ABCDEFGHIJKLMNOPQRSTUV'
 
-  Enum.each [ { :enc16,    :dec16,    b16_alphabet },
-              { :enc64,    :dec64,    b64_alphabet },
-              { :enc32,    :dec32,    b32_alphabet },
-              { :enc64url, :dec64url, b64url_alphabet },
-              { :enc32hex, :dec32hex, b32hex_alphabet } ], fn({enc, dec, alphabet}) ->
+  Enum.each [ {:enc16,    :dec16,    b16_alphabet},
+              {:enc64,    :dec64,    b64_alphabet},
+              {:enc32,    :dec32,    b32_alphabet},
+              {:enc64url, :dec64url, b64url_alphabet},
+              {:enc32hex, :dec32hex, b32hex_alphabet} ], fn({enc, dec, alphabet}) ->
     for {encoding, value} <- alphabet do
       defp unquote(enc)(unquote(value)), do: unquote(encoding)
       defp unquote(dec)(unquote(encoding)), do: unquote(value)
@@ -61,9 +61,9 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode16(binary) :: { :ok, binary } | :error
+  @spec decode16(binary) :: {:ok, binary} | :error
   def decode16(string) when is_binary(string) do
-    { :ok, decode16!(string) }
+    {:ok, decode16!(string)}
   rescue
     ArgumentError -> :error
   end
@@ -130,9 +130,9 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode64(binary) :: { :ok, binary } | :error
+  @spec decode64(binary) :: {:ok, binary} | :error
   def decode64(string) when is_binary(string) do
-    { :ok, do_decode64(string, &dec64/1) }
+    {:ok, do_decode64(string, &dec64/1)}
   rescue
     ArgumentError -> :error
   end
@@ -203,9 +203,9 @@ defmodule Base do
       {:ok, <<255,127,254,252>>}
 
   """
-  @spec url_decode64(binary) :: { :ok, binary } | :error
+  @spec url_decode64(binary) :: {:ok, binary} | :error
   def url_decode64(string) when is_binary(string) do
-    { :ok, do_decode64(string, &dec64url/1) }
+    {:ok, do_decode64(string, &dec64url/1)}
   rescue
     ArgumentError -> :error
   end
@@ -265,9 +265,9 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode32(binary) :: { :ok, binary } | :error
+  @spec decode32(binary) :: {:ok, binary} | :error
   def decode32(string) do
-    { :ok, do_decode32(string, &dec32/1) }
+    {:ok, do_decode32(string, &dec32/1)}
   rescue
     ArgumentError -> :error
   end
@@ -328,9 +328,9 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec hex_decode32(binary) :: { :ok, binary } | :error
+  @spec hex_decode32(binary) :: {:ok, binary} | :error
   def hex_decode32(string) when is_binary(string) do
-    { :ok, do_decode32(string, &dec32hex/1) }
+    {:ok, do_decode32(string, &dec32hex/1)}
   rescue
     ArgumentError -> :error
   end

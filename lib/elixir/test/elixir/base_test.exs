@@ -16,14 +16,14 @@ defmodule BaseTest do
   end
 
   test "decode16" do
-    assert { :ok, "" } == decode16("")
-    assert { :ok, "f" } == decode16("66")
-    assert { :ok, "fo" } == decode16("666F")
-    assert { :ok, "foo" } == decode16("666F6F")
-    assert { :ok, "foob" } == decode16("666F6F62")
-    assert { :ok, "fooba" } == decode16("666F6F6261")
-    assert { :ok, "foobar" } == decode16("666F6F626172")
-    assert { :ok, <<161, 178,  195, 212, 229, 246, 120, 145>> } == decode16("A1B2C3D4E5F67891")
+    assert {:ok, ""} == decode16("")
+    assert {:ok, "f"} == decode16("66")
+    assert {:ok, "fo"} == decode16("666F")
+    assert {:ok, "foo"} == decode16("666F6F")
+    assert {:ok, "foob"} == decode16("666F6F62")
+    assert {:ok, "fooba"} == decode16("666F6F6261")
+    assert {:ok, "foobar"} == decode16("666F6F626172")
+    assert {:ok, <<161, 178,  195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
   end
  
   test "decode16!" do
@@ -85,7 +85,7 @@ defmodule BaseTest do
   end
 
   test "decode64 empty" do
-    assert { :ok, "" } == decode64("")
+    assert {:ok, ""} == decode64("")
   end
 
   test "decode64! empty" do
@@ -93,7 +93,7 @@ defmodule BaseTest do
   end
 
   test "decode64 two pads" do
-    assert { :ok, "Aladdin:open sesame" } == decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+    assert {:ok, "Aladdin:open sesame"} == decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
   end
 
   test "decode64! two pads" do
@@ -101,7 +101,7 @@ defmodule BaseTest do
   end
 
   test "decode64 one pad" do
-    assert { :ok, "Hello World" } == decode64("SGVsbG8gV29ybGQ=")
+    assert {:ok, "Hello World"} == decode64("SGVsbG8gV29ybGQ=")
   end
 
   test "decode64! one pad" do
@@ -109,7 +109,7 @@ defmodule BaseTest do
   end
 
   test "decode64 no pad" do
-    assert { :ok, "Aladdin:open sesam" } == decode64("QWxhZGRpbjpvcGVuIHNlc2Ft")
+    assert {:ok, "Aladdin:open sesam"} == decode64("QWxhZGRpbjpvcGVuIHNlc2Ft")
   end
 
   test "decode64! no pad" do
@@ -159,7 +159,7 @@ defmodule BaseTest do
   end
   
   test "url_decode64 empty" do
-    assert { :ok, "" } == url_decode64("")
+    assert {:ok, ""} == url_decode64("")
   end
 
   test "url_decode64! empty" do
@@ -167,7 +167,7 @@ defmodule BaseTest do
   end
   
   test "url_decode64 two pads" do
-    assert { :ok, "Aladdin:open sesame" } == url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
+    assert {:ok, "Aladdin:open sesame"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
   end
 
   test "url_decode64! two pads" do
@@ -175,7 +175,7 @@ defmodule BaseTest do
   end
 
   test "url_decode64 one pad" do
-    assert { :ok, "Hello World" } == url_decode64("SGVsbG8gV29ybGQ=")
+    assert {:ok, "Hello World"} == url_decode64("SGVsbG8gV29ybGQ=")
   end
 
   test "url_decode64! one pad" do
@@ -183,7 +183,7 @@ defmodule BaseTest do
   end
 
   test "url_decode64 no pad" do
-    assert { :ok, "Aladdin:open sesam" } == url_decode64("QWxhZGRpbjpvcGVuIHNlc2Ft")
+    assert {:ok, "Aladdin:open sesam"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2Ft")
   end
 
   test "url_decode64! no pad" do
@@ -236,7 +236,7 @@ defmodule BaseTest do
   end
 
   test "decode32 empty" do
-    assert { :ok, "" } == decode32("")
+    assert {:ok, ""} == decode32("")
   end
 
   test "decode32! empty" do
@@ -244,7 +244,7 @@ defmodule BaseTest do
   end
   
   test "decode32 one pad" do
-    assert { :ok, "foob" } == decode32("MZXW6YQ=")
+    assert {:ok, "foob"} == decode32("MZXW6YQ=")
   end
 
   test "decode32! one pad" do
@@ -252,7 +252,7 @@ defmodule BaseTest do
   end
 
   test "decode32 three pads" do
-    assert { :ok, "foo" } == decode32("MZXW6===")
+    assert {:ok, "foo"} == decode32("MZXW6===")
   end
 
   test "decode32! three pads" do
@@ -260,7 +260,7 @@ defmodule BaseTest do
   end
 
   test "decode32 four pads" do
-    assert { :ok, "fo" } == decode32("MZXQ====")
+    assert {:ok, "fo"} == decode32("MZXQ====")
   end
 
   test "decode32! four pads" do
@@ -268,8 +268,8 @@ defmodule BaseTest do
   end
 
   test "decode32 six pads" do
-    assert { :ok, "foobar" } == decode32("MZXW6YTBOI======")
-    assert { :ok, "f" } == decode32("MY======")
+    assert {:ok, "foobar"} == decode32("MZXW6YTBOI======")
+    assert {:ok, "f"} == decode32("MY======")
   end
 
   test "decode32! six pads" do
@@ -278,7 +278,7 @@ defmodule BaseTest do
   end
 
   test "decode32 no pads" do
-    assert { :ok, "fooba" } == decode32("MZXW6YTB")
+    assert {:ok, "fooba"} == decode32("MZXW6YTB")
   end
 
   test "decode32! no pads" do
@@ -331,7 +331,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 empty" do
-    assert { :ok, "" } == hex_decode32("")
+    assert {:ok, ""} == hex_decode32("")
   end
 
   test "hex_decode32! empty" do
@@ -339,7 +339,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 one pad" do
-    assert { :ok, "foob" } == hex_decode32("CPNMUOG=")
+    assert {:ok, "foob"} == hex_decode32("CPNMUOG=")
   end
 
   test "hex_decode32! one pad" do
@@ -347,7 +347,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 three pads" do
-    assert { :ok, "foo" } == hex_decode32("CPNMU===")
+    assert {:ok, "foo"} == hex_decode32("CPNMU===")
   end
 
   test "hex_decode32! three pads" do
@@ -355,7 +355,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 four pads" do
-    assert { :ok, "fo" } == hex_decode32("CPNG====")
+    assert {:ok, "fo"} == hex_decode32("CPNG====")
   end
 
   test "hex_decode32! four pads" do
@@ -363,8 +363,8 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 six pads" do
-    assert { :ok, "foobar" } == hex_decode32("CPNMUOJ1E8======")
-    assert { :ok, "f" } == hex_decode32("CO======")
+    assert {:ok, "foobar"} == hex_decode32("CPNMUOJ1E8======")
+    assert {:ok, "f"} == hex_decode32("CO======")
   end
 
   test "hex_decode32! six pads" do
@@ -373,7 +373,7 @@ defmodule BaseTest do
   end
 
   test "hex_decode32 no pads" do
-    assert { :ok, "fooba" } == hex_decode32("CPNMUOJ1")
+    assert {:ok, "fooba"} == hex_decode32("CPNMUOJ1")
   end
 
   test "hex_decode32! no pads" do

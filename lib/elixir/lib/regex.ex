@@ -1,8 +1,10 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Regular expressions for Elixir built on top of the `re` module
-  in the Erlang Standard Library. More information can be found
-  in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
+  Regular expressions for Elixir built on top of Erlang's `re` module.
+
+  As the `re` module, Regex is based on PCRE
+  (Perl Compatible Regular Expressions). More information can be
+  found in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
   or using the special form with [`~r`](Kernel.html#sigil_r/2):
@@ -10,12 +12,18 @@ defmodule Regex do
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
 
-      # A regular expression with case insensitive options
-      ~r/foo/i
+      # A regular expression with case insensitive and unicode options
+      ~r/foo/iu
 
-  The `re` module provides several options, the ones available in Elixir, followed by
-  their shortcut in parenthesis, are:
+  A Regex is represented internally as the `Regex` struct. Therefore,
+  `%Regex{}` can be used whenever there is a need to match on them.
 
+  ## Modifiers
+
+  The modifiers available when creating a Regex are:
+
+  * `unicode` (u) - enables unicode specific patterns like \p. it expects valid unicode
+    strings to be given on match
   * `caseless` (i) - add case insensitivity
   * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
     The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
@@ -54,14 +62,13 @@ defmodule Regex do
 
   * `:none` - do not return matching subpatterns at all;
 
-  * `:groups` - captures only named captures in the Regex;
+  * `:all_names` - captures all names in the Regex;
 
   * `list(binary)` - a list of named captures to capture;
 
   """
 
-  defrecordp :regex, Regex, [:re_pattern, :source, :options]
-  @type t :: { Regex, term, binary, binary, [atom] | nil }
+  defstruct re_pattern: nil :: term, source: "" :: binary, opts: "" :: binary
 
   defexception CompileError, message: "regex could not be compiled"
 
@@ -72,8 +79,8 @@ defmodule Regex do
   representing the same regex options given to the `~r` sigil,
   or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
 
-  It returns `{ :ok, regex }` in case of success,
-  `{ :error, reason }` otherwise.
+  It returns `{:ok, regex}` in case of success,
+  `{:error, reason}` otherwise.
 
   ## Examples
 
@@ -84,18 +91,16 @@ defmodule Regex do
       {:error, {'nothing to repeat', 0}}
 
   """
-  @spec compile(binary, binary | [term]) :: { :ok, t } | { :error, any }
+  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
   def compile(source, options \\ "")
 
   def compile(source, options) when is_binary(options) do
     case translate_options(options) do
-      { :error, rest } ->
-        { :error, { :invalid_option, rest } }
+      {:error, rest} ->
+        {:error, {:invalid_option, rest}}
 
       translated_options ->
-        # Always use the unicode option, we don't have a latin1 legacy like
-        # Erlang.
-        compile(source, [:unicode|translated_options], options)
+        compile(source, translated_options, options)
     end
   end
 
@@ -105,8 +110,8 @@ defmodule Regex do
 
   defp compile(source, opts, doc_opts) when is_binary(source) do
     case :re.compile(source, opts) do
-      { :ok, re_pattern } ->
-        { :ok, regex(re_pattern: re_pattern, source: source, options: doc_opts) }
+      {:ok, re_pattern} ->
+        {:ok, %Regex{re_pattern: re_pattern, source: source, opts: doc_opts}}
       error ->
         error
     end
@@ -118,8 +123,8 @@ defmodule Regex do
   """
   def compile!(source, options \\ "") do
     case compile(source, options) do
-      { :ok, regex } -> regex
-      { :error, { reason, at } } -> raise Regex.CompileError, message: "#{reason} at position #{at}"
+      {:ok, regex} -> regex
+      {:error, {reason, at}} -> raise Regex.CompileError, message: "#{reason} at position #{at}"
     end
   end
 
@@ -135,8 +140,8 @@ defmodule Regex do
       false
 
   """
-  def match?(regex(re_pattern: compiled), string) when is_binary(string) do
-    :re.run(string, compiled, [{ :capture, :none }]) == :match
+  def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
+    :re.run(string, compiled, [{:capture, :none}]) == :match
   end
 
   @doc """
@@ -151,7 +156,7 @@ defmodule Regex do
       false
 
   """
-  def regex?(regex()), do: true
+  def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
   @doc """
@@ -178,49 +183,45 @@ defmodule Regex do
   """
   def run(regex, string, options \\ [])
 
-  def run(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
-    return = Keyword.get(options, :return, :binary)
+  def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+    return   = Keyword.get(options, :return, :binary)
+    captures = Keyword.get(options, :capture, :all)
 
-    captures =
-      case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
-        others  -> others
-      end
-
-    case :re.run(string, compiled, [{ :capture, captures, return }]) do
+    case :re.run(string, compiled, [{:capture, captures, return}]) do
       :nomatch -> nil
       :match   -> []
-      { :match, results } -> results
+      {:match, results} -> results
     end
   end
 
   @doc """
-  Returns the given captures as a keyword list or `nil` if no captures
-  are found. The option `:return` can be set to `:index` to get indexes
+  Returns the given captures as a map or `nil` if no captures are
+  found. The option `:return` can be set to `:index` to get indexes
   back.
 
   ## Examples
 
       iex> Regex.named_captures(~r/c(?<foo>d)/, "abcd")
-      [foo: "d"]
+      %{"foo" => "d"}
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "abcd")
-      [bar: "d", foo: "b"]
+      %{"bar" => "d", "foo" => "b"}
 
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
   """
   def named_captures(regex, string, options \\ []) when is_binary(string) do
-    options = [capture: :groups] ++ options
+    names = names(regex)
+    options = Keyword.put(options, :capture, names)
     results = run(regex, string, options)
-    if results, do: Enum.zip(groups(regex), results)
+    if results, do: Enum.zip(names, results) |> Enum.into(%{})
   end
 
   @doc """
   Returns the underlying `re_pattern` in the regular expression.
   """
-  def re_pattern(regex(re_pattern: compiled)) do
+  def re_pattern(%Regex{re_pattern: compiled}) do
     compiled
   end
 
@@ -233,7 +234,7 @@ defmodule Regex do
       "foo"
 
   """
-  def source(regex(source: source)) do
+  def source(%Regex{source: source}) do
     source
   end
 
@@ -246,22 +247,22 @@ defmodule Regex do
       "m"
 
   """
-  def opts(regex(options: options)) do
-    options
+  def opts(%Regex{opts: opts}) do
+    opts
   end
 
   @doc """
-  Returns a list of named groups in the regex.
+  Returns a list of names in the regex.
 
   ## Examples
 
-      iex> Regex.groups(~r/(?<foo>bar)/)
-      [:foo]
+      iex> Regex.names(~r/(?<foo>bar)/)
+      ["foo"]
 
   """
-  def groups(regex(re_pattern: re_pattern)) do
-    { :namelist, groups } = :re.inspect(re_pattern, :namelist)
-    for group <- groups, do: binary_to_atom(group)
+  def names(%Regex{re_pattern: re_pattern}) do
+    {:namelist, names} = :re.inspect(re_pattern, :namelist)
+    names
   end
 
   @doc """
@@ -290,20 +291,15 @@ defmodule Regex do
   """
   def scan(regex, string, options \\ [])
 
-  def scan(regex(re_pattern: compiled) = regex, string, options) when is_binary(string) do
-    return  = Keyword.get(options, :return, :binary)
+  def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+    return   = Keyword.get(options, :return, :binary)
+    captures = Keyword.get(options, :capture, :all)
+    options  = [{:capture, captures, return}, :global]
 
-    captures =
-      case Keyword.get(options, :capture, :all) do
-        :groups -> groups(regex)
-        others  -> others
-      end
-
-    options = [{ :capture, captures, return }, :global]
     case :re.run(string, compiled, options) do
       :match -> []
       :nomatch -> []
-      { :match, results } -> results
+      {:match, results} -> results
     end
   end
 
@@ -312,11 +308,11 @@ defmodule Regex do
 
   ## Options
 
-  * `:global` - splits the string in all parts unless set to `false`,
-                which leads the string to be split in 2. Defaults to true;
-
-  * `:parts` - when specified, splits the string into maximum the number
-               of given parts;
+  * `:parts` - when specified, splits the string into the 
+               given number of parts. If not specified, `:parts`
+               is defaulted to `:infinity`, which will split the
+               string into the maximum number of parts possible
+               based on the given pattern.
 
   * `:trim` - when true, remove blank strings from the result;
 
@@ -341,12 +337,15 @@ defmodule Regex do
 
   def split(regex, string, options \\ [])
 
-  def split(regex(re_pattern: compiled), string, options) when is_binary(string) do
+  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+    if options[:global] != nil do
+      IO.write :stderr, "Support for :global in Regex.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
+    end
     parts =
       cond do
-        Keyword.get(options, :global) == false -> 2
-        p = Keyword.get(options, :parts)       -> p
-        true                                   -> :infinity
+        Keyword.get(options, :global) == false  -> 2
+        p = Keyword.get(options, :parts)        -> if p == 0, do: :infinity, else: p
+        true                                    -> :infinity
       end
 
     opts   = [return: :binary, parts: parts]
@@ -388,13 +387,13 @@ defmodule Regex do
   """
   def replace(regex, string, replacement, options \\ [])
 
-  def replace(regex(re_pattern: compiled), string, replacement, options) when is_binary(string) do
+  def replace(%Regex{re_pattern: compiled}, string, replacement, options) when is_binary(string) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
-    opts = [{ :return, :binary }|opts]
+    opts = [{:return, :binary}|opts]
     :re.replace(string, compiled, replacement, opts)
   end
 
-  { :ok, pattern } = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])
+  {:ok, pattern} = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])
   @escape_pattern pattern
 
   @doc ~S"""
@@ -411,7 +410,7 @@ defmodule Regex do
   """
   @spec escape(String.t) :: String.t
   def escape(string) when is_binary(string) do
-    :re.replace(string, @escape_pattern, "\\\\&", [:global, { :return, :binary }])
+    :re.replace(string, @escape_pattern, "\\\\&", [:global, {:return, :binary}])
   end
 
   # Helpers
@@ -433,6 +432,7 @@ defmodule Regex do
     translate_options(t)
   end
 
+  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
   defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
   defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
   defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
@@ -440,5 +440,5 @@ defmodule Regex do
   defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
   defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
   defp translate_options(<<>>), do: []
-  defp translate_options(rest), do: { :error, rest }
+  defp translate_options(rest), do: {:error, rest}
 end

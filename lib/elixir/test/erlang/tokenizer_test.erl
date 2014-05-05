@@ -3,11 +3,11 @@
 -include_lib("eunit/include/eunit.hrl").
 
 tokenize(String) ->
-  { ok, _Line, Result } = elixir_tokenizer:tokenize(String, 1, []),
+  {ok, _Line, Result} = elixir_tokenizer:tokenize(String, 1, []),
   Result.
 
 tokenize_error(String) ->
-  { error, Error, _, _ } = elixir_tokenizer:tokenize(String, 1, []),
+  {error, Error, _, _} = elixir_tokenizer:tokenize(String, 1, []),
   Error.
 
 type_test() ->
@@ -49,7 +49,7 @@ quoted_atom_test() ->
 
 oversized_atom_test() ->
   OversizedAtom = [$:|string:copies("a", 256)],
-  { 1, "atom length must be less than system limit", ":" } = tokenize_error(OversizedAtom).
+  {1, "atom length must be less than system limit", ":"} = tokenize_error(OversizedAtom).
 
 op_atom_test() ->
   [{atom,1,f0_1}] = tokenize(":f0_1").

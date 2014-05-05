@@ -38,7 +38,7 @@ defmodule Mix.SCM do
   the available options. For example, when a developer specifies
   a dependency:
 
-      { :foo, "0.1.0", github: "foo/bar" }
+      {:foo, "0.1.0", github: "foo/bar"}
 
   Each registered SCM will be asked if they consume this dependency,
   receiving `[github: "foo/bar"]` as argument. Since this option makes
@@ -110,7 +110,7 @@ defmodule Mix.SCM do
   until a matching one is found.
   """
   def available do
-    { :ok, scm } = :application.get_env(:mix, :scm)
+    {:ok, scm} = :application.get_env(:mix, :scm)
     scm
   end
 

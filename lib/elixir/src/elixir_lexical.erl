@@ -11,7 +11,7 @@
 
 run(File, Callback) ->
   case code:is_loaded(?tracker) of
-    { file, _ } ->
+    {file, _} ->
       Pid = ?tracker:start_link(),
       try
         Callback(Pid)
@@ -65,13 +65,13 @@ if_tracker(Pid, Callback) when is_pid(Pid) -> Callback(Pid).
 
 warn_unused_imports(File, Pid) ->
   [ begin
-      elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_import, M } })
-    end || { M, L } <- ?tracker:collect_unused_imports(Pid)].
+      elixir_errors:handle_file_warning(File, {L, ?MODULE, {unused_import, M}})
+    end || {M, L} <- ?tracker:collect_unused_imports(Pid)].
 
 warn_unused_aliases(File, Pid) ->
   [ begin
-      elixir_errors:handle_file_warning(File, { L, ?MODULE, { unused_alias, M } })
-    end || { M, L } <- ?tracker:collect_unused_aliases(Pid)].
+      elixir_errors:handle_file_warning(File, {L, ?MODULE, {unused_alias, M}})
+    end || {M, L} <- ?tracker:collect_unused_aliases(Pid)].
 
 format_error({unused_alias, Module}) ->
   io_lib:format("unused alias ~ts", [elixir_aliases:inspect(Module)]);

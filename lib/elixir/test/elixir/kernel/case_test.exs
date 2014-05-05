@@ -8,20 +8,20 @@ defmodule Kernel.CaseTest do
   end
 
   test :nested_variables do
-    assert vars_case(400, 1) == { 400, 1 }
-    assert vars_case(401, 1) == { 400, -1 }
-    assert vars_case(0, -1)  == { 0, -1 }
-    assert vars_case(-1, -1) == { 0, 1 }
+    assert vars_case(400, 1) == {400, 1}
+    assert vars_case(401, 1) == {400, -1}
+    assert vars_case(0, -1)  == {0, -1}
+    assert vars_case(-1, -1) == {0, 1}
   end
 
   test :nested_vars_match do
-    x = { :error, { :ok, :done } }
+    x = {:error, {:ok, :done}}
     assert (case x do
-      { :ok, right } ->
+      {:ok, right} ->
         right
-      { _left, right } ->
+      {_left, right} ->
         case right do
-          { :ok, right }  -> right
+          {:ok, right}  -> right
         end
     end) == :done
   end

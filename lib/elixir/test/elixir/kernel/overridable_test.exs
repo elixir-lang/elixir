@@ -18,33 +18,33 @@ defmodule Kernel.Overridable do
   end
 
   def explicit_nested_super do
-    { super?, 2 }
+    {super?, 2}
   end
 
-  false = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+  false = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   defoverridable [sample: 0, with_super: 0, without_super: 0, explicit_nested_super: 0]
 
-  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   def explicit_nested_super do
-    { super, super?, 1 }
+    {super, super?, 1}
   end
 
-  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   defoverridable [explicit_nested_super: 0]
 
-  true = Module.overridable? __MODULE__, { :explicit_nested_super, 0 }
+  true = Module.overridable? __MODULE__, {:explicit_nested_super, 0}
 
   def implicit_nested_super do
-    { super?, 1 }
+    {super?, 1}
   end
 
   defoverridable [implicit_nested_super: 0]
 
   def implicit_nested_super do
-    { super, super?, 0 }
+    {super, super?, 0}
   end
 
   def super_with_explicit_args(x, y) do
@@ -71,11 +71,11 @@ defmodule Kernel.Overridable do
   end
 
   def no_overridable do
-    { :no_overridable, super? }
+    {:no_overridable, super?}
   end
 
   def explicit_nested_super do
-    { super, super?, 0 }
+    {super, super?, 0}
   end
 
   def super_with_explicit_args(x, y) do
@@ -112,11 +112,11 @@ defmodule Kernel.OverridableTest do
   end
 
   test "overridable overridden with nested super" do
-    assert Overridable.explicit_nested_super == { { { false, 2 }, true, 1 }, true, 0 }
+    assert Overridable.explicit_nested_super == {{{false, 2}, true, 1}, true, 0}
   end
 
   test "overridable node overridden with nested super" do
-    assert Overridable.implicit_nested_super == { { false, 1 }, true, 0 }
+    assert Overridable.implicit_nested_super == {{false, 1}, true, 0}
   end
 
   test "calling super with explicit args" do
@@ -124,7 +124,7 @@ defmodule Kernel.OverridableTest do
   end
 
   test "function without overridable returns false for super?" do
-    assert Overridable.no_overridable == { :no_overridable, false }
+    assert Overridable.no_overridable == {:no_overridable, false}
   end
 
   test "overridable with many clauses" do

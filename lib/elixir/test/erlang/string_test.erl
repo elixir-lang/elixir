@@ -3,8 +3,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, []),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, []),
+  {Value, Binding}.
 
 extract_interpolations(String) ->
   element(2, elixir_interpolation:extract(1,

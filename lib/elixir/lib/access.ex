@@ -14,11 +14,11 @@ defprotocol Access do
       iex> keywords[:a]
       1
 
-      iex> map = %{ a: 1, b: 2 }
+      iex> map = %{a: 1, b: 2}
       iex> map[:a]
       1
 
-      iex> star_ratings = %{ 1.0 => "★", 1.5 => "★☆", 2.0 => "★★" }
+      iex> star_ratings = %{1.0 => "★", 1.5 => "★☆", 2.0 => "★★"}
       iex> star_ratings[1.5]
       "★☆"
 
@@ -34,16 +34,22 @@ defprotocol Access do
 end
 
 defimpl Access, for: List do
-  def access(dict, key)
-  def access([{ key, value }|_], key), do: value
-  def access([{ _, _ }|t], key), do: access(t, key)
-  def access([], _key), do: nil
+  def access(dict, key) when is_atom(key) do
+    case :lists.keyfind(key, 1, dict) do
+      {^key, value} -> value
+      false -> nil
+    end
+  end
+
+  def access(_dict, key) do
+    raise ArgumentError, message: "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
+  end
 end
 
 defimpl Access, for: Map do
   def access(map, key) do
     case :maps.find(key, map) do
-      { :ok, value } -> value
+      {:ok, value} -> value
       :error -> nil
     end
   end

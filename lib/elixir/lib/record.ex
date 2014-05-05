@@ -4,7 +4,7 @@ defmodule Record do
 
   Records are simply tuples where the first element is an atom:
 
-      iex> Record.record? { User, "jose", 27 }
+      iex> Record.record? {User, "jose", 27}
       true
 
   This module provides conveniences for working with records at
@@ -51,13 +51,13 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = { User, "jose", 27 }
+      iex> record = {User, "jose", 27}
       iex> Record.record?(record, User)
       true
 
   """
   defmacro record?(data, kind) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
@@ -79,7 +79,7 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = { User, "jose", 27 }
+      iex> record = {User, "jose", 27}
       iex> Record.record?(record)
       true
       iex> tuple = {}
@@ -88,7 +88,7 @@ defmodule Record do
 
   """
   defmacro record?(data) do
-    case __CALLER__.in_guard? do
+    case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
           is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
@@ -135,14 +135,14 @@ defmodule Record do
   arities will be defined to manipulate the underlying record:
 
       # To create records
-      user()        #=> { :user, "José", 25 }
-      user(age: 26) #=> { :user, "José", 26 }
+      user()        #=> {:user, "José", 25}
+      user(age: 26) #=> {:user, "José", 26}
 
       # To get a field from the record
       user(record, :name) #=> "José"
 
       # To update the record
-      user(record, age: 26) #=> { :user, "José", 26 }
+      user(record, age: 26) #=> {:user, "José", 26}
 
   By default, Elixir uses the record name as the first element of
   the tuple (the tag). But it can be changed to something else:
@@ -151,7 +151,7 @@ defmodule Record do
         Record.defrecord :user, User, name: nil
       end
 
-      user() #=> { User, nil }
+      user() #=> {User, nil}
 
   """
   defmacro defrecord(name, tag \\ nil, kv) do
@@ -161,7 +161,7 @@ defmodule Record do
       tag = tag || name
       kv  = Macro.expand(kv, __ENV__)
 
-      { fields, _types } = Record.Backend.split_fields_and_types(:defrecord, kv)
+      {fields, _types} = Record.Backend.split_fields_and_types(:defrecord, kv)
       fields = Macro.escape(fields)
 
       defmacro(unquote(name)(args \\ [])) do
@@ -184,7 +184,7 @@ defmodule Record do
       tag = tag || name
       kv  = Macro.expand(kv, __ENV__)
 
-      { fields, _types } = Record.Backend.split_fields_and_types(:defrecordp, kv)
+      {fields, _types} = Record.Backend.split_fields_and_types(:defrecordp, kv)
       fields = Macro.escape(fields)
 
       defmacrop(unquote(name)(args \\ [])) do

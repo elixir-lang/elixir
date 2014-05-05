@@ -2,8 +2,14 @@ defmodule HashDict do
   @moduledoc """
   A key-value store.
 
-  The `HashDict` is implemented using tries, which grows in
-  space as the number of keys grows, working well with both
+  The `HashDict` is represented internally as a struct, therefore
+  `%HashDict{}` can be used whenever there is a need to match
+  on any `HashDict`. Note though the struct fields are private and
+  must not be accessed directly. Instead, use the functions on this
+  or in the `Dict` module.
+
+  Implementation-wise, `HashDict` is implemented using tries, which
+  grows in space as the number of keys grows, working well with both
   small and large set of keys. For more information about the
   functions and their APIs, please consult the `Dict` module.
   """
@@ -15,119 +21,93 @@ defmodule HashDict do
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
 
-  defrecordp :trie, HashDict,
-    size: 0,
-    root: @node_template
+  defstruct size: 0, root: @node_template
 
   # Inline common instructions
   @compile :inline_list_funcs
-  @compile { :inline, key_hash: 1, key_mask: 1, key_shift: 1 }
+  @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
   @doc """
   Creates a new empty dict.
   """
   @spec new :: Dict.t
   def new do
-    trie()
+    %HashDict{}
   end
 
-  @doc false
-  @spec new(Enum.t) :: Dict.t
-  def new(enum) do
-    IO.write :stderr, "HashDict.new/1 is deprecated, please use Enum.into/2 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn { k, v }, dict ->
-      put(dict, k, v)
-    end
+  def put(%HashDict{root: root, size: size}, key, value) do
+    {root, counter} = do_put(root, key, value, key_hash(key))
+    %HashDict{root: root, size: size + counter}
   end
 
-  @doc false
-  @spec new(Enum.t, (term -> {key :: term, value ::term})) :: Dict.t
-  def new(enum, transform) when is_function(transform) do
-    IO.write :stderr, "HashDict.new/2 is deprecated, please use Enum.into/3 instead\n#{Exception.format_stacktrace}"
-    Enum.reduce enum, trie(), fn i, dict ->
-      { k, v } = transform.(i)
-      put(dict, k, v)
-    end
-  end
-
-  def empty(trie()) do
-    IO.write :stderr, "HashDict.empty/1 is deprecated, please use Collectable.empty/1 instead\n#{Exception.format_stacktrace}"
-    trie()
-  end
-
-  def put(trie(root: root, size: size), key, value) do
-    { root, counter } = do_put(root, key, value, key_hash(key))
-    trie(root: root, size: size + counter)
-  end
-
-  def update!(trie(root: root, size: size) = dict, key, fun) when is_function(fun, 1) do
-    { root, counter } = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
+  def update!(%HashDict{root: root, size: size} = dict, key, fun) when is_function(fun, 1) do
+    {root, counter} = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
                                   fun, key_hash(key))
-    trie(root: root, size: size + counter)
+    %HashDict{root: root, size: size + counter}
   end
 
-  def update(trie(root: root, size: size), key, initial, fun) when is_function(fun, 1) do
-    { root, counter } = do_update(root, key, fn -> initial end, fun, key_hash(key))
-    trie(root: root, size: size + counter)
+  def update(%HashDict{root: root, size: size}, key, initial, fun) when is_function(fun, 1) do
+    {root, counter} = do_update(root, key, fn -> initial end, fun, key_hash(key))
+    %HashDict{root: root, size: size + counter}
   end
 
-  def fetch(trie(root: root), key) do
+  def fetch(%HashDict{root: root}, key) do
     do_fetch(root, key, key_hash(key))
   end
 
   def delete(dict, key) do
     case dict_delete(dict, key) do
-      { dict, _value } -> dict
+      {dict, _value} -> dict
       :error           -> dict
     end
   end
 
   def pop(dict, key, default \\ nil) do
     case dict_delete(dict, key) do
-      { dict, value } -> { value, dict }
-      :error          -> { default, dict }
+      {dict, value} -> {value, dict}
+      :error          -> {default, dict}
     end
   end
 
-  def size(trie(size: size)) do
+  def size(%HashDict{size: size}) do
     size
   end
 
   @doc false
-  def reduce(trie(root: root), acc, fun) do
+  def reduce(%HashDict{root: root}, acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
-      {:suspend, acc} -> {:suspended, acc, &{ :done, elem(&1, 1) }}
+      {:suspend, acc} -> {:suspended, acc, &{:done, elem(&1, 1)}}
       {:halt, acc}    -> {:halted, acc}
       {:cont, acc}    -> {:done, acc}
     end)
   end
 
   def split(dict, keys) do
-    Enum.reduce keys, { new, dict }, fn key, { inc, exc } = acc ->
+    Enum.reduce keys, {new, dict}, fn key, {inc, exc} = acc ->
       case dict_delete(exc, key) do
-        { exc, value } -> { put(inc, key, value), exc }
+        {exc, value} -> {put(inc, key, value), exc}
         :error -> acc
       end
     end
   end
 
-  def merge(trie(size: size1) = dict1, trie(size: size2) = dict2, callback) when size1 < size2 do
-    reduce(dict1, { :cont, dict2 }, fn { k, v1 }, acc ->
-      { :cont, update(acc, k, v1, &callback.(k, v1, &1)) }
+  def merge(%HashDict{size: size1} = dict1, %HashDict{size: size2} = dict2, callback) when size1 < size2 do
+    reduce(dict1, {:cont, dict2}, fn {k, v1}, acc ->
+      {:cont, update(acc, k, v1, &callback.(k, v1, &1))}
     end) |> elem(1)
   end
 
-  def merge(trie() = dict1, trie() = dict2, callback) do
-    reduce(dict2, { :cont, dict1 }, fn { k, v2 }, acc ->
-      { :cont, update(acc, k, v2, &callback.(k, &1, v2)) }
+  def merge(%HashDict{} = dict1, %HashDict{} = dict2, callback) do
+    reduce(dict2, {:cont, dict1}, fn {k, v2}, acc ->
+      {:cont, update(acc, k, v2, &callback.(k, &1, v2))}
     end) |> elem(1)
   end
 
   ## General helpers
 
-  defp dict_delete(trie(root: root, size: size), key) do
+  defp dict_delete(%HashDict{root: root, size: size}, key) do
     case do_delete(root, key, key_hash(key)) do
-      { root, value } -> { trie(root: root, size: size - 1), value }
+      {root, value} -> {%HashDict{root: root, size: size - 1}, value}
       :error          -> :error
     end
   end
@@ -266,9 +246,9 @@ end
 
 defimpl Enumerable, for: HashDict do
   def reduce(dict, acc, fun),  do: HashDict.reduce(dict, acc, fun)
-  def member?(dict, { k, v }), do: { :ok, match?({ :ok, ^v }, HashDict.fetch(dict, k)) }
-  def member?(_dict, _),       do: { :ok, false }
-  def count(dict),             do: { :ok, HashDict.size(dict) }
+  def member?(dict, {k, v}), do: {:ok, match?({:ok, ^v}, HashDict.fetch(dict, k))}
+  def member?(_dict, _),       do: {:ok, false}
+  def count(dict),             do: {:ok, HashDict.size(dict)}
 end
 
 defimpl Access, for: HashDict do
@@ -281,10 +261,10 @@ defimpl Collectable, for: HashDict do
   end
 
   def into(original) do
-    { original, fn
-      dict, { :cont, { k, v } } -> Dict.put(dict, k, v)
+    {original, fn
+      dict, {:cont, {k, v}} -> Dict.put(dict, k, v)
       dict, :done -> dict
       _, :halt -> :ok
-    end }
+    end}
   end
 end

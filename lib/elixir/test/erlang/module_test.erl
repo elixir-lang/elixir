@@ -2,8 +2,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  { Value, Binding, _, _ } = elixir:eval(Content, []),
-  { Value, Binding }.
+  {Value, Binding, _, _} = elixir:eval(Content, []),
+  {Value, Binding}.
 
 definition_test() ->
   F = fun() ->
@@ -25,7 +25,7 @@ function_test() ->
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
 
 quote_unquote_splicing_test() ->
-  { { '{}', [], [1,2,3,4,5] }, _ } = eval("x = [2,3,4]\nquote do: { 1, unquote_splicing(x), 5}").
+  {{'{}', [], [1,2,3,4,5]}, _} = eval("x = [2,3,4]\nquote do: {1, unquote_splicing(x), 5}").
 
 def_shortcut_test() ->
   F = fun() ->
@@ -88,17 +88,20 @@ nesting_test() ->
   test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Bar']).
 
 dot_alias_test() ->
-  { 'Elixir.Foo.Bar.Baz', _ } = eval("Foo.Bar.Baz").
+  {'Elixir.Foo.Bar.Baz', _} = eval("Foo.Bar.Baz").
 
 dot_dyn_alias_test() ->
-  { 'Elixir.Foo.Bar.Baz', _ } = eval("a = Foo.Bar; a.Baz").
+  {'Elixir.Foo.Bar.Baz', _} = eval("a = Foo.Bar; a.Baz").
 
 single_ref_test() ->
-  { 'Elixir.Foo', _ } = eval("Foo"),
-  { 'Elixir.Foo', _ } = eval("Elixir.Foo").
+  {'Elixir.Foo', _} = eval("Foo"),
+  {'Elixir.Foo', _} = eval("Elixir.Foo").
 
 nested_ref_test() ->
-  { 'Elixir.Foo.Bar.Baz', _ } = eval("Foo.Bar.Baz").
+  {'Elixir.Foo.Bar.Baz', _} = eval("Foo.Bar.Baz").
+
+module_with_elixir_as_a_name_test() ->
+  ?assertError({'Elixir.CompileError', _, _, _, _}, eval("defmodule Elixir do\nend")).
 
 dynamic_defmodule_test() ->
   F = fun() ->

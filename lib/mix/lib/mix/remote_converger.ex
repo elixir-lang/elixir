@@ -20,11 +20,18 @@ defmodule Mix.RemoteConverger do
   defcallback converge([Mix.Dep.t], map) :: map
 
   @doc """
+  Returns a child dependencies the converger has  for the
+  dependency. This list should filter the loaded children.
+  """
+  defcallback deps(Mix.Dep.t, map) :: [atom]
+
+
+  @doc """
   Get registered remote converger.
   """
   def get do
     case :application.get_env(:mix, :remote_converger) do
-      { :ok, converger } -> converger
+      {:ok, converger} -> converger
       :undefined -> nil
     end
   end

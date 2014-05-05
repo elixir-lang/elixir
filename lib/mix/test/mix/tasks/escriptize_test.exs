@@ -30,7 +30,7 @@ defmodule Mix.Tasks.EscriptizeTest do
         version: "0.0.1",
         escript_main_module: Escripttest,
         escript_path: Path.join("ebin", "escripttestwithdeps"),
-        deps: [{ :ok, path: fixture_path("deps_status/deps/ok") }] ]
+        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
     end
   end
 
@@ -39,11 +39,11 @@ defmodule Mix.Tasks.EscriptizeTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escriptize.run []
-      assert_received { :mix_shell, :info, ["Generated escript escripttest"] }
+      assert_received {:mix_shell, :info, ["Generated escript escripttest"]}
       assert System.cmd("escript escripttest") == "TEST\n"
 
       Mix.Tasks.Escriptize.run []
-      refute_received { :mix_shell, :info, ["Generated escript escripttest"] }
+      refute_received {:mix_shell, :info, ["Generated escript escripttest"]}
     end
   end
 
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.EscriptizeTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escriptize.run []
-      assert_received { :mix_shell, :info, ["Generated escript ebin/escripttestwithpath"] }
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithpath"]}
       assert System.cmd("escript ebin/escripttestwithpath") == "TEST\n"
     end
   end
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.EscriptizeTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escriptize.run []
-      assert_received { :mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"] }
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"]}
       assert System.cmd("escript ebin/escripttestwithdeps") == "TEST\n"
     end
   after

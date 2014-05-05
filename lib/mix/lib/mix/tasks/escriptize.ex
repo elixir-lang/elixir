@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Escriptize do
 
   """
   def run(args) do
-    { opts, _, _ } = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, no_compile: :boolean])
 
     # Require the project to be available
     Mix.Project.get!
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Escriptize do
       Mix.Task.run :compile, args
     end
 
-    escriptize(Mix.project, opts[:force])
+    escriptize(Mix.Project.config, opts[:force])
   end
 
   defp escriptize(project, force) do
@@ -97,12 +97,12 @@ defmodule Mix.Tasks.Escriptize do
         tuples = Enum.uniq(tuples, fn {name, _} -> name end)
 
         case :zip.create 'mem', tuples, [:memory] do
-          { :ok, { 'mem', zip } } ->
+          {:ok, {'mem', zip}} ->
             shebang  = project[:escript_shebang]  || "#! /usr/bin/env escript\n"
             comment  = project[:escript_comment]  || "%%\n"
             emu_args = project[:escript_emu_args] || "%%!\n"
 
-            script = iolist_to_binary([shebang, comment, emu_args, zip])
+            script = iodata_to_binary([shebang, comment, emu_args, zip])
 
             File.mkdir_p!(Path.dirname(filename))
             File.write!(filename, script)
@@ -152,12 +152,12 @@ defmodule Mix.Tasks.Escriptize do
 
   defp to_tuples(files) do
     for f <- files do
-      { String.to_char_list!(Path.basename(f)), File.read!(f) }
+      {List.from_char_data!(Path.basename(f)), File.read!(f)}
     end
   end
 
   defp gen_main(name, module, app) do
-    { :module, ^name, binary, _ } =
+    {:module, ^name, binary, _} =
       defmodule name do
         @module module
         @app app
@@ -166,10 +166,10 @@ defmodule Mix.Tasks.Escriptize do
           case :application.start(:elixir) do
             :ok ->
               start_app(@app)
-              args = Enum.map(args, &String.from_char_list!(&1))
+              args = Enum.map(args, &String.from_char_data!(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
-              IO.puts :stderr, IO.ANSI.escape("%{red, bright} Elixir is not in the code path, aborting.")
+              io_error "Elixir is not in the code path, aborting."
               System.halt(1)
           end
         end
@@ -180,14 +180,19 @@ defmodule Mix.Tasks.Escriptize do
 
         defp start_app(app) do
           case :application.ensure_all_started(app) do
-            { :ok, _ } -> :ok
-            { :error, reason } ->
-              IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
+            {:ok, _} -> :ok
+            {:error, {app, reason}} ->
+              io_error "Could not start application #{app}: " <>
+                Application.format_reason(reason)
               System.halt(1)
           end
         end
+
+        defp io_error(message) do
+           IO.puts :stderr, IO.ANSI.escape("%{red, bright} " <> message)
+        end
       end
 
-    [{ '#{name}.beam', binary }]
+    [{'#{name}.beam', binary}]
   end
 end

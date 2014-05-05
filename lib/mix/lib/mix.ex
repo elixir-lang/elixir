@@ -11,16 +11,14 @@ defmodule Mix do
   [Elixir's website](http://elixir-lang.org).
   """
 
-  use Application.Behaviour
+  use Application
 
-  # Used internally to start the mix application and its dependencies.
   @doc false
   def start do
     :application.start(:elixir)
     :application.start(:mix)
   end
 
-  # Application behaviour callback
   @doc false
   def start(_, []) do
     res = Mix.Sup.start_link
@@ -36,27 +34,19 @@ defmodule Mix do
   def env do
     # env is not available on bootstrapping
     case :application.get_env(:mix, :env) do
-      { :ok, env } -> env
+      {:ok, env} -> env
       :undefined -> :dev
     end
   end
 
   @doc """
-  Changes the current mix env. Project configuration loaded
-  per environment will not be reloaded.
+  Changes the current mix env.
+
+  Be careful when invoking this function as any project
+  configuration won't be reloaded.
   """
   def env(env) when is_atom(env) do
     :application.set_env(:mix, :env, env)
-  end
-
-  @doc """
-  Starts mix and loads the project and dependencies in
-  one step. Useful when invoking mix from an external tool.
-  """
-  def loadpaths do
-    Mix.start
-    Mix.Task.run "deps.loadpaths"
-    Mix.Task.run "loadpaths"
   end
 
   @doc """
@@ -69,7 +59,7 @@ defmodule Mix do
   """
   def shell do
     case :application.get_env(:mix, :shell) do
-      { :ok, shell } -> shell
+      {:ok, shell} -> shell
       :undefined -> Mix.Shell.IO
     end
   end
@@ -81,15 +71,9 @@ defmodule Mix do
     :application.set_env(:mix, :shell, shell)
   end
 
-  @doc """
-  Retrieves the current project configuration, with the current
-  environment configuration applied.
-
-  If there is no project defined, it still returns a keyword
-  list with default values. This allows many mix tasks to work
-  without the need for an underlying project.
-  """
+  @doc false
   def project do
+    # IO.write :stderr, "Mix.project/0 is deprecated, please use Mix.Project.config/0 instead\n#{Exception.format_stacktrace}"
     Mix.Project.config
   end
 end

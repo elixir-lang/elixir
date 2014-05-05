@@ -29,14 +29,14 @@ defmodule Mix.Tasks.Compile.LeexTest do
     in_fixture "compile_leex", fn ->
       assert Mix.Tasks.Compile.Leex.run([]) == :ok
 
-      assert_received { :mix_shell, :info, ["Compiled src/test_ok.xrl"] }
+      assert_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
       assert File.regular?("src/test_ok.erl")
 
       assert Mix.Tasks.Compile.Leex.run([]) == :noop
-      refute_received { :mix_shell, :info, ["Compiled src/test_ok.xrl"] }
+      refute_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
 
       assert Mix.Tasks.Compile.Leex.run(["--force"]) == :ok
-      assert_received { :mix_shell, :info, ["Compiled src/test_ok.xrl"] }
+      assert_received {:mix_shell, :info, ["Compiled src/test_ok.xrl"]}
     end
   end
 

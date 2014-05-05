@@ -23,7 +23,10 @@ defmodule Inspect.AtomTest do
   end
 
   test :alias_atom do
+    assert inspect(Foo) == "Foo"
     assert inspect(Foo.Bar) == "Foo.Bar"
+    assert inspect(Elixir) == "Elixir"
+    assert inspect(Elixir.Elixir) == "Elixir.Elixir"
   end
 
   test :with_integers do
@@ -122,24 +125,24 @@ defmodule Inspect.TupleTest do
   use ExUnit.Case
 
   test :basic do
-    assert inspect({ 1, "b", 3 }) == "{1, \"b\", 3}"
-    assert inspect({ 1, "b", 3 }, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
+    assert inspect({1, "b", 3}) == "{1, \"b\", 3}"
+    assert inspect({1, "b", 3}, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
   end
 
   test :record_like do
-    assert inspect({ :foo, :bar }) == "{:foo, :bar}"
+    assert inspect({:foo, :bar}) == "{:foo, :bar}"
   end
 
   test :with_builtin_like_record do
-    assert inspect({ :list, 1 }) == "{:list, 1}"
+    assert inspect({:list, 1}) == "{:list, 1}"
   end
 
   test :with_record_like_tuple do
-    assert inspect({ List, 1 }) == "{List, 1}"
+    assert inspect({List, 1}) == "{List, 1}"
   end
 
   test :with_record_like_pseudo_exception do
-    assert inspect({ Other, :__exception__, 1 }) == "{Other, :__exception__, 1}"
+    assert inspect({Other, :__exception__, 1}) == "{Other, :__exception__, 1}"
   end
 
   defrecord Config, a: 1, b: []
@@ -159,14 +162,14 @@ defmodule Inspect.TupleTest do
   defrecord Rec, value: 1
 
   test :two_items_record do
-    assert inspect({ Rec[value: 1], 1 }) == "{Inspect.TupleTest.Rec[value: 1], 1}"
+    assert inspect({Rec[value: 1], 1}) == "{Inspect.TupleTest.Rec[value: 1], 1}"
   end
 
   test :false_positives do
     import ExUnit.CaptureIO
 
     assert capture_io(:stderr, fn ->
-      assert inspect({ Range, nil }) == "{Range, nil}"
+      assert inspect({Range, nil}) == "{Range, nil}"
     end) =~ "** (Inspect.Error) Got FunctionClauseError with message no function clause matching in Inspect.Range.inspect/2"
   end
 
@@ -175,7 +178,7 @@ defmodule Inspect.TupleTest do
   end
 
   test :with_limit do
-    assert inspect({ 1, 2, 3, 4 }, limit: 3) == "{1, 2, 3, ...}"
+    assert inspect({1, 2, 3, 4}, limit: 3) == "{1, 2, 3, ...}"
   end
 
   test :with_records_false do
@@ -234,7 +237,7 @@ defmodule Inspect.ListTest do
   end
 
   test :codepoints do
-    assert inspect('é') == "'é'"
+    assert inspect('é') == "[233]"
   end
 
   test :empty do
@@ -250,8 +253,8 @@ defmodule Inspect.MapTest do
   use ExUnit.Case
 
   test :basic do
-    assert inspect(%{ 1 => "b" }) == "%{1 => \"b\"}"
-    assert inspect(%{ 1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
+    assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
+    assert inspect(%{1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
   end
 
   test :keyword do
@@ -261,7 +264,7 @@ defmodule Inspect.MapTest do
   end
 
   test :with_limit do
-    assert inspect(%{ 1 => 1, 2 => 2, 3 => 3, 4 => 4 }, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
+    assert inspect(%{1 => 1, 2 => 2, 3 => 3, 4 => 4}, limit: 3) == "%{1 => 1, 2 => 2, 3 => 3, ...}"
   end
 
   defmodule Public do
@@ -339,8 +342,8 @@ defmodule Inspect.OthersTest do
     :code.delete(V)
     :code.purge(V)
 
-    { :ok, anony } = :application.get_env(:elixir, :anony)
-    { :ok, named } = :application.get_env(:elixir, :named)
+    {:ok, anony} = :application.get_env(:elixir, :anony)
+    {:ok, named} = :application.get_env(:elixir, :named)
 
     assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
     assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"

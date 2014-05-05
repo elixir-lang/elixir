@@ -23,16 +23,16 @@ defmodule Mix.Tasks.Help do
 
     docs = for module <- modules,
         doc = Mix.Task.shortdoc(module) do
-      { "mix " <> Mix.Task.task_name(module), doc }
+      {"mix " <> Mix.Task.task_name(module), doc}
     end
 
-    max = Enum.reduce docs, 0, fn({ task, _ }, acc) ->
+    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
       max(size(task), acc)
     end
 
     display_default_task_doc(max)
 
-    Enum.each Enum.sort(docs), fn({ task, doc }) ->
+    Enum.each Enum.sort(docs), fn({task, doc}) ->
       shell.info format_task(task, max, doc)
     end
 
@@ -53,6 +53,10 @@ defmodule Mix.Tasks.Help do
     shell.info "Location: #{where_is_file(module)}"
   end
 
+  def run(_) do
+    raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
   defp format_task(task, max, doc) do
     String.ljust(task, max) <> " # " <> doc
   end
@@ -66,7 +70,7 @@ defmodule Mix.Tasks.Help do
 
   defp display_default_task_doc(max) do
     Mix.shell.info format_task("mix", max,
-                    "Run the default task (current: mix #{Mix.project[:default_task]})")
+                    "Run the default task (current: mix #{Mix.Project.config[:default_task]})")
   end
 
   defp display_iex_task_doc(max) do

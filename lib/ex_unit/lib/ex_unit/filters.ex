@@ -3,7 +3,24 @@ defmodule ExUnit.Filters do
   Conveniences for parsing and evaluating filters.
   """
 
-  @type t :: list({ atom, any } | atom)
+  @type t :: list({atom, any} | atom)
+
+  @doc """
+  Parses filters out of a path.
+
+  Determines whether a given file path (supplied to ExUnit/Mix as arguments
+  on the command line) includes a line number filter, and if so returns the
+  appropriate ExUnit configuration options.
+  """
+  @spec parse_path(String.t) :: {String.t, any}
+  def parse_path(file) do
+    case Regex.run(~r/^(.+):(\d+)$/, file, capture: :all_but_first) do
+      [file, line_number] ->
+        {file, exclude: [:test], include: [line: line_number]}
+      nil ->
+        {file, []}
+    end
+  end
 
   @doc """
   Normalizes include and excludes to remove duplicates
@@ -12,17 +29,17 @@ defmodule ExUnit.Filters do
   ## Examples
 
       iex> ExUnit.Filters.normalize(nil, nil)
-      { [], [] }
+      {[], []}
 
       iex> ExUnit.Filters.normalize([:foo, :bar, :bar], [:foo, :baz])
-      { [:foo, :bar], [:baz] }
+      {[:foo, :bar], [:baz]}
 
   """
-  @spec normalize(t | nil, t | nil) :: { t, t }
+  @spec normalize(t | nil, t | nil) :: {t, t}
   def normalize(include, exclude) do
     include = include |> List.wrap |> Enum.uniq
     exclude = exclude |> List.wrap |> Enum.uniq |> Kernel.--(include)
-    { include, exclude }
+    {include, exclude}
   end
 
   @doc """
@@ -30,27 +47,24 @@ defmodule ExUnit.Filters do
 
   ## Examples
 
-      iex> ExUnit.Filters.parse(["foo:bar", "baz"])
-      [{:foo, "bar"}, :baz]
+      iex> ExUnit.Filters.parse(["foo:bar", "baz", "line:9", "bool:true"])
+      [{:foo, "bar"}, :baz, {:line, "9"}, {:bool, "true"}]
 
   """
   @spec parse([String.t]) :: t
   def parse(filters) do
     Enum.map filters, fn filter ->
-      case String.split(filter, ":", global: false) do
-        [key, value] -> { binary_to_atom(key), parse_value(value) }
+      case String.split(filter, ":", parts: 2) do
+        [key, value] -> {binary_to_atom(key), value}
         [key] -> binary_to_atom(key)
       end
     end
   end
 
-  defp parse_value("true"),  do: true
-  defp parse_value("false"), do: false
-  defp parse_value(value),   do: value
-
   @doc """
-  Evaluates the include and exclude filters against the
-  given tags. Expects filters to be normalized into a keyword
+  Evaluates the include and exclude filters against the given tags.
+
+  Expects filters to be normalized into a keyword
   list where each key is an atom and the value is a list.
 
   ## Examples
@@ -59,21 +73,38 @@ defmodule ExUnit.Filters do
       :ok
 
       iex> ExUnit.Filters.eval([foo: "bar"], [:foo], [foo: "baz"])
-      { :error, :foo }
+      {:error, :foo}
 
   """
-  @spec eval(t, t, Keyword.t) :: :ok | { :error, atom }
+  @spec eval(t, t, Keyword.t) :: :ok | {:error, atom}
   def eval(include, exclude, tags) do
     excluded = Enum.find_value exclude, &has_tag(&1, tags)
     if !excluded or Enum.any?(include, &has_tag(&1, tags)) do
       :ok
     else
-      { :error, excluded }
+      {:error, excluded}
     end
   end
 
-  defp has_tag({ key, value }, tags) when is_atom(key),
-    do: Keyword.fetch(tags, key) == { :ok, value } and key
+  defp has_tag({key, %Regex{} = value}, tags) when is_atom(key) do
+    case Keyword.fetch(tags, key) do
+      {:ok, tag} -> to_string(tag) =~ value and key
+      _ -> false
+    end
+  end
+
+  defp has_tag({key, value}, tags) when is_atom(key) do
+    case Keyword.fetch(tags, key) do
+      {:ok, ^value} -> key
+      {:ok, tag} -> compare(to_string(tag), to_string(value)) and key
+      _ -> false
+    end
+  end
+
   defp has_tag(key, tags) when is_atom(key),
     do: Keyword.has_key?(tags, key) and key
+
+  defp compare("Elixir." <> tag, tag), do: true
+  defp compare(tag, tag), do: true
+  defp compare(_, _), do: false
 end

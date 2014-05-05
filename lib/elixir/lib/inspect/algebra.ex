@@ -1,3 +1,41 @@
+defmodule Inspect.Opts do
+  @moduledoc """
+  Defines the Inspect.Opts used by the Inspect protocol.
+
+  The following fields are available:
+
+  * `:structs` - when false, structs are not formatted by the inspect protocol,
+                 they are instead printed as maps, defaults to true;
+
+  * `:binaries` - when `:as_strings` all binaries will be printed as strings,
+                  non-printable bytes will be escaped; when `:as_binaries` all
+                  binaries will be printed in bit syntax; when the default
+                  `:infer`, the binary will be printed as a string if it is
+                  printable, otherwise in bit syntax;
+
+  * `:char_lists` - when `:as_char_lists` all lists will be printed as char lists,
+                    non-printable elements will be escaped; when `:as_lists` all
+                    lists will be printed as lists; when the default `:infer`, the
+                    list will be printed as a char list if it is printable,
+                    otherwise as list;
+
+  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
+               and lists, does not apply to strings nor char lists, defaults to 50;
+
+  * `:pretty` - if set to true enables pretty printing, defaults to false;
+
+  * `:width` - defaults to the 80 characters;
+  """
+
+  defstruct structs: true :: boolean,
+            binaries: :infer :: :infer | :as_binaries | :as_strings,
+            char_lists: :infer :: :infer | :as_lists | :as_char_lists,
+            limit: 50 :: pos_integer,
+            width: 80 :: pos_integer | :infinity,
+            pretty: false :: boolean,
+            records: true :: boolean
+end
+
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
@@ -74,14 +112,24 @@ defmodule Inspect.Algebra do
 
   # Functional interface to `doc` records
 
-  @type t :: :doc_nil | :doc_line | doc_cons_t | doc_nest_t | doc_break_t | doc_group_t | binary
-  defrecordp :doc_cons, left: :doc_nil :: t, right: :doc_nil :: t
-  defrecordp :doc_nest, indent: 1 :: non_neg_integer, doc: :doc_nil :: t
-  defrecordp :doc_break, str: " " :: binary
-  defrecordp :doc_group, doc: :doc_nil :: t
+  @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
+
+  require Record
+
+  @opaque doc_cons :: {:doc_cons, t, t}
+  Record.defrecordp :doc_cons, left: :doc_nil, right: :doc_nil
+
+  @opaque doc_nest :: {:doc_nest, non_neg_integer, t}
+  Record.defrecordp :doc_nest, indent: 1, doc: :doc_nil
+
+  @opaque doc_break :: {:doc_break, binary}
+  Record.defrecordp :doc_break, str: " "
+
+  @opaque doc_group :: {:doc_group, t}
+  Record.defrecordp :doc_group, doc: :doc_nil
 
   defmacrop is_doc(doc) do
-    if __CALLER__.in_guard? do
+    if Macro.Env.in_guard?(__CALLER__) do
       do_is_doc(doc)
     else
       var = quote do: doc
@@ -106,7 +154,8 @@ defmodule Inspect.Algebra do
   according to the inspect protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
-  def to_doc(arg, opts) when is_record(arg) and is_record(opts, Inspect.Opts) do
+  def to_doc(arg, %Inspect.Opts{} = opts) when is_record(arg) do
+    # IO.write :stderr, "inspect records is deprecated (just remove this code when protocols+records are removed)\n#{Exception.format_stacktrace}"
     if opts.records do
       try do
         Inspect.inspect(arg, opts)
@@ -122,7 +171,7 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(%{ __struct__: struct } = map, opts) when is_atom(struct) and is_record(opts, Inspect.Opts) do
+  def to_doc(%{__struct__: struct} = map, %Inspect.Opts{} = opts) when is_atom(struct) do
     if opts.structs do
       try do
         Inspect.inspect(map, opts)
@@ -138,7 +187,7 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(arg, opts) when is_record(opts, Inspect.Opts) do
+  def to_doc(arg, %Inspect.Opts{} = opts) do
     Inspect.inspect(arg, opts)
   end
 
@@ -166,7 +215,7 @@ defmodule Inspect.Algebra do
       "TastelessArtosis"
 
   """
-  @spec concat(t, t) :: doc_cons_t
+  @spec concat(t, t) :: doc_cons
   def concat(x, y) when is_doc(x) and is_doc(y) do
     doc_cons(left: x, right: y)
   end
@@ -174,7 +223,7 @@ defmodule Inspect.Algebra do
   @doc """
   Concatenates a list of documents.
   """
-  @spec concat([t]) :: doc_cons_t
+  @spec concat([t]) :: doc_cons
   def concat(docs) do
     folddoc(docs, &concat(&1, &2))
   end
@@ -190,7 +239,7 @@ defmodule Inspect.Algebra do
       " 6"
 
   """
-  @spec nest(t, non_neg_integer) :: doc_nest_t
+  @spec nest(t, non_neg_integer) :: doc_nest
   def nest(x, 0) when is_doc(x) do
     x
   end
@@ -220,23 +269,23 @@ defmodule Inspect.Algebra do
       "aaaaaaaaaaaaaaaaaaaa\nb"
 
   """
-  @spec break(binary) :: doc_break_t
+  @spec break(binary) :: doc_break
   def break(s) when is_binary(s), do: doc_break(str: s)
 
-  @spec break() :: doc_break_t
+  @spec break() :: doc_break
   def break(), do: doc_break(str: @break)
 
   @doc """
   Inserts a break between two docs. See `break/1` for more info.
   """
-  @spec glue(t, t) :: doc_cons_t
+  @spec glue(t, t) :: doc_cons
   def glue(x, y), do: concat(x, concat(break, y))
 
   @doc """
   Inserts a break, passed as the second argument, between two docs,
   the first and the third arguments.
   """
-  @spec glue(t, binary, t) :: doc_cons_t
+  @spec glue(t, binary, t) :: doc_cons
   def glue(x, g, y) when is_binary(g), do: concat(x, concat(break(g), y))
 
   @doc ~S"""
@@ -266,7 +315,7 @@ defmodule Inspect.Algebra do
       "Hello,\nA B"
 
   """
-  @spec group(t) :: doc_group_t
+  @spec group(t) :: doc_group
   def group(d) when is_doc(d) do
     doc_group(doc: d)
   end
@@ -281,7 +330,7 @@ defmodule Inspect.Algebra do
       "Hughes Wadler"
 
   """
-  @spec space(t, t) :: doc_cons_t
+  @spec space(t, t) :: doc_cons
   def space(x, y), do: concat(x, concat(" ", y))
 
   @doc ~S"""
@@ -294,7 +343,7 @@ defmodule Inspect.Algebra do
       "Hughes\nWadler"
 
   """
-  @spec line(t, t) :: doc_cons_t
+  @spec line(t, t) :: doc_cons
   def line(x, y), do: concat(x, concat(:doc_line, y))
 
   @doc """
@@ -415,7 +464,7 @@ defmodule Inspect.Algebra do
   @typep mode :: :flat | :break
 
   @doc false
-  @spec fits?(integer, [{ integer, mode, t }]) :: boolean
+  @spec fits?(integer, [{integer, mode, t}]) :: boolean
   def fits?(w, _) when w < 0,                               do: false
   def fits?(_, []),                                         do: true
   def fits?(_, [{_, _, :doc_line} | _]),                    do: true
@@ -428,7 +477,7 @@ defmodule Inspect.Algebra do
   def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
 
   @doc false
-  @spec format(integer | :infinity, integer, [{ integer, mode, t }]) :: [binary]
+  @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   def format(_, _, []),                                        do: []
   def format(w, _, [{i, _, :doc_line} | t]),                   do: [indent(i) | format(w, i, t)]
   def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
@@ -453,6 +502,6 @@ defmodule Inspect.Algebra do
   @doc false
   @spec render([binary]) :: binary
   def render(sdoc) do
-    iolist_to_binary sdoc
+    iodata_to_binary sdoc
   end
 end

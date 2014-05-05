@@ -33,7 +33,7 @@ defmodule IEx.Case do
       setup do
         opts = IEx.Options.get
         IEx.Options.set :colors, [enabled: false]
-        { :ok, [iex_opts: opts] }
+        {:ok, [iex_opts: opts]}
       end
 
       teardown context do
@@ -54,7 +54,7 @@ defmodule IEx.Case do
   IEx.Server.start to be used in the normal .iex loading process.
   """
   def capture_iex(input, options \\ [], server_options \\ [], capture_prompt \\ false) do
-    Enum.each options, fn { opt, value } ->
+    Enum.each options, fn {opt, value} ->
       IEx.Options.set(opt, value)
     end
 

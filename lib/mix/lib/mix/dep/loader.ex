@@ -17,9 +17,8 @@ defmodule Mix.Dep.Loader do
   * `:env` - Filter dependencies on given environments
   """
   def children(opts) do
-    scms = Mix.SCM.available
     from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.project[:deps] || [], &to_dep(&1, scms, from))
+    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
 
     # Filter deps not matching mix environment
     if env = opts[:env] do
@@ -42,10 +41,10 @@ defmodule Mix.Dep.Loader do
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
 
-    { dep, children } =
+    {dep, children} =
       cond do
         not ok?(dep.status) ->
-          { dep, [] }
+          {dep, []}
 
         manager == :rebar ->
           rebar_dep(dep)
@@ -57,10 +56,10 @@ defmodule Mix.Dep.Loader do
           rebar_dep(%{dep | manager: :rebar})
 
         make?(dest) ->
-          { %{dep | manager: :make}, [] }
+          {%{dep | manager: :make}, []}
 
         true ->
-          { dep, [] }
+          {dep, []}
       end
 
     %{validate_path(validate_app(dep)) | deps: children}
@@ -77,9 +76,9 @@ defmodule Mix.Dep.Loader do
       actual =~ req
     else
       case Version.parse(actual) do
-        { :ok, version } ->
+        {:ok, version} ->
           case Version.parse_requirement(req) do
-            { :ok, req } ->
+            {:ok, req} ->
               Version.match?(version, req)
             :error ->
               raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
@@ -95,59 +94,71 @@ defmodule Mix.Dep.Loader do
 
   ## Helpers
 
-  def to_dep(tuple, scms, from, manager \\ nil) do
-    %{with_scm_and_app(tuple, scms) | from: from, manager: manager}
+  def to_dep(tuple, from, manager \\ nil) do
+    %{with_scm_and_app(tuple) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({ app, opts }, scms) when is_list(opts) do
-    with_scm_and_app({ app, nil, opts }, scms)
+  defp with_scm_and_app({app, opts}) when is_list(opts) do
+    with_scm_and_app({app, nil, opts})
   end
 
-  defp with_scm_and_app({ app, req }, scms) do
-    with_scm_and_app({ app, req, [] }, scms)
+  defp with_scm_and_app({app, req}) do
+    with_scm_and_app({app, req, []})
   end
 
-  defp with_scm_and_app({ app, req, opts } = other, scms) when is_atom(app) and is_list(opts) do
+  defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
     unless is_binary(req) or Regex.regex?(req) or nil?(req) do
       invalid_dep_format(other)
     end
 
-    dest  = Path.join(Mix.Project.deps_path, app)
-    build = Path.join([Mix.Project.build_path, "lib", app])
+    bin_app = atom_to_binary(app)
+
+    dest  = Path.join(Mix.Project.deps_path, bin_app)
+    build = Path.join([Mix.Project.build_path, "lib", bin_app])
     opts  = opts
             |> Keyword.put(:dest, dest)
             |> Keyword.put(:build, build)
 
-    { scm, opts } = Enum.find_value scms, { nil, [] }, fn(scm) ->
-      (new = scm.accepts_options(app, opts)) && { scm, new }
+    {scm, opts} = get_scm(app, opts)
+
+    unless scm do
+      Mix.Tasks.Local.Hex.maybe_install(app)
+      Mix.Tasks.Local.Hex.maybe_start()
+      {scm, opts} = get_scm(app, opts)
     end
 
-    if scm do
-      %Mix.Dep{
-        scm: scm,
-        app: app,
-        requirement: req,
-        status: scm_status(scm, opts),
-        opts: opts }
-    else
-      raise Mix.Error, message: "#{inspect Mix.Project.get} did not specify a supported scm " <>
-                                "for app #{inspect app}, expected one of :git, :path or :in_umbrella"
+    unless scm do
+      raise Mix.Error,
+        message: "could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
     end
+
+    %Mix.Dep{
+      scm: scm,
+      app: app,
+      requirement: req,
+      status: scm_status(scm, opts),
+      opts: opts}
   end
 
-  defp with_scm_and_app(other, _scms) do
+  defp with_scm_and_app(other) do
     invalid_dep_format(other)
+  end
+
+  defp get_scm(app, opts) do
+    Enum.find_value Mix.SCM.available, {nil, opts}, fn(scm) ->
+      (new = scm.accepts_options(app, opts)) && {scm, new}
+    end
   end
 
   defp scm_status(scm, opts) do
     if scm.checked_out?(opts) do
-      { :ok, nil }
+      {:ok, nil}
     else
-      { :unavailable, opts[:dest] }
+      {:unavailable, opts[:dest]}
     end
   end
 
-  defp ok?({ :ok, _ }), do: true
+  defp ok?({:ok, _}), do: true
   defp ok?(_), do: false
 
   defp mix?(dest) do
@@ -172,7 +183,7 @@ defmodule Mix.Dep.Loader do
 
     Expected:
 
-        { app, opts } | { app, requirement } | { app, requirement, opts }
+        {app, opts} | {app, requirement} | {app, requirement, opts}
 
     Where:
 
@@ -187,7 +198,7 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      config    = Mix.project
+      config    = Mix.Project.config
       umbrella? = Mix.Project.umbrella?
 
       if umbrella? do
@@ -195,13 +206,12 @@ defmodule Mix.Dep.Loader do
       end
 
       if req = old_elixir_req(config) do
-        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} but you " <>
-                        "are running on v#{System.version}, please run mix deps.update #{dep.app} to update it"
+        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
+                        "but you are running on v#{System.version}"
       end
 
-      children = children(env: opts[:env] || :prod)
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      { dep, children }
+      {dep, children(env: opts[:env] || :prod)}
     end)
   end
 
@@ -210,15 +220,14 @@ defmodule Mix.Dep.Loader do
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}
-      { dep, rebar_children(rebar) }
+      {dep, rebar_children(rebar)}
     end)
   end
 
   defp rebar_children(root_config) do
-    scms = Mix.SCM.available
     from = Path.absname("rebar.config")
     Mix.Rebar.recur(root_config, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, scms, from, :rebar))
+      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
     end) |> Enum.concat
   end
 
@@ -251,22 +260,22 @@ defmodule Mix.Dep.Loader do
 
   defp app_status(app_path, app, req) do
     case :file.consult(app_path) do
-      { :ok, [{ :application, ^app, config }] } ->
+      {:ok, [{:application, ^app, config}]} ->
         case List.keyfind(config, :vsn, 0) do
-          { :vsn, actual } when is_list(actual) ->
-            actual = iolist_to_binary(actual)
+          {:vsn, actual} when is_list(actual) ->
+            actual = iodata_to_binary(actual)
             if vsn_match?(req, actual, app) do
-              { :ok, actual }
+              {:ok, actual}
             else
-              { :nomatchvsn, actual }
+              {:nomatchvsn, actual}
             end
-          { :vsn, actual } ->
-            { :invalidvsn, actual }
+          {:vsn, actual} ->
+            {:invalidvsn, actual}
           nil ->
-            { :invalidvsn, nil }
+            {:invalidvsn, nil}
         end
-      { :ok, _ } -> { :invalidapp, app_path }
-      { :error, _ } -> { :noappfile, app_path }
+      {:ok, _} -> {:invalidapp, app_path}
+      {:error, _} -> {:noappfile, app_path}
     end
   end
 

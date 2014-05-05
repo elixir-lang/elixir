@@ -9,7 +9,7 @@ get_opt(Key) ->
   Dict = elixir_code_server:call(compiler_options),
   case lists:keyfind(Key, 1, Dict) of
     false -> false;
-    { Key, Value } -> Value
+    {Key, Value} -> Value
   end.
 
 %% Compilation entry points.
@@ -26,7 +26,7 @@ quoted(Forms, File) when is_binary(File) ->
     elixir_lexical:run(File, fun
       (Pid) ->
         Env = elixir:env_for_eval([{line,1},{file,File}]),
-        eval_forms(Forms, [], Env#elixir_env{lexical_tracker=Pid})
+        eval_forms(Forms, [], Env#{lexical_tracker := Pid})
     end),
     lists:reverse(get(elixir_compiled))
   after
@@ -35,7 +35,7 @@ quoted(Forms, File) when is_binary(File) ->
 
 file(Relative) when is_binary(Relative) ->
   File = filename:absname(Relative),
-  { ok, Bin } = file:read_file(File),
+  {ok, Bin} = file:read_file(File),
   string(elixir_utils:characters_to_list(Bin), File).
 
 file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
@@ -46,35 +46,35 @@ file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
 %% Evaluation
 
 eval_forms(Forms, Vars, E) ->
-  case (E#elixir_env.module == nil) andalso allows_fast_compilation(Forms) of
+  case (?m(E, module) == nil) andalso allows_fast_compilation(Forms) of
     true  -> eval_compilation(Forms, Vars, E);
     false -> code_loading_compilation(Forms, Vars, E)
   end.
 
 eval_compilation(Forms, Vars, E) ->
-  Binding = [{ Key, Value } || { _Name, _Kind, Key, Value } <- Vars],
-  { Result, _Binding, EE, _S } = elixir:eval_forms(Forms, Binding, E),
-  { Result, EE }.
+  Binding = [{Key, Value} || {_Name, _Kind, Key, Value} <- Vars],
+  {Result, _Binding, EE, _S} = elixir:eval_forms(Forms, Binding, E),
+  {Result, EE}.
 
-code_loading_compilation(Forms, Vars, #elixir_env{line=Line} = E) ->
-  Dict = [{ { Name, Kind }, { Value, 0 } } || { Name, Kind, Value, _ } <- Vars],
+code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
+  Dict = [{{Name, Kind}, {Value, 0}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
-  { Expr, EE, _S } = elixir:quoted_to_erl(Forms, E, S),
+  {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
-  { Module, I } = retrieve_module_name(),
-  Fun  = code_fun(E#elixir_env.module),
-  Form = code_mod(Fun, Expr, Line, E#elixir_env.file, Module, Vars),
-  Args = list_to_tuple([V || { _, _, _, V } <- Vars]),
+  {Module, I} = retrieve_module_name(),
+  Fun  = code_fun(?m(E, module)),
+  Form = code_mod(Fun, Expr, Line, ?m(E, file), Module, Vars),
+  Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
 
-  %% Pass { native, false } to speed up bootstrap
+  %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  module(Form, E#elixir_env.file, [{native,false}], true, fun(_, Binary) ->
+  module(Form, ?m(E, file), [{native,false}], true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
     Purgeable =
       case beam_lib:chunks(Binary, [labeled_locals]) of
-        { ok, { _, [{ labeled_locals, []}] } } -> true;
+        {ok, {_, [{labeled_locals, []}]}} -> true;
         _ -> false
       end,
     dispatch_loaded(Module, Fun, Args, Purgeable, I, EE)
@@ -89,34 +89,34 @@ dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
      true ->
        ok
   end,
-  { Res, E }.
+  {Res, E}.
 
 code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
 
 code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Tuple    = { tuple, Line, [{ var, Line, K } || { _, _, K, _ } <- Vars] },
+  Tuple    = {tuple, Line, [{var, Line, K} || {_, _, K, _} <- Vars]},
   Relative = elixir_utils:relative_to_cwd(File),
 
   [
-    { attribute, Line, file, { elixir_utils:characters_to_list(Relative), 1 } },
-    { attribute, Line, module, Module },
-    { attribute, Line, export, [{ Fun, 1 }, { '__RELATIVE__', 0 }] },
-    { function, Line, Fun, 1, [
-      { clause, Line, [Tuple], [], [Expr] }
-    ] },
-    { function, Line, '__RELATIVE__', 0, [
-      { clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)] }
-    ] }
+    {attribute, Line, file, {elixir_utils:characters_to_list(Relative), 1}},
+    {attribute, Line, module, Module},
+    {attribute, Line, export, [{Fun, 1}, {'__RELATIVE__', 0}]},
+    {function, Line, Fun, 1, [
+      {clause, Line, [Tuple], [], [Expr]}
+    ]},
+    {function, Line, '__RELATIVE__', 0, [
+      {clause, Line, [], [], [elixir_utils:elixir_to_erl(Relative)]}
+    ]}
   ].
 
 retrieve_module_name() ->
   elixir_code_server:call(retrieve_module_name).
 
 return_module_name(I) ->
-  elixir_code_server:cast({ return_module_name, I }).
+  elixir_code_server:cast({return_module_name, I}).
 
-allows_fast_compilation({ '__block__', _, Exprs }) ->
+allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
 allows_fast_compilation({defmodule,_,_}) -> true;
 allows_fast_compilation(_) -> false.
@@ -140,7 +140,7 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
   Options = RawOptions ++ elixir_code_server:call(erl_compiler_options),
   Listname = elixir_utils:characters_to_list(File),
 
-  case compile:noenv_forms(Forms, [no_auto_import,return,{source,Listname}|Options]) of
+  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       code:load_binary(ModuleName, Listname, Binary),
@@ -150,11 +150,14 @@ module(Forms, File, RawOptions, Bootstrap, Callback) when
       format_errors(Errors)
   end.
 
+no_auto_import() ->
+  {attribute, 0, compile, no_auto_import}.
+
 %% CORE HANDLING
 
 core() ->
   application:start(elixir),
-  elixir_code_server:cast({ compiler_options, [{docs,false},{internal,true}] }),
+  elixir_code_server:cast({compiler_options, [{docs,false},{internal,true}]}),
   [core_file(File) || File <- core_main()].
 
 core_file(File) ->
@@ -171,6 +174,7 @@ core_file(File) ->
 core_main() ->
   [
     <<"lib/elixir/lib/kernel.ex">>,
+    <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/keyword.ex">>,
     <<"lib/elixir/lib/module.ex">>,
     <<"lib/elixir/lib/list.ex">>,
@@ -178,7 +182,6 @@ core_main() ->
     <<"lib/elixir/lib/record/backend.ex">>,
     <<"lib/elixir/lib/record/deprecated.ex">>,
     <<"lib/elixir/lib/macro.ex">>,
-    <<"lib/elixir/lib/macro/env.ex">>,
     <<"lib/elixir/lib/exception.ex">>,
     <<"lib/elixir/lib/code.ex">>,
     <<"lib/elixir/lib/module/locals_tracker.ex">>,
@@ -210,7 +213,7 @@ binary_to_path({ModuleName, Binary}, CompilePath) ->
 %% ERROR HANDLING
 
 format_errors([]) ->
-  exit({ nocompile, "compilation failed but no error was raised" });
+  exit({nocompile, "compilation failed but no error was raised"});
 
 format_errors(Errors) ->
   lists:foreach(fun ({File, Each}) ->

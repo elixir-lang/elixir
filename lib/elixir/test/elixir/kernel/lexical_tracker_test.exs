@@ -6,7 +6,7 @@ defmodule Kernel.LexicalTrackerTest do
   alias Kernel.LexicalTracker, as: D
 
   setup do
-    { :ok, [pid: D.start_link] }
+    {:ok, [pid: D.start_link]}
   end
 
   teardown config do

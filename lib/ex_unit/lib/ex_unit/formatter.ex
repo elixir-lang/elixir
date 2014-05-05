@@ -8,18 +8,18 @@ defmodule ExUnit.Formatter do
 
   The following events are possible:
 
-  * `{ :suite_started, opts }` - The suite has started with the specified
+  * `{:suite_started, opts}` - The suite has started with the specified
                                  options to the runner.
-  * `{ :suite_finished, run_us, load_us }` - The suite has finished. `run_us` and
+  * `{:suite_finished, run_us, load_us}` - The suite has finished. `run_us` and
                                              `load_us` are the run and load
                                              times in microseconds respectively.
-  * `{ :case_started, test_case }` - A test case has started. See
+  * `{:case_started, test_case}` - A test case has started. See
                                      `ExUnit.TestCase` for details.
-  * `{ :case_finished, test_case }` - A test case has finished. See
+  * `{:case_finished, test_case}` - A test case has finished. See
                                       `ExUnit.TestCase` for details.
-  * `{ :test_started, test_case }` - A test case has started. See
+  * `{:test_started, test_case}` - A test case has started. See
                                      `ExUnit.Test` for details.
-  * `{ :test_finished, test_case }` - A test case has finished. See
+  * `{:test_finished, test_case}` - A test case has finished. See
                                      `ExUnit.Test` for details.
 
   """
@@ -31,6 +31,10 @@ defmodule ExUnit.Formatter do
   @type load_us :: pos_integer | nil
 
   import Exception, only: [format_stacktrace_entry: 1]
+
+  @label_padding   "      "
+  @counter_padding "     "
+  @inspect_padding @counter_padding <> @label_padding
 
   @doc """
   Formats time taken running the test suite.
@@ -93,102 +97,142 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  @doc ~S"""
+  @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test_case, test, { kind, reason, stacktrace }, counter, color) do
-    test_info("#{counter}) #{test} (#{inspect test_case})", color) <>
-      format_kind_reason(kind, reason, color) <>
-      format_stacktrace(stacktrace, test_case, test, color)
+  def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
+    ExUnit.Test[name: name, case: case, tags: tags] = test
+    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
+      <> test_location(with_location(tags), formatter)
+      <> format_kind_reason(kind, reason, width, formatter)
+      <> format_stacktrace(stack, case, name, formatter)
   end
 
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, { kind, reason, stacktrace }, counter, color) do
-    test_case_info("#{counter}) #{inspect test_case}: ", color) <>
-      format_kind_reason(kind, reason, color) <>
-      format_stacktrace(stacktrace, test_case, nil, color)
+  def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
+    ExUnit.TestCase[name: name] = test_case
+    test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
+      <> format_kind_reason(kind, reason, width, formatter)
+      <> format_stacktrace(stacktrace, name, nil, formatter)
   end
 
-  defp format_kind_reason(:error, ExUnit.ExpectationError[] = record, color) do
-    prelude   = String.downcase record.prelude
-    assertion = record.full_assertion
-    max       = max(size(prelude), size(assertion))
+  defp format_kind_reason(:error, ExUnit.AssertionError[] = record, width, formatter) do
+    width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
 
-    error_info("** (ExUnit.ExpectationError)", color) <>
-      if desc = record.expr do
-        max = max(max, size("instead got"))
-        error_info("  #{pad(prelude, max)}: #{maybe_multiline(desc, max)}", color) <>
-        error_info("  #{pad(assertion, max)}: #{maybe_multiline(record.expected, max)}", color) <>
-        error_info("  #{pad("instead got", max)}: #{maybe_multiline(record.actual, max)}", color)
-      else
-        error_info("  #{pad(prelude, max)}: #{maybe_multiline(record.expected, max)}", color) <>
-        error_info("  #{pad(assertion, max)}: #{maybe_multiline(record.actual, max)}", color)
-      end
+    fields =
+      [note: if_value(record.message, &format_banner(&1, formatter)),
+       code: if_value(record.expr, &code_multiline(&1, width)),
+       lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
+       rhs:  if_value(record.right, &inspect_multiline(&1, width))]
+
+    fields
+    |> filter_interesting_fields
+    |> format_each_reason(formatter)
+    |> make_into_lines(@counter_padding)
   end
 
-  defp format_kind_reason(:error, exception, color) do
-    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", color
+  defp format_kind_reason(:error, exception, _width, formatter) do
+    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", formatter
   end
 
-  defp format_kind_reason(kind, reason, color) do
-    error_info "** (#{kind}) #{inspect(reason)}", color
+  defp format_kind_reason(kind, reason, _width, formatter) do
+    error_info "** (#{kind}) #{inspect(reason)}", formatter
   end
 
-  defp format_stacktrace([{ test_case, test, _, location }|_], test_case, test, color) do
-    location_info("at #{location[:file]}:#{location[:line]}", color)
+  defp filter_interesting_fields(fields) do
+    Enum.filter(fields, fn {_, value} ->
+      value != ExUnit.AssertionError.no_value
+    end)
+  end
+
+  defp format_each_reason(reasons, formatter) do
+    Enum.map(reasons, fn {label, value} ->
+      format_label(label, formatter) <> value
+    end)
+  end
+
+  defp if_value(value, fun) do
+    if value == ExUnit.AssertionError.no_value do
+      value
+    else
+      fun.(value)
+    end
+  end
+
+  defp format_label(:note, _formatter) do
+    ""
+  end
+
+  defp format_label(label, formatter) do
+    formatter.(:error_info, String.ljust("#{label}:", byte_size(@label_padding)))
+  end
+
+  defp format_banner(value, formatter) do
+    formatter.(:error_info, value)
+  end
+
+  defp code_multiline(expr, _width) when is_binary(expr) do
+    expr
+    |> String.replace("\n", "\n" <> @inspect_padding)
+  end
+
+  defp code_multiline(expr, width) do
+    code_multiline(expr |> Macro.to_string, width)
+  end
+
+  defp inspect_multiline(expr, width) do
+    expr
+    |> inspect(pretty: true, width: width)
+    |> String.replace("\n", "\n" <> @inspect_padding)
+  end
+
+  defp make_into_lines(reasons, padding) do
+    padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
   defp format_stacktrace([], _case, _test, _color) do
     ""
   end
 
-  defp format_stacktrace(stacktrace, _case, _test, color) do
-    location_info("stacktrace:", color) <>
-      Enum.map_join(stacktrace, fn(s) -> stacktrace_info format_stacktrace_entry(s), color end)
+  defp format_stacktrace(stacktrace, test_case, test, color) do
+    extra_info("stacktrace:", color) <>
+      Enum.map_join(stacktrace,
+        fn(s) -> stacktrace_info format_stacktrace_entry(s, test_case, test), color end)
   end
 
-  defp pad(binary, max) do
-    remaining = max - size(binary)
-    if remaining > 0 do
-      String.duplicate(" ", remaining) <>  binary
-    else
-      binary
-    end
+  defp format_stacktrace_entry({test_case, test, _, location}, test_case, test) do
+    "#{location[:file]}:#{location[:line]}"
   end
 
-  defp maybe_multiline(str, max) do
-    unless multiline?(str) do
-      String.strip(str)
-    else
-      "\n" <>
-      Enum.join((for line <- String.split(str, ~r/\n/), do: String.duplicate(" ", max) <> line ), "\n")
-    end
+  defp format_stacktrace_entry(s, _test_case, _test) do
+    format_stacktrace_entry(s)
   end
 
-  defp multiline?(<<>>), do: false
-
-  defp multiline?(<<?\n, _ :: binary>>) do
-    true
+  defp with_location(tags) do
+    "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
   end
 
-  defp multiline?(<<_, rest :: binary>>) do
-    multiline?(rest)
-  end
+  defp with_counter(counter, msg) when counter < 10  do "  #{counter}) #{msg}" end
+  defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
+  defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
 
-  defp test_case_info(msg, nil),   do: "  " <> msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
-  defp test_case_info(msg, color), do: test_case_info(color.(:test_case_info, msg), nil)
+  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
+  defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
-  defp test_info(msg, nil),   do: "  " <> msg <> "\n"
-  defp test_info(msg, color), do: test_info(color.(:test_info, msg), nil)
+  defp test_info(msg, nil),       do: msg <> "\n"
+  defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
 
-  defp error_info(msg, nil),   do: "     " <> msg <> "\n"
-  defp error_info(msg, color), do: error_info(color.(:error_info, msg), nil)
+  defp test_location(msg, nil),       do: "     " <> msg <> "\n"
+  defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
-  defp location_info(msg, nil),   do: "     " <> msg <> "\n"
-  defp location_info(msg, color), do: location_info(color.(:location_info, msg), nil)
+  defp error_info(msg, nil),       do: "     " <> msg <> "\n"
+  defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
 
-  defp stacktrace_info(msg, nil),   do: "       " <> msg <> "\n"
-  defp stacktrace_info(msg, color), do: stacktrace_info(color.(:stacktrace_info, msg), nil)
+  defp extra_info(msg, nil),       do: "     " <> msg <> "\n"
+  defp extra_info(msg, formatter), do: extra_info(formatter.(:extra_info, msg), nil)
+
+  defp stacktrace_info(msg, nil),       do: "       " <> msg <> "\n"
+  defp stacktrace_info(msg, formatter), do: stacktrace_info(formatter.(:stacktrace_info, msg), nil)
 end

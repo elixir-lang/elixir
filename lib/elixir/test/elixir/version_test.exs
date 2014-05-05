@@ -55,11 +55,11 @@ defmodule VersionTest do
   end
 
   test "parse" do
-    assert { :ok, V.Schema[major: 1, minor: 2, patch: 3] } = V.parse("1.2.3")
-    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5] } = V.parse("1.4.5+ignore")
-    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]] } = V.parse("1.4.5-6-g3318bd5")
-    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]] } = V.parse("1.4.5-6.7.eight")
-    assert { :ok, V.Schema[major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]] } = V.parse("1.4.5-6-g3318bd5+ignore")
+    assert {:ok, %V{major: 1, minor: 2, patch: 3}} = V.parse("1.2.3")
+    assert {:ok, %V{major: 1, minor: 4, patch: 5}} = V.parse("1.4.5+ignore")
+    assert {:ok, %V{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} = V.parse("1.4.5-6-g3318bd5")
+    assert {:ok, %V{major: 1, minor: 4, patch: 5, pre: [6, 7, "eight"]}} = V.parse("1.4.5-6.7.eight")
+    assert {:ok, %V{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} = V.parse("1.4.5-6-g3318bd5+ignore")
 
     assert :error = V.parse("foobar")
     assert :error = V.parse("2.3")

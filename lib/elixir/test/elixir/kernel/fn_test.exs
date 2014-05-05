@@ -62,7 +62,8 @@ defmodule Kernel.FnTest do
   end
 
   test "imported partial application" do
-    assert (&is_record(&1, Range)).(1..3)
+    import Record
+    assert (&record?(&1, :sample)).({:sample, 1})
   end
 
   test "remote partial application" do
@@ -71,11 +72,11 @@ defmodule Kernel.FnTest do
   end
 
   test "capture and partially apply tuples" do
-    assert (&{ &1, &2 }).(1, 2) == { 1, 2 }
-    assert (&{ &1, &2, &3 }).(1, 2, 3) == { 1, 2, 3 }
+    assert (&{&1, &2}).(1, 2) == {1, 2}
+    assert (&{&1, &2, &3}).(1, 2, 3) == {1, 2, 3}
 
-    assert (&{ 1, &1 }).(2) == { 1, 2 }
-    assert (&{ 1, &1, &2 }).(2, 3) == { 1, 2, 3 }
+    assert (&{1, &1}).(2) == {1, 2}
+    assert (&{1, &1, &2}).(2, 3) == {1, 2, 3}
   end
 
   test "capture and partially apply lists" do
@@ -90,7 +91,6 @@ defmodule Kernel.FnTest do
 
   test "capture and partially apply on call" do
     assert (&(&1.module)).(__ENV__) == __MODULE__
-    assert (&(&1.module(&2))).(__ENV__, Hello).module == Hello
   end
 
   test "capture block like" do

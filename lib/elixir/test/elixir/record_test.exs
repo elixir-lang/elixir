@@ -24,7 +24,7 @@ defmodule RecordTest do
       defstruct Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
     end
 
-    assert %{ __struct__: StructExtract, size: :undefined } =
+    assert %{__struct__: StructExtract, size: :undefined} =
            StructExtract.__struct__
   end
 
@@ -34,8 +34,8 @@ defmodule RecordTest do
   end
 
   test "record?/2" do
-    assert record?({ User, "jose", 27 }, User)
-    refute record?({ User, "jose", 27 }, Author)
+    assert record?({User, "jose", 27}, User)
+    refute record?({User, "jose", 27}, Author)
     refute record?(13, Author)
   end
 
@@ -45,8 +45,8 @@ defmodule RecordTest do
   end
 
   test "record?/1" do
-    assert record?({ User, "jose", 27 })
-    refute record?({ "jose", 27 })
+    assert record?({User, "jose", 27})
+    refute record?({"jose", 27})
     refute record?(13)
   end
 

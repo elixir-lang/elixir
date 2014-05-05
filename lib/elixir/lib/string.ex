@@ -177,7 +177,8 @@ defmodule String do
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
-  default, unless the `global` option is set to `false`.
+  default, but can be controlled via the `parts: num` option.
+  If you pass `parts: :infinity`, it will return all possible parts.
 
   Empty strings are only removed from the result if the
   `trim` option is set to `true`.
@@ -189,7 +190,7 @@ defmodule String do
       iex> String.split("a,b,c", ",")
       ["a", "b", "c"]
 
-      iex> String.split("a,b,c", ",", global: false)
+      iex> String.split("a,b,c", ",", parts: 2)
       ["a", "b,c"]
 
       iex> String.split(" a b c ", " ", trim: true)
@@ -205,7 +206,7 @@ defmodule String do
       iex> String.split("a,b,c", ~r{,})
       ["a", "b", "c"]
 
-      iex> String.split("a,b,c", ~r{,}, global: false)
+      iex> String.split("a,b,c", ~r{,}, parts: 2)
       ["a", "b,c"]
 
       iex> String.split(" a b c ", ~r{\s}, trim: true)
@@ -222,7 +223,7 @@ defmodule String do
       iex> String.split("abc", "", trim: true)
       ["a", "b", "c"]
 
-      iex> String.split("abc", "", global: false)
+      iex> String.split("abc", "", parts: 2)
       ["a", "bc"]
 
   """
@@ -232,14 +233,25 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, ~r"", options)
+  def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
+    if options[:global] != nil do
+      IO.write :stderr, "Support for :global in String.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
+    end
     if Regex.regex?(pattern) do
       Regex.split(pattern, binary, options)
     else
-      opts = if options[:global] != false, do: [:global], else: []
-      splits = :binary.split(binary, pattern, opts)
+      splits = case options[:parts] do
+        num when is_number(num) and num > 0 ->
+          split_parts(binary, pattern, num - 1)
+        num ->
+          if options[:global] != false or num == 0 do
+            :binary.split(binary, pattern, [:global])
+          else
+            :binary.split(binary, pattern, [])
+          end
+      end
 
       if Keyword.get(options, :trim, false) do
         for split <- splits, split != "", do: split
@@ -248,6 +260,65 @@ defmodule String do
       end
     end
   end
+
+  defp split_parts("", _pattern, _num),         do: [""]
+  defp split_parts(binary, pattern, num),       do: split_parts(binary, pattern, num, [])
+  defp split_parts("", _pattern, _num, parts),  do: Enum.reverse([""|parts])
+  defp split_parts(binary, _pattern, 0, parts), do: Enum.reverse([binary|parts])
+  defp split_parts(binary, pattern, num, parts) do
+    [head|tail] = :binary.split(binary, pattern)
+    case tail do
+      []    -> Enum.reverse([head|parts])
+      [str] -> split_parts(str, pattern, num - 1, [head|parts])
+    end
+  end
+
+  @doc """
+  Splits a string into two at the specified offset. When the offset given is
+  negative, location is counted from the end of the string.
+
+  The offset is capped to the length of the string.
+
+  Returns a tuple with two elements.
+
+  ## Examples
+
+      iex> String.split_at "sweetelixir", 5
+      {"sweet", "elixir"}
+
+      iex> String.split_at "sweetelixir", -6
+      {"sweet", "elixir"}
+
+      iex> String.split_at "abc", 0
+      {"", "abc"}
+
+      iex> String.split_at "abc", 1000
+      {"abc", ""}
+
+      iex> String.split_at "abc", -1000
+      {"", "abc"}
+
+  """
+  @spec split_at(t, integer) :: {t, t}
+  def split_at(string, offset)
+
+  def split_at(binary, index) when index == 0, do:
+    {"", binary}
+
+  def split_at(binary, index) when index > 0, do:
+    do_split_at(next_grapheme(binary), 0, index, "")
+
+  def split_at(binary, index) when index < 0, do:
+    do_split_at(next_grapheme(binary), 0, max(0, byte_size(binary)+index), "")
+
+  defp do_split_at(nil, _, _, acc), do:
+    {acc, ""}
+
+  defp do_split_at({grapheme, rest}, current_pos, target_pos, acc) when current_pos < target_pos, do:
+    do_split_at(next_grapheme(rest), current_pos+1, target_pos, acc <> grapheme)
+
+  defp do_split_at({grapheme, rest}, pos, pos, acc), do:
+    {acc, grapheme <> rest}
 
   @doc """
   Convert all characters on the given string to uppercase.
@@ -308,7 +379,7 @@ defmodule String do
   """
   @spec capitalize(t) :: t
   def capitalize(string) when is_binary(string) do
-    { char, rest } = String.Unicode.titlecase_once(string)
+    {char, rest} = String.Unicode.titlecase_once(string)
     char <> downcase(rest)
   end
 
@@ -585,7 +656,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(nil, acc), do: iolist_to_binary(acc)
+  defp do_reverse(nil, acc), do: iodata_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -640,10 +711,10 @@ defmodule String do
   ## Examples
 
       iex> String.next_codepoint("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_codepoint: 1 }
+  @compile {:inline, next_codepoint: 1}
   @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
 
@@ -731,11 +802,11 @@ defmodule String do
   ## Examples
 
       iex> String.next_grapheme("josé")
-      { "j", "osé" }
+      {"j", "osé"}
 
   """
-  @compile { :inline, next_grapheme: 1 }
-  @spec next_grapheme(t) :: { grapheme, t } | nil
+  @compile {:inline, next_grapheme: 1}
+  @spec next_grapheme(t) :: {grapheme, t} | nil
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
@@ -754,7 +825,7 @@ defmodule String do
   @spec first(t) :: grapheme | nil
   def first(string) do
     case next_grapheme(string) do
-      { char, _ } -> char
+      {char, _} -> char
       nil -> nil
     end
   end
@@ -1134,130 +1205,91 @@ defmodule String do
     raise ArgumentError
   end
 
-  defexception UnicodeConversionError, [:encoded, :message] do
-    def exception(opts) do
-      UnicodeConversionError[
-        encoded: opts[:encoded],
-        message: "#{opts[:kind]} #{detail(opts[:rest])}"
-      ]
-    end
+  @doc false
+  def to_char_list(list) do
+    IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data(list)
+  end
 
-    defp detail(rest) when is_binary(rest) do
-      "encoding starting at #{inspect rest}"
-    end
+  @doc false
+  def to_char_list!(list) do
+    IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    List.from_char_data!(list)
+  end
 
-    defp detail([h|_]) do
-      "code point #{h}"
-    end
+  @doc false
+  def from_char_list(list) do
+    IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data(list)
+  end
+
+  @doc false
+  def from_char_list!(list) do
+    IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
+    from_char_data!(list)
   end
 
   @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
+  Converts char data (a list of integers and strings) into a string.
+
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.to_char_list("æß")
-      { :ok, 'æß' }
+      iex> String.from_char_data([0x00E6, 0x00DF])
+      {:ok, "æß"}
 
-      iex> String.to_char_list("abc")
-      { :ok, 'abc' }
+      iex> String.from_char_data([0x0061, "bc"])
+      {:ok, "abc"}
 
   """
-  @spec to_char_list(String.t) :: { :ok, char_list } | { :error, list, binary } | { :incomplete, list, binary }
-  def to_char_list(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        { :ok, result }
-
-      { :error, _, _ } = error ->
-        error
-
-      { :incomplete, _, _ } = incomplete ->
-        incomplete
-    end
+  @spec from_char_data(char_data) :: {:ok, String.t} | {:error, binary, binary} | {:incomplete, binary, binary}
+  def from_char_data(binary) when is_binary(binary) do
+    binary
   end
 
-  @doc """
-  Converts a string into a char list converting each codepoint to its
-  respective integer value.
-
-  In case the conversion fails or is incomplete,
-  it raises a `String.UnicodeConversionError`.
-
-  ## Examples
-
-      iex> String.to_char_list!("æß")
-      'æß'
-
-      iex> String.to_char_list!("abc")
-      'abc'
-
-  """
-  @spec to_char_list!(String.t) :: char_list | no_return
-  def to_char_list!(string) when is_binary(string) do
-    case :unicode.characters_to_list(string) do
-      result when is_list(result) ->
-        result
-
-      { :error, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      { :incomplete, encoded, rest } ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
-
-  @doc """
-  Converts a list of integer codepoints to a string.
-
-  ## Examples
-
-      iex> String.from_char_list([0x00E6, 0x00DF])
-      { :ok, "æß" }
-
-      iex> String.from_char_list([0x0061, 0x0062, 0x0063])
-      { :ok, "abc" }
-
-  """
-  @spec from_char_list(char_list) :: { :ok, String.t } | { :error, binary, binary } | { :incomplete, binary, binary }
-  def from_char_list(list) when is_list(list) do
+  def from_char_data(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
-        { :ok, result }
+        {:ok, result}
 
-      { :error, _, _ } = error ->
+      {:error, _, _} = error ->
         error
 
-      { :incomplete, _, _ } = incomplete ->
+      {:incomplete, _, _} = incomplete ->
         incomplete
     end
   end
 
   @doc """
-  Converts a list of integer codepoints to a string.
+  Converts char data (a list of integers and strings) into a string.
 
-  In case the conversion fails, it raises a `String.UnicodeConversionError`.
+  In case the conversion fails, it raises a `UnicodeConversionError`.
+  If a string is given, returns the string itself.
 
   ## Examples
 
-      iex> String.from_char_list!([0x00E6, 0x00DF])
+      iex> String.from_char_data!([0x00E6, 0x00DF])
       "æß"
 
-      iex> String.from_char_list!([0x0061, 0x0062, 0x0063])
+      iex> String.from_char_data!([0x0061, "bc"])
       "abc"
 
   """
-  @spec from_char_list!(char_list) :: String.t | no_return
-  def from_char_list!(list) when is_list(list) do
+  @spec from_char_data!(char_data) :: String.t | no_return
+  def from_char_data!(binary) when is_binary(binary) do
+    binary
+  end
+
+  def from_char_data!(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result
 
-      { :error, encoded, rest } ->
+      {:error, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
 
-      { :incomplete, encoded, rest } ->
+      {:incomplete, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
   end

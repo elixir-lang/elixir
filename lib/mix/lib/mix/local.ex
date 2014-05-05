@@ -42,11 +42,6 @@ defmodule Mix.Local do
   end
 
   defp archives_ebin do
-    Path.join(archives_path, "*.ez") |> Path.wildcard |> Enum.map(&archive_ebin(&1))
-  end
-
-  defp archive_ebin(archive_file) do
-    dir = Mix.Archive.dir(archive_file)
-    Path.join [archive_file, dir, "ebin"]
+    Path.join(archives_path, "*.ez") |> Path.wildcard |> Enum.map(&Mix.Archive.ebin/1)
   end
 end

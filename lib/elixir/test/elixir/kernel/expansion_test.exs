@@ -31,7 +31,7 @@ defmodule Kernel.ExpansionTest do
     alias true, as: True
 
     input = quote do: (alias :hello, as: World, warn: True)
-    { output, env } = expand_env(input, __ENV__)
+    {output, env} = expand_env(input, __ENV__)
 
     assert output == quote do: (alias :hello, as: :"Elixir.World", warn: true)
     assert env.aliases == [{:"Elixir.True", true}, {:"Elixir.World", :hello}]
@@ -67,9 +67,9 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "=: defines vars" do
-    { output, env } = expand_env(quote(do: a = 1), __ENV__)
+    {output, env} = expand_env(quote(do: a = 1), __ENV__)
     assert output == quote(do: a = 1)
-    assert { :a, __MODULE__ } in env.vars
+    assert {:a, __MODULE__} in env.vars
   end
 
   test "=: does not carry rhs imports" do
@@ -78,7 +78,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "=: does not define _" do
-    { output, env } = expand_env(quote(do: _ = 1), __ENV__)
+    {output, env} = expand_env(quote(do: _ = 1), __ENV__)
     assert output == quote(do: _ = 1)
     assert env.vars == []
   end
@@ -98,16 +98,16 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "__ENV__" do
-    env = __ENV__
+    env = %{__ENV__ | line: 0}
     assert expand_env(quote(do: __ENV__), env) ==
-           { { :{}, [], tuple_to_list(env.line(0)) }, env }
+           {{:%{}, [], Map.to_list(env)}, env}
   end
 
   test "__ENV__.accessor" do
-    env = __ENV__
-    assert expand_env(quote(do: __ENV__.file), env) == { __ENV__.file, env }
+    env = %{__ENV__ | line: 0}
+    assert expand_env(quote(do: __ENV__.file), env) == {__ENV__.file, env}
     assert expand_env(quote(do: __ENV__.unknown), env) ==
-           { quote(do: unquote({ :{}, [], tuple_to_list(env.line(0)) }).unknown), env }
+           {quote(do: unquote({:%{}, [], Map.to_list(env)}).unknown), env}
   end
 
   ## Super
@@ -119,7 +119,7 @@ defmodule Kernel.ExpansionTest do
   ## Vars
 
   test "vars: expand to local call" do
-    { output, env } = expand_env(quote(do: a), __ENV__)
+    {output, env} = expand_env(quote(do: a), __ENV__)
     assert output == quote(do: a())
     assert env.vars == []
   end
@@ -153,12 +153,12 @@ defmodule Kernel.ExpansionTest do
   ## Locals
 
   test "locals: expands to remote calls" do
-    assert { {:., _, [Kernel, :=~] }, _, [{:a, _, []}, {:b, _, []}] } =
+    assert {{:., _, [Kernel, :=~]}, _, [{:a, _, []}, {:b, _, []}]} =
           expand(quote do: a =~ b)
   end
 
   test "locals: expands to configured local" do
-    assert expand_env(quote(do: a), __ENV__.local(Hello)) |> elem(0) ==
+    assert expand_env(quote(do: a), %{__ENV__ | local: Hello}) |> elem(0) ==
            quote(do: :"Elixir.Hello".a())
   end
 
@@ -175,34 +175,34 @@ defmodule Kernel.ExpansionTest do
   ## Tuples
 
   test "tuples: expanded as arguments" do
-    assert expand(quote(do: { a = 1, a })) == quote do: { a = 1, a() }
-    assert expand(quote(do: { b, a = 1, a })) == quote do: { b(), a = 1, a() }
+    assert expand(quote(do: {a = 1, a})) == quote do: {a = 1, a()}
+    assert expand(quote(do: {b, a = 1, a})) == quote do: {b(), a = 1, a()}
   end
 
   ## Maps & structs
 
   test "maps: expanded as arguments" do
-    assert expand(quote(do: %{ a: a = 1, b: a })) == quote do: %{ a: a = 1, b: a() }
+    assert expand(quote(do: %{a: a = 1, b: a})) == quote do: %{a: a = 1, b: a()}
   end
 
   test "structs: expanded as arguments" do
-    assert expand(quote(do: %:elixir{ a: a = 1, b: a })) ==
-           quote do: %:elixir{ a: a = 1, b: a() }
+    assert expand(quote(do: %:elixir{a: a = 1, b: a})) ==
+           quote do: %:elixir{a: a = 1, b: a()}
 
-    assert expand(quote(do: %:"Elixir.Kernel"{ a: a = 1, b: a })) ==
-           quote do: %:"Elixir.Kernel"{ a: a = 1, b: a() }
+    assert expand(quote(do: %:"Elixir.Kernel"{a: a = 1, b: a})) ==
+           quote do: %:"Elixir.Kernel"{a: a = 1, b: a()}
   end
 
   test "structs: expects atoms" do
     assert_raise CompileError, ~r"expected struct name to be a compile time atom or alias", fn ->
-      expand(quote do: %unknown{ a: 1 })
+      expand(quote do: %unknown{a: 1})
     end
   end
 
   ## quote
 
   test "quote: expanded to raw forms" do
-    assert expand(quote do: (quote do: hello)) == { :{}, [], [:hello, [], __MODULE__] }
+    assert expand(quote do: (quote do: hello)) == {:{}, [], [:hello, [], __MODULE__]}
   end
 
   ## Anonymous calls
@@ -417,11 +417,11 @@ defmodule Kernel.ExpansionTest do
 
   test "handles invalid expressions" do
     assert_raise CompileError, ~r"invalid quoted expression: {1, 2, 3}", fn ->
-      expand(quote do: unquote({ 1, 2, 3 }))
+      expand(quote do: unquote({1, 2, 3}))
     end
 
     assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
-      expand(quote do: unquote({ :sample, fn -> end }))
+      expand(quote do: unquote({:sample, fn -> end}))
     end
   end
 
@@ -440,7 +440,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   defp expand_env(expr, env) do
-    { expr, env } = :elixir_exp.expand(expr, :elixir_env.ex_to_env(env))
-    { expr, set_elem(env, 0, Macro.Env) }
+    :elixir_exp.expand(expr, env)
   end
 end

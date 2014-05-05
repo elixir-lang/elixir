@@ -36,8 +36,8 @@ defmodule ExUnit.Case do
         use ExUnit.Case
 
         setup do
-          { :ok, pid } = KV.start_link
-          { :ok, [pid: pid] }
+          {:ok, pid} = KV.start_link
+          {:ok, [pid: pid]}
         end
 
         test "stores key-values", context do
@@ -63,9 +63,9 @@ defmodule ExUnit.Case do
         setup context do
           # Read the :cd tag value
           if cd = context[:cd] do
-            prev_cwd = File.cwd!
+            prev_cd = File.cwd!
             File.cd!(cd)
-            { :ok, [prev_cd: prev_cd] }
+            {:ok, [prev_cd: prev_cd]}
           else
             :ok
           end
@@ -118,6 +118,7 @@ defmodule ExUnit.Case do
   * `:case` - the test case module
   * `:test` - the test name
   * `:line` - the line on which the test was defined
+  * `:file` - the file on which the test was defined
 
   ## Filters
 
@@ -214,14 +215,9 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      message = if is_binary(message) do
-        :"test #{message}"
-      else
-        :"test_#{message}"
-      end
-
-      ExUnit.Case.__on_definition__(__ENV__, message)
-      def unquote(message)(unquote(var)), do: unquote(contents)
+      test = :"test #{message}"
+      ExUnit.Case.__on_definition__(__ENV__, test)
+      def unquote(test)(unquote(var)), do: unquote(contents)
     end
   end
 
@@ -238,7 +234,7 @@ defmodule ExUnit.Case do
   def __on_definition__(env, name) do
     mod  = env.module
     tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-    tags = [line: env.line] ++ normalize_tags(tags)
+    tags = [line: env.line, file: env.file] ++ normalize_tags(tags)
 
     Module.put_attribute(mod, :ex_unit_tests,
       ExUnit.Test[name: name, case: mod, tags: tags])

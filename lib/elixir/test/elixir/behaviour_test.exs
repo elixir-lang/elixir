@@ -19,7 +19,7 @@ defmodule BehaviourTest do
 
     defcallback orr(atom | integer) :: atom
 
-    defcallback literal(123, { atom }, :atom, [integer], true) :: atom
+    defcallback literal(123, {atom}, :atom, [integer], true) :: atom
 
     @doc "I should be last."
     defmacrocallback last(integer) :: Macro.t

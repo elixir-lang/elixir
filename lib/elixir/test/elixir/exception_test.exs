@@ -19,6 +19,100 @@ defmodule Kernel.ExceptionTest do
     assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
   end
 
+  test "format_banner" do
+    assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
+    assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
+    assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
+  end
+
+  test "format without stacktrace" do
+    stacktrace = try do throw(:stack) catch :stack -> System.stacktrace() end
+    assert Exception.format(:error, :badarg) == "** (ArgumentError) argument error" <>
+      "\n" <> Exception.format_stacktrace(stacktrace)
+  end
+
+  test "format with empty stacktrace" do
+    assert Exception.format(:error, :badarg, []) == "** (ArgumentError) argument error"
+  end
+
+  test "format_exit" do
+    assert Exception.format_exit(:bye) == ":bye"
+    assert Exception.format_exit(:noconnection) == "no connection"
+    assert Exception.format_exit({:nodedown, :"node@host"}) == "no connection to node@host"
+    assert Exception.format_exit(:timeout) == "time out"
+    assert Exception.format_exit(:noproc) == "no process"
+    assert Exception.format_exit(:killed) == "killed"
+    assert Exception.format_exit(:normal) == "normal"
+    assert Exception.format_exit(:shutdown) == "shutdown"
+    assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
+    assert Exception.format_exit({:badarg,[{:not_a_real_module, :function, 0, []}]}) ==
+           "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
+  end
+
+  test "format_exit with call" do
+    reason = try do
+      :gen_server.call(:does_not_exist, :hello)
+    catch
+      :exit, reason -> reason
+    end
+
+    assert Exception.format_exit(reason) ==
+           "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process"
+  end
+
+  test "format_exit with call with exception" do
+    # Fake reason to prevent error_logger printing to stdout
+    fsm_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    reason = try do
+      :gen_fsm.sync_send_event(spawn(fn() ->
+          :timer.sleep(200) ; exit(fsm_reason)
+      end), :hello)
+    catch
+      :exit, reason -> reason
+    end
+
+    formatted = Exception.format_exit(reason)
+    assert formatted =~ ~r"exited in: :gen_fsm\.sync_send_event\(#PID<\d+\.\d+\.\d+>, :hello\)"
+    assert formatted =~ ~r"\s{4}\*\* \(EXIT\) an exception was raised:\n"
+    assert formatted =~ ~r"\s{8}\*\* \(ArgumentError\) argument error\n"
+    assert formatted =~ ~r"\s{12}:not_a_real_module\.function/0"
+  end
+
+  test "format_exit with nested calls" do
+    # Fake reason to prevent error_logger printing to stdout
+    event_fun = fn() -> :timer.sleep(200) ; exit(:normal) end
+    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    reason = try do
+      :gen_server.call(server_pid, :hi)
+    catch
+      :exit, reason -> reason
+    end
+
+    formatted = Exception.format_exit(reason)
+    assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+    assert formatted =~ ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+    assert formatted =~ ~r"\s{8}\*\* \(EXIT\) normal"
+  end
+
+  test "format_exit with nested calls and exception" do
+    # Fake reason to prevent error_logger printing to stdout
+    event_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    event_fun = fn() -> :timer.sleep(200) ; exit(event_reason) end
+    server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
+    reason = try do
+      :gen_server.call(server_pid, :hi)
+    catch
+      :exit, reason -> reason
+    end
+
+    formatted = Exception.format_exit(reason)
+    assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+    assert formatted =~ ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+    assert formatted =~ ~r"\s{8}\*\* \(EXIT\) an exception was raised:\n"
+    assert formatted =~ ~r"\s{12}\*\* \(ArgumentError\) argument error\n"
+    assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
+  end
+
   test "format_stacktrace_entry with no file or line" do
     assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
     assert Exception.format_stacktrace_entry({Foo, :bar, [], []}) == "Foo.bar()"
@@ -39,17 +133,17 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "format_stacktrace_entry with application" do
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) == 
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
                        "(elixir) file.ex: Exception.bar()"
     assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
                        "(elixir) file.ex:10: Exception.bar()"
-    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) == 
-                       "(stdlib) :lists.bar(1, 2, 3)"  
+    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) ==
+                       "(stdlib) :lists.bar(1, 2, 3)"
   end
 
   test "format_stacktrace_entry with fun" do
     assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
-    assert Exception.format_stacktrace_entry({fn(x, y) -> { x, y } end, 2, []}) =~ ~r"#Function<.+>/2"
+    assert Exception.format_stacktrace_entry({fn(x, y) -> {x, y} end, 2, []}) =~ ~r"#Function<.+>/2"
   end
 
   test "format_mfa" do
@@ -100,9 +194,9 @@ defmodule Kernel.ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list!
+    file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 98]} = stacktrace
+           [file: ^file, line: 192]} = stacktrace
   end
 
   test "defexception" do
@@ -113,6 +207,6 @@ defmodule Kernel.ExceptionTest do
   end
 
   defp empty_tuple, do: {}
-  defp a_tuple, do: { :foo, :bar, :baz }
+  defp a_tuple, do: {:foo, :bar, :baz}
   defp a_list,  do: [ :foo, :bar, :baz ]
 end

@@ -22,7 +22,7 @@ defmodule Record.Deprecated do
     end
   end
 
-  defp record_check!([{ field, { :::, _, [_, _] }}|_]) when is_atom(field) do
+  defp record_check!([{field, {:::, _, [_, _]}}|_]) when is_atom(field) do
     raise ArgumentError, message: "typespecs are not supported inlined with defrecord, " <>
                                   "please use record_type instead"
   end
@@ -32,7 +32,7 @@ defmodule Record.Deprecated do
 
   def defrecordp(name, tag, fields) do
     case recordp_split(fields, [], [], false) do
-      { :ok, fields, types, def_type } ->
+      {:ok, fields, types, def_type} ->
         types = Macro.escape(types)
 
         # bind_quoted isn't available when bootstrapping record
@@ -41,7 +41,7 @@ defmodule Record.Deprecated do
 
           if def_type do
             type = binary_to_atom(atom_to_binary(name) <> "_t")
-            @typep unquote(type)() :: { unquote(tag || name), unquote_splicing(types) }
+            @typep unquote(type)() :: {unquote(tag || name), unquote_splicing(types)}
           end
         end
 
@@ -62,8 +62,8 @@ defmodule Record.Deprecated do
     end
   end
 
-  defp recordp_split([{ field, { :::, _, [default, type] }}|t], defaults, types, _) do
-    recordp_split(t, [{ field, default }|defaults], [type|types], true)
+  defp recordp_split([{field, {:::, _, [default, type]}}|t], defaults, types, _) do
+    recordp_split(t, [{field, default}|defaults], [type|types], true)
   end
 
   defp recordp_split([other|t], defaults, types, def_type) do
@@ -71,7 +71,7 @@ defmodule Record.Deprecated do
   end
 
   defp recordp_split([], defaults, types, def_type) do
-    { :ok, :lists.reverse(defaults), :lists.reverse(types), def_type }
+    {:ok, :lists.reverse(defaults), :lists.reverse(types), def_type}
   end
 
   defp recordp_split(_, _, _, _) do
@@ -98,15 +98,15 @@ defmodule Record.Deprecated do
     if env == Macro.Env do
       Module.eval_quoted(env, contents, [], [])
     else
-      Module.eval_quoted(env.module, contents, [], env.location)
+      Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
     end
   end
 
   def deftypes(values, types, env) do
     types  = types || []
     values = for value <- values do
-      { name, default } = convert_value(value)
-      { name, default, find_spec(types, name) }
+      {name, default} = convert_value(value)
+      {name, default, find_spec(types, name)}
     end
 
     contents = [
@@ -116,12 +116,12 @@ defmodule Record.Deprecated do
 
     # We need to handle bootstraping
     cond do
-      :code.ensure_loaded(Kernel.Typespec) != { :module, Kernel.Typespec } ->
+      :code.ensure_loaded(Kernel.Typespec) != {:module, Kernel.Typespec} ->
         nil
       env == Macro.Env ->
         Module.eval_quoted(env, contents, [], [])
       true ->
-        Module.eval_quoted(env.module, contents, [], env.location)
+        Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
     end
   end
 
@@ -129,8 +129,8 @@ defmodule Record.Deprecated do
       when is_atom(name) and is_list(values) and is_atom(tag) do
 
     escaped = for value <- values do
-      { key, value } = convert_value(value)
-      { key, Macro.escape(value) }
+      {key, value} = convert_value(value)
+      {key, Macro.escape(value)}
     end
 
     tag = tag || name
@@ -149,7 +149,7 @@ defmodule Record.Deprecated do
       end
     end
 
-    Module.eval_quoted(env.module, contents, [], env.location)
+    Module.eval_quoted(env.module, contents, [], Macro.Env.location(env))
   end
 
   ## Callbacks
@@ -161,7 +161,7 @@ defmodule Record.Deprecated do
   end
 
   def __on_definition__(env, kind, name, args, _guards, _body) do
-    tuple     = { name, length(args) }
+    tuple     = {name, length(args)}
     module    = env.module
     functions = Module.get_attribute(module, :record_optimizable)
 
@@ -188,10 +188,10 @@ defmodule Record.Deprecated do
       raise ArgumentError, message: "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
     end
 
-    in_match = caller.in_match?
+    in_match = Macro.Env.in_match?(caller)
 
     has_underscore_value = Keyword.has_key?(keyword, :_)
-    underscore_value     = Keyword.get(keyword, :_, { :_, [], nil })
+    underscore_value     = Keyword.get(keyword, :_, {:_, [], nil})
     keyword              = Keyword.delete keyword, :_
 
     iterator = fn({field, default}, each_keyword) ->
@@ -205,16 +205,16 @@ defmodule Record.Deprecated do
             end
         end
 
-      { new_fields, Keyword.delete(each_keyword, field) }
+      {new_fields, Keyword.delete(each_keyword, field)}
     end
 
-    { match, remaining } = :lists.mapfoldl(iterator, keyword, fields)
+    {match, remaining} = :lists.mapfoldl(iterator, keyword, fields)
 
     case remaining do
       [] ->
-        { :{}, [], [atom|match] }
+        {:{}, [], [atom|match]}
       _  ->
-        keys = for { key, _ } <- remaining, do: key
+        keys = for {key, _} <- remaining, do: key
         raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
     end
   end
@@ -235,11 +235,11 @@ defmodule Record.Deprecated do
       raise ArgumentError, message: "expected arguments to be compile time keywords"
     end
 
-    if caller.in_match? do
+    if Macro.Env.in_match?(caller) do
       raise ArgumentError, message: "cannot invoke update style macro inside match context"
     end
 
-    Enum.reduce keyword, var, fn({ key, value }, acc) ->
+    Enum.reduce keyword, var, fn({key, value}, acc) ->
       index = find_index(fields, key, 0)
       if index do
         quote do
@@ -265,7 +265,7 @@ defmodule Record.Deprecated do
   ## Function generation
 
   defp reflection(values) do
-    quoted = for { k, _ } <- values do
+    quoted = for {k, _} <- values do
       index = find_index(values, k, 0)
       quote do
         def __record__(:index, unquote(k)), do: unquote(index + 1)
@@ -290,23 +290,23 @@ defmodule Record.Deprecated do
   end
 
   defp initializer(values) do
-    defaults = for { _, value } <- values, do: value
+    defaults = for {_, value} <- values, do: value
 
     # For each value, define a piece of code that will receive
     # an ordered dict of options (opts) and it will try to fetch
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
-    atom_selective   = for { k, v } <- values, do: initialize_lookup(k, v)
-    string_selective = for { k, v } <- values, do: initialize_lookup(atom_to_binary(k), v)
+    atom_selective   = for {k, v} <- values, do: initialize_lookup(k, v)
+    string_selective = for {k, v} <- values, do: initialize_lookup(atom_to_binary(k), v)
 
     quote do
       @doc false
       def new(), do: new([])
 
       @doc false
-      def new([]), do: { __MODULE__, unquote_splicing(defaults) }
-      def new([{key, _}|_] = opts) when is_atom(key), do: { __MODULE__, unquote_splicing(atom_selective) }
-      def new([{key, _}|_] = opts) when is_binary(key), do: { __MODULE__, unquote_splicing(string_selective) }
+      def new([]), do: {__MODULE__, unquote_splicing(defaults)}
+      def new([{key, _}|_] = opts) when is_atom(key), do: {__MODULE__, unquote_splicing(atom_selective)}
+      def new([{key, _}|_] = opts) when is_binary(key), do: {__MODULE__, unquote_splicing(string_selective)}
     end
   end
 
@@ -320,9 +320,9 @@ defmodule Record.Deprecated do
   end
 
   defp conversions(values) do
-    sorted = for { k, _ } <- values do
+    sorted = for {k, _} <- values do
       index = find_index(values, k, 0)
-      { k, quote(do: :erlang.element(unquote(index + 2), record)) }
+      {k, quote(do: :erlang.element(unquote(index + 2), record))}
     end
 
     quote do
@@ -333,11 +333,11 @@ defmodule Record.Deprecated do
     end
   end
 
-  defp accessors([{ :__exception__, _ }|t], 1) do
+  defp accessors([{:__exception__, _}|t], 1) do
     accessors(t, 2)
   end
 
-  defp accessors([{ key, _default }|t], i) do
+  defp accessors([{key, _default}|t], i) do
     update = binary_to_atom "update_" <> atom_to_binary(key)
 
     contents = quote do
@@ -374,8 +374,8 @@ defmodule Record.Deprecated do
     string_fields =
       for {key, _default} <- values, do: updater_lookup(atom_to_binary(key), key, values)
 
-    atom_contents = quote do: { __MODULE__, unquote_splicing(atom_fields) }
-    string_contents = quote do: { __MODULE__, unquote_splicing(string_fields) }
+    atom_contents = quote do: {__MODULE__, unquote_splicing(atom_fields)}
+    string_contents = quote do: {__MODULE__, unquote_splicing(string_fields)}
 
     quote do
       @doc false
@@ -407,8 +407,8 @@ defmodule Record.Deprecated do
     quote do
       @record_optimized true
       @record_optimizable []
-      @before_compile { unquote(__MODULE__), :__before_compile__ }
-      @on_definition { unquote(__MODULE__), :__on_definition__ }
+      @before_compile {unquote(__MODULE__), :__before_compile__}
+      @on_definition {unquote(__MODULE__), :__on_definition__}
     end
   end
 
@@ -419,12 +419,12 @@ defmodule Record.Deprecated do
   ## Types/specs generation
 
   defp core_specs(values) do
-    types   = for { _, _, spec } <- values, do: spec
-    options = for { k, _, v } <- values, do: { k, v }
+    types   = for {_, _, spec} <- values, do: spec
+    options = for {k, _, v} <- values, do: {k, v}
 
     quote do
       unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-        @type t :: { __MODULE__, unquote_splicing(types) }
+        @type t :: {__MODULE__, unquote_splicing(types)}
       end
 
       unless Kernel.Typespec.defines_type?(__MODULE__, :options, 0) do
@@ -441,11 +441,11 @@ defmodule Record.Deprecated do
     end
   end
 
-  defp accessor_specs([{ :__exception__, _, _ }|t], 1, acc) do
+  defp accessor_specs([{:__exception__, _, _}|t], 1, acc) do
     accessor_specs(t, 2, acc)
   end
 
-  defp accessor_specs([{ key, _default, spec }|t], i, acc) do
+  defp accessor_specs([{key, _default, spec}|t], i, acc) do
     update = binary_to_atom "update_" <> atom_to_binary(key)
 
     contents = quote do
@@ -464,15 +464,15 @@ defmodule Record.Deprecated do
   defp is_keyword(list) when is_list(list), do: :lists.all(&is_keyword_tuple/1, list)
   defp is_keyword(_), do: false
 
-  defp is_keyword_tuple({ x, _ }) when is_atom(x), do: true
+  defp is_keyword_tuple({x, _}) when is_atom(x), do: true
   defp is_keyword_tuple(_), do: false
 
-  defp convert_value(atom) when is_atom(atom), do: { atom, nil }
+  defp convert_value(atom) when is_atom(atom), do: {atom, nil}
 
-  defp convert_value({ atom, other }) when is_atom(atom), do:
-    { atom, check_value(atom, other) }
+  defp convert_value({atom, other}) when is_atom(atom), do:
+    {atom, check_value(atom, other)}
 
-  defp convert_value({ field, _ }), do:
+  defp convert_value({field, _}), do:
     raise(ArgumentError, message: "record field name has to be an atom, got #{inspect field}")
 
   defp check_value(atom, other) when is_list(other) do
@@ -486,8 +486,8 @@ defmodule Record.Deprecated do
   end
 
   defp check_value(atom, other) when is_function(other) do
-    unless :erlang.fun_info(other, :env) == { :env, [] } and
-           :erlang.fun_info(other, :type) == { :type, :external } do
+    unless :erlang.fun_info(other, :env) == {:env, []} and
+           :erlang.fun_info(other, :type) == {:type, :external} do
       raise ArgumentError, message: "record field default value #{inspect atom} can only contain " <>
                                     "functions that point to an existing &Mod.fun/arity"
     end
@@ -500,12 +500,12 @@ defmodule Record.Deprecated do
 
   defp check_value(_atom, other), do: other
 
-  defp find_index([{ k, _ }|_], k, i), do: i
-  defp find_index([{ _, _ }|t], k, i), do: find_index(t, k, i + 1)
+  defp find_index([{k, _}|_], k, i), do: i
+  defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
 
   defp find_spec(types, name) do
-    matches = for { k, v } <- types, name == k, do: v
+    matches = for {k, v} <- types, name == k, do: v
     case matches do
       [h|_] -> h
       _     -> quote do: term
@@ -517,7 +517,7 @@ defmodule Record.DSL do
   @moduledoc false
 
   defmacro record_type(opts) when is_list(opts) do
-    escaped = for { k, v } <- opts, do: { k, Macro.escape(v) }
+    escaped = for {k, v} <- opts, do: {k, Macro.escape(v)}
 
     quote do
       @record_types Keyword.merge(@record_types || [], unquote(escaped))

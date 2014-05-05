@@ -11,19 +11,19 @@ defmodule IEx.Introspection do
   """
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
-      { :module, _ } ->
+      {:module, _} ->
         if function_exported?(module, :__info__, 1) do
           case module.__info__(:moduledoc) do
-            { _, binary } when is_binary(binary) ->
+            {_, binary} when is_binary(binary) ->
               if IO.ANSI.terminal? do
-                colors = IEx.Options.get(:colors)
-                IO.ANSI.Docs.print_heading(inspect(module), colors)
-                IO.ANSI.Docs.print(binary, colors)
+                options = docs_options()
+                IO.ANSI.Docs.print_heading(inspect(module), options)
+                IO.ANSI.Docs.print(binary, options)
               else
                 IO.puts "* #{inspect(module)}\n"
                 IO.puts binary
               end
-            { _, _ } ->
+            {_, _} ->
               nodocs(inspect module)
             _ ->
               IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
@@ -31,7 +31,7 @@ defmodule IEx.Introspection do
         else
           IO.puts IEx.color(:eval_error, "#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
         end
-      { :error, reason } ->
+      {:error, reason} ->
         IO.puts IEx.color(:eval_error, "Could not load module #{inspect module}, got: #{reason}")
     end
     dont_display_result
@@ -73,7 +73,7 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
     if docs = mod.__info__(:docs) do
-      result = for { {f, arity}, _line, _type, _args, doc } <- docs, fun == f, doc != false do
+      result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
         h(mod, fun, arity)
         IO.puts ""
       end
@@ -134,7 +134,7 @@ defmodule IEx.Introspection do
   end
 
   defp find_doc(docs, function, arity) do
-    if doc = List.keyfind(docs, { function, arity }, 0) do
+    if doc = List.keyfind(docs, {function, arity}, 0) do
       case elem(doc, 4) do
         false -> nil
         _ -> doc
@@ -145,8 +145,8 @@ defmodule IEx.Introspection do
   defp find_default_doc(docs, function, min) do
     Enum.find docs, fn(doc) ->
       case elem(doc, 0) do
-        { ^function, max } when max > min ->
-          defaults = Enum.count elem(doc, 3), &match?({ :\\, _, _ }, &1)
+        {^function, max} when max > min ->
+          defaults = Enum.count elem(doc, 3), &match?({:\\, _, _}, &1)
           min + defaults >= max
         _ ->
           false
@@ -154,27 +154,31 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_doc({ { fun, _ }, _line, kind, args, doc }) do
+  defp print_doc({{fun, _}, _line, kind, args, doc}) do
     args    = Enum.map_join(args, ", ", &print_doc_arg(&1))
     heading = "#{kind} #{fun}(#{args})"
     doc     = doc || ""
 
     if IO.ANSI.terminal? do
-      colors = IEx.Options.get(:colors)
-      IO.ANSI.Docs.print_heading(heading, colors)
-      IO.ANSI.Docs.print(doc, colors)
+      options = docs_options()
+      IO.ANSI.Docs.print_heading(heading, options)
+      IO.ANSI.Docs.print(doc, options)
     else
       IO.puts "* #{heading}\n"
       IO.puts doc
     end
   end
 
-  defp print_doc_arg({ :\\, _, [left, right] }) do
+  defp print_doc_arg({:\\, _, [left, right]}) do
     print_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
   end
 
-  defp print_doc_arg({ var, _, _ }) do
+  defp print_doc_arg({var, _, _}) do
     atom_to_binary(var)
+  end
+
+  defp docs_options() do
+    [width: IEx.width] ++ IEx.Options.get(:colors)
   end
 
   @doc """
@@ -295,16 +299,16 @@ defmodule IEx.Introspection do
 
   defp beam_specs_tag(nil, _), do: nil
   defp beam_specs_tag(specs, tag) do
-    Enum.map(specs, &{ tag, &1 })
+    Enum.map(specs, &{tag, &1})
   end
 
-  defp print_type({ kind, type }) do
+  defp print_type({kind, type}) do
     ast = Kernel.Typespec.type_to_ast(type)
     IO.puts IEx.color(:eval_info, "@#{kind} #{Macro.to_string(ast)}")
     true
   end
 
-  defp print_spec({kind, { { name, _arity }, specs }}) do
+  defp print_spec({kind, {{name, _arity}, specs}}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_string Kernel.Typespec.spec_to_ast(name, spec)
       IO.puts IEx.color(:eval_info, "@#{kind} #{binary}")
@@ -314,9 +318,9 @@ defmodule IEx.Introspection do
 
   defp nobeam(module) do
     case Code.ensure_loaded(module) do
-      { :module, _ } ->
+      {:module, _} ->
         IO.puts IEx.color(:eval_error, "Beam code not available for #{inspect module} or debug info is missing, cannot load typespecs")
-      { :error, reason } ->
+      {:error, reason} ->
         IO.puts IEx.color(:eval_error, "Could not load module #{inspect module}, got: #{reason}")
     end
   end

@@ -7,18 +7,17 @@ defmodule Mix.Tasks.Test do
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
 
-      if :application.get_env(:cover, :started) != { :ok, true } do
+      if :application.get_env(:cover, :started) != {:ok, true} do
+        :application.set_env(:cover, :started, true)
         output = opts[:output]
 
-        System.at_exit fn(_) ->
+        fn() ->
           Mix.shell.info "\nGenerating cover results ... "
           File.mkdir_p!(output)
           Enum.each :cover.modules, fn(mod) ->
             :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
           end
         end
-
-        :application.set_env(:cover, :started, true)
       end
     end
   end
@@ -86,6 +85,11 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external --exclude test
 
+  When filtering tests by line number the following styles are equivalent:
+
+      mix test test/some/particular/file_test.exs:12
+      mix test --only line:12 test/some/particular/file_test.exs
+
   ## Configuration
 
   * `:test_paths` - list of paths containing test files, defaults to `["test"]`.
@@ -108,51 +112,69 @@ defmodule Mix.Tasks.Test do
       test_coverage: [tool: CoverModule]
 
   `CoverModule` can be any module that exports `start/2`, receiving the
-  compilation path and the `test_coverage` options as arguments.
+  compilation path and the `test_coverage` options as arguments. It must
+  return an anonymous function of zero arity that will be run after the
+  test suite is done or nil.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
-             exclude: :keep, seed: :integer]
+             exclude: :keep, seed: :integer, only: :keep]
 
   @cover [output: "cover", tool: Cover]
 
   def run(args) do
-    { opts, files, _ } = OptionParser.parse(args, switches: @switches)
+    {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
       raise Mix.Error, message: "mix test is running on environment #{Mix.env}. If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
-    Mix.Task.run "app.start", args
+    Mix.Task.run "deps.loadpaths", args
+    Mix.Task.run "loadpaths", args
 
-    project = Mix.project
-    cover   = Keyword.merge(@cover, project[:test_coverage] || [])
-
-    if opts[:cover] do
-      cover[:tool].start(Mix.Project.compile_path(project), cover)
+    unless opts[:no_compile] do
+      Mix.Task.run "compile", args
     end
 
+    project = Mix.Project.config
+    cover   = Keyword.merge(@cover, project[:test_coverage] || [])
+
+    # Start cover after we load deps but before we start the app.
+    cover =
+      if opts[:cover] do
+        cover[:tool].start(Mix.Project.compile_path(project), cover)
+      end
+
+    # Start the app and configure exunit with command line options
+    # before requiring test_helper.exs so that the configuration is
+    # available in test_helper.exs. Then configure exunit again so
+    # that command line options override test_helper.exs
+    Mix.Task.run "app.start", args
     :application.load(:ex_unit)
 
-    # Configure exunit with command line options before requiring
-    # test_helper so that the configuration is available in test_helper
-    # Then configure exunit again it so command line options override
-    # test_helper
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
-
     ExUnit.configure(opts)
 
-    test_paths   = if files == [], do: test_paths, else: files
+    # Finally parse, require and load the files
+    test_files   = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
 
-    files = Mix.Utils.extract_files(test_paths, test_pattern)
-    Kernel.ParallelRequire.files files
+    test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    Kernel.ParallelRequire.files(test_files)
+
+    # Run the test suite, coverage tools and register an exit hook
+    %{failures: failures} = ExUnit.run
+    if cover, do: cover.()
+
+    System.at_exit fn _ ->
+      if failures > 0, do: System.halt(1)
+    end
   end
 
   @doc false
@@ -162,7 +184,26 @@ defmodule Mix.Tasks.Test do
            |> filter_opts(:exclude)
            |> filter_only_opts()
 
-    Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
+    # Set autorun to false because Mix
+    # automatically runs the test suite for us.
+    [autorun: false] ++
+      Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
+  end
+
+  defp parse_files([], test_paths) do
+    test_paths
+  end
+
+  defp parse_files([single_file], _test_paths) do
+    # Check if the single file path matches test/path/to_test.exs:123, if it does
+    # apply `--only line:123` and trim the trailing :123 part.
+    {single_file, opts} = ExUnit.Filters.parse_path(single_file)
+    ExUnit.configure(opts)
+    [single_file]
+  end
+
+  defp parse_files(files, _test_paths) do
+    files
   end
 
   defp parse_filters(opts, key) do

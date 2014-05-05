@@ -1,7 +1,7 @@
 defexception IO.StreamError, [:reason, :message] do
   def exception(opts) do
     reason    = opts[:reason]
-    formatted = iolist_to_binary(:file.format_error(reason))
+    formatted = iodata_to_binary(:file.format_error(reason))
     IO.StreamError[message: "error during streaming: #{formatted}", reason: reason]
   end
 end
@@ -25,13 +25,13 @@ defmodule IO.Stream do
       stream
     end
 
-    def into(%{ device: device, raw: raw } = stream) do
-      { :ok, into(stream, device, raw) }
+    def into(%{device: device, raw: raw} = stream) do
+      {:ok, into(stream, device, raw)}
     end
 
     defp into(stream, device, raw) do
       fn
-        :ok, { :cont, x } ->
+        :ok, {:cont, x} ->
           case raw do
             true  -> IO.binwrite(device, x)
             false -> IO.write(device, x)
@@ -42,7 +42,7 @@ defmodule IO.Stream do
   end
 
   defimpl Enumerable do
-    def reduce(%{ device: device, raw: raw, line_or_bytes: line_or_bytes }, acc, fun) do
+    def reduce(%{device: device, raw: raw, line_or_bytes: line_or_bytes}, acc, fun) do
       next_fun =
         case raw do
           true  -> &IO.each_binstream(&1, line_or_bytes)
@@ -52,11 +52,11 @@ defmodule IO.Stream do
     end
 
     def count(_stream) do
-      { :error, __MODULE__ }
+      {:error, __MODULE__}
     end
 
     def member?(_stream, _term) do
-      { :error, __MODULE__ }
+      {:error, __MODULE__}
     end
   end
 end
@@ -70,22 +70,35 @@ defmodule IO do
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
-  The majority of the functions expect data encoded in UTF-8
-  and will do a conversion to string, via the `String.Chars`
-  protocol (as shown in typespecs).
+  The majority of the functions expect char data, i.e. strings or
+  lists of characters and strings. In case another type is given,
+  it will do a conversion to string via the `String.Chars` protocol
+  (as shown in typespecs).
 
-  The functions starting with `bin*` expects iodata as arguments,
-  i.e. iolists or binaries with no particular encoding.
+  The functions starting with `bin*` expects iodata as argument,
+  i.e. binaries or lists of bytes and binaries.
+
+  ## IO devices
+
+  An IO device may be an atom or a pid. In case it is an atom,
+  the atom must be the name of a registered process. However,
+  there are three exceptions for this rule:
+
+  * `:standard_io` - when the `:standard_io` atom is given,
+    it is treated as a shortcut for `Process.group_leader`
+
+  * `:stdio` - is a shortcut for `:standard_io`
+
+  * `:stderr` - is a shortcut for `:standard_error`
 
   """
 
-  @type device   :: atom | pid
-  @type chardata :: char_list | String.Chars.t
-  @type nodata :: { :error, term } | :eof
+  @type device :: atom | pid
+  @type nodata :: {:error, term} | :eof
 
   import :erlang, only: [group_leader: 0]
 
-  defmacrop is_iolist(data) do
+  defmacrop is_iodata(data) do
     quote do
       is_list(unquote(data)) or is_binary(unquote(data))
     end
@@ -103,7 +116,7 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec read(device, :line | non_neg_integer) :: chardata | nodata
+  @spec read(device, :line | non_neg_integer) :: char_data | nodata
   def read(device \\ group_leader, chars_or_line)
 
   def read(device, :line) do
@@ -131,24 +144,22 @@ defmodule IO do
 
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
-      { :ok, data } -> data
+      {:ok, data} -> data
       other -> other
     end
   end
 
   def binread(device, count) when count >= 0 do
     case :file.read(map_dev(device), count) do
-      { :ok, data } -> data
+      {:ok, data} -> data
       other -> other
     end
   end
 
   @doc """
   Writes the given argument to the given device.
-  By default the device is the standard output.
-  The argument is expected to be a chardata (i.e.
-  a char list or an unicode binary).
 
+  By default the device is the standard output.
   It returns `:ok` if it succeeds.
 
   ## Examples
@@ -160,9 +171,9 @@ defmodule IO do
       #=> "error"
 
   """
-  @spec write(device, chardata) :: :ok
+  @spec write(device, char_data | String.Chars.t) :: :ok
   def write(device \\ group_leader(), item) do
-    :io.put_chars map_dev(device), to_chardata(item)
+    :io.put_chars map_dev(device), to_char_data(item)
   end
 
   @doc """
@@ -171,29 +182,32 @@ defmodule IO do
 
   Check `write/2` for more information.
   """
-  @spec binwrite(device, iodata) :: :ok | { :error, term }
-  def binwrite(device \\ group_leader(), item) when is_iolist(item) do
+  @spec binwrite(device, iodata) :: :ok | {:error, term}
+  def binwrite(device \\ group_leader(), item) when is_iodata(item) do
     :file.write map_dev(device), item
   end
 
   @doc """
   Writes the argument to the device, similar to `write/2`,
   but adds a newline at the end. The argument is expected
-  to be a chardata.
+  to be a char_data.
   """
-  @spec puts(device, chardata) :: :ok
+  @spec puts(device, char_data | String.Chars.t) :: :ok
   def puts(device \\ group_leader(), item) do
     erl_dev = map_dev(device)
-    :io.put_chars erl_dev, [to_chardata(item), ?\n]
+    :io.put_chars erl_dev, [to_char_data(item), ?\n]
   end
 
   @doc """
-  Inspects and writes the given argument to the device
-  followed by a newline. A set of options can be given.
+  Inspects and writes the given argument to the device.
 
-  It sets by default pretty printing to true and the
-  width to be the width of the device, with a minimum
-  of 80 characters.
+  It sets by default pretty printing to true and returns
+  the item itself.
+
+  Note this function does not use the IO device width
+  because some IO devices does not implement the
+  appropriate functions. Setting the width must be done
+  explicitly by passing the `:width` option.
 
   ## Examples
 
@@ -211,14 +225,6 @@ defmodule IO do
   @spec inspect(device, term, Keyword.t) :: term
   def inspect(device, item, opts) when is_list(opts) do
     opts = Keyword.put_new(opts, :pretty, true)
-
-    unless Keyword.get(opts, :width) do
-      opts = case :io.columns(device) do
-        { :ok, width } -> [width: width] ++ opts
-        { :error, _ }  -> opts
-      end
-    end
-
     puts device, Kernel.inspect(item, opts)
     item
   end
@@ -238,8 +244,8 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec getn(chardata, pos_integer) :: chardata | nodata
-  @spec getn(device, chardata) :: chardata | nodata
+  @spec getn(char_data | String.Chars.t, pos_integer) :: char_data | nodata
+  @spec getn(device, char_data | String.Chars.t) :: char_data | nodata
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) do
@@ -256,9 +262,9 @@ defmodule IO do
   the number of unicode codepoints to be retrieved.
   Otherwise, `count` is the number of raw bytes to be retrieved.
   """
-  @spec getn(device, chardata, pos_integer) :: chardata | nodata
+  @spec getn(device, char_data | String.Chars.t, pos_integer) :: char_data | nodata
   def getn(device, prompt, count) do
-    :io.get_chars(map_dev(device), to_chardata(prompt), count)
+    :io.get_chars(map_dev(device), to_char_data(prompt), count)
   end
 
   @doc """
@@ -273,9 +279,9 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec gets(device, chardata) :: chardata | nodata
+  @spec gets(device, char_data | String.Chars.t) :: char_data | nodata
   def gets(device \\ group_leader(), prompt) do
-    :io.get_line(map_dev(device), to_chardata(prompt))
+    :io.get_line(map_dev(device), to_char_data(prompt))
   end
 
   @doc """
@@ -304,7 +310,7 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    %IO.Stream{ device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints }
+    %IO.Stream{device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints}
   end
 
   @doc """
@@ -322,7 +328,7 @@ defmodule IO do
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    %IO.Stream{ device: map_dev(device), raw: true, line_or_bytes: line_or_bytes }
+    %IO.Stream{device: map_dev(device), raw: true, line_or_bytes: line_or_bytes}
   end
 
   @doc false
@@ -330,10 +336,10 @@ defmodule IO do
     case read(device, what) do
       :eof ->
         nil
-      { :error, reason } ->
+      {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        { data, device }
+        {data, device}
     end
   end
 
@@ -342,18 +348,20 @@ defmodule IO do
     case binread(device, what) do
       :eof ->
         nil
-      { :error, reason } ->
+      {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        { data, device }
+        {data, device}
     end
   end
+
+  @compile {:inline, map_dev: 1, to_char_data: 1}
 
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other
 
-  defp to_chardata(list) when is_list(list), do: list
-  defp to_chardata(other), do: to_string(other)
+  defp to_char_data(list) when is_list(list), do: list
+  defp to_char_data(other), do: to_string(other)
 end

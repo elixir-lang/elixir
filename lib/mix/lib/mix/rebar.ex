@@ -37,11 +37,11 @@ defmodule Mix.Rebar do
     script_path = Path.join(dir, "rebar.config.script")
 
     config = case :file.consult(config_path) do
-      { :ok, config } ->
+      {:ok, config} ->
         config
-      { :error, :enoent } ->
+      {:error, :enoent} ->
         []
-      { :error, error } ->
+      {:error, error} ->
         reason = :file.format_error(error)
         raise Mix.Error, message: "Error consulting rebar config #{config_path}: #{reason}"
     end
@@ -69,7 +69,7 @@ defmodule Mix.Rebar do
   Runs `fun` for the given config and for each `sub_dirs` in the
   given rebar config.
   """
-  def recur([h|_] = config, fun) when is_integer(h) do
+  def recur(config, fun) when is_binary(config) do
     recur(load_config(config), fun)
   end
 
@@ -84,23 +84,23 @@ defmodule Mix.Rebar do
     [fun.(config)|subs]
   end
 
-  defp parse_dep({ app, req }, deps_dir) do
-    { app, compile_req(req), [path: Path.join(deps_dir, app)] }
+  defp parse_dep({app, req}, deps_dir) do
+    {app, compile_req(req), [path: Path.join(deps_dir, atom_to_binary(app))]}
   end
 
-  defp parse_dep({ app, req, source }, deps_dir) do
-    parse_dep({ app, req, source, [] }, deps_dir)
+  defp parse_dep({app, req, source}, deps_dir) do
+    parse_dep({app, req, source, []}, deps_dir)
   end
 
-  defp parse_dep({ app, req, source, opts }, _deps_dir) do
+  defp parse_dep({app, req, source, opts}, _deps_dir) do
     [ scm, url | source ] = tuple_to_list(source)
-    mix_opts = [{ scm, to_string(url) }]
+    mix_opts = [{scm, to_string(url)}]
 
     ref =
       case source do
         [""|_]                  -> [branch: "HEAD"]
-        [{ :branch, branch }|_] -> [branch: to_string(branch)]
-        [{ :tag, tag }|_]       -> [tag: to_string(tag)]
+        [{:branch, branch}|_] -> [branch: to_string(branch)]
+        [{:tag, tag}|_]       -> [tag: to_string(tag)]
         [ref|_]                 -> [ref: to_string(ref)]
         _                       -> []
       end
@@ -111,37 +111,38 @@ defmodule Mix.Rebar do
       mix_opts = mix_opts ++ [compile: false]
     end
 
-    { app, compile_req(req), mix_opts }
+    {app, compile_req(req), mix_opts}
   end
 
   defp parse_dep(app, deps_dir) do
-    parse_dep({ app, ".*" }, deps_dir)
+    parse_dep({app, ".*"}, deps_dir)
   end
 
   defp compile_req(req) do
     case Regex.compile to_string(req) do
-      { :ok, re } ->
+      {:ok, re} ->
         re
-      { :error, reason } ->
+      {:error, reason} ->
         raise Mix.Error, message: "Unable to compile version regex: \"#{req}\", #{reason}"
     end
   end
 
   defp eval_script(script_path, config) do
-    script = Path.basename(script_path) |> String.to_char_list!
+    script = Path.basename(script_path) |> List.from_char_data!
 
     result = File.cd!(Path.dirname(script_path), fn ->
       :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))
     end)
 
     case result do
-      { :ok, config } ->
+      {:ok, config} ->
         config
-      { :error, error } ->
+      {:error, error} ->
         reason = :file.format_error(error)
         Mix.shell.error("Error evaluating rebar config script #{script_path}: #{reason}")
+        Mix.shell.error("You may solve this issue by adding rebar as a dependency to your project")
         Mix.shell.error("Any dependency defined in the script won't be available " <>
-          "unless you add them to your Mix project")
+                        "unless you add them to your Mix project")
         config
     end
   end
@@ -154,7 +155,7 @@ defmodule Mix.Rebar do
 
   defp wrap_cmd(nil), do: nil
   defp wrap_cmd(rebar) do
-    if match?({ :win32, _ }, :os.type) and not String.ends_with?(rebar,".cmd") do
+    if match?({:win32, _}, :os.type) and not String.ends_with?(rebar,".cmd") do
       "escript.exe #{rebar}"
     else
       rebar

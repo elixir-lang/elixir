@@ -11,7 +11,7 @@ defmodule System do
 
   defp read_stripped(path) do
     case :file.read_file(path) do
-      { :ok, binary } ->
+      {:ok, binary} ->
         strip_re(binary, "^\s+|\s+$")
       _ -> ""
     end
@@ -31,7 +31,7 @@ defmodule System do
   defmacrop get_describe do
     dirpath = :filename.join(__DIR__, "../../../.git")
     case :file.read_file_info(dirpath) do
-      { :ok, _ } ->
+      {:ok, _} ->
         if :os.find_executable('git') do
           data = :os.cmd('git describe --always --tags')
           strip_re(data, "\n")
@@ -44,7 +44,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    iolist_to_binary :httpd_util.rfc1123_date
+    iodata_to_binary :httpd_util.rfc1123_date
   end
 
   @doc """
@@ -83,7 +83,7 @@ defmodule System do
   """
   @spec argv([String.t]) :: :ok
   def argv(args) do
-    :elixir_code_server.cast({ :argv, args })
+    :elixir_code_server.cast({:argv, args})
   end
 
   @doc """
@@ -94,7 +94,7 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      { :ok, base } -> String.from_char_list!(base)
+      {:ok, base} -> String.from_char_data!(base)
       _ -> nil
     end
   end
@@ -117,7 +117,7 @@ defmodule System do
   """
   def user_home do
     case :os.type() do
-      { :win32, _ } -> get_windows_home
+      {:win32, _} -> get_windows_home
       _             -> get_unix_home
     end
   end
@@ -189,17 +189,15 @@ defmodule System do
   end
 
   defp write_tmp_dir(dir) do
-    case :file.read_file_info(dir) do
-      {:ok, info} ->
-        type_index = File.Stat.__record__(:index, :type)
-        access_index = File.Stat.__record__(:index, :access)
-        case { elem(info, type_index), elem(info, access_index) } do
-          { :directory, access } when access in [:read_write, :write] ->
-            String.from_char_list!(dir)
+    case File.stat(dir) do
+      {:ok, stat} ->
+        case {stat.type, stat.access} do
+          {:directory, access} when access in [:read_write, :write] ->
+            String.from_char_data!(dir)
           _ ->
             nil
         end
-      { :error, _ } -> nil
+      {:error, _} -> nil
     end
   end
 
@@ -214,7 +212,7 @@ defmodule System do
   as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    :elixir_code_server.cast { :at_exit, fun }
+    :elixir_code_server.cast {:at_exit, fun}
   end
 
   @doc """
@@ -225,9 +223,9 @@ defmodule System do
   the result as a binary.
 
   If `command` is a char list, a char list is returned.
-  Returns a binary otherwise.
+  Otherwise a string, correctly encoded in UTF-8, is expected.
   """
-  @spec cmd(binary) :: binary
+  @spec cmd(String.t)  :: String.t
   @spec cmd(char_list) :: char_list
 
   def cmd(command) when is_list(command) do
@@ -235,9 +233,7 @@ defmodule System do
   end
 
   def cmd(command) when is_binary(command) do
-    # Notice we don't use unicode for conversion
-    # because the OS is expecting and returning raw bytes
-    :binary.list_to_bin :os.cmd(:binary.bin_to_list(command))
+    String.from_char_data! :os.cmd(List.from_char_data!(command))
   end
 
   @doc """
@@ -260,11 +256,9 @@ defmodule System do
   end
 
   def find_executable(program) when is_binary(program) do
-    # Notice we don't use unicode for conversion
-    # because the OS is expecting and returning raw bytes
-    case :os.find_executable(:binary.bin_to_list(program)) do
+    case :os.find_executable(List.from_char_data!(program)) do
       false -> nil
-      other -> :binary.list_to_bin(other)
+      other -> String.from_char_data!(other)
     end
   end
 
@@ -274,12 +268,12 @@ defmodule System do
   Returns a list of all environment variables. Each variable is given as a
   `{name, value}` tuple where both `name` and `value` are strings.
   """
-  @spec get_env() :: [{String.t, String.t}]
+  @spec get_env() :: %{String.t => String.t}
   def get_env do
-    Enum.map(:os.getenv, fn var ->
-        var = String.from_char_list! var
-        [k, v] = String.split var, "=", global: false
-        {k, v}
+    Enum.into(:os.getenv, %{}, fn var ->
+      var = String.from_char_data! var
+      [k, v] = String.split var, "=", parts: 2
+      {k, v}
     end)
   end
 
@@ -292,9 +286,9 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
-    case :os.getenv(String.to_char_list!(varname)) do
+    case :os.getenv(List.from_char_data!(varname)) do
       false -> nil
-      other -> String.from_char_list!(other)
+      other -> String.from_char_data!(other)
     end
   end
 
@@ -307,7 +301,7 @@ defmodule System do
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
   @spec get_pid() :: binary
-  def get_pid, do: iolist_to_binary(:os.getpid)
+  def get_pid, do: iodata_to_binary(:os.getpid)
 
   @doc """
   Set an environment variable value.
@@ -316,7 +310,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv :binary.bin_to_list(varname), String.to_char_list!(value)
+   :os.putenv List.from_char_data!(varname), List.from_char_data!(value)
    :ok
   end
 
@@ -338,7 +332,7 @@ defmodule System do
   """
   @spec delete_env(String.t) :: :ok
   def delete_env(varname) do
-    :os.unsetenv(String.to_char_list!(varname))
+    :os.unsetenv(List.from_char_data!(varname))
     :ok
   end
 
@@ -367,7 +361,7 @@ defmodule System do
   * If `:abort`, the runtime system aborts producing a core dump, if that is
     enabled in the operating system;
 
-  * If a char list, an erlang crash dump is produced with status as slogan,
+  * If a string, an erlang crash dump is produced with status as slogan,
     and then the runtime system exits with status code 1;
 
   Note that on many platforms, only the status codes 0-255 are supported
@@ -391,6 +385,6 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(:binary.bin_to_list(status))
+    :erlang.halt(List.from_char_data!(status))
   end
 end

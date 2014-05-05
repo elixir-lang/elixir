@@ -30,8 +30,8 @@ defmodule Inspect.AlgebraTest do
 
   test "break doc" do
     # Consistence with definitions
-    assert break("break") == { :doc_break, "break" }
-    assert break("") == { :doc_break, "" }
+    assert break("break") == {:doc_break, "break"}
+    assert break("") == {:doc_break, ""}
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> break(42) end
@@ -45,9 +45,9 @@ defmodule Inspect.AlgebraTest do
 
   test "glue doc" do
     # Consistence with definitions
-    assert glue("a", "->", "b") == { :doc_cons,
-      "a", { :doc_cons, { :doc_break, "->" }, "b" }
-    }
+    assert glue("a", "->", "b") == {:doc_cons,
+      "a", {:doc_cons, {:doc_break, "->"}, "b"}
+   }
     assert glue("a", "b") == glue("a", " ", "b")
 
     # Wrong argument type
@@ -64,14 +64,14 @@ defmodule Inspect.AlgebraTest do
 
   test "space doc" do
     # Consistency with definitions
-    assert space("a", "b") == { :doc_cons,
-      "a", { :doc_cons, " ", "b" }
-    }
+    assert space("a", "b") == {:doc_cons,
+      "a", {:doc_cons, " ", "b"}
+   }
   end
 
   test "nest doc" do
     # Consistence with definitions
-    assert nest(empty, 1) == { :doc_nest, 1, empty }
+    assert nest(empty, 1) == {:doc_nest, 1, empty}
     assert nest(empty, 0) == :doc_nil
 
     # Wrong argument type
@@ -89,7 +89,7 @@ defmodule Inspect.AlgebraTest do
   test "line doc" do
     # Consistency with definitions
     assert line("a", "b") ==
-      { :doc_cons, "a", { :doc_cons, :doc_line, "b" } }
+      {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
 
     # Consistence of corresponding sdoc
     assert factor(line("a", "b"), 1) == ["a", "\n", "b"]
@@ -103,8 +103,8 @@ defmodule Inspect.AlgebraTest do
   test "group doc" do
     # Consistency with definitions
     assert group(glue("a", "b")) ==
-      { :doc_group, { :doc_cons, "a", concat(break, "b") }}
-    assert group(empty) == { :doc_group, empty }
+      {:doc_group, {:doc_cons, "a", concat(break, "b")}}
+    assert group(empty) == {:doc_group, empty}
 
     # Consistence of corresponding sdoc
     assert factor(glue("a", "b"), 1) == ["a", " ", "b"]

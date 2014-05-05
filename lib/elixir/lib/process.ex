@@ -62,6 +62,7 @@ defmodule Process do
   """
   @spec delete :: [{term, term}]
   def delete() do
+    IO.write :stderr, "Process.delete/0 is deprecated\n#{Exception.format_stacktrace}"
     :erlang.erase()
   end
 
@@ -104,26 +105,6 @@ defmodule Process do
   end
 
   @doc """
-  Returns the pid (process identifier) of the calling process.
-  """
-  @spec self() :: pid
-  def self() do
-    :erlang.self()
-  end
-
-  @doc """
-  Sends a message to the given process.
-
-  It does the same as `Kernel.send/2`.
-  """
-  @spec send(dest, msg) :: msg when
-        dest: pid | port | atom | { atom, node },
-        msg: any
-  def send(dest, msg) do
-    :erlang.send(dest, msg)
-  end
-
-  @doc """
   Sends a message to the given process.
 
   If the option `:noconnect` is used and sending the message would require an
@@ -137,12 +118,12 @@ defmodule Process do
 
   ## Examples
 
-      iex> Process.send({ :name, :node_does_not_exist }, :hi, [:noconnect])
+      iex> Process.send({:name, :node_does_not_exist}, :hi, [:noconnect])
       :noconnect
 
   """
   @spec send(dest, msg, [option]) ::  result when
-        dest: pid | port | atom | { atom, node },
+        dest: pid | port | atom | {atom, node},
         msg: any,
         option: :noconnect | :nosuspend,
         result: :ok | :noconnect | :nosuspend
@@ -179,21 +160,16 @@ defmodule Process do
   @type spawn_opts :: [spawn_opt]
 
   @doc """
-  Returns the pid of a new process started by the application of `fun`.
-  It behaves exactly the same as `Kernel.spawn/1`.
+  Spawns the given module and function passing the given args
+  according to the given options.
 
-  Inlined by the compiler.
-  """
-  @spec spawn((() -> any)) :: pid
-  def spawn(fun) do
-    :erlang.spawn(fun)
-  end
-
-  @doc """
-  Returns the pid of a new process started by the application of `fun`.
+  The result depends on the given options. In particular,
+  if `:monitor` is given as an option, it will return a tuple
+  containing the pid and the monitoring reference, otherwise
+  just the spawned process pid.
 
   It also accepts extra options, for the list of available options
-  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-2
+  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
 
   Inlined by the compiler.
   """
@@ -203,79 +179,70 @@ defmodule Process do
   end
 
   @doc """
-  Returns the pid of a new process started by the application of
-  `module.function(args)`. The new process created will be placed in the system
-  scheduler queue and be run some time later.
+  Spawns the given module and function passing the given args
+  according to the given options.
 
-  It behaves exactly the same as the `Kernel.spawn/3` function.
-
-  Inlined by the compiler.
-  """
-  @spec spawn(module, atom, [any]) :: pid
-  def spawn(mod, fun, args) do
-    :erlang.spawn(mod, fun, args)
-  end
-
-  @doc """
-  Returns the pid of a new process started by the application of
-  `module.function(args)`. The new process created will be placed in the system
-  scheduler queue and be run some time later.
+  The result depends on the given options. In particular,
+  if `:monitor` is given as an option, it will return a tuple
+  containing the pid and the monitoring reference, otherwise
+  just the spawned process pid.
 
   It also accepts extra options, for the list of available options
   check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
 
   Inlined by the compiler.
   """
-  @spec spawn(module, atom, [any], spawn_opts) :: pid | {pid, reference}
+  @spec spawn(module, atom, list, spawn_opts) :: pid | {pid, reference}
   def spawn(mod, fun, args, opts) do
     :erlang.spawn_opt(mod, fun, args, opts)
   end
 
-  @doc """
-  Returns the pid of a new process started by the application of `fun`.
-  A link is created between the calling process and the new
-  process, atomically.
+  @doc false
+  def spawn(fun) do
+    # IO.write :stderr, "Process.spawn/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    :erlang.spawn(fun)
+  end
 
-  Inlined by the compiler.
-  """
-  @spec spawn_link((() -> any)) :: pid
+  @doc false
+  def spawn(mod, fun, args) do
+    # IO.write :stderr, "Process.spawn/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    :erlang.spawn(mod, fun, args)
+  end
+
+  @doc false
   def spawn_link(fun) do
+    # IO.write :stderr, "Process.spawn_link/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_link(fun)
   end
 
-  @doc """
-  Returns the pid of a new process started by the application of
-  `module.function(args)`. A link is created between the calling process
-  and the new process, atomically. Otherwise works like spawn/3.
-
-  Inlined by the compiler.
-  """
-  @spec spawn_link(module, atom, [any]) :: pid
+  @doc false
   def spawn_link(mod, fun, args) do
+    # IO.write :stderr, "Process.spawn_link/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_link(mod, fun, args)
   end
 
-  @doc """
-  Returns the pid of a new process started by the application of `fun`
-  and reference for a monitor created to the new process.
-
-  Inlined by the compiler.
-  """
-  @spec spawn_monitor((() -> any)) :: {pid, reference}
+  @doc false
   def spawn_monitor(fun) do
+    # IO.write :stderr, "Process.spawn_monitor/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_monitor(fun)
   end
 
-  @doc """
-  A new process is started by the application of `module.function(args)`
-  and the process is monitored at the same time. Returns the pid and a
-  reference for the monitor. Otherwise works like spawn/3.
-
-  Inlined by the compiler.
-  """
-  @spec spawn_monitor(module, atom, [any]) :: {pid, reference}
+  @doc false
   def spawn_monitor(mod, fun, args) do
+    # IO.write :stderr, "Process.spawn_monitor/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_monitor(mod, fun, args)
+  end
+
+  @doc false
+  def self() do
+    # IO.write :stderr, "Process.self/0 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    :erlang.self()
+  end
+
+  @doc false
+  def send(dest, msg) do
+    # IO.write :stderr, "Process.send/2 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    :erlang.send(dest, msg)
   end
 
   @doc """
@@ -457,7 +424,7 @@ defmodule Process do
     nillify :erlang.process_info(pid, spec)
   end
 
-  @compile { :inline, nillify: 1 }
+  @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other
 end

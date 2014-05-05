@@ -1,11 +1,4 @@
--define(wrap_call(Line, Module, Function, Args),
-  { call, Line,
-    { remote, Line, { atom, Line, Module }, { atom, Line, Function } },
-    Args
-  }).
-
--define(atom_concat(Atoms), list_to_atom(lists:concat(Atoms))).
--define(elixir_macro(Macro), list_to_atom(lists:concat(['MACRO-',Macro]))).
+-define(m(M, K), maps:get(K, M)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
 
 -record(elixir_scope, {
@@ -24,24 +17,6 @@
   extra_guards=nil,        %% extra guards from args expansion
   counter=[],              %% a dict counting the variables defined
   file=(<<"nofile">>)      %% the current scope filename
-}).
-
--record(elixir_env, {
-  module=nil,              %% the current module
-  file=(<<"nofile">>),     %% the current filename
-  line=1,                  %% the current line
-  function=nil,            %% the current function
-  context=nil,             %% can be match_vars, guards or nil
-  requires=[],             %% a set with modules required
-  aliases=[],              %% an orddict with aliases by new -> old names
-  functions=[],            %% a list with functions imported from module
-  macros=[],               %% a list with macros imported from module
-  macro_aliases=[],        %% keep aliases defined inside a macro
-  context_modules=[],      %% modules defined in the current context
-  vars=[],                 %% a set of defined variables
-  export_vars=nil,         %% a set of variables to be exported in certain constructs, may be nil
-  lexical_tracker=nil,     %% holds the lexical tracker pid
-  local=nil                %% the module to delegate local functions to
 }).
 
 -record(elixir_quote, {
