@@ -1157,6 +1157,14 @@ defmodule Kernel.SpecialForms do
       iex> for n <- [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
       [2, 4, 6]
 
+  Note generators can also be used to filter as it removes any value
+  that doesn't match the left side of `<-`:
+
+      iex> for {:user, name} <- [user: "jose", admin: "john", user: "eric"] do
+      ...>   String.upcase(name)
+      ...> end
+      ["JOSE", "ERIC"]
+
   Bitstring generators are also supported and are very useful when you
   need to organize bitstring streams:
 
