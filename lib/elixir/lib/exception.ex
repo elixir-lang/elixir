@@ -171,8 +171,10 @@ defmodule Exception do
   exceptions as in the current Elixir version being used.
   """
 
+  @type t :: tuple
   @type stacktrace :: [stacktrace_entry]
-
+  @type process ::
+        pid | atom | {atom, node} | {:global, term} | {:via, module, term}
   @type stacktrace_entry ::
         {module, function, arity_or_args, location} |
         {function, arity_or_args, location}
@@ -194,67 +196,200 @@ defmodule Exception do
   It takes the `kind` spilled by `catch` as an argument and
   normalizes only `:error`, returning the untouched payload
   for others.
-  """
-  def normalize(:error, exception), do: normalize_error(exception)
-  def normalize(_kind, payload),    do: payload
 
-  defp normalize_error(exception) when is_exception(exception) do
+  The third argument, a stacktrace, is optional. If it is
+  not supplied `System.stacktrace/0` will sometimes be used
+  to get additional information for the `kind` `:error`. If
+  the stacktrace is unknown and `System.stacktrace/0` would
+  not return the stacktrace corresponding to the exception
+  an empty stacktrace, `[]`, must be used.
+  """
+  @spec normalize(:error, any, stacktrace) :: t
+  @spec normalize(:exit | :throw, any, stacktrace) :: any
+  # Generating a stacktrace is expensive, default to nil to only fetch it when
+  # needed.
+  def normalize(kind, payload, stacktrace \\ nil)
+
+  def normalize(:error, exception, stacktrace) do
+    normalize_error(exception, stacktrace)
+  end
+
+  def normalize(_kind, payload, _stacktrace), do: payload
+
+  defp normalize_error(exception, _stacktrace) when is_exception(exception) do
     exception
   end
 
-  defp normalize_error(:badarg) do
+  defp normalize_error(:badarg, _stacktrace) do
     ArgumentError[]
   end
 
-  defp normalize_error(:badarith) do
+  defp normalize_error(:badarith, _stacktrace) do
     ArithmeticError[]
   end
 
-  defp normalize_error(:system_limit) do
+  defp normalize_error(:system_limit, _stacktrace) do
     SystemLimitError[]
   end
 
-  defp normalize_error({:badarity, {fun, args}}) do
+  defp normalize_error({:badarity, {fun, args}}, _stacktrace) do
     BadArityError[function: fun, args: args]
   end
 
-  defp normalize_error({:badfun, term}) do
+  defp normalize_error({:badfun, term}, _stacktrace) do
     BadFunctionError[term: term]
   end
 
-  defp normalize_error({:badstruct, struct, term}) do
+  defp normalize_error({:badstruct, struct, term}, _stacktrace) do
     BadStructError[struct: struct, term: term]
   end
 
-  defp normalize_error({:badmatch, term}) do
+  defp normalize_error({:badmatch, term}, _stacktrace) do
     MatchError[term: term]
   end
 
-  defp normalize_error({:case_clause, term}) do
+  defp normalize_error({:case_clause, term}, _stacktrace) do
     CaseClauseError[term: term]
   end
 
-  defp normalize_error({:try_clause, term}) do
+  defp normalize_error({:try_clause, term}, _stacktrace) do
     TryClauseError[term: term]
   end
 
-  defp normalize_error(:undef) do
-    {mod, fun, arity} = from_stacktrace(:erlang.get_stacktrace)
+  defp normalize_error(:undef, stacktrace) do
+    {mod, fun, arity} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
     UndefinedFunctionError[module: mod, function: fun, arity: arity]
   end
 
-  defp normalize_error(:function_clause) do
-    {mod, fun, arity} = from_stacktrace(:erlang.get_stacktrace)
+  defp normalize_error(:function_clause, stacktrace) do
+    {mod, fun, arity} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
     FunctionClauseError[module: mod, function: fun, arity: arity]
   end
 
-  defp normalize_error({:badarg, payload}) do
+  defp normalize_error({:badarg, payload}, _stacktrace) do
     ArgumentError[message: "argument error: #{inspect(payload)}"]
   end
 
-  defp normalize_error(other) do
+  defp normalize_error(other, _stacktrace) do
     ErlangError[original: other]
   end
+
+  @doc """
+  Normalizes and formats the message of an exception,
+  converting Erlang exceptions to Elixir exceptions,
+  returns a string.
+
+  It takes the `kind` spilled by `catch` as an argument,
+  normalizes for `:error` and formats it into a string.
+
+  The third argument, a stacktrace, is optional. If it is
+  not supplied `System.stacktrace/0` will sometimes be used
+  to get additional information for the `kind` `:error`. If
+  the stacktrace is unknown and `System.stacktrace/0` would
+  not return the stacktrace corresponding to the exception
+  an empty stacktrace, `[]`, must be used.
+  """
+  @spec format_message(:error | :exit | :throw, any, stacktrace) :: String.t
+  def format_message(kind, exception, stacktrace \\ :erlang.get_stacktrace())
+
+  def format_message(:error, exception, stacktrace) do
+    exception = normalize_error(exception, stacktrace)
+    "** (" <> inspect(exception.__record__(:name)) <> ") " <> exception.message
+  end
+
+  def format_message(:throw, reason, _stacktrace) do
+   "** (throw) " <> inspect(reason)
+  end
+
+  def format_message(:exit, reason, _stacktrace) do
+    "** (exit) " <> format_reason(reason, <<"\n    ">>)
+  end
+
+  @doc """
+  Normalizes and formats an exception and stacktrace,
+  converting Erlang exceptions to Elixir exceptions,
+  returns a string.
+
+  Behaves the same as `format_message/3` but also includes
+  the formatted stacktrace.
+  """
+  @spec format(:error | :exit | :throw, any, stacktrace) :: String.t
+  def format(kind, exception, stacktrace \\ :erlang.get_stacktrace()) do
+    message = format_message(kind, exception, stacktrace)
+    case stacktrace do
+      [] -> message
+      _ -> message <> "\n" <> format_stacktrace(stacktrace)
+    end
+  end
+
+  @doc """
+  Formats an exit reason, returns a string.
+  """
+  @spec format_reason(any) :: String.t
+  def format_reason(reason) do
+    format_reason(reason, <<"\n    ">>)
+  end
+
+  # 2-Tuple could be caused by an error if the second element is a stacktrace.
+  defp format_reason({exception, maybe_stacktrace} = reason, joiner)
+      when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
+    try do
+      Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
+    else
+      formatted_stacktrace ->
+        # Assume a non-empty list formattable as stacktrace is a
+        # stacktrace, so exit was caused by an error.
+        message = "an exception was raised:" <> joiner <>
+          format_message(:error, exception, maybe_stacktrace)
+        Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
+    catch
+      :error, _ ->
+        # Not a stacktrace, was an exit.
+        format_exit_reason(reason)
+    end
+  end
+
+  # 2-Tuple could be an exit caused by mfa if second element is mfa,
+  defp format_reason({reason2, {mod, fun, args}} = reason, joiner) do
+    try do
+      format_mfa(mod, fun, args)
+    else
+      mfa ->
+        # Assume tuple formattable as an mfa is an mfa, so exit was caused by
+        # failed mfa.
+        "exited in: " <> mfa <> joiner <>
+          "** (EXIT) " <> format_reason(reason2, joiner <> <<"    ">>)
+    catch
+      :error, _ ->
+        # Not an mfa, was an exit.
+        format_exit_reason(reason)
+    end
+  end
+
+  defp format_reason(reason, _joiner) do
+    format_exit_reason(reason)
+  end
+
+  defp format_exit_reason(:normal), do: "normal"
+  defp format_exit_reason(:shutdown), do: "shutdown"
+
+  defp format_exit_reason({:shutdown, reason}) do
+    "shutdown: #{inspect(reason)}"
+  end
+
+  defp format_exit_reason(:timeout), do: "time out"
+  defp format_exit_reason(:killed), do: "killed"
+  defp format_exit_reason(:noconnection), do: "no connection"
+
+  defp format_exit_reason(:noproc) do
+    "no process"
+  end
+
+  defp format_exit_reason({:nodedown, node_name}) when is_atom(node_name) do
+    "no connection to #{node_name}"
+  end
+
+  defp format_exit_reason(reason), do: inspect(reason)
 
   @doc """
   Receives a stacktrace entry and formats it into a string.

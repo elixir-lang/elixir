@@ -169,7 +169,7 @@ defmodule Mix.Tasks.Escriptize do
               args = Enum.map(args, &String.from_char_data!(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
-              IO.puts :stderr, IO.ANSI.escape("%{red, bright} Elixir is not in the code path, aborting.")
+              io_error "Elixir is not in the code path, aborting."
               System.halt(1)
           end
         end
@@ -181,10 +181,15 @@ defmodule Mix.Tasks.Escriptize do
         defp start_app(app) do
           case :application.ensure_all_started(app) do
             {:ok, _} -> :ok
-            {:error, reason} ->
-              IO.puts :stderr, IO.ANSI.escape("%{red, bright} Could not start application #{app}: #{inspect reason}.")
+            {:error, {app, reason}} ->
+              io_error "Could not start application #{app}: " <>
+                Application.format_reason(reason)
               System.halt(1)
           end
+        end
+
+        defp io_error(message) do
+           IO.puts :stderr, IO.ANSI.escape("%{red, bright} " <> message)
         end
       end
 

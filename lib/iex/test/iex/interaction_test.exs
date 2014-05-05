@@ -113,6 +113,19 @@ defmodule IEx.InteractionTest do
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ ~r"EXIT from #PID"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
+    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) {:bye, \[:world\]}"
   end
+
+  test "receive exit from exception" do
+    # use exit/1 to fake an error so that an error message is not sent to the
+    # error logger.
+    assert capture_iex("spawn_link(fn -> exit({ArgumentError[],
+      [{:not_a_real_module, :function, 0, []}]}) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n\s{4}\*\* \(ArgumentError\) argument error\n\s{8}:not_a_real_module\.function/0"
+  end
+
+  test "exit due to failed call" do
+    assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~ ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
+  end
+
 end
