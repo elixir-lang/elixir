@@ -52,7 +52,7 @@ defmodule Kernel.ParallelCompiler do
     # compilation status will be set to error and we fail with CompileError
     case :elixir_code_server.call({:compilation_status, compiler_pid}) do
       :ok    -> result
-      :error -> raise CompileError, [], []
+      :error -> exit(1)
     end
   end
 
@@ -172,45 +172,62 @@ defmodule Kernel.ParallelCompiler do
         new_waiting = List.keydelete(waiting, down_pid, 1)
         spawn_compilers(new_entries, original, output, callbacks, new_waiting, new_queued, schedulers, result)
 
-      {:DOWN, down_ref, :process, _down_pid, {:failure, kind, reason, stacktrace}} ->
-        handle_failure(down_ref, kind, reason, stacktrace, entries, waiting, queued)
-        wait_for_messages(entries, original, output, callbacks, waiting, queued, schedulers, result)
-
-      {:DOWN, down_ref, :process, _down_pid, other} ->
-        handle_failure(down_ref, :exit, other, [], entries, waiting, queued)
+      {:DOWN, down_ref, :process, _down_pid, reason} ->
+        handle_failure(down_ref, reason, entries, waiting, queued)
         wait_for_messages(entries, original, output, callbacks, waiting, queued, schedulers, result)
     end
   end
 
-  defp handle_failure(ref, kind, reason, stacktrace, entries, waiting, queued) do
+  defp handle_failure(ref, reason, entries, waiting, queued) do
+    if file = find_failure(ref, queued) do
+      print_failure(file, reason)
+      if all_missing?(entries, waiting, queued) do
+        collect_failures(queued, length(queued) - 1)
+      end
+      exit(1)
+    end
+  end
+
+  defp find_failure(ref, queued) do
     case List.keyfind(queued, ref, 1) do
-      {child, ^ref, file} ->
-        if many_missing?(child, entries, waiting, queued) do
-          IO.puts "== Compilation failed =="
-          IO.puts "Compilation failed on the following files:\n"
-
-          Enum.each Enum.reverse(queued), fn {pid, _ref, file} ->
-            case List.keyfind(waiting, pid, 1) do
-              {_, ^pid, _, mod} -> IO.puts "* #{file} is missing module #{inspect mod}"
-              _ -> :ok
-            end
-          end
-
-          IO.puts "\nOne of the failures is shown below..."
-        end
-
-        IO.puts "== Compilation error on file #{file} =="
-        :erlang.raise(kind, reason, stacktrace)
-      _ ->
-        :ok
+      {_child, ^ref, file} -> file
+      _ -> nil
     end
   end
 
-  defp many_missing?(child, entries, waiting, queued) do
-    waiting_length = length(waiting)
+  defp print_failure(_file, {:compiled, _}) do
+    :ok
+  end
 
-    match?({_, ^child, _, _}, List.keyfind(waiting, child, 1)) and
-      waiting_length > 1 and entries == [] and
-      waiting_length == length(queued)
+  defp print_failure(file, {:failure, kind, reason, stacktrace}) do
+    IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
+    IO.puts Exception.format(kind, reason, stacktrace)
+  end
+
+  defp print_failure(file, reason) do
+    IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
+    IO.puts Exception.format(:exit, reason, [])
+  end
+
+  defp all_missing?(entries, waiting, queued) do
+    entries == [] and waiting != [] and
+      length(waiting) == length(queued)
+  end
+
+  defp collect_failures(_queued, 0), do: :ok
+
+  defp collect_failures(queued, remaining) do
+    receive do
+      {:DOWN, down_ref, :process, _down_pid, reason} ->
+        if file = find_failure(down_ref, queued) do
+          print_failure(file, reason)
+          collect_failures(queued, remaining - 1)
+        else
+          collect_failures(queued, remaining)
+        end
+    after
+      # Give up if no failure appears in 5 seconds
+      5000 -> :ok
+    end
   end
 end

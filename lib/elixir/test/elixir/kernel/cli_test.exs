@@ -110,35 +110,31 @@ defmodule Kernel.CLI.ParallelCompilerTest do
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->
-      assert_raise CompileError, fn ->
-        Kernel.ParallelCompiler.files fixtures
-      end
+      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == 1
     end) =~ "Compilation error"
   end
 
   test "handles possible deadlocks" do
-    fixtures = [fixture_path("parallel_deadlock/foo.ex"), fixture_path("parallel_deadlock/bar.ex")]
+    fixtures = [fixture_path("parallel_deadlock/foo.ex"),
+                fixture_path("parallel_deadlock/bar.ex")]
 
     msg = capture_io(fn ->
-      assert_raise UndefinedFunctionError, fn ->
-        Kernel.ParallelCompiler.files fixtures
-      end
+      assert catch_exit(Kernel.ParallelCompiler.files fixtures) == 1
     end)
 
-    assert msg =~ "* #{fixture_path "parallel_deadlock/foo.ex"} is missing module Bar"
-    assert msg =~ "* #{fixture_path "parallel_deadlock/bar.ex"} is missing module Foo"
+    assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/foo\.ex =="
+    assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/bar\.ex =="
   end
 
   test "warnings as errors" do
     warnings_as_errors = Code.compiler_options[:warnings_as_errors]
+    fixtures = [fixture_path("warnings_sample.ex")]
 
     try do
       Code.compiler_options(warnings_as_errors: true)
 
-      assert_raise CompileError, fn ->
-        capture_io :stderr, fn ->
-          Kernel.ParallelCompiler.files [fixture_path("warnings_sample.ex")]
-        end
+      capture_io :stderr, fn ->
+        assert catch_exit(Kernel.ParallelCompiler.files fixtures) == 1
       end
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)
