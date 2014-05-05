@@ -118,7 +118,7 @@ build(Line, File, Module, Lexical) ->
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
   ets:insert(DataTable, {?lexical_attr, Lexical}),
   ets:insert(DataTable, {?overridable_attr, []}),
-  ets:insert(DataTable, {file, File}),
+  ets:insert(DataTable, {file, 'Elixir.Path':relative_to_cwd(File)}),
   ets:insert(DataTable, {line, Line}),
 
   %% Setup other modules
@@ -413,4 +413,4 @@ format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), 'Elixir.Path':relative_to_cwd(File), Line]).
+    [elixir_aliases:inspect(Module), File, Line]).

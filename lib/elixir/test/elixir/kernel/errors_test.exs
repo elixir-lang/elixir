@@ -480,7 +480,7 @@ defmodule Kernel.ErrorsTest do
 
   test :in_definition_module do
     assert_compile_fail CompileError,
-      "nofile:1: cannot define module ErrorsTest because it is currently being defined",
+      "nofile:1: cannot define module ErrorsTest because it is currently being defined in nofile:1",
       'defmodule ErrorsTest, do: (defmodule Elixir.ErrorsTest, do: true)'
   end
 
