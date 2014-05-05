@@ -237,7 +237,7 @@ defmodule Inspect.ListTest do
   end
 
   test :codepoints do
-    assert inspect('é') == "'é'"
+    assert inspect('é') == "[233]"
   end
 
   test :empty do

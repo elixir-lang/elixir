@@ -274,7 +274,7 @@ defimpl Inspect, for: List do
 
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
-      lists == :as_char_lists or (lists == :infer and :io_lib.printable_list(thing)) ->
+      lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
         << ?', Inspect.BitString.escape(String.from_char_data!(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
@@ -290,13 +290,6 @@ defimpl Inspect, for: List do
     )
   end
 
-  defp key_to_binary(key) do
-    case Inspect.Atom.inspect(key) do
-      ":" <> right -> right
-      other -> other
-    end
-  end
-
   def keyword?([{key, _value} | rest]) when is_atom(key) do
     case atom_to_list(key) do
       'Elixir.' ++ _ -> false
@@ -306,6 +299,27 @@ defimpl Inspect, for: List do
 
   def keyword?([]),     do: true
   def keyword?(_other), do: false
+
+  ## Private
+
+  defp key_to_binary(key) do
+    case Inspect.Atom.inspect(key) do
+      ":" <> right -> right
+      other -> other
+    end
+  end
+
+  defp printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
+  defp printable?([?\n|cs]), do: printable?(cs)
+  defp printable?([?\r|cs]), do: printable?(cs)
+  defp printable?([?\t|cs]), do: printable?(cs)
+  defp printable?([?\v|cs]), do: printable?(cs)
+  defp printable?([?\b|cs]), do: printable?(cs)
+  defp printable?([?\f|cs]), do: printable?(cs)
+  defp printable?([?\e|cs]), do: printable?(cs)
+  defp printable?([?\a|cs]), do: printable?(cs)
+  defp printable?([]), do: true
+  defp printable?(_), do: false
 end
 
 defimpl Inspect, for: Tuple do
