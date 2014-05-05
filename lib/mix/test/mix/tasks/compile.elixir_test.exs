@@ -48,9 +48,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.write!("lib/a.ex", "raise ~s(oops)")
 
       capture_io fn ->
-        assert_raise RuntimeError, fn ->
-          Mix.Tasks.Compile.Elixir.run []
-        end
+        assert catch_exit(Mix.Tasks.Compile.Elixir.run []) == 1
       end
 
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
