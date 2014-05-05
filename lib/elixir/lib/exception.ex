@@ -431,16 +431,14 @@ defmodule Exception do
   @doc """
   Formats the stacktrace.
 
-  A stacktrace must be given as an argument. If not, this function
-  calculates a new stacktrace based on the caller and formats it. As
-  a consequence, the value of `System.stacktrace` is changed.
+  A stacktrace must be given as an argument. If not, the stacktrace
+  is retrieved from `Process.info/2`.
   """
   def format_stacktrace(trace \\ nil) do
-    trace = trace || try do
-      throw(:stacktrace)
-    catch
-      :stacktrace -> Enum.drop(:erlang.get_stacktrace, 1)
+    trace = trace || case Process.info(self, :current_stacktrace) do
+      {:current_stacktrace, t} -> Enum.drop(t, 3)
     end
+
     case trace do
       [] -> "\n"
       s  -> "    " <> Enum.map_join(s, "\n    ", &format_stacktrace_entry(&1)) <> "\n"
