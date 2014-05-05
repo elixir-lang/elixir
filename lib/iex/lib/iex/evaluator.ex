@@ -152,7 +152,7 @@ defmodule IEx.Evaluator do
   defp print_error(kind, exception, stacktrace) do
     {exception, stacktrace} = normalize_exception(kind, exception, stacktrace)
     print_stacktrace stacktrace, fn ->
-      Exception.format_message(kind, exception, stacktrace)
+      Exception.format_banner(kind, exception, stacktrace)
     end
   end
 

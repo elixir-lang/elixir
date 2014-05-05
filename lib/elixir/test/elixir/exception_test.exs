@@ -19,10 +19,10 @@ defmodule Kernel.ExceptionTest do
     assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
   end
 
-  test "format_message" do
-    assert Exception.format_message(:error, :badarg) == "** (ArgumentError) argument error"
-    assert Exception.format_message(:throw, :badarg) == "** (throw) :badarg"
-    assert Exception.format_message(:exit, :badarg) == "** (exit) :badarg"
+  test "format_banner" do
+    assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
+    assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
+    assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
   end
 
   test "format without stacktrace" do

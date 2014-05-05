@@ -275,12 +275,10 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats the message of an exception,
-  converting Erlang exceptions to Elixir exceptions,
-  returns a string.
+  Normalizes and formats any throw, error and exit.
 
-  It takes the `kind` spilled by `catch` as an argument,
-  normalizes for `:error` and formats it into a string.
+  The message is formatted and displayed in the same
+  format as used by Elixir's CLI.
 
   The third argument, a stacktrace, is optional. If it is
   not supplied `System.stacktrace/0` will sometimes be used
@@ -289,33 +287,31 @@ defmodule Exception do
   not return the stacktrace corresponding to the exception
   an empty stacktrace, `[]`, must be used.
   """
-  @spec format_message(:error | :exit | :throw, any, stacktrace) :: String.t
-  def format_message(kind, exception, stacktrace \\ :erlang.get_stacktrace())
+  @spec format_banner(:error | :exit | :throw, any, stacktrace) :: String.t
+  def format_banner(kind, exception, stacktrace \\ nil)
 
-  def format_message(:error, exception, stacktrace) do
+  def format_banner(:error, exception, stacktrace) do
     exception = normalize_error(exception, stacktrace)
     "** (" <> inspect(exception.__record__(:name)) <> ") " <> exception.message
   end
 
-  def format_message(:throw, reason, _stacktrace) do
+  def format_banner(:throw, reason, _stacktrace) do
    "** (throw) " <> inspect(reason)
   end
 
-  def format_message(:exit, reason, _stacktrace) do
+  def format_banner(:exit, reason, _stacktrace) do
     "** (exit) " <> format_exit(reason, <<"\n    ">>)
   end
 
   @doc """
-  Normalizes and formats an exception and stacktrace,
-  converting Erlang exceptions to Elixir exceptions,
-  returns a string.
+  Normalizes and formats an exception and stacktrace.
 
-  Behaves the same as `format_message/3` but also includes
+  Behaves the same as `format_banner/3` but also includes
   the formatted stacktrace.
   """
   @spec format(:error | :exit | :throw, any, stacktrace) :: String.t
   def format(kind, exception, stacktrace \\ :erlang.get_stacktrace()) do
-    message = format_message(kind, exception, stacktrace)
+    message = format_banner(kind, exception, stacktrace)
     case stacktrace do
       [] -> message
       _ -> message <> "\n" <> format_stacktrace(stacktrace)
@@ -345,7 +341,7 @@ defmodule Exception do
         # Assume a non-empty list formattable as stacktrace is a
         # stacktrace, so exit was caused by an error.
         message = "an exception was raised:" <> joiner <>
-          format_message(:error, exception, maybe_stacktrace)
+          format_banner(:error, exception, maybe_stacktrace)
         Enum.join([message | formatted_stacktrace], joiner <> <<"    ">>)
     catch
       :error, _ ->

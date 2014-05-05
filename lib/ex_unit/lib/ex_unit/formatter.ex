@@ -122,7 +122,7 @@ defmodule ExUnit.Formatter do
     width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
 
     fields =
-      [note: if_value(record.message, &format_message(&1, formatter)),
+      [note: if_value(record.message, &format_banner(&1, formatter)),
        code: if_value(record.expr, &code_multiline(&1, width)),
        lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
        rhs:  if_value(record.right, &inspect_multiline(&1, width))]
@@ -169,7 +169,7 @@ defmodule ExUnit.Formatter do
     formatter.(:error_info, String.ljust("#{label}:", byte_size(@label_padding)))
   end
 
-  defp format_message(value, formatter) do
+  defp format_banner(value, formatter) do
     formatter.(:error_info, value)
   end
 
