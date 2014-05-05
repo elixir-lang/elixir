@@ -328,67 +328,67 @@ defmodule Application do
   end
 
   # exit(:normal) call is special cased, undo the special case.
-  def impl_format_reason({{:EXIT, :normal}, {mod, :start, args}}) do
-    Exception.format_reason({:normal, {mod, :start, args}})
+  defp impl_format_reason({{:EXIT, :normal}, {mod, :start, args}}) do
+    Exception.format_exit({:normal, {mod, :start, args}})
   end
 
   # {:error, reason} return value
-  def impl_format_reason({reason, {mod, :start, args}}) do
-    Exception.format_reason({reason, {mod, :start, args}})
+  defp impl_format_reason({reason, {mod, :start, args}}) do
+    Exception.format_exit({reason, {mod, :start, args}})
   end
 
   # error or exit(reason) call, use exit reason as reason.
-  def impl_format_reason({:bad_return, {{mod, :start, args}, {:EXIT, reason}}}) do
-    Exception.format_reason({reason, {mod, :start, args}})
+  defp impl_format_reason({:bad_return, {{mod, :start, args}, {:EXIT, reason}}}) do
+    Exception.format_exit({reason, {mod, :start, args}})
   end
 
   # bad return value
-  def impl_format_reason({:bad_return, {{mod, :start, args}, return}}) do
+  defp impl_format_reason({:bad_return, {{mod, :start, args}, return}}) do
     Exception.format_mfa(mod, :start, args) <> " had bad return: " <>
       inspect(return)
   end
 
-  def impl_format_reason({:already_started, app}) when is_atom(app) do
+  defp impl_format_reason({:already_started, app}) when is_atom(app) do
     "already started application #{app}"
   end
 
-  def impl_format_reason({:not_started, app}) when is_atom(app) do
+  defp impl_format_reason({:not_started, app}) when is_atom(app) do
     "not started application #{app}"
   end
 
-  def impl_format_reason({:bad_application, app}) do
+  defp impl_format_reason({:bad_application, app}) do
     "bad application: #{inspect(app)}"
   end
 
-  def impl_format_reason({:already_loaded, app}) when is_atom(app) do
+  defp impl_format_reason({:already_loaded, app}) when is_atom(app) do
     "already loaded application #{app}"
   end
 
-  def impl_format_reason({:not_loaded, app}) when is_atom(app) do
+  defp impl_format_reason({:not_loaded, app}) when is_atom(app) do
     "not loaded application #{app}"
   end
 
-  def impl_format_reason({:invalid_restart_type, restart}) do
+  defp impl_format_reason({:invalid_restart_type, restart}) do
     "invalid application restart type: #{inspect(restart)}"
   end
 
-  def impl_format_reason({:invalid_name, name}) do
+  defp impl_format_reason({:invalid_name, name}) do
     "invalid application name: #{inspect(name)}"
   end
 
-  def impl_format_reason({:invalid_options, opts}) do
+  defp impl_format_reason({:invalid_options, opts}) do
     "invalid application name: #{inspect(opts)}"
   end
 
-  def impl_format_reason({:badstartspec, spec}) do
+  defp impl_format_reason({:badstartspec, spec}) do
     "bad application start specs: #{inspect(spec)}"
   end
 
-  def impl_format_reason({'no such file or directory', file}) do
+  defp impl_format_reason({'no such file or directory', file}) do
     "could not find application file: #{file}"
   end
 
-  def impl_format_reason(reason) do
-    Exception.format_reason(reason)
+  defp impl_format_reason(reason) do
+    Exception.format_exit(reason)
   end
 end

@@ -107,52 +107,8 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  defmodule BadReturnSample do
-    def project do
-      [app: :bad_return_sample, version: "0.1.0"]
-    end
-
-    def application do
-      Process.get(:application_definition)
-    end
-  end
-
-  defmodule BadReturnApp do
-    use Application
-
-    def start(_type, _args) do
-      :bad # Bad return
-    end
-  end
-
   test "start does nothing if app is nil" do
     assert Mix.Tasks.App.Start.start(nil) == :error
-  end
-
-  @tag app: :bad_return_sample
-  test "start raises on :error" do
-    Mix.Project.push BadReturnSample
-    in_fixture "no_mixfile", fn ->
-      Process.put(:application_definition, applications: [:unknown])
-      Mix.Tasks.Compile.run []
-
-      assert_raise Mix.Error, ~r"Could not start application unknown: ", fn ->
-        Mix.Tasks.App.Start.start(:bad_return_sample)
-      end
-    end
-  end
-
-  @tag app: :bad_return_sample
-  test "start points to report on bad return" do
-    Mix.Project.push BadReturnSample
-    in_fixture "no_mixfile", fn ->
-      Process.put(:application_definition, mod: {BadReturnApp, []})
-      Mix.Tasks.Compile.run []
-
-      assert_raise Mix.Error, "Could not start application bad_return_sample: Mix.Tasks.App.StartTest.BadReturnApp.start(:normal, []) had bad return: :bad", fn ->
-        Mix.Tasks.App.Start.start(:bad_return_sample)
-      end
-    end
   end
 
   defmodule ReturnSample do

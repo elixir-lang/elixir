@@ -302,7 +302,7 @@ defmodule Exception do
   end
 
   def format_message(:exit, reason, _stacktrace) do
-    "** (exit) " <> format_reason(reason, <<"\n    ">>)
+    "** (exit) " <> format_exit(reason, <<"\n    ">>)
   end
 
   @doc """
@@ -323,15 +323,20 @@ defmodule Exception do
   end
 
   @doc """
-  Formats an exit reason, returns a string.
+  Formats an exit, returns a string.
+
+  Often there are errors/exceptions inside exits. Exits are often
+  wrapped by the caller and provide stacktraces too. This function
+  formats exits in a way to nicely show the exit reason, caller
+  and stacktrace.
   """
-  @spec format_reason(any) :: String.t
-  def format_reason(reason) do
-    format_reason(reason, <<"\n    ">>)
+  @spec format_exit(any) :: String.t
+  def format_exit(reason) do
+    format_exit(reason, <<"\n    ">>)
   end
 
   # 2-Tuple could be caused by an error if the second element is a stacktrace.
-  defp format_reason({exception, maybe_stacktrace} = reason, joiner)
+  defp format_exit({exception, maybe_stacktrace} = reason, joiner)
       when is_list(maybe_stacktrace) and maybe_stacktrace !== [] do
     try do
       Enum.map(maybe_stacktrace, &format_stacktrace_entry/1)
@@ -350,7 +355,7 @@ defmodule Exception do
   end
 
   # 2-Tuple could be an exit caused by mfa if second element is mfa,
-  defp format_reason({reason2, {mod, fun, args}} = reason, joiner) do
+  defp format_exit({reason2, {mod, fun, args}} = reason, joiner) do
     try do
       format_mfa(mod, fun, args)
     else
@@ -358,7 +363,7 @@ defmodule Exception do
         # Assume tuple formattable as an mfa is an mfa, so exit was caused by
         # failed mfa.
         "exited in: " <> mfa <> joiner <>
-          "** (EXIT) " <> format_reason(reason2, joiner <> <<"    ">>)
+          "** (EXIT) " <> format_exit(reason2, joiner <> <<"    ">>)
     catch
       :error, _ ->
         # Not an mfa, was an exit.
@@ -366,7 +371,7 @@ defmodule Exception do
     end
   end
 
-  defp format_reason(reason, _joiner) do
+  defp format_exit(reason, _joiner) do
     format_exit_reason(reason)
   end
 
