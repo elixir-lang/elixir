@@ -12,7 +12,7 @@ defmodule Dict.Behaviour do
 
         # implement required functions (see below)
 
-        # override default implementations if needed
+        # override default implementations if optimization is needed
       end
 
   The client module must contain the following functions:
@@ -22,7 +22,6 @@ defmodule Dict.Behaviour do
   * `put/3`
   * `reduce/3`
   * `size/1`
-  * `update/4`
 
   All functions, except `reduce/3`, are required by the Dict behaviour.
   `reduce/3` must be implemtented as per the Enumerable protocol.
@@ -39,10 +38,14 @@ defmodule Dict.Behaviour do
   * `keys/1`
   * `merge/2`
   * `merge/3`
+  * `pop/2`
+  * `pop/3`
   * `put_new/3`
   * `take/2`
   * `to_list/1`
   * `values/1`
+  * `update/4`
+  * `update!/3`
 
   All of these functions are defined as overridable, so you can provide your own
   implementation if needed.
@@ -144,9 +147,39 @@ defmodule Dict.Behaviour do
         end) |> elem(1)
       end
 
+      def update(dict, key, initial, fun) do
+        case fetch(dict, key) do
+          { :ok, value } ->
+            put(dict, key, fun.(value))
+
+          :error ->
+            put(dict, key, initial)
+        end
+      end
+
+      def update!(dict, key, fun) do
+        case fetch(dict, key) do
+          { :ok, value } ->
+            put(dict, key, fun.(value))
+
+          :error ->
+            raise KeyError, key: key, term: dict
+        end
+      end
+
+      def pop(dict, key, default \\ nil) do
+        case fetch(dict, key) do
+          { :ok, value } ->
+            { value, delete(dict, key) }
+
+          :error ->
+            { default, dict }
+        end
+      end
+
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
-                     has_key?: 2, put_new: 3
+                     has_key?: 2, put_new: 3, pop: 2, pop: 3, update: 4, update!: 3
     end
   end
 end
