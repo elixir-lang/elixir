@@ -367,8 +367,24 @@ defmodule Exception do
     end
   end
 
-  # 2-Tuple could be an exit caused by mfa if second element is mfa,
-  defp format_exit({reason2, {mod, fun, args}} = reason, joiner) do
+  # :supervisor.start_link returns this error reason when it fails to init
+  # because a child's start_link raises.
+  defp format_exit({:shutdown,
+      {:failed_to_start_child, child, {:EXIT, reason}}}, joiner) do
+    format_start_child(child, reason, joiner)
+  end
+
+  # :supervisor.start_link returns this error reason when it fails to init
+  # because a child's start_link returns {:error, reason}.
+  defp format_exit({:shutdown, {:failed_to_start_child, child, reason}},
+      joiner) do
+    format_start_child(child, reason, joiner)
+  end
+
+  # 2-Tuple could be an exit caused by mfa if second element is mfa, args
+  # must be a list of arguments - max length 255 due to max arity.
+  defp format_exit({reason2, {mod, fun, args}} = reason, joiner)
+      when length(args) < 256 do
     try do
       format_mfa(mod, fun, args)
     else
@@ -407,7 +423,98 @@ defmodule Exception do
     "no connection to #{node_name}"
   end
 
+  # :gen_server exit reasons
+
+  defp format_exit_reason({:already_started, pid}) do
+    "already started: " <> inspect(pid)
+  end
+
+  defp format_exit_reason({:bad_return_value, value}) do
+    "bad return value: " <> inspect(value)
+  end
+
+  defp format_exit_reason({:bad_call, request}) do
+    "bad call: " <> inspect(request)
+  end
+
+  defp format_exit_reason({:bad_cast, request}) do
+    "bad cast: " <> inspect(request)
+  end
+
+  # :supervisor.start_link error reasons
+
+  # If value is a list will be be formatted by mfa exit in format_exit/1
+  defp format_exit_reason({:bad_return, {mod, :init, value}})
+      when is_atom(mod) do
+    format_mfa(mod, :init, 1) <> " returned a bad value: " <> inspect(value)
+  end
+
+  defp format_exit_reason({:bad_start_spec, start_spec}) do
+    "bad start spec: invalid children: " <> inspect(start_spec)
+  end
+
+  defp format_exit_reason({:start_spec, start_spec}) do
+    "bad start spec: " <> format_sup_spec(start_spec)
+  end
+
+  defp format_exit_reason({:supervisor_data, data}) do
+    "bad supervisor data: " <> format_sup_data(data)
+  end
+
   defp format_exit_reason(reason), do: inspect(reason)
+
+  defp format_start_child(child, reason, joiner) do
+    "shutdown: failed to start child: " <> inspect(child) <> joiner <>
+      "** (EXIT) " <> format_exit(reason, joiner <> <<"    ">>)
+  end
+
+  defp format_sup_data({:invalid_type, type}) do
+    "invalid type: " <> inspect(type)
+  end
+
+  defp format_sup_data({:invalid_strategy, strategy}) do
+    "invalid strategy: " <> inspect(strategy)
+  end
+
+  defp format_sup_data({:invalid_intensity, intensity}) do
+    "invalid intensity: " <> inspect(intensity)
+  end
+
+  defp format_sup_data({:invalid_period, period}) do
+    "invalid period: " <> inspect(period)
+  end
+
+  defp format_sup_data(other), do: inspect(other)
+
+  defp format_sup_spec({:invalid_child_spec, child_spec}) do
+   "invalid child spec: " <> inspect(child_spec)
+  end
+
+  defp format_sup_spec({:invalid_child_type, type}) do
+    "invalid child type: " <> inspect(type)
+  end
+
+  defp format_sup_spec({:invalid_mfa, mfa}) do
+    "invalid mfa: " <> inspect(mfa)
+  end
+
+  defp format_sup_spec({:invalid_restart_type, restart}) do
+    "invalid restart type: " <> inspect(restart)
+  end
+
+  defp format_sup_spec({:invalid_shutdown, shutdown}) do
+    "invalid shutdown: " <> inspect(shutdown)
+  end
+
+  defp format_sup_spec({:invalid_module, mod}) do
+    "invalid module: " <> inspect(mod)
+  end
+
+  defp format_sup_spec({:invalid_modules, modules}) do
+    "invalid modules: " <> inspect(modules)
+  end
+
+  defp format_sup_spec(other), do: inspect(other)
 
   @doc """
   Receives a stacktrace entry and formats it into a string.

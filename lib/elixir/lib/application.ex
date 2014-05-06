@@ -334,7 +334,8 @@ defmodule Application do
 
   # {:error, reason} return value
   defp impl_format_reason({reason, {mod, :start, args}}) do
-    Exception.format_exit({reason, {mod, :start, args}})
+    Exception.format_mfa(mod, :start, args) <> " returned an error: " <>
+      Exception.format_exit(reason)
   end
 
   # error or exit(reason) call, use exit reason as reason.
@@ -344,8 +345,8 @@ defmodule Application do
 
   # bad return value
   defp impl_format_reason({:bad_return, {{mod, :start, args}, return}}) do
-    Exception.format_mfa(mod, :start, args) <> " had bad return: " <>
-      inspect(return)
+    Exception.format_mfa(mod, :start, args) <>
+      " returned a bad value: " <> inspect(return)
   end
 
   defp impl_format_reason({:already_started, app}) when is_atom(app) do
@@ -377,7 +378,7 @@ defmodule Application do
   end
 
   defp impl_format_reason({:invalid_options, opts}) do
-    "invalid application name: #{inspect(opts)}"
+    "invalid application options: #{inspect(opts)}"
   end
 
   defp impl_format_reason({:badstartspec, spec}) do
