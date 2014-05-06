@@ -93,12 +93,13 @@ build(Line, File, Module, Lexical) ->
 
   OldTable = ets:info(DataTable, name),
   case OldTable == DataTable of
-    true  -> elixir_errors:form_error(Line, File, ?MODULE,
+    true  -> [{file, OldFile}, {line, OldLine}] = ets:lookup_element(OldTable, location, 2),
+             elixir_errors:form_error(Line, File, ?MODULE,
                                       {
                                         module_in_definition,
                                         Module,
-                                        ets:lookup_element(OldTable, file, 2),
-                                        ets:lookup_element(OldTable, line, 2)
+                                        OldFile,
+                                        OldLine
                                       });
     false -> []
   end,
@@ -118,8 +119,7 @@ build(Line, File, Module, Lexical) ->
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
   ets:insert(DataTable, {?lexical_attr, Lexical}),
   ets:insert(DataTable, {?overridable_attr, []}),
-  ets:insert(DataTable, {file, 'Elixir.Path':relative_to_cwd(File)}),
-  ets:insert(DataTable, {line, Line}),
+  ets:insert(DataTable, {location, [{file, File}, {line, Line}]}),
 
   %% Setup other modules
   elixir_def:setup(Module),
@@ -413,4 +413,4 @@ format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), File, Line]).
+    [elixir_aliases:inspect(Module), 'Elixir.Path':relative_to_cwd(File), Line]).
