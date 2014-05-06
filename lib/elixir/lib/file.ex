@@ -448,6 +448,14 @@ defmodule File do
   end
 
   @doc """
+  Creates a symbolic link `new` to the file or directory `existing`.
+  Returns `:ok` if successful, `{ :error, reason }` otherwise.
+  """
+  def symlink(existing, new) do
+    F.make_symlink(existing, new)
+  end
+
+  @doc """
   Copies the contents of `source` to `destination`.
 
   Both parameters can be a filename or an io device opened
