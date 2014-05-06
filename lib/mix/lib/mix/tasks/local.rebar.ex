@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   import Mix.Generator, only: [create_file: 2]
 
-  @rebar_url "http://elixir-lang.org/rebar"
+  @rebar_url "http://s3.hex.pm/rebar"
   @shortdoc  "Install rebar locally"
 
   @moduledoc """
