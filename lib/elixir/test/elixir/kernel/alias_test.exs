@@ -1,12 +1,12 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.AliasTest.Nested do
+alias Kernel.AliasTest.Nested, as: Nested
+
+defmodule Nested do
   def value, do: 1
 end
 
 defmodule Kernel.AliasTest do
-  alias Kernel.AliasTest.Nested, as: Nested
-
   use ExUnit.Case, async: true
 
   test :alias_erlang do
@@ -79,6 +79,14 @@ defmodule Kernel.AliasNestingTest do
   test :aliases_nesting do
     assert Parent.a == :a
     assert Parent.Child.b == :a
+  end
+
+  defmodule Nested do
+    def value, do: 2
+  end
+
+  test :aliases_nesting_with_previous_alias do
+    assert Nested.value == 2
   end
 end
 

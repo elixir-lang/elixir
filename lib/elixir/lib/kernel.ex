@@ -2937,21 +2937,19 @@ defmodule Kernel do
   defp expand_module(raw, _module, _env) when is_atom(raw),
     do: raw
 
-  # defmodule Hello
-  defp expand_module({:__aliases__, _, [h]}, _module, env),
-    do: :elixir_aliases.concat([env.module, h])
+  # defmodule Elixir.Alias
+  defp expand_module({:__aliases__, _, [:Elixir|t]}, module, _env) when t != [],
+    do: module
 
-  # defmodule Hello.World
-  defp expand_module({:__aliases__, _, _} = alias, module, env) do
-    case :elixir_aliases.expand(alias, env.aliases, env.macro_aliases, env.lexical_tracker) do
-      atom when is_atom(atom) ->
-        module
-      aliases when is_list(aliases) ->
-        :elixir_aliases.concat([env.module, module])
-    end
-  end
+  # defmodule Alias in root
+  defp expand_module({:__aliases__, _, _}, module, %{module: nil}),
+    do: module
 
-  # defmodule Elixir.Hello.World
+  # defmodule Alias nested
+  defp expand_module({:__aliases__, _, t}, _module, env),
+    do: :elixir_aliases.concat([env.module|t])
+
+  # defmodule _
   defp expand_module(_raw, module, env),
     do: :elixir_aliases.concat([env.module, module])
 
