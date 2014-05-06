@@ -149,11 +149,12 @@ defmodule IEx.Evaluator do
 
   ## Error handling
 
-  defp print_error(kind, exception, stacktrace) do
-    {exception, stacktrace} = normalize_exception(kind, exception, stacktrace)
-    print_stacktrace stacktrace, fn ->
-      Exception.format_banner(kind, exception, stacktrace)
-    end
+  defp print_error(kind, reason, stacktrace) do
+    {reason, stacktrace} = normalize_exception(kind, reason, stacktrace)
+
+    message = Exception.format_banner(kind, reason, stacktrace)
+    io_error message
+    io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
   end
 
   defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
@@ -170,19 +171,6 @@ defmodule IEx.Evaluator do
         "#{fun}/#{length(arity)}"
       true ->
         "#{fun}/#{arity}"
-    end
-  end
-
-  defp print_stacktrace(trace, callback) do
-    try do
-      message = IEx.color(:eval_error, callback.())
-      case prune_stacktrace(trace) do
-        []    -> IO.puts(message)
-        other -> IO.puts([message, ?\n | format_stacktrace(other)])
-      end
-    catch
-      type, detail ->
-        io_error "** (IEx.Error) #{type} when printing exception message and stacktrace: #{inspect detail, records: false}"
     end
   end
 

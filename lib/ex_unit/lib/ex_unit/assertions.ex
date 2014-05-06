@@ -301,11 +301,12 @@ defmodule ExUnit.Assertions do
     error = assert_raise(exception, function)
 
     is_match = cond do
-      is_binary(message) -> error.message == message
-      Regex.regex?(message) -> error.message =~ message
+      is_binary(message) -> Exception.message(error) == message
+      Regex.regex?(message) -> Exception.message(error) =~ message
     end
 
-    msg = "Wrong message for #{inspect exception}. Expected #{inspect message}, got #{inspect error.message}"
+    msg = "Wrong message for #{inspect exception}. " <>
+          "Expected #{inspect message}, got #{inspect Exception.message(error)}"
     assert is_match, message: msg
 
     error
@@ -334,7 +335,7 @@ defmodule ExUnit.Assertions do
         if name in [ExUnit.AssertionError] do
           raise(error)
         else
-          flunk "Expected exception #{inspect exception} but got #{inspect name} (#{error.message})"
+          flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
         end
     end
   end

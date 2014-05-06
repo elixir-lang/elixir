@@ -144,8 +144,9 @@ defmodule Kernel.OverridableTest do
       flunk "expected eval to fail"
     rescue
       error ->
-        assert error.message == ("nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
-          "Overridable functions available are: bar/0")
+        assert Exception.message(error) ==
+          "nofile:4: no super defined for foo/0 in module Foo.Forwarding. " <>
+          "Overridable functions available are: bar/0"
     end
   end
 end

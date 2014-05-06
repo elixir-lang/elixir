@@ -39,7 +39,8 @@ defmodule AccessTest do
       foo = :foo
       foo[:atom]
     end
-    assert exception.message == "The access protocol can only be invoked for atoms " <>
-                                "at compilation time, tried to invoke it for :foo"
+    assert Exception.message(exception) ==
+           "The access protocol can only be invoked for atoms " <>
+           "at compilation time, tried to invoke it for :foo"
   end
 end

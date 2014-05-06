@@ -20,6 +20,7 @@
 
 * Soft deprecations (no warnings emitted)
   * [Application] use Application.Behaviour is deprecated in favor of use Application
+  * [Exception] Use `Exception.message/1` to retrieve exception messages instead of `exception.message`
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
   * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
 

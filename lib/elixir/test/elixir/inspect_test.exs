@@ -165,14 +165,6 @@ defmodule Inspect.TupleTest do
     assert inspect({Rec[value: 1], 1}) == "{Inspect.TupleTest.Rec[value: 1], 1}"
   end
 
-  test :false_positives do
-    import ExUnit.CaptureIO
-
-    assert capture_io(:stderr, fn ->
-      assert inspect({Range, nil}) == "{Range, nil}"
-    end) =~ "** (Inspect.Error) Got FunctionClauseError with message no function clause matching in Inspect.Range.inspect/2"
-  end
-
   test :empty do
     assert inspect({}) == "{}"
   end
@@ -303,12 +295,12 @@ defmodule Inspect.MapTest do
   end
 
   test :bad_implementation do
-    import ExUnit.CaptureIO
+    msg = "Got RuntimeError with message \"failing\" " <>
+          "while inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert capture_io(:stderr, fn ->
+    assert_raise ArgumentError, msg, fn ->
       inspect(%Failing{})
-    end) =~ ("** (Inspect.Error) Got RuntimeError with message failing while inspecting " <>
-             "%{__struct__: Inspect.MapTest.Failing, key: 0}")
+    end
   end
 end
 

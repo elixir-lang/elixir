@@ -212,7 +212,7 @@ defmodule IEx.Server do
       io_error "** (EXIT from #{inspect(evaluator)}) #{Exception.format_exit(reason)}"
     catch
       type, detail ->
-        io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail, records: false, structs: false}"
+        io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail}"
     end
     kill_input(input)
     reset_loop([], evaluator, evaluator_ref)
@@ -221,7 +221,6 @@ defmodule IEx.Server do
   defp handle_take_over(_, _evaluator, _evaluator_ref, _input, callback) do
     callback.()
   end
-
 
   defp kill_input(nil),   do: :ok
   defp kill_input(input), do: Process.exit(input, :kill)

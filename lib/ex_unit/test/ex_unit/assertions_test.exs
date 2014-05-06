@@ -29,7 +29,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert Value.falsy
     rescue
       error in [ExUnit.AssertionError] ->
-        "Value.falsy()"    = error.expr |> Macro.to_string
+        "Value.falsy()" = error.expr |> Macro.to_string
         "Expected truthy, got false" = error.message
     end
   end

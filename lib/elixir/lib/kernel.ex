@@ -1744,7 +1744,7 @@ defmodule Kernel do
       rescue
         exception ->
           stacktrace = System.stacktrace
-          if exception.message == "Oops" do
+          if Exception.message(exception) == "Oops" do
             raise exception, [], stacktrace
           end
       end

@@ -186,7 +186,14 @@ defmodule Exception do
   Gets the message for an exception.
   """
   def message(exception) do
-    exception.message
+    try do
+      exception.message
+    rescue
+      e ->
+        raise ArgumentError, message:
+          "Got #{inspect e.__record__(:name)} with message " <>
+          "\"#{message(e)}\" while retrieving message for #{inspect(exception)}"
+    end
   end
 
   @doc """
@@ -292,7 +299,7 @@ defmodule Exception do
 
   def format_banner(:error, exception, stacktrace) do
     exception = normalize_error(exception, stacktrace)
-    "** (" <> inspect(exception.__record__(:name)) <> ") " <> exception.message
+    "** (" <> inspect(exception.__record__(:name)) <> ") " <> message(exception)
   end
 
   def format_banner(:throw, reason, _stacktrace) do

@@ -51,7 +51,7 @@ defmodule Kernel.RescueTest do
     result = try do
       raise "an exception"
     rescue
-      x in [RuntimeError] -> x.message
+      x in [RuntimeError] -> Exception.message(x)
     catch
       :error, _ -> false
     end
@@ -75,7 +75,7 @@ defmodule Kernel.RescueTest do
     result = try do
       Certainly.Undefined.function(1, 2, 3)
     rescue
-      x in [named] -> x.message
+      x in [named] -> Exception.message(x)
     catch
       :error, _ -> "didn't catch it"
     end
@@ -87,7 +87,7 @@ defmodule Kernel.RescueTest do
     result = try do
       raise "an exception"
     rescue
-      x in _ -> x.message
+      x in _ -> Exception.message(x)
     end
 
     assert result == "an exception"
@@ -99,7 +99,7 @@ defmodule Kernel.RescueTest do
     result = try do
       raise RuntimeError, message: "an exception"
     rescue
-      x in [expected, AnotherError] -> x.message
+      x in [expected, AnotherError] -> Exception.message(x)
     catch
       :error, _ -> false
     end
@@ -111,7 +111,7 @@ defmodule Kernel.RescueTest do
     result = try do
       :erlang.error(:sample)
     rescue
-      x in [RuntimeError, ErlangError] -> x.message
+      x in [RuntimeError, ErlangError] -> Exception.message(x)
     end
 
     assert result == "erlang error: :sample"
@@ -121,7 +121,7 @@ defmodule Kernel.RescueTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in [UndefinedFunctionError] -> x.message
+      x in [UndefinedFunctionError] -> Exception.message(x)
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"
@@ -131,7 +131,7 @@ defmodule Kernel.RescueTest do
     result = try do
       zero(1)
     rescue
-      x in [FunctionClauseError] -> x.message
+      x in [FunctionClauseError] -> Exception.message(x)
     end
 
     assert result == "no function clause matching in Kernel.RescueTest.zero/1"
@@ -141,7 +141,7 @@ defmodule Kernel.RescueTest do
     result = try do
       :erlang.error(:badarg)
     rescue
-      x in [ArgumentError] -> x.message
+      x in [ArgumentError] -> Exception.message(x)
     end
 
     assert result == "argument error"
@@ -151,7 +151,7 @@ defmodule Kernel.RescueTest do
     result = try do
       :erlang.error({:badarg, [1, 2, 3]})
     rescue
-      x in [ArgumentError] -> x.message
+      x in [ArgumentError] -> Exception.message(x)
     end
 
     assert result == "argument error: [1, 2, 3]"
@@ -161,7 +161,7 @@ defmodule Kernel.RescueTest do
     result = try do
       :erlang.error(:badarith)
     rescue
-      x in [ArithmeticError] -> x.message
+      x in [ArithmeticError] -> Exception.message(x)
     end
 
     assert result == "bad argument in arithmetic expression"
@@ -174,7 +174,7 @@ defmodule Kernel.RescueTest do
     result = try do
       fun.(1, 2)
     rescue
-      x in [BadArityError] -> x.message
+      x in [BadArityError] -> Exception.message(x)
     end
 
     assert result == string
@@ -185,7 +185,7 @@ defmodule Kernel.RescueTest do
     result = try do
       x.(2)
     rescue
-      x in [BadFunctionError] -> x.message
+      x in [BadFunctionError] -> Exception.message(x)
     end
 
     assert result == "expected a function, got: :example"
@@ -196,7 +196,7 @@ defmodule Kernel.RescueTest do
     result = try do
       ^x = zero(0)
     rescue
-      x in [MatchError] -> x.message
+      x in [MatchError] -> Exception.message(x)
     end
 
     assert result == "no match of right hand side value: 0"
@@ -209,7 +209,7 @@ defmodule Kernel.RescueTest do
         ^x -> nil
       end
     rescue
-      x in [CaseClauseError] -> x.message
+      x in [CaseClauseError] -> Exception.message(x)
     end
 
     assert result == "no case clause matching: 0"
@@ -225,7 +225,7 @@ defmodule Kernel.RescueTest do
           :ok
       end
     rescue
-      x in [TryClauseError] -> x.message
+      x in [TryClauseError] -> Exception.message(x)
     end
 
     assert result == "no try clause matching: :example"
@@ -236,7 +236,7 @@ defmodule Kernel.RescueTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in [expected] -> x.message
+      x in [expected] -> Exception.message(x)
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"
@@ -246,7 +246,7 @@ defmodule Kernel.RescueTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in [ErlangError] -> x.message
+      x in [ErlangError] -> Exception.message(x)
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"
@@ -260,7 +260,7 @@ defmodule Kernel.RescueTest do
     result = try do
       DoNotExist.for_sure()
     rescue
-      x in exceptions -> x.message
+      x in exceptions -> Exception.message(x)
     end
 
     assert result == "undefined function: DoNotExist.for_sure/0"

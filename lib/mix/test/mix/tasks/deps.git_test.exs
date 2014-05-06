@@ -254,7 +254,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert exception.message =~ "Command `git clone"
+      assert Exception.message(exception) =~ "Command `git clone"
     end
   end
 

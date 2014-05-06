@@ -133,12 +133,8 @@ defmodule ExUnit.Formatter do
     |> make_into_lines(@counter_padding)
   end
 
-  defp format_kind_reason(:error, exception, _width, formatter) do
-    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", formatter
-  end
-
   defp format_kind_reason(kind, reason, _width, formatter) do
-    error_info "** (#{kind}) #{inspect(reason)}", formatter
+    error_info Exception.format_banner(kind, reason), formatter
   end
 
   defp filter_interesting_fields(fields) do

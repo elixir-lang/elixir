@@ -162,9 +162,9 @@ defmodule Inspect.Algebra do
       rescue
         e ->
           res = Inspect.Tuple.inspect(arg, opts)
-          IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
-                           "#{e.message} while inspecting #{pretty(res, opts.width)}"
-          res
+          raise ArgumentError, message:
+            "Got #{inspect e.__record__(:name)} with message " <>
+            "#{Exception.message(e)} while inspecting #{pretty(res, opts.width)}"
       end
     else
       Inspect.Tuple.inspect(arg, opts)
@@ -178,9 +178,9 @@ defmodule Inspect.Algebra do
       rescue
         e ->
           res = Inspect.Map.inspect(map, opts)
-          IO.puts :stderr, "** (Inspect.Error) Got #{inspect e.__record__(:name)} with message " <>
-                           "#{e.message} while inspecting #{pretty(res, opts.width)}"
-          res
+          raise ArgumentError, message:
+            "Got #{inspect e.__record__(:name)} with message " <>
+            "\"#{Exception.message(e)}\" while inspecting #{pretty(res, opts.width)}"
       end
     else
       Inspect.Map.inspect(map, opts)

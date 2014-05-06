@@ -241,7 +241,7 @@ defmodule ExUnit.DocTest do
 
         error ->
           raise ExUnit.AssertionError,
-            [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{error.message}",
+            [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{Exception.message(error)}",
              expr: unquote(whole_expr)],
             stack
       end
@@ -297,8 +297,8 @@ defmodule ExUnit.DocTest do
       rescue
         error ->
           unless error.__record__(:name) == unquote(exception) and
-                 error.message == unquote(message) do
-            got = inspect(elem(error, 0)) <> " with message " <> inspect(error.message)
+                 Exception.message(error) == unquote(message) do
+            got = inspect(elem(error, 0)) <> " with message " <> inspect(Exception.message(error))
             raise ExUnit.AssertionError,
               [message: "Doctest failed: expected exception #{spec} but got #{got}",
                expr: expr],
@@ -325,7 +325,7 @@ defmodule ExUnit.DocTest do
     try do
       Code.string_to_quoted!(expr, location)
     rescue e ->
-      message = "(#{inspect e.__record__(:name)}) #{e.message}"
+      message = "(#{inspect e.__record__(:name)}) #{Exception.message(e)}"
       quote do
         raise ExUnit.AssertionError,
           [message: "Doctest did not compile, got: #{unquote(message)}",
