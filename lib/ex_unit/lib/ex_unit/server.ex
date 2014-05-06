@@ -4,7 +4,8 @@ defmodule ExUnit.Server do
   @timeout 30_000
   use GenServer.Behaviour
 
-  defrecord Config, async_cases: [], sync_cases: [], start_load: nil, captured_devices: HashSet.new
+  defrecord Config, async_cases: HashSet.new, sync_cases: HashSet.new,
+                    start_load: nil, captured_devices: HashSet.new
 
   def start_link() do
     :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
@@ -54,7 +55,7 @@ defmodule ExUnit.Server do
 
     {:reply,
       {config.async_cases, config.sync_cases, load_us},
-      config.async_cases([]).sync_cases([]).start_load(nil)}
+      config.async_cases(HashSet.new).sync_cases(HashSet.new).start_load(nil)}
   end
 
   def handle_call({:add_device, device}, _from, config) do
@@ -76,11 +77,11 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast({:add_async_case, name}, config) do
-    {:noreply, config.update_async_cases &[name|&1]}
+    {:noreply, config.update_async_cases &Set.put(&1, name)}
   end
 
   def handle_cast({:add_sync_case, name}, config) do
-    {:noreply, config.update_sync_cases &[name|&1]}
+    {:noreply, config.update_sync_cases &Set.put(&1, name)}
   end
 
   def handle_cast(request, config) do

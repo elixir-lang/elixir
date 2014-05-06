@@ -114,8 +114,6 @@ defmodule ExUnit.DocTest do
 
   defexception Error, message: nil
 
-  defrecord Test, fun_arity: nil, line: nil, exprs: []
-
   @doc """
   This macro is used to generate ExUnit test cases for doctests.
 
@@ -189,15 +187,15 @@ defmodule ExUnit.DocTest do
     {test_name(test, module, n), test_content(test, module, do_import)}
   end
 
-  defp test_name(Test[fun_arity: nil], m, n) do
+  defp test_name(%{fun_arity: nil}, m, n) do
     "moduledoc at #{inspect m} (#{n})"
   end
 
-  defp test_name(Test[fun_arity: {f, a}], m, n) do
+  defp test_name(%{fun_arity: {f, a}}, m, n) do
     "doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
+  defp test_content(%{exprs: exprs, line: line, fun_arity: fun_arity}, module, do_import) do
     file     = module.__info__(:compile)[:source] |> String.from_char_data!
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
@@ -357,7 +355,7 @@ defmodule ExUnit.DocTest do
 
   defp extract_from_doc({fa, line, _, _, doc}) do
     for test <- extract_tests(line, doc) do
-      test.fun_arity(fa)
+      %{test | fun_arity: fa}
     end
   end
 
@@ -441,21 +439,21 @@ defmodule ExUnit.DocTest do
   end
 
   # End of input and we've still got a test pending.
-  defp extract_tests([], _, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([], _, expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     Enum.reverse(reverse_last_test([test|t]))
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
-  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], newtest) when expr_acc != "" and expected_acc != "" do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=%{exprs: exprs}|t], newtest) when expr_acc != "" and expected_acc != "" do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(list, line, "", "", [test|t], newtest)
   end
 
   # Store expr_acc and start a new test case.
   defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, true) do
     acc = reverse_last_test(acc)
-    test = Test[line: line]
+    test = %{line: line, fun_arity: nil, exprs: []}
     extract_tests(lines, line, string, expected_acc, [test|acc], false)
   end
 
@@ -490,22 +488,22 @@ defmodule ExUnit.DocTest do
   end
 
   # Encountered an empty line, store pending test
-  defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(lines, line,  "", "", [test|t], true)
   end
 
   # Exception test.
-  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=Test[exprs: exprs]|t], newtest) do
-    test = test.exprs([{expr_acc, extract_error(string, "")} | exprs])
+  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=%{exprs: exprs}|t], newtest) do
+    test = %{test | exprs: [{expr_acc, extract_error(string, "")} | exprs]}
     extract_tests(lines, line,  "", "", [test|t], newtest)
   end
 
   # Finally, parse expected_acc.
-  defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
+  defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=%{exprs: exprs}|t]=acc, newtest) do
     if expected =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
       expected = expected_acc <> "\n" <> inspect(expected)
-      test = test.exprs([{expr_acc, {:inspect, expected}} | exprs])
+      test = %{test | exprs: [{expr_acc, {:inspect, expected}} | exprs]}
       extract_tests(lines, line,  "", "", [test|t], newtest)
     else
       extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
@@ -529,8 +527,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp reverse_last_test([]), do: []
-  defp reverse_last_test([test=Test[exprs: exprs] | t]) do
-    test = test.exprs(Enum.reverse(exprs))
+  defp reverse_last_test([test=%{exprs: exprs} | t]) do
+    test = %{test | exprs: Enum.reverse(exprs)}
     [test | t]
   end
 end
