@@ -1,0 +1,6 @@
+<tr>
+<td><%= entry %></td> 
+<td class="num"><%= cov %></td>
+<td class="num"><%= uncov %></td>
+<td class="num"><%= Float.round(ratio, 2) %></td>
+</tr>
