@@ -1249,7 +1249,7 @@ defmodule Kernel.SpecialForms do
 
   ## Anonymous functions
 
-  The capture operator can be also be used to partially apply
+  The capture operator can also be used to partially apply
   functions, where `&1`, `&2` and so on can be used as value
   placeholders. For example:
 
