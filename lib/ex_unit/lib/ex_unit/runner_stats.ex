@@ -12,12 +12,12 @@ defmodule ExUnit.RunnerStats do
     {:remove_handler, map}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {tag, _}]},
+  def handle_event({:test_finished, %ExUnit.Test{state: {tag, _}}},
                    %{total: total, failures: failures} = map) when tag in [:failed, :invalid] do
     {:ok, %{map | total: total + 1, failures: failures + 1}}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {:skip, _}]}, map) do
+  def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}}}, map) do
     {:ok, map}
   end
 

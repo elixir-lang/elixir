@@ -201,12 +201,26 @@ defmodule Kernel.ParallelCompiler do
 
   defp print_failure(file, {:failure, kind, reason, stacktrace}) do
     IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
-    IO.puts Exception.format(kind, reason, stacktrace)
+    IO.puts Exception.format(kind, reason, prune_stacktrace(stacktrace))
   end
 
   defp print_failure(file, reason) do
     IO.puts "\n== Compilation error on file #{Path.relative_to_cwd(file)} =="
     IO.puts Exception.format(:exit, reason, [])
+  end
+
+  @elixir_internals [:elixir_compiler, :elixir_module, :elixir_translator, :elixir_expand]
+
+  defp prune_stacktrace([{mod, _, _, _}|t]) when mod in @elixir_internals do
+    prune_stacktrace(t)
+  end
+
+  defp prune_stacktrace([h|t]) do
+    [h|prune_stacktrace(t)]
+  end
+
+  defp prune_stacktrace([]) do
+    []
   end
 
   defp all_missing?(entries, waiting, queued) do

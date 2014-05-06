@@ -225,7 +225,7 @@ defmodule ExUnit.Case do
   defmacro __before_compile__(_) do
     quote do
       def __ex_unit__(:case) do
-        ExUnit.TestCase[name: __MODULE__, tests: @ex_unit_tests]
+        %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
       end
     end
   end
@@ -237,7 +237,7 @@ defmodule ExUnit.Case do
     tags = [line: env.line, file: env.file] ++ normalize_tags(tags)
 
     Module.put_attribute(mod, :ex_unit_tests,
-      ExUnit.Test[name: name, case: mod, tags: tags])
+      %ExUnit.Test{name: name, case: mod, tags: tags})
 
     Module.delete_attribute(mod, :tag)
   end

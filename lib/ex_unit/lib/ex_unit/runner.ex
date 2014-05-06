@@ -95,7 +95,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_case(config, pid, case_name) do
-    ExUnit.TestCase[] = test_case = case_name.__ex_unit__(:case)
+    test_case = case_name.__ex_unit__(:case)
     EM.case_started(config.manager, test_case)
 
     # Prepare tests, selecting which ones should
@@ -124,8 +124,8 @@ defmodule ExUnit.Runner do
     for test <- tests do
       tags = Keyword.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
-        :ok           -> test.tags(tags)
-        {:error, tag} -> test.state({:skip, "due to #{tag} filter"})
+        :ok           -> %{test | tags: tags}
+        {:error, tag} -> %{test | state: {:skip, "due to #{tag} filter"}}
       end
     end
   end
@@ -142,7 +142,7 @@ defmodule ExUnit.Runner do
             send self_pid, {self, :case_finished, test_case, []}
 
           {:error, test_case} ->
-            failed_tests = Enum.map(tests, &(&1.state({:invalid, test_case})))
+            failed_tests = Enum.map(tests, & %{&1 | state: {:invalid, test_case}})
             send self_pid, {self, :case_finished, test_case, failed_tests}
         end
       end)
@@ -151,24 +151,26 @@ defmodule ExUnit.Runner do
       {^case_pid, :case_finished, test_case, tests} ->
         {test_case, tests}
       {:DOWN, ^case_ref, :process, ^case_pid, error} ->
-        {test_case.state({:failed, {:EXIT, error, []}}), []}
+        {%{test_case | state: {:failed, {:EXIT, error, []}}}, []}
     end
   end
 
-  defp exec_case_setup(ExUnit.TestCase[name: case_name] = test_case) do
+  defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
     {:ok, context} = case_name.__ex_unit__(:setup_all, [case: case_name])
     {:ok, {test_case, context}}
   catch
     kind, error ->
-      {:error, test_case.state({:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}})}
+      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      {:error, %{test_case | state: failed}}
   end
 
-  defp exec_case_teardown(ExUnit.TestCase[name: case_name] = test_case, context) do
+  defp exec_case_teardown(%ExUnit.TestCase{name: case_name} = test_case, context) do
     case_name.__ex_unit__(:teardown_all, context)
     test_case
   catch
     kind, error ->
-      test_case.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      %{test_case | state: failed}
   end
 
   defp run_test(config, test, context) do
@@ -199,40 +201,42 @@ defmodule ExUnit.Runner do
             end
           end)
 
-        send self_pid, {self, :test_finished, test.time(us)}
+        send self_pid, {self, :test_finished, %{test | time: us}}
       end)
 
     receive do
       {^test_pid, :test_finished, test} ->
         test
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-        test.state {:failed, {:EXIT, error, []}}
+        %{test | state: {:failed, {:EXIT, error, []}}}
     end
   end
 
-  defp exec_test_setup(ExUnit.Test[] = test, context) do
-    {:ok, context} = test.case.__ex_unit__(:setup, context)
+  defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
+    {:ok, context} = case.__ex_unit__(:setup, context)
     {:ok, {test, context}}
   catch
     kind2, error2 ->
-      {:error, test.state({:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace}})}
+      failed = {:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace}}
+      {:error, %{test | state: failed}}
   end
 
-  defp exec_test(ExUnit.Test[] = test, context) do
-    apply(test.case, test.name, [context])
+  defp exec_test(%ExUnit.Test{case: case, name: name} = test, context) do
+    apply(case, name, [context])
     test
   catch
     kind, error ->
-      test.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      %{test | state: failed}
   end
 
-  defp exec_test_teardown(ExUnit.Test[] = test, context) do
-    {:ok, _context} = test.case.__ex_unit__(:teardown, context)
+  defp exec_test_teardown(%ExUnit.Test{case: case} = test, context) do
+    {:ok, _context} = case.__ex_unit__(:teardown, context)
     test
   catch
     kind, error ->
       if nil?(test.state) do
-        test.state {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+        %{test | state: {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}}
       else
         test
       end

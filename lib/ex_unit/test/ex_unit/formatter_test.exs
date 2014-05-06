@@ -20,11 +20,11 @@ defmodule ExUnit.FormatterTest do
   end
 
   defp case do
-    ExUnit.TestCase[name: Hello]
+    %ExUnit.TestCase{name: Hello}
   end
 
   defp test do
-    ExUnit.Test[name: :world, case: Hello, tags: [file: __ENV__.file, line: 1]]
+    %ExUnit.Test{name: :world, case: Hello, tags: [file: __ENV__.file, line: 1]}
   end
 
   test "formats test case filters" do

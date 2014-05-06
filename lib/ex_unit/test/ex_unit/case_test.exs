@@ -6,7 +6,7 @@ defmodule ExUnit.CaseTest do
   @moduletag :moduletag
 
   test "defines test case info" do
-    assert ExUnit.TestCase[name: __MODULE__, tests: tests] = __ex_unit__(:case)
+    assert %ExUnit.TestCase{name: __MODULE__, tests: tests} = __ex_unit__(:case)
     assert length(tests) > 0
   end
 

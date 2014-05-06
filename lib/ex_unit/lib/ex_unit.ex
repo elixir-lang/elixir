@@ -57,27 +57,44 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase."
+  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
   @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
   @type failed :: {:error | :exit | :throw | :EXIT, reason :: term, stacktrace :: [tuple]}
 
-  defrecord Test, [:name, :case, :state, :time, :tags] do
+  defmodule Test do
     @moduledoc """
-    A record that keeps information about the test.
-    It is received by formatters and also accessible
-    in the metadata under the key `:test`.
+    A struct that keeps information about the test.
+
+    It is received by formatters and contains the following fields:
+
+    * `:name` - the test name
+    * `:case` - the test case
+    * `:state` - the test state (see ExUnit.state)
+    * `:time` - the time to run the test
+    * `:tags` - the test tags
+
     """
-    record_type name: atom, case: module, state: ExUnit.state,
-                time: non_neg_integer, tags: Keyword.t
+    defstruct name: nil :: atom,
+              case: nil :: module,
+              state: nil :: ExUnit.state,
+              time: 0 :: non_neg_integer,
+              tags: %{} :: map
   end
 
-  defrecord TestCase, [:name, :state, :tests] do
+  defmodule TestCase do
     @moduledoc """
-    A record that keeps information about the test case.
-    It is received by formatters and also accessible
-    in the metadata under the key `:case`.
+    A struct that keeps information about the test case.
+
+    It is received by formatters and contains the following fields:
+
+    * `:name` - the test case name
+    * `:state` - the test state (see ExUnit.state)
+    * `:tests` - all tests for this case
+
     """
-    record_type name: module, state: ExUnit.state, tests: [ExUnit.Test.t]
+    defstruct name: nil :: module,
+              state: nil :: ExUnit.state,
+              tests: [] :: [ExUnit.Test.t]
   end
 
   use Application
