@@ -8,6 +8,7 @@
 -define(lexical_attr, '__lexical_tracker').
 -define(persisted_attr, '__persisted_attributes').
 -define(overridable_attr, '__overridable').
+-define(location_attr, '__location').
 
 %% TABLE METHODS
 
@@ -53,9 +54,9 @@ do_compile(Line, Module, Block, Vars, E) ->
     {Base, Export, Private, Def, Defmacro, Functions} = elixir_def:unwrap_definitions(Module),
 
     {All, Forms0} = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
-    Forms1          = specs_form(Module, Private, Defmacro, Forms0),
-    Forms2          = attributes_form(Line, File, Module, Forms1),
-    Forms3          = typedocs_form(Module, Forms2),
+    Forms1        = specs_form(Module, Private, Defmacro, Forms0),
+    Forms2        = attributes_form(Line, File, Module, Forms1),
+    Forms3        = typedocs_form(Module, Forms2),
 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
@@ -93,15 +94,12 @@ build(Line, File, Module, Lexical) ->
 
   OldTable = ets:info(DataTable, name),
   case OldTable == DataTable of
-    true  -> [{file, OldFile}, {line, OldLine}] = ets:lookup_element(OldTable, location, 2),
-             elixir_errors:form_error(Line, File, ?MODULE,
-                                      {
-                                        module_in_definition,
-                                        Module,
-                                        OldFile,
-                                        OldLine
-                                      });
-    false -> []
+    true ->
+      [{OldFile, OldLine}] = ets:lookup_element(OldTable, ?location_attr, 2),
+      Error = {module_in_definition, Module, OldFile, OldLine},
+      elixir_errors:form_error(Line, File, ?MODULE, Error);
+    false ->
+      []
   end,
 
   ets:new(DataTable, [set, named_table, public]),
@@ -119,7 +117,7 @@ build(Line, File, Module, Lexical) ->
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
   ets:insert(DataTable, {?lexical_attr, Lexical}),
   ets:insert(DataTable, {?overridable_attr, []}),
-  ets:insert(DataTable, {location, [{file, File}, {line, Line}]}),
+  ets:insert(DataTable, {?location_attr, [{File, Line}]}),
 
   %% Setup other modules
   elixir_def:setup(Module),
