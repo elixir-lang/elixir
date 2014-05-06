@@ -183,11 +183,11 @@ defmodule Mix.Tasks.New do
 
     # Dependencies can be hex.pm packages:
     #
-    # {:mydep, "~> 0.3.0"}
+    #   {:mydep, "~> 0.3.0"}
     #
     # Or git/path repositories:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -216,9 +216,17 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
+    #
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
+    #
+    # To depend on another app inside the umbrella:
+    #
+    #   {:myapp, in_umbrella: true}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -236,9 +244,13 @@ defmodule Mix.Tasks.New do
        deps: deps]
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
+    #
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
