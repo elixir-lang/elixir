@@ -116,16 +116,16 @@ defmodule Inspect.Algebra do
 
   require Record
 
-  @opaque doc_cons :: {:doc_cons, t, t}
+  @typep doc_cons :: {:doc_cons, t, t}
   Record.defrecordp :doc_cons, left: :doc_nil, right: :doc_nil
 
-  @opaque doc_nest :: {:doc_nest, non_neg_integer, t}
+  @typep doc_nest :: {:doc_nest, non_neg_integer, t}
   Record.defrecordp :doc_nest, indent: 1, doc: :doc_nil
 
-  @opaque doc_break :: {:doc_break, binary}
+  @typep doc_break :: {:doc_break, binary}
   Record.defrecordp :doc_break, str: " "
 
-  @opaque doc_group :: {:doc_group, t}
+  @typep doc_group :: {:doc_group, t}
   Record.defrecordp :doc_group, doc: :doc_nil
 
   defmacrop is_doc(doc) do

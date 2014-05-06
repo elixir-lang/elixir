@@ -129,7 +129,7 @@ defmodule MapTest do
       defstruct []
     end
 
-    defstruct name: "josé", nested: %NestedUser{}
+    defstruct name: "josé", nested: struct(NestedUser)
 
     def new do
       %LocalUser{}

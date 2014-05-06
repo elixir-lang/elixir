@@ -89,41 +89,32 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
 %% Helpers
 
-load_struct(Meta, Module, S) ->
+load_struct(Meta, Name, S) ->
   Local =
-    elixir_module:is_open(Module) andalso
+    elixir_module:is_open(Name) andalso
     (case lists:keyfind(struct, 1, Meta) of
       {struct, context} -> true;
-      _ -> wait_for_struct(Module)
+      _ -> wait_for_struct(Name)
     end),
 
-  case Local of
-    true ->
-      try
-        (elixir_locals:local_for(Module, '__struct__', 0, def))()
-      catch
-        error:undef  -> get_struct(Meta, Module, S);
-        error:badarg -> get_struct(Meta, Module, S)
-      end;
-    false ->
-      get_struct(Meta, Module, S)
+  try
+    case Local of
+      true ->
+        try
+          (elixir_locals:local_for(Name, '__struct__', 0, def))()
+        catch
+          error:undef  -> Name:'__struct__'();
+          error:badarg -> Name:'__struct__'()
+        end;
+      false ->
+        Name:'__struct__'()
+    end
+  catch
+    error:undef ->
+      Inspected = elixir_aliases:inspect(Name),
+      compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
+        "cannot expand struct ~ts", [Inspected, Inspected])
   end.
-
-get_struct(Meta, Module, S) ->
-  case code:ensure_loaded(Module) of
-    {module, Module} ->
-      case erlang:function_exported(Module, '__struct__', 0) of
-        true -> Module:'__struct__'();
-        false -> raise_struct(Meta, Module, S)
-      end;
-    {error, _} ->
-      raise_struct(Meta, Module, S)
-  end.
-
-raise_struct(Meta, Module, S) ->
-  Inspected = elixir_aliases:inspect(Module),
-  compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
-    "cannot expand struct ~ts", [Inspected, Inspected]).
 
 wait_for_struct(Module) ->
   case erlang:get(elixir_compiler_pid) of

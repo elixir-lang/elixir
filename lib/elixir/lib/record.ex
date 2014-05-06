@@ -155,14 +155,9 @@ defmodule Record do
 
   """
   defmacro defrecord(name, tag \\ nil, kv) do
-    kv = Macro.escape(kv, unquote: true)
-
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      kv  = Macro.expand(kv, __ENV__)
-
-      {fields, _types} = Record.Backend.split_fields_and_types(:defrecord, kv)
-      fields = Macro.escape(fields)
+      fields = Macro.escape(kv)
 
       defmacro(unquote(name)(args \\ [])) do
         Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)
@@ -178,14 +173,9 @@ defmodule Record do
   Same as `defrecord/3` but generates private macros.
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
-    kv = Macro.escape(kv, unquote: true)
-
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      kv  = Macro.expand(kv, __ENV__)
-
-      {fields, _types} = Record.Backend.split_fields_and_types(:defrecordp, kv)
-      fields = Macro.escape(fields)
+      fields = Macro.escape(kv)
 
       defmacrop(unquote(name)(args \\ [])) do
         Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)

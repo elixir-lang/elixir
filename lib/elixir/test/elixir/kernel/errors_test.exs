@@ -203,10 +203,10 @@ defmodule Kernel.ErrorsTest do
 
   test :struct_fields_on_defstruct do
     assert_compile_fail ArgumentError,
-      "defstruct fields must be a keyword list, got: my_fields",
+      "struct fields must be atoms, got: 1",
       '''
       defmodule TZ do
-        defstruct my_fields
+        defstruct [1, 2, 3]
       end
       '''
   end

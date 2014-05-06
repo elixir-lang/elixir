@@ -3299,21 +3299,34 @@ defmodule Kernel do
   In case a struct does not declare a field type, it defaults to `term`.
   """
   defmacro defstruct(kv) do
-    kv = Macro.escape(kv, unquote: true)
-    quote bind_quoted: [kv: kv] do
-      # Expand possible macros that return KVs.
-      kv = Macro.expand(kv, __ENV__)
-      {fields, types} = Record.Backend.split_fields_and_types(:defstruct, kv)
+    {fields, types} = Record.Backend.split_fields_and_types(:defstruct, kv)
 
-      if :code.ensure_loaded(Kernel.Typespec) == {:module, Kernel.Typespec} and
-         not Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-        @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
+    fields =
+      quote bind_quoted: [fields: fields] do
+        fields = Enum.map(fields, fn
+          { key, _ } = pair when is_atom(key) -> pair
+          key when is_atom(key) -> { key, nil }
+          other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
+        end)
+
+        def __struct__() do
+          %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}
+        end
       end
 
-      def __struct__() do
-        %{unquote_splicing(fields), __struct__: __MODULE__}
+    types =
+      case bootstraped?(Kernel.Typespec) do
+        true ->
+          quote do
+            unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+              @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
+            end
+          end
+        false ->
+          nil
       end
-    end
+
+    [types, fields]
   end
 
   @doc ~S"""

@@ -1,10 +1,5 @@
 require Record
 
-record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-keys   = :lists.map(&elem(&1, 0), record)
-vals   = :lists.map(&{&1, [], nil}, keys)
-pairs  = :lists.zip(keys, vals)
-
 defmodule File.Stat do
   @moduledoc """
   A struct responsible to hold file information.
@@ -43,7 +38,12 @@ defmodule File.Stat do
   `:universal`, or `:posix`. Default is `:local`.
   """
 
-  defstruct unquote(keys)
+  record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  keys   = :lists.map(&elem(&1, 0), record)
+  vals   = :lists.map(&{&1, [], nil}, keys)
+  pairs  = :lists.zip(keys, vals)
+
+  defstruct keys
 
   @doc """
   Converts a `File.Stat` struct to a `:file_info` record.
