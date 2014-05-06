@@ -1018,21 +1018,21 @@ defmodule FileTest do
     end
   end
 
-  test :symlink do
+  test :ln_s do
     existing  = fixture_path("file.txt")
     new = tmp_path("tmp_test.txt")
     try do
       refute File.exists?(new)
-      assert File.symlink(existing, new) == :ok
-      assert File.read(new) == { :ok, "FOO\n" }
+      assert File.ln_s(existing, new) == :ok
+      assert File.read(new) == {:ok, "FOO\n"}
     after
       File.rm(new)
     end
   end
 
-  test :symlink_with_existing_destination do
+  test :ln_s_with_existing_destination do
     existing  = fixture_path("file.txt")
-    assert File.symlink(existing, existing) == { :error, :eexist }
+    assert File.ln_s(existing, existing) == {:error, :eexist}
   end
 
   test :copy do

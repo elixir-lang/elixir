@@ -449,9 +449,12 @@ defmodule File do
 
   @doc """
   Creates a symbolic link `new` to the file or directory `existing`.
-  Returns `:ok` if successful, `{ :error, reason }` otherwise.
+
+  Returns `:ok` if successful, `{:error, reason}` otherwise.
+  If the operating system does not support symlinks, returns
+  `{:error, :enotsup}`.
   """
-  def symlink(existing, new) do
+  def ln_s(existing, new) do
     F.make_symlink(existing, new)
   end
 
