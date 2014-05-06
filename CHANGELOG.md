@@ -1,6 +1,9 @@
 # v0.13.2-dev
 
 * Enhancements
+  * [Application] Add an Application module with common functions to work with OTP applications
+  * [Exception] Add `Exception.message/1`, `Exception.format_banner/1`, `Exception.format_exit/1` and `Exception.format/1`
+  * [File] Add `File.ln_s/1`
   * [Mix] `mix deps.clean` now works accross environments
   * [Mix] Support line numbers in `mix test`, e.g. test/some/file_test.exs:12
   * [Mix] Use `@file` attributes to detect dependencies in between `.ex` and external files. This means changing an `.eex` file will no longer recompile the whole project only the files that depend directly on it
@@ -11,11 +14,15 @@
   * [IEx] Exit signals now exits the IEx evaluator and a new one is spawned on its place
   * [IEx] Ensure we don't prune too much stacktrace when reporting failures
   * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
+  * [Kernel] Ensure modules defined on root respect defined aliases
   * [Kernel] Do not wrap single lists in `:__block__`
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
   * [Kernel] Do not allow a module named `Elixir` to be defined
+  * [Kernel] Create remote funs even if mod is a variable in capture `&mod.fun/arity`
+  * [Kernel] Improve compiler message when duplicated modules are detected
   * [Mix] Generate `.gitignore` for `--umbrella` projects
   * [Mix] Verify if a git dependency in deps has a proper git checkout and clean it automatically when it doesn't
+  * [Mix] Ensure `mix test` works with `IEx.pry/0`
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)
