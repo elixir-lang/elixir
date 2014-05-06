@@ -26,14 +26,15 @@
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)
-  * [Application] use Application.Behaviour is deprecated in favor of use Application
-  * [Exception] Use `Exception.message/1` to retrieve exception messages instead of `exception.message`
+  * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
+  * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
+  * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
-  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
 * Deprecations
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
-  * [Macro] `Macro.safe_terms` is deprecated
+  * [Macro] `Macro.safe_terms/1` is deprecated
   * [Process] `Process.delete/0` is deprecated
   * [Regex] Deprecate `:global` option in `Regex.split/3` in favor of `parts: :infinity`
   * [String] Deprecate `:global` option in `String.split/3` in favor of `parts: :infinity`

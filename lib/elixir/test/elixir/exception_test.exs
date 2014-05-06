@@ -19,11 +19,10 @@ defmodule Kernel.ExceptionTest do
            [file: ^file, line: 12]} = stacktrace
   end
 
-  test "is_exception" do
-    assert is_exception(RuntimeError.new)
-    refute is_exception(empty_tuple)
-    refute is_exception(a_tuple)
-    refute is_exception(a_list)
+  test "exception?" do
+    assert Exception.exception?(RuntimeError.new)
+    refute Exception.exception?({})
+    refute Exception.exception?(%{})
   end
 
   test "message" do
@@ -220,8 +219,4 @@ defmodule Kernel.ExceptionTest do
     assert ErlangError.new(original: :sample) |> message ==
            "erlang error: :sample"
   end
-
-  defp empty_tuple, do: {}
-  defp a_tuple, do: {:foo, :bar, :baz}
-  defp a_list,  do: [ :foo, :bar, :baz ]
 end

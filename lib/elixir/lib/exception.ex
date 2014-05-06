@@ -183,6 +183,14 @@ defmodule Exception do
   @typep location :: Keyword.t
 
   @doc """
+  Returns true if the given argument is an exception.
+  """
+  def exception?(exception) do
+    is_tuple(exception) and tuple_size(exception) > 1 and
+      :erlang.element(2, exception) == :__exception__
+  end
+
+  @doc """
   Gets the message for an exception.
   """
   def message(exception) do
@@ -218,13 +226,15 @@ defmodule Exception do
   def normalize(kind, payload, stacktrace \\ nil)
 
   def normalize(:error, exception, stacktrace) do
-    normalize_error(exception, stacktrace)
+    if exception?(exception) do
+      exception
+    else
+      normalize_error(exception, stacktrace)
+    end
   end
 
-  def normalize(_kind, payload, _stacktrace), do: payload
-
-  defp normalize_error(exception, _stacktrace) when is_exception(exception) do
-    exception
+  def normalize(_kind, payload, _stacktrace) do
+    payload
   end
 
   defp normalize_error(:badarg, _stacktrace) do
@@ -298,7 +308,7 @@ defmodule Exception do
   def format_banner(kind, exception, stacktrace \\ nil)
 
   def format_banner(:error, exception, stacktrace) do
-    exception = normalize_error(exception, stacktrace)
+    exception = normalize(:error, exception, stacktrace)
     "** (" <> inspect(exception.__record__(:name)) <> ") " <> message(exception)
   end
 

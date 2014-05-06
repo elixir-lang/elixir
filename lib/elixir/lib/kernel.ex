@@ -1776,6 +1776,7 @@ defmodule Kernel do
 
   """
   defmacro is_exception(thing) do
+    # IO.write :stderr, "Kernel.is_exception/1 is deprecated, please use Exception.exception?/1 instead\n#{Exception.format_stacktrace}"
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -1806,6 +1807,7 @@ defmodule Kernel do
 
   """
   defmacro is_record(thing, kind) do
+    # IO.write :stderr, "Kernel.is_record/2 is deprecated, please use Record.record?/2 instead\n#{Exception.format_stacktrace}"
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -1825,6 +1827,7 @@ defmodule Kernel do
   Checks if the given argument is a record.
   """
   defmacro is_record(thing) do
+    # IO.write :stderr, "Kernel.is_record/1 is deprecated, please use Record.record?/1 instead\n#{Exception.format_stacktrace}"
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
