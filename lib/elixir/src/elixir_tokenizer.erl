@@ -3,11 +3,6 @@
 -export([tokenize/3]).
 -import(elixir_interpolation, [unescape_tokens/1]).
 
--define(container(T1, T2),
-  T1 == ${, T2 == $};
-  T1 == $[, T2 == $]
-).
-
 -define(at_op(T),
   T == $@).
 
@@ -160,47 +155,58 @@ tokenize([$~,S,H|T] = Original, Line, Scope, Tokens) when ?is_sigil(H), ?is_upca
 
 % Char tokens
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   Char = escape_char([$\\,P,${,A,B,C,D,E,F,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   Char = escape_char([$\\,P,${,A,B,C,D,E,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   Char = escape_char([$\\,P,${,A,B,C,D,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   Char = escape_char([$\\,P,${,A,B,C,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,P,${,A,B,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
+tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A) ->
   Char = escape_char([$\\,P,${,A,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,P,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
+tokenize([$?,$\\,P,A|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A) ->
   Char = escape_char([$\\,P,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens) when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
+tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens)
+    when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
   Char = escape_char([$\\,A,B,C]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A,B|T], Line, Scope, Tokens) when ?is_octal(A), ?is_octal(B) ->
+tokenize([$?,$\\,A,B|T], Line, Scope, Tokens)
+    when ?is_octal(A), ?is_octal(B) ->
   Char = escape_char([$\\,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A|T], Line, Scope, Tokens) when ?is_octal(A) ->
+tokenize([$?,$\\,A|T], Line, Scope, Tokens)
+    when ?is_octal(A) ->
   Char = escape_char([$\\,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
@@ -257,8 +263,8 @@ tokenize(":%{}" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{atom, Line, '%{}'}|Tokens]);
 tokenize(":%" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{atom, Line, '%'}|Tokens]);
-tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
-  tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T1,T2])}|Tokens]);
+tokenize(":{}" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{atom, Line, '{}'}|Tokens]);
 
 tokenize("...:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '...'}|Tokens]);
@@ -268,8 +274,8 @@ tokenize("%{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '%{}'}|Tokens]);
 tokenize("%:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '%'}|Tokens]);
-tokenize([T1,T2,$:|Rest], Line, Scope, Tokens) when ?container(T1, T2), ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Scope, [{kw_identifier, Line, list_to_atom([T1,T2])}|Tokens]);
+tokenize("{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{kw_identifier, Line, '{}'}|Tokens]);
 
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
@@ -315,6 +321,9 @@ tokenize("..." ++ Rest, Line, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, '...', Rest),
   tokenize(Rest, Line, Scope, [Token|Tokens]);
 
+tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({assoc_op, Line, '=>'}, Tokens));
+
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
   handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
@@ -343,9 +352,6 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
     T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
   Token = {list_to_atom([T]), Line},
   handle_terminator(Rest, Line, Scope, Token, Tokens);
-
-tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({assoc_op, Line, '=>'}, Tokens));
 
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
@@ -537,7 +543,7 @@ handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
 % ## Single Token Operators
 handle_dot([$.,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?pipe_op(T) ->
+    ?match_op(T); ?pipe_op(T); T == $% ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser

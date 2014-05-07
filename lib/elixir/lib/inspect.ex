@@ -82,7 +82,7 @@ defimpl Inspect, for: Atom do
         end
       valid_atom_identifier?(binary) ->
         ":" <> binary
-      atom in [:%{}, :{}, :<<>>, :..., :[]] ->
+      atom in [:%{}, :{}, :<<>>, :..., :%] ->
         ":" <> binary
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary

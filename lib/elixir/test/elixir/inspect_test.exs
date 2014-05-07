@@ -56,9 +56,11 @@ defmodule Inspect.AtomTest do
     assert inspect(:foo@bar@baz) == ":foo@bar@baz"
   end
 
-  test :container do
+  test :others do
     assert inspect(:<<>>) == ":<<>>"
     assert inspect(:{})   == ":{}"
+    assert inspect(:%{})  == ":%{}"
+    assert inspect(:%)    == ":%"
   end
 end
 
