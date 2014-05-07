@@ -124,9 +124,7 @@ defmodule Mix.Tasks.App.StartTest do
   defmodule ReturnApp do
     use Application.Behaviour
 
-    def start(_type, return) do
-      return # return
-    end
+    def start(_type, return), do: return
   end
 
   @tag app: :return_sample
@@ -136,8 +134,8 @@ defmodule Mix.Tasks.App.StartTest do
       Process.put(:application_definition, mod: {ReturnApp, {:error, :bye}})
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, "Could not start application return_sample: exited in: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:error, :bye})\n" <>
-      "    ** (EXIT) :bye", fn ->
+      assert_raise Mix.Error, "Could not start application return_sample: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:error, :bye}) returned an error: :bye",
+      fn ->
         Mix.Tasks.App.Start.start(:return_sample)
       end
     end
@@ -151,43 +149,70 @@ defmodule Mix.Tasks.App.StartTest do
           {:badarg, [{ReturnApp, :start, 2, []}] }}})
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, "Could not start application return_sample: exited in: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:error, {:badarg, [{Mix.Tasks.App.StartTest.ReturnApp, :start, 2, []}]}})\n" <>
-        "    ** (EXIT) an exception was raised:\n" <>
-        "        ** (ArgumentError) argument error\n" <>
-        "            Mix.Tasks.App.StartTest.ReturnApp.start/2", fn ->
+      assert_raise Mix.Error, "Could not start application return_sample: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:error, {:badarg, [{Mix.Tasks.App.StartTest.ReturnApp, :start, 2, []}]}}) returned an error: an exception was raised:\n" <>
+        "    ** (ArgumentError) argument error\n" <>
+        "        Mix.Tasks.App.StartTest.ReturnApp.start/2", fn ->
       Mix.Tasks.App.Start.start(:return_sample)
       end
     end
   end
 
   @tag app: :return_sample
-  test "start points to report on exit" do
+  test "start points to report on bad return" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
-      Process.put(:application_definition, mod: {ReturnApp, {:EXIT, :bye}})
+      Process.put(:application_definition, mod: {ReturnApp, :bad})
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, "Could not start application return_sample: exited in: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:EXIT, :bye})\n" <>
-      "    ** (EXIT) :bye",
-         fn ->
+      assert_raise Mix.Error, "Could not start application return_sample: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, :bad) returned a bad value: :bad",
+      fn ->
         Mix.Tasks.App.Start.start(:return_sample)
       end
     end
   end
 
-  @tag app: :return_sample
-  test "start points to report on exception exit" do
-    Mix.Project.push ReturnSample
+  defmodule ExitSample do
+    def project do
+      [app: :exit_sample, version: "0.1.0"]
+    end
+
+    def application do
+      Process.get(:application_definition)
+    end
+  end
+
+  defmodule ExitApp do
+    use Application.Behaviour
+
+    def start(_type, reason), do: exit(reason)
+  end
+
+  @tag app: :exit_sample
+  test "start points to report on exit" do
+    Mix.Project.push ExitSample
     in_fixture "no_mixfile", fn ->
-      Process.put(:application_definition, mod: {ReturnApp, {:EXIT,
-          {:badarg, [{ReturnApp, :start, 2, []}] }}})
+      Process.put(:application_definition, mod: {ExitApp, :bye})
       Mix.Tasks.Compile.run []
 
-      assert_raise Mix.Error, "Could not start application return_sample: exited in: Mix.Tasks.App.StartTest.ReturnApp.start(:normal, {:EXIT, {:badarg, [{Mix.Tasks.App.StartTest.ReturnApp, :start, 2, []}]}})\n" <>
-        "    ** (EXIT) an exception was raised:\n" <>
-        "        ** (ArgumentError) argument error\n" <>
-        "            Mix.Tasks.App.StartTest.ReturnApp.start/2", fn ->
-      Mix.Tasks.App.Start.start(:return_sample)
+      assert_raise Mix.Error, "Could not start application exit_sample: exited in: Mix.Tasks.App.StartTest.ExitApp.start(:normal, :bye)\n" <>
+      "    ** (EXIT) :bye",
+         fn ->
+        Mix.Tasks.App.Start.start(:exit_sample)
+      end
+    end
+  end
+
+  @tag app: :exit_sample
+  test "start points to report on normal exit" do
+    Mix.Project.push ExitSample
+    in_fixture "no_mixfile", fn ->
+      Process.put(:application_definition, mod: {ExitApp, :normal})
+      Mix.Tasks.Compile.run []
+
+      assert_raise Mix.Error, "Could not start application exit_sample: exited in: Mix.Tasks.App.StartTest.ExitApp.start(:normal, :normal)\n" <>
+      "    ** (EXIT) normal",
+         fn ->
+        Mix.Tasks.App.Start.start(:exit_sample)
       end
     end
   end

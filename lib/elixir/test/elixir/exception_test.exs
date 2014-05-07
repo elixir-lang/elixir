@@ -74,6 +74,106 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
     assert Exception.format_exit({:badarg,[{:not_a_real_module, :function, 0, []}]}) ==
            "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
+    assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
+    assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
+    assert Exception.format_exit({:start_spec, :unexpected}) ==
+           "bad start spec: :unexpected"
+    assert Exception.format_exit({:supervisor_data, :unexpected}) ==
+           "bad supervisor data: :unexpected"
+  end
+
+  defmodule Sup do
+    def start_link(fun), do: :supervisor.start_link(__MODULE__, fun)
+
+    def init(fun), do: fun.()
+  end
+
+  test "format_exit with supervisor errors" do
+    trap = Process.flag(:trap_exit, true)
+
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> :foo end)
+    assert Exception.format_exit(reason) ==
+           "#{inspect(__MODULE__.Sup)}.init/1 returned a bad value: :foo"
+
+    return = {:ok, {:foo, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid type: :foo"
+
+    return = {:ok, {{:foo, 1, 1}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid strategy: :foo"
+
+    return = {:ok, {{:one_for_one, :foo, 1}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid intensity: :foo"
+
+    return = {:ok, {{:one_for_one, 1, :foo}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid period: :foo"
+
+    return = {:ok, {{:simple_one_for_one, 1, 1}, :foo}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid children: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1}, [:foo]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid child spec: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, :foo, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid mfa: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :foo, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid restart type: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid shutdown: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :foo, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid child type: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid modules: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid module: {:foo}"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {Kernel, :apply, [fn() -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
+
+    Process.flag(:trap_exit, trap)
   end
 
   test "format_exit with call" do
