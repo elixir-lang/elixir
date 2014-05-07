@@ -13,7 +13,16 @@ defmodule ExUnit.CLIFormatter do
 
   def init(opts) do
     print_filters(Keyword.take(opts, [:include, :exclude]))
-    {:ok, opts |> Config.new |> add_terminal_width}
+    config = %{
+      seed: opts[:seed],
+      trace: opts[:trace],
+      color: opts[:color],
+      width: get_terminal_width(),
+      tests_counter: 0,
+      failures_counter: 0,
+      invalids_counter: 0
+    }
+    {:ok, config}
   end
 
   def handle_event({:suite_finished, run_us, load_us}, config) do
@@ -32,7 +41,7 @@ defmodule ExUnit.CLIFormatter do
     else
       IO.write success(".", config)
     end
-    {:ok, config.update_tests_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
@@ -47,8 +56,8 @@ defmodule ExUnit.CLIFormatter do
       IO.write invalid("?", config)
     end
 
-    {:ok, config.update_tests_counter(&(&1 + 1))
-                .update_invalids_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     invalids_counter: config.invalids_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failed}} = test}, config) do
@@ -60,8 +69,8 @@ defmodule ExUnit.CLIFormatter do
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
 
-    {:ok, config.update_tests_counter(&(&1 + 1))
-                .update_failures_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     failures_counter: config.failures_counter + 1}}
   end
 
   def handle_event({:case_started, %ExUnit.TestCase{name: name}}, config) do
@@ -80,7 +89,7 @@ defmodule ExUnit.CLIFormatter do
     formatted = format_test_case_failure(test_case, failed, config.failures_counter + 1,
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
-    {:ok, config.update_failures_counter(&(&1 + 1))}
+    {:ok, %{config | failures_counter: config.failures_counter + 1}}
   end
 
   def handle_event(_, config) do
@@ -160,7 +169,7 @@ defmodule ExUnit.CLIFormatter do
 
   # Color styles
 
-  defp colorize(escape, string, Config[color: color]) do
+  defp colorize(escape, string, %{color: color}) do
     IO.ANSI.escape_fragment("%{#{escape}}", color)
       <> string
       <> IO.ANSI.escape_fragment("%{reset}", color)
@@ -183,12 +192,10 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:location_info, msg, config), do: colorize("bright,black", msg, config)
   defp formatter(_,  msg, _config),            do: msg
 
-  defp add_terminal_width(config) do
+  defp get_terminal_width do
     case :io.columns do
-      {:ok, width} ->
-        config.width(max(40, width))
-      _ ->
-        config
+      {:ok, width} -> max(40, width)
+      _ -> 80
     end
   end
 end

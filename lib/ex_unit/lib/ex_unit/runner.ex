@@ -4,9 +4,6 @@ defmodule ExUnit.Runner do
   alias ExUnit.EventManager, as: EM
   @stop_timeout 30_000
 
-  defrecord Config, max_cases: 4, taken_cases: 0, async_cases: [], seed: nil,
-                    sync_cases: [], include: [], exclude: [], manager: []
-
   def run(async, sync, opts, load_us) do
     opts = normalize_opts(opts)
 
@@ -14,12 +11,22 @@ defmodule ExUnit.Runner do
     formatters = [ExUnit.RunnerStats|opts[:formatters]]
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
-    config = Config[manager: pid].update(opts)
+    config = %{
+      seed: opts[:seed],
+      max_cases: opts[:max_cases],
+      sync_cases: [],
+      async_cases: [],
+      taken_cases: 0,
+      include: opts[:include],
+      exclude: opts[:exclude],
+      manager: pid
+    }
 
     {run_us, _} =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)
-        loop config.async_cases(shuffle(config, async)).sync_cases(shuffle(config, sync))
+        loop %{config | sync_cases: shuffle(config, sync),
+                        async_cases: shuffle(config, async)}
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
@@ -44,7 +51,7 @@ defmodule ExUnit.Runner do
     |> Keyword.put_new(:seed, :erlang.now |> elem(2))
   end
 
-  defp loop(Config[] = config) do
+  defp loop(config) do
     available = config.max_cases - config.taken_cases
 
     cond do
@@ -78,7 +85,7 @@ defmodule ExUnit.Runner do
   defp wait_until_available(config) do
     receive do
       {_pid, :case_finished, _test_case} ->
-        loop config.update_taken_cases(&(&1-1))
+        loop %{config | taken_cases: config.taken_cases - 1}
     end
   end
 
@@ -91,7 +98,7 @@ defmodule ExUnit.Runner do
       end
     end
 
-    loop config.update_taken_cases(&(&1+length(cases)))
+    loop %{config | taken_cases: config.taken_cases + length(cases)}
   end
 
   defp run_case(config, pid, case_name) do
@@ -244,27 +251,27 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
-  defp shuffle(Config[seed: 0], list) do
+  defp shuffle(%{seed: 0}, list) do
     Enum.reverse(list)
   end
 
-  defp shuffle(Config[seed: seed], list) do
+  defp shuffle(%{seed: seed}, list) do
     :random.seed(3172, 9814, seed)
     Enum.shuffle(list)
   end
 
-  defp take_async_cases(Config[] = config, count) do
+  defp take_async_cases(config, count) do
     case config.async_cases do
       [] -> nil
       cases ->
         {response, remaining} = Enum.split(cases, count)
-        {config.async_cases(remaining), response}
+        {%{config | async_cases: remaining}, response}
     end
   end
 
-  defp take_sync_cases(Config[] = config) do
+  defp take_sync_cases(config) do
     case config.sync_cases do
-      [h|t] -> {config.sync_cases(t), [h]}
+      [h|t] -> {%{config | sync_cases: t}, [h]}
       []    -> nil
     end
   end
