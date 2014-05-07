@@ -3,6 +3,7 @@ ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
+MIN_ERLANG_VERSION := 17
 Q := @
 PREFIX := /usr/local
 LIBDIR := lib
@@ -11,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip
+.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Templates
@@ -43,7 +44,16 @@ UNICODE:=lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: lib/elixir/src/elixir.app.src erlang elixir
+compile: check_erlang_release lib/elixir/src/elixir.app.src erlang elixir
+
+# this check should work for older versions like R16B
+# as well as new verions like 17.1 and 18
+check_erlang_release:
+	 @ erl -noshell -eval 'io:fwrite("~s", [erlang:system_info(otp_release)])' -s erlang halt | grep -q '^1[789]'; \
+		if [ $$? != 0 ]; then                                                                                      \
+		   echo "At least Erlang 17.0 is required to build Elixir";                                                \
+		   exit 1;                                                                                                 \
+		fi
 
 lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) rm -rf lib/elixir/src/elixir.app.src
@@ -61,7 +71,7 @@ elixir: kernel lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
 kernel: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
-	$(Q) if [ ! -f $(KERNEL) ]; then                       \
+	$(Q) if [ ! -f $(KERNEL) ]; then                    \
 		echo "==> bootstrap (compile)";                 \
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
 	fi
