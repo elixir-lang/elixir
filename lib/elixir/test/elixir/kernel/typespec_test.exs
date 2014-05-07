@@ -282,6 +282,20 @@ defmodule Kernel.TypespecTest do
            ]}, []}] = types
   end
 
+  test "@type from dynamic structs" do
+    types = test_module do
+      fields = [name: nil, age: 0]
+      defstruct fields
+      @type
+    end
+
+    assert [{:t, {:type, _, :map, [
+              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :term, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, Kernel.TypespecTest.T}}
+           ]}, []}] = types
+  end
+
   test "@type unquote fragment" do
     spec = test_module do
       quoted = quote unquote: false do

@@ -3316,6 +3316,15 @@ defmodule Kernel do
 
     types =
       case bootstraped?(Kernel.Typespec) do
+        true when types == [] ->
+          quote unquote: false do
+            unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+              types = Enum.map(fields, fn {key, _} ->
+                {key, quote(do: term)}
+              end)
+              @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
+            end
+          end
         true ->
           quote do
             unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
@@ -3326,7 +3335,10 @@ defmodule Kernel do
           nil
       end
 
-    [types, fields]
+    quote do
+      unquote(fields)
+      unquote(types)
+    end
   end
 
   @doc ~S"""
