@@ -55,8 +55,8 @@ defmodule ExUnit.CaseTemplateTest do
     assert 2 == unquote(two)
   end
 
-  test "receives context from parent case", context do
-    assert context[:context] == :setup
+  test "receives context from parent case", %{context: context} do
+    assert context == :setup
   end
 
   test "runs both templates setup", context do

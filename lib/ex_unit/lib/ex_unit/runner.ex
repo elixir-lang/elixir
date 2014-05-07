@@ -129,7 +129,7 @@ defmodule ExUnit.Runner do
     exclude = config.exclude
 
     for test <- tests do
-      tags = Keyword.put(test.tags, :test, test.name)
+      tags = Map.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags) do
         :ok           -> %{test | tags: tags}
         {:error, tag} -> %{test | state: {:skip, "due to #{tag} filter"}}
@@ -163,7 +163,7 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
-    {:ok, context} = case_name.__ex_unit__(:setup_all, [case: case_name])
+    {:ok, context} = case_name.__ex_unit__(:setup_all, %{case: case_name})
     {:ok, {test_case, context}}
   catch
     kind, error ->
@@ -184,7 +184,7 @@ defmodule ExUnit.Runner do
     EM.test_started(config.manager, test)
 
     if nil?(test.state) do
-      test = spawn_test(config, test, Keyword.merge(test.tags, context))
+      test = spawn_test(config, test, Map.merge(test.tags, context))
     end
 
     EM.test_finished(config.manager, test)

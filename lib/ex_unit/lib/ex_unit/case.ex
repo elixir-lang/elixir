@@ -46,6 +46,14 @@ defmodule ExUnit.Case do
         end
       end
 
+  As the context is a map, it can be pattern matched on to extract
+  information:
+
+      test "stores key-values", %{pid: pid} do
+        assert KV.put(pid, :hello, :world) == :ok
+        assert KV.get(pid, :hello) == :world
+      end
+
   ## Tags
 
   The context is used to pass information from the callbacks to
@@ -234,7 +242,7 @@ defmodule ExUnit.Case do
   def __on_definition__(env, name) do
     mod  = env.module
     tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-    tags = [line: env.line, file: env.file] ++ normalize_tags(tags)
+    tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
     Module.put_attribute(mod, :ex_unit_tests,
       %ExUnit.Test{name: name, case: mod, tags: tags})
@@ -243,9 +251,9 @@ defmodule ExUnit.Case do
   end
 
   defp normalize_tags(tags) do
-    Enum.reduce tags, [], fn
-      tag, acc when is_atom(tag) -> Keyword.put_new(acc, tag, true)
-      tag, acc when is_list(tag) -> Keyword.merge(tag, acc)
+    Enum.reduce Enum.reverse(tags), %{}, fn
+      tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
+      tag, acc when is_list(tag) -> Dict.merge(acc, tag)
     end
   end
 end
