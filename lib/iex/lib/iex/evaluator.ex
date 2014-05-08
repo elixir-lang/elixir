@@ -39,12 +39,18 @@ defmodule IEx.Evaluator do
   Returns the new config.
   """
   def load_dot_iex(config, path \\ nil) do
-    path = path || "~/.iex.exs"
-
-    if File.regular?(path) do
-      eval_dot_iex(config, path)
+    candidates = if path do
+      [path]
     else
+      Enum.map [".iex.exs", "~/.iex.exs"], &Path.expand/1
+    end
+
+    path = Enum.find candidates, &File.regular?/1
+
+    if nil?(path) do
       config
+    else
+      eval_dot_iex(config, path)
     end
   end
 

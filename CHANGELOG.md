@@ -41,7 +41,6 @@
   * [String] Deprecate `:global` option in `String.split/3` in favor of `parts: :infinity`
 
 * Backwards incompatible changes
-  * [IEx] IEx no longer loads an `.iex.exs` file at the current path. Instead, IEx should be configured via the new Mix config
   * [ExUnit] `ExUnit.Test` and `ExUnit.TestCase` has been converted to structs
   * [ExUnit] The test and callback context has been converted to maps
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Inspect.Opts`, `Macro.Env`, `Range`, `Regex` and `Version.Requirement` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar

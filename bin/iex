@@ -18,7 +18,7 @@ if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   --detached        Starts the Erlang VM detached from console
   --gen-debug       Turns on default debugging for all GenServers
   --remsh \"name\"    Connects to a node using a remote shell
-  --dot-iex \"path\"  Overrides default ~/.iex.exs file and uses path instead;
+  --dot-iex \"path\"  Overrides default .iex.exs file and uses path instead;
                     path can be empty, then no file will be loaded
 
 ** Options marked with (*) can be given more than once

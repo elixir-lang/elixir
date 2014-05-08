@@ -120,15 +120,16 @@ defmodule IEx do
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
 
-  ## The ~/.iex.exs file
+  ## The .iex.exs file
 
-  When starting IEx, it will look for a global configuration file
-  (located at `~/.iex.exs`) and load it if available. The code in the
-  chosen .iex file will be evaluated in the shell's context. So, for
-  instance, any modules that are loaded or variables that are bound
-  in the .iex file will be available in the shell after it has booted.
+  When starting IEx, it will look for a local `.iex.exs` file (located in the current
+  working directory), then a global one (located at `~/.iex.exs`) and will load the
+  first one it finds (if any). The code in the chosen .iex file will be
+  evaluated in the shell's context. So, for instance, any modules that are
+  loaded or variables that are bound in the .iex file will be available in the
+  shell after it has booted.
 
-  Sample contents of a .iex file:
+  Sample contents of a local .iex file:
 
       # source another `.iex` file
       import_file "~/.iex.exs"
@@ -140,7 +141,7 @@ defmodule IEx do
       value = 13
 
   Running the shell in the directory where the above .iex file is located
-  results in
+  results in:
 
       $ iex
       Erlang 17 [...]
