@@ -2206,7 +2206,7 @@ defmodule Kernel do
 
   """
   defmacro binding() do
-    do_binding(nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
+    do_binding(nil, nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   @doc """
@@ -2229,7 +2229,7 @@ defmodule Kernel do
   end
 
   defmacro binding(context) when is_atom(context) do
-    do_binding(context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
+    do_binding(nil, context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
   @doc """
@@ -2254,14 +2254,8 @@ defmodule Kernel do
     do_binding(list, context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
   end
 
-  defp do_binding(context, vars, in_match) do
-    for {v, c} <- vars, c == context, v != :_@CALLER do
-      {v, wrap_binding(in_match, {v, [], c})}
-    end
-  end
-
   defp do_binding(list, context, vars, in_match) do
-    for {v, c} <- vars, c == context, :lists.member(v, list) do
+    for {v, c} <- vars, c == context, list == nil or :lists.member(v, list) do
       {v, wrap_binding(in_match, {v, [], c})}
     end
   end
