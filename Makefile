@@ -96,14 +96,14 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 
 install: compile
 	@ echo "==> elixir (install)"
-	for dir in lib/*; do \
+	$(Q) for dir in lib/*; do \
 		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 	done
-	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
-	$(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
-	$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
-	for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
+	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
+	$(Q) $(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
+	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
+	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
 
