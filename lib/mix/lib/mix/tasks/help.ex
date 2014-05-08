@@ -41,20 +41,29 @@ defmodule Mix.Tasks.Help do
 
   def run([task]) do
     module = Mix.Task.get!(task)
-    shell  = Mix.shell
-    shell.info "%{bright}# mix help #{task}\n"
+    doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
 
-    if doc = Mix.Task.moduledoc(module) do
-      shell.info doc
+    if IO.ANSI.terminal? do
+      options = [width: width] ++ Application.get_env(:mix, :colors)
+      IO.ANSI.Docs.print_heading("mix help #{task}", options)
+      IO.ANSI.Docs.print(doc, options)
     else
-      shell.info "There is no documentation for this task"
+      IO.puts "# mix help #{task}\n"
+      IO.puts doc
     end
 
-    shell.info "Location: #{where_is_file(module)}"
+    IO.puts "Location: #{where_is_file(module)}"
   end
 
   def run(_) do
     raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
+  defp width() do
+    case :io.columns(:standard_input) do
+      {:ok, width} -> min(width, 80)
+      {:error, _}  -> 80
+    end
   end
 
   defp format_task(task, max, doc) do
@@ -63,8 +72,13 @@ defmodule Mix.Tasks.Help do
 
   defp where_is_file(module) do
     case :code.where_is_file(atom_to_list(module) ++ '.beam') do
-      :non_existing -> "not available"
-      location -> Path.expand(Path.dirname(location))
+      :non_existing ->
+        "not available"
+      location ->
+        location
+        |> Path.dirname
+        |> Path.expand
+        |> Path.relative_to_cwd
     end
   end
 

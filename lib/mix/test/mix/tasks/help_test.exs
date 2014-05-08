@@ -3,6 +3,8 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.HelpTest do
   use MixTest.Case
 
+  import ExUnit.CaptureIO
+
   test "help lists all tasks" do
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Help.run []
@@ -24,18 +26,13 @@ defmodule Mix.Tasks.HelpTest do
 
   test "help TASK" do
     in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Help.run ["compile"]
+      output =
+        capture_io fn ->
+          Mix.Tasks.Help.run ["compile"]
+        end
 
-      {_, _, [output]} =
-        assert_received {:mix_shell, :info, [_]}
       assert output =~ "# mix help compile"
-
-      {_, _, [output]} =
-        assert_received {:mix_shell, :info, [_]}
       assert output =~ "## Command line options"
-
-      {_, _, [output]} =
-        assert_received {:mix_shell, :info, [_]}
       assert output =~ ~r/^Location:/m
     end
   end

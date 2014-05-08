@@ -138,7 +138,7 @@ defmodule Mix.Project do
   def config_files do
     [Mix.Dep.Lock.manifest] ++
       case Mix.ProjectStack.peek do
-        {name, config, file} ->
+        {_name, config, file} ->
           configs = config[:config_path] || "config/config.exs"
                     |> Path.dirname
                     |> Path.join("*.exs")
