@@ -236,7 +236,7 @@ defmodule IEx.Helpers do
   their results.
   """
   def v do
-    inspect_opts = IEx.Options.get(:inspect)
+    inspect_opts = Application.get_env(:iex, :inspect)
     IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
@@ -299,7 +299,7 @@ defmodule IEx.Helpers do
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
-    inspect_opts = IEx.Options.get(:inspect)
+    inspect_opts = Application.get_env(:iex, :inspect)
     do_flush(inspect_opts)
   end
 

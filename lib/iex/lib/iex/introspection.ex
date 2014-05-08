@@ -178,7 +178,7 @@ defmodule IEx.Introspection do
   end
 
   defp docs_options() do
-    [width: IEx.width] ++ IEx.Options.get(:colors)
+    [width: IEx.width] ++ Application.get_env(:iex, :colors)
   end
 
   @doc """

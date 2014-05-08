@@ -39,18 +39,12 @@ defmodule IEx.Evaluator do
   Returns the new config.
   """
   def load_dot_iex(config, path \\ nil) do
-    candidates = if path do
-      [path]
-    else
-      Enum.map [".iex.exs", "~/.iex.exs"], &Path.expand/1
-    end
+    path = path || "~/.iex.exs"
 
-    path = Enum.find candidates, &File.regular?/1
-
-    if nil?(path) do
-      config
-    else
+    if File.regular?(path) do
       eval_dot_iex(config, path)
+    else
+      config
     end
   end
 
@@ -132,7 +126,8 @@ defmodule IEx.Evaluator do
   end
 
   defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter, IEx.Options.get(:history_size))
+    IEx.History.append({counter, cache, result}, counter,
+                       Application.get_env(:iex, :history_size))
   end
 
   defp io_put(result) do
@@ -144,7 +139,7 @@ defmodule IEx.Evaluator do
   end
 
   defp inspect_opts do
-    [width: IEx.width] ++ IEx.Options.get(:inspect)
+    [width: IEx.width] ++ Application.get_env(:iex, :inspect)
   end
 
   ## Error handling

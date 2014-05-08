@@ -269,7 +269,7 @@ defmodule IEx.Server do
         {:default, prefix || "iex"}
       end
 
-    prompt = IEx.Options.get(:prompt)[mode]
+    prompt = Application.get_env(:iex, :"#{mode}_prompt")
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
              |> String.replace("%node", to_string(node))

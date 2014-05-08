@@ -163,7 +163,7 @@ defmodule ExUnit do
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
-      :application.set_env(:ex_unit, k, v)
+      Application.put_env(:ex_unit, k, v)
     end
   end
 
@@ -171,7 +171,7 @@ defmodule ExUnit do
   Returns ExUnit configuration.
   """
   def configuration do
-    :application.get_all_env(:ex_unit)
+    Application.get_all_env(:ex_unit)
   end
 
   @doc """

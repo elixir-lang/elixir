@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Loadconfig do
         raise Mix.Error, message: "umbrella child #{inspect dep.app} has set the configuration for " <>
           "key #{inspect k} in app #{inspect app} to #{inspect v2} but another umbrella child has " <>
           "already set it to #{inspect v1}. You need to remove the configuration or resolve " <>
-          "the conflict by setting a value in the umbrella config"
+          "the conflict by defining a config file and setting a value in your umbrella project"
       end
     end)
   end

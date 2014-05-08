@@ -1,12 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule IEx.ServerTest do
-  use IEx.Case
-
-  setup do
-    IEx.Options.set :colors, enabled: false
-    :ok
-  end
+  use IEx.Case, async: true
 
   # Options
 

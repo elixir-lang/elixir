@@ -79,6 +79,9 @@ defmodule Mix.Tasks.New do
       create_file "lib/#{app}.ex", lib_app_template(assigns)
       create_directory "lib/#{app}"
       create_file "lib/#{app}/supervisor.ex", lib_supervisor_template(assigns)
+
+      create_directory "config"
+      create_file "config/config.exs", config_template(assigns)
     end
 
     create_directory "test"
@@ -257,6 +260,29 @@ defmodule Mix.Tasks.New do
       []
     end
   end
+  """
+
+  embed_template :config, """
+  # This file is responsible for configuring your application and
+  # its dependencies. It must return a keyword list containing the
+  # application name and another keyword list with the application
+  # key-value pairs.
+
+  # Note this configuration is loaded before any dependency and is
+  # restricted to this project. If another project depends on this
+  # project, this file won't be loaded nor affect the parent project.
+
+  # You can customize the configuration path by setting :config_path
+  # in your mix.exs file. For example, you can emulate configuration
+  # per environment by setting:
+  #
+  #     config_path: "config/\#{Mix.env}.exs"
+  #
+  # Changing any file inside the config directory causes the whole
+  # project to be recompiled.
+
+  [dep1: [key: :value],
+   dep2: [key: :value]]
   """
 
   embed_template :lib, """

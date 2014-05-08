@@ -33,6 +33,7 @@
   * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
 * Deprecations
+  * [IEx] IEx.Options is deprecated in favor of `IEx.configure/1` and `IEx.configuration/0`
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
   * [Macro] `Macro.safe_terms/1` is deprecated
   * [Process] `Process.delete/0` is deprecated
@@ -40,6 +41,7 @@
   * [String] Deprecate `:global` option in `String.split/3` in favor of `parts: :infinity`
 
 * Backwards incompatible changes
+  * [IEx] IEx no longer loads an `.iex.exs` file at the current path. Instead, IEx should be configured via the new Mix config
   * [ExUnit] `ExUnit.Test` and `ExUnit.TestCase` has been converted to structs
   * [ExUnit] The test and callback context has been converted to maps
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Inspect.Opts`, `Macro.Env`, `Range`, `Regex` and `Version.Requirement` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar

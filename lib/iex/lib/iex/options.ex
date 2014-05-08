@@ -1,37 +1,5 @@
 defmodule IEx.Options do
-  @moduledoc """
-  Provides an interface for adjusting options of the running IEx session.
-
-  Changing options is usually done inside an IEx session or in your .iex.exs file.
-  See `h(IEx)` for more info on the latter.
-
-  If the value of an option is a keyword list, only those keys that are
-  mentioned will be changed. The rest of the sub-options will keep their
-  current values. Any extraneous keys are filtered out, i.e. not used.
-
-  To get the list of all supported options, use `IEx.Options.list/0`.
-  You can also get an option's description using `IEx.Options.print_help/1`.
-
-  ## Examples
-
-      iex(1)> ArgumentError[]
-      ArgumentError[message: "argument error"]
-
-      iex(2)> IEx.Options.set :inspect, structs: false
-      [limit: 50, structs: true]
-
-      iex(3)> ArgumentError[]
-      {ArgumentError,:__exception__,"argument error"}
-
-      iex(4)> IEx.Options.list
-      [:colors,:inspect]
-
-      iex(5)> IEx.Options.print_help :colors
-      This is an aggregate option that encapsulates all color settings used
-      by the shell.
-      ... # omitted content
-
-  """
+  @moduledoc false
 
   @supported_options ~w(colors inspect history_size prompt)a
 
@@ -40,6 +8,7 @@ defmodule IEx.Options do
   list.
   """
   def get do
+    IO.write :stderr, "IEx.Options.get/0 is deprecated, please use IEx.configuration/0\n#{Exception.format_stacktrace}"
     Enum.map list(), fn name ->
       {name, get(name)}
     end
@@ -53,6 +22,7 @@ defmodule IEx.Options do
 
   for key <- @supported_options do
     def get(unquote(key)) do
+      IO.write :stderr, "IEx.Options.get/1 is deprecated, please use IEx.configuration/0\n#{Exception.format_stacktrace}"
       {:ok, value} = Application.fetch_env(:iex, unquote(key))
       value
     end
@@ -69,6 +39,7 @@ defmodule IEx.Options do
   Returns a keyword list of old option values.
   """
   def set(opts) do
+    IO.write :stderr, "IEx.Options.set/1 is deprecated, please use IEx.configure/1\n#{Exception.format_stacktrace}"
     Enum.map opts, fn {name, val} ->
       {name, set(name, val)}
     end
@@ -85,6 +56,7 @@ defmodule IEx.Options do
   def set(name, value)
 
   def set(:colors, colors) when is_list(colors) do
+    IO.write :stderr, "IEx.Options.set/2 is deprecated, please use IEx.configure/1\n#{Exception.format_stacktrace}"
     filter_and_merge(:colors, colors)
   end
 
@@ -93,6 +65,7 @@ defmodule IEx.Options do
   end
 
   def set(:inspect, opts) when is_list(opts) do
+    IO.write :stderr, "IEx.Options.set/2 is deprecated, please use IEx.configure/1\n#{Exception.format_stacktrace}"
     filter_and_merge(:inspect, opts)
   end
 
@@ -101,6 +74,7 @@ defmodule IEx.Options do
   end
 
   def set(:history_size, size) when is_integer(size) do
+    IO.write :stderr, "IEx.Options.set/2 is deprecated, please use IEx.configure/1\n#{Exception.format_stacktrace}"
     old_size = get(:history_size)
     Application.put_env(:iex, :history_size, size)
     old_size
@@ -111,6 +85,7 @@ defmodule IEx.Options do
   end
 
   def set(:prompt, prompts) when is_list(prompts) do
+    IO.write :stderr, "IEx.Options.set/2 is deprecated, please use IEx.configure/1\n#{Exception.format_stacktrace}"
     filter_and_merge(:prompt, prompts)
   end
 
@@ -193,6 +168,7 @@ defmodule IEx.Options do
   Same as `help/1` but instead of returning a string, prints it.
   """
   def print_help(name) do
+    IO.write :stderr, "IEx.Options is deprecated\n#{Exception.format_stacktrace}"
     IO.ANSI.Docs.print help(name)
   end
 
@@ -200,6 +176,7 @@ defmodule IEx.Options do
   Returns all supported options as a list of names.
   """
   def list() do
+    IO.write :stderr, "IEx.Options is deprecated\n#{Exception.format_stacktrace}"
     @supported_options
   end
 
@@ -211,23 +188,9 @@ defmodule IEx.Options do
     raise ArgumentError, message: "Expected the value to be #{type}"
   end
 
-  defp raise_key(option_name, name) do
-    raise ArgumentError, message: "Unsupported key '#{name}' for option '#{option_name}'"
-  end
-
   defp filter_and_merge(opt, values) when is_list(values) do
     old_values = get(opt)
-    filtered_values = filtered_kw(opt, old_values, values)
-    :application.set_env(:iex, opt, Keyword.merge(old_values, filtered_values))
+    :application.set_env(:iex, opt, Keyword.merge(old_values, values))
     old_values
-  end
-
-  defp filtered_kw(opt, reference_kw, user_kw) do
-    Enum.filter user_kw, fn {name, _} ->
-      if not Keyword.has_key?(reference_kw, name) do
-        raise_key(opt, name)
-      end
-      true
-    end
   end
 end

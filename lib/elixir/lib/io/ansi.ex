@@ -7,8 +7,8 @@ defmodule IO.ANSI.Sequence do
         "\e[#{unquote(code)}#{unquote(terminator)}"
       end
 
-      defp escape_sequence(<< unquote(atom_to_binary(name)), rest :: binary >>) do
-        {"\e[#{unquote(code)}#{unquote(terminator)}", rest}
+      defp escape_sequence(unquote(atom_to_list(name))) do
+        unquote(name)()
       end
     end
   end
@@ -130,15 +130,8 @@ defmodule IO.ANSI do
   @doc "Clear screen"
   defsequence :clear, "2", "J"
 
-
-  # Catch spaces between codes
-  defp escape_sequence(<< ?\s, rest :: binary >>) do
-    escape_sequence(rest)
-  end
-
   defp escape_sequence(other) do
-    [spec|_] = String.split(other, ~r/(,|\})/)
-    raise ArgumentError, message: "invalid ANSI sequence specification: #{spec}"
+    raise ArgumentError, message: "invalid ANSI sequence specification: #{other}"
   end
 
   @doc ~S"""
@@ -163,8 +156,8 @@ defmodule IO.ANSI do
   """
   @spec escape(String.t, emit :: boolean) :: String.t
   def escape(string, emit \\ terminal?) do
-    {rendered, emitted} = do_escape(string, false, emit, false, [])
-    if emitted and emit do
+    {rendered, emitted} = do_escape(string, emit, false, nil, [])
+    if emitted do
       rendered <> reset
     else
       rendered
@@ -193,34 +186,43 @@ defmodule IO.ANSI do
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
   def escape_fragment(string, emit \\ terminal?) do
-    {rendered, _emitted} = do_escape(string, false, emit, false, [])
-    rendered
+    {escaped, _emitted} = do_escape(string, emit, false, nil, [])
+    escaped
   end
 
-  defp do_escape(<< ?%, ?{, rest :: binary >>, false, emit, _emitted, acc) do
-    do_escape_sequence(rest, emit, acc)
-  end
-  defp do_escape(<< ?,, rest :: binary >>, true, emit, _emitted, acc) do
-    do_escape_sequence(rest, emit, acc)
-  end
-  defp do_escape(<< ?\s, rest :: binary >>, true, emit, emitted, acc) do
-    do_escape(rest, true, emit, emitted, acc)
-  end
-  defp do_escape(<< ?}, rest :: binary >>, true, emit, emitted, acc) do
-    do_escape(rest, false, emit, emitted, acc)
-  end
-  defp do_escape(<< x :: [binary, size(1)], rest :: binary>>, false, emit, emitted, acc) do
-    do_escape(rest, false, emit, emitted, [x|acc])
-  end
-  defp do_escape("", false, _emit, emitted, acc) do
-    {iodata_to_binary(Enum.reverse(acc)), emitted}
-  end
+  defp do_escape(<<?}, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
+    sequences =
+      buffer
+      |> Enum.reverse()
+      |> :string.tokens(',')
+      |> Enum.map(&(&1 |> :string.strip |> escape_sequence))
+      |> Enum.reverse()
 
-  defp do_escape_sequence(rest, emit, acc) do
-    {code, rest} = escape_sequence(rest)
-    if emit do
-      acc = [code|acc]
+    if emit and sequences != [] do
+      do_escape(t, emit, true, nil, sequences ++ acc)
+    else
+      do_escape(t, emit, emitted, nil, acc)
     end
-    do_escape(rest, true, emit, true, acc)
+  end
+
+  defp do_escape(<<h, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
+    do_escape(t, emit, emitted, [h|buffer], acc)
+  end
+
+  defp do_escape(<<>>, _emit, _emitted, buffer, _acc) when is_list(buffer) do
+    buffer = iodata_to_binary Enum.reverse(buffer)
+    raise ArgumentError, message: "missing } for escape fragment #{buffer}"
+  end
+
+  defp do_escape(<<?%, ?{, t :: binary>>, emit, emitted, nil, acc) do
+    do_escape(t, emit, emitted, [], acc)
+  end
+
+  defp do_escape(<<h, t :: binary>>, emit, emitted, nil, acc) do
+    do_escape(t, emit, emitted, nil, [h|acc])
+  end
+
+  defp do_escape(<<>>, _emit, emitted, nil, acc) do
+    {iodata_to_binary(Enum.reverse(acc)), emitted}
   end
 end

@@ -27,6 +27,9 @@ defmodule IO.ANSITest do
   end
 
   test :no_emit do
+    assert IO.ANSI.escape("Hello, %{}world!", false) ==
+           "Hello, world!"
+
     assert IO.ANSI.escape("Hello, %{red,bright}world!", false) ==
            "Hello, world!"
   end

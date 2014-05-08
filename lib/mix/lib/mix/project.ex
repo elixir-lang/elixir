@@ -44,7 +44,10 @@ defmodule Mix.Project do
   # Push a project onto the project stack.
   # Only the top of the stack can be accessed.
   @doc false
-  def push(atom, file \\ "nofile") when is_atom(atom) do
+  def push(atom, file \\ nil) when is_atom(atom) do
+    file = file ||
+           (atom && String.from_char_data!(atom.__info__(:compile)[:source]))
+
     config = default_config
              |> Keyword.merge(get_project_config(atom))
              |> Keyword.drop(@private_config)
@@ -67,9 +70,9 @@ defmodule Mix.Project do
   # The configuration that is pushed down to dependencies.
   @doc false
   def deps_config(config \\ config()) do
-    [ build_path: build_path(config),
-      build_per_environment: config[:build_per_environment],
-      deps_path: deps_path(config) ]
+    [build_path: build_path(config),
+     build_per_environment: config[:build_per_environment],
+     deps_path: deps_path(config)]
   end
 
   @doc """
@@ -133,14 +136,17 @@ defmodule Mix.Project do
   By default it includes the mix.exs file and the lock manifest.
   """
   def config_files do
-    project = get
-    opts    = [Mix.Dep.Lock.manifest]
-
-    if project && (source = project.__info__(:compile)[:source]) do
-      opts = [String.from_char_data!(source)|opts]
-    end
-
-    opts
+    [Mix.Dep.Lock.manifest] ++
+      case Mix.ProjectStack.peek do
+        {name, config, file} ->
+          configs = config[:config_path] || "config/config.exs"
+                    |> Path.dirname
+                    |> Path.join("*.exs")
+                    |> Path.wildcard
+          [file|configs]
+        _ ->
+          []
+      end
   end
 
   @doc """

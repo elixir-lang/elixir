@@ -112,6 +112,14 @@ defmodule Application do
   @type start_type :: :permanent | :transient | :temporary
 
   @doc """
+  Returns all key-value pairs for `app`.
+  """
+  @spec get_all_env(app) :: [{key,value}]
+  def get_all_env(app) do
+    :application.get_all_env(app)
+  end
+
+  @doc """
   Returns the value for `key` in `app`'s environment.
 
   If the specified application is not loaded, or the configuration parameter

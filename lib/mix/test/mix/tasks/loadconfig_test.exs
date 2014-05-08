@@ -7,8 +7,8 @@ defmodule Mix.Tasks.LoadconfigTest do
 
   teardown do
     Enum.each @apps, fn app ->
-      Enum.each :application.get_all_env(app), fn {key, _} ->
-        :application.unset_env(app, key, persist: true)
+      Enum.each Application.get_all_env(app), fn {key, _} ->
+        Application.delete_env(app, key, persist: true)
       end
     end
     :ok

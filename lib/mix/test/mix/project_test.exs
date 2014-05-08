@@ -5,7 +5,7 @@ defmodule Mix.ProjectTest do
 
   defmodule SampleProject do
     def project do
-      [ hello: "world" ]
+      [hello: "world"]
     end
   end
 
