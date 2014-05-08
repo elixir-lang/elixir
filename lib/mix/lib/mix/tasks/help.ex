@@ -4,14 +4,33 @@ defmodule Mix.Tasks.Help do
   @shortdoc "Print help information for tasks"
 
   @moduledoc """
-  If given a task name, prints the documentation for that task.
-  If no task name is given, prints the short form documentation
-  for all tasks.
+  Lists all tasks or prints the documentation for a given task.
 
   ## Arguments
 
       mix help      - prints all tasks and their shortdoc
       mix help TASK - prints full docs for the given task
+
+  ## Colors
+
+  When possible, `mix help` is going to use coloring for formatting
+  guides. The formatting can be customized by configuring the Mix
+  application either inside your project (in `config/config.exs`) or
+  by using the local config (in `~/.mix/config.exs`).
+
+  For example, to disable, one may:
+
+      [mix: [colors: [enabled: false]]]
+
+  The available color options are:
+
+  * `:enabled`         - show ANSI formatting (defaults to IO.ANSI.terminal?)
+  * `:doc_code`        — the attributes for code blocks (cyan, bright)
+  * `:doc_inline_code` - inline code (cyan)
+  * `:doc_headings`    - h1 and h2 (yellow, bright)
+  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+  * `:doc_bold`        - (bright)
+  * `:doc_underline`   - (underline)
 
   """
 
@@ -42,11 +61,12 @@ defmodule Mix.Tasks.Help do
   def run([task]) do
     module = Mix.Task.get!(task)
     doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+    opts   = Application.get_env(:mix, :colors)
 
-    if IO.ANSI.terminal? do
-      options = [width: width] ++ Application.get_env(:mix, :colors)
-      IO.ANSI.Docs.print_heading("mix help #{task}", options)
-      IO.ANSI.Docs.print(doc, options)
+    if ansi_docs?(opts) do
+      opts = [width: width] ++ opts
+      IO.ANSI.Docs.print_heading("mix help #{task}", opts)
+      IO.ANSI.Docs.print(doc, opts)
     else
       IO.puts "# mix help #{task}\n"
       IO.puts doc
@@ -57,6 +77,14 @@ defmodule Mix.Tasks.Help do
 
   def run(_) do
     raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
+  defp ansi_docs?(opts) do
+    if Keyword.has_key?(opts, :enabled) do
+      opts[:enabled]
+    else
+      IO.ANSI.terminal?
+    end
   end
 
   defp width() do

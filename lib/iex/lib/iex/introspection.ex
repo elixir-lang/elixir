@@ -15,10 +15,9 @@ defmodule IEx.Introspection do
         if function_exported?(module, :__info__, 1) do
           case module.__info__(:moduledoc) do
             {_, binary} when is_binary(binary) ->
-              if IO.ANSI.terminal? do
-                options = docs_options()
-                IO.ANSI.Docs.print_heading(inspect(module), options)
-                IO.ANSI.Docs.print(binary, options)
+              if opts = ansi_docs() do
+                IO.ANSI.Docs.print_heading(inspect(module), opts)
+                IO.ANSI.Docs.print(binary, opts)
               else
                 IO.puts "* #{inspect(module)}\n"
                 IO.puts binary
@@ -159,10 +158,9 @@ defmodule IEx.Introspection do
     heading = "#{kind} #{fun}(#{args})"
     doc     = doc || ""
 
-    if IO.ANSI.terminal? do
-      options = docs_options()
-      IO.ANSI.Docs.print_heading(heading, options)
-      IO.ANSI.Docs.print(doc, options)
+    if opts = ansi_docs() do
+      IO.ANSI.Docs.print_heading(heading, opts)
+      IO.ANSI.Docs.print(doc, opts)
     else
       IO.puts "* #{heading}\n"
       IO.puts doc
@@ -177,8 +175,11 @@ defmodule IEx.Introspection do
     atom_to_binary(var)
   end
 
-  defp docs_options() do
-    [width: IEx.width] ++ Application.get_env(:iex, :colors)
+  defp ansi_docs() do
+    opts = Application.get_env(:iex, :colors)
+    if opts[:enabled] do
+      [width: IEx.width] ++ opts
+    end
   end
 
   @doc """

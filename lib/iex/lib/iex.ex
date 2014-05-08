@@ -445,7 +445,10 @@ defmodule IEx do
 
   @doc false
   def default_colors do
-    [# Used by default on evaluation cycle
+    [# Enabled should be commented as it is calculated if missing
+     # enabled: true,
+
+     # Used by default on evaluation cycle
      eval_interrupt: "yellow",
      eval_result:    "yellow",
      eval_error:     "red",

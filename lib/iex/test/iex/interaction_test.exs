@@ -113,7 +113,7 @@ defmodule IEx.InteractionTest do
       # Test that ANSI escapes in the docs are left alone
       opts = [colors: [enabled: true]]
       assert capture_iex("h IEx.InteractionTest.ansi_escapes", opts)
-             == "* def ansi_escapes()\n\nHello, I have %{red}ANSI%{reset} escapes."
+             =~ ~r"Hello, I have %\{red}ANSI%\{reset} escapes"
 
       # Test that ANSI escapes in iex output are left alone
       opts = [colors: [enabled: true, eval_result: "red", eval_info: "red"]]
