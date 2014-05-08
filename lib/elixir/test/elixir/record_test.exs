@@ -50,6 +50,7 @@ defmodule RecordTest do
     refute record?(13)
   end
 
+  Record.defrecord  :timestamp, [:date, :time]
   Record.defrecord  :user, __MODULE__, name: "José", age: 25
   Record.defrecordp :file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
 
@@ -80,5 +81,15 @@ defmodule RecordTest do
   test "records visibility" do
     assert macro_exported?(__MODULE__, :user, 0)
     refute macro_exported?(__MODULE__, :file_info, 1)
+  end
+
+  test "records with no defaults" do
+    record = timestamp()
+    assert timestamp(record, :date) == nil
+    assert timestamp(record, :time) == nil
+
+    record = timestamp(date: :foo, time: :bar)
+    assert timestamp(record, :date) == :foo
+    assert timestamp(record, :time) == :bar
   end
 end

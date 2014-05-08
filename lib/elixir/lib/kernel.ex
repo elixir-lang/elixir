@@ -3299,15 +3299,11 @@ defmodule Kernel do
   In case a struct does not declare a field type, it defaults to `term`.
   """
   defmacro defstruct(kv) do
-    {fields, types} = Record.Backend.split_fields_and_types(:defstruct, kv)
+    {fields, types} = Record.Backend.split_fields_and_types(kv)
 
     fields =
       quote bind_quoted: [fields: fields] do
-        fields = Enum.map(fields, fn
-          { key, _ } = pair when is_atom(key) -> pair
-          key when is_atom(key) -> { key, nil }
-          other -> raise ArgumentError, message: "struct fields must be atoms, got: #{inspect other}"
-        end)
+        fields = Record.Backend.default_fields(:struct, fields)
 
         def __struct__() do
           %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}

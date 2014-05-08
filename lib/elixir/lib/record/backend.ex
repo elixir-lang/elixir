@@ -3,31 +3,42 @@ defmodule Record.Backend do
   @moduledoc false
 
   @doc """
+  Normalizes a list of record or struct fields to have default values.
+  """
+  def default_fields(type, fields) do
+    Enum.map(fields, fn
+      { key, _ } = pair when is_atom(key) -> pair
+      key when is_atom(key) -> { key, nil }
+      other -> raise ArgumentError, message: "#{type} fields must be atoms, got: #{inspect other}"
+    end)
+  end
+
+  @doc """
   Splits a keywords list into fields and types.
 
   This logic is shared by records and structs.
   """
-  def split_fields_and_types(tag, kv) do
+  def split_fields_and_types(kv) do
     if Keyword.keyword?(kv) do
-      split_fields_and_types(tag, kv, [], [])
+      split_fields_and_types(kv, [], [])
     else
       {kv, []}
     end
   end
 
-  defp split_fields_and_types(tag, [{field, {:::, _, [default, type]}}|t], fields, types) do
-    split_fields_and_types(tag, t, [{field, default}|fields], [{field, type}|types])
+  defp split_fields_and_types([{field, {:::, _, [default, type]}}|t], fields, types) do
+    split_fields_and_types(t, [{field, default}|fields], [{field, type}|types])
   end
 
-  defp split_fields_and_types(tag, [{field, default}|t], fields, types) do
-    split_fields_and_types(tag, t, [{field, default}|fields], [{field, quote(do: term)}|types])
+  defp split_fields_and_types([{field, default}|t], fields, types) do
+    split_fields_and_types(t, [{field, default}|fields], [{field, quote(do: term)}|types])
   end
 
-  defp split_fields_and_types(tag, [field|t], fields, types) do
-    split_fields_and_types(tag, t, [{field, nil}|fields], [{field, quote(do: term)}|types])
+  defp split_fields_and_types([field|t], fields, types) do
+    split_fields_and_types(t, [field|fields], [{field, quote(do: term)}|types])
   end
 
-  defp split_fields_and_types(_tag, [], fields, types) do
+  defp split_fields_and_types([], fields, types) do
     {:lists.reverse(fields), :lists.reverse(types)}
   end
 

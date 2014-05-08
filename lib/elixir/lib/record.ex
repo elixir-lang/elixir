@@ -157,7 +157,7 @@ defmodule Record do
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape(kv)
+      fields = Macro.escape Record.Backend.default_fields(:record, kv)
 
       defmacro(unquote(name)(args \\ [])) do
         Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)
@@ -175,7 +175,7 @@ defmodule Record do
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape(kv)
+      fields = Macro.escape Record.Backend.default_fields(:record, kv)
 
       defmacrop(unquote(name)(args \\ [])) do
         Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)
