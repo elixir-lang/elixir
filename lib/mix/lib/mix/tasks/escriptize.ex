@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Escriptize do
         raise Mix.Error, message: "Could not generate escript, no name given, " <>
           "set :escript_name or :app in the project settings"
 
-      !main ->
+      !main or !Code.ensure_loaded?(main)->
         raise Mix.Error, message: "Could not generate escript, please set :escript_main_module " <>
           "in your project configuration to a module that implements main/1"
 
