@@ -1,11 +1,14 @@
 @echo off
 set argc=0
-for %%x in (%*) do set /A argc+=1
-if  %argc%== 0 (
-  goto documentation
-) else (
-  goto parseopts
+for %%A in (%*) do (
+    if "%%A"=="--help" goto documentation
+    if "%%A"=="-h"     goto documentation
+    if "%%A"=="/h"     goto documentation
+    set /A argc+=1
 )
+if %argc%==0 goto documentation
+goto parseopts
+
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
