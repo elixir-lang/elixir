@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Loadconfig do
   use Mix.Task
 
   @moduledoc """
-  Loads the application configuration.
+  Loads and persists the project configuration.
 
   In case the application is an umbrella application, the
   configuration for all children app will be merged together
@@ -10,10 +10,16 @@ defmodule Mix.Tasks.Loadconfig do
   in the umbrella application.
   """
 
+  @doc """
+  Runs this task.
+  """
   def run(_) do
-    set load()
+    Mix.Config.persist load()
   end
 
+  @doc """
+  Loads the configuration for the current project.
+  """
   def load() do
     if Mix.Project.get do
       project = Mix.Project.config
@@ -23,13 +29,6 @@ defmodule Mix.Tasks.Loadconfig do
     else
       []
     end
-  end
-
-  def set(config) do
-    _ =
-      for {app, kw} <- config, {k, v} <- kw do
-        :application.set_env(app, k, v, persist: true)
-      end
   end
 
   defp eval(nil) do

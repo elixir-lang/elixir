@@ -19,4 +19,12 @@ defmodule Mix.ConfigTest do
       Mix.Config.read fixture_path("configs/bad_root.exs")
     end
   end
+
+  test "persist/1" do
+    assert Application.get_env(:my_app, :key) == nil
+    Mix.Config.persist [my_app: [key: :value]]
+    assert Application.get_env(:my_app, :key) == :value
+  after
+    Application.delete_env(:my_app, :key)
+  end
 end

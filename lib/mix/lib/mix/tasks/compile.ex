@@ -50,9 +50,6 @@ defmodule Mix.Tasks.Compile do
     shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"
   end
 
-  @doc """
-  Runs this compile task by recursively calling all registered compilers.
-  """
   def run(args) do
     # --no-deps is used only internally. It has not purpose
     # from Mix.CLI because the CLI itself already loads

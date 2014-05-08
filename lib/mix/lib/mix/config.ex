@@ -16,6 +16,17 @@ defmodule Mix.Config do
   end
 
   @doc """
+  Persists the given configuration by modifying
+  the configured applications environment.
+  """
+  def persist(config) do
+    for {app, kw} <- config, {k, v} <- kw do
+      :application.set_env(app, k, v, persist: true)
+    end
+    :ok
+  end
+
+  @doc """
   Validates a configuration.
   """
   def validate!(config) do

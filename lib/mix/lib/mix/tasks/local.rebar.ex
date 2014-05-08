@@ -8,11 +8,11 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @moduledoc """
   Fetch a copy of rebar from the given path or url. It defaults to a
-  rebar copy that ships with Elixir source if available or fetches it from
-  #{@rebar_url}.
-The local copy is stored in your MIX_HOME (defaults to ~/.mix).
+  rebar copy that ships with Elixir source if available or fetches it
+  from #{@rebar_url}.
 
-  This version of rebar will be used as required by mix deps.compile
+  The local copy is stored in your MIX_HOME (defaults to ~/.mix).
+  This version of rebar will be used as required by `mix deps.compile`.
   """
 
   def run(argv) do

@@ -271,10 +271,10 @@ defmodule Mix.Tasks.Compile.Elixir do
   @doc """
   Compiles stale Elixir files.
 
-  It expects a manifest file, all stale files, all source files
-  available (including the ones that are not stale) and a path
-  where compiled files will be written to. All paths are required
-  to be relative to the current working directory.
+  It expects a manifest file, a flag if compilation should be forced
+  or not, all source files available (including the ones that are not
+  stale) and a path where compiled files will be written to. All paths
+  are required to be relative to the current working directory.
 
   The manifest is written down with information including dependencies
   in between modules, which helps it recompile only the modules that

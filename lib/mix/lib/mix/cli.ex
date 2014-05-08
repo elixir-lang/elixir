@@ -104,7 +104,7 @@ defmodule Mix.CLI do
     if File.regular?(path) do
       path
       |> Mix.Config.read()
-      |> Mix.Tasks.Loadconfig.set()
+      |> Mix.Config.persist()
     end
   end
 
