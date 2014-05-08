@@ -7,6 +7,9 @@
   * [Mix] `mix deps.clean` now works accross environments
   * [Mix] Support line numbers in `mix test`, e.g. test/some/file_test.exs:12
   * [Mix] Use `@file` attributes to detect dependencies in between `.ex` and external files. This means changing an `.eex` file will no longer recompile the whole project only the files that depend directly on it
+  * [Mix] Support application configurations in `config/config.exs` which can be customized by specifying your own `:config_path`
+  * [Mix] Support user-wide configuration with `~/.mix/config.exs`
+  * [Mix] `mix help` now uses ANSI formatting to print guides
   * [String] Support `:parts` in `String.split/3`
 
 * Bug fixes
