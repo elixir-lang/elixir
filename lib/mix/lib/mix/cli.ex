@@ -20,6 +20,7 @@ defmodule Mix.CLI do
 
   defp proceed(args) do
     Mix.Tasks.Local.Hex.maybe_update()
+    load_dot_config()
     args = load_mixfile(args)
     {task, args} = get_task(args)
     change_env(task)
@@ -95,6 +96,15 @@ defmodule Mix.CLI do
         {project, _config, file} = project
         Mix.Project.push project, file
       end
+    end
+  end
+
+  defp load_dot_config do
+    path = Path.expand("~/.mix/config.exs")
+    if File.regular?(path) do
+      path
+      |> Mix.Config.read()
+      |> Mix.Tasks.Loadconfig.set()
     end
   end
 
