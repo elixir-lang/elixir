@@ -1,11 +1,14 @@
 @echo off
 set argc=0
-for %%x in (%*) do set /A argc+=1
-if %argc% == 0 (
-  goto documentation
-) else (
-  goto run
+for %%A in (%*) do (
+    if "%%A"=="--help" goto documentation
+    if "%%A"=="-h"     goto documentation
+    if "%%A"=="/h"     goto documentation
+    set /A argc+=1
 )
+if %argc%==0 goto documentation
+goto run
+
 :documentation
 echo Usage: %~nx0 [elixir switches] [compiler switches] [.ex files]
 echo.
