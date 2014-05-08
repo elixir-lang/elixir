@@ -330,20 +330,20 @@ defmodule Inspect.OthersTest do
       end
     end
 
-    :application.set_env(:elixir, :anony, V.fun)
-    :application.set_env(:elixir, :named, &V.fun/0)
+    Application.put_env(:elixir, :anony, V.fun)
+    Application.put_env(:elixir, :named, &V.fun/0)
 
     :code.delete(V)
     :code.purge(V)
 
-    {:ok, anony} = :application.get_env(:elixir, :anony)
-    {:ok, named} = :application.get_env(:elixir, :named)
+    anony = Application.get_env(:elixir, :anony)
+    named = Application.get_env(:elixir, :named)
 
     assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
     assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"
   after
-    :application.unset_env(:elixir, :anony)
-    :application.unset_env(:elixir, :named)
+    Application.delete_env(:elixir, :anony)
+    Application.delete_env(:elixir, :named)
   end
 
   test :other_funs do

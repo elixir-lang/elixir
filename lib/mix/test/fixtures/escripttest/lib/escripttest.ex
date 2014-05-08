@@ -1,6 +1,6 @@
 defmodule Escripttest do
   def start do
-    :ok = :application.start(:escripttest)
+    :ok = Application.start(:escripttest)
   end
   
   def main(_args) do

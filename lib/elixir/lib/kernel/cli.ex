@@ -278,7 +278,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do
-    case :application.ensure_all_started(binary_to_atom(app)) do
+    case Application.ensure_all_started(binary_to_atom(app)) do
       {:error, {app, reason}} ->
         {:error, "--app : Could not start application #{app}: " <>
           Application.format_reason(reason)}

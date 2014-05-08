@@ -159,17 +159,17 @@ defmodule Mix.SCM.Git do
   end
 
   defp git_version do
-    case :application.get_env(:mix, :git_version) do
+    case Application.fetch_env(:mix, :git_version) do
       {:ok, version} ->
         version
-      :undefined ->
+      :error ->
         "git version " <> version = String.strip System.cmd("git --version")
         version = String.split(version, ".")
                   |> Enum.take(3)
                   |> Enum.map(&binary_to_integer(&1))
                   |> list_to_tuple
 
-        :application.set_env(:mix, :git_version, version)
+        Application.put_env(:mix, :git_version, version)
         version
     end
   end

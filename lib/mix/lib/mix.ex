@@ -15,8 +15,8 @@ defmodule Mix do
 
   @doc false
   def start do
-    :application.start(:elixir)
-    :application.start(:mix)
+    Application.start(:elixir)
+    Application.start(:mix)
   end
 
   @doc false
@@ -32,11 +32,8 @@ defmodule Mix do
   Returns the mix environment.
   """
   def env do
-    # env is not available on bootstrapping
-    case :application.get_env(:mix, :env) do
-      {:ok, env} -> env
-      :undefined -> :dev
-    end
+    # env is not available on bootstrapping, so set a :dev default
+    Application.get_env(:mix, :env, :dev)
   end
 
   @doc """
@@ -46,7 +43,7 @@ defmodule Mix do
   configuration won't be reloaded.
   """
   def env(env) when is_atom(env) do
-    :application.set_env(:mix, :env, env)
+    Application.put_env(:mix, :env, env)
   end
 
   @doc """
@@ -58,17 +55,14 @@ defmodule Mix do
   messages to the current process.
   """
   def shell do
-    case :application.get_env(:mix, :shell) do
-      {:ok, shell} -> shell
-      :undefined -> Mix.Shell.IO
-    end
+    Application.get_env(:mix, :shell, Mix.Shell.IO)
   end
 
   @doc """
   Sets the current shell.
   """
   def shell(shell) do
-    :application.set_env(:mix, :shell, shell)
+    Application.put_env(:mix, :shell, shell)
   end
 
   @doc false

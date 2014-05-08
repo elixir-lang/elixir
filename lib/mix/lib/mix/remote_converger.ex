@@ -30,16 +30,13 @@ defmodule Mix.RemoteConverger do
   Get registered remote converger.
   """
   def get do
-    case :application.get_env(:mix, :remote_converger) do
-      {:ok, converger} -> converger
-      :undefined -> nil
-    end
+    Application.get_env(:mix, :remote_converger)
   end
 
   @doc """
   Register a remote converger.
   """
   def register(mod) when is_atom(mod) do
-    :application.set_env(:mix, :remote_converger, mod)
+    Application.put_env(:mix, :remote_converger, mod)
   end
 end

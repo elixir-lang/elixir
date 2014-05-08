@@ -53,7 +53,7 @@ defmodule IEx.Options do
 
   for key <- @supported_options do
     def get(unquote(key)) do
-      {:ok, value} = :application.get_env(:iex, unquote(key))
+      {:ok, value} = Application.fetch_env(:iex, unquote(key))
       value
     end
   end
@@ -102,7 +102,7 @@ defmodule IEx.Options do
 
   def set(:history_size, size) when is_integer(size) do
     old_size = get(:history_size)
-    :application.set_env(:iex, :history_size, size)
+    Application.put_env(:iex, :history_size, size)
     old_size
   end
 

@@ -8,7 +8,7 @@ defmodule Mix.SCMTest do
   end
 
   teardown context do
-    :application.set_env(:mix, :scm, context[:scm])
+    Application.put_env(:mix, :scm, context[:scm])
     :ok
   end
 

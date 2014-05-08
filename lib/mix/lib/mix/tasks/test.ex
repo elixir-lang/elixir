@@ -148,7 +148,7 @@ defmodule Mix.Tasks.Test do
     # available in test_helper.exs. Then configure exunit again so
     # that command line options override test_helper.exs
     Mix.Task.run "app.start", args
-    :application.load(:ex_unit)
+    Application.load(:ex_unit)
 
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)

@@ -13,7 +13,7 @@ defmodule Mix.Tasks.RunTest do
     end
   end
 
-  test "run requires before commands" do
+  test "run requires files before evaling commands" do
     Mix.Project.push MixTest.Case.Sample
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 

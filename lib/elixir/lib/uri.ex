@@ -45,16 +45,20 @@ defmodule URI do
 
   """
   def default_port(scheme) when is_binary(scheme) do
-    {:ok, dict} = :application.get_env(:elixir, :uri)
+    {:ok, dict} = Application.fetch_env(:elixir, :uri)
     Map.get(dict, scheme)
   end
 
   @doc """
   Registers a scheme with a default port.
+
+  It is recommended for this function to be invoked in your
+  application start callback in case you want to register
+  new URIs.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
-    {:ok, dict} = :application.get_env(:elixir, :uri)
-    :application.set_env(:elixir, :uri, Map.put(dict, scheme, port))
+    {:ok, dict} = Application.fetch_env(:elixir, :uri)
+    Application.put_env(:elixir, :uri, Map.put(dict, scheme, port), persist: true)
   end
 
   @doc """

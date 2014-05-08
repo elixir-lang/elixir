@@ -4,7 +4,7 @@ defmodule Mix.Tasks.HelpTest do
   use MixTest.Case
 
   test "help lists all tasks" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       Mix.Tasks.Help.run []
       assert_received {:mix_shell, :info, ["mix" <> _]}
       assert_received {:mix_shell, :info, ["mix help" <> _]}
@@ -13,7 +13,7 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help list default task" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       Mix.Tasks.Help.run []
 
       {_, _, [output]} =
@@ -23,7 +23,7 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help TASK" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       Mix.Tasks.Help.run ["compile"]
 
       {_, _, [output]} =

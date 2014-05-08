@@ -49,8 +49,23 @@ defmodule Mix.CLITest do
   end
 
   test "compiles and invokes simple task from CLI" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       File.mkdir_p!("lib")
+
+      File.write! "mix.exs", """
+      defmodule MyProject do
+        use Mix.Project
+
+        def project do
+          [app: :my_project, version: "0.0.1"]
+        end
+
+        def hello_world do
+          "Hello from MyProject!"
+        end
+      end
+      """
+
       File.write! "lib/hello.ex", """
       defmodule Mix.Tasks.Hello do
         use Mix.Task
@@ -77,7 +92,7 @@ defmodule Mix.CLITest do
   end
 
   test "--help smoke test" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       output = mix "--help"
       assert output =~ ~r/mix compile\s+# Compile source files/
       refute output =~ "mix invalid"
@@ -85,7 +100,7 @@ defmodule Mix.CLITest do
   end
 
   test "--version smoke test" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       output = mix "--version"
       assert output =~ ~r/Elixir [0-9\.a-z]+/
     end
