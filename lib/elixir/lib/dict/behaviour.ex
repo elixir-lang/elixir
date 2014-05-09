@@ -41,6 +41,7 @@ defmodule Dict.Behaviour do
   * `pop/2`
   * `pop/3`
   * `put_new/3`
+  * `split/2`
   * `take/2`
   * `to_list/1`
   * `values/1`
@@ -177,9 +178,22 @@ defmodule Dict.Behaviour do
         end
       end
 
+      def split(dict, keys) do
+        Enum.reduce keys, { new, dict }, fn key, { inc, exc } = acc ->
+          case fetch(exc, key) do
+            { :ok, value } ->
+              { put(inc, key, value), delete(exc, key) }
+
+            :error ->
+              acc
+          end
+        end
+      end
+
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
-                     has_key?: 2, put_new: 3, pop: 2, pop: 3, update: 4, update!: 3
+                     has_key?: 2, put_new: 3, pop: 2, pop: 3, update: 4, update!: 3,
+                     split: 2
     end
   end
 end
