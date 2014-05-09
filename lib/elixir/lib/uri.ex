@@ -84,7 +84,7 @@ defmodule URI do
   Decodes a query string into a dictionary (by default uses a map).
 
   Given a query string of the form "key1=value1&key2=value2...", produces a
-  `HashDict` with one entry for each key-value pair. Each key and value will be a
+  map with one entry for each key-value pair. Each key and value will be a
   binary. Keys and values will be percent-unescaped.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
