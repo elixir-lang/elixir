@@ -579,7 +579,7 @@ defmodule Exception do
       #=> "#Function<...>/1"
 
   """
-  def format_fa(fun, arity) do
+  def format_fa(fun, arity) when is_function(fun) do
     "#{inspect fun}#{format_arity(arity)}"
   end
 
@@ -603,7 +603,7 @@ defmodule Exception do
   where func is the name of the enclosing function. Convert to
   "anonymous fn in func/arity"
   """
-  def format_mfa(module, fun, arity) when is_atom(fun) do
+  def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
     fun =
       case inspect(fun) do
         ":" <> fun -> fun
@@ -623,7 +623,9 @@ defmodule Exception do
     "(#{Enum.join(inspected, ", ")})"
   end
 
-  defp format_arity(arity), do: "/#{arity}"
+  defp format_arity(arity) when is_integer(arity) do
+    "/" <> integer_to_binary(arity)
+  end
 
   @doc """
   Formats the given file and line as shown in stacktraces.
@@ -657,7 +659,7 @@ defmodule Exception do
     end
   end
 
-  defp format_location(opts) do
+  defp format_location(opts) when is_list(opts) do
     format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), " "
   end
 
