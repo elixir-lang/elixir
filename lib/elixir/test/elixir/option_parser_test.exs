@@ -125,6 +125,9 @@ defmodule OptionParserTest do
 
     options = OptionParser.parse_head(["--source", "from_docs/", "--", "1", "2", "3"])
     assert options == {[source: "from_docs/"], ["--", "1", "2", "3"], []}
+
+    options = OptionParser.parse(["--no-dash", "foo", "bar", "--", "-x"])
+    assert options == {[no_dash: true], ["foo", "bar", "--", "-x"], []}
   end
 
   test "goes beyond the first non option arguments" do
