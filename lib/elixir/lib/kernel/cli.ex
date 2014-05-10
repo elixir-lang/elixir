@@ -281,7 +281,7 @@ defmodule Kernel.CLI do
     case Application.ensure_all_started(binary_to_atom(app)) do
       {:error, {app, reason}} ->
         {:error, "--app : Could not start application #{app}: " <>
-          Application.format_reason(reason)}
+          Application.format_error(reason)}
       {:ok, _} ->
         :ok
     end
