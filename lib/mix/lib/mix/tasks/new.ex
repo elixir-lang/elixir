@@ -262,11 +262,11 @@ defmodule Mix.Tasks.New do
   end
   """
 
-  embed_template :config, """
+  embed_template :config, ~S"""
   # This file is responsible for configuring your application and
   # its dependencies. It must return a keyword list containing the
-  # application name and another keyword list with the application
-  # key-value pairs.
+  # application name and have as value another keyword list with
+  # the application key-value pairs.
 
   # Note this configuration is loaded before any dependency and is
   # restricted to this project. If another project depends on this
@@ -276,13 +276,17 @@ defmodule Mix.Tasks.New do
   # in your mix.exs file. For example, you can emulate configuration
   # per environment by setting:
   #
-  #     config_path: "config/\#{Mix.env}.exs"
+  #     config_path: "config/#{Mix.env}.exs"
   #
   # Changing any file inside the config directory causes the whole
   # project to be recompiled.
 
-  [dep1: [key: :value],
-   dep2: [key: :value]]
+  # Sample configuration:
+  #
+  # [dep1: [key: :value],
+  #  dep2: [key: :value]]
+
+  []
   """
 
   embed_template :lib, """
