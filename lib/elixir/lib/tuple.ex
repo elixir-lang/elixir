@@ -9,6 +9,8 @@ defmodule Tuple do
   Creates a tuple of size `size` containing the
   given `data` at every position.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Tuple.duplicate(:hello, 3)
@@ -26,6 +28,8 @@ defmodule Tuple do
   Inserts `value` into `tuple` at the given zero-based `index`.
   Raises an `ArgumentError` if `index` is greater than the
   length of `tuple`.
+
+  Inlined by the compiler.
 
   ## Examples
 
@@ -45,6 +49,8 @@ defmodule Tuple do
   Deletes the element at the zero-based `index` from `tuple`.
   Raises an `ArgumentError` if `index` is greater than
   or equal to the length of `tuple`.
+
+  Inlined by the compiler.
 
   ## Examples
 

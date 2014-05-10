@@ -10,12 +10,12 @@
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 
-%% Module macros
 -define(kernel, 'Elixir.Kernel').
+-define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
 -define(process, 'Elixir.Process').
 -define(system, 'Elixir.System').
--define(map, 'Elixir.Map').
+-define(tuple, 'Elixir.Tuple').
 
 default_functions() ->
   [ {?kernel, elixir_imported_functions()} ].
@@ -341,8 +341,17 @@ rewrite(?kernel, elem, [Tuple, Index], _) ->
   {ok, erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, set_elem, [Tuple, Index, Value], _) ->
   {ok, erlang, setelement, [increment(Index), Tuple, Value]};
+
 rewrite(?process, monitor, [Arg], _) ->
   {ok, erlang, monitor, [process, Arg]};
+
+rewrite(?tuple, insert_at, [Tuple, Index, Term], _) ->
+  {ok, erlang, insert_element, [increment(Index), Tuple, Term]};
+rewrite(?tuple, delete_at, [Tuple, Index], _) ->
+  {ok, erlang, delete_element, [increment(Index), Tuple]};
+rewrite(?tuple, duplicate, [Data, Size], _) ->
+  {ok, erlang, make_tuple, [Size, Data]};
+
 rewrite(?map, 'has_key?', [Map, Key], _) ->
   {ok, maps, is_key, [Key, Map]};
 rewrite(?map, fetch, [Map, Key], _) ->
