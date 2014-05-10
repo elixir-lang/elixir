@@ -67,6 +67,13 @@ defmodule VersionTest do
     assert :error = V.parse("2.3.0-01")
   end
 
+  test "to_string" do
+    assert V.parse("1.0.0") |> elem(1) |> to_string == "1.0.0"
+    assert V.parse("1.0.0-dev") |> elem(1) |> to_string == "1.0.0-dev"
+    assert V.parse("1.0.0+lol") |> elem(1) |> to_string == "1.0.0+lol"
+    assert V.parse("1.0.0-dev+lol") |> elem(1) |> to_string == "1.0.0-dev+lol"
+  end
+
   test "invalid match" do
     assert_raise V.InvalidVersion, fn ->
       V.match?("foo", "2.3.0")
