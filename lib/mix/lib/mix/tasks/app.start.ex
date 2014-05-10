@@ -38,7 +38,7 @@ defmodule Mix.Tasks.App.Start do
         {:ok, _} -> :ok
         {:error, {app, reason}} ->
           raise Mix.Error, message: "Could not start application #{app}: " <>
-            Application.format_reason(reason)
+            Application.format_error(reason)
       end
     else
       :error

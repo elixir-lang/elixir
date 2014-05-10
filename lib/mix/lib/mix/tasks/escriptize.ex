@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Escriptize do
             {:ok, _} -> :ok
             {:error, {app, reason}} ->
               io_error "Could not start application #{app}: " <>
-                Application.format_reason(reason)
+                Application.format_error(reason)
               System.halt(1)
           end
         end
