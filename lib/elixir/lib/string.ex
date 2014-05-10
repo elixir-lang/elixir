@@ -611,9 +611,7 @@ defmodule String do
   @spec replace(t, t, t) :: t
   @spec replace(t, t, t, Keyword.t) :: t
 
-  def replace(subject, pattern, replacement, options \\ [])
-
-  def replace(subject, pattern, replacement, options) do
+  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
@@ -623,9 +621,9 @@ defmodule String do
   end
 
   defp translate_replace_options(options) do
-    opts = if options[:global] != false, do: [:global], else: []
+    opts = if Keyword.get(options, :global) != false, do: [:global], else: []
 
-    if insert = options[:insert_replaced] do
+    if insert = Keyword.get(options, :insert_replaced) do
       opts = [{:insert_replaced, insert}|opts]
     end
 

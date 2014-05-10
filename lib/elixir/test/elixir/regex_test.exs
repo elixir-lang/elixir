@@ -132,15 +132,17 @@ defmodule RegexTest do
   test :replace do
     assert Regex.replace(~r(d), "abc", "d") == "abc"
     assert Regex.replace(~r(b), "abc", "d") == "adc"
-    assert Regex.replace(~r(b), "abc", "[&]") == "a[b]c"
-    assert Regex.replace(~r(b), "abc", "[\\&]") == "a[&]c"
+    assert Regex.replace(~r(b), "abc", "[\\0]") == "a[b]c"
     assert Regex.replace(~r[(b)], "abc", "[\\1]") == "a[b]c"
 
-    assert Regex.replace(~r(d), "abcbe", "d") == "abcbe"
     assert Regex.replace(~r(b), "abcbe", "d") == "adcde"
-    assert Regex.replace(~r(b), "abcbe", "[&]") == "a[b]c[b]e"
-    assert Regex.replace(~r(b), "abcbe", "[\\&]") == "a[&]c[&]e"
-    assert Regex.replace(~r[(b)], "abcbe", "[\\1]") == "a[b]c[b]e"
+    assert Regex.replace(~r(b), "abcbe", "d", global: false) == "adcbe"
+
+    assert Regex.replace(~r[a(b)c], "abcabc", fn -> "ac" end) == "acac"
+    assert Regex.replace(~r[a(b)c], "abcabc", fn "abc" -> "ac" end) == "acac"
+    assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end) == "acac"
+    assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b", "" -> "ac" end) == "acac"
+    assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end, global: false) == "acabc"
   end
 
   test :escape do

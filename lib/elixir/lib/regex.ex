@@ -308,7 +308,7 @@ defmodule Regex do
 
   ## Options
 
-  * `:parts` - when specified, splits the string into the 
+  * `:parts` - when specified, splits the string into the
                given number of parts. If not specified, `:parts`
                is defaulted to `:infinity`, which will split the
                string into the maximum number of parts possible
@@ -362,10 +362,20 @@ defmodule Regex do
   Receives a regex, a binary and a replacement, returns a new
   binary where the all matches are replaced by replacement.
 
-  Inside the replacement, you can either give `&` to access the
-  whole regular expression or `\N`, where `N` is in integer to access
-  a specific matching parens. You can also set `:global` to `false`
-  if you want to replace just the first occurrence.
+  The replacement can be either a string or a function. The string
+  is used as a replacement for every match and it allows specific
+  captures to be accessed via `\N`, where `N` is the capture. In
+  case `\0` is used, the whole match is inserted.
+
+  When the replacement is a function, the function may have arity
+  N where each argument maps to a capture, with the first argument
+  being the whole match. If the function expects more arguments
+  than captures found, the remaining arguments will receive `""`.
+
+  ## Options
+
+  * `:global` - when `false`, replaces only the first occurrence
+    (defaults to true)
 
   ## Examples
 
@@ -375,22 +385,142 @@ defmodule Regex do
       iex> Regex.replace(~r/b/, "abc", "d")
       "adc"
 
-      iex> Regex.replace(~r/b/, "abc", "[&]")
+      iex> Regex.replace(~r/b/, "abc", "[\\0]")
       "a[b]c"
 
-      iex> Regex.replace(~r/b/, "abc", "[\\&]")
-      "a[&]c"
+      iex> Regex.replace(~r/a(b|d)c/, "abcadc", "[\\1]")
+      "[b][d]"
 
-      iex> Regex.replace(~r/(b)/, "abc", "[\\1]")
-      "a[b]c"
+      iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
+      "[b][d]"
 
   """
   def replace(regex, string, replacement, options \\ [])
 
-  def replace(%Regex{re_pattern: compiled}, string, replacement, options) when is_binary(string) do
+  def replace(regex, string, replacement, options) when is_binary(replacement) do
+    do_replace(regex, string, precompile_replacement(replacement), options)
+  end
+
+  def replace(regex, string, replacement, options) when is_function(replacement) do
+    {:arity, arity} = :erlang.fun_info(replacement, :arity)
+    do_replace(regex, string, {replacement, arity}, options)
+  end
+
+  defp do_replace(%Regex{re_pattern: compiled}, string, replacement, options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
-    opts = [{:return, :binary}|opts]
-    :re.replace(string, compiled, replacement, opts)
+    opts = [{:capture, :all, :index}|opts]
+
+    case :re.run(string, compiled, opts) do
+      :nomatch ->
+        string
+      {:match, [mlist|t]} when is_list(mlist) ->
+        apply_list(string, replacement, [mlist|t]) |> iodata_to_binary
+      {:match, slist} ->
+        apply_list(string, replacement, [slist]) |> iodata_to_binary
+    end
+  end
+
+  defp precompile_replacement(""),
+    do: []
+
+  defp precompile_replacement(<<?\\, x, rest :: binary>>) when x < ?0 or x > ?9 do
+    case precompile_replacement(rest) do
+      [head | t] when is_binary(head) ->
+        [<<x, head :: binary>> | t]
+      other ->
+        [<<x>> | other]
+    end
+  end
+
+  defp precompile_replacement(<<?\\, rest :: binary>>) when byte_size(rest) > 0 do
+    {ns, rest} = pick_int(rest)
+    [list_to_integer(ns) | precompile_replacement(rest)]
+  end
+
+  defp precompile_replacement(<<x, rest :: binary>>) do
+    case precompile_replacement(rest) do
+      [head | t] when is_binary(head) ->
+        [<<x, head :: binary>> | t]
+      other ->
+        [<<x>> | other]
+    end
+  end
+
+  defp pick_int(<<x, rest :: binary>>) when x in ?0..?9 do
+    {found, rest} = pick_int(rest)
+    {[x|found], rest}
+  end
+
+  defp pick_int(bin) do
+    {[], bin}
+  end
+
+  defp apply_list(string, replacement, list) do
+    apply_list(string, string, 0, replacement, list)
+  end
+
+  defp apply_list(_, "", _, _, []) do
+    []
+  end
+
+  defp apply_list(_, string, _, _, []) do
+    string
+  end
+
+  defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
+    length = mpos - pos
+    <<untouched :: [size(length), binary], rest :: binary>> = string
+    [untouched | apply_list(whole, rest, mpos, replacement, list)]
+  end
+
+  defp apply_list(whole, string, pos, replacement, [[{mpos, length} | _] = head | tail]) when mpos == pos do
+    <<_ :: [size(length), binary], rest :: binary>> = string
+    new_data = apply_replace(whole, replacement, head)
+    [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
+  end
+
+  defp apply_replace(string, {fun, arity}, indexes) do
+    apply(fun, get_indexes(string, indexes, arity))
+  end
+
+  defp apply_replace(_, [bin], _) when is_binary(bin) do
+    bin
+  end
+
+  defp apply_replace(string, repl, indexes) do
+    indexes = list_to_tuple(indexes)
+
+    for part <- repl do
+      cond do
+        is_binary(part) ->
+          part
+        part > tuple_size(indexes) ->
+          ""
+        true ->
+          get_index(string, elem(indexes, part))
+      end
+    end
+  end
+
+  defp get_index(_string, {pos, _len}) when pos < 0 do
+    ""
+  end
+
+  defp get_index(string, {pos, len}) do
+    <<_ :: [size(pos), binary], res :: [size(len), binary], _ :: binary>> = string
+    res
+  end
+
+  defp get_indexes(_string, _, 0) do
+    []
+  end
+
+  defp get_indexes(string, [], arity) do
+    [""|get_indexes(string, [], arity - 1)]
+  end
+
+  defp get_indexes(string, [h|t], arity) do
+    [get_index(string, h)|get_indexes(string, t, arity - 1)]
   end
 
   {:ok, pattern} = :re.compile(~S"[.^$*+?()[{\\\|\s#]", [:unicode])

@@ -10,6 +10,7 @@
   * [Mix] Support application configurations in `config/config.exs` which can be customized by specifying your own `:config_path`
   * [Mix] Support user-wide configuration with `~/.mix/config.exs`
   * [Mix] `mix help` now uses ANSI formatting to print guides
+  * [Regex] Support functions in `Regex.replace/4`
   * [String] Support `:parts` in `String.split/3`
 
 * Bug fixes
