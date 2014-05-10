@@ -417,49 +417,45 @@ defmodule Version do
     defp to_condition([:'>', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:andalso, {:not, {:is_binary, :'$1'}},
-                 {:orelse, {:'>', {{:'$1', :'$2', :'$3'}},
-                                  {:const, {major, minor, patch}}},
-                           {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                                  {:const, {major, minor, patch}}},
-                           {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
-                                                {:'/=', length(pre), 0}},
-                                     {:andalso, {:'/=', length(pre), 0},
-                                                {:orelse, {:'>', {:length, :'$4'}, length(pre)},
-                                                {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                                           {:'>', :'$4', {:const, pre}}}}}}}}}
+      {:orelse, {:'>', {{:'$1', :'$2', :'$3'}},
+                       {:const, {major, minor, patch}}},
+                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
+                                        {:const, {major, minor, patch}}},
+                {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
+                                     {:'/=', length(pre), 0}},
+                          {:andalso, {:'/=', length(pre), 0},
+                                     {:orelse, {:'>', {:length, :'$4'}, length(pre)},
+                                     {:andalso, {:'==', {:length, :'$4'}, length(pre)},
+                                                {:'>', :'$4', {:const, pre}}}}}}}}
     end
 
     defp to_condition([:'>=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:andalso, {:not, {:is_binary, :'$1'}},
-                           {:'==', :'$_', {:const, matchable}}},
-                 to_condition([:'>', version])}
+      {:orelse, {:'==', :'$_', {:const, matchable}},
+                to_condition([:'>', version])}
     end
 
     defp to_condition([:'<', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:andalso, {:not, {:is_binary, :'$1'}},
-                 {:orelse, {:'<', {{:'$1', :'$2', :'$3'}},
-                                  {:const, {major, minor, patch}}},
-                           {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                              {:const, {major, minor, patch}}},
-                           {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
-                                                {:'==', length(pre), 0}},
-                                     {:andalso, {:'/=', {:length, :'$4'}, 0},
-                                     {:orelse, {:'<', {:length, :'$4'}, length(pre)},
-                                               {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                                          {:'<', :'$4', {:const, pre}}}}}}}}}
+      {:orelse, {:'<', {{:'$1', :'$2', :'$3'}},
+                       {:const, {major, minor, patch}}},
+                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
+                                   {:const, {major, minor, patch}}},
+                {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
+                                     {:'==', length(pre), 0}},
+                          {:andalso, {:'/=', {:length, :'$4'}, 0},
+                          {:orelse, {:'<', {:length, :'$4'}, length(pre)},
+                                    {:andalso, {:'==', {:length, :'$4'}, length(pre)},
+                                               {:'<', :'$4', {:const, pre}}}}}}}}
     end
 
     defp to_condition([:'<=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:andalso, {:not, {:is_binary, :'$1'}},
-                           {:'==', :'$_', {:const, matchable}}},
-                 to_condition([:'<', version])}
+      {:orelse, {:'==', :'$_', {:const, matchable}},
+                to_condition([:'<', version])}
     end
 
     defp to_condition(current, []) do
@@ -491,7 +487,7 @@ end
 
 defimpl String.Chars, for: Version do
   def to_string(version) do
-    pre = if pre = version.pre, do: "-#{pre}"
+    pre = unless Enum.empty?(pre = version.pre), do: "-#{pre}"
     build = if build = version.build, do: "+#{build}"
     "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
   end
