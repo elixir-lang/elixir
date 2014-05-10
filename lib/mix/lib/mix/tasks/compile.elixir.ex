@@ -64,16 +64,19 @@ defmodule Mix.Tasks.Compile.Elixir do
     defp each_module(pid, compile_path, cwd, source, module, binary) do
       source = Path.relative_to(source, cwd)
       bin    = atom_to_binary(module)
-      beam   = Path.join(compile_path, bin <> ".beam")
+      beam   = compile_path
+               |> Path.join(bin <> ".beam")
                |> Path.relative_to(cwd)
 
       deps = Kernel.LexicalTracker.remotes(module)
+             |> List.delete(module)
              |> :lists.usort
              |> Enum.map(&atom_to_binary(&1))
              |> Enum.reject(&match?("elixir_" <> _, &1))
 
       files = get_beam_files(binary, cwd)
               |> List.delete(source)
+              |> Enum.filter(&(Path.type(&1) == :relative))
 
       :gen_server.cast(pid, {:store, beam, bin, source, deps, files, binary})
     end
