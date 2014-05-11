@@ -1,4 +1,4 @@
-# v0.13.2-dev
+# v0.13.2 (2014-05-11)
 
 * Enhancements
   * [Application] Add an Application module with common functions to work with OTP applications
