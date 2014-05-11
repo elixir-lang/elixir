@@ -223,7 +223,10 @@ defmodule ExUnit.Formatter do
   defp test_location(msg, nil),       do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
-  defp error_info(msg, nil),       do: "     " <> msg <> "\n"
+  defp error_info(msg, nil) do
+    "     " <> String.replace(msg, "\n", "\n     ") <> <<"\n">>
+  end
+
   defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
 
   defp extra_info(msg, nil),       do: "     " <> msg <> "\n"

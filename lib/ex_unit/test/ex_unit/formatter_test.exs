@@ -51,12 +51,31 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
+  test "formats test exits with mfa" do
+    failure = {:exit, {:bye, {:m, :f, []}}, []}
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (exit) exited in: :m.f()
+             ** (EXIT) :bye
+    """
+  end
+
   test "formats test throws" do
     failure = {:throw, 1, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          ** (throw) 1
+    """
+  end
+
+  test "formats test EXITs" do
+    failure = {:EXIT, 1, []}
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (EXIT) 1
     """
   end
 
