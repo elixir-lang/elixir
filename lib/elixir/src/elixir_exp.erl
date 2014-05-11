@@ -255,10 +255,6 @@ expand({'try', Meta, [KV]}, E) ->
 
 %% Comprehensions
 
-expand({Kind, Meta, Args}, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
-  elixir_errors:deprecation(Meta, ?m(E, file), "~ts is deprecated, please use for comprehensions instead", [Kind]),
-  expand_comprehension(Meta, Kind, Args, E);
-
 expand({for, Meta, Args}, E) when is_list(Args) ->
   elixir_for:expand(Meta, Args, E);
 
@@ -538,25 +534,6 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, ?m(E, file),
     "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
-
-%% Comprehensions
-
-expand_comprehension(Meta, Kind, Args, E) ->
-  case elixir_utils:split_last(Args) of
-    {Cases, [{do,Expr}]} ->
-      {ECases, EC} = lists:mapfoldl(fun expand_comprehension_clause/2, E, Cases),
-      {EExpr, _}   = expand(Expr, EC),
-      {{Kind, Meta, ECases ++ [[{do,EExpr}]]}, E};
-    _ ->
-      compile_error(Meta, ?m(E, file), "missing do keyword in comprehension ~ts", [Kind])
-  end.
-
-expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
-  {ERight, ER} = expand(Right, E),
-  {ELeft, EL}  = elixir_exp_clauses:match(fun expand/2, Left, E),
-  {{Gen, Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
-expand_comprehension_clause(X, E) ->
-  expand(X, E).
 
 %% Assertions
 

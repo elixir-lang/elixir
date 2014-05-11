@@ -40,10 +40,12 @@ defmodule Kernel.ExceptionTest do
     end
   end
 
+  require Record
+
   test "normalize" do
     assert Exception.normalize(:throw, :badarg) == :badarg
-    assert is_record Exception.normalize(:error, :badarg), ArgumentError
-    assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
+    assert Record.record? Exception.normalize(:error, :badarg), ArgumentError
+    assert Record.record? Exception.normalize(:error, ArgumentError[]), ArgumentError
   end
 
   test "format_banner" do

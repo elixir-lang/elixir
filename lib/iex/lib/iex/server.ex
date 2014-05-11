@@ -78,7 +78,7 @@ defmodule IEx.Server do
   """
   @spec start(list, fun) :: :ok
   def start(opts, callback) do
-    {pid, ref} = Process.spawn_monitor(callback)
+    {pid, ref} = spawn_monitor(callback)
     start_loop(opts, pid, ref)
   end
 

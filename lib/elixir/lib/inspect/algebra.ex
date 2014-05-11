@@ -154,7 +154,7 @@ defmodule Inspect.Algebra do
   according to the inspect protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
-  def to_doc(arg, %Inspect.Opts{} = opts) when is_record(arg) do
+  def to_doc(arg, %Inspect.Opts{} = opts) when is_tuple(arg) and is_atom(elem(arg, 0)) do
     # IO.write :stderr, "inspect records is deprecated (just remove this code when protocols+records are removed)\n#{Exception.format_stacktrace}"
     if opts.records do
       try do

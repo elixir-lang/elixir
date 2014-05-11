@@ -122,7 +122,7 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   defmodule ReturnApp do
-    use Application.Behaviour
+    use Application
 
     def start(_type, return), do: return
   end
@@ -182,7 +182,7 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   defmodule ExitApp do
-    use Application.Behaviour
+    use Application
 
     def start(_type, reason), do: exit(reason)
   end

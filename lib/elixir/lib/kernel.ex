@@ -1745,20 +1745,10 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Checks if the given structure is an exception.
-
-  ## Examples
-
-      iex> is_exception((fn -> ArithmeticError.new end).())
-      true
-
-      iex> is_exception((fn -> 1 end).())
-      false
-
-  """
+  @doc false
   defmacro is_exception(thing) do
-    # IO.write :stderr, "Kernel.is_exception/1 is deprecated, please use Exception.exception?/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Kernel.is_exception/1 is deprecated, please use Exception.exception?/1 instead\n" <>
+                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -1774,22 +1764,10 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Checks if the given structure is a record. It is basically
-  a convenient macro that checks the structure is a tuple and
-  the first element matches the given kind.
-
-  ## Examples
-
-      iex> defrecord Config, sample: nil
-      iex> is_record(Config.new, Config)
-      true
-      iex> is_record(Config.new, List)
-      false
-
-  """
+  @doc false
   defmacro is_record(thing, kind) do
-    # IO.write :stderr, "Kernel.is_record/2 is deprecated, please use Record.record?/2 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Kernel.is_record/2 is deprecated, please use Record.record?/2 instead\n" <>
+                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -1805,11 +1783,10 @@ defmodule Kernel do
     end
   end
 
-  @doc """
-  Checks if the given argument is a record.
-  """
+  @doc false
   defmacro is_record(thing) do
-    # IO.write :stderr, "Kernel.is_record/1 is deprecated, please use Record.record?/1 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Kernel.is_record/1 is deprecated, please use Record.record?/1 instead\n" <>
+                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do

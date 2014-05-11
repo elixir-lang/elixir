@@ -190,49 +190,49 @@ defmodule Process do
 
   @doc false
   def spawn(fun) do
-    # IO.write :stderr, "Process.spawn/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn(fun)
   end
 
   @doc false
   def spawn(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn(mod, fun, args)
   end
 
   @doc false
   def spawn_link(fun) do
-    # IO.write :stderr, "Process.spawn_link/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn_link/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_link(fun)
   end
 
   @doc false
   def spawn_link(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn_link/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn_link/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_link(mod, fun, args)
   end
 
   @doc false
   def spawn_monitor(fun) do
-    # IO.write :stderr, "Process.spawn_monitor/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn_monitor/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_monitor(fun)
   end
 
   @doc false
   def spawn_monitor(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn_monitor/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.spawn_monitor/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.spawn_monitor(mod, fun, args)
   end
 
   @doc false
   def self() do
-    # IO.write :stderr, "Process.self/0 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.self/0 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.self()
   end
 
   @doc false
   def send(dest, msg) do
-    # IO.write :stderr, "Process.send/2 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Process.send/2 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
     :erlang.send(dest, msg)
   end
 

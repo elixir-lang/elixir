@@ -97,7 +97,7 @@ defmodule Kernel.AliasMacroNestingTest do
   Kernel.AliasNestingGenerator.record
 
   test :aliases_nesting do
-    assert is_record(Parent.new, Parent)
+    assert is_tuple(Parent.new)
     assert Parent.Child.b.message == "ok"
   end
 end

@@ -141,7 +141,7 @@ defmodule ExUnit.Runner do
     self_pid = self
 
     {case_pid, case_ref} =
-      Process.spawn_monitor(fn ->
+      spawn_monitor(fn ->
         case exec_case_setup(test_case) do
           {:ok, {test_case, context}} ->
             Enum.each(tests, &run_test(config, &1, context))
@@ -194,7 +194,7 @@ defmodule ExUnit.Runner do
     self_pid = self
 
     {test_pid, test_ref} =
-      Process.spawn_monitor(fn ->
+      spawn_monitor(fn ->
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do

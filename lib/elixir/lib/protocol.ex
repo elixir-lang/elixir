@@ -35,7 +35,8 @@ defmodule Protocol do
     quote unquote: false do
       # == Deprecated records handling ==
       {arg, impl} = Protocol.rec_impl_for(__MODULE__)
-      Kernel.def impl_for(unquote(arg)) when Kernel.is_record(unquote(arg)), do: unquote(impl)
+      Kernel.def impl_for(unquote(arg)) when
+                   is_tuple(unquote(arg)) and is_atom(elem(unquote(arg), 0)), do: unquote(impl)
       # == Deprecated records handling ==
 
       @spec impl_for(term) :: module | nil

@@ -111,8 +111,8 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
-    assert is_atom is_record range, Range
-    assert is_atom(is_record range, Range)
+    assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
+    assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
   end
 
   test :syntax_error_with_no_token do
@@ -724,10 +724,6 @@ defmodule Kernel.ErrorsTest do
 
   defmacro before_compile(_) do
     quote(do: _)
-  end
-
-  defp range do
-    1..3
   end
 
   ## Helpers

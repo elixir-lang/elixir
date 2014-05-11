@@ -87,17 +87,6 @@ defmodule Record.DeprecatedTest do
     assert record.update_a(&(10 + &1)).a == 10
   end
 
-  test :is_record do
-    assert is_record(RecordTest.FileInfo.new, RecordTest.FileInfo)
-    assert is_record(RecordTest.WithNoField.new)
-    refute is_record(empty_tuple)
-    refute is_record(a_list)
-    refute is_record(empty_tuple, RecordTest.FileInfo)
-    refute is_record(a_tuple, RecordTest.FileInfo)
-    refute is_record(a_list, RecordTest.FileInfo)
-    refute is_record(RecordTest.FileInfo.new, List)
-  end
-
   test :__record_index__ do
     record = RecordTest.DynamicName.new(a: "a", b: "b")
     assert record.__record__(:index, :a) == 1
@@ -159,11 +148,6 @@ defmodule Record.DeprecatedTest do
     end
   end
 
-  test :extract_with_nested_records do
-    namespace = Record.extract(:xmlElement, from_lib: "xmerl/include/xmerl.hrl")[:namespace]
-    assert is_record(namespace, :xmlNamespace)
-  end
-
   test :string_names do
     a = RecordTest.FooTest.new([{"foo", 1}, {"bar", 1}])
     assert a.foo == 1
@@ -174,7 +158,7 @@ defmodule Record.DeprecatedTest do
   end
 
   test :string_names_import do
-    record   = RecordTest.FileInfo.new([{"type", :regular}, {"access", 100}])
+    record = RecordTest.FileInfo.new([{"type", :regular}, {"access", 100}])
     assert record.type == :regular
     assert record.access == 100
     assert record.update([{"access", 101}]).access == 101
@@ -187,15 +171,9 @@ defmodule Record.DeprecatedTest do
         Record.deftypes [:name, :age], [name: :binary, age: :integer], __ENV__
       end
 
-    assert is_record(CustomRecord.new, CustomRecord)
-
     record = CustomRecord.new
     assert CustomRecord.__record__(:index, :name) == record.__record__(:index, :name)
 
     assert Enum.any?(Kernel.Typespec.beam_types(binary), &match?({:type,{:t, _, _}}, &1))
   end
-
-  defp empty_tuple, do: {}
-  defp a_tuple, do: {:foo, :bar, :baz}
-  defp a_list,  do: [ :foo, :bar, :baz ]
 end
