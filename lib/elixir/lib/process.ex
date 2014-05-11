@@ -58,15 +58,6 @@ defmodule Process do
   end
 
   @doc """
-  Deletes all items in the dictionary.
-  """
-  @spec delete :: [{term, term}]
-  def delete() do
-    IO.write :stderr, "Process.delete/0 is deprecated\n#{Exception.format_stacktrace}"
-    :erlang.erase()
-  end
-
-  @doc """
   Deletes the given key from the dictionary.
   """
   @spec delete(term) :: term | nil

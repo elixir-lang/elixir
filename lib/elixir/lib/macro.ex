@@ -770,30 +770,4 @@ defmodule Macro do
   defp expand_until({tree, false}, _env) do
     tree
   end
-
-  @doc """
-  Recursively traverses the quoted expression checking if all sub-terms are
-  safe.
-
-  Terms are considered safe if they represent data structures and don't actually
-  evaluate code. Returns `:ok` unless a given term is unsafe,
-  which is returned as `{:unsafe, term}`.
-  """
-  def safe_term(terms) do
-    IO.write :stderr, "Macro.safe_term/1 is deprecated\n#{Exception.format_stacktrace}"
-    do_safe_term(terms) || :ok
-  end
-
-  defp do_safe_term({local, _, terms}) when local in [:{}, :%{}, :__aliases__] do
-    do_safe_term(terms)
-  end
-
-  defp do_safe_term({unary, _, [term]}) when unary in [:+, :-] do
-    do_safe_term(term)
-  end
-
-  defp do_safe_term({left, right}), do: do_safe_term(left) || do_safe_term(right)
-  defp do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, &do_safe_term(&1))
-  defp do_safe_term(terms) when is_tuple(terms), do: {:unsafe, terms}
-  defp do_safe_term(_), do: nil
 end

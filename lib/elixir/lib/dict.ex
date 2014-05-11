@@ -70,9 +70,6 @@ defmodule Dict do
           x
         %{} ->
           Map
-        x when is_tuple(x) ->
-          IO.write :stderr, "Using records with the Dict module is deprecated, please use structs instead\n#{Exception.format_stacktrace}"
-          elem(x, 0)
         x when is_list(x) ->
           Keyword
         x ->

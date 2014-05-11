@@ -236,22 +236,16 @@ defmodule String do
   def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
-    if options[:global] != nil do
-      IO.write :stderr, "Support for :global in String.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
-    end
     if Regex.regex?(pattern) do
       Regex.split(pattern, binary, options)
     else
-      splits = case options[:parts] do
-        num when is_number(num) and num > 0 ->
-          split_parts(binary, pattern, num - 1)
-        num ->
-          if options[:global] != false or num == 0 do
+      splits =
+        case Keyword.get(options, :parts, :infinity) do
+          num when is_number(num) and num > 0 ->
+            split_parts(binary, pattern, num - 1)
+          _ ->
             :binary.split(binary, pattern, [:global])
-          else
-            :binary.split(binary, pattern, [])
-          end
-      end
+        end
 
       if Keyword.get(options, :trim, false) do
         for split <- splits, split != "", do: split
@@ -266,10 +260,9 @@ defmodule String do
   defp split_parts("", _pattern, _num, parts),  do: Enum.reverse([""|parts])
   defp split_parts(binary, _pattern, 0, parts), do: Enum.reverse([binary|parts])
   defp split_parts(binary, pattern, num, parts) do
-    [head|tail] = :binary.split(binary, pattern)
-    case tail do
-      []    -> Enum.reverse([head|parts])
-      [str] -> split_parts(str, pattern, num - 1, [head|parts])
+    case :binary.split(binary, pattern) do
+      [head]       -> Enum.reverse([head|parts])
+      [head, rest] -> split_parts(rest, pattern, num - 1, [head|parts])
     end
   end
 
@@ -1201,30 +1194,6 @@ defmodule String do
 
   defp do_contains(_, _) do
     raise ArgumentError
-  end
-
-  @doc false
-  def to_char_list(list) do
-    IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
-    List.from_char_data(list)
-  end
-
-  @doc false
-  def to_char_list!(list) do
-    IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
-    List.from_char_data!(list)
-  end
-
-  @doc false
-  def from_char_list(list) do
-    IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
-    from_char_data(list)
-  end
-
-  @doc false
-  def from_char_list!(list) do
-    IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
-    from_char_data!(list)
   end
 
   @doc """

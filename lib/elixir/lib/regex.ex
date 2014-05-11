@@ -338,17 +338,8 @@ defmodule Regex do
   def split(regex, string, options \\ [])
 
   def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    if options[:global] != nil do
-      IO.write :stderr, "Support for :global in Regex.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
-    end
-    parts =
-      cond do
-        Keyword.get(options, :global) == false  -> 2
-        p = Keyword.get(options, :parts)        -> if p == 0, do: :infinity, else: p
-        true                                    -> :infinity
-      end
-
-    opts   = [return: :binary, parts: parts]
+    parts  = Keyword.get(options, :parts, :infinity)
+    opts   = [return: :binary, parts: zero_to_infinity(parts)]
     splits = :re.split(string, compiled, opts)
 
     if Keyword.get(options, :trim, false) do
@@ -357,6 +348,9 @@ defmodule Regex do
       splits
     end
   end
+
+  defp zero_to_infinity(0), do: :infinity
+  defp zero_to_infinity(n), do: n
 
   @doc ~S"""
   Receives a regex, a binary and a replacement, returns a new
