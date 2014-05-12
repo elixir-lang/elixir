@@ -110,7 +110,6 @@ defmodule Mix.CLITest do
     in_tmp "new_with_tests", fn ->
       output = mix "new ."
       assert output =~ "* creating lib/new_with_tests.ex"
-      assert output =~ "* creating lib/new_with_tests/supervisor.ex"
 
       output = mix "test test/new_with_tests_test.exs --cover"
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")

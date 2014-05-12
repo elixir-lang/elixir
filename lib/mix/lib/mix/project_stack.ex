@@ -2,7 +2,7 @@ defmodule Mix.ProjectStack do
   # Keeps the project stack.
   @moduledoc false
 
-  use GenServer.Behaviour
+  use GenServer
   @timeout 30_000
 
   @typep file    :: binary

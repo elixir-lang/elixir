@@ -2027,10 +2027,10 @@ defmodule Kernel do
   end
 
   @doc """
-  This macro is a shortcut to read and add attributes to the module
-  being compiled. Elixir module attributes are similar to Erlang's with
-  some differences. The canonical example for attributes is annotating
-  that a module implements the OTP behaviour called `gen_server`:
+  Read and write attributes of th current module.
+
+  The canonical example for attributes is annotating that a module
+  implements the OTP behaviour called `gen_server`:
 
       defmodule MyServer do
         @behaviour :gen_server

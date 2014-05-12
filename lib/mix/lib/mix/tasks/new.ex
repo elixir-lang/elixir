@@ -77,9 +77,6 @@ defmodule Mix.Tasks.New do
       create_file "lib/#{app}.ex", lib_template(assigns)
     else
       create_file "lib/#{app}.ex", lib_app_template(assigns)
-      create_directory "lib/#{app}"
-      create_file "lib/#{app}/supervisor.ex", lib_supervisor_template(assigns)
-
       create_directory "config"
       create_file "config/config.exs", config_template(assigns)
     end
@@ -301,28 +298,17 @@ defmodule Mix.Tasks.New do
     # See http://elixir-lang.org/docs/stable/Application.html
     # for more information on OTP Applications
     def start(_type, _args) do
-      <%= @mod %>.Supervisor.start_link
-    end
-  end
-  """
+      import Supervisor.Spec
 
-  embed_template :lib_supervisor, """
-  defmodule <%= @mod %>.Supervisor do
-    use Supervisor.Behaviour
-
-    def start_link do
-      :supervisor.start_link(__MODULE__, [])
-    end
-
-    def init([]) do
       children = [
         # Define workers and child supervisors to be supervised
         # worker(<%= @mod %>.Worker, [arg1, arg2, arg3])
       ]
 
-      # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
+      # See http://elixir-lang.org/docs/stable/Supervisor.html
       # for other strategies and supported options
-      supervise(children, strategy: :one_for_one)
+      opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
+      Supervisor.start_link(children, opts)
     end
   end
   """

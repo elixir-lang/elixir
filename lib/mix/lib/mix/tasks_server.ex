@@ -1,6 +1,6 @@
 defmodule Mix.TasksServer do
   @moduledoc false
-  use GenServer.Behaviour
+  use GenServer
 
   def start_link() do
     :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])

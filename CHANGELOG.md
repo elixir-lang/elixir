@@ -1,12 +1,15 @@
 # v0.13.3-dev
 
 * Enhancements
+  * [Kernel] `GenEvent`, `GenServer`, `Supervisor`, `Agent` and `Task` modules added
 
 * Bug fixes
   * [ExUnit] Ensure the formatter doesn't error when printing :EXITs
   * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
 
 * Soft deprecations (no warnings emitted)
+  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
+  * [Dict] `Dict.Behaviour` is deprecated (please define the Dict functions yourself)
 
 * Deprecations
   * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
@@ -50,7 +53,6 @@
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)
-  * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
   * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
   * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`

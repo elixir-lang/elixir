@@ -1,72 +1,10 @@
 defmodule Dict.Behaviour do
-  @moduledoc ~S"""
-  Default implementations for some required functions in the `Dict` module.
+  @moduledoc false
 
-  This module makes it easier to create your own `Dict` compliant
-  module, by providing default implementations for some required functions.
-
-  ## Example
-
-      defmodule MyDict do
-        use Dict.Behaviour
-
-        # implement required functions (see below)
-
-        # override default implementations if optimization is needed
-      end
-
-  The client module must contain the following functions:
-
-  * `delete/2`
-  * `fetch/2`
-  * `put/3`
-  * `reduce/3`
-  * `size/1`
-
-  All functions, except `reduce/3`, are required by the Dict behaviour.
-  `reduce/3` must be implemtented as per the Enumerable protocol.
-
-  Based on these functions, `Dict.Behaviour` generates default implementations
-  for the following functions:
-
-  * `drop/2`
-  * `equal?/2`
-  * `fetch!/2`
-  * `get/2`
-  * `get/3`
-  * `has_key?/2`
-  * `keys/1`
-  * `merge/2`
-  * `merge/3`
-  * `pop/2`
-  * `pop/3`
-  * `put_new/3`
-  * `split/2`
-  * `take/2`
-  * `to_list/1`
-  * `values/1`
-  * `update/4`
-  * `update!/3`
-
-  All of these functions are defined as overridable, so you can provide your own
-  implementation if needed.
-
-  Note you can also test your custom module via `Dict`'s doctests:
-
-      defmodule MyDict do
-        def new(keywords \\ []) do
-          ...
-        end
-      end
-
-      defmodule MyTests do
-        use ExUnit.Case
-        doctest Dict
-        defp dict_impl, do: MyDict
-      end
-
-  """
   defmacro __using__(_) do
+    # IO.write :stderr, "use Dict.Behaviour is deprecated\n" <>
+    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
 

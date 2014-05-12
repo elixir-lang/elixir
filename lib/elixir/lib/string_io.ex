@@ -10,7 +10,7 @@ defmodule StringIO do
 
   """
 
-  use GenServer.Behaviour
+  use GenServer
 
   @doc """
   Creates an IO device.

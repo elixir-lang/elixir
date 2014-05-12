@@ -2,7 +2,7 @@ defmodule ExUnit.Server do
   @moduledoc false
 
   @timeout 30_000
-  use GenServer.Behaviour
+  use GenServer
 
   def start_link() do
     :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])

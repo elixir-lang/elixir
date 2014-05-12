@@ -1,37 +1,11 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Supervisor.BehaviourTest do
+defmodule Supervisor.SpecTest do
   use ExUnit.Case, async: true
 
-  defmodule Server do
-    use GenServer.Behaviour
+  import Supervisor.Spec
 
-    def start_link do
-      :gen_server.start_link(__MODULE__, [], [])
-    end
-  end
-
-  defmodule Sup do
-    use Supervisor.Behaviour
-
-    def init(:ok) do
-      supervise [worker(Server, [])], strategy: :one_for_one
-    end
-
-    def init(:noop) do
-      :ignore
-    end
-  end
-
-  import Supervisor.Behaviour
-
-  test :start_link do
-    assert :ignore = :supervisor.start_link(Sup, :noop)
-    assert {:ok, pid} = :supervisor.start_link(Sup, :ok)
-    assert is_pid(pid)
-  end
-
-  test :worker do
+  test "worker/3" do
     assert worker(Foo, [1, 2, 3]) == {
       Foo,
       {Foo, :start_link, [1, 2, 3]},
@@ -42,7 +16,7 @@ defmodule Supervisor.BehaviourTest do
    }
 
     opts = [id: :sample, function: :start, modules: :dynamic,
-      restart: :temporary, shutdown: :brutal_kill]
+            restart: :temporary, shutdown: :brutal_kill]
 
     assert worker(Foo, [1, 2, 3], opts) == {
       :sample,
@@ -54,7 +28,18 @@ defmodule Supervisor.BehaviourTest do
    }
   end
 
-  test :supervisor do
+  test "worker/3 with GenEvent" do
+    assert worker(GenEvent, [[name: :hello]]) == {
+      GenEvent,
+      {GenEvent, :start_link, [[name: :hello]]},
+      :permanent,
+      5000,
+      :worker,
+      :dynamic
+   }
+  end
+
+  test "supervisor/3" do
     assert supervisor(Foo, [1, 2, 3]) == {
       Foo,
       {Foo, :start_link, [1, 2, 3]},
@@ -77,15 +62,24 @@ defmodule Supervisor.BehaviourTest do
    }
   end
 
-  test :supervise do
+  test "supervise/2" do
     assert supervise([], strategy: :one_for_one) == {
       :ok, {{:one_for_one, 5, 5}, []}
    }
 
-    opts = [strategy: :one_for_all, max_restarts: 1, max_seconds: 1]
+    children = [worker(GenEvent, [])]
+    options  = [strategy: :one_for_all, max_restarts: 1, max_seconds: 1]
 
-    assert supervise([:sample], opts) == {
-      :ok, {{:one_for_all, 1, 1}, [:sample]}
+    assert supervise(children, options) == {
+      :ok, {{:one_for_all, 1, 1}, children}
    }
+  end
+
+  test "supervise/2 with duplicated ids" do
+    children = [worker(GenEvent, []), worker(GenEvent, [])]
+
+    assert_raise ArgumentError, fn ->
+      supervise(children, strategy: :one_for_one)
+    end
   end
 end

@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   # The ManifestCompiler is a convenience that tracks dependencies
   # in between files and recompiles them as they change recursively.
   defmodule ManifestCompiler do
-    use GenServer.Behaviour
+    use GenServer
     @moduledoc false
 
     def files_to_path(manifest, force, all, compile_path, on_start) do
