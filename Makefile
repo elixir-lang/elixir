@@ -67,10 +67,10 @@ erlang:
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
-# file, then mix and then compile eex fully
-elixir: core lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
+# file, then mix and then compile EEx fully
+elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
-core: $(KERNEL) VERSION
+stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                    \
 		echo "==> bootstrap (compile)";                 \
