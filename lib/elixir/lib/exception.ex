@@ -220,7 +220,7 @@ defmodule Exception do
   an empty stacktrace, `[]`, must be used.
   """
   @spec normalize(:error, any, stacktrace) :: t
-  @spec normalize(:exit | :throw, any, stacktrace) :: any
+  @spec normalize(:exit | :throw | :EXIT, any, stacktrace) :: any
   # Generating a stacktrace is expensive, default to nil to only fetch it when
   # needed.
   def normalize(kind, payload, stacktrace \\ nil)
@@ -304,7 +304,8 @@ defmodule Exception do
   not return the stacktrace corresponding to the exception
   an empty stacktrace, `[]`, must be used.
   """
-  @spec format_banner(:error | :exit | :throw, any, stacktrace) :: String.t
+  @spec format_banner(:error | :exit | :throw | :EXIT, any,
+    stacktrace) :: String.t
   def format_banner(kind, exception, stacktrace \\ nil)
 
   def format_banner(:error, exception, stacktrace) do
@@ -320,17 +321,35 @@ defmodule Exception do
     "** (exit) " <> format_exit(reason, <<"\n    ">>)
   end
 
+  def format_banner(:EXIT, reason, _stacktrace) do
+    "** (EXIT) " <> format_exit(reason, <<"\n    ">>)
+  end
+
   @doc """
   Normalizes and formats an exception and stacktrace.
 
   Behaves the same as `format_banner/3` but also includes
-  the formatted stacktrace.
+  the formatted stacktrace when `kind` is not `:EXIT`.
   """
-  @spec format(:error | :exit | :throw, any, stacktrace) :: String.t
-  def format(kind, exception, stacktrace \\ :erlang.get_stacktrace()) do
+  @spec format(:error | :exit | :throw | :EXIT, any) :: String.t
+  def format(:EXIT, any), do: format_banner(:EXIT, any)
+
+  def format(kind, exception) do
+    format(kind, exception, :erlang.get_stacktrace())
+  end
+
+  @doc """
+  Normalizes and formats an exception and stacktrace.
+
+  Behaves the same as `format_banner/3` but also includes
+  the formatted stacktrace when `kind` is not `:EXIT`.
+  """
+  @spec format(:error | :exit | :throw | :EXIT, any, stacktrace) :: String.t
+  def format(kind, exception, stacktrace) do
     message = format_banner(kind, exception, stacktrace)
     case stacktrace do
       [] -> message
+      _ when kind == :EXIT -> message
       _ -> message <> "\n" <> format_stacktrace(stacktrace)
     end
   end

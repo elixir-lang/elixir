@@ -44,6 +44,8 @@ defmodule Kernel.ExceptionTest do
 
   test "normalize" do
     assert Exception.normalize(:throw, :badarg) == :badarg
+    assert Exception.normalize(:exit, :badarg) == :badarg
+    assert Exception.normalize(:EXIT, :badarg) == :badarg
     assert Record.record? Exception.normalize(:error, :badarg), ArgumentError
     assert Record.record? Exception.normalize(:error, ArgumentError[]), ArgumentError
   end
@@ -52,6 +54,7 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
     assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
     assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
+    assert Exception.format_banner(:EXIT, :badarg) == "** (EXIT) :badarg"
   end
 
   test "format without stacktrace" do
@@ -62,6 +65,11 @@ defmodule Kernel.ExceptionTest do
 
   test "format with empty stacktrace" do
     assert Exception.format(:error, :badarg, []) == "** (ArgumentError) argument error"
+  end
+
+  test "format wih EXIT has no stacktrace" do
+    try do throw(:stack) catch :stack -> System.stacktrace() end
+    assert Exception.format(:EXIT, :badarg) == "** (EXIT) :badarg"
   end
 
   test "format_exit" do
