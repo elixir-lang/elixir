@@ -9,6 +9,11 @@
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
+  * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
+  * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
+  * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
+  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
 * Backwards incompatible changes
 

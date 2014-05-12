@@ -67,7 +67,7 @@ defmodule Mix do
 
   @doc false
   def project do
-    # IO.write :stderr, "Mix.project/0 is deprecated, please use Mix.Project.config/0 instead\n#{Exception.format_stacktrace}"
+    IO.write :stderr, "Mix.project/0 is deprecated, please use Mix.Project.config/0 instead\n#{Exception.format_stacktrace}"
     Mix.Project.config
   end
 end
