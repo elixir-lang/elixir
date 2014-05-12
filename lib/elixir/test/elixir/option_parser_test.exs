@@ -50,10 +50,10 @@ defmodule OptionParserTest do
   test "parses configured booleans" do
     assert OptionParser.parse(["--docs=false"], switches: [docs: :boolean]) == {[docs: false], [], []}
     assert OptionParser.parse(["--docs=true"],  switches: [docs: :boolean]) == {[docs: true], [], []}
-    assert OptionParser.parse(["--docs=other"], switches: [docs: :boolean]) == {[docs: false], [], []}
+    assert OptionParser.parse(["--docs=other"], switches: [docs: :boolean]) == {[], [], [docs: "other"]}
+    assert OptionParser.parse(["--docs="], switches: [docs: :boolean]) == {[], [], [docs: ""]}
 
     assert OptionParser.parse(["--docs", "foo"],    switches: [docs: :boolean]) == {[docs: true], ["foo"], []}
-    assert OptionParser.parse(["--docs", "foo"],    switches: [docs: :boolean])  == {[docs: true], ["foo"], []}
     assert OptionParser.parse(["--no-docs", "foo"], switches: [docs: :boolean]) == {[docs: false], ["foo"], []}
   end
 

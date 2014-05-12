@@ -150,7 +150,11 @@ defmodule OptionParser do
         :invalid in kinds ->
           {option, value}
         :boolean in kinds ->
-          {nil, value in [true, "true"]}
+          case value do
+            t when t in [true, "true"] -> {nil, true}
+            f when f in [false, "false"] -> {nil, false}
+            _ -> {option, value}
+          end
         :integer in kinds ->
           case Integer.parse(value) do
             {value, ""} -> {nil, value}
