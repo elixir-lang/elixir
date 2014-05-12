@@ -68,9 +68,9 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile eex fully
-elixir: kernel lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
+elixir: core lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
-kernel: $(KERNEL) VERSION
+core: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                    \
 		echo "==> bootstrap (compile)";                 \
@@ -156,13 +156,13 @@ test_erlang: compile
 	$(Q) $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
 	@ echo ""
 
-test_elixir: test_kernel test_ex_unit test_doc_test test_mix test_eex test_iex
+test_elixir: test_stdlib test_ex_unit test_doc_test test_mix test_eex test_iex
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
 
-test_kernel: compile
+test_stdlib: compile
 	@ echo "==> elixir (exunit)"
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
 
