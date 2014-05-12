@@ -55,6 +55,8 @@ defmodule OptionParserTest do
 
     assert OptionParser.parse(["--docs", "foo"],    switches: [docs: :boolean]) == {[docs: true], ["foo"], []}
     assert OptionParser.parse(["--no-docs", "foo"], switches: [docs: :boolean]) == {[docs: false], ["foo"], []}
+    assert OptionParser.parse(["--no-docs=foo", "bar"], switches: [docs: :boolean]) == {[], ["bar"], [docs: "foo"]}
+    assert OptionParser.parse(["--no-docs=", "bar"], switches: [docs: :boolean]) == {[], ["bar"], [docs: ""]}
   end
 
   test "does not set unparsed booleans" do

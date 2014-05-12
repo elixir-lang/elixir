@@ -198,7 +198,7 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option({:negated, option}, _value, switches) do
+  defp normalize_option({:negated, option}, nil, switches) do
     kinds = List.wrap(switches[option])
 
     cond do
@@ -209,6 +209,10 @@ defmodule OptionParser do
       true ->
         {option, [:invalid], false}
     end
+  end
+
+  defp normalize_option({:negated, option}, value, switches) do
+    {option, [:invalid], value}
   end
 
   defp normalize_option({:default, option}, value, switches) do
