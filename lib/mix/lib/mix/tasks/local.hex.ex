@@ -38,9 +38,11 @@ defmodule Mix.Tasks.Local.Hex do
       unless Version.match?(Hex.version, @hex_requirement) do
         Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
 
-        if Mix.shell.yes?("Shall I abort the current command and update hex?") do
-          run ["--force"]
-          exit(0)
+        if Mix.shell.yes?("Shall I update hex?") do
+          unless run ["--force"] do
+            Mix.shell.error "Hex update failed"
+            exit(-1)
+          end
         end
       end
     end
