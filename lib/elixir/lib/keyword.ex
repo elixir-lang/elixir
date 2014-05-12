@@ -387,6 +387,9 @@ defmodule Keyword do
   Updates the `key` with the given function. If the `key` does
   not exist, raises `KeyError`.
 
+  If there are duplicated entries, they are all removed and only the first one
+  is updated.
+
   ## Examples
 
       iex> Keyword.update!([a: 1], :a, &(&1 * 2))
@@ -416,6 +419,9 @@ defmodule Keyword do
   @doc """
   Updates the `key` with the given function. If the `key` does
   not exist, inserts the given `initial` value.
+
+  If there are duplicated entries, they are all removed and only the first one
+  is updated.
 
   ## Examples
 

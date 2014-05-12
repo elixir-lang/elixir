@@ -105,14 +105,16 @@ defmodule KeywordTest do
   end
 
   test "update!/3" do
-    assert Keyword.update!([a: 1], :a, &(&1 * 2)) == [a: 2]
+    kw = [a: 1, b: 2, a: 3]
+    assert Keyword.update!(kw, :a, &(&1 * 2)) == [a: 2, b: 2]
     assert_raise KeyError, fn ->
       Keyword.update!([a: 1], :b, &(&1 * 2))
     end
   end
 
   test "update/4" do
-    assert Keyword.update([a: 1], :a, 13, &(&1 * 2)) == [a: 2]
+    kw = [a: 1, b: 2, a: 3]
+    assert Keyword.update(kw, :a, 13, &(&1 * 2)) == [a: 2, b: 2]
     assert Keyword.update([a: 1], :b, 11, &(&1 * 2)) == [a: 1, b: 11]
   end
 
