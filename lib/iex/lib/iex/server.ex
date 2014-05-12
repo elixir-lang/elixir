@@ -209,7 +209,7 @@ defmodule IEx.Server do
   defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator,  reason},
                         evaluator, evaluator_ref, input, _callback) do
     try do
-      io_error Exception.format_banner(:EXIT, reason)
+      io_error Exception.format_banner({:EXIT, evaluator}, reason)
     catch
       type, detail ->
         io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail}"

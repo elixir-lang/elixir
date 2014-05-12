@@ -140,6 +140,12 @@ defmodule TestOneOfEach do
     assert blows_up
   end
 
+  test "25. error due to exit" do
+    spawn_link fn -> raise "oops" end
+    receive do
+    end
+  end
+
   doctest DocTest
 
   defp blows_up do

@@ -71,11 +71,11 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test EXITs" do
-    failure = {:EXIT, 1, []}
+    failure = {{:EXIT, self}, 1, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
-         ** (EXIT) 1
+         ** (EXIT from #{inspect self}) 1
     """
   end
 

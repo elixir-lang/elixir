@@ -3,7 +3,8 @@
 * Enhancements
 
 * Bug fixes
-  * Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
+  * [ExUnit] Ensure the formatter doesn't error when printing :EXITs
+  * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
 
 * Soft deprecations (no warnings emitted)
 
