@@ -31,7 +31,7 @@ echo   --gen-debug       Turns on default debugging for all GenServers
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl
+echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
 goto :EOF
 
 :parseopts
@@ -95,7 +95,7 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 IF %useWerl% EQU 1 (
-    werl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    werl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
-    erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    erl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
