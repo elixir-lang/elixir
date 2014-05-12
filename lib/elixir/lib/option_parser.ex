@@ -211,7 +211,7 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option({:negated, option}, value, switches) do
+  defp normalize_option({:negated, option}, value, _switches) do
     {option, [:invalid], value}
   end
 
