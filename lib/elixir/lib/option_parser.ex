@@ -150,7 +150,11 @@ defmodule OptionParser do
         :invalid in kinds ->
           {option, value}
         :boolean in kinds ->
-          {nil, value in [true, "true"]}
+          case value do
+            t when t in [true, "true"] -> {nil, true}
+            f when f in [false, "false"] -> {nil, false}
+            _ -> {option, value}
+          end
         :integer in kinds ->
           case Integer.parse(value) do
             {value, ""} -> {nil, value}
@@ -194,7 +198,7 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option({:negated, option}, _value, switches) do
+  defp normalize_option({:negated, option}, nil, switches) do
     kinds = List.wrap(switches[option])
 
     cond do
@@ -205,6 +209,10 @@ defmodule OptionParser do
       true ->
         {option, [:invalid], false}
     end
+  end
+
+  defp normalize_option({:negated, option}, value, _switches) do
+    {option, [:invalid], value}
   end
 
   defp normalize_option({:default, option}, value, switches) do
