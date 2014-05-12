@@ -72,6 +72,8 @@ defmodule OptionParserTest do
   test "parses configured strings" do
     assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :string]) ==
            {[value: "1"], ["foo"], []}
+    assert OptionParser.parse(["--value=1", "foo"], switches: [value: :string]) ==
+           {[value: "1"], ["foo"], []}
     assert OptionParser.parse(["--value"], switches: [value: :string]) ==
            {[], [], [value: true]}
     assert OptionParser.parse(["--no-value"], switches: [value: :string]) ==
@@ -81,6 +83,8 @@ defmodule OptionParserTest do
   test "parses configured integers" do
     assert OptionParser.parse(["--value", "1", "foo"], switches: [value: :integer]) ==
            {[value: 1], ["foo"], []}
+    assert OptionParser.parse(["--value=1", "foo"], switches: [value: :integer]) ==
+           {[value: 1], ["foo"], []}
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer]) ==
            {[], ["foo"], [value: "WAT"]}
   end
@@ -88,10 +92,13 @@ defmodule OptionParserTest do
   test "parses configured integers with keep" do
     assert OptionParser.parse(["--value", "1", "--value", "2", "foo"],
                               switches: [value: [:integer, :keep]]) == {[value: 1, value: 2], ["foo"], []}
+    assert OptionParser.parse(["--value=1", "foo", "--value=2", "bar"],
+                              switches: [value: [:integer, :keep]]) == {[value: 1, value: 2], ["foo", "bar"], []}
   end
 
   test "parses configured floats" do
     assert OptionParser.parse(["--value", "1.0", "foo"], switches: [value: :float])  == {[value: 1.0], ["foo"], []}
+    assert OptionParser.parse(["--value=1.0", "foo"], switches: [value: :float])  == {[value: 1.0], ["foo"], []}
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float]) == {[], ["foo"], [value: "WAT"]}
   end
 
