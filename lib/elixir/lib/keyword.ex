@@ -6,13 +6,14 @@ defmodule Keyword do
 
   A keyword may have duplicated keys so it is not strictly
   a dictionary. However most of the functions in this module
-  behaves exactly as a dictionary and mimic the API defined
+  behave exactly as a dictionary and mimic the API defined
   by the `Dict` behaviour.
 
   For example, `Keyword.get` will get the first entry matching
   the given key, regardless if duplicated entries exist.
   Similarly, `Keyword.put` and `Keyword.delete` ensure all
   duplicated entries for a given key are removed when invoked.
+
   A handful of functions exist to handle duplicated keys, in
   particular, `from_enum` allows creating a new keywords without
   removing duplicated keys, `get_values` returns all values for
@@ -387,6 +388,9 @@ defmodule Keyword do
   Updates the `key` with the given function. If the `key` does
   not exist, raises `KeyError`.
 
+  If there are duplicated entries, they are all removed and only the first one
+  is updated.
+
   ## Examples
 
       iex> Keyword.update!([a: 1], :a, &(&1 * 2))
@@ -417,6 +421,9 @@ defmodule Keyword do
   Updates the `key` with the given function. If the `key` does
   not exist, inserts the given `initial` value.
 
+  If there are duplicated entries, they are all removed and only the first one
+  is updated.
+
   ## Examples
 
       iex> Keyword.update([a: 1], :a, 13, &(&1 * 2))
@@ -440,8 +447,13 @@ defmodule Keyword do
   end
 
   @doc """
-  Splits the given keywords in two given the given keys.
-  Duplicated keys are preserved in the split keyword list.
+  Takes all entries corresponding to the given keys and extracts them into a
+  separate keyword list. Returns a tuple with the new list and the old list
+  with removed keys.
+
+  Keys for which there are no entires in the keyword list are ignored.
+
+  Entries with duplicated keys end up in the same keyword list.
 
   ## Examples
 
@@ -468,7 +480,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Takes the given keys from the dict.
+  Takes all entries corresponding to the given keys and returns them in a new
+  keyword list.
+
   Duplicated keys are preserved in the new keyword list.
 
   ## Examples
@@ -488,6 +502,7 @@ defmodule Keyword do
 
   @doc """
   Drops the given keys from the dict.
+
   Duplicated keys are preserved in the new keyword list.
 
   ## Examples
@@ -496,7 +511,7 @@ defmodule Keyword do
       iex> Keyword.drop(d, [:b, :d])
       [a: 1, c: 3]
 
-      iex> d = [a: 1, b: 2, c: 3, d: 4, a: 5]
+      iex> d = [a: 1, b: 2, b: 3, c: 3, d: 4, a: 5]
       iex> Keyword.drop(d, [:b, :d])
       [a: 1, c: 3, a: 5]
 
