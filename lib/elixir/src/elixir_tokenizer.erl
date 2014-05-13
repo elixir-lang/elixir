@@ -453,7 +453,8 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens
     ?dual_op(Sign),
     ?is_horizontal_space(Space),
     not(?is_space(NotMarker)),
-    NotMarker /= $(, NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
+    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
+    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
     Identifier == identifier ->
   Rest = [NotMarker|T],
   tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
