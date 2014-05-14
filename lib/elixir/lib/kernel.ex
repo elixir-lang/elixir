@@ -3158,6 +3158,7 @@ defmodule Kernel do
           other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
         end, fields)
 
+        @spec __struct__() :: t
         def __struct__() do
           %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}
         end
@@ -3274,6 +3275,7 @@ defmodule Kernel do
       @behaviour Exception
       fields = defstruct unquote(fields)
 
+      @spec exception([{atom, term}]) :: term
       def exception(args) when is_list(args) do
         Kernel.struct(__struct__, args)
       end

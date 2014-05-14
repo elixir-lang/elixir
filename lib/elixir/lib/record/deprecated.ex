@@ -166,6 +166,9 @@ defmodule Record.Deprecated do
 
   defmacro __before_compile__(_) do
     quote do
+      @spec __record__(atom) :: term
+      @spec __record__(atom, term) :: term
+      @spec __record__(atom, term, term) :: term
       def __record__(:optimizable), do: @record_optimizable
     end
   end

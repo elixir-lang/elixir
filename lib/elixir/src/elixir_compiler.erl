@@ -68,7 +68,9 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
 
   %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  module(Form, ?m(E, file), [{native,false}], true, fun(_, Binary) ->
+  AllOpts   = elixir_code_server:call(erl_compiler_options),
+  FinalOpts = AllOpts -- [native, warn_missing_spec],
+  module(Form, ?m(E, file), FinalOpts, true, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
@@ -130,14 +132,13 @@ module(Forms, File, Opts, Callback) ->
   Final =
     case (get_opt(debug_info) == true) orelse
          lists:member(debug_info, Opts) of
-      true  -> [debug_info];
-      false -> []
+      true  -> [debug_info] ++ elixir_code_server:call(erl_compiler_options);
+      false -> elixir_code_server:call(erl_compiler_options)
     end,
   module(Forms, File, Final, false, Callback).
 
-module(Forms, File, RawOptions, Bootstrap, Callback) when
-    is_binary(File), is_list(Forms), is_list(RawOptions), is_boolean(Bootstrap), is_function(Callback) ->
-  Options = RawOptions ++ elixir_code_server:call(erl_compiler_options),
+module(Forms, File, Options, Bootstrap, Callback) when
+    is_binary(File), is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
   Listname = elixir_utils:characters_to_list(File),
 
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of

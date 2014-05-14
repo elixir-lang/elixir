@@ -467,7 +467,8 @@ defmodule Kernel.TypespecTest do
     :code.delete(T)
     :code.purge(T)
 
-    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]}] =
+    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]},
+            {{:__info__, 1}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :atom, []}]}, {:type, _, :term, []}]}]}] =
            Kernel.Typespec.beam_specs(binary)
   end
 

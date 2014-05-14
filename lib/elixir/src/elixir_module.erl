@@ -135,11 +135,11 @@ eval_form(Line, Module, Block, Vars, E) ->
 %% Return the form with exports and function declarations.
 
 functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunctions) ->
-  Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
+  {InfoSpec, Info} = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
 
   All       = [{'__info__', 1}|BaseAll],
   Export    = [{'__info__', 1}|BaseExport],
-  Functions = [Info|BaseFunctions],
+  Functions = [InfoSpec,Info|BaseFunctions],
 
   {All, [
     {attribute, Line, export, lists:sort(Export)} | Functions
@@ -312,14 +312,19 @@ add_info_function(Line, File, Module, Export, Def, Defmacro) ->
       elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Docs = elixir_compiler:get_opt(docs),
-      {function, 0, '__info__', 1, [
-        functions_clause(Def),
-        macros_clause(Defmacro),
-        docs_clause(Module, Docs),
-        moduledoc_clause(Line, Module, Docs),
-        module_clause(Module),
-        else_clause()
-      ]}
+      {
+        {attribute, Line, spec, {{'__info__', 1},
+          [{type, Line, 'fun', [{type, Line, product, [ {type, Line, atom, []}]}, {type, Line, term, []} ]}]
+        }},
+        {function, 0, '__info__', 1, [
+          functions_clause(Def),
+          macros_clause(Defmacro),
+          docs_clause(Module, Docs),
+          moduledoc_clause(Line, Module, Docs),
+          module_clause(Module),
+          else_clause()
+        ]}
+      }
   end.
 
 functions_clause(Def) ->
