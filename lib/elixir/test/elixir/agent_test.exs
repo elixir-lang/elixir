@@ -14,7 +14,7 @@ defmodule AgentTest do
     assert Agent.get_and_update(pid, &Map.pop(&1, :hello), 3000) == :world
     assert Agent.get(pid, &(&1)) == %{}
     assert Agent.stop(pid) == :ok
-    refute Process.alive?(pid)
+    wait_until_dead(pid)
   end
 
   test "start/2 workflow with registered name" do
@@ -46,5 +46,11 @@ defmodule AgentTest do
     :ok = :sys.resume(pid)
     assert Agent.get(pid, &(&1)) == %{}
     assert Agent.stop(pid) == :ok
+  end
+
+  defp wait_until_dead(pid) do
+    if Process.alive?(pid) do
+      wait_until_dead(pid)
+    end
   end
 end
