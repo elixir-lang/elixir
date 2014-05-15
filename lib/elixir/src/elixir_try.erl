@@ -5,11 +5,13 @@
 clauses(_Meta, Clauses, Return, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses),
-  Transformer = fun(X, SAcc) ->
-    {TX, TS} = each_clause(X, Return, SAcc),
-    {TX, elixir_scope:mergec(S, TS)}
-  end,
-  lists:mapfoldl(Transformer, S, Rescue ++ Catch).
+  reduce_clauses(Rescue ++ Catch, [], S, Return, S).
+
+reduce_clauses([H|T], Acc, SAcc, Return, S) ->
+  {TH, TS} = each_clause(H, Return, SAcc),
+  reduce_clauses(T, TH ++ Acc, elixir_scope:mergec(S, TS), Return, S);
+reduce_clauses([], Acc, SAcc, _Return, _S) ->
+  {lists:reverse(Acc), SAcc}.
 
 each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
   {Args, Guards} = elixir_clauses:extract_splat_guards(Raw),
@@ -17,37 +19,35 @@ each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
   Final = case Args of
     [X]   -> [throw, X, {'_', Meta, nil}];
     [X,Y] -> [X, Y, {'_', Meta, nil}];
-    _     ->
-      elixir_errors:compile_error(Meta, S#elixir_scope.file, "too many arguments given for catch")
+    _ ->
+      elixir_errors:compile_error(Meta, S#elixir_scope.file,
+        "too many arguments given for catch")
   end,
 
   Condition = [{'{}', Meta, Final}],
-  elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
-                        Condition, Expr, Guards, Return, S);
+  {TC, TS} = elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
+                                   Condition, Expr, Guards, Return, S),
+  {[TC], TS};
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, Return, S) ->
-  case Left of
-    {'_', _, LAtom} when is_atom(LAtom) ->
-      {VarName, _, CS} = elixir_scope:build_var('_', S),
-      {Clause, _} = rescue_guards(Meta, {VarName, Meta, nil}, Right, S),
-      each_clause({'catch', Meta, Clause, Expr}, Return, CS);
-    _ ->
-      {Clause, Safe} = rescue_guards(Meta, Left, Right, S),
-      case Safe of
-        true ->
-          each_clause({'catch', Meta, Clause, Expr}, Return, S);
-        false ->
-          {VarName, _, CS} = elixir_scope:build_var('_', S),
-          ClauseVar          = {VarName, Meta, nil},
-          {FinalClause, _} = rescue_guards(Meta, ClauseVar, Right, S),
-          Match = {'=', Meta, [
-            Left,
-            {{'.', Meta, ['Elixir.Exception', normalize]}, Meta, [error, ClauseVar]}
-          ]},
-          FinalExpr = prepend_to_block(Meta, Match, Expr),
-          each_clause({'catch', Meta, FinalClause, FinalExpr}, Return, CS)
-      end
-  end;
+  {VarName, _, CS} = elixir_scope:build_var('_', S),
+  Var = {VarName, Meta, nil},
+  {Parts, Safe, FS} = rescue_guards(Meta, Var, Right, CS),
+
+  Body =
+    case Left of
+      {'_', _, Atom} when is_atom(Atom) ->
+        Expr;
+      _ ->
+        Normalized =
+          case Safe of
+            true  -> Var;
+            false -> {{'.', Meta, ['Elixir.Exception', normalize]}, Meta, [error, Var]}
+          end,
+        prepend_to_block(Meta, {'=', Meta, [Left, Normalized]}, Expr)
+    end,
+
+  build_rescue(Meta, Parts, Body, Return, FS);
 
 each_clause({rescue, Meta, _, _}, _Return, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
@@ -57,33 +57,51 @@ each_clause({Key, Meta, _, _}, _Return, S) ->
 
 %% Helpers
 
+build_rescue(Meta, Parts, Body, Return, S) ->
+  Matches = [Match || {Match, _} <- Parts],
+
+  {{clause, Line, TMatches, _, TBody}, TS} =
+    elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
+                          Matches, Body, [], Return, S),
+
+  TClauses =
+    [begin
+      TArgs   = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
+      TGuards = elixir_clauses:guards(Line, Guards, [], TS),
+      {clause, Line, TArgs, TGuards, TBody}
+     end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
+
+  {TClauses, TS}.
+
 %% Convert rescue clauses into guards.
-rescue_guards(_, Var, {'_', _, _}, _) -> {[error, Var], false};
+rescue_guards(_, Var, {'_', _, _}, S) -> {[{Var, []}], false, S};
 
 rescue_guards(Meta, Var, Guards, S) ->
   {Elixir, Erlang, Safe} = rescue_each_ref(Meta, Var, Guards, [], [], true, S),
 
-  Guard =
-    case Elixir == [] of
-      true ->
-        Erlang;
-      false ->
+  ElixirParts =
+    case Elixir of
+      [] -> [];
+      _  ->
         IsTuple     = {erl(Meta, is_tuple), Meta, [Var]},
         IsException = {erl(Meta, '=='), Meta, [
           {erl(Meta, element), Meta, [2, Var]}, '__exception__'
         ]},
         OrElse = join(Meta, fun erl_or/3, Elixir),
-        [join(Meta, fun erl_and/3, [IsTuple, IsException, OrElse])|Erlang]
+        [{Var, [join(Meta, fun erl_and/3, [IsTuple, IsException, OrElse])]}]
     end,
 
-  {
-    [{'when', Meta, [error, Var, join_when(Meta, Guard)]}],
-    Safe
-  }.
+  ErlangParts =
+    case Erlang of
+      [] -> [];
+      _  -> [{Var, Erlang}]
+    end,
+
+  {ElixirParts ++ ErlangParts, Safe, S}.
 
 %% Rescue each atom name considering their Erlang or Elixir matches.
-%% Matching of variables is done with Erlang exceptions is done in another
-%% method for optimization.
+%% Matching of variables is done with Erlang exceptions is done in
+%% function for optimization.
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == 'Elixir.UndefinedFunctionError'; H == 'Elixir.ErlangError';
@@ -185,9 +203,6 @@ erl_exception_compare(Meta, Var, Expr) ->
 
 join(Meta, Kind, [H|T]) ->
   lists:foldl(fun(X, Acc) -> Kind(Meta, Acc, X) end, H, T).
-
-join_when(Meta, [H|T]) ->
-  lists:foldl(fun(X, Acc) -> {'when', Meta, [X, Acc]} end, H, T).
 
 prepend_to_block(_Meta, Expr, {'__block__', Meta, Args}) ->
   {'__block__', Meta, [Expr|Args]};
