@@ -69,39 +69,11 @@ defmodule Kernel.RescueTest do
     assert result
   end
 
-  test :rescue_argument_error_and_undefined_function_error do
-    named = ArgumentError
-
-    result = try do
-      Certainly.Undefined.function(1, 2, 3)
-    rescue
-      x in [named] -> Exception.message(x)
-    catch
-      :error, _ -> "didn't catch it"
-    end
-
-    assert result == "didn't catch it"
-  end
-
   test :rescue_named_with_underscore do
     result = try do
       raise "an exception"
     rescue
       x in _ -> Exception.message(x)
-    end
-
-    assert result == "an exception"
-  end
-
-  test :rescue_named_defined_variable do
-    expected = RuntimeError
-
-    result = try do
-      raise RuntimeError, message: "an exception"
-    rescue
-      x in [expected, AnotherError] -> Exception.message(x)
-    catch
-      :error, _ -> false
     end
 
     assert result == "an exception"
@@ -229,17 +201,6 @@ defmodule Kernel.RescueTest do
     end
 
     assert result == "no try clause matching: :example"
-  end
-
-  test :undefined_function_error_from_expected_variable do
-    expected = UndefinedFunctionError
-    result = try do
-      DoNotExist.for_sure()
-    rescue
-      x in [expected] -> Exception.message(x)
-    end
-
-    assert result == "undefined function: DoNotExist.for_sure/0"
   end
 
   test :undefined_function_error_as_erlang_error do

@@ -1,5 +1,5 @@
 -module(elixir_try).
--export([clauses/4, format_error/1]).
+-export([clauses/4]).
 -include("elixir.hrl").
 
 clauses(_Meta, Clauses, Return, S) ->
@@ -61,49 +61,29 @@ each_clause({Key, Meta, _, _}, _Return, S) ->
 rescue_guards(_, Var, {'_', _, _}, _) -> {[error, Var], false};
 
 rescue_guards(Meta, Var, Guards, S) ->
-  {RawElixir, RawErlang} = rescue_each_var(Meta, Var, Guards),
-  {Elixir, Erlang, Safe} = rescue_each_ref(Meta, Var, Guards, RawElixir, RawErlang, RawErlang == [], S),
+  {Elixir, Erlang, Safe} = rescue_each_ref(Meta, Var, Guards, [], [], true, S),
 
-  Final = case Elixir == [] of
-    true  -> Erlang;
-    false ->
-      IsTuple     = {erl(Meta, is_tuple), Meta, [Var]},
-      IsException = {erl(Meta, '=='), Meta, [
-        {erl(Meta, element), Meta, [2, Var]}, '__exception__'
-      ]},
-      OrElse = join(Meta, fun erl_or/3, Elixir),
-      [join(Meta, fun erl_and/3, [IsTuple, IsException, OrElse])|Erlang]
-  end,
+  Guard =
+    case Elixir == [] of
+      true ->
+        Erlang;
+      false ->
+        IsTuple     = {erl(Meta, is_tuple), Meta, [Var]},
+        IsException = {erl(Meta, '=='), Meta, [
+          {erl(Meta, element), Meta, [2, Var]}, '__exception__'
+        ]},
+        OrElse = join(Meta, fun erl_or/3, Elixir),
+        [join(Meta, fun erl_and/3, [IsTuple, IsException, OrElse])|Erlang]
+    end,
+
   {
-    [{'when', Meta, [error, Var, join_when(Meta, Final)]}],
+    [{'when', Meta, [error, Var, join_when(Meta, Guard)]}],
     Safe
- }.
-
-%% Handle variables in the right side of rescue.
-
-rescue_each_var(Meta, ClauseVar, Guards) ->
-  Vars = [Var || Var <- Guards, is_var(Var)],
-
-  case Vars == [] of
-    true  -> {[], []};
-    false ->
-      Elixir = [erl_exception_compare(Meta, ClauseVar, Var) || Var <- Vars],
-      Erlang = lists:map(fun(Rescue) ->
-        Compares = [{erl(Meta, '=='), Meta, [Rescue, Var]} || Var <- Vars],
-        erl_and(Meta,
-               erl_rescue_guard_for(Meta, ClauseVar, Rescue),
-               join(Meta, fun erl_or/3, Compares))
-      end, erlang_rescues()),
-      {Elixir, Erlang}
-  end.
+  }.
 
 %% Rescue each atom name considering their Erlang or Elixir matches.
 %% Matching of variables is done with Erlang exceptions is done in another
 %% method for optimization.
-
-%% Ignore variables
-rescue_each_ref(Meta, Var, [{Name, _, Atom}|T], Elixir, Erlang, Safe, S) when is_atom(Name), is_atom(Atom) ->
-  rescue_each_ref(Meta, Var, T, Elixir, Erlang, Safe, S);
 
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, _Safe, S) when
   H == 'Elixir.UndefinedFunctionError'; H == 'Elixir.ErlangError';
@@ -132,14 +112,6 @@ rescue_each_ref(_, _, [], Elixir, Erlang, Safe, _) ->
   {Elixir, Erlang, Safe}.
 
 %% Handle erlang rescue matches.
-
-erlang_rescues() ->
-  [
-    'Elixir.UndefinedFunctionError', 'Elixir.ArgumentError', 'Elixir.ArithmeticError',
-    'Elixir.BadArityError', 'Elixir.BadFunctionError', 'Elixir.MatchError',
-    'Elixir.CaseClauseError', 'Elixir.TryClauseError', 'Elixir.FunctionClauseError',
-    'Elixir.SystemLimitError', 'Elixir.ErlangError', 'Elixir.BadStructError'
-  ].
 
 erl_rescue_guard_for(Meta, Var, List) when is_list(List) ->
   join(Meta, fun erl_or/3, [erl_rescue_guard_for(Meta, Var, X) || X <- List]);
@@ -201,15 +173,6 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
   erl_or(Meta, IsNotTuple, IsException).
 
 %% Helpers
-
-format_error({rescue_no_match, Var, Alias}) ->
-  VarBinary   = 'Elixir.Macro':to_string(Var),
-  AliasBinary = 'Elixir.Macro':to_string(Alias),
-  Message = "rescue clause (~ts = ~ts) can never match, maybe you meant to write: ~ts in [~ts] ?",
-  io_lib:format(Message, [AliasBinary, VarBinary, VarBinary, AliasBinary]).
-
-is_var({Name, _, Atom}) when is_atom(Name), is_atom(Atom) -> true;
-is_var(_) -> false.
 
 erl_tuple_size(Meta, Var, Size) ->
   {erl(Meta, '=='), Meta, [{erl(Meta, tuple_size), Meta, [Var]}, Size]}.
