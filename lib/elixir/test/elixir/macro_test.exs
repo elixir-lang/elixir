@@ -399,6 +399,7 @@ defmodule MacroTest do
   test :kw_list do
     assert Macro.to_string(quote do: [a: a, b: b]) == "[a: a, b: b]"
     assert Macro.to_string(quote do: [a: 1, b: 1 + 2]) == "[a: 1, b: 1 + 2]"
+    assert Macro.to_string(quote do: ["a.b": 1, c: 1 + 2]) == "[\"a.b\": 1, c: 1 + 2]"
   end
 
   test :string_list do

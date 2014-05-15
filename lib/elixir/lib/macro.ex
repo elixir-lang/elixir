@@ -510,7 +510,11 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      atom_to_binary(key) <> ": " <> to_string(value, fun)
+      atom_name = case Inspect.Atom.inspect(key) do
+        ":" <> rest -> rest
+        other       -> other
+      end
+      atom_name <> ": " <> to_string(value, fun)
     end)
   end
 
