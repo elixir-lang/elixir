@@ -114,19 +114,25 @@ defmodule Inspect.Algebra do
 
   @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
 
-  require Record
-
   @typep doc_cons :: {:doc_cons, t, t}
-  Record.defrecordp :doc_cons, left: :doc_nil, right: :doc_nil
+  defmacrop doc_cons(left, right) do
+    quote do: {:doc_cons, unquote(left), unquote(right)}
+  end
 
-  @typep doc_nest :: {:doc_nest, non_neg_integer, t}
-  Record.defrecordp :doc_nest, indent: 1, doc: :doc_nil
+  @typep doc_nest :: {:doc_nest, t, non_neg_integer}
+  defmacrop doc_nest(doc, indent) do
+    quote do: {:doc_nest, unquote(doc), unquote(indent) }
+  end
 
   @typep doc_break :: {:doc_break, binary}
-  Record.defrecordp :doc_break, str: " "
+  defmacrop doc_break(break) do
+    quote do: {:doc_break, unquote(break)}
+  end
 
   @typep doc_group :: {:doc_group, t}
-  Record.defrecordp :doc_group, doc: :doc_nil
+  defmacrop doc_group(group) do
+    quote do: {:doc_group, unquote(group)}
+  end
 
   defmacrop is_doc(doc) do
     if Macro.Env.in_guard?(__CALLER__) do
@@ -217,7 +223,7 @@ defmodule Inspect.Algebra do
   """
   @spec concat(t, t) :: doc_cons
   def concat(x, y) when is_doc(x) and is_doc(y) do
-    doc_cons(left: x, right: y)
+    doc_cons(x, y)
   end
 
   @doc """
@@ -245,7 +251,7 @@ defmodule Inspect.Algebra do
   end
 
   def nest(x, i) when is_doc(x) and is_integer(i) do
-    doc_nest(indent: i, doc: x)
+    doc_nest(x, i)
   end
 
   @doc ~S"""
@@ -273,7 +279,7 @@ defmodule Inspect.Algebra do
   def break(s) when is_binary(s), do: doc_break(str: s)
 
   @spec break() :: doc_break
-  def break(), do: doc_break(str: @break)
+  def break(), do: doc_break(@break)
 
   @doc """
   Inserts a break between two docs. See `break/1` for more info.
@@ -317,7 +323,7 @@ defmodule Inspect.Algebra do
   """
   @spec group(t) :: doc_group
   def group(d) when is_doc(d) do
-    doc_group(doc: d)
+    doc_group(d)
   end
 
   @doc """
@@ -451,7 +457,7 @@ defmodule Inspect.Algebra do
   """
   @spec pretty(t, non_neg_integer | :infinity) :: binary
   def pretty(d, w) do
-    sdoc = format w, 0, [{0, default_mode(w), doc_group(doc: d)}]
+    sdoc = format w, 0, [{0, default_mode(w), doc_group(d)}]
     render(sdoc)
   end
 
@@ -465,28 +471,28 @@ defmodule Inspect.Algebra do
 
   @doc false
   @spec fits?(integer, [{integer, mode, t}]) :: boolean
-  def fits?(w, _) when w < 0,                               do: false
-  def fits?(_, []),                                         do: true
-  def fits?(_, [{_, _, :doc_line} | _]),                    do: true
-  def fits?(w, [{_, _, :doc_nil} | t]),                     do: fits?(w, t)
-  def fits?(w, [{i, m, doc_cons(left: x, right: y)} | t]),  do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
-  def fits?(w, [{i, m, doc_nest(indent: j, doc: x)} | t]),  do: fits?(w, [{i + j, m, x} | t])
-  def fits?(w, [{i, _, doc_group(doc: x)} | t]),            do: fits?(w, [{i, :flat, x} | t])
-  def fits?(w, [{_, _, s} | t]) when is_binary(s),          do: fits?((w - byte_size s), t)
-  def fits?(w, [{_, :flat, doc_break(str: s)} | t]),        do: fits?((w - byte_size s), t)
-  def fits?(_, [{_, :break, doc_break(str: _)} | _]),       do: true
+  def fits?(w, _) when w < 0,                      do: false
+  def fits?(_, []),                                do: true
+  def fits?(_, [{_, _, :doc_line} | _]),           do: true
+  def fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
+  def fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
+  def fits?(w, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, [{i + j, m, x} | t])
+  def fits?(w, [{i, _, doc_group(x)} | t]),        do: fits?(w, [{i, :flat, x} | t])
+  def fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size s), t)
+  def fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size s), t)
+  def fits?(_, [{_, :break, doc_break(_)} | _]),   do: true
 
   @doc false
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
-  def format(_, _, []),                                        do: []
-  def format(w, _, [{i, _, :doc_line} | t]),                   do: [indent(i) | format(w, i, t)]
-  def format(w, k, [{_, _, :doc_nil} | t]),                    do: format(w, k, t)
-  def format(w, k, [{i, m, doc_cons(left: x, right: y)} | t]), do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
-  def format(w, k, [{i, m, doc_nest(indent: j, doc: x)} | t]), do: format(w, k, [{i + j, m, x} | t])
-  def format(w, k, [{i, m, doc_group(doc: x)} | t]),           do: format(w, k, [{i, m, x} | t])
-  def format(w, k, [{_, _, s} | t]) when is_binary(s),         do: [s | format(w, (k + byte_size s), t)]
-  def format(w, k, [{_, :flat, doc_break(str: s)} | t]),       do: [s | format(w, (k + byte_size s), t)]
-  def format(w, k, [{i, :break, doc_break(str: s)} | t]) do
+  def format(_, _, []),                                do: []
+  def format(w, _, [{i, _, :doc_line} | t]),           do: [indent(i) | format(w, i, t)]
+  def format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
+  def format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
+  def format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
+  def format(w, k, [{i, m, doc_group(x)} | t]),        do: format(w, k, [{i, m, x} | t])
+  def format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size s), t)]
+  def format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size s), t)]
+  def format(w, k, [{i, :break, doc_break(s)} | t]) do
     k = k + byte_size(s)
 
     if w == :infinity or fits?(w - k, t) do

@@ -172,8 +172,9 @@ defmodule String do
   defdelegate split(binary), to: String.Unicode
 
   @doc ~S"""
-  Divides a string into substrings based on a pattern,
-  returning a list of these substrings. The pattern can
+  Divides a string into substrings based on a pattern.
+
+  Returns a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by

@@ -628,6 +628,15 @@ defmodule FunctionClauseError do
   end
 end
 
+defmodule Code.LoadError do
+  defexception [:file, :message]
+
+  def exception(opts) do
+    file = opts[:file]
+    %Code.LoadError{message: "could not load #{file}", file: file}
+  end
+end
+
 defmodule Protocol.UndefinedError do
   defexception [protocol: nil, value: nil, description: nil]
 

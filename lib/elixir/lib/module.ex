@@ -930,11 +930,6 @@ defmodule Module do
     {atom, 0}
   end
 
-  defp normalize_attribute(:behaviour, Exception) do # Required for bootstraping
-    :code.ensure_loaded(Exception)
-    Exception
-  end
-
   defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
     Code.ensure_compiled(atom)
     atom

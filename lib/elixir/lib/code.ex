@@ -1,13 +1,4 @@
 defmodule Code do
-  defmodule LoadError do
-    defexception [:file, :message]
-
-    def exception(opts) do
-      file = opts[:file]
-      %LoadError{message: "could not load #{file}", file: file}
-    end
-  end
-
   @moduledoc """
   Utilities for managing code compilation, code evaluation and code loading.
 
