@@ -168,4 +168,10 @@ defmodule OptionParserTest do
     assert OptionParser.parse(args)
            == {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
   end
+
+  test "collects multiple invalid options" do
+    args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
+    assert OptionParser.parse(args, switches: [bad: :integer])
+           == {[], ["foo", "bar"], [bad: "opt", o: "bad"]}
+  end
 end
