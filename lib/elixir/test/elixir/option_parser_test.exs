@@ -229,7 +229,7 @@ defmodule OptionParserTest.Strict do
            == {:error, {:unknown, :docs, nil}, {[], ["hello"], ["world"]}}
   end
 
-  test "continues parsing" do
+  test "continues parsing after unknown option" do
     config = [switches: [verbose: :boolean, opt: :string], aliases: [v: :verbose], strict: true]
     result = OptionParser.parse(["-v", "foo", "bar", "-d", "bar", "--opt", "baz", "quux"], config)
     assert result == {:error, {:unknown, :d, nil}, {[verbose: true], ["foo", "bar"], ["bar", "--opt", "baz", "quux"]}}
@@ -238,5 +238,17 @@ defmodule OptionParserTest.Strict do
     cont = {[{:d, "ok"}|opts], args, rest}
     assert OptionParser.parse_cont(cont, config)
            == {:ok, [d: "ok", verbose: true, opt: "baz"], ["foo", "bar", "bar", "quux"]}
+  end
+
+  test "continues parsing after bad value" do
+    config = [switches: [num: [:integer, :keep], opt: :string], aliases: [o: :opt], strict: true]
+    result = OptionParser.parse(["-o", "foo", "bar", "--num=inf", "baz", "--num", "13", "quux"], config)
+    assert result == {:error, {:value, :num, "inf"}, {[opt: "foo"], ["bar"], ["baz", "--num", "13", "quux"]}}
+
+    big_number = 1000000
+    {:error, _, {opts, args, rest}} = result
+    cont = {opts ++ [num: big_number], args, rest}
+    assert OptionParser.parse_cont(cont, config)
+           == {:ok, [opt: "foo", num: 1000000, num: 13], ["bar", "baz", "quux"]}
   end
 end
