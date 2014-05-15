@@ -19,7 +19,7 @@ defmodule String do
   * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
   * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
   * Plus a number of conversion functions, like `Kernel.binary_to_atom/1`,
-    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their inverses,
+    `Kernel.binary_to_integer/2` and their inverses,
     like `Kernel.integer_to_binary/2`
 
   Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
