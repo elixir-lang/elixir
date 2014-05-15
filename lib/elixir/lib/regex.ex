@@ -70,7 +70,9 @@ defmodule Regex do
 
   defstruct re_pattern: nil :: term, source: "" :: binary, opts: "" :: binary
 
-  defexception CompileError, message: "regex could not be compiled"
+  defmodule CompileError do
+    defexception message: "regex could not be compiled"
+  end
 
   @doc """
   Compiles the regular expression.

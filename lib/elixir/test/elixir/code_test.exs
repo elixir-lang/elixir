@@ -29,7 +29,7 @@ defmodule CodeTest do
   end
 
   test :eval_with_unnamed_scopes do
-    assert {RuntimeError[], [a: RuntimeError[]]} =
+    assert {%RuntimeError{}, [a: %RuntimeError{}]} =
            Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
   end
 

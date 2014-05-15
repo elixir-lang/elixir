@@ -84,7 +84,7 @@ defmodule CompileAssertion do
       :elixir.eval(to_char_list(expr), [])
       nil
     rescue
-      error -> {error.__record__(:name), Exception.message(error)}
+      error -> {error.__struct__, Exception.message(error)}
     end
 
     result || flunk(message: "Expected expression to fail")

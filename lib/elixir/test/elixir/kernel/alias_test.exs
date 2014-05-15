@@ -58,16 +58,6 @@ defmodule Kernel.AliasNestingGenerator do
       end
     end
   end
-
-  defmacro record do
-    quote do
-      defexception Parent, message: nil
-
-      defmodule Parent.Child do
-        def b, do: Parent.new(message: "ok")
-      end
-    end
-  end
 end
 
 defmodule Kernel.AliasNestingTest do
@@ -90,18 +80,6 @@ defmodule Kernel.AliasNestingTest do
   end
 end
 
-defmodule Kernel.AliasMacroNestingTest do
-  use ExUnit.Case, async: true
-
-  require Kernel.AliasNestingGenerator
-  Kernel.AliasNestingGenerator.record
-
-  test :aliases_nesting do
-    assert is_tuple(Parent.new)
-    assert Parent.Child.b.message == "ok"
-  end
-end
-
 # Test case extracted from using records with aliases
 # and @before_compile. We are basically testing that
 # macro aliases are not leaking from the macro.
@@ -115,8 +93,12 @@ defmodule Macro.AliasTest.Definer do
 
   defmacro __before_compile__(_env) do
     quote do
-      defrecord Record, [foo: :bar]
-      defrecord Another, baz: Record.new
+      defmodule First do
+        defstruct foo: :bar
+      end
+      defmodule Second do
+        defstruct baz: %First{}
+      end
     end
   end
 end
@@ -124,7 +106,7 @@ end
 defmodule Macro.AliasTest.Aliaser do
   defmacro __using__(_options) do
     quote do
-      alias Some.Record
+      alias Some.First
     end
   end
 end
@@ -136,6 +118,7 @@ defmodule Macro.AliasTest.User do
   use Macro.AliasTest.Aliaser
 
   test "has a record defined from after compile" do
-    assert is_tuple Macro.AliasTest.User.Record.new
+    assert is_map struct(Macro.AliasTest.User.First, [])
+    assert is_map struct(Macro.AliasTest.User.Second, []).baz
   end
 end

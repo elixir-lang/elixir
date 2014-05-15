@@ -143,10 +143,6 @@ defmodule Inspect.TupleTest do
     assert inspect({List, 1}) == "{List, 1}"
   end
 
-  test :with_record_like_pseudo_exception do
-    assert inspect({Other, :__exception__, 1}) == "{Other, :__exception__, 1}"
-  end
-
   defrecord Config, a: 1, b: []
 
   test :with_record do
@@ -155,10 +151,6 @@ defmodule Inspect.TupleTest do
 
   test :with_tuple_matching_record_name_but_not_length do
     assert inspect({ExUnit.Server.Config}) == "{ExUnit.Server.Config}"
-  end
-
-  test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
   end
 
   defrecord Rec, value: 1
@@ -303,6 +295,11 @@ defmodule Inspect.MapTest do
     assert_raise ArgumentError, msg, fn ->
       inspect(%Failing{})
     end
+  end
+
+  test :exception do
+    assert inspect(%RuntimeError{message: "runtime error"}) ==
+           "%RuntimeError{message: \"runtime error\"}"
   end
 end
 

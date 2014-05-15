@@ -114,11 +114,11 @@ bin_string_with_the_end_of_line_slash_test() ->
   {<<"fo">>, _} = eval("\"f\\\r\no\"").
 
 invalid_string_interpolation_test() ->
-  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{some\"")),
-  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"f#{1+")).
+  ?assertError(#{'__struct__' := 'Elixir.TokenMissingError'}, eval("\"f#{some\"")),
+  ?assertError(#{'__struct__' := 'Elixir.TokenMissingError'}, eval("\"f#{1+")).
 
 unterminated_string_interpolation_test() ->
-  ?assertError({'Elixir.TokenMissingError', _, _, _, _}, eval("\"foo")).
+  ?assertError(#{'__struct__' := 'Elixir.TokenMissingError'}, eval("\"foo")).
 
 %% List strings
 

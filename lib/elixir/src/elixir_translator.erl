@@ -226,11 +226,19 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
         true ->
           {Var, _, SV} = elixir_scope:build_var('_', SC),
           TVar = {var, Line, Var},
-          TMap = {tuple, Line, [
-            {atom, Line, 'Elixir.KeyError'},
-            {atom, Line, '__exception__'},
-            TRight,
-            TVar]},
+          TMap = {map, Line, [
+            {map_field_assoc, Line,
+              {atom, Line, '__struct__'},
+              {atom, Line, 'Elixir.KeyError'}},
+            {map_field_assoc, Line,
+              {atom, Line, '__exception__'},
+              {atom, Line, 'true'}},
+            {map_field_assoc, Line,
+              {atom, Line, key},
+              {atom, Line, TRight}},
+            {map_field_assoc, Line,
+              {atom, Line, term},
+              {atom, Line, TVar}}]},
 
           %% TODO There is a bug in dialyzer that makes it fail on
           %% empty maps. We work around the bug below by using

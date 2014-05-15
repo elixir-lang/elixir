@@ -1661,7 +1661,7 @@ defmodule Kernel do
       end
 
   """
-  @spec raise(binary | atom | tuple) :: no_return
+  @spec raise(binary | atom) :: no_return
   defmacro raise(msg) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make dialyzer happy.
@@ -1673,11 +1673,11 @@ defmodule Kernel do
     case msg do
       msg when is_binary(msg) ->
         quote do
-          :erlang.error RuntimeError.exception(message: unquote(msg))
+          :erlang.error RuntimeError.exception(unquote(msg))
         end
       {:<<>>, _, _} = msg ->
         quote do
-          :erlang.error RuntimeError.exception(message: unquote(msg))
+          :erlang.error RuntimeError.exception(unquote(msg))
         end
       alias when is_atom(alias) ->
         quote do
@@ -1686,7 +1686,7 @@ defmodule Kernel do
       _ ->
         quote do
           case unquote(msg) do
-            msg when is_binary(msg) -> :erlang.error RuntimeError.exception(message: msg)
+            msg when is_binary(msg) -> :erlang.error RuntimeError.exception(msg)
             msg -> :erlang.error msg.exception([])
           end
         end
@@ -1700,7 +1700,7 @@ defmodule Kernel do
   the attributes in order to retrieve the appropriate exception
   structure.
 
-  Any module defined via `defexception` automatically
+  Any module defined via `defexception/1` automatically
   implements `exception(attrs)` callback expected by `raise/2`.
 
   ## Examples
@@ -1709,7 +1709,7 @@ defmodule Kernel do
       ** (ArgumentError) Sample
 
   """
-  @spec raise(tuple | atom, list) :: no_return
+  @spec raise(atom, term) :: no_return
   defmacro raise(exception, attrs) do
     quote do
       :erlang.error unquote(exception).exception(unquote(attrs))
@@ -1738,29 +1738,11 @@ defmodule Kernel do
   rescued) in between the rescue clause and the raise call
   may change the `System.stacktrace` value.
   """
-  @spec raise(tuple | atom, list, list) :: no_return
-  defmacro raise(exception, attrs, stacktrace) do
+  @spec raise(Exception.t, list, list) :: no_return
+  defmacro raise(exception, _attrs, stacktrace) do
+    ## TODO: DEPRECATE ME
     quote do
-      :erlang.raise :error, unquote(exception).exception(unquote(attrs)), unquote(stacktrace)
-    end
-  end
-
-  @doc false
-  defmacro is_exception(thing) do
-    IO.write :stderr, "Kernel.is_exception/1 is deprecated, please use Exception.exception?/1 instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 1 and
-            :erlang.element(2, unquote(thing)) == :__exception__
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 1 and
-            :erlang.element(2, result) == :__exception__
-        end
+      :erlang.raise :error, unquote(exception), unquote(stacktrace)
     end
   end
 
@@ -3268,9 +3250,9 @@ defmodule Kernel do
         true when types == [] ->
           quote unquote: false do
             unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-              types = Enum.map(fields, fn {key, _} ->
+              types = :lists.map(fn {key, _} ->
                 {key, quote(do: term)}
-              end)
+              end, fields)
               @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
             end
           end
@@ -3287,82 +3269,97 @@ defmodule Kernel do
     quote do
       unquote(fields)
       unquote(types)
+      fields
     end
   end
 
   @doc ~S"""
   Defines an exception.
 
-  Exceptions are simply records with three differences:
+  Exceptions are structs backed by a module that implements
+  the Exception behaviour. The Exception behaviour requires
+  two functions to be implemented:
 
-  1. Exceptions are required to define a function `exception/1`
-     that receives keyword arguments and returns the exception.
-     This function is a callback usually invoked by `raise/2`;
+  * `exception/1` - that receives the arguments given to `raise/2`
+     and returns the exception struct. The default implementation
+     accepts a set of keyword arguments that is merged into the
+     struct;
 
-  2. Exceptions are required to provide a `message` field.
-     This field must return a String with a formatted error message;
+  * `message/1` - receives the exception struct and must return its
+    message. Most commonly exceptions have a message field which
+    by default is accessed by this function. However, if your exception
+    does not have a message field, this function must be explicitly
+    implemented;
 
-  3. Unlike records, exceptions are documented by default.
-
-  Since exceptions are records, `defexception/3` has exactly
-  the same API as `defrecord/3`.
+  Since exceptions are structs, all the API supported by `defstruct/1`
+  is available to in `defexception/1`.
 
   ## Raising exceptions
 
   The most common way to raise an exception is via the `raise/2`
   function:
 
-      defexception MyException, [:message]
-      raise MyException,
+      defmodule MyAppError do
+        defexception [:message]
+      end
+
+      raise MyAppError,
         message: "did not get what was expected, got: #{inspect value}"
 
-  In many cases it is more convenient to pass the
-  expected value to `raise` and generate the message in the `exception/1`
-  callback:
+  In many cases it is more convenient to pass the expected value to
+  `raise` and generate the message in the `exception/1` callback:
 
-      defexception MyException, [:message] do
-        def exception(opts) do
+      defmodule MyAppError do
+        defexception [:message]
+
+        def exception(value) do
           msg = "did not get what was expected, got: #{inspect opts[:actual]}"
-          MyException[message: msg]
+          %MyException%{message: msg}
         end
       end
 
-      raise MyException, actual: value
+      raise MyAppError, value
 
   The example above is the preferred mechanism for customizing
   exception messages.
   """
+  defmacro defexception(fields) do
+    fields = case is_list(fields) do
+      true  -> [{:__exception__, true}|fields]
+      false -> quote(do: [{:__exception__, true}] ++ unquote(fields))
+    end
+
+    quote do
+      @behaviour Exception
+      fields = defstruct unquote(fields)
+
+      def exception(args) when is_list(args) do
+        Kernel.struct(__struct__, args)
+      end
+
+      defoverridable exception: 1
+
+      if Keyword.has_key?(fields, :message) do
+        def message(exception) do
+          exception.message
+        end
+
+        defoverridable message: 1
+      end
+    end
+  end
+
+  @doc false
   defmacro defexception(name, fields, do_block \\ []) do
+    ## TODO: DEPRECATE ME
+
     {fields, do_block} =
       case is_list(fields) and Keyword.get(fields, :do, false) do
         false -> {fields, do_block}
         other -> {Keyword.delete(fields, :do), [do: other]}
       end
 
-    do_block = Keyword.put(do_block, :do, quote do
-      @moduledoc nil
-      record_type message: String.t
-
-      @doc false
-      def exception(attrs), do: new(attrs)
-
-      @doc false
-      def exception(attrs, self), do: update(attrs, self)
-
-      defoverridable exception: 1, exception: 2
-      unquote(Keyword.get do_block, :do)
-    end)
-
-    fields = quote do: [__exception__: :__exception__] ++ unquote(fields)
-    record = Record.Deprecated.defrecord(name, fields, do_block)
-
-    quote do
-      {:module, name, _, _} = unquote(record)
-
-      unless :erlang.function_exported(name, :message, 1) do
-        Kernel.raise "expected exception #{inspect name} to implement message/1"
-      end
-    end
+    Record.Deprecated.defexception(name, fields, do_block)
   end
 
   @doc """

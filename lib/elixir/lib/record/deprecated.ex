@@ -1,6 +1,16 @@
 defmodule Record.Deprecated do
   @moduledoc false
 
+  def defexception(name, fields, opts) do
+    quote do
+      fields = unquote(fields)
+      defmodule unquote(name) do
+        defexception fields
+        unquote(Keyword.get opts, :do)
+      end
+    end
+  end
+
   def defrecord(name, fields, opts) do
     block = Keyword.get(opts, :do, nil)
     record_check!(fields)

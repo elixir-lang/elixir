@@ -101,7 +101,7 @@ nested_ref_test() ->
   {'Elixir.Foo.Bar.Baz', _} = eval("Foo.Bar.Baz").
 
 module_with_elixir_as_a_name_test() ->
-  ?assertError({'Elixir.CompileError', _, _, _, _}, eval("defmodule Elixir do\nend")).
+  ?assertError(#{'__struct__' := 'Elixir.CompileError'}, eval("defmodule Elixir do\nend")).
 
 dynamic_defmodule_test() ->
   F = fun() ->

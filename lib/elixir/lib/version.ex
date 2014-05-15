@@ -68,15 +68,15 @@ defmodule Version do
     defstruct [:source, :matchspec]
   end
 
-  defexception InvalidRequirement, [:message]
-  defexception InvalidVersion, [:message]
+  defexception InvalidRequirementError, [:message]
+  defexception InvalidVersionError, [:message]
 
   @doc """
   Check if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
-  Raises a `Version.InvalidRequirement` exception if `requirement` is not
-  parseable, or `Version.InvalidVersion` if `version` is not parseable.
+  Raises a `Version.InvalidRequirementError` exception if `requirement` is not
+  parseable, or `Version.InvalidVersionError` if `version` is not parseable.
   If given an already parsed version and requirement this function won't
   raise.
 
@@ -89,10 +89,10 @@ defmodule Version do
       false
 
       iex> Version.match?("foo", "==1.0.0")
-      ** (Version.InvalidVersion) foo
+      ** (Version.InvalidVersionError) foo
 
       iex> Version.match?("2.0.0", "== ==1.0.0")
-      ** (Version.InvalidRequirement) == ==1.0.0
+      ** (Version.InvalidRequirementError) == ==1.0.0
 
   """
   @spec match?(version, requirement) :: boolean
@@ -101,7 +101,7 @@ defmodule Version do
       {:ok, req} ->
         match?(vsn, req)
       :error ->
-        raise InvalidRequirement, message: req
+        raise InvalidRequirementError, message: req
     end
   end
 
@@ -115,7 +115,7 @@ defmodule Version do
   the second and `:lt` for vice versa. If the two versions are equal `:eq`
   is returned
 
-  Raises a `Version.InvalidVersion` exception if `version` is not parseable.
+  Raises a `Version.InvalidVersionError` exception if `version` is not parseable.
   If given an already parsed version this function won't raise.
 
   ## Examples
@@ -127,7 +127,7 @@ defmodule Version do
       :eq
 
       iex> Version.compare("invalid", "2.0.1")
-      ** (Version.InvalidVersion) invalid
+      ** (Version.InvalidVersionError) invalid
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
@@ -200,7 +200,7 @@ defmodule Version do
   defp to_matchable(string) do
     case Version.Parser.parse_version(string) do
       {:ok, vsn} -> vsn
-      :error -> raise InvalidVersion, message: string
+      :error -> raise InvalidVersionError, message: string
     end
   end
 

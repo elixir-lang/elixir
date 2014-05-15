@@ -294,7 +294,7 @@ defmodule ExUnit.DocTest do
         unquote(expr_ast)
       rescue
         error ->
-          unless error.__record__(:name) == unquote(exception) and
+          unless error.__struct__ == unquote(exception) and
                  Exception.message(error) == unquote(message) do
             got = inspect(elem(error, 0)) <> " with message " <> inspect(Exception.message(error))
             raise ExUnit.AssertionError,
@@ -322,14 +322,15 @@ defmodule ExUnit.DocTest do
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
     try do
       Code.string_to_quoted!(expr, location)
-    rescue e ->
-      message = "(#{inspect e.__record__(:name)}) #{Exception.message(e)}"
-      quote do
-        raise ExUnit.AssertionError,
-          [message: "Doctest did not compile, got: #{unquote(message)}",
-           expr: unquote(String.strip(expr))]
-          unquote(stack)
-      end
+    rescue
+      e ->
+        message = "(#{inspect e.__struct__}) #{Exception.message(e)}"
+        quote do
+          raise ExUnit.AssertionError,
+            [message: "Doctest did not compile, got: #{unquote(message)}",
+             expr: unquote(String.strip(expr))]
+            unquote(stack)
+        end
     end
   end
 

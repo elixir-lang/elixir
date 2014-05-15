@@ -163,7 +163,7 @@ defmodule Inspect.Algebra do
         e ->
           res = Inspect.Tuple.inspect(arg, opts)
           raise ArgumentError, message:
-            "Got #{inspect e.__record__(:name)} with message " <>
+            "Got #{inspect e.__struct__} with message " <>
             "#{Exception.message(e)} while inspecting #{pretty(res, opts.width)}"
       end
     else
@@ -179,7 +179,7 @@ defmodule Inspect.Algebra do
         e ->
           res = Inspect.Map.inspect(map, opts)
           raise ArgumentError, message:
-            "Got #{inspect e.__record__(:name)} with message " <>
+            "Got #{inspect e.__struct__} with message " <>
             "\"#{Exception.message(e)}\" while inspecting #{pretty(res, opts.width)}"
       end
     else

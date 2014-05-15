@@ -118,7 +118,7 @@ defmodule ExUnit.Formatter do
       <> format_stacktrace(stacktrace, name, nil, formatter)
   end
 
-  defp format_kind_reason(:error, ExUnit.AssertionError[] = record, width, formatter) do
+  defp format_kind_reason(:error, %ExUnit.AssertionError{} = record, width, formatter) do
     width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
 
     fields =

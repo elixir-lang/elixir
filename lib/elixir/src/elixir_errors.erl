@@ -177,7 +177,7 @@ raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File) ->
     ok -> ok
   end,
   Stacktrace = erlang:get_stacktrace(),
-  Exception = Kind:new([{description, Message}, {file, File}, {line, Line}]),
+  Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
   erlang:raise(error, Exception, tl(Stacktrace)).
 
 file_format(0, File, Message) when is_binary(File) ->

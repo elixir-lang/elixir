@@ -3,9 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Kernel.ExceptionTest do
   use ExUnit.Case, async: true
 
-  # Ensure fields passed through an expression are valid
-  defexception Custom, ~w(message)a
-
   test "raise preserves the stacktrace" do
     stacktrace =
       try do
@@ -16,13 +13,13 @@ defmodule Kernel.ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
     assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 12]} = stacktrace
+           [file: ^file, line: 9]} = stacktrace
   end
 
   test "exception?" do
-    assert Exception.exception?(RuntimeError.new)
+    assert Exception.exception?(%RuntimeError{})
+    refute Exception.exception?(%Regex{})
     refute Exception.exception?({})
-    refute Exception.exception?(%{})
   end
 
   test "message" do
@@ -32,11 +29,10 @@ defmodule Kernel.ExceptionTest do
       end
     end
 
-    message = "Got RuntimeError with message \"oops\" " <>
-              "while retrieving message for {Kernel.ExceptionTest.BadException}"
+    message = ~r/Got RuntimeError with message \"oops\" while retrieving message for/
 
     assert_raise ArgumentError, message, fn ->
-      Exception.message({BadException})
+      Exception.message(%{__struct__: BadException, __exception__: true})
     end
   end
 
@@ -46,8 +42,8 @@ defmodule Kernel.ExceptionTest do
     assert Exception.normalize(:throw, :badarg) == :badarg
     assert Exception.normalize(:exit, :badarg) == :badarg
     assert Exception.normalize({:EXIT, self}, :badarg) == :badarg
-    assert Record.record? Exception.normalize(:error, :badarg), ArgumentError
-    assert Record.record? Exception.normalize(:error, ArgumentError[]), ArgumentError
+    assert Exception.normalize(:error, :badarg).__struct__ == ArgumentError
+    assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
   end
 
   test "format_banner" do
@@ -199,7 +195,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_exit with call with exception" do
     # Fake reason to prevent error_logger printing to stdout
-    fsm_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    fsm_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
     reason = try do
       :gen_fsm.sync_send_event(spawn(fn() ->
           :timer.sleep(200) ; exit(fsm_reason)
@@ -233,7 +229,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_exit with nested calls and exception" do
     # Fake reason to prevent error_logger printing to stdout
-    event_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    event_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
     event_fun = fn() -> :timer.sleep(200) ; exit(event_reason) end
     server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
     reason = try do
@@ -301,32 +297,32 @@ defmodule Kernel.ExceptionTest do
   import Exception, only: [message: 1]
 
   test "runtime error message" do
-    assert RuntimeError.new |> message == "runtime error"
-    assert RuntimeError.new(message: "exception") |> message == "exception"
+    assert %RuntimeError{} |> message == "runtime error"
+    assert %RuntimeError{message: "exception"} |> message == "exception"
   end
 
   test "argument error message" do
-    assert ArgumentError.new |> message == "argument error"
-    assert ArgumentError.new(message: "exception") |> message == "exception"
+    assert %ArgumentError{} |> message == "argument error"
+    assert %ArgumentError{message: "exception"} |> message == "exception"
   end
 
   test "undefined function message" do
-    assert UndefinedFunctionError.new |> message == "undefined function"
-    assert UndefinedFunctionError.new(module: Foo, function: :bar, arity: 1) |> message ==
+    assert %UndefinedFunctionError{} |> message == "undefined function"
+    assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
            "undefined function: Foo.bar/1"
-    assert UndefinedFunctionError.new(module: nil, function: :bar, arity: 0) |> message ==
+    assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
            "undefined function: nil.bar/0"
   end
 
   test "function clause message" do
-    assert FunctionClauseError.new |> message ==
+    assert %FunctionClauseError{} |> message ==
            "no function clause matches"
-    assert FunctionClauseError.new(module: Foo, function: :bar, arity: 1) |> message ==
+    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
            "no function clause matching in Foo.bar/1"
   end
 
   test "erlang error message" do
-    assert ErlangError.new(original: :sample) |> message ==
+    assert %ErlangError{original: :sample} |> message ==
            "erlang error: :sample"
   end
 end

@@ -159,7 +159,7 @@ defmodule IEx.Evaluator do
   end
 
   defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
-    {RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t}
+    {%RuntimeError{message: "undefined function: #{format_function(fun, arity)}"}, t}
   end
 
   defp normalize_exception(_kind, reason, stacktrace) do

@@ -171,7 +171,7 @@ defmodule IEx.InteractionTest do
   test "receive exit from exception" do
     # use exit/1 to fake an error so that an error message
     # is not sent to the error logger.
-    content = capture_iex("spawn_link(fn -> exit({ArgumentError[],
+    content = capture_iex("spawn_link(fn -> exit({%ArgumentError{},
                            [{:not_a_real_module, :function, 0, []}]}) end)")
     assert content =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n"
     assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"

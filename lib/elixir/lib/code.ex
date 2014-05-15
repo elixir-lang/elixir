@@ -1,8 +1,10 @@
 defmodule Code do
-  defexception LoadError, [:file, :message] do
+  defmodule LoadError do
+    defexception [:file, :message]
+
     def exception(opts) do
       file = opts[:file]
-      LoadError[message: "could not load #{file}", file: file]
+      %LoadError{message: "could not load #{file}", file: file}
     end
   end
 

@@ -6,11 +6,11 @@ defmodule Record.Backend do
   Normalizes a list of record or struct fields to have default values.
   """
   def default_fields(type, fields) do
-    Enum.map(fields, fn
+    :lists.map(fn
       { key, _ } = pair when is_atom(key) -> pair
       key when is_atom(key) -> { key, nil }
       other -> raise ArgumentError, message: "#{type} fields must be atoms, got: #{inspect other}"
-    end)
+    end, fields)
   end
 
   @doc """

@@ -92,7 +92,7 @@ defmodule Task.SupervisorTest do
 
   test "await/1 exits on task error", config do
     task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
-    assert {{RuntimeError[], _}, {Task, :await, [^task, 5000]}} =
+    assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 

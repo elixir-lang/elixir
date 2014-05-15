@@ -1,14 +1,14 @@
 defexception Mix.NoTaskError, task: nil, mix_error: true, message: nil do
   def exception(opts) do
     task = opts[:task]
-    Mix.NoTaskError[task: task, message: "The task #{task} could not be found"]
+    %Mix.NoTaskError{task: task, message: "The task #{task} could not be found"}
   end
 end
 
 defexception Mix.InvalidTaskError, task: nil, mix_error: true, message: nil do
   def exception(opts) do
     task = opts[:task]
-    Mix.InvalidTaskError[task: task, message: "The task #{task} does not export run/1"]
+    %Mix.InvalidTaskError{task: task, message: "The task #{task} does not export run/1"}
   end
 end
 
@@ -22,7 +22,7 @@ defexception Mix.ElixirVersionError, mix_error: true, target: nil, expected: nil
     expected = opts[:expected]
     message  = "You're trying to run #{inspect target} on Elixir v#{actual} but it " <>
                "has declared in its mix.exs file it supports only Elixir #{expected}"
-    Mix.ElixirVersionError[target: target, expected: expected, actual: actual, message: message]
+    %Mix.ElixirVersionError{target: target, expected: expected, actual: actual, message: message}
   end
 end
 
