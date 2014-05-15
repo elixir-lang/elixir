@@ -86,7 +86,7 @@ defmodule OptionParser do
 
   """
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    do_parse(argv, compile_config(opts, false), [], [], [], true)
+    do_parse(argv, compile_config(opts), [], [], [], true)
   end
 
   @doc """
@@ -105,16 +105,36 @@ defmodule OptionParser do
 
   """
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    do_parse(argv, compile_config(opts, false), [], [], [], false)
+    do_parse(argv, compile_config(opts), [], [], [], false)
+  end
+
+
+  @doc """
+  Continue parsing.
+  """
+  def parse_cont({opts, args, rest}, config) do
+    do_parse(rest, compile_config(config), Enum.reverse(opts), Enum.reverse(args), [], true)
+  end
+
+
+  @doc """
+  Continue parsing head.
+  """
+  def parse_head_cont({opts, args, rest}, config) do
+    do_parse(rest, compile_config(config), Enum.reverse(opts), Enum.reverse(args), [], false)
   end
 
   ## Helpers
 
-  defp compile_config(config, strict) do
-    {config[:aliases]  || [], config[:switches] || [], strict}
+  defp compile_config(config) do
+    {
+      config[:aliases]  || [],
+      config[:switches] || [],
+      config[:strict]   || false,
+    }
   end
 
-  defp do_parse(argv, config, opts, args, invalid, all) do
+  defp do_parse(argv, {_, _, false}=config, opts, args, invalid, all) do
     case scan(argv, config, opts, args, all) do
       {:ok, opts, args} ->
         {opts, args, Enum.reverse(invalid)}
@@ -123,6 +143,12 @@ defmodule OptionParser do
         do_parse(rest, config, opts, args, [{opt, val}|invalid], all)
     end
   end
+
+  defp do_parse(argv, {_, _, true}=config, opts, args, _invalid, all) do
+    scan(argv, config, opts, args, all)
+  end
+
+  ##
 
   defp scan(["--"|_] = value, _config, opts, args, _all) do
     {:ok, Enum.reverse(opts), Enum.reverse(args, value)}
@@ -252,7 +278,7 @@ defmodule OptionParser do
     {value, [:unknown], t}
   end
 
-  defp normalize_value(nil, kinds, t, false) do
+  defp normalize_value(nil, kinds, t, _) do
     cond do
       :boolean in kinds ->
         {true, kinds, t}
