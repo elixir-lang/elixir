@@ -166,11 +166,7 @@ defmodule Inspect.Algebra do
       try do
         Inspect.inspect(arg, opts)
       rescue
-        e ->
-          res = Inspect.Tuple.inspect(arg, opts)
-          raise ArgumentError,
-            "Got #{inspect e.__struct__} with message " <>
-            "#{Exception.message(e)} while inspecting #{pretty(res, opts.width)}"
+        e -> Inspect.Tuple.inspect(arg, opts)
       end
     else
       Inspect.Tuple.inspect(arg, opts)
