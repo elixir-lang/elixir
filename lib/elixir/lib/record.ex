@@ -105,16 +105,19 @@ defmodule Record do
 
   @doc false
   def defmacros(name, values, env, tag \\ nil) do
+    IO.write :stderr, "Record.defmacros/4 is deprecated\n#{Exception.format_stacktrace()}"
     Record.Deprecated.defmacros(name, values, env, tag)
   end
 
   @doc false
   def deftypes(values, types, env) do
+    IO.write :stderr, "Record.deftypes/3 is deprecated\n#{Exception.format_stacktrace()}"
     Record.Deprecated.deftypes(values, types, env)
   end
 
   @doc false
   def deffunctions(values, env) do
+    IO.write :stderr, "Record.deffunctions/2 is deprecated\n#{Exception.format_stacktrace()}"
     Record.Deprecated.deffunctions(values, env)
   end
 

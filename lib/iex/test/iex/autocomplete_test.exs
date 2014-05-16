@@ -75,7 +75,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :elixir_kernel_completion do
-    assert expand('defreco') == {:yes, 'rd', []}
+    assert expand('defstru') == {:yes, 'ct', []}
   end
 
   test :elixir_proxy do

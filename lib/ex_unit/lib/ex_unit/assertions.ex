@@ -335,7 +335,7 @@ defmodule ExUnit.Assertions do
           name == exception ->
             error
           name == ExUnit.AssertionError ->
-            :erlang.raise(:error, error, stacktrace)
+            reraise(error, stacktrace)
           true ->
             flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
         end
@@ -408,7 +408,7 @@ defmodule ExUnit.Assertions do
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
         e in [ExUnit.AssertionError] ->
-          :erlang.raise(:error, e, System.stacktrace)
+          reraise(e, System.stacktrace)
       catch
         unquote(kind), we_got -> we_got
       end

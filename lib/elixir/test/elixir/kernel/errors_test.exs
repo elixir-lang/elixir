@@ -9,8 +9,6 @@ defmodule Kernel.ErrorsTest do
     defmacro exit(args), do: args
   end
 
-  defrecord Config, integer: 0
-
   test :invalid_token do
     assert_compile_fail SyntaxError,
       "nofile:1: invalid token: \end",
@@ -534,48 +532,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: unsupported option :ops given to import",
       'import :lists, [ops: 1]'
-  end
-
-  test :invalid_access_protocol_not_available do
-    assert_compile_fail CompileError,
-      "nofile:2: module Unknown is not loaded and could not be found",
-      '''
-      defmodule ErrorsTest do
-        def sample(Unknown[integer: 0]), do: true
-      end
-      '''
-  end
-
-  test :invalid_access_protocol_not_alias do
-    assert_raise ArgumentError, "dynamic access cannot be invoked inside match and guard clauses", fn ->
-      defmodule ErrorsTest do
-        def sample(config[integer: 0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_not_record do
-    assert_raise ArgumentError, "cannot access module Kernel.ErrorsTest because it is not a record", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest[integer: 0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_not_keywords do
-    assert_raise ArgumentError, "expected contents inside brackets to be a keyword list or an atom, got: [0]", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest.Config[0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_invalid_keywords do
-    assert_raise ArgumentError, "record Kernel.ErrorsTest.Config does not have the key: :foo", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true
-      end
-    end
   end
 
   test :invalid_rescue_clause do

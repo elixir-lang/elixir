@@ -1727,7 +1727,7 @@ defmodule Kernel do
         exception ->
           stacktrace = System.stacktrace
           if Exception.message(exception) == "Oops" do
-            raise exception, [], stacktrace
+            reraise exception, stacktrace
           end
       end
 
@@ -1738,9 +1738,17 @@ defmodule Kernel do
   rescued) in between the rescue clause and the raise call
   may change the `System.stacktrace` value.
   """
-  @spec raise(Exception.t, list, list) :: no_return
+  defmacro reraise(exception, stacktrace) do
+    quote do
+      :erlang.raise :error, unquote(exception), unquote(stacktrace)
+    end
+  end
+
+  @doc false
   defmacro raise(exception, _attrs, stacktrace) do
-    ## TODO: DEPRECATE ME
+    # IO.write :stderr, "raise/3 is deprecated, please use reraise/2 instead\n" <>
+    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+
     quote do
       :erlang.raise :error, unquote(exception), unquote(stacktrace)
     end
@@ -2591,6 +2599,10 @@ defmodule Kernel do
       2
 
   """
+
+  # When removing/changing this function. Search for :access
+  # in the codebase as macros, typespecs special case how
+  # :access is handle for stuff like records.
   defmacro access(element, attrs) when is_list(attrs) do
     caller = __CALLER__
     atom   = Macro.expand(element, caller)
@@ -3048,82 +3060,11 @@ defmodule Kernel do
     end
   end
 
-  @doc ~S"""
-  Note: Records are mostly deprecated and being slowly removed from
-  the language. The set of supported record operations will be
-  maintained in the Record module.
-
-  Exports a module with a record definition and runtime operations.
-
-  Please see the `Record` module's documentation for an introduction
-  to records in Elixir. The following sections are going into details
-  specific to `defrecord`.
-
-  ## Examples
-
-      defrecord User, name: nil, age: 0
-
-  The following line defines a module that exports information
-  about a record. The definition above provides a shortcut
-  syntax for creating and updating the record at compilation
-  time:
-
-      user = User[]
-      #=> User[name: nil, age: 0]
-
-      User[name: "José", age: 25]
-      #=> User[name: "José", age: 25]
-
-  And also a set of functions for working with the record
-  at runtime:
-
-      user = User.new(age: 25)
-      user.name          #=> Returns the value of name
-      user.name("José")  #=> Updates the value of name
-
-      # Update multiple attributes at once:
-      user.update(name: "Other", age: 25)
-
-      # Obtain the keywords representation of a record:
-      user.to_keywords #=> [name: "José", age: 25]
-
-  Since a record is simply a tuple where the first element is
-  the record name, we can get the raw record representation as
-  follows:
-
-      inspect User.new, records: false
-      #=> {User, nil, 0}
-
-  In addition to defining readers and writers for each attribute, Elixir also
-  defines an `update_#{attribute}` function to update the value. Such
-  functions expect a function as an argument that receives the current
-  value and must return the new one. For example, every time the file
-  is accessed, the accesses counter can be incremented with:
-
-      user.update_age(fn(old) -> old + 1 end)
-
-  ## Runtime introspection
-
-  At runtime, developers can use `__record__` to get information
-  about the given record:
-
-      User.__record__(:name)
-      #=> User
-
-      User.__record__(:fields)
-      #=> [name: nil, age: 0]
-
-  In order to quickly access the index of a field, one can use
-  the `__record__` function with `:index` as the first argument:
-
-      User.__record__(:index, :age)
-      #=> 2
-
-      User.__record__(:index, :unknown)
-      #=> nil
-
-  """
+  @doc false
   defmacro defrecord(name, fields, do_block \\ []) do
+    IO.write :stderr, "defrecord/3 is deprecated in favor of structs\n" <>
+                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+
     case is_list(fields) and Keyword.get(fields, :do, false) do
       false -> Record.Deprecated.defrecord(name, fields, do_block)
       other -> Record.Deprecated.defrecord(name, Keyword.delete(fields, :do), do: other)
@@ -3378,7 +3319,8 @@ defmodule Kernel do
 
   @doc false
   defmacro defexception(name, fields, do_block \\ []) do
-    ## TODO: DEPRECATE ME
+    # IO.write :stderr, "defexception/3 is deprecated, please use defexception/1 instead\n" <>
+    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
 
     {fields, do_block} =
       case is_list(fields) and Keyword.get(fields, :do, false) do

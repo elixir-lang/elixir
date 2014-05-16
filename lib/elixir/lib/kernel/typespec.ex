@@ -153,8 +153,6 @@ defmodule Kernel.Typespec do
 
       @type dict(key, value) :: [{key, value}]
 
-  Types can also be defined for records, see `defrecord/3`.
-
   ## Defining a specification
 
       @spec function_name(type1, type2) :: return_type

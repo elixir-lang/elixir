@@ -131,44 +131,12 @@ defmodule Inspect.TupleTest do
     assert inspect({1, "b", 3}, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
   end
 
-  test :record_like do
-    assert inspect({:foo, :bar}) == "{:foo, :bar}"
-  end
-
-  test :with_builtin_like_record do
-    assert inspect({:list, 1}) == "{:list, 1}"
-  end
-
-  test :with_record_like_tuple do
-    assert inspect({List, 1}) == "{List, 1}"
-  end
-
-  defrecord Config, a: 1, b: []
-
-  test :with_record do
-    assert inspect(Config.new) == "Inspect.TupleTest.Config[a: 1, b: []]"
-  end
-
-  test :with_tuple_matching_record_name_but_not_length do
-    assert inspect({ExUnit.Server.Config}) == "{ExUnit.Server.Config}"
-  end
-
-  defrecord Rec, value: 1
-
-  test :two_items_record do
-    assert inspect({Rec[value: 1], 1}) == "{Inspect.TupleTest.Rec[value: 1], 1}"
-  end
-
   test :empty do
     assert inspect({}) == "{}"
   end
 
   test :with_limit do
     assert inspect({1, 2, 3, 4}, limit: 3) == "{1, 2, 3, ...}"
-  end
-
-  test :with_records_false do
-    assert inspect(Config.new, records: false) == "{Inspect.TupleTest.Config, 1, []}"
   end
 end
 

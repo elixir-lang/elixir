@@ -6,9 +6,6 @@ defmodule ExUnit.CLIFormatter do
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5,
                                   format_test_case_failure: 5]
 
-  defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    trace: false, seed: nil, color: true, width: :infinity
-
   ## Callbacks
 
   def init(opts) do

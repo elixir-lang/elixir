@@ -16,40 +16,6 @@ defmodule ProtocolTest do
     def ok(thing)
   end
 
-  defrecord NoImplRec, a: 0, b: 0
-
-  defrecord ImplRec, a: 0, b: 0 do
-    defimpl Sample do
-      def ok(record) do
-        Unknown.undefined(record)
-      end
-    end
-  end
-
-  defimpl WithAny, for: ImplRec do
-    def ok(_record) do
-      :ok
-    end
-  end
-
-  defimpl WithAny, for: Tuple do
-    def ok(_tuple) do
-      :ok
-    end
-  end
-
-  defimpl WithAny, for: Map do
-    def ok(_map) do
-      :ok
-    end
-  end
-
-  defimpl WithAny, for: Any do
-    def ok(_any) do
-      :ok
-    end
-  end
-
   defmodule NoImplStruct do
     def __struct__ do
       %{a: 0, b: 0}
@@ -74,6 +40,18 @@ defmodule ProtocolTest do
     end
   end
 
+  defimpl WithAny, for: Map do
+    def ok(_map) do
+      :ok
+    end
+  end
+
+  defimpl WithAny, for: Any do
+    def ok(_any) do
+      :ok
+    end
+  end
+
   test "protocol implementations without any" do
     assert nil? Sample.impl_for(:foo)
     assert nil? Sample.impl_for(fn(x) -> x end)
@@ -90,31 +68,18 @@ defmodule ProtocolTest do
     assert nil? Sample.impl_for(hd(:erlang.ports))
     assert nil? Sample.impl_for(make_ref)
 
-    assert Sample.impl_for(ImplRec[]) ==
-           Sample.ProtocolTest.ImplRec
-    assert Sample.impl_for(NoImplRec[]) ==
-           nil
-
     assert Sample.impl_for(%ImplStruct{}) ==
            Sample.ProtocolTest.ImplStruct
     assert Sample.impl_for(%NoImplStruct{}) ==
            nil
   end
 
-  test "protocol implementation with any and records fallback" do
-    assert WithAny.impl_for(ImplRec[])   == WithAny.ProtocolTest.ImplRec
-    assert WithAny.impl_for(NoImplRec[]) == WithAny.Tuple
-    assert WithAny.impl_for({:foo})    == WithAny.Tuple
-    assert WithAny.impl_for({})          == WithAny.Tuple
-    assert WithAny.impl_for(self)        == WithAny.Any
-  end
-
   test "protocol implementation with any and structs fallback" do
-    assert WithAny.impl_for(%ImplStruct{})          == WithAny.ProtocolTest.ImplStruct
-    assert WithAny.impl_for(%NoImplStruct{})        == WithAny.Any
+    assert WithAny.impl_for(%ImplStruct{})        == WithAny.ProtocolTest.ImplStruct
+    assert WithAny.impl_for(%NoImplStruct{})      == WithAny.Any
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
-    assert WithAny.impl_for(%{})                    == WithAny.Map
-    assert WithAny.impl_for(self)                   == WithAny.Any
+    assert WithAny.impl_for(%{})                  == WithAny.Map
+    assert WithAny.impl_for(self)                 == WithAny.Any
   end
 
   test "protocol not implemented" do

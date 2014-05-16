@@ -8,17 +8,21 @@
   * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
 
 * Soft deprecations (no warnings emitted)
-  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
   * [Dict] `Dict.Behaviour` is deprecated (please define the Dict functions yourself)
+  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
+  * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
+  * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
 
 * Deprecations
   * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
   * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
   * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
+  * [Kernel] `defrecord/3` is deprecated in favor of structs
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
   * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
 * Backwards incompatible changes
+  * [Exception] Exceptions now generate structs instead of records
 
 
 # v0.13.2 (2014-05-11)
