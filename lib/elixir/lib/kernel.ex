@@ -3275,7 +3275,7 @@ defmodule Kernel do
       @behaviour Exception
       fields = defstruct unquote(fields)
 
-      @spec exception([{atom, term}]) :: term
+      @spec exception(term) :: t
       def exception(args) when is_list(args) do
         Kernel.struct(__struct__, args)
       end
@@ -3283,6 +3283,7 @@ defmodule Kernel do
       defoverridable exception: 1
 
       if Keyword.has_key?(fields, :message) do
+        @spec message(t) :: String.t
         def message(exception) do
           exception.message
         end
