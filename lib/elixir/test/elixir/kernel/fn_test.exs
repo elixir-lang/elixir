@@ -17,7 +17,7 @@ defmodule Kernel.FnTest do
 
   test "capture remote" do
     assert (&:erlang.atom_to_list/1).(:a) == 'a'
-    assert (&Kernel.atom_to_list/1).(:a) == 'a'
+    assert (&Atom.to_char_list/1).(:a) == 'a'
 
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&(List.flatten/1)).([[0]]) == [0]
@@ -38,10 +38,10 @@ defmodule Kernel.FnTest do
   end
 
   test "capture imported" do
-    assert (&atom_to_list/1).(:a) == 'a'
-    assert (&(atom_to_list/1)).(:a) == 'a'
-    assert (&atom_to_list(&1)).(:a) == 'a'
-    assert &atom_to_list(&1) == &atom_to_list/1
+    assert (&is_atom/1).(:a)
+    assert (&(is_atom/1)).(:a)
+    assert (&is_atom(&1)).(:a)
+    assert &is_atom(&1) == &is_atom/1
   end
 
   test "capture macro" do
@@ -75,7 +75,7 @@ defmodule Kernel.FnTest do
 
   test "remote partial application" do
     assert (&:erlang.binary_part(&1, 1, 2)).("foo") == "oo"
-    assert (&:erlang.binary_part(atom_to_binary(&1), 1, 2)).(:foo) == "oo"
+    assert (&:erlang.binary_part(Atom.to_string(&1), 1, 2)).(:foo) == "oo"
   end
 
   test "capture and partially apply tuples" do
@@ -145,7 +145,7 @@ defmodule Kernel.FnTest do
   defp is_a?(_, _), do: false
 
   defp atl(arg) do
-    :erlang.atom_to_list arg
+    :erlang.atom_to_list(arg)
   end
 
   defp atb(arg, encoding) do

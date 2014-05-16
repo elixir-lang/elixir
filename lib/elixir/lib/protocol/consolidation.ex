@@ -51,7 +51,7 @@ defmodule Protocol.Consolidation do
   """
   @spec extract_impls(module, [char_list | String.t]) :: [atom]
   def extract_impls(protocol, paths) when is_atom(protocol) do
-    prefix = atom_to_list(protocol) ++ '.'
+    prefix = Atom.to_char_list(protocol) ++ '.'
     extract_matching_by_attribute paths, prefix, fn
       _mod, attributes ->
         case attributes[:impl] do

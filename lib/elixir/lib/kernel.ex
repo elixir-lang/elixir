@@ -88,38 +88,24 @@ defmodule Kernel do
     :erlang.apply(module, fun, args)
   end
 
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_atom` in UTF8 encoding.
+  ## DEPRECATED
 
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> atom_to_binary(:my_atom)
-      "my_atom"
-
-  """
-  @spec atom_to_binary(atom) :: binary
+  @doc false
   def atom_to_binary(some_atom) do
     :erlang.atom_to_binary(some_atom, :utf8)
   end
 
-  @doc """
-  Returns a string which corresponds to the text representation of `atom`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> atom_to_list(:elixir)
-      'elixir'
-
-  """
-  @spec atom_to_list(atom) :: char_list
+  @doc false
   def atom_to_list(atom) do
     :erlang.atom_to_list(atom)
   end
+
+  @doc false
+  def bitstring_to_list(bitstring) do
+    :erlang.bitstring_to_list(bitstring)
+  end
+
+  ## END OF DEPRECATED
 
   @doc """
   Extracts the part of the binary starting at `start` with length `length`.
@@ -255,19 +241,6 @@ defmodule Kernel do
   @spec bit_size(bitstring) :: non_neg_integer
   def bit_size(bitstring) do
     :erlang.bit_size(bitstring)
-  end
-
-  @doc """
-  Returns a list of integers which correspond to the bytes of `bitstring`.
-
-  If the number of bits in the binary is not divisible by 8, the last element
-  of the list will be a bitstring containing the remaining bits (1 up to 7 bits).
-
-  Inlined by the compiler.
-  """
-  @spec bitstring_to_list(bitstring) :: list
-  def bitstring_to_list(bitstring) do
-    :erlang.bitstring_to_list(bitstring)
   end
 
   @doc """
@@ -2953,7 +2926,7 @@ defmodule Kernel do
     do: {false, full}
 
   defp split_module(atom) do
-    case :binary.split(atom_to_binary(atom), ".", [:global]) do
+    case :binary.split(:erlang.atom_to_binary(atom, :utf8), ".", [:global]) do
       ["Elixir"|t] -> t
       _ -> []
     end

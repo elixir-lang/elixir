@@ -7,7 +7,7 @@ defmodule IO.ANSI.Sequence do
         "\e[#{unquote(code)}#{unquote(terminator)}"
       end
 
-      defp escape_sequence(unquote(atom_to_list(name))) do
+      defp escape_sequence(unquote(Atom.to_char_list(name))) do
         unquote(name)()
       end
     end

@@ -218,10 +218,6 @@ defmodule KernelTest do
       assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
     end
 
-    test :atom_to_binary_defaults_to_utf8 do
-      assert atom_to_binary(:another_atom) == "another_atom"
-    end
-
     test :binary_to_atom_defaults_to_utf8 do
       assert binary_to_atom("another_binary") == :another_binary
     end

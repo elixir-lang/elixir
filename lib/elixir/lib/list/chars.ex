@@ -13,7 +13,7 @@ defprotocol List.Chars do
 end
 
 defimpl List.Chars, for: Atom do
-  def to_char_list(atom), do: atom_to_list(atom)
+  def to_char_list(atom), do: Atom.to_char_list(atom)
 end
 
 defimpl List.Chars, for: BitString do

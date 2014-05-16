@@ -70,7 +70,7 @@ defimpl Inspect, for: Atom do
   def inspect(:""),    do: ":\"\""
 
   def inspect(atom) do
-    binary = atom_to_binary(atom)
+    binary = Atom.to_string(atom)
 
     cond do
       valid_ref_identifier?(binary) ->
@@ -291,7 +291,7 @@ defimpl Inspect, for: List do
   end
 
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    case atom_to_list(key) do
+    case Atom.to_char_list(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
     end
@@ -346,7 +346,7 @@ defimpl Inspect, for: Tuple do
   end
 
   defp record_fields(name) do
-    case atom_to_binary(name) do
+    case Atom.to_string(name) do
       "Elixir." <> _ ->
         try do
           name.__record__(:fields)
@@ -365,7 +365,7 @@ defimpl Inspect, for: Tuple do
   end
 
   defp zip_fields([{key, _}|tk], [value|tv]) do
-    case atom_to_binary(key) do
+    case Atom.to_string(key) do
       "_" <> _ -> zip_fields(tk, tv)
       key -> [{key, value}|zip_fields(tk, tv)]
     end
@@ -432,7 +432,7 @@ defimpl Inspect, for: Function do
     if fun_info[:type] == :external and fun_info[:env] == [] do
       "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
     else
-      case atom_to_list(mod) do
+      case Atom.to_char_list(mod) do
         'elixir_compiler_' ++ _ ->
           if function_exported?(mod, :__RELATIVE__, 0) do
             "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
@@ -455,7 +455,7 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    name = atom_to_binary(name)
+    name = Atom.to_string(name)
     case :binary.split(name, "-", [:global]) do
       ["", name | _] -> "." <> name
       _ -> "." <> name

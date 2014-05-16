@@ -744,7 +744,7 @@ defmodule Kernel.Typespec do
   defp typespec_to_ast(other), do: other
 
   defp erl_to_ex_var(var) do
-    case atom_to_binary(var) do
+    case Atom.to_string(var) do
       <<"_", c :: [binary, size(1)], rest :: binary>> ->
         binary_to_atom("_#{String.downcase(c)}#{rest}")
       <<c :: [binary, size(1)], rest :: binary>> ->

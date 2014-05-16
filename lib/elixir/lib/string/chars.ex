@@ -27,7 +27,7 @@ defimpl String.Chars, for: Atom do
   end
 
   def to_string(atom) do
-    atom_to_binary(atom)
+    Atom.to_string(atom)
   end
 end
 

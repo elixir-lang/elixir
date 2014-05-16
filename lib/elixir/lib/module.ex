@@ -534,7 +534,7 @@ defmodule Module do
   end
 
   defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
-    last = List.last(String.split(atom_to_binary(left), "."))
+    last = List.last(String.split(Atom.to_string(left), "."))
     atom = binary_to_atom(downcase(last))
     {atom, [], nil}
   end

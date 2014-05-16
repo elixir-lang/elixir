@@ -80,7 +80,7 @@ defmodule Mix.Task do
   """
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({module, _}, acc) ->
-      case atom_to_list(module) do
+      case Atom.to_char_list(module) do
         'Elixir.Mix.Tasks.' ++ _ ->
           if is_task?(module), do: [module|acc], else: acc
         _ ->

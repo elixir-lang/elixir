@@ -66,7 +66,7 @@ defmodule MixTest.Case do
 
   defmacro in_fixture(which, block) do
     module   = inspect __CALLER__.module
-    function = atom_to_binary elem(__CALLER__.function, 0)
+    function = Atom.to_string elem(__CALLER__.function, 0)
     tmp      = Path.join(module, function)
 
     quote do

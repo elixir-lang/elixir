@@ -299,7 +299,7 @@ defmodule Macro do
 
   # Variables
   def to_string({var, _, atom} = ast, fun) when is_atom(atom) do
-    fun.(ast, atom_to_binary(var))
+    fun.(ast, Atom.to_string(var))
   end
 
   # Aliases
@@ -388,7 +388,7 @@ defmodule Macro do
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
-    fun.(ast, atom_to_binary(unary) <> "(" <> to_string(arg, fun) <> ")")
+    fun.(ast, Atom.to_string(unary) <> "(" <> to_string(arg, fun) <> ")")
   end
 
   def to_string({:not, _, [arg]} = ast, fun)  do
@@ -396,7 +396,7 @@ defmodule Macro do
   end
 
   def to_string({op, _, [arg]} = ast, fun) when op in unquote(@unary_ops) do
-    fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
+    fun.(ast, Atom.to_string(op) <> to_string(arg, fun))
   end
 
   # Access
@@ -446,7 +446,7 @@ defmodule Macro do
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, records: false)
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom)
+  defp call_to_string(atom, _fun) when is_atom(atom), do: Atom.to_string(atom)
   defp call_to_string({:., _, [arg]}, fun),         do: module_to_string(arg, fun) <> "."
   defp call_to_string({:., _, [left, right]}, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),                    do: to_string(other, fun)
@@ -480,7 +480,7 @@ defmodule Macro do
 
   defp kw_block_to_string(key, value, fun) do
     block = adjust_new_lines block_to_string(value, fun), "\n  "
-    atom_to_binary(key) <> "\n  " <> block <> "\n"
+    Atom.to_string(key) <> "\n  " <> block <> "\n"
   end
 
   defp block_to_string([{:->, _, _}|_] = block, fun) do
@@ -593,7 +593,7 @@ defmodule Macro do
   Consider the implementation below:
 
       defmacro defmodule_with_length(name, do: block) do
-        length = length(atom_to_list(name))
+        length = length(Atom.to_char_list(name))
 
         quote do
           defmodule unquote(name) do
@@ -633,7 +633,7 @@ defmodule Macro do
 
       defmacro defmodule_with_length(name, do: block) do
         expanded = Macro.expand(name, __CALLER__)
-        length   = length(atom_to_list(expanded))
+        length   = length(Atom.to_char_list(expanded))
 
         quote do
           defmodule unquote(name) do

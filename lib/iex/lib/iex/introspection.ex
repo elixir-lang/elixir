@@ -172,7 +172,7 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc_arg({var, _, _}) do
-    atom_to_binary(var)
+    Atom.to_string(var)
   end
 
   defp ansi_docs() do

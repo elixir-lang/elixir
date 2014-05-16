@@ -200,7 +200,7 @@ defmodule Protocol do
     impl_for = quote do
       atom = :erlang.element(1, unquote(arg))
 
-      case not(atom in unquote(all)) and match?('Elixir.' ++ _, atom_to_list(atom)) do
+      case not(atom in unquote(all)) and match?('Elixir.' ++ _, Atom.to_char_list(atom)) do
         true ->
           target = Module.concat(unquote(current), atom)
           case impl_for?(target) do

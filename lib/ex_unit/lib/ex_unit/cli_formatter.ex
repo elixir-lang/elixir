@@ -96,7 +96,7 @@ defmodule ExUnit.CLIFormatter do
   ## Tracing
 
   defp trace_test_name(%ExUnit.Test{name: name}) do
-    case atom_to_binary(name) do
+    case Atom.to_string(name) do
       "test " <> rest -> rest
       rest -> rest
     end

@@ -85,7 +85,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, req}, deps_dir) do
-    {app, compile_req(req), [path: Path.join(deps_dir, atom_to_binary(app))]}
+    {app, compile_req(req), [path: Path.join(deps_dir, Atom.to_string(app))]}
   end
 
   defp parse_dep({app, req, source}, deps_dir) do

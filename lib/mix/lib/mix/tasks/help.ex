@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp where_is_file(module) do
-    case :code.where_is_file(atom_to_list(module) ++ '.beam') do
+    case :code.where_is_file(Atom.to_char_list(module) ++ '.beam') do
       :non_existing ->
         "not available"
       location ->

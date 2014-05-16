@@ -179,7 +179,7 @@ defmodule Mix.Utils do
 
   """
   def underscore(atom) when is_atom(atom) do
-    "Elixir." <> rest = atom_to_binary(atom)
+    "Elixir." <> rest = Atom.to_string(atom)
     underscore(rest)
   end
 

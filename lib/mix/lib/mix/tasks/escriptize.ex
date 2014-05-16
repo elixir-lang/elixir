@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp escriptize(project, force) do
     script_name  = project[:escript_name] || project[:app]
-    filename     = project[:escript_path] || atom_to_binary(script_name)
+    filename     = project[:escript_path] || Atom.to_string(script_name)
     main         = project[:escript_main_module]
     embed        = Keyword.get(project, :escript_embed_elixir, true)
     app          = Keyword.get(project, :escript_app, project[:app])

@@ -10,6 +10,8 @@
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 
+-define(atom, 'Elixir.Atom').
+-define(bitstring, 'Elixir.BitString').
 -define(kernel, 'Elixir.Kernel').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
@@ -331,8 +333,9 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
-rewrite(?kernel, atom_to_binary, [Arg], _) ->
+rewrite(?atom, to_string, [Arg], _) ->
   {ok, erlang, atom_to_binary, [Arg, utf8]};
+
 rewrite(?kernel, binary_to_atom, [Arg], _) ->
   {ok, erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?kernel, binary_to_existing_atom, [Arg], _) ->
@@ -341,6 +344,15 @@ rewrite(?kernel, elem, [Tuple, Index], _) ->
   {ok, erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, set_elem, [Tuple, Index, Value], _) ->
   {ok, erlang, setelement, [increment(Index), Tuple, Value]};
+
+rewrite(?map, 'has_key?', [Map, Key], _) ->
+  {ok, maps, is_key, [Key, Map]};
+rewrite(?map, fetch, [Map, Key], _) ->
+  {ok, maps, find, [Key, Map]};
+rewrite(?map, put, [Map, Key, Value], _) ->
+  {ok, maps, put, [Key, Value, Map]};
+rewrite(?map, delete, [Map, Key], _) ->
+  {ok, maps, remove, [Key, Map]};
 
 rewrite(?process, monitor, [Arg], _) ->
   {ok, erlang, monitor, [process, Arg]};
@@ -352,14 +364,6 @@ rewrite(?tuple, delete_at, [Tuple, Index], _) ->
 rewrite(?tuple, duplicate, [Data, Size], _) ->
   {ok, erlang, make_tuple, [Size, Data]};
 
-rewrite(?map, 'has_key?', [Map, Key], _) ->
-  {ok, maps, is_key, [Key, Map]};
-rewrite(?map, fetch, [Map, Key], _) ->
-  {ok, maps, find, [Key, Map]};
-rewrite(?map, put, [Map, Key, Value], _) ->
-  {ok, maps, put, [Key, Value, Map]};
-rewrite(?map, delete, [Map, Key], _) ->
-  {ok, maps, remove, [Key, Map]};
 rewrite(Receiver, Name, Args, Arity) ->
   case inline(Receiver, Name, Arity) of
     {AR, AN} -> {ok, AR, AN, Args};
@@ -370,6 +374,9 @@ increment(Number) when is_number(Number) ->
   Number + 1;
 increment(Other) ->
   {{'.', [], [erlang, '+']}, [], [Other, 1]}.
+
+inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
+inline(?bitstring, to_list, 1) -> {erlang, bitstring_to_list};
 
 inline(?kernel, '+', 2) -> {erlang, '+'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
@@ -392,14 +399,12 @@ inline(?kernel, '!==', 2) -> {erlang, '=/='};
 inline(?kernel, abs, 1) -> {erlang, abs};
 inline(?kernel, apply, 2) -> {erlang, apply};
 inline(?kernel, apply, 3) -> {erlang, apply};
-inline(?kernel, atom_to_list, 1) -> {erlang, atom_to_list};
 inline(?kernel, binary_part, 3) -> {erlang, binary_part};
 inline(?kernel, binary_to_float, 1) -> {erlang, binary_to_float};
 inline(?kernel, binary_to_float, 2) -> {erlang, binary_to_float};
 inline(?kernel, binary_to_integer, 1) -> {erlang, binary_to_integer};
 inline(?kernel, binary_to_integer, 2) -> {erlang, binary_to_integer};
 inline(?kernel, bit_size, 1) -> {erlang, bit_size};
-inline(?kernel, bitstring_to_list, 1) -> {erlang, bitstring_to_list};
 inline(?kernel, byte_size, 1) -> {erlang, byte_size};
 inline(?kernel, 'div', 2) -> {erlang, 'div'};
 inline(?kernel, exit, 1) -> {erlang, exit};
@@ -458,13 +463,11 @@ inline(?kernel, trunc, 1) -> {erlang, trunc};
 inline(?kernel, tuple_size, 1) -> {erlang, tuple_size};
 inline(?kernel, tuple_to_list, 1) -> {erlang, tuple_to_list};
 
-inline(?process, exit, 2) -> {erlang, exit};
-inline(?process, spawn, 2) -> {erlang, spawn_opt};
-inline(?process, spawn, 4) -> {erlang, spawn_opt};
-inline(?process, demonitor, 1) -> {erlang, demonitor};
-inline(?process, demonitor, 2) -> {erlang, demonitor};
-inline(?process, link, 1) -> {erlang, link};
-inline(?process, unlink, 1) -> {erlang, unlink};
+inline(?map, keys, 1) -> {maps, keys};
+inline(?map, merge, 2) -> {maps, merge};
+inline(?map, size, 1) -> {maps, size};
+inline(?map, values, 1) -> {maps, values};
+inline(?map, to_list, 1) -> {maps, to_list};
 
 inline(?node, spawn, 2) -> {erlang, spawn};
 inline(?node, spawn, 3) -> {erlang, spawn_opt};
@@ -475,12 +478,14 @@ inline(?node, spawn_link, 4) -> {erlang, spawn_link};
 inline(?node, spawn_monitor, 2) -> {erlang, spawn_monitor};
 inline(?node, spawn_monitor, 4) -> {erlang, spawn_monitor};
 
-inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
+inline(?process, exit, 2) -> {erlang, exit};
+inline(?process, spawn, 2) -> {erlang, spawn_opt};
+inline(?process, spawn, 4) -> {erlang, spawn_opt};
+inline(?process, demonitor, 1) -> {erlang, demonitor};
+inline(?process, demonitor, 2) -> {erlang, demonitor};
+inline(?process, link, 1) -> {erlang, link};
+inline(?process, unlink, 1) -> {erlang, unlink};
 
-inline(?map, keys, 1) -> {maps, keys};
-inline(?map, merge, 2) -> {maps, merge};
-inline(?map, size, 1) -> {maps, size};
-inline(?map, values, 1) -> {maps, values};
-inline(?map, to_list, 1) -> {maps, to_list};
+inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 
 inline(_, _, _) -> false.

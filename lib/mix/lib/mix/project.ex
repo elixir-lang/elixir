@@ -259,7 +259,7 @@ defmodule Mix.Project do
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
-        Path.join([build_path(config), "lib", atom_to_binary(app)])
+        Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
         raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->

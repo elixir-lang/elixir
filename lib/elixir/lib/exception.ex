@@ -357,7 +357,7 @@ defmodule Exception do
 
   defp format_application(module) do
     case :application.get_application(module) do
-      {:ok, app} -> "(" <> atom_to_binary(app) <> ") "
+      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
       :undefined   -> ""
     end
   end

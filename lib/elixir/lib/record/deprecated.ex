@@ -50,7 +50,7 @@ defmodule Record.Deprecated do
           Record.Deprecated.defmacros(name, fields, __ENV__, tag)
 
           if def_type do
-            type = binary_to_atom(atom_to_binary(name) <> "_t")
+            type = binary_to_atom(Atom.to_string(name) <> "_t")
             @typep unquote(type)() :: {unquote(tag || name), unquote_splicing(types)}
           end
         end
@@ -307,7 +307,7 @@ defmodule Record.Deprecated do
     # the given key from the ordered dict, falling back to the
     # default value if one does not exist.
     atom_selective   = for {k, v} <- values, do: initialize_lookup(k, v)
-    string_selective = for {k, v} <- values, do: initialize_lookup(atom_to_binary(k), v)
+    string_selective = for {k, v} <- values, do: initialize_lookup(Atom.to_string(k), v)
 
     quote do
       @doc false
@@ -348,7 +348,7 @@ defmodule Record.Deprecated do
   end
 
   defp accessors([{key, _default}|t], i) do
-    update = binary_to_atom "update_" <> atom_to_binary(key)
+    update = binary_to_atom "update_" <> Atom.to_string(key)
 
     contents = quote do
       @doc false
@@ -382,7 +382,7 @@ defmodule Record.Deprecated do
       for {key, _default} <- values, do: updater_lookup(key, key, values)
 
     string_fields =
-      for {key, _default} <- values, do: updater_lookup(atom_to_binary(key), key, values)
+      for {key, _default} <- values, do: updater_lookup(Atom.to_string(key), key, values)
 
     atom_contents = quote do: {__MODULE__, unquote_splicing(atom_fields)}
     string_contents = quote do: {__MODULE__, unquote_splicing(string_fields)}
@@ -456,7 +456,7 @@ defmodule Record.Deprecated do
   end
 
   defp accessor_specs([{key, _default, spec}|t], i, acc) do
-    update = binary_to_atom "update_" <> atom_to_binary(key)
+    update = binary_to_atom "update_" <> Atom.to_string(key)
 
     contents = quote do
       @spec unquote(key)(t) :: unquote(spec)
