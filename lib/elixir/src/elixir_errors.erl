@@ -71,7 +71,7 @@ parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
 deprecation(Meta, File, Message) -> deprecation(Meta, File, Message, []).
 
 deprecation(Meta, File, Message, Args) ->
-  io:format(file_format(?line(Meta), File, io_lib:format(Message, Args))).
+  io:format(standard_error, file_format(?line(Meta), File, io_lib:format(Message, Args))).
 
 %% Handle warnings and errors (called during module compilation)
 
