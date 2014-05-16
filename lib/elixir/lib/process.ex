@@ -2,10 +2,16 @@ defmodule Process do
   @moduledoc """
   Conveniences for working with processes and the process dictionary.
 
-  Some of the functions in this module are inlined by the compiler,
-  similar to functions in the `Kernel` module and they are explicitly
-  marked in their docs as "inlined by the compiler". For more information
-  about inlined functions, check out the `Kernel` module.
+  Besides the functions available in this module, the `Kernel` module
+  exposes and auto-imports some basic functionality related to processes
+  available through the functions:
+
+  * `Kernel.spawn/1` and `Kernel.spawn/3`
+  * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
+  * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
+  * `Kernel.self/0`
+  * `Kernel.send/2`
+
   """
 
   @doc """

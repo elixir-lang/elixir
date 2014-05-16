@@ -82,10 +82,41 @@ defmodule Supervisor do
   and then follow to the `Supervisor.Spec` module documentation to learn
   about the specification for workers and supervisors.
 
-  ## Name registering
+  ## Module-based supervisors
 
-  A supervisor is bound to the same name registering rules as a `GenServer`.
-  Read more about it in the `GenServer` docs.
+  In the example above, a supervisor was dynamically created by passing
+  the supervision structure to `start_link/2`. However, supervisors
+  can also be created by explicitly defining a supevision module:
+
+      defmodule MyApp.Supervisor do
+        use Supervisor
+
+        def start_link do
+          Supervisor.start_link(__MODULE__, [])
+        end
+
+        def init([]) do
+          import Supervisor.Spec
+
+          children = [
+            worker(Stack, [[:hello]])
+          ]
+
+          supervisor(children, strategy: :one_for_one)
+        end
+      end
+
+  You may want to use a module-based supervisor if:
+
+  * You need to do some particular action on supervisor
+    initialization, like setting up a ETS table;
+
+  * You want to perform partial hot-code swapping of the
+    tree. For example, if you add or remove a children,
+    the module-based supervision will add and remove the
+    new children directly, while the dynamic supervision
+    requires the whole tree to be restarted in order to
+    perform such swaps;
 
   ## Strategies
 
@@ -107,6 +138,10 @@ defmodule Supervisor do
     in this module behave slightly differently when this strategy is
     used;
 
+  ## Name registering
+
+  A supervisor is bound to the same name registering rules as a `GenServer`.
+  Read more about it in the `GenServer` docs.
   """
 
   @doc false

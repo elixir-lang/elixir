@@ -389,9 +389,6 @@ defmodule StringTest do
     ## Sanity checks ##
     assert String.starts_with? "", ["", ""]
     assert String.starts_with? "abc", ["", ""]
-    assert_raise ArgumentError, fn ->
-      String.starts_with? "abc", [["a"], "a"]
-    end
   end
 
   test :ends_with? do
@@ -420,9 +417,6 @@ defmodule StringTest do
     ## Sanity checks ##
     assert String.ends_with? "", ["", ""]
     assert String.ends_with? "abc", ["", ""]
-    assert_raise ArgumentError, fn ->
-      String.ends_with? "abc", [["c"], "c"]
-    end
   end
 
   test :contains? do
@@ -445,9 +439,6 @@ defmodule StringTest do
     ## Sanity checks ##
     assert String.contains? "", ["", ""]
     assert String.contains? "abc", ["", ""]
-    assert_raise ArgumentError, fn ->
-      String.contains? "abc", [["b"], "b"]
-    end
   end
 
   test :from_char_list do

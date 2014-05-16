@@ -18,12 +18,8 @@ defmodule String do
   * `Kernel.binary_part/3` - retrieves part of the binary
   * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
   * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
-  * Plus a number of conversion functions, like `Kernel.binary_to_atom/1`,
-    `Kernel.binary_to_integer/2` and their inverses,
-    like `Kernel.integer_to_binary/2`
-
-  Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
-  provides a few other functions that work on the byte level.
+  * Plus a number of functions for working with binaries (bytes)
+    [in the `:binary` module](http://erlang.org/doc/man/binary.html)
 
   ## Codepoints and graphemes
 
@@ -1096,10 +1092,6 @@ defmodule String do
     Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
-  defp do_starts_with(_, _) do
-    raise ArgumentError
-  end
-
   @doc """
   Returns `true` if `string` ends with any of the suffixes given, otherwise
   `false`. `suffixes` can be either a single suffix or a list of suffixes.
@@ -1135,10 +1127,6 @@ defmodule String do
     suffix_size = size(suffix)
     scope = {string_size - suffix_size, suffix_size}
     (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
-  end
-
-  defp do_ends_with(_, _) do
-    raise ArgumentError
   end
 
   @doc """
@@ -1191,10 +1179,6 @@ defmodule String do
 
   defp do_contains(string, match) when is_binary(match) do
     :nomatch != :binary.match(string, match)
-  end
-
-  defp do_contains(_, _) do
-    raise ArgumentError
   end
 
   @doc """
