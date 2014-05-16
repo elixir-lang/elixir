@@ -214,7 +214,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert raise with error" do
     error = assert_raise ArgumentError, fn ->
-      raise ArgumentError, message: "test error"
+      raise ArgumentError, "test error"
     end
 
     "test error" = error.message

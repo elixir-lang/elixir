@@ -131,7 +131,7 @@ defmodule IO.ANSI do
   defsequence :clear, "2", "J"
 
   defp escape_sequence(other) do
-    raise ArgumentError, message: "invalid ANSI sequence specification: #{other}"
+    raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
 
   @doc ~S"""
@@ -211,7 +211,7 @@ defmodule IO.ANSI do
 
   defp do_escape(<<>>, _emit, _emitted, buffer, _acc) when is_list(buffer) do
     buffer = iodata_to_binary Enum.reverse(buffer)
-    raise ArgumentError, message: "missing } for escape fragment #{buffer}"
+    raise ArgumentError, "missing } for escape fragment #{buffer}"
   end
 
   defp do_escape(<<?%, ?{, t :: binary>>, emit, emitted, nil, acc) do

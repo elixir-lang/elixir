@@ -190,7 +190,7 @@ defmodule Supervisor do
   Other failure conditions are specified in `start_link/2` docs.
   """
   @spec start_link(module, term, options) :: on_start
-  def start_link(module, arg, options \\ []) do
+  def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
       nil ->
         :supervisor.start_link(module, arg)

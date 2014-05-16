@@ -6,8 +6,8 @@ defmodule SupervisorTest do
   defmodule Stack do
     use GenServer
 
-    def start_link(state) do
-      GenServer.start_link(__MODULE__, state, [name: :sup_stack])
+    def start_link(state, opts) do
+      GenServer.start_link(__MODULE__, state, opts)
     end
 
     def handle_call(:pop, _from, [h|t]) do
@@ -33,8 +33,8 @@ defmodule SupervisorTest do
   defmodule Stack.Sup do
     use Supervisor
 
-    def init(arg) do
-      children = [worker(Stack, [arg])]
+    def init({arg, opts}) do
+      children = [worker(Stack, [arg, opts])]
       supervise(children, strategy: :one_for_one)
     end
   end
@@ -42,24 +42,24 @@ defmodule SupervisorTest do
   import Supervisor.Spec
 
   test "start_link/2" do
-    children = [worker(Stack, [[:hello]])]
+    children = [worker(Stack, [[:hello], [name: :dyn_stack]])]
     {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
-    wait_until_registered(:sup_stack)
-    assert GenServer.call(:sup_stack, :pop) == :hello
-    assert GenServer.call(:sup_stack, :stop) == :ok
+    wait_until_registered(:dyn_stack)
+    assert GenServer.call(:dyn_stack, :pop) == :hello
+    assert GenServer.call(:dyn_stack, :stop) == :ok
 
-    wait_until_registered(:sup_stack)
-    assert GenServer.call(:sup_stack, :pop) == :hello
+    wait_until_registered(:dyn_stack)
+    assert GenServer.call(:dyn_stack, :pop) == :hello
 
     Process.exit(pid, :normal)
   end
 
   test "start_link/3" do
-    {:ok, pid} = Supervisor.start_link(Stack.Sup, [:hello], name: :stack_sup)
+    {:ok, pid} = Supervisor.start_link(Stack.Sup, {[:hello], [name: :stat_stack]}, name: :stack_sup)
     wait_until_registered(:stack_sup)
 
-    assert GenServer.call(:sup_stack, :pop) == :hello
+    assert GenServer.call(:stat_stack, :pop) == :hello
     Process.exit(pid, :normal)
   end
 
@@ -70,7 +70,7 @@ defmodule SupervisorTest do
     assert Supervisor.count_children(pid) ==
            %{specs: 0, active: 0, supervisors: 0, workers: 0}
 
-    {:ok, stack} = Supervisor.start_child(pid, worker(Stack, [[:hello]]))
+    {:ok, stack} = Supervisor.start_child(pid, worker(Stack, [[:hello], []]))
     assert GenServer.call(stack, :pop) == :hello
 
     assert Supervisor.which_children(pid) ==

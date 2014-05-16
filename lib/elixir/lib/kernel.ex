@@ -2080,7 +2080,7 @@ defmodule Kernel do
   defp do_at([arg], name, function?, env) do
     case function? do
       true ->
-        raise ArgumentError, message: "cannot dynamically set attribute @#{name} inside function"
+        raise ArgumentError, "cannot dynamically set attribute @#{name} inside function"
       false ->
         case name do
           :behavior ->
@@ -2113,7 +2113,7 @@ defmodule Kernel do
 
   # All other cases
   defp do_at(args, name, _function?, _env) do
-    raise ArgumentError, message: "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
+    raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
   defp warn_info([entry|_]) do
@@ -2280,7 +2280,7 @@ defmodule Kernel do
     new_acc =
       case condition do
         {:_, _, atom} when is_atom(atom) ->
-          raise ArgumentError, message: <<"unbound variable _ inside cond. ",
+          raise ArgumentError, <<"unbound variable _ inside cond. ",
             "If you want the last clause to match, you probably meant to use true ->">>
         x when is_atom(x) and x != false and x != nil ->
           clause
@@ -2612,20 +2612,20 @@ defmodule Kernel do
                 {:error, _} ->
                   :elixir_aliases.ensure_loaded(caller.line, atom, caller)
                 _ ->
-                  raise ArgumentError, message: "cannot access module #{inspect atom} because it is not a record"
+                  raise ArgumentError, "cannot access module #{inspect atom} because it is not a record"
               end
           end
 
         Record.Deprecated.access(atom, fields, attrs, caller)
       false ->
         case Macro.Env.in_match?(caller) or Macro.Env.in_guard?(caller) do
-          true  -> raise ArgumentError, message: "dynamic access cannot be invoked inside match and guard clauses"
+          true  -> raise ArgumentError, "dynamic access cannot be invoked inside match and guard clauses"
           false -> :ok
         end
 
         case attrs do
           [h] -> quote do: Access.access(unquote(element), unquote(h))
-          _   -> raise ArgumentError, message: "expected one argument in access"
+          _   -> raise ArgumentError, "expected one argument in access"
         end
     end
   end
@@ -2687,7 +2687,7 @@ defmodule Kernel do
       {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ ->
-        raise ArgumentError, message: <<"invalid args for operator in, it expects a compile time list ",
+        raise ArgumentError, <<"invalid args for operator in, it expects a compile time list ",
                                         "or range on the right side when used in guard expressions, got: ",
                                         Macro.to_string(right) :: binary>>
     end
@@ -2749,7 +2749,7 @@ defmodule Kernel do
   end
 
   defmacro var!(x, _context) do
-    raise ArgumentError, message: "expected a var to be given to var!, got: #{Macro.to_string(x)}"
+    raise ArgumentError, "expected a var to be given to var!, got: #{Macro.to_string(x)}"
   end
 
   defp do_var!(name, meta, context, env) do
@@ -2761,7 +2761,7 @@ defmodule Kernel do
       x when is_atom(x) ->
         {name, meta, x}
       x ->
-        raise ArgumentError, message: "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
+        raise ArgumentError, "expected var! context to expand to an atom, got: #{Macro.to_string(x)}"
     end
   end
 
@@ -3234,11 +3234,15 @@ defmodule Kernel do
   In case a struct does not declare a field type, it defaults to `term`.
   """
   defmacro defstruct(kv) do
-    {fields, types} = Record.Backend.split_fields_and_types(kv)
+    {fields, types} = split_fields_and_types(kv)
 
     fields =
       quote bind_quoted: [fields: fields] do
-        fields = Record.Backend.default_fields(:struct, fields)
+        fields = :lists.map(fn
+          { key, _ } = pair when is_atom(key) -> pair
+          key when is_atom(key) -> { key, nil }
+          other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
+        end, fields)
 
         def __struct__() do
           %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}
@@ -3271,6 +3275,29 @@ defmodule Kernel do
       unquote(types)
       fields
     end
+  end
+
+  defp split_fields_and_types(kv) do
+    case Keyword.keyword?(kv) do
+      true  -> split_fields_and_types(kv, [], [])
+      false -> {kv, []}
+    end
+  end
+
+  defp split_fields_and_types([{field, {:::, _, [default, type]}}|t], fields, types) do
+    split_fields_and_types(t, [{field, default}|fields], [{field, type}|types])
+  end
+
+  defp split_fields_and_types([{field, default}|t], fields, types) do
+    split_fields_and_types(t, [{field, default}|fields], [{field, quote(do: term)}|types])
+  end
+
+  defp split_fields_and_types([field|t], fields, types) do
+    split_fields_and_types(t, [field|fields], [{field, quote(do: term)}|types])
+  end
+
+  defp split_fields_and_types([], fields, types) do
+    {:lists.reverse(fields), :lists.reverse(types)}
   end
 
   @doc ~S"""
@@ -3597,7 +3624,7 @@ defmodule Kernel do
 
     case is_atom(expanded) do
       false ->
-        raise ArgumentError, message: "invalid arguments for use, expected an atom or alias as argument"
+        raise ArgumentError, "invalid arguments for use, expected an atom or alias as argument"
       true ->
         quote do
           require unquote(expanded)
@@ -3651,7 +3678,7 @@ defmodule Kernel do
     funs = Macro.escape(funs, unquote: true)
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
-        raise ArgumentError, message: "Expected to: to be given as argument"
+        raise ArgumentError, "Expected to: to be given as argument"
 
       append_first = Keyword.get(opts, :append_first, false)
 
@@ -3659,7 +3686,7 @@ defmodule Kernel do
         {name, args} =
           case Macro.decompose_call(fun) do
             {_, _} = pair -> pair
-            _ -> raise ArgumentError, message: "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+            _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
           end
 
         actual_args =
@@ -3848,7 +3875,7 @@ defmodule Kernel do
       case modifiers do
         [] -> ?s
         [mod] when mod == ?s or mod == ?a or mod == ?c -> mod
-        _else -> raise ArgumentError, message: "modifier must be one of: s, a, c"
+        _else -> raise ArgumentError, "modifier must be one of: s, a, c"
       end
 
     case is_binary(string) do
@@ -3882,7 +3909,7 @@ defmodule Kernel do
 
   defp assert_module_scope(env, fun, arity) do
     case env.module do
-      nil -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} outside module"
+      nil -> raise ArgumentError, "cannot invoke #{fun}/#{arity} outside module"
       _   -> :ok
     end
   end
@@ -3890,7 +3917,7 @@ defmodule Kernel do
   defp assert_no_function_scope(env, fun, arity) do
     case env.function do
       nil -> :ok
-      _   -> raise ArgumentError, message: "cannot invoke #{fun}/#{arity} inside function/macro"
+      _   -> raise ArgumentError, "cannot invoke #{fun}/#{arity} inside function/macro"
     end
   end
 

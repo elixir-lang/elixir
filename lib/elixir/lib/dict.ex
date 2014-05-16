@@ -484,6 +484,6 @@ defmodule Dict do
   end
 
   defp unsupported_dict(dict) do
-    raise ArgumentError, message: "unsupported dict: #{inspect dict}"
+    raise ArgumentError, "unsupported dict: #{inspect dict}"
   end
 end

@@ -295,7 +295,7 @@ defmodule GenServer do
   `{:error, reason}` or `:ignore`, respectively.
   """
   @spec start_link(module, any, options) :: on_start
-  def start_link(module, args, options \\ []) do
+  def start_link(module, args, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:link, module, args, options)
   end
 
@@ -305,7 +305,7 @@ defmodule GenServer do
   See `start_link/3` for more information.
   """
   @spec start(module, any, options) :: on_start
-  def start(module, args, options \\ []) do
+  def start(module, args, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:nolink, module, args, options)
   end
 

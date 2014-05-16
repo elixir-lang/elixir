@@ -56,7 +56,7 @@ defmodule Supervisor.Behaviour do
   """
   def supervise(children, options) do
     unless strategy = options[:strategy] do
-      raise ArgumentError, message: "expected :strategy option to be given to supervise"
+      raise ArgumentError, "expected :strategy option to be given to supervise"
     end
 
     maxR = Keyword.get(options, :max_restarts, 5)

@@ -71,7 +71,7 @@ defmodule Inspect.AlgebraTest do
 
   test "nest doc" do
     # Consistence with definitions
-    assert nest(empty, 1) == {:doc_nest, 1, empty}
+    assert nest(empty, 1) == {:doc_nest, empty, 1}
     assert nest(empty, 0) == :doc_nil
 
     # Wrong argument type

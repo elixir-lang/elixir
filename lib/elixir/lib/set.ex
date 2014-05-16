@@ -331,6 +331,6 @@ defmodule Set do
   end
 
   defp unsupported_set(set) do
-    raise ArgumentError, message: "unsupported set: #{inspect set}"
+    raise ArgumentError, "unsupported set: #{inspect set}"
   end
 end

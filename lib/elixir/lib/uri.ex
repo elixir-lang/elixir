@@ -134,11 +134,11 @@ defmodule URI do
   end
 
   defp pair({k, _}) when is_list(k) do
-    raise ArgumentError, message: "encode_query/1 keys cannot be lists, got: #{inspect k}"
+    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect k}"
   end
 
   defp pair({_, v}) when is_list(v) do
-    raise ArgumentError, message: "encode_query/1 values cannot be lists, got: #{inspect v}"
+    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect v}"
   end
 
   defp pair({k, v}) do
@@ -200,7 +200,7 @@ defmodule URI do
   defp hex2dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
   defp hex2dec(n, _uri) when n in ?0..?9, do: n - ?0
   defp hex2dec(_n, uri) do
-    raise ArgumentError, message: "malformed URI #{inspect uri}"
+    raise ArgumentError, "malformed URI #{inspect uri}"
   end
 
   defp check_plus(?+), do: 32

@@ -158,7 +158,7 @@ defmodule Supervisor.Spec do
                           max_seconds: non_neg_integer) :: {:ok, tuple}
   def supervise(children, options) do
     unless strategy = options[:strategy] do
-      raise ArgumentError, message: "expected :strategy option to be given"
+      raise ArgumentError, "expected :strategy option to be given"
     end
 
     maxR = Keyword.get(options, :max_restarts, 5)
@@ -170,7 +170,7 @@ defmodule Supervisor.Spec do
 
   defp assert_unique_ids([id|rest]) do
     if id in rest do
-      raise ArgumentError, message:
+      raise ArgumentError,
         "duplicated id #{inspect id} found in the supervisor specification, " <>
         "please explicitly pass the :id option when defining this worker/supervisor"
     else

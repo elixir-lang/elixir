@@ -229,7 +229,7 @@ defmodule GenEvent do
   `{:error, {:already_started, pid}}` with the pid of that process.
   """
   @spec start_link(options) :: on_start
-  def start_link(options \\ []) do
+  def start_link(options \\ []) when is_list(options) do
     do_start(:link, options)
   end
 
@@ -239,7 +239,7 @@ defmodule GenEvent do
   See `spawn_link/1` for more information.
   """
   @spec start(options) :: on_start
-  def start(options \\ []) do
+  def start(options \\ []) when is_list(options) do
     do_start(:nolink, options)
   end
 

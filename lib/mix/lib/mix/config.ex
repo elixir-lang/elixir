@@ -36,14 +36,14 @@ defmodule Mix.Config do
           if Keyword.keyword?(value) do
             true
           else
-            raise ArgumentError, message:
+            raise ArgumentError,
               "expected config for app #{inspect app} to return keyword list, got: #{inspect value}"
           end
         _ ->
           false
       end)
     else
-      raise ArgumentError, message:
+      raise ArgumentError,
         "expected config to return keyword list, got: #{inspect config}"
     end
   end

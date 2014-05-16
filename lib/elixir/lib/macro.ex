@@ -68,7 +68,7 @@ defmodule Macro do
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
-    raise ArgumentError, message: "cannot pipe #{to_string expr} into #{to_string call_args}"
+    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
@@ -80,8 +80,7 @@ defmodule Macro do
   end
 
   def pipe(expr, call_args, _integer) do
-    raise ArgumentError,
-      message: "cannot pipe #{to_string expr} into #{to_string call_args}"
+    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
   @doc """

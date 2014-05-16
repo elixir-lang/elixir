@@ -61,7 +61,7 @@ defmodule Kernel.RescueTest do
 
   test :rescue_argument_error_from_elixir do
     result = try do
-     raise ArgumentError, message: ""
+     raise ArgumentError, ""
     rescue
       ArgumentError -> true
     end

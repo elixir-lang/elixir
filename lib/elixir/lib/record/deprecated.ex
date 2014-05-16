@@ -33,7 +33,7 @@ defmodule Record.Deprecated do
   end
 
   defp record_check!([{field, {:::, _, [_, _]}}|_]) when is_atom(field) do
-    raise ArgumentError, message: "typespecs are not supported inlined with defrecord, " <>
+    raise ArgumentError, "typespecs are not supported inlined with defrecord, " <>
                                   "please use record_type instead"
   end
 
@@ -189,13 +189,13 @@ defmodule Record.Deprecated do
     if index = find_index(fields, arg, 0) do
       index + 1
     else
-      raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect arg}"
+      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect arg}"
     end
   end
 
   def access(atom, fields, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
+      raise ArgumentError, "expected contents inside brackets to be a keyword list or an atom, got: #{inspect keyword}"
     end
 
     in_match = Macro.Env.in_match?(caller)
@@ -225,7 +225,7 @@ defmodule Record.Deprecated do
         {:{}, [], [atom|match]}
       _  ->
         keys = for {key, _} <- remaining, do: key
-        raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
     end
   end
 
@@ -236,17 +236,17 @@ defmodule Record.Deprecated do
       is_keyword(args) ->
         update(atom, fields, record, args, caller)
       true ->
-        raise ArgumentError, message: "expected arguments to be a compile time atom or keywords"
+        raise ArgumentError, "expected arguments to be a compile time atom or keywords"
     end
   end
 
   defp update(atom, fields, var, keyword, caller) do
     unless is_keyword(keyword) do
-      raise ArgumentError, message: "expected arguments to be compile time keywords"
+      raise ArgumentError, "expected arguments to be compile time keywords"
     end
 
     if Macro.Env.in_match?(caller) do
-      raise ArgumentError, message: "cannot invoke update style macro inside match context"
+      raise ArgumentError, "cannot invoke update style macro inside match context"
     end
 
     Enum.reduce keyword, var, fn({key, value}, acc) ->
@@ -256,7 +256,7 @@ defmodule Record.Deprecated do
           :erlang.setelement(unquote(index + 2), unquote(acc), unquote(value))
         end
       else
-        raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
       end
     end
   end
@@ -268,7 +268,7 @@ defmodule Record.Deprecated do
         :erlang.element(unquote(index + 2), unquote(var))
       end
     else
-      raise ArgumentError, message: "record #{inspect atom} does not have the key: #{inspect key}"
+      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
     end
   end
 
@@ -498,7 +498,7 @@ defmodule Record.Deprecated do
   defp check_value(atom, other) when is_function(other) do
     unless :erlang.fun_info(other, :env) == {:env, []} and
            :erlang.fun_info(other, :type) == {:type, :external} do
-      raise ArgumentError, message: "record field default value #{inspect atom} can only contain " <>
+      raise ArgumentError, "record field default value #{inspect atom} can only contain " <>
                                     "functions that point to an existing &Mod.fun/arity"
     end
     other

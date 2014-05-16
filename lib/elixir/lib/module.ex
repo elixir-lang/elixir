@@ -945,7 +945,7 @@ defmodule Module do
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
-    raise ArgumentError, message: "attributes type, typep, export_type, opaque and callback " <>
+    raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
       "must be set via Kernel.Typespec"
   end
 
@@ -968,7 +968,7 @@ defmodule Module do
   defp assert_not_compiled!(fun, module) do
     open?(module) ||
       raise ArgumentError,
-        message: "could not call #{fun} on module #{inspect module} because it was already compiled"
+        "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 
   defp loaded?(module), do: is_tuple :code.is_loaded(module)

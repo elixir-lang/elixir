@@ -155,14 +155,14 @@ defmodule Protocol do
   def assert_protocol(module) do
     case Code.ensure_compiled(module) do
       {:module, ^module} -> nil
-      _ -> raise ArgumentError, message: "#{inspect module} is not loaded"
+      _ -> raise ArgumentError, "#{inspect module} is not loaded"
     end
 
     try do
       module.__protocol__(:name)
     rescue
       UndefinedFunctionError ->
-        raise ArgumentError, message: "#{inspect module} is not a protocol"
+        raise ArgumentError, "#{inspect module} is not a protocol"
     end
   end
 
@@ -221,7 +221,7 @@ defmodule Protocol.DSL do
 
   @doc false
   defmacro def({_, _, args}) when args == [] or is_atom(args) do
-    raise ArgumentError, message: "protocol functions expect at least one argument"
+    raise ArgumentError, "protocol functions expect at least one argument"
   end
 
   defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
@@ -257,7 +257,7 @@ defmodule Protocol.DSL do
   end
 
   defmacro def(_) do
-    raise ArgumentError, message: "invalid args for def inside defprotocol"
+    raise ArgumentError, "invalid args for def inside defprotocol"
   end
 
   @doc false

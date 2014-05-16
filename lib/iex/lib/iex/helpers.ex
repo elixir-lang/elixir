@@ -65,7 +65,7 @@ defmodule IEx.Helpers do
     files = List.wrap(files)
 
     unless Enum.all?(files, &is_binary/1) do
-      raise ArgumentError, message: "expected a binary or a list of binaries as argument"
+      raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
     {found, not_found} =
@@ -74,7 +74,7 @@ defmodule IEx.Helpers do
       |> Enum.partition(&File.exists?/1)
 
     unless Enum.empty?(not_found) do
-      raise ArgumentError, message: "could not find files #{Enum.join(not_found, ", ")}"
+      raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
     {erls, exs} = Enum.partition(found, &String.ends_with?(&1, ".erl"))
@@ -267,16 +267,16 @@ defmodule IEx.Helpers do
 
   defp do_r(module) do
     unless Code.ensure_loaded?(module) do
-      raise ArgumentError, message: "could not load nor find module: #{inspect module}"
+      raise ArgumentError, "could not load nor find module: #{inspect module}"
     end
 
     source = source(module)
     cond do
       source == nil ->
-        raise ArgumentError, message: "could not find source for module: #{inspect module}"
+        raise ArgumentError, "could not find source for module: #{inspect module}"
 
       not File.exists?(source) ->
-        raise ArgumentError, message: "could not find source (#{source}) for module: #{inspect module}"
+        raise ArgumentError, "could not find source (#{source}) for module: #{inspect module}"
 
       String.ends_with?(source, ".erl") ->
         [compile_erlang(source) |> elem(0)]
@@ -438,7 +438,7 @@ defmodule IEx.Helpers do
   end
 
   defmacro import_file(_) do
-    raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
+    raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
   # Compiles and loads an erlang source file, returns {module, binary}

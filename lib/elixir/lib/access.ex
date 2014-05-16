@@ -42,7 +42,7 @@ defimpl Access, for: List do
   end
 
   def access(_dict, key) do
-    raise ArgumentError, message: "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
+    raise ArgumentError, "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
   end
 end
 
