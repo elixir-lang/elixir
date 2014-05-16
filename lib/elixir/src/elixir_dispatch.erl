@@ -84,8 +84,8 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
   case expand_import(Meta, {Name, Arity}, Args, E, []) of
     {ok, Receiver, Quoted} ->
       expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
-    {ok, Receiver} ->
-      elixir_exp:expand({{'.', [], [Receiver, Name]}, Meta, Args}, E);
+    {ok, Receiver, NewName, NewArgs} ->
+      elixir_exp:expand({{'.', [], [Receiver, NewName]}, Meta, NewArgs}, E);
     error ->
       Callback()
   end.
@@ -142,10 +142,8 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       case rewrite(Receiver, Name, Args, Arity) of
-        {ok, AR, AN, AA} ->
-          {ok, AR, {{'.', [], [AR, AN]}, [], AA}};
-        false ->
-          {ok, Receiver}
+        {ok, _, _, _} = Res -> Res;
+        false -> {ok, Receiver, Name, Args}
       end;
     {macro, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
@@ -154,14 +152,12 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
     {import, Receiver} ->
       case expand_require([{require,false}|Meta], Receiver, Tuple, Args, E) of
         {ok, _, _} = Response -> Response;
-        error -> {ok, Receiver}
+        error -> {ok, Receiver, Name, Args}
       end;
     false when Module == ?kernel ->
       case rewrite(Module, Name, Args, Arity) of
-        {ok, AR, AN, AA} ->
-          {ok, AR, {{'.', [], [AR, AN]}, [], AA}};
-        false ->
-          error
+        {ok, _, _, _} = Res -> Res;
+        false -> error
       end;
     false ->
       error

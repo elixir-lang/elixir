@@ -725,7 +725,7 @@ defmodule Macro do
         {:ok, receiver, quoted} ->
           next = :elixir_counter.next
           {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
-        {:ok, _receiver} ->
+        {:ok, _receiver, _name, _args} ->
           {original, false}
         :error ->
           {original, false}

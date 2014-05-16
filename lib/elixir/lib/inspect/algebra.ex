@@ -166,7 +166,7 @@ defmodule Inspect.Algebra do
       try do
         Inspect.inspect(arg, opts)
       rescue
-        e -> Inspect.Tuple.inspect(arg, opts)
+        _ -> Inspect.Tuple.inspect(arg, opts)
       end
     else
       Inspect.Tuple.inspect(arg, opts)
