@@ -244,7 +244,13 @@ defmodule IEx.Introspection do
     case beam_specs(module) do
       nil   -> nobeam(module)
       []    -> nospecs(inspect module)
-      specs -> for spec <- specs, do: print_spec(spec)
+      specs ->
+        printed = for {_kind, {{f, _arity}, _spec}} = spec <- specs, f != :"__info__" do
+          print_spec(spec)
+        end
+        if printed == [] do
+          nospecs(inspect module)
+        end
     end
 
     dont_display_result
