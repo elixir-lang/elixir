@@ -631,7 +631,7 @@ build_list_string({list_string, _Line, [H]}) when is_binary(H) ->
   elixir_utils:characters_to_list(H);
 build_list_string({list_string, Line, Args}) ->
   Meta = meta(Line),
-  {{'.', Meta, ['Elixir.List', 'from_char_data!']}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
+  {{'.', Meta, ['Elixir.String', to_char_list]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
 
 build_atom_string({Atom, _Line, Safe, [H]}) when ?is_atom_string(Atom) andalso is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);

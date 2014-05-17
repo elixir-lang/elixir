@@ -131,7 +131,7 @@ defmodule IEx.CLI do
     {:erlang, :apply, [function, []]}
   end
 
-  defp find_dot_iex(['--dot-iex', h|_]), do: String.from_char_data!(h)
+  defp find_dot_iex(['--dot-iex', h|_]), do: List.to_string(h)
   defp find_dot_iex([_|t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 

@@ -324,7 +324,7 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      source_list = List.from_char_data!(source)
+      source_list = String.to_char_list(source)
       case :file.read_link(target) do
         {:ok, ^source_list} ->
           :ok

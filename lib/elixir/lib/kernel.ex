@@ -3634,7 +3634,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
-    List.from_char_data!(string)
+    String.to_char_list(string)
   end
 
   @doc """
@@ -3654,12 +3654,12 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({:<<>>, _line, [string]}, []) when is_binary(string) do
-    List.from_char_data!(Macro.unescape_string(string))
+    String.to_char_list(Macro.unescape_string(string))
   end
 
   defmacro sigil_c({:<<>>, line, pieces}, []) do
     binary = {:<<>>, line, Macro.unescape_tokens(pieces)}
-    quote do: List.from_char_data!(unquote(binary))
+    quote do: String.to_char_list(unquote(binary))
   end
 
   @doc """
@@ -3763,13 +3763,13 @@ defmodule Kernel do
         case mod do
           ?s -> String.split(string)
           ?a -> for p <- String.split(string), do: binary_to_atom(p)
-          ?c -> for p <- String.split(string), do: List.from_char_data!(p)
+          ?c -> for p <- String.split(string), do: String.to_char_list(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
           ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
-          ?c -> quote do: for(p <- String.split(unquote(string)), do: List.from_char_data!(p))
+          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list(p))
         end
     end
   end

@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp to_tuples(files) do
     for f <- files do
-      {List.from_char_data!(Path.basename(f)), File.read!(f)}
+      {String.to_char_list(Path.basename(f)), File.read!(f)}
     end
   end
 
@@ -166,7 +166,7 @@ defmodule Mix.Tasks.Escriptize do
           case :application.start(:elixir) do
             :ok ->
               start_app(@app)
-              args = Enum.map(args, &String.from_char_data!(&1))
+              args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               io_error "Elixir is not in the code path, aborting."

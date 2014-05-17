@@ -1182,24 +1182,43 @@ defmodule String do
   end
 
   @doc """
-  Converts char data (a list of integers and strings) into a string.
-
-  If a string is given, returns the string itself.
+  Converts a string into a char list.
 
   ## Examples
 
-      iex> String.from_char_data([0x00E6, 0x00DF])
-      {:ok, "æß"}
+      iex> List.from_char_data("æß")
+      {:ok, 'æß'}
 
-      iex> String.from_char_data([0x0061, "bc"])
-      {:ok, "abc"}
-
+  Notice that this function expect a list of integer representing
+  UTF-8 codepoints. If you have a raw binary, you must instead use
+  [the `:binary` module](http://erlang.org/doc/man/binary.html).
   """
+  @spec to_char_list(t) :: char_list
+  def to_char_list(string) when is_binary(string) do
+    case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc false
   def from_char_data(binary) when is_binary(binary) do
+    # IO.write :stderr, "String.from_char_data/1 is deprecated, please use List.to_string/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     binary
   end
 
   def from_char_data(list) when is_list(list) do
+    # IO.write :stderr, "String.from_char_data/1 is deprecated, please use List.to_string/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         {:ok, result}
@@ -1212,26 +1231,18 @@ defmodule String do
     end
   end
 
-  @doc """
-  Converts char data (a list of integers and strings) into a string.
-
-  In case the conversion fails, it raises a `UnicodeConversionError`.
-  If a string is given, returns the string itself.
-
-  ## Examples
-
-      iex> String.from_char_data!([0x00E6, 0x00DF])
-      "æß"
-
-      iex> String.from_char_data!([0x0061, "bc"])
-      "abc"
-
-  """
+  @doc false
   def from_char_data!(binary) when is_binary(binary) do
+    # IO.write :stderr, "String.from_char_data!/1 is deprecated, please use List.to_string/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     binary
   end
 
   def from_char_data!(list) when is_list(list) do
+    # IO.write :stderr, "String.from_char_data!/1 is deprecated, please use List.to_string/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result

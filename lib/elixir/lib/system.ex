@@ -233,7 +233,7 @@ defmodule System do
   end
 
   def cmd(command) when is_binary(command) do
-    IO.chardata_to_string :os.cmd(List.from_char_data!(command))
+    List.to_string :os.cmd(String.to_char_list(command))
   end
 
   @doc """
@@ -256,9 +256,9 @@ defmodule System do
   end
 
   def find_executable(program) when is_binary(program) do
-    case :os.find_executable(List.from_char_data!(program)) do
+    case :os.find_executable(String.to_char_list(program)) do
       false -> nil
-      other -> IO.chardata_to_string(other)
+      other -> List.to_string(other)
     end
   end
 
@@ -286,9 +286,9 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
-    case :os.getenv(List.from_char_data!(varname)) do
+    case :os.getenv(String.to_char_list(varname)) do
       false -> nil
-      other -> IO.chardata_to_string(other)
+      other -> List.to_string(other)
     end
   end
 
@@ -310,7 +310,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv List.from_char_data!(varname), List.from_char_data!(value)
+   :os.putenv String.to_char_list(varname), String.to_char_list(value)
    :ok
   end
 
@@ -332,7 +332,7 @@ defmodule System do
   """
   @spec delete_env(String.t) :: :ok
   def delete_env(varname) do
-    :os.unsetenv(List.from_char_data!(varname))
+    :os.unsetenv(String.to_char_list(varname))
     :ok
   end
 
@@ -385,6 +385,6 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(List.from_char_data!(status))
+    :erlang.halt(String.to_char_list(status))
   end
 end

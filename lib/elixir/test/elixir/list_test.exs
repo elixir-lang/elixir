@@ -154,4 +154,14 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -3) == [2, 3]
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
   end
+
+  test :to_string do
+    assert List.to_string([?æ, ?ß]) == "æß"
+    assert List.to_string([?a, ?b, ?c]) == "abc"
+
+    assert_raise UnicodeConversionError,
+                 "invalid code point 57343", fn ->
+      List.to_string([0xDFFF])
+    end
+  end
 end

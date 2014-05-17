@@ -454,21 +454,41 @@ defmodule List do
   end
 
   @doc """
-  Converts char data into a char list.
+  Converts a list of integers representing codepoints, lists or
+  strings into a string.
 
-  A char data is a string or a list of integers and strings and it
-  is converted into a list with each codepoint represented as its
-  respective integer value.
+  Notice that this function expect a list of integer representing
+  UTF-8 codepoints. If you have a list of bytes, you must instead use
+  [the `:binary` module](http://erlang.org/doc/man/binary.html).
 
   ## Examples
 
-      iex> List.from_char_data("æß")
-      {:ok, 'æß'}
-      iex> List.from_char_data([?a, "bc"])
-      {:ok, 'abc'}
+      iex> List.to_string([0x00E6, 0x00DF])
+      "æß"
+
+      iex> List.to_string([0x0061, "bc"])
+      "abc"
 
   """
+  @spec to_string(:unicode.char_list) :: String.t
+  def to_string(list) when is_list(list) do
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc false
   def from_char_data(char_data) do
+    # IO.write :stderr, "List.from_char_data/1 is deprecated, please use String.to_char_list/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
         {:ok, result}
@@ -481,25 +501,11 @@ defmodule List do
     end
   end
 
-  @doc """
-  Converts char data into a char list.
-
-  A char data is a string or a list of integers and strings and it
-  is converted into a list with each codepoint represented as its
-  respective integer value.
-
-  In case the conversion fails or is incomplete, it raises a
-  `UnicodeConversionError`.
-
-  ## Examples
-
-      iex> List.from_char_data!("æß")
-      'æß'
-      iex> List.from_char_data!("abc")
-      'abc'
-
-  """
+  @doc false
   def from_char_data!(char_data) do
+    # IO.write :stderr, "List.from_char_data!/1 is deprecated, please use String.to_char_list/1 instead\n" <>
+    #                   Exception.format_stacktrace()
+
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
         result

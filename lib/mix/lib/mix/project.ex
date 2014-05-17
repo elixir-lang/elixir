@@ -46,7 +46,7 @@ defmodule Mix.Project do
   @doc false
   def push(atom, file \\ nil) when is_atom(atom) do
     file = file ||
-           (atom && String.from_char_data!(atom.__info__(:compile)[:source]))
+           (atom && List.to_string(atom.__info__(:compile)[:source]))
 
     config = default_config
              |> Keyword.merge(get_project_config(atom))
