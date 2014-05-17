@@ -864,10 +864,6 @@ defmodule Kernel.SpecialForms do
       ContextHygiene.read
       #=> 1
 
-  Hygiene for variables can be disabled overall as:
-
-      quote hygiene: [vars: false], do: x
-
   ## Hygiene in aliases
 
   Aliases inside quote are hygienic by default.
@@ -986,9 +982,6 @@ defmodule Kernel.SpecialForms do
       end
 
       Lazy.return_size #=> 2
-
-  As in aliases, import expansion can be explicitly disabled
-  via the `hygiene: [imports: false]` option.
 
   ## Stacktrace information
 

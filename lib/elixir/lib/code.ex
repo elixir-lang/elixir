@@ -128,14 +128,14 @@ defmodule Code do
 
   ## Examples
 
-      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      iex> contents = quote(do: var!(a) + var!(b))
       iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       {3, [a: 1, b: 2]}
 
   For convenience, you can pass `__ENV__` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
-      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      iex> contents = quote(do: var!(a) + var!(b))
       iex> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2]}
 
