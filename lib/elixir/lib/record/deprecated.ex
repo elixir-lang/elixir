@@ -494,7 +494,7 @@ defmodule Record.Deprecated do
   end
 
   defp check_value(atom, other) when is_tuple(other) do
-    for(i <- tuple_to_list(other), do: check_value(atom, i))
+    for(i <- Tuple.to_list(other), do: check_value(atom, i))
     other
   end
 

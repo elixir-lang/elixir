@@ -329,14 +329,14 @@ defimpl Inspect, for: Tuple do
     if opts.records do
       record_inspect(tuple, opts)
     else
-      surround_many("{", tuple_to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
+      surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
     end
   end
 
   ## Helpers
 
   defp record_inspect(record, opts) do
-    [name|tail] = tuple_to_list(record)
+    [name|tail] = Tuple.to_list(record)
 
     if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
       surround_record(name, fields, tail, opts)

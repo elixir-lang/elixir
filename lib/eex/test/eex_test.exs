@@ -7,7 +7,7 @@ defmodule EExText.Compiled do
     fill_in_stacktrace
     {__ENV__.line, hd(tl(System.stacktrace))}
   end
-  {:erlang, 1, 2}.tuple_to_list
+
   EEx.function_from_string :def, :string_sample, "<%= a + b %>", [:a, :b]
 
   filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")

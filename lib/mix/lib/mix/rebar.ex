@@ -93,16 +93,16 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, req, source, opts}, _deps_dir) do
-    [ scm, url | source ] = tuple_to_list(source)
+    [scm, url | source] = Tuple.to_list(source)
     mix_opts = [{scm, to_string(url)}]
 
     ref =
       case source do
-        [""|_]                  -> [branch: "HEAD"]
+        [""|_]                -> [branch: "HEAD"]
         [{:branch, branch}|_] -> [branch: to_string(branch)]
         [{:tag, tag}|_]       -> [tag: to_string(tag)]
-        [ref|_]                 -> [ref: to_string(ref)]
-        _                       -> []
+        [ref|_]               -> [ref: to_string(ref)]
+        _                     -> []
       end
 
     mix_opts = mix_opts ++ ref

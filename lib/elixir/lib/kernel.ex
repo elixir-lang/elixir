@@ -115,6 +115,11 @@ defmodule Kernel do
     :erlang.iolist_to_binary(item)
   end
 
+  @doc false
+  def tuple_to_list(tuple) do
+    :erlang.tuple_to_list(tuple)
+  end
+
   ## END OF DEPRECATED
 
   @doc """
@@ -1081,16 +1086,6 @@ defmodule Kernel do
   @spec tuple_size(tuple) :: non_neg_integer
   def tuple_size(tuple) do
     :erlang.tuple_size(tuple)
-  end
-
-  @doc """
-  Converts a tuple to a list.
-
-  Inlined by the compiler.
-  """
-  @spec tuple_to_list(tuple) :: list
-  def tuple_to_list(tuple) do
-    :erlang.tuple_to_list(tuple)
   end
 
   @doc """
@@ -2999,52 +2994,7 @@ defmodule Kernel do
     end
   end
 
-  @doc ~S"""
-  Note: Records are mostly deprecated and being slowly removed from
-  the language. The set of supported record operations will be
-  maintained in the Record module.
-
-  Defines a set of private macros to manipulate a record definition.
-
-  This macro defines a set of macros private to the current module to
-  manipulate the record exclusively at compilation time.
-
-  Please see the `Record` module's documentation for an introduction
-  to records in Elixir.
-
-  ## Examples
-
-      defmodule User do
-        defrecordp :user, [name: "José", age: "25"]
-      end
-
-  In the example above, a set of macros named `user` but with different
-  arities will be defined to manipulate the underlying record:
-
-      # To create records
-      user()        #=> {:user, "José", 25}
-      user(age: 26) #=> {:user, "José", 26}
-
-      # To get a field from the record
-      user(record, :name) #=> "José"
-
-      # To update the record
-      user(record, age: 26) #=> {:user, "José", 26}
-
-  By default, Elixir uses the record name as the first element of the tuple.
-  In some cases though, this might be undesirable and one can explicitly
-  define what the first element of the record should be:
-
-      defmodule MyServer do
-        defrecordp :state, MyServer, data: nil
-      end
-
-  This way, the record created will have `MyServer` as the first element,
-  not `:state`:
-
-      state() #=> {MyServer, nil}
-
-  """
+  @doc false
   defmacro defrecordp(name, tag \\ nil, fields) do
     Record.Deprecated.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
   end

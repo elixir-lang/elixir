@@ -337,7 +337,7 @@ defmodule List do
   """
   @spec unzip([tuple]) :: [list]
   def unzip(list) when is_list(list) do
-    :lists.map &tuple_to_list/1, zip(list)
+    :lists.map &Tuple.to_list/1, zip(list)
   end
 
   @doc """
@@ -606,6 +606,6 @@ defmodule List do
     {nil, nil}
   end
 
-  defp to_list(tuple) when is_tuple(tuple), do: tuple_to_list(tuple)
+  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
   defp to_list(list)  when is_list(list),   do: list
 end

@@ -462,7 +462,6 @@ inline(?kernel, throw, 1) -> {erlang, throw};
 inline(?kernel, tl, 1) -> {erlang, tl};
 inline(?kernel, trunc, 1) -> {erlang, trunc};
 inline(?kernel, tuple_size, 1) -> {erlang, tuple_size};
-inline(?kernel, tuple_to_list, 1) -> {erlang, tuple_to_list};
 
 inline(?map, keys, 1) -> {maps, keys};
 inline(?map, merge, 2) -> {maps, merge};
@@ -488,6 +487,7 @@ inline(?process, link, 1) -> {erlang, link};
 inline(?process, unlink, 1) -> {erlang, unlink};
 
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
+inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 
 inline(_, _, _) -> false.
 
@@ -522,12 +522,12 @@ deprecation_message(Warning, Message) ->
 %   "use GenEvent instead";
 %  deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
 %    "use GenServer instead";
+% deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
+%   "use Supervisor instead";
 % deprecation('Elixir.Kernel', raise, 3) ->
 %   "use reraise/2 instead";
 % deprecation('Elixir.Kernel', defexception, 3) ->
 %   "use defexception/1 instead";
-% deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
-%   "use Supervisor instead";
 % deprecation('Elixir.List', 'from_char_data', 1) ->
 %   "use String.to_char_list instead";
 % deprecation('Elixir.List', 'from_char_data!', 1) ->
@@ -541,6 +541,8 @@ deprecation('Elixir.Kernel', is_record, _) ->
   "use Record.record? instead";
 deprecation('Elixir.Kernel', defrecord, _) ->
   "use structs instead";
+deprecation('Elixir.Kernel', defrecordp, _) ->
+  "use Record.defrecordp/3 instead";
 deprecation('Elixir.Process', spawn, _) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Process', spawn_link, _) ->
