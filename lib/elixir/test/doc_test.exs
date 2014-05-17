@@ -4,7 +4,9 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   doctest Access
+  doctest Atom
   doctest Base
+  doctest BitString
   doctest Bitwise
   doctest Code
   doctest Collectable

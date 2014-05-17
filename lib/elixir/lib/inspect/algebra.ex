@@ -395,15 +395,15 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, &integer_to_binary(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, &Integer.to_string(&1))
       iex> Inspect.Algebra.pretty(doc, 5)
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &integer_to_binary(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1))
       iex> Inspect.Algebra.pretty(doc, 20)
       "[1, 2, 3, ...]"
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &integer_to_binary(&1), "!")
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1), "!")
       iex> Inspect.Algebra.pretty(doc, 20)
       "[1! 2! 3! ...]"
 

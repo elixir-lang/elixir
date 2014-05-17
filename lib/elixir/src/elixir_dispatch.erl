@@ -12,7 +12,9 @@
 
 -define(atom, 'Elixir.Atom').
 -define(bitstring, 'Elixir.BitString').
+-define(float, 'Elixir.Float').
 -define(io, 'Elixir.IO').
+-define(integer, 'Elixir.Integer').
 -define(kernel, 'Elixir.Kernel').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
@@ -380,6 +382,12 @@ inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
 inline(?bitstring, to_list, 1) -> {erlang, bitstring_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
+inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
+inline(?integer, to_string, 2) -> {erlang, integer_to_binary};
+inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
+inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
+inline(?float, to_string, 1) -> {erlang, float_to_binary};
+inline(?float, to_char_list, 1) -> {erlang, float_to_list};
 
 inline(?kernel, '+', 2) -> {erlang, '+'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
@@ -411,13 +419,7 @@ inline(?kernel, bit_size, 1) -> {erlang, bit_size};
 inline(?kernel, byte_size, 1) -> {erlang, byte_size};
 inline(?kernel, 'div', 2) -> {erlang, 'div'};
 inline(?kernel, exit, 1) -> {erlang, exit};
-inline(?kernel, float_to_binary, 1) -> {erlang, float_to_binary};
-inline(?kernel, float_to_list, 1) -> {erlang, float_to_list};
 inline(?kernel, hd, 1) -> {erlang, hd};
-inline(?kernel, integer_to_binary, 1) -> {erlang, integer_to_binary};
-inline(?kernel, integer_to_binary, 2) -> {erlang, integer_to_binary};
-inline(?kernel, integer_to_list, 1) -> {erlang, integer_to_list};
-inline(?kernel, integer_to_list, 2) -> {erlang, integer_to_list};
 inline(?kernel, is_atom, 1) -> {erlang, is_atom};
 inline(?kernel, is_binary, 1) -> {erlang, is_binary};
 inline(?kernel, is_bitstring, 1) -> {erlang, is_bitstring};
@@ -543,15 +545,17 @@ deprecation('Elixir.Kernel', defrecord, _) ->
   "use structs instead";
 deprecation('Elixir.Kernel', defrecordp, _) ->
   "use Record.defrecordp/3 instead";
-deprecation('Elixir.Process', spawn, _) ->
+deprecation('Elixir.Process', spawn, 1) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Process', spawn, 3) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Process', spawn_link, _) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Process', spawn_monitor, _) ->
   "use the one in Kernel instead";
-deprecation('Elixir.Process', self, _) ->
+deprecation('Elixir.Process', self, 0) ->
   "use the one in Kernel instead";
-deprecation('Elixir.Process', send, _) ->
+deprecation('Elixir.Process', send, 2) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Record', defmacros, 4) ->
   true;

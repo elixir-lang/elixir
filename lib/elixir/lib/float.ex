@@ -169,4 +169,84 @@ defmodule Float do
   def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
     Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
   end
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the given float.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Float.to_char_list(7.0)
+      '7.00000000000000000000e+00'
+
+  """
+  @spec to_char_list(float) :: char_list
+  def to_char_list(number) do
+    :erlang.float_to_list(number)
+  end
+
+  @doc """
+  Returns a list which corresponds to the text representation
+  of `float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
+
+  ## Examples
+
+      iex> Float.to_char_list 7.1, [decimals: 2, compact: true]
+      '7.1'
+
+  """
+  @spec to_char_list(float, list) :: char_list
+  def to_char_list(float, options) do
+    :erlang.float_to_list(float, expand_compact(options))
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_float`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Float.to_string(7.0)
+      "7.00000000000000000000e+00"
+
+  """
+  @spec to_string(float) :: String.t
+  def to_string(some_float) do
+    :erlang.float_to_binary(some_float)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `float`.
+
+  ## Options
+
+  * `:decimals` — number of decimal points to show
+  * `:scientific` — number of decimal points to show, in scientific format
+  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
+
+  ## Examples
+
+      iex> Float.to_string 7.1, [decimals: 2, compact: true]
+      "7.1"
+
+  """
+  @spec to_string(float, list) :: String.t
+  def to_string(float, options) do
+    :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
+  defp expand_compact([{:compact, true}|t]),  do: [:compact|expand_compact(t)]
+  defp expand_compact([h|t]),                 do: [h|expand_compact(t)]
+  defp expand_compact([]),                    do: []
 end

@@ -434,7 +434,7 @@ defmodule Exception do
   end
 
   defp format_arity(arity) when is_integer(arity) do
-    "/" <> integer_to_binary(arity)
+    "/" <> Integer.to_string(arity)
   end
 
   @doc """

@@ -46,7 +46,7 @@ end
 
 defimpl String.Chars, for: Integer do
   def to_string(thing) do
-    integer_to_binary(thing)
+    Integer.to_string(thing)
   end
 end
 

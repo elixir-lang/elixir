@@ -181,57 +181,6 @@ defmodule KernelTest do
     assert struct(user_tuple, name: "eric") == %User{name: "eric"}
   end
 
-  defmodule Conversions do
-    use ExUnit.Case, async: true
-
-    test :binary_to_integer do
-      assert binary_to_integer("123") == 123
-    end
-
-    test :binary_to_integer_with_base do
-      assert binary_to_integer("755", 8) == 493
-      assert binary_to_integer("3FF", 16) == 1023
-    end
-
-    test :binary_to_float do
-      assert binary_to_float("2.2017764e+0") == 2.2017764
-    end
-
-    test :integer_to_binary do
-      assert integer_to_binary(77) == "77"
-    end
-
-    test :integer_to_binary_with_base do
-      assert integer_to_binary(493, 8) == "755"
-      assert integer_to_binary(1023, 16) == "3FF"
-    end
-
-    test :float_to_binary do
-      assert float_to_binary(7.0) == "7.00000000000000000000e+00"
-    end
-
-    test :float_to_binary_with_options do
-      assert float_to_binary(7.1, [decimals: 2]) == "7.10"
-      assert float_to_binary(7.1, [scientific: 2]) == "7.10e+00"
-      assert float_to_binary(7.1, [decimals: 2, compact: true]) == "7.1"
-      assert float_to_binary(7.1, [scientific: 2, compact: true]) == "7.10e+00"
-      assert float_to_binary(7.1, [decimals: 2, compact: false]) == "7.10"
-    end
-
-    test :binary_to_atom_defaults_to_utf8 do
-      assert binary_to_atom("another_binary") == :another_binary
-    end
-
-    test :binary_to_existing_atom_defaults_to_utf8 do
-      :existing_atom
-      assert binary_to_existing_atom("existing_atom") == :existing_atom
-
-      assert_raise ArgumentError, fn ->
-        binary_to_existing_atom "nonexisting_atom"
-      end
-    end
-  end
-
   defmodule DefDelegate do
     use ExUnit.Case, async: true
 

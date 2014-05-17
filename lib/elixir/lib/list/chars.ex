@@ -38,7 +38,7 @@ end
 
 defimpl List.Chars, for: Integer do
   def to_char_list(thing) do
-    integer_to_list(thing)
+    Integer.to_char_list(thing)
   end
 end
 
@@ -47,10 +47,10 @@ defimpl List.Chars, for: Float do
   @limit  :math.pow(10, @digits)
 
   def to_char_list(thing) when thing > @limit do
-    float_to_list(thing, scientific: @digits)
+    Float.to_char_list(thing, scientific: @digits)
   end
 
   def to_char_list(thing) do
-    float_to_list(thing, compact: true, decimals: @digits)
+    Float.to_char_list(thing, compact: true, decimals: @digits)
   end
 end

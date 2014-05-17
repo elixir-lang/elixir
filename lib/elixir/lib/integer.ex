@@ -69,4 +69,71 @@ defmodule Integer do
   defp do_parse(bitstring, acc) do
     {acc, bitstring}
   end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Integer.to_string(123)
+      "123"
+
+  """
+  @spec to_string(integer) :: String.t
+  def to_string(some_integer) do
+    :erlang.integer_to_binary(some_integer)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `some_integer` in base `base`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Integer.to_string(100, 16)
+      "64"
+
+  """
+  @spec to_string(integer, pos_integer) :: String.t
+  def to_string(some_integer, base) do
+    :erlang.integer_to_binary(some_integer, base)
+  end
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the given integer.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Integer.to_char_list(7)
+      '7'
+
+  """
+  @spec to_char_list(integer) :: list
+  def to_char_list(number) do
+    :erlang.integer_to_list(number)
+  end
+
+  @doc """
+  Returns a char list which corresponds to the text representation of the
+  given integer in the given case.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Integer.to_char_list(1023, 16)
+      '3FF'
+
+  """
+  @spec to_char_list(integer, pos_integer) :: list
+  def to_char_list(number, base) do
+    :erlang.integer_to_list(number, base)
+  end
 end

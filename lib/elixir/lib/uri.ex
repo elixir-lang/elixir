@@ -235,7 +235,7 @@ defmodule URI do
 
       if userinfo, do: authority = authority <> userinfo <> "@"
       if host, do: authority = authority <> host
-      if port, do: authority = authority <> ":" <> integer_to_binary(port)
+      if port, do: authority = authority <> ":" <> Integer.to_string(port)
     end
 
     scheme = normalize_scheme(scheme)
@@ -285,7 +285,7 @@ defimpl String.Chars, for: URI do
     if uri.scheme,   do: result = result <> uri.scheme <> "://"
     if uri.userinfo, do: result = result <> uri.userinfo <> "@"
     if uri.host,     do: result = result <> uri.host
-    if uri.port,     do: result = result <> ":" <> integer_to_binary(uri.port)
+    if uri.port,     do: result = result <> ":" <> Integer.to_string(uri.port)
     if uri.path,     do: result = result <> uri.path
     if uri.query,    do: result = result <> "?" <> uri.query
     if uri.fragment, do: result = result <> "#" <> uri.fragment

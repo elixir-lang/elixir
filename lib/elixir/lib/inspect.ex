@@ -229,11 +229,11 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h, t :: bitstring>>, counter, acc) when t != <<>> do
-    each_bit(t, decrement(counter), acc <> integer_to_binary(h) <> ", ")
+    each_bit(t, decrement(counter), acc <> Integer.to_string(h) <> ", ")
   end
 
   defp each_bit(<<h :: size(8)>>, _counter, acc) do
-    acc <> integer_to_binary(h)
+    acc <> Integer.to_string(h)
   end
 
   defp each_bit(<<>>, _counter, acc) do
@@ -243,7 +243,7 @@ defimpl Inspect, for: BitString do
   defp each_bit(bitstring, _counter, acc) do
     size = bit_size(bitstring)
     <<h :: size(size)>> = bitstring
-    acc <> integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
+    acc <> Integer.to_string(h) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
   defp decrement(:infinity), do: :infinity
@@ -408,7 +408,7 @@ end
 
 defimpl Inspect, for: Integer do
   def inspect(thing, _opts) do
-    integer_to_binary(thing)
+    Integer.to_string(thing)
   end
 end
 
@@ -463,8 +463,8 @@ defimpl Inspect, for: Function do
   end
 
   defp uniq(fun_info) do
-    integer_to_binary(fun_info[:new_index]) <> "." <>
-      integer_to_binary(fun_info[:uniq])
+    Integer.to_string(fun_info[:new_index]) <> "." <>
+      Integer.to_string(fun_info[:uniq])
   end
 end
 

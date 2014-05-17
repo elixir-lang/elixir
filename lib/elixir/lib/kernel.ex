@@ -106,6 +106,26 @@ defmodule Kernel do
   end
 
   @doc false
+  def float_to_list(number) do
+    :erlang.float_to_list(number)
+  end
+
+  @doc false
+  def float_to_binary(some_float) do
+    :erlang.float_to_binary(some_float)
+  end
+
+  @doc false
+  def float_to_binary(float, options) do
+    Float.to_string(float, options)
+  end
+
+  @doc false
+  def float_to_list(float, options) do
+    Float.to_char_list(float, options)
+  end
+
+  @doc false
   def iodata_length(item) do
     :erlang.iolist_size(item)
   end
@@ -113,6 +133,26 @@ defmodule Kernel do
   @doc false
   def iodata_to_binary(item) do
     :erlang.iolist_to_binary(item)
+  end
+
+  @doc false
+  def integer_to_binary(some_integer) do
+    :erlang.integer_to_binary(some_integer)
+  end
+
+  @doc false
+  def integer_to_binary(some_integer, base) do
+    :erlang.integer_to_binary(some_integer, base)
+  end
+
+  @doc false
+  def integer_to_list(number) do
+    :erlang.integer_to_list(number)
+  end
+
+  @doc false
+  def integer_to_list(number, base) do
+    :erlang.integer_to_list(number, base)
   end
 
   @doc false
@@ -319,81 +359,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a char list which corresponds to the text representation of the given float.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> float_to_list(7.0)
-      '7.00000000000000000000e+00'
-
-  """
-  @spec float_to_list(float) :: char_list
-  def float_to_list(number) do
-    :erlang.float_to_list(number)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_float`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> float_to_binary(7.0)
-      "7.00000000000000000000e+00"
-
-  """
-  @spec float_to_binary(float) :: binary
-  def float_to_binary(some_float) do
-    :erlang.float_to_binary(some_float)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `float`.
-
-  ## Options
-
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
-
-  ## Examples
-
-      iex> float_to_binary 7.1, [decimals: 2, compact: true]
-      "7.1"
-
-  """
-  @spec float_to_binary(float, list) :: binary
-  def float_to_binary(float, options) do
-    :erlang.float_to_binary(float, expand_compact(options))
-  end
-
-  @doc """
-  Returns a list which corresponds to the text representation
-  of `float`.
-
-  ## Options
-
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
-
-  ## Examples
-
-      iex> float_to_list 7.1, [decimals: 2, compact: true]
-      '7.1'
-
-  """
-  @spec float_to_list(float, list) :: char_list
-  def float_to_list(float, options) do
-    :erlang.float_to_list(float, expand_compact(options))
-  end
-
-  @doc """
   Returns the head of a list, raises `badarg` if the list is empty.
 
   Inlined by the compiler.
@@ -401,73 +366,6 @@ defmodule Kernel do
   @spec hd(list) :: term
   def hd(list) do
     :erlang.hd(list)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_integer`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> integer_to_binary(123)
-      "123"
-
-  """
-  @spec integer_to_binary(integer) :: binary
-  def integer_to_binary(some_integer) do
-    :erlang.integer_to_binary(some_integer)
-  end
-
-  @doc """
-  Returns a binary which corresponds to the text representation
-  of `some_integer` in base `base`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> integer_to_binary(100, 16)
-      "64"
-
-  """
-  @spec integer_to_binary(integer, pos_integer) :: binary
-  def integer_to_binary(some_integer, base) do
-    :erlang.integer_to_binary(some_integer, base)
-  end
-
-  @doc """
-  Returns a char list which corresponds to the text representation of the given integer.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> integer_to_list(7)
-      '7'
-
-  """
-  @spec integer_to_list(integer) :: list
-  def integer_to_list(number) do
-    :erlang.integer_to_list(number)
-  end
-
-  @doc """
-  Returns a char list which corresponds to the text representation of the
-  given integer in the given case.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> integer_to_list(1023, 16)
-      '3FF'
-
-  """
-  @spec integer_to_list(integer, pos_integer) :: list
-  def integer_to_list(number, base) do
-    :erlang.integer_to_list(number, base)
   end
 
   @doc """
@@ -2837,7 +2735,8 @@ defmodule Kernel do
         false -> {key, [counter: kind], nil}
       end
 
-    args = [key, kind, binary_to_atom(<<"_@", integer_to_binary(counter)::binary>>), var]
+    under = :erlang.binary_to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>, :utf8)
+    args  = [key, kind, under, var]
     [{:{}, [], args}|module_vars(vars, counter+1)]
   end
 
@@ -3747,9 +3646,4 @@ defmodule Kernel do
       false -> []
     end
   end
-
-  defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
-  defp expand_compact([{:compact, true}|t]),  do: [:compact|expand_compact(t)]
-  defp expand_compact([h|t]),                 do: [h|expand_compact(t)]
-  defp expand_compact([]),                    do: []
 end
