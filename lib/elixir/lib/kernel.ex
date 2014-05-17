@@ -2221,9 +2221,11 @@ defmodule Kernel do
         x when is_atom(x) and x != false and x != nil ->
           clause
         _ ->
+          head = quote(do: unquote(cond_var) when unquote(cond_var) != false and unquote(cond_var) != nil)
+
           quote line: get_line(meta) do
-            case !unquote(condition) do
-              false -> unquote(clause)
+            case unquote(condition) do
+              unquote(head) -> unquote(clause)
             end
           end
       end
@@ -2251,7 +2253,8 @@ defmodule Kernel do
   defp build_cond_clauses([], acc, _), do: acc
 
   defp falsy_clause(meta, acc) do
-    {:->, meta, [[quote(do: unquote(cond_var) when unquote(cond_var) in [false, nil])], acc]}
+    head = quote(do: unquote(cond_var) when unquote(cond_var) == false or unquote(cond_var) == nil)
+    {:->, meta, [[head], acc]}
   end
 
   defp truthy_clause(meta, clause) do
