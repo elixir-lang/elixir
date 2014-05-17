@@ -13,9 +13,19 @@
   * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
   * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
 
+* Soft deprecations for conversions (no warnings emitted)
+  * [Kernel] `atom_to_binary/1` and `atom_to_list/1` are deprecated in favor of `Atom.to_string/1` and `Atom.to_char_list/1`
+  * [Kernel] `bitstring_to_list/1` and `list_to_bitstring/1` are deprecated in favor of the `:erlang` ones
+  * [Kernel] `binary_to_atom/1`, `binary_to_existing_atom/1`, `binary_to_float/1`, `binary_to_integer/1` and `binary_to_integer/2` are deprecated in favor of conversion functions in `String`
+  * [Kernel] `float_to_binary/*` and `float_to_list/*` are deprecated in favor of `Float.to_string/*` and `Float.to_char_list/*`
+  * [Kernel] `integer_to_binary/*` and `integer_to_list/*` are deprecated in favor of `Integer.to_string/*` and `Integer.to_char_list/*`
+  * [Kernel] `iodata_to_binary/1` and `iodata_length/1` are deprecated `IO.iodata_to_binary/1` and `IO.iodata_length/1`
+  * [Kernel] `list_to_atom/1`, `list_to_existing_atom/1`, `list_to_float/1`, `list_to_integer/1`, `list_to_integer/2` and `list_to_tuple/1` are deprecated in favor of conversion functions in `List`
+  * [Kernel] `tuple_to_list/1` is deprecated in favor of `Tuple.to_list/1`
+  * [List] `List.from_char_data/1` and `List.from_char_data!/1` deprecated in favor of `String.to_char_list/1`
+  * [String] `String.from_char_data/1` and `String.from_char_data!/1` deprecated in favor of `List.to_string/1`
+
 * Deprecations
-  * [Application] `use Application.Behaviour` is deprecated in favor of `use Application`
-  * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
   * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
   * [Kernel] `defrecord/3` is deprecated in favor of structs
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
