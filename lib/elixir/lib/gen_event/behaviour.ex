@@ -3,9 +3,6 @@ defmodule GenEvent.Behaviour do
 
   @doc false
   defmacro __using__(_) do
-    # IO.write :stderr, "use GenEvent.Behaviour is deprecated, please use GenEvent instead\n" <>
-    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     quote location: :keep do
       @behaviour :gen_event
 

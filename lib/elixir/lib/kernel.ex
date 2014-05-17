@@ -1719,9 +1719,6 @@ defmodule Kernel do
 
   @doc false
   defmacro raise(exception, _attrs, stacktrace) do
-    # IO.write :stderr, "raise/3 is deprecated, please use reraise/2 instead\n" <>
-    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     quote do
       :erlang.raise :error, unquote(exception), unquote(stacktrace)
     end
@@ -1729,8 +1726,6 @@ defmodule Kernel do
 
   @doc false
   defmacro is_record(thing, kind) do
-    IO.write :stderr, "Kernel.is_record/2 is deprecated, please use Record.record?/2 instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -1748,8 +1743,6 @@ defmodule Kernel do
 
   @doc false
   defmacro is_record(thing) do
-    IO.write :stderr, "Kernel.is_record/1 is deprecated, please use Record.record?/1 instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -3035,9 +3028,6 @@ defmodule Kernel do
 
   @doc false
   defmacro defrecord(name, fields, do_block \\ []) do
-    IO.write :stderr, "defrecord/3 is deprecated in favor of structs\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     case is_list(fields) and Keyword.get(fields, :do, false) do
       false -> Record.Deprecated.defrecord(name, fields, do_block)
       other -> Record.Deprecated.defrecord(name, Keyword.delete(fields, :do), do: other)
@@ -3294,9 +3284,6 @@ defmodule Kernel do
 
   @doc false
   defmacro defexception(name, fields, do_block \\ []) do
-    # IO.write :stderr, "defexception/3 is deprecated, please use defexception/1 instead\n" <>
-    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     {fields, do_block} =
       case is_list(fields) and Keyword.get(fields, :do, false) do
         false -> {fields, do_block}

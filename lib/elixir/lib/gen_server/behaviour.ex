@@ -3,9 +3,6 @@ defmodule GenServer.Behaviour do
 
   @doc false
   defmacro __using__(_) do
-    IO.write :stderr, "use GenServer.Behaviour is deprecated, please use GenServer instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     quote location: :keep do
       @behaviour :gen_server
 

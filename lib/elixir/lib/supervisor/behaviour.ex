@@ -3,9 +3,6 @@ defmodule Supervisor.Behaviour do
 
   @doc false
   defmacro __using__(_) do
-    # IO.write :stderr, "use Supervisor.Behaviour is deprecated, please use Supervisor instead\n" <>
-    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     quote location: :keep do
       @behaviour :supervisor
       import unquote(__MODULE__)
