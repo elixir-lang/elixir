@@ -15,9 +15,11 @@
 -define(io, 'Elixir.IO').
 -define(integer, 'Elixir.Integer').
 -define(kernel, 'Elixir.Kernel').
+-define(list, 'Elixir.List').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
 -define(process, 'Elixir.Process').
+-define(string, 'Elixir.String').
 -define(system, 'Elixir.System').
 -define(tuple, 'Elixir.Tuple').
 
@@ -337,16 +339,10 @@ elixir_imported_macros() ->
 
 rewrite(?atom, to_string, [Arg], _) ->
   {ok, erlang, atom_to_binary, [Arg, utf8]};
-
-rewrite(?kernel, binary_to_atom, [Arg], _) ->
-  {ok, erlang, binary_to_atom, [Arg, utf8]};
-rewrite(?kernel, binary_to_existing_atom, [Arg], _) ->
-  {ok, erlang, binary_to_existing_atom, [Arg, utf8]};
 rewrite(?kernel, elem, [Tuple, Index], _) ->
   {ok, erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, set_elem, [Tuple, Index, Value], _) ->
   {ok, erlang, setelement, [increment(Index), Tuple, Value]};
-
 rewrite(?map, 'has_key?', [Map, Key], _) ->
   {ok, maps, is_key, [Key, Map]};
 rewrite(?map, fetch, [Map, Key], _) ->
@@ -355,10 +351,12 @@ rewrite(?map, put, [Map, Key, Value], _) ->
   {ok, maps, put, [Key, Value, Map]};
 rewrite(?map, delete, [Map, Key], _) ->
   {ok, maps, remove, [Key, Map]};
-
 rewrite(?process, monitor, [Arg], _) ->
   {ok, erlang, monitor, [process, Arg]};
-
+rewrite(?string, to_atom, [Arg], _) ->
+  {ok, erlang, binary_to_atom, [Arg, utf8]};
+rewrite(?string, to_existing_atom, [Arg], _) ->
+  {ok, erlang, binary_to_existing_atom, [Arg, utf8]};
 rewrite(?tuple, insert_at, [Tuple, Index, Term], _) ->
   {ok, erlang, insert_element, [increment(Index), Tuple, Term]};
 rewrite(?tuple, delete_at, [Tuple, Index], _) ->
@@ -386,6 +384,12 @@ inline(?integer, to_char_list, 1) -> {erlang, integer_to_list};
 inline(?integer, to_char_list, 2) -> {erlang, integer_to_list};
 inline(?float, to_string, 1) -> {erlang, float_to_binary};
 inline(?float, to_char_list, 1) -> {erlang, float_to_list};
+inline(?list, to_atom, 1) -> {erlang, list_to_atom};
+inline(?list, to_existing_atom, 1) -> {erlang, list_to_existing_atom};
+inline(?list, to_float, 1) -> {erlang, list_to_float};
+inline(?list, to_integer, 1) -> {erlang, list_to_integer};
+inline(?list, to_integer, 2) -> {erlang, list_to_integer};
+inline(?list, to_tuple, 1) -> {erlang, list_to_tuple};
 
 inline(?kernel, '+', 2) -> {erlang, '+'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
@@ -409,10 +413,6 @@ inline(?kernel, abs, 1) -> {erlang, abs};
 inline(?kernel, apply, 2) -> {erlang, apply};
 inline(?kernel, apply, 3) -> {erlang, apply};
 inline(?kernel, binary_part, 3) -> {erlang, binary_part};
-inline(?kernel, binary_to_float, 1) -> {erlang, binary_to_float};
-inline(?kernel, binary_to_float, 2) -> {erlang, binary_to_float};
-inline(?kernel, binary_to_integer, 1) -> {erlang, binary_to_integer};
-inline(?kernel, binary_to_integer, 2) -> {erlang, binary_to_integer};
 inline(?kernel, bit_size, 1) -> {erlang, bit_size};
 inline(?kernel, byte_size, 1) -> {erlang, byte_size};
 inline(?kernel, 'div', 2) -> {erlang, 'div'};
@@ -434,12 +434,6 @@ inline(?kernel, is_port, 1) -> {erlang, is_port};
 inline(?kernel, is_reference, 1) -> {erlang, is_reference};
 inline(?kernel, is_tuple, 1) -> {erlang, is_tuple};
 inline(?kernel, length, 1) -> {erlang, length};
-inline(?kernel, list_to_atom, 1) -> {erlang, list_to_atom};
-inline(?kernel, list_to_existing_atom, 1) -> {erlang, list_to_existing_atom};
-inline(?kernel, list_to_float, 1) -> {erlang, list_to_float};
-inline(?kernel, list_to_integer, 1) -> {erlang, list_to_integer};
-inline(?kernel, list_to_integer, 2) -> {erlang, list_to_integer};
-inline(?kernel, list_to_tuple, 1) -> {erlang, list_to_tuple};
 inline(?kernel, make_ref, 0) -> {erlang, make_ref};
 inline(?kernel, map_size, 1) -> {erlang, map_size};
 inline(?kernel, max, 2) -> {erlang, max};
@@ -474,8 +468,6 @@ inline(?node, spawn, 4) -> {erlang, spawn};
 inline(?node, spawn, 5) -> {erlang, spawn_opt};
 inline(?node, spawn_link, 2) -> {erlang, spawn_link};
 inline(?node, spawn_link, 4) -> {erlang, spawn_link};
-inline(?node, spawn_monitor, 2) -> {erlang, spawn_monitor};
-inline(?node, spawn_monitor, 4) -> {erlang, spawn_monitor};
 
 inline(?process, exit, 2) -> {erlang, exit};
 inline(?process, spawn, 2) -> {erlang, spawn_opt};
@@ -485,6 +477,9 @@ inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, link, 1) -> {erlang, link};
 inline(?process, unlink, 1) -> {erlang, unlink};
 
+inline(?string, to_float, 1) -> {erlang, binary_to_float};
+inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
+inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 

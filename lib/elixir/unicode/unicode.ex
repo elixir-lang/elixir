@@ -8,7 +8,7 @@ defmodule String.Unicode do
     codepoints ->
       codepoints = :binary.split(codepoints, " ", [:global])
       Enum.reduce codepoints, "", fn(codepoint, acc) ->
-        acc <> << binary_to_integer(codepoint, 16) :: utf8 >>
+        acc <> << String.to_integer(codepoint, 16) :: utf8 >>
       end
   end
 
@@ -183,9 +183,9 @@ defmodule String.Graphemes do
 
   to_range = fn
     first, ""   ->
-      [<< binary_to_integer(first, 16) :: utf8 >>]
+      [<< String.to_integer(first, 16) :: utf8 >>]
     first, last ->
-      range = binary_to_integer(first, 16)..binary_to_integer(last, 16)
+      range = String.to_integer(first, 16)..String.to_integer(last, 16)
       Enum.map(range, fn(int) -> << int :: utf8 >> end)
   end
 

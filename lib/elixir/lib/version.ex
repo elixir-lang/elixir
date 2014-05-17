@@ -308,9 +308,9 @@ defmodule Version do
         if nil?(minor) or (nil?(patch) and not approximate?) do
           :error
         else
-          major = binary_to_integer(major)
-          minor = binary_to_integer(minor)
-          patch = patch && binary_to_integer(patch)
+          major = String.to_integer(major)
+          minor = String.to_integer(minor)
+          patch = patch && String.to_integer(patch)
 
           case parse_pre(pre) do
             {:ok, pre} ->
@@ -330,7 +330,7 @@ defmodule Version do
     defp parse_pre([piece|t], acc) do
       cond do
         piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
-          parse_pre(t, [binary_to_integer(piece)|acc])
+          parse_pre(t, [String.to_integer(piece)|acc])
         piece =~ ~r/^[0-9]*$/ ->
           :error
         true ->

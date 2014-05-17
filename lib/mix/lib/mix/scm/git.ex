@@ -166,8 +166,8 @@ defmodule Mix.SCM.Git do
         "git version " <> version = String.strip System.cmd("git --version")
         version = String.split(version, ".")
                   |> Enum.take(3)
-                  |> Enum.map(&binary_to_integer(&1))
-                  |> list_to_tuple
+                  |> Enum.map(&String.to_integer(&1))
+                  |> List.to_tuple
 
         Application.put_env(:mix, :git_version, version)
         version

@@ -202,8 +202,9 @@ defmodule IEx.Helpers do
       s(Enum)
       s(Enum.all?)
       s(Enum.all?/2)
-      s(list_to_atom)
-      s(list_to_atom/1)
+      s(is_atom)
+      s(is_atom/1)
+
   """
   defmacro s({:/, _, [call, arity]} = other) do
     args =

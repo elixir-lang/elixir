@@ -454,6 +454,102 @@ defmodule List do
   end
 
   @doc """
+  Converts a char list to an atom.
+
+  Currently Elixir does not support conversions from char lists
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_atom('elixir')
+      :elixir
+
+  """
+  @spec to_atom(char_list) :: atom
+  def to_atom(char_list) do
+    :erlang.list_to_atom(char_list)
+  end
+
+  @doc """
+  Converts a char list to an existing atom.
+
+  Currently Elixir does not support conversions from char lists
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+  """
+  @spec to_existing_atom(char_list) :: atom
+  def to_existing_atom(char_list) do
+    :erlang.list_to_existing_atom(char_list)
+  end
+
+  @doc """
+  Returns the float whose text representation is `char_list`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_float('2.2017764e+0')
+      2.2017764
+
+  """
+  @spec to_float(char_list) :: float
+  def to_float(char_list) do
+    :erlang.list_to_float(char_list)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `char_list`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_integer('123')
+      123
+
+  """
+  @spec to_integer(char_list) :: integer
+  def to_integer(char_list) do
+    :erlang.list_to_integer(char_list)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `char_list` in base `base`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_integer('3FF', 16)
+      1023
+
+  """
+  @spec to_integer(char_list, non_neg_integer) :: integer
+  def to_integer(char_list, base) do
+    :erlang.list_to_integer(char_list, base)
+  end
+
+  @doc """
+  Converts a list to a tuple.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_tuple([:share, [:elixir, 163]])
+      {:share, [:elixir, 163]}
+
+  """
+  @spec to_tuple(list) :: tuple
+  def to_tuple(list) do
+    :erlang.list_to_tuple(list)
+  end
+
+  @doc """
   Converts a list of integers representing codepoints, lists or
   strings into a string.
 
@@ -590,7 +686,7 @@ defmodule List do
 
     case heads do
       nil -> :lists.reverse acc
-      _   -> do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
+      _   -> do_zip mlist, [:erlang.list_to_tuple(:lists.reverse(heads))|acc]
     end
   end
 

@@ -23,7 +23,7 @@ defmodule Mix do
   def start(_, []) do
     res = Mix.Sup.start_link
     if env = System.get_env("MIX_ENV") do
-      env(binary_to_atom env)
+      env(String.to_atom env)
     end
     res
   end

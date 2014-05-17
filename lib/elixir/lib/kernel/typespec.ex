@@ -742,9 +742,9 @@ defmodule Kernel.Typespec do
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
       <<"_", c :: [binary, size(1)], rest :: binary>> ->
-        binary_to_atom("_#{String.downcase(c)}#{rest}")
+        String.to_atom("_#{String.downcase(c)}#{rest}")
       <<c :: [binary, size(1)], rest :: binary>> ->
-        binary_to_atom("#{String.downcase(c)}#{rest}")
+        String.to_atom("#{String.downcase(c)}#{rest}")
     end
   end
 

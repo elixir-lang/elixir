@@ -91,7 +91,7 @@ defmodule ExUnit.DocTest do
 
   You can also showcase expressions raising an exception, for example:
 
-      iex(1)> binary_to_atom((fn() -> 1 end).())
+      iex(1)> String.to_atom((fn() -> 1 end).())
       ** (ArgumentError) argument error
 
   What DocTest will be looking for is a line starting with `** (` and it

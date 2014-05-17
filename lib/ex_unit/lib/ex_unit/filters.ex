@@ -55,8 +55,8 @@ defmodule ExUnit.Filters do
   def parse(filters) do
     Enum.map filters, fn filter ->
       case String.split(filter, ":", parts: 2) do
-        [key, value] -> {binary_to_atom(key), value}
-        [key] -> binary_to_atom(key)
+        [key, value] -> {String.to_atom(key), value}
+        [key] -> String.to_atom(key)
       end
     end
   end

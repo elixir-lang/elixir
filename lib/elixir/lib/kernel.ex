@@ -101,6 +101,31 @@ defmodule Kernel do
   end
 
   @doc false
+  def binary_to_atom(some_binary) do
+    :erlang.binary_to_atom(some_binary, :utf8)
+  end
+
+  @doc false
+  def binary_to_existing_atom(some_binary) do
+    :erlang.binary_to_existing_atom(some_binary, :utf8)
+  end
+
+  @doc false
+  def binary_to_integer(some_binary) do
+    :erlang.binary_to_integer(some_binary)
+  end
+
+  @doc false
+  def binary_to_integer(some_binary, base) do
+    :erlang.binary_to_integer(some_binary, base)
+  end
+
+  @doc false
+  def binary_to_float(some_binary) do
+    :erlang.binary_to_float(some_binary)
+  end
+
+  @doc false
   def bitstring_to_list(bitstring) do
     :erlang.bitstring_to_list(bitstring)
   end
@@ -156,8 +181,38 @@ defmodule Kernel do
   end
 
   @doc false
+  def list_to_atom(list) do
+    :erlang.list_to_atom(list)
+  end
+
+  @doc false
   def list_to_bitstring(bitstring_list) do
     :erlang.list_to_bitstring(bitstring_list)
+  end
+
+  @doc false
+  def list_to_existing_atom(list) do
+    :erlang.list_to_existing_atom(list)
+  end
+
+  @doc false
+  def list_to_float(list) do
+    :erlang.list_to_float(list)
+  end
+
+  @doc false
+  def list_to_integer(list) do
+    :erlang.list_to_integer(list)
+  end
+
+  @doc false
+  def list_to_integer(list, base) do
+    :erlang.list_to_integer(list, base)
+  end
+
+  @doc false
+  def list_to_tuple(list) do
+    :erlang.list_to_tuple(list)
   end
 
   @doc false
@@ -190,98 +245,6 @@ defmodule Kernel do
   @spec binary_part(binary, pos_integer, integer) :: binary
   def binary_part(binary, start, length) do
     :erlang.binary_part(binary, start, length)
-  end
-
-  @doc """
-  Returns the atom whose text representation is `some_binary` in
-  UTF8 encoding.
-
-  Currently Elixir does not support conversions for binaries which
-  contains Unicode characters greater than 16#FF.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> binary_to_atom("my_atom")
-      :my_atom
-
-  """
-  @spec binary_to_atom(binary) :: atom
-  def binary_to_atom(some_binary) do
-    :erlang.binary_to_atom(some_binary, :utf8)
-  end
-
-  @doc """
-  Works like `binary_to_atom/1` but the atom must exist.
-
-  Currently Elixir does not support conversions for binaries which
-  contains Unicode characters greater than 16#FF.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> :my_atom
-      iex> binary_to_existing_atom("my_atom")
-      :my_atom
-
-      iex> binary_to_existing_atom("this_atom_will_never_exist")
-      ** (ArgumentError) argument error
-
-  """
-  @spec binary_to_existing_atom(binary) :: atom
-  def binary_to_existing_atom(some_binary) do
-    :erlang.binary_to_existing_atom(some_binary, :utf8)
-  end
-
-  @doc """
-  Returns a integer whose text representation is `some_binary`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> binary_to_integer("123")
-      123
-
-  """
-  @spec binary_to_integer(binary) :: integer
-  def binary_to_integer(some_binary) do
-    :erlang.binary_to_integer(some_binary)
-  end
-
-  @doc """
-  Returns an integer whose text representation in base `base`
-  is `some_binary`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> binary_to_integer("3FF", 16)
-      1023
-
-  """
-  @spec binary_to_integer(binary, pos_integer) :: integer
-  def binary_to_integer(some_binary, base) do
-    :erlang.binary_to_integer(some_binary, base)
-  end
-
-  @doc """
-  Returns a float whose text representation is `some_binary`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> binary_to_float("2.2017764e+0")
-      2.2017764
-
-  """
-  @spec binary_to_float(binary) :: float
-  def binary_to_float(some_binary) do
-    :erlang.binary_to_float(some_binary)
   end
 
   @doc """
@@ -542,97 +505,6 @@ defmodule Kernel do
   @spec length(list) :: non_neg_integer
   def length(list) do
     :erlang.length(list)
-  end
-
-  @doc """
-  Returns the atom whose text representation is `list`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> list_to_atom('elixir')
-      :elixir
-
-  """
-  @spec list_to_atom(char_list) :: atom
-  def list_to_atom(list) do
-    :erlang.list_to_atom(list)
-  end
-
-  @doc """
-  Returns the atom whose text representation is `list`,
-  but only if there already exists such atom.
-
-  Inlined by the compiler.
-  """
-  @spec list_to_existing_atom(list) :: atom
-  def list_to_existing_atom(list) do
-    :erlang.list_to_existing_atom(list)
-  end
-
-  @doc """
-  Returns the float whose text representation is `list`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> list_to_float('2.2017764e+0')
-      2.2017764
-
-  """
-  @spec list_to_float(list) :: float
-  def list_to_float(list) do
-    :erlang.list_to_float(list)
-  end
-
-  @doc """
-  Returns an integer whose text representation is `list`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> list_to_integer('123')
-      123
-
-  """
-  @spec list_to_integer(list) :: integer
-  def list_to_integer(list) do
-    :erlang.list_to_integer(list)
-  end
-
-  @doc """
-  Returns an integer whose text representation in base `base` is `list`.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> list_to_integer('3FF', 16)
-      1023
-
-  """
-  @spec list_to_integer(list, non_neg_integer) :: integer
-  def list_to_integer(list, base) do
-    :erlang.list_to_integer(list, base)
-  end
-
-  @doc """
-  Returns a tuple which corresponds to `list`. `list` can contain any Erlang terms.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> list_to_tuple([:share, [:elixir, 163]])
-      {:share, [:elixir, 163]}
-
-  """
-  @spec list_to_tuple(list) :: tuple
-  def list_to_tuple(list) do
-    :erlang.list_to_tuple(list)
   end
 
   @doc """
@@ -2607,8 +2479,7 @@ defmodule Kernel do
 
   ## Definitions implemented in Elixir
 
-
-  @doc """
+  @doc ~S"""
   Defines a module given by name with the given contents.
 
   It returns the module name, the module binary and the
@@ -2645,7 +2516,7 @@ defmodule Kernel do
   Elixir module names can be dynamically generated. This is very
   useful for macros. For instance, one could write:
 
-      defmodule binary_to_atom("Foo\#{1}") do
+      defmodule String.to_atom("Foo#{1}") do
         # contents ...
       end
 
@@ -2720,7 +2591,7 @@ defmodule Kernel do
         false -> {key, [counter: kind], nil}
       end
 
-    under = :erlang.binary_to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>, :utf8)
+    under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
     args  = [key, kind, under, var]
     [{:{}, [], args}|module_vars(vars, counter+1)]
   end
@@ -2757,13 +2628,13 @@ defmodule Kernel do
   defp module_nesting([x|t1], [x|t2], acc, full),
     do: module_nesting(t1, t2, [x|acc], full)
   defp module_nesting([], [h|_], acc, _full),
-    do: {binary_to_atom(<<"Elixir.", h::binary>>),
+    do: {String.to_atom(<<"Elixir.", h::binary>>),
           :elixir_aliases.concat(:lists.reverse([h|acc]))}
   defp module_nesting(_, _, _acc, full),
     do: {false, full}
 
   defp split_module(atom) do
-    case :binary.split(:erlang.atom_to_binary(atom, :utf8), ".", [:global]) do
+    case :binary.split(Atom.to_string(atom), ".", [:global]) do
       ["Elixir"|t] -> t
       _ -> []
     end
@@ -3586,13 +3457,13 @@ defmodule Kernel do
       true ->
         case mod do
           ?s -> String.split(string)
-          ?a -> for p <- String.split(string), do: binary_to_atom(p)
+          ?a -> for p <- String.split(string), do: String.to_atom(p)
           ?c -> for p <- String.split(string), do: String.to_char_list(p)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: for(p <- String.split(unquote(string)), do: binary_to_atom(p))
+          ?a -> quote do: for(p <- String.split(unquote(string)), do: String.to_atom(p))
           ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list(p))
         end
     end

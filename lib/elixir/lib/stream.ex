@@ -856,7 +856,7 @@ defmodule Stream do
   end
 
   defp do_zip([], acc, callback, list, buffer) do
-    zipped = list_to_tuple(:lists.reverse(list))
+    zipped = List.to_tuple(:lists.reverse(list))
     {:next, :lists.reverse(buffer), callback.(zipped, acc)}
   end
 

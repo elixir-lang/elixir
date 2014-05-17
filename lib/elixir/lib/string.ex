@@ -1207,6 +1207,96 @@ defmodule String do
     end
   end
 
+  @doc """
+  Converts a string to an atom.
+
+  Currently Elixir does not support conversions from strings
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_atom("my_atom")
+      :my_atom
+
+  """
+  @spec to_atom(String.t) :: atom
+  def to_atom(string) do
+    :erlang.binary_to_atom(string, :utf8)
+  end
+
+  @doc """
+  Converts a string to an existing atom.
+
+  Currently Elixir does not support conversions from strings
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> :my_atom
+      iex> String.to_existing_atom("my_atom")
+      :my_atom
+
+      iex> String.to_existing_atom("this_atom_will_never_exist")
+      ** (ArgumentError) argument error
+
+  """
+  @spec to_existing_atom(String.t) :: atom
+  def to_existing_atom(string) do
+    :erlang.binary_to_existing_atom(string, :utf8)
+  end
+
+  @doc """
+  Returns a integer whose text representation is `string`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_integer("123")
+      123
+
+  """
+  @spec to_integer(String.t) :: integer
+  def to_integer(string) do
+    :erlang.binary_to_integer(string)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `string` in base `base`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_integer("3FF", 16)
+      1023
+
+  """
+  @spec to_integer(String.t, pos_integer) :: integer
+  def to_integer(string, base) do
+    :erlang.binary_to_integer(string, base)
+  end
+
+  @doc """
+  Returns a float whose text representation is `string`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_float("2.2017764e+0")
+      2.2017764
+
+  """
+  @spec to_float(String.t) :: float
+  def to_float(string) do
+    :erlang.binary_to_float(string)
+  end
+
   @doc false
   def from_char_data(binary) when is_binary(binary) do
     binary

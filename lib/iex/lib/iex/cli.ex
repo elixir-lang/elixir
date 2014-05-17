@@ -135,7 +135,7 @@ defmodule IEx.CLI do
   defp find_dot_iex([_|t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 
-  defp get_remsh(['--remsh', h|_]), do: list_to_atom(h)
+  defp get_remsh(['--remsh', h|_]), do: List.to_atom(h)
   defp get_remsh([_|t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 end

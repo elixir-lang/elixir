@@ -267,7 +267,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:cookie, h}, _config) do
     if Node.alive? do
-      wrapper fn -> Node.set_cookie(binary_to_atom(h)) end
+      wrapper fn -> Node.set_cookie(String.to_atom(h)) end
     else
       {:error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)"}
     end
@@ -278,7 +278,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:app, app}, _config) when is_binary(app) do
-    case Application.ensure_all_started(binary_to_atom(app)) do
+    case Application.ensure_all_started(String.to_atom(app)) do
       {:error, {app, reason}} ->
         {:error, "--app : Could not start application #{app}: " <>
           Application.format_error(reason)}

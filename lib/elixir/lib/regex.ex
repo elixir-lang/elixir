@@ -430,7 +430,7 @@ defmodule Regex do
 
   defp precompile_replacement(<<?\\, rest :: binary>>) when byte_size(rest) > 0 do
     {ns, rest} = pick_int(rest)
-    [list_to_integer(ns) | precompile_replacement(rest)]
+    [List.to_integer(ns) | precompile_replacement(rest)]
   end
 
   defp precompile_replacement(<<x, rest :: binary>>) do
@@ -484,7 +484,7 @@ defmodule Regex do
   end
 
   defp apply_replace(string, repl, indexes) do
-    indexes = list_to_tuple(indexes)
+    indexes = List.to_tuple(indexes)
 
     for part <- repl do
       cond do

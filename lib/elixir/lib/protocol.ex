@@ -231,7 +231,7 @@ defmodule Protocol.DSL do
     type_args = [quote(do: t) | type_args]
 
     call_args = for i <- :lists.seq(2, arity),
-                  do: {binary_to_atom(<<?x, i + 64>>), [], __MODULE__}
+                  do: {String.to_atom(<<?x, i + 64>>), [], __MODULE__}
     call_args = [quote(do: t) | call_args]
 
     quote do

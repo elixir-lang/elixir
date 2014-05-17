@@ -50,7 +50,7 @@ defmodule Record.Deprecated do
           Record.Deprecated.defmacros(name, fields, __ENV__, tag)
 
           if def_type do
-            type = binary_to_atom(Atom.to_string(name) <> "_t")
+            type = String.to_atom(Atom.to_string(name) <> "_t")
             @typep unquote(type)() :: {unquote(tag || name), unquote_splicing(types)}
           end
         end
@@ -351,7 +351,7 @@ defmodule Record.Deprecated do
   end
 
   defp accessors([{key, _default}|t], i) do
-    update = binary_to_atom "update_" <> Atom.to_string(key)
+    update = String.to_atom "update_" <> Atom.to_string(key)
 
     contents = quote do
       @doc false
@@ -459,7 +459,7 @@ defmodule Record.Deprecated do
   end
 
   defp accessor_specs([{key, _default, spec}|t], i, acc) do
-    update = binary_to_atom "update_" <> Atom.to_string(key)
+    update = String.to_atom "update_" <> Atom.to_string(key)
 
     contents = quote do
       @spec unquote(key)(t) :: unquote(spec)

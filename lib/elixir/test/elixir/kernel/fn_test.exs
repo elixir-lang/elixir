@@ -65,7 +65,7 @@ defmodule Kernel.FnTest do
 
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
-    assert (&atb(list_to_atom(&1), :utf8)).('a') == "a"
+    assert (&atb(List.to_atom(&1), :utf8)).('a') == "a"
   end
 
   test "imported partial application" do

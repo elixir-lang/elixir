@@ -257,7 +257,7 @@ defmodule URI do
     components = Regex.run ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
-    port = if port, do: binary_to_integer(port)
+    port = if port, do: String.to_integer(port)
     host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
 
     {userinfo, host, port}

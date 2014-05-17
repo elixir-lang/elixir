@@ -253,7 +253,7 @@ defmodule OptionParser do
   end
 
   defp get_option(option) do
-    option |> to_underscore |> binary_to_atom
+    option |> to_underscore |> String.to_atom
   end
 
   defp get_negated("no-" <> rest = option, switches) do

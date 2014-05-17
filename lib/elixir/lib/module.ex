@@ -535,7 +535,7 @@ defmodule Module do
 
   defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
     last = List.last(String.split(Atom.to_string(left), "."))
-    atom = binary_to_atom(downcase(last))
+    atom = String.to_atom(downcase(last))
     {atom, [], nil}
   end
 
@@ -545,7 +545,7 @@ defmodule Module do
 
   defp simplify_signature({var, _, atom}, _i) when is_atom(atom) do
     case atom_to_binary(var) do
-      "_" <> rest -> {binary_to_atom(rest), [], Elixir}
+      "_" <> rest -> {String.to_atom(rest), [], Elixir}
       _           -> {var, [], nil}
     end
   end
