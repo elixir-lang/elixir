@@ -51,7 +51,7 @@ import_function(Meta, Name, Arity, E) ->
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
-      remote_function(Receiver, Name, Arity, E);
+      remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
       false;
     {import, Receiver} ->
@@ -65,17 +65,19 @@ import_function(Meta, Name, Arity, E) ->
       end
   end.
 
-require_function(_Meta, Receiver, Name, Arity, E) ->
+require_function(Meta, Receiver, Name, Arity, E) ->
   case is_element({Name, Arity}, get_optional_macros(Receiver)) of
     true  -> false;
-    false -> remote_function(Receiver, Name, Arity, E)
+    false -> remote_function(Meta, Receiver, Name, Arity, E)
   end.
 
-remote_function(Receiver, Name, Arity, E) ->
+remote_function(Meta, Receiver, Name, Arity, E) ->
+  check_deprecation(Meta, Receiver, Name, Arity, E),
+
   elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
   case inline(Receiver, Name, Arity) of
     {AR, AN} -> {remote, AR, AN, Arity};
-    false      -> {remote, Receiver, Name, Arity}
+    false    -> {remote, Receiver, Name, Arity}
   end.
 
 %% Dispatches
@@ -147,6 +149,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
         false -> {ok, Receiver, Name, Args}
       end;
     {macro, Receiver} ->
+      check_deprecation(Meta, Receiver, Name, Arity, E),
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
@@ -165,6 +168,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   end.
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
+  check_deprecation(Meta, Receiver, Name, Arity, E),
   Module = ?m(E, module),
 
   case is_element(Tuple, get_optional_macros(Receiver)) of
@@ -486,3 +490,65 @@ inline(?process, unlink, 1) -> {erlang, unlink};
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 
 inline(_, _, _) -> false.
+
+check_deprecation(Meta, Receiver, Name, Arity, #{file := File}) ->
+  case deprecation(Receiver, Name, Arity) of
+    false -> ok;
+    Message ->
+      Warning = deprecation_message(Receiver, Name, Arity, Message),
+      elixir_errors:warn(?line(Meta), File, Warning)
+  end.
+
+deprecation_message(Receiver, '__using__', _Arity, Message) ->
+  Warning = io_lib:format("use ~s is deprecated", [elixir_aliases:inspect(Receiver)]),
+  deprecation_message(Warning, Message);
+
+deprecation_message(Receiver, Name, Arity, Message) ->
+  Warning = io_lib:format("~s.~s/~B is deprecated",
+                          [elixir_aliases:inspect(Receiver), Name, Arity]),
+  deprecation_message(Warning, Message).
+
+deprecation_message(Warning, Message) ->
+  case Message of
+    true -> Warning;
+    Message -> Warning ++ ", " ++ Message
+  end.
+
+%deprecation('Elixir.Application.Behaviour', '__using__', _) ->
+%  "use Application instead";
+%deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
+%  true;
+%deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
+%  "use GenEvent instead";
+deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
+  "use GenServer instead";
+%deprecation('Elixir.Kernel', raise, 3) ->
+%  "use reraise/2 instead";
+deprecation('Elixir.Kernel', is_record, _) ->
+  "use Record.record? instead";
+deprecation('Elixir.Kernel', defrecord, _) ->
+  "use structs instead";
+%deprecation('Elixir.Kernel', defexception, 3) ->
+%  "use defexception/1 instead";
+deprecation('Elixir.Process', spawn, _) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Process', spawn_link, _) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Process', spawn_monitor, _) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Process', self, _) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Process', send, _) ->
+  "use the one in Kernel instead";
+deprecation('Elixir.Record', defmacros, 4) ->
+  true;
+deprecation('Elixir.Record', deftypes, 3) ->
+  true;
+deprecation('Elixir.Record', deffunctions, 2) ->
+  true;
+%deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
+%  "use Supervisor instead";
+deprecation('Elixir.Mix', project, 0) ->
+  "use Mix.Project.config/0 instead";
+deprecation(_, _, _) ->
+  false.

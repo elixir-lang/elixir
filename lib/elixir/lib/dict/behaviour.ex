@@ -2,9 +2,6 @@ defmodule Dict.Behaviour do
   @moduledoc false
 
   defmacro __using__(_) do
-    # IO.write :stderr, "use Dict.Behaviour is deprecated\n" <>
-    #                   Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
 
