@@ -486,9 +486,6 @@ defmodule List do
 
   @doc false
   def from_char_data(char_data) do
-    # IO.write :stderr, "List.from_char_data/1 is deprecated, please use String.to_char_list/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
         {:ok, result}
@@ -503,9 +500,6 @@ defmodule List do
 
   @doc false
   def from_char_data!(char_data) do
-    # IO.write :stderr, "List.from_char_data!/1 is deprecated, please use String.to_char_list/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
         result

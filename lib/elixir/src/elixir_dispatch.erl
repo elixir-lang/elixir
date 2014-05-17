@@ -514,22 +514,33 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
-%deprecation('Elixir.Application.Behaviour', '__using__', _) ->
-%  "use Application instead";
-%deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
-%  true;
-%deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
-%  "use GenEvent instead";
-deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
-  "use GenServer instead";
-%deprecation('Elixir.Kernel', raise, 3) ->
-%  "use reraise/2 instead";
+% deprecation('Elixir.Application.Behaviour', '__using__', _) ->
+%   "use Application instead";
+% deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
+%   true;
+% deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
+%   "use GenEvent instead";
+%  deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
+%    "use GenServer instead";
+% deprecation('Elixir.Kernel', raise, 3) ->
+%   "use reraise/2 instead";
+% deprecation('Elixir.Kernel', defexception, 3) ->
+%   "use defexception/1 instead";
+% deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
+%   "use Supervisor instead";
+% deprecation('Elixir.List', 'from_char_data', 1) ->
+%   "use String.to_char_list instead";
+% deprecation('Elixir.List', 'from_char_data!', 1) ->
+%   "use String.to_char_list instead";
+% deprecation('Elixir.String', 'from_char_data', 1) ->
+%   "use List.to_string instead";
+% deprecation('Elixir.String', 'from_char_data!', 1) ->
+%   "use List.to_string instead";
+
 deprecation('Elixir.Kernel', is_record, _) ->
   "use Record.record? instead";
 deprecation('Elixir.Kernel', defrecord, _) ->
   "use structs instead";
-%deprecation('Elixir.Kernel', defexception, 3) ->
-%  "use defexception/1 instead";
 deprecation('Elixir.Process', spawn, _) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Process', spawn_link, _) ->
@@ -546,8 +557,6 @@ deprecation('Elixir.Record', deftypes, 3) ->
   true;
 deprecation('Elixir.Record', deffunctions, 2) ->
   true;
-%deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
-%  "use Supervisor instead";
 deprecation('Elixir.Mix', project, 0) ->
   "use Mix.Project.config/0 instead";
 deprecation(_, _, _) ->

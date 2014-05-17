@@ -1209,16 +1209,10 @@ defmodule String do
 
   @doc false
   def from_char_data(binary) when is_binary(binary) do
-    # IO.write :stderr, "String.from_char_data/1 is deprecated, please use List.to_string/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     binary
   end
 
   def from_char_data(list) when is_list(list) do
-    # IO.write :stderr, "String.from_char_data/1 is deprecated, please use List.to_string/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         {:ok, result}
@@ -1233,16 +1227,10 @@ defmodule String do
 
   @doc false
   def from_char_data!(binary) when is_binary(binary) do
-    # IO.write :stderr, "String.from_char_data!/1 is deprecated, please use List.to_string/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     binary
   end
 
   def from_char_data!(list) when is_list(list) do
-    # IO.write :stderr, "String.from_char_data!/1 is deprecated, please use List.to_string/1 instead\n" <>
-    #                   Exception.format_stacktrace()
-
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
         result
