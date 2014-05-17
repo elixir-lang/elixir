@@ -156,6 +156,11 @@ defmodule Kernel do
   end
 
   @doc false
+  def list_to_bitstring(bitstring_list) do
+    :erlang.list_to_bitstring(bitstring_list)
+  end
+
+  @doc false
   def tuple_to_list(tuple) do
     :erlang.tuple_to_list(tuple)
   end
@@ -553,26 +558,6 @@ defmodule Kernel do
   @spec list_to_atom(char_list) :: atom
   def list_to_atom(list) do
     :erlang.list_to_atom(list)
-  end
-
-  @doc """
-  Returns a bitstring which is made from the integers and bitstrings in `bitstring_list`.
-  (the last tail in `bitstring_list` is allowed to be a bitstring.)
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> bin1 = <<1, 2, 3>>
-      iex> bin2 = <<4, 5>>
-      iex> bin3 = <<6, 7::4>>
-      iex> list_to_bitstring([bin1, 1, [2, 3, bin2], 4|bin3])
-      <<1,2,3,1,2,3,4,5,4,6,7::size(4)>>
-
-  """
-  @spec list_to_bitstring(maybe_improper_list(char | binary | iolist | bitstring, binary | bitstring | [])) :: bitstring
-  def list_to_bitstring(bitstring_list) do
-    :erlang.list_to_bitstring(bitstring_list)
   end
 
   @doc """

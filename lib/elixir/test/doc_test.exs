@@ -6,7 +6,6 @@ defmodule KernelTest do
   doctest Access
   doctest Atom
   doctest Base
-  doctest BitString
   doctest Bitwise
   doctest Code
   doctest Collectable

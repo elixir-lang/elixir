@@ -11,7 +11,6 @@
 -import(ordsets, [is_element/2]).
 
 -define(atom, 'Elixir.Atom').
--define(bitstring, 'Elixir.BitString').
 -define(float, 'Elixir.Float').
 -define(io, 'Elixir.IO').
 -define(integer, 'Elixir.Integer').
@@ -379,7 +378,6 @@ increment(Other) ->
   {{'.', [], [erlang, '+']}, [], [Other, 1]}.
 
 inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
-inline(?bitstring, to_list, 1) -> {erlang, bitstring_to_list};
 inline(?io, iodata_length, 1) -> {erlang, iolist_size};
 inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?integer, to_string, 1) -> {erlang, integer_to_binary};
@@ -437,7 +435,6 @@ inline(?kernel, is_reference, 1) -> {erlang, is_reference};
 inline(?kernel, is_tuple, 1) -> {erlang, is_tuple};
 inline(?kernel, length, 1) -> {erlang, length};
 inline(?kernel, list_to_atom, 1) -> {erlang, list_to_atom};
-inline(?kernel, list_to_bitstring, 1) -> {erlang, list_to_bitstring};
 inline(?kernel, list_to_existing_atom, 1) -> {erlang, list_to_existing_atom};
 inline(?kernel, list_to_float, 1) -> {erlang, list_to_float};
 inline(?kernel, list_to_integer, 1) -> {erlang, list_to_integer};
