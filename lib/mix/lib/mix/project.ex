@@ -133,16 +133,18 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
 
-  By default it includes the mix.exs file and the lock manifest.
+  By default it includes the mix.exs file, the lock manifest and
+  all config files in the `config` directory.
   """
   def config_files do
     [Mix.Dep.Lock.manifest] ++
       case Mix.ProjectStack.peek do
         {_name, config, file} ->
-          configs = config[:config_path] || "config/config.exs"
+          configs = (config[:config_path] || "config/config.exs")
                     |> Path.dirname
-                    |> Path.join("*.exs")
+                    |> Path.join("*.*")
                     |> Path.wildcard
+                    |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
           [file|configs]
         _ ->
           []

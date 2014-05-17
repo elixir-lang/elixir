@@ -5,7 +5,7 @@ defmodule Mix.ProjectTest do
 
   defmodule SampleProject do
     def project do
-      [hello: "world"]
+      [app: :sample, hello: "world"]
     end
   end
 
@@ -76,6 +76,23 @@ defmodule Mix.ProjectTest do
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
+    end
+  end
+
+  test "config_files" do
+    Mix.Project.push(SampleProject)
+
+    in_fixture "no_mixfile", fn ->
+      File.mkdir_p!("config")
+      File.write! "config/config.exs", "[]"
+      File.write! "config/dev.exs", "[]"
+      File.write! "config/.exs", "[]"
+
+      files = Mix.Project.config_files
+      assert __ENV__.file in files
+      assert "config/config.exs" in files
+      assert "config/dev.exs" in files
+      refute "config/.exs" in files
     end
   end
 end
