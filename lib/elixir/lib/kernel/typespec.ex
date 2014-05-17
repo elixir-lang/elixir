@@ -705,10 +705,6 @@ defmodule Kernel.Typespec do
     typespec_to_ast({:type, line, :char_list, []})
   end
 
-  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :char_data}, []]}) do
-    typespec_to_ast({:type, line, :char_data, []})
-  end
-
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}) do
     typespec_to_ast({:type, line, :as_boolean, [arg]})
   end
@@ -880,10 +876,6 @@ defmodule Kernel.Typespec do
 
   defp typespec({:char_list, _meta, []}, vars, caller) do
     typespec((quote do: :elixir.char_list()), vars, caller)
-  end
-
-  defp typespec({:char_data, _meta, []}, vars, caller) do
-    typespec((quote do: :elixir.char_data()), vars, caller)
   end
 
   defp typespec({:as_boolean, _meta, [arg]}, vars, caller) do

@@ -82,8 +82,10 @@ defmodule IEx.HelpersTest do
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert capture_io(fn -> s Enum.all?/1 end) == "@spec all?(t()) :: boolean()\n"
-    assert capture_io(fn -> s iodata_to_binary end) == "@spec iodata_to_binary(iolist() | binary()) :: binary()\n"
+    assert capture_io(fn -> s Enum.all?/1 end) ==
+           "@spec all?(t()) :: boolean()\n"
+    assert capture_io(fn -> s struct end) ==
+           "@spec struct(module() | %{}, Enum.t()) :: %{}\n"
   end
 
   test "v helper" do

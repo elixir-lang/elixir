@@ -14,6 +14,7 @@ defmodule KernelTest do
   doctest Inspect
   doctest Inspect.Algebra
   doctest Integer
+  doctest IO
   doctest IO.ANSI
   doctest Kernel
   doctest Kernel.SpecialForms

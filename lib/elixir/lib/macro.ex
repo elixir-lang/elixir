@@ -424,7 +424,7 @@ defmodule Macro do
       list == [] ->
         "[]"
       :io_lib.printable_list(list) ->
-        "'" <> Inspect.BitString.escape(String.from_char_data!(list), ?') <> "'"
+        "'" <> Inspect.BitString.escape(IO.chardata_to_string(list), ?') <> "'"
       Keyword.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
       true ->

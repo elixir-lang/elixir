@@ -410,9 +410,9 @@ defmodule Regex do
       :nomatch ->
         string
       {:match, [mlist|t]} when is_list(mlist) ->
-        apply_list(string, replacement, [mlist|t]) |> iodata_to_binary
+        apply_list(string, replacement, [mlist|t]) |> IO.iodata_to_binary
       {:match, slist} ->
-        apply_list(string, replacement, [slist]) |> iodata_to_binary
+        apply_list(string, replacement, [slist]) |> IO.iodata_to_binary
     end
   end
 

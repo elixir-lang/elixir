@@ -228,7 +228,7 @@ defmodule File do
   """
   @spec regular?(Path.t) :: boolean
   def regular?(path) do
-    FL.is_regular(String.from_char_data!(path))
+    FL.is_regular(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -236,7 +236,7 @@ defmodule File do
   """
   @spec dir?(Path.t) :: boolean
   def dir?(path) do
-    FL.is_dir(String.from_char_data!(path))
+    FL.is_dir(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -258,7 +258,7 @@ defmodule File do
   """
   @spec exists?(Path.t) :: boolean
   def exists?(path) do
-    match?({:ok, _}, F.read_file_info(String.from_char_data!(path)))
+    match?({:ok, _}, F.read_file_info(IO.chardata_to_string(path)))
   end
 
   @doc """
@@ -276,7 +276,7 @@ defmodule File do
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
-    F.make_dir(String.from_char_data!(path))
+    F.make_dir(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -284,7 +284,7 @@ defmodule File do
   """
   @spec mkdir!(Path.t) :: :ok | no_return
   def mkdir!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case mkdir(path) do
       :ok -> :ok
       {:error, reason} ->
@@ -312,7 +312,7 @@ defmodule File do
   """
   @spec mkdir_p!(Path.t) :: :ok | no_return
   def mkdir_p!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case mkdir_p(path) do
       :ok -> :ok
       {:error, reason} ->
@@ -338,7 +338,7 @@ defmodule File do
   """
   @spec read(Path.t) :: {:ok, binary} | {:error, posix}
   def read(path) do
-    F.read_file(String.from_char_data!(path))
+    F.read_file(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -347,7 +347,7 @@ defmodule File do
   """
   @spec read!(Path.t) :: binary | no_return
   def read!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case read(path) do
       {:ok, binary} ->
         binary
@@ -372,7 +372,7 @@ defmodule File do
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
-    case F.read_file_info(String.from_char_data!(path), opts) do
+    case F.read_file_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
       error ->
@@ -386,7 +386,7 @@ defmodule File do
   """
   @spec stat!(Path.t, stat_options) :: File.Stat.t | no_return
   def stat!(path, opts \\ []) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
@@ -400,7 +400,7 @@ defmodule File do
   """
   @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
   def write_stat(path, stat, opts \\ []) do
-    F.write_file_info(String.from_char_data!(path), File.Stat.to_record(stat), opts)
+    F.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
   end
 
   @doc """
@@ -409,7 +409,7 @@ defmodule File do
   """
   @spec write_stat!(Path.t, File.Stat.t, stat_options) :: :ok | no_return
   def write_stat!(path, stat, opts \\ []) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case write_stat(path, stat, opts) do
       :ok -> :ok
       {:error, reason} ->
@@ -423,7 +423,7 @@ defmodule File do
   """
   @spec touch(Path.t, :calendar.datetime) :: :ok | {:error, posix}
   def touch(path, time \\ :calendar.local_time) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case F.change_time(path, time) do
       {:error, :enoent} ->
         write(path, "")
@@ -439,7 +439,7 @@ defmodule File do
   """
   @spec touch!(Path.t, :calendar.datetime) :: :ok | no_return
   def touch!(path, time \\ :calendar.local_time) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case touch(path, time) do
       :ok -> :ok
       {:error, reason} ->
@@ -482,7 +482,7 @@ defmodule File do
   """
   @spec copy(Path.t, Path.t, pos_integer | :infinity) :: {:ok, non_neg_integer} | {:error, posix}
   def copy(source, destination, bytes_count \\ :infinity) do
-    F.copy(String.from_char_data!(source), String.from_char_data!(destination), bytes_count)
+    F.copy(IO.chardata_to_string(source), IO.chardata_to_string(destination), bytes_count)
   end
 
   @doc """
@@ -491,8 +491,8 @@ defmodule File do
   """
   @spec copy!(Path.t, Path.t, pos_integer | :infinity) :: non_neg_integer | no_return
   def copy!(source, destination, bytes_count \\ :infinity) do
-    source = String.from_char_data!(source)
-    destination = String.from_char_data!(destination)
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
     case copy(source, destination, bytes_count) do
       {:ok, bytes_count} -> bytes_count
       {:error, reason} ->
@@ -522,8 +522,8 @@ defmodule File do
   """
   @spec cp(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | {:error, posix}
   def cp(source, destination, callback \\ fn(_, _) -> true end) do
-    source = String.from_char_data!(source)
-    destination = String.from_char_data!(destination)
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
 
     case do_cp_file(source, destination, callback, []) do
       {:error, reason, _} -> {:error, reason}
@@ -537,8 +537,8 @@ defmodule File do
   """
   @spec cp!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
   def cp!(source, destination, callback \\ fn(_, _) -> true end) do
-    source = String.from_char_data!(source)
-    destination = String.from_char_data!(destination)
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
 
     case cp(source, destination, callback) do
       :ok -> :ok
@@ -593,8 +593,8 @@ defmodule File do
   """
   @spec cp_r(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: {:ok, [binary]} | {:error, posix, binary}
   def cp_r(source, destination, callback \\ fn(_, _) -> true end) when is_function(callback) do
-    source = String.from_char_data!(source)
-    destination = String.from_char_data!(destination)
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
 
     case do_cp_r(source, destination, callback, []) do
       {:error, _, _} = error -> error
@@ -608,8 +608,8 @@ defmodule File do
   """
   @spec cp_r!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: [binary] | no_return
   def cp_r!(source, destination, callback \\ fn(_, _) -> true end) do
-    source = String.from_char_data!(source)
-    destination = String.from_char_data!(destination)
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
 
     case cp_r(source, destination, callback) do
       {:ok, files} -> files
@@ -725,7 +725,7 @@ defmodule File do
   """
   @spec write(Path.t, iodata, list) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(String.from_char_data!(path), content, [:raw|modes])
+    F.write_file(IO.chardata_to_string(path), content, [:raw|modes])
   end
 
   @doc """
@@ -733,7 +733,7 @@ defmodule File do
   """
   @spec write!(Path.t, iodata, list) :: :ok | no_return
   def write!(path, content, modes \\ []) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case F.write_file(path, content, modes) do
       :ok -> :ok
       {:error, reason} ->
@@ -765,7 +765,7 @@ defmodule File do
   """
   @spec rm(Path.t) :: :ok | {:error, posix}
   def rm(path) do
-    F.delete(String.from_char_data!(path))
+    F.delete(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -773,7 +773,7 @@ defmodule File do
   """
   @spec rm!(Path.t) :: :ok | no_return
   def rm!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case rm(path) do
       :ok -> :ok
       {:error, reason} ->
@@ -796,7 +796,7 @@ defmodule File do
   """
   @spec rmdir(Path.t) :: :ok | {:error, posix}
   def rmdir(path) do
-    F.del_dir(String.from_char_data!(path))
+    F.del_dir(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -804,7 +804,7 @@ defmodule File do
   """
   @spec rmdir!(Path.t) :: :ok | {:error, posix}
   def rmdir!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case rmdir(path) do
       :ok -> :ok
       {:error, reason} ->
@@ -832,7 +832,7 @@ defmodule File do
   """
   @spec rm_rf(Path.t) :: {:ok, [binary]} | {:error, posix, binary}
   def rm_rf(path) do
-    do_rm_rf(String.from_char_data!(path), {:ok, []})
+    do_rm_rf(IO.chardata_to_string(path), {:ok, []})
   end
 
   defp do_rm_rf(path, {:ok, _} = entry) do
@@ -907,7 +907,7 @@ defmodule File do
   """
   @spec rm_rf!(Path.t) :: [binary] | no_return
   def rm_rf!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case rm_rf(path) do
       {:ok, files} -> files
       {:error, reason, _} ->
@@ -977,7 +977,7 @@ defmodule File do
   def open(path, modes \\ [])
 
   def open(path, modes) when is_list(modes) do
-    F.open(String.from_char_data!(path), open_defaults(modes, true))
+    F.open(IO.chardata_to_string(path), open_defaults(modes, true))
   end
 
   def open(path, function) when is_function(function) do
@@ -1024,7 +1024,7 @@ defmodule File do
   """
   @spec open!(Path.t, list) :: io_device | no_return
   def open!(path, modes \\ []) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case open(path, modes) do
       {:ok, device}    -> device
       {:error, reason} ->
@@ -1038,7 +1038,7 @@ defmodule File do
   """
   @spec open!(Path.t, list, (io_device -> res)) :: res | no_return when res: var
   def open!(path, modes, function) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case open(path, modes, function) do
       {:ok, device}    -> device
       {:error, reason} ->
@@ -1057,7 +1057,7 @@ defmodule File do
   @spec cwd() :: {:ok, binary} | {:error, posix}
   def cwd() do
     case F.get_cwd do
-      {:ok, base} -> {:ok, String.from_char_data!(base)}
+      {:ok, base} -> {:ok, IO.chardata_to_string(base)}
       {:error, _} = error -> error
     end
   end
@@ -1068,7 +1068,7 @@ defmodule File do
   @spec cwd!() :: binary | no_return
   def cwd!() do
     case F.get_cwd do
-      {:ok, cwd} -> String.from_char_data!(cwd)
+      {:ok, cwd} -> IO.chardata_to_string(cwd)
       {:error, reason} ->
           raise File.Error, reason: reason, action: "get current working directory"
     end
@@ -1081,7 +1081,7 @@ defmodule File do
   """
   @spec cd(Path.t) :: :ok | {:error, posix}
   def cd(path) do
-    F.set_cwd(String.from_char_data!(path))
+    F.set_cwd(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -1089,7 +1089,7 @@ defmodule File do
   """
   @spec cd!(Path.t) :: :ok | no_return
   def cd!(path) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case F.set_cwd(path) do
       :ok -> :ok
       {:error, reason} ->
@@ -1124,8 +1124,8 @@ defmodule File do
   """
   @spec ls(Path.t) :: {:ok, [binary]} | {:error, posix}
   def ls(path \\ ".") do
-    case F.list_dir(String.from_char_data!(path)) do
-      {:ok, file_list} -> {:ok, Enum.map(file_list, &String.from_char_data!/1)}
+    case F.list_dir(IO.chardata_to_string(path)) do
+      {:ok, file_list} -> {:ok, Enum.map(file_list, &IO.chardata_to_string/1)}
       {:error, _} = error -> error
     end
   end
@@ -1136,7 +1136,7 @@ defmodule File do
   """
   @spec ls!(Path.t) :: [binary] | no_return
   def ls!(path \\ ".") do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case ls(path) do
       {:ok, value} -> value
       {:error, reason} ->
@@ -1197,7 +1197,7 @@ defmodule File do
         modes
       end
 
-    %File.Stream{path: String.from_char_data!(path), modes: modes,
+    %File.Stream{path: IO.chardata_to_string(path), modes: modes,
                  raw: raw, line_or_bytes: line_or_bytes}
   end
 
@@ -1208,7 +1208,7 @@ defmodule File do
   """
   @spec chmod(Path.t, integer) :: :ok | {:error, posix}
   def chmod(path, mode) do
-    F.change_mode(String.from_char_data!(path), mode)
+    F.change_mode(IO.chardata_to_string(path), mode)
   end
 
   @doc """
@@ -1216,7 +1216,7 @@ defmodule File do
   """
   @spec chmod!(Path.t, integer) :: :ok | no_return
   def chmod!(path, mode) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case chmod(path, mode) do
       :ok -> :ok
       {:error, reason} ->
@@ -1231,7 +1231,7 @@ defmodule File do
   """
   @spec chgrp(Path.t, integer) :: :ok | {:error, posix}
   def chgrp(path, gid) do
-    F.change_group(String.from_char_data!(path), gid)
+    F.change_group(IO.chardata_to_string(path), gid)
   end
 
   @doc """
@@ -1239,7 +1239,7 @@ defmodule File do
   """
   @spec chgrp!(Path.t, integer) :: :ok | no_return
   def chgrp!(path, gid) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case chgrp(path, gid) do
       :ok -> :ok
       {:error, reason} ->
@@ -1254,7 +1254,7 @@ defmodule File do
   """
   @spec chown(Path.t, integer) :: :ok | {:error, posix}
   def chown(path, uid) do
-    F.change_owner(String.from_char_data!(path), uid)
+    F.change_owner(IO.chardata_to_string(path), uid)
   end
 
   @doc """
@@ -1262,7 +1262,7 @@ defmodule File do
   """
   @spec chown!(Path.t, integer) :: :ok | no_return
   def chown!(path, uid) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case chown(path, uid) do
       :ok -> :ok
       {:error, reason} ->

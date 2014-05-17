@@ -263,7 +263,7 @@ defmodule Mix.Dep.Loader do
       {:ok, [{:application, ^app, config}]} ->
         case List.keyfind(config, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
-            actual = iodata_to_binary(actual)
+            actual = IO.iodata_to_binary(actual)
             if vsn_match?(req, actual, app) do
               {:ok, actual}
             else

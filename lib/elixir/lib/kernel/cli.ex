@@ -9,7 +9,7 @@ defmodule Kernel.CLI do
   This is the API invoked by Elixir boot process.
   """
   def main(argv) do
-    argv = for arg <- argv, do: String.from_char_data!(arg)
+    argv = for arg <- argv, do: IO.chardata_to_string(arg)
 
     {config, argv} = process_argv(argv, @blank_config)
     System.argv(argv)

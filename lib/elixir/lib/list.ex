@@ -468,7 +468,6 @@ defmodule List do
       {:ok, 'abc'}
 
   """
-  @spec from_char_data(char_data) :: {:ok, char_list} | {:error, list, binary} | {:incomplete, list, binary}
   def from_char_data(char_data) do
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
@@ -500,7 +499,6 @@ defmodule List do
       'abc'
 
   """
-  @spec from_char_data!(char_data) :: char_list | no_return
   def from_char_data!(char_data) do
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->

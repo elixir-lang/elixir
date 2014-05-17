@@ -644,7 +644,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(nil, acc), do: iodata_to_binary(acc)
+  defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -1195,7 +1195,6 @@ defmodule String do
       {:ok, "abc"}
 
   """
-  @spec from_char_data(char_data) :: {:ok, String.t} | {:error, binary, binary} | {:incomplete, binary, binary}
   def from_char_data(binary) when is_binary(binary) do
     binary
   end
@@ -1228,7 +1227,6 @@ defmodule String do
       "abc"
 
   """
-  @spec from_char_data!(char_data) :: String.t | no_return
   def from_char_data!(binary) when is_binary(binary) do
     binary
   end

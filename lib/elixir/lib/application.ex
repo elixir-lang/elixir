@@ -305,7 +305,7 @@ defmodule Application do
   @spec app_dir(app) :: String.t
   def app_dir(app) when is_atom(app) do
     case :code.lib_dir(app) do
-      lib when is_list(lib) -> String.from_char_data!(lib)
+      lib when is_list(lib) -> IO.chardata_to_string(lib)
       {:error, :bad_name} -> raise ArgumentError, "unknown application: #{inspect app}"
     end
   end

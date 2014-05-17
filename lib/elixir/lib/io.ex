@@ -32,6 +32,7 @@ defmodule IO do
 
   @type device :: atom | pid
   @type nodata :: {:error, term} | :eof
+  @type chardata() :: :unicode.chardata()
 
   import :erlang, only: [group_leader: 0]
 
@@ -53,7 +54,7 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec read(device, :line | non_neg_integer) :: char_data | nodata
+  @spec read(device, :line | non_neg_integer) :: chardata | nodata
   def read(device \\ group_leader, chars_or_line)
 
   def read(device, :line) do
@@ -108,9 +109,9 @@ defmodule IO do
       #=> "error"
 
   """
-  @spec write(device, char_data | String.Chars.t) :: :ok
+  @spec write(device, chardata | String.Chars.t) :: :ok
   def write(device \\ group_leader(), item) do
-    :io.put_chars map_dev(device), to_char_data(item)
+    :io.put_chars map_dev(device), to_chardata(item)
   end
 
   @doc """
@@ -127,12 +128,12 @@ defmodule IO do
   @doc """
   Writes the argument to the device, similar to `write/2`,
   but adds a newline at the end. The argument is expected
-  to be a char_data.
+  to be a chardata.
   """
-  @spec puts(device, char_data | String.Chars.t) :: :ok
+  @spec puts(device, chardata | String.Chars.t) :: :ok
   def puts(device \\ group_leader(), item) do
     erl_dev = map_dev(device)
-    :io.put_chars erl_dev, [to_char_data(item), ?\n]
+    :io.put_chars erl_dev, [to_chardata(item), ?\n]
   end
 
   @doc """
@@ -181,8 +182,8 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec getn(char_data | String.Chars.t, pos_integer) :: char_data | nodata
-  @spec getn(device, char_data | String.Chars.t) :: char_data | nodata
+  @spec getn(chardata | String.Chars.t, pos_integer) :: chardata | nodata
+  @spec getn(device, chardata | String.Chars.t) :: chardata | nodata
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) do
@@ -199,9 +200,9 @@ defmodule IO do
   the number of unicode codepoints to be retrieved.
   Otherwise, `count` is the number of raw bytes to be retrieved.
   """
-  @spec getn(device, char_data | String.Chars.t, pos_integer) :: char_data | nodata
+  @spec getn(device, chardata | String.Chars.t, pos_integer) :: chardata | nodata
   def getn(device, prompt, count) do
-    :io.get_chars(map_dev(device), to_char_data(prompt), count)
+    :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
 
   @doc """
@@ -216,9 +217,9 @@ defmodule IO do
     for instance `{:error, :estale}` if reading from an
     NFS file system.
   """
-  @spec gets(device, char_data | String.Chars.t) :: char_data | nodata
+  @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
   def gets(device \\ group_leader(), prompt) do
-    :io.get_line(map_dev(device), to_char_data(prompt))
+    :io.get_line(map_dev(device), to_chardata(prompt))
   end
 
   @doc """
@@ -270,6 +271,87 @@ defmodule IO do
       device: map_dev(device), raw: true, line_or_bytes: line_or_bytes
   end
 
+  @doc """
+  Converts chardata (a list of integers representing codepoints,
+  lists and strings) into a string.
+
+  In case the conversion fails, it raises a `UnicodeConversionError`.
+  If a string is given, returns the string itself.
+
+  ## Examples
+
+      iex> IO.chardata_to_string([0x00E6, 0x00DF])
+      "æß"
+
+      iex> IO.chardata_to_string([0x0061, "bc"])
+      "abc"
+
+  """
+  @spec chardata_to_string(chardata) :: String.t | no_return
+  def chardata_to_string(string) when is_binary(string) do
+    string
+  end
+
+  def chardata_to_string(list) when is_list(list) do
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc """
+  Converts iodata (a list of integers representing bytes, lists
+  and binaries) into a binary.
+
+  Notice that this function treats lists of integers as raw bytes
+  and does not perform any kind of encoding conversion. If you want
+  to convert from a char list to a string (UTF-8 encoded), please
+  use `chardata_to_string/1` instead.
+
+  If this function receives a binary, the same binary is returned.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> bin1 = <<1, 2, 3>>
+      iex> bin2 = <<4, 5>>
+      iex> bin3 = <<6>>
+      iex> IO.iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
+      <<1,2,3,1,2,3,4,5,4,6>>
+
+      iex> bin = <<1, 2, 3>>
+      iex> IO.iodata_to_binary(bin)
+      <<1,2,3>>
+
+  """
+  @spec iodata_to_binary(iodata) :: binary
+  def iodata_to_binary(item) do
+    :erlang.iolist_to_binary(item)
+  end
+
+  @doc """
+  Returns the size of an iodata.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> IO.iodata_length([1, 2|<<3, 4>>])
+      4
+
+  """
+  @spec iodata_length(iodata) :: non_neg_integer
+  def iodata_length(item) do
+    :erlang.iolist_size(item)
+  end
+
   @doc false
   def each_stream(device, what) do
     case read(device, what) do
@@ -294,13 +376,13 @@ defmodule IO do
     end
   end
 
-  @compile {:inline, map_dev: 1, to_char_data: 1}
+  @compile {:inline, map_dev: 1, to_chardata: 1}
 
   # Map the Elixir names for standard io and error to Erlang names
   defp map_dev(:stdio),  do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other) when is_atom(other) or is_pid(other) or is_tuple(other), do: other
 
-  defp to_char_data(list) when is_list(list), do: list
-  defp to_char_data(other), do: to_string(other)
+  defp to_chardata(list) when is_list(list), do: list
+  defp to_chardata(other), do: to_string(other)
 end

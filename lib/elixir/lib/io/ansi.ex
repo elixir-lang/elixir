@@ -210,7 +210,7 @@ defmodule IO.ANSI do
   end
 
   defp do_escape(<<>>, _emit, _emitted, buffer, _acc) when is_list(buffer) do
-    buffer = iodata_to_binary Enum.reverse(buffer)
+    buffer = IO.iodata_to_binary Enum.reverse(buffer)
     raise ArgumentError, "missing } for escape fragment #{buffer}"
   end
 
@@ -223,6 +223,6 @@ defmodule IO.ANSI do
   end
 
   defp do_escape(<<>>, _emit, emitted, nil, acc) do
-    {iodata_to_binary(Enum.reverse(acc)), emitted}
+    {IO.iodata_to_binary(Enum.reverse(acc)), emitted}
   end
 end

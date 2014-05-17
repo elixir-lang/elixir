@@ -12,6 +12,7 @@
 
 -define(atom, 'Elixir.Atom').
 -define(bitstring, 'Elixir.BitString').
+-define(io, 'Elixir.IO').
 -define(kernel, 'Elixir.Kernel').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
@@ -20,11 +21,11 @@
 -define(tuple, 'Elixir.Tuple').
 
 default_functions() ->
-  [ {?kernel, elixir_imported_functions()} ].
+  [{?kernel, elixir_imported_functions()}].
 default_macros() ->
-  [ {?kernel, elixir_imported_macros()} ].
+  [{?kernel, elixir_imported_macros()}].
 default_requires() ->
-  [ 'Elixir.Kernel', 'Elixir.Kernel.Typespec' ].
+  ['Elixir.Kernel', 'Elixir.Kernel.Typespec'].
 
 find_import(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
@@ -373,6 +374,8 @@ increment(Other) ->
 
 inline(?atom, to_char_list, 1) -> {erlang, atom_to_list};
 inline(?bitstring, to_list, 1) -> {erlang, bitstring_to_list};
+inline(?io, iodata_length, 1) -> {erlang, iolist_size};
+inline(?io, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 
 inline(?kernel, '+', 2) -> {erlang, '+'};
 inline(?kernel, '-', 2) -> {erlang, '-'};
@@ -411,8 +414,6 @@ inline(?kernel, integer_to_binary, 1) -> {erlang, integer_to_binary};
 inline(?kernel, integer_to_binary, 2) -> {erlang, integer_to_binary};
 inline(?kernel, integer_to_list, 1) -> {erlang, integer_to_list};
 inline(?kernel, integer_to_list, 2) -> {erlang, integer_to_list};
-inline(?kernel, iodata_length, 1) -> {erlang, iolist_size};
-inline(?kernel, iodata_to_binary, 1) -> {erlang, iolist_to_binary};
 inline(?kernel, is_atom, 1) -> {erlang, is_atom};
 inline(?kernel, is_binary, 1) -> {erlang, is_binary};
 inline(?kernel, is_bitstring, 1) -> {erlang, is_bitstring};

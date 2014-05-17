@@ -3,7 +3,7 @@ defmodule IO.StreamError do
 
   def exception(opts) do
     reason    = opts[:reason]
-    formatted = iodata_to_binary(:file.format_error(reason))
+    formatted = IO.iodata_to_binary(:file.format_error(reason))
     %IO.StreamError{message: "error during streaming: #{formatted}", reason: reason}
   end
 end

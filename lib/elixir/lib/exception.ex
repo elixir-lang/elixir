@@ -697,7 +697,7 @@ defmodule File.Error do
   defexception [reason: nil, action: "", path: nil]
 
   def message(exception) do
-    formatted = iodata_to_binary(:file.format_error(exception.reason))
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
     "could not #{exception.action} #{exception.path}: #{formatted}"
   end
 end
@@ -706,7 +706,7 @@ defmodule File.CopyError do
   defexception [reason: nil, action: "", source: nil, destination: nil, on: nil]
 
   def message(exception) do
-    formatted = iodata_to_binary(:file.format_error(exception.reason))
+    formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
     location  = if on = exception.on, do: ". #{on}", else: ""
     "could not #{exception.action} from #{exception.source} to " <>
       "#{exception.destination}#{location}: #{formatted}"

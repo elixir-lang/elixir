@@ -21,7 +21,7 @@ defmodule EEx.Compiler do
   # Generates the buffers by handling each expression from the tokenizer
 
   defp generate_buffer([{:text, chars}|t], buffer, scope, state) do
-    buffer = state.engine.handle_text(buffer, String.from_char_data!(chars))
+    buffer = state.engine.handle_text(buffer, IO.chardata_to_string(chars))
     generate_buffer(t, buffer, scope, state)
   end
 

@@ -105,6 +105,16 @@ defmodule Kernel do
     :erlang.bitstring_to_list(bitstring)
   end
 
+  @doc false
+  def iodata_length(item) do
+    :erlang.iolist_size(item)
+  end
+
+  @doc false
+  def iodata_to_binary(item) do
+    :erlang.iolist_to_binary(item)
+  end
+
   ## END OF DEPRECATED
 
   @doc """
@@ -453,52 +463,6 @@ defmodule Kernel do
   @spec integer_to_list(integer, pos_integer) :: list
   def integer_to_list(number, base) do
     :erlang.integer_to_list(number, base)
-  end
-
-  @doc """
-  Returns the size of an iodata.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> iodata_length([1, 2|<<3, 4>>])
-      4
-
-  """
-  @spec iodata_length(iolist | binary) :: non_neg_integer
-  def iodata_length(item) do
-    :erlang.iolist_size(item)
-  end
-
-  @doc """
-  Returns a binary which is made from the integers and binaries in iodata.
-
-  Notice that this function treats lists of integers as raw bytes
-  and does not perform any kind of encoding conversion. If you want to convert
-  from a char list to a string (both utf-8 encoded), please use
-  `String.from_char_data!/1` instead.
-
-  If this function receives a binary, the same binary is returned.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> bin1 = <<1, 2, 3>>
-      iex> bin2 = <<4, 5>>
-      iex> bin3 = <<6>>
-      iex> iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
-      <<1,2,3,1,2,3,4,5,4,6>>
-
-      iex> bin = <<1, 2, 3>>
-      iex> iodata_to_binary(bin)
-      <<1,2,3>>
-
-  """
-  @spec iodata_to_binary(iolist | binary) :: binary
-  def iodata_to_binary(item) do
-    :erlang.iolist_to_binary(item)
   end
 
   @doc """
@@ -1634,7 +1598,6 @@ defmodule Kernel do
       end
 
   """
-  @spec raise(binary | atom) :: no_return
   defmacro raise(msg) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make dialyzer happy.
@@ -1682,7 +1645,6 @@ defmodule Kernel do
       ** (ArgumentError) Sample
 
   """
-  @spec raise(atom, term) :: no_return
   defmacro raise(exception, attrs) do
     quote do
       :erlang.error unquote(exception).exception(unquote(attrs))

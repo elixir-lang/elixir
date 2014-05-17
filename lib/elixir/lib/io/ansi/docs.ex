@@ -355,7 +355,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
   defp inline_buffer(buffer, options) do

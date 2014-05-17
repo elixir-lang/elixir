@@ -80,6 +80,6 @@ defimpl String.Chars, for: Float do
   Simply converts the float to a string.
   """
   def to_string(thing) do
-    iodata_to_binary(:io_lib_format.fwrite_g(thing))
+    IO.iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
