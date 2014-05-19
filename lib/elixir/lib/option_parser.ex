@@ -86,7 +86,9 @@ defmodule OptionParser do
 
   """
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config = compile_config(opts, all: true)
+    config =
+      Keyword.merge(opts, [all: true, strict: false])
+      |> compile_config()
     do_parse(argv, config, [], [], [])
   end
 
@@ -106,7 +108,9 @@ defmodule OptionParser do
 
   """
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config = compile_config(opts, all: false)
+    config =
+      Keyword.merge(opts, [all: false, strict: false])
+      |> compile_config()
     do_parse(argv, config, [], [], [])
   end
 
@@ -115,21 +119,21 @@ defmodule OptionParser do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
   end
 
-  defp do_parse(argv, {aliases, switches, all}=config, opts, args, invalid) do
-    case next(argv, aliases, switches) do
+  defp do_parse(argv, {aliases, switches, strict, all}=config, opts, args, invalid) do
+    case next(argv, aliases, switches, strict) do
       {:ok, option, value, rest} ->
         # the option exist and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
         new_opts = do_store_option(opts, option, value, kinds)
         do_parse(rest, config, new_opts, args, invalid)
 
-      {:error, option, value, rest} ->
+      {:error, {:value, option, value}, rest} ->
         # the option exist but it has wrong value
         do_parse(rest, config, opts, args, [{option, value}|invalid])
 
-      {:error, option, rest} ->
+      {:error, {:undefined, option, value}, rest} ->
         # the option does not exist (for strict cases)
-        do_parse(rest, config, opts, args, [{option, nil}|invalid])
+        do_parse(rest, config, opts, args, [{option, value}|invalid])
 
       {:error, ["--"|rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
@@ -149,44 +153,47 @@ defmodule OptionParser do
   Low-level function that parses one option.
   """
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    {aliases, switches, _} = compile_config(opts, false)
-    next(argv, aliases, switches)
+    {aliases, switches, strict, _} = compile_config(opts)
+    next(argv, aliases, switches, strict)
   end
 
-  defp next([], _aliases, _switches) do
+  defp next([], _aliases, _switches, _strict) do
     {:error, []}
   end
 
-  defp next(["--"|_]=argv, _aliases, _switches) do
+  defp next(["--"|_]=argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
-  defp next(["-" <> option|rest], aliases, switches) do
+  defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
-    {option, kinds, value} = normalize_option(option, value, switches, aliases)
+    opt = tag_option(option, switches, aliases)
 
-    #FIXME: don't modify rest for unknown options in strict mode
-    {value, kinds, rest} = normalize_value(value, kinds, rest)
-
-    case validate_option(option, value, kinds) do
-      {:ok, new_value} ->
-        {:ok, option, new_value, rest}
-
-      :invalid ->
-        {:error, option, value, rest}
+    if strict and not option_defined?(opt, switches) do
+      {_, opt_name} = opt
+      {:error, {:undefined, opt_name, value}, rest}
+    else
+      {opt_name, kinds, value} = normalize_option(opt, value, switches)
+      {value, kinds, rest} = normalize_value(value, kinds, rest)
+      case validate_option(opt_name, value, kinds) do
+        {:ok, new_value} -> {:ok, opt_name, new_value, rest}
+        :invalid         -> {:error, {:value, opt_name, value}, rest}
+      end
     end
   end
 
-  defp next(argv, _aliases, _switches) do
+  defp next(argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
 
   ## Helpers
 
-  defp compile_config(opts, all: flag) do
+  defp compile_config(opts) do
     aliases  = opts[:aliases]  || []
     switches = opts[:switches] || []
-    {aliases, switches, flag}
+    strict   = opts[:strict]   || false
+    all      = opts[:all]      || false
+    {aliases, switches, strict, all}
   end
 
   defp validate_option(option, value, kinds) do
@@ -229,17 +236,33 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option(<<?-, option :: binary>>, value, switches, _aliases) do
-    normalize_option(get_negated(option, switches), value, switches)
+  defp tag_option(<<?-, option :: binary>>, switches, _aliases) do
+    get_negated(option, switches)
   end
 
-  defp normalize_option(option, value, switches, aliases) do
-    option = get_option(option)
-    if alias = aliases[option] do
-      normalize_option({:default, alias}, value, switches)
+  defp tag_option(option, _switches, aliases) when is_binary(option) do
+    opt = get_option(option)
+    if alias = aliases[opt] do
+      {:default, alias}
     else
-      {option, [:invalid], value}
+      {:unknown, opt}
     end
+  end
+
+  defp option_defined?({:unknown, _option}, _switches) do
+    false
+  end
+
+  defp option_defined?({:negated, option}, switches) do
+    Keyword.has_key?(switches, option)
+  end
+
+  defp option_defined?({:default, option}, switches) do
+    Keyword.has_key?(switches, option)
+  end
+
+  defp normalize_option({:unknown, option}, value, _switches) do
+    {option, [:invalid], value}
   end
 
   defp normalize_option({:negated, option}, nil, switches) do
