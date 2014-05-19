@@ -114,7 +114,7 @@ defmodule Macro do
   """
   @spec prewalk(t, (t -> t)) :: t
   def prewalk(ast, fun) when is_function(fun, 1) do
-    prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end) |> elem(0)
+    elem(prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
   end
 
   @doc """
@@ -167,7 +167,7 @@ defmodule Macro do
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
-    postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end) |> elem(0)
+    elem(postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
   end
 
   @doc """

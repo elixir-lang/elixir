@@ -169,7 +169,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts   = [hygiene, context, var_context, location, line, unquote, bind_quoted],
+  ValidOpts = [hygiene, context, location, line, unquote, bind_quoted],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
 
   Hygiene = case lists:keyfind(hygiene, 1, EKV) of
@@ -180,11 +180,11 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   end,
 
   Context = case lists:keyfind(context, 1, EKV) of
-    {context, Atom} when is_atom(Atom) ->
-      Atom;
+    {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
+      Ctx;
     {context, Ctx} ->
       compile_error(Meta, ?m(E, file), "invalid :context for quote, "
-        "expected a compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
+        "expected non nil compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
     false ->
       case ?m(E, module) of
         nil -> 'Elixir';
