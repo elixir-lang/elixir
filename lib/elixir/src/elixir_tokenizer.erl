@@ -929,8 +929,6 @@ keyword('or')     -> or_op;
 keyword('xor')    -> or_op;
 keyword('when')   -> when_op;
 keyword('in')     -> in_op;
-keyword('inlist') -> in_match_op;
-keyword('inbits') -> in_match_op;
 
 % Block keywords
 keyword('after')  -> block;

@@ -45,7 +45,7 @@ Expect 2.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
-Left      40 in_match_op_eol. %% <-, inlist, inbits, \\ (allowed in matches along =)
+Left      40 in_match_op_eol. %% <-, \\ (allowed in matches along =)
 Right     50 when_op_eol.     %% when
 Right     60 type_op_eol.     %% ::
 Right     70 pipe_op_eol.     %% |
