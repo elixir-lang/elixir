@@ -2,8 +2,11 @@
 
 * Enhancements
   * [Kernel] `GenEvent`, `GenServer`, `Supervisor`, `Agent` and `Task` modules added
+  * [Macro] Add `Macro.prewalk/2/3` and `Macro.postwalk/2/3`
+  * [Kernel] Make deprecations compiler warnings to avoid the same deprecation being printed multiple times
 
 * Bug fixes
+  * [Enum] Fix `Enum.join/2` and `Enum.map_join/3` for empty binaries at the beginning of the collection
   * [ExUnit] Ensure the formatter doesn't error when printing :EXITs
   * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
 
@@ -28,6 +31,7 @@
 * Deprecations
   * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
   * [Kernel] `defrecord/3` is deprecated in favor of structs
+  * [Kernel] `:hygiene` in `quote` is deprecated
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
   * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
