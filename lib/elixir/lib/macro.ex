@@ -84,12 +84,11 @@ defmodule Macro do
   end
 
   @doc """
-  Recurs the quoted expression applying the given function to
-  each metadata node.
+  Applies the given function to the node metadata if it contains one.
 
-  This is often useful to remove information like lines and
-  hygienic counters from the expression for either storage or
-  comparison.
+  This is often useful when used with `Macro.prewalk/1` to remove
+  information like lines and hygienic counters from the expression
+  for either storage or comparison.
 
   ## Examples
 
@@ -103,19 +102,108 @@ defmodule Macro do
   def update_meta(quoted, fun)
 
   def update_meta({left, meta, right}, fun) when is_list(meta) do
-    {update_meta(left, fun), fun.(meta), update_meta(right, fun)}
-  end
-
-  def update_meta({left, right}, fun) do
-    {update_meta(left, fun), update_meta(right, fun)}
-  end
-
-  def update_meta(list, fun) when is_list(list) do
-    for x <- list, do: update_meta(x, fun)
+    {left, fun.(meta), right}
   end
 
   def update_meta(other, _fun) do
     other
+  end
+
+  @doc """
+  Performs a depth-first, pre-order traversal of quoted expressions.
+  """
+  @spec prewalk(t, (t -> t)) :: t
+  def prewalk(ast, fun) when is_function(fun, 1) do
+    prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end) |> elem(0)
+  end
+
+  @doc """
+  Performs a depth-first, pre-order traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
+  def prewalk(ast, acc, fun) when is_function(fun, 2) do
+    {ast, acc} = fun.(ast, acc)
+    do_prewalk(ast, acc, fun)
+  end
+
+  defp do_prewalk({form, meta, args}, acc, fun) do
+    unless is_atom(form) do
+      {form, acc} = fun.(form, acc)
+      {form, acc} = do_prewalk(form, acc, fun)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
+        {x, acc} = fun.(x, acc)
+        do_prewalk(x, acc, fun)
+      end)
+    end
+
+    {{form, meta, args}, acc}
+  end
+
+  defp do_prewalk({left, right}, acc, fun) do
+    {left, acc} = fun.(left, acc)
+    {left, acc} = do_prewalk(left, acc, fun)
+    {right, acc} = fun.(right, acc)
+    {right, acc} = do_prewalk(right, acc, fun)
+    {{left, right}, acc}
+  end
+
+  defp do_prewalk(list, acc, fun) when is_list(list) do
+    Enum.map_reduce(list, acc, fn x, acc ->
+      {x, acc} = fun.(x, acc)
+      do_prewalk(x, acc, fun)
+    end)
+  end
+
+  defp do_prewalk(x, acc, _fun) do
+    {x, acc}
+  end
+
+  @doc """
+  Performs a depth-first, post-order traversal of quoted expressions.
+  """
+  @spec postwalk(t, (t -> t)) :: t
+  def postwalk(ast, fun) when is_function(fun, 1) do
+    postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end) |> elem(0)
+  end
+
+  @doc """
+  Performs a depth-first, post-order traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
+  def postwalk(ast, acc, fun) when is_function(fun, 2) do
+    do_postwalk(ast, acc, fun)
+  end
+
+  defp do_postwalk({form, meta, args}, acc, fun) do
+    unless is_atom(form) do
+      {form, acc} = do_postwalk(form, acc, fun)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, &do_postwalk(&1, &2, fun))
+    end
+
+    fun.({form, meta, args}, acc)
+  end
+
+  defp do_postwalk({left, right}, acc, fun) do
+    {left, acc} = do_postwalk(left, acc, fun)
+    {right, acc} = do_postwalk(right, acc, fun)
+    fun.({left, right}, acc)
+  end
+
+  defp do_postwalk(list, acc, fun) when is_list(list) do
+    {list, acc} = Enum.map_reduce(list, acc, &do_postwalk(&1, &2, fun))
+    fun.(list, acc)
+  end
+
+  defp do_postwalk(x, acc, fun) do
+    fun.(x, acc)
   end
 
   @doc """

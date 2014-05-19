@@ -177,7 +177,10 @@ defmodule MacroTest do
   end
 
   defp expand_once_and_clean(quoted, env) do
-    Macro.expand_once(quoted, env) |> Macro.update_meta(&Keyword.drop(&1, [:counter]))
+    cleaner = &Keyword.drop(&1, [:counter])
+    quoted
+    |> Macro.expand_once(env)
+    |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
   end
 
   test :expand_once_with_imported_macro do
@@ -213,7 +216,10 @@ defmodule MacroTest do
   end
 
   defp expand_and_clean(quoted, env) do
-    Macro.expand(quoted, env) |> Macro.update_meta(&Keyword.drop(&1, [:counter]))
+    cleaner = &Keyword.drop(&1, [:counter])
+    quoted
+    |> Macro.expand(env)
+    |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
   end
 
   test :expand do
@@ -480,5 +486,43 @@ defmodule MacroTest do
     assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
     assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
     assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
+  end
+
+  ## pre/postwalk
+
+  test :prewalk do
+    assert prewalk({:foo, [], nil}) ==
+           [{:foo, [], nil}]
+
+    assert prewalk({:foo, [], [1, 2, 3]}) ==
+           [{:foo, [], [1, 2, 3]}, 1, 2, 3]
+
+    assert prewalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
+           [{{:., [], [:foo, :bar]}, [], [1, 2, 3]}, {:., [], [:foo, :bar]}, :foo, :bar, 1, 2, 3]
+
+    assert prewalk({[1, 2, 3], [4, 5, 6]}) ==
+           [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 2, 3, [4, 5, 6], 4, 5, 6]
+  end
+
+  defp prewalk(ast) do
+    Macro.prewalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+  end
+
+  test :postwalk do
+    assert postwalk({:foo, [], nil}) ==
+           [{:foo, [], nil}]
+
+    assert postwalk({:foo, [], [1, 2, 3]}) ==
+           [1, 2, 3, {:foo, [], [1, 2, 3]}]
+
+    assert postwalk({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
+           [:foo, :bar, {:., [], [:foo, :bar]}, 1, 2, 3, {{:., [], [:foo, :bar]}, [], [1, 2, 3]}]
+
+    assert postwalk({[1, 2, 3], [4, 5, 6]}) ==
+           [1, 2, 3, [1, 2, 3], 4, 5, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
+  end
+
+  defp postwalk(ast) do
+    Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
   end
 end
