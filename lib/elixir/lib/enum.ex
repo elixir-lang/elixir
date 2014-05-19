@@ -995,10 +995,16 @@ defmodule Enum do
   def map_join(collection, joiner \\ "", mapper)
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
-    reduce(collection, "", fn
-      entry, ""  -> to_string(mapper, entry)
-      entry, acc -> acc <> joiner <> to_string(mapper, entry)
+    reduced = reduce(collection, :first, fn
+      entry, :first -> to_string(mapper, entry)
+      entry, acc    -> acc <> joiner <> to_string(mapper, entry)
     end)
+
+    if reduced == :first do
+      ""
+    else
+      reduced
+    end
   end
 
   @doc """
