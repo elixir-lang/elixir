@@ -81,11 +81,11 @@ defmodule ExUnit.DocTest do
   Elixir is to print those data types as `#Name<...>`. Doctest will
   test these values by doing a string compare.
 
-      iex> HashDict.new(a: 10, b: 20)
-      #HashDict<[a: 10, b: 20]>
+      iex> Enum.into([a: 10, b: 20], HashDict.new)
+      #HashDict<[b: 20, a: 10]>
 
   The above example will be tested with the following match:
-  `"#HashDict<[a: 10, b: 20]>" = inspect (HashDict.new(a: 10, b: 20))`.
+  `"#HashDict<[b: 20, a: 10]>" = inspect(Enum.into([a: 10, b: 20], HashDict.new))`.
 
   ## Exceptions
 
