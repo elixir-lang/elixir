@@ -172,7 +172,7 @@ defmodule MacroTest do
   test :expand_once_checks_vars do
     local_macro = 1
     assert local_macro == 1
-    quote = quote(hygiene: [vars: false], do: local_macro)
+    quote = {:local_macro, [], nil}
     assert Macro.expand_once(quote, __ENV__) == quote
   end
 

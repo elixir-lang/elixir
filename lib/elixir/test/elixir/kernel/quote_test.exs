@@ -220,12 +220,6 @@ defmodule Kernel.QuoteTest.VarHygiene do
     quote do: a = 1
   end
 
-  defmacro no_hygiene do
-    quote [hygiene: [vars: false]] do
-      a = 1
-    end
-  end
-
   defmacro write_interference do
     quote do: var!(a) = 1
   end
@@ -271,11 +265,6 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
     a = 10
     no_interference
     assert a == 10
-  end
-
-  test :no_hygiene do
-    no_hygiene
-    assert a == 1
   end
 
   test :cross_module_interference do

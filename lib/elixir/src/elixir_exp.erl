@@ -174,6 +174,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
 
   Hygiene = case lists:keyfind(hygiene, 1, EKV) of
     {hygiene, List} when is_list(List) ->
+      elixir_errors:warn(?line(Meta), ?m(E, file), "the :hygiene option in quote is deprecated"),
       List;
     false ->
       []

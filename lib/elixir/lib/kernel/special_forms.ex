@@ -667,7 +667,6 @@ defmodule Kernel.SpecialForms do
                  able to unquote;
   * `:location` - When set to `:keep`, keeps the current line and file from quote.
                   Read the Stacktrace information section below for more information;
-  * `:hygiene` - Allows a developer to disable hygiene selectively;
   * `:context` - Sets the resolution context;
   * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
                     `unquote` is automatically disabled;
