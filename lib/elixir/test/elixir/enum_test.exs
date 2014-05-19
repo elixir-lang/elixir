@@ -207,6 +207,8 @@ defmodule EnumTest.List do
     assert Enum.join([1, 2, 3], " = ") == "1 = 2 = 3"
     assert Enum.join([1, "2", 3], " = ") == "1 = 2 = 3"
     assert Enum.join([1, 2, 3]) == "123"
+    assert Enum.join(["", "", 1, 2, "", 3, "", "\n"], ";") == ";;1;2;;3;;\n"
+    assert Enum.join([""]) == ""
   end
 
   test :map_join do
