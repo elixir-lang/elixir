@@ -235,10 +235,10 @@ defmodule ExUnit.DocTest do
         unquote_splicing(tests)
       rescue
         e in [ExUnit.AssertionError] ->
-          raise e, [], stack
+          reraise e, [], stack
 
         error ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{Exception.message(error)}",
              expr: unquote(whole_expr)],
             stack
@@ -255,7 +255,7 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^expected -> :ok
         actual ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest failed",
               expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
               left: actual],
@@ -273,7 +273,7 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^expected -> :ok
         actual ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [ message: "Doctest failed",
               expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
               left: actual],
@@ -297,14 +297,14 @@ defmodule ExUnit.DocTest do
           unless error.__struct__ == unquote(exception) and
                  Exception.message(error) == unquote(message) do
             got = inspect(elem(error, 0)) <> " with message " <> inspect(Exception.message(error))
-            raise ExUnit.AssertionError,
+            reraise ExUnit.AssertionError,
               [message: "Doctest failed: expected exception #{spec} but got #{got}",
                expr: expr],
               stack
           end
       else
         _ ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest failed: expected exception #{spec} but nothing was raised",
              expr: expr],
             stack
@@ -326,7 +326,7 @@ defmodule ExUnit.DocTest do
       e ->
         message = "(#{inspect e.__struct__}) #{Exception.message(e)}"
         quote do
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest did not compile, got: #{unquote(message)}",
              expr: unquote(String.strip(expr))]
             unquote(stack)

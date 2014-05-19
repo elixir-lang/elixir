@@ -1328,12 +1328,14 @@ defmodule Kernel do
   end
 
   @doc """
-  Raises an error.
+  Raises an exception.
 
   If the argument is a binary, it raises `RuntimeError`
   using the given argument as message.
 
-  If anything else, becomes a call to `raise(argument, [])`.
+  If an atom, it will become a call to `raise(atom, [])`.
+
+  If anything else, it will just raise the given exception.
 
   ## Examples
 
@@ -1372,15 +1374,19 @@ defmodule Kernel do
       _ ->
         quote do
           case unquote(msg) do
-            msg when is_binary(msg) -> :erlang.error RuntimeError.exception(msg)
-            msg -> :erlang.error msg.exception([])
+            msg when is_binary(msg) ->
+              :erlang.error RuntimeError.exception(msg)
+            atom when is_atom(atom) ->
+              :erlang.error atom.exception([])
+            %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
+              :erlang.error other
           end
         end
     end
   end
 
   @doc """
-  Raises an error.
+  Raises an exception.
 
   Calls `.exception` on the given argument passing
   the attributes in order to retrieve the appropriate exception
@@ -1402,7 +1408,16 @@ defmodule Kernel do
   end
 
   @doc """
-  Re-raises an exception with the given stacktrace.
+  Raises an exception preserving a previous stacktrace.
+
+  Works like `raise/1` but does not generate a new stacktrace.
+
+  Notice that `System.stacktrace` returns the stacktrace
+  of the last exception. That said, it is common to assign
+  the stacktrace as the first expression inside a `rescue`
+  clause as any other exception potentially raised (and
+  rescued) in between the rescue clause and the raise call
+  may change the `System.stacktrace` value.
 
   ## Examples
 
@@ -1415,24 +1430,59 @@ defmodule Kernel do
             reraise exception, stacktrace
           end
       end
-
-  Notice that `System.stacktrace` returns the stacktrace
-  of the last exception. That said, it is common to assign
-  the stacktrace as the first expression inside a `rescue`
-  clause as any other exception potentially raised (and
-  rescued) in between the rescue clause and the raise call
-  may change the `System.stacktrace` value.
   """
-  defmacro reraise(exception, stacktrace) do
-    quote do
-      :erlang.raise :error, unquote(exception), unquote(stacktrace)
+  defmacro reraise(msg, stacktrace) do
+    # Try to figure out the type at compilation time
+    # to avoid dead code and make dialyzer happy.
+
+    case Macro.expand(msg, __CALLER__) do
+      msg when is_binary(msg) ->
+        quote do
+          :erlang.raise :error, RuntimeError.exception(unquote(msg)), unquote(stacktrace)
+        end
+      {:<<>>, _, _} = msg ->
+        quote do
+          :erlang.raise :error, RuntimeError.exception(unquote(msg)), unquote(stacktrace)
+        end
+      alias when is_atom(alias) ->
+        quote do
+          :erlang.raise :error, unquote(alias).exception([]), unquote(stacktrace)
+        end
+      msg ->
+        quote do
+          stacktrace = unquote(stacktrace)
+          case unquote(msg) do
+            msg when is_binary(msg) ->
+              :erlang.raise :error, RuntimeError.exception(msg), stacktrace
+            atom when is_atom(atom) ->
+              :erlang.raise :error, atom.exception([]), stacktrace
+            %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
+              :erlang.raise :error, other, stacktrace
+          end
+        end
     end
   end
 
-  @doc false
-  defmacro raise(exception, _attrs, stacktrace) do
+  @doc """
+  Raises an exception preserving a previous stacktrace.
+
+  Works like `raise/2` but does not generate a new stacktrace.
+
+  See `reraise/2` for more details.
+
+  ## Examples
+
+      try do
+        raise "Oops"
+      rescue
+        exception ->
+          stacktrace = System.stacktrace
+          reraise WrapperError, [exception: exception], stacktrace
+      end
+  """
+  defmacro reraise(exception, attrs, stacktrace) do
     quote do
-      :erlang.raise :error, unquote(exception), unquote(stacktrace)
+      :erlang.raise :error, unquote(exception).exception(unquote(attrs)), unquote(stacktrace)
     end
   end
 
@@ -2894,7 +2944,7 @@ defmodule Kernel do
     implemented;
 
   Since exceptions are structs, all the API supported by `defstruct/1`
-  is available to in `defexception/1`.
+  is also available in `defexception/1`.
 
   ## Raising exceptions
 
