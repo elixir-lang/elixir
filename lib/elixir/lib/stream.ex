@@ -889,8 +889,9 @@ defmodule Stream do
   @spec cycle(Enumerable.t) :: Enumerable.t
   def cycle(enumerable) do
     fn acc, fun ->
-      reduce = &Enumerable.reduce(enumerable, &1, fun)
-      do_cycle(reduce, reduce, acc)
+      inner = &do_cycle_each(&1, &2, fun)
+      outer = &Enumerable.reduce(enumerable, &1, inner)
+      do_cycle(outer, outer, acc)
     end
   end
 
@@ -903,13 +904,23 @@ defmodule Stream do
   end
 
   defp do_cycle(reduce, cycle, acc) do
-    case reduce.(acc) do
-      {:done, acc} ->
-        do_cycle(cycle, cycle, {:cont, acc})
-      {:halted, acc} ->
+    try do
+      reduce.(acc)
+    catch
+      {:stream_cycle, acc} ->
         {:halted, acc}
+    else
+      {state, acc} when state in [:done, :halted] ->
+        do_cycle(cycle, cycle, {:cont, acc})
       {:suspended, acc, continuation} ->
         {:suspended, acc, &do_cycle(continuation, cycle, &1)}
+    end
+  end
+
+  defp do_cycle_each(x, acc, f) do
+    case f.(x, acc) do
+      {:halt, h} -> throw({:stream_cycle, h})
+      {_, _} = o -> o
     end
   end
 
@@ -1049,7 +1060,7 @@ defmodule Stream do
 
   defp do_unfold(next_acc, next_fun, {:cont, acc}, fun) do
     case next_fun.(next_acc) do
-      nil             -> {:done, acc}
+      nil           -> {:done, acc}
       {v, next_acc} -> do_unfold(next_acc, next_fun, fun.(v, acc), fun)
     end
   end
