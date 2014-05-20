@@ -15,12 +15,12 @@ defmodule SupervisorTest do
     end
 
     def handle_call(:stop, _from, stack) do
+      # There is a race condition in between genserver terminations.
+      # So we will explicitly unregister it here.
       try do
-        # There is a race condition in between genserver terminations.
-        # So we will explicitly unregister it here.
-        Process.unregister(:sup_stack)
-      catch
-        _, _ -> :ok
+        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+      rescue
+        _ -> :ok
       end
       {:stop, :normal, :ok, stack}
     end
