@@ -54,8 +54,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :heredoc_start do
-    assert_compile_fail TokenMissingError,
-      "nofile:1: heredoc start \"\"\" must be followed by a new line",
+    assert_compile_fail SyntaxError,
+      "nofile:1: heredoc start must be followed by a new line after \"\"\"",
       '"""bar\n"""'
   end
 

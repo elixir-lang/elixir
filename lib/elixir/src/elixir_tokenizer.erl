@@ -627,9 +627,8 @@ extract_heredoc(Line0, Rest0, Marker) ->
           {error, {ErrorLine, io_lib:format(Message, [Terminator, Line0]), []}}
       end;
     error ->
-      Terminator = [Marker, Marker, Marker],
-      Message = "heredoc start ~ts must be followed by a new line",
-      {error, {Line0, io_lib:format(Message, [Terminator]), []}}
+      Message = "heredoc start must be followed by a new line after ",
+      {error, {Line0, io_lib:format(Message, []), [Marker, Marker, Marker]}}
   end.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
