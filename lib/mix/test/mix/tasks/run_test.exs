@@ -47,7 +47,7 @@ defmodule Mix.Tasks.RunTest do
 
       unload_file.()
       Mix.Tasks.Run.run ["-e", "send self, {:system_argv, System.argv}", file, "foo", "-x", "bar"]
-      assert_received {:system_argv, [file, "foo", "-x", "bar"]}
+      assert_received {:system_argv, [^file, "foo", "-x", "bar"]}
 
       unload_file.()
       Mix.Tasks.Run.run [
