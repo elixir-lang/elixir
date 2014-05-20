@@ -149,7 +149,8 @@ defmodule Record do
         Record.defrecord :user, User, name: nil
       end
 
-      user() #=> {User, nil}
+      require User
+      User.user() #=> {User, nil}
 
   """
   defmacro defrecord(name, tag \\ nil, kv) do
