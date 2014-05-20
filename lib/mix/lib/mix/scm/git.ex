@@ -17,7 +17,7 @@ defmodule Mix.SCM.Git do
         case Enum.find_value [:branch, :ref, :tag], &List.keyfind(lock_opts, &1, 0) do
           {:ref, _}  -> lock <> " (ref)"
           {key, val} -> lock <> " (#{key}: #{val})"
-          nil          -> lock
+          nil        -> lock
         end
       _ ->
         nil
