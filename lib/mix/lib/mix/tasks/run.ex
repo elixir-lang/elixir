@@ -34,17 +34,19 @@ defmodule Mix.Tasks.Run do
   def run(args) do
     {opts, head, _} = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval],
-      switches: [parallel_require: :keep, require: :keep])
+      switches: [parallel_require: :keep, require: :keep, eval: :keep])
 
     # Require the project to be available
     Mix.Project.get!
 
-    file =
-      case head do
-        ["--"|t] -> System.argv(t); nil
-        [h|t]    -> System.argv(t); h
-        []       -> System.argv([]); nil
+    {file, argv} =
+      case {Keyword.has_key?(opts, :eval), head} do
+        {true, _}  -> {nil, head}
+        {_, [h|t]} -> {h, t}
+        {_, []}    -> {nil, []}
       end
+
+    System.argv(argv)
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling
