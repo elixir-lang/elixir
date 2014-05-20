@@ -55,9 +55,23 @@ defmodule Mix.Tasks.Run do
     Enum.each opts, fn({key, value}) ->
       case key do
         :parallel_require ->
-          value |> filter_patterns |> Kernel.ParallelRequire.files
+          case filter_patterns(value) do
+            [] ->
+              report_error("parallel-require: No files matched pattern #{value}")
+
+            filtered ->
+              Kernel.ParallelRequire.files(filtered)
+          end
+
         :require ->
-          value |> filter_patterns |> Enum.each &Code.require_file(&1)
+          case filter_patterns(value) do
+            [] ->
+              report_error("require: No files matched pattern #{value}")
+
+            filtered ->
+              Enum.each(filtered, &Code.require_file(&1))
+          end
+
         :eval ->
           Code.eval_string(value)
         _ ->
@@ -65,11 +79,21 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    if file, do: Code.require_file(file)
+    if file do
+      if File.regular?(file) do
+        Code.require_file(file)
+      else
+        report_error("No such file: #{file}")
+      end
+    end
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 
   defp filter_patterns(pattern) do
     Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
+  end
+
+  defp report_error(msg) do
+    raise Mix.Error, message: msg
   end
 end
