@@ -67,9 +67,9 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--no-docs", "foo"], switches: [docs: :boolean])
            == {[docs: false], ["foo"], []}
     assert OptionParser.parse(["--no-docs=foo", "bar"], switches: [docs: :boolean])
-           == {[], ["bar"], [docs: "foo"]}
+           == {[], ["bar"], [no_docs: "foo"]}
     assert OptionParser.parse(["--no-docs=", "bar"], switches: [docs: :boolean])
-           == {[], ["bar"], [docs: ""]}
+           == {[], ["bar"], [no_docs: ""]}
   end
 
   test "does not set unparsed booleans" do
@@ -194,6 +194,8 @@ defmodule OptionParserTest do
            == {:error, {:undefined, :str, nil}, ["13", "..."]}
     assert OptionParser.next(["--int=hello", "..."], config)
            == {:error, {:undefined, :int, "hello"}, ["..."]}
+    assert OptionParser.next(["--no-bool=other", "..."], config)
+           == {:error, {:undefined, :no_bool, "other"}, ["..."]}
   end
 
   test "next strict: bad type" do
@@ -216,5 +218,7 @@ defmodule OptionParserTest do
            == {:error, {:value, :int, nil}, []}
     assert OptionParser.next(["--bool=", "..."], config)
            == {:error, {:value, :bool, ""}, ["..."]}
+    assert OptionParser.next(["--no-bool=", "..."], config)
+           == {:error, {:undefined, :no_bool, ""}, ["..."]}
   end
 end

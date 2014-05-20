@@ -167,7 +167,7 @@ defmodule OptionParser do
 
   defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
-    opt = tag_option(option, switches, aliases)
+    opt = tag_option(option, value, switches, aliases)
 
     if strict and not option_defined?(opt, switches) do
       {_, opt_name} = opt
@@ -236,11 +236,11 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_option(<<?-, option :: binary>>, switches, _aliases) do
-    get_negated(option, switches)
+  defp tag_option(<<?-, option :: binary>>, value, switches, _aliases) do
+    get_negated(option, value, switches)
   end
 
-  defp tag_option(option, _switches, aliases) when is_binary(option) do
+  defp tag_option(option, _value, _switches, aliases) when is_binary(option) do
     opt = get_option(option)
     if alias = aliases[opt] do
       {:default, alias}
@@ -324,13 +324,17 @@ defmodule OptionParser do
     option |> to_underscore |> String.to_atom
   end
 
-  defp get_negated("no-" <> rest = option, switches) do
+  defp get_negated("no-" <> rest = option, value, switches) do
     negated = get_option(rest)
-    option  = if Keyword.has_key?(switches, negated), do: negated, else: get_option(option)
+    option  = if Keyword.has_key?(switches, negated) and value == nil do
+      negated
+    else
+      get_option(option)
+    end
     {:negated, option}
   end
 
-  defp get_negated(rest, _switches) do
+  defp get_negated(rest, _value, _switches) do
     {:default, get_option(rest)}
   end
 end
