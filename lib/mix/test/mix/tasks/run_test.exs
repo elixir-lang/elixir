@@ -56,7 +56,7 @@ defmodule Mix.Tasks.RunTest do
         "--no-compile", file, "-x", "bar"
       ]
       assert_received :evaled
-      assert_received {:system_argv, [file, "-x", "bar"]}
+      assert_received {:system_argv, [^file, "-x", "bar"]}
     end
   end
 end
