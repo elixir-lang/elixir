@@ -62,7 +62,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Receives a list of  dependency names and returns loaded `Mix.Dep`s.
+  Receives a list of dependency names and returns loaded `Mix.Dep`s.
   Logs a message if the dependency could not be found.
 
   ## Exceptions
