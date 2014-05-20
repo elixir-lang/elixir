@@ -11,13 +11,11 @@ defmodule Kernel.CLI do
   def main(argv) do
     argv = for arg <- argv, do: IO.chardata_to_string(arg)
 
-    {config, argv} = process_argv(argv, @blank_config)
+    {config, argv} = parse_argv(argv)
     System.argv(argv)
 
     run fn ->
-      command_results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
-      command_errors  = for {:error, msg} <- command_results, do: msg
-      errors          = Enum.reverse(config.errors) ++ command_errors
+      errors = process_commands(config)
 
       if errors != [] do
         Enum.each(errors, &IO.puts(:stderr, &1))
@@ -55,6 +53,23 @@ defmodule Kernel.CLI do
     end
   end
 
+  @doc """
+  Parses ARGV returning the CLI config and trailing args.
+  """
+  def parse_argv(argv) do
+    parse_argv(argv, @blank_config)
+  end
+
+  @doc """
+  Process commands according to the parsed config from `parse_argv/1`.
+  Returns all errors.
+  """
+  def process_commands(config) do
+    results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
+    errors  = for {:error, msg} <- results, do: msg
+    Enum.reverse(config.errors, errors)
+  end
+
   ## Helpers
 
   defp at_exit(status) do
@@ -75,7 +90,7 @@ defmodule Kernel.CLI do
   end
 
   defp shared_option?(list, config, callback) do
-    case process_shared(list, config) do
+    case parse_shared(list, config) do
       {[h|hs], _} when h == hd(list) ->
         new_config = %{config | errors: ["#{h} : Unknown option" | config.errors]}
         callback.(hs, new_config)
@@ -106,77 +121,77 @@ defmodule Kernel.CLI do
     []
   end
 
-  # Process shared options
+  # Parse shared options
 
-  defp process_shared([opt|_t], _config) when opt in ["-v", "--version"] do
+  defp parse_shared([opt|_t], _config) when opt in ["-v", "--version"] do
     IO.puts "Elixir #{System.version}"
     System.halt 0
   end
 
-  defp process_shared(["-pa", h|t], config) do
+  defp parse_shared(["-pa", h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), &Code.prepend_path(&1)
-    process_shared t, config
+    parse_shared t, config
   end
 
-  defp process_shared(["-pz", h|t], config) do
+  defp parse_shared(["-pz", h|t], config) do
     Enum.each Path.wildcard(Path.expand(h)), &Code.append_path(&1)
-    process_shared t, config
+    parse_shared t, config
   end
 
-  defp process_shared(["--app", h|t], config) do
-    process_shared t, %{config | commands: &[{:app, h}|&1]}
+  defp parse_shared(["--app", h|t], config) do
+    parse_shared t, %{config | commands: &[{:app, h}|&1]}
   end
 
-  defp process_shared(["--no-halt"|t], config) do
-    process_shared t, %{config | halt: false}
+  defp parse_shared(["--no-halt"|t], config) do
+    parse_shared t, %{config | halt: false}
   end
 
-  defp process_shared(["-e", h|t], config) do
-    process_shared t, %{config | commands: [{:eval, h} | config.commands]}
+  defp parse_shared(["-e", h|t], config) do
+    parse_shared t, %{config | commands: [{:eval, h} | config.commands]}
   end
 
-  defp process_shared(["-r", h|t], config) do
-    process_shared t, %{config | commands: [{:require, h} | config.commands]}
+  defp parse_shared(["-r", h|t], config) do
+    parse_shared t, %{config | commands: [{:require, h} | config.commands]}
   end
 
-  defp process_shared(["-pr", h|t], config) do
-    process_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
+  defp parse_shared(["-pr", h|t], config) do
+    parse_shared t, %{config | commands: [{:parallel_require, h} | config.commands]}
   end
 
-  defp process_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
-    process_shared t, config
+  defp parse_shared([erl, _|t], config) when erl in ["--erl", "--sname", "--name", "--cookie"] do
+    parse_shared t, config
   end
 
-  defp process_shared([erl|t], config) when erl in ["--detached", "--hidden", "--gen-debug"] do
-    process_shared t, config
+  defp parse_shared([erl|t], config) when erl in ["--detached", "--hidden", "--gen-debug"] do
+    parse_shared t, config
   end
 
-  defp process_shared(list, config) do
+  defp parse_shared(list, config) do
     {list, config}
   end
 
   # Process init options
 
-  defp process_argv(["--"|t], config) do
+  defp parse_argv(["--"|t], config) do
     {config, t}
   end
 
-  defp process_argv(["+elixirc"|t], config) do
-    process_compiler t, config
+  defp parse_argv(["+elixirc"|t], config) do
+    parse_compiler t, config
   end
 
-  defp process_argv(["+iex"|t], config) do
-    process_iex t, config
+  defp parse_argv(["+iex"|t], config) do
+    parse_iex t, config
   end
 
-  defp process_argv(["-S", h|t], config) do
+  defp parse_argv(["-S", h|t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
-  defp process_argv([h|t] = list, config) do
+  defp parse_argv([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &process_argv(&1, &2)
+        shared_option? list, config, &parse_argv(&1, &2)
       _ ->
         if Keyword.has_key?(config.commands, :eval) do
           {config, list}
@@ -186,84 +201,84 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp process_argv([], config) do
+  defp parse_argv([], config) do
     {config, []}
   end
 
-  # Process compiler options
+  # Parse compiler options
 
-  defp process_compiler(["--"|t], config) do
+  defp parse_compiler(["--"|t], config) do
     {config, t}
   end
 
-  defp process_compiler(["-o", h|t], config) do
-    process_compiler t, %{config | output: h}
+  defp parse_compiler(["-o", h|t], config) do
+    parse_compiler t, %{config | output: h}
   end
 
-  defp process_compiler(["--no-docs"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options]}
+  defp parse_compiler(["--no-docs"|t], config) do
+    parse_compiler t, %{config | compiler_options: [{:docs, false} | config.compiler_options]}
   end
 
-  defp process_compiler(["--no-debug-info"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options]}
+  defp parse_compiler(["--no-debug-info"|t], config) do
+    parse_compiler t, %{config | compiler_options: [{:debug_info, false} | config.compiler_options]}
   end
 
-  defp process_compiler(["--ignore-module-conflict"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options]}
+  defp parse_compiler(["--ignore-module-conflict"|t], config) do
+    parse_compiler t, %{config | compiler_options: [{:ignore_module_conflict, true} | config.compiler_options]}
   end
 
-  defp process_compiler(["--warnings-as-errors"|t], config) do
-    process_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options]}
+  defp parse_compiler(["--warnings-as-errors"|t], config) do
+    parse_compiler t, %{config | compiler_options: [{:warnings_as_errors, true} | config.compiler_options]}
   end
 
-  defp process_compiler(["--verbose"|t], config) do
-    process_compiler t, %{config | verbose_compile: true}
+  defp parse_compiler(["--verbose"|t], config) do
+    parse_compiler t, %{config | verbose_compile: true}
   end
 
-  defp process_compiler([h|t] = list, config) do
+  defp parse_compiler([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &process_compiler(&1, &2)
+        shared_option? list, config, &parse_compiler(&1, &2)
       _ ->
         pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
-        process_compiler t, %{config | compile: [pattern | config.compile]}
+        parse_compiler t, %{config | compile: [pattern | config.compile]}
     end
   end
 
-  defp process_compiler([], config) do
+  defp parse_compiler([], config) do
     {%{config | commands: [{:compile, config.compile}|config.commands]}, []}
   end
 
-  # Process iex options
+  # Parse iex options
 
-  defp process_iex(["--"|t], config) do
+  defp parse_iex(["--"|t], config) do
     {config, t}
   end
 
-  # This clause is here so that Kernel.CLI does not error out with "unknown
-  # option"
-  defp process_iex(["--dot-iex", _|t], config) do
-    process_iex t, config
+  # This clause is here so that Kernel.CLI does not
+  # error out with "unknown option"
+  defp parse_iex(["--dot-iex", _|t], config) do
+    parse_iex t, config
   end
 
-  defp process_iex([opt, _|t], config) when opt in ["--remsh"] do
-    process_iex t, config
+  defp parse_iex([opt, _|t], config) when opt in ["--remsh"] do
+    parse_iex t, config
   end
 
-  defp process_iex(["-S", h|t], config) do
+  defp parse_iex(["-S", h|t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
   end
 
-  defp process_iex([h|t] = list, config) do
+  defp parse_iex([h|t] = list, config) do
     case h do
       "-" <> _ ->
-        shared_option? list, config, &process_iex(&1, &2)
+        shared_option? list, config, &parse_iex(&1, &2)
       _ ->
         {%{config | commands: [{:file, h} | config.commands]}, t}
     end
   end
 
-  defp process_iex([], config) do
+  defp parse_iex([], config) do
     {config, []}
   end
 

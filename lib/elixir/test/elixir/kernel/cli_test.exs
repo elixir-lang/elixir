@@ -2,22 +2,37 @@ Code.require_file "../test_helper.exs", __DIR__
 
 import PathHelpers
 
-defmodule Kernel.CLI.InitTest do
+defmodule Kernel.CLI.ARGVTest do
   use ExUnit.Case, async: true
 
-  test "handles code on initialization" do
-    assert elixir('-e "IO.puts [?3]"') == '3\n'
-    assert elixir('#{fixture_path("init_sample.exs")}') == '3\n'
+  import ExUnit.CaptureIO
+
+  defp run(argv) do
+    {config, argv} = Kernel.CLI.parse_argv(argv)
+    assert Kernel.CLI.process_commands(config) == []
+    argv
   end
 
   test "argv handling" do
-    expected = '#{inspect ["sample.exs", "-o", "1", "2"]}\n'
-    assert elixir('-e "IO.puts inspect(System.argv)" sample.exs -o 1 2') == expected
-    assert elixir('-e "IO.puts inspect(System.argv)" -- sample.exs -o 1 2') == expected
-    assert elixir('-e "IO.puts inspect(System.argv)" --hidden sample.exs -o 1 2') == expected
+    assert capture_io(fn ->
+      assert run(["-e", "IO.puts :ok", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
+    end) == "ok\n"
 
-    result = elixir('-e "IO.puts inspect(System.argv)" -- --hidden sample.exs -o 1 2')
-    assert result == '#{inspect ["--hidden", "sample.exs", "-o", "1", "2"]}\n'
+    assert capture_io(fn ->
+      assert run(["-e", "IO.puts :ok", "--", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
+    end) == "ok\n"
+
+    assert capture_io(fn ->
+      assert run(["-e", "IO.puts :ok", "--hidden", "sample.exs", "-o", "1", "2"]) ==
+             ["sample.exs", "-o", "1", "2"]
+    end) == "ok\n"
+
+    assert capture_io(fn ->
+      assert run(["-e", "IO.puts :ok", "--", "--hidden", "sample.exs", "-o", "1", "2"]) ==
+             ["--hidden", "sample.exs", "-o", "1", "2"]
+    end) == "ok\n"
   end
 end
 
