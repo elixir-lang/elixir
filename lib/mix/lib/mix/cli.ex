@@ -83,7 +83,7 @@ defmodule Mix.CLI do
           end
           exit(1)
         else
-          raise exception, [], stacktrace
+          reraise exception, stacktrace
         end
     end
   end

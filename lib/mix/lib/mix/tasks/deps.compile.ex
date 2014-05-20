@@ -98,11 +98,12 @@ defmodule Mix.Tasks.Deps.Compile do
         :ok in List.wrap(res)
       catch
         kind, reason ->
+          stacktrace = System.stacktrace
           app = dep.app
           Mix.shell.error "could not compile dependency #{app}, mix compile failed. " <>
             "You can recompile this dependency with `mix deps.compile #{app}` or " <>
             "update it with `mix deps.update #{app}`"
-          :erlang.raise(kind, reason, System.stacktrace)
+          :erlang.raise(kind, reason, stacktrace)
       end
     end
   end

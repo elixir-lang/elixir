@@ -656,8 +656,9 @@ defmodule Stream do
           user.(val, user_acc)
         catch
           kind, reason ->
+            stacktrace = System.stacktrace
             next.({:halt, next_acc})
-            :erlang.raise(kind, reason, :erlang.get_stacktrace)
+            :erlang.raise(kind, reason, stacktrace)
         else
           {[], user_acc} ->
             do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner)
@@ -700,8 +701,9 @@ defmodule Stream do
         next.({:halt, next_acc})
         {:halted, h}
       kind, reason ->
+        stacktrace = System.stacktrace
         next.({:halt, next_acc})
-        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+        :erlang.raise(kind, reason, stacktrace)
     else
       {_, acc} ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
@@ -835,8 +837,9 @@ defmodule Stream do
       do_zip(zips, acc, callback, [], [])
     catch
       kind, reason ->
+        stacktrace = System.stacktrace
         do_zip_close(zips)
-        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+        :erlang.raise(kind, reason, stacktrace)
     else
       {:next, buffer, acc} ->
         do_zip(buffer, acc, callback)
@@ -1006,8 +1009,9 @@ defmodule Stream do
       end
     catch
       kind, reason ->
+        stacktrace = System.stacktrace
         after_fun.(next_acc)
-        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+        :erlang.raise(kind, reason, stacktrace)
     else
       nil ->
         after_fun.(next_acc)

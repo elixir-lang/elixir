@@ -1,7 +1,137 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.RescueTest do
+defmodule Kernel.RaiseTest do
   use ExUnit.Case, async: true
+
+  # Silence warnings
+  defp atom, do: RuntimeError
+  defp binary, do: "message"
+  defp opts, do: [message: "message"]
+  defp struct, do: %RuntimeError{message: "message"}
+
+  @trace [{:foo, :bar, 0, []}]
+
+  test "raise message" do
+    assert_raise RuntimeError, "message", fn ->
+      raise "message"
+    end
+
+    assert_raise RuntimeError, "message", fn ->
+      var = binary()
+      raise var
+    end
+  end
+
+  test "raise with no arguments" do
+    assert_raise RuntimeError, fn ->
+      raise RuntimeError
+    end
+
+    assert_raise RuntimeError, fn ->
+      var = atom()
+      raise var
+    end
+  end
+
+  test "raise with arguments" do
+    assert_raise RuntimeError, "message", fn ->
+      raise RuntimeError, message: "message"
+    end
+
+    assert_raise RuntimeError, "message", fn ->
+      atom = atom()
+      opts = opts()
+      raise atom, opts
+    end
+  end
+
+  test "raise existing exception" do
+    assert_raise RuntimeError, "message", fn ->
+      raise %RuntimeError{message: "message"}
+    end
+
+    assert_raise RuntimeError, "message", fn ->
+      var = struct()
+      raise var
+    end
+  end
+
+  test "reraise message" do
+    try do
+      reraise "message", @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+
+    try do
+      var = binary()
+      reraise var, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+  end
+
+  test "reraise with no arguments" do
+    try do
+      reraise RuntimeError, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+
+    try do
+      var = atom()
+      reraise var, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+  end
+
+  test "reraise with arguments" do
+    try do
+      reraise RuntimeError, [message: "message"], @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+
+    try do
+      atom = atom()
+      opts = opts()
+      reraise atom, opts, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+  end
+
+  test "reraise existing exception" do
+    try do
+      reraise %RuntimeError{message: "message"}, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+
+    try do
+      var = struct()
+      reraise var, @trace
+      flunk "should not reach"
+    rescue
+      RuntimeError ->
+        assert @trace == :erlang.get_stacktrace()
+    end
+  end
 
   test :rescue_with_underscore_no_exception do
     result = try do
@@ -106,7 +236,7 @@ defmodule Kernel.RescueTest do
       x in [FunctionClauseError] -> Exception.message(x)
     end
 
-    assert result == "no function clause matching in Kernel.RescueTest.zero/1"
+    assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
   end
 
   test :badarg_error do
