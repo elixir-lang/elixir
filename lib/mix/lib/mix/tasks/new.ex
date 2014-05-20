@@ -151,7 +151,8 @@ defmodule Mix.Tasks.New do
   end
 
    embed_template :readme, """
-   # <%= @mod %>
+   <%= @mod %>
+   <%= String.duplicate("=", String.length(@mod)) %>
 
    ** TODO: Add description **
    """
