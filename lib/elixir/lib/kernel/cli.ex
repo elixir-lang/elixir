@@ -178,7 +178,11 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &process_argv(&1, &2)
       _ ->
-        {%{config | commands: [{:file, h} | config.commands]}, t}
+        if Keyword.has_key?(config.commands, :eval) do
+          {config, list}
+        else
+          {%{config | commands: [{:file, h} | config.commands]}, t}
+        end
     end
   end
 

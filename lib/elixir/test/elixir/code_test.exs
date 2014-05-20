@@ -70,6 +70,10 @@ defmodule CodeTest do
 
   test :eval_file do
     assert Code.eval_file(fixture_path("code_sample.exs")) == {3, [var: 3]}
+
+    assert_raise Code.LoadError, fn ->
+      Code.eval_file("non_existent.exs")
+    end
   end
 
   test :require do

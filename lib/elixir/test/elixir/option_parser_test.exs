@@ -154,12 +154,15 @@ defmodule OptionParserTest do
 
   test "stops on --" do
     options = OptionParser.parse(["--source", "from_docs/", "--", "1", "2", "3"])
-    assert options == {[source: "from_docs/"], ["--", "1", "2", "3"], []}
+    assert options == {[source: "from_docs/"], ["1", "2", "3"], []}
 
     options = OptionParser.parse_head(["--source", "from_docs/", "--", "1", "2", "3"])
-    assert options == {[source: "from_docs/"], ["--", "1", "2", "3"], []}
+    assert options == {[source: "from_docs/"], ["1", "2", "3"], []}
 
     options = OptionParser.parse(["--no-dash", "foo", "bar", "--", "-x"])
+    assert options == {[no_dash: true], ["foo", "bar", "-x"], []}
+
+    options = OptionParser.parse_head(["--no-dash", "foo", "bar", "--", "-x"])
     assert options == {[no_dash: true], ["foo", "bar", "--", "-x"], []}
   end
 
