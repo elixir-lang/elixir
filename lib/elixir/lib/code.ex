@@ -463,7 +463,7 @@ defmodule Code do
     if File.regular?(file) do
       file
     else
-      raise LoadError, file: file
+      raise Code.LoadError, file: file
     end
   end
 end
