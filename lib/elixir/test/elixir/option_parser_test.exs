@@ -171,4 +171,50 @@ defmodule OptionParserTest do
     assert OptionParser.parse(args)
            == {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
   end
+
+  test "next strict: good options" do
+    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    assert OptionParser.next(["--str", "hello", "..."], config)
+           == {:ok, :str, "hello", ["..."]}
+    assert OptionParser.next(["--int=13", "..."], config)
+           == {:ok, :int, 13, ["..."]}
+    assert OptionParser.next(["--bool=false", "..."], config)
+           == {:ok, :bool, false, ["..."]}
+    assert OptionParser.next(["--no-bool", "..."], config)
+           == {:ok, :bool, false, ["..."]}
+    assert OptionParser.next(["--bool", "..."], config)
+           == {:ok, :bool, true, ["..."]}
+    assert OptionParser.next(["..."], config)
+           == {:error, ["..."]}
+  end
+
+  test "next strict: unknown options" do
+    config = [switches: [bool: :boolean], strict: true]
+    assert OptionParser.next(["--str", "13", "..."], config)
+           == {:error, {:undefined, :str, nil}, ["13", "..."]}
+    assert OptionParser.next(["--int=hello", "..."], config)
+           == {:error, {:undefined, :int, "hello"}, ["..."]}
+  end
+
+  test "next strict: bad type" do
+    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    assert OptionParser.next(["--str", "13", "..."], config)
+           == {:ok, :str, "13", ["..."]}
+    assert OptionParser.next(["--int=hello", "..."], config)
+           == {:error, {:value, :int, "hello"}, ["..."]}
+    assert OptionParser.next(["--int", "hello", "..."], config)
+           == {:error, {:value, :int, "hello"}, ["..."]}
+    assert OptionParser.next(["--bool=other", "..."], config)
+           == {:error, {:value, :bool, "other"}, ["..."]}
+  end
+
+  test "next strict: missing value" do
+    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    assert OptionParser.next(["--str"], config)
+           == {:error, {:value, :str, nil}, []}
+    assert OptionParser.next(["--int"], config)
+           == {:error, {:value, :int, nil}, []}
+    assert OptionParser.next(["--bool=", "..."], config)
+           == {:error, {:value, :bool, ""}, ["..."]}
+  end
 end

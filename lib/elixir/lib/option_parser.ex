@@ -174,7 +174,7 @@ defmodule OptionParser do
       {:error, {:undefined, opt_name, value}, rest}
     else
       {opt_name, kinds, value} = normalize_option(opt, value, switches)
-      {value, kinds, rest} = normalize_value(value, kinds, rest)
+      {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
       case validate_option(opt_name, value, kinds) do
         {:ok, new_value} -> {:ok, opt_name, new_value, rest}
         :invalid         -> {:error, {:value, opt_name, value}, rest}
@@ -286,7 +286,8 @@ defmodule OptionParser do
     {option, List.wrap(switches[option]), value}
   end
 
-  defp normalize_value(nil, kinds, t) do
+  defp normalize_value(nil, kinds, t, strict) do
+    null = if strict, do: nil, else: true
     cond do
       :boolean in kinds ->
         {true, kinds, t}
@@ -294,13 +295,13 @@ defmodule OptionParser do
         [h|t] = t
         {h, kinds, t}
       kinds == [] ->
-        {true, kinds, t}
+        {null, kinds, t}
       true ->
-        {true, [:invalid], t}
+        {null, [:invalid], t}
     end
   end
 
-  defp normalize_value(value, kinds, t) do
+  defp normalize_value(value, kinds, t, _) do
     {value, kinds, t}
   end
 
