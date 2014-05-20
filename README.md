@@ -54,4 +54,4 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 Elixir source code is released under Apache 2 License with some parts under Erlang's license (EPL).
 
-Check LEGAL and LICENSE files for more information.
+Check [LEGAL](LEGAL) and [LICENSE](LICENSE) files for more information.
