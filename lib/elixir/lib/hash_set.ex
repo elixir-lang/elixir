@@ -134,15 +134,15 @@ defmodule HashSet do
     index = key_mask(hash)
     case elem(node, index) do
       [] ->
-        {set_elem(node, index, [term]), 1}
+        {put_elem(node, index, [term]), 1}
       [^term|_] ->
         {node, 0}
       [t] ->
-        n = set_elem(@node_template, key_mask(key_shift(hash)), [term])
-        {set_elem(node, index, [t|n]), 1}
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [term])
+        {put_elem(node, index, [t|n]), 1}
       [t|n] ->
         {n, counter} = do_put(n, term, key_shift(hash))
-        {set_elem(node, index, [t|n]), counter}
+        {put_elem(node, index, [t|n]), counter}
     end
   end
 
@@ -152,17 +152,17 @@ defmodule HashSet do
       [] ->
         :error
       [^term] ->
-        {:ok, set_elem(node, index, [])}
+        {:ok, put_elem(node, index, [])}
       [_] ->
         :error
       [^term|n] ->
-        {:ok, set_elem(node, index, do_compact_node(n))}
+        {:ok, put_elem(node, index, do_compact_node(n))}
       [t|n] ->
         case do_delete(n, term, key_shift(hash)) do
           {:ok, @node_template} ->
-            {:ok, set_elem(node, index, [t])}
+            {:ok, put_elem(node, index, [t])}
           {:ok, n} ->
-            {:ok, set_elem(node, index, [t|n])}
+            {:ok, put_elem(node, index, [t|n])}
           :error ->
             :error
         end
@@ -173,12 +173,12 @@ defmodule HashSet do
     defp do_compact_node(node) when elem(node, unquote(index)) != [] do
       case elem(node, unquote(index)) do
         [t] ->
-          case set_elem(node, unquote(index), []) do
+          case put_elem(node, unquote(index), []) do
             @node_template -> [t]
             n -> [t|n]
           end
         [t|n] ->
-          [t|set_elem(node, unquote(index), do_compact_node(n))]
+          [t|put_elem(node, unquote(index), do_compact_node(n))]
       end
     end
   end

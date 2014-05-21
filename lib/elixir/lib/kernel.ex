@@ -220,6 +220,11 @@ defmodule Kernel do
     :erlang.tuple_to_list(tuple)
   end
 
+  @doc false
+  def set_elem(tuple, index, value) do
+    :erlang.setelement(index + 1, tuple, value)
+  end
+
   ## END OF DEPRECATED
 
   @doc """
@@ -1211,12 +1216,12 @@ defmodule Kernel do
   ## Example
 
       iex> tuple = {:foo, :bar, 3}
-      iex> set_elem(tuple, 0, :baz)
+      iex> put_elem(tuple, 0, :baz)
       {:baz, :bar, 3}
 
   """
-  @spec set_elem(tuple, non_neg_integer, term) :: tuple
-  def set_elem(tuple, index, value) do
+  @spec put_elem(tuple, non_neg_integer, term) :: tuple
+  def put_elem(tuple, index, value) do
     :erlang.setelement(index + 1, tuple, value)
   end
 

@@ -7,8 +7,8 @@ defmodule TupleTest do
     assert elem({:a, :b, :c}, 1) == :b
   end
 
-  test :set_elem do
-    assert set_elem({:a, :b, :c}, 1, :d) == {:a, :d, :c}
+  test :put_elem do
+    assert put_elem({:a, :b, :c}, 1, :d) == {:a, :d, :c}
   end
 
   test :keywords do

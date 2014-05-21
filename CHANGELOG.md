@@ -15,6 +15,7 @@
   * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
   * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
   * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
+  * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
 
 * Soft deprecations for conversions (no warnings emitted)
   * [Kernel] `atom_to_binary/1` and `atom_to_list/1` are deprecated in favor of `Atom.to_string/1` and `Atom.to_char_list/1`

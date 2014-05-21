@@ -29,7 +29,7 @@ defmodule Kernel.SpecialForms do
   Conveniences for manipulating tuples can be found in the
   `Tuple` module. Some functions for working with tuples are
   also available in `Kernel`, namely `Kernel.elem/2`,
-  `Kernel.set_elem/3` and `Kernel.tuple_size/1`.
+  `Kernel.put_elem/3` and `Kernel.tuple_size/1`.
 
   ## Examples
 

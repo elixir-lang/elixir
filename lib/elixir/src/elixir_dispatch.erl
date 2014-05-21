@@ -341,7 +341,7 @@ rewrite(?atom, to_string, [Arg], _) ->
   {ok, erlang, atom_to_binary, [Arg, utf8]};
 rewrite(?kernel, elem, [Tuple, Index], _) ->
   {ok, erlang, element, [increment(Index), Tuple]};
-rewrite(?kernel, set_elem, [Tuple, Index, Value], _) ->
+rewrite(?kernel, put_elem, [Tuple, Index, Value], _) ->
   {ok, erlang, setelement, [increment(Index), Tuple, Value]};
 rewrite(?map, 'has_key?', [Map, Key], _) ->
   {ok, maps, is_key, [Key, Map]};
