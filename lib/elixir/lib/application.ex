@@ -246,7 +246,7 @@ defmodule Application do
   @doc """
   Stops the given `app`.
 
-  When stopped, the application is still loaded.  
+  When stopped, the application is still loaded.
   """
   @spec stop(app) :: :ok | {:error, term}
   def stop(app) do
