@@ -62,7 +62,7 @@ defmodule Agent do
 
   ## Name registering
 
-  A GenEvent is bound to the same name registering rules as a `GenServer`.
+  An Agent is bound to the same name registering rules as a `GenServer`.
   Read more about it in the `GenServer` docs.
 
   ## A word on distributed agents
