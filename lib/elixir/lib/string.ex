@@ -1186,8 +1186,8 @@ defmodule String do
 
   ## Examples
 
-      iex> List.from_char_data("æß")
-      {:ok, 'æß'}
+      iex> String.to_char_list("æß")
+      'æß'
 
   Notice that this function expect a list of integer representing
   UTF-8 codepoints. If you have a raw binary, you must instead use

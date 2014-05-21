@@ -38,6 +38,8 @@
 
 * Backwards incompatible changes
   * [Exception] Exceptions now generate structs instead of records
+  * [String] `String.to_char_list/1` no longer returns a tuple and raises in case of failure (`String.to_char_list!/1` used to behave like that)
+  * [String] `String.to_char_list!/1` is removed
 
 
 # v0.13.2 (2014-05-11)
