@@ -206,6 +206,14 @@ defmodule OptionParser do
     {:error, argv}
   end
 
+  defp next(["-"|_]=argv, _aliases, _switches, _strict) do
+    {:error, argv}
+  end
+
+  defp next(["- " <> _|_]=argv, _aliases, _switches, _strict) do
+    {:error, argv}
+  end
+
   defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
     opt = tag_option(option, value, switches, aliases)
@@ -353,9 +361,11 @@ defmodule OptionParser do
     {value, kinds, t}
   end
 
-  defp value_in_tail?(["-" <> _|_]), do: false
-  defp value_in_tail?([]),           do: false
-  defp value_in_tail?(_),            do: true
+  defp value_in_tail?(["-"|_]),       do: true
+  defp value_in_tail?(["- " <> _|_]), do: true
+  defp value_in_tail?(["-" <> _|_]),  do: false
+  defp value_in_tail?([]),            do: false
+  defp value_in_tail?(_),             do: true
 
   defp split_option(option) do
     case :binary.split(option, "=") do
