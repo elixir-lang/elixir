@@ -172,6 +172,12 @@ defmodule OptionParserTest do
            == {[source: "from_docs/", docs: "show"], [], []}
   end
 
+  test "collects multiple invalid options" do
+    args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
+    assert OptionParser.parse(args, switches: [bad: :integer])
+           == {[], ["foo", "bar"], [bad: "opt", o: "bad"]}
+  end
+
   test "parses more than one key/value options using strict" do
     assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"],
                               strict: [source: :string, docs: :string])
@@ -180,6 +186,18 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--source", "from_docs/", "--doc", "show"],
                               strict: [source: :string, docs: :string])
            == {[source: "from_docs/"], ["show"], [doc: nil]}
+
+    assert OptionParser.parse(["--source", "from_docs/", "--doc=show"],
+                              strict: [source: :string, docs: :string])
+           == {[source: "from_docs/"], [], [doc: "show"]}
+  end
+
+  test "parses - as argument" do
+    assert OptionParser.parse(["-a", "-", "-", "-b", "-"], aliases: [b: :boo])
+           == {[boo: "-"], ["-"], [a: "-"]}
+
+    assert OptionParser.parse(["--foo", "-", "-b", "-"], strict: [foo: :boolean, boo: :string], aliases: [b: :boo])
+           == {[foo: true, boo: "-"], ["-"], []}
   end
 
   test "next strict: good options" do
