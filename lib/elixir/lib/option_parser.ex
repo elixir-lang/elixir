@@ -3,6 +3,11 @@ defmodule OptionParser do
   This module contains functions to parse command line arguments.
   """
 
+  @type argv    :: [String.t]
+  @type parsed  :: Keyword.t
+  @type errors  :: Keyword.t
+  @type options :: [switches: Keyword.t, strict: Keyword.t, aliases: Keyword.t]
+
   @doc """
   Parses `argv` into a keywords list.
 
@@ -32,7 +37,18 @@ defmodule OptionParser do
   ## Switches
 
   Many times though, it is better to explicitly list the available
-  switches and their formats. The following types are supported:
+  switches and their formats. The switches can be specified via two
+  different options:
+
+  * `:strict` - the switches are strict. Any switch that does not
+    exist in the switch list is treated as an error;
+
+  * `:switches` - configure some switches. Switches that does not
+    exist in the switch list are still attempted to be parsed;
+
+  Note only `:strict` or `:switches` may be given at once.
+
+  For each switch, the following types are supported:
 
   * `:boolean` - Marks the given switch as a boolean. Boolean switches
                  never consume the following value unless it is
@@ -41,8 +57,9 @@ defmodule OptionParser do
   * `:float`   - Parses the switch as a float;
   * `:string`  - Returns the switch as a string;
 
-  If a switch can't be parsed, the option is returned in the invalid
-  options list (third element of the returned tuple).
+  If a switch can't be parsed or is not specfied in the strict case,
+  the option is returned in the invalid options list (third element
+  of the returned tuple).
 
   The following extra "types" are supported:
 
@@ -50,18 +67,25 @@ defmodule OptionParser do
 
   Examples:
 
-      iex> OptionParser.parse(["--unlock", "path/to/file"], switches: [unlock: :boolean])
+      iex> OptionParser.parse(["--unlock", "path/to/file"], strict: [unlock: :boolean])
       {[unlock: true], ["path/to/file"], []}
 
       iex> OptionParser.parse(["--unlock", "--limit", "0", "path/to/file"],
-      ...>                    switches: [unlock: :boolean, limit: :integer])
+      ...>                    strict: [unlock: :boolean, limit: :integer])
       {[unlock: true, limit: 0], ["path/to/file"], []}
 
-      iex> OptionParser.parse(["--limit", "3"], switches: [limit: :integer])
+      iex> OptionParser.parse(["--limit", "3"], strict: [limit: :integer])
       {[limit: 3], [], []}
 
-      iex> OptionParser.parse(["--limit", "yyz"], switches: [limit: :integer])
-      {[], [], [limit: "yyz"]}
+      iex> OptionParser.parse(["--limit", "xyz"], strict: [limit: :integer])
+      {[], [], [limit: "xyz"]}
+
+      iex> OptionParser.parse(["--unknown", "xyz"], strict: [])
+      {[], ["xyz"], [unknown: nil]}
+
+      iex> OptionParser.parse(["--limit", "3", "--unknown", "xyz"],
+      ...>                    switches: [limit: :integer])
+      {[limit: 3, unknown: "xyz"], [], []}
 
   ## Negation switches
 
@@ -85,10 +109,9 @@ defmodule OptionParser do
       {[debug: true], [], []}
 
   """
+  @spec parse(argv, options) :: {parsed, argv, errors}
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config =
-      Keyword.merge(opts, [all: true, strict: false])
-      |> compile_config()
+    config = compile_config(opts, true)
     do_parse(argv, config, [], [], [])
   end
 
@@ -107,13 +130,11 @@ defmodule OptionParser do
       {[verbose: true, source: "lib"], ["test/enum_test.exs", "--unlock"], []}
 
   """
+  @spec parse_head(argv, options) :: {parsed, argv, errors}
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config =
-      Keyword.merge(opts, [all: false, strict: false])
-      |> compile_config()
+    config = compile_config(opts, false)
     do_parse(argv, config, [], [], [])
   end
-
 
   defp do_parse([], _config, opts, args, invalid) do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
@@ -127,11 +148,11 @@ defmodule OptionParser do
         new_opts = do_store_option(opts, option, value, kinds)
         do_parse(rest, config, new_opts, args, invalid)
 
-      {:error, {:value, option, value}, rest} ->
+      {:invalid, option, value, rest} ->
         # the option exist but it has wrong value
         do_parse(rest, config, opts, args, [{option, value}|invalid])
 
-      {:error, {:undefined, option, value}, rest} ->
+      {:undefined, option, value, rest} ->
         # the option does not exist (for strict cases)
         do_parse(rest, config, opts, args, [{option, value}|invalid])
 
@@ -148,12 +169,32 @@ defmodule OptionParser do
     end
   end
 
-
   @doc """
   Low-level function that parses one option.
+
+  It accepts the same options as `parse/2` and `parse_head/2`
+  as both functions are built on top of next. This function
+  may return:
+
+  * `{:ok, key, value, rest}` - the option `key` with `value` was successfully parsed
+
+  * `{:invalid, key, value, rest}` - the option `key` is invalid with `value`
+    (returned when the switch type does not match the one given via the command line)
+
+  * `{:undefined, key, value, rest}` - the option `key` is undefined
+    (returned on strict cases and the switch is unknown)
+
+  * `{:error, rest}` - there are no switches at the top of the given argv
   """
+
+  @spec next(argv, options) ::
+        {:ok, key :: atom, value :: term, argv} |
+        {:invalid, key :: atom, value :: term, argv} |
+        {:undefined, key :: atom, value :: term, argv} |
+        {:error, argv}
+
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    {aliases, switches, strict, _} = compile_config(opts)
+    {aliases, switches, strict, _} = compile_config(opts, true)
     next(argv, aliases, switches, strict)
   end
 
@@ -171,13 +212,13 @@ defmodule OptionParser do
 
     if strict and not option_defined?(opt, switches) do
       {_, opt_name} = opt
-      {:error, {:undefined, opt_name, value}, rest}
+      {:undefined, opt_name, value, rest}
     else
       {opt_name, kinds, value} = normalize_option(opt, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
       case validate_option(opt_name, value, kinds) do
         {:ok, new_value} -> {:ok, opt_name, new_value, rest}
-        :invalid         -> {:error, {:value, opt_name, value}, rest}
+        :invalid         -> {:invalid, opt_name, value, rest}
       end
     end
   end
@@ -188,11 +229,18 @@ defmodule OptionParser do
 
   ## Helpers
 
-  defp compile_config(opts) do
-    aliases  = opts[:aliases]  || []
-    switches = opts[:switches] || []
-    strict   = opts[:strict]   || false
-    all      = opts[:all]      || false
+  defp compile_config(opts, all) do
+    aliases = opts[:aliases] || []
+
+    {switches, strict} = cond do
+      s = opts[:switches] ->
+        {s, false}
+      s = opts[:strict] ->
+        {s, true}
+      true ->
+        {[], false}
+    end
+
     {aliases, switches, strict, all}
   end
 

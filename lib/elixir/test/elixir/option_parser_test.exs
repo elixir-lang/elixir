@@ -130,11 +130,6 @@ defmodule OptionParserTest do
            == {[no_docs: true], ["foo"], []}
   end
 
-  test "parses more than one key/value options" do
-    assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"])
-           == {[source: "from_docs/", docs: "show"], [], []}
-  end
-
   test "overrides options by default" do
     assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"])
            == {[require: "bar"], ["baz"], []}
@@ -172,8 +167,23 @@ defmodule OptionParserTest do
            == {[source: "from_docs/", verbose: true], ["test/enum_test.exs"], []}
   end
 
+  test "parses more than one key/value options" do
+    assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"])
+           == {[source: "from_docs/", docs: "show"], [], []}
+  end
+
+  test "parses more than one key/value options using strict" do
+    assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"],
+                              strict: [source: :string, docs: :string])
+           == {[source: "from_docs/", docs: "show"], [], []}
+
+    assert OptionParser.parse(["--source", "from_docs/", "--doc", "show"],
+                              strict: [source: :string, docs: :string])
+           == {[source: "from_docs/"], ["show"], [doc: nil]}
+  end
+
   test "next strict: good options" do
-    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    config = [strict: [str: :string, int: :integer, bool: :boolean]]
     assert OptionParser.next(["--str", "hello", "..."], config)
            == {:ok, :str, "hello", ["..."]}
     assert OptionParser.next(["--int=13", "..."], config)
@@ -189,36 +199,36 @@ defmodule OptionParserTest do
   end
 
   test "next strict: unknown options" do
-    config = [switches: [bool: :boolean], strict: true]
+    config = [strict: [bool: :boolean]]
     assert OptionParser.next(["--str", "13", "..."], config)
-           == {:error, {:undefined, :str, nil}, ["13", "..."]}
+           == {:undefined, :str, nil, ["13", "..."]}
     assert OptionParser.next(["--int=hello", "..."], config)
-           == {:error, {:undefined, :int, "hello"}, ["..."]}
+           == {:undefined, :int, "hello", ["..."]}
     assert OptionParser.next(["--no-bool=other", "..."], config)
-           == {:error, {:undefined, :no_bool, "other"}, ["..."]}
+           == {:undefined, :no_bool, "other", ["..."]}
   end
 
   test "next strict: bad type" do
-    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    config = [strict: [str: :string, int: :integer, bool: :boolean]]
     assert OptionParser.next(["--str", "13", "..."], config)
            == {:ok, :str, "13", ["..."]}
     assert OptionParser.next(["--int=hello", "..."], config)
-           == {:error, {:value, :int, "hello"}, ["..."]}
+           == {:invalid, :int, "hello", ["..."]}
     assert OptionParser.next(["--int", "hello", "..."], config)
-           == {:error, {:value, :int, "hello"}, ["..."]}
+           == {:invalid, :int, "hello", ["..."]}
     assert OptionParser.next(["--bool=other", "..."], config)
-           == {:error, {:value, :bool, "other"}, ["..."]}
+           == {:invalid, :bool, "other", ["..."]}
   end
 
   test "next strict: missing value" do
-    config = [switches: [str: :string, int: :integer, bool: :boolean], strict: true]
+    config = [strict: [str: :string, int: :integer, bool: :boolean]]
     assert OptionParser.next(["--str"], config)
-           == {:error, {:value, :str, nil}, []}
+           == {:invalid, :str, nil, []}
     assert OptionParser.next(["--int"], config)
-           == {:error, {:value, :int, nil}, []}
+           == {:invalid, :int, nil, []}
     assert OptionParser.next(["--bool=", "..."], config)
-           == {:error, {:value, :bool, ""}, ["..."]}
+           == {:invalid, :bool, "", ["..."]}
     assert OptionParser.next(["--no-bool=", "..."], config)
-           == {:error, {:undefined, :no_bool, ""}, ["..."]}
+           == {:undefined, :no_bool, "", ["..."]}
   end
 end
