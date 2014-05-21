@@ -31,6 +31,31 @@ defmodule Mix.Tasks.RunTest do
     purge [GitRepo]
   end
 
+  test "run errors on missing files" do
+    git_repo = fixture_path("git_repo/lib/git_repo.ex")
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise Mix.Error, "require: No files matched pattern non-existent", fn ->
+        Mix.Tasks.Run.run ["-r", "non-existent"]
+      end
+
+      assert_raise Mix.Error, "parallel-require: No files matched pattern non-existent", fn ->
+        Mix.Tasks.Run.run ["-pr", "non-existent"]
+      end
+
+      assert_raise Mix.Error, "No such file: non-existent", fn ->
+        Mix.Tasks.Run.run ["non-existent"]
+      end
+
+      assert File.dir?("lib")
+      assert_raise Mix.Error, "No such file: lib", fn ->
+        Mix.Tasks.Run.run ["lib"]
+      end
+    end
+  after
+    purge [GitRepo]
+  end
+
   test "run rewrites System.argv" do
     in_fixture "no_mixfile", fn ->
       file = "argv.exs"
