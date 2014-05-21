@@ -634,7 +634,7 @@ defmodule Kernel do
   Sends a message to the given `dest` and returns the message.
 
   `dest` may be a remote or local pid, a (local) port, a locally
-  registered name, or a tuple `{registed_name, node}` for a registered
+  registered name, or a tuple `{registered_name, node}` for a registered
   name at another node.
 
   Inlined by the compiler.
