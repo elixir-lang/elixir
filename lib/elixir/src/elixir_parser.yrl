@@ -23,10 +23,10 @@ Nonterminals
   .
 
 Terminals
-  identifier kw_identifier kw_identifier_string bracket_identifier
+  identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  number signed_number atom atom_string bin_string list_string sigil
+  number signed_number atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op type_op
   dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op assoc_op
@@ -208,7 +208,8 @@ access_expr -> max_expr : '$1'.
 
 %% Aliases and properly formed calls. Used by map_expr.
 max_expr -> atom : ?exprs('$1').
-max_expr -> atom_string : build_atom_string('$1').
+max_expr -> atom_safe : build_quoted_atom('$1', true).
+max_expr -> atom_unsafe : build_quoted_atom('$1', false).
 max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> dot_alias : '$1'.
@@ -428,8 +429,10 @@ call_args_parens -> open_paren call_args_parens_base ',' kw close_paren : revers
 
 kw_eol -> kw_identifier : ?exprs('$1').
 kw_eol -> kw_identifier eol : ?exprs('$1').
-kw_eol -> kw_identifier_string : build_atom_string('$1').
-kw_eol -> kw_identifier_string eol : build_atom_string('$1').
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'}|'$1'].
@@ -513,7 +516,6 @@ Erlang code.
 -define(line(Node), element(2, Node)).
 -define(exprs(Node), element(3, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
--define(is_atom_string(Atom), (Atom == atom_string orelse Atom == kw_identifier_string)).
 
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
@@ -633,9 +635,9 @@ build_list_string({list_string, Line, Args}) ->
   Meta = meta(Line),
   {{'.', Meta, ['Elixir.String', to_char_list]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
 
-build_atom_string({Atom, _Line, Safe, [H]}) when ?is_atom_string(Atom) andalso is_binary(H) ->
+build_quoted_atom({_, _Line, [H]}, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
-build_atom_string({Atom, Line, Safe, Args}) when ?is_atom_string(Atom) ->
+build_quoted_atom({_, Line, Args}, Safe) ->
   Meta = meta(Line),
   {{'.', Meta, [erlang, binary_to_atom_op(Safe)]}, Meta, [{'<<>>', Meta, string_parts(Args)}, utf8]}.
 

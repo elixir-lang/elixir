@@ -15,10 +15,22 @@ defmodule Kernel.ErrorsTest do
       '\end\nlol\nbarbecue'
   end
 
-  test :invalid_string do
+  test :invalid_quoted_token do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: \"world\"",
       '"hello" "world"'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: foo",
+      'Foo.:foo'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"foo\"",
+      'Foo.:"foo\#{:bar}"'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"",
+      'Foo.:"\#{:bar}"'
   end
 
   test :invalid_or_reserved_codepoint do

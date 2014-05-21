@@ -55,10 +55,18 @@ parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
 %% Binaries are wrapped in [<<...>>], so we need to unwrap them
-parse_error(Meta, File, Error, <<"[<<", Token/binary>>) when is_binary(Error) ->
-  Rest = binary_part(Token, 0, byte_size(Token) - 3),
-  Message = <<Error / binary, Rest / binary >>,
-  raise(Meta, File, 'Elixir.SyntaxError', Message);
+parse_error(Meta, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
+  Rest =
+    case binary:split(Full, <<"<<">>) of
+      [Lead, Token] ->
+        case binary:split(Token, <<">>">>) of
+          [Part, _] when Lead == <<$[>> -> Part;
+          _ -> <<$">>
+        end;
+      [_] ->
+        <<$">>
+    end,
+  raise(Meta, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
 
 %% Everything else is fine as is
 parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->

@@ -238,7 +238,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
               {atom, Line, TRight}},
             {map_field_assoc, Line,
               {atom, Line, term},
-              {atom, Line, TVar}}]},
+              TVar}]},
 
           %% TODO There is a bug in dialyzer that makes it fail on
           %% empty maps. We work around the bug below by using

@@ -238,8 +238,11 @@ tokenize([$:,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Scope, true, T, H) of
     {NewLine, Parts, Rest} ->
       Unescaped = unescape_tokens(Parts),
-      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
-      tokenize(Rest, NewLine, Scope, [{atom_string, Line, ExistingAtomsOnly, Unescaped}|Tokens]);
+      Key = case Scope#elixir_tokenizer.existing_atoms_only of
+        true  -> atom_safe;
+        false -> atom_unsafe
+      end,
+      tokenize(Rest, NewLine, Scope, [{Key, Line, Unescaped}|Tokens]);
     {error, Reason} ->
       interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
   end;
@@ -504,8 +507,11 @@ handle_strings(T, Line, H, Scope, Tokens) ->
       interpolation_error(Reason, [H|T], Tokens, " (for string starting at line ~B)", [Line]);
     {NewLine, Parts, [$:|Rest]} when ?is_space(hd(Rest)) ->
       Unescaped = unescape_tokens(Parts),
-      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
-      tokenize(Rest, NewLine, Scope, [{kw_identifier_string, Line, ExistingAtomsOnly, Unescaped}|Tokens]);
+      Key = case Scope#elixir_tokenizer.existing_atoms_only of
+        true  -> kw_identifier_safe;
+        false -> kw_identifier_unsafe
+      end,
+      tokenize(Rest, NewLine, Scope, [{Key, Line, Unescaped}|Tokens]);
     {NewLine, Parts, Rest} ->
       Token = {string_type(H), Line, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, Scope, [Token|Tokens])
