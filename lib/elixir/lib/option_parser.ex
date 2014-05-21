@@ -216,13 +216,13 @@ defmodule OptionParser do
 
   defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
-    opt = tag_option(option, value, switches, aliases)
+    tagged = tag_option(option, value, switches, aliases)
 
-    if strict and not option_defined?(opt, switches) do
-      {_, opt_name} = opt
+    if strict and not option_defined?(tagged, switches) do
+      {_, opt_name} = tagged
       {:undefined, opt_name, value, rest}
     else
-      {opt_name, kinds, value} = normalize_option(opt, value, switches)
+      {opt_name, kinds, value} = normalize_option(tagged, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
       case validate_option(opt_name, value, kinds) do
         {:ok, new_value} -> {:ok, opt_name, new_value, rest}
@@ -330,7 +330,7 @@ defmodule OptionParser do
       kinds == [] ->
         {option, kinds, true}
       true ->
-        {option, [:invalid], false}
+        {reverse_negated(option), [:invalid], nil}
     end
   end
 
@@ -343,7 +343,7 @@ defmodule OptionParser do
   end
 
   defp normalize_value(nil, kinds, t, strict) do
-    null = if strict, do: nil, else: true
+    nil_or_true = if strict, do: nil, else: true
     cond do
       :boolean in kinds ->
         {true, kinds, t}
@@ -351,9 +351,9 @@ defmodule OptionParser do
         [h|t] = t
         {h, kinds, t}
       kinds == [] ->
-        {null, kinds, t}
+        {nil_or_true, kinds, t}
       true ->
-        {null, [:invalid], t}
+        {nil, [:invalid], t}
     end
   end
 
@@ -380,6 +380,10 @@ defmodule OptionParser do
 
   defp get_option(option) do
     option |> to_underscore |> String.to_atom
+  end
+
+  defp reverse_negated(negated) do
+    String.to_atom("no_" <> Atom.to_string(negated))
   end
 
   defp get_negated("no-" <> rest = option, value, switches) do

@@ -42,6 +42,15 @@ defmodule OptionParserTest do
            == {[source: "from_docs/"], ["other"], []}
   end
 
+  test "does not interpret undefined options with value as boolean" do
+    assert OptionParser.parse(["--no-bool"])
+           == {[no_bool: true], [], []}
+    assert OptionParser.parse(["--no-bool"], strict: [])
+           == {[], [], [no_bool: nil]}
+    assert OptionParser.parse(["--no-bool=...", "other"])
+           == {[], ["other"], [no_bool: "..."]}
+  end
+
   test "does not parse -- as an alias" do
     assert OptionParser.parse(["--s=from_docs/"], aliases: [s: :source])
            == {[s: "from_docs/"], [], []}
@@ -83,7 +92,7 @@ defmodule OptionParserTest do
            == {[require: "foo", require: "bar"], ["baz"], []}
 
     assert OptionParser.parse(["--require"], switches: [require: :keep])
-           == {[], [], [require: true]}
+           == {[], [], [require: nil]}
   end
 
   test "parses configured strings" do
@@ -92,9 +101,9 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value=1", "foo"], switches: [value: :string])
            == {[value: "1"], ["foo"], []}
     assert OptionParser.parse(["--value"], switches: [value: :string])
-           == {[], [], [value: true]}
+           == {[], [], [value: nil]}
     assert OptionParser.parse(["--no-value"], switches: [value: :string])
-           == {[], [], [value: false]}
+           == {[], [], [no_value: nil]}
   end
 
   test "parses configured integers" do
