@@ -39,11 +39,14 @@ defmodule Mix.Tasks.Run do
     # Require the project to be available
     Mix.Project.get!
 
+    # Check if there is actually a file to run
+    run_file? = not match?({_, [], _}, OptionParser.parse_head(head))
+
     {file, argv} =
-      case {Keyword.has_key?(opts, :eval), head} do
-        {true, _}  -> {nil, head}
-        {_, [h|t]} -> {h, t}
-        {_, []}    -> {nil, []}
+      case {Keyword.has_key?(opts, :eval), run_file?, head} do
+        {true, _, _}      -> {nil, head}
+        {_, true, [h|t]}  -> {h, t}
+        {_, _, rest}      -> {nil, rest}
       end
 
     System.argv(argv)
