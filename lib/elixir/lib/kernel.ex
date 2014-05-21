@@ -2970,8 +2970,8 @@ defmodule Kernel do
         defexception [:message]
 
         def exception(value) do
-          msg = "did not get what was expected, got: #{inspect opts[:actual]}"
-          %MyException%{message: msg}
+          msg = "did not get what was expected, got: #{inspect value}"
+          %MyAppError{message: msg}
         end
       end
 
