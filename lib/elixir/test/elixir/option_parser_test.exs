@@ -198,7 +198,7 @@ defmodule OptionParserTest do
 
     assert OptionParser.parse(["--source", "from_docs/", "--doc=show"],
                               strict: [source: :string, docs: :string])
-           == {[source: "from_docs/"], [], [doc: "show"]}
+           == {[source: "from_docs/"], [], [doc: nil]}
   end
 
   test "parses - as argument" do

@@ -152,9 +152,9 @@ defmodule OptionParser do
         # the option exist but it has wrong value
         do_parse(rest, config, opts, args, [{option, value}|invalid])
 
-      {:undefined, option, value, rest} ->
+      {:undefined, option, _value, rest} ->
         # the option does not exist (for strict cases)
-        do_parse(rest, config, opts, args, [{option, value}|invalid])
+        do_parse(rest, config, opts, args, [{option, nil}|invalid])
 
       {:error, ["--"|rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
