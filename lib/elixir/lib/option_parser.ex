@@ -86,7 +86,10 @@ defmodule OptionParser do
 
   """
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    parse(argv, opts, true)
+    config =
+      Keyword.merge(opts, [all: true, strict: false])
+      |> compile_config()
+    do_parse(argv, config, [], [], [])
   end
 
   @doc """
@@ -105,74 +108,122 @@ defmodule OptionParser do
 
   """
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    parse(argv, opts, false)
+    config =
+      Keyword.merge(opts, [all: false, strict: false])
+      |> compile_config()
+    do_parse(argv, config, [], [], [])
+  end
+
+
+  defp do_parse([], _config, opts, args, invalid) do
+    {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
+  end
+
+  defp do_parse(argv, {aliases, switches, strict, all}=config, opts, args, invalid) do
+    case next(argv, aliases, switches, strict) do
+      {:ok, option, value, rest} ->
+        # the option exist and it was successfully parsed
+        kinds = List.wrap Keyword.get(switches, option)
+        new_opts = do_store_option(opts, option, value, kinds)
+        do_parse(rest, config, new_opts, args, invalid)
+
+      {:error, {:value, option, value}, rest} ->
+        # the option exist but it has wrong value
+        do_parse(rest, config, opts, args, [{option, value}|invalid])
+
+      {:error, {:undefined, option, value}, rest} ->
+        # the option does not exist (for strict cases)
+        do_parse(rest, config, opts, args, [{option, value}|invalid])
+
+      {:error, ["--"|rest]} ->
+        {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
+
+      {:error, [arg|rest]=remaining_args} ->
+        # there is no option
+        if all do
+          do_parse(rest, config, opts, [arg|args], invalid)
+        else
+          {Enum.reverse(opts), Enum.reverse(args, remaining_args), Enum.reverse(invalid)}
+        end
+    end
+  end
+
+
+  @doc """
+  Low-level function that parses one option.
+  """
+  def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
+    {aliases, switches, strict, _} = compile_config(opts)
+    next(argv, aliases, switches, strict)
+  end
+
+  defp next([], _aliases, _switches, _strict) do
+    {:error, []}
+  end
+
+  defp next(["--"|_]=argv, _aliases, _switches, _strict) do
+    {:error, argv}
+  end
+
+  defp next(["-" <> option|rest], aliases, switches, strict) do
+    {option, value} = split_option(option)
+    opt = tag_option(option, value, switches, aliases)
+
+    if strict and not option_defined?(opt, switches) do
+      {_, opt_name} = opt
+      {:error, {:undefined, opt_name, value}, rest}
+    else
+      {opt_name, kinds, value} = normalize_option(opt, value, switches)
+      {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
+      case validate_option(opt_name, value, kinds) do
+        {:ok, new_value} -> {:ok, opt_name, new_value, rest}
+        :invalid         -> {:error, {:value, opt_name, value}, rest}
+      end
+    end
+  end
+
+  defp next(argv, _aliases, _switches, _strict) do
+    {:error, argv}
   end
 
   ## Helpers
 
-  defp parse(argv, opts, bool) do
+  defp compile_config(opts) do
     aliases  = opts[:aliases]  || []
     switches = opts[:switches] || []
-    parse(argv, aliases, switches, bool)
+    strict   = opts[:strict]   || false
+    all      = opts[:all]      || false
+    {aliases, switches, strict, all}
   end
 
-  defp parse(argv, aliases, switches, all) do
-    parse(argv, aliases, switches, [], [], [], all)
-  end
+  defp validate_option(option, value, kinds) do
+    {invalid_opt, value} = cond do
+      :invalid in kinds ->
+        {option, value}
+      :boolean in kinds ->
+        case value do
+          t when t in [true, "true"] -> {nil, true}
+          f when f in [false, "false"] -> {nil, false}
+          _ -> {option, value}
+        end
+      :integer in kinds ->
+        case Integer.parse(value) do
+          {value, ""} -> {nil, value}
+          _ -> {option, value}
+        end
+      :float in kinds ->
+        case Float.parse(value) do
+          {value, ""} -> {nil, value}
+          _ -> {option, value}
+        end
+      true ->
+        {nil, value}
+    end
 
-  defp parse(["--"|t], _aliases, _switches, dict, args, invalid, _all) do
-    {Enum.reverse(dict), Enum.reverse(args, t), Enum.reverse(invalid)}
-  end
-
-  defp parse(["-" <> option|t], aliases, switches, dict, args, invalid, all) do
-    {option, value} = split_option(option)
-    {option, kinds, value} = normalize_option(option, value, switches, aliases)
-    {value, kinds, t} = normalize_value(value, kinds, t)
-    {dict, invalid} = store_option(dict, invalid, option, value, kinds)
-    parse(t, aliases, switches, dict, args, invalid, all)
-  end
-
-  defp parse([h|t], aliases, switches, dict, args, invalid, true) do
-    parse(t, aliases, switches, dict, [h|args], invalid, true)
-  end
-
-  defp parse([], _, _switches, dict, args, invalid, true) do
-    {Enum.reverse(dict), Enum.reverse(args), Enum.reverse(invalid)}
-  end
-
-  defp parse(value, _, _switches, dict, _args, invalid, false) do
-    {Enum.reverse(dict), value, Enum.reverse(invalid)}
-  end
-
-  defp store_option(dict, invalid, option, value, kinds) do
-    {invalid_option, value} =
-      cond do
-        :invalid in kinds ->
-          {option, value}
-        :boolean in kinds ->
-          case value do
-            t when t in [true, "true"] -> {nil, true}
-            f when f in [false, "false"] -> {nil, false}
-            _ -> {option, value}
-          end
-        :integer in kinds ->
-          case Integer.parse(value) do
-            {value, ""} -> {nil, value}
-            _ -> {option, value}
-          end
-        :float in kinds ->
-          case Float.parse(value) do
-            {value, ""} -> {nil, value}
-            _ -> {option, value}
-          end
-        true ->
-          {nil, value}
-      end
-
-    if invalid_option do
-      {dict, [{option, value}|invalid]}
+    if invalid_opt do
+      :invalid
     else
-      {do_store_option(dict, option, value, kinds), invalid}
+      {:ok, value}
     end
   end
 
@@ -185,17 +236,33 @@ defmodule OptionParser do
     end
   end
 
-  defp normalize_option(<<?-, option :: binary>>, value, switches, _aliases) do
-    normalize_option(get_negated(option, switches), value, switches)
+  defp tag_option(<<?-, option :: binary>>, value, switches, _aliases) do
+    get_negated(option, value, switches)
   end
 
-  defp normalize_option(option, value, switches, aliases) do
-    option = get_option(option)
-    if alias = aliases[option] do
-      normalize_option({:default, alias}, value, switches)
+  defp tag_option(option, _value, _switches, aliases) when is_binary(option) do
+    opt = get_option(option)
+    if alias = aliases[opt] do
+      {:default, alias}
     else
-      {option, [:invalid], value}
+      {:unknown, opt}
     end
+  end
+
+  defp option_defined?({:unknown, _option}, _switches) do
+    false
+  end
+
+  defp option_defined?({:negated, option}, switches) do
+    Keyword.has_key?(switches, option)
+  end
+
+  defp option_defined?({:default, option}, switches) do
+    Keyword.has_key?(switches, option)
+  end
+
+  defp normalize_option({:unknown, option}, value, _switches) do
+    {option, [:invalid], value}
   end
 
   defp normalize_option({:negated, option}, nil, switches) do
@@ -219,7 +286,8 @@ defmodule OptionParser do
     {option, List.wrap(switches[option]), value}
   end
 
-  defp normalize_value(nil, kinds, t) do
+  defp normalize_value(nil, kinds, t, strict) do
+    null = if strict, do: nil, else: true
     cond do
       :boolean in kinds ->
         {true, kinds, t}
@@ -227,13 +295,13 @@ defmodule OptionParser do
         [h|t] = t
         {h, kinds, t}
       kinds == [] ->
-        {true, kinds, t}
+        {null, kinds, t}
       true ->
-        {true, [:invalid], t}
+        {null, [:invalid], t}
     end
   end
 
-  defp normalize_value(value, kinds, t) do
+  defp normalize_value(value, kinds, t, _) do
     {value, kinds, t}
   end
 
@@ -256,13 +324,17 @@ defmodule OptionParser do
     option |> to_underscore |> String.to_atom
   end
 
-  defp get_negated("no-" <> rest = option, switches) do
+  defp get_negated("no-" <> rest = option, value, switches) do
     negated = get_option(rest)
-    option  = if Keyword.has_key?(switches, negated), do: negated, else: get_option(option)
+    option  = if Keyword.has_key?(switches, negated) and value == nil do
+      negated
+    else
+      get_option(option)
+    end
     {:negated, option}
   end
 
-  defp get_negated(rest, _switches) do
+  defp get_negated(rest, _value, _switches) do
     {:default, get_option(rest)}
   end
 end
