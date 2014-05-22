@@ -1,6 +1,5 @@
 @echo off
-
-if "%*"==""       goto documentation
+if "%1"==""       goto documentation
 if "%1"=="--help" goto documentation
 if "%1"=="-h"     goto documentation
 if "%1"=="/h"     goto documentation
