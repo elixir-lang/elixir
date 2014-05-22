@@ -142,7 +142,7 @@ end
 defimpl Inspect, for: BitString do
   def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
-      << ?", escape(thing, ?") :: binary, ?" >>
+      <<?", escape(thing, ?") :: binary, ?">>
     else
       inspect_bitstring(thing, opts)
     end

@@ -86,6 +86,11 @@ defmodule Inspect.BitStringTest do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
   end
 
+  test :all_escapes do
+    assert inspect("\a\b\d\e\f\n\r\s\t\v") ==
+           "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
+  end
+
   test :opt_infer do
     assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == ~s(<<101, 114, 105, 99, 193, 109, 106>>)
     assert inspect(<<"eric">>, binaries: :infer) == ~s("eric")

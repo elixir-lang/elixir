@@ -143,6 +143,7 @@ defmodule String do
   def printable?(<<?\b, t :: binary>>), do: printable?(t)
   def printable?(<<?\f, t :: binary>>), do: printable?(t)
   def printable?(<<?\e, t :: binary>>), do: printable?(t)
+  def printable?(<<?\d, t :: binary>>), do: printable?(t)
   def printable?(<<?\a, t :: binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
