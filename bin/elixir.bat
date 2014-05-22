@@ -1,4 +1,8 @@
 @echo off
+
+rem Mix handles its own help options (as when called by mix.bat)
+if not "%1"=="%1:mix%" goto parseopts
+
 set argc=0
 for %%A in (%*) do (
     if "%%A"=="--help" goto documentation
