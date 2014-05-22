@@ -15,6 +15,8 @@ defmodule Map do
 
   defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
 
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, reduce: 3}
+
   @doc """
   Returns a new empty map.
   """
@@ -24,19 +26,8 @@ defmodule Map do
 
   def fetch(map, key), do: :maps.find(key, map)
 
-  def pop(map, key, default \\ nil) do
-    {get(map, key, default), delete(map, key)}
-  end
-
   def put(map, key, val) do
     :maps.put(key, val, map)
-  end
-
-  def put_new(map, key, val) do
-    case has_key?(map, key) do
-      true  -> map
-      false -> :maps.put(key, val, map)
-    end
   end
 
   def delete(map, key), do: :maps.remove(key, map)
@@ -47,36 +38,9 @@ defmodule Map do
     end, map1, map2
   end
 
-  def split(map, keys) do
-    acc = {%{}, %{}}
+  def equal?(%{} = map1, %{} = map2), do: map1 === map2
 
-    :maps.fold fn k, v, {take, drop} ->
-      if k in keys do
-        {put(take, k, v), drop}
-      else
-        {take, put(drop, k, v)}
-      end
-    end, acc, map
+  defp reduce(coll, acc, fun) do
+    Enumerable.Map.reduce(coll, acc, fun)
   end
-
-  def update!(map, key, fun) do
-    case :maps.find(key, map) do
-      :error ->
-        raise(KeyError, key: key, term: map)
-      {:ok, val} ->
-        :maps.put(key, fun.(val), map)
-    end
-  end
-
-  def update(map, key, initial, fun) do
-    case :maps.find(key, map) do
-      :error ->
-        :maps.put(key, initial, map)
-      {:ok, val} ->
-        :maps.put(key, fun.(val), map)
-    end
-  end
-
-  def equal?(map, map), do: true
-  def equal?(_, _), do: false
 end

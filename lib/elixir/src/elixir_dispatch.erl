@@ -511,7 +511,7 @@ deprecation_message(Warning, Message) ->
 % deprecation('Elixir.Application.Behaviour', '__using__', _) ->
 %   "use Application instead";
 % deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
-%   true;
+%   "use Dict instead";
 % deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
 %   "use GenEvent instead";
 %  deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->

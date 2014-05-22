@@ -43,7 +43,7 @@ defmodule HashDict do
 
   def update!(%HashDict{root: root, size: size} = dict, key, fun) when is_function(fun, 1) do
     {root, counter} = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
-                                  fun, key_hash(key))
+                                fun, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
@@ -59,14 +59,14 @@ defmodule HashDict do
   def delete(dict, key) do
     case dict_delete(dict, key) do
       {dict, _value} -> dict
-      :error           -> dict
+      :error         -> dict
     end
   end
 
   def pop(dict, key, default \\ nil) do
     case dict_delete(dict, key) do
       {dict, value} -> {value, dict}
-      :error          -> {default, dict}
+      :error        -> {default, dict}
     end
   end
 
@@ -81,27 +81,6 @@ defmodule HashDict do
       {:halt, acc}    -> {:halted, acc}
       {:cont, acc}    -> {:done, acc}
     end)
-  end
-
-  def split(dict, keys) do
-    Enum.reduce keys, {new, dict}, fn key, {inc, exc} = acc ->
-      case dict_delete(exc, key) do
-        {exc, value} -> {put(inc, key, value), exc}
-        :error -> acc
-      end
-    end
-  end
-
-  def merge(%HashDict{size: size1} = dict1, %HashDict{size: size2} = dict2, callback) when size1 < size2 do
-    reduce(dict1, {:cont, dict2}, fn {k, v1}, acc ->
-      {:cont, update(acc, k, v1, &callback.(k, v1, &1))}
-    end) |> elem(1)
-  end
-
-  def merge(%HashDict{} = dict1, %HashDict{} = dict2, callback) do
-    reduce(dict2, {:cont, dict1}, fn {k, v2}, acc ->
-      {:cont, update(acc, k, v2, &callback.(k, &1, v2))}
-    end) |> elem(1)
   end
 
   ## General helpers

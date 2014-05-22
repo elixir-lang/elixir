@@ -15,7 +15,7 @@
   * [OptionParser] `--` is always removed from argument list on `parse/2` and when it is the leading entry on `parse_head/2`
 
 * Soft deprecations (no warnings emitted)
-  * [Dict] `Dict.Behaviour` is deprecated (please define the Dict functions yourself)
+  * [Dict] `Dict.Behaviour` is deprecated in favor of `Dict`
   * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
   * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
   * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
