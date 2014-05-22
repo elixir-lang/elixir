@@ -46,9 +46,9 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--no-bool"])
            == {[no_bool: true], [], []}
     assert OptionParser.parse(["--no-bool"], strict: [])
-           == {[], [], [no_bool: nil]}
+           == {[], [], [{"--no-bool", nil}]}
     assert OptionParser.parse(["--no-bool=...", "other"])
-           == {[], ["other"], [no_bool: "..."]}
+           == {[], ["other"], [{"--no-bool", "..."}]}
   end
 
   test "does not parse -- as an alias" do
@@ -58,7 +58,7 @@ defmodule OptionParserTest do
 
   test "does not parse - as a switch" do
     assert OptionParser.parse(["-source=from_docs/"], aliases: [s: :source])
-           == {[], [], [source: "from_docs/"]}
+           == {[], [], [{"-source", "from_docs/"}]}
   end
 
   test "parses configured booleans" do
@@ -67,18 +67,18 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--docs=true"], switches: [docs: :boolean])
            == {[docs: true], [], []}
     assert OptionParser.parse(["--docs=other"], switches: [docs: :boolean])
-           == {[], [], [docs: "other"]}
+           == {[], [], [{"--docs", "other"}]}
     assert OptionParser.parse(["--docs="], switches: [docs: :boolean])
-           == {[], [], [docs: ""]}
+           == {[], [], [{"--docs", ""}]}
 
     assert OptionParser.parse(["--docs", "foo"], switches: [docs: :boolean])
            == {[docs: true], ["foo"], []}
     assert OptionParser.parse(["--no-docs", "foo"], switches: [docs: :boolean])
            == {[docs: false], ["foo"], []}
     assert OptionParser.parse(["--no-docs=foo", "bar"], switches: [docs: :boolean])
-           == {[], ["bar"], [no_docs: "foo"]}
+           == {[], ["bar"], [{"--no-docs", "foo"}]}
     assert OptionParser.parse(["--no-docs=", "bar"], switches: [docs: :boolean])
-           == {[], ["bar"], [no_docs: ""]}
+           == {[], ["bar"], [{"--no-docs", ""}]}
   end
 
   test "does not set unparsed booleans" do
@@ -92,7 +92,7 @@ defmodule OptionParserTest do
            == {[require: "foo", require: "bar"], ["baz"], []}
 
     assert OptionParser.parse(["--require"], switches: [require: :keep])
-           == {[], [], [require: nil]}
+           == {[], [], [{"--require", nil}]}
   end
 
   test "parses configured strings" do
@@ -101,9 +101,9 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value=1", "foo"], switches: [value: :string])
            == {[value: "1"], ["foo"], []}
     assert OptionParser.parse(["--value"], switches: [value: :string])
-           == {[], [], [value: nil]}
+           == {[], [], [{"--value", nil}]}
     assert OptionParser.parse(["--no-value"], switches: [value: :string])
-           == {[], [], [no_value: nil]}
+           == {[], [], [{"--no-value", nil}]}
   end
 
   test "parses configured integers" do
@@ -112,7 +112,7 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value=1", "foo"], switches: [value: :integer])
            == {[value: 1], ["foo"], []}
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :integer])
-           == {[], ["foo"], [value: "WAT"]}
+           == {[], ["foo"], [{"--value", "WAT"}]}
   end
 
   test "parses configured integers with keep" do
@@ -131,7 +131,7 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value=1.0", "foo"], switches: [value: :float])
            == {[value: 1.0], ["foo"], []}
     assert OptionParser.parse(["--value", "WAT", "foo"], switches: [value: :float])
-           == {[], ["foo"], [value: "WAT"]}
+           == {[], ["foo"], [{"--value", "WAT"}]}
   end
 
   test "parses no switches as flags" do
@@ -184,7 +184,7 @@ defmodule OptionParserTest do
   test "collects multiple invalid options" do
     args = ["--bad", "opt", "foo", "-o", "bad", "bar"]
     assert OptionParser.parse(args, switches: [bad: :integer])
-           == {[], ["foo", "bar"], [bad: "opt", o: "bad"]}
+           == {[], ["foo", "bar"], [{"--bad", "opt"}, {"-o", "bad"}]}
   end
 
   test "parses more than one key/value options using strict" do
@@ -194,16 +194,16 @@ defmodule OptionParserTest do
 
     assert OptionParser.parse(["--source", "from_docs/", "--doc", "show"],
                               strict: [source: :string, docs: :string])
-           == {[source: "from_docs/"], ["show"], [doc: nil]}
+           == {[source: "from_docs/"], ["show"], [{"--doc", nil}]}
 
     assert OptionParser.parse(["--source", "from_docs/", "--doc=show"],
                               strict: [source: :string, docs: :string])
-           == {[source: "from_docs/"], [], [doc: nil]}
+           == {[source: "from_docs/"], [], [{"--doc", nil}]}
   end
 
   test "parses - as argument" do
     assert OptionParser.parse(["-a", "-", "-", "-b", "-"], aliases: [b: :boo])
-           == {[boo: "-"], ["-"], [a: "-"]}
+           == {[boo: "-"], ["-"], [{"-a", "-"}]}
 
     assert OptionParser.parse(["--foo", "-", "-b", "-"], strict: [foo: :boolean, boo: :string], aliases: [b: :boo])
            == {[foo: true, boo: "-"], ["-"], []}
@@ -228,11 +228,11 @@ defmodule OptionParserTest do
   test "next strict: unknown options" do
     config = [strict: [bool: :boolean]]
     assert OptionParser.next(["--str", "13", "..."], config)
-           == {:undefined, :str, nil, ["13", "..."]}
+           == {:undefined, "--str", nil, ["13", "..."]}
     assert OptionParser.next(["--int=hello", "..."], config)
-           == {:undefined, :int, "hello", ["..."]}
-    assert OptionParser.next(["--no-bool=other", "..."], config)
-           == {:undefined, :no_bool, "other", ["..."]}
+           == {:undefined, "--int", "hello", ["..."]}
+    assert OptionParser.next(["-no-bool=other", "..."], config)
+           == {:undefined, "-no-bool", "other", ["..."]}
   end
 
   test "next strict: bad type" do
@@ -240,22 +240,22 @@ defmodule OptionParserTest do
     assert OptionParser.next(["--str", "13", "..."], config)
            == {:ok, :str, "13", ["..."]}
     assert OptionParser.next(["--int=hello", "..."], config)
-           == {:invalid, :int, "hello", ["..."]}
+           == {:invalid, "--int", "hello", ["..."]}
     assert OptionParser.next(["--int", "hello", "..."], config)
-           == {:invalid, :int, "hello", ["..."]}
+           == {:invalid, "--int", "hello", ["..."]}
     assert OptionParser.next(["--bool=other", "..."], config)
-           == {:invalid, :bool, "other", ["..."]}
+           == {:invalid, "--bool", "other", ["..."]}
   end
 
   test "next strict: missing value" do
     config = [strict: [str: :string, int: :integer, bool: :boolean]]
     assert OptionParser.next(["--str"], config)
-           == {:invalid, :str, nil, []}
+           == {:invalid, "--str", nil, []}
     assert OptionParser.next(["--int"], config)
-           == {:invalid, :int, nil, []}
+           == {:invalid, "--int", nil, []}
     assert OptionParser.next(["--bool=", "..."], config)
-           == {:invalid, :bool, "", ["..."]}
+           == {:invalid, "--bool", "", ["..."]}
     assert OptionParser.next(["--no-bool=", "..."], config)
-           == {:undefined, :no_bool, "", ["..."]}
+           == {:undefined, "--no-bool", "", ["..."]}
   end
 end

@@ -78,10 +78,10 @@ defmodule OptionParser do
       {[limit: 3], [], []}
 
       iex> OptionParser.parse(["--limit", "xyz"], strict: [limit: :integer])
-      {[], [], [limit: "xyz"]}
+      {[], [], [{"--limit", "xyz"}]}
 
       iex> OptionParser.parse(["--unknown", "xyz"], strict: [])
-      {[], ["xyz"], [unknown: nil]}
+      {[], ["xyz"], [{"--unknown", nil}]}
 
       iex> OptionParser.parse(["--limit", "3", "--unknown", "xyz"],
       ...>                    switches: [limit: :integer])
@@ -216,17 +216,17 @@ defmodule OptionParser do
 
   defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
+    opt_name_bin = "-" <> option
     tagged = tag_option(option, value, switches, aliases)
 
     if strict and not option_defined?(tagged, switches) do
-      {_, opt_name} = tagged
-      {:undefined, opt_name, value, rest}
+      {:undefined, opt_name_bin, value, rest}
     else
       {opt_name, kinds, value} = normalize_option(tagged, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
       case validate_option(opt_name, value, kinds) do
         {:ok, new_value} -> {:ok, opt_name, new_value, rest}
-        :invalid         -> {:invalid, opt_name, value, rest}
+        :invalid         -> {:invalid, opt_name_bin, value, rest}
       end
     end
   end
