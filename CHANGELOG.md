@@ -1,14 +1,18 @@
 # v0.13.3-dev
 
 * Enhancements
-  * [Kernel] `GenEvent`, `GenServer`, `Supervisor`, `Agent` and `Task` modules added
+  * [OptionParser] Add `:strict` option that only parses known switches
+  * [OptionParser] Add `next/2` useful for manual parsing of options
   * [Macro] Add `Macro.prewalk/2/3` and `Macro.postwalk/2/3`
+  * [Kernel] `GenEvent`, `GenServer`, `Supervisor`, `Agent` and `Task` modules added
   * [Kernel] Make deprecations compiler warnings to avoid the same deprecation being printed multiple times
 
 * Bug fixes
   * [Enum] Fix `Enum.join/2` and `Enum.map_join/3` for empty binaries at the beginning of the collection
   * [ExUnit] Ensure the formatter doesn't error when printing :EXITs
   * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
+  * [OptionParser] Parse `-` as a plain argument
+  * [OptionParser] `--` is always removed from argument list on `parse/2` and when it is the leading entry on `parse_head/2`
 
 * Soft deprecations (no warnings emitted)
   * [Dict] `Dict.Behaviour` is deprecated (please define the Dict functions yourself)
@@ -38,9 +42,8 @@
 
 * Backwards incompatible changes
   * [Exception] Exceptions now generate structs instead of records
-  * [String] `String.to_char_list/1` no longer returns a tuple and raises in case of failure (`String.to_char_list!/1` used to behave like that)
-  * [String] `String.to_char_list!/1` is removed
-
+  * [OptionParser] Errors on parsing returns the switch and value as binaries (unparsed)
+  * [String] `String.to_char_list/1` (previously deprecated) no longer returns a tuple and raises in case of failure
 
 # v0.13.2 (2014-05-11)
 

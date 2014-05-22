@@ -5,7 +5,7 @@ defmodule OptionParser do
 
   @type argv    :: [String.t]
   @type parsed  :: Keyword.t
-  @type errors  :: Keyword.t
+  @type errors  :: [{String.t, String.t | nil}]
   @type options :: [switches: Keyword.t, strict: Keyword.t, aliases: Keyword.t]
 
   @doc """
