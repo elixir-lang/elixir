@@ -1,12 +1,9 @@
 @echo off
-set argc=0
-for %%A in (%*) do (
-    if "%%A"=="--help" goto documentation
-    if "%%A"=="-h"     goto documentation
-    if "%%A"=="/h"     goto documentation
-    set /A argc+=1
-)
-if %argc%==0 goto documentation
+
+if "%*"==""       goto documentation
+if "%1"=="--help" goto documentation
+if "%1"=="-h"     goto documentation
+if "%1"=="/h"     goto documentation
 goto parseopts
 
 :documentation
