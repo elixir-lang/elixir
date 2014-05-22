@@ -11,10 +11,16 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-
-      output = System.cmd ~s(MIX_ENV=prod MIX_EXS=custom.exs #{elixir_executable} #{mix_executable}) <>
+      
+      System.put_env("MIX_ENV", "prod")
+      System.put_env("MIX_EXS", "custom.exs")
+      
+      output = System.cmd ~s(#{elixir_executable} #{mix_executable}) <>
                           ~s( run -e "IO.inspect {Mix.env, System.argv}" -- 1 2 3)
-
+      
+      System.delete_env("MIX_ENV")
+      System.delete_env("MIX_EXS")
+      
       assert output =~ ~s({:prod, ["1", "2", "3"]})
       assert output =~ "Compiled lib/a.ex"
     end
