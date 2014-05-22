@@ -42,7 +42,34 @@ defmodule RegexTest do
   end
 
   test :source do
+    src = "foo"
+    assert Regex.source(Regex.compile!(src)) == src
+    assert Regex.source(~r/#{src}/) == src
+
+    src = "\a\b\d\e\f\n\r\s\t\v"
+    assert Regex.source(Regex.compile!(src)) == src
+    assert Regex.source(~r/#{src}/) == src
+
+    src = "\a\\b\\d\\e\f\n\r\\s\t\v"
+    assert Regex.source(Regex.compile!(src)) == src
+    assert Regex.source(~r/#{src}/) == src
+  end
+
+  test :literal_source do
     assert Regex.source(Regex.compile!("foo")) == "foo"
+    assert Regex.source(~r"foo") == "foo"
+    assert Regex.re_pattern(Regex.compile!("foo"))
+           == Regex.re_pattern(~r"foo")
+
+    assert Regex.source(Regex.compile!("\a\b\d\e\f\n\r\s\t\v")) == "\a\b\d\e\f\n\r\s\t\v"
+    assert Regex.source(~r<\a\b\d\e\f\n\r\s\t\v>) == "\a\\b\\d\\e\f\n\r\\s\t\v"
+    assert Regex.re_pattern(Regex.compile!("\a\b\d\e\f\n\r\s\t\v"))
+           == Regex.re_pattern(~r"\a\010\177\033\f\n\r \t\v")
+
+    assert Regex.source(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v")) == "\a\\b\\d\e\f\n\r\\s\t\v"
+    assert Regex.source(~r<\a\\b\\d\\e\f\n\r\\s\t\v>) == "\a\\\\b\\\\d\\\\e\f\n\r\\\\s\t\v"
+    assert Regex.re_pattern(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v"))
+           == Regex.re_pattern(~r"\a\b\d\e\f\n\r\s\t\v")
   end
 
   test :opts do

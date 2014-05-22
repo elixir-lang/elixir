@@ -202,18 +202,41 @@ defimpl Inspect, for: BitString do
     else
       << byte :: size(8), h :: binary >> = head
       t = << h :: binary, t :: binary >>
-      escape(t, char, << binary :: binary, octify(byte) :: binary >>)
+      escape(t, char, << binary :: binary, escape_char(byte) :: binary >>)
     end
   end
   defp escape(<<h, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, octify(h) :: binary >>)
+    escape(t, char, << binary :: binary, escape_char(h) :: binary >>)
   end
   defp escape(<<>>, _char, binary), do: binary
+
+
+  @doc false
+  # also used by Regex
+  def escape_char(char) when char in ?\000..?\377,
+    do: octify(char)
+
+  def escape_char(char), do: hexify(char)
 
   defp octify(byte) do
     << hi :: size(2), mi :: size(3), lo :: size(3) >> = << byte >>
     << ?\\, ?0 + hi, ?0 + mi, ?0 + lo >>
   end
+
+  defp hexify(char) when char < 0x10000 do
+    <<a::4, b::4, c::4, d::4>> = <<char::size(16)>>
+    <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
+  end
+
+  defp hexify(char) when char < 0x1000000 do
+    <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::size(24)>>
+    <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
+                   to_hex(d), to_hex(e), to_hex(f), ?}>>
+  end
+
+  defp to_hex(c) when c in 0..9, do: ?0+c
+  defp to_hex(c) when c in 10..15, do: ?a+c-10
+
 
   defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
   defp append(<<>>, binary), do: binary
@@ -419,9 +442,57 @@ defimpl Inspect, for: Float do
 end
 
 defimpl Inspect, for: Regex do
-  def inspect(regex, opts) do
-    concat ["~r", to_doc(regex.source, opts), regex.opts]
+  def inspect(regex, _opts) do
+    delim =?/
+    concat ["~r",
+            <<delim, escape(regex.source, delim)::binary, delim>>,
+            regex.opts]
   end
+
+
+  defp escape(bin, term),
+    do: escape(bin, <<>>, term)
+
+  defp escape(<<?\\, term>> <> rest, buf, term),
+    do: escape(rest, buf <> <<?\\, term>>, term)
+
+  defp escape(<<term>> <> rest, buf, term),
+    do: escape(rest, buf <> <<?\\, term>>, term)
+
+  # the list of characters is from `String.printable?` impl
+  # minus characters treated specially by regex: \s, \d, \b, \e
+
+  defp escape(<<?\n>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?n>>, term)
+
+  defp escape(<<?\r>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?r>>, term)
+
+  defp escape(<<?\t>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?t>>, term)
+
+  defp escape(<<?\v>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?v>>, term)
+
+  defp escape(<<?\f>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?f>>, term)
+
+  defp escape(<<?\a>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?a>>, term)
+
+  defp escape(<<c::utf8>> <> rest, buf, term) do
+    charstr = <<c::utf8>>
+    if String.printable?(charstr) and not c in [?\d, ?\b, ?\e] do
+      escape(rest, buf <> charstr, term)
+    else
+      escape(rest, buf <> Inspect.BitString.escape_char(c), term)
+    end
+  end
+
+  defp escape(<<c>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, Inspect.BitString.escape_char(c)>>, term)
+
+  defp escape(<<>>, buf, _), do: buf
 end
 
 defimpl Inspect, for: Function do
