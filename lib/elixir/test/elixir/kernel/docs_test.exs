@@ -1,41 +1,34 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Kernel.DocsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: false
 
   test "compiled with docs" do
-    defmodule Docs do
-      @moduledoc "moduledoc"
-      defp private, do: 1
-
-      @doc false
-      def __struct__, do: %{}
-
-      @doc "Some example"
-      def example(false), do: 0
-      def example(var),   do: var && private
-
-      def nodoc(var \\ 0)
-      def nodoc(_), do: 2
-
-      def struct(%Docs{}), do: %{}
-    end
-
     expected = [
-      {{:__struct__, 0}, 12, :def, [], false},
-      {{:example, 1}, 15, :def, [{:var, [], nil}], "Some example"},
-      {{:nodoc, 1}, 18, :def, [{:\\, [], [{:var, [], nil}, 0]}], nil},
-      {{:struct, 1}, 21, :def, [{:docs, [], nil}], nil}
+      {{:fun, 2}, 0, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
+      {{:nofun, 0}, 0, :def, [], nil},
+      {{:sneaky, 1}, 0, :def, [{:bool1, [], Elixir}], false},
     ]
 
-    assert Docs.__info__(:docs) == expected
-    assert Docs.__info__(:moduledoc) == {7, "moduledoc"}
+    with_test_module(SampleDocsModule, fn ->
+      docs = Code.get_docs(SampleDocsModule, :all)
+      assert docs[:docs] == expected
+      assert docs[:moduledoc] == {1, "Hello, I am a module"}
+    end)
   end
-
 
   test "compiled without docs" do
     Code.compiler_options(docs: false)
 
+    with_test_module(SampleDocsModule, fn ->
+      assert Code.get_docs(SampleDocsModule, :docs) == nil
+      assert Code.get_docs(SampleDocsModule, :moduledoc) == nil
+    end)
+  after
+    Code.compiler_options(docs: true)
+  end
+
+  test "compiled in memory" do
     defmodule NoDocs do
       @moduledoc "moduledoc"
 
@@ -43,9 +36,48 @@ defmodule Kernel.DocsTest do
       def example(var), do: var
     end
 
-    assert NoDocs.__info__(:docs) == nil
-    assert NoDocs.__info__(:moduledoc) == nil
-  after
-    Code.compiler_options(docs: true)
+    assert Code.get_docs(NoDocs, :docs) == nil
+    assert Code.get_docs(NoDocs, :moduledoc) == nil
+  end
+
+  defp with_test_module(name, f) do
+    code_path = :code.get_path()
+
+    tmp_dir = System.tmp_dir
+    Code.prepend_path(tmp_dir)
+
+    beam_path = Path.join(tmp_dir, atom_to_binary(name) <> ".beam")
+    File.rm(beam_path)
+
+    bin = deftestmodule(name)
+    try do
+      File.write!(beam_path, bin)
+      f.()
+    after
+      :code.set_path(code_path)
+      true = :code.delete(name)
+      false = :code.purge(name)
+    end
+  end
+
+  def deftestmodule(name) do
+    {:module, ^name, bin, _} = Module.create(name, quote do
+      @moduledoc "Hello, I am a module"
+
+      @doc """
+      This is fun!
+      """
+      def fun(x, y) do
+        {x, y}
+      end
+
+      @doc false
+      def sneaky(true), do: false
+
+      def nofun() do
+        'not fun at all'
+      end
+    end)
+    bin
   end
 end

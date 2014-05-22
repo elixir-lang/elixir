@@ -89,7 +89,7 @@ defmodule ProtocolTest do
   end
 
   test "protocol documentation" do
-    docs = Sample.__info__(:docs)
+    docs = Code.get_docs(Sample, :docs)
     assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
            List.keyfind(docs, {:ok, 1}, 0)
   end
@@ -235,7 +235,7 @@ end
 #   end
 #
 #   test "consolidation keeps docs" do
-#     docs = Sample.__info__(:docs)
+#     docs = Code.get_docs(Sample, :docs)
 #     assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
 #            List.keyfind(docs, {:ok, 1}, 0)
 #   end

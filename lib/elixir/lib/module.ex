@@ -284,13 +284,6 @@ defmodule Module do
 
   * `:macros`     - keyword list of public macros along with their arities
 
-  * `:docs`       - list of all docstrings attached to functions and macros
-                    using the `@doc` attribute
-
-  * `:moduledoc`  - tuple `{<line>, <doc>}` where `line` is the line on
-                    which module definition starts and `doc` is the string
-                    attached to the module using the `@moduledoc` attribute
-
   * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported

@@ -337,9 +337,10 @@ defmodule ExUnit.DocTest do
   ## Extraction of the tests
 
   defp extract(module) do
-    moduledocs = extract_from_moduledoc(module.__info__(:moduledoc))
+    all_docs = Code.get_docs(module, :all)
+    moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
 
-    docs = for doc <- module.__info__(:docs) do
+    docs = for doc <- all_docs[:docs] do
       extract_from_doc(doc)
     end |> Enum.concat
 
