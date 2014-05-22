@@ -149,12 +149,18 @@ release_docs: docs
 
 test: test_erlang test_elixir
 
-test_erlang: compile
+TEST_ERL = lib/elixir/test/erlang
+TEST_EBIN = lib/elixir/test/ebin
+TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
+
+test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
-	$(Q) mkdir -p lib/elixir/test/ebin
-	$(Q) $(ERLC) -pa lib/elixir/ebin -o lib/elixir/test/ebin lib/elixir/test/erlang/*.erl
-	$(Q) $(ERL) -pa lib/elixir/test/ebin -s test_helper test -s erlang halt;
+	$(Q) $(ERL) -pa $(TEST_EBIN) -s test_helper test;
 	@ echo ""
+
+$(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
+	$(Q) mkdir -p $(TEST_EBIN)
+	$(Q) $(ERLC) -o $(TEST_EBIN) $<
 
 test_elixir: test_stdlib test_ex_unit test_doc_test test_mix test_eex test_iex
 

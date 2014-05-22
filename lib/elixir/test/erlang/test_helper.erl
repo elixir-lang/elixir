@@ -1,19 +1,23 @@
 -module(test_helper).
 -include("elixir.hrl").
 -export([test/0, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
+-define(TESTS, [
+  atom_test,
+  control_test,
+  function_test,
+  match_test,
+  module_test,
+  operators_test,
+  string_test,
+  tokenizer_test
+]).
 
 test() ->
   application:start(elixir),
-  eunit:test([
-    atom_test,
-    control_test,
-    function_test,
-    match_test,
-    module_test,
-    operators_test,
-    string_test,
-    tokenizer_test
-  ]).
+  case eunit:test(?TESTS) of
+    error -> erlang:halt(1);
+    _Res  -> erlang:halt(0)
+  end.
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->
