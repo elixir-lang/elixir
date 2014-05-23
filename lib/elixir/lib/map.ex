@@ -15,7 +15,7 @@ defmodule Map do
 
   defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
 
-  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2, reduce: 3}
+  @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
 
   @doc """
   Returns a new empty map.
@@ -39,8 +39,4 @@ defmodule Map do
   end
 
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
-
-  defp reduce(coll, acc, fun) do
-    Enumerable.Map.reduce(coll, acc, fun)
-  end
 end
