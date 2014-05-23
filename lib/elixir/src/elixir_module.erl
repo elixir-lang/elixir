@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([compile/4, data_table/1, docs_table/1, is_open/1,
-         format_error/1, eval_callbacks/5]).
+         format_error/1, eval_callbacks/5, add_beam_chunk/3]).
 -include("elixir.hrl").
 
 -define(acc_attr, '__acc_attributes').
@@ -262,15 +262,11 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
   end).
 
 add_docs_chunk(Bin, Module, Line, true) ->
-  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
   ChunkData = term_to_binary({elixir_docs_v1, [
         {docs, get_docs(Module)},
         {moduledoc, get_moduledoc(Line, Module)}
     ]}),
-  DocsChunk = {"ExDc", ChunkData},
-  Chunks = [DocsChunk|Chunks0],
-  {ok, NewBin} = beam_lib:build_module(Chunks),
-  NewBin;
+  add_beam_chunk(Bin, "ExDc", ChunkData);
 
 add_docs_chunk(Bin, _, _, _) -> Bin.
 
@@ -402,6 +398,15 @@ prune_stacktrace(Info, [H|T]) ->
   [H|prune_stacktrace(Info, T)];
 prune_stacktrace(Info, []) ->
   [Info].
+
+%% Adds custom chunk to a .beam binary
+add_beam_chunk(Bin, Id, ChunkData)
+        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+  NewChunk = {Id, ChunkData},
+  Chunks = [NewChunk|Chunks0],
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
 
 % ERROR HANDLING
 

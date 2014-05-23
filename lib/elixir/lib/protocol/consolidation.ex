@@ -133,14 +133,19 @@ defmodule Protocol.Consolidation do
     |> if_ok(compile)
   end
 
+  @docs_chunk 'ExDc'
+
   # Ensure the given module is loaded and is a protocol.
   defp ensure_protocol(protocol) do
-    case :beam_lib.chunks(beam_file(protocol), [:abstract_code, :attributes]) do
-      {:ok, {^protocol, [abstract_code: {_raw, abstract_code},
-                           attributes: attributes]}} ->
+    chunk_ids = [:abstract_code, :attributes, @docs_chunk]
+    opts = [:allow_missing_chunks]
+    case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
+      {:ok, {^protocol, [{:abstract_code, {_raw, abstract_code}},
+                         {:attributes, attributes},
+                         {@docs_chunk, docs}]}} ->
         case attributes[:protocol] do
           [fallback_to_any: any, consolidated: _] ->
-            {:ok, {protocol, any, abstract_code}}
+            {:ok, {protocol, any, abstract_code, docs}}
           _ ->
             {:error, :not_a_protocol}
         end
@@ -158,11 +163,14 @@ defmodule Protocol.Consolidation do
 
   # Change the debug information to the optimized
   # impl_for/1 dispatch version.
-  defp change_debug_info({protocol, any, code}, types) do
+  defp change_debug_info({protocol, any, code, docs}, types) do
     types   = if any, do: types, else: List.delete(types, Any)
     all     = [Any] ++ for {_guard, mod} <- Protocol.builtin, do: mod
     structs = types -- all
-    change_impl_for(code, protocol, types, structs, false, [])
+    case change_impl_for(code, protocol, types, structs, false, []) do
+      {:ok, ret} -> {:ok, {ret, docs}}
+      other      -> other
+    end
   end
 
   defp change_impl_for([{:attribute, line, :protocol, opts}|t], protocol, types, structs, _, acc) do
@@ -241,9 +249,12 @@ defmodule Protocol.Consolidation do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile({protocol, code}) do
+  defp compile({{protocol, code}, docs}) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
+    unless docs == :missing_chunk do
+      binary = :elixir_module.add_beam_chunk(binary, @docs_chunk, docs)
+    end
     {:ok, binary}
   end
 end
