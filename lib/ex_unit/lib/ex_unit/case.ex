@@ -136,7 +136,7 @@ defmodule ExUnit.Case do
   via `ExUnit.configure/1`:
 
       # Exclude all external tests from running
-      ExUnit.configure exclude: [external: true]
+      ExUnit.configure(exclude: [external: true])
 
   From now on, ExUnit will not run any test that has the `external` flag
   set to true. This behaviour can be reversed with the `:include` option
@@ -150,7 +150,7 @@ defmodule ExUnit.Case do
   a particular tag by default, regardless of its value, and include only
   a certain subset:
 
-      ExUnit.configure exclude: :os, include: [os: :unix]
+      ExUnit.configure(exclude: :os, include: [os: :unix])
 
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.

@@ -55,7 +55,7 @@ defmodule ExUnit.CallbacksTest do
 
   test "doesn't choke on setup errors" do
     defmodule SetupTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       setup _ do
         :ok = error
@@ -126,8 +126,6 @@ defmodule ExUnit.CallbacksTest do
 
       defp error, do: :error
     end
-
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
 
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"

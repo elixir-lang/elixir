@@ -1,14 +1,16 @@
-defexception ExUnit.AssertionError,
-    left:    :ex_unit_no_meaningful_value,
-    right:   :ex_unit_no_meaningful_value,
-    message: :ex_unit_no_meaningful_value,
-    expr:    :ex_unit_no_meaningful_value do
+defmodule ExUnit.AssertionError do
+  @no_value :ex_unit_no_meaningful_value
+
+  defexception left:    @no_value,
+               right:   @no_value,
+               message: @no_value,
+               expr:    @no_value
 
   @doc """
   Indicates no meaningful value for a field.
   """
   def no_value do
-    :ex_unit_no_meaningful_value
+    @no_value
   end
 end
 

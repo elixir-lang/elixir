@@ -47,7 +47,7 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def inspect2_test, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.ExceptionModule do
+defmodule ExUnit.DocTestTest.MultipleExceptions do
   @doc """
   iex> 1 + ""
   ** (ArithmeticError) bad argument in arithmetic expression
@@ -102,14 +102,27 @@ defmodule ExUnit.DocTestTest.NoImport do
 end
 
 defmodule ExUnit.DocTestTest.Invalid do
-  @doc """
-  iex> _a = 1
-  1
+  @moduledoc """
 
-  iex> _a + 1
-  2
+      iex> 1 + * 1
+      1
+
+      iex> 1 + hd(List.flatten([1]))
+      3
+
+      iex> :oops
+      #HashDict<[]>
+
+      iex> Hello.world
+      :world
+
+      iex> raise "oops"
+      ** (WhatIsThis) oops
+
+      iex> raise "oops"
+      ** (RuntimeError) hello
+
   """
-  def no_leak, do: :ok
 end
 
 defmodule ExUnit.DocTestTest.IndentationHeredocs do
@@ -163,7 +176,7 @@ defmodule ExUnit.DocTestTest.Incomplete do
 end
 
 defmodule ExUnit.DocTestTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   # This is intentional. The doctests in DocTest's docs
   # fail for demonstration purposes.
@@ -175,20 +188,79 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
 
+  import ExUnit.CaptureIO
+
+  test "doctest failures" do
+    defmodule ActuallyCompiled do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.Invalid
+    end
+
+    ExUnit.configure(seed: 0)
+    output = capture_io(fn -> ExUnit.run end)
+
+    assert output =~ """
+      1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:104: syntax error before: '*'
+         code: 1 + * 1
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest failed
+         code: 1 + hd(List.flatten([1])) === 3
+         lhs:  2
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest failed
+         code: inspect(:oops) === "#HashDict<[]>"
+         lhs:  ":oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0
+         code:  Hello.world
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
+         code: raise "oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:196
+         Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
+         code: raise "oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+    """
+  end
+
   test "multiple exceptions in one test case is not supported" do
     assert_raise ExUnit.DocTest.Error, ~r"multiple exceptions in one doctest case are not supported", fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.ExceptionModule
-      end
-    end
-  end
-
-  test "variables in heredocs do not leak" do
-    assert_raise ArgumentError, fn ->
-      defmodule NeverCompiled do
-        import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.Invalid
+        doctest ExUnit.DocTestTest.MultipleExceptions
       end
     end
   end
@@ -221,6 +293,5 @@ defmodule ExUnit.DocTestTest do
         doctest ExUnit.DocTestTest.Incomplete
       end
     end
-
   end
 end

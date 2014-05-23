@@ -69,7 +69,7 @@ defmodule ExUnit.DocTest do
   This is useful in two use cases:
 
   * Being able to refer to specific numbered scenarios
-  * Copy-pasting examples from an actual iex sessions
+  * Copy-pasting examples from an actual iex session
 
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
@@ -107,7 +107,7 @@ defmodule ExUnit.DocTest do
   side effects. For example, if a doctest prints to standard output, doctest
   will not try to capture the output.
 
-  Similarly, doctest does not run in any kind of sandbox. So any module
+  Similarly, doctests do not run in any kind of sandbox. So any module
   defined in a code example is going to linger throughout the whole test
   suite run.
   """
@@ -235,11 +235,11 @@ defmodule ExUnit.DocTest do
         unquote_splicing(tests)
       rescue
         e in [ExUnit.AssertionError] ->
-          reraise e, [], stack
+          reraise e, stack
 
         error ->
           reraise ExUnit.AssertionError,
-            [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{Exception.message(error)}",
+            [message: "Doctest failed: got #{inspect(error.__struct__)} with message #{Exception.message(error)}",
              expr: unquote(whole_expr)],
             stack
       end
@@ -257,8 +257,8 @@ defmodule ExUnit.DocTest do
         actual ->
           reraise ExUnit.AssertionError,
             [message: "Doctest failed",
-              expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
-              left: actual],
+             expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
+             left: actual],
             unquote(stack)
       end
     end
@@ -274,9 +274,9 @@ defmodule ExUnit.DocTest do
         ^expected -> :ok
         actual ->
           reraise ExUnit.AssertionError,
-            [ message: "Doctest failed",
-              expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
-              left: actual],
+            [message: "Doctest failed",
+             expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
+             left: actual],
             unquote(stack)
       end
     end
@@ -296,7 +296,7 @@ defmodule ExUnit.DocTest do
         error ->
           unless error.__struct__ == unquote(exception) and
                  Exception.message(error) == unquote(message) do
-            got = inspect(elem(error, 0)) <> " with message " <> inspect(Exception.message(error))
+            got = inspect(error.__struct__) <> " with message " <> inspect(Exception.message(error))
             reraise ExUnit.AssertionError,
               [message: "Doctest failed: expected exception #{spec} but got #{got}",
                expr: expr],
@@ -328,7 +328,7 @@ defmodule ExUnit.DocTest do
         quote do
           reraise ExUnit.AssertionError,
             [message: "Doctest did not compile, got: #{unquote(message)}",
-             expr: unquote(String.strip(expr))]
+             expr: unquote(String.strip(expr))],
             unquote(stack)
         end
     end
