@@ -31,7 +31,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run ["compile"]
         end
 
-      assert output =~ "# mix help compile"
+      assert output =~ "# mix compile"
       assert output =~ "## Command line options"
       assert output =~ ~r/^Location:/m
     end

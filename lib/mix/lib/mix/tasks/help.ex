@@ -65,10 +65,10 @@ defmodule Mix.Tasks.Help do
 
     if ansi_docs?(opts) do
       opts = [width: width] ++ opts
-      IO.ANSI.Docs.print_heading("mix help #{task}", opts)
+      IO.ANSI.Docs.print_heading("mix #{task}", opts)
       IO.ANSI.Docs.print(doc, opts)
     else
-      IO.puts "# mix help #{task}\n"
+      IO.puts "# mix #{task}\n"
       IO.puts doc
     end
 
