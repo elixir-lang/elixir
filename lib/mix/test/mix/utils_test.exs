@@ -1,11 +1,14 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+defmodule Mix.Tasks.Cheers do
+end
+
 defmodule Mix.UtilsTest do
   use MixTest.Case
   doctest Mix.Utils
 
   test :command_to_module do
-    assert Mix.Utils.command_to_module("hello", Mix.Tasks)   == {:module, Mix.Tasks.Hello}
+    assert Mix.Utils.command_to_module("cheers", Mix.Tasks)   == {:module, Mix.Tasks.Cheers}
     assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == {:error, :nofile}
   end
 

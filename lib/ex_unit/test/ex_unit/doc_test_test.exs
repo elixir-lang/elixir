@@ -1,6 +1,12 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule ExUnit.DocTestTest.GoodModule do
+# cleanup leftover .beam files before writing new modules
+CodeHelpers.enter_fixture_dir()
+
+import CodeHelpers, only: [defbeam: 2]
+
+
+defbeam ExUnit.DocTestTest.GoodModule do
   @doc """
   iex> test_fun
   1
@@ -47,7 +53,7 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def inspect2_test, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.MultipleExceptions do
+defbeam ExUnit.DocTestTest.MultipleExceptions do
   @doc """
   iex> 1 + ""
   ** (ArithmeticError) bad argument in arithmetic expression
@@ -57,7 +63,7 @@ defmodule ExUnit.DocTestTest.MultipleExceptions do
   def two_exceptions, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
+defbeam ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
   iex> test_fun
   1
@@ -75,7 +81,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   def test_fun1, do: 1
 end
 
-defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
+defbeam ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   @doc """
   iex> test_fun
   1
@@ -93,7 +99,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   def test_fun1, do: 1
 end
 
-defmodule ExUnit.DocTestTest.NoImport do
+defbeam ExUnit.DocTestTest.NoImport do
   @doc """
   iex> ExUnit.DocTestTest.NoImport.min(1, 2)
   2
@@ -101,7 +107,7 @@ defmodule ExUnit.DocTestTest.NoImport do
   def min(a, b), do: max(a, b)
 end
 
-defmodule ExUnit.DocTestTest.Invalid do
+defbeam ExUnit.DocTestTest.Invalid do
   @moduledoc """
 
       iex> 1 + * 1
@@ -125,7 +131,7 @@ defmodule ExUnit.DocTestTest.Invalid do
   """
 end
 
-defmodule ExUnit.DocTestTest.IndentationHeredocs do
+defbeam ExUnit.DocTestTest.IndentationHeredocs do
   @doc ~S'''
   Receives a test and formats its failure.
 
@@ -141,7 +147,7 @@ defmodule ExUnit.DocTestTest.IndentationHeredocs do
   def heredocs, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
+defbeam ExUnit.DocTestTest.IndentationMismatchedPrompt do
   @doc ~S'''
     iex> foo = 1
      iex> bar = 2
@@ -151,7 +157,7 @@ defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
   def mismatched, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.IndentationTooMuch do
+defbeam ExUnit.DocTestTest.IndentationTooMuch do
   @doc ~S'''
     iex> 1 + 2
       3
@@ -159,7 +165,7 @@ defmodule ExUnit.DocTestTest.IndentationTooMuch do
   def too_much, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.IndentationNotEnough do
+defbeam ExUnit.DocTestTest.IndentationNotEnough do
   @doc ~S'''
       iex> 1 + 2
     3
@@ -167,7 +173,7 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
   def not_enough, do: :ok
 end
 
-defmodule ExUnit.DocTestTest.Incomplete do
+defbeam ExUnit.DocTestTest.Incomplete do
   @doc ~S'''
       iex> 1 + 2
 
@@ -178,9 +184,13 @@ end
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
+
   # This is intentional. The doctests in DocTest's docs
   # fail for demonstration purposes.
-  # doctest ExUnit.DocTest
+  #doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0], import: true
@@ -201,58 +211,58 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:104: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:206
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:110: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
+         test/ex_unit/doc_test_test.exs:206
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
+         test/ex_unit/doc_test_test.exs:206
          Doctest failed
          code: inspect(:oops) === "#HashDict<[]>"
          lhs:  ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
+         test/ex_unit/doc_test_test.exs:206
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0
          code:  Hello.world
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
+         test/ex_unit/doc_test_test.exs:206
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:196
+         test/ex_unit/doc_test_test.exs:206
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:104: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:110: ExUnit.DocTestTest.Invalid (module)
     """
   end
 

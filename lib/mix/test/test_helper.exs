@@ -1,3 +1,5 @@
+Code.require_file "../../elixir/test/common_test_helpers.exs", __DIR__
+
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 
@@ -106,19 +108,6 @@ defmodule MixTest.Case do
 end
 
 ## Some tasks fixtures
-
-defmodule Mix.Tasks.Hello do
-  use Mix.Task
-  @shortdoc "This is short documentation, see"
-
-  @moduledoc """
-  A test task.
-  """
-
-  def run(_) do
-    "Hello, World!"
-  end
-end
 
 defmodule Mix.Tasks.Invalid do
 end

@@ -94,7 +94,7 @@ defmodule Mix.Task do
   Returns the moduledoc or `nil`.
   """
   def moduledoc(module) when is_atom(module) do
-    case module.__info__(:moduledoc) do
+    case Code.get_docs(module, :moduledoc) do
       {_line, moduledoc} -> moduledoc
       nil -> nil
     end

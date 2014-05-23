@@ -3,17 +3,28 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.HelpersTest do
   use IEx.Case
 
+  setup_all do
+    CodeHelpers.enter_fixture_dir()
+    import CodeHelpers, only: [defbeam: 2]
+
+    defbeam IExDocsSample do
+      @doc """
+      Test function 1
+      """
+      def test_fun_1, do: :ok
+
+      @doc """
+      Test function 2
+      """
+      def test_fun_2(arg \\ 99), do: arg
+    end
+  end
+
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
+
   import IEx.Helpers
-
-  @doc """
-  Test function 1
-  """
-  def test_fun_1, do: :ok
-
-  @doc """
-  Test function 2
-  """
-  def test_fun_2(arg \\ 99), do: arg
 
   test "clear helper" do
     assert "\e[H\e[2J" == capture_iex("clear")
@@ -39,10 +50,10 @@ defmodule IEx.HelpersTest do
     doc_1 = "* def test_fun_1()\n\nTest function 1\n\n"
     doc_2 = "* def test_fun_2(arg \\\\ 99)\n\nTest function 2\n\n"
 
-    assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/0 end) == doc_1
-    assert capture_io(fn -> h IEx.HelpersTest.test_fun_2/1 end) == doc_2
+    assert capture_io(fn -> h IExDocsSample.test_fun_1/0 end) == doc_1
+    assert capture_io(fn -> h IExDocsSample.test_fun_2/1 end) == doc_2
 
-    output = capture_io(fn -> h IEx.HelpersTest.test_fun_1 end)
+    output = capture_io(fn -> h IExDocsSample.test_fun_1 end)
     assert :binary.match(output, doc_1)
     assert :binary.match(output, doc_2)
 

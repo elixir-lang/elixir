@@ -3,10 +3,21 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.InteractionTest do
   use IEx.Case
 
-  @doc """
-  Hello, I have %{red}ANSI%{reset} escapes.
-  """
-  def ansi_escapes, do: :ok
+  setup_all do
+    CodeHelpers.enter_fixture_dir()
+    import CodeHelpers, only: [defbeam: 2]
+
+    defbeam IExModuledocSample do
+      @doc """
+      Hello, I have %{red}ANSI%{reset} escapes.
+      """
+      def ansi_escapes, do: :ok
+    end
+  end
+
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
 
   ## Basic interaction
 
@@ -112,7 +123,7 @@ defmodule IEx.InteractionTest do
 
       # Test that ANSI escapes in the docs are left alone
       opts = [colors: [enabled: true]]
-      assert capture_iex("h IEx.InteractionTest.ansi_escapes", opts)
+      assert capture_iex("h IExModuledocSample.ansi_escapes", opts)
              =~ ~r"Hello, I have %\{red}ANSI%\{reset} escapes"
 
       # Test that ANSI escapes in iex output are left alone
