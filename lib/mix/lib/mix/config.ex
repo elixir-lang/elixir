@@ -21,7 +21,7 @@ defmodule Mix.Config do
   """
   def persist(config) do
     for {app, kw} <- config, {k, v} <- kw do
-      :application.set_env(app, k, v, persist: true)
+      :application.set_env(app, k, v, persistent: true)
     end
     :ok
   end

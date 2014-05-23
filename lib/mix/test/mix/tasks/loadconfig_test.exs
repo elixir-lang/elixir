@@ -8,7 +8,7 @@ defmodule Mix.Tasks.LoadconfigTest do
   teardown do
     Enum.each @apps, fn app ->
       Enum.each Application.get_all_env(app), fn {key, _} ->
-        Application.delete_env(app, key, persist: true)
+        Application.delete_env(app, key, persistent: true)
       end
     end
     :ok
@@ -30,6 +30,8 @@ defmodule Mix.Tasks.LoadconfigTest do
 
       assert Application.fetch_env(:my_app, :key) == :error
       Mix.Tasks.Loadconfig.run []
+      assert Application.fetch_env(:my_app, :key) == {:ok, :value}
+      :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
       assert Application.fetch_env(:my_app, :key) == {:ok, :value}
     end
   end

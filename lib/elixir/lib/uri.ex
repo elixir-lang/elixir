@@ -58,7 +58,7 @@ defmodule URI do
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
     {:ok, dict} = Application.fetch_env(:elixir, :uri)
-    Application.put_env(:elixir, :uri, Map.put(dict, scheme, port), persist: true)
+    Application.put_env(:elixir, :uri, Map.put(dict, scheme, port), persistent: true)
   end
 
   @doc """
