@@ -364,6 +364,30 @@ defmodule StringTest do
     refute String.valid_character?("ab")
   end
 
+  test :chunk_valid do
+    assert String.chunk("", :valid) == []
+
+    assert String.chunk("ødskfjあ\011ska", :valid)
+           == ["ødskfjあ\011ska"]
+    assert String.chunk("abc\x{0ffff}def", :valid)
+           == ["abc", <<0x0ffff::utf8>>, "def"]
+    assert String.chunk("\x{0fffe}\x{3ffff}привет\x{0ffff}мир", :valid)
+           == [<<0x0fffe::utf8, 0x3ffff::utf8>>, "привет", <<0x0ffff::utf8>>, "мир"]
+    assert String.chunk("日本\x{0ffff}\x{fdef}ござございます\x{fdd0}", :valid)
+           == ["日本", <<0x0ffff::utf8, 0xfdef::utf8>>, "ござございます", <<0xfdd0::utf8>>]
+  end
+
+  test :chunk_printable do
+    assert String.chunk("", :printable) == []
+
+    assert String.chunk("ødskfjあska", :printable)
+           == ["ødskfjあska"]
+    assert String.chunk("abc\x{0ffff}def", :printable)
+           == ["abc", <<0x0ffff::utf8>>, "def"]
+    assert String.chunk("\006ab\005cdef\003\000", :printable)
+           == [<<06>>, "ab", <<05>>, "cdef", <<03, 0>>]
+  end
+
   test :starts_with? do
     ## Normal cases ##
     assert String.starts_with? "hello", "he"
