@@ -13,7 +13,6 @@ defmodule TupleTest do
 
   test :keywords do
     assert {1, 2, three: :four} == {1, 2, [three: :four]}
-    assert {one: :two} == {[one: :two]}
   end
 
   test :optional_comma do

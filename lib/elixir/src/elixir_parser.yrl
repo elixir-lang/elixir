@@ -411,7 +411,6 @@ container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 container_args_base -> container_expr : ['$1'].
 container_args_base -> container_args_base ',' container_expr : ['$3'|'$1'].
 
-container_args -> kw : ['$1'].
 container_args -> container_args_base : lists:reverse('$1').
 container_args -> container_args_base ',' : lists:reverse('$1').
 container_args -> container_args_base ',' kw : lists:reverse(['$3'|'$1']).
