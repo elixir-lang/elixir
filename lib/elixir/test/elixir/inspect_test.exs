@@ -335,6 +335,8 @@ defmodule Inspect.OthersTest do
   end
 
   test :regex do
-    "~r\"foo\"m" = inspect(~r(foo)m)
+    "~r/foo/m" = inspect(~r(foo)m)
+    "~r/\\a\\010\\177\\033\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
+    "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
   end
 end
