@@ -344,9 +344,14 @@ defmodule Mix.Utils do
 
   defp do_symlink_or_copy(source, target) do
     symlink_source = make_relative_path(source, target)
-    case :file.make_symlink(symlink_source, target) do
-      :ok -> :ok
-      {:error, _} -> File.cp_r!(source, target)
+    if match? {:win32, _}, :os.type do
+      File.cp_r!(source, target)
+      :ok
+    else
+      case :file.make_symlink(symlink_source, target) do
+        :ok -> :ok
+        {:error, _} -> File.cp_r!(source, target)
+      end
     end
   end
 
