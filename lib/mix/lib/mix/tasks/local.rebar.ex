@@ -18,14 +18,9 @@ defmodule Mix.Tasks.Local.Rebar do
   def run(argv) do
     {_, argv, _} = OptionParser.parse(argv)
     do_install(case argv do
-      []       -> rebar_path
+      []       -> @rebar_url
       [path|_] -> path
     end)
-  end
-
-  defp rebar_path do
-    bundled_with_elixir = Path.join(:code.lib_dir(:mix), "../../rebar")
-    if File.regular?(bundled_with_elixir), do: bundled_with_elixir, else: @rebar_url
   end
 
   defp do_install(path) do
