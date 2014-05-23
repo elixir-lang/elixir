@@ -492,10 +492,15 @@ defmodule Code do
     end
   end
 
-  defp lookup_docs(docs, :all), do: docs
-  defp lookup_docs(docs, kind) when kind in [:docs, :moduledoc],
-    do: Keyword.get(docs, kind)
+  defp lookup_docs({:elixir_docs_v1, docs}, kind),
+    do: do_lookup_docs(docs, kind)
 
+  # unsupported chunk version
+  defp lookup_docs(_, _), do: nil
+
+  defp do_lookup_docs(docs, :all), do: docs
+  defp do_lookup_docs(docs, kind) when kind in [:docs, :moduledoc],
+    do: Keyword.get(docs, kind)
 
   ## Helpers
 

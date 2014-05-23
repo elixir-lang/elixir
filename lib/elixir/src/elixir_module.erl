@@ -263,9 +263,10 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
 
 add_docs_chunk(Bin, Module, Line, true) ->
   {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-  ChunkData = term_to_binary([
+  ChunkData = term_to_binary({elixir_docs_v1, [
         {docs, get_docs(Module)},
-        {moduledoc, get_moduledoc(Line, Module)}]),
+        {moduledoc, get_moduledoc(Line, Module)}
+    ]}),
   DocsChunk = {"ExDc", ChunkData},
   Chunks = [DocsChunk|Chunks0],
   {ok, NewBin} = beam_lib:build_module(Chunks),
