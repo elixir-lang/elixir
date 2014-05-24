@@ -359,7 +359,7 @@ defmodule File do
   @doc """
   Returns information about the `path`. If it exists, it
   returns a `{:ok, info}` tuple, where info is a
-  `File.Stat` record. Returns `{:error, reason}` with
+  `File.Stat` struct. Returns `{:error, reason}` with
   the same reasons as `read/1` if a failure occurs.
 
   ## Options

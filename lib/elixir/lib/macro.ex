@@ -521,7 +521,7 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_string(other, fun), do: fun.(other, inspect(other, records: false))
+  def to_string(other, fun), do: fun.(other, inspect(other, []))
 
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
@@ -531,12 +531,12 @@ defmodule Macro do
   end
   defp kw_blocks?(_), do: false
 
-  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, records: false)
+  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
   defp call_to_string(atom, _fun) when is_atom(atom), do: Atom.to_string(atom)
-  defp call_to_string({:., _, [arg]}, fun),         do: module_to_string(arg, fun) <> "."
-  defp call_to_string({:., _, [left, right]}, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
+  defp call_to_string({:., _, [arg]}, fun),           do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun),   do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),                    do: to_string(other, fun)
 
   defp call_to_string_with_args(target, args, fun) do

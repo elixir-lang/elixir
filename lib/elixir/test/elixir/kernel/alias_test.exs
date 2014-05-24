@@ -117,7 +117,7 @@ defmodule Macro.AliasTest.User do
   use Macro.AliasTest.Definer
   use Macro.AliasTest.Aliaser
 
-  test "has a record defined from after compile" do
+  test "has a struct defined from after compile" do
     assert is_map struct(Macro.AliasTest.User.First, [])
     assert is_map struct(Macro.AliasTest.User.Second, []).baz
   end

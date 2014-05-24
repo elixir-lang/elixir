@@ -1527,7 +1527,7 @@ defmodule Kernel do
   ## Options
 
   `inspect/2` accepts a list of options that are internally
-  translated to an `Inspect.Opts` record. Check the docs for
+  translated to an `Inspect.Opts` struct. Check the docs for
   `Inspect.Opts` to see the supported options.
 
   ## Examples
