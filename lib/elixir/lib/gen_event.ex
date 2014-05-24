@@ -113,7 +113,7 @@ defmodule GenEvent do
 
     *  `{:ok, new_state}`
 
-  ## Name registration
+  ## Name Registration
 
   A GenEvent is bound to the same name registration rules as a `GenServer`.
   Read more about it in the `GenServer` docs.

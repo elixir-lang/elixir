@@ -60,7 +60,7 @@ defmodule Agent do
   sent to the client cheaply or large enough to require processing on
   the server (or at least some initial processing).
 
-  ## Name registration
+  ## Name Registration
 
   An Agent is bound to the same name registration rules as GenServers.
   Read more about it in the `GenServer` docs.

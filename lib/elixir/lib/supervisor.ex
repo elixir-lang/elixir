@@ -138,7 +138,7 @@ defmodule Supervisor do
     in this module behave slightly differently when this strategy is
     used;
 
-  ## Name registration
+  ## Name Registration
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about it in the `GenServer` docs.
