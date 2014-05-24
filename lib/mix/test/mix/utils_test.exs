@@ -71,11 +71,7 @@ defmodule Mix.UtilsTest do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      case result do
-        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
-        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
-        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
-      end
+      assert_ebin_symlinked_or_copied(result)
     end
   end
 
@@ -83,11 +79,7 @@ defmodule Mix.UtilsTest do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      case result do
-        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
-        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
-        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
-      end
+      assert_ebin_symlinked_or_copied(result)
     end
   end
 
@@ -96,12 +88,15 @@ defmodule Mix.UtilsTest do
       File.mkdir_p!("_build/archive")
       Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      case result do
-        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
-        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
-        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
-      end
+      assert_ebin_symlinked_or_copied(result)
     end
   end
 
+  defp assert_ebin_symlinked_or_copied(result) do
+    case result do
+      {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
+      :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
+    end
+  end
 end
