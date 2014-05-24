@@ -3,6 +3,14 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ProtocolTest do
   use ExUnit.Case, async: true
 
+  setup_all do
+    CodeHelpers.enter_fixture_dir()
+  end
+
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
+
   defprotocol Sample do
     @type t :: any
     @doc "Ok"
@@ -89,7 +97,16 @@ defmodule ProtocolTest do
   end
 
   test "protocol documentation" do
-    docs = Sample.__info__(:docs)
+    import CodeHelpers, only: [defbeam: 3]
+
+    defbeam :protocol, SampleDocsProto do
+      @type t :: any
+      @doc "Ok"
+      @spec ok(t) :: boolean
+      def ok(thing)
+    end
+
+    docs = Code.get_docs(SampleDocsProto, :docs)
     assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
            List.keyfind(docs, {:ok, 1}, 0)
   end
@@ -102,10 +119,10 @@ defmodule ProtocolTest do
 
   test "protocol defines callbacks" do
     assert get_callbacks(Sample, :ok, 1) ==
-      [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
+      [{:type, 17, :fun, [{:type, 17, :product, [{:type, 17, :t, []}]}, {:type, 17, :boolean, []}]}]
 
     assert get_callbacks(WithAny, :ok, 1) ==
-      [{:type, 16, :fun, [{:type, 16, :product, [{:type, 16, :t, []}]}, {:type, 16, :term, []}]}]
+      [{:type, 24, :fun, [{:type, 24, :product, [{:type, 24, :t, []}]}, {:type, 24, :term, []}]}]
   end
 
   test "protocol defines attributes" do
@@ -235,7 +252,7 @@ end
 #   end
 #
 #   test "consolidation keeps docs" do
-#     docs = Sample.__info__(:docs)
+#     docs = Code.get_docs(Sample, :docs)
 #     assert {{:ok, 1}, _, :def, [{:thing, _, nil}], "Ok"} =
 #            List.keyfind(docs, {:ok, 1}, 0)
 #   end

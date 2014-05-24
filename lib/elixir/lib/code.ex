@@ -448,6 +448,60 @@ defmodule Code do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
+  @doc """
+  Returns the docs for the given module.
+
+  When given a module name, it finds its BEAM code and reads the docs from it.
+
+  When given a path to a .beam file, it will load the docs directly from that
+  file.
+
+  The return value depends on the `kind` value:
+
+  * `:docs` - list of all docstrings attached to functions and macros
+    using the `@doc` attribute
+
+  * `:moduledoc` - tuple `{<line>, <doc>}` where `line` is the line on
+    which module definition starts and `doc` is the string
+    attached to the module using the `@moduledoc` attribute
+
+  * `:all` - a keyword list with both `:docs` and `:moduledoc`
+
+  """
+  def get_docs(module, kind) when is_atom(module) do
+    case :code.get_object_code(module) do
+      {_module, bin, _beam_path} ->
+        do_get_docs(bin, kind)
+
+      :error -> nil
+    end
+  end
+
+  def get_docs(binpath, kind) when is_binary(binpath) do
+    do_get_docs(String.to_char_list(binpath), kind)
+  end
+
+  @docs_chunk 'ExDc'
+
+  defp do_get_docs(bin_or_path, kind) do
+    case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
+      {:ok, {_module, [{@docs_chunk, bin}]}} ->
+        lookup_docs(:erlang.binary_to_term(bin), kind)
+
+      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} -> nil
+    end
+  end
+
+  defp lookup_docs({:elixir_docs_v1, docs}, kind),
+    do: do_lookup_docs(docs, kind)
+
+  # unsupported chunk version
+  defp lookup_docs(_, _), do: nil
+
+  defp do_lookup_docs(docs, :all), do: docs
+  defp do_lookup_docs(docs, kind) when kind in [:docs, :moduledoc],
+    do: Keyword.get(docs, kind)
+
   ## Helpers
 
   # Finds the file given the relative_to path.

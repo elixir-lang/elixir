@@ -1,3 +1,5 @@
+Code.require_file "../../elixir/test/common_test_helpers.exs", __DIR__
+
 Application.start(:iex)
 Application.put_env(:iex, :colors, [enabled: false])
 ExUnit.start [trace: "--trace" in System.argv]

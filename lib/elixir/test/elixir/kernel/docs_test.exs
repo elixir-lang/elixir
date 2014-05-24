@@ -3,39 +3,40 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
-  test "compiled with docs" do
-    defmodule Docs do
-      @moduledoc "moduledoc"
-      defp private, do: 1
-
-      @doc false
-      def __struct__, do: %{}
-
-      @doc "Some example"
-      def example(false), do: 0
-      def example(var),   do: var && private
-
-      def nodoc(var \\ 0)
-      def nodoc(_), do: 2
-
-      def struct(%Docs{}), do: %{}
-    end
-
-    expected = [
-      {{:__struct__, 0}, 12, :def, [], false},
-      {{:example, 1}, 15, :def, [{:var, [], nil}], "Some example"},
-      {{:nodoc, 1}, 18, :def, [{:\\, [], [{:var, [], nil}, 0]}], nil},
-      {{:struct, 1}, 21, :def, [{:docs, [], nil}], nil}
-    ]
-
-    assert Docs.__info__(:docs) == expected
-    assert Docs.__info__(:moduledoc) == {7, "moduledoc"}
+  setup_all do
+    CodeHelpers.enter_fixture_dir()
   end
 
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
+
+  test "compiled with docs" do
+    expected = [
+      {{:fun, 2}, 60, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
+      {{:nofun, 0}, 67, :def, [], nil},
+      {{:sneaky, 1}, 65, :def, [{:bool1, [], Elixir}], false},
+    ]
+
+    deftestmodule(SampleDocs)
+
+    docs = Code.get_docs(SampleDocs, :all)
+    assert docs[:docs] == expected
+    assert docs[:moduledoc] == {54, "Hello, I am a module"}
+  end
 
   test "compiled without docs" do
     Code.compiler_options(docs: false)
 
+    deftestmodule(SampleNoDocs)
+
+    assert Code.get_docs(SampleNoDocs, :docs) == nil
+    assert Code.get_docs(SampleNoDocs, :moduledoc) == nil
+  after
+    Code.compiler_options(docs: true)
+  end
+
+  test "compiled in memory" do
     defmodule NoDocs do
       @moduledoc "moduledoc"
 
@@ -43,9 +44,29 @@ defmodule Kernel.DocsTest do
       def example(var), do: var
     end
 
-    assert NoDocs.__info__(:docs) == nil
-    assert NoDocs.__info__(:moduledoc) == nil
-  after
-    Code.compiler_options(docs: true)
+    assert Code.get_docs(NoDocs, :docs) == nil
+    assert Code.get_docs(NoDocs, :moduledoc) == nil
+  end
+
+  defp deftestmodule(name) do
+    import CodeHelpers, only: [defbeam: 2]
+
+    defbeam name do
+      @moduledoc "Hello, I am a module"
+
+      @doc """
+      This is fun!
+      """
+      def fun(x, y) do
+        {x, y}
+      end
+
+      @doc false
+      def sneaky(true), do: false
+
+      def nofun() do
+        'not fun at all'
+      end
+    end
   end
 end

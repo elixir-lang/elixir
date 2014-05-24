@@ -13,7 +13,7 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         if function_exported?(module, :__info__, 1) do
-          case module.__info__(:moduledoc) do
+          case Code.get_docs(module, :moduledoc) do
             {_, binary} when is_binary(binary) ->
               if opts = ansi_docs() do
                 IO.ANSI.Docs.print_heading(inspect(module), opts)
@@ -71,7 +71,7 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
-    if docs = mod.__info__(:docs) do
+    if docs = Code.get_docs(mod, :docs) do
       result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
         h(mod, fun, arity)
         IO.puts ""
@@ -113,7 +113,7 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
-    if docs = mod.__info__(:docs) do
+    if docs = Code.get_docs(mod, :docs) do
       doc =
         cond do
           d = find_doc(docs, fun, arity)         -> d

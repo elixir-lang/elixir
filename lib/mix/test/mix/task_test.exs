@@ -3,6 +3,28 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.TaskTest do
   use MixTest.Case
 
+  setup_all do
+    CodeHelpers.enter_fixture_dir()
+    import CodeHelpers, only: [defbeam: 2]
+
+    defbeam Mix.Tasks.Hello do
+      use Mix.Task
+      @shortdoc "This is short documentation, see"
+
+      @moduledoc """
+      A test task.
+      """
+
+      def run(_) do
+        "Hello, World!"
+      end
+    end
+  end
+
+  teardown_all do
+    CodeHelpers.leave_fixture_dir()
+  end
+
   test :run do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop

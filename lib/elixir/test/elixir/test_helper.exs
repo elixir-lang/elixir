@@ -1,3 +1,5 @@
+Code.require_file "../common_test_helpers.exs", __DIR__
+
 ExUnit.start [trace: "--trace" in System.argv]
 
 Code.compiler_options debug_info: true

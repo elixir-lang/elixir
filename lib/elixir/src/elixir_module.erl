@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([compile/4, data_table/1, docs_table/1, is_open/1,
-         format_error/1, eval_callbacks/5]).
+         format_error/1, eval_callbacks/5, add_beam_chunk/3]).
 -include("elixir.hrl").
 
 -define(acc_attr, '__acc_attributes').
@@ -236,7 +236,10 @@ compile_opts(Module) ->
   end.
 
 load_form(Line, Forms, Opts, #{file := File} = E) ->
-  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
+  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary0) ->
+    Docs = elixir_compiler:get_opt(docs),
+    Binary = add_docs_chunk(Binary0, Module, Line, Docs),
+
     Env = elixir_env:linify({Line, E}),
     eval_callbacks(Line, Module, after_compile, [Env, Binary], E),
 
@@ -257,6 +260,25 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
 
     Binary
   end).
+
+add_docs_chunk(Bin, Module, Line, true) ->
+  ChunkData = term_to_binary({elixir_docs_v1, [
+        {docs, get_docs(Module)},
+        {moduledoc, get_moduledoc(Line, Module)}
+    ]}),
+  add_beam_chunk(Bin, "ExDc", ChunkData);
+
+add_docs_chunk(Bin, _, _, _) -> Bin.
+
+get_docs(Module) ->
+  ordsets:from_list(
+    [{Tuple, Line, Kind, Sig, Doc} ||
+     {Tuple, Line, Kind, Sig, Doc} <- ets:tab2list(docs_table(Module)),
+     Kind =/= type, Kind =/= opaque]).
+
+get_moduledoc(Line, Module) ->
+  {Line, 'Elixir.Module':get_attribute(Module, moduledoc)}.
+
 
 check_module_availability(Line, File, Module) ->
   Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
@@ -311,7 +333,6 @@ add_info_function(Line, File, Module, Export, Def, Defmacro) ->
     true  ->
       elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
-      Docs = elixir_compiler:get_opt(docs),
       {
         {attribute, Line, spec, {{'__info__', 1},
           [{type, Line, 'fun', [{type, Line, product, [ {type, Line, atom, []}]}, {type, Line, term, []} ]}]
@@ -319,8 +340,6 @@ add_info_function(Line, File, Module, Export, Def, Defmacro) ->
         {function, 0, '__info__', 1, [
           functions_clause(Def),
           macros_clause(Defmacro),
-          docs_clause(Module, Docs),
-          moduledoc_clause(Line, Module, Docs),
           module_clause(Module),
           else_clause()
         ]}
@@ -335,23 +354,6 @@ macros_clause(Defmacro) ->
 
 module_clause(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
-
-docs_clause(Module, true) ->
-  Docs = ordsets:from_list(
-    [{Tuple, Line, Kind, Sig, Doc} ||
-     {Tuple, Line, Kind, Sig, Doc} <- ets:tab2list(docs_table(Module)),
-     Kind =/= type, Kind =/= opaque]),
-  {clause, 0, [{atom, 0, docs}], [], [elixir_utils:elixir_to_erl(Docs)]};
-
-docs_clause(_Module, _) ->
-  {clause, 0, [{atom, 0, docs}], [], [{atom, 0, nil}]}.
-
-moduledoc_clause(Line, Module, true) ->
-  Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
-  {clause, 0, [{atom, 0, moduledoc}], [], [elixir_utils:elixir_to_erl({Line, Docs})]};
-
-moduledoc_clause(_Line, _Module, _) ->
-  {clause, 0, [{atom, 0, moduledoc}], [], [{atom, 0, nil}]}.
 
 else_clause() ->
   Info = {call, 0, {atom, 0, module_info}, [{var, 0, atom}]},
@@ -396,6 +398,15 @@ prune_stacktrace(Info, [H|T]) ->
   [H|prune_stacktrace(Info, T)];
 prune_stacktrace(Info, []) ->
   [Info].
+
+%% Adds custom chunk to a .beam binary
+add_beam_chunk(Bin, Id, ChunkData)
+        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+  NewChunk = {Id, ChunkData},
+  Chunks = [NewChunk|Chunks0],
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
 
 % ERROR HANDLING
 
