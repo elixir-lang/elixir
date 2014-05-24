@@ -71,56 +71,56 @@ defmodule GenEvent do
 
     It must return:
 
-        {:ok, state}
-        {:ok, state, :hibernate}
-        {:error, reason}
+    *  `{:ok, state}`
+    *  `{:ok, state, :hibernate}`
+    *  `{:error, reason}`
 
   * `handle_event(msg, state)` - invoked whenever an event is sent via
     `notify/2` or `sync_notify/2`.
 
     It must return:
 
-        {:ok, new_state}
-        {:ok, new_state, :hibernate}
-        {:swap_handler, args1, new_state, handler2, args2}
-        :remove_handler
+    *  `{:ok, new_state}`
+    *  `{:ok, new_state, :hibernate}`
+    *  `{:swap_handler, args1, new_state, handler2, args2}`
+    *  `:remove_handler`
 
   * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific handler.
 
     It must return:
 
-        {:ok, reply, new_state}
-        {:ok, reply, new_state, :hibernate}
-        {:swap_handler, reply, args1, new_state, handler2, args2}
-        {:remove_handler, reply}
+    *  `{:ok, reply, new_state}`
+    *  `{:ok, reply, new_state, :hibernate}`
+    *  `{:swap_handler, reply, args1, new_state, handler2, args2}`
+    *  `{:remove_handler, reply}`
 
   * `handle_info(msg, state)` - invoked to handle all other messages which
-     are received by the process. Must return the same values as `handle_event/2`;
+    are received by the process. Must return the same values as `handle_event/2`;
 
-     It must return:
+    It must return:
 
-        {:noreply, state}
-        {:noreply, state, timeout}
-        {:stop, reason, state}
+    *  `{:noreply, state}`
+    *  `{:noreply, state, timeout}`
+    *  `{:stop, reason, state}`
 
   * `terminate(reason, state)` - called when the event handler is removed or the
     event manager is terminating. It can return any term.
 
   * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swap).
+    code is being upgraded live (hot code swapping).
 
     It must return:
 
-        {:ok, new_state}
+    *  `{:ok, new_state}`
 
-  ## Name registering
+  ## Name registration
 
-  A GenEvent is bound to the same name registering rules as a `GenServer`.
+  A GenEvent is bound to the same name registration rules as a `GenServer`.
   Read more about it in the `GenServer` docs.
 
   ## Streaming
 
-  `GenEvent`'s can be streamed from and streamed with the help of `stream/2`.
+  `GenEvent`s can be streamed from and streamed with the help of `stream/2`.
   Here are some examples:
 
       stream = GenEvent.stream(pid)
@@ -128,7 +128,7 @@ defmodule GenEvent do
       # Take the next 10 events
       Enum.take(stream, 10)
 
-      # Print all other events
+      # Print all remaining events
       for event <- stream do
         IO.inspect event
       end
@@ -138,7 +138,7 @@ defmodule GenEvent do
 
   ## Learn more
 
-  In case you desire to learn more about gen events, Elixir getting started
+  If you wish to find out more about gen events, Elixir getting started
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
@@ -218,14 +218,14 @@ defmodule GenEvent do
   @doc """
   Starts an event manager linked to the current process.
 
-  This is often used to start the `GenServer` as part of a supervision tree.
+  This is often used to start the `GenEvent` as part of a supervision tree.
 
-  It accepts a the `:name` which is described under the `Name Registering`
+  It accepts the `:name` option which is described under the `Name Registration`
   section in the `GenServer` module docs.
 
-  If the event manager is successfully created and initialized the function
+  If the event manager is successfully created and initialized, the function
   returns `{:ok, pid}`, where pid is the pid of the server. If there already
-  exists a process with the specified server name the function returns
+  exists a process with the specified server name, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
   """
   @spec start_link(options) :: on_start
@@ -236,7 +236,7 @@ defmodule GenEvent do
   @doc """
   Starts an event manager process without links (outside of a supervision tree).
 
-  See `spawn_link/1` for more information.
+  See `start_link/1` for more information.
   """
   @spec start(options) :: on_start
   def start(options \\ []) when is_list(options) do
@@ -287,7 +287,7 @@ defmodule GenEvent do
 
   ## Linked handlers
 
-  When adding a handler, a `:link` option may be given as true.
+  When adding a handler, a `:link` option with value `true` can be given.
   This means the event handler and the calling process are now linked.
 
   If the calling process later terminates with `reason`, the event manager
@@ -406,7 +406,7 @@ defmodule GenEvent do
   terminate with a given reason.
 
   If there was a linked connection between handler1 and a process pid, there
-  will be a link connection between handle2 and pid instead. A new link in
+  will be a link connection between handler2 and pid instead. A new link in
   between the caller process and the new handler can also be set with by
   giving `link: true` as option. See `add_handler/4` for more information.
 
