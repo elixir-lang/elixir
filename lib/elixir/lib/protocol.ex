@@ -33,12 +33,6 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote unquote: false do
-      # == Deprecated records handling ==
-      {arg, impl} = Protocol.rec_impl_for(__MODULE__)
-      Kernel.def impl_for(unquote(arg)) when
-                   is_tuple(unquote(arg)) and is_atom(elem(unquote(arg), 0)), do: unquote(impl)
-      # == Deprecated records handling ==
-
       @spec impl_for(term) :: module | nil
       Kernel.def impl_for(data)
 
@@ -180,39 +174,6 @@ defmodule Protocol do
      is_pid: PID,
      is_port: Port,
      is_reference: Reference]
-  end
-
-  # Implements the function that detects the protocol and
-  # returns the module to dispatch to.
-  @doc false
-  def rec_impl_for(current) do
-    all = [Any] ++ for {_guard, mod} <- builtin, do: mod
-    arg = quote do: arg
-    target = Module.concat(current, Tuple)
-
-    fallback = quote do
-      case impl_for?(unquote(target)) do
-        true  -> unquote(target).__impl__(:name)
-        false -> any_impl_for
-      end
-    end
-
-    impl_for = quote do
-      atom = :erlang.element(1, unquote(arg))
-
-      case not(atom in unquote(all)) and match?('Elixir.' ++ _, Atom.to_char_list(atom)) do
-        true ->
-          target = Module.concat(unquote(current), atom)
-          case impl_for?(target) do
-            true  -> target.__impl__(:name)
-            false -> unquote(fallback)
-          end
-        false ->
-          unquote(fallback)
-      end
-    end
-
-    {arg, impl_for}
   end
 end
 

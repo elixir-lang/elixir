@@ -24,7 +24,7 @@ defprotocol Access do
 
   The key access must be implemented using the `===` operator.
   This protocol is limited and is implemented only for the
-  following built-in types: keywords, records and functions.
+  following built-in types: keywords, maps and functions.
   """
 
   @doc """

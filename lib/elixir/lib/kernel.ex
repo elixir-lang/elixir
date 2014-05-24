@@ -1491,40 +1491,6 @@ defmodule Kernel do
     end
   end
 
-  @doc false
-  defmacro is_record(thing, kind) do
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
-            and :erlang.element(1, unquote(thing)) == unquote(kind)
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 0
-            and :erlang.element(1, result) == unquote(kind)
-        end
-    end
-  end
-
-  @doc false
-  defmacro is_record(thing) do
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_tuple(unquote(thing)) and tuple_size(unquote(thing)) > 0
-            and is_atom(:erlang.element(1, unquote(thing)))
-        end
-      false ->
-        quote do
-          result = unquote(thing)
-          is_tuple(result) and tuple_size(result) > 0
-            and is_atom(:erlang.element(1, result))
-        end
-    end
-  end
-
   @doc """
   Matches the term on the left against the regular expression or string on the
   right. Returns true if `left` matches `right` (if it's a regular expression)
@@ -2754,19 +2720,6 @@ defmodule Kernel do
     end
   end
 
-  @doc false
-  defmacro defrecord(name, fields, do_block \\ []) do
-    case is_list(fields) and Keyword.get(fields, :do, false) do
-      false -> Record.Deprecated.defrecord(name, fields, do_block)
-      other -> Record.Deprecated.defrecord(name, Keyword.delete(fields, :do), do: other)
-    end
-  end
-
-  @doc false
-  defmacro defrecordp(name, tag \\ nil, fields) do
-    Record.Deprecated.defrecordp(name, Macro.expand(tag, __CALLER__), fields)
-  end
-
   @doc """
   Defines a struct for the current module.
 
@@ -2974,7 +2927,7 @@ defmodule Kernel do
         other -> {Keyword.delete(fields, :do), [do: other]}
       end
 
-    Record.Deprecated.defexception(name, fields, do_block)
+    Exception.__deprecated__(name, fields, do_block)
   end
 
   @doc """

@@ -32,8 +32,7 @@ defmodule Inspect.Opts do
             char_lists: :infer :: :infer | :as_lists | :as_char_lists,
             limit: 50 :: pos_integer,
             width: 80 :: pos_integer | :infinity,
-            pretty: false :: boolean,
-            records: true :: boolean
+            pretty: false :: boolean
 end
 
 defmodule Inspect.Algebra do
@@ -160,19 +159,6 @@ defmodule Inspect.Algebra do
   according to the inspect protocol.
   """
   @spec to_doc(any, Inspect.Opts.t) :: t
-  def to_doc(arg, %Inspect.Opts{} = opts) when is_tuple(arg) and is_atom(elem(arg, 0)) do
-    # Remove this code when protocols+records are removed"
-    if opts.records do
-      try do
-        Inspect.inspect(arg, opts)
-      rescue
-        _ -> Inspect.Tuple.inspect(arg, opts)
-      end
-    else
-      Inspect.Tuple.inspect(arg, opts)
-    end
-  end
-
   def to_doc(%{__struct__: struct} = map, %Inspect.Opts{} = opts) when is_atom(struct) do
     if opts.structs do
       try do

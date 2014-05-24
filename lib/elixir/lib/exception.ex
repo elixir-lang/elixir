@@ -31,6 +31,17 @@ defmodule Exception do
   @callback exception(term) :: t
   @callback message(t) :: String.t
 
+  @doc false
+  def __deprecated__(name, fields, opts) do
+    quote do
+      fields = unquote(fields)
+      defmodule unquote(name) do
+        defexception fields
+        unquote(Keyword.get opts, :do)
+      end
+    end
+  end
+
   @doc """
   Returns true if the given argument is an exception.
   """

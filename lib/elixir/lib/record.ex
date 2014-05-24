@@ -101,21 +101,6 @@ defmodule Record do
     end
   end
 
-  @doc false
-  def defmacros(name, values, env, tag \\ nil) do
-    Record.Deprecated.defmacros(name, values, env, tag)
-  end
-
-  @doc false
-  def deftypes(values, types, env) do
-    Record.Deprecated.deftypes(values, types, env)
-  end
-
-  @doc false
-  def deffunctions(values, env) do
-    Record.Deprecated.deffunctions(values, env)
-  end
-
   @doc """
   Defines a set of macros to create and access a record.
 

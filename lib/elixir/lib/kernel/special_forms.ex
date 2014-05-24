@@ -580,7 +580,7 @@ defmodule Kernel.SpecialForms do
   defmacro import(module, opts)
 
   @doc """
-  Returns the current environment information as a `Macro.Env[]` record.
+  Returns the current environment information as a `Macro.Env` struct.
 
   In the environment you can access the current filename,
   line numbers, set up aliases, the current function and others.

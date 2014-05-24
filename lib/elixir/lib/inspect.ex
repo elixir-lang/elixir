@@ -8,7 +8,7 @@ defprotocol Inspect do
   formatted, either in pretty printing format or a regular one.
 
   The `inspect/2` function receives the entity to be inspected
-  followed by the inspecting options, represented by the record
+  followed by the inspecting options, represented by the struct
   `Inspect.Opts`.
 
   Inspection is done using the functions available in `Inspect.Algebra`.
@@ -349,57 +349,7 @@ defimpl Inspect, for: Tuple do
   def inspect({}, _opts), do: "{}"
 
   def inspect(tuple, opts) do
-    if opts.records do
-      record_inspect(tuple, opts)
-    else
-      surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
-    end
-  end
-
-  ## Helpers
-
-  defp record_inspect(record, opts) do
-    [name|tail] = Tuple.to_list(record)
-
-    if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
-      surround_record(name, fields, tail, opts)
-    else
-      surround_many("{", [name|tail], "}", opts.limit, &to_doc(&1, opts))
-    end
-  end
-
-  defp record_fields(name) do
-    case Atom.to_string(name) do
-      "Elixir." <> _ ->
-        try do
-          name.__record__(:fields)
-        rescue
-          _ -> nil
-        end
-      _ -> nil
-    end
-  end
-
-  defp surround_record(name, fields, tail, opts) do
-    concat(
-      Inspect.Atom.inspect(name, opts),
-      surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))
-    )
-  end
-
-  defp zip_fields([{key, _}|tk], [value|tv]) do
-    case Atom.to_string(key) do
-      "_" <> _ -> zip_fields(tk, tv)
-      key -> [{key, value}|zip_fields(tk, tv)]
-    end
-  end
-
-  defp zip_fields([], []) do
-    []
-  end
-
-  defp keyword({k, v}, opts) do
-    concat(k <> ": ", to_doc(v, opts))
+    surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
   end
 end
 

@@ -531,12 +531,6 @@ deprecation_message(Warning, Message) ->
 % deprecation('Elixir.String', 'from_char_data!', 1) ->
 %   "use List.to_string instead";
 
-deprecation('Elixir.Kernel', is_record, _) ->
-  "use Record.record? instead";
-deprecation('Elixir.Kernel', defrecord, _) ->
-  "use structs instead";
-deprecation('Elixir.Kernel', defrecordp, _) ->
-  "use Record.defrecordp/3 instead";
 deprecation('Elixir.Process', spawn, 1) ->
   "use the one in Kernel instead";
 deprecation('Elixir.Process', spawn, 3) ->

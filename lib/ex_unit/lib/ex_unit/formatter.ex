@@ -118,14 +118,14 @@ defmodule ExUnit.Formatter do
       <> format_stacktrace(stacktrace, name, nil, formatter)
   end
 
-  defp format_kind_reason(:error, %ExUnit.AssertionError{} = record, width, formatter) do
+  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
     width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
 
     fields =
-      [note: if_value(record.message, &format_banner(&1, formatter)),
-       code: if_value(record.expr, &code_multiline(&1, width)),
-       lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
-       rhs:  if_value(record.right, &inspect_multiline(&1, width))]
+      [note: if_value(struct.message, &format_banner(&1, formatter)),
+       code: if_value(struct.expr, &code_multiline(&1, width)),
+       lhs:  if_value(struct.left,  &inspect_multiline(&1, width)),
+       rhs:  if_value(struct.right, &inspect_multiline(&1, width))]
 
     fields
     |> filter_interesting_fields

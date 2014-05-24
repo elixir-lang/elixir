@@ -291,7 +291,6 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts the `exception` is raised during `function` execution with
   the `expected_message`. Returns the rescued exception, fails otherwise.
-  The expected record can be a string or a regular expression.
 
   ## Examples
 
