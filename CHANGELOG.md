@@ -1,4 +1,4 @@
-# v0.13.3-dev
+# v0.13.3 (2014-05-24)
 
 * Enhancements
   * [OptionParser] Add `:strict` option that only parses known switches
