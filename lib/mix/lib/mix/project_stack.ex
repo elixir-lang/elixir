@@ -2,7 +2,6 @@ defmodule Mix.ProjectStack do
   # Keeps the project stack.
   @moduledoc false
 
-  use GenServer
   @timeout 30_000
 
   @typep file    :: binary
@@ -11,37 +10,69 @@ defmodule Mix.ProjectStack do
 
   @spec start_link :: {:ok, pid}
   def start_link() do
-    :gen_server.start_link({:local, __MODULE__}, __MODULE__, [], [])
+    Agent.start_link fn -> %{stack: [], post_config: [], cache: HashDict.new} end, name: __MODULE__
   end
 
   @spec push(module, config, file) :: :ok | {:error, file}
   def push(module, config, file) do
-    call {:push, module, config, file}
+    get_and_update fn %{stack: stack} = state ->
+      config  = Keyword.merge(config, state.post_config)
+      project = %{name: module, config: config, file: file, recursing?: false, io_done: false, tasks: HashSet.new}
+
+      cond do
+        file = find_project_named(module, stack) ->
+          {{:error, file}, state}
+        true ->
+          {:ok, %{state | post_config: [], stack: [project|state.stack]}}
+      end
+    end
   end
 
   @spec pop() :: project | nil
   def pop do
-    call :pop
+    get_and_update fn %{stack: stack} = state ->
+      case stack do
+        [h|t] -> {project_to_tuple(h), %{state | stack: t}}
+        [] -> {nil, state}
+      end
+    end
   end
 
   @spec peek() :: project | nil
   def peek do
-    call :peek
+    get fn %{stack: stack} ->
+      case stack do
+        [h|_] -> project_to_tuple(h)
+        [] -> nil
+      end
+    end
   end
 
   @spec post_config(config) :: :ok
   def post_config(config) do
-    cast {:post_config, config}
+    cast fn state ->
+      %{state | post_config: Keyword.merge(state.post_config, config)}
+    end
   end
 
   @spec output_app?() :: boolean
   def output_app? do
-    call :output_app?
+    get_and_update fn %{stack: stack} = state ->
+      case stack do
+        [h|t] ->
+          output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
+          {output, %{state | stack: [%{h | io_done: true}|t]}}
+        [] ->
+          {false, state}
+      end
+    end
   end
 
   @spec clear_stack() :: :ok
   def clear_stack do
-    cast :clear_stack
+    cast fn state ->
+      %{state | stack: [], post_config: []}
+    end
   end
 
   @doc """
@@ -51,7 +82,14 @@ defmodule Mix.ProjectStack do
   """
   @spec enable_recursion :: boolean
   def enable_recursion do
-    call :enable_recursion
+    get_and_update fn %{stack: stack} = state ->
+      case stack do
+        [h|t] ->
+          {not h.recursing?, %{state | stack: [%{h | recursing?: true}|t]}}
+        _ ->
+          {false, state}
+      end
+    end
   end
 
   @doc """
@@ -61,118 +99,35 @@ defmodule Mix.ProjectStack do
   """
   @spec disable_recursion :: boolean
   def disable_recursion do
-    call :disable_recursion
+    get_and_update fn %{stack: stack} = state ->
+      case stack do
+        [h|t] ->
+          {h.recursing?, %{state | stack: [%{h | recursing?: false}|t]}}
+        _ ->
+          {false, state}
+      end
+    end
   end
 
   @spec read_cache(term) :: term
   def read_cache(key) do
-    call({:read_cache, key})
+    get fn %{cache: cache} ->
+      cache[key]
+    end
   end
 
   @spec write_cache(term, term) :: :ok
   def write_cache(key, value) do
-    cast({:write_cache, key, value})
+    cast fn state ->
+      %{state | cache: Dict.put(state.cache, key, value)}
+    end
   end
 
   @spec clear_cache :: :ok
   def clear_cache do
-    cast(:clear_cache)
-  end
-
-  defp call(arg) do
-    :gen_server.call(__MODULE__, arg, @timeout)
-  end
-
-  defp cast(arg) do
-    :gen_server.cast(__MODULE__, arg)
-  end
-
-  ## Callbacks
-
-  def init([]) do
-    {:ok, %{stack: [], post_config: [], cache: HashDict.new}}
-  end
-
-  def handle_call({:push, name, config, file}, _from, %{stack: stack} = state) do
-    config  = Keyword.merge(config, state.post_config)
-    project = %{name: name, config: config, file: file, recursing?: false, io_done: false, tasks: HashSet.new}
-
-    cond do
-      file = find_project_named(name, stack) ->
-        {:reply, {:error, file}, state}
-      true ->
-        {:reply, :ok, %{state | post_config: [], stack: [project|state.stack]}}
+    cast fn state ->
+      %{state | cache: HashDict.new}
     end
-  end
-
-  def handle_call(:pop, _from, %{stack: stack} = state) do
-    case stack do
-      [h|t] -> {:reply, project_to_tuple(h), %{state | stack: t}}
-      [] -> {:reply, nil, state}
-    end
-  end
-
-  def handle_call(:peek, _from, %{stack: stack} = state) do
-    case stack do
-      [h|_] -> {:reply, project_to_tuple(h), state}
-      [] -> {:reply, nil, state}
-    end
-  end
-
-  def handle_call(:output_app?, _from, %{stack: stack} = state) do
-    case stack do
-      [h|t] ->
-        output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
-        {:reply, output, %{state | stack: [%{h | io_done: true}|t]}}
-      [] ->
-        {:reply, false, state}
-    end
-  end
-
-  def handle_call(:enable_recursion, _from, %{stack: stack} = state) do
-    case stack do
-      [h|t] ->
-        {:reply, not h.recursing?, %{state | stack: [%{h | recursing?: true}|t]}}
-      _ ->
-        {:reply, false, state}
-    end
-  end
-
-  def handle_call(:disable_recursion, _from, %{stack: stack} = state) do
-    case stack do
-      [h|t] ->
-        {:reply, h.recursing?, %{state | stack: [%{h | recursing?: false}|t]}}
-      _ ->
-        {:reply, false, state}
-    end
-  end
-
-  def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
-    {:reply, cache[key], state}
-  end
-
-  def handle_call(request, from, config) do
-    super(request, from, config)
-  end
-
-  def handle_cast({:post_config, value}, state) do
-    {:noreply, %{state | post_config: Keyword.merge(state.post_config, value)}}
-  end
-
-  def handle_cast(:clear_stack, state) do
-    {:noreply, %{state | stack: [], post_config: []}}
-  end
-
-  def handle_cast({:write_cache, key, value}, state) do
-    {:noreply, %{state | cache: Dict.put(state.cache, key, value)}}
-  end
-
-  def handle_cast(:clear_cache, state) do
-    {:noreply, %{state | cache: HashDict.new}}
-  end
-
-  def handle_cast(request, state) do
-    super(request, state)
   end
 
   defp in_umbrella?(stack) do
@@ -198,4 +153,17 @@ defmodule Mix.ProjectStack do
   defp project_to_tuple(%{name: name, config: config, file: file}) do
     {name, config, file}
   end
+
+  defp get_and_update(fun) do
+    Agent.get_and_update __MODULE__, fun, @timeout
+  end
+
+  defp get(fun) do
+    Agent.get __MODULE__, fun, @timeout
+  end
+
+  defp cast(fun) do
+    Agent.cast __MODULE__, fun
+  end
+
 end
