@@ -520,6 +520,8 @@ deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
    "use GenServer instead";
 deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
   "use Supervisor instead";
+deprecation('Elixir.Kernel', set_elem, 3) ->
+  "use put_elem/3 instead";
 deprecation('Elixir.Kernel', raise, 3) ->
   "use reraise/2 instead";
 deprecation('Elixir.Kernel', defexception, 2) ->

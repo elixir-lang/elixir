@@ -1,15 +1,25 @@
 # v0.14.0-dev
 
 * Enhancements
+  * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
+  * [String] Add `String.chunk/2`
 
 * Bug fixes
+  * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
 
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
+  * [Access] `Access.access/2` is deprecated in favor of `Access.get/2`
+  * [Dict] `Dict.Behaviour` is deprecated in favor of `Dict`
+  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
+  * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
+  * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
+  * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
 
 * Backwards incompatible changes
-
+  * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now uses `get/2` instead of `access/2`
+  * [Kernel] Retrieving docs as `module.__info__(:docs)` is deprecated, instead `Code.get_docs/2` must be used
 
 # v0.13.3 (2014-05-24)
 
