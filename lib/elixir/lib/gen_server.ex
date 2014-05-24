@@ -106,7 +106,7 @@ defmodule GenServer do
     *  `{:ok, new_state}`
     *  `{:error, reason}`
 
-  ## Name registration
+  ## Name Registration
 
   Both `start_link/3` and `start/3` support the `GenServer` to register
   a name on start via the `:name` option. Registered names are also

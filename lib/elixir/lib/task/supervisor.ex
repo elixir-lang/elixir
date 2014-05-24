@@ -10,9 +10,9 @@ defmodule Task.Supervisor do
   The functions in this module allow tasks can be spawned and awaited
   from a supervisor, similar to the functions defined in the `Task` module.
 
-  ## Name registering
+  ## Name Registration
 
-  A `Task.Supervisor` is bound to the same name registering rules as a
+  A `Task.Supervisor` is bound to the same name registration rules as a
   `GenServer`. Read more about it in the `GenServer` docs.
   """
 
@@ -22,7 +22,7 @@ defmodule Task.Supervisor do
   The supported options are:
 
   * `:name` - used to register a supervisor name, the supported values are
-    described under the `Name Registering` section in the `GenServer` module
+    described under the `Name Registration` section in the `GenServer` module
     docs;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
