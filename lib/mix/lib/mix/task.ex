@@ -176,11 +176,11 @@ defmodule Mix.Task do
   def run(task, args \\ []) do
     task = to_string(task)
 
-    if Mix.TasksServer.call({:run_task, task, Mix.Project.get}) do
+    if Mix.TasksServer.run_task(task, Mix.Project.get) do
       module = get!(task)
 
       recur module, fn proj ->
-        Mix.TasksServer.cast({:put_task, task, proj})
+        Mix.TasksServer.put_task(task, proj)
         module.run(args)
       end
     else
@@ -192,7 +192,7 @@ defmodule Mix.Task do
   Clears all invoked tasks, allowing them to be reinvoked.
   """
   def clear do
-    Mix.TasksServer.call(:clear_tasks)
+    Mix.TasksServer.clear_tasks
   end
 
   @doc """
@@ -204,7 +204,7 @@ defmodule Mix.Task do
     module = get!(task)
 
     recur module, fn project ->
-      Mix.TasksServer.cast({:delete_task, task, project})
+      Mix.TasksServer.delete_task(task, project)
     end
   end
 
