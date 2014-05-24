@@ -64,9 +64,4 @@ defmodule Mix do
   def shell(shell) do
     Application.put_env(:mix, :shell, shell)
   end
-
-  @doc false
-  def project do
-    Mix.Project.config
-  end
 end

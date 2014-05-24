@@ -508,48 +508,31 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
-% deprecation('Elixir.Application.Behaviour', '__using__', _) ->
-%   "use Application instead";
-% deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
-%   "use Dict instead";
-% deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
-%   "use GenEvent instead";
-%  deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
-%    "use GenServer instead";
-% deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
-%   "use Supervisor instead";
-% deprecation('Elixir.Kernel', raise, 3) ->
-%   "use reraise/2 instead";
-% deprecation('Elixir.Kernel', defexception, 3) ->
-%   "use defexception/1 instead";
-% deprecation('Elixir.List', 'from_char_data', 1) ->
-%   "use String.to_char_list instead";
-% deprecation('Elixir.List', 'from_char_data!', 1) ->
-%   "use String.to_char_list instead";
-% deprecation('Elixir.String', 'from_char_data', 1) ->
-%   "use List.to_string instead";
-% deprecation('Elixir.String', 'from_char_data!', 1) ->
-%   "use List.to_string instead";
-
-deprecation('Elixir.Process', spawn, 1) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Process', spawn, 3) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Process', spawn_link, _) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Process', spawn_monitor, _) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Process', self, 0) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Process', send, 2) ->
-  "use the one in Kernel instead";
-deprecation('Elixir.Record', defmacros, 4) ->
-  true;
-deprecation('Elixir.Record', deftypes, 3) ->
-  true;
-deprecation('Elixir.Record', deffunctions, 2) ->
-  true;
-deprecation('Elixir.Mix', project, 0) ->
-  "use Mix.Project.config/0 instead";
+deprecation('Elixir.Access', 'access', 2) ->
+  "use Access.get/2 instead";
+deprecation('Elixir.Application.Behaviour', '__using__', _) ->
+  "use Application instead";
+deprecation('Elixir.Dict.Behaviour', '__using__', _) ->
+  "use Dict instead";
+deprecation('Elixir.GenEvent.Behaviour', '__using__', _) ->
+  "use GenEvent instead";
+ deprecation('Elixir.GenServer.Behaviour', '__using__', _) ->
+   "use GenServer instead";
+deprecation('Elixir.Supervisor.Behaviour', '__using__', _) ->
+  "use Supervisor instead";
+deprecation('Elixir.Kernel', raise, 3) ->
+  "use reraise/2 instead";
+deprecation('Elixir.Kernel', defexception, 2) ->
+  "use defexception/1 instead";
+deprecation('Elixir.Kernel', defexception, 3) ->
+  "use defexception/1 instead";
+deprecation('Elixir.List', 'from_char_data', 1) ->
+  "use String.to_char_list instead";
+deprecation('Elixir.List', 'from_char_data!', 1) ->
+  "use String.to_char_list instead";
+deprecation('Elixir.String', 'from_char_data', 1) ->
+  "use List.to_string instead";
+deprecation('Elixir.String', 'from_char_data!', 1) ->
+  "use List.to_string instead";
 deprecation(_, _, _) ->
   false.

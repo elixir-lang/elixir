@@ -31,6 +31,11 @@ defprotocol Access do
   Receives the element being accessed and the access item.
   """
   def get(container, key)
+
+  @doc false
+  Kernel.def access(container, key) do
+    get(container, key)
+  end
 end
 
 defimpl Access, for: List do

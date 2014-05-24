@@ -40,7 +40,7 @@ defmodule Dict do
   For example:
 
       defmodule MyDict do
-        use Dict.Behaviour
+        use Dict
 
         # implement required functions (see below)
         # override default implementations if optimization

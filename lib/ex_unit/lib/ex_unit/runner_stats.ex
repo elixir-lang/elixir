@@ -2,7 +2,7 @@
 defmodule ExUnit.RunnerStats do
   @moduledoc false
 
-  use GenEvent.Behaviour
+  use GenEvent
 
   def init(_opts) do
     {:ok, %{total: 0, failures: 0}}

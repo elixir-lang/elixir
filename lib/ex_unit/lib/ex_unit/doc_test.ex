@@ -112,7 +112,9 @@ defmodule ExUnit.DocTest do
   suite run.
   """
 
-  defexception Error, message: nil
+  defmodule Error do
+    defexception [:message]
+  end
 
   @doc """
   This macro is used to generate ExUnit test cases for doctests.

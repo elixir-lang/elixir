@@ -14,7 +14,7 @@ defmodule HashDict do
   functions and their APIs, please consult the `Dict` module.
   """
 
-  use Dict.Behaviour
+  use Dict
 
   @node_bitmap 0b111
   @node_shift 3

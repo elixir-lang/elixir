@@ -194,46 +194,6 @@ defmodule Process do
     :erlang.spawn_opt(mod, fun, args, opts)
   end
 
-  @doc false
-  def spawn(fun) do
-    :erlang.spawn(fun)
-  end
-
-  @doc false
-  def spawn(mod, fun, args) do
-    :erlang.spawn(mod, fun, args)
-  end
-
-  @doc false
-  def spawn_link(fun) do
-    :erlang.spawn_link(fun)
-  end
-
-  @doc false
-  def spawn_link(mod, fun, args) do
-    :erlang.spawn_link(mod, fun, args)
-  end
-
-  @doc false
-  def spawn_monitor(fun) do
-    :erlang.spawn_monitor(fun)
-  end
-
-  @doc false
-  def spawn_monitor(mod, fun, args) do
-    :erlang.spawn_monitor(mod, fun, args)
-  end
-
-  @doc false
-  def self() do
-    :erlang.self()
-  end
-
-  @doc false
-  def send(dest, msg) do
-    :erlang.send(dest, msg)
-  end
-
   @doc """
   The calling process starts monitoring the item given.
   It returns the monitor reference.

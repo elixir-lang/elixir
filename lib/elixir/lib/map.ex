@@ -11,7 +11,7 @@ defmodule Map do
   their APIs, please consult the `Dict` module.
   """
 
-  use Dict.Behaviour
+  use Dict
 
   defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
 

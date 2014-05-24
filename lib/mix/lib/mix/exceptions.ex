@@ -1,21 +1,30 @@
-defexception Mix.NoTaskError, task: nil, mix_error: true, message: nil do
+defmodule Mix.NoTaskError do
+  defexception task: nil, mix_error: true, message: nil
+
   def exception(opts) do
     task = opts[:task]
     %Mix.NoTaskError{task: task, message: "The task #{task} could not be found"}
   end
 end
 
-defexception Mix.InvalidTaskError, task: nil, mix_error: true, message: nil do
+defmodule Mix.InvalidTaskError do
+  defexception task: nil, mix_error: true, message: nil
+
   def exception(opts) do
     task = opts[:task]
     %Mix.InvalidTaskError{task: task, message: "The task #{task} does not export run/1"}
   end
 end
 
-defexception Mix.NoProjectError, mix_error: true,
-  message: "Could not find a Mix.Project, please ensure a mix.exs file is available"
+defmodule Mix.NoProjectError do
+  defexception mix_error: true,
+               message: "Could not find a Mix.Project, please ensure a mix.exs file is available"
+end
 
-defexception Mix.ElixirVersionError, mix_error: true, target: nil, expected: nil, actual: nil, message: nil do
+defmodule Mix.ElixirVersionError do
+  defexception mix_error: true, target: nil, expected: nil,
+               actual: nil, message: nil
+
   def exception(opts) do
     target   = opts[:target]
     actual   = opts[:actual]
@@ -26,4 +35,7 @@ defexception Mix.ElixirVersionError, mix_error: true, target: nil, expected: nil
   end
 end
 
-defexception Mix.Error, mix_error: true, message: nil
+defmodule Mix.Error do
+  defexception mix_error: true, message: nil
+end
+

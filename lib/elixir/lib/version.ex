@@ -68,8 +68,13 @@ defmodule Version do
     defstruct [:source, :matchspec]
   end
 
-  defexception InvalidRequirementError, [:message]
-  defexception InvalidVersionError, [:message]
+  defmodule InvalidRequirementError do
+    defexception [:message]
+  end
+
+  defmodule InvalidVersionError do
+    defexception [:message]
+  end
 
   @doc """
   Check if the given version matches the specification.
