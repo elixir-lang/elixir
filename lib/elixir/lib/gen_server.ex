@@ -45,14 +45,14 @@ defmodule GenServer do
       GenServer.call(pid, :pop)
       #=> :world
 
-  We start our `Stack` by calling `start_link/2`, passing the module
+  We start our `Stack` by calling `start_link/3`, passing the module
   with the server implementation and its initial argument (a list
   representing the stack containing the item `:hello`). We can primarily
   interact with the server by sending two types of messages. **call**
   messages expect a reply from the server (and are therefore synchronous)
   while **cast** messages do not.
 
-  Every time you do a `GenServer.call/2`, the client will send a message
+  Every time you do a `GenServer.call/3`, the client will send a message
   that must be handled by the `handle_call/3` callback in the GenServer.
   A `cast/2` message must be handled by `handle_cast/2`.
 
@@ -130,7 +130,7 @@ defmodule GenServer do
       # Now messages can be sent directly to MyStack
       GenServer.call(MyStack, :pop) #=> :hello
 
-  Once the server is started, the remaining functions in this module (`call/2`,
+  Once the server is started, the remaining functions in this module (`call/3`,
   `cast/2`, and friends) will also accept an atom, or any `:global` or `:via`
   tuples. In general, the following formats are supported:
 
@@ -142,7 +142,7 @@ defmodule GenServer do
 
   ## Client / Server APIs
 
-  Although in the example above we have used `GenServer.start_link/2` and
+  Although in the example above we have used `GenServer.start_link/3` and
   friends to directly start and communicate with the server, most of the
   time we don't call the `GenServer` functions directly. Instead, we wrap
   the calls in new functions representing the public API of the server.
@@ -280,7 +280,7 @@ defmodule GenServer do
   [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
 
   If the `:spawn_opt` option is present, its value will be passed as options
-  to the underlying process as in `Process.spawn/3`.
+  to the underlying process as in `Process.spawn/4`.
 
   ## Return values
 

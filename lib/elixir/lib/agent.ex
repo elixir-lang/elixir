@@ -130,7 +130,7 @@ defmodule Agent do
   [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
 
   If the `:spawn_opt` option is present, its value will be passed as options
-  to the underlying process as in `Process.spawn/3`.
+  to the underlying process as in `Process.spawn/4`.
 
   ## Return values
 
