@@ -49,7 +49,7 @@ defmodule GenServer do
   with the server implementation and its initial argument (a list
   representing the stack containing the item `:hello`). We can primarily
   interact with the server by sending two types of messages. **call**
-  messages expect a reply from the server (and is therefore synchronous)
+  messages expect a reply from the server (and are therefore synchronous)
   while **cast** messages do not.
 
   Every time you do a `GenServer.call/2`, the client will send a message
@@ -67,50 +67,50 @@ defmodule GenServer do
 
     It must return:
 
-        {:ok, state}
-        {:ok, state, timeout}
-        :ignore
-        {:stop, reason}
+    *  `{:ok, state}`
+    *  `{:ok, state, timeout}`
+    *  `:ignore`
+    *  `{:stop, reason}`
 
   * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
     invoked to handle call (sync) and cast (async) messages.
 
     It must return:
 
-        {:reply, reply, new_state}
-        {:reply, reply, new_state, timeout}
-        {:reply, reply, new_state, :hibernate}
-        {:noreply, new_state}
-        {:noreply, new_state, timeout}
-        {:noreply, new_state, :hibernate}
-        {:stop, reason, new_state}
-        {:stop, reason, reply, new_state}
+    *  `{:reply, reply, new_state}`
+    *  `{:reply, reply, new_state, timeout}`
+    *  `{:reply, reply, new_state, :hibernate}`
+    *  `{:noreply, new_state}`
+    *  `{:noreply, new_state, timeout}`
+    *  `{:noreply, new_state, :hibernate}`
+    *  `{:stop, reason, new_state}`
+    *  `{:stop, reason, reply, new_state}`
 
   * `handle_info(msg, state)` - invoked to handle all other messages which
-     are received by the process.
+    are received by the process.
 
-     It must return:
+    It must return:
 
-        {:noreply, state}
-        {:noreply, state, timeout}
-        {:stop, reason, state}
+    *  `{:noreply, state}`
+    *  `{:noreply, state, timeout}`
+    *  `{:stop, reason, state}`
 
   * `terminate(reason, state)` - called when the server is about to
     terminate, useful for cleaning up. It must return `:ok`
 
   * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swap).
+    code is being upgraded live (hot code swapping).
 
     It must return:
 
-        {:ok, new_state}
-        {:error, reason}
+    *  `{:ok, new_state}`
+    *  `{:error, reason}`
 
-  ## Names registering
+  ## Name registration
 
   Both `start_link/3` and `start/3` support the `GenServer` to register
   a name on start via the `:name` option. Registered names are also
-  automatically clean up on termination. The supported values are:
+  automatically cleaned up on termination. The supported values are:
 
   * an atom - the GenServer is registered locally with the given name
     using `Process.register/2`;
@@ -120,7 +120,7 @@ defmodule GenServer do
 
   * `{:via, module, term}` - the GenServer is registered with the given
     mechanism and name. The `:via` option expects a module name to control
-    the registration mechanism along side a name which can be any term;
+    the registration mechanism alongside a name which can be any term;
 
   For example, we could start and register our Stack server locally as follows:
 
@@ -131,7 +131,7 @@ defmodule GenServer do
       GenServer.call(MyStack, :pop) #=> :hello
 
   Once the server is started, the remaining functions in this module (`call/2`,
-  `cast/2` and friends) will also accept an atom, or any `:global` or `:via`
+  `cast/2`, and friends) will also accept an atom, or any `:global` or `:via`
   tuples. In general, the following formats are supported:
 
   * a `pid`
@@ -144,8 +144,8 @@ defmodule GenServer do
 
   Although in the example above we have used `GenServer.start_link/2` and
   friends to directly start and communicate with the server, most of the
-  time we don't call the `GenServer` functions directly, instead, we wrap
-  them in functions too.
+  time we don't call the `GenServer` functions directly. Instead, we wrap
+  the calls in new functions representing the public API of the server.
 
   Here is a better implementation of our Stack module:
 
@@ -192,7 +192,7 @@ defmodule GenServer do
 
   ## Learn more
 
-  In case you desire to learn more about gen servers, Elixir getting started
+  If you wish to find out more about gen servers, Elixir getting started
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
@@ -271,25 +271,25 @@ defmodule GenServer do
 
   ## Options
 
-  The `:name` option is used for name registered as described in the module
+  The `:name` option is used for name registration as described in the module
   documentation. If the option `:timeout` option is present, the server is
   allowed to spend the given milliseconds initializing or it will be
   terminated and the start function will return `{:error, :timeout}`.
 
-  If the option `:debug` is present, the corresponding function in the
+  If the `:debug` option is present, the corresponding function in the
   [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
 
-  If the option `:spawn_opt` is present, the given options will be passed
+  If the `:spawn_opt` option is present, its value will be passed as options
   to the underlying process as in `Process.spawn/3`.
 
   ## Return values
 
-  If the server is successfully created and initialized the function returns
+  If the server is successfully created and initialized, the function returns
   `{:ok, pid}`, where pid is the pid of the server. If there already exists a
-  process with the specified server name the function returns
+  process with the specified server name, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
-  If the `init/1` callback fails with reason, the function returns
+  If the `init/1` callback fails with `reason`, the function returns
   `{:error, reason}`. Otherwise, if it returns `{:stop, reason}`
   or `:ignore`, the process is terminated and the function returns
   `{:error, reason}` or `:ignore`, respectively.
@@ -321,13 +321,13 @@ defmodule GenServer do
   end
 
   @doc """
-  Makes a synchronous call to the `server` and wait for its reply.
+  Makes a synchronous call to the `server` and waits for its reply.
 
   The client sends the given `request` to the server and waits until a reply
   arrives or a timeout occurs. `handle_call/3` will be called on the server
   to handle the request.
 
-  The server can be any of the values described in the `Name Registering`
+  The server can be any of the values described in the `Name Registration`
   section of the module documentation.
 
   ## Timeouts
@@ -349,9 +349,9 @@ defmodule GenServer do
   @doc """
   Sends an asynchronous request to the `server`.
 
-  This function returns `:ok` immediately, ignoring if the destination node
-  or server does not exist. `handle_cast/2` will be called on the server
-  to handle the request.
+  This function returns `:ok` immediately, regardless of whether the
+  destination node or server does exists. `handle_cast/2` will be called on the
+  server to handle the request.
   """
   @spec cast(server, term) :: :ok
   defdelegate cast(server, request), to: :gen_server
@@ -392,7 +392,7 @@ defmodule GenServer do
   end
 
   @doc """
-  Replies a client.
+  Replies to a client.
 
   This function can be used by a server to explicitly send a reply to a
   client that called `call/3` or `multi_call/4`. When the reply cannot be
@@ -402,7 +402,7 @@ defmodule GenServer do
   in `handle_call/3` callbacks. Reply is an arbitrary term which will be
   given back to the client as the return value of the call.
 
-  This function always return `:ok`.
+  This function always returns `:ok`.
   """
   @spec reply({pid, reference}, term) :: :ok
   def reply(client, reply)
