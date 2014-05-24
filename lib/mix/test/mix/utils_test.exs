@@ -70,16 +70,24 @@ defmodule Mix.UtilsTest do
   test :symlink_or_copy do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
-      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
-      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+      case result do
+        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
+        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
+      end
     end
   end
 
   test :symlink_or_copy_removes_previous_directories do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
-      assert Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin")) == :ok
-      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+      case result do
+        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
+        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
+      end
     end
   end
 
@@ -87,8 +95,12 @@ defmodule Mix.UtilsTest do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))
-      Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
-      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+      result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
+      case result do
+        {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
+        :ok -> assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
+        _ -> flunk "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect result}"
+      end
     end
   end
 
