@@ -46,7 +46,7 @@ defmodule IEx.Autocomplete do
       {:ok, {atom, _, nil}} when is_atom(atom) ->
         expand_call Kernel, Atom.to_string(atom)
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules [], atom_to_binary(root)
+        expand_elixir_modules [], Atom.to_string(root)
       {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)

@@ -537,7 +537,7 @@ defmodule Module do
   end
 
   defp simplify_signature({var, _, atom}, _i) when is_atom(atom) do
-    case atom_to_binary(var) do
+    case Atom.to_string(var) do
       "_" <> rest -> {String.to_atom(rest), [], Elixir}
       _           -> {var, [], nil}
     end

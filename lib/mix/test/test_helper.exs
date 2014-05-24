@@ -1,5 +1,3 @@
-Code.require_file "../../elixir/test/common_test_helpers.exs", __DIR__
-
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 
@@ -107,15 +105,10 @@ defmodule MixTest.Case do
   end
 end
 
-## Some tasks fixtures
-
-defmodule Mix.Tasks.Invalid do
-end
-
 ## Copy fixtures to tmp
 
 source = MixTest.Case.fixture_path("rebar_dep")
-dest = Path.join(MixTest.Case.tmp_path, "rebar_dep")
+dest = MixTest.Case.tmp_path("rebar_dep")
 File.mkdir_p!(dest)
 File.cp_r!(source, dest)
 

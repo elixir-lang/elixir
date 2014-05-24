@@ -3,27 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IEx.HelpersTest do
   use IEx.Case
 
-  setup_all do
-    CodeHelpers.enter_fixture_dir()
-    import CodeHelpers, only: [defbeam: 2]
-
-    defbeam IExDocsSample do
-      @doc """
-      Test function 1
-      """
-      def test_fun_1, do: :ok
-
-      @doc """
-      Test function 2
-      """
-      def test_fun_2(arg \\ 99), do: arg
-    end
-  end
-
-  teardown_all do
-    CodeHelpers.leave_fixture_dir()
-  end
-
   import IEx.Helpers
 
   test "clear helper" do
@@ -47,18 +26,14 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper function" do
-    doc_1 = "* def test_fun_1()\n\nTest function 1\n\n"
-    doc_2 = "* def test_fun_2(arg \\\\ 99)\n\nTest function 2\n\n"
+    pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
+    c_h   = "* def c(files, path \\\\ \".\")\n\nExpects a list of files to compile"
 
-    assert capture_io(fn -> h IExDocsSample.test_fun_1/0 end) == doc_1
-    assert capture_io(fn -> h IExDocsSample.test_fun_2/1 end) == doc_2
+    assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
+    assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
 
-    output = capture_io(fn -> h IExDocsSample.test_fun_1 end)
-    assert :binary.match(output, doc_1)
-    assert :binary.match(output, doc_2)
-
-    assert capture_io(fn -> h pwd end)
-           == "* def pwd()\n\nPrints the current working directory.\n\n\n"
+    assert capture_io(fn -> h Iex.Helpers.c/1 end) =~ c_h
+    assert capture_io(fn -> h pwd end) =~ pwd_h
   end
 
   test "h helper __info__" do
