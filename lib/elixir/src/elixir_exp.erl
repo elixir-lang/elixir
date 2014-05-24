@@ -169,16 +169,8 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts = [hygiene, context, location, line, unquote, bind_quoted],
+  ValidOpts = [context, location, line, unquote, bind_quoted],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
-
-  Hygiene = case lists:keyfind(hygiene, 1, EKV) of
-    {hygiene, List} when is_list(List) ->
-      elixir_errors:warn(?line(Meta), ?m(E, file), "the :hygiene option in quote is deprecated"),
-      List;
-    false ->
-      []
-  end,
 
   Context = case lists:keyfind(context, 1, EKV) of
     {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
@@ -193,10 +185,6 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       end
   end,
 
-  Vars    = lists:keyfind(vars, 1, Hygiene) /= {vars, false},
-  Aliases = lists:keyfind(aliases, 1, Hygiene) /= {aliases, false},
-  Imports = lists:keyfind(imports, 1, Hygiene) /= {imports, false},
-
   Keep = lists:keyfind(location, 1, EKV) == {location, keep},
   Line = proplists:get_value(line, EKV, false),
 
@@ -210,8 +198,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{vars_hygiene=Vars, line=Line, keep=Keep, unquote=Unquote,
-        aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
+  Q = #elixir_quote{line=Line, keep=Keep, unquote=Unquote, context=Context},
 
   {Quoted, _Q} = elixir_quote:quote(Exprs, Binding, Q, ET),
   expand(Quoted, ET);
