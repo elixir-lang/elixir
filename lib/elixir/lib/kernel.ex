@@ -2783,6 +2783,15 @@ defmodule Kernel do
           other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
         end, fields)
 
+        case Module.get_attribute(__MODULE__, :derive) do
+          nil ->
+            :ok
+          derive ->
+            env = __ENV__
+            struct = :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
+            :lists.foreach(fn proto -> Protocol.derive(proto, struct, env) end, derive)
+        end
+
         @spec __struct__() :: t
         def __struct__() do
           %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}

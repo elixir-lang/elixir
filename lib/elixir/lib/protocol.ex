@@ -57,16 +57,20 @@ defmodule Protocol do
   """
   @spec assert_protocol!(module) :: :ok | no_return
   def assert_protocol!(module) do
+    assert_protocol!(module, "")
+  end
+
+  defp assert_protocol!(module, extra) do
     case Code.ensure_compiled(module) do
       {:module, ^module} -> :ok
-      _ -> raise ArgumentError, "#{inspect module} is not loaded"
+      _ -> raise ArgumentError, "#{inspect module} is not available" <> extra
     end
 
     try do
       module.__protocol__(:name)
     rescue
       UndefinedFunctionError ->
-        raise ArgumentError, "#{inspect module} is not a protocol"
+        raise ArgumentError, "#{inspect module} is not a protocol" <> extra
     end
 
     :ok
@@ -79,27 +83,70 @@ defmodule Protocol do
   Returns `:ok` if so, otherwise raises ArgumentError.
   """
   @spec assert_impl!(module, module) :: :ok | no_return
-  def assert_impl!(impl, protocol) do
+  def assert_impl!(protocol, impl) do
+    assert_impl!(protocol, impl, "")
+  end
+
+  defp assert_impl!(protocol, impl, extra) do
     case Code.ensure_compiled(impl) do
       {:module, ^impl} -> :ok
-      _ -> raise ArgumentError, "#{inspect impl} is not loaded"
+      _ -> raise ArgumentError,
+             "#{inspect impl} is not available" <> extra
     end
 
     try do
       impl.__impl__(:protocol)
     rescue
       UndefinedFunctionError ->
-        raise ArgumentError, "#{inspect impl} is not an implementation"
+        raise ArgumentError,
+          "#{inspect impl} is not an implementation of a protocol" <> extra
     else
       ^protocol ->
         :ok
       other ->
-        raise ArgumentError, "#{inspect impl} to be an implementation of #{inspect protocol}, got: #{inspect other}"
+        raise ArgumentError,
+          "expected #{inspect impl} to be an implementation of #{inspect protocol}, got: #{inspect other}" <> extra
     end
   end
 
-  ## Consolidation
+  @doc """
+  Derives an implementation of the given protocol with the
+  given struct considering the given environment.
+  """
+  def derive(protocol, struct, env) do
+    for  = env.module
+    impl = Module.concat(protocol, Map)
 
+    extra = ", cannot derive #{inspect protocol} for #{inspect env.module}"
+    assert_protocol!(protocol, extra)
+    assert_impl!(protocol, impl, extra)
+
+    # Clean up variables from eval context
+    env  = %{env | vars: []}
+    args = [env, struct]
+
+    :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
+      mod, fun, args ->
+        if function_exported?(mod, fun, length(args)) do
+          apply(mod, fun, args)
+        else
+          Module.create(Module.concat(protocol, for), quote do
+            Module.register_attribute(__MODULE__, :impl, persist: true)
+            @impl [protocol: unquote(protocol), for: unquote(for)]
+
+            @doc false
+            @spec __impl__(atom) :: term
+            def __impl__(:target),   do: unquote(impl)
+            def __impl__(:protocol), do: unquote(protocol)
+            def __impl__(:for),      do: unquote(for)
+          end)
+        end
+    end)
+
+    :ok
+  end
+
+  ## Consolidation
 
   @doc """
   Extract all protocols from the given paths.
@@ -107,6 +154,8 @@ defmodule Protocol do
   The paths can be either a char list or a string. Internally
   they are worked on as char lists, so passing them as lists
   avoid extra conversion.
+
+  Does not load any of the protocols.
 
   ## Examples
 
@@ -135,6 +184,8 @@ defmodule Protocol do
   The paths can be either a char list or a string. Internally
   they are worked on as char lists, so passing them as lists
   avoid extra conversion.
+
+  Does not load any of the implementations.
 
   ## Examples
 
@@ -218,6 +269,8 @@ defmodule Protocol do
 
   This function does not load the protocol at any point
   nor loads the new bytecode for the compiled module.
+  However each implementation must be available and
+  it will be loaded.
   """
   @spec consolidate(module, [module]) ::
     {:ok, binary} |
@@ -275,7 +328,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
 
     clauses = for {guard, mod} <- builtin,
                   mod in types,
@@ -289,7 +342,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: Module.concat(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
@@ -316,7 +369,7 @@ defmodule Protocol do
           {:remote, line, {:atom, line, :erlang}, {:atom, line, guard}},
           [{:var, line, :x}],
      }]],
-      [{:atom, line, Module.concat(protocol, mod)}]}
+      [{:atom, line, load_impl(protocol, mod)}]}
   end
 
   defp struct_clause_for(line) do
@@ -335,12 +388,16 @@ defmodule Protocol do
 
   defp each_struct_clause_for(other, protocol, line) do
     {:clause, line, [{:atom, line, other}], [],
-      [{:atom, line, Module.concat(protocol, other)}]}
+      [{:atom, line, load_impl(protocol, other)}]}
   end
 
   defp fallback_clause_for(value, _protocol, line) do
     {:clause, line, [{:var, line, :_}], [],
       [{:atom, line, value}]}
+  end
+
+  defp load_impl(protocol, for) do
+    Module.concat(protocol, for).__impl__(:target)
   end
 
   # Finally compile the module and emit its bytecode.
@@ -403,7 +460,7 @@ defmodule Protocol do
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
           case impl_for?(unquote(target)) do
-            true  -> unquote(target).__impl__(:name)
+            true  -> unquote(target).__impl__(:target)
             false -> any_impl_for
           end
         end
@@ -418,7 +475,7 @@ defmodule Protocol do
       if @fallback_to_any do
         Kernel.defp any_impl_for do
           case impl_for?(__MODULE__.Any) do
-            true  -> __MODULE__.Any.__impl__(:name)
+            true  -> __MODULE__.Any.__impl__(:target)
             false -> nil
           end
         end
@@ -430,7 +487,7 @@ defmodule Protocol do
       Kernel.defp struct_impl_for(struct) do
         target = Module.concat(__MODULE__, struct)
         case impl_for?(target) do
-          true  -> target.__impl__(:name)
+          true  -> target.__impl__(:target)
           false -> any_impl_for
         end
       end
@@ -454,6 +511,7 @@ defmodule Protocol do
       @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
       @doc false
+      @spec __protocol__(atom) :: term
       Kernel.def __protocol__(:name),      do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
     end
@@ -477,9 +535,9 @@ defmodule Protocol do
       Protocol.assert_protocol!(protocol)
 
       defmodule name do
-        @behaviour unquote(protocol)
-        @protocol  unquote(protocol)
-        @for       unquote(for)
+        @behaviour protocol
+        @protocol  protocol
+        @for       for
 
         unquote(block)
 
@@ -487,7 +545,8 @@ defmodule Protocol do
         @impl [protocol: @protocol, for: @for]
 
         @doc false
-        def __impl__(:name),     do: __MODULE__
+        @spec __impl__(atom) :: term
+        def __impl__(:target),   do: __MODULE__
         def __impl__(:protocol), do: @protocol
         def __impl__(:for),      do: @for
       end

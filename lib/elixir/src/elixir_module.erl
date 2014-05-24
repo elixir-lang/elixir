@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([compile/4, data_table/1, docs_table/1, is_open/1,
-         format_error/1, eval_callbacks/5, add_beam_chunk/3]).
+         expand_callback/6, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
 -define(acc_attr, '__acc_attributes').
@@ -131,6 +131,13 @@ eval_form(Line, Module, Block, Vars, E) ->
   EC = eval_callbacks(Line, Module, before_compile, [elixir_env:linify({Line, EE})], EE),
   elixir_def_overridable:store_pending(Module),
   {Value, EC}.
+
+eval_callbacks(Line, Module, Name, Args, E) ->
+  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
+
+  lists:foldl(fun({M,F}, Acc) ->
+    expand_callback(Line, M, F, Args, Acc, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+  end, E, Callbacks).
 
 %% Return the form with exports and function declarations.
 
@@ -361,30 +368,39 @@ else_clause() ->
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, E) ->
-  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
-  Meta      = [{line,Line},{require,false}],
+%% Adds custom chunk to a .beam binary
+add_beam_chunk(Bin, Id, ChunkData)
+        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+  NewChunk = {Id, ChunkData},
+  Chunks = [NewChunk|Chunks0],
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
 
-  lists:foldl(fun({M,F}, Acc) ->
-    {Expr, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, Acc, fun(AM, AF, AA) ->
-      apply(AM, AF, AA),
-      {nil, Acc}
-    end),
+%% Expands a callback given by M:F(Args). In case
+%% the callback can't be expanded, invokes the given
+%% fun passing a possibly expanded AM:AF(Args).
+expand_callback(Line, M, F, Args, E, Fun) ->
+  Meta = [{line,Line},{require,false}],
 
-    if
-      is_atom(Expr) ->
-        ET;
-      true ->
-        try
-          {_Value, _Binding, EE, _S} = elixir:eval_forms(Expr, [], ET),
-          EE
-        catch
-          Kind:Reason ->
-            Info = {M, F, length(Args), location(Line, E)},
-            erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
-        end
-    end
-  end, E, Callbacks).
+  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
+    Fun(AM, AF, AA),
+    {ok, E}
+  end),
+
+  if
+    is_atom(EE) ->
+      ET;
+    true ->
+      try
+        {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
+        EF
+      catch
+        Kind:Reason ->
+          Info = {M, F, length(Args), location(Line, E)},
+          erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
+      end
+  end.
 
 location(Line, E) ->
   [{file, elixir_utils:characters_to_list(?m(E, file))}, {line, Line}].
@@ -398,15 +414,6 @@ prune_stacktrace(Info, [H|T]) ->
   [H|prune_stacktrace(Info, T)];
 prune_stacktrace(Info, []) ->
   [Info].
-
-%% Adds custom chunk to a .beam binary
-add_beam_chunk(Bin, Id, ChunkData)
-        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
-  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
-  NewChunk = {Id, ChunkData},
-  Chunks = [NewChunk|Chunks0],
-  {ok, NewBin} = beam_lib:build_module(Chunks),
-  NewBin.
 
 % ERROR HANDLING
 
