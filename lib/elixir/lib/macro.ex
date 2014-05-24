@@ -488,8 +488,8 @@ defmodule Macro do
   end
 
   # Access
-  def to_string({{:., _, [Kernel, :access]}, _, [left, right]} = ast, fun) do
-    fun.(ast, to_string(left, fun) <> to_string(right, fun))
+  def to_string({{:., _, [Access, :get]}, _, [left, right]} = ast, fun) do
+    fun.(ast, to_string(left, fun) <> to_string([right], fun))
   end
 
   # All other calls

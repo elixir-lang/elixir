@@ -32,7 +32,7 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
 
-    assert capture_io(fn -> h Iex.Helpers.c/1 end) =~ c_h
+    assert capture_io(fn -> h IEx.Helpers.c/1 end) =~ c_h
     assert capture_io(fn -> h pwd end) =~ pwd_h
   end
 

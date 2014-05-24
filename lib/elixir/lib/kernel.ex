@@ -2336,48 +2336,6 @@ defmodule Kernel do
 
   """
 
-  # When removing/changing this function. Search for :access
-  # in the codebase as macros, typespecs special case how
-  # :access is handle for stuff like records.
-  defmacro access(element, attrs) when is_list(attrs) do
-    caller = __CALLER__
-    atom   = Macro.expand(element, caller)
-
-    case is_atom(atom) and atom != nil do
-      true ->
-        fields =
-          try do
-            case :lists.member(atom, caller.context_modules) and Module.open?(atom) do
-              true  -> Module.get_attribute(atom, :record_fields)
-              false -> atom.__record__(:fields)
-            end
-          rescue
-            UndefinedFunctionError ->
-              # We first try to call __record__ and just then check if
-              # it is loaded so we allow the ParallelCompiler to solve
-              # conflicts.
-              case :code.ensure_loaded(atom) do
-                {:error, _} ->
-                  :elixir_aliases.ensure_loaded(caller.line, atom, caller)
-                _ ->
-                  raise ArgumentError, "cannot access module #{inspect atom} because it is not a record"
-              end
-          end
-
-        Record.Deprecated.access(atom, fields, attrs, caller)
-      false ->
-        case Macro.Env.in_match?(caller) or Macro.Env.in_guard?(caller) do
-          true  -> raise ArgumentError, "dynamic access cannot be invoked inside match and guard clauses"
-          false -> :ok
-        end
-
-        case attrs do
-          [h] -> quote do: Access.access(unquote(element), unquote(h))
-          _   -> raise ArgumentError, "expected one argument in access"
-        end
-    end
-  end
-
   @doc """
   Checks if the element on the left side is member of the
   collection on the right side.

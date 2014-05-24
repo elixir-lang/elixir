@@ -232,7 +232,7 @@ defimpl Enumerable, for: HashDict do
 end
 
 defimpl Access, for: HashDict do
-  def access(dict, key), do: HashDict.get(dict, key, nil)
+  def get(dict, key), do: HashDict.get(dict, key, nil)
 end
 
 defimpl Collectable, for: HashDict do

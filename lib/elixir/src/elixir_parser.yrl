@@ -1,7 +1,7 @@
 Nonterminals
   grammar expr_list
   expr container_expr block_expr no_parens_expr no_parens_one_expr access_expr
-  bracket_expr bracket_at_expr matched_expr unmatched_expr max_expr
+  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
   op_expr matched_op_expr no_parens_op_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
@@ -214,12 +214,17 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> dot_alias : '$1'.
 
-bracket_expr -> dot_bracket_identifier list : build_access(build_identifier('$1', nil), '$2').
-bracket_expr -> access_expr list : build_access('$1', '$2').
+bracket_arg -> open_bracket ']' : build_list('$1', []).
+bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2').
+bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2').
+bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2').
 
-bracket_at_expr -> at_op_eol dot_bracket_identifier list :
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1', nil), '$2').
+bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
+
+bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
                      build_access(build_unary_op('$1', build_identifier('$2', nil)), '$3').
-bracket_at_expr -> at_op_eol access_expr list :
+bracket_at_expr -> at_op_eol access_expr bracket_arg :
                      build_access(build_unary_op('$1', '$2'), '$3').
 
 %% Blocks
@@ -615,7 +620,7 @@ build_fn(Op, Stab) ->
 
 build_access(Expr, {List, Line}) ->
   Meta = meta(Line),
-  {{'.', Meta, ['Elixir.Kernel', access]}, Meta, [Expr, List]}.
+  {{'.', Meta, ['Elixir.Access', get]}, Meta, [Expr, List]}.
 
 %% Interpolation aware
 
