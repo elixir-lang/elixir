@@ -500,9 +500,9 @@ defmodule Module do
     assert_not_compiled!(:add_doc, module)
     table = docs_table_for(module)
 
-    {signature, _} = Enum.map_reduce signature, 1, fn(x, acc) ->
+    {signature, _} = :lists.mapfoldl fn(x, acc) ->
       {simplify_signature(x, acc), acc + 1}
-    end
+    end, 1, signature
 
     case :ets.lookup(table, tuple) do
       [] ->

@@ -31,17 +31,6 @@ defmodule Exception do
   @callback exception(term) :: t
   @callback message(t) :: String.t
 
-  @doc false
-  def __deprecated__(name, fields, opts) do
-    quote do
-      fields = unquote(fields)
-      defmodule unquote(name) do
-        defexception fields
-        unquote(Keyword.get opts, :do)
-      end
-    end
-  end
-
   @doc """
   Returns true if the given argument is an exception.
   """
@@ -643,7 +632,7 @@ defmodule Code.LoadError do
   defexception [:file, :message]
 
   def exception(opts) do
-    file = opts[:file]
+    file = Keyword.fetch!(opts, :file)
     %Code.LoadError{message: "could not load #{file}", file: file}
   end
 end
@@ -674,8 +663,8 @@ defmodule UnicodeConversionError do
 
   def exception(opts) do
     %UnicodeConversionError{
-      encoded: opts[:encoded],
-      message: "#{opts[:kind]} #{detail(opts[:rest])}"
+      encoded: Keyword.fetch!(opts, :encoded),
+      message: "#{Keyword.fetch!(opts, :kind)} #{detail Keyword.fetch!(opts, :rest)}"
     }
   end
 

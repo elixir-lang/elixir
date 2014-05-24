@@ -1769,15 +1769,14 @@ defmodule Kernel do
 
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
-            case name == :typedoc and internal? do
+            case name == :typedoc and not bootstraped?(Kernel.Typespec) do
               true  -> nil
               false -> do_at(args, name, function?, __CALLER__)
             end
           macro ->
-            # Do not compile typespecs during internal compilation
-            case internal? do
-              true  -> nil
-              false -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
+            case bootstraped?(Kernel.Typespec) do
+              false -> nil
+              true  -> quote do: Kernel.Typespec.unquote(macro)(unquote(hd(args)))
             end
         end
     end
@@ -2920,14 +2919,20 @@ defmodule Kernel do
   end
 
   @doc false
-  defmacro defexception(name, fields, do_block \\ []) do
-    {fields, do_block} =
+  defmacro defexception(name, fields, opts \\ []) do
+    {fields, opts} =
       case is_list(fields) and Keyword.get(fields, :do, false) do
-        false -> {fields, do_block}
+        false -> {fields, opts}
         other -> {Keyword.delete(fields, :do), [do: other]}
       end
 
-    Exception.__deprecated__(name, fields, do_block)
+    quote do
+      fields = unquote(fields)
+      Kernel.defmodule unquote(name) do
+        defexception fields
+        unquote(Keyword.get opts, :do)
+      end
+    end
   end
 
   @doc """
@@ -3077,7 +3082,7 @@ defmodule Kernel do
   a given project, please check the `mix compile.protocols` task.
   """
   defmacro defprotocol(name, do: block) do
-    Protocol.defprotocol(name, do: block)
+    Protocol.__protocol__(name, do: block)
   end
 
   @doc """
@@ -3090,7 +3095,7 @@ defmodule Kernel do
   defmacro defimpl(name, opts, do_block \\ []) do
     merged = Keyword.merge(opts, do_block)
     merged = Keyword.put_new(merged, :for, __CALLER__.module)
-    Protocol.defimpl(name, merged)
+    Protocol.__impl__(name, merged)
   end
 
   @doc """
@@ -3442,10 +3447,8 @@ defmodule Kernel do
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
       defp bootstraped?(_), do: true
-      defp internal?, do: false
     {:error, _} ->
       defp bootstraped?(module), do: :code.ensure_loaded(module) == {:module, module}
-      defp internal?, do: :elixir_compiler.get_opt(:internal)
   end
 
   defp assert_module_scope(env, fun, arity) do

@@ -222,7 +222,7 @@ translate_spec({Spec, Rest}, Defmacro, Defmacrop) ->
   end.
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args}|T]}) ->
-  NewArgs = [{type,Line,term,[]}|Args],
+  NewArgs = [{type, Line, term, []}|Args],
   {type, Line, 'fun', [{type, Line, product, NewArgs}|T]};
 
 spec_for_macro(Else) -> Else.

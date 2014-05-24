@@ -325,8 +325,8 @@ defmodule Kernel.Typespec do
   """
   def defines_type?(module, name, arity) do
     finder = &match?({^name, _, vars} when length(vars) == arity, &1)
-    Enum.any?(Module.get_attribute(module, :type), finder) or
-      Enum.any?(Module.get_attribute(module, :opaque), finder)
+    :lists.any(finder, Module.get_attribute(module, :type)) or
+      :lists.any(finder, Module.get_attribute(module, :opaque))
   end
 
   @doc """
@@ -335,7 +335,7 @@ defmodule Kernel.Typespec do
   """
   def defines_spec?(module, name, arity) do
     tuple = {name, arity}
-    Enum.any?(Module.get_attribute(module, :spec), &match?(^tuple, &1))
+    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :spec))
   end
 
   @doc """
@@ -344,7 +344,7 @@ defmodule Kernel.Typespec do
   """
   def defines_callback?(module, name, arity) do
     tuple = {name, arity}
-    Enum.any?(Module.get_attribute(module, :callback), &match?(^tuple, &1))
+    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :callback))
   end
 
   @doc """
@@ -423,7 +423,7 @@ defmodule Kernel.Typespec do
     case abstract_code(module) do
       {:ok, abstract_code} ->
         type_docs = for {:attribute, _, :typedoc, tup} <- abstract_code, do: tup
-        List.flatten(type_docs)
+        :lists.flatten(type_docs)
       _ ->
         nil
     end
@@ -443,7 +443,7 @@ defmodule Kernel.Typespec do
     case abstract_code(module) do
       {:ok, abstract_code} ->
         exported_types = for {:attribute, _, :export_type, types} <- abstract_code, do: types
-        exported_types = List.flatten(exported_types)
+        exported_types = :lists.flatten(exported_types)
 
         for {:attribute, _, kind, {name, _, args} = type} <- abstract_code, kind in [:opaque, :type] do
           cond do
@@ -578,14 +578,14 @@ defmodule Kernel.Typespec do
   defp guard_to_constraints(guard, vars, meta, caller) do
     line = line(meta)
 
-    Enum.reduce(guard, [], fn
+    :lists.foldl(fn
       {_name, {:var, _, context}}, acc when is_atom(context) ->
         acc
       {name, type}, acc ->
         constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, typespec(type, vars, caller)]]
         type = {:type, line, :constraint, constraint}
         [type|acc]
-    end) |> Enum.reverse
+    end, [], guard) |> :lists.reverse
   end
 
   ## To AST conversion
@@ -748,7 +748,7 @@ defmodule Kernel.Typespec do
     end
   end
 
-  ## From AST conversion
+  ## To typespec conversion
 
   defp line(meta) do
     case :lists.keyfind(:line, 1, meta) do
@@ -779,9 +779,9 @@ defmodule Kernel.Typespec do
 
   ## Handle maps and structs
   defp typespec({:%{}, meta, fields}, vars, caller) do
-    fields = Enum.map(fields, fn {k, v} ->
+    fields = :lists.map(fn {k, v} ->
       {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
-    end)
+    end, fields)
     {:type, line(meta), :map, fields}
   end
 
@@ -852,7 +852,7 @@ defmodule Kernel.Typespec do
 
   # Handle variables or local calls
   defp typespec({name, meta, atom}, vars, caller) when is_atom(atom) do
-    if name in vars do
+    if :lists.member(name, vars) do
       {:var, line(meta), name}
     else
       typespec({name, meta, []}, vars, caller)
@@ -902,10 +902,10 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(list, vars, caller) do
-    [h|t] = Enum.reverse(list)
-    union = Enum.reduce(t, validate_kw(h, list, caller), fn(x, acc) ->
+    [h|t] = :lists.reverse(list)
+    union = :lists.foldl(fn(x, acc) ->
       {:|, [], [validate_kw(x, list, caller), acc]}
-    end)
+    end, validate_kw(h, list, caller), t)
     typespec({:list, [], [union]}, vars, caller)
   end
 
