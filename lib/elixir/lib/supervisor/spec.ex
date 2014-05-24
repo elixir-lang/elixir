@@ -45,6 +45,7 @@ defmodule Supervisor.Spec do
   2. define supervisors inside other supervisors;
 
   3. perform actions inside the supervision `init/1` callback.
+
      For example, you may want to start an ETS table that is linked to
      the supervisor (i.e. if the supervision tree needs to be restarted,
      the ETS table must be restarted too);
@@ -138,19 +139,19 @@ defmodule Supervisor.Spec do
 
   ## Options
 
-  * `:strategy` - the restart strategy option It can be either
-    `:one_for_one`, `:rest_for_one`, `:one_for_all` and
+  * `:strategy` - the restart strategy option. It can be either
+    `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
     `:simple_one_for_one`. You can learn more about strategies
-    in the `Supervisor` module;
+    in the `Supervisor` module docs;
 
   * `:max_restarts` - the maximum amount of restarts allowed in
     a time frame. Defaults to 5;
 
-  * `:max_seconds` - the time frame in which max_restarts applies.
+  * `:max_seconds` - the time frame in which `:max_restarts` applies.
     Defaults to 5;
 
   The `:strategy` option is required and by default maximum 5 restarts
-  are allowed in 5 seconds. Please check the `Supervisor` module for
+  are allowed within 5 seconds. Please check the `Supervisor` module for
   a complete description of the available strategies.
   """
   @spec supervise([spec], strategy: strategy,
@@ -188,7 +189,7 @@ defmodule Supervisor.Spec do
 
       worker ExUnit.Runner, [], restart: :permanent
 
-  By default, the function `:start_link` is invoked on the given
+  By default, the function `start_link` is invoked on the given
   module. Overall, the default values for the options are:
 
       [id: module,
@@ -212,7 +213,7 @@ defmodule Supervisor.Spec do
 
       supervisor ExUnit.Runner, [], restart: :permanent
 
-  By default, the function `:start_link` is invoked on the given
+  By default, the function `start_link` is invoked on the given
   module. Overall, the default values for the options are:
 
       [id: module,
