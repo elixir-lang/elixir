@@ -768,6 +768,65 @@ defmodule String do
   def valid_character?(_), do: false
 
   @doc """
+  Splits the string into chunks of characters that share a common trait.
+
+  The trait can be one of two options:
+
+  * `:valid` – the string is split into chunks of valid and invalid character
+    sequences
+
+  * `:printable` – the string is split into chunks of printable and
+    non-printable character sequences
+
+  Returns a list of binaries each of which contains only one kind of
+  characters.
+
+  If the given string is empty, an empty list is returned.
+
+  ## Examples
+
+      iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
+      ["abc\000"]
+
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :valid)
+      ["abc\000", <<0x0ffff::utf8>>]
+
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :printable)
+      ["abc", <<0, 0x0ffff::utf8>>]
+
+  """
+  @spec chunk(t, :valid | :printable) :: [t]
+
+  def chunk(string, trait)
+
+  def chunk("", _), do: []
+
+  def chunk(str, trait) when trait in [:valid, :printable] do
+    {cp, _} = next_codepoint(str)
+    pred_fn = make_chunk_pred(trait)
+    do_chunk(str, pred_fn.(cp), pred_fn)
+  end
+
+
+  defp do_chunk(str, flag, pred_fn), do: do_chunk(str, [], <<>>, flag, pred_fn)
+
+  defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
+
+  defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
+
+  defp do_chunk(str, acc, chunk, flag, pred_fn) do
+    {cp, rest} = next_codepoint(str)
+    if pred_fn.(cp) != flag do
+      do_chunk(rest, [chunk|acc], cp, not flag, pred_fn)
+    else
+      do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
+    end
+  end
+
+  defp make_chunk_pred(:valid), do: &valid?/1
+  defp make_chunk_pred(:printable), do: &printable?/1
+
+  @doc """
   Returns unicode graphemes in the string as per Extended Grapheme
   Cluster algorithm outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
