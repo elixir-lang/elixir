@@ -579,7 +579,7 @@ defmodule StreamTest do
   end
 
   defp is_lazy(stream) do
-    match?(%Stream.Lazy{}, stream) or is_function(stream, 2)
+    match?(%Stream{}, stream) or is_function(stream, 2)
   end
 
   defp collectable_pdict do

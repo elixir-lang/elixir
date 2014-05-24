@@ -89,55 +89,7 @@ defmodule Stream do
   returns an anonymous function may return a struct in future releases.
   """
 
-  defmodule Lazy do
-    @moduledoc false
-    defstruct enum: nil, funs: [], accs: [], done: nil
-  end
-
-  defimpl Enumerable, for: Lazy do
-    @compile :inline_list_funs
-
-    def reduce(lazy, acc, fun) do
-      do_reduce(lazy, acc, fn x, [acc] ->
-        {reason, acc} = fun.(x, acc)
-        {reason, [acc]}
-      end)
-    end
-
-    def count(_lazy) do
-      {:error, __MODULE__}
-    end
-
-    def member?(_lazy, _value) do
-      {:error, __MODULE__}
-    end
-
-    defp do_reduce(%Lazy{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
-      composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
-      do_each(&Enumerable.reduce(enum, &1, composed),
-              done && {done, fun}, :lists.reverse(accs), acc)
-    end
-
-    defp do_each(reduce, done, accs, {command, acc}) do
-      case reduce.({command, [acc|accs]}) do
-        {:suspended, [acc|accs], continuation} ->
-          {:suspended, acc, &do_each(continuation, done, accs, &1)}
-        {:halted, [acc|_]} ->
-          {:halted, acc}
-        {:done, [acc|_] = accs} ->
-          case done do
-            nil ->
-              {:done, acc}
-            {done, fun} ->
-              case done.(fun).(accs) do
-                {:cont, [acc|_]}    -> {:done, acc}
-                {:halt, [acc|_]}    -> {:halted, acc}
-                {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
-              end
-          end
-      end
-    end
-  end
+  defstruct enum: nil, funs: [], accs: [], done: nil
 
   @type acc :: any
   @type element :: any
@@ -538,7 +490,7 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def take(_enum, 0), do: %Lazy{enum: []}
+  def take(_enum, 0), do: %Stream{enum: []}
 
   def take(enum, n) when n > 0 do
     lazy enum, n, fn(f1) -> R.take(f1) end
@@ -590,7 +542,7 @@ defmodule Stream do
     lazy enum, n, fn(f1) -> R.take_every(n, f1) end
   end
 
-  def take_every(_enum, 0), do: %Lazy{enum: []}
+  def take_every(_enum, 0), do: %Stream{enum: []}
 
   @doc """
   Lazily takes elements of the enumerable while the given
@@ -1069,18 +1021,63 @@ defmodule Stream do
 
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
-  defp lazy(%Lazy{funs: funs} = lazy, fun),
+  defp lazy(%Stream{funs: funs} = lazy, fun),
     do: %{lazy | funs: [fun|funs] }
   defp lazy(enum, fun),
-    do: %Lazy{enum: enum, funs: [fun]}
+    do: %Stream{enum: enum, funs: [fun]}
 
-  defp lazy(%Lazy{funs: funs, accs: accs} = lazy, acc, fun),
+  defp lazy(%Stream{funs: funs, accs: accs} = lazy, acc, fun),
     do: %{lazy | funs: [fun|funs], accs: [acc|accs] }
   defp lazy(enum, acc, fun),
-    do: %Lazy{enum: enum, funs: [fun], accs: [acc]}
+    do: %Stream{enum: enum, funs: [fun], accs: [acc]}
 
-  defp lazy(%Lazy{done: nil, funs: funs, accs: accs} = lazy, acc, fun, done),
+  defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun, done),
     do: %{lazy | funs: [fun|funs], accs: [acc|accs], done: done}
   defp lazy(enum, acc, fun, done),
-    do: %Lazy{enum: enum, funs: [fun], accs: [acc], done: done}
+    do: %Stream{enum: enum, funs: [fun], accs: [acc], done: done}
+end
+
+defimpl Enumerable, for: Stream do
+  @compile :inline_list_funs
+
+  def reduce(lazy, acc, fun) do
+    do_reduce(lazy, acc, fn x, [acc] ->
+      {reason, acc} = fun.(x, acc)
+      {reason, [acc]}
+    end)
+  end
+
+  def count(_lazy) do
+    {:error, __MODULE__}
+  end
+
+  def member?(_lazy, _value) do
+    {:error, __MODULE__}
+  end
+
+  defp do_reduce(%Stream{enum: enum, funs: funs, accs: accs, done: done}, acc, fun) do
+    composed = :lists.foldl(fn fun, acc -> fun.(acc) end, fun, funs)
+    do_each(&Enumerable.reduce(enum, &1, composed),
+            done && {done, fun}, :lists.reverse(accs), acc)
+  end
+
+  defp do_each(reduce, done, accs, {command, acc}) do
+    case reduce.({command, [acc|accs]}) do
+      {:suspended, [acc|accs], continuation} ->
+        {:suspended, acc, &do_each(continuation, done, accs, &1)}
+      {:halted, [acc|_]} ->
+        {:halted, acc}
+      {:done, [acc|_] = accs} ->
+        case done do
+          nil ->
+            {:done, acc}
+          {done, fun} ->
+            case done.(fun).(accs) do
+              {:cont, [acc|_]}    -> {:done, acc}
+              {:halt, [acc|_]}    -> {:halted, acc}
+              {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
+            end
+        end
+    end
+  end
 end
