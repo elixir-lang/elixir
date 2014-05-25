@@ -1,6 +1,6 @@
 defmodule IEx do
   @moduledoc ~S"""
-  Welcome to IEx.
+  Elixir's interactive shell.
 
   This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
