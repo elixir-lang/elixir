@@ -118,11 +118,18 @@ defmodule Kernel.SpecialForms do
         end
       end
 
+  In practice though, structs are usually defined with the
+  `Kernel.defstruct/2` macro:
+
+      defmodule User do
+        defstruct name: "josé", age: 27
+      end
+
   Now a struct can be created as follow:
 
       %User{}
 
-  Underneath, a struct is just a map with a `__struct__` field
+  Underneath a struct is just a map with a `__struct__` field
   pointing to the User module:
 
       %User{} == %{__struct__: User, name: "josé", age: 27}
@@ -148,8 +155,10 @@ defmodule Kernel.SpecialForms do
   compilation time and it will guarantee at runtime the given
   argument is a struct, failing with `BadStructError` otherwise.
 
-  Check `Kernel.defprotocol/2` for more information on how structs
-  can be used with protocols for polymorphic dispatch. Also,
+  Alhought structs are maps, by default structs do not implement
+  any of the protocols implemented for maps. Check
+  `Kernel.defprotocol/2` for more information on how structs
+  can be used with protocols for polymorphic dispatch. Also
   see `Kernel.struct/2` for examples on how to create and update
   structs dynamically.
   """

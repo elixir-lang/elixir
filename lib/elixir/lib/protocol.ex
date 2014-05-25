@@ -109,43 +109,6 @@ defmodule Protocol do
     end
   end
 
-  @doc """
-  Derives an implementation of the given protocol with the
-  given struct considering the given environment.
-  """
-  def derive(protocol, struct, env) do
-    for  = env.module
-    impl = Module.concat(protocol, Map)
-
-    extra = ", cannot derive #{inspect protocol} for #{inspect env.module}"
-    assert_protocol!(protocol, extra)
-    assert_impl!(protocol, impl, extra)
-
-    # Clean up variables from eval context
-    env  = %{env | vars: []}
-    args = [env, struct]
-
-    :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
-      mod, fun, args ->
-        if function_exported?(mod, fun, length(args)) do
-          apply(mod, fun, args)
-        else
-          Module.create(Module.concat(protocol, for), quote do
-            Module.register_attribute(__MODULE__, :impl, persist: true)
-            @impl [protocol: unquote(protocol), for: unquote(for)]
-
-            @doc false
-            @spec __impl__(atom) :: term
-            def __impl__(:target),   do: unquote(impl)
-            def __impl__(:protocol), do: unquote(protocol)
-            def __impl__(:for),      do: unquote(for)
-          end)
-        end
-    end)
-
-    :ok
-  end
-
   ## Consolidation
 
   @doc """
@@ -551,6 +514,40 @@ defmodule Protocol do
         def __impl__(:for),      do: @for
       end
     end
+  end
+
+  @doc false
+  def __derive__(protocol, struct, %Macro.Env{} = env) do
+    for  = env.module
+    impl = Module.concat(protocol, Map)
+
+    extra = ", cannot derive #{inspect protocol} for #{inspect env.module}"
+    assert_protocol!(protocol, extra)
+    assert_impl!(protocol, impl, extra)
+
+    # Clean up variables from eval context
+    env  = %{env | vars: []}
+    args = [env, struct]
+
+    :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
+      mod, fun, args ->
+        if function_exported?(mod, fun, length(args)) do
+          apply(mod, fun, args)
+        else
+          Module.create(Module.concat(protocol, for), quote do
+            Module.register_attribute(__MODULE__, :impl, persist: true)
+            @impl [protocol: unquote(protocol), for: unquote(for)]
+
+            @doc false
+            @spec __impl__(atom) :: term
+            def __impl__(:target),   do: unquote(impl)
+            def __impl__(:protocol), do: unquote(protocol)
+            def __impl__(:for),      do: unquote(for)
+          end)
+        end
+    end)
+
+    :ok
   end
 
   @doc false

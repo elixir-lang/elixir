@@ -2729,32 +2729,53 @@ defmodule Kernel do
   To define a struct, a developer needs to only define
   a function named `__struct__/0` that returns a map with the
   structs field. This macro is a convenience for defining such
-  function, with the addition of a type `t`.
+  function, with the addition of a type `t` and deriving
+  conveniences.
 
   For more information about structs, please check
   `Kernel.SpecialForms.%/2`.
 
   ## Examples
 
-      defmodule MyRange do
-        defstruct first: nil, last: nil
+      defmodule User do
+        defstruct name: nil, age: nil
       end
 
-  Notice `defstruct` requires a keyword list of fields and values
-  at expansion time. In other words, `defstruct` works with quoted
-  expressions. In other words, a struct defined like:
+  Struct fields are evaluated at definition time, which allows
+  them to be dynamic. In the example below, `10 + 11` will be
+  evaluated at compilation time and the age field will be stored
+  with value `21`:
 
-      defmodule MyRange do
-        defstruct first: nil, last: 1 + 1
+      defmodule User do
+        defstruct name: nil, age: 10 + 11
       end
 
-  Will execute `1 + 1` every time the struct is built. This also
-  implies the following leads to an error:
+  ## Deriving
 
-      defmodule MyRange do
-        my_fields = [first: nil, last: nil]
-        defstruct my_fields
+  Alhought structs are maps, by default structs do not implement
+  any of the protocols implemented for maps. For example, if you
+  attempt to use the access protocol with the User struct, it
+  will lead to an error:
+
+      %User{}[:age]
+      ** (Protocol.UndefinedError) protocol Access not implemented for %User{...}
+
+  However, `defstruct/2` allows implementation for protocols to
+  derived by defining a `@derive` attribute as a list before `defstruct/2`
+  is invoked:
+
+      defmodule User do
+        @derive [Access]
+        defstruct name: nil, age: 10 + 11
       end
+
+      %User{}[:age] #=> 21
+
+  For each protocol given to `@derive`, Elixir will assert there is an
+  implementation of that protocol for maps and check if the map
+  implementation defines a `__deriving__/2` callback. If so, the callback
+  is invoked, otherwise an implementation that simply points to the map
+  one is automatically derived.
 
   ## Types
 
@@ -2789,7 +2810,7 @@ defmodule Kernel do
           derive ->
             env = __ENV__
             struct = :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
-            :lists.foreach(fn proto -> Protocol.derive(proto, struct, env) end, derive)
+            :lists.foreach(fn proto -> Protocol.__derive__(proto, struct, env) end, derive)
         end
 
         @spec __struct__() :: t
@@ -3012,7 +3033,7 @@ defmodule Kernel do
   `Blank` protocol for those types as well:
 
       defimpl Blank, for: [HashDict, HashSet] do
-        def blank?(dict), do: Dict.empty?(dict)
+        def blank?(enum_like), do: Enum.empty?(enum_like)
       end
 
   If a protocol is not found for a given type, it will fallback to
@@ -3078,17 +3099,19 @@ defmodule Kernel do
   ## Consolidation
 
   In order to cope with code loading in development, protocols in
-  Elixir provide a slow implementation of protocol dispatching in
-  development.
+  Elixir provide a slow implementation of protocol dispatching specific
+  to development.
 
   In order to speed up dispatching in production environments, where
-  all implementations are now up-front, Elixir provides a feature
+  all implementations are known up-front, Elixir provides a feature
   called protocol consolidation. For this reason, all protocols are
   compiled with `debug_info` set to true, regardless of the option
-  set by `elixirc` compiler.
+  set by `elixirc` compiler. The debug info though may be removed
+  after consolidation.
 
   For more information on how to apply protocol consolidation to
-  a given project, please check the `mix compile.protocols` task.
+  a given project, please check the functions in the `Protocol`
+  module or the `mix compile.protocols` task.
   """
   defmacro defprotocol(name, do: block) do
     Protocol.__protocol__(name, do: block)

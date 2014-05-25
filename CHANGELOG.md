@@ -3,6 +3,7 @@
 * Enhancements
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
   * [String] Add `String.chunk/2`
+  * [Struct] Add support for `@derive` before `defstruct/2` definitions
 
 * Bug fixes
   * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
