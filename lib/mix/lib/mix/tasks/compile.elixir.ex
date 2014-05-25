@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Compile.Elixir do
   # The ManifestCompiler is a convenience that tracks dependencies
   # in between files and recompiles them as they change recursively.
   defmodule ManifestCompiler do
-    use GenServer
     @moduledoc false
 
     def files_to_path(manifest, force, all, compile_path, on_start) do
@@ -42,15 +41,18 @@ defmodule Mix.Tasks.Compile.Elixir do
 
           # Starts a server responsible for keeping track which files
           # were compiled and the dependencies in between them.
-          {:ok, pid} = :gen_server.start_link(__MODULE__, entries, [])
+          {:ok, pid} = Agent.start_link fn -> Enum.map(entries, &Tuple.insert_at(&1, 5, nil)) end, name: __MODULE__
 
           try do
             Kernel.ParallelCompiler.files :lists.usort(stale),
               each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
               each_file: &each_file(&1)
-            :gen_server.cast(pid, {:write, manifest})
+            Agent.cast pid, fn entries ->
+              write_manifest(manifest, entries)
+              entries
+            end
           after
-            :gen_server.call(pid, :stop)
+            Agent.stop pid
           end
 
           :ok
@@ -78,7 +80,7 @@ defmodule Mix.Tasks.Compile.Elixir do
               |> List.delete(source)
               |> Enum.filter(&(Path.type(&1) == :relative))
 
-      :gen_server.cast(pid, {:store, beam, bin, source, deps, files, binary})
+      Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, bin, source, deps, files, binary})
     end
 
     defp get_beam_files(binary, cwd) do
@@ -166,33 +168,6 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.Utils.write_manifest(manifest, lines)
     end
 
-    # Callbacks
-
-    def init(entries) do
-      {:ok, Enum.map(entries, &Tuple.insert_at(&1, 5, nil))}
-    end
-
-    def handle_call(:stop, _from, entries) do
-      {:stop, :normal, :ok, entries}
-    end
-
-    def handle_call(msg, from, state) do
-      super(msg, from, state)
-    end
-
-    def handle_cast({:write, manifest}, entries) do
-      write_manifest(manifest, entries)
-      {:noreply, entries}
-    end
-
-    def handle_cast({:store, beam, module, source, deps, files, binary}, entries) do
-      {:noreply, :lists.keystore(beam, 1, entries,
-                                 {beam, module, source, deps, files, binary})}
-    end
-
-    def handle_cast(msg, state) do
-      super(msg ,state)
-    end
   end
 
   use Mix.Task
