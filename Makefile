@@ -124,13 +124,15 @@ clean_exbeam:
 #==> Release tasks
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
+DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o docs/$(2) -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc
-	mkdir -p ebin
-	rm -rf docs
-	cp -R -f lib/*/ebin/*.beam ./ebin
-	bin/elixir ../ex_doc/bin/ex_doc "Elixir" "$(VERSION)" "./ebin" -m Kernel -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)"
-	rm -rf ebin
+	$(Q) rm -rf docs
+	$(call DOCS,Elixir,elixir,Kernel)
+	$(call DOCS,EEx,eex,EEx)
+	$(call DOCS,Mix,mix,Mix)
+	$(call DOCS,IEx,iex,IEx)
+	$(call DOCS,ExUnit,ex_unit,ExUnit)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
