@@ -41,7 +41,9 @@ defmodule Mix.Tasks.Compile.Elixir do
 
           # Starts a server responsible for keeping track which files
           # were compiled and the dependencies in between them.
-          {:ok, pid} = Agent.start_link fn -> Enum.map(entries, &Tuple.insert_at(&1, 5, nil)) end, name: __MODULE__
+          {:ok, pid} = Agent.start_link(fn ->
+            Enum.map(entries, &Tuple.insert_at(&1, 5, nil))
+          end)
 
           try do
             Kernel.ParallelCompiler.files :lists.usort(stale),
