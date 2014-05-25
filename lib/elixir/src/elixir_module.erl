@@ -128,7 +128,8 @@ build(Line, File, Module, Lexical) ->
 eval_form(Line, Module, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_def_overridable:store_pending(Module),
-  EC = eval_callbacks(Line, Module, before_compile, [elixir_env:linify({Line, EE})], EE),
+  EV = elixir_env:linify({Line, EE#{vars := []}}),
+  EC = eval_callbacks(Line, Module, before_compile, [EV], EV),
   elixir_def_overridable:store_pending(Module),
   {Value, EC}.
 
@@ -136,7 +137,7 @@ eval_callbacks(Line, Module, Name, Args, E) ->
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
 
   lists:foldl(fun({M,F}, Acc) ->
-    expand_callback(Line, M, F, Args, Acc, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+    expand_callback(Line, M, F, Args, Acc#{vars := []}, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
 
 %% Return the form with exports and function declarations.
@@ -246,9 +247,7 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
   elixir_compiler:module(Forms, File, Opts, fun(Module, Binary0) ->
     Docs = elixir_compiler:get_opt(docs),
     Binary = add_docs_chunk(Binary0, Module, Line, Docs),
-
-    Env = elixir_env:linify({Line, E}),
-    eval_callbacks(Line, Module, after_compile, [Env, Binary], E),
+    eval_callbacks(Line, Module, after_compile, [E, Binary], E),
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
