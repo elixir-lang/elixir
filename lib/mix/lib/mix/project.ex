@@ -313,6 +313,7 @@ defmodule Mix.Project do
 
     Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
     Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
+    :ok
   end
 
   @doc """
