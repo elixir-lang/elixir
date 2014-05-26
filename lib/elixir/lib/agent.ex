@@ -122,9 +122,11 @@ defmodule Agent do
   ## Options
 
   The `:name` option is used for registration as described in the module
-  documentation. If the `:timeout` option is present, the agent is allowed to
-  spend at most the given amount of milliseconds on initialization or it will
-  be terminated and the start function will return `{:error, :timeout}`.
+  documentation.
+
+  If the `:timeout` option is present, the agent is allowed to spend at most
+  the given amount of milliseconds on initialization or it will be terminated
+  and the start function will return `{:error, :timeout}`.
 
   If the `:debug` option is present, the corresponding function in the
   [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
