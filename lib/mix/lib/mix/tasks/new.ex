@@ -16,10 +16,9 @@ defmodule Mix.Tasks.New do
   application name and module name will be retrieved
   from the path, unless `--module` is given.
 
-  A `--bare` option can be given to not generate an OTP
-  application skeleton. Normally an app is generated with
-  a supervisor and an application module that starts the
-  supervisor.
+  A `--sup` option can be given to generate an OTP application
+  skeleton including a supervision tree. Normally an app is
+  generated without a supervisor and without the app callback.
 
   An `--umbrella` option can be given to generate an
   umbrella project.
@@ -32,13 +31,13 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --module HelloWorld
 
-  To generate an app without supervisor and application behaviours:
+  To generate an app with supervisor and application callback:
 
-      mix new hello_world --bare
+      mix new hello_world --sup
 
   """
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [bare: :boolean, umbrella: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
@@ -60,7 +59,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:bare])]
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup])]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -71,19 +70,20 @@ defmodule Mix.Tasks.New do
       create_file "mix.exs", mixfile_template(assigns)
     end
 
+    create_directory "config"
+    create_file "config/config.exs", config_template(assigns)
+
     create_directory "lib"
 
-    if opts[:bare] do
-      create_file "lib/#{app}.ex", lib_template(assigns)
+    if opts[:sup] do
+      create_file "lib/#{app}.ex", lib_sup_template(assigns)
     else
-      create_file "lib/#{app}.ex", lib_app_template(assigns)
-      create_directory "config"
-      create_file "config/config.exs", config_template(assigns)
+      create_file "lib/#{app}.ex", lib_template(assigns)
     end
 
     create_directory "test"
     create_file "test/test_helper.exs", test_helper_template(assigns)
-    create_file "test/#{app}_test.exs", test_lib_template(assigns)
+    create_file "test/#{app}_test.exs", test_template(assigns)
 
     Mix.shell.info """
 
@@ -97,11 +97,11 @@ defmodule Mix.Tasks.New do
     """
   end
 
-  defp otp_app(_mod, true) do
+  defp otp_app(_mod, false) do
     "    [applications: []]"
   end
 
-  defp otp_app(mod, false) do
+  defp otp_app(mod, true) do
     "    [applications: [],\n     mod: {#{mod}, []}]"
   end
 
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.New do
 
     create_file ".gitignore", gitignore_text
     create_file "README.md", readme_template(assigns)
-    create_file "mix.exs",   mixfile_umbrella_template(assigns)
+    create_file "mix.exs", mixfile_umbrella_template(assigns)
 
     create_directory "apps"
 
@@ -292,7 +292,7 @@ defmodule Mix.Tasks.New do
   end
   """
 
-  embed_template :lib_app, """
+  embed_template :lib_sup, """
   defmodule <%= @mod %> do
     use Application
 
@@ -314,7 +314,7 @@ defmodule Mix.Tasks.New do
   end
   """
 
-  embed_template :test_lib, """
+  embed_template :test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
 
@@ -325,6 +325,6 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :test_helper, """
-  ExUnit.start
+  ExUnit.start()
   """
 end

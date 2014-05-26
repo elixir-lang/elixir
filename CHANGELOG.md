@@ -22,6 +22,7 @@
 * Backwards incompatible changes
   * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now uses `get/2` instead of `access/2`
   * [Kernel] Retrieving docs as `module.__info__(:docs)` is deprecated, instead `Code.get_docs/2` must be used
+  * [Mix] `mix new` no longer generates a supevision tree by default, please pass `--sup` instead
 
 # v0.13.3 (2014-05-24)
 

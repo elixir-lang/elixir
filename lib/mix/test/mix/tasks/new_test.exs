@@ -5,7 +5,29 @@ defmodule Mix.Tasks.NewTest do
 
   test "new" do
     in_tmp "new", fn ->
-      Mix.Tasks.New.run ["hello_world"]
+      Mix.Tasks.New.run ["hello_world", "--bare"]
+
+      assert_file "hello_world/mix.exs", fn(file) ->
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+      end
+
+      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/.gitignore"
+
+      assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
+
+      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
+
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+    end
+  end
+
+  test "new with --sup" do
+    in_tmp "new sup", fn ->
+      Mix.Tasks.New.run ["hello_world", "--sup"]
 
       assert_file "hello_world/mix.exs", fn(file) ->
         assert file =~ "app: :hello_world"
@@ -21,28 +43,6 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "use Application"
         assert file =~ "Supervisor.start_link(children, opts)"
       end
-
-      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
-      assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
-
-      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
-      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
-    end
-  end
-
-  test "new with --bare" do
-    in_tmp "new bare", fn ->
-      Mix.Tasks.New.run ["hello_world", "--bare"]
-
-      assert_file "hello_world/mix.exs", fn(file) ->
-        assert file =~ "app: :hello_world"
-        assert file =~ "version: \"0.0.1\""
-      end
-
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
-      assert_file "hello_world/.gitignore"
-
-      assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
       assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/

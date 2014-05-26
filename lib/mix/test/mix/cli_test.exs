@@ -125,13 +125,13 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "new --bare with tests" do
-    in_tmp "new_with_tests", fn ->
-      output = mix "new --bare ."
-      assert output =~ "* creating lib/new_with_tests.ex"
+  test "new --sup with tests" do
+    in_tmp "sup_with_tests", fn ->
+      output = mix "new --sup ."
+      assert output =~ "* creating lib/sup_with_tests.ex"
 
       output = mix "test"
-      assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
       assert output =~ "1 tests, 0 failures"
     end
   end
