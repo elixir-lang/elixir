@@ -59,7 +59,7 @@ defmodule Mix.ProjectTest do
       config = [app_path: Path.expand("_build/archive")]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
+      assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", '../../priv')
     end
   end
 
@@ -69,13 +69,13 @@ defmodule Mix.ProjectTest do
       File.mkdir_p!("include")
 
       assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok
-      assert :file.read_link("_build/archive/ebin") == {:ok, '../../ebin'}
-      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
-      assert :file.read_link("_build/archive/include") == {:ok, '../../include'}
+      assert_proj_dir_linked_or_copied("_build/archive/ebin", "ebin", '../../ebin')
+      assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", '../../priv')
+      assert_proj_dir_linked_or_copied("_build/archive/include", "include", '../../include')
 
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
-      assert :file.read_link("_build/archive/priv") == {:ok, '../../priv'}
+      assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", '../../priv')
     end
   end
 
@@ -93,6 +93,13 @@ defmodule Mix.ProjectTest do
       assert "config/config.exs" in files
       assert "config/dev.exs" in files
       refute "config/.exs" in files
+    end
+  end
+  
+  defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
+    case :file.read_link(source) do
+      {:ok, path} -> assert path == symlink_path
+      {:error, _} -> assert File.ls!(source) == File.ls!(target)
     end
   end
 end
