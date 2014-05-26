@@ -10,10 +10,10 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       assert Mix.Tasks.Compile.Protocols.run([]) == :ok
       assert_received {:mix_shell, :info, ["Consolidated Enumerable"]}
 
-      assert File.regular? "consolidated/Elixir.Enumerable.beam"
+      assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
       purge [Enumerable]
 
-      Code.prepend_path("consolidated")
+      Code.prepend_path("_build/dev/consolidated")
       assert Protocol.consolidated?(Enumerable)
     end
   after

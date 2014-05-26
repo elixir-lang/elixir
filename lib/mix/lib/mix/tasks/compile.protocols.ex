@@ -14,12 +14,12 @@ defmodule Mix.Tasks.Compile.Protocols do
   protocol versions. Simply add it to your codepath to
   make use of it:
 
-      mix run -pa consolidated
+      mix run -pa _build/dev/consolidated
 
   You can verify a protocol is consolidated by checking
   its attributes:
 
-      elixir -pa consolidated -S \
+      elixir -pa _build/dev/consolidated -S \
         mix run -e "IO.puts Protocol.consolidated?(Enumerable)"
 
   """
@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     paths = filter_otp(:code.get_path, :code.lib_dir)
     paths
     |> Protocol.extract_protocols
-    |> consolidate(paths, opts[:output] || "consolidated")
+    |> consolidate(paths, opts[:output] || Path.join(Mix.Project.build_path, "consolidated"))
 
     :ok
   end
@@ -50,6 +50,9 @@ defmodule Mix.Tasks.Compile.Protocols do
       File.write!(Path.join(output, "#{protocol}.beam"), binary)
       Mix.shell.info "Consolidated #{inspect protocol}"
     end
+
+    relative = Path.relative_to_cwd(output)
+    Mix.shell.info "Consolidated protocols written to #{relative}"
   end
 
   defp maybe_reload(module) do
