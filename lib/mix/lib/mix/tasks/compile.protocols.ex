@@ -1,0 +1,66 @@
+defmodule Mix.Tasks.Compile.Protocols do
+  use Mix.Task
+
+  @recursive true
+
+  @moduledoc ~S"""
+  Consolidates all protocols in all paths.
+
+  This module consolidates all protocols in the code path
+  and output the new binary files to the given directory
+  (defaults to "consolidated").
+
+  A new directory will be created with the consolidated
+  protocol versions. Simply add it to your codepath to
+  make use of it:
+
+      mix run -pa consolidated
+
+  You can verify a protocol is consolidated by checking
+  its attributes:
+
+      elixir -pa consolidated -S \
+        mix run -e "IO.puts Protocol.consolidated?(Enumerable)"
+
+  """
+
+  def run(args) do
+    Mix.Task.run "compile", args
+    {opts, _, _} = OptionParser.parse(args, switches: [output: :string], aliases: [o: :output])
+
+    paths = filter_otp(:code.get_path, :code.lib_dir)
+    paths
+    |> Protocol.extract_protocols
+    |> consolidate(paths, opts[:output] || "consolidated")
+
+    :ok
+  end
+
+  defp filter_otp(paths, otp) do
+    Enum.filter(paths, &(not :lists.prefix(&1, otp)))
+  end
+
+  defp consolidate(protocols, paths, output) do
+    File.mkdir_p!(output)
+
+    for protocol <- protocols do
+      impls = Protocol.extract_impls(protocol, paths)
+      maybe_reload(protocol)
+      {:ok, binary} = Protocol.consolidate(protocol, impls)
+      File.write!(Path.join(output, "#{protocol}.beam"), binary)
+      Mix.shell.info "Consolidated #{inspect protocol}"
+    end
+  end
+
+  defp maybe_reload(module) do
+    case :code.which(module) do
+      :non_existing ->
+        module
+      file ->
+        unless Path.extname(file) == ".beam" do
+          :code.purge(module)
+          :code.delete(module)
+        end
+    end
+  end
+end

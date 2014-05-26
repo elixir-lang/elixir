@@ -212,6 +212,14 @@ defmodule Protocol do
   end
 
   @doc """
+  Returns true if the protocol was consolidated.
+  """
+  @spec consolidated?(module) :: boolean
+  def consolidated?(protocol) do
+    protocol.__info__(:attributes)[:protocol][:consolidated]
+  end
+
+  @doc """
   Receives a protocol and a list of implementations and
   consolidates the given protocol.
 
@@ -225,7 +233,7 @@ defmodule Protocol do
   to be consolidated or not by analyzing the protocol
   attribute:
 
-      Enumerable.__info__(:attributes)[:protocol]
+      Protocol.consolidated?(Enumerable)
 
   If the first element of the tuple is true, it means
   the protocol was consolidated.

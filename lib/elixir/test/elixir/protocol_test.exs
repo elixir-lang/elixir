@@ -266,6 +266,11 @@ defmodule Protocol.ConsolidationTest do
   {:ok, binary} = Protocol.consolidate(WithAny, [Any, ImplStruct, Map])
   :code.load_binary(WithAny, 'protocol_test.exs', binary)
 
+  test "consolidated?/1" do
+    assert Protocol.consolidated?(WithAny)
+    refute Protocol.consolidated?(Enumerable)
+  end
+
   test "consolidated implementations without any" do
     assert nil? Sample.impl_for(:foo)
     assert nil? Sample.impl_for(fn(x) -> x end)
