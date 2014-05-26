@@ -17,30 +17,40 @@ defmodule AccessTest do
   @mod -13
   -13 = @mod
 
-  test :nil do
+  test "for nil" do
     assert nil[:foo] == nil
+    assert Access.get(nil, :foo) == nil
+    assert Access.update(nil, :foo, fn nil -> :bar end) == :bar
   end
 
-  test :list do
+  test "for keywords" do
     assert [foo: :bar][:foo] == :bar
     assert [foo: [bar: :baz]][:foo][:bar] == :baz
     assert [foo: [bar: :baz]][:fuu][:bar] == nil
+
+    assert Access.get([foo: :bar], :foo) == :bar
+    assert Access.update([], :foo, fn nil -> :baz end) == [foo: :baz]
+    assert Access.update([foo: :bar], :foo, fn :bar -> :baz end) == [foo: :baz]
   end
 
-  test :map do
+  test "for maps" do
     assert %{foo: :bar}[:foo] == :bar
     assert %{1 => 1}[1] == 1
     assert %{1.0 => 1.0}[1.0] == 1.0
     assert %{1 => 1}[1.0] == nil
+
+    assert Access.get(%{foo: :bar}, :foo) == :bar
+    assert Access.update(%{}, :foo, fn nil -> :baz end) == %{foo: :baz}
+    assert Access.update(%{foo: :bar}, :foo, fn :bar -> :baz end) == %{foo: :baz}
   end
 
-  test :atom do
-    exception = assert_raise RuntimeError, fn ->
-      foo = :foo
-      foo[:atom]
+  test "for atoms" do
+    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
+      Access.get(:foo, :bar)
     end
-    assert Exception.message(exception) ==
-           "The access protocol can only be invoked for atoms " <>
-           "at compilation time, tried to invoke it for :foo"
+
+    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
+      Access.update(:foo, :bar, fn _ -> :baz end)
+    end
   end
 end

@@ -393,12 +393,11 @@ end
 
 defimpl Inspect, for: Regex do
   def inspect(regex, _opts) do
-    delim =?/
+    delim = ?/
     concat ["~r",
             <<delim, escape(regex.source, delim)::binary, delim>>,
             regex.opts]
   end
-
 
   defp escape(bin, term),
     do: escape(bin, <<>>, term)
@@ -523,17 +522,5 @@ defimpl Inspect, for: Any do
           Inspect.Map.inspect(map, opts)
         end
     end
-  end
-end
-
-defimpl Inspect, for: HashDict do
-  def inspect(dict, opts) do
-    concat ["#HashDict<", Inspect.List.inspect(HashDict.to_list(dict), opts), ">"]
-  end
-end
-
-defimpl Inspect, for: HashSet do
-  def inspect(set, opts) do
-    concat ["#HashSet<", Inspect.List.inspect(HashSet.to_list(set), opts), ">"]
   end
 end

@@ -265,3 +265,11 @@ defimpl Collectable, for: HashSet do
     end}
   end
 end
+
+defimpl Inspect, for: HashSet do
+  import Inspect.Algebra
+
+  def inspect(set, opts) do
+    concat ["#HashSet<", Inspect.List.inspect(HashSet.to_list(set), opts), ">"]
+  end
+end

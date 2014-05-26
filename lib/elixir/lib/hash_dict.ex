@@ -76,6 +76,12 @@ defmodule HashDict do
   end
 
   @doc false
+  def update(%HashDict{root: root, size: size}, key, fun) do
+    {root, counter} = do_update(root, key, fn -> fun.(nil) end, fun, key_hash(key))
+    %HashDict{root: root, size: size + counter}
+  end
+
+  @doc false
   def reduce(%HashDict{root: root}, acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
       {:suspend, acc} -> {:suspended, acc, &{:done, elem(&1, 1)}}
@@ -86,10 +92,11 @@ defmodule HashDict do
 
   ## General helpers
 
-  defp dict_delete(%HashDict{root: root, size: size}, key) do
+  @doc false
+  def dict_delete(%HashDict{root: root, size: size}, key) do
     case do_delete(root, key, key_hash(key)) do
       {root, value} -> {%HashDict{root: root, size: size - 1}, value}
-      :error          -> :error
+      :error        -> :error
     end
   end
 
@@ -234,6 +241,7 @@ end
 
 defimpl Access, for: HashDict do
   def get(dict, key), do: HashDict.get(dict, key, nil)
+  def update(dict, key, fun), do: HashDict.update(dict, key, fun)
 end
 
 defimpl Collectable, for: HashDict do
@@ -247,5 +255,13 @@ defimpl Collectable, for: HashDict do
       dict, :done -> dict
       _, :halt -> :ok
     end}
+  end
+end
+
+defimpl Inspect, for: HashDict do
+  import Inspect.Algebra
+
+  def inspect(dict, opts) do
+    concat ["#HashDict<", Inspect.List.inspect(HashDict.to_list(dict), opts), ">"]
   end
 end
