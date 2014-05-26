@@ -767,7 +767,7 @@ defmodule String do
   def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
 
-  @doc """
+  @doc ~S"""
   Splits the string into chunks of characters that share a common trait.
 
   The trait can be one of two options:
