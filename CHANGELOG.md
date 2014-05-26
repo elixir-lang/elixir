@@ -2,6 +2,7 @@
 
 * Enhancements
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
+  * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation 
   * [String] Add `String.chunk/2`
   * [Struct] Add support for `@derive` before `defstruct/2` definitions
 
