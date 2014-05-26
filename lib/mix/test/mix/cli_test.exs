@@ -137,7 +137,14 @@ defmodule Mix.CLITest do
   end
 
   defp mix(args) do
-    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
+    System.cmd "#{elixir_executable} #{mix_executable} #{args} #{stderr_on_win}"
+  end
+  
+  defp stderr_on_win do
+    case :os.type do
+      {:win32, _} -> "2>&1"
+      _ -> ""
+    end
   end
 
   defp mix_executable do
