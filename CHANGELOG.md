@@ -1,4 +1,6 @@
-# v0.14.0-dev
+# Changelog
+
+## v0.14.0-dev
 
 * Enhancements
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
@@ -24,7 +26,7 @@
   * [Kernel] Retrieving docs as `module.__info__(:docs)` is deprecated, instead `Code.get_docs/2` must be used
   * [Mix] `mix new` no longer generates a supevision tree by default, please pass `--sup` instead
 
-# v0.13.3 (2014-05-24)
+## v0.13.3 (2014-05-24)
 
 * Enhancements
   * [OptionParser] Add `:strict` option that only parses known switches
@@ -72,7 +74,7 @@
   * [OptionParser] Errors on parsing returns the switch and value as binaries (unparsed)
   * [String] `String.to_char_list/1` (previously deprecated) no longer returns a tuple but the char list only and raises in case of failure
 
-# v0.13.2 (2014-05-11)
+## v0.13.2 (2014-05-11)
 
 * Enhancements
   * [Application] Add an Application module with common functions to work with OTP applications
@@ -124,7 +126,7 @@
   * [URI] The `URI.Info` record has now become the `URI` struct
   * [Version] The `Version.Schema` record has now become the `Version` struct
 
-# v0.13.1 (2014-04-27)
+## v0.13.1 (2014-04-27)
 
 * Enhancements
   * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
@@ -150,7 +152,7 @@
   * [Path] Atoms are no longer supported in Path functions
   * [Regex] Regexes are no longer unicode by default. Instead, they must be explicitly marked with the `u` option
 
-# v0.13.0 (2014-04-20)
+## v0.13.0 (2014-04-20)
 
 * Enhancements
   * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
@@ -201,7 +203,7 @@
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
 
-# v0.12.5 (2014-03-09)
+## v0.12.5 (2014-03-09)
 
 * Bug fixes
   * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
@@ -219,7 +221,7 @@
 * Backwards incompatible changes
   * [Mix] Remove `MIX_GIT_FORCE_HTTPS` as Git itself already provides mechanisms for doing so
 
-# v0.12.4 (2014-02-12)
+## v0.12.4 (2014-02-12)
 
 * Enhancements
   * [Mix] `mix deps.get` and `mix deps.update` no longer compile dependencies afterwards. Instead, they mark the dependencies which are going to be automatically compiled next time `deps.check` is invoked (which is done automatically by most mix tasks). This means users should have a better workflow when migrating in between environments
@@ -233,7 +235,7 @@
   * [ExUnit] `CaptureIO` returns an empty string instead of nil when there is no capture
   * [Version] The `Version` module now only works with SemVer. The functions `Version.parse/1` and `Version.parse_requirement/1` now return `{:ok,res} | :error` for the cases you want to handle non SemVer cases manually. All other functions will trigger errors on non semantics versions
 
-# v0.12.3 (2014-02-02)
+## v0.12.3 (2014-02-02)
 
 * Enhancements
   * [Kernel] Warnings now are explicitly tagged with "warning:" in messages
@@ -266,7 +268,7 @@
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
   * [Set] Implementations of `difference/2`, `disjoint?/2`, `equal?/2`, `intersection/2`, `subset?/2` and `union/2` in `HashSet` are no longer polymorphic. To get polymorphism, use the functions in `Set` instead
 
-# v0.12.2 (2014-01-15)
+## v0.12.2 (2014-01-15)
 
 * Enhancements
   * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
@@ -295,7 +297,7 @@
 * Backwards incompatible changes
   * [String] Change `String.next_grapheme/1` and `String.next_codepoint/1` to return `nil` on string end
 
-# v0.12.1 (2014-01-04)
+## v0.12.1 (2014-01-04)
 
 * Enhancements
   * [ExUnit] Support `:include` and `:exclude` configuration options to filter which tests should run based on their tags. Those options are also supported via `mix test` as `--include` and `--exclude`
@@ -319,7 +321,7 @@
   * [GenServer] GenServer now stops on unknown call/cast requests
   * [Kernel] Change how `->` is represented in AST. Now each clause is represented by its own AST node which makes composition easier. See commit 51aef55 for more information.
 
-# v0.12.0 (2013-12-15)
+## v0.12.0 (2013-12-15)
 
 * Enhancements
   * [Exception] Allow `exception/1` to be overridden and promote it as the main mechanism to customize exceptions
@@ -356,7 +358,7 @@
   * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
   * [Typespec] `when` clauses were moved to the outer part of the spec and should be in the keywords format. So `add(a, b) when is_subtype(a, integer) and is_subtype(b, integer) :: integer` should now be written as `add(a, b) :: integer when a: integer, b: integer`
 
-# v0.11.2 (2013-11-14)
+## v0.11.2 (2013-11-14)
 
 * Enhancements
   * [Mix] Add `mix iex` that redirects users to the proper `iex -S mix` command
@@ -365,7 +367,7 @@
 * Backwards incompatible changes
   * [Mix] Mix now compiles files to `_build`. Projects should update just fine, however documentation and books may want to update to the latest information
 
-# v0.11.1 (2013-11-07)
+## v0.11.1 (2013-11-07)
 
 * Enhancements
   * [Mix] Improve dependency convergence by explicitly checking each requirement instead of expecting all requirements to be equal
@@ -383,7 +385,7 @@
 * Backwards incompatible changes
   * [Mix] Setting `:load_paths` in your project configuration is deprecated
 
-# v0.11.0 (2013-11-02)
+## v0.11.0 (2013-11-02)
 
 * Enhancements
   * [Code] Eval now returns variables from other contexts
@@ -430,7 +432,7 @@
   * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
-# v0.10.3 (2013-10-02)
+## v0.10.3 (2013-10-02)
 
 * Enhancements
   * [Enum] Add `Enum.take_every/2`
@@ -465,7 +467,7 @@
   * [Mix] `File.IteratorError` was renamed to `IO.StreamError`
   * [Mix] `mix new` now defaults to the `--sup` option, use `--bare` to get the previous behaviour
 
-# v0.10.2 (2013-09-03)
+## v0.10.2 (2013-09-03)
 
 * Enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default
@@ -528,7 +530,7 @@
   * [Kernel] The previous ambiguous import syntax `import :functions, Foo` was removed in favor of `import Foo, only: :functions`
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
 
-# v0.10.1 (2013-08-03)
+## v0.10.1 (2013-08-03)
 
 * Enhancements
   * [Behaviour] Add support for `defmacrocallback/1`
@@ -578,7 +580,7 @@
   * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
   * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
 
-# v0.10.0 (2013-07-15)
+## v0.10.0 (2013-07-15)
 
 * Enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
@@ -622,7 +624,7 @@
   * [Record] First element of a record via `defrecordp` is now the `defrecordp` name and no longer the current atom
   * [URI] Remove custom URI parsers in favor of `URI.default_port/2`
 
-# v0.9.3 (2013-06-23)
+## v0.9.3 (2013-06-23)
 
 * Enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
@@ -660,7 +662,7 @@
   * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is very likely you do not need to change your code, since expansion until its final form is recommended, particularly if you are expecting an atom out of it
   * [Mix] No longer support beam files on `mix local`
 
-# v0.9.2 (2013-06-13)
+## v0.9.2 (2013-06-13)
 
 * Enhancements
   * [ExUnit] `capture_io` now captures prompt by default
@@ -685,7 +687,7 @@
 * Backwards incompatible changes
   * [Kernel] The `=~` operator now returns true or false instead of an index
 
-# v0.9.1 (2013-05-30)
+## v0.9.1 (2013-05-30)
 
 * Enhancements
   * [IEx] Limit the number of entries kept in history and allow it to be configured
@@ -701,7 +703,7 @@
   * [Record] Fix a bug where nested records cannot be defined
   * [Record] Fix a bug where a record named Record cannot be defined
 
-# v0.9.0 (2013-05-23)
+## v0.9.0 (2013-05-23)
 
 * Enhancements
   * [ExUnit] `ExUnit.CaptureIO` now accepts an input to be used during capture
@@ -714,7 +716,7 @@
   * [Kernel] Erlang R15 is no longer supported
   * [Kernel] Elixir modules are now represented as `Elixir.ModuleName` (using `.` instead of `-` as separator)
 
-# v0.8.3 (2013-05-22)
+## v0.8.3 (2013-05-22)
 
 * Enhancements
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
@@ -766,7 +768,7 @@
   * [Kernel] Precedence of `|>` has changed to lower to support constructs like `1..5 |> Enum.to_list`
   * [Mix] `mix escriptize` now receives arguments as binaries
 
-# v0.8.2 (2013-04-20)
+## v0.8.2 (2013-04-20)
 
 * Enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
@@ -806,7 +808,7 @@
               unquote(Macro.escape(x))
             end
 
-# v0.8.1 (2013-02-17)
+## v0.8.1 (2013-02-17)
 
 * Enhancements
   * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
@@ -833,7 +835,7 @@
   * [Kernel] Old `:local.(args)` syntax is deprecated
   * [Process] `Process.self` is deprecated in favor `Kernel.self`
 
-# v0.8.0 (2013-01-28)
+## v0.8.0 (2013-01-28)
 
 * Enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
@@ -875,7 +877,7 @@
   * [Mix] `mix iex` is no longer functional, please use `iex -S mix`
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
 
-# v0.7.2 (2012-12-04)
+## v0.7.2 (2012-12-04)
 
 * Enhancements
   * [CLI] `--debug-info` is now true by default
@@ -901,7 +903,7 @@
   * [Record] Default-based generated functions are deprecated
   * [Typespec] Enhancements and deprecations to the `@spec/@callback` and the fun type syntax
 
-# v0.7.1 (2012-11-18)
+## v0.7.1 (2012-11-18)
 
 * Enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
@@ -932,7 +934,7 @@
   * [Enum] `Enum.times` is deprecated in favor of using ranges
   * [System] `halt` moved to `System` module
 
-# v0.7.0 (2012-10-20)
+## v0.7.0 (2012-10-20)
 
 * Enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
@@ -981,7 +983,7 @@
   * [Kernel] `Erlang.` syntax is deprecated in favor of simply using atoms
   * [Module] `Module.read_attribute` and `Module.add_attribute` deprecated in favor of `Module.get_attribute` and `Module.put_attribute` which mimics Dict API
 
-# v0.6.0 (2012-08-01)
+## v0.6.0 (2012-08-01)
 
 * Backwards incompatible changes
   * [Kernel] Compile files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace
@@ -1031,6 +1033,6 @@
   * [Regex] Back references are now properly supported
   * [System] Add `System.find_executable`
 
-# v0.5.0 (2012-05-24)
+## v0.5.0 (2012-05-24)
 
 * First official release

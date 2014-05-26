@@ -1,4 +1,4 @@
-## Release process
+# Release process
 
 This document simply outlines the release process:
 

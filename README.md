@@ -37,7 +37,7 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 ## Important links
 
-* #elixir-lang on freenode IRC
+* \#elixir-lang on freenode IRC
 * [Website][1]
 * [Issue tracker][2]
 * [elixir-talk Mailing list (questions)][3]
