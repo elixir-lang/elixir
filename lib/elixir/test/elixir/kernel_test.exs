@@ -295,6 +295,25 @@ defmodule KernelTest do
     end
   end
 
+  test "paths" do
+    map = empty_map()
+
+    assert get_in(map[:foo]) == nil
+    assert get_in(empty_map()[:foo]) == nil
+    assert get_in(KernelTest.empty_map()[:foo]) == nil
+    assert get_in(__MODULE__.empty_map()[:foo]) == nil
+
+    assert_raise ArgumentError, ~r"access at least one field,", fn ->
+      Code.eval_quoted(quote(do: get_in(map)), [])
+    end
+
+    assert_raise ArgumentError, ~r"must start with a variable, local or remote call", fn ->
+      Code.eval_quoted(quote(do: get_in(map.foo(1, 2)[:bar])), [])
+    end
+  end
+
+  def empty_map, do: %{}
+
   defmodule PipelineOp do
     use ExUnit.Case, async: true
 

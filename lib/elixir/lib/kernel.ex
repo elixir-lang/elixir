@@ -1710,16 +1710,6 @@ defmodule Kernel do
   Note the in order for this macro to work, the complete path must always
   be visible by this macro.
 
-  ## Paths
-
-  The following expressions are supported in a path:
-
-  * `foo[bar]` - access a field. In case an intermediate field is not
-    present or returns nil, an empty map is used;
-
-  * `foo.bar` - access a map/struct field. In case the field is not
-    present, an error is raised;
-
   ## Examples
 
       iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
@@ -1729,6 +1719,32 @@ defmodule Kernel do
       iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> get_in(users["josé"].age)
       27
+
+  ## Paths
+
+  A path may start with a variable, local or remote call, and must be
+  followed by one or more:
+
+  * `foo[bar]` - access a field. In case an intermediate field is not
+    present or returns nil, an empty map is used;
+
+  * `foo.bar` - access a map/struct field. In case the field is not
+    present, an error is raised;
+
+  Here are some valid paths:
+
+      users["josé"][:age]
+      users["josé"].age
+      User.all["josé"].age
+      all_users()["josé"].age
+
+  Here are some invalid ones:
+
+      # Does a remote call after the initial value
+      users["josé"].do_something(arg1, arg2)
+
+      # Does not access any field
+      users
 
   """
   defmacro get_in(path) do
@@ -1832,7 +1848,8 @@ defmodule Kernel do
     unnest(expr, [{:access, key}|acc], kind)
   end
 
-  defp unnest({{:., _, [expr, key]}, _, []}, acc, kind) when not is_atom(expr) do
+  defp unnest({{:., _, [expr, key]}, _, []}, acc, kind)
+      when is_tuple(expr) and elem(expr, 0) != :__aliases__ and elem(expr, 0) != :__MODULE__ do
     unnest(expr, [{:map, key}|acc], kind)
   end
 
@@ -1841,9 +1858,26 @@ defmodule Kernel do
       "expected expression given to #{kind} to access at least one field, got: #{Macro.to_string other}"
   end
 
-  defp unnest(other, acc, _kind) do
-    [other|acc]
+  defp unnest(other, acc, kind) do
+    if proper_start?(other) do
+      [other|acc]
+    else
+      raise ArgumentError,
+        "expression given to #{kind} must start with a variable, local or remote call " <>
+        "and be followed by field access, got: #{Macro.to_string other}"
+    end
   end
+
+  defp proper_start?({{:., _, [expr, _]}, _, _args})
+    when is_atom(expr)
+    when elem(expr, 0) == :__aliases__
+    when elem(expr, 0) == :__MODULE__, do: true
+
+  defp proper_start?({atom, _, _args})
+    when is_atom(atom), do: true
+
+  defp proper_start?(other),
+    do: not is_tuple(other)
 
   @doc """
   Converts the argument to a string according to the
