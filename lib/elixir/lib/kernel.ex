@@ -1616,7 +1616,84 @@ defmodule Kernel do
   end
 
   @doc """
-  Converts the argument to a string according to the String.Chars protocol.
+  Gets a value from a nested structure.
+
+  Uses the `Access` protocol to traverse the structures
+  according to the given `keys`.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> get_in(users, ["josé", :age])
+      27
+
+  In case any of entries in the middle return nil, nil will be returned
+  as per the Access protocol:
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> get_in(users, ["unknown", :age])
+      nil
+
+  """
+  @spec get_in(Access.t, nonempty_list(term)) :: term
+  def get_in(data, keys)
+  def get_in(data, [h]),   do: Access.get(data, h)
+  def get_in(data, [h|t]), do: get_in(Access.get(data, h), t)
+
+  @doc """
+  Puts a value in a nested structure.
+
+  Uses the `Access` protocol to traverse the structures
+  according to the given `keys`.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> put_in(users, ["josé", :age], 28)
+      %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+
+  In case any of entries in the middle return nil, a map is dynamically
+  created:
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> put_in(users, ["dave", :age], 13)
+      %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 13}}
+
+  """
+  @spec put_in(Access.t, nonempty_list(term), term) :: Access.t
+  def put_in(data, keys, value) do
+    update_in(data, keys, fn _ -> value end)
+  end
+
+  @doc """
+  Updates a value in a nested structure.
+
+  Uses the `Access` protocol to traverse the structures
+  according to the given `keys`.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> update_in(users, ["josé", :age], &(&1 + 1))
+      %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+
+  In case any of entries in the middle return nil, a map is dynamically
+  created:
+
+      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> update_in(users, ["dave", :age], &((&1 || 0) + 1))
+      %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 1}}
+
+  """
+  @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
+  def update_in(data, keys, fun)
+  def update_in(data, [h], fun),   do: Access.update(data, h, fun)
+  def update_in(data, [h|t], fun), do: Access.update(data, h, &update_in(&1 || %{}, t, fun))
+
+  @doc """
+  Converts the argument to a string according to the
+  `String.Chars` protocol.
+
   This is the function invoked when there is string interpolation.
 
   ## Examples
