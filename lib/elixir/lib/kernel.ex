@@ -1627,7 +1627,7 @@ defmodule Kernel do
       iex> get_in(users, ["josé", :age])
       27
 
-  In case any of entries in the middle return nil, nil will be returned
+  In case any of entries in the middle returns `nil`, `nil` will be returned
   as per the Access protocol:
 
       iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
@@ -1652,7 +1652,7 @@ defmodule Kernel do
       iex> put_in(users, ["josé", :age], 28)
       %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
 
-  In case any of entries in the middle return nil, a map is dynamically
+  In case any of entries in the middle returns `nil`, a map is dynamically
   created:
 
       iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
@@ -1677,7 +1677,7 @@ defmodule Kernel do
       iex> update_in(users, ["josé", :age], &(&1 + 1))
       %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
 
-  In case any of entries in the middle return nil, a map is dynamically
+  In case any of entries in the middle returns `nil`, a map is dynamically
   created:
 
       iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
@@ -1687,8 +1687,10 @@ defmodule Kernel do
   """
   @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
   def update_in(data, keys, fun)
-  def update_in(data, [h], fun),   do: Access.update(data, h, fun)
-  def update_in(data, [h|t], fun), do: Access.update(data, h, &update_in(&1 || %{}, t, fun))
+  def update_in(data, [h], fun), do: Access.update(data, h, fun)
+  def update_in(data, [h|t], fun) do
+    Access.update(data, h, &update_in(case(&1, do: (nil -> %{}; o -> o)), t, fun))
+  end
 
   @doc """
   Converts the argument to a string according to the
