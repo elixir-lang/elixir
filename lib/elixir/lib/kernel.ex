@@ -1859,12 +1859,12 @@ defmodule Kernel do
   end
 
   defp unnest(other, acc, kind) do
-    if proper_start?(other) do
-      [other|acc]
-    else
-      raise ArgumentError,
-        "expression given to #{kind} must start with a variable, local or remote call " <>
-        "and be followed by field access, got: #{Macro.to_string other}"
+    case proper_start?(other) do
+      true -> [other|acc]
+      false ->
+        raise ArgumentError,
+          "expression given to #{kind} must start with a variable, local or remote call " <>
+          "and be followed by field access, got: #{Macro.to_string other}"
     end
   end
 
