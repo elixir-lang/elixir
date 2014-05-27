@@ -27,11 +27,8 @@ defmodule Mix.ShellTest do
 
     assert Mix.shell.cmd("echo first") == 0
     
-    newline = case :os.type do
-      {:win32, _} -> "\r\n"
-      _ -> "\n"
-    end
-    assert_received {:mix_shell, :run, ["first" <> ^newline]}
+    nl = os_newline
+    assert_received {:mix_shell, :run, ["first" <> ^nl]}
   end
 
   test "shell io" do
