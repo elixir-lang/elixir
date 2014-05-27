@@ -26,7 +26,7 @@ defmodule Mix.ShellTest do
     assert_received {:mix_shell, :yes?, ["hello?"]}
 
     assert Mix.shell.cmd("echo first") == 0
-    assert_received {:mix_shell, :run, ["first\n"]}
+    assert_received {:mix_shell, :run, ["first" <> os_newline]}
   end
 
   test "shell io" do
@@ -51,13 +51,20 @@ defmodule Mix.ShellTest do
   test "shell cmd supports expressions" do
     Mix.shell Mix.Shell.IO
 
-    assert capture_io(fn ->
+    assert (capture_io(fn ->
       assert Mix.shell.cmd("echo first && echo second") == 0
-    end) == "first\nsecond\n"
+    end) |> String.replace(" \n", "\n")) == "first\nsecond\n"
   end
 
   teardown do
     Mix.shell(Mix.Shell.Process)
     :ok
+  end
+
+  defp os_newline do
+    case :os.type do
+      {:win32, _} -> "\r\n"
+      _ -> "\n"
+    end
   end
 end
