@@ -8,10 +8,17 @@ defmodule Mix.Tasks.CmdTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "cmd", ["echo", "hello"]
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello\n"]}
+        assert_received {:mix_shell, :run, ["hello" <> os_newline]}
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :run, ["hello\n"]}
+        assert_received {:mix_shell, :run, ["hello" <> os_newline]}
       end)
+    end
+  end
+
+  defp os_newline do
+    case :os.type do
+      {:win32, _} -> "\r\n"
+      _ -> "\n"
     end
   end
 end
