@@ -86,6 +86,30 @@ defimpl Access, for: Map do
 
     :maps.put(key, fun.(value), map)
   end
+
+  def get!(%{} = map, key) do
+    case :maps.find(key, map) do
+      {:ok, value} -> value
+      :error -> raise KeyError, key: key, term: map
+    end
+  end
+
+  def get!(other, key) do
+    raise ArgumentError,
+      "could not get key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
+
+  def update!(%{} = map, key, fun) do
+    case :maps.find(key, map) do
+      {:ok, value} -> :maps.put(key, fun.(value), map)
+      :error -> raise KeyError, key: key, term: map
+    end
+  end
+
+  def update!(other, key, _fun) do
+    raise ArgumentError,
+      "could not update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
 end
 
 defimpl Access, for: Atom do

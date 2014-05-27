@@ -186,40 +186,112 @@ defmodule KernelTest do
   end
 
   test "get_in/2" do
-    users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
     assert get_in(users, ["josé", :age]) == 27
-    assert get_in(users, ["unknown", :age]) == nil
+    assert get_in(users, ["dave", :age]) == nil
+    assert get_in(nil, ["josé", :age]) == nil
 
     assert_raise FunctionClauseError, fn ->
       get_in(users, [])
     end
   end
 
+  test "get_in/1" do
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    assert get_in(users["josé"][:age]) == 27
+    assert get_in(users["dave"][:age]) == nil
+
+    assert get_in(users["josé"].age) == 27
+
+    assert_raise ArgumentError, fn ->
+      get_in(users["dave"].age)
+    end
+
+    assert_raise KeyError, fn ->
+      get_in(users["eric"].unknown)
+    end
+  end
+
   test "put_in/3" do
-    users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert put_in(nil, ["josé", :age], 28) ==
+           %{"josé" => %{age: 28}}
 
     assert put_in(users, ["josé", :age], 28) ==
-           %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
-    assert put_in(users, ["dave", :age], 13) ==
-           %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 13}}
+    assert put_in(users, ["dave", :age], 19) ==
+           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
 
     assert_raise FunctionClauseError, fn ->
       put_in(users, [], %{})
     end
   end
 
+  test "put_in/2" do
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert put_in(nil["josé"][:age], 28) ==
+           %{"josé" => %{age: 28}}
+
+    assert put_in(users["josé"][:age], 28) ==
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+    assert put_in(users["dave"][:age], 19) ==
+           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
+
+
+    assert put_in(users["josé"].age, 28) ==
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+    assert_raise ArgumentError, fn ->
+      put_in(users["dave"].age, 19)
+    end
+
+    assert_raise KeyError, fn ->
+      put_in(users["eric"].unknown, "value")
+    end
+  end
+
   test "update_in/3" do
-    users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert update_in(nil, ["josé", :age], fn nil -> 28 end) ==
+           %{"josé" => %{age: 28}}
 
     assert update_in(users, ["josé", :age], &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
-    assert update_in(users, ["dave", :age], &((&1 || 0) + 1)) ==
-           %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 1}}
+    assert update_in(users, ["dave", :age], fn nil -> 19 end) ==
+           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
 
     assert_raise FunctionClauseError, fn ->
       update_in(users, [], fn _ -> %{} end)
+    end
+  end
+
+  test "update_in/2" do
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert update_in(nil["josé"][:age], fn nil -> 28 end) ==
+           %{"josé" => %{age: 28}}
+
+    assert update_in(users["josé"][:age], &(&1 + 1)) ==
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+    assert update_in(users["dave"][:age], fn nil -> 19 end) ==
+           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
+
+    assert update_in(users["josé"].age, &(&1 + 1)) ==
+           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+    assert_raise ArgumentError, fn ->
+      update_in(users["dave"].age, &(&1 + 1))
+    end
+
+    assert_raise KeyError, fn ->
+      put_in(users["eric"].unknown, &(&1 + 1))
     end
   end
 

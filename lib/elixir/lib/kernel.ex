@@ -1623,22 +1623,23 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> get_in(users, ["josé", :age])
       27
 
   In case any of entries in the middle returns `nil`, `nil` will be returned
   as per the Access protocol:
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
       nil
 
   """
   @spec get_in(Access.t, nonempty_list(term)) :: term
   def get_in(data, keys)
-  def get_in(data, [h]),   do: Access.get(data, h)
-  def get_in(data, [h|t]), do: get_in(Access.get(data, h), t)
+  def get_in(nil, list) when is_list(list), do: nil
+  def get_in(data, [h]),                    do: Access.get(data, h)
+  def get_in(data, [h|t]),                  do: get_in(Access.get(data, h), t)
 
   @doc """
   Puts a value in a nested structure.
@@ -1648,16 +1649,16 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> put_in(users, ["josé", :age], 28)
-      %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
   In case any of entries in the middle returns `nil`, a map is dynamically
   created:
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> put_in(users, ["dave", :age], 13)
-      %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 13}}
+      %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 13}}
 
   """
   @spec put_in(Access.t, nonempty_list(term), term) :: Access.t
@@ -1673,23 +1674,175 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> update_in(users, ["josé", :age], &(&1 + 1))
-      %{"josé" => %{age: 28}, "ericmj" => %{age: 23}}
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
   In case any of entries in the middle returns `nil`, a map is dynamically
   created:
 
-      iex> users = %{"josé" => %{age: 27}, "ericmj" => %{age: 23}}
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> update_in(users, ["dave", :age], &((&1 || 0) + 1))
-      %{"josé" => %{age: 27}, "ericmj" => %{age: 23}, "dave" => %{age: 1}}
+      %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 1}}
 
   """
   @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
   def update_in(data, keys, fun)
+
+  def update_in(nil, list, fun), do: update_in(%{}, list, fun)
   def update_in(data, [h], fun), do: Access.update(data, h, fun)
   def update_in(data, [h|t], fun) do
-    Access.update(data, h, &update_in(case(&1, do: (nil -> %{}; o -> o)), t, fun))
+    Access.update(data, h, &update_in(&1, t, fun))
+  end
+
+  @doc """
+  Gets a value from a nested structure "path".
+
+  This is similar to `get_in/2`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      get_in(opts[:foo][:bar])
+
+  Is equivalent to:
+
+      get_in(opts, [:foo, :bar])
+
+  Note the in order for this macro to work, the complete path must always
+  be visible by this macro.
+
+  ## Paths
+
+  The following expressions are supported in a path:
+
+  * `foo[bar]` - access a field. In case an intermediate field is not
+    present or returns nil, an empty map is used;
+
+  * `foo.bar` - access a map/struct field. In case the field is not
+    present, an error is raised;
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> get_in(users["josé"][:age])
+      27
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> get_in(users["josé"].age)
+      27
+
+  """
+  defmacro get_in(path) do
+    [h|t] = unnest(path, [], "get_in/2")
+    Enum.reduce(t, h, fn
+      {:access, key}, acc ->
+        quote do: Access.get(unquote(acc), unquote(key))
+      {:map, key}, acc ->
+        quote do: Access.Map.get!(unquote(acc), unquote(key))
+    end)
+  end
+
+  @doc """
+  Puts a value in a nested structure "path".
+
+  This is similar to `put_in/3`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      put_in(opts[:foo][:bar], :baz)
+
+  Is equivalent to:
+
+      put_in(opts, [:foo, :bar], :baz)
+
+  Note the in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_in/1` docs.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> put_in(users["josé"][:age], 28)
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> put_in(users["josé"].age, 28)
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+  """
+  defmacro put_in(path, value) do
+    [h|t] = unnest(path, [], "put_in/2")
+    nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
+  end
+
+  @doc """
+  Updates a value in a nested structure "path".
+
+  This is similar to `update_in/3`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      update_in(opts[:foo][:bar], &(&1 + 1))
+
+  Is equivalent to:
+
+      update_in(opts, [:foo, :bar], &(&1 + 1))
+
+  Note the in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_in/1` docs.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> update_in(users["josé"][:age], &(&1 + 1))
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> update_in(users["josé"].age, &(&1 + 1))
+      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+
+  """
+  defmacro update_in(path, fun) do
+    [h|t] = unnest(path, [], "update_in/2")
+    nest_update_in(h, t, fun)
+  end
+
+  defp nest_update_in([], fun),  do: fun
+  defp nest_update_in(list, fun) do
+    quote do
+      fn x -> unquote(nest_update_in(quote(do: x), list, fun)) end
+    end
+  end
+
+  defp nest_update_in(h, [{:access, key}|t], fun) do
+    quote do
+      Access.update(
+        case(unquote(h), do: (nil -> %{}; o -> o)),
+        unquote(key),
+        unquote(nest_update_in(t, fun))
+      )
+    end
+  end
+
+  defp nest_update_in(h, [{:map, key}|t], fun) do
+    quote do
+      Access.Map.update!(unquote(h), unquote(key), unquote(nest_update_in(t, fun)))
+    end
+  end
+
+  defp unnest({{:., _, [Access, :get]}, _, [expr, key]}, acc, kind) do
+    unnest(expr, [{:access, key}|acc], kind)
+  end
+
+  defp unnest({{:., _, [expr, key]}, _, []}, acc, kind) when not is_atom(expr) do
+    unnest(expr, [{:map, key}|acc], kind)
+  end
+
+  defp unnest(other, [], kind) do
+    raise ArgumentError,
+      "expected expression given to #{kind} to access at least one field, got: #{Macro.to_string other}"
+  end
+
+  defp unnest(other, acc, _kind) do
+    [other|acc]
   end
 
   @doc """
