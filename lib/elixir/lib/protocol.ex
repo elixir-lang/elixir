@@ -10,6 +10,8 @@ defmodule Protocol do
   regular `Kernel.def/*` macros are replaced by this macro which
   defines the protocol functions with the appropriate callbacks.
   """
+  defmacro def(signature)
+
   defmacro def({_, _, args}) when args == [] or is_atom(args) do
     raise ArgumentError, "protocol functions expect at least one argument"
   end
