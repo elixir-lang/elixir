@@ -97,6 +97,13 @@ defmodule MixTest.Case do
       end
     end
   end
+    
+  def os_newline do
+    case :os.type do
+      {:win32, _} -> "\r\n"
+      _ -> "\n"
+    end
+  end
 
   defp delete_tmp_paths do
     tmp = tmp_path |> String.to_char_list
