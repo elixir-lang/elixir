@@ -303,13 +303,13 @@ foo
   test "evaluates the source from a given file" do
     filename = Path.join(__DIR__, "fixtures/eex_template.eex")
     result = EEx.eval_file(filename)
-    assert result == "foo bar.\n"
+    assert result == "foo bar." <> os_newline
   end
 
   test "evaluates the source from a given file with bindings" do
     filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
     result = EEx.eval_file(filename, [bar: 1])
-    assert result == "foo 1\n"
+    assert result == "foo 1" <> os_newline
   end
 
   test "raises an Exception when there's an error with the given file" do
@@ -324,7 +324,7 @@ foo
   end
 
   test "defined from file" do
-    assert EExText.Compiled.file_sample(1) == "foo 1\n"
+    assert EExText.Compiled.file_sample(1) == "foo 1" <> os_newline
   end
 
   test "defined from file do not affect backtrace" do
@@ -354,6 +354,13 @@ foo
           [file: 'unknown', line: 24]
        }
      }
+  end
+
+  defp os_newline do
+    case :os.type do
+      {:win32, _} -> "\r\n"
+      _ -> "\n"
+    end
   end
 
   defmodule TestEngine do
