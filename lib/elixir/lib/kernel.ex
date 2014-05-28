@@ -1874,7 +1874,7 @@ defmodule Kernel do
   ## Examples
 
       iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_and_update_in(users["josé"][:age], &(&1 + 1))
+      iex> get_and_update_in(users["josé"][:age], &{&1, &1 + 1})
       {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
 
   """
