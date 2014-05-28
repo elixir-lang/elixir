@@ -308,7 +308,11 @@ defmodule Code do
     :elixir_code_server.call :compiler_options
   end
 
-  @doc false
+  @doc """
+  Returns a list with the available compiler options.
+
+  See `Code.compiler_options/1` for more info.
+  """
   def available_compiler_options do
     [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
   end
@@ -336,8 +340,8 @@ defmodule Code do
   def compiler_options(opts) do
     {opts, bad} = Keyword.split(opts, available_compiler_options)
     if bad != [] do
-      bad = Keyword.keys(bad)
-      raise ArgumentError, message: "Unknown compiler options #{inspect bad}"
+      bad = bad |> Keyword.keys |> Enum.join(", ")
+      raise ArgumentError, message: "unknown compiler options: #{bad}"
     end
     :elixir_code_server.cast {:compiler_options, opts}
   end
