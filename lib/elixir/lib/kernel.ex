@@ -1663,7 +1663,7 @@ defmodule Kernel do
   """
   @spec put_in(Access.t, nonempty_list(term), term) :: Access.t
   def put_in(data, keys, value) do
-    update_in(data, keys, fn _ -> value end)
+    elem(get_and_update_in(data, keys, fn _ -> {nil, value} end), 1)
   end
 
   @doc """
@@ -1687,12 +1687,14 @@ defmodule Kernel do
 
   """
   @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
-  def update_in(data, keys, fun)
+  def update_in(data, keys, fun) do
+    elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
+  end
 
-  def update_in(nil, list, fun), do: update_in(%{}, list, fun)
-  def update_in(data, [h], fun), do: Access.update(data, h, fun)
-  def update_in(data, [h|t], fun) do
-    Access.update(data, h, &update_in(&1, t, fun))
+  defp get_and_update_in(nil, list, fun), do: get_and_update_in(%{}, list, fun)
+  defp get_and_update_in(data, [h], fun), do: Access.get_and_update(data, h, fun)
+  defp get_and_update_in(data, [h|t], fun) do
+    Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
   end
 
   @doc """
@@ -1786,7 +1788,8 @@ defmodule Kernel do
   """
   defmacro put_in(path, value) do
     [h|t] = unnest(path, [], "put_in/2")
-    nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
+    expr  = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
+    quote do: :erlang.element(2, unquote(expr))
   end
 
   @doc """
@@ -1818,29 +1821,30 @@ defmodule Kernel do
   """
   defmacro update_in(path, fun) do
     [h|t] = unnest(path, [], "update_in/2")
-    nest_update_in(h, t, fun)
+    expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
+    quote do: :erlang.element(2, unquote(expr))
   end
 
-  defp nest_update_in([], fun),  do: fun
-  defp nest_update_in(list, fun) do
+  defp nest_get_and_update_in([], fun),  do: fun
+  defp nest_get_and_update_in(list, fun) do
     quote do
-      fn x -> unquote(nest_update_in(quote(do: x), list, fun)) end
+      fn x -> unquote(nest_get_and_update_in(quote(do: x), list, fun)) end
     end
   end
 
-  defp nest_update_in(h, [{:access, key}|t], fun) do
+  defp nest_get_and_update_in(h, [{:access, key}|t], fun) do
     quote do
-      Access.update(
+      Access.get_and_update(
         case(unquote(h), do: (nil -> %{}; o -> o)),
         unquote(key),
-        unquote(nest_update_in(t, fun))
+        unquote(nest_get_and_update_in(t, fun))
       )
     end
   end
 
-  defp nest_update_in(h, [{:map, key}|t], fun) do
+  defp nest_get_and_update_in(h, [{:map, key}|t], fun) do
     quote do
-      Access.Map.update!(unquote(h), unquote(key), unquote(nest_update_in(t, fun)))
+      Access.Map.get_and_update!(unquote(h), unquote(key), unquote(nest_get_and_update_in(t, fun)))
     end
   end
 

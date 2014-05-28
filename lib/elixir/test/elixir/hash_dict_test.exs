@@ -8,8 +8,8 @@ defmodule HashDictTest do
   test "access" do
     dict = Enum.into([foo: :baz], HashDict.new)
     assert Access.get(@dict, :foo) == :bar
-    assert Access.update(@dict, :foo, fn :bar -> :baz end) == dict
-    assert Access.update(HashDict.new, :foo, fn nil -> :baz end) == dict
+    assert Access.get_and_update(@dict, :foo, fn :bar -> {:ok, :baz} end) == {:ok, dict}
+    assert Access.get_and_update(HashDict.new, :foo, fn nil -> {:ok, :baz} end) == {:ok, dict}
   end
 
   test "is serializable as attribute" do

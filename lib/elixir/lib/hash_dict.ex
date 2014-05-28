@@ -76,12 +76,6 @@ defmodule HashDict do
   end
 
   @doc false
-  def update(%HashDict{root: root, size: size}, key, fun) do
-    {root, counter} = do_update(root, key, fn -> fun.(nil) end, fun, key_hash(key))
-    %HashDict{root: root, size: size + counter}
-  end
-
-  @doc false
   def reduce(%HashDict{root: root}, acc, fun) do
     do_reduce(root, acc, fun, @node_size, fn
       {:suspend, acc} -> {:suspended, acc, &{:done, elem(&1, 1)}}
@@ -240,8 +234,14 @@ defimpl Enumerable, for: HashDict do
 end
 
 defimpl Access, for: HashDict do
-  def get(dict, key), do: HashDict.get(dict, key, nil)
-  def update(dict, key, fun), do: HashDict.update(dict, key, fun)
+  def get(dict, key) do
+    HashDict.get(dict, key, nil)
+  end
+
+  def get_and_update(dict, key, fun) do
+    {get, update} = fun.(HashDict.get(dict, key, nil))
+    {get, HashDict.put(dict, key, update)}
+  end
 end
 
 defimpl Collectable, for: HashDict do

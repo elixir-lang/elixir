@@ -20,7 +20,7 @@ defmodule AccessTest do
   test "for nil" do
     assert nil[:foo] == nil
     assert Access.get(nil, :foo) == nil
-    assert Access.update(nil, :foo, fn nil -> :bar end) == :bar
+    assert Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end) == {:ok, :bar}
   end
 
   test "for keywords" do
@@ -29,8 +29,8 @@ defmodule AccessTest do
     assert [foo: [bar: :baz]][:fuu][:bar] == nil
 
     assert Access.get([foo: :bar], :foo) == :bar
-    assert Access.update([], :foo, fn nil -> :baz end) == [foo: :baz]
-    assert Access.update([foo: :bar], :foo, fn :bar -> :baz end) == [foo: :baz]
+    assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
+    assert Access.get_and_update([foo: :bar], :foo, fn :bar -> {:ok, :baz} end) == {:ok, [foo: :baz]}
   end
 
   test "for maps" do
@@ -40,8 +40,8 @@ defmodule AccessTest do
     assert %{1 => 1}[1.0] == nil
 
     assert Access.get(%{foo: :bar}, :foo) == :bar
-    assert Access.update(%{}, :foo, fn nil -> :baz end) == %{foo: :baz}
-    assert Access.update(%{foo: :bar}, :foo, fn :bar -> :baz end) == %{foo: :baz}
+    assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
+    assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
   end
 
   test "for atoms" do
@@ -50,7 +50,7 @@ defmodule AccessTest do
     end
 
     assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
-      Access.update(:foo, :bar, fn _ -> :baz end)
+      Access.get_and_update(:foo, :bar, fn _ -> {:ok, :baz} end)
     end
   end
 end

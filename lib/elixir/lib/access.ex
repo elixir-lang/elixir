@@ -31,11 +31,11 @@ defprotocol Access do
   def get(container, key)
 
   @doc """
-  Updates the given key in container with a function.
+  Gets a value and updates the given key in one pass.
 
   In case the key is not set, invokes the function passing nil.
   """
-  def update(container, key, fun)
+  def get_and_update(container, key, fun)
 
   @doc false
   Kernel.def access(container, key) do
@@ -56,16 +56,22 @@ defimpl Access, for: List do
       "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
   end
 
-  def update([{key, v}|t], key, fun) when is_atom(key) do
-    [{key, fun.(v)}|t]
+  def get_and_update(dict, key, fun) when is_atom(key) do
+    get_and_update(dict, [], key, fun)
   end
 
-  def update([h|t], key, fun) do
-    [h|update(t, key, fun)]
+  defp get_and_update([{key, value}|t], acc, key, fun) do
+    {get, update} = fun.(value)
+    {get, :lists.reverse(acc, [{key, update}|t])}
   end
 
-  def update([], key, fun) when is_atom(key) do
-    [{key, fun.(nil)}]
+  defp get_and_update([h|t], acc, key, fun) do
+    get_and_update(t, [h|acc], key, fun)
+  end
+
+  defp get_and_update([], acc, key, fun) do
+    {get, update} = fun.(nil)
+    {get, [{key, update}|:lists.reverse(acc)]}
   end
 end
 
@@ -77,14 +83,15 @@ defimpl Access, for: Map do
     end
   end
 
-  def update(map, key, fun) do
+  def get_and_update(map, key, fun) do
     value =
       case :maps.find(key, map) do
         {:ok, value} -> value
         :error -> nil
       end
 
-    :maps.put(key, fun.(value), map)
+    {get, update} = fun.(value)
+    {get, :maps.put(key, update, map)}
   end
 
   def get!(%{} = map, key) do
@@ -99,14 +106,17 @@ defimpl Access, for: Map do
       "could not get key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
 
-  def update!(%{} = map, key, fun) do
+  def get_and_update!(%{} = map, key, fun) do
     case :maps.find(key, map) do
-      {:ok, value} -> :maps.put(key, fun.(value), map)
-      :error -> raise KeyError, key: key, term: map
+      {:ok, value} ->
+        {get, update} = fun.(value)
+        {get, :maps.put(key, update, map)}
+      :error ->
+        raise KeyError, key: key, term: map
     end
   end
 
-  def update!(other, key, _fun) do
+  def get_and_update!(other, key, _fun) do
     raise ArgumentError,
       "could not update key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
@@ -121,11 +131,11 @@ defimpl Access, for: Atom do
     undefined(atom)
   end
 
-  def update(nil, _, fun) do
+  def get_and_update(nil, _, fun) do
     fun.(nil)
   end
 
-  def update(atom, _key, _fun) do
+  def get_and_update(atom, _key, _fun) do
     undefined(atom)
   end
 
