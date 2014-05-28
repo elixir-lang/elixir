@@ -123,9 +123,9 @@ to your "Path" environment variable .  (This is under Control Panel > System
 and Security > System > Advanced system settings > Environment Variables > 
 System variables)
 
-You can now work in the Command Prompt similar to how you would on other OS'es,
-except for some things (like creating symlinks) you'll need to run the Command
-Prompt as an Administrator.
+You can now work in the Command Prompt (but currently **not in PowerShell**)
+similar to how you would on other OS'es, except for some things (like creating
+symlinks) you'll need to run the Command Prompt as an Administrator.
 
 ## Contributing Documentation
 
