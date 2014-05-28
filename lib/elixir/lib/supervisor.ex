@@ -100,7 +100,7 @@ defmodule Supervisor do
             worker(Stack, [[:hello]])
           ]
 
-          supervisor(children, strategy: :one_for_one)
+          supervise(children, strategy: :one_for_one)
         end
       end
 
