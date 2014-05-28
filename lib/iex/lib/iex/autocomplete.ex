@@ -42,17 +42,17 @@ defmodule IEx.Autocomplete do
   defp expand_expr(expr) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_erlang_modules atom_to_binary(atom)
+        expand_erlang_modules Atom.to_string(atom)
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_call Kernel, atom_to_binary(atom)
+        expand_call Kernel, Atom.to_string(atom)
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules [], atom_to_binary(root)
+        expand_elixir_modules [], Atom.to_string(root)
       {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
-        hint = atom_to_binary(List.last(list))
+        hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
         expand_elixir_modules list, hint
       {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(fun) ->
-        expand_call mod, atom_to_binary(fun)
+        expand_call mod, Atom.to_string(fun)
       _ ->
         no()
     end
@@ -71,7 +71,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp yes(hint, entries) do
-    {:yes, List.from_char_data!(hint), Enum.map(entries, &List.from_char_data!/1)}
+    {:yes, String.to_char_list(hint), Enum.map(entries, &String.to_char_list/1)}
   end
 
   defp no do
@@ -108,7 +108,7 @@ defmodule IEx.Autocomplete do
 
   defp root_modules do
     Enum.reduce :code.all_loaded, [], fn {m, _}, acc ->
-      mod = atom_to_binary(m)
+      mod = Atom.to_string(m)
       case mod do
         "Elixir" <> _ ->
           tokens = String.split(mod, ".")
@@ -165,7 +165,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp elixir_submodules(mod, hint, root) do
-    modname = atom_to_binary(mod)
+    modname = Atom.to_string(mod)
     depth   = length(String.split(modname, ".")) + 1
     base    = modname <> "." <> hint
 
@@ -189,7 +189,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(false) do
-    Enum.map(:code.all_loaded, fn({m, _}) -> atom_to_binary(m) end)
+    Enum.map(:code.all_loaded, fn({m, _}) -> Atom.to_string(m) end)
   end
 
   ## Helpers
@@ -207,7 +207,7 @@ defmodule IEx.Autocomplete do
         end
 
         for {fun, arities} <- list,
-            name = atom_to_binary(fun),
+            name = Atom.to_string(fun),
             String.starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
         end
@@ -218,7 +218,7 @@ defmodule IEx.Autocomplete do
 
   defp get_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
-      if docs = mod.__info__(:docs) do
+      if docs = Code.get_docs(mod, :docs) do
         for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
       else
         (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)

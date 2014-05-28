@@ -55,8 +55,8 @@ defmodule ExUnit.Filters do
   def parse(filters) do
     Enum.map filters, fn filter ->
       case String.split(filter, ":", parts: 2) do
-        [key, value] -> {binary_to_atom(key), value}
-        [key] -> binary_to_atom(key)
+        [key, value] -> {String.to_atom(key), value}
+        [key] -> String.to_atom(key)
       end
     end
   end
@@ -69,15 +69,15 @@ defmodule ExUnit.Filters do
 
   ## Examples
 
-      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], [foo: "bar"])
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "bar"})
       :ok
 
-      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], [foo: "baz"])
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "baz"})
       {:error, :foo}
 
   """
-  @spec eval(t, t, Keyword.t) :: :ok | {:error, atom}
-  def eval(include, exclude, tags) do
+  @spec eval(t, t, map) :: :ok | {:error, atom}
+  def eval(include, exclude, tags) when is_map(tags) do
     excluded = Enum.find_value exclude, &has_tag(&1, tags)
     if !excluded or Enum.any?(include, &has_tag(&1, tags)) do
       :ok
@@ -87,14 +87,14 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag({key, %Regex{} = value}, tags) when is_atom(key) do
-    case Keyword.fetch(tags, key) do
+    case Map.fetch(tags, key) do
       {:ok, tag} -> to_string(tag) =~ value and key
       _ -> false
     end
   end
 
   defp has_tag({key, value}, tags) when is_atom(key) do
-    case Keyword.fetch(tags, key) do
+    case Map.fetch(tags, key) do
       {:ok, ^value} -> key
       {:ok, tag} -> compare(to_string(tag), to_string(value)) and key
       _ -> false
@@ -102,7 +102,7 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag(key, tags) when is_atom(key),
-    do: Keyword.has_key?(tags, key) and key
+    do: Map.has_key?(tags, key) and key
 
   defp compare("Elixir." <> tag, tag), do: true
   defp compare(tag, tag), do: true

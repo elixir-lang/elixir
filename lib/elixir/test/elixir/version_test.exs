@@ -32,15 +32,15 @@ defmodule VersionTest do
   end
 
   test "invalid compare" do
-    assert_raise V.InvalidVersion, fn ->
+    assert_raise V.InvalidVersionError, fn ->
       V.compare("1.0", "1.0.0")
     end
 
-    assert_raise V.InvalidVersion, fn ->
+    assert_raise V.InvalidVersionError, fn ->
       V.compare("1.0.0-dev", "1.0")
     end
 
-    assert_raise V.InvalidVersion, fn ->
+    assert_raise V.InvalidVersionError, fn ->
       V.compare("foo", "1.0.0-a")
     end
   end
@@ -67,20 +67,27 @@ defmodule VersionTest do
     assert :error = V.parse("2.3.0-01")
   end
 
+  test "to_string" do
+    assert V.parse("1.0.0") |> elem(1) |> to_string == "1.0.0"
+    assert V.parse("1.0.0-dev") |> elem(1) |> to_string == "1.0.0-dev"
+    assert V.parse("1.0.0+lol") |> elem(1) |> to_string == "1.0.0+lol"
+    assert V.parse("1.0.0-dev+lol") |> elem(1) |> to_string == "1.0.0-dev+lol"
+  end
+
   test "invalid match" do
-    assert_raise V.InvalidVersion, fn ->
+    assert_raise V.InvalidVersionError, fn ->
       V.match?("foo", "2.3.0")
     end
 
-    assert_raise V.InvalidVersion, fn ->
+    assert_raise V.InvalidVersionError, fn ->
       V.match?("2.3", "2.3.0")
     end
 
-    assert_raise V.InvalidRequirement, fn ->
+    assert_raise V.InvalidRequirementError, fn ->
       V.match?("2.3.0", "foo")
     end
 
-    assert_raise V.InvalidRequirement, fn ->
+    assert_raise V.InvalidRequirementError, fn ->
       V.match?("2.3.0", "2.3")
     end
   end
@@ -172,7 +179,7 @@ defmodule VersionTest do
 
     refute V.match?("0.3.0-dev", "~> 0.2.0")
 
-    assert_raise V.InvalidRequirement, fn ->
+    assert_raise V.InvalidRequirementError, fn ->
       V.match?("3.0.0", "~> 3")
     end
   end

@@ -34,17 +34,19 @@ defmodule Mix.Tasks.Run do
   def run(args) do
     {opts, head, _} = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval],
-      switches: [parallel_require: :keep, require: :keep])
+      switches: [parallel_require: :keep, require: :keep, eval: :keep])
 
     # Require the project to be available
     Mix.Project.get!
 
-    file =
-      case head do
-        ["--"|t] -> System.argv(t); nil
-        [h|t]    -> System.argv(t); h
-        []       -> System.argv([]); nil
+    {file, argv} =
+      case {Keyword.has_key?(opts, :eval), head} do
+        {true, _}  -> {nil, head}
+        {_, [h|t]} -> {h, t}
+        {_, []}    -> {nil, []}
       end
+
+    System.argv(argv)
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling
@@ -53,9 +55,23 @@ defmodule Mix.Tasks.Run do
     Enum.each opts, fn({key, value}) ->
       case key do
         :parallel_require ->
-          value |> filter_patterns |> Kernel.ParallelRequire.files
+          case filter_patterns(value) do
+            [] ->
+              report_error("parallel-require: No files matched pattern #{value}")
+
+            filtered ->
+              Kernel.ParallelRequire.files(filtered)
+          end
+
         :require ->
-          value |> filter_patterns |> Enum.each &Code.require_file(&1)
+          case filter_patterns(value) do
+            [] ->
+              report_error("require: No files matched pattern #{value}")
+
+            filtered ->
+              Enum.each(filtered, &Code.require_file(&1))
+          end
+
         :eval ->
           Code.eval_string(value)
         _ ->
@@ -63,11 +79,21 @@ defmodule Mix.Tasks.Run do
       end
     end
 
-    if file, do: Code.require_file(file)
+    if file do
+      if File.regular?(file) do
+        Code.require_file(file)
+      else
+        report_error("No such file: #{file}")
+      end
+    end
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 
   defp filter_patterns(pattern) do
     Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
+  end
+
+  defp report_error(msg) do
+    raise Mix.Error, message: msg
   end
 end

@@ -4,7 +4,6 @@
 /ebin
 /lib/*/ebin/*
 /lib/*/tmp
-/lib/*/test/tmp
 /lib/elixir/src/elixir.app.src
 /lib/elixir/src/*_lexer.erl
 /lib/elixir/src/*_parser.erl

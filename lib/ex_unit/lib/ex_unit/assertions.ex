@@ -1,14 +1,16 @@
-defexception ExUnit.AssertionError,
-    left:    :ex_unit_no_meaningful_value,
-    right:   :ex_unit_no_meaningful_value,
-    message: :ex_unit_no_meaningful_value,
-    expr:    :ex_unit_no_meaningful_value do
+defmodule ExUnit.AssertionError do
+  @no_value :ex_unit_no_meaningful_value
+
+  defexception left:    @no_value,
+               right:   @no_value,
+               message: @no_value,
+               expr:    @no_value
 
   @doc """
   Indicates no meaningful value for a field.
   """
   def no_value do
-    :ex_unit_no_meaningful_value
+    @no_value
   end
 end
 
@@ -34,7 +36,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts it's argument is true.
+  Asserts its argument is true.
 
   `assert` tries to be smart and provide good
   reporting whenever there is a failure. In particular, if
@@ -289,7 +291,6 @@ defmodule ExUnit.Assertions do
   @doc """
   Asserts the `exception` is raised during `function` execution with
   the `expected_message`. Returns the rescued exception, fails otherwise.
-  The expected record can be a string or a regular expression.
 
   ## Examples
 
@@ -301,11 +302,12 @@ defmodule ExUnit.Assertions do
     error = assert_raise(exception, function)
 
     is_match = cond do
-      is_binary(message) -> error.message == message
-      Regex.regex?(message) -> error.message =~ message
+      is_binary(message) -> Exception.message(error) == message
+      Regex.regex?(message) -> Exception.message(error) =~ message
     end
 
-    msg = "Wrong message for #{inspect exception}. Expected #{inspect message}, got #{inspect error.message}"
+    msg = "Wrong message for #{inspect exception}. " <>
+          "Expected #{inspect message}, got #{inspect Exception.message(error)}"
     assert is_match, message: msg
 
     error
@@ -325,17 +327,21 @@ defmodule ExUnit.Assertions do
   def assert_raise(exception, function) when is_function(function) do
     try do
       function.()
-      flunk "Expected exception #{inspect exception} but nothing was raised"
     rescue
-      error in [exception] -> error
       error ->
-        name = error.__record__(:name)
+        stacktrace = System.stacktrace
+        name = error.__struct__
 
-        if name in [ExUnit.AssertionError] do
-          raise(error)
-        else
-          flunk "Expected exception #{inspect exception} but got #{inspect name} (#{error.message})"
+        cond do
+          name == exception ->
+            error
+          name == ExUnit.AssertionError ->
+            reraise(error, stacktrace)
+          true ->
+            flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
         end
+    else
+      _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
     end
   end
 
@@ -402,9 +408,10 @@ defmodule ExUnit.Assertions do
         unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
-        e in [ExUnit.AssertionError] -> raise(e)
+        e in [ExUnit.AssertionError] ->
+          reraise(e, System.stacktrace)
       catch
-        unquote(kind), what_we_got -> what_we_got
+        unquote(kind), we_got -> we_got
       end
     end
   end

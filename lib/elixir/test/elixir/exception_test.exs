@@ -3,26 +3,54 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Kernel.ExceptionTest do
   use ExUnit.Case, async: true
 
-  # Ensure fields passed through an expression are valid
-  defexception Custom, ~w(message)a
-
-  test "is_exception" do
-    assert is_exception(RuntimeError.new)
-    refute is_exception(empty_tuple)
-    refute is_exception(a_tuple)
-    refute is_exception(a_list)
+  test "raise preserves the stacktrace" do
+    stacktrace =
+      try do
+        raise "a"
+      rescue _ ->
+        [top|_] = System.stacktrace
+        top
+      end
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+    assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
+           [file: ^file, line: 9]} = stacktrace
   end
+
+  test "exception?" do
+    assert Exception.exception?(%RuntimeError{})
+    refute Exception.exception?(%Regex{})
+    refute Exception.exception?({})
+  end
+
+  test "message" do
+    defmodule BadException do
+      def message(_) do
+        raise "oops"
+      end
+    end
+
+    message = ~r/Got RuntimeError with message \"oops\" while retrieving message for/
+
+    assert_raise ArgumentError, message, fn ->
+      Exception.message(%{__struct__: BadException, __exception__: true})
+    end
+  end
+
+  require Record
 
   test "normalize" do
     assert Exception.normalize(:throw, :badarg) == :badarg
-    assert is_record Exception.normalize(:error, :badarg), ArgumentError
-    assert is_record Exception.normalize(:error, ArgumentError[]), ArgumentError
+    assert Exception.normalize(:exit, :badarg) == :badarg
+    assert Exception.normalize({:EXIT, self}, :badarg) == :badarg
+    assert Exception.normalize(:error, :badarg).__struct__ == ArgumentError
+    assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
   end
 
   test "format_banner" do
     assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
     assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
     assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
+    assert Exception.format_banner({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
   end
 
   test "format without stacktrace" do
@@ -33,6 +61,11 @@ defmodule Kernel.ExceptionTest do
 
   test "format with empty stacktrace" do
     assert Exception.format(:error, :badarg, []) == "** (ArgumentError) argument error"
+  end
+
+  test "format with EXIT has no stacktrace" do
+    try do throw(:stack) catch :stack -> System.stacktrace() end
+    assert Exception.format({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
   end
 
   test "format_exit" do
@@ -47,6 +80,106 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
     assert Exception.format_exit({:badarg,[{:not_a_real_module, :function, 0, []}]}) ==
            "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
+    assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
+    assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
+    assert Exception.format_exit({:start_spec, :unexpected}) ==
+           "bad start spec: :unexpected"
+    assert Exception.format_exit({:supervisor_data, :unexpected}) ==
+           "bad supervisor data: :unexpected"
+  end
+
+  defmodule Sup do
+    def start_link(fun), do: :supervisor.start_link(__MODULE__, fun)
+
+    def init(fun), do: fun.()
+  end
+
+  test "format_exit with supervisor errors" do
+    trap = Process.flag(:trap_exit, true)
+
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> :foo end)
+    assert Exception.format_exit(reason) ==
+           "#{inspect(__MODULE__.Sup)}.init/1 returned a bad value: :foo"
+
+    return = {:ok, {:foo, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid type: :foo"
+
+    return = {:ok, {{:foo, 1, 1}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid strategy: :foo"
+
+    return = {:ok, {{:one_for_one, :foo, 1}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid intensity: :foo"
+
+    return = {:ok, {{:one_for_one, 1, :foo}, []}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad supervisor data: invalid period: :foo"
+
+    return = {:ok, {{:simple_one_for_one, 1, 1}, :foo}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid children: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1}, [:foo]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid child spec: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, :foo, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid mfa: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :foo, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid restart type: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid shutdown: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :foo, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid child type: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid modules: :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "bad start spec: invalid module: {:foo}"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
+
+    return = {:ok, {{:one_for_one, 1, 1},
+        [{:child, {Kernel, :apply, [fn() -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]}}
+    {:error, reason} = __MODULE__.Sup.start_link(fn() -> return end)
+    assert Exception.format_exit(reason) ==
+           "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
+
+    Process.flag(:trap_exit, trap)
   end
 
   test "format_exit with call" do
@@ -62,7 +195,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_exit with call with exception" do
     # Fake reason to prevent error_logger printing to stdout
-    fsm_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    fsm_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
     reason = try do
       :gen_fsm.sync_send_event(spawn(fn() ->
           :timer.sleep(200) ; exit(fsm_reason)
@@ -96,7 +229,7 @@ defmodule Kernel.ExceptionTest do
 
   test "format_exit with nested calls and exception" do
     # Fake reason to prevent error_logger printing to stdout
-    event_reason = {ArgumentError[], [{:not_a_real_module, :function, 0, []}]}
+    event_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
     event_fun = fn() -> :timer.sleep(200) ; exit(event_reason) end
     server_pid = spawn(fn()-> :gen_event.call(spawn(event_fun), :handler, :hello) end)
     reason = try do
@@ -161,52 +294,35 @@ defmodule Kernel.ExceptionTest do
            ~r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
   end
 
+  import Exception, only: [message: 1]
+
   test "runtime error message" do
-    assert RuntimeError.new.message == "runtime error"
-    assert RuntimeError.new(message: "exception").message == "exception"
+    assert %RuntimeError{} |> message == "runtime error"
+    assert %RuntimeError{message: "exception"} |> message == "exception"
   end
 
   test "argument error message" do
-    assert ArgumentError.new.message == "argument error"
-    assert ArgumentError.new(message: "exception").message == "exception"
+    assert %ArgumentError{} |> message == "argument error"
+    assert %ArgumentError{message: "exception"} |> message == "exception"
   end
 
   test "undefined function message" do
-    assert UndefinedFunctionError.new.message == "undefined function"
-    assert UndefinedFunctionError.new(module: Foo, function: :bar, arity: 1).message == "undefined function: Foo.bar/1"
-    assert UndefinedFunctionError.new(module: nil, function: :bar, arity: 0).message == "undefined function: nil.bar/0"
+    assert %UndefinedFunctionError{} |> message == "undefined function"
+    assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
+           "undefined function: Foo.bar/1"
+    assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
+           "undefined function: nil.bar/0"
   end
 
   test "function clause message" do
-    assert FunctionClauseError.new.message == "no function clause matches"
-    assert FunctionClauseError.new(module: Foo, function: :bar, arity: 1).message == "no function clause matching in Foo.bar/1"
+    assert %FunctionClauseError{} |> message ==
+           "no function clause matches"
+    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
+           "no function clause matching in Foo.bar/1"
   end
 
   test "erlang error message" do
-    assert ErlangError.new(original: :sample).message == "erlang error: :sample"
+    assert %ErlangError{original: :sample} |> message ==
+           "erlang error: :sample"
   end
-
-  test "raise preserves the stacktrace" do
-    stacktrace =
-      try do
-        raise "a"
-      rescue _ ->
-        [top|_] = System.stacktrace
-        top
-      end
-    file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
-    assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 192]} = stacktrace
-  end
-
-  test "defexception" do
-    defexception SampleError, message: nil do
-      # Check do block is properly inline
-      def exception(_), do: SampleError[message: "hello"]
-    end
-  end
-
-  defp empty_tuple, do: {}
-  defp a_tuple, do: {:foo, :bar, :baz}
-  defp a_list,  do: [ :foo, :bar, :baz ]
 end

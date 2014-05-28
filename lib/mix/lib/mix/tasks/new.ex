@@ -16,10 +16,9 @@ defmodule Mix.Tasks.New do
   application name and module name will be retrieved
   from the path, unless `--module` is given.
 
-  A `--bare` option can be given to not generate an OTP
-  application skeleton. Normally an app is generated with
-  a supervisor and an application module that starts the
-  supervisor.
+  A `--sup` option can be given to generate an OTP application
+  skeleton including a supervision tree. Normally an app is
+  generated without a supervisor and without the app callback.
 
   An `--umbrella` option can be given to generate an
   umbrella project.
@@ -32,13 +31,13 @@ defmodule Mix.Tasks.New do
 
       mix new hello_world --module HelloWorld
 
-  To generate an app without supervisor and application behaviours:
+  To generate an app with supervisor and application callback:
 
-      mix new hello_world --bare
+      mix new hello_world --sup
 
   """
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [bare: :boolean, umbrella: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
@@ -60,7 +59,7 @@ defmodule Mix.Tasks.New do
 
   defp do_generate(app, path, opts) do
     mod     = opts[:module] || camelize(app)
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:bare])]
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup])]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -71,19 +70,20 @@ defmodule Mix.Tasks.New do
       create_file "mix.exs", mixfile_template(assigns)
     end
 
+    create_directory "config"
+    create_file "config/config.exs", config_template(assigns)
+
     create_directory "lib"
 
-    if opts[:bare] do
-      create_file "lib/#{app}.ex", lib_template(assigns)
+    if opts[:sup] do
+      create_file "lib/#{app}.ex", lib_sup_template(assigns)
     else
-      create_file "lib/#{app}.ex", lib_app_template(assigns)
-      create_directory "lib/#{app}"
-      create_file "lib/#{app}/supervisor.ex", lib_supervisor_template(assigns)
+      create_file "lib/#{app}.ex", lib_template(assigns)
     end
 
     create_directory "test"
     create_file "test/test_helper.exs", test_helper_template(assigns)
-    create_file "test/#{app}_test.exs", test_lib_template(assigns)
+    create_file "test/#{app}_test.exs", test_template(assigns)
 
     Mix.shell.info """
 
@@ -97,11 +97,11 @@ defmodule Mix.Tasks.New do
     """
   end
 
-  defp otp_app(_mod, true) do
+  defp otp_app(_mod, false) do
     "    [applications: []]"
   end
 
-  defp otp_app(mod, false) do
+  defp otp_app(mod, true) do
     "    [applications: [],\n     mod: {#{mod}, []}]"
   end
 
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.New do
 
     create_file ".gitignore", gitignore_text
     create_file "README.md", readme_template(assigns)
-    create_file "mix.exs",   mixfile_umbrella_template(assigns)
+    create_file "mix.exs", mixfile_umbrella_template(assigns)
 
     create_directory "apps"
 
@@ -151,7 +151,8 @@ defmodule Mix.Tasks.New do
   end
 
    embed_template :readme, """
-   # <%= @mod %>
+   <%= @mod %>
+   <%= String.duplicate("=", String.length(@mod)) %>
 
    ** TODO: Add description **
    """
@@ -183,11 +184,11 @@ defmodule Mix.Tasks.New do
 
     # Dependencies can be hex.pm packages:
     #
-    # {:mydep, "~> 0.3.0"}
+    #   {:mydep, "~> 0.3.0"}
     #
     # Or git/path repositories:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -216,9 +217,17 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
+    #
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
+    #
+    # To depend on another app inside the umbrella:
+    #
+    #   {:myapp, in_umbrella: true}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -236,9 +245,13 @@ defmodule Mix.Tasks.New do
        deps: deps]
     end
 
-    # List all dependencies in the format:
+    # Dependencies can be hex.pm packages:
     #
-    # {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+    #   {:mydep, "~> 0.3.0"}
+    #
+    # Or git/path repositories:
+    #
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -247,45 +260,61 @@ defmodule Mix.Tasks.New do
   end
   """
 
+  embed_template :config, ~S"""
+  # This file is responsible for configuring your application and
+  # its dependencies. It must return a keyword list containing the
+  # application name and have as value another keyword list with
+  # the application key-value pairs.
+
+  # Note this configuration is loaded before any dependency and is
+  # restricted to this project. If another project depends on this
+  # project, this file won't be loaded nor affect the parent project.
+
+  # You can customize the configuration path by setting :config_path
+  # in your mix.exs file. For example, you can emulate configuration
+  # per environment by setting:
+  #
+  #     config_path: "config/#{Mix.env}.exs"
+  #
+  # Changing any file inside the config directory causes the whole
+  # project to be recompiled.
+
+  # Sample configuration:
+  #
+  # [dep1: [key: :value],
+  #  dep2: [key: :value]]
+
+  []
+  """
+
   embed_template :lib, """
   defmodule <%= @mod %> do
   end
   """
 
-  embed_template :lib_app, """
+  embed_template :lib_sup, """
   defmodule <%= @mod %> do
     use Application
 
-    # See http://elixir-lang.org/docs/stable/Application.html
+    # See http://elixir-lang.org/docs/stable/elixir/Application.html
     # for more information on OTP Applications
     def start(_type, _args) do
-      <%= @mod %>.Supervisor.start_link
-    end
-  end
-  """
+      import Supervisor.Spec, warn: false
 
-  embed_template :lib_supervisor, """
-  defmodule <%= @mod %>.Supervisor do
-    use Supervisor.Behaviour
-
-    def start_link do
-      :supervisor.start_link(__MODULE__, [])
-    end
-
-    def init([]) do
       children = [
         # Define workers and child supervisors to be supervised
         # worker(<%= @mod %>.Worker, [arg1, arg2, arg3])
       ]
 
-      # See http://elixir-lang.org/docs/stable/Supervisor.Behaviour.html
+      # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
       # for other strategies and supported options
-      supervise(children, strategy: :one_for_one)
+      opts = [strategy: :one_for_one, name: <%= @mod %>.Supervisor]
+      Supervisor.start_link(children, opts)
     end
   end
   """
 
-  embed_template :test_lib, """
+  embed_template :test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
 
@@ -296,6 +325,6 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :test_helper, """
-  ExUnit.start
+  ExUnit.start()
   """
 end

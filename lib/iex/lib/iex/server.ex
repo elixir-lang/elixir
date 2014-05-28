@@ -78,7 +78,7 @@ defmodule IEx.Server do
   """
   @spec start(list, fun) :: :ok
   def start(opts, callback) do
-    {pid, ref} = Process.spawn_monitor(callback)
+    {pid, ref} = spawn_monitor(callback)
     start_loop(opts, pid, ref)
   end
 
@@ -209,10 +209,10 @@ defmodule IEx.Server do
   defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator,  reason},
                         evaluator, evaluator_ref, input, _callback) do
     try do
-      io_error "** (EXIT from #{inspect(evaluator)}) #{Exception.format_exit(reason)}"
+      io_error Exception.format_banner({:EXIT, evaluator}, reason)
     catch
       type, detail ->
-        io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail, records: false, structs: false}"
+        io_error "** (IEx.Error) #{type} when printing EXIT message: #{inspect detail}"
     end
     kill_input(input)
     reset_loop([], evaluator, evaluator_ref)
@@ -221,7 +221,6 @@ defmodule IEx.Server do
   defp handle_take_over(_, _evaluator, _evaluator_ref, _input, callback) do
     callback.()
   end
-
 
   defp kill_input(nil),   do: :ok
   defp kill_input(input), do: Process.exit(input, :kill)
@@ -270,7 +269,7 @@ defmodule IEx.Server do
         {:default, prefix || "iex"}
       end
 
-    prompt = IEx.Options.get(:prompt)[mode]
+    prompt = Application.get_env(:iex, :"#{mode}_prompt")
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
              |> String.replace("%node", to_string(node))

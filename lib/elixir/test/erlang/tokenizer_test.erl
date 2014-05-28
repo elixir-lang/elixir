@@ -45,7 +45,7 @@ unquoted_atom_test() ->
   [{atom, 1, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
-  [{atom_string, 1, false, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
+  [{atom_unsafe, 1, [<<"foo bar">>]}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
   OversizedAtom = [$:|string:copies("a", 256)],
@@ -56,7 +56,7 @@ op_atom_test() ->
 
 kw_test() ->
   [{kw_identifier, 1, do}] = tokenize("do: "),
-  [{kw_identifier_string, 1, false, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
+  [{kw_identifier_unsafe, 1, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
 
 integer_test() ->
   [{number, 1, 123}] = tokenize("123"),

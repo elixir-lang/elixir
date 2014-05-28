@@ -4,7 +4,7 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def extract(name, from: file) when is_binary(file) do
-    file = List.from_char_data!(file)
+    file = String.to_char_list(file)
 
     realfile =
       case :code.where_is_file(file) do
@@ -18,11 +18,11 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
   def extract(name, from_lib: file) when is_binary(file) do
-    [app|path] = :filename.split(List.from_char_data!(file))
+    [app|path] = :filename.split(String.to_char_list(file))
 
-    case :code.lib_dir(list_to_atom(app)) do
+    case :code.lib_dir(List.to_atom(app)) do
       {:error, _} ->
-        raise ArgumentError, message: "lib file #{file} could not be found"
+        raise ArgumentError, "lib file #{file} could not be found"
       libpath ->
         extract_record name, :filename.join([libpath|path])
     end
@@ -35,7 +35,7 @@ defmodule Record.Extractor do
     if record = List.keyfind(records, name, 0) do
       parse_record(record, form)
     else
-      raise ArgumentError, message: "no record #{name} found at #{file}"
+      raise ArgumentError, "no record #{name} found at #{file}"
     end
   end
 

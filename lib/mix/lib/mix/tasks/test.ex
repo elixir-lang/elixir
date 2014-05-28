@@ -6,17 +6,13 @@ defmodule Mix.Tasks.Test do
       Mix.shell.info "Cover compiling modules ... "
       :cover.start
       :cover.compile_beam_directory(compile_path |> to_char_list)
+      output = opts[:output]
 
-      if :application.get_env(:cover, :started) != {:ok, true} do
-        :application.set_env(:cover, :started, true)
-        output = opts[:output]
-
-        fn() ->
-          Mix.shell.info "\nGenerating cover results ... "
-          File.mkdir_p!(output)
-          Enum.each :cover.modules, fn(mod) ->
-            :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
-          end
+      fn() ->
+        Mix.shell.info "\nGenerating cover results ... "
+        File.mkdir_p!(output)
+        Enum.each :cover.modules, fn(mod) ->
+          :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
         end
       end
     end
@@ -51,6 +47,7 @@ defmodule Mix.Tasks.Test do
   * `--include` - include tests that match the filter
   * `--exclude` - exclude tests that match the filter
   * `--only` - run only tests that match the filter
+  * `--seed` - seeds the random number generator used to randomize tests order
 
   ## Filters
 
@@ -152,7 +149,7 @@ defmodule Mix.Tasks.Test do
     # available in test_helper.exs. Then configure exunit again so
     # that command line options override test_helper.exs
     Mix.Task.run "app.start", args
-    :application.load(:ex_unit)
+    Application.load(:ex_unit)
 
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)

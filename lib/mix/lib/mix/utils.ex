@@ -179,7 +179,7 @@ defmodule Mix.Utils do
 
   """
   def underscore(atom) when is_atom(atom) do
-    "Elixir." <> rest = atom_to_binary(atom)
+    "Elixir." <> rest = Atom.to_string(atom)
     underscore(rest)
   end
 
@@ -324,7 +324,7 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      source_list = List.from_char_data!(source)
+      source_list = String.to_char_list(source)
       case :file.read_link(target) do
         {:ok, ^source_list} ->
           :ok
@@ -343,10 +343,14 @@ defmodule Mix.Utils do
   end
 
   defp do_symlink_or_copy(source, target) do
-    symlink_source = make_relative_path(source, target)
-    case :file.make_symlink(symlink_source, target) do
-      :ok -> :ok
-      {:error, _} -> File.cp_r!(source, target)
+    if match? {:win32, _}, :os.type do
+      {:ok, File.cp_r!(source, target)}
+    else
+      symlink_source = make_relative_path(source, target)
+      case :file.make_symlink(symlink_source, target) do
+        :ok -> :ok
+        {:error, _} -> {:ok, File.cp_r!(source, target)}
+      end
     end
   end
 

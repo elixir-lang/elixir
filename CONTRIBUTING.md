@@ -34,16 +34,15 @@ Guidelines for bug reports:
    reported.
 
 2. **Check if the issue has been fixed** &mdash; try to reproduce it using the
-   latest `master` or development branch in the repository.
+   `master` branch in the repository.
 
-3. **Isolate the problem** &mdash; ideally create a reduced test
+3. **Isolate and report the problem** &mdash; ideally create a reduced test
    case.
 
-A good bug report shouldn't leave others needing to chase you up for more
-information. Please try to be as detailed as possible in your report. What is
-your environment? What steps will reproduce the issue? What version of Erlang
-and Elixir experience the problem? What would you expect to be the outcome?
-All these details will help people to fix any potential bugs.
+Please try to be as detailed as possible in your report. Include information about
+your Operating System, your Erlang and Elixir versions. Please provide steps to
+reproduce the issue as well as the outcome you were expecting! All these details
+will help developers to fix any potential bugs.
 
 Example:
 
@@ -67,12 +66,12 @@ Example:
 
 Feature requests are welcome and should be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core). But take a moment to find
 out whether your idea fits with the scope and aims of the project. It's up to *you*
-to make a strong case to convince the project's developers of the merits of this
-feature. Please provide as much detail and context as possible.
+to make a strong case to convince the community of the merits of this feature.
+Please provide as much detail and context as possible.
 
 ## Contributing
 
-We incentivate everyone to contribute to Elixir and help us tackle
+We incentivize everyone to contribute to Elixir and help us tackle
 existing issues! To do so, there are a few things you need to know
 about the code. First, Elixir code is divided in applications inside
 the `lib` folder:
@@ -91,12 +90,42 @@ You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,
 `make test_ex_unit`.
 
+In case you are changing a single file, you can compile and run tests only
+for that particular file for fast development cycles. For example, if you
+are changing the String module, you can compile it and run its tests as:
+
+    $ bin/elixirc lib/elixir/lib/string.ex -o lib/elixir/ebin
+    $ bin/elixir lib/elixir/test/elixir/string_test.exs
+
+After your changes are done, please remember to run the full suite with
+`make test`.
+
 From time to time, your tests may fail in an existing Elixir checkout and
 may require a clean start by running `make clean compile`. You can always
 check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
 
 With tests running and passing, you are ready to contribute to Elixir and
 send your pull requests.
+
+### Building on Windows
+
+There are a few extra steps you'll need to take for contributing from Windows.
+Basically, once you have Erlang 17, Git, and MSYS from MinGW on your system,
+you're all set.  Specifically, here's what you need to do to get up and running:
+
+1. Install [Git](http://www.git-scm.com/download/win), 
+[Erlang](http://www.erlang.org/download.html), and the
+[MinGW Installation Manager](http://sourceforge.net/projects/mingw/files/latest/download?source=files).
+2. Use the MinGW Installation Manager to install the msys-bash, msys-make, and
+msys-grep packages.
+3. Add `;C:\Program Files (x86)\Git\bin;C:\Program Files\erl6.0\bin;C:\MinGW\msys\1.0\bin`
+to your "Path" environment variable .  (This is under Control Panel > System 
+and Security > System > Advanced system settings > Environment Variables > 
+System variables)
+
+You can now work in the Command Prompt similar to how you would on other OS'es,
+except for some things (like creating symlinks) you'll need to run the Command
+Prompt as an Administrator.
 
 ## Contributing Documentation
 
@@ -108,14 +137,14 @@ something like:
 
 ```elixir
 @doc """
-Return only those elements for which `fun` is true.
+Returns only those elements for which `fun` is true.
 
 ...
 """
 def filter(collection, fun) ...
 ```
 
-For modules, records, protocols and types say what it is. For example write
+For modules, protocols and types say what it is. For example write
 something like:
 
 ```elixir
@@ -167,10 +196,10 @@ commits.
 **IMPORTANT**: By submitting a patch, you agree that your work will be
 licensed under the license used by the project.
 
-If you have any significant pull request in mind (e.g. implementing features,
-refactoring code, porting to a different language), **please ask first**
-otherwise you risk spending a lot of time working on something that the
-project's developers might not want to merge into the project.
+If you have any large pull request in mind (e.g. implementing features,
+refactoring code, etc), **please ask first** otherwise you risk spending
+a lot of time working on something that the project's developers might
+not want to merge into the project.
 
 Please adhere to the coding conventions in the project (indentation,
 accurate comments, etc.) and don't forget to add your own tests and

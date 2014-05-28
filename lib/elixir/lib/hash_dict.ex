@@ -14,13 +14,15 @@ defmodule HashDict do
   functions and their APIs, please consult the `Dict` module.
   """
 
-  use Dict.Behaviour
+  use Dict
 
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
 
+  @opaque t :: map
+  @doc false
   defstruct size: 0, root: @node_template
 
   # Inline common instructions
@@ -42,7 +44,7 @@ defmodule HashDict do
 
   def update!(%HashDict{root: root, size: size} = dict, key, fun) when is_function(fun, 1) do
     {root, counter} = do_update(root, key, fn -> raise KeyError, key: key, term: dict end,
-                                  fun, key_hash(key))
+                                fun, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
@@ -58,14 +60,14 @@ defmodule HashDict do
   def delete(dict, key) do
     case dict_delete(dict, key) do
       {dict, _value} -> dict
-      :error           -> dict
+      :error         -> dict
     end
   end
 
   def pop(dict, key, default \\ nil) do
     case dict_delete(dict, key) do
       {dict, value} -> {value, dict}
-      :error          -> {default, dict}
+      :error        -> {default, dict}
     end
   end
 
@@ -82,33 +84,13 @@ defmodule HashDict do
     end)
   end
 
-  def split(dict, keys) do
-    Enum.reduce keys, {new, dict}, fn key, {inc, exc} = acc ->
-      case dict_delete(exc, key) do
-        {exc, value} -> {put(inc, key, value), exc}
-        :error -> acc
-      end
-    end
-  end
-
-  def merge(%HashDict{size: size1} = dict1, %HashDict{size: size2} = dict2, callback) when size1 < size2 do
-    reduce(dict1, {:cont, dict2}, fn {k, v1}, acc ->
-      {:cont, update(acc, k, v1, &callback.(k, v1, &1))}
-    end) |> elem(1)
-  end
-
-  def merge(%HashDict{} = dict1, %HashDict{} = dict2, callback) do
-    reduce(dict2, {:cont, dict1}, fn {k, v2}, acc ->
-      {:cont, update(acc, k, v2, &callback.(k, &1, v2))}
-    end) |> elem(1)
-  end
-
   ## General helpers
 
-  defp dict_delete(%HashDict{root: root, size: size}, key) do
+  @doc false
+  def dict_delete(%HashDict{root: root, size: size}, key) do
     case do_delete(root, key, key_hash(key)) do
       {root, value} -> {%HashDict{root: root, size: size - 1}, value}
-      :error          -> :error
+      :error        -> :error
     end
   end
 
@@ -128,17 +110,17 @@ defmodule HashDict do
     index = key_mask(hash)
     case elem(node, index) do
       [] ->
-        {set_elem(node, index, [key|value]), 1}
+        {put_elem(node, index, [key|value]), 1}
       [^key|_] ->
-        {set_elem(node, index, [key|value]), 0}
+        {put_elem(node, index, [key|value]), 0}
       [k|v] ->
-        n = set_elem(@node_template, key_mask(key_shift(hash)), [key|value])
-        {set_elem(node, index, {k, v, n}), 1}
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [key|value])
+        {put_elem(node, index, {k, v, n}), 1}
       {^key, _, n} ->
-        {set_elem(node, index, {key, value, n}), 0}
+        {put_elem(node, index, {key, value, n}), 0}
       {k, v, n} ->
         {n, counter} = do_put(n, key, value, key_shift(hash))
-        {set_elem(node, index, {k, v, n}), counter}
+        {put_elem(node, index, {k, v, n}), counter}
     end
   end
 
@@ -146,17 +128,17 @@ defmodule HashDict do
     index = key_mask(hash)
     case elem(node, index) do
       [] ->
-        {set_elem(node, index, [key|initial.()]), 1}
+        {put_elem(node, index, [key|initial.()]), 1}
       [^key|value] ->
-        {set_elem(node, index, [key|fun.(value)]), 0}
+        {put_elem(node, index, [key|fun.(value)]), 0}
       [k|v] ->
-        n = set_elem(@node_template, key_mask(key_shift(hash)), [key|initial.()])
-        {set_elem(node, index, {k, v, n}), 1}
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [key|initial.()])
+        {put_elem(node, index, {k, v, n}), 1}
       {^key, value, n} ->
-        {set_elem(node, index, {key, fun.(value), n}), 0}
+        {put_elem(node, index, {key, fun.(value), n}), 0}
       {k, v, n} ->
         {n, counter} = do_update(n, key, initial, fun, key_shift(hash))
-        {set_elem(node, index, {k, v, n}), counter}
+        {put_elem(node, index, {k, v, n}), counter}
     end
   end
 
@@ -166,17 +148,17 @@ defmodule HashDict do
       [] ->
         :error
       [^key|value] ->
-        {set_elem(node, index, []), value}
+        {put_elem(node, index, []), value}
       [_|_] ->
         :error
       {^key, value, n} ->
-        {set_elem(node, index, do_compact_node(n)), value}
+        {put_elem(node, index, do_compact_node(n)), value}
       {k, v, n} ->
         case do_delete(n, key, key_shift(hash)) do
           {@node_template, value} ->
-            {set_elem(node, index, [k|v]), value}
+            {put_elem(node, index, [k|v]), value}
           {n, value} ->
-            {set_elem(node, index, {k, v, n}), value}
+            {put_elem(node, index, {k, v, n}), value}
           :error ->
             :error
         end
@@ -187,12 +169,12 @@ defmodule HashDict do
     defp do_compact_node(node) when elem(node, unquote(index)) != [] do
       case elem(node, unquote(index)) do
         [k|v] ->
-          case set_elem(node, unquote(index), []) do
+          case put_elem(node, unquote(index), []) do
             @node_template -> [k|v]
             n -> {k, v, n}
           end
         {k, v, n} ->
-          {k, v, set_elem(node, unquote(index), do_compact_node(n))}
+          {k, v, put_elem(node, unquote(index), do_compact_node(n))}
       end
     end
   end
@@ -252,7 +234,14 @@ defimpl Enumerable, for: HashDict do
 end
 
 defimpl Access, for: HashDict do
-  def access(dict, key), do: HashDict.get(dict, key, nil)
+  def get(dict, key) do
+    HashDict.get(dict, key, nil)
+  end
+
+  def get_and_update(dict, key, fun) do
+    {get, update} = fun.(HashDict.get(dict, key, nil))
+    {get, HashDict.put(dict, key, update)}
+  end
 end
 
 defimpl Collectable, for: HashDict do
@@ -266,5 +255,13 @@ defimpl Collectable, for: HashDict do
       dict, :done -> dict
       _, :halt -> :ok
     end}
+  end
+end
+
+defimpl Inspect, for: HashDict do
+  import Inspect.Algebra
+
+  def inspect(dict, opts) do
+    concat ["#HashDict<", Inspect.List.inspect(HashDict.to_list(dict), opts), ">"]
   end
 end

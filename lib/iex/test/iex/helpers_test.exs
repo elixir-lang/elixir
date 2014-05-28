@@ -5,16 +5,6 @@ defmodule IEx.HelpersTest do
 
   import IEx.Helpers
 
-  @doc """
-  Test function 1
-  """
-  def test_fun_1, do: :ok
-
-  @doc """
-  Test function 2
-  """
-  def test_fun_2(arg \\ 99), do: arg
-
   test "clear helper" do
     assert "\e[H\e[2J" == capture_iex("clear")
   end
@@ -36,18 +26,14 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper function" do
-    doc_1 = "* def test_fun_1()\n\nTest function 1\n\n"
-    doc_2 = "* def test_fun_2(arg \\\\ 99)\n\nTest function 2\n\n"
+    pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
+    c_h   = "* def c(files, path \\\\ \".\")\n\nExpects a list of files to compile"
 
-    assert capture_io(fn -> h IEx.HelpersTest.test_fun_1/0 end) == doc_1
-    assert capture_io(fn -> h IEx.HelpersTest.test_fun_2/1 end) == doc_2
+    assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
+    assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
 
-    output = capture_io(fn -> h IEx.HelpersTest.test_fun_1 end)
-    assert :binary.match(output, doc_1)
-    assert :binary.match(output, doc_2)
-
-    assert capture_io(fn -> h pwd end)
-           == "* def pwd()\n\nPrints the current working directory.\n\n\n"
+    assert capture_io(fn -> h IEx.Helpers.c/1 end) =~ c_h
+    assert capture_io(fn -> h pwd end) =~ pwd_h
   end
 
   test "h helper __info__" do
@@ -82,8 +68,10 @@ defmodule IEx.HelpersTest do
       String.starts_with? line, "@spec"
     end) >= 2
 
-    assert capture_io(fn -> s Enum.all?/1 end) == "@spec all?(t()) :: boolean()\n"
-    assert capture_io(fn -> s iodata_to_binary end) == "@spec iodata_to_binary(iolist() | binary()) :: binary()\n"
+    assert capture_io(fn -> s Enum.all?/1 end) ==
+           "@spec all?(t()) :: boolean()\n"
+    assert capture_io(fn -> s struct end) ==
+           "@spec struct(module() | %{}, Enum.t()) :: %{}\n"
   end
 
   test "v helper" do

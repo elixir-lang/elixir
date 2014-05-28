@@ -111,7 +111,7 @@ defmodule Mix.Dep.Loader do
       invalid_dep_format(other)
     end
 
-    bin_app = atom_to_binary(app)
+    bin_app = Atom.to_string(app)
 
     dest  = Path.join(Mix.Project.deps_path, bin_app)
     build = Path.join([Mix.Project.build_path, "lib", bin_app])
@@ -263,7 +263,7 @@ defmodule Mix.Dep.Loader do
       {:ok, [{:application, ^app, config}]} ->
         case List.keyfind(config, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
-            actual = iodata_to_binary(actual)
+            actual = IO.iodata_to_binary(actual)
             if vsn_match?(req, actual, app) do
               {:ok, actual}
             else

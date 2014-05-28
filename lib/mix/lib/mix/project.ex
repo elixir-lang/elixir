@@ -44,7 +44,10 @@ defmodule Mix.Project do
   # Push a project onto the project stack.
   # Only the top of the stack can be accessed.
   @doc false
-  def push(atom, file \\ "nofile") when is_atom(atom) do
+  def push(atom, file \\ nil) when is_atom(atom) do
+    file = file ||
+           (atom && List.to_string(atom.__info__(:compile)[:source]))
+
     config = default_config
              |> Keyword.merge(get_project_config(atom))
              |> Keyword.drop(@private_config)
@@ -67,9 +70,9 @@ defmodule Mix.Project do
   # The configuration that is pushed down to dependencies.
   @doc false
   def deps_config(config \\ config()) do
-    [ build_path: build_path(config),
-      build_per_environment: config[:build_per_environment],
-      deps_path: deps_path(config) ]
+    [build_path: build_path(config),
+     build_per_environment: config[:build_per_environment],
+     deps_path: deps_path(config)]
   end
 
   @doc """
@@ -130,17 +133,22 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
 
-  By default it includes the mix.exs file and the lock manifest.
+  By default it includes the mix.exs file, the lock manifest and
+  all config files in the `config` directory.
   """
   def config_files do
-    project = get
-    opts    = [Mix.Dep.Lock.manifest]
-
-    if project && (source = project.__info__(:compile)[:source]) do
-      opts = [String.from_char_data!(source)|opts]
-    end
-
-    opts
+    [Mix.Dep.Lock.manifest] ++
+      case Mix.ProjectStack.peek do
+        {_name, config, file} ->
+          configs = (config[:config_path] || "config/config.exs")
+                    |> Path.dirname
+                    |> Path.join("*.*")
+                    |> Path.wildcard
+                    |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
+          [file|configs]
+        _ ->
+          []
+      end
   end
 
   @doc """
@@ -253,7 +261,7 @@ defmodule Mix.Project do
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
-        Path.join([build_path(config), "lib", atom_to_binary(app)])
+        Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
         raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->
@@ -305,6 +313,7 @@ defmodule Mix.Project do
 
     Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
     Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
+    :ok
   end
 
   @doc """

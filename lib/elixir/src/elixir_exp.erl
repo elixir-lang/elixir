@@ -169,32 +169,21 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts   = [hygiene, context, var_context, location, line, unquote, bind_quoted],
+  ValidOpts = [context, location, line, unquote, bind_quoted],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
 
-  Hygiene = case lists:keyfind(hygiene, 1, EKV) of
-    {hygiene, List} when is_list(List) ->
-      List;
-    false ->
-      []
-  end,
-
   Context = case lists:keyfind(context, 1, EKV) of
-    {context, Atom} when is_atom(Atom) ->
-      Atom;
+    {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
+      Ctx;
     {context, Ctx} ->
       compile_error(Meta, ?m(E, file), "invalid :context for quote, "
-        "expected a compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
+        "expected non nil compile time atom or alias, got: ~ts", ['Elixir.Kernel':inspect(Ctx)]);
     false ->
       case ?m(E, module) of
         nil -> 'Elixir';
         Mod -> Mod
       end
   end,
-
-  Vars    = lists:keyfind(vars, 1, Hygiene) /= {vars, false},
-  Aliases = lists:keyfind(aliases, 1, Hygiene) /= {aliases, false},
-  Imports = lists:keyfind(imports, 1, Hygiene) /= {imports, false},
 
   Keep = lists:keyfind(location, 1, EKV) == {location, keep},
   Line = proplists:get_value(line, EKV, false),
@@ -209,8 +198,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{vars_hygiene=Vars, line=Line, keep=Keep, unquote=Unquote,
-        aliases_hygiene=Aliases, imports_hygiene=Imports, context=Context},
+  Q = #elixir_quote{line=Line, keep=Keep, unquote=Unquote, context=Context},
 
   {Quoted, _Q} = elixir_quote:quote(Exprs, Binding, Q, ET),
   expand(Quoted, ET);
@@ -254,10 +242,6 @@ expand({'try', Meta, [KV]}, E) ->
   {{'try', Meta, [EClauses]}, EC};
 
 %% Comprehensions
-
-expand({Kind, Meta, Args}, E) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
-  elixir_errors:deprecation(Meta, ?m(E, file), "~ts is deprecated, please use for comprehensions instead", [Kind]),
-  expand_comprehension(Meta, Kind, Args, E);
 
 expand({for, Meta, Args}, E) when is_list(Args) ->
   elixir_for:expand(Meta, Args, E);
@@ -538,25 +522,6 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, ?m(E, file),
     "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
-
-%% Comprehensions
-
-expand_comprehension(Meta, Kind, Args, E) ->
-  case elixir_utils:split_last(Args) of
-    {Cases, [{do,Expr}]} ->
-      {ECases, EC} = lists:mapfoldl(fun expand_comprehension_clause/2, E, Cases),
-      {EExpr, _}   = expand(Expr, EC),
-      {{Kind, Meta, ECases ++ [[{do,EExpr}]]}, E};
-    _ ->
-      compile_error(Meta, ?m(E, file), "missing do keyword in comprehension ~ts", [Kind])
-  end.
-
-expand_comprehension_clause({Gen, Meta, [Left, Right]}, E) when Gen == inbits; Gen == inlist ->
-  {ERight, ER} = expand(Right, E),
-  {ELeft, EL}  = elixir_exp_clauses:match(fun expand/2, Left, E),
-  {{Gen, Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
-expand_comprehension_clause(X, E) ->
-  expand(X, E).
 
 %% Assertions
 

@@ -1,7 +1,7 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/7, clauses/4, get_pairs/2, get_pairs/3,
+-export([match/3, clause/7, clauses/4, guards/4, get_pairs/2, get_pairs/3,
   extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 
@@ -35,17 +35,19 @@ clause(Line, Fun, Args, Expr, Guards, Return, S) when is_integer(Line) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_scope{extra_guards=[]}),
   {TExpr, SE} = elixir_translator:translate_block(Expr, Return, SA#elixir_scope{extra_guards=nil}),
 
-  SG    = SA#elixir_scope{context=guard, extra_guards=nil},
   Extra = SA#elixir_scope.extra_guards,
-
-  TGuards = case Guards of
-    [] -> case Extra of [] -> []; _ -> [Extra] end;
-    _  -> [translate_guard(Line, Guard, Extra, SG) || Guard <- Guards]
-  end,
-
+  TGuards = guards(Line, Guards, Extra, SA),
   {{clause, Line, TArgs, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
+
+guards(Line, Guards, Extra, S) ->
+  SG = S#elixir_scope{context=guard, extra_guards=nil},
+
+  case Guards of
+    [] -> case Extra of [] -> []; _ -> [Extra] end;
+    _  -> [translate_guard(Line, Guard, Extra, SG) || Guard <- Guards]
+  end.
 
 translate_guard(Line, Guard, Extra, S) ->
   [element(1, elixir_translator:translate(elixir_quote:linify(Line, Guard), S))|Extra].

@@ -2,7 +2,7 @@
 %% Expects the tree to be expanded.
 -module(elixir_translator).
 -export([translate/2, translate_arg/3, translate_args/2, translate_block/3]).
--import(elixir_scope, [mergev/2, mergec/2, mergef/2]).
+-import(elixir_scope, [mergev/2, mergec/2]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -129,9 +129,6 @@ translate({'receive', Meta, [KV]}, #elixir_scope{return=Return} = RS) when is_li
 
 %% Comprehensions
 
-translate({Kind, Meta, Args}, S) when is_list(Args), (Kind == lc) orelse (Kind == bc) ->
-  translate_comprehension(Meta, Kind, Args, S);
-
 translate({for, Meta, Args}, S) when is_list(Args) ->
   elixir_for:translate(Meta, Args, S);
 
@@ -229,11 +226,19 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
         true ->
           {Var, _, SV} = elixir_scope:build_var('_', SC),
           TVar = {var, Line, Var},
-          TMap = {tuple, Line, [
-            {atom, Line, 'Elixir.KeyError'},
-            {atom, Line, '__exception__'},
-            TRight,
-            TVar]},
+          TMap = {map, Line, [
+            {map_field_assoc, Line,
+              {atom, Line, '__struct__'},
+              {atom, Line, 'Elixir.KeyError'}},
+            {map_field_assoc, Line,
+              {atom, Line, '__exception__'},
+              {atom, Line, 'true'}},
+            {map_field_assoc, Line,
+              {atom, Line, key},
+              {atom, Line, TRight}},
+            {map_field_assoc, Line,
+              {atom, Line, term},
+              TVar}]},
 
           %% TODO There is a bug in dialyzer that makes it fail on
           %% empty maps. We work around the bug below by using
@@ -370,42 +375,6 @@ handles_no_return({'case', _, [_, _]}) -> true;
 handles_no_return({'receive', _, [_]}) -> true;
 handles_no_return({'__block__', _, [_|_]}) -> true;
 handles_no_return(_) -> false.
-
-%% Comprehensions
-
-translate_comprehension(Meta, Kind, Args, S) ->
-  {Cases, [{do,Expr}]} = elixir_utils:split_last(Args),
-  {TCases, SC} = lists:mapfoldl(fun(C, Acc) -> translate_comprehension_clause(Meta, C, Acc) end, S, Cases),
-  {TExpr, SE}  = translate_comprehension_do(Meta, Kind, Expr, SC),
-  {{Kind, ?line(Meta), TExpr, TCases}, mergef(S, SE)}.
-
-translate_comprehension_do(_Meta, bc, {'<<>>', _, _} = Expr, S) ->
-  translate(Expr, S);
-
-translate_comprehension_do(Meta, bc, _Expr, S) ->
-  compile_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be returned");
-
-translate_comprehension_do(_Meta, _Kind, Expr, S) ->
-  translate(Expr, S).
-
-translate_comprehension_clause(_Meta, {inbits, Meta, [{'<<>>', _, _} = Left, Right]}, S) ->
-  {TRight, SR} = translate(Right, S),
-  {TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  {{b_generate, ?line(Meta), TLeft, TRight}, SL};
-
-translate_comprehension_clause(_Meta, {inbits, Meta, [_Left, _Right]}, S) ->
-  compile_error(Meta, S#elixir_scope.file, "a bit comprehension expects a bit string << >> to be used in inbits generators");
-
-translate_comprehension_clause(_Meta, {inlist, Meta, [Left, Right]}, S) ->
-  {TRight, SR} = translate(Right, S),
-  {TLeft, SL } = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  {{generate, ?line(Meta), TLeft, TRight}, SL};
-
-translate_comprehension_clause(Meta, X, S) ->
-  Line = ?line(Meta),
-  {TX, TS} = translate(X, S),
-  {BX, BS} = elixir_utils:convert_to_boolean(Line, TX, true, TS),
-  {{match, Line, {var, Line, '_'}, BX}, BS}.
 
 %% Assertions
 

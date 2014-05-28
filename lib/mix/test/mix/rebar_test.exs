@@ -18,12 +18,12 @@ defmodule Mix.RebarTest do
 
   setup do
     available = Mix.SCM.available
-    :application.set_env(:mix, :scm, [Mix.SCM.Git, MyPath])
+    Application.put_env(:mix, :scm, [Mix.SCM.Git, MyPath])
     {:ok, [scm: available]}
   end
 
   teardown context do
-    :application.set_env(:mix, :scm, context[:scm])
+    Application.put_env(:mix, :scm, context[:scm])
     :ok
   end
 
@@ -48,7 +48,7 @@ defmodule Mix.RebarTest do
   test "execute rebar.config.script on dependecy directory" do
     path = MixTest.Case.fixture_path("rebar_dep_script")
     config = Mix.Rebar.load_config(path)
-    assert config[:dir] == {:ok, List.from_char_data!(path)}
+    assert config[:dir] == {:ok, String.to_char_list(path)}
   end
 
   test "parse rebar dependencies" do

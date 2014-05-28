@@ -6,11 +6,10 @@ defmodule IEx.InteractionTest do
   ## Basic interaction
 
   test "whole output" do
-    IEx.Options.set :colors, enabled: false
-
     assert capture_io("IO.puts \"Hello world\"", fn ->
       IEx.Server.start([dot_iex_path: ""], fn -> end)
-    end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)\niex(1)> Hello world\n:ok\niex(2)>"
+    end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)" <>
+            "\niex(1)> Hello world\n:ok\niex(2)>"
   end
 
   test "empty input" do
@@ -88,6 +87,51 @@ defmodule IEx.InteractionTest do
     :code.delete(Sample)
   end
 
+  test "prompt" do
+    opts = [default_prompt: "prompt(%counter)>"]
+    assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
+  end
+
+  unless match?({:win32,_}, :os.type) do
+    test "color" do
+      opts = [colors: [enabled: true, eval_result: "red"]]
+      assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
+
+      # Sanity checks
+      assert capture_iex("IO.ANSI.escape(\"%{blue}hello\", true)", opts)
+             == "\e[31m\"\\e[34mhello\\e[0m\"\e[0m"
+      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", opts)
+             == "\e[34mhello\e[0m\n\e[31m:ok\e[0m"
+      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", [colors: [enabled: false]])
+             == "\e[34mhello\e[0m\n:ok"
+
+      # Test that ANSI escapes in the docs are left alone
+      opts = [colors: [enabled: true]]
+      assert capture_iex("h IO.ANSI.escape_fragment", opts)
+             =~ ~r"%\{red\}"
+
+      # Test that ANSI escapes in iex output are left alone
+      opts = [colors: [enabled: true, eval_result: "red", eval_info: "red"]]
+      assert capture_iex("\"%{red} %{blue}\"", opts) == "\e[31m\"%{red} %{blue}\"\e[0m"
+      assert capture_iex("IO.puts IEx.color(:eval_info, \"%{red} %{blue}\")", opts)
+             == "\e[31m%{red} %{blue}\e[0m\n\e[31m:ok\e[0m"
+    end
+  end
+
+  test "inspect opts" do
+    opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
+    assert capture_iex("<<45,46,47>>\n[45,46,47]\n%IO.Stream{}", opts) ==
+              "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+  end
+
+  test "history size" do
+    opts = [history_size: 3]
+    assert capture_iex("1\n2\n3\nv(1)", opts) == "1\n2\n3\n1"
+    assert "1\n2\n3\n4\n** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(1)", opts)
+    assert "1\n2\n3\n4\n** (RuntimeError) v(-4) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(-4)", opts)
+    assert "1\n2\n3\n4\n2\n** (RuntimeError) v(2) is out of bounds" <> _ = capture_iex("1\n2\n3\n4\nv(2)\nv(2)", opts)
+  end
+
   ## .iex file loading
 
   test "no .iex" do
@@ -98,7 +142,7 @@ defmodule IEx.InteractionTest do
     File.write!("dot-iex", "my_variable = 144")
     assert capture_iex("my_variable", [], [dot_iex_path: "dot-iex"]) == "144"
   after
-    File.rm!("dot-iex")
+    File.rm("dot-iex")
   end
 
   test "nested .iex" do
@@ -109,23 +153,28 @@ defmodule IEx.InteractionTest do
     assert capture_iex(input, [], [dot_iex_path: "dot-iex"]) == "13\n14\nhello\n:ok"
   after
     File.rm("dot-iex-1")
-    File.rm!("dot-iex")
+    File.rm("dot-iex")
   end
 
   test "receive exit" do
-    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
-    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) {:bye, \[:world\]}"
+    assert capture_iex("spawn_link(fn -> exit(:bye) end)") =~
+           ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) :bye"
+    assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end)") =~
+           ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) {:bye, \[:world\]}"
   end
 
   test "receive exit from exception" do
-    # use exit/1 to fake an error so that an error message is not sent to the
-    # error logger.
-    assert capture_iex("spawn_link(fn -> exit({ArgumentError[],
-      [{:not_a_real_module, :function, 0, []}]}) end)") =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n\s{4}\*\* \(ArgumentError\) argument error\n\s{8}:not_a_real_module\.function/0"
+    # use exit/1 to fake an error so that an error message
+    # is not sent to the error logger.
+    content = capture_iex("spawn_link(fn -> exit({%ArgumentError{},
+                           [{:not_a_real_module, :function, 0, []}]}) end)")
+    assert content =~ ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) an exception was raised:\n"
+    assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"
+    assert content =~ ~r"\s{8}:not_a_real_module\.function/0"
   end
 
   test "exit due to failed call" do
-    assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~ ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
+    assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~
+           ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
   end
-
 end

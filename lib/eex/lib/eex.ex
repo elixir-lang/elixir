@@ -1,4 +1,6 @@
-defexception EEx.SyntaxError, message: nil
+defmodule EEx.SyntaxError do
+  defexception [:message]
+end
 
 defmodule EEx do
   @moduledoc ~S"""

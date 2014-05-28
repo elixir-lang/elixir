@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp escriptize(project, force) do
     script_name  = project[:escript_name] || project[:app]
-    filename     = project[:escript_path] || atom_to_binary(script_name)
+    filename     = project[:escript_path] || Atom.to_string(script_name)
     main         = project[:escript_main_module]
     embed        = Keyword.get(project, :escript_embed_elixir, true)
     app          = Keyword.get(project, :escript_app, project[:app])
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Escriptize do
         raise Mix.Error, message: "Could not generate escript, no name given, " <>
           "set :escript_name or :app in the project settings"
 
-      !main ->
+      !main or !Code.ensure_loaded?(main)->
         raise Mix.Error, message: "Could not generate escript, please set :escript_main_module " <>
           "in your project configuration to a module that implements main/1"
 
@@ -102,7 +102,7 @@ defmodule Mix.Tasks.Escriptize do
             comment  = project[:escript_comment]  || "%%\n"
             emu_args = project[:escript_emu_args] || "%%!\n"
 
-            script = iodata_to_binary([shebang, comment, emu_args, zip])
+            script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
 
             File.mkdir_p!(Path.dirname(filename))
             File.write!(filename, script)
@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp to_tuples(files) do
     for f <- files do
-      {List.from_char_data!(Path.basename(f)), File.read!(f)}
+      {String.to_char_list(Path.basename(f)), File.read!(f)}
     end
   end
 
@@ -166,7 +166,7 @@ defmodule Mix.Tasks.Escriptize do
           case :application.start(:elixir) do
             :ok ->
               start_app(@app)
-              args = Enum.map(args, &String.from_char_data!(&1))
+              args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn -> @module.main(args) end, true
             _   ->
               io_error "Elixir is not in the code path, aborting."
@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Escriptize do
             {:ok, _} -> :ok
             {:error, {app, reason}} ->
               io_error "Could not start application #{app}: " <>
-                Application.format_reason(reason)
+                Application.format_error(reason)
               System.halt(1)
           end
         end

@@ -12,11 +12,9 @@ defmodule Record do
   manipulate the tuples, providing fast operations on top of
   the tuples compact structure.
 
-  In Elixir, records are used in two situations:
+  In Elixir, records are used mostly in two situations:
 
-  1. To work with short, internal data. See `Inspect.Algebra`
-     implementation for a good example;
-
+  1. To work with short, internal data;
   2. To interface with Erlang records;
 
   The macros `defrecord/3` and `defrecordp/3` can be used to create
@@ -103,21 +101,6 @@ defmodule Record do
     end
   end
 
-  @doc false
-  def defmacros(name, values, env, tag \\ nil) do
-    Record.Deprecated.defmacros(name, values, env, tag)
-  end
-
-  @doc false
-  def deftypes(values, types, env) do
-    Record.Deprecated.deftypes(values, types, env)
-  end
-
-  @doc false
-  def deffunctions(values, env) do
-    Record.Deprecated.deffunctions(values, env)
-  end
-
   @doc """
   Defines a set of macros to create and access a record.
 
@@ -151,25 +134,21 @@ defmodule Record do
         Record.defrecord :user, User, name: nil
       end
 
-      user() #=> {User, nil}
+      require User
+      User.user() #=> {User, nil}
 
   """
   defmacro defrecord(name, tag \\ nil, kv) do
-    kv = Macro.escape(kv, unquote: true)
-
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      kv  = Macro.expand(kv, __ENV__)
-
-      {fields, _types} = Record.Backend.split_fields_and_types(:defrecord, kv)
-      fields = Macro.escape(fields)
+      fields = Macro.escape Record.__fields__(:defrecord, kv)
 
       defmacro(unquote(name)(args \\ [])) do
-        Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)
+        Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
       end
 
       defmacro(unquote(name)(record, args)) do
-        Record.Backend.access(unquote(tag), unquote(fields), record, args, __CALLER__)
+        Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
     end
   end
@@ -178,22 +157,126 @@ defmodule Record do
   Same as `defrecord/3` but generates private macros.
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
-    kv = Macro.escape(kv, unquote: true)
-
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      kv  = Macro.expand(kv, __ENV__)
-
-      {fields, _types} = Record.Backend.split_fields_and_types(:defrecordp, kv)
-      fields = Macro.escape(fields)
+      fields = Macro.escape Record.__fields__(:defrecordp, kv)
 
       defmacrop(unquote(name)(args \\ [])) do
-        Record.Backend.access(unquote(tag), unquote(fields), args, __CALLER__)
+        Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
       end
 
       defmacrop(unquote(name)(record, args)) do
-        Record.Backend.access(unquote(tag), unquote(fields), record, args, __CALLER__)
+        Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
     end
   end
+
+  # Normalizes of record fields to have default values.
+  @doc false
+  def __fields__(type, fields) do
+    :lists.map(fn
+      { key, _ } = pair when is_atom(key) -> pair
+      key when is_atom(key) -> { key, nil }
+      other -> raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
+    end, fields)
+  end
+
+  # Callback invoked from record/0 and record/1 macros.
+  @doc false
+  def __access__(atom, fields, args, caller) do
+    cond do
+      is_atom(args) ->
+        index(atom, fields, args)
+      Keyword.keyword?(args) ->
+        create(atom, fields, args, caller)
+      true ->
+        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
+        raise ArgumentError, msg
+    end
+  end
+
+  # Callback invoked from the record/2 macro.
+  @doc false
+  def __access__(atom, fields, record, args, caller) do
+    cond do
+      is_atom(args) ->
+        get(atom, fields, record, args)
+      Keyword.keyword?(args) ->
+        update(atom, fields, record, args, caller)
+      true ->
+        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
+        raise ArgumentError, msg
+    end
+  end
+
+  # Gets the index of field.
+  defp index(atom, fields, field) do
+    if index = find_index(fields, field, 0) do
+      index - 1 # Convert to Elixir index
+    else
+      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect field}"
+    end
+  end
+
+  # Creates a new record with the given default fields and keyword values.
+  defp create(atom, fields, keyword, caller) do
+    in_match = Macro.Env.in_match?(caller)
+
+    {match, remaining} =
+      Enum.map_reduce(fields, keyword, fn({field, default}, each_keyword) ->
+        new_fields =
+          case Keyword.has_key?(each_keyword, field) do
+            true  -> Keyword.get(each_keyword, field)
+            false ->
+              case in_match do
+                true  -> {:_, [], nil}
+                false -> Macro.escape(default)
+              end
+          end
+
+        {new_fields, Keyword.delete(each_keyword, field)}
+      end)
+
+    case remaining do
+      [] ->
+        {:{}, [], [atom|match]}
+      _  ->
+        keys = for {key, _} <- remaining, do: key
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
+    end
+  end
+
+  # Updates a record given by var with the given keyword.
+  defp update(atom, fields, var, keyword, caller) do
+    if Macro.Env.in_match?(caller) do
+      raise ArgumentError, "cannot invoke update style macro inside match"
+    end
+
+    Enum.reduce keyword, var, fn({key, value}, acc) ->
+      index = find_index(fields, key, 0)
+      if index do
+        quote do
+          :erlang.setelement(unquote(index), unquote(acc), unquote(value))
+        end
+      else
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
+      end
+    end
+  end
+
+  # Gets a record key from the given var.
+  defp get(atom, fields, var, key) do
+    index = find_index(fields, key, 0)
+    if index do
+      quote do
+        :erlang.element(unquote(index), unquote(var))
+      end
+    else
+      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
+    end
+  end
+
+  defp find_index([{k, _}|_], k, i), do: i + 2
+  defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
+  defp find_index([], _k, _i), do: nil
 end

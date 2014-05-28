@@ -13,12 +13,11 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         if function_exported?(module, :__info__, 1) do
-          case module.__info__(:moduledoc) do
+          case Code.get_docs(module, :moduledoc) do
             {_, binary} when is_binary(binary) ->
-              if IO.ANSI.terminal? do
-                options = docs_options()
-                IO.ANSI.Docs.print_heading(inspect(module), options)
-                IO.ANSI.Docs.print(binary, options)
+              if opts = ansi_docs() do
+                IO.ANSI.Docs.print_heading(inspect(module), opts)
+                IO.ANSI.Docs.print(binary, opts)
               else
                 IO.puts "* #{inspect(module)}\n"
                 IO.puts binary
@@ -72,7 +71,7 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
-    if docs = mod.__info__(:docs) do
+    if docs = Code.get_docs(mod, :docs) do
       result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
         h(mod, fun, arity)
         IO.puts ""
@@ -114,7 +113,7 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
-    if docs = mod.__info__(:docs) do
+    if docs = Code.get_docs(mod, :docs) do
       doc =
         cond do
           d = find_doc(docs, fun, arity)         -> d
@@ -159,10 +158,9 @@ defmodule IEx.Introspection do
     heading = "#{kind} #{fun}(#{args})"
     doc     = doc || ""
 
-    if IO.ANSI.terminal? do
-      options = docs_options()
-      IO.ANSI.Docs.print_heading(heading, options)
-      IO.ANSI.Docs.print(doc, options)
+    if opts = ansi_docs() do
+      IO.ANSI.Docs.print_heading(heading, opts)
+      IO.ANSI.Docs.print(doc, opts)
     else
       IO.puts "* #{heading}\n"
       IO.puts doc
@@ -174,11 +172,14 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc_arg({var, _, _}) do
-    atom_to_binary(var)
+    Atom.to_string(var)
   end
 
-  defp docs_options() do
-    [width: IEx.width] ++ IEx.Options.get(:colors)
+  defp ansi_docs() do
+    opts = Application.get_env(:iex, :colors)
+    if opts[:enabled] do
+      [width: IEx.width] ++ opts
+    end
   end
 
   @doc """
@@ -243,7 +244,13 @@ defmodule IEx.Introspection do
     case beam_specs(module) do
       nil   -> nobeam(module)
       []    -> nospecs(inspect module)
-      specs -> for spec <- specs, do: print_spec(spec)
+      specs ->
+        printed = for {_kind, {{f, _arity}, _spec}} = spec <- specs, f != :"__info__" do
+          print_spec(spec)
+        end
+        if printed == [] do
+          nospecs(inspect module)
+        end
     end
 
     dont_display_result

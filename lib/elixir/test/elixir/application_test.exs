@@ -11,6 +11,7 @@ defmodule ApplicationTest do
     assert Application.put_env(:elixir, :unknown, :known) == :ok
     assert Application.fetch_env(:elixir, :unknown) == {:ok, :known}
     assert Application.get_env(:elixir, :unknown, :default) == :known
+    assert {:unknown, :known} in Application.get_all_env(:elixir)
 
     assert Application.delete_env(:elixir, :unknown) == :ok
     assert Application.get_env(:elixir, :unknown, :default) == :default

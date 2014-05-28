@@ -3,8 +3,7 @@
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
   form_error/4, parse_error/4, warn/2, warn/3,
-  handle_file_warning/2, handle_file_warning/3, handle_file_error/2,
-  deprecation/3, deprecation/4]).
+  handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
 -type line_or_meta() :: integer() | list().
@@ -21,7 +20,7 @@ warn(Warning) ->
 warn(Caller, Warning) ->
   warn([Caller, "warning: ", Warning]).
 
-warn(Line, File, Warning) ->
+warn(Line, File, Warning) when is_integer(Line) ->
   warn(file_format(Line, File, "warning: " ++ Warning)).
 
 %% Raised during expansion/translation/compilation.
@@ -56,22 +55,23 @@ parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
   raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
 %% Binaries are wrapped in [<<...>>], so we need to unwrap them
-parse_error(Meta, File, Error, <<"[<<", Token/binary>>) when is_binary(Error) ->
-  Rest = binary_part(Token, 0, byte_size(Token) - 3),
-  Message = <<Error / binary, Rest / binary >>,
-  raise(Meta, File, 'Elixir.SyntaxError', Message);
+parse_error(Meta, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
+  Rest =
+    case binary:split(Full, <<"<<">>) of
+      [Lead, Token] ->
+        case binary:split(Token, <<">>">>) of
+          [Part, _] when Lead == <<$[>> -> Part;
+          _ -> <<$">>
+        end;
+      [_] ->
+        <<$">>
+    end,
+  raise(Meta, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
 
 %% Everything else is fine as is
 parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error / binary, Token / binary >>,
   raise(Meta, File, 'Elixir.SyntaxError', Message).
-
-%% Shows a deprecation message
-
-deprecation(Meta, File, Message) -> deprecation(Meta, File, Message, []).
-
-deprecation(Meta, File, Message, Args) ->
-  io:format(file_format(?line(Meta), File, io_lib:format(Message, Args))).
 
 %% Handle warnings and errors (called during module compilation)
 
@@ -177,7 +177,7 @@ raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File) ->
     ok -> ok
   end,
   Stacktrace = erlang:get_stacktrace(),
-  Exception = Kind:new([{description, Message}, {file, File}, {line, Line}]),
+  Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
   erlang:raise(error, Exception, tl(Stacktrace)).
 
 file_format(0, File, Message) when is_binary(File) ->

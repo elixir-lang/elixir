@@ -3,23 +3,42 @@ defmodule IO.ANSI.Docs do
 
   @bullets [?*, ?-, ?+]
 
-  @default_options [enabled: true,
-                    doc_code: "cyan,bright",
-                    doc_inline_code: "cyan",
-                    doc_headings: "yellow,bright",
-                    doc_title: "reverse,yellow,bright",
-                    doc_bold: "bright",
-                    doc_underline: "underline",
-                    width: 80]
+  @doc """
+  The default options used by this module.
+
+  The supported values are:
+
+  * `:enabled`         - toggles coloring on and off (true)
+  * `:doc_code`        - code blocks (cyan, bright)
+  * `:doc_inline_code` - inline code (cyan)
+  * `:doc_headings`    - h1 and h2 headings (yellow, bright)
+  * `:doc_title`       - top level heading (reverse, yellow, bright)
+  * `:doc_bold`        - bold text (bright)
+  * `:doc_underline`   - underlined text (underline)
+  * `:width`           - the width to format the text (80)
+
+  Values for the color settings are strings with
+  comma-separated ANSI values.
+  """
+  def default_options do
+    [enabled: true,
+     doc_code: "cyan,bright",
+     doc_inline_code: "cyan",
+     doc_headings: "yellow,bright",
+     doc_title: "reverse,yellow,bright",
+     doc_bold: "bright",
+     doc_underline: "underline",
+     width: 80]
+  end
 
   @doc """
   Prints the head of the documentation (i.e. the function signature).
 
-  See `print/3` for docs on the supported options.
+  See `default_options/0` for docs on the supported options.
   """
   def print_heading(heading, options \\ []) do
     IO.puts IO.ANSI.reset
-    options = Keyword.merge(@default_options, options)
+    options = Keyword.merge(default_options, options)
     width   = options[:width]
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
@@ -29,25 +48,11 @@ defmodule IO.ANSI.Docs do
   @doc """
   Prints the documentation body.
 
-  In addition to the priting string, takes a truth value for whether to use ANSI
-  escape codes, and a keyword list for the printing color settings. Supported
-  options are:
-
-  * `:enabled`         - toggles coloring on and off (true)
-  * `:doc_code`        - code blocks (cyan, bright)
-  * `:doc_inline_code` - inline code (cyan)
-  * `:doc_headings`    - h1 and h2 headings (yellow, bright)
-  * `:doc_title`       - top level heading (reverse, yellow, bright)
-  * `:doc_bold`        - bold text (bright)
-  * `:doc_underline`   - underlined text (underline)
-  * `:width`           - the width to format the text
-
-  Values for the color settings are strings with comma-separated
-  ansi values.
-
+  In addition to the priting string, takes a set of options
+  defined in `default_options/1`.
   """
   def print(doc, options \\ []) do
-    options = Keyword.merge(@default_options, options)
+    options = Keyword.merge(default_options, options)
     doc
     |> String.split(["\r\n","\n"], trim: false)
     |> Enum.map(&String.rstrip/1)
@@ -350,7 +355,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_inline(<<>>, _mark, buffer, acc, _options) do
-    iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
+    IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
   defp inline_buffer(buffer, options) do

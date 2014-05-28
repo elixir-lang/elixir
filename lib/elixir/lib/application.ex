@@ -112,6 +112,14 @@ defmodule Application do
   @type start_type :: :permanent | :transient | :temporary
 
   @doc """
+  Returns all key-value pairs for `app`.
+  """
+  @spec get_all_env(app) :: [{key,value}]
+  def get_all_env(app) do
+    :application.get_all_env(app)
+  end
+
+  @doc """
   Returns the value for `key` in `app`'s environment.
 
   If the specified application is not loaded, or the configuration parameter
@@ -238,7 +246,7 @@ defmodule Application do
   @doc """
   Stops the given `app`.
 
-  When stopped, the application is still loaded.  
+  When stopped, the application is still loaded.
   """
   @spec stop(app) :: :ok | {:error, term}
   def stop(app) do
@@ -297,8 +305,8 @@ defmodule Application do
   @spec app_dir(app) :: String.t
   def app_dir(app) when is_atom(app) do
     case :code.lib_dir(app) do
-      lib when is_list(lib) -> String.from_char_data!(lib)
-      {:error, :bad_name} -> raise ArgumentError, message: "unknown application: #{inspect app}"
+      lib when is_list(lib) -> IO.chardata_to_string(lib)
+      {:error, :bad_name} -> raise ArgumentError, "unknown application: #{inspect app}"
     end
   end
 
@@ -315,10 +323,10 @@ defmodule Application do
   `ensure_started/2, `stop/1`, `load/1` and `unload/1`,
   returns a string.
   """
-  @spec format_reason(any) :: String.t
-  def format_reason(reason) do
+  @spec format_error(any) :: String.t
+  def format_error(reason) do
     try do
-      impl_format_reason(reason)
+      impl_format_error(reason)
     catch
       # A user could create an error that looks like a builtin one
       # causing an error.
@@ -328,67 +336,68 @@ defmodule Application do
   end
 
   # exit(:normal) call is special cased, undo the special case.
-  defp impl_format_reason({{:EXIT, :normal}, {mod, :start, args}}) do
+  defp impl_format_error({{:EXIT, :normal}, {mod, :start, args}}) do
     Exception.format_exit({:normal, {mod, :start, args}})
   end
 
   # {:error, reason} return value
-  defp impl_format_reason({reason, {mod, :start, args}}) do
-    Exception.format_exit({reason, {mod, :start, args}})
+  defp impl_format_error({reason, {mod, :start, args}}) do
+    Exception.format_mfa(mod, :start, args) <> " returned an error: " <>
+      Exception.format_exit(reason)
   end
 
   # error or exit(reason) call, use exit reason as reason.
-  defp impl_format_reason({:bad_return, {{mod, :start, args}, {:EXIT, reason}}}) do
+  defp impl_format_error({:bad_return, {{mod, :start, args}, {:EXIT, reason}}}) do
     Exception.format_exit({reason, {mod, :start, args}})
   end
 
   # bad return value
-  defp impl_format_reason({:bad_return, {{mod, :start, args}, return}}) do
-    Exception.format_mfa(mod, :start, args) <> " had bad return: " <>
-      inspect(return)
+  defp impl_format_error({:bad_return, {{mod, :start, args}, return}}) do
+    Exception.format_mfa(mod, :start, args) <>
+      " returned a bad value: " <> inspect(return)
   end
 
-  defp impl_format_reason({:already_started, app}) when is_atom(app) do
+  defp impl_format_error({:already_started, app}) when is_atom(app) do
     "already started application #{app}"
   end
 
-  defp impl_format_reason({:not_started, app}) when is_atom(app) do
+  defp impl_format_error({:not_started, app}) when is_atom(app) do
     "not started application #{app}"
   end
 
-  defp impl_format_reason({:bad_application, app}) do
+  defp impl_format_error({:bad_application, app}) do
     "bad application: #{inspect(app)}"
   end
 
-  defp impl_format_reason({:already_loaded, app}) when is_atom(app) do
+  defp impl_format_error({:already_loaded, app}) when is_atom(app) do
     "already loaded application #{app}"
   end
 
-  defp impl_format_reason({:not_loaded, app}) when is_atom(app) do
+  defp impl_format_error({:not_loaded, app}) when is_atom(app) do
     "not loaded application #{app}"
   end
 
-  defp impl_format_reason({:invalid_restart_type, restart}) do
+  defp impl_format_error({:invalid_restart_type, restart}) do
     "invalid application restart type: #{inspect(restart)}"
   end
 
-  defp impl_format_reason({:invalid_name, name}) do
+  defp impl_format_error({:invalid_name, name}) do
     "invalid application name: #{inspect(name)}"
   end
 
-  defp impl_format_reason({:invalid_options, opts}) do
-    "invalid application name: #{inspect(opts)}"
+  defp impl_format_error({:invalid_options, opts}) do
+    "invalid application options: #{inspect(opts)}"
   end
 
-  defp impl_format_reason({:badstartspec, spec}) do
+  defp impl_format_error({:badstartspec, spec}) do
     "bad application start specs: #{inspect(spec)}"
   end
 
-  defp impl_format_reason({'no such file or directory', file}) do
+  defp impl_format_error({'no such file or directory', file}) do
     "could not find application file: #{file}"
   end
 
-  defp impl_format_reason(reason) do
+  defp impl_format_error(reason) do
     Exception.format_exit(reason)
   end
 end

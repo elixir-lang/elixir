@@ -45,16 +45,20 @@ defmodule URI do
 
   """
   def default_port(scheme) when is_binary(scheme) do
-    {:ok, dict} = :application.get_env(:elixir, :uri)
+    {:ok, dict} = Application.fetch_env(:elixir, :uri)
     Map.get(dict, scheme)
   end
 
   @doc """
   Registers a scheme with a default port.
+
+  It is recommended for this function to be invoked in your
+  application start callback in case you want to register
+  new URIs.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
-    {:ok, dict} = :application.get_env(:elixir, :uri)
-    :application.set_env(:elixir, :uri, Map.put(dict, scheme, port))
+    {:ok, dict} = Application.fetch_env(:elixir, :uri)
+    Application.put_env(:elixir, :uri, Map.put(dict, scheme, port), persistent: true)
   end
 
   @doc """
@@ -80,7 +84,7 @@ defmodule URI do
   Decodes a query string into a dictionary (by default uses a map).
 
   Given a query string of the form "key1=value1&key2=value2...", produces a
-  `HashDict` with one entry for each key-value pair. Each key and value will be a
+  map with one entry for each key-value pair. Each key and value will be a
   binary. Keys and values will be percent-unescaped.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
@@ -130,11 +134,11 @@ defmodule URI do
   end
 
   defp pair({k, _}) when is_list(k) do
-    raise ArgumentError, message: "encode_query/1 keys cannot be lists, got: #{inspect k}"
+    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect k}"
   end
 
   defp pair({_, v}) when is_list(v) do
-    raise ArgumentError, message: "encode_query/1 values cannot be lists, got: #{inspect v}"
+    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect v}"
   end
 
   defp pair({k, v}) do
@@ -196,7 +200,7 @@ defmodule URI do
   defp hex2dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
   defp hex2dec(n, _uri) when n in ?0..?9, do: n - ?0
   defp hex2dec(_n, uri) do
-    raise ArgumentError, message: "malformed URI #{inspect uri}"
+    raise ArgumentError, "malformed URI #{inspect uri}"
   end
 
   defp check_plus(?+), do: 32
@@ -231,7 +235,7 @@ defmodule URI do
 
       if userinfo, do: authority = authority <> userinfo <> "@"
       if host, do: authority = authority <> host
-      if port, do: authority = authority <> ":" <> integer_to_binary(port)
+      if port, do: authority = authority <> ":" <> Integer.to_string(port)
     end
 
     scheme = normalize_scheme(scheme)
@@ -253,7 +257,7 @@ defmodule URI do
     components = Regex.run ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/, s
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
-    port = if port, do: binary_to_integer(port)
+    port = if port, do: String.to_integer(port)
     host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
 
     {userinfo, host, port}
@@ -281,7 +285,7 @@ defimpl String.Chars, for: URI do
     if uri.scheme,   do: result = result <> uri.scheme <> "://"
     if uri.userinfo, do: result = result <> uri.userinfo <> "@"
     if uri.host,     do: result = result <> uri.host
-    if uri.port,     do: result = result <> ":" <> integer_to_binary(uri.port)
+    if uri.port,     do: result = result <> ":" <> Integer.to_string(uri.port)
     if uri.path,     do: result = result <> uri.path
     if uri.query,    do: result = result <> "?" <> uri.query
     if uri.fragment, do: result = result <> "#" <> uri.fragment

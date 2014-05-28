@@ -1,12 +1,10 @@
 @echo off
-set debug=0
-set argc=0
-for %%x in (%*) do set /A argc+=1
-if  %argc%== 0 (
-  goto documentation
-) else (
-  goto parseopts
-)
+if "%1"==""       goto documentation
+if "%1"=="--help" goto documentation
+if "%1"=="-h"     goto documentation
+if "%1"=="/h"     goto documentation
+goto parseopts
+
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
@@ -29,7 +27,7 @@ echo   --gen-debug       Turns on default debugging for all GenServers
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
-echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTS or --erl
+echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
 goto :EOF
 
 :parseopts
@@ -92,16 +90,8 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 )
 SETLOCAL disabledelayedexpansion
 :run
-	If %debug% EQU 1 (
-		echo "ext_libs=%ext_libs%"
-		echo "ELIXIR_ERL_OPTS=%ELIXIR_ERL_OPTS%"
-		echo "parsErlang=%parsErlang%"
-		echo "beforeExtra=%beforeExtra%"
-		echo "AdditionalParams=%*"
-		)
-
 IF %useWerl% EQU 1 (
-    werl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    werl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
-    erl %ext_libs% -noshell %ELIXIR_ERL_OPTS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    erl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )

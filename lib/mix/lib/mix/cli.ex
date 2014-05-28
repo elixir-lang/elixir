@@ -20,6 +20,7 @@ defmodule Mix.CLI do
 
   defp proceed(args) do
     Mix.Tasks.Local.Hex.maybe_update()
+    load_dot_config()
     args = load_mixfile(args)
     {task, args} = get_task(args)
     change_env(task)
@@ -51,6 +52,7 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       if Mix.Project.get do
+        Mix.Task.run "loadconfig"
         Mix.Task.run "deps.loadpaths", ["--no-deps-check"]
         Mix.Task.run "loadpaths", ["--no-elixir-version-check"]
         Mix.Task.reenable "deps.loadpaths"
@@ -75,22 +77,34 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        if function_exported?(exception.__record__(:name), :mix_error, 1) do
-          if msg = exception.message, do: Mix.shell.error "** (Mix) #{msg}"
+        if Map.get(exception, :mix_error, false) do
+          if msg = Exception.message(exception) do
+            Mix.shell.error "** (Mix) #{msg}"
+          end
           exit(1)
         else
-          raise exception, [], stacktrace
+          reraise exception, stacktrace
         end
     end
   end
 
   defp change_env(task) do
-    if nil?(System.get_env("MIX_ENV")) && (env = Mix.Project.config[:preferred_cli_env][task]) do
+    if nil?(System.get_env("MIX_ENV")) &&
+       (env = Mix.Project.config[:preferred_cli_env][task]) do
       Mix.env(env)
       if project = Mix.Project.pop do
         {project, _config, file} = project
         Mix.Project.push project, file
       end
+    end
+  end
+
+  defp load_dot_config do
+    path = Path.expand("~/.mix/config.exs")
+    if File.regular?(path) do
+      path
+      |> Mix.Config.read()
+      |> Mix.Config.persist()
     end
   end
 

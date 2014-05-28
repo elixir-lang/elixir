@@ -8,7 +8,7 @@ defmodule String.Unicode do
     codepoints ->
       codepoints = :binary.split(codepoints, " ", [:global])
       Enum.reduce codepoints, "", fn(codepoint, acc) ->
-        acc <> << binary_to_integer(codepoint, 16) :: utf8 >>
+        acc <> << String.to_integer(codepoint, 16) :: utf8 >>
       end
   end
 
@@ -43,7 +43,7 @@ defmodule String.Unicode do
 
   # Downcase
 
-  def downcase(string), do: do_downcase(string) |> iodata_to_binary
+  def downcase(string), do: do_downcase(string) |> IO.iodata_to_binary
 
   for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
     defp do_downcase(unquote(codepoint) <> rest) do
@@ -59,7 +59,7 @@ defmodule String.Unicode do
 
   # Upcase
 
-  def upcase(string), do: do_upcase(string) |> iodata_to_binary
+  def upcase(string), do: do_upcase(string) |> IO.iodata_to_binary
 
   for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
     defp do_upcase(unquote(codepoint) <> rest) do
@@ -119,7 +119,7 @@ defmodule String.Unicode do
     do_rstrip(rest, nil, [char|acc1])
   end
 
-  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> iodata_to_binary
+  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> IO.iodata_to_binary
 
   # Split
 
@@ -183,9 +183,9 @@ defmodule String.Graphemes do
 
   to_range = fn
     first, ""   ->
-      [<< binary_to_integer(first, 16) :: utf8 >>]
+      [<< String.to_integer(first, 16) :: utf8 >>]
     first, last ->
-      range = binary_to_integer(first, 16)..binary_to_integer(last, 16)
+      range = String.to_integer(first, 16)..String.to_integer(last, 16)
       Enum.map(range, fn(int) -> << int :: utf8 >> end)
   end
 

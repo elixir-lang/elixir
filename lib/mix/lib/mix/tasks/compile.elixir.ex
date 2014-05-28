@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Compile.Elixir do
   # The ManifestCompiler is a convenience that tracks dependencies
   # in between files and recompiles them as they change recursively.
   defmodule ManifestCompiler do
-    use GenServer.Behaviour
     @moduledoc false
 
     def files_to_path(manifest, force, all, compile_path, on_start) do
@@ -42,15 +41,20 @@ defmodule Mix.Tasks.Compile.Elixir do
 
           # Starts a server responsible for keeping track which files
           # were compiled and the dependencies in between them.
-          {:ok, pid} = :gen_server.start_link(__MODULE__, entries, [])
+          {:ok, pid} = Agent.start_link(fn ->
+            Enum.map(entries, &Tuple.insert_at(&1, 5, nil))
+          end)
 
           try do
             Kernel.ParallelCompiler.files :lists.usort(stale),
               each_module: &each_module(pid, compile_path, cwd, &1, &2, &3),
               each_file: &each_file(&1)
-            :gen_server.cast(pid, {:write, manifest})
+            Agent.cast pid, fn entries ->
+              write_manifest(manifest, entries)
+              entries
+            end
           after
-            :gen_server.call(pid, :stop)
+            Agent.stop pid
           end
 
           :ok
@@ -63,19 +67,22 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     defp each_module(pid, compile_path, cwd, source, module, binary) do
       source = Path.relative_to(source, cwd)
-      bin    = atom_to_binary(module)
-      beam   = Path.join(compile_path, bin <> ".beam")
+      bin    = Atom.to_string(module)
+      beam   = compile_path
+               |> Path.join(bin <> ".beam")
                |> Path.relative_to(cwd)
 
       deps = Kernel.LexicalTracker.remotes(module)
+             |> List.delete(module)
              |> :lists.usort
-             |> Enum.map(&atom_to_binary(&1))
+             |> Enum.map(&Atom.to_string(&1))
              |> Enum.reject(&match?("elixir_" <> _, &1))
 
       files = get_beam_files(binary, cwd)
               |> List.delete(source)
+              |> Enum.filter(&(Path.type(&1) == :relative))
 
-      :gen_server.cast(pid, {:store, beam, bin, source, deps, files, binary})
+      Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, bin, source, deps, files, binary})
     end
 
     defp get_beam_files(binary, cwd) do
@@ -163,33 +170,6 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.Utils.write_manifest(manifest, lines)
     end
 
-    # Callbacks
-
-    def init(entries) do
-      {:ok, Enum.map(entries, &Tuple.insert_at(&1, 5, nil))}
-    end
-
-    def handle_call(:stop, _from, entries) do
-      {:stop, :normal, :ok, entries}
-    end
-
-    def handle_call(msg, from, state) do
-      super(msg, from, state)
-    end
-
-    def handle_cast({:write, manifest}, entries) do
-      write_manifest(manifest, entries)
-      {:noreply, entries}
-    end
-
-    def handle_cast({:store, beam, module, source, deps, files, binary}, entries) do
-      {:noreply, :lists.keystore(beam, 1, entries,
-                                 {beam, module, source, deps, files, binary})}
-    end
-
-    def handle_cast(msg, state) do
-      super(msg ,state)
-    end
   end
 
   use Mix.Task
@@ -271,10 +251,10 @@ defmodule Mix.Tasks.Compile.Elixir do
   @doc """
   Compiles stale Elixir files.
 
-  It expects a manifest file, all stale files, all source files
-  available (including the ones that are not stale) and a path
-  where compiled files will be written to. All paths are required
-  to be relative to the current working directory.
+  It expects a manifest file, a flag if compilation should be forced
+  or not, all source files available (including the ones that are not
+  stale) and a path where compiled files will be written to. All paths
+  are required to be relative to the current working directory.
 
   The manifest is written down with information including dependencies
   in between modules, which helps it recompile only the modules that
@@ -283,7 +263,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   defdelegate files_to_path(manifest, force, all, path, on_start), to: ManifestCompiler
 
   defp set_compiler_opts(project, opts, extra) do
-    opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])
+    opts = Dict.take(opts, Code.available_compiler_options)
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
     Code.compiler_options Keyword.merge(opts, extra)
   end

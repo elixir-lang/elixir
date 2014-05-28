@@ -3,11 +3,6 @@
 -export([tokenize/3]).
 -import(elixir_interpolation, [unescape_tokens/1]).
 
--define(container(T1, T2),
-  T1 == ${, T2 == $};
-  T1 == $[, T2 == $]
-).
-
 -define(at_op(T),
   T == $@).
 
@@ -160,47 +155,58 @@ tokenize([$~,S,H|T] = Original, Line, Scope, Tokens) when ?is_sigil(H), ?is_upca
 
 % Char tokens
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   Char = escape_char([$\\,P,${,A,B,C,D,E,F,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   Char = escape_char([$\\,P,${,A,B,C,D,E,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   Char = escape_char([$\\,P,${,A,B,C,D,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   Char = escape_char([$\\,P,${,A,B,C,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,P,${,A,B,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
+tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A) ->
   Char = escape_char([$\\,P,${,A,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,P,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A|T], Line, Scope, Tokens) when (P == $x orelse P == $X), ?is_hex(A) ->
+tokenize([$?,$\\,P,A|T], Line, Scope, Tokens)
+    when (P == $x orelse P == $X), ?is_hex(A) ->
   Char = escape_char([$\\,P,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens) when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
+tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens)
+    when ?is_octal(A), A =< $3,?is_octal(B), ?is_octal(C) ->
   Char = escape_char([$\\,A,B,C]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A,B|T], Line, Scope, Tokens) when ?is_octal(A), ?is_octal(B) ->
+tokenize([$?,$\\,A,B|T], Line, Scope, Tokens)
+    when ?is_octal(A), ?is_octal(B) ->
   Char = escape_char([$\\,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,A|T], Line, Scope, Tokens) when ?is_octal(A) ->
+tokenize([$?,$\\,A|T], Line, Scope, Tokens)
+    when ?is_octal(A) ->
   Char = escape_char([$\\,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
@@ -232,8 +238,11 @@ tokenize([$:,H|T] = Original, Line, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Scope, true, T, H) of
     {NewLine, Parts, Rest} ->
       Unescaped = unescape_tokens(Parts),
-      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
-      tokenize(Rest, NewLine, Scope, [{atom_string, Line, ExistingAtomsOnly, Unescaped}|Tokens]);
+      Key = case Scope#elixir_tokenizer.existing_atoms_only of
+        true  -> atom_safe;
+        false -> atom_unsafe
+      end,
+      tokenize(Rest, NewLine, Scope, [{Key, Line, Unescaped}|Tokens]);
     {error, Reason} ->
       interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
   end;
@@ -257,8 +266,8 @@ tokenize(":%{}" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{atom, Line, '%{}'}|Tokens]);
 tokenize(":%" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line, Scope, [{atom, Line, '%'}|Tokens]);
-tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when ?container(T1, T2) ->
-  tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T1,T2])}|Tokens]);
+tokenize(":{}" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, [{atom, Line, '{}'}|Tokens]);
 
 tokenize("...:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '...'}|Tokens]);
@@ -268,8 +277,8 @@ tokenize("%{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '%{}'}|Tokens]);
 tokenize("%:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Scope, [{kw_identifier, Line, '%'}|Tokens]);
-tokenize([T1,T2,$:|Rest], Line, Scope, Tokens) when ?container(T1, T2), ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Scope, [{kw_identifier, Line, list_to_atom([T1,T2])}|Tokens]);
+tokenize("{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Scope, [{kw_identifier, Line, '{}'}|Tokens]);
 
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
@@ -315,6 +324,9 @@ tokenize("..." ++ Rest, Line, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, '...', Rest),
   tokenize(Rest, Line, Scope, [Token|Tokens]);
 
+tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
+  tokenize(Rest, Line, Scope, add_token_with_nl({assoc_op, Line, '=>'}, Tokens));
+
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
   handle_unary_op(Rest, Line, unary_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
@@ -343,9 +355,6 @@ tokenize([T|Rest], Line, Scope, Tokens) when T == $(;
     T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
   Token = {list_to_atom([T]), Line},
   handle_terminator(Rest, Line, Scope, Token, Tokens);
-
-tokenize("=>" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line, Scope, add_token_with_nl({assoc_op, Line, '=>'}, Tokens));
 
 % ## Two Token Operators
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?two_op(T1, T2) ->
@@ -447,7 +456,8 @@ tokenize([Space, Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens
     ?dual_op(Sign),
     ?is_horizontal_space(Space),
     not(?is_space(NotMarker)),
-    NotMarker /= $(, NotMarker /= $+, NotMarker /= $-, NotMarker /= $>,
+    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
+    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
     Identifier == identifier ->
   Rest = [NotMarker|T],
   tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
@@ -497,8 +507,11 @@ handle_strings(T, Line, H, Scope, Tokens) ->
       interpolation_error(Reason, [H|T], Tokens, " (for string starting at line ~B)", [Line]);
     {NewLine, Parts, [$:|Rest]} when ?is_space(hd(Rest)) ->
       Unescaped = unescape_tokens(Parts),
-      ExistingAtomsOnly = Scope#elixir_tokenizer.existing_atoms_only,
-      tokenize(Rest, NewLine, Scope, [{kw_identifier_string, Line, ExistingAtomsOnly, Unescaped}|Tokens]);
+      Key = case Scope#elixir_tokenizer.existing_atoms_only of
+        true  -> kw_identifier_safe;
+        false -> kw_identifier_unsafe
+      end,
+      tokenize(Rest, NewLine, Scope, [{Key, Line, Unescaped}|Tokens]);
     {NewLine, Parts, Rest} ->
       Token = {string_type(H), Line, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, Scope, [Token|Tokens])
@@ -537,7 +550,7 @@ handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
 % ## Single Token Operators
 handle_dot([$.,T|Rest], Line, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?pipe_op(T) ->
+    ?match_op(T); ?pipe_op(T); T == $% ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
@@ -620,9 +633,8 @@ extract_heredoc(Line0, Rest0, Marker) ->
           {error, {ErrorLine, io_lib:format(Message, [Terminator, Line0]), []}}
       end;
     error ->
-      Terminator = [Marker, Marker, Marker],
-      Message = "heredoc start ~ts must be followed by a new line",
-      {error, {Line0, io_lib:format(Message, [Terminator]), []}}
+      Message = "heredoc start must be followed by a new line after ",
+      {error, {Line0, io_lib:format(Message, []), [Marker, Marker, Marker]}}
   end.
 
 %% Remove spaces from heredoc based on the position of the final quotes.
@@ -922,8 +934,6 @@ keyword('or')     -> or_op;
 keyword('xor')    -> or_op;
 keyword('when')   -> when_op;
 keyword('in')     -> in_op;
-keyword('inlist') -> in_match_op;
-keyword('inbits') -> in_match_op;
 
 % Block keywords
 keyword('after')  -> block;

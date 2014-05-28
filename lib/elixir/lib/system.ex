@@ -44,7 +44,7 @@ defmodule System do
 
   # Get the date at compilation time.
   defmacrop get_date do
-    iodata_to_binary :httpd_util.rfc1123_date
+    IO.iodata_to_binary :httpd_util.rfc1123_date
   end
 
   @doc """
@@ -94,7 +94,7 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      {:ok, base} -> String.from_char_data!(base)
+      {:ok, base} -> IO.chardata_to_string(base)
       _ -> nil
     end
   end
@@ -193,7 +193,7 @@ defmodule System do
       {:ok, stat} ->
         case {stat.type, stat.access} do
           {:directory, access} when access in [:read_write, :write] ->
-            String.from_char_data!(dir)
+            IO.chardata_to_string(dir)
           _ ->
             nil
         end
@@ -233,7 +233,7 @@ defmodule System do
   end
 
   def cmd(command) when is_binary(command) do
-    String.from_char_data! :os.cmd(List.from_char_data!(command))
+    List.to_string :os.cmd(String.to_char_list(command))
   end
 
   @doc """
@@ -256,9 +256,9 @@ defmodule System do
   end
 
   def find_executable(program) when is_binary(program) do
-    case :os.find_executable(List.from_char_data!(program)) do
+    case :os.find_executable(String.to_char_list(program)) do
       false -> nil
-      other -> String.from_char_data!(other)
+      other -> List.to_string(other)
     end
   end
 
@@ -271,7 +271,7 @@ defmodule System do
   @spec get_env() :: %{String.t => String.t}
   def get_env do
     Enum.into(:os.getenv, %{}, fn var ->
-      var = String.from_char_data! var
+      var = IO.chardata_to_string var
       [k, v] = String.split var, "=", parts: 2
       {k, v}
     end)
@@ -286,9 +286,9 @@ defmodule System do
   """
   @spec get_env(binary) :: binary | nil
   def get_env(varname) when is_binary(varname) do
-    case :os.getenv(List.from_char_data!(varname)) do
+    case :os.getenv(String.to_char_list(varname)) do
       false -> nil
-      other -> String.from_char_data!(other)
+      other -> List.to_string(other)
     end
   end
 
@@ -301,7 +301,7 @@ defmodule System do
   See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
   """
   @spec get_pid() :: binary
-  def get_pid, do: iodata_to_binary(:os.getpid)
+  def get_pid, do: IO.iodata_to_binary(:os.getpid)
 
   @doc """
   Set an environment variable value.
@@ -310,7 +310,7 @@ defmodule System do
   """
   @spec put_env(binary, binary) :: :ok
   def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-   :os.putenv List.from_char_data!(varname), List.from_char_data!(value)
+   :os.putenv String.to_char_list(varname), String.to_char_list(value)
    :ok
   end
 
@@ -332,7 +332,7 @@ defmodule System do
   """
   @spec delete_env(String.t) :: :ok
   def delete_env(varname) do
-    :os.unsetenv(List.from_char_data!(varname))
+    :os.unsetenv(String.to_char_list(varname))
     :ok
   end
 
@@ -385,6 +385,6 @@ defmodule System do
   end
 
   def halt(status) when is_binary(status) do
-    :erlang.halt(List.from_char_data!(status))
+    :erlang.halt(String.to_char_list(status))
   end
 end

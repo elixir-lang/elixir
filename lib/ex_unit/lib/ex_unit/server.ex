@@ -2,9 +2,7 @@ defmodule ExUnit.Server do
   @moduledoc false
 
   @timeout 30_000
-  use GenServer.Behaviour
-
-  defrecord Config, async_cases: [], sync_cases: [], start_load: nil, captured_devices: HashSet.new
+  use GenServer
 
   def start_link() do
     :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
@@ -43,7 +41,9 @@ defmodule ExUnit.Server do
   ## Callbacks
 
   def init(:ok) do
-    {:ok, Config[]}
+    config = %{async_cases: HashSet.new, sync_cases: HashSet.new,
+               start_load: nil, captured_devices: HashSet.new}
+    {:ok, config}
   end
 
   def handle_call(:start_run, _from, config) do
@@ -54,17 +54,18 @@ defmodule ExUnit.Server do
 
     {:reply,
       {config.async_cases, config.sync_cases, load_us},
-      config.async_cases([]).sync_cases([]).start_load(nil)}
+      %{config | async_cases: HashSet.new, sync_cases: HashSet.new, start_load: nil}}
   end
 
   def handle_call({:add_device, device}, _from, config) do
     {:reply,
       not(device in config.captured_devices),
-      config.update_captured_devices(&Set.put(&1, device))}
+      %{config | captured_devices: Set.put(config.captured_devices, device)}}
   end
 
   def handle_call({:remove_device, device}, _from, config) do
-    {:reply, :ok, config.update_captured_devices(&Set.delete(&1, device))}
+    {:reply, :ok,
+      %{config | captured_devices: Set.delete(config.captured_devices, device)}}
   end
 
   def handle_call(request, from, config) do
@@ -72,15 +73,18 @@ defmodule ExUnit.Server do
   end
 
   def handle_cast(:start_load, config) do
-    {:noreply, config.start_load(:os.timestamp)}
+    {:noreply,
+      %{config | start_load: :os.timestamp}}
   end
 
   def handle_cast({:add_async_case, name}, config) do
-    {:noreply, config.update_async_cases &[name|&1]}
+    {:noreply,
+      %{config | async_cases: Set.put(config.async_cases, name)}}
   end
 
   def handle_cast({:add_sync_case, name}, config) do
-    {:noreply, config.update_sync_cases &[name|&1]}
+    {:noreply,
+      %{config | sync_cases: Set.put(config.sync_cases, name)}}
   end
 
   def handle_cast(request, config) do

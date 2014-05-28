@@ -16,7 +16,7 @@ defmodule Macro do
     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
-    :and, :or, :xor, :when, :in, :inlist, :inbits,
+    :and, :or, :xor, :when, :in,
     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
   @doc false
@@ -30,7 +30,7 @@ defmodule Macro do
   @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
   defp binary_op_props(o) do
     case o do
-      o when o in [:<-, :inlist, :inbits, :\\, :::]             -> {:left,  40}
+      o when o in [:<-, :\\, :::]                               -> {:left,  40}
       :|                                                        -> {:right, 50}
       :when                                                     -> {:right, 70}
       :=                                                        -> {:right, 80}
@@ -68,7 +68,7 @@ defmodule Macro do
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
-    raise ArgumentError, message: "cannot pipe #{to_string expr} into #{to_string call_args}"
+    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
@@ -80,17 +80,15 @@ defmodule Macro do
   end
 
   def pipe(expr, call_args, _integer) do
-    raise ArgumentError,
-      message: "cannot pipe #{to_string expr} into #{to_string call_args}"
+    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}"
   end
 
   @doc """
-  Recurs the quoted expression applying the given function to
-  each metadata node.
+  Applies the given function to the node metadata if it contains one.
 
-  This is often useful to remove information like lines and
-  hygienic counters from the expression for either storage or
-  comparison.
+  This is often useful when used with `Macro.prewalk/1` to remove
+  information like lines and hygienic counters from the expression
+  for either storage or comparison.
 
   ## Examples
 
@@ -104,19 +102,108 @@ defmodule Macro do
   def update_meta(quoted, fun)
 
   def update_meta({left, meta, right}, fun) when is_list(meta) do
-    {update_meta(left, fun), fun.(meta), update_meta(right, fun)}
-  end
-
-  def update_meta({left, right}, fun) do
-    {update_meta(left, fun), update_meta(right, fun)}
-  end
-
-  def update_meta(list, fun) when is_list(list) do
-    for x <- list, do: update_meta(x, fun)
+    {left, fun.(meta), right}
   end
 
   def update_meta(other, _fun) do
     other
+  end
+
+  @doc """
+  Performs a depth-first, pre-order traversal of quoted expressions.
+  """
+  @spec prewalk(t, (t -> t)) :: t
+  def prewalk(ast, fun) when is_function(fun, 1) do
+    elem(prewalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+  end
+
+  @doc """
+  Performs a depth-first, pre-order traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
+  def prewalk(ast, acc, fun) when is_function(fun, 2) do
+    {ast, acc} = fun.(ast, acc)
+    do_prewalk(ast, acc, fun)
+  end
+
+  defp do_prewalk({form, meta, args}, acc, fun) do
+    unless is_atom(form) do
+      {form, acc} = fun.(form, acc)
+      {form, acc} = do_prewalk(form, acc, fun)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
+        {x, acc} = fun.(x, acc)
+        do_prewalk(x, acc, fun)
+      end)
+    end
+
+    {{form, meta, args}, acc}
+  end
+
+  defp do_prewalk({left, right}, acc, fun) do
+    {left, acc} = fun.(left, acc)
+    {left, acc} = do_prewalk(left, acc, fun)
+    {right, acc} = fun.(right, acc)
+    {right, acc} = do_prewalk(right, acc, fun)
+    {{left, right}, acc}
+  end
+
+  defp do_prewalk(list, acc, fun) when is_list(list) do
+    Enum.map_reduce(list, acc, fn x, acc ->
+      {x, acc} = fun.(x, acc)
+      do_prewalk(x, acc, fun)
+    end)
+  end
+
+  defp do_prewalk(x, acc, _fun) do
+    {x, acc}
+  end
+
+  @doc """
+  Performs a depth-first, post-order traversal of quoted expressions.
+  """
+  @spec postwalk(t, (t -> t)) :: t
+  def postwalk(ast, fun) when is_function(fun, 1) do
+    elem(postwalk(ast, nil, fn x, nil -> {fun.(x), nil} end), 0)
+  end
+
+  @doc """
+  Performs a depth-first, post-order traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
+  def postwalk(ast, acc, fun) when is_function(fun, 2) do
+    do_postwalk(ast, acc, fun)
+  end
+
+  defp do_postwalk({form, meta, args}, acc, fun) do
+    unless is_atom(form) do
+      {form, acc} = do_postwalk(form, acc, fun)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, &do_postwalk(&1, &2, fun))
+    end
+
+    fun.({form, meta, args}, acc)
+  end
+
+  defp do_postwalk({left, right}, acc, fun) do
+    {left, acc} = do_postwalk(left, acc, fun)
+    {right, acc} = do_postwalk(right, acc, fun)
+    fun.({left, right}, acc)
+  end
+
+  defp do_postwalk(list, acc, fun) when is_list(list) do
+    {list, acc} = Enum.map_reduce(list, acc, &do_postwalk(&1, &2, fun))
+    fun.(list, acc)
+  end
+
+  defp do_postwalk(x, acc, fun) do
+    fun.(x, acc)
   end
 
   @doc """
@@ -300,7 +387,7 @@ defmodule Macro do
 
   # Variables
   def to_string({var, _, atom} = ast, fun) when is_atom(atom) do
-    fun.(ast, atom_to_binary(var))
+    fun.(ast, Atom.to_string(var))
   end
 
   # Aliases
@@ -389,7 +476,7 @@ defmodule Macro do
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
-    fun.(ast, atom_to_binary(unary) <> "(" <> to_string(arg, fun) <> ")")
+    fun.(ast, Atom.to_string(unary) <> "(" <> to_string(arg, fun) <> ")")
   end
 
   def to_string({:not, _, [arg]} = ast, fun)  do
@@ -397,12 +484,12 @@ defmodule Macro do
   end
 
   def to_string({op, _, [arg]} = ast, fun) when op in unquote(@unary_ops) do
-    fun.(ast, atom_to_binary(op) <> to_string(arg, fun))
+    fun.(ast, Atom.to_string(op) <> to_string(arg, fun))
   end
 
   # Access
-  def to_string({{:., _, [Kernel, :access]}, _, [left, right]} = ast, fun) do
-    fun.(ast, to_string(left, fun) <> to_string(right, fun))
+  def to_string({{:., _, [Access, :get]}, _, [left, right]} = ast, fun) do
+    fun.(ast, to_string(left, fun) <> to_string([right], fun))
   end
 
   # All other calls
@@ -425,7 +512,7 @@ defmodule Macro do
       list == [] ->
         "[]"
       :io_lib.printable_list(list) ->
-        "'" <> Inspect.BitString.escape(String.from_char_data!(list), ?') <> "'"
+        "'" <> Inspect.BitString.escape(IO.chardata_to_string(list), ?') <> "'"
       Keyword.keyword?(list) ->
         "[" <> kw_list_to_string(list, fun) <> "]"
       true ->
@@ -434,7 +521,7 @@ defmodule Macro do
   end
 
   # All other structures
-  def to_string(other, fun), do: fun.(other, inspect(other, records: false))
+  def to_string(other, fun), do: fun.(other, inspect(other, []))
 
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
@@ -444,12 +531,12 @@ defmodule Macro do
   end
   defp kw_blocks?(_), do: false
 
-  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, records: false)
+  defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp call_to_string(atom, _fun) when is_atom(atom), do: atom_to_binary(atom)
-  defp call_to_string({:., _, [arg]}, fun),         do: module_to_string(arg, fun) <> "."
-  defp call_to_string({:., _, [left, right]}, fun), do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
+  defp call_to_string(atom, _fun) when is_atom(atom), do: Atom.to_string(atom)
+  defp call_to_string({:., _, [arg]}, fun),           do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun),   do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
   defp call_to_string(other, fun),                    do: to_string(other, fun)
 
   defp call_to_string_with_args(target, args, fun) do
@@ -481,7 +568,7 @@ defmodule Macro do
 
   defp kw_block_to_string(key, value, fun) do
     block = adjust_new_lines block_to_string(value, fun), "\n  "
-    atom_to_binary(key) <> "\n  " <> block <> "\n"
+    Atom.to_string(key) <> "\n  " <> block <> "\n"
   end
 
   defp block_to_string([{:->, _, _}|_] = block, fun) do
@@ -510,7 +597,11 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      atom_to_binary(key) <> ": " <> to_string(value, fun)
+      atom_name = case Inspect.Atom.inspect(key) do
+        ":" <> rest -> rest
+        other       -> other
+      end
+      atom_name <> ": " <> to_string(value, fun)
     end)
   end
 
@@ -590,7 +681,7 @@ defmodule Macro do
   Consider the implementation below:
 
       defmacro defmodule_with_length(name, do: block) do
-        length = length(atom_to_list(name))
+        length = length(Atom.to_char_list(name))
 
         quote do
           defmodule unquote(name) do
@@ -630,7 +721,7 @@ defmodule Macro do
 
       defmacro defmodule_with_length(name, do: block) do
         expanded = Macro.expand(name, __CALLER__)
-        length   = length(atom_to_list(expanded))
+        length   = length(Atom.to_char_list(expanded))
 
         quote do
           defmodule unquote(name) do
@@ -722,7 +813,7 @@ defmodule Macro do
         {:ok, receiver, quoted} ->
           next = :elixir_counter.next
           {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
-        {:ok, _receiver} ->
+        {:ok, _receiver, _name, _args} ->
           {original, false}
         :error ->
           {original, false}
@@ -770,30 +861,4 @@ defmodule Macro do
   defp expand_until({tree, false}, _env) do
     tree
   end
-
-  @doc """
-  Recursively traverses the quoted expression checking if all sub-terms are
-  safe.
-
-  Terms are considered safe if they represent data structures and don't actually
-  evaluate code. Returns `:ok` unless a given term is unsafe,
-  which is returned as `{:unsafe, term}`.
-  """
-  def safe_term(terms) do
-    IO.write :stderr, "Macro.safe_term/1 is deprecated\n#{Exception.format_stacktrace}"
-    do_safe_term(terms) || :ok
-  end
-
-  defp do_safe_term({local, _, terms}) when local in [:{}, :%{}, :__aliases__] do
-    do_safe_term(terms)
-  end
-
-  defp do_safe_term({unary, _, [term]}) when unary in [:+, :-] do
-    do_safe_term(term)
-  end
-
-  defp do_safe_term({left, right}), do: do_safe_term(left) || do_safe_term(right)
-  defp do_safe_term(terms) when is_list(terms),  do: Enum.find_value(terms, &do_safe_term(&1))
-  defp do_safe_term(terms) when is_tuple(terms), do: {:unsafe, terms}
-  defp do_safe_term(_), do: nil
 end

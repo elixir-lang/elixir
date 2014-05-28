@@ -12,7 +12,6 @@ defmodule IEx.EvaluatorTest do
       {IEx,    :three,  3, [file: "longer", line: 1234]},
       {List,   :four,   4, [file: "loc",    line: 1]},
     ]
-    IEx.Options.set :colors, enabled: false
 
     expected = """
         (elixir) loc:1: List.one/1

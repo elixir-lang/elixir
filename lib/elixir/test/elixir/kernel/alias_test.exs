@@ -1,12 +1,12 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Kernel.AliasTest.Nested do
+alias Kernel.AliasTest.Nested, as: Nested
+
+defmodule Nested do
   def value, do: 1
 end
 
 defmodule Kernel.AliasTest do
-  alias Kernel.AliasTest.Nested, as: Nested
-
   use ExUnit.Case, async: true
 
   test :alias_erlang do
@@ -58,16 +58,6 @@ defmodule Kernel.AliasNestingGenerator do
       end
     end
   end
-
-  defmacro record do
-    quote do
-      defexception Parent, message: nil
-
-      defmodule Parent.Child do
-        def b, do: Parent.new(message: "ok")
-      end
-    end
-  end
 end
 
 defmodule Kernel.AliasNestingTest do
@@ -80,17 +70,13 @@ defmodule Kernel.AliasNestingTest do
     assert Parent.a == :a
     assert Parent.Child.b == :a
   end
-end
 
-defmodule Kernel.AliasMacroNestingTest do
-  use ExUnit.Case, async: true
+  defmodule Nested do
+    def value, do: 2
+  end
 
-  require Kernel.AliasNestingGenerator
-  Kernel.AliasNestingGenerator.record
-
-  test :aliases_nesting do
-    assert is_record(Parent.new, Parent)
-    assert Parent.Child.b.message == "ok"
+  test :aliases_nesting_with_previous_alias do
+    assert Nested.value == 2
   end
 end
 
@@ -107,8 +93,12 @@ defmodule Macro.AliasTest.Definer do
 
   defmacro __before_compile__(_env) do
     quote do
-      defrecord Record, [foo: :bar]
-      defrecord Another, baz: Record.new
+      defmodule First do
+        defstruct foo: :bar
+      end
+      defmodule Second do
+        defstruct baz: %First{}
+      end
     end
   end
 end
@@ -116,7 +106,7 @@ end
 defmodule Macro.AliasTest.Aliaser do
   defmacro __using__(_options) do
     quote do
-      alias Some.Record
+      alias Some.First
     end
   end
 end
@@ -127,7 +117,8 @@ defmodule Macro.AliasTest.User do
   use Macro.AliasTest.Definer
   use Macro.AliasTest.Aliaser
 
-  test "has a record defined from after compile" do
-    assert is_tuple Macro.AliasTest.User.Record.new
+  test "has a struct defined from after compile" do
+    assert is_map struct(Macro.AliasTest.User.First, [])
+    assert is_map struct(Macro.AliasTest.User.Second, []).baz
   end
 end

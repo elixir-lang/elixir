@@ -66,7 +66,7 @@ defmodule MixTest.Case do
 
   defmacro in_fixture(which, block) do
     module   = inspect __CALLER__.module
-    function = atom_to_binary elem(__CALLER__.function, 0)
+    function = Atom.to_string elem(__CALLER__.function, 0)
     tmp      = Path.join(module, function)
 
     quote do
@@ -77,7 +77,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = tmp_path |> List.from_char_data!
+    flag = tmp_path |> String.to_char_list
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -97,36 +97,25 @@ defmodule MixTest.Case do
       end
     end
   end
+    
+  def os_newline do
+    case :os.type do
+      {:win32, _} -> "\r\n"
+      _ -> "\n"
+    end
+  end
 
   defp delete_tmp_paths do
-    tmp = tmp_path |> List.from_char_data!
+    tmp = tmp_path |> String.to_char_list
     to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
     Enum.map to_remove, &(:code.del_path(&1))
   end
 end
 
-## Some tasks fixtures
-
-defmodule Mix.Tasks.Hello do
-  use Mix.Task
-  @shortdoc "This is short documentation, see"
-
-  @moduledoc """
-  A test task.
-  """
-
-  def run(_) do
-    "Hello, World!"
-  end
-end
-
-defmodule Mix.Tasks.Invalid do
-end
-
 ## Copy fixtures to tmp
 
 source = MixTest.Case.fixture_path("rebar_dep")
-dest = Path.join(MixTest.Case.tmp_path, "rebar_dep")
+dest = MixTest.Case.tmp_path("rebar_dep")
 File.mkdir_p!(dest)
 File.cp_r!(source, dest)
 

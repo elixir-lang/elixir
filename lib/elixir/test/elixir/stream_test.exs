@@ -120,6 +120,11 @@ defmodule StreamTest do
     assert Enum.zip(1..6, [1,2,3,1,2,3]) == Enum.zip(1..6, stream)
   end
 
+  test "cycle/1 with inner stream" do
+    assert [1,2,3] |> Stream.take(2) |> Stream.cycle |> Enum.take(4) ==
+           [1,2,1,2]
+  end
+
   test "drop/2" do
     stream = Stream.drop(1..10, 5)
     assert is_lazy(stream)
@@ -574,7 +579,7 @@ defmodule StreamTest do
   end
 
   defp is_lazy(stream) do
-    match?(%Stream.Lazy{}, stream) or is_function(stream, 2)
+    match?(%Stream{}, stream) or is_function(stream, 2)
   end
 
   defp collectable_pdict do

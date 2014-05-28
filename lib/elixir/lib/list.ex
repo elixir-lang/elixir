@@ -337,7 +337,7 @@ defmodule List do
   """
   @spec unzip([tuple]) :: [list]
   def unzip(list) when is_list(list) do
-    :lists.map &tuple_to_list/1, zip(list)
+    :lists.map &Tuple.to_list/1, zip(list)
   end
 
   @doc """
@@ -454,21 +454,133 @@ defmodule List do
   end
 
   @doc """
-  Converts char data into a char list.
+  Converts a char list to an atom.
 
-  A char data is a string or a list of integers and strings and it
-  is converted into a list with each codepoint represented as its
-  respective integer value.
+  Currently Elixir does not support conversions from char lists
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
 
   ## Examples
 
-      iex> List.from_char_data("æß")
-      {:ok, 'æß'}
-      iex> List.from_char_data([?a, "bc"])
-      {:ok, 'abc'}
+      iex> List.to_atom('elixir')
+      :elixir
 
   """
-  @spec from_char_data(char_data) :: {:ok, char_list} | {:error, list, binary} | {:incomplete, list, binary}
+  @spec to_atom(char_list) :: atom
+  def to_atom(char_list) do
+    :erlang.list_to_atom(char_list)
+  end
+
+  @doc """
+  Converts a char list to an existing atom.
+
+  Currently Elixir does not support conversions from char lists
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+  """
+  @spec to_existing_atom(char_list) :: atom
+  def to_existing_atom(char_list) do
+    :erlang.list_to_existing_atom(char_list)
+  end
+
+  @doc """
+  Returns the float whose text representation is `char_list`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_float('2.2017764e+0')
+      2.2017764
+
+  """
+  @spec to_float(char_list) :: float
+  def to_float(char_list) do
+    :erlang.list_to_float(char_list)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `char_list`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_integer('123')
+      123
+
+  """
+  @spec to_integer(char_list) :: integer
+  def to_integer(char_list) do
+    :erlang.list_to_integer(char_list)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `char_list` in base `base`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_integer('3FF', 16)
+      1023
+
+  """
+  @spec to_integer(char_list, non_neg_integer) :: integer
+  def to_integer(char_list, base) do
+    :erlang.list_to_integer(char_list, base)
+  end
+
+  @doc """
+  Converts a list to a tuple.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> List.to_tuple([:share, [:elixir, 163]])
+      {:share, [:elixir, 163]}
+
+  """
+  @spec to_tuple(list) :: tuple
+  def to_tuple(list) do
+    :erlang.list_to_tuple(list)
+  end
+
+  @doc """
+  Converts a list of integers representing codepoints, lists or
+  strings into a string.
+
+  Notice that this function expect a list of integer representing
+  UTF-8 codepoints. If you have a list of bytes, you must instead use
+  [the `:binary` module](http://erlang.org/doc/man/binary.html).
+
+  ## Examples
+
+      iex> List.to_string([0x00E6, 0x00DF])
+      "æß"
+
+      iex> List.to_string([0x0061, "bc"])
+      "abc"
+
+  """
+  @spec to_string(:unicode.char_list) :: String.t
+  def to_string(list) when is_list(list) do
+    case :unicode.characters_to_binary(list) do
+      result when is_binary(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc false
   def from_char_data(char_data) do
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
@@ -482,25 +594,7 @@ defmodule List do
     end
   end
 
-  @doc """
-  Converts char data into a char list.
-
-  A char data is a string or a list of integers and strings and it
-  is converted into a list with each codepoint represented as its
-  respective integer value.
-
-  In case the conversion fails or is incomplete, it raises a
-  `UnicodeConversionError`.
-
-  ## Examples
-
-      iex> List.from_char_data!("æß")
-      'æß'
-      iex> List.from_char_data!("abc")
-      'abc'
-
-  """
-  @spec from_char_data!(char_data) :: char_list | no_return
+  @doc false
   def from_char_data!(char_data) do
     case :unicode.characters_to_list(char_data) do
       result when is_list(result) ->
@@ -592,7 +686,7 @@ defmodule List do
 
     case heads do
       nil -> :lists.reverse acc
-      _   -> do_zip mlist, [list_to_tuple(:lists.reverse(heads))|acc]
+      _   -> do_zip mlist, [:erlang.list_to_tuple(:lists.reverse(heads))|acc]
     end
   end
 
@@ -608,6 +702,6 @@ defmodule List do
     {nil, nil}
   end
 
-  defp to_list(tuple) when is_tuple(tuple), do: tuple_to_list(tuple)
+  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
   defp to_list(list)  when is_list(list),   do: list
 end

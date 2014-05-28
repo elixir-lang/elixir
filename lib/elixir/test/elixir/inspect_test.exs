@@ -56,9 +56,11 @@ defmodule Inspect.AtomTest do
     assert inspect(:foo@bar@baz) == ":foo@bar@baz"
   end
 
-  test :container do
+  test :others do
     assert inspect(:<<>>) == ":<<>>"
     assert inspect(:{})   == ":{}"
+    assert inspect(:%{})  == ":%{}"
+    assert inspect(:%)    == ":%"
   end
 end
 
@@ -82,6 +84,11 @@ defmodule Inspect.BitStringTest do
 
   test :utf8 do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
+  end
+
+  test :all_escapes do
+    assert inspect("\a\b\d\e\f\n\r\s\t\v") ==
+           "\"\\a\\b\\d\\e\\f\\n\\r \\t\\v\""
   end
 
   test :opt_infer do
@@ -129,60 +136,12 @@ defmodule Inspect.TupleTest do
     assert inspect({1, "b", 3}, [pretty: true, width: 1]) == "{1,\n \"b\",\n 3}"
   end
 
-  test :record_like do
-    assert inspect({:foo, :bar}) == "{:foo, :bar}"
-  end
-
-  test :with_builtin_like_record do
-    assert inspect({:list, 1}) == "{:list, 1}"
-  end
-
-  test :with_record_like_tuple do
-    assert inspect({List, 1}) == "{List, 1}"
-  end
-
-  test :with_record_like_pseudo_exception do
-    assert inspect({Other, :__exception__, 1}) == "{Other, :__exception__, 1}"
-  end
-
-  defrecord Config, a: 1, b: []
-
-  test :with_record do
-    assert inspect(Config.new) == "Inspect.TupleTest.Config[a: 1, b: []]"
-  end
-
-  test :with_tuple_matching_record_name_but_not_length do
-    assert inspect({ExUnit.Server.Config}) == "{ExUnit.Server.Config}"
-  end
-
-  test :exception do
-    assert inspect(RuntimeError.new) == "RuntimeError[message: \"runtime error\"]"
-  end
-
-  defrecord Rec, value: 1
-
-  test :two_items_record do
-    assert inspect({Rec[value: 1], 1}) == "{Inspect.TupleTest.Rec[value: 1], 1}"
-  end
-
-  test :false_positives do
-    import ExUnit.CaptureIO
-
-    assert capture_io(:stderr, fn ->
-      assert inspect({Range, nil}) == "{Range, nil}"
-    end) =~ "** (Inspect.Error) Got FunctionClauseError with message no function clause matching in Inspect.Range.inspect/2"
-  end
-
   test :empty do
     assert inspect({}) == "{}"
   end
 
   test :with_limit do
     assert inspect({1, 2, 3, 4}, limit: 3) == "{1, 2, 3, ...}"
-  end
-
-  test :with_records_false do
-    assert inspect(Config.new, records: false) == "{Inspect.TupleTest.Config, 1, []}"
   end
 end
 
@@ -303,12 +262,17 @@ defmodule Inspect.MapTest do
   end
 
   test :bad_implementation do
-    import ExUnit.CaptureIO
+    msg = "Got RuntimeError with message \"failing\" " <>
+          "while inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert capture_io(:stderr, fn ->
+    assert_raise ArgumentError, msg, fn ->
       inspect(%Failing{})
-    end) =~ ("** (Inspect.Error) Got RuntimeError with message failing while inspecting " <>
-             "%{__struct__: Inspect.MapTest.Failing, key: 0}")
+    end
+  end
+
+  test :exception do
+    assert inspect(%RuntimeError{message: "runtime error"}) ==
+           "%RuntimeError{message: \"runtime error\"}"
   end
 end
 
@@ -336,20 +300,20 @@ defmodule Inspect.OthersTest do
       end
     end
 
-    :application.set_env(:elixir, :anony, V.fun)
-    :application.set_env(:elixir, :named, &V.fun/0)
+    Application.put_env(:elixir, :anony, V.fun)
+    Application.put_env(:elixir, :named, &V.fun/0)
 
     :code.delete(V)
     :code.purge(V)
 
-    {:ok, anony} = :application.get_env(:elixir, :anony)
-    {:ok, named} = :application.get_env(:elixir, :named)
+    anony = Application.get_env(:elixir, :anony)
+    named = Application.get_env(:elixir, :named)
 
     assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
     assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"
   after
-    :application.unset_env(:elixir, :anony)
-    :application.unset_env(:elixir, :named)
+    Application.delete_env(:elixir, :anony)
+    Application.delete_env(:elixir, :named)
   end
 
   test :other_funs do
@@ -371,6 +335,8 @@ defmodule Inspect.OthersTest do
   end
 
   test :regex do
-    "~r\"foo\"m" = inspect(~r(foo)m)
+    "~r/foo/m" = inspect(~r(foo)m)
+    "~r/\\a\\010\\177\\033\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
+    "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
   end
 end

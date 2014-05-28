@@ -1,5 +1,11 @@
 ExUnit.start [trace: "--trace" in System.argv]
 
+# Beam files compiled on demand
+path = Path.expand("../../tmp/beams", __DIR__)
+File.rm_rf!(path)
+File.mkdir_p!(path)
+Code.prepend_path(path)
+
 Code.compiler_options debug_info: true
 
 defmodule PathHelpers do
@@ -35,8 +41,15 @@ defmodule PathHelpers do
     executable_path("elixirc")
   end
 
+  def write_beam({:module, name, bin, _} = res) do
+    File.mkdir_p!(unquote(path))
+    beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
+    File.write!(beam_path, bin)
+    res
+  end
+
   defp runcmd(executable,args) do
-    :os.cmd :binary.bin_to_list("#{executable} #{String.from_char_data!(args)}#{redirect_std_err_on_win}")
+    :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win}")
   end
 
   defp executable_path(name) do
@@ -84,7 +97,7 @@ defmodule CompileAssertion do
       :elixir.eval(to_char_list(expr), [])
       nil
     rescue
-      error -> {error.__record__(:name), error.message}
+      error -> {error.__struct__, Exception.message(error)}
     end
 
     result || flunk(message: "Expected expression to fail")

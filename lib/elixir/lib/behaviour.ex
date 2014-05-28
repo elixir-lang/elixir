@@ -78,7 +78,7 @@ defmodule Behaviour do
       {name, args} ->
         do_callback(:def, name, args, name, length(args), args, return, guards, caller)
       _ ->
-        raise ArgumentError, message: "invalid syntax in defcallback #{Macro.to_string(spec)}"
+        raise ArgumentError, "invalid syntax in defcallback #{Macro.to_string(spec)}"
     end
   end
 
@@ -88,7 +88,7 @@ defmodule Behaviour do
         do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args],
                     name, length(args), args, return, guards, caller)
       _ ->
-        raise ArgumentError, message: "invalid syntax in defmacrocallback #{Macro.to_string(spec)}"
+        raise ArgumentError, "invalid syntax in defmacrocallback #{Macro.to_string(spec)}"
     end
   end
 
@@ -111,7 +111,7 @@ defmodule Behaviour do
   end
 
   defp ensure_not_default({:\\, _, [_, _]}) do
-    raise ArgumentError, message: "default arguments \\\\ not supported in defcallback/defmacrocallback"
+    raise ArgumentError, "default arguments \\\\ not supported in defcallback/defmacrocallback"
   end
 
   defp ensure_not_default(_), do: :ok

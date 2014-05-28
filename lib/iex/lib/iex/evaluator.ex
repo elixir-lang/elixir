@@ -61,7 +61,7 @@ defmodule IEx.Evaluator do
 
       # Evaluate the contents in the same environment server_loop will run in
       {_result, binding, env, _scope} =
-        :elixir.eval(List.from_char_data!(code), config.binding, env)
+        :elixir.eval(String.to_char_list(code), config.binding, env)
 
       %{config | binding: binding, env: :elixir.env_for_eval(env, file: "iex")}
     catch
@@ -88,7 +88,7 @@ defmodule IEx.Evaluator do
 
   defp eval(code, config) do
     try do
-      do_eval(List.from_char_data!(code), config)
+      do_eval(String.to_char_list(code), config)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -132,7 +132,8 @@ defmodule IEx.Evaluator do
   end
 
   defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter, IEx.Options.get(:history_size))
+    IEx.History.append({counter, cache, result}, counter,
+                       Application.get_env(:iex, :history_size))
   end
 
   defp io_put(result) do
@@ -144,20 +145,21 @@ defmodule IEx.Evaluator do
   end
 
   defp inspect_opts do
-    [width: IEx.width] ++ IEx.Options.get(:inspect)
+    [width: IEx.width] ++ Application.get_env(:iex, :inspect)
   end
 
   ## Error handling
 
-  defp print_error(kind, exception, stacktrace) do
-    {exception, stacktrace} = normalize_exception(kind, exception, stacktrace)
-    print_stacktrace stacktrace, fn ->
-      Exception.format_banner(kind, exception, stacktrace)
-    end
+  defp print_error(kind, reason, stacktrace) do
+    {reason, stacktrace} = normalize_exception(kind, reason, stacktrace)
+
+    message = Exception.format_banner(kind, reason, stacktrace)
+    io_error message
+    io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
   end
 
   defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
-    {RuntimeError[message: "undefined function: #{format_function(fun, arity)}"], t}
+    {%RuntimeError{message: "undefined function: #{format_function(fun, arity)}"}, t}
   end
 
   defp normalize_exception(_kind, reason, stacktrace) do
@@ -170,19 +172,6 @@ defmodule IEx.Evaluator do
         "#{fun}/#{length(arity)}"
       true ->
         "#{fun}/#{arity}"
-    end
-  end
-
-  defp print_stacktrace(trace, callback) do
-    try do
-      message = IEx.color(:eval_error, callback.())
-      case prune_stacktrace(trace) do
-        []    -> IO.puts(message)
-        other -> IO.puts([message, ?\n | format_stacktrace(other)])
-      end
-    catch
-      type, detail ->
-        io_error "** (IEx.Error) #{type} when printing exception message and stacktrace: #{inspect detail, records: false}"
     end
   end
 

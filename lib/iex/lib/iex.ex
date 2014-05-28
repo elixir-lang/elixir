@@ -1,6 +1,6 @@
 defmodule IEx do
   @moduledoc ~S"""
-  Welcome to IEx.
+  Elixir's interactive shell.
 
   This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
@@ -141,7 +141,7 @@ defmodule IEx do
       value = 13
 
   Running the shell in the directory where the above .iex file is located
-  results in
+  results in:
 
       $ iex
       Erlang 17 [...]
@@ -151,23 +151,19 @@ defmodule IEx do
       iex(1)> value
       13
 
-  It is possible to override the default loading sequence for `.iex.exs` file by
-  supplying the `--dot-iex` option to iex. See `iex --help`.
+  It is possible to load another file by supplying the `--dot-iex`
+  option to iex. See `iex --help`.
 
   ## Configuring the shell
 
   There are a number of customization options provided by the shell. Take a look
-  at the docs for the `IEx.Options` module by typing `h IEx.Options`.
+  at the docs for the `IEx.configure/1` function by typing `h IEx.configure/1`.
 
-  The main functions there are `IEx.Options.get/1` and `IEx.Options.set/2`. One
-  can also use `IEx.Options.list/0` to get the list of all supported options.
-  `IEx.Options.print_help/1` will print documentation for the given option.
-
-  In particular, it might be convenient to customize those options inside your
-  `.iex.exs` file like this:
+  Those options can be configured in your project configuration file or globally
+  by calling `IEx.configure/1` from your `~/.iex.exs` file like this:
 
       # .iex
-      IEx.Options.set :inspect, limit: 3
+      IEx.configure(inspect: [limit: 3])
 
       ### now run the shell ###
 
@@ -214,17 +210,109 @@ defmodule IEx do
   """
 
   @doc """
+  Configures IEx.
+
+  The supported options are: `:colors`, `:inspect`,
+  `:default_prompt`, `:alive_prompt` and `:history_size`.
+
+  ## Colors
+
+  A keyword list that encapsulates all color settings used by the
+  shell. See documentation for the `IO.ANSI` module for the list of
+  supported colors and attributes.
+
+  The value is a keyword list. List of supported keys:
+
+  * `:enabled`      - boolean value that allows for switching the coloring on and off
+  * `:eval_result`  - color for an expression's resulting value
+  * `:eval_info`    - … various informational messages
+  * `:eval_error`   - … error messages
+  * `:stack_app`    - … the app in stack traces
+  * `:stack_info`   - … the remaining info in stacktraces
+  * `:ls_directory` - … for directory entries (ls helper)
+  * `:ls_device`    - … device entries (ls helper)
+
+  When printing documentation, IEx will convert the markdown
+  documentation to ANSI as well. Those can be configured via:
+
+  * `:doc_code`        — the attributes for code blocks (cyan, bright)
+  * `:doc_inline_code` - inline code (cyan)
+  * `:doc_headings`    - h1 and h2 (yellow, bright)
+  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+  * `:doc_bold`        - (bright)
+  * `:doc_underline`   - (underline)
+
+  ## Inspect
+
+  A keyword list containing inspect options used by the shell
+  when printing results of expression evaluation. Defailt to
+  pretty formatting with a limit of 50 entries.
+
+  See `Inspect.Opts` for the full list of options.
+
+  ## History size
+
+  Number of expressions and their results to keep in the history.
+  The value is an integer. When it is negative, the history is unlimited.
+
+  ## Prompt
+
+  This is an option determining the prompt displayed to the user
+  when awaiting input.
+
+  The value is a keyword list. Two prompt types:
+
+  * `:default_prompt` - used when `Node.alive?` returns false
+  * `:alive_prompt`   - used when `Node.alive?` returns true
+
+  The part of the listed in the following of the prompt string is replaced.
+
+  * `%counter` - the index of the history
+  * `%prefix`  - a prefix given by `IEx.Server`
+  * `%node`    - the name of the local node
+
+  """
+  def configure(options) do
+    Enum.each options, fn {k, v} ->
+      Application.put_env(:iex, k, configure(k, v))
+    end
+  end
+
+  defp configure(k, v) when k in [:colors, :inspect] and is_list(v) do
+    Keyword.merge(Application.get_env(:iex, k), v)
+  end
+
+  defp configure(:history_size, v) when is_integer(v) do
+    v
+  end
+
+  defp configure(k, v) when k in [:default_prompt, :alive_prompt] and is_binary(v) do
+    v
+  end
+
+  defp configure(k, v) do
+    raise ArgumentError, "invalid value #{inspect v} for configuration #{inspect k}"
+  end
+
+  @doc """
+  Returns IEx configuration.
+  """
+  def configuration do
+    Application.get_all_env(:iex)
+  end
+
+  @doc """
   Registers a function to be invoked after the IEx process is spawned.
   """
   def after_spawn(fun) when is_function(fun) do
-    :application.set_env(:iex, :after_spawn, [fun|after_spawn])
+    Application.put_env(:iex, :after_spawn, [fun|after_spawn])
   end
 
   @doc """
   Returns registered `after_spawn` callbacks.
   """
   def after_spawn do
-    {:ok, list} = :application.get_env(:iex, :after_spawn)
+    {:ok, list} = Application.fetch_env(:iex, :after_spawn)
     list
   end
 
@@ -232,7 +320,7 @@ defmodule IEx do
   Returns `true` if IEx was properly started.
   """
   def started? do
-    :application.get_env(:iex, :started) == {:ok, true}
+    Application.get_env(:iex, :started, false)
   end
 
   @doc """
@@ -240,7 +328,7 @@ defmodule IEx do
   ANSI escapes in `string` are not processed in any way.
   """
   def color(color_name, string) do
-    colors = IEx.Options.get(:colors)
+    colors = Application.get_env(:iex, :colors)
     enabled = colors[:enabled]
     IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
       <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
@@ -345,7 +433,7 @@ defmodule IEx do
         _        -> :init.wait_until_started()
       end
 
-      start_iex()
+      callback = start_iex(callback)
       set_expand_fun()
       run_after_spawn()
       IEx.Server.start(opts, callback)
@@ -355,14 +443,64 @@ defmodule IEx do
   @doc false
   def dont_display_result, do: :"do not show this result in output"
 
+  @doc false
+  def default_colors do
+    [# Enabled should be commented as it is calculated if missing
+     # enabled: true,
+
+     # Used by default on evaluation cycle
+     eval_interrupt: "yellow",
+     eval_result:    "yellow",
+     eval_error:     "red",
+     eval_info:      "normal",
+     stack_app:      "red,bright",
+     stack_info:     "red",
+
+     # Used by ls
+     ls_directory: "blue",
+     ls_device: "green",
+
+     # Used by ansi docs
+     doc_bold: "bright",
+     doc_code: "cyan,bright",
+     doc_headings: "yellow,bright",
+     doc_inline_code: "cyan",
+     doc_underline: "underline",
+     doc_title: "reverse,yellow,bright"]
+  end
+
+  @doc false
+  def default_inspect do
+    [structs: true, binaries: :infer,
+     char_lists: :infer, limit: 50, pretty: true]
+  end
+
   ## Helpers
 
-  defp start_iex do
-    unless started? do
-      :application.start(:elixir)
-      :application.start(:iex)
-      :application.set_env(:iex, :started, true)
-      IEx.Options.set :colors, enabled: IO.ANSI.terminal?
+  defp start_iex(callback) do
+    if started? do
+      callback
+    else
+      Application.start(:elixir)
+      Application.start(:iex)
+      Application.put_env(:iex, :started, true)
+
+      fn ->
+        # The callback may actually configure IEx (for example,
+        # if it is a Mix project), so we wrap the original callback
+        # so we can normalize options afterwards.
+        callback.()
+
+        colors = default_colors
+                 |> Keyword.merge(Application.get_env(:iex, :colors))
+                 |> Keyword.put_new(:enabled, IO.ANSI.terminal?)
+
+        inspect = default_inspect
+                  |> Keyword.merge(Application.get_env(:iex, :inspect))
+
+        Application.put_env(:iex, :colors, colors)
+        Application.put_env(:iex, :inspect, inspect)
+      end
     end
   end
 

@@ -8,7 +8,7 @@ defprotocol Inspect do
   formatted, either in pretty printing format or a regular one.
 
   The `inspect/2` function receives the entity to be inspected
-  followed by the inspecting options, represented by the record
+  followed by the inspecting options, represented by the struct
   `Inspect.Opts`.
 
   Inspection is done using the functions available in `Inspect.Algebra`.
@@ -70,7 +70,7 @@ defimpl Inspect, for: Atom do
   def inspect(:""),    do: ":\"\""
 
   def inspect(atom) do
-    binary = atom_to_binary(atom)
+    binary = Atom.to_string(atom)
 
     cond do
       valid_ref_identifier?(binary) ->
@@ -82,7 +82,7 @@ defimpl Inspect, for: Atom do
         end
       valid_atom_identifier?(binary) ->
         ":" <> binary
-      atom in [:%{}, :{}, :<<>>, :..., :[]] ->
+      atom in [:%{}, :{}, :<<>>, :..., :%] ->
         ":" <> binary
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
@@ -142,7 +142,7 @@ end
 defimpl Inspect, for: BitString do
   def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
-      << ?", escape(thing, ?") :: binary, ?" >>
+      <<?", escape(thing, ?") :: binary, ?">>
     else
       inspect_bitstring(thing, opts)
     end
@@ -202,18 +202,41 @@ defimpl Inspect, for: BitString do
     else
       << byte :: size(8), h :: binary >> = head
       t = << h :: binary, t :: binary >>
-      escape(t, char, << binary :: binary, octify(byte) :: binary >>)
+      escape(t, char, << binary :: binary, escape_char(byte) :: binary >>)
     end
   end
   defp escape(<<h, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, octify(h) :: binary >>)
+    escape(t, char, << binary :: binary, escape_char(h) :: binary >>)
   end
   defp escape(<<>>, _char, binary), do: binary
+
+
+  @doc false
+  # also used by Regex
+  def escape_char(char) when char in ?\000..?\377,
+    do: octify(char)
+
+  def escape_char(char), do: hexify(char)
 
   defp octify(byte) do
     << hi :: size(2), mi :: size(3), lo :: size(3) >> = << byte >>
     << ?\\, ?0 + hi, ?0 + mi, ?0 + lo >>
   end
+
+  defp hexify(char) when char < 0x10000 do
+    <<a::4, b::4, c::4, d::4>> = <<char::size(16)>>
+    <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
+  end
+
+  defp hexify(char) when char < 0x1000000 do
+    <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::size(24)>>
+    <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
+                   to_hex(d), to_hex(e), to_hex(f), ?}>>
+  end
+
+  defp to_hex(c) when c in 0..9, do: ?0+c
+  defp to_hex(c) when c in 10..15, do: ?a+c-10
+
 
   defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
   defp append(<<>>, binary), do: binary
@@ -229,11 +252,11 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<h, t :: bitstring>>, counter, acc) when t != <<>> do
-    each_bit(t, decrement(counter), acc <> integer_to_binary(h) <> ", ")
+    each_bit(t, decrement(counter), acc <> Integer.to_string(h) <> ", ")
   end
 
   defp each_bit(<<h :: size(8)>>, _counter, acc) do
-    acc <> integer_to_binary(h)
+    acc <> Integer.to_string(h)
   end
 
   defp each_bit(<<>>, _counter, acc) do
@@ -243,7 +266,7 @@ defimpl Inspect, for: BitString do
   defp each_bit(bitstring, _counter, acc) do
     size = bit_size(bitstring)
     <<h :: size(size)>> = bitstring
-    acc <> integer_to_binary(h) <> "::size(" <> integer_to_binary(size) <> ")"
+    acc <> Integer.to_string(h) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
   defp decrement(:infinity), do: :infinity
@@ -275,7 +298,7 @@ defimpl Inspect, for: List do
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
       lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
-        << ?', Inspect.BitString.escape(String.from_char_data!(thing), ?') :: binary, ?' >>
+        << ?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
       true ->
@@ -291,7 +314,7 @@ defimpl Inspect, for: List do
   end
 
   def keyword?([{key, _value} | rest]) when is_atom(key) do
-    case atom_to_list(key) do
+    case Atom.to_char_list(key) do
       'Elixir.' ++ _ -> false
       _ -> keyword?(rest)
     end
@@ -326,57 +349,7 @@ defimpl Inspect, for: Tuple do
   def inspect({}, _opts), do: "{}"
 
   def inspect(tuple, opts) do
-    if opts.records do
-      record_inspect(tuple, opts)
-    else
-      surround_many("{", tuple_to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
-    end
-  end
-
-  ## Helpers
-
-  defp record_inspect(record, opts) do
-    [name|tail] = tuple_to_list(record)
-
-    if is_atom(name) && (fields = record_fields(name)) && (length(fields) == size(record) - 1) do
-      surround_record(name, fields, tail, opts)
-    else
-      surround_many("{", [name|tail], "}", opts.limit, &to_doc(&1, opts))
-    end
-  end
-
-  defp record_fields(name) do
-    case atom_to_binary(name) do
-      "Elixir." <> _ ->
-        try do
-          name.__record__(:fields)
-        rescue
-          _ -> nil
-        end
-      _ -> nil
-    end
-  end
-
-  defp surround_record(name, fields, tail, opts) do
-    concat(
-      Inspect.Atom.inspect(name, opts),
-      surround_many("[", zip_fields(fields, tail), "]", opts.limit, &keyword(&1, opts))
-    )
-  end
-
-  defp zip_fields([{key, _}|tk], [value|tv]) do
-    case atom_to_binary(key) do
-      "_" <> _ -> zip_fields(tk, tv)
-      key -> [{key, value}|zip_fields(tk, tv)]
-    end
-  end
-
-  defp zip_fields([], []) do
-    []
-  end
-
-  defp keyword({k, v}, opts) do
-    concat(k <> ": ", to_doc(v, opts))
+    surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
   end
 end
 
@@ -408,20 +381,67 @@ end
 
 defimpl Inspect, for: Integer do
   def inspect(thing, _opts) do
-    integer_to_binary(thing)
+    Integer.to_string(thing)
   end
 end
 
 defimpl Inspect, for: Float do
   def inspect(thing, _opts) do
-    iodata_to_binary(:io_lib_format.fwrite_g(thing))
+    IO.iodata_to_binary(:io_lib_format.fwrite_g(thing))
   end
 end
 
 defimpl Inspect, for: Regex do
-  def inspect(regex, opts) do
-    concat ["~r", to_doc(regex.source, opts), regex.opts]
+  def inspect(regex, _opts) do
+    delim = ?/
+    concat ["~r",
+            <<delim, escape(regex.source, delim)::binary, delim>>,
+            regex.opts]
   end
+
+  defp escape(bin, term),
+    do: escape(bin, <<>>, term)
+
+  defp escape(<<?\\, term>> <> rest, buf, term),
+    do: escape(rest, buf <> <<?\\, term>>, term)
+
+  defp escape(<<term>> <> rest, buf, term),
+    do: escape(rest, buf <> <<?\\, term>>, term)
+
+  # the list of characters is from `String.printable?` impl
+  # minus characters treated specially by regex: \s, \d, \b, \e
+
+  defp escape(<<?\n>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?n>>, term)
+
+  defp escape(<<?\r>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?r>>, term)
+
+  defp escape(<<?\t>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?t>>, term)
+
+  defp escape(<<?\v>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?v>>, term)
+
+  defp escape(<<?\f>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?f>>, term)
+
+  defp escape(<<?\a>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, ?\\, ?a>>, term)
+
+  defp escape(<<c::utf8>> <> rest, buf, term) do
+    charstr = <<c::utf8>>
+    if String.printable?(charstr) and not c in [?\d, ?\b, ?\e] do
+      escape(rest, buf <> charstr, term)
+    else
+      escape(rest, buf <> Inspect.BitString.escape_char(c), term)
+    end
+  end
+
+  defp escape(<<c>> <> rest, buf, term),
+    do: escape(rest, <<buf::binary, Inspect.BitString.escape_char(c)>>, term)
+
+  defp escape(<<>>, buf, _), do: buf
 end
 
 defimpl Inspect, for: Function do
@@ -432,7 +452,7 @@ defimpl Inspect, for: Function do
     if fun_info[:type] == :external and fun_info[:env] == [] do
       "&#{Inspect.Atom.inspect(mod)}.#{fun_info[:name]}/#{fun_info[:arity]}"
     else
-      case atom_to_list(mod) do
+      case Atom.to_char_list(mod) do
         'elixir_compiler_' ++ _ ->
           if function_exported?(mod, :__RELATIVE__, 0) do
             "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
@@ -455,7 +475,7 @@ defimpl Inspect, for: Function do
   end
 
   defp extract_name(name) do
-    name = atom_to_binary(name)
+    name = Atom.to_string(name)
     case :binary.split(name, "-", [:global]) do
       ["", name | _] -> "." <> name
       _ -> "." <> name
@@ -463,27 +483,27 @@ defimpl Inspect, for: Function do
   end
 
   defp uniq(fun_info) do
-    integer_to_binary(fun_info[:new_index]) <> "." <>
-      integer_to_binary(fun_info[:uniq])
+    Integer.to_string(fun_info[:new_index]) <> "." <>
+      Integer.to_string(fun_info[:uniq])
   end
 end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> iodata_to_binary(:erlang.pid_to_list(pid))
+    "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
   end
 end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    iodata_to_binary :erlang.port_to_list(port)
+    IO.iodata_to_binary :erlang.port_to_list(port)
   end
 end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> iodata_to_binary(rest)
+    "#Reference" <> IO.iodata_to_binary(rest)
   end
 end
 
@@ -496,23 +516,11 @@ defimpl Inspect, for: Any do
     else
       dunder ->
         if :maps.keys(dunder) == :maps.keys(map) do
-          Inspect.Map.inspect(:maps.remove(:__struct__, map),
-            Inspect.Atom.inspect(struct, opts), opts)
+          pruned = :maps.remove(:__exception__, :maps.remove(:__struct__, map))
+          Inspect.Map.inspect(pruned, Inspect.Atom.inspect(struct, opts), opts)
         else
           Inspect.Map.inspect(map, opts)
         end
     end
-  end
-end
-
-defimpl Inspect, for: HashDict do
-  def inspect(dict, opts) do
-    concat ["#HashDict<", Inspect.List.inspect(HashDict.to_list(dict), opts), ">"]
-  end
-end
-
-defimpl Inspect, for: HashSet do
-  def inspect(set, opts) do
-    concat ["#HashSet<", Inspect.List.inspect(HashSet.to_list(set), opts), ">"]
   end
 end

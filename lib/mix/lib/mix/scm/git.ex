@@ -17,7 +17,7 @@ defmodule Mix.SCM.Git do
         case Enum.find_value [:branch, :ref, :tag], &List.keyfind(lock_opts, &1, 0) do
           {:ref, _}  -> lock <> " (ref)"
           {key, val} -> lock <> " (#{key}: #{val})"
-          nil          -> lock
+          nil        -> lock
         end
       _ ->
         nil
@@ -142,7 +142,7 @@ defmodule Mix.SCM.Git do
   defp get_rev_info do
     destructure [origin, rev],
       System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
-      |> iodata_to_binary
+      |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [ origin: origin, rev: rev ]
   end
@@ -159,17 +159,17 @@ defmodule Mix.SCM.Git do
   end
 
   defp git_version do
-    case :application.get_env(:mix, :git_version) do
+    case Application.fetch_env(:mix, :git_version) do
       {:ok, version} ->
         version
-      :undefined ->
+      :error ->
         "git version " <> version = String.strip System.cmd("git --version")
         version = String.split(version, ".")
                   |> Enum.take(3)
-                  |> Enum.map(&binary_to_integer(&1))
-                  |> list_to_tuple
+                  |> Enum.map(&String.to_integer(&1))
+                  |> List.to_tuple
 
-        :application.set_env(:mix, :git_version, version)
+        Application.put_env(:mix, :git_version, version)
         version
     end
   end

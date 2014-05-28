@@ -86,8 +86,14 @@ capture_import(Meta, {Atom, ImportMeta, Args} = Expr, E, Sequential) ->
 
 capture_require(Meta, {{'.', _, [Left, Right]}, RequireMeta, Args} = Expr, E, Sequential) ->
   {Mod, EE} = elixir_exp:expand(Left, E),
-  Res = Sequential andalso is_atom(Mod) andalso
-        elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE),
+  Res = Sequential andalso case Mod of
+    {Name, _, Context} when is_atom(Name), is_atom(Context) ->
+      {remote, Mod, Right, length(Args)};
+    _ when is_atom(Mod) ->
+      elixir_dispatch:require_function(RequireMeta, Mod, Right, length(Args), EE);
+    _ ->
+      false
+  end,
   handle_capture(Res, Meta, Expr, EE, Sequential).
 
 handle_capture({local, Fun, Arity}, _Meta, _Expr, _E, _Sequential) ->

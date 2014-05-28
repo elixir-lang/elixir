@@ -1,13 +1,13 @@
-import Kernel, except: [access: 2]
-
 defprotocol Access do
   @moduledoc """
-  The Access protocol is the underlying protocol invoked
-  when the brackets syntax is used. For instance, `foo[bar]`
-  is translated to `access foo, bar` which, by default,
-  invokes the `Access.access` protocol.
+  The Access protocol is used by `foo[bar]` and also
+  empowers the nested update functions in Kernel.
 
-  This protocol is implemented by default for Lists, Maps
+  For instance, `foo[bar]` translates `Access.get(foo, bar)`.
+  `Kernel.get_in/2`, `Kernel.put_in/3` and `Kernel.update_in/3`
+  are also all powered by the Access protocol.
+
+  This protocol is implemented by default for keywords, maps
   and dictionary like types:
 
       iex> keywords = [a: 1, b: 2]
@@ -23,45 +23,126 @@ defprotocol Access do
       "★☆"
 
   The key access must be implemented using the `===` operator.
-  This protocol is limited and is implemented only for the
-  following built-in types: keywords, records and functions.
   """
 
   @doc """
-  Receives the element being accessed and the access item.
+  Accesses the given key in the container.
   """
-  def access(container, key)
+  def get(container, key)
+
+  @doc """
+  Gets a value and updates the given key in one pass.
+
+  In case the key is not set, invokes the function passing nil.
+  """
+  def get_and_update(container, key, fun)
+
+  @doc false
+  Kernel.def access(container, key) do
+    get(container, key)
+  end
 end
 
 defimpl Access, for: List do
-  def access(dict, key) when is_atom(key) do
+  def get(dict, key) when is_atom(key) do
     case :lists.keyfind(key, 1, dict) do
       {^key, value} -> value
       false -> nil
     end
   end
 
-  def access(_dict, key) do
-    raise ArgumentError, message: "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
+  def get(_dict, key) do
+    raise ArgumentError,
+      "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
+  end
+
+  def get_and_update(dict, key, fun) when is_atom(key) do
+    get_and_update(dict, [], key, fun)
+  end
+
+  defp get_and_update([{key, value}|t], acc, key, fun) do
+    {get, update} = fun.(value)
+    {get, :lists.reverse(acc, [{key, update}|t])}
+  end
+
+  defp get_and_update([h|t], acc, key, fun) do
+    get_and_update(t, [h|acc], key, fun)
+  end
+
+  defp get_and_update([], acc, key, fun) do
+    {get, update} = fun.(nil)
+    {get, [{key, update}|:lists.reverse(acc)]}
   end
 end
 
 defimpl Access, for: Map do
-  def access(map, key) do
+  def get(map, key) do
     case :maps.find(key, map) do
       {:ok, value} -> value
       :error -> nil
     end
   end
+
+  def get_and_update(map, key, fun) do
+    value =
+      case :maps.find(key, map) do
+        {:ok, value} -> value
+        :error -> nil
+      end
+
+    {get, update} = fun.(value)
+    {get, :maps.put(key, update, map)}
+  end
+
+  def get!(%{} = map, key) do
+    case :maps.find(key, map) do
+      {:ok, value} -> value
+      :error -> raise KeyError, key: key, term: map
+    end
+  end
+
+  def get!(other, key) do
+    raise ArgumentError,
+      "could not get key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
+
+  def get_and_update!(%{} = map, key, fun) do
+    case :maps.find(key, map) do
+      {:ok, value} ->
+        {get, update} = fun.(value)
+        {get, :maps.put(key, update, map)}
+      :error ->
+        raise KeyError, key: key, term: map
+    end
+  end
+
+  def get_and_update!(other, key, _fun) do
+    raise ArgumentError,
+      "could not update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
 end
 
 defimpl Access, for: Atom do
-  def access(nil, _) do
+  def get(nil, _) do
     nil
   end
 
-  def access(atom, _) do
-    raise "The access protocol can only be invoked for atoms at " <>
-      "compilation time, tried to invoke it for #{inspect atom}"
+  def get(atom, _) do
+    undefined(atom)
+  end
+
+  def get_and_update(nil, _, fun) do
+    fun.(nil)
+  end
+
+  def get_and_update(atom, _key, _fun) do
+    undefined(atom)
+  end
+
+  defp undefined(atom) do
+    raise Protocol.UndefinedError,
+      protocol: @protocol,
+      value: atom,
+      description: "only the nil atom is supported"
   end
 end

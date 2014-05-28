@@ -39,7 +39,7 @@ defmodule Mix.Dep.Umbrella do
 
   defp extract_umbrella(paths) do
     for path <- paths do
-      app = path |> Path.basename |> String.downcase |> binary_to_atom
+      app = path |> Path.basename |> String.downcase |> String.to_atom
       {app, path}
     end
   end
@@ -52,7 +52,7 @@ defmodule Mix.Dep.Umbrella do
   defp to_umbrella_dep(paths, build) do
     Enum.map paths, fn({app, path}) ->
       opts = [path: path, dest: Path.expand(path),
-              env: Mix.env, build: Path.join([build, "lib", atom_to_binary(app)])]
+              env: Mix.env, build: Path.join([build, "lib", Atom.to_string(app)])]
       %Mix.Dep{
         scm: Mix.SCM.Path,
         app: app,

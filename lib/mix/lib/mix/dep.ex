@@ -62,7 +62,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Receives a list of  dependency names and returns loaded `Mix.Dep`s.
+  Receives a list of dependency names and returns loaded `Mix.Dep`s.
   Logs a message if the dependency could not be found.
 
   ## Exceptions
@@ -308,7 +308,7 @@ defmodule Mix.Dep do
 
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
-      if is_binary(app), do: binary_to_atom(app), else: app
+      if is_binary(app), do: String.to_atom(app), else: app
     end
   end
 

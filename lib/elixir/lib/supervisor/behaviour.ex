@@ -1,33 +1,5 @@
 defmodule Supervisor.Behaviour do
-  @moduledoc """
-  This module is a convenience to define Supervisor
-  callbacks in Elixir. By using this module, you get
-  the module behaviour automatically tagged as
-  `:supervisor` and some helper functions are imported
-  to make defining supervisors easier.
-
-  For more information on supervisors, please check the
-  remaining functions defined in this module or refer to
-  the following:
-
-  http://www.erlang.org/doc/man/supervisor.html
-  http://www.erlang.org/doc/design_principles/sup_princ.html
-  http://learnyousomeerlang.com/supervisors
-
-  ## Example
-
-      defmodule ExUnit.Sup do
-        use Supervisor.Behaviour
-
-        def init(user_options) do
-          tree = [ worker(ExUnit.Runner, [user_options]) ]
-          supervise(tree, strategy: :one_for_one)
-        end
-      end
-
-      {:ok, pid} = :supervisor.start_link(MyServer, [])
-
-  """
+  @moduledoc false
 
   @doc false
   defmacro __using__(_) do
@@ -81,7 +53,7 @@ defmodule Supervisor.Behaviour do
   """
   def supervise(children, options) do
     unless strategy = options[:strategy] do
-      raise ArgumentError, message: "expected :strategy option to be given to supervise"
+      raise ArgumentError, "expected :strategy option to be given to supervise"
     end
 
     maxR = Keyword.get(options, :max_restarts, 5)

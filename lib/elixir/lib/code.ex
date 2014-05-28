@@ -1,11 +1,4 @@
 defmodule Code do
-  defexception LoadError, [:file, :message] do
-    def exception(opts) do
-      file = opts[:file]
-      LoadError[message: "could not load #{file}", file: file]
-    end
-  end
-
   @moduledoc """
   Utilities for managing code compilation, code evaluation and code loading.
 
@@ -135,14 +128,14 @@ defmodule Code do
 
   ## Examples
 
-      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      iex> contents = quote(do: var!(a) + var!(b))
       iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
       {3, [a: 1, b: 2]}
 
   For convenience, you can pass `__ENV__` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
-      iex> contents = quote(hygiene: [vars: false], do: a + b)
+      iex> contents = quote(do: var!(a) + var!(b))
       iex> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
       {3, [a: 1, b: 2]}
 
@@ -171,7 +164,7 @@ defmodule Code do
     valid = is_list(requires) and Enum.all?(requires, &is_atom(&1))
 
     unless valid do
-      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [module]"
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
     end
   end
 
@@ -181,7 +174,7 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{module, module}]"
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, module}]"
     end
   end
 
@@ -193,7 +186,7 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, message: "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
+      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
     end
   end
 
@@ -316,6 +309,15 @@ defmodule Code do
   end
 
   @doc """
+  Returns a list with the available compiler options.
+
+  See `Code.compiler_options/1` for more info.
+  """
+  def available_compiler_options do
+    [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+  end
+
+  @doc """
   Sets compilation options.
 
   These options are global since they are stored by Elixir's Code Server.
@@ -336,6 +338,11 @@ defmodule Code do
 
   """
   def compiler_options(opts) do
+    {opts, bad} = Keyword.split(opts, available_compiler_options)
+    if bad != [] do
+      bad = bad |> Keyword.keys |> Enum.join(", ")
+      raise ArgumentError, message: "unknown compiler options: #{bad}"
+    end
     :elixir_code_server.cast {:compiler_options, opts}
   end
 
@@ -455,6 +462,60 @@ defmodule Code do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
+  @doc """
+  Returns the docs for the given module.
+
+  When given a module name, it finds its BEAM code and reads the docs from it.
+
+  When given a path to a .beam file, it will load the docs directly from that
+  file.
+
+  The return value depends on the `kind` value:
+
+  * `:docs` - list of all docstrings attached to functions and macros
+    using the `@doc` attribute
+
+  * `:moduledoc` - tuple `{<line>, <doc>}` where `line` is the line on
+    which module definition starts and `doc` is the string
+    attached to the module using the `@moduledoc` attribute
+
+  * `:all` - a keyword list with both `:docs` and `:moduledoc`
+
+  """
+  def get_docs(module, kind) when is_atom(module) do
+    case :code.get_object_code(module) do
+      {_module, bin, _beam_path} ->
+        do_get_docs(bin, kind)
+
+      :error -> nil
+    end
+  end
+
+  def get_docs(binpath, kind) when is_binary(binpath) do
+    do_get_docs(String.to_char_list(binpath), kind)
+  end
+
+  @docs_chunk 'ExDc'
+
+  defp do_get_docs(bin_or_path, kind) do
+    case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do
+      {:ok, {_module, [{@docs_chunk, bin}]}} ->
+        lookup_docs(:erlang.binary_to_term(bin), kind)
+
+      {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} -> nil
+    end
+  end
+
+  defp lookup_docs({:elixir_docs_v1, docs}, kind),
+    do: do_lookup_docs(docs, kind)
+
+  # unsupported chunk version
+  defp lookup_docs(_, _), do: nil
+
+  defp do_lookup_docs(docs, :all), do: docs
+  defp do_lookup_docs(docs, kind) when kind in [:docs, :moduledoc],
+    do: Keyword.get(docs, kind)
+
   ## Helpers
 
   # Finds the file given the relative_to path.
@@ -470,7 +531,7 @@ defmodule Code do
     if File.regular?(file) do
       file
     else
-      raise LoadError, file: file
+      raise Code.LoadError, file: file
     end
   end
 end

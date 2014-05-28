@@ -18,12 +18,8 @@ defmodule String do
   * `Kernel.binary_part/3` - retrieves part of the binary
   * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
   * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
-  * Plus a number of conversion functions, like `Kernel.binary_to_atom/1`,
-    `Kernel.binary_to_integer/2`, `Kernel.binary_to_term/1` and their inverses,
-    like `Kernel.integer_to_binary/2`
-
-  Finally, the [`:binary` module](http://erlang.org/doc/man/binary.html)
-  provides a few other functions that work on the byte level.
+  * Plus a number of functions for working with binaries (bytes)
+    [in the `:binary` module](http://erlang.org/doc/man/binary.html)
 
   ## Codepoints and graphemes
 
@@ -147,6 +143,7 @@ defmodule String do
   def printable?(<<?\b, t :: binary>>), do: printable?(t)
   def printable?(<<?\f, t :: binary>>), do: printable?(t)
   def printable?(<<?\e, t :: binary>>), do: printable?(t)
+  def printable?(<<?\d, t :: binary>>), do: printable?(t)
   def printable?(<<?\a, t :: binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
@@ -172,8 +169,9 @@ defmodule String do
   defdelegate split(binary), to: String.Unicode
 
   @doc ~S"""
-  Divides a string into substrings based on a pattern,
-  returning a list of these substrings. The pattern can
+  Divides a string into substrings based on a pattern.
+
+  Returns a list of these substrings. The pattern can
   be a string, a list of strings or a regular expression.
 
   The string is split into as many parts as possible by
@@ -236,22 +234,16 @@ defmodule String do
   def split(binary, "", options), do: split(binary, ~r""u, options)
 
   def split(binary, pattern, options) do
-    if options[:global] != nil do
-      IO.write :stderr, "Support for :global in String.split/3 is deprecated, please use :parts instead\n#{Exception.format_stacktrace}"
-    end
     if Regex.regex?(pattern) do
       Regex.split(pattern, binary, options)
     else
-      splits = case options[:parts] do
-        num when is_number(num) and num > 0 ->
-          split_parts(binary, pattern, num - 1)
-        num ->
-          if options[:global] != false or num == 0 do
+      splits =
+        case Keyword.get(options, :parts, :infinity) do
+          num when is_number(num) and num > 0 ->
+            split_parts(binary, pattern, num - 1)
+          _ ->
             :binary.split(binary, pattern, [:global])
-          else
-            :binary.split(binary, pattern, [])
-          end
-      end
+        end
 
       if Keyword.get(options, :trim, false) do
         for split <- splits, split != "", do: split
@@ -266,10 +258,9 @@ defmodule String do
   defp split_parts("", _pattern, _num, parts),  do: Enum.reverse([""|parts])
   defp split_parts(binary, _pattern, 0, parts), do: Enum.reverse([binary|parts])
   defp split_parts(binary, pattern, num, parts) do
-    [head|tail] = :binary.split(binary, pattern)
-    case tail do
-      []    -> Enum.reverse([head|parts])
-      [str] -> split_parts(str, pattern, num - 1, [head|parts])
+    case :binary.split(binary, pattern) do
+      [head]       -> Enum.reverse([head|parts])
+      [head, rest] -> split_parts(rest, pattern, num - 1, [head|parts])
     end
   end
 
@@ -611,9 +602,7 @@ defmodule String do
   @spec replace(t, t, t) :: t
   @spec replace(t, t, t, Keyword.t) :: t
 
-  def replace(subject, pattern, replacement, options \\ [])
-
-  def replace(subject, pattern, replacement, options) do
+  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
@@ -623,9 +612,9 @@ defmodule String do
   end
 
   defp translate_replace_options(options) do
-    opts = if options[:global] != false, do: [:global], else: []
+    opts = if Keyword.get(options, :global) != false, do: [:global], else: []
 
-    if insert = options[:insert_replaced] do
+    if insert = Keyword.get(options, :insert_replaced) do
       opts = [{:insert_replaced, insert}|opts]
     end
 
@@ -656,7 +645,7 @@ defmodule String do
     do_reverse(next_grapheme(rest), [grapheme|acc])
   end
 
-  defp do_reverse(nil, acc), do: iodata_to_binary(acc)
+  defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
 
   @doc """
   Returns a binary `subject` duplicated `n` times.
@@ -777,6 +766,65 @@ defmodule String do
 
   def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
+
+  @doc ~S"""
+  Splits the string into chunks of characters that share a common trait.
+
+  The trait can be one of two options:
+
+  * `:valid` – the string is split into chunks of valid and invalid character
+    sequences
+
+  * `:printable` – the string is split into chunks of printable and
+    non-printable character sequences
+
+  Returns a list of binaries each of which contains only one kind of
+  characters.
+
+  If the given string is empty, an empty list is returned.
+
+  ## Examples
+
+      iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
+      ["abc\000"]
+
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :valid)
+      ["abc\000", <<0x0ffff::utf8>>]
+
+      iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :printable)
+      ["abc", <<0, 0x0ffff::utf8>>]
+
+  """
+  @spec chunk(t, :valid | :printable) :: [t]
+
+  def chunk(string, trait)
+
+  def chunk("", _), do: []
+
+  def chunk(str, trait) when trait in [:valid, :printable] do
+    {cp, _} = next_codepoint(str)
+    pred_fn = make_chunk_pred(trait)
+    do_chunk(str, pred_fn.(cp), pred_fn)
+  end
+
+
+  defp do_chunk(str, flag, pred_fn), do: do_chunk(str, [], <<>>, flag, pred_fn)
+
+  defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
+
+  defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
+
+  defp do_chunk(str, acc, chunk, flag, pred_fn) do
+    {cp, rest} = next_codepoint(str)
+    if pred_fn.(cp) != flag do
+      do_chunk(rest, [chunk|acc], cp, not flag, pred_fn)
+    else
+      do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
+    end
+  end
+
+  defp make_chunk_pred(:valid), do: &valid?/1
+  defp make_chunk_pred(:printable), do: &printable?/1
 
   @doc """
   Returns unicode graphemes in the string as per Extended Grapheme
@@ -1104,10 +1152,6 @@ defmodule String do
     Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
-  defp do_starts_with(_, _) do
-    raise ArgumentError
-  end
-
   @doc """
   Returns `true` if `string` ends with any of the suffixes given, otherwise
   `false`. `suffixes` can be either a single suffix or a list of suffixes.
@@ -1143,10 +1187,6 @@ defmodule String do
     suffix_size = size(suffix)
     scope = {string_size - suffix_size, suffix_size}
     (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
-  end
-
-  defp do_ends_with(_, _) do
-    raise ArgumentError
   end
 
   @doc """
@@ -1201,49 +1241,123 @@ defmodule String do
     :nomatch != :binary.match(string, match)
   end
 
-  defp do_contains(_, _) do
-    raise ArgumentError
-  end
-
-  @doc false
-  def to_char_list(list) do
-    IO.write :stderr, "String.to_char_list/1 is deprecated, please use List.from_char_data/1 instead\n#{Exception.format_stacktrace}"
-    List.from_char_data(list)
-  end
-
-  @doc false
-  def to_char_list!(list) do
-    IO.write :stderr, "String.to_char_list!/1 is deprecated, please use List.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
-    List.from_char_data!(list)
-  end
-
-  @doc false
-  def from_char_list(list) do
-    IO.write :stderr, "String.from_char_list/1 is deprecated, please use String.from_char_data/1 instead\n#{Exception.format_stacktrace}"
-    from_char_data(list)
-  end
-
-  @doc false
-  def from_char_list!(list) do
-    IO.write :stderr, "String.from_char_list!/1 is deprecated, please use String.from_char_data!/1 instead\n#{Exception.format_stacktrace}"
-    from_char_data!(list)
-  end
-
   @doc """
-  Converts char data (a list of integers and strings) into a string.
-
-  If a string is given, returns the string itself.
+  Converts a string into a char list.
 
   ## Examples
 
-      iex> String.from_char_data([0x00E6, 0x00DF])
-      {:ok, "æß"}
+      iex> String.to_char_list("æß")
+      'æß'
 
-      iex> String.from_char_data([0x0061, "bc"])
-      {:ok, "abc"}
+  Notice that this function expect a list of integer representing
+  UTF-8 codepoints. If you have a raw binary, you must instead use
+  [the `:binary` module](http://erlang.org/doc/man/binary.html).
+  """
+  @spec to_char_list(t) :: char_list
+  def to_char_list(string) when is_binary(string) do
+    case :unicode.characters_to_list(string) do
+      result when is_list(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
+  @doc """
+  Converts a string to an atom.
+
+  Currently Elixir does not support conversions from strings
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_atom("my_atom")
+      :my_atom
 
   """
-  @spec from_char_data(char_data) :: {:ok, String.t} | {:error, binary, binary} | {:incomplete, binary, binary}
+  @spec to_atom(String.t) :: atom
+  def to_atom(string) do
+    :erlang.binary_to_atom(string, :utf8)
+  end
+
+  @doc """
+  Converts a string to an existing atom.
+
+  Currently Elixir does not support conversions from strings
+  which contains Unicode codepoints greater than 0xFF.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> :my_atom
+      iex> String.to_existing_atom("my_atom")
+      :my_atom
+
+      iex> String.to_existing_atom("this_atom_will_never_exist")
+      ** (ArgumentError) argument error
+
+  """
+  @spec to_existing_atom(String.t) :: atom
+  def to_existing_atom(string) do
+    :erlang.binary_to_existing_atom(string, :utf8)
+  end
+
+  @doc """
+  Returns a integer whose text representation is `string`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_integer("123")
+      123
+
+  """
+  @spec to_integer(String.t) :: integer
+  def to_integer(string) do
+    :erlang.binary_to_integer(string)
+  end
+
+  @doc """
+  Returns an integer whose text representation is `string` in base `base`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_integer("3FF", 16)
+      1023
+
+  """
+  @spec to_integer(String.t, pos_integer) :: integer
+  def to_integer(string, base) do
+    :erlang.binary_to_integer(string, base)
+  end
+
+  @doc """
+  Returns a float whose text representation is `string`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> String.to_float("2.2017764e+0")
+      2.2017764
+
+  """
+  @spec to_float(String.t) :: float
+  def to_float(string) do
+    :erlang.binary_to_float(string)
+  end
+
+  @doc false
   def from_char_data(binary) when is_binary(binary) do
     binary
   end
@@ -1261,22 +1375,7 @@ defmodule String do
     end
   end
 
-  @doc """
-  Converts char data (a list of integers and strings) into a string.
-
-  In case the conversion fails, it raises a `UnicodeConversionError`.
-  If a string is given, returns the string itself.
-
-  ## Examples
-
-      iex> String.from_char_data!([0x00E6, 0x00DF])
-      "æß"
-
-      iex> String.from_char_data!([0x0061, "bc"])
-      "abc"
-
-  """
-  @spec from_char_data!(char_data) :: String.t | no_return
+  @doc false
   def from_char_data!(binary) when is_binary(binary) do
     binary
   end

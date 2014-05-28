@@ -9,18 +9,28 @@ defmodule Kernel.ErrorsTest do
     defmacro exit(args), do: args
   end
 
-  defrecord Config, integer: 0
-
   test :invalid_token do
     assert_compile_fail SyntaxError,
       "nofile:1: invalid token: \end",
       '\end\nlol\nbarbecue'
   end
 
-  test :invalid_string do
+  test :invalid_quoted_token do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: \"world\"",
       '"hello" "world"'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: foo",
+      'Foo.:foo'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"foo\"",
+      'Foo.:"foo\#{:bar}"'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: \"",
+      'Foo.:"\#{:bar}"'
   end
 
   test :invalid_or_reserved_codepoint do
@@ -56,8 +66,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :heredoc_start do
-    assert_compile_fail TokenMissingError,
-      "nofile:1: heredoc start \"\"\" must be followed by a new line",
+    assert_compile_fail SyntaxError,
+      "nofile:1: heredoc start must be followed by a new line after \"\"\"",
       '"""bar\n"""'
   end
 
@@ -111,8 +121,8 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
-    assert is_atom is_record range, Range
-    assert is_atom(is_record range, Range)
+    assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
+    assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
   end
 
   test :syntax_error_with_no_token do
@@ -203,10 +213,10 @@ defmodule Kernel.ErrorsTest do
 
   test :struct_fields_on_defstruct do
     assert_compile_fail ArgumentError,
-      "defstruct fields must be a keyword list, got: my_fields",
+      "struct field names must be atoms, got: 1",
       '''
       defmodule TZ do
-        defstruct my_fields
+        defstruct [1, 2, 3]
       end
       '''
   end
@@ -480,7 +490,7 @@ defmodule Kernel.ErrorsTest do
 
   test :in_definition_module do
     assert_compile_fail CompileError,
-      "nofile:1: cannot define module ErrorsTest because it is currently being defined",
+      "nofile:1: cannot define module ErrorsTest because it is currently being defined in nofile:1",
       'defmodule ErrorsTest, do: (defmodule Elixir.ErrorsTest, do: true)'
   end
 
@@ -536,52 +546,10 @@ defmodule Kernel.ErrorsTest do
       'import :lists, [ops: 1]'
   end
 
-  test :invalid_access_protocol_not_available do
-    assert_compile_fail CompileError,
-      "nofile:2: module Unknown is not loaded and could not be found",
-      '''
-      defmodule ErrorsTest do
-        def sample(Unknown[integer: 0]), do: true
-      end
-      '''
-  end
-
-  test :invalid_access_protocol_not_alias do
-    assert_raise ArgumentError, "dynamic access cannot be invoked inside match and guard clauses", fn ->
-      defmodule ErrorsTest do
-        def sample(config[integer: 0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_not_record do
-    assert_raise ArgumentError, "cannot access module Kernel.ErrorsTest because it is not a record", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest[integer: 0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_not_keywords do
-    assert_raise ArgumentError, "expected contents inside brackets to be a keyword list or an atom, got: [0]", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest.Config[0]), do: true
-      end
-    end
-  end
-
-  test :invalid_access_protocol_invalid_keywords do
-    assert_raise ArgumentError, "record Kernel.ErrorsTest.Config does not have the key: :foo", fn ->
-      defmodule ErrorsTest do
-        def sample(Kernel.ErrorsTest.Config[foo: :bar]), do: true
-      end
-    end
-  end
-
   test :invalid_rescue_clause do
     assert_compile_fail CompileError,
       "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the `var in [alias]` format",
-      'try do\n1\nrescue\nUndefinedFunctionError[arity: 1] -> false\nend'
+      'try do\n1\nrescue\n%UndefinedFunctionError{arity: 1} -> false\nend'
   end
 
   test :invalid_for_without_generators do
@@ -724,10 +692,6 @@ defmodule Kernel.ErrorsTest do
 
   defmacro before_compile(_) do
     quote(do: _)
-  end
-
-  defp range do
-    1..3
   end
 
   ## Helpers

@@ -57,14 +57,10 @@ defmodule Mix.Dep.Converger do
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
-    #
-    # Note we use the lock as a flag to know if the remote
-    # converger should be used or not (the lock is passed
-    # only on fetch/get/update).
+
     {deps, rest, lock} =
       all(main, [], [], apps, callback, acc, lock, fn dep ->
-        if not nil?(lock) &&
-           (converger = Mix.RemoteConverger.get) &&
+        if (converger = Mix.RemoteConverger.get) &&
            converger.remote?(dep) do
           {:loaded, dep}
         else

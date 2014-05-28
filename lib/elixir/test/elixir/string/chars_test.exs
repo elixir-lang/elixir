@@ -91,12 +91,6 @@ defmodule String.Chars.ErrorsTest do
     end
   end
 
-  test :record do
-    assert_raise Protocol.UndefinedError, "protocol String.Chars not implemented for ArgumentError[message: \"argument error\"]", fn ->
-      to_string(ArgumentError[])
-    end
-  end
-
   test :pid do
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #PID<.+?>$", fn ->
       to_string(self())

@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([compile/4, data_table/1, docs_table/1, is_open/1,
-         format_error/1, eval_callbacks/5]).
+         expand_callback/6, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
 -define(acc_attr, '__acc_attributes').
@@ -8,6 +8,7 @@
 -define(lexical_attr, '__lexical_tracker').
 -define(persisted_attr, '__persisted_attributes').
 -define(overridable_attr, '__overridable').
+-define(location_attr, '__location').
 
 %% TABLE METHODS
 
@@ -53,9 +54,9 @@ do_compile(Line, Module, Block, Vars, E) ->
     {Base, Export, Private, Def, Defmacro, Functions} = elixir_def:unwrap_definitions(Module),
 
     {All, Forms0} = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
-    Forms1          = specs_form(Module, Private, Defmacro, Forms0),
-    Forms2          = attributes_form(Line, File, Module, Forms1),
-    Forms3          = typedocs_form(Module, Forms2),
+    Forms1        = specs_form(Module, Private, Defmacro, Forms0),
+    Forms2        = attributes_form(Line, File, Module, Forms1),
+    Forms3        = typedocs_form(Module, Forms2),
 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
@@ -91,9 +92,14 @@ build(Line, File, Module, Lexical) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
 
-  case ets:info(DataTable, name) == DataTable of
-    true  -> elixir_errors:form_error(Line, File, ?MODULE, {module_in_definition, Module});
-    false -> []
+  OldTable = ets:info(DataTable, name),
+  case OldTable == DataTable of
+    true ->
+      [{OldFile, OldLine}] = ets:lookup_element(OldTable, ?location_attr, 2),
+      Error = {module_in_definition, Module, OldFile, OldLine},
+      elixir_errors:form_error(Line, File, ?MODULE, Error);
+    false ->
+      []
   end,
 
   ets:new(DataTable, [set, named_table, public]),
@@ -111,6 +117,7 @@ build(Line, File, Module, Lexical) ->
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
   ets:insert(DataTable, {?lexical_attr, Lexical}),
   ets:insert(DataTable, {?overridable_attr, []}),
+  ets:insert(DataTable, {?location_attr, [{File, Line}]}),
 
   %% Setup other modules
   elixir_def:setup(Module),
@@ -121,18 +128,26 @@ build(Line, File, Module, Lexical) ->
 eval_form(Line, Module, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_def_overridable:store_pending(Module),
-  EC = eval_callbacks(Line, Module, before_compile, [elixir_env:linify({Line, EE})], EE),
+  EV = elixir_env:linify({Line, EE#{vars := []}}),
+  EC = eval_callbacks(Line, Module, before_compile, [EV], EV),
   elixir_def_overridable:store_pending(Module),
   {Value, EC}.
+
+eval_callbacks(Line, Module, Name, Args, E) ->
+  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
+
+  lists:foldl(fun({M,F}, Acc) ->
+    expand_callback(Line, M, F, Args, Acc#{vars := []}, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+  end, E, Callbacks).
 
 %% Return the form with exports and function declarations.
 
 functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunctions) ->
-  Info = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
+  {InfoSpec, Info} = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
 
   All       = [{'__info__', 1}|BaseAll],
   Export    = [{'__info__', 1}|BaseExport],
-  Functions = [Info|BaseFunctions],
+  Functions = [InfoSpec,Info|BaseFunctions],
 
   {All, [
     {attribute, Line, export, lists:sort(Export)} | Functions
@@ -215,7 +230,7 @@ translate_spec({Spec, Rest}, Defmacro, Defmacrop) ->
   end.
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args}|T]}) ->
-  NewArgs = [{type,Line,term,[]}|Args],
+  NewArgs = [{type, Line, term, []}|Args],
   {type, Line, 'fun', [{type, Line, product, NewArgs}|T]};
 
 spec_for_macro(Else) -> Else.
@@ -229,9 +244,10 @@ compile_opts(Module) ->
   end.
 
 load_form(Line, Forms, Opts, #{file := File} = E) ->
-  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary) ->
-    Env = elixir_env:linify({Line, E}),
-    eval_callbacks(Line, Module, after_compile, [Env, Binary], E),
+  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary0) ->
+    Docs = elixir_compiler:get_opt(docs),
+    Binary = add_docs_chunk(Binary0, Module, Line, Docs),
+    eval_callbacks(Line, Module, after_compile, [E, Binary], E),
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
@@ -251,10 +267,28 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
     Binary
   end).
 
+add_docs_chunk(Bin, Module, Line, true) ->
+  ChunkData = term_to_binary({elixir_docs_v1, [
+        {docs, get_docs(Module)},
+        {moduledoc, get_moduledoc(Line, Module)}
+    ]}),
+  add_beam_chunk(Bin, "ExDc", ChunkData);
+
+add_docs_chunk(Bin, _, _, _) -> Bin.
+
+get_docs(Module) ->
+  ordsets:from_list(
+    [{Tuple, Line, Kind, Sig, Doc} ||
+     {Tuple, Line, Kind, Sig, Doc} <- ets:tab2list(docs_table(Module)),
+     Kind =/= type, Kind =/= opaque]).
+
+get_moduledoc(Line, Module) ->
+  {Line, 'Elixir.Module':get_attribute(Module, moduledoc)}.
+
+
 check_module_availability(Line, File, Module) ->
-  Reserved = ['Elixir.Atom', 'Elixir.BitString', 'Elixir.Function',
-              'Elixir.PID', 'Elixir.Reference', 'Elixir.Any',
-              'Elixir.Elixir', 'Elixir'],
+  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
+              'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
     true  -> elixir_errors:handle_file_error(File, {Line, ?MODULE, {module_reserved, Module}});
@@ -305,15 +339,17 @@ add_info_function(Line, File, Module, Export, Def, Defmacro) ->
     true  ->
       elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
-      Docs = elixir_compiler:get_opt(docs),
-      {function, 0, '__info__', 1, [
-        functions_clause(Def),
-        macros_clause(Defmacro),
-        docs_clause(Module, Docs),
-        moduledoc_clause(Line, Module, Docs),
-        module_clause(Module),
-        else_clause()
-      ]}
+      {
+        {attribute, Line, spec, {{'__info__', 1},
+          [{type, Line, 'fun', [{type, Line, product, [ {type, Line, atom, []}]}, {type, Line, term, []} ]}]
+        }},
+        {function, 0, '__info__', 1, [
+          functions_clause(Def),
+          macros_clause(Defmacro),
+          module_clause(Module),
+          else_clause()
+        ]}
+      }
   end.
 
 functions_clause(Def) ->
@@ -325,53 +361,45 @@ macros_clause(Defmacro) ->
 module_clause(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
 
-docs_clause(Module, true) ->
-  Docs = ordsets:from_list(
-    [{Tuple, Line, Kind, Sig, Doc} ||
-     {Tuple, Line, Kind, Sig, Doc} <- ets:tab2list(docs_table(Module)),
-     Kind =/= type, Kind =/= opaque]),
-  {clause, 0, [{atom, 0, docs}], [], [elixir_utils:elixir_to_erl(Docs)]};
-
-docs_clause(_Module, _) ->
-  {clause, 0, [{atom, 0, docs}], [], [{atom, 0, nil}]}.
-
-moduledoc_clause(Line, Module, true) ->
-  Docs = 'Elixir.Module':get_attribute(Module, moduledoc),
-  {clause, 0, [{atom, 0, moduledoc}], [], [elixir_utils:elixir_to_erl({Line, Docs})]};
-
-moduledoc_clause(_Line, _Module, _) ->
-  {clause, 0, [{atom, 0, moduledoc}], [], [{atom, 0, nil}]}.
-
 else_clause() ->
   Info = {call, 0, {atom, 0, module_info}, [{var, 0, atom}]},
   {clause, 0, [{var, 0, atom}], [], [Info]}.
 
 % HELPERS
 
-eval_callbacks(Line, Module, Name, Args, E) ->
-  Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
-  Meta      = [{line,Line},{require,false}],
+%% Adds custom chunk to a .beam binary
+add_beam_chunk(Bin, Id, ChunkData)
+        when is_binary(Bin), is_list(Id), is_binary(ChunkData) ->
+  {ok, _, Chunks0} = beam_lib:all_chunks(Bin),
+  NewChunk = {Id, ChunkData},
+  Chunks = [NewChunk|Chunks0],
+  {ok, NewBin} = beam_lib:build_module(Chunks),
+  NewBin.
 
-  lists:foldl(fun({M,F}, Acc) ->
-    {Expr, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, Acc, fun(AM, AF, AA) ->
-      apply(AM, AF, AA),
-      {nil, Acc}
-    end),
+%% Expands a callback given by M:F(Args). In case
+%% the callback can't be expanded, invokes the given
+%% fun passing a possibly expanded AM:AF(Args).
+expand_callback(Line, M, F, Args, E, Fun) ->
+  Meta = [{line,Line},{require,false}],
 
-    if
-      is_atom(Expr) ->
-        ET;
-      true ->
-        try
-          {_Value, _Binding, EE, _S} = elixir:eval_forms(Expr, [], ET),
-          EE
-        catch
-          Kind:Reason ->
-            Info = {M, F, length(Args), location(Line, E)},
-            erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
-        end
-    end
-  end, E, Callbacks).
+  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
+    Fun(AM, AF, AA),
+    {ok, E}
+  end),
+
+  if
+    is_atom(EE) ->
+      ET;
+    true ->
+      try
+        {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
+        EF
+      catch
+        Kind:Reason ->
+          Info = {M, F, length(Args), location(Line, E)},
+          erlang:raise(Kind, Reason, prune_stacktrace(Info, erlang:get_stacktrace()))
+      end
+  end.
 
 location(Line, E) ->
   [{file, elixir_utils:characters_to_list(?m(E, file))}, {line, Line}].
@@ -402,6 +430,6 @@ format_error({module_defined, Module}) ->
   io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
 format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
-format_error({module_in_definition, Module}) ->
-  io_lib:format("cannot define module ~ts because it is currently being defined",
-    [elixir_aliases:inspect(Module)]).
+format_error({module_in_definition, Module, File, Line}) ->
+  io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
+    [elixir_aliases:inspect(Module), 'Elixir.Path':relative_to_cwd(File), Line]).

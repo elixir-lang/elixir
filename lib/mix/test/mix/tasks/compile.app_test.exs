@@ -74,22 +74,13 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     in_fixture "no_mixfile", fn ->
       for error <- [:modules, :maxT, :registered, :included_applications,
-                       :applications, :env, :mod, :start_phases] do
+                    :applications, :env, :mod, :start_phases] do
         Process.put(:error, error)
-        e = catch_error(Mix.Tasks.Compile.App.run([]))
-        assert Mix.Error[] = e
-        assert e.message =~ ":#{error}"
 
-        err_token = InvalidProject.application[error]
-        cond do
-          is_list(err_token) ->
-            [tok] = err_token
-            assert e.message =~ inspect(tok)
-          true ->
-            assert e.message =~ inspect(err_token)
+        assert_raise Mix.Error, ~r/:#{error}/, fn ->
+          Mix.Tasks.Compile.App.run([])
         end
       end
-      Process.delete(:error)
     end
   end
 

@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Loadpaths do
   use Mix.Task
 
   @moduledoc """
-  Load the application and its dependencies paths.
+  Loads the application and its dependencies paths.
 
   ## Command line options
 

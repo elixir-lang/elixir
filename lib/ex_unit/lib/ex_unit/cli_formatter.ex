@@ -1,19 +1,25 @@
 defmodule ExUnit.CLIFormatter do
   @moduledoc false
 
-  use GenEvent.Behaviour
+  use GenEvent
 
   import ExUnit.Formatter, only: [format_time: 2, format_filters: 2, format_test_failure: 5,
                                   format_test_case_failure: 5]
-
-  defrecord Config, tests_counter: 0, invalids_counter: 0, failures_counter: 0,
-                    trace: false, seed: nil, color: true, width: :infinity
 
   ## Callbacks
 
   def init(opts) do
     print_filters(Keyword.take(opts, [:include, :exclude]))
-    {:ok, opts |> Config.new |> add_terminal_width}
+    config = %{
+      seed: opts[:seed],
+      trace: opts[:trace],
+      color: opts[:color],
+      width: get_terminal_width(),
+      tests_counter: 0,
+      failures_counter: 0,
+      invalids_counter: 0
+    }
+    {:ok, config}
   end
 
   def handle_event({:suite_finished, run_us, load_us}, config) do
@@ -21,37 +27,37 @@ defmodule ExUnit.CLIFormatter do
     :remove_handler
   end
 
-  def handle_event({:test_started, ExUnit.Test[] = test}, config) do
+  def handle_event({:test_started, %ExUnit.Test{} = test}, config) do
     if config.trace, do: IO.write "  * #{trace_test_name test}"
     {:ok, config}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: nil] = test}, config) do
+  def handle_event({:test_finished, %ExUnit.Test{state: nil} = test}, config) do
     if config.trace do
       IO.puts success(trace_test_result(test), config)
     else
       IO.write success(".", config)
     end
-    {:ok, config.update_tests_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1}}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {:skip, _}] = test}, config) do
+  def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
     {:ok, config}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {:invalid, _}] = test}, config) do
+  def handle_event({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
     if config.trace do
       IO.puts invalid(trace_test_result(test), config)
     else
       IO.write invalid("?", config)
     end
 
-    {:ok, config.update_tests_counter(&(&1 + 1))
-                .update_invalids_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     invalids_counter: config.invalids_counter + 1}}
   end
 
-  def handle_event({:test_finished, ExUnit.Test[state: {:failed, failed}] = test}, config) do
+  def handle_event({:test_finished, %ExUnit.Test{state: {:failed, failed}} = test}, config) do
     if config.trace do
       IO.puts failure(trace_test_result(test), config)
     end
@@ -60,27 +66,27 @@ defmodule ExUnit.CLIFormatter do
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
 
-    {:ok, config.update_tests_counter(&(&1 + 1))
-                .update_failures_counter(&(&1 + 1))}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     failures_counter: config.failures_counter + 1}}
   end
 
-  def handle_event({:case_started, ExUnit.TestCase[] = test_case}, config) do
+  def handle_event({:case_started, %ExUnit.TestCase{name: name}}, config) do
     if config.trace do
-      IO.puts("\n#{inspect test_case.name}")
+      IO.puts("\n#{inspect name}")
     end
 
     {:ok, config}
   end
 
-  def handle_event({:case_finished, ExUnit.TestCase[state: nil]}, config) do
+  def handle_event({:case_finished, %ExUnit.TestCase{state: nil}}, config) do
     {:ok, config}
   end
 
-  def handle_event({:case_finished, ExUnit.TestCase[state: {:failed, failed}] = test_case}, config) do
+  def handle_event({:case_finished, %ExUnit.TestCase{state: {:failed, failed}} = test_case}, config) do
     formatted = format_test_case_failure(test_case, failed, config.failures_counter + 1,
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
-    {:ok, config.update_failures_counter(&(&1 + 1))}
+    {:ok, %{config | failures_counter: config.failures_counter + 1}}
   end
 
   def handle_event(_, config) do
@@ -89,14 +95,14 @@ defmodule ExUnit.CLIFormatter do
 
   ## Tracing
 
-  defp trace_test_name(ExUnit.Test[name: name]) do
-    case atom_to_binary(name) do
+  defp trace_test_name(%ExUnit.Test{name: name}) do
+    case Atom.to_string(name) do
       "test " <> rest -> rest
       rest -> rest
     end
   end
 
-  defp trace_test_time(ExUnit.Test[time: time]) do
+  defp trace_test_time(%ExUnit.Test{time: time}) do
     "#{format_us(time)}ms"
   end
 
@@ -160,7 +166,7 @@ defmodule ExUnit.CLIFormatter do
 
   # Color styles
 
-  defp colorize(escape, string, Config[color: color]) do
+  defp colorize(escape, string, %{color: color}) do
     IO.ANSI.escape_fragment("%{#{escape}}", color)
       <> string
       <> IO.ANSI.escape_fragment("%{reset}", color)
@@ -183,12 +189,10 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:location_info, msg, config), do: colorize("bright,black", msg, config)
   defp formatter(_,  msg, _config),            do: msg
 
-  defp add_terminal_width(config) do
+  defp get_terminal_width do
     case :io.columns do
-      {:ok, width} ->
-        config.width(max(40, width))
-      _ ->
-        config
+      {:ok, width} -> max(40, width)
+      _ -> 80
     end
   end
 end

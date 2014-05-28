@@ -2,10 +2,16 @@ defmodule Process do
   @moduledoc """
   Conveniences for working with processes and the process dictionary.
 
-  Some of the functions in this module are inlined by the compiler,
-  similar to functions in the `Kernel` module and they are explicitly
-  marked in their docs as "inlined by the compiler". For more information
-  about inlined functions, check out the `Kernel` module.
+  Besides the functions available in this module, the `Kernel` module
+  exposes and auto-imports some basic functionality related to processes
+  available through the functions:
+
+  * `Kernel.spawn/1` and `Kernel.spawn/3`
+  * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
+  * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
+  * `Kernel.self/0`
+  * `Kernel.send/2`
+
   """
 
   @doc """
@@ -55,15 +61,6 @@ defmodule Process do
   @spec put(term, term) :: term | nil
   def put(key, value) do
     nillify :erlang.put(key, value)
-  end
-
-  @doc """
-  Deletes all items in the dictionary.
-  """
-  @spec delete :: [{term, term}]
-  def delete() do
-    IO.write :stderr, "Process.delete/0 is deprecated\n#{Exception.format_stacktrace}"
-    :erlang.erase()
   end
 
   @doc """
@@ -195,54 +192,6 @@ defmodule Process do
   @spec spawn(module, atom, list, spawn_opts) :: pid | {pid, reference}
   def spawn(mod, fun, args, opts) do
     :erlang.spawn_opt(mod, fun, args, opts)
-  end
-
-  @doc false
-  def spawn(fun) do
-    # IO.write :stderr, "Process.spawn/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn(fun)
-  end
-
-  @doc false
-  def spawn(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn(mod, fun, args)
-  end
-
-  @doc false
-  def spawn_link(fun) do
-    # IO.write :stderr, "Process.spawn_link/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn_link(fun)
-  end
-
-  @doc false
-  def spawn_link(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn_link/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn_link(mod, fun, args)
-  end
-
-  @doc false
-  def spawn_monitor(fun) do
-    # IO.write :stderr, "Process.spawn_monitor/1 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn_monitor(fun)
-  end
-
-  @doc false
-  def spawn_monitor(mod, fun, args) do
-    # IO.write :stderr, "Process.spawn_monitor/3 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.spawn_monitor(mod, fun, args)
-  end
-
-  @doc false
-  def self() do
-    # IO.write :stderr, "Process.self/0 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.self()
-  end
-
-  @doc false
-  def send(dest, msg) do
-    # IO.write :stderr, "Process.send/2 is deprecated, use the one in Kernel instead\n#{Exception.format_stacktrace}"
-    :erlang.send(dest, msg)
   end
 
   @doc """

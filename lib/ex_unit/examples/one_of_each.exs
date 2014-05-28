@@ -1,29 +1,5 @@
 ExUnit.start [seed: 0]
 
-defmodule DocTest do
-  @moduledoc """
-
-      iex> 1 + * 1
-      1
-
-      iex> 1 + 1
-      3
-
-      iex> :oops
-      #HashDict<[]>
-
-      iex> Hello.world
-      :world
-
-      iex> raise "oops"
-      ** (WhatIsThis) oops
-
-      iex> raise "oops"
-      ** (RuntimeError) hello
-
-  """
-end
-
 defmodule TestOneOfEach do
   @moduledoc """
   This module contains one of each type of failing test.
@@ -140,7 +116,11 @@ defmodule TestOneOfEach do
     assert blows_up
   end
 
-  doctest DocTest
+  test "25. error due to exit" do
+    spawn_link fn -> raise "oops" end
+    receive do
+    end
+  end
 
   defp blows_up do
     ignite(0) + 1

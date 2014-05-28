@@ -432,7 +432,11 @@ defmodule Kernel.ExpansionTest do
   end
 
   defp expand_and_clean(expr) do
-    expand_env(expr, __ENV__) |> elem(0) |> Macro.update_meta(&Keyword.drop(&1, [:export]))
+    cleaner = &Keyword.drop(&1, [:export])
+    expr
+    |> expand_env(__ENV__)
+    |> elem(0)
+    |> Macro.prewalk(&Macro.update_meta(&1, cleaner))
   end
 
   defp expand(expr) do

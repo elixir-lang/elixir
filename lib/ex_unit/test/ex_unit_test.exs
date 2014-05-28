@@ -34,7 +34,7 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: false
 
       test "spawn and crash" do
-        Process.spawn_link(fn ->
+        spawn_link(fn ->
           exit :foo
         end)
         receive after: (1000 -> :ok)

@@ -167,6 +167,11 @@ defmodule Kernel.QuoteTest do
     assert quote(do: @1.foo) == quote(do: (@1).foo)
     assert quote(do: &1.foo) == quote(do: (&1).foo)
   end
+
+  test :operators_slash_arity do
+    assert {:/, _, [{:+, _, _}, 2]} = quote do: +/2
+    assert {:/, _, [{:&&, _, _}, 3]} = quote do: &&/3
+  end
 end
 
 ## DO NOT MOVE THIS LINE
@@ -195,8 +200,8 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
-    assert [{^mod, :add, 2, [file: ^file, line: 176]}|_] = System.stacktrace
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+    assert [{^mod, :add, 2, [file: ^file, line: 181]}|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -205,20 +210,14 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> List.from_char_data!
-    assert [{^mod, _, _, [file: ^file, line: 204]}|_] = System.stacktrace
+    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+    assert [{^mod, _, _, [file: ^file, line: 209]}|_] = System.stacktrace
   end
 end
 
 defmodule Kernel.QuoteTest.VarHygiene do
   defmacro no_interference do
     quote do: a = 1
-  end
-
-  defmacro no_hygiene do
-    quote [hygiene: [vars: false]] do
-      a = 1
-    end
   end
 
   defmacro write_interference do
@@ -266,11 +265,6 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
     a = 10
     no_interference
     assert a == 10
-  end
-
-  test :no_hygiene do
-    no_hygiene
-    assert a == 1
   end
 
   test :cross_module_interference do

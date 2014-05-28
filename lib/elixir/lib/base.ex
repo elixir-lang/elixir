@@ -25,7 +25,7 @@ defmodule Base do
       defp unquote(dec)(unquote(encoding)), do: unquote(value)
     end
     defp unquote(dec)(c) do
-      raise ArgumentError, message: "non-alphabet digit found: #{<<c>>}"
+      raise ArgumentError, "non-alphabet digit found: #{<<c>>}"
     end
   end
 
@@ -365,7 +365,7 @@ defmodule Base do
     end
   end
   defp do_decode16(_, _) do
-    raise ArgumentError, message: "odd-length string"
+    raise ArgumentError, "odd-length string"
   end
 
   defp do_encode64(<<>>, _), do: <<>>
@@ -400,7 +400,7 @@ defmodule Base do
     end
   end
   defp do_decode64(_, _) do
-    raise ArgumentError, message: "incorrect padding"
+    raise ArgumentError, "incorrect padding"
   end
 
   defp do_encode32(<<>>, _), do: <<>>
@@ -458,7 +458,7 @@ defmodule Base do
     end
   end
   defp do_decode32(_, _) do
-    raise ArgumentError, message: "incorrect padding"
+    raise ArgumentError, "incorrect padding"
   end
 
 end

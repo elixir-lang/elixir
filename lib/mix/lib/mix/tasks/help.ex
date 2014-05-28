@@ -4,14 +4,33 @@ defmodule Mix.Tasks.Help do
   @shortdoc "Print help information for tasks"
 
   @moduledoc """
-  If given a task name, prints the documentation for that task.
-  If no task name is given, prints the short form documentation
-  for all tasks.
+  Lists all tasks or prints the documentation for a given task.
 
   ## Arguments
 
       mix help      - prints all tasks and their shortdoc
       mix help TASK - prints full docs for the given task
+
+  ## Colors
+
+  When possible, `mix help` is going to use coloring for formatting
+  guides. The formatting can be customized by configuring the Mix
+  application either inside your project (in `config/config.exs`) or
+  by using the local config (in `~/.mix/config.exs`).
+
+  For example, to disable, one may:
+
+      [mix: [colors: [enabled: false]]]
+
+  The available color options are:
+
+  * `:enabled`         - show ANSI formatting (defaults to IO.ANSI.terminal?)
+  * `:doc_code`        — the attributes for code blocks (cyan, bright)
+  * `:doc_inline_code` - inline code (cyan)
+  * `:doc_headings`    - h1 and h2 (yellow, bright)
+  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+  * `:doc_bold`        - (bright)
+  * `:doc_underline`   - (underline)
 
   """
 
@@ -41,20 +60,38 @@ defmodule Mix.Tasks.Help do
 
   def run([task]) do
     module = Mix.Task.get!(task)
-    shell  = Mix.shell
-    shell.info "%{bright}# mix help #{task}\n"
+    doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+    opts   = Application.get_env(:mix, :colors)
 
-    if doc = Mix.Task.moduledoc(module) do
-      shell.info doc
+    if ansi_docs?(opts) do
+      opts = [width: width] ++ opts
+      IO.ANSI.Docs.print_heading("mix #{task}", opts)
+      IO.ANSI.Docs.print(doc, opts)
     else
-      shell.info "There is no documentation for this task"
+      IO.puts "# mix #{task}\n"
+      IO.puts doc
     end
 
-    shell.info "Location: #{where_is_file(module)}"
+    IO.puts "Location: #{where_is_file(module)}"
   end
 
   def run(_) do
     raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
+  defp ansi_docs?(opts) do
+    if Keyword.has_key?(opts, :enabled) do
+      opts[:enabled]
+    else
+      IO.ANSI.terminal?
+    end
+  end
+
+  defp width() do
+    case :io.columns(:standard_input) do
+      {:ok, width} -> min(width, 80)
+      {:error, _}  -> 80
+    end
   end
 
   defp format_task(task, max, doc) do
@@ -62,9 +99,14 @@ defmodule Mix.Tasks.Help do
   end
 
   defp where_is_file(module) do
-    case :code.where_is_file(atom_to_list(module) ++ '.beam') do
-      :non_existing -> "not available"
-      location -> Path.expand(Path.dirname(location))
+    case :code.where_is_file(Atom.to_char_list(module) ++ '.beam') do
+      :non_existing ->
+        "not available"
+      location ->
+        location
+        |> Path.dirname
+        |> Path.expand
+        |> Path.relative_to_cwd
     end
   end
 

@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp modules_from(beams) do
-    Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> binary_to_atom)
+    Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> String.to_atom)
   end
 
   defp ensure_correct_properties(app, config, properties) do

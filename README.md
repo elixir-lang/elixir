@@ -1,6 +1,6 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.png?branch=master "Build Status")](http://travis-ci.org/elixir-lang/elixir)
+[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master "Build Status")](http://travis-ci.org/elixir-lang/elixir)
 
 For more about Elixir, installation and documentation, [check Elixir's website](http://elixir-lang.org/).
 
@@ -37,7 +37,7 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 ## Important links
 
-* #elixir-lang on freenode IRC
+* \#elixir-lang on freenode IRC
 * [Website][1]
 * [Issue tracker][2]
 * [elixir-talk Mailing list (questions)][3]
@@ -54,4 +54,4 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 Elixir source code is released under Apache 2 License with some parts under Erlang's license (EPL).
 
-Check LEGAL and LICENSE files for more information.
+Check [LEGAL](LEGAL) and [LICENSE](LICENSE) files for more information.

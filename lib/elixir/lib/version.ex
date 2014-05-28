@@ -68,15 +68,20 @@ defmodule Version do
     defstruct [:source, :matchspec]
   end
 
-  defexception InvalidRequirement, [:message]
-  defexception InvalidVersion, [:message]
+  defmodule InvalidRequirementError do
+    defexception [:message]
+  end
+
+  defmodule InvalidVersionError do
+    defexception [:message]
+  end
 
   @doc """
   Check if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
-  Raises a `Version.InvalidRequirement` exception if `requirement` is not
-  parseable, or `Version.InvalidVersion` if `version` is not parseable.
+  Raises a `Version.InvalidRequirementError` exception if `requirement` is not
+  parseable, or `Version.InvalidVersionError` if `version` is not parseable.
   If given an already parsed version and requirement this function won't
   raise.
 
@@ -89,10 +94,10 @@ defmodule Version do
       false
 
       iex> Version.match?("foo", "==1.0.0")
-      ** (Version.InvalidVersion) foo
+      ** (Version.InvalidVersionError) foo
 
       iex> Version.match?("2.0.0", "== ==1.0.0")
-      ** (Version.InvalidRequirement) == ==1.0.0
+      ** (Version.InvalidRequirementError) == ==1.0.0
 
   """
   @spec match?(version, requirement) :: boolean
@@ -101,7 +106,7 @@ defmodule Version do
       {:ok, req} ->
         match?(vsn, req)
       :error ->
-        raise InvalidRequirement, message: req
+        raise InvalidRequirementError, message: req
     end
   end
 
@@ -115,7 +120,7 @@ defmodule Version do
   the second and `:lt` for vice versa. If the two versions are equal `:eq`
   is returned
 
-  Raises a `Version.InvalidVersion` exception if `version` is not parseable.
+  Raises a `Version.InvalidVersionError` exception if `version` is not parseable.
   If given an already parsed version this function won't raise.
 
   ## Examples
@@ -127,7 +132,7 @@ defmodule Version do
       :eq
 
       iex> Version.compare("invalid", "2.0.1")
-      ** (Version.InvalidVersion) invalid
+      ** (Version.InvalidVersionError) invalid
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
@@ -200,7 +205,7 @@ defmodule Version do
   defp to_matchable(string) do
     case Version.Parser.parse_version(string) do
       {:ok, vsn} -> vsn
-      :error -> raise InvalidVersion, message: string
+      :error -> raise InvalidVersionError, message: string
     end
   end
 
@@ -308,9 +313,9 @@ defmodule Version do
         if nil?(minor) or (nil?(patch) and not approximate?) do
           :error
         else
-          major = binary_to_integer(major)
-          minor = binary_to_integer(minor)
-          patch = patch && binary_to_integer(patch)
+          major = String.to_integer(major)
+          minor = String.to_integer(minor)
+          patch = patch && String.to_integer(patch)
 
           case parse_pre(pre) do
             {:ok, pre} ->
@@ -330,7 +335,7 @@ defmodule Version do
     defp parse_pre([piece|t], acc) do
       cond do
         piece =~ ~r/^(0|[1-9][0-9]*)$/ ->
-          parse_pre(t, [binary_to_integer(piece)|acc])
+          parse_pre(t, [String.to_integer(piece)|acc])
         piece =~ ~r/^[0-9]*$/ ->
           :error
         true ->
@@ -417,49 +422,45 @@ defmodule Version do
     defp to_condition([:'>', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:andalso, {:not, {:is_binary, :'$1'}},
-                 {:orelse, {:'>', {{:'$1', :'$2', :'$3'}},
-                                  {:const, {major, minor, patch}}},
-                           {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                                  {:const, {major, minor, patch}}},
-                           {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
-                                                {:'/=', length(pre), 0}},
-                                     {:andalso, {:'/=', length(pre), 0},
-                                                {:orelse, {:'>', {:length, :'$4'}, length(pre)},
-                                                {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                                           {:'>', :'$4', {:const, pre}}}}}}}}}
+      {:orelse, {:'>', {{:'$1', :'$2', :'$3'}},
+                       {:const, {major, minor, patch}}},
+                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
+                                        {:const, {major, minor, patch}}},
+                {:orelse, {:andalso, {:'==', {:length, :'$4'}, 0},
+                                     {:'/=', length(pre), 0}},
+                          {:andalso, {:'/=', length(pre), 0},
+                                     {:orelse, {:'>', {:length, :'$4'}, length(pre)},
+                                     {:andalso, {:'==', {:length, :'$4'}, length(pre)},
+                                                {:'>', :'$4', {:const, pre}}}}}}}}
     end
 
     defp to_condition([:'>=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:andalso, {:not, {:is_binary, :'$1'}},
-                           {:'==', :'$_', {:const, matchable}}},
-                 to_condition([:'>', version])}
+      {:orelse, {:'==', :'$_', {:const, matchable}},
+                to_condition([:'>', version])}
     end
 
     defp to_condition([:'<', version | _]) do
       {major, minor, patch, pre} = parse_condition(version)
 
-      {:andalso, {:not, {:is_binary, :'$1'}},
-                 {:orelse, {:'<', {{:'$1', :'$2', :'$3'}},
-                                  {:const, {major, minor, patch}}},
-                           {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
-                                              {:const, {major, minor, patch}}},
-                           {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
-                                                {:'==', length(pre), 0}},
-                                     {:andalso, {:'/=', {:length, :'$4'}, 0},
-                                     {:orelse, {:'<', {:length, :'$4'}, length(pre)},
-                                               {:andalso, {:'==', {:length, :'$4'}, length(pre)},
-                                                          {:'<', :'$4', {:const, pre}}}}}}}}}
+      {:orelse, {:'<', {{:'$1', :'$2', :'$3'}},
+                       {:const, {major, minor, patch}}},
+                {:andalso, {:'==', {{:'$1', :'$2', :'$3'}},
+                                   {:const, {major, minor, patch}}},
+                {:orelse, {:andalso, {:'/=', {:length, :'$4'}, 0},
+                                     {:'==', length(pre), 0}},
+                          {:andalso, {:'/=', {:length, :'$4'}, 0},
+                          {:orelse, {:'<', {:length, :'$4'}, length(pre)},
+                                    {:andalso, {:'==', {:length, :'$4'}, length(pre)},
+                                               {:'<', :'$4', {:const, pre}}}}}}}}
     end
 
     defp to_condition([:'<=', version | _]) do
       matchable = parse_condition(version)
 
-      {:orelse, {:andalso, {:not, {:is_binary, :'$1'}},
-                           {:'==', :'$_', {:const, matchable}}},
-                 to_condition([:'<', version])}
+      {:orelse, {:'==', :'$_', {:const, matchable}},
+                to_condition([:'<', version])}
     end
 
     defp to_condition(current, []) do
@@ -491,7 +492,7 @@ end
 
 defimpl String.Chars, for: Version do
   def to_string(version) do
-    pre = if pre = version.pre, do: "-#{pre}"
+    pre = unless Enum.empty?(pre = version.pre), do: "-#{pre}"
     build = if build = version.build, do: "+#{build}"
     "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
   end

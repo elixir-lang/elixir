@@ -65,7 +65,7 @@ defmodule Mix.Task do
 
   defp match_tasks(filename, modules) do
     if :re.run(filename, @re_pattern, [capture: :none]) == :match do
-      mod = :filename.rootname(filename, '.beam') |> list_to_atom
+      mod = :filename.rootname(filename, '.beam') |> List.to_atom
       if Code.ensure_loaded?(mod), do: [mod | modules], else: modules
     else
       modules
@@ -80,7 +80,7 @@ defmodule Mix.Task do
   """
   def all_modules do
     Enum.reduce :code.all_loaded, [], fn({module, _}, acc) ->
-      case atom_to_list(module) do
+      case Atom.to_char_list(module) do
         'Elixir.Mix.Tasks.' ++ _ ->
           if is_task?(module), do: [module|acc], else: acc
         _ ->
@@ -94,7 +94,7 @@ defmodule Mix.Task do
   Returns the moduledoc or `nil`.
   """
   def moduledoc(module) when is_atom(module) do
-    case module.__info__(:moduledoc) do
+    case Code.get_docs(module, :moduledoc) do
       {_line, moduledoc} -> moduledoc
       nil -> nil
     end
@@ -176,11 +176,11 @@ defmodule Mix.Task do
   def run(task, args \\ []) do
     task = to_string(task)
 
-    if Mix.TasksServer.call({:run_task, task, Mix.Project.get}) do
+    if Mix.TasksServer.run_task(task, Mix.Project.get) do
       module = get!(task)
 
       recur module, fn proj ->
-        Mix.TasksServer.cast({:put_task, task, proj})
+        Mix.TasksServer.put_task(task, proj)
         module.run(args)
       end
     else
@@ -192,7 +192,7 @@ defmodule Mix.Task do
   Clears all invoked tasks, allowing them to be reinvoked.
   """
   def clear do
-    Mix.TasksServer.call(:clear_tasks)
+    Mix.TasksServer.clear_tasks
   end
 
   @doc """
@@ -204,7 +204,7 @@ defmodule Mix.Task do
     module = get!(task)
 
     recur module, fn project ->
-      Mix.TasksServer.cast({:delete_task, task, project})
+      Mix.TasksServer.delete_task(task, project)
     end
   end
 

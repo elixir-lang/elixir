@@ -4,6 +4,7 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   doctest Access
+  doctest Atom
   doctest Base
   doctest Bitwise
   doctest Code
@@ -14,6 +15,7 @@ defmodule KernelTest do
   doctest Inspect
   doctest Inspect.Algebra
   doctest Integer
+  doctest IO
   doctest IO.ANSI
   doctest Kernel
   doctest Kernel.SpecialForms
@@ -26,13 +28,13 @@ defmodule KernelTest do
   doctest OptionParser
   doctest Path
   doctest Process
-  doctest Protocol.Consolidation
+  doctest Protocol
   doctest Range
   doctest Record
   doctest Regex
   doctest Stream
   doctest String
-  doctest String.Chars.List
+  doctest String.Chars
   doctest StringIO
   doctest Tuple
   doctest URI

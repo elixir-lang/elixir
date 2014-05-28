@@ -29,7 +29,7 @@ defmodule CodeTest do
   end
 
   test :eval_with_unnamed_scopes do
-    assert {RuntimeError[], [a: RuntimeError[]]} =
+    assert {%RuntimeError{}, [a: %RuntimeError{}]} =
            Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
   end
 
@@ -70,6 +70,10 @@ defmodule CodeTest do
 
   test :eval_file do
     assert Code.eval_file(fixture_path("code_sample.exs")) == {3, [var: 3]}
+
+    assert_raise Code.LoadError, fn ->
+      Code.eval_file("non_existent.exs")
+    end
   end
 
   test :require do
@@ -111,7 +115,7 @@ defmodule CodeTest do
   end
 
   test :compile_source do
-    assert __MODULE__.__info__(:compile)[:source] == List.from_char_data!(__ENV__.file)
+    assert __MODULE__.__info__(:compile)[:source] == String.to_char_list(__ENV__.file)
   end
 
   test :compile_info_returned_with_source_accessible_through_keyword_module do

@@ -69,7 +69,7 @@ defmodule ExUnit.DocTest do
   This is useful in two use cases:
 
   * Being able to refer to specific numbered scenarios
-  * Copy-pasting examples from an actual iex sessions
+  * Copy-pasting examples from an actual iex session
 
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
@@ -81,17 +81,17 @@ defmodule ExUnit.DocTest do
   Elixir is to print those data types as `#Name<...>`. Doctest will
   test these values by doing a string compare.
 
-      iex> HashDict.new(a: 10, b: 20)
-      #HashDict<[a: 10, b: 20]>
+      iex> Enum.into([a: 10, b: 20], HashDict.new)
+      #HashDict<[b: 20, a: 10]>
 
   The above example will be tested with the following match:
-  `"#HashDict<[a: 10, b: 20]>" = inspect (HashDict.new(a: 10, b: 20))`.
+  `"#HashDict<[b: 20, a: 10]>" = inspect(Enum.into([a: 10, b: 20], HashDict.new))`.
 
   ## Exceptions
 
   You can also showcase expressions raising an exception, for example:
 
-      iex(1)> binary_to_atom((fn() -> 1 end).())
+      iex(1)> String.to_atom((fn() -> 1 end).())
       ** (ArgumentError) argument error
 
   What DocTest will be looking for is a line starting with `** (` and it
@@ -107,14 +107,14 @@ defmodule ExUnit.DocTest do
   side effects. For example, if a doctest prints to standard output, doctest
   will not try to capture the output.
 
-  Similarly, doctest does not run in any kind of sandbox. So any module
+  Similarly, doctests do not run in any kind of sandbox. So any module
   defined in a code example is going to linger throughout the whole test
   suite run.
   """
 
-  defexception Error, message: nil
-
-  defrecord Test, fun_arity: nil, line: nil, exprs: []
+  defmodule Error do
+    defexception [:message]
+  end
 
   @doc """
   This macro is used to generate ExUnit test cases for doctests.
@@ -189,16 +189,16 @@ defmodule ExUnit.DocTest do
     {test_name(test, module, n), test_content(test, module, do_import)}
   end
 
-  defp test_name(Test[fun_arity: nil], m, n) do
+  defp test_name(%{fun_arity: nil}, m, n) do
     "moduledoc at #{inspect m} (#{n})"
   end
 
-  defp test_name(Test[fun_arity: {f, a}], m, n) do
+  defp test_name(%{fun_arity: {f, a}}, m, n) do
     "doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(Test[exprs: exprs, line: line, fun_arity: fun_arity], module, do_import) do
-    file     = module.__info__(:compile)[:source] |> String.from_char_data!
+  defp test_content(%{exprs: exprs, line: line, fun_arity: fun_arity}, module, do_import) do
+    file     = module.__info__(:compile)[:source] |> List.to_string
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
 
@@ -237,11 +237,11 @@ defmodule ExUnit.DocTest do
         unquote_splicing(tests)
       rescue
         e in [ExUnit.AssertionError] ->
-          raise e, [], stack
+          reraise e, stack
 
         error ->
-          raise ExUnit.AssertionError,
-            [message: "Doctest failed: got #{inspect(elem(error, 0))} with message #{error.message}",
+          reraise ExUnit.AssertionError,
+            [message: "Doctest failed: got #{inspect(error.__struct__)} with message #{Exception.message(error)}",
              expr: unquote(whole_expr)],
             stack
       end
@@ -257,10 +257,10 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^expected -> :ok
         actual ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest failed",
-              expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
-              left: actual],
+             expr: "#{unquote(String.strip(expr))} === #{unquote(String.strip(expected))}",
+             left: actual],
             unquote(stack)
       end
     end
@@ -275,10 +275,10 @@ defmodule ExUnit.DocTest do
       case unquote(expr_ast) do
         ^expected -> :ok
         actual ->
-          raise ExUnit.AssertionError,
-            [ message: "Doctest failed",
-              expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
-              left: actual],
+          reraise ExUnit.AssertionError,
+            [message: "Doctest failed",
+             expr: "inspect(#{unquote(String.strip(expr))}) === #{unquote(String.strip(expected))}",
+             left: actual],
             unquote(stack)
       end
     end
@@ -296,17 +296,17 @@ defmodule ExUnit.DocTest do
         unquote(expr_ast)
       rescue
         error ->
-          unless error.__record__(:name) == unquote(exception) and
-                 error.message == unquote(message) do
-            got = inspect(elem(error, 0)) <> " with message " <> inspect(error.message)
-            raise ExUnit.AssertionError,
+          unless error.__struct__ == unquote(exception) and
+                 Exception.message(error) == unquote(message) do
+            got = inspect(error.__struct__) <> " with message " <> inspect(Exception.message(error))
+            reraise ExUnit.AssertionError,
               [message: "Doctest failed: expected exception #{spec} but got #{got}",
                expr: expr],
               stack
           end
       else
         _ ->
-          raise ExUnit.AssertionError,
+          reraise ExUnit.AssertionError,
             [message: "Doctest failed: expected exception #{spec} but nothing was raised",
              expr: expr],
             stack
@@ -324,23 +324,25 @@ defmodule ExUnit.DocTest do
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
     try do
       Code.string_to_quoted!(expr, location)
-    rescue e ->
-      message = "(#{inspect e.__record__(:name)}) #{e.message}"
-      quote do
-        raise ExUnit.AssertionError,
-          [message: "Doctest did not compile, got: #{unquote(message)}",
-           expr: unquote(String.strip(expr))]
-          unquote(stack)
-      end
+    rescue
+      e ->
+        message = "(#{inspect e.__struct__}) #{Exception.message(e)}"
+        quote do
+          reraise ExUnit.AssertionError,
+            [message: "Doctest did not compile, got: #{unquote(message)}",
+             expr: unquote(String.strip(expr))],
+            unquote(stack)
+        end
     end
   end
 
   ## Extraction of the tests
 
   defp extract(module) do
-    moduledocs = extract_from_moduledoc(module.__info__(:moduledoc))
+    all_docs = Code.get_docs(module, :all)
+    moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
 
-    docs = for doc <- module.__info__(:docs) do
+    docs = for doc <- all_docs[:docs] do
       extract_from_doc(doc)
     end |> Enum.concat
 
@@ -357,7 +359,7 @@ defmodule ExUnit.DocTest do
 
   defp extract_from_doc({fa, line, _, _, doc}) do
     for test <- extract_tests(line, doc) do
-      test.fun_arity(fa)
+      %{test | fun_arity: fa}
     end
   end
 
@@ -441,21 +443,21 @@ defmodule ExUnit.DocTest do
   end
 
   # End of input and we've still got a test pending.
-  defp extract_tests([], _, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([], _, expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     Enum.reverse(reverse_last_test([test|t]))
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
-  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], newtest) when expr_acc != "" and expected_acc != "" do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([<< "iex>", _ :: binary>>|_] = list, line, expr_acc, expected_acc, [test=%{exprs: exprs}|t], newtest) when expr_acc != "" and expected_acc != "" do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(list, line, "", "", [test|t], newtest)
   end
 
   # Store expr_acc and start a new test case.
   defp extract_tests([<< "iex>", string :: binary>>|lines], line, "", expected_acc, acc, true) do
     acc = reverse_last_test(acc)
-    test = Test[line: line]
+    test = %{line: line, fun_arity: nil, exprs: []}
     extract_tests(lines, line, string, expected_acc, [test|acc], false)
   end
 
@@ -490,22 +492,22 @@ defmodule ExUnit.DocTest do
   end
 
   # Encountered an empty line, store pending test
-  defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t], _) do
-    test = test.exprs([{expr_acc, {:test, expected_acc}} | exprs])
+  defp extract_tests([""|lines], line, expr_acc, expected_acc, [test=%{exprs: exprs}|t], _) do
+    test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(lines, line,  "", "", [test|t], true)
   end
 
   # Exception test.
-  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=Test[exprs: exprs]|t], newtest) do
-    test = test.exprs([{expr_acc, extract_error(string, "")} | exprs])
+  defp extract_tests([<< "** (", string :: binary >>|lines], line, expr_acc, "", [test=%{exprs: exprs}|t], newtest) do
+    test = %{test | exprs: [{expr_acc, extract_error(string, "")} | exprs]}
     extract_tests(lines, line,  "", "", [test|t], newtest)
   end
 
   # Finally, parse expected_acc.
-  defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=Test[exprs: exprs]|t]=acc, newtest) do
+  defp extract_tests([expected|lines], line, expr_acc, expected_acc, [test=%{exprs: exprs}|t]=acc, newtest) do
     if expected =~ ~r/^#[A-Z][\w\.]*<.*>$/ do
       expected = expected_acc <> "\n" <> inspect(expected)
-      test = test.exprs([{expr_acc, {:inspect, expected}} | exprs])
+      test = %{test | exprs: [{expr_acc, {:inspect, expected}} | exprs]}
       extract_tests(lines, line,  "", "", [test|t], newtest)
     else
       extract_tests(lines, line, expr_acc, expected_acc <> "\n" <> expected, acc, newtest)
@@ -529,8 +531,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp reverse_last_test([]), do: []
-  defp reverse_last_test([test=Test[exprs: exprs] | t]) do
-    test = test.exprs(Enum.reverse(exprs))
+  defp reverse_last_test([test=%{exprs: exprs} | t]) do
+    test = %{test | exprs: Enum.reverse(exprs)}
     [test | t]
   end
 end

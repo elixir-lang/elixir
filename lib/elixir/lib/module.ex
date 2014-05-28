@@ -284,13 +284,6 @@ defmodule Module do
 
   * `:macros`     - keyword list of public macros along with their arities
 
-  * `:docs`       - list of all docstrings attached to functions and macros
-                    using the `@doc` attribute
-
-  * `:moduledoc`  - tuple `{<line>, <doc>}` where `line` is the line on
-                    which module definition starts and `doc` is the string
-                    attached to the module using the `@moduledoc` attribute
-
   * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
@@ -507,9 +500,9 @@ defmodule Module do
     assert_not_compiled!(:add_doc, module)
     table = docs_table_for(module)
 
-    {signature, _} = Enum.map_reduce signature, 1, fn(x, acc) ->
+    {signature, _} = :lists.mapfoldl fn(x, acc) ->
       {simplify_signature(x, acc), acc + 1}
-    end
+    end, 1, signature
 
     case :ets.lookup(table, tuple) do
       [] ->
@@ -534,8 +527,8 @@ defmodule Module do
   end
 
   defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
-    last = List.last(String.split(atom_to_binary(left), "."))
-    atom = binary_to_atom(downcase(last))
+    last = List.last(String.split(Atom.to_string(left), "."))
+    atom = String.to_atom(downcase(last))
     {atom, [], nil}
   end
 
@@ -544,8 +537,8 @@ defmodule Module do
   end
 
   defp simplify_signature({var, _, atom}, _i) when is_atom(atom) do
-    case atom_to_binary(var) do
-      "_" <> rest -> {binary_to_atom(rest), [], Elixir}
+    case Atom.to_string(var) do
+      "_" <> rest -> {String.to_atom(rest), [], Elixir}
       _           -> {var, [], nil}
     end
   end
@@ -945,7 +938,7 @@ defmodule Module do
   end
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
-    raise ArgumentError, message: "attributes type, typep, export_type, opaque and callback " <>
+    raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
       "must be set via Kernel.Typespec"
   end
 
@@ -968,7 +961,7 @@ defmodule Module do
   defp assert_not_compiled!(fun, module) do
     open?(module) ||
       raise ArgumentError,
-        message: "could not call #{fun} on module #{inspect module} because it was already compiled"
+        "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 
   defp loaded?(module), do: is_tuple :code.is_loaded(module)

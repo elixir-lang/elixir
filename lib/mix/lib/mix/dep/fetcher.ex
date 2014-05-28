@@ -115,7 +115,7 @@ defmodule Mix.Dep.Fetcher do
     envs = Path.wildcard("_build/*/lib")
 
     for %Mix.Dep{app: app} <- deps, env <- envs do
-      File.touch Path.join [env, atom_to_binary(app), ".compile"]
+      File.touch Path.join [env, Atom.to_string(app), ".compile"]
     end
   end
 
@@ -139,7 +139,7 @@ defmodule Mix.Dep.Fetcher do
 
   defp to_app_names(given) do
     Enum.map(given, fn(app) ->
-      if is_binary(app), do: binary_to_atom(app), else: app
+      if is_binary(app), do: String.to_atom(app), else: app
     end)
   end
 end

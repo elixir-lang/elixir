@@ -65,7 +65,7 @@ defmodule IEx.Helpers do
     files = List.wrap(files)
 
     unless Enum.all?(files, &is_binary/1) do
-      raise ArgumentError, message: "expected a binary or a list of binaries as argument"
+      raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
     {found, not_found} =
@@ -74,7 +74,7 @@ defmodule IEx.Helpers do
       |> Enum.partition(&File.exists?/1)
 
     unless Enum.empty?(not_found) do
-      raise ArgumentError, message: "could not find files #{Enum.join(not_found, ", ")}"
+      raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
     {erls, exs} = Enum.partition(found, &String.ends_with?(&1, ".erl"))
@@ -202,8 +202,9 @@ defmodule IEx.Helpers do
       s(Enum)
       s(Enum.all?)
       s(Enum.all?/2)
-      s(list_to_atom)
-      s(list_to_atom/1)
+      s(is_atom)
+      s(is_atom/1)
+
   """
   defmacro s({:/, _, [call, arity]} = other) do
     args =
@@ -236,7 +237,7 @@ defmodule IEx.Helpers do
   their results.
   """
   def v do
-    inspect_opts = IEx.Options.get(:inspect)
+    inspect_opts = Application.get_env(:iex, :inspect)
     IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
@@ -267,16 +268,16 @@ defmodule IEx.Helpers do
 
   defp do_r(module) do
     unless Code.ensure_loaded?(module) do
-      raise ArgumentError, message: "could not load nor find module: #{inspect module}"
+      raise ArgumentError, "could not load nor find module: #{inspect module}"
     end
 
     source = source(module)
     cond do
       source == nil ->
-        raise ArgumentError, message: "could not find source for module: #{inspect module}"
+        raise ArgumentError, "could not find source for module: #{inspect module}"
 
       not File.exists?(source) ->
-        raise ArgumentError, message: "could not find source (#{source}) for module: #{inspect module}"
+        raise ArgumentError, "could not find source (#{source}) for module: #{inspect module}"
 
       String.ends_with?(source, ".erl") ->
         [compile_erlang(source) |> elem(0)]
@@ -299,7 +300,7 @@ defmodule IEx.Helpers do
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
-    inspect_opts = IEx.Options.get(:inspect)
+    inspect_opts = Application.get_env(:iex, :inspect)
     do_flush(inspect_opts)
   end
 
@@ -318,7 +319,7 @@ defmodule IEx.Helpers do
 
     case source do
       nil -> nil
-      source -> String.from_char_data!(source)
+      source -> List.to_string(source)
     end
   end
 
@@ -438,12 +439,12 @@ defmodule IEx.Helpers do
   end
 
   defmacro import_file(_) do
-    raise ArgumentError, message: "import_file/1 expects a literal binary as its argument"
+    raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
   # Compiles and loads an erlang source file, returns {module, binary}
   defp compile_erlang(source) do
-    source = Path.relative_to_cwd(source) |> List.from_char_data!
+    source = Path.relative_to_cwd(source) |> String.to_char_list
     case :compile.file(source, [:binary, :report]) do
       {:ok, module, binary} ->
         :code.purge(module)

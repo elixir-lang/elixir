@@ -141,13 +141,7 @@ expand_rescue(Arg, E) ->
 normalize_rescue({'_', _, Atom} = N) when is_atom(Atom) -> N;
 normalize_rescue(Atom) when is_atom(Atom) -> [Atom];
 normalize_rescue(Other) ->
-  is_list(Other)
-    andalso lists:all(fun is_var_or_atom/1, Other)
-    andalso Other.
-
-is_var_or_atom({Name, _, Atom}) when is_atom(Name), is_atom(Atom) -> true;
-is_var_or_atom(Atom) when is_atom(Atom) -> true;
-is_var_or_atom(_) -> false.
+  is_list(Other) andalso lists:all(fun is_atom/1, Other) andalso Other.
 
 %% Expansion helpers
 

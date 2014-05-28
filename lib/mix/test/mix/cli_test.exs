@@ -11,10 +11,16 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-
-      output = System.cmd ~s(MIX_ENV=prod MIX_EXS=custom.exs #{elixir_executable} #{mix_executable}) <>
+      
+      System.put_env("MIX_ENV", "prod")
+      System.put_env("MIX_EXS", "custom.exs")
+      
+      output = System.cmd ~s(#{elixir_executable} #{mix_executable}) <>
                           ~s( run -e "IO.inspect {Mix.env, System.argv}" -- 1 2 3)
-
+      
+      System.delete_env("MIX_ENV")
+      System.delete_env("MIX_EXS")
+      
       assert output =~ ~s({:prod, ["1", "2", "3"]})
       assert output =~ "Compiled lib/a.ex"
     end
@@ -49,8 +55,23 @@ defmodule Mix.CLITest do
   end
 
   test "compiles and invokes simple task from CLI" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       File.mkdir_p!("lib")
+
+      File.write! "mix.exs", """
+      defmodule MyProject do
+        use Mix.Project
+
+        def project do
+          [app: :my_project, version: "0.0.1"]
+        end
+
+        def hello_world do
+          "Hello from MyProject!"
+        end
+      end
+      """
+
       File.write! "lib/hello.ex", """
       defmodule Mix.Tasks.Hello do
         use Mix.Task
@@ -77,7 +98,7 @@ defmodule Mix.CLITest do
   end
 
   test "--help smoke test" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       output = mix "--help"
       assert output =~ ~r/mix compile\s+# Compile source files/
       refute output =~ "mix invalid"
@@ -85,7 +106,7 @@ defmodule Mix.CLITest do
   end
 
   test "--version smoke test" do
-    in_fixture "only_mixfile", fn ->
+    in_fixture "no_mixfile", fn ->
       output = mix "--version"
       assert output =~ ~r/Elixir [0-9\.a-z]+/
     end
@@ -95,7 +116,6 @@ defmodule Mix.CLITest do
     in_tmp "new_with_tests", fn ->
       output = mix "new ."
       assert output =~ "* creating lib/new_with_tests.ex"
-      assert output =~ "* creating lib/new_with_tests/supervisor.ex"
 
       output = mix "test test/new_with_tests_test.exs --cover"
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
@@ -105,19 +125,26 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "new --bare with tests" do
-    in_tmp "new_with_tests", fn ->
-      output = mix "new --bare ."
-      assert output =~ "* creating lib/new_with_tests.ex"
+  test "new --sup with tests" do
+    in_tmp "sup_with_tests", fn ->
+      output = mix "new --sup ."
+      assert output =~ "* creating lib/sup_with_tests.ex"
 
       output = mix "test"
-      assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
+      assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
       assert output =~ "1 tests, 0 failures"
     end
   end
 
   defp mix(args) do
-    System.cmd "#{elixir_executable} #{mix_executable} #{args}"
+    System.cmd "#{elixir_executable} #{mix_executable} #{args} #{stderr_on_win}"
+  end
+  
+  defp stderr_on_win do
+    case :os.type do
+      {:win32, _} -> "2>&1"
+      _ -> ""
+    end
   end
 
   defp mix_executable do

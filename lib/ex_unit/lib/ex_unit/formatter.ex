@@ -101,7 +101,7 @@ defmodule ExUnit.Formatter do
   Receives a test and formats its failure.
   """
   def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
-    ExUnit.Test[name: name, case: case, tags: tags] = test
+    %ExUnit.Test{name: name, case: case, tags: tags} = test
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
       <> test_location(with_location(tags), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
@@ -112,20 +112,20 @@ defmodule ExUnit.Formatter do
   Receives a test case and formats its failure.
   """
   def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
-    ExUnit.TestCase[name: name] = test_case
+    %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
       <> format_stacktrace(stacktrace, name, nil, formatter)
   end
 
-  defp format_kind_reason(:error, ExUnit.AssertionError[] = record, width, formatter) do
+  defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
     width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
 
     fields =
-      [note: if_value(record.message, &format_banner(&1, formatter)),
-       code: if_value(record.expr, &code_multiline(&1, width)),
-       lhs:  if_value(record.left,  &inspect_multiline(&1, width)),
-       rhs:  if_value(record.right, &inspect_multiline(&1, width))]
+      [note: if_value(struct.message, &format_banner(&1, formatter)),
+       code: if_value(struct.expr, &code_multiline(&1, width)),
+       lhs:  if_value(struct.left,  &inspect_multiline(&1, width)),
+       rhs:  if_value(struct.right, &inspect_multiline(&1, width))]
 
     fields
     |> filter_interesting_fields
@@ -133,12 +133,8 @@ defmodule ExUnit.Formatter do
     |> make_into_lines(@counter_padding)
   end
 
-  defp format_kind_reason(:error, exception, _width, formatter) do
-    error_info "** (#{inspect exception.__record__(:name)}) #{exception.message}", formatter
-  end
-
   defp format_kind_reason(kind, reason, _width, formatter) do
-    error_info "** (#{kind}) #{inspect(reason)}", formatter
+    error_info Exception.format_banner(kind, reason), formatter
   end
 
   defp filter_interesting_fields(fields) do
@@ -227,7 +223,10 @@ defmodule ExUnit.Formatter do
   defp test_location(msg, nil),       do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
-  defp error_info(msg, nil),       do: "     " <> msg <> "\n"
+  defp error_info(msg, nil) do
+    "     " <> String.replace(msg, "\n", "\n     ") <> <<"\n">>
+  end
+
   defp error_info(msg, formatter), do: error_info(formatter.(:error_info, msg), nil)
 
   defp extra_info(msg, nil),       do: "     " <> msg <> "\n"

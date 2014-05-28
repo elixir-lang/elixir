@@ -85,7 +85,7 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, req}, deps_dir) do
-    {app, compile_req(req), [path: Path.join(deps_dir, atom_to_binary(app))]}
+    {app, compile_req(req), [path: Path.join(deps_dir, Atom.to_string(app))]}
   end
 
   defp parse_dep({app, req, source}, deps_dir) do
@@ -93,16 +93,16 @@ defmodule Mix.Rebar do
   end
 
   defp parse_dep({app, req, source, opts}, _deps_dir) do
-    [ scm, url | source ] = tuple_to_list(source)
+    [scm, url | source] = Tuple.to_list(source)
     mix_opts = [{scm, to_string(url)}]
 
     ref =
       case source do
-        [""|_]                  -> [branch: "HEAD"]
+        [""|_]                -> [branch: "HEAD"]
         [{:branch, branch}|_] -> [branch: to_string(branch)]
         [{:tag, tag}|_]       -> [tag: to_string(tag)]
-        [ref|_]                 -> [ref: to_string(ref)]
-        _                       -> []
+        [ref|_]               -> [ref: to_string(ref)]
+        _                     -> []
       end
 
     mix_opts = mix_opts ++ ref
@@ -128,7 +128,7 @@ defmodule Mix.Rebar do
   end
 
   defp eval_script(script_path, config) do
-    script = Path.basename(script_path) |> List.from_char_data!
+    script = Path.basename(script_path) |> String.to_char_list
 
     result = File.cd!(Path.dirname(script_path), fn ->
       :file.script(script, eval_binds(CONFIG: config, SCRIPT: script))

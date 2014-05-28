@@ -13,7 +13,7 @@ defmodule Path do
   """
 
   alias :filename, as: FN
-  @type t :: char_data
+  @type t :: :unicode.chardata()
 
   @doc """
   Converts the given path to an absolute one. Unlike
@@ -58,7 +58,7 @@ defmodule Path do
   """
   @spec absname(t, t) :: binary
   def absname(path, relative_to) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     case type(path) do
       :relative -> join(relative_to, path)
       :absolute ->
@@ -68,7 +68,7 @@ defmodule Path do
           path
         end
       :volumerelative ->
-        relative_to = String.from_char_data!(relative_to)
+        relative_to = IO.chardata_to_string(relative_to)
         absname_vr(split(path), split(relative_to), relative_to)
     end
   end
@@ -85,7 +85,7 @@ defmodule Path do
   defp absname_vr([<<x, ?:>>|name], _, _relative) do
     cwd =
       case :file.get_cwd([x, ?:]) do
-        {:ok, dir}  -> String.from_char_data!(dir)
+        {:ok, dir}  -> IO.chardata_to_string(dir)
         {:error, _} -> <<x, ?:, ?/>>
       end
     absname(join(name), cwd)
@@ -181,7 +181,7 @@ defmodule Path do
     case :os.type() do
       {:win32, _} -> win32_pathtype(name)
       _             -> unix_pathtype(name)
-    end |> elem(1) |> String.from_char_data!
+    end |> elem(1) |> IO.chardata_to_string
   end
 
   defp unix_pathtype(<<?/, relative :: binary>>), do:
@@ -245,7 +245,7 @@ defmodule Path do
   """
   @spec relative_to(t, t) :: binary
   def relative_to(path, from) do
-    path = String.from_char_data!(path)
+    path = IO.chardata_to_string(path)
     relative_to(split(path), split(from), path)
   end
 
@@ -269,7 +269,7 @@ defmodule Path do
   @spec relative_to_cwd(t) :: binary
   def relative_to_cwd(path) do
     case :file.get_cwd do
-      {:ok, base} -> relative_to(path, String.from_char_data!(base))
+      {:ok, base} -> relative_to(path, IO.chardata_to_string(base))
       _ -> path
     end
   end
@@ -292,7 +292,7 @@ defmodule Path do
   """
   @spec basename(t) :: binary
   def basename(path) do
-    FN.basename(String.from_char_data!(path))
+    FN.basename(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -314,7 +314,7 @@ defmodule Path do
   """
   @spec basename(t, t) :: binary
   def basename(path, extension) do
-    FN.basename(String.from_char_data!(path), String.from_char_data!(extension))
+    FN.basename(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
 
   @doc """
@@ -330,7 +330,7 @@ defmodule Path do
   """
   @spec dirname(t) :: binary
   def dirname(path) do
-    FN.dirname(String.from_char_data!(path))
+    FN.dirname(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -347,7 +347,7 @@ defmodule Path do
   """
   @spec extname(t) :: binary
   def extname(path) do
-    FN.extension(String.from_char_data!(path))
+    FN.extension(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -364,7 +364,7 @@ defmodule Path do
   """
   @spec rootname(t) :: binary
   def rootname(path) do
-    FN.rootname(String.from_char_data!(path))
+    FN.rootname(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -382,7 +382,7 @@ defmodule Path do
   """
   @spec rootname(t, t) :: binary
   def rootname(path, extension) do
-    FN.rootname(String.from_char_data!(path), String.from_char_data!(extension))
+    FN.rootname(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
 
   @doc """
@@ -407,7 +407,7 @@ defmodule Path do
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
   def join([name]), do:
-    do_join(String.from_char_data!(name), <<>>, [], major_os_type())
+    do_join(IO.chardata_to_string(name), <<>>, [], major_os_type())
 
   @doc """
   Joins two paths.
@@ -420,7 +420,7 @@ defmodule Path do
   """
   @spec join(t, t) :: binary
   def join(left, right),
-    do: do_join(String.from_char_data!(left), relative(right), [], major_os_type())
+    do: do_join(IO.chardata_to_string(left), relative(right), [], major_os_type())
 
   defp major_os_type do
     :os.type |> elem(0)
@@ -435,7 +435,7 @@ defmodule Path do
   defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
     do_join(rest, relativename, [?/|result], os_type)
   defp do_join(<<>>, <<>>, result, os_type), do:
-    iodata_to_binary(maybe_remove_dirsep(result, os_type))
+    IO.iodata_to_binary(maybe_remove_dirsep(result, os_type))
   defp do_join(<<>>, relativename, [?:|rest], :win32), do:
     do_join(relativename, <<>>, [?:|rest], :win32)
   defp do_join(<<>>, relativename, [?/|result], os_type), do:
@@ -476,7 +476,7 @@ defmodule Path do
   def split(""), do: []
 
   def split(path) do
-    FN.split(String.from_char_data!(path))
+    FN.split(IO.chardata_to_string(path))
   end
 
   @doc """
@@ -515,15 +515,28 @@ defmodule Path do
   @spec wildcard(t) :: [binary]
   def wildcard(glob) do
     glob
-    |> List.from_char_data!
+    |> chardata_to_list
     |> :filelib.wildcard
-    |> Enum.map(&String.from_char_data!/1)
+    |> Enum.map(&IO.chardata_to_string/1)
   end
 
   # Normalize the given path by expanding "..", "." and "~".
 
+  defp chardata_to_list(chardata) do
+    case :unicode.characters_to_list(chardata) do
+      result when is_list(result) ->
+        result
+
+      {:error, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
+
+      {:incomplete, encoded, rest} ->
+        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
+    end
+  end
+
   defp expand_home(type) do
-    case String.from_char_data!(type) do
+    case IO.chardata_to_string(type) do
       "~" <> rest -> System.user_home! <> rest
       rest        -> rest
     end

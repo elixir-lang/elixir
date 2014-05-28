@@ -50,9 +50,6 @@ defmodule Set do
       case unquote(set) do
         %{__struct__: x} when is_atom(x) ->
           x
-        x when is_tuple(x) ->
-          IO.write :stderr, "Using records with the Set module is deprecated, please use structs instead\n#{Exception.format_stacktrace}"
-          elem(x, 0)
         x ->
           unsupported_set(x)
       end
@@ -334,6 +331,6 @@ defmodule Set do
   end
 
   defp unsupported_set(set) do
-    raise ArgumentError, message: "unsupported set: #{inspect set}"
+    raise ArgumentError, "unsupported set: #{inspect set}"
   end
 end

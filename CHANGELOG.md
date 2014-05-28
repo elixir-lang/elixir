@@ -1,9 +1,94 @@
-# v0.13.2-dev
+# Changelog
+
+## v0.14.0-dev
 
 * Enhancements
+  * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
+  * [Kernel] Add `get_in/2`, `put_in/3`, `update_in/3` and `get_and_update_in/3` to handle nested data structure operations
+  * [Kernel] Add `get_in/1`, `put_in/2`, `update_in/2` and `get_and_update_in/2` to handle nested data structure operations via paths
+  * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation 
+  * [String] Add `String.chunk/2`
+  * [Struct] Add support for `@derive` before `defstruct/2` definitions
+
+* Bug fixes
+  * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
+
+* Soft deprecations (no warnings emitted)
+
+* Deprecations
+  * [Access] `Access.access/2` is deprecated in favor of `Access.get/2`
+  * [Dict] `Dict.Behaviour` is deprecated in favor of `Dict`
+  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
+  * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
+  * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
+  * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
+
+* Backwards incompatible changes
+  * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now requires `get/2` (instead of `access/2`) and `get_and_update/3` to be implemented
+  * [Kernel] Retrieving docs as `module.__info__(:docs)` is no longer supported, please use `Code.get_docs/2` instead
+  * [Mix] `mix new` no longer generates a supevision tree by default, please pass `--sup` instead
+
+## v0.13.3 (2014-05-24)
+
+* Enhancements
+  * [OptionParser] Add `:strict` option that only parses known switches
+  * [OptionParser] Add `next/2` useful for manual parsing of options
+  * [Macro] Add `Macro.prewalk/2/3` and `Macro.postwalk/2/3`
+  * [Kernel] `GenEvent`, `GenServer`, `Supervisor`, `Agent` and `Task` modules added
+  * [Kernel] Make deprecations compiler warnings to avoid the same deprecation being printed multiple times
+
+* Bug fixes
+  * [Enum] Fix `Enum.join/2` and `Enum.map_join/3` for empty binaries at the beginning of the collection
+  * [ExUnit] Ensure the formatter doesn't error when printing :EXITs
+  * [Kernel] Rename `ELIXIR_ERL_OPTS` to `ELIXIR_ERL_OPTIONS` for consistency with `ERL_COMPILER_OPTIONS`
+  * [OptionParser] Parse `-` as a plain argument
+  * [OptionParser] `--` is always removed from argument list on `parse/2` and when it is the leading entry on `parse_head/2`
+  * [Regex] Properly escape regex (previously regex controls were double escaped)
+
+* Soft deprecations (no warnings emitted)
+  * [Dict] `Dict.Behaviour` is deprecated in favor of `Dict`
+  * [Kernel] `Application.Behaviour`, `GenEvent.Behaviour`, `GenServer.Behaviour` and `Supervisor.Behaviour` are deprecated in favor of `Application`, `GenEvent`, `GenServer` and `Supervisor`
+  * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
+  * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
+  * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
+
+* Soft deprecations for conversions (no warnings emitted)
+  * [Kernel] `atom_to_binary/1` and `atom_to_list/1` are deprecated in favor of `Atom.to_string/1` and `Atom.to_char_list/1`
+  * [Kernel] `bitstring_to_list/1` and `list_to_bitstring/1` are deprecated in favor of the `:erlang` ones
+  * [Kernel] `binary_to_atom/1`, `binary_to_existing_atom/1`, `binary_to_float/1`, `binary_to_integer/1` and `binary_to_integer/2` are deprecated in favor of conversion functions in `String`
+  * [Kernel] `float_to_binary/*` and `float_to_list/*` are deprecated in favor of `Float.to_string/*` and `Float.to_char_list/*`
+  * [Kernel] `integer_to_binary/*` and `integer_to_list/*` are deprecated in favor of `Integer.to_string/*` and `Integer.to_char_list/*`
+  * [Kernel] `iodata_to_binary/1` and `iodata_length/1` are deprecated `IO.iodata_to_binary/1` and `IO.iodata_length/1`
+  * [Kernel] `list_to_atom/1`, `list_to_existing_atom/1`, `list_to_float/1`, `list_to_integer/1`, `list_to_integer/2` and `list_to_tuple/1` are deprecated in favor of conversion functions in `List`
+  * [Kernel] `tuple_to_list/1` is deprecated in favor of `Tuple.to_list/1`
+  * [List] `List.from_char_data/1` and `List.from_char_data!/1` deprecated in favor of `String.to_char_list/1`
+  * [String] `String.from_char_data/1` and `String.from_char_data!/1` deprecated in favor of `List.to_string/1`
+
+* Deprecations
+  * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
+  * [Kernel] `defrecord/3` is deprecated in favor of structs
+  * [Kernel] `:hygiene` in `quote` is deprecated
+  * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
+
+* Backwards incompatible changes
+  * [Exception] Exceptions now generate structs instead of records
+  * [OptionParser] Errors on parsing returns the switch and value as binaries (unparsed)
+  * [String] `String.to_char_list/1` (previously deprecated) no longer returns a tuple but the char list only and raises in case of failure
+
+## v0.13.2 (2014-05-11)
+
+* Enhancements
+  * [Application] Add an Application module with common functions to work with OTP applications
+  * [Exception] Add `Exception.message/1`, `Exception.format_banner/1`, `Exception.format_exit/1` and `Exception.format/1`
+  * [File] Add `File.ln_s/1`
   * [Mix] `mix deps.clean` now works accross environments
   * [Mix] Support line numbers in `mix test`, e.g. test/some/file_test.exs:12
   * [Mix] Use `@file` attributes to detect dependencies in between `.ex` and external files. This means changing an `.eex` file will no longer recompile the whole project only the files that depend directly on it
+  * [Mix] Support application configurations in `config/config.exs` which can be customized by specifying your own `:config_path`
+  * [Mix] Support user-wide configuration with `~/.mix/config.exs`
+  * [Mix] `mix help` now uses ANSI formatting to print guides
+  * [Regex] Support functions in `Regex.replace/4`
   * [String] Support `:parts` in `String.split/3`
 
 * Bug fixes
@@ -11,31 +96,39 @@
   * [IEx] Exit signals now exits the IEx evaluator and a new one is spawned on its place
   * [IEx] Ensure we don't prune too much stacktrace when reporting failures
   * [IEx] Fix an issue where `iex.bat` on Windows was not passing the proper parameters forward
+  * [Kernel] Ensure modules defined on root respect defined aliases
   * [Kernel] Do not wrap single lists in `:__block__`
   * [Kernel] Ensure emitted beam code works nicely with dialyzer
   * [Kernel] Do not allow a module named `Elixir` to be defined
+  * [Kernel] Create remote funs even if mod is a variable in capture `&mod.fun/arity`
+  * [Kernel] Improve compiler message when duplicated modules are detected
   * [Mix] Generate `.gitignore` for `--umbrella` projects
   * [Mix] Verify if a git dependency in deps has a proper git checkout and clean it automatically when it doesn't
+  * [Mix] Ensure `mix test` works with `IEx.pry/0`
   * [System] Convert remaining functions in System to rely on char data
 
 * Soft deprecations (no warnings emitted)
-  * [Application] use Application.Behaviour is deprecated in favor of use Application
+  * [Exception] `exception.message` is deprecated in favor `Exception.message/1` for retrieving exception messages
+  * [Kernel] `is_exception/1`, `is_record/1` and `is_record/2` are deprecated in favor of `Exception.exception?1`, `Record.record?/1` and `Record.record?/2`
   * [Mix] `Mix.project/0` is deprecated in favor of `Mix.Project.config/0`
-  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in Kernel
+  * [Process] `Process.spawn/1`, `Process.spawn/3`, `Process.spawn_link/1`, `Process.spawn_link/3`, `Process.spawn_monitor/1`, `Process.spawn_monitor/3`, `Process.send/2` and `Process.self/0` are deprecated in favor of the ones in `Kernel`
 
 * Deprecations
+  * [IEx] IEx.Options is deprecated in favor of `IEx.configure/1` and `IEx.configuration/0`
   * [Kernel] `lc` and `bc` comprehensions are deprecated in favor of `for`
-  * [Macro] `Macro.safe_terms` is deprecated
+  * [Macro] `Macro.safe_terms/1` is deprecated
   * [Process] `Process.delete/0` is deprecated
   * [Regex] Deprecate `:global` option in `Regex.split/3` in favor of `parts: :infinity`
   * [String] Deprecate `:global` option in `String.split/3` in favor of `parts: :infinity`
 
 * Backwards incompatible changes
+  * [ExUnit] `ExUnit.Test` and `ExUnit.TestCase` has been converted to structs
+  * [ExUnit] The test and callback context has been converted to maps
   * [Kernel] `File.Stat`, `HashDict`, `HashSet`, `Inspect.Opts`, `Macro.Env`, `Range`, `Regex` and `Version.Requirement` have been converted to structs. This means `is_record/2` checks will no longer work, instead, you can pattern match on them using `%Range{}` and similar
   * [URI] The `URI.Info` record has now become the `URI` struct
   * [Version] The `Version.Schema` record has now become the `Version` struct
 
-# v0.13.1 (2014-04-27)
+## v0.13.1 (2014-04-27)
 
 * Enhancements
   * [Mix] Support `MIX_EXS` as configuration for running the current mix.exs file
@@ -61,7 +154,7 @@
   * [Path] Atoms are no longer supported in Path functions
   * [Regex] Regexes are no longer unicode by default. Instead, they must be explicitly marked with the `u` option
 
-# v0.13.0 (2014-04-20)
+## v0.13.0 (2014-04-20)
 
 * Enhancements
   * [Base] Add `Base` module which does conversions to bases 16, 32, hex32, 64 and url64
@@ -112,7 +205,7 @@
 * Backwards incompatible changes
   * [ExUnit] Formatters are now required to be a GenEvent and `ExUnit.run/2` returns a map with results
 
-# v0.12.5 (2014-03-09)
+## v0.12.5 (2014-03-09)
 
 * Bug fixes
   * [Kernel] Ensure `try` does not generate an after clause. Generating an after clause forbade clauses in the `else` part from being tail recursive. This should improve performance and memory consumption of `Stream` functions
@@ -130,7 +223,7 @@
 * Backwards incompatible changes
   * [Mix] Remove `MIX_GIT_FORCE_HTTPS` as Git itself already provides mechanisms for doing so
 
-# v0.12.4 (2014-02-12)
+## v0.12.4 (2014-02-12)
 
 * Enhancements
   * [Mix] `mix deps.get` and `mix deps.update` no longer compile dependencies afterwards. Instead, they mark the dependencies which are going to be automatically compiled next time `deps.check` is invoked (which is done automatically by most mix tasks). This means users should have a better workflow when migrating in between environments
@@ -144,7 +237,7 @@
   * [ExUnit] `CaptureIO` returns an empty string instead of nil when there is no capture
   * [Version] The `Version` module now only works with SemVer. The functions `Version.parse/1` and `Version.parse_requirement/1` now return `{:ok,res} | :error` for the cases you want to handle non SemVer cases manually. All other functions will trigger errors on non semantics versions
 
-# v0.12.3 (2014-02-02)
+## v0.12.3 (2014-02-02)
 
 * Enhancements
   * [Kernel] Warnings now are explicitly tagged with "warning:" in messages
@@ -177,7 +270,7 @@
   * [Range] `Range` is no longer a record, instead use `first .. last` if you need pattern matching
   * [Set] Implementations of `difference/2`, `disjoint?/2`, `equal?/2`, `intersection/2`, `subset?/2` and `union/2` in `HashSet` are no longer polymorphic. To get polymorphism, use the functions in `Set` instead
 
-# v0.12.2 (2014-01-15)
+## v0.12.2 (2014-01-15)
 
 * Enhancements
   * [EEx] Allow `EEx.AssignsEngine` to accept any Dict
@@ -206,7 +299,7 @@
 * Backwards incompatible changes
   * [String] Change `String.next_grapheme/1` and `String.next_codepoint/1` to return `nil` on string end
 
-# v0.12.1 (2014-01-04)
+## v0.12.1 (2014-01-04)
 
 * Enhancements
   * [ExUnit] Support `:include` and `:exclude` configuration options to filter which tests should run based on their tags. Those options are also supported via `mix test` as `--include` and `--exclude`
@@ -230,7 +323,7 @@
   * [GenServer] GenServer now stops on unknown call/cast requests
   * [Kernel] Change how `->` is represented in AST. Now each clause is represented by its own AST node which makes composition easier. See commit 51aef55 for more information.
 
-# v0.12.0 (2013-12-15)
+## v0.12.0 (2013-12-15)
 
 * Enhancements
   * [Exception] Allow `exception/1` to be overridden and promote it as the main mechanism to customize exceptions
@@ -267,7 +360,7 @@
   * [Stream] The `Stream.Lazy` structure has changed to accumulate functions and accumulators as we go (its inspected representation has also changed)
   * [Typespec] `when` clauses were moved to the outer part of the spec and should be in the keywords format. So `add(a, b) when is_subtype(a, integer) and is_subtype(b, integer) :: integer` should now be written as `add(a, b) :: integer when a: integer, b: integer`
 
-# v0.11.2 (2013-11-14)
+## v0.11.2 (2013-11-14)
 
 * Enhancements
   * [Mix] Add `mix iex` that redirects users to the proper `iex -S mix` command
@@ -276,7 +369,7 @@
 * Backwards incompatible changes
   * [Mix] Mix now compiles files to `_build`. Projects should update just fine, however documentation and books may want to update to the latest information
 
-# v0.11.1 (2013-11-07)
+## v0.11.1 (2013-11-07)
 
 * Enhancements
   * [Mix] Improve dependency convergence by explicitly checking each requirement instead of expecting all requirements to be equal
@@ -294,7 +387,7 @@
 * Backwards incompatible changes
   * [Mix] Setting `:load_paths` in your project configuration is deprecated
 
-# v0.11.0 (2013-11-02)
+## v0.11.0 (2013-11-02)
 
 * Enhancements
   * [Code] Eval now returns variables from other contexts
@@ -341,7 +434,7 @@
   * [Process] `Process.group_leader/2` args have been reversed so the "subject" comes first
   * [Protocol] Protocol no longer dispatches to `Number`, but to `Integer` and `Float`
 
-# v0.10.3 (2013-10-02)
+## v0.10.3 (2013-10-02)
 
 * Enhancements
   * [Enum] Add `Enum.take_every/2`
@@ -376,7 +469,7 @@
   * [Mix] `File.IteratorError` was renamed to `IO.StreamError`
   * [Mix] `mix new` now defaults to the `--sup` option, use `--bare` to get the previous behaviour
 
-# v0.10.2 (2013-09-03)
+## v0.10.2 (2013-09-03)
 
 * Enhancements
   * [CLI] Add `--verbose` to elixirc, which now is non-verbose by default
@@ -439,7 +532,7 @@
   * [Kernel] The previous ambiguous import syntax `import :functions, Foo` was removed in favor of `import Foo, only: :functions`
   * [OptionParser] `parse` and `parse_head` now returns a tuple with three elements instead of two
 
-# v0.10.1 (2013-08-03)
+## v0.10.1 (2013-08-03)
 
 * Enhancements
   * [Behaviour] Add support for `defmacrocallback/1`
@@ -489,7 +582,7 @@
   * [Regex] `Regex.scan/3` now always returns a list of lists, normalizing the result, instead of list with mixed lists and binaries
   * [System] `System.halt/2` was removed since the current Erlang implementation of such function is bugged
 
-# v0.10.0 (2013-07-15)
+## v0.10.0 (2013-07-15)
 
 * Enhancements
   * [ExUnit] Support `trace: true` option which gives detailed reporting on test runs
@@ -533,7 +626,7 @@
   * [Record] First element of a record via `defrecordp` is now the `defrecordp` name and no longer the current atom
   * [URI] Remove custom URI parsers in favor of `URI.default_port/2`
 
-# v0.9.3 (2013-06-23)
+## v0.9.3 (2013-06-23)
 
 * Enhancements
   * [File] Add `File.chgrp`, `File.chmod` and `File.chown`
@@ -571,7 +664,7 @@
   * [Macro] `Macro.expand/2` now expands until final form. Although this is backwards incompatible, it is very likely you do not need to change your code, since expansion until its final form is recommended, particularly if you are expecting an atom out of it
   * [Mix] No longer support beam files on `mix local`
 
-# v0.9.2 (2013-06-13)
+## v0.9.2 (2013-06-13)
 
 * Enhancements
   * [ExUnit] `capture_io` now captures prompt by default
@@ -596,7 +689,7 @@
 * Backwards incompatible changes
   * [Kernel] The `=~` operator now returns true or false instead of an index
 
-# v0.9.1 (2013-05-30)
+## v0.9.1 (2013-05-30)
 
 * Enhancements
   * [IEx] Limit the number of entries kept in history and allow it to be configured
@@ -612,7 +705,7 @@
   * [Record] Fix a bug where nested records cannot be defined
   * [Record] Fix a bug where a record named Record cannot be defined
 
-# v0.9.0 (2013-05-23)
+## v0.9.0 (2013-05-23)
 
 * Enhancements
   * [ExUnit] `ExUnit.CaptureIO` now accepts an input to be used during capture
@@ -625,7 +718,7 @@
   * [Kernel] Erlang R15 is no longer supported
   * [Kernel] Elixir modules are now represented as `Elixir.ModuleName` (using `.` instead of `-` as separator)
 
-# v0.8.3 (2013-05-22)
+## v0.8.3 (2013-05-22)
 
 * Enhancements
   * [CLI] Flags `-p` and `-pr` fails if pattern match no files
@@ -677,7 +770,7 @@
   * [Kernel] Precedence of `|>` has changed to lower to support constructs like `1..5 |> Enum.to_list`
   * [Mix] `mix escriptize` now receives arguments as binaries
 
-# v0.8.2 (2013-04-20)
+## v0.8.2 (2013-04-20)
 
 * Enhancements
   * [ExUnit] Use ANSI escape codes in CLI output
@@ -717,7 +810,7 @@
               unquote(Macro.escape(x))
             end
 
-# v0.8.1 (2013-02-17)
+## v0.8.1 (2013-02-17)
 
 * Enhancements
   * [ExUnit] Tests can now receive metadata set on setup/teardown callbacks
@@ -744,7 +837,7 @@
   * [Kernel] Old `:local.(args)` syntax is deprecated
   * [Process] `Process.self` is deprecated in favor `Kernel.self`
 
-# v0.8.0 (2013-01-28)
+## v0.8.0 (2013-01-28)
 
 * Enhancements
   * [Binary] Support `<< "string" :: utf8 >>` as in Erlang
@@ -786,7 +879,7 @@
   * [Mix] `mix iex` is no longer functional, please use `iex -S mix`
   * [OptionParser] `:flags` option was deprecated in favor of `:switches` to support many types
 
-# v0.7.2 (2012-12-04)
+## v0.7.2 (2012-12-04)
 
 * Enhancements
   * [CLI] `--debug-info` is now true by default
@@ -812,7 +905,7 @@
   * [Record] Default-based generated functions are deprecated
   * [Typespec] Enhancements and deprecations to the `@spec/@callback` and the fun type syntax
 
-# v0.7.1 (2012-11-18)
+## v0.7.1 (2012-11-18)
 
 * Enhancements
   * [IEx] Only show documented functions and also show docs for default generated functions
@@ -843,7 +936,7 @@
   * [Enum] `Enum.times` is deprecated in favor of using ranges
   * [System] `halt` moved to `System` module
 
-# v0.7.0 (2012-10-20)
+## v0.7.0 (2012-10-20)
 
 * Enhancements
   * [Behaviour] Add Behaviour with a simple callback DSL to define callbacks
@@ -892,7 +985,7 @@
   * [Kernel] `Erlang.` syntax is deprecated in favor of simply using atoms
   * [Module] `Module.read_attribute` and `Module.add_attribute` deprecated in favor of `Module.get_attribute` and `Module.put_attribute` which mimics Dict API
 
-# v0.6.0 (2012-08-01)
+## v0.6.0 (2012-08-01)
 
 * Backwards incompatible changes
   * [Kernel] Compile files now follow `Elixir-ModuleName` convention to solve issues with Erlang embedded mode. This removes the `__MAIN__` pseudo-variable as modules are now located inside `Elixir` namespace
@@ -942,6 +1035,6 @@
   * [Regex] Back references are now properly supported
   * [System] Add `System.find_executable`
 
-# v0.5.0 (2012-05-24)
+## v0.5.0 (2012-05-24)
 
 * First official release

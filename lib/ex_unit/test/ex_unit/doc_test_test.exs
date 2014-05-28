@@ -1,5 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
+import PathHelpers
+
 defmodule ExUnit.DocTestTest.GoodModule do
   @doc """
   iex> test_fun
@@ -45,9 +47,9 @@ defmodule ExUnit.DocTestTest.GoodModule do
   #HashDict<[c: 2, b: 1, a: 0]>
   """
   def inspect2_test, do: :ok
-end
+end |> write_beam
 
-defmodule ExUnit.DocTestTest.ExceptionModule do
+defmodule ExUnit.DocTestTest.MultipleExceptions do
   @doc """
   iex> 1 + ""
   ** (ArithmeticError) bad argument in arithmetic expression
@@ -55,7 +57,7 @@ defmodule ExUnit.DocTestTest.ExceptionModule do
   ** (ArithmeticError) bad argument in arithmetic expression
   """
   def two_exceptions, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   @doc """
@@ -73,7 +75,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithOnly do
   1
   """
   def test_fun1, do: 1
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   @doc """
@@ -91,7 +93,7 @@ defmodule ExUnit.DocTestTest.SomewhatGoodModuleWithExcept do
   1
   """
   def test_fun1, do: 1
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.NoImport do
   @doc """
@@ -99,18 +101,31 @@ defmodule ExUnit.DocTestTest.NoImport do
   2
   """
   def min(a, b), do: max(a, b)
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.Invalid do
-  @doc """
-  iex> _a = 1
-  1
+  @moduledoc """
 
-  iex> _a + 1
-  2
+      iex> 1 + * 1
+      1
+
+      iex> 1 + hd(List.flatten([1]))
+      3
+
+      iex> :oops
+      #HashDict<[]>
+
+      iex> Hello.world
+      :world
+
+      iex> raise "oops"
+      ** (WhatIsThis) oops
+
+      iex> raise "oops"
+      ** (RuntimeError) hello
+
   """
-  def no_leak, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.IndentationHeredocs do
   @doc ~S'''
@@ -126,7 +141,7 @@ defmodule ExUnit.DocTestTest.IndentationHeredocs do
 
   '''
   def heredocs, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
   @doc ~S'''
@@ -136,7 +151,7 @@ defmodule ExUnit.DocTestTest.IndentationMismatchedPrompt do
     3
   '''
   def mismatched, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.IndentationTooMuch do
   @doc ~S'''
@@ -144,7 +159,7 @@ defmodule ExUnit.DocTestTest.IndentationTooMuch do
       3
   '''
   def too_much, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.IndentationNotEnough do
   @doc ~S'''
@@ -152,7 +167,7 @@ defmodule ExUnit.DocTestTest.IndentationNotEnough do
     3
   '''
   def not_enough, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest.Incomplete do
   @doc ~S'''
@@ -160,10 +175,10 @@ defmodule ExUnit.DocTestTest.Incomplete do
 
   '''
   def not_enough, do: :ok
-end
+end |> write_beam
 
 defmodule ExUnit.DocTestTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   # This is intentional. The doctests in DocTest's docs
   # fail for demonstration purposes.
@@ -175,20 +190,79 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
 
+  import ExUnit.CaptureIO
+
+  test "doctest failures" do
+    defmodule ActuallyCompiled do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.Invalid
+    end
+
+    ExUnit.configure(seed: 0)
+    output = capture_io(fn -> ExUnit.run end)
+
+    assert output =~ """
+      1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:106: syntax error before: '*'
+         code: 1 + * 1
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest failed
+         code: 1 + hd(List.flatten([1])) === 3
+         lhs:  2
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest failed
+         code: inspect(:oops) === "#HashDict<[]>"
+         lhs:  ":oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0
+         code:  Hello.world
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
+         code: raise "oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:198
+         Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
+         code: raise "oops"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+    """
+  end
+
   test "multiple exceptions in one test case is not supported" do
     assert_raise ExUnit.DocTest.Error, ~r"multiple exceptions in one doctest case are not supported", fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.ExceptionModule
-      end
-    end
-  end
-
-  test "variables in heredocs do not leak" do
-    assert_raise ArgumentError, fn ->
-      defmodule NeverCompiled do
-        import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.Invalid
+        doctest ExUnit.DocTestTest.MultipleExceptions
       end
     end
   end
@@ -221,6 +295,5 @@ defmodule ExUnit.DocTestTest do
         doctest ExUnit.DocTestTest.Incomplete
       end
     end
-
   end
 end

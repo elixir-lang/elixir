@@ -1,47 +1,36 @@
 defmodule Mix.TasksServer do
   @moduledoc false
-  use GenServer.Behaviour
 
   def start_link() do
-    :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
+    Agent.start_link(fn -> HashSet.new end, name: __MODULE__)
   end
 
-  def call(arg) do
-    :gen_server.call(__MODULE__, arg, 30_000)
+  def clear_tasks() do
+    get_and_update fn set ->
+      { set, HashSet.new }
+    end
   end
 
-  def cast(arg) do
-    :gen_server.cast(__MODULE__, arg)
+  def run_task(task, proj) do
+    run_item = { task, proj }
+    get_and_update fn set ->
+      { not(run_item in set), Set.put(set, run_item) }
+    end
   end
 
-  ## Callbacks
-
-  def init(:ok) do
-    {:ok, HashSet.new}
+  def put_task(task, proj) do
+    update &Set.put(&1, { task, proj })
   end
 
-  def handle_call(:clear_tasks, _from, set) do
-    {:reply, set, HashSet.new}
+  def delete_task(task, proj) do
+    update &Set.delete(&1, { task, proj })
   end
 
-  def handle_call({:run_task, task, proj}, _from, set) do
-    item = {task, proj}
-    {:reply, not(item in set), Set.put(set, item)}
+  defp get_and_update(fun) do
+    Agent.get_and_update(__MODULE__, fun, 30_000)
   end
 
-  def handle_call(request, from, config) do
-    super(request, from, config)
-  end
-
-  def handle_cast({:put_task, task, proj}, set) do
-    {:noreply, Set.put(set, {task, proj})}
-  end
-
-  def handle_cast({:delete_task, task, proj}, set) do
-    {:noreply, Set.delete(set, {task, proj})}
-  end
-
-  def handle_cast(request, config) do
-    super(request, config)
+  defp update(fun) do
+    Agent.update(__MODULE__, fun, 30_000)
   end
 end

@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
-      if is_binary(app), do: binary_to_atom(app), else: app
+      if is_binary(app), do: String.to_atom(app), else: app
     end
   end
 end

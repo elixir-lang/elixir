@@ -49,8 +49,8 @@ defmodule Node do
 
   See http://www.erlang.org/doc/man/erlang.html#nodes-1 for more info.
   """
-  @typep list_arg :: :visible | :hidden | :connected | :this | :known
-  @spec list(list_arg | [list_arg]) :: [t]
+  @typep state :: :visible | :hidden | :connected | :this | :known
+  @spec list(state | [state]) :: [t]
   def list(args) do
     :erlang.nodes(args)
   end

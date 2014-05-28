@@ -5,6 +5,13 @@ defmodule HashDictTest do
 
   @dict Enum.into([foo: :bar], HashDict.new)
 
+  test "access" do
+    dict = Enum.into([foo: :baz], HashDict.new)
+    assert Access.get(@dict, :foo) == :bar
+    assert Access.get_and_update(@dict, :foo, fn :bar -> {:ok, :baz} end) == {:ok, dict}
+    assert Access.get_and_update(HashDict.new, :foo, fn nil -> {:ok, :baz} end) == {:ok, dict}
+  end
+
   test "is serializable as attribute" do
     assert @dict == Enum.into([foo: :bar], HashDict.new)
   end

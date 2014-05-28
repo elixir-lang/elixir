@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "does not write beam down on failures" do
     import ExUnit.CaptureIO
 
-    in_fixture "only_mixfile", fn ->
+    in_tmp "blank", fn ->
       File.mkdir_p!("lib")
       File.write!("lib/a.ex", "raise ~s(oops)")
 

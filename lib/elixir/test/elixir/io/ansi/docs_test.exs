@@ -4,20 +4,12 @@ defmodule IO.ANSI.DocsTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureIO
 
-  @colors [ enabled: true,
-            doc_code: "cyan,bright",
-            doc_inline_code: "cyan",
-            doc_bold: "bright",
-            doc_underline: "underline",
-            doc_headings: "yellow,bright",
-            doc_title: "reverse,yellow,bright" ]
-
   def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, @colors) end) |> String.strip
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.strip
   end
 
   def format(str) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, @colors) end) |> String.strip
+    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.strip
   end
 
   test "heading is formatted" do

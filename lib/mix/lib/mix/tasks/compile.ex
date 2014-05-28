@@ -5,13 +5,14 @@ defmodule Mix.Tasks.Compile do
   @recursive true
 
   @moduledoc """
-  A meta task that compiles source files. It simply runs the
-  compilers registered in your project. At the end of compilation
-  it ensures load paths are set.
+  A meta task that compiles source files.
+
+  It simply runs the compilers registered in your project. At
+  the end of compilation it ensures load paths are set.
 
   ## Configuration
 
-  * `:compilers` - compilers to be run, defaults to:
+  * `:compilers` - compilers to run, defaults to:
 
         [:leex, :yeec, :erlang, :elixir, :app]
 
@@ -21,7 +22,7 @@ defmodule Mix.Tasks.Compile do
 
   * `--no-deps-check` - Skips checking of dependencies
 
-  Remaining options are forwarded to underlying compilers.
+  * `--force` - Forces compilation
 
   """
   def run(["--list"]) do
@@ -50,9 +51,6 @@ defmodule Mix.Tasks.Compile do
     shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"
   end
 
-  @doc """
-  Runs this compile task by recursively calling all registered compilers.
-  """
   def run(args) do
     # --no-deps is used only internally. It has not purpose
     # from Mix.CLI because the CLI itself already loads
@@ -92,7 +90,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp format(expression, args) do
-    :io_lib.format(expression, args) |> iodata_to_binary
+    :io_lib.format(expression, args) |> IO.iodata_to_binary
   end
 
   defp first_line(doc) do

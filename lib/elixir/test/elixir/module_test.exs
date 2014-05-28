@@ -5,32 +5,34 @@ defmodule ModuleTest.ToBeUsed do
 
   defmacro __using__(_) do
     target = __CALLER__.module
-    Module.put_attribute(target, :has_callback, false)
+    Module.put_attribute(target, :has_callback, true)
     Module.put_attribute(target, :before_compile, __MODULE__)
     Module.put_attribute(target, :after_compile, __MODULE__)
     Module.put_attribute(target, :before_compile, {__MODULE__, :callback})
     quote do: (def line, do: __ENV__.line)
   end
 
-  defmacro __before_compile__(_) do
-    quote do: (def before_compile, do: true)
+  defmacro __before_compile__(env) do
+    quote do: (def before_compile, do: unquote(env.vars))
   end
 
-  defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse}, bin) when is_binary(bin) do
+  defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse, vars: []}, bin) when is_binary(bin) do
     # IO.puts "HELLO"
   end
 
   defmacro callback(env) do
     value = Module.get_attribute(env.module, :has_callback)
     quote do
-      def original_value(1), do: unquote(value)
+      def callback_value(true), do: unquote(value)
     end
   end
 end
 
 defmodule ModuleTest.ToUse do
   32 = __ENV__.line # Moving the next line around can make tests fail
-  def original_value(2), do: true
+  var = 1
+  var # Not available in callbacks
+  def callback_value(false), do: false
   use ModuleTest.ToBeUsed
 end
 
@@ -59,18 +61,18 @@ defmodule ModuleTest do
   end
 
   test :line_from_macro do
-    assert ModuleTest.ToUse.line == 34
+    assert ModuleTest.ToUse.line == 36
   end
 
   ## Callbacks
 
   test :compile_callback_hook do
-    refute ModuleTest.ToUse.original_value(1)
-    assert ModuleTest.ToUse.original_value(2)
+    assert ModuleTest.ToUse.callback_value(true) == true
+    assert ModuleTest.ToUse.callback_value(false) == false
   end
 
   test :before_compile_callback_hook do
-    assert ModuleTest.ToUse.before_compile
+    assert ModuleTest.ToUse.before_compile == []
   end
 
   test :on_definition do

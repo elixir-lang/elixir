@@ -29,7 +29,7 @@ defmodule Kernel.SpecialForms do
   Conveniences for manipulating tuples can be found in the
   `Tuple` module. Some functions for working with tuples are
   also available in `Kernel`, namely `Kernel.elem/2`,
-  `Kernel.set_elem/3` and `Kernel.tuple_size/1`.
+  `Kernel.put_elem/3` and `Kernel.tuple_size/1`.
 
   ## Examples
 
@@ -118,11 +118,18 @@ defmodule Kernel.SpecialForms do
         end
       end
 
+  In practice though, structs are usually defined with the
+  `Kernel.defstruct/2` macro:
+
+      defmodule User do
+        defstruct name: "josé", age: 27
+      end
+
   Now a struct can be created as follow:
 
       %User{}
 
-  Underneath, a struct is just a map with a `__struct__` field
+  Underneath a struct is just a map with a `__struct__` field
   pointing to the User module:
 
       %User{} == %{__struct__: User, name: "josé", age: 27}
@@ -148,8 +155,10 @@ defmodule Kernel.SpecialForms do
   compilation time and it will guarantee at runtime the given
   argument is a struct, failing with `BadStructError` otherwise.
 
-  Check `Kernel.defprotocol/2` for more information on how structs
-  can be used with protocols for polymorphic dispatch. Also,
+  Alhought structs are maps, by default structs do not implement
+  any of the protocols implemented for maps. Check
+  `Kernel.defprotocol/2` for more information on how structs
+  can be used with protocols for polymorphic dispatch. Also
   see `Kernel.struct/2` for examples on how to create and update
   structs dynamically.
   """
@@ -580,7 +589,7 @@ defmodule Kernel.SpecialForms do
   defmacro import(module, opts)
 
   @doc """
-  Returns the current environment information as a `Macro.Env[]` record.
+  Returns the current environment information as a `Macro.Env` struct.
 
   In the environment you can access the current filename,
   line numbers, set up aliases, the current function and others.
@@ -667,7 +676,6 @@ defmodule Kernel.SpecialForms do
                  able to unquote;
   * `:location` - When set to `:keep`, keeps the current line and file from quote.
                   Read the Stacktrace information section below for more information;
-  * `:hygiene` - Allows a developer to disable hygiene selectively;
   * `:context` - Sets the resolution context;
   * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
                     `unquote` is automatically disabled;
@@ -864,10 +872,6 @@ defmodule Kernel.SpecialForms do
       ContextHygiene.read
       #=> 1
 
-  Hygiene for variables can be disabled overall as:
-
-      quote hygiene: [vars: false], do: x
-
   ## Hygiene in aliases
 
   Aliases inside quote are hygienic by default.
@@ -986,9 +990,6 @@ defmodule Kernel.SpecialForms do
       end
 
       Lazy.return_size #=> 2
-
-  As in aliases, import expansion can be explicitly disabled
-  via the `hygiene: [imports: false]` option.
 
   ## Stacktrace information
 
@@ -1249,7 +1250,7 @@ defmodule Kernel.SpecialForms do
 
   ## Anonymous functions
 
-  The capture operator can be also be used to partially apply
+  The capture operator can also be used to partially apply
   functions, where `&1`, `&2` and so on can be used as value
   placeholders. For example:
 

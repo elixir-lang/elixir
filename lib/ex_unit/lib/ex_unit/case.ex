@@ -46,6 +46,14 @@ defmodule ExUnit.Case do
         end
       end
 
+  As the context is a map, it can be pattern matched on to extract
+  information:
+
+      test "stores key-values", %{pid: pid} do
+        assert KV.put(pid, :hello, :world) == :ok
+        assert KV.get(pid, :hello) == :world
+      end
+
   ## Tags
 
   The context is used to pass information from the callbacks to
@@ -128,7 +136,7 @@ defmodule ExUnit.Case do
   via `ExUnit.configure/1`:
 
       # Exclude all external tests from running
-      ExUnit.configure exclude: [external: true]
+      ExUnit.configure(exclude: [external: true])
 
   From now on, ExUnit will not run any test that has the `external` flag
   set to true. This behaviour can be reversed with the `:include` option
@@ -142,7 +150,7 @@ defmodule ExUnit.Case do
   a particular tag by default, regardless of its value, and include only
   a certain subset:
 
-      ExUnit.configure exclude: :os, include: [os: :unix]
+      ExUnit.configure(exclude: :os, include: [os: :unix])
 
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
@@ -225,7 +233,7 @@ defmodule ExUnit.Case do
   defmacro __before_compile__(_) do
     quote do
       def __ex_unit__(:case) do
-        ExUnit.TestCase[name: __MODULE__, tests: @ex_unit_tests]
+        %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
       end
     end
   end
@@ -234,18 +242,18 @@ defmodule ExUnit.Case do
   def __on_definition__(env, name) do
     mod  = env.module
     tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-    tags = [line: env.line, file: env.file] ++ normalize_tags(tags)
+    tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
     Module.put_attribute(mod, :ex_unit_tests,
-      ExUnit.Test[name: name, case: mod, tags: tags])
+      %ExUnit.Test{name: name, case: mod, tags: tags})
 
     Module.delete_attribute(mod, :tag)
   end
 
   defp normalize_tags(tags) do
-    Enum.reduce tags, [], fn
-      tag, acc when is_atom(tag) -> Keyword.put_new(acc, tag, true)
-      tag, acc when is_list(tag) -> Keyword.merge(tag, acc)
+    Enum.reduce Enum.reverse(tags), %{}, fn
+      tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
+      tag, acc when is_list(tag) -> Dict.merge(acc, tag)
     end
   end
 end

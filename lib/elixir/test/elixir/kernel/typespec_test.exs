@@ -3,8 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.TypespecTest do
   use ExUnit.Case, async: true
 
-  defrecord Rec, [:first, :last]
-
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
@@ -210,14 +208,6 @@ defmodule Kernel.TypespecTest do
              {:type, _, :atom, []}]}, []} = spec
   end
 
-  test "@type with an access macro" do
-    spec = test_module do
-      @type mytype :: Rec[first: integer]
-    end
-    assert {:mytype, {:type, _, :tuple,
-             [{:atom, _, Rec}, {:type, _, :integer, []}, {:type, _, :any, []}]}, []} = spec
-  end
-
   test "@type with keywords" do
     spec = test_module do
       @type mytype :: [first: integer, step: integer, last: integer]
@@ -278,6 +268,20 @@ defmodule Kernel.TypespecTest do
     assert [{:t, {:type, _, :map, [
               {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
               {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :non_neg_integer, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, Kernel.TypespecTest.T}}
+           ]}, []}] = types
+  end
+
+  test "@type from dynamic structs" do
+    types = test_module do
+      fields = [name: nil, age: 0]
+      defstruct fields
+      @type
+    end
+
+    assert [{:t, {:type, _, :map, [
+              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
+              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :term, []}},
               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, Kernel.TypespecTest.T}}
            ]}, []}] = types
   end
@@ -424,33 +428,6 @@ defmodule Kernel.TypespecTest do
     end
   end
 
-  test "type_to_ast for records" do
-    record_type = {{:record, :my_record},
-                    [
-                      {:typed_record_field,
-                        {:record_field, 0, {:atom, 0, :field1}},
-                        {:type, 0, :atom, []}},
-                      {:typed_record_field,
-                        {:record_field, 0, {:atom, 0, :field2}},
-                        {:type, 0, :integer, []}},
-                    ],
-                    []}
-    assert Kernel.Typespec.type_to_ast(record_type) ==
-      {:::, [], [
-        {:my_record, [], []},
-        {:{}, [], [:my_record,
-          {:::, [line: 0], [
-            {:field1, 0, nil},
-            {:atom, [line: 0], []}
-          ]},
-          {:::, [line: 0], [
-            {:field2, 0, nil},
-            {:integer, [line: 0], []}
-          ]}
-        ]}
-      ]}
-  end
-
   test "type_to_ast for paren_type" do
     type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
     assert Kernel.Typespec.type_to_ast(type) ==
@@ -490,7 +467,8 @@ defmodule Kernel.TypespecTest do
     :code.delete(T)
     :code.purge(T)
 
-    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]}] =
+    assert [{{:a, _}, [{:type, _, :fun, [{:type, _, :product, []}, {:type, _, :any, []}]}]},
+            {{:__info__, 1}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :atom, []}]}, {:type, _, :term, []}]}]}] =
            Kernel.Typespec.beam_specs(binary)
   end
 

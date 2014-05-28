@@ -7,7 +7,8 @@
 # Note that since this is required for bootstrap, we can't use
 # any of the `GenServer.Behaviour` conveniences.
 defmodule Kernel.LexicalTracker do
-  @timeout  30_000
+  @moduledoc false
+  @timeout 30_000
   @behaviour :gen_server
 
   @import 2
