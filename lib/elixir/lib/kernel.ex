@@ -1667,7 +1667,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Updates a value in a nested structure.
+  Updates a key in a nested structure.
 
   Uses the `Access` protocol to traverse the structures
   according to the given `keys`.
@@ -1691,14 +1691,44 @@ defmodule Kernel do
     elem(get_and_update_in(data, keys, fn x -> {nil, fun.(x)} end), 1)
   end
 
-  defp get_and_update_in(nil, list, fun), do: get_and_update_in(%{}, list, fun)
-  defp get_and_update_in(data, [h], fun), do: Access.get_and_update(data, h, fun)
-  defp get_and_update_in(data, [h|t], fun) do
+  @doc """
+  Gets a value and updates a nested structure.
+
+  It expects a tuple to be returned, containing the value retrieved
+  and the update one. Uses the `Access` protocol to traverse the
+  structures according to the given `keys`.
+
+  ## Examples
+
+  This function is useful when there is a need to retrieve the current
+  value (or something calculated in function of the current value) and
+  update it at the same time. For example, it could be used to increase
+  the age of a user by one and return the previous age in one pass:
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> get_and_update_in(users, ["josé", :age], &{&1, &1 + 1})
+      {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+
+  In case any of entries in the middle returns `nil`, a map is dynamically
+  created:
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> get_and_update_in(users, ["dave", :age], &{&1, 13})
+      {nil, %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 13}}}
+
+  """
+  @spec get_and_update_in(Access.t, nonempty_list(term),
+                          (term -> {get, term})) :: {get, Access.t} when get: var
+  def get_and_update_in(data, keys, fun)
+
+  def get_and_update_in(nil, list, fun), do: get_and_update_in(%{}, list, fun)
+  def get_and_update_in(data, [h], fun), do: Access.get_and_update(data, h, fun)
+  def get_and_update_in(data, [h|t], fun) do
     Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
   end
 
   @doc """
-  Gets a value from a nested structure "path".
+  Gets a value from a nested structure via the given `path`.
 
   This is similar to `get_in/2`, except the path is extracted via
   a macro rather than passing a list. For example:
@@ -1760,7 +1790,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Puts a value in a nested structure "path".
+  Puts a value in a nested structure via the given `path`.
 
   This is similar to `put_in/3`, except the path is extracted via
   a macro rather than passing a list. For example:
@@ -1793,7 +1823,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Updates a value in a nested structure "path".
+  Updates a nested structure via the given `path`.
 
   This is similar to `update_in/3`, except the path is extracted via
   a macro rather than passing a list. For example:
@@ -1823,6 +1853,34 @@ defmodule Kernel do
     [h|t] = unnest(path, [], "update_in/2")
     expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
     quote do: :erlang.element(2, unquote(expr))
+  end
+
+  @doc """
+  Gets a value and updates a nested data structure via the given `path`.
+
+  This is similar to `get_and_update_in/3`, except the path is extracted
+  via a macro rather than passing a list. For example:
+
+      get_and_update_in(opts[:foo][:bar], &{&1, &1 + 1})
+
+  Is equivalent to:
+
+      get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
+
+  Note the in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_in/1` docs.
+
+  ## Examples
+
+      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> get_and_update_in(users["josé"][:age], &(&1 + 1))
+      {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+
+  """
+  defmacro get_and_update_in(path, fun) do
+    [h|t] = unnest(path, [], "get_and_update_in/2")
+    nest_get_and_update_in(h, t, fun)
   end
 
   defp nest_get_and_update_in([], fun),  do: fun

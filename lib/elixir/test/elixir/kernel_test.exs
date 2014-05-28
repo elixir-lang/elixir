@@ -295,6 +295,38 @@ defmodule KernelTest do
     end
   end
 
+  test "get_and_update_in/3" do
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert get_and_update_in(nil, ["josé", :age], fn nil -> {:ok, 28} end) ==
+           {:ok, %{"josé" => %{age: 28}}}
+
+    assert get_and_update_in(users, ["josé", :age], &{&1, &1 + 1}) ==
+           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+
+    assert_raise FunctionClauseError, fn ->
+      update_in(users, [], fn _ -> %{} end)
+    end
+  end
+
+  test "get_and_update_in/2" do
+    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+
+    assert get_and_update_in(nil["josé"][:age], fn nil -> {:ok, 28} end) ==
+           {:ok, %{"josé" => %{age: 28}}}
+
+    assert get_and_update_in(users["josé"].age, &{&1, &1 + 1}) ==
+           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+
+    assert_raise ArgumentError, fn ->
+      get_and_update_in(users["dave"].age, &{&1, &1 + 1})
+    end
+
+    assert_raise KeyError, fn ->
+      get_and_update_in(users["eric"].unknown, &{&1, &1 + 1})
+    end
+  end
+
   test "paths" do
     map = empty_map()
 

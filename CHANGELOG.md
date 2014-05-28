@@ -4,6 +4,8 @@
 
 * Enhancements
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
+  * [Kernel] Add `get_in/2`, `put_in/3`, `update_in/3` and `get_and_update_in/3` to handle nested data structure operations
+  * [Kernel] Add `get_in/1`, `put_in/2`, `update_in/2` and `get_and_update_in/2` to handle nested data structure operations via paths
   * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation 
   * [String] Add `String.chunk/2`
   * [Struct] Add support for `@derive` before `defstruct/2` definitions
@@ -23,7 +25,7 @@
 
 * Backwards incompatible changes
   * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now requires `get/2` (instead of `access/2`) and `get_and_update/3` to be implemented
-  * [Kernel] Retrieving docs as `module.__info__(:docs)` is deprecated, instead `Code.get_docs/2` must be used
+  * [Kernel] Retrieving docs as `module.__info__(:docs)` is no longer supported, please use `Code.get_docs/2` instead
   * [Mix] `mix new` no longer generates a supevision tree by default, please pass `--sup` instead
 
 ## v0.13.3 (2014-05-24)
