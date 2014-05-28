@@ -41,7 +41,6 @@ defmodule Task.SupervisorTest do
     # Assert response and monitoring messages
     ref = task.ref
     assert_receive {^ref, :done}
-    assert_receive {:DOWN, ^ref, _, _, :normal}
   end
 
   test "async/3", config do
@@ -84,21 +83,32 @@ defmodule Task.SupervisorTest do
     assert Task.Supervisor.terminate_child(config[:supervisor], pid) == :ok
   end
 
+  @wait 100
+
   test "await/1 exits on task throw", config do
-    task = Task.Supervisor.async(config[:supervisor], fn -> throw :unknown end)
+    Process.flag(:trap_exit, true)
+    task = Task.Supervisor.async(config[:supervisor], fn -> :timer.sleep(@wait); throw :unknown end)
     assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
+  after
+    Process.flag(:trap_exit, false)
   end
 
   test "await/1 exits on task error", config do
-    task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
+    Process.flag(:trap_exit, true)
+    task = Task.Supervisor.async(config[:supervisor], fn -> :timer.sleep(@wait); raise "oops" end)
     assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
+  after
+    Process.flag(:trap_exit, false)
   end
 
   test "await/1 exits on task exit", config do
-    task = Task.Supervisor.async(config[:supervisor], fn -> exit :unknown end)
+    Process.flag(:trap_exit, true)
+    task = Task.Supervisor.async(config[:supervisor], fn -> :timer.sleep(@wait); exit :unknown end)
     assert {:unknown, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
+  after
+    Process.flag(:trap_exit, false)
   end
 end

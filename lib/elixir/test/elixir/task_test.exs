@@ -29,7 +29,6 @@ defmodule TaskTest do
     # Assert response and monitoring messages
     ref = task.ref
     assert_receive {^ref, :done}
-    assert_receive {:DOWN, ^ref, _, _, :normal}
   end
 
   test "async/3" do
@@ -59,55 +58,52 @@ defmodule TaskTest do
     assert_receive :done
   end
 
-  test "await/1 exits on timeout" do
+  test "await/1 exits on noproc" do
     task = %Task{ref: make_ref()}
+    assert catch_exit(Task.await(task, 0)) == {:noproc, {Task, :await, [task, 0]}}
+  end
+
+  test "await/1 exits on timeout" do
+    task = Task.async(fn -> :timer.sleep(:infinity) end)
     assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
   end
 
+  @wait 100
+
   test "await/1 exits on normal exit" do
-    task = Task.async(fn -> exit :normal end)
+    Process.flag(:trap_exit, true)
+    task = Task.async(fn -> :timer.sleep(@wait); exit :normal end)
+    pid  = task.pid
     assert catch_exit(Task.await(task)) == {:normal, {Task, :await, [task, 5000]}}
+    assert_received {:EXIT, ^pid, :normal}
+  after
+    Process.flag(:trap_exit, false)
   end
 
   test "await/1 exits on task throw" do
-    task = Task.async(fn -> throw :unknown end)
+    Process.flag(:trap_exit, true)
+    task = Task.async(fn -> :timer.sleep(@wait); throw :unknown end)
     assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
+  after
+    Process.flag(:trap_exit, false)
   end
 
   test "await/1 exits on task error" do
-    task = Task.async(fn -> raise "oops" end)
+    Process.flag(:trap_exit, true)
+    task = Task.async(fn -> :timer.sleep(@wait); raise "oops" end)
     assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
+  after
+    Process.flag(:trap_exit, false)
   end
 
   test "await/1 exits on task exit" do
-    task = Task.async(fn -> exit :unknown end)
+    Process.flag(:trap_exit, true)
+    task = Task.async(fn -> :timer.sleep(@wait); exit :unknown end)
     assert {:unknown, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
-  end
-
-  test "await/1 exits on :noconnection" do
-    node = {:unknown, :unknown@node}
-    assert catch_noconnection(node) == {:nodedown, :unknown@node}
-    assert catch_noconnection(self) == {:nodedown, self}
-  end
-
-  test "find/2" do
-    task = %Task{ref: make_ref}
-    assert Task.find([task], {make_ref, :ok}) == nil
-    assert Task.find([task], {task.ref, :ok}) == {:ok, task}
-
-    assert Task.find([task], {:DOWN, make_ref, :process, self, :kill}) == nil
-    msg = {:DOWN, task.ref, :process, self, :kill}
-    assert catch_exit(Task.find([task], msg)) ==
-           {:kill, {Task, :find, [[task], msg]}}
-  end
-
-  defp catch_noconnection(process) do
-    ref  = make_ref()
-    task = %Task{ref: ref, pid: process}
-    send self(), {:DOWN, ref, process, self(), :noconnection}
-    catch_exit(Task.await(task)) |> elem(0)
+  after
+    Process.flag(:trap_exit, false)
   end
 end

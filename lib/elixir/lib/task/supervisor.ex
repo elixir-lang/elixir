@@ -55,9 +55,8 @@ defmodule Task.Supervisor do
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    {:ok, pid} = Supervisor.start_child(supervisor, [self(), {module, fun, args}])
-    ref = Process.monitor(pid)
-    send pid, {self(), ref}
+    ref = make_ref()
+    {:ok, pid} = Supervisor.start_child(supervisor, [{module, fun, args}, self(), ref])
     %Task{pid: pid, ref: ref}
   end
 
@@ -98,6 +97,6 @@ defmodule Task.Supervisor do
   """
   @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
   def start_child(supervisor, module, fun, args) do
-    Supervisor.start_child(supervisor, [:undefined, {module, fun, args}])
+    Supervisor.start_child(supervisor, [{module, fun, args}])
   end
 end
