@@ -96,8 +96,6 @@ defmodule Supervisor do
         end
 
         def init([]) do
-          import Supervisor.Spec
-
           children = [
             worker(Stack, [[:hello]])
           ]
