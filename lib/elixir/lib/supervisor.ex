@@ -1,6 +1,6 @@
 defmodule Supervisor do
   @moduledoc """
-  A behaviour module for implementing supevision functionality.
+  A behaviour module for implementing supervision functionality.
 
   A supervisor is a process which supervises other processes called
   child processes. Supervisors are used to build an hierarchical process
@@ -86,7 +86,7 @@ defmodule Supervisor do
 
   In the example above, a supervisor was dynamically created by passing
   the supervision structure to `start_link/2`. However, supervisors
-  can also be created by explicitly defining a supevision module:
+  can also be created by explicitly defining a supervision module:
 
       defmodule MyApp.Supervisor do
         use Supervisor
