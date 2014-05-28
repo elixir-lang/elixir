@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   defdelegate files_to_path(manifest, force, all, path, on_start), to: ManifestCompiler
 
   defp set_compiler_opts(project, opts, extra) do
-    opts = Dict.take(opts, [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors])
+    opts = Dict.take(opts, Code.available_compiler_options)
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
     Code.compiler_options Keyword.merge(opts, extra)
   end
