@@ -1,18 +1,143 @@
 defmodule Mix.Config do
-  @moduledoc """
-  Module for reading and merging app configurations.
+  @moduledoc ~S"""
+  Module for defining, reading and merging app configurations.
+
+  Most commonly, this module is used to define your own configuration:
+
+      import Mix.Config
+
+      config :plug,
+        key1: "value1",
+        key2: "value2"
+
+      import_config "#{Mix.env}.exs"
+
+  All `config/*` macros, including `import_config/1`, are used
+  to help define such configuration files.
+
+  Furthermore, this module provides functions like `read!/1`,
+  `merge/2` and friends which help manipulate configurations
+  in general.
   """
+
+  defmodule LoadError do
+    defexception [:file, :error]
+
+    def message(%LoadError{file: file, error: error}) do
+      "could not load config #{Path.relative_to_cwd(file)}\n    " <>
+        "#{Exception.format_banner(:error, error)}"
+    end
+  end
 
   @doc """
-  Reads a configuration file.
+  Configures the given application.
 
-  It returns the read configuration and a list of
-  dependencies this configuration may have on.
+  ## Examples
+
+  The given `opts` are merged into the existing configuration
+  for the given `app`. Conflicting keys are overridden by the
+  ones specified in `opts`. For example, the declaration below:
+
+      config :lager,
+        log_level: :warn,
+        mode: :truncate
+
+      config :lager,
+        log_level: :info,
+        threshold: 1024
+
+  Will have a final configuration of:
+
+      [log_level: :info, mode: :truncate, threshold: 1024]
+
   """
-  def read(file) do
-    config = Code.eval_file(file) |> elem(0)
-    validate!(config)
-    config
+  defmacro config(app, opts) do
+    quote do
+      var!(config, Mix.Config) =
+        Mix.Config.merge(unquote(get_config(__CALLER__)), [{unquote(app), unquote(opts)}])
+    end
+  end
+
+  @doc """
+  Configures the given key for the given application.
+
+  ## Examples
+
+  The given `opts` are merged into the existing values for `key`
+  in the given `app`. Conflicting keys are overridden by the
+  ones specified in `opts`. For example, the declaration below:
+
+      config :ecto, Repo,
+        log_level: :warn
+
+      config :ecto, Repo,
+        log_level: :info,
+        pool_size: 10
+
+  Will have a final value for `Repo` of:
+
+      [log_level: :info, pool_size: 10]
+
+  """
+  defmacro config(app, key, opts) do
+    quote do
+      var!(config, Mix.Config) =
+        Mix.Config.merge(unquote(get_config(__CALLER__)),
+                         [{unquote(app), [{unquote(key), unquote(opts)}]}],
+                         fn _app, _key, v1, v2 -> Keyword.merge(v1, v2) end)
+    end
+  end
+
+  @doc ~S"""
+  Imports configuration from the given file.
+
+  The path is expected to be related to the directory the
+  current configuration file is on.
+
+  ## Examples
+
+  This is often used to emulate configuration across environments:
+
+      import_config "#{Mix.env}.exs"
+
+  Or to import files from children in umbrella projects:
+
+      import_config "../apps/child/config/config.exs"
+
+  """
+  defmacro import_config(file) do
+    quote do
+      var!(config, Mix.Config) =
+        Mix.Config.merge(unquote(get_config(__CALLER__)),
+                         Mix.Config.read!(Path.expand(unquote(file), __DIR__)))
+    end
+  end
+
+  defp get_config(%Macro.Env{vars: vars}) do
+    if {:config, Mix.Config} in vars do
+      quote do: var!(config, Mix.Config)
+    else
+      []
+    end
+  end
+
+  @doc """
+  Reads and validates a configuration file.
+  """
+  def read!(file) do
+    try do
+      {config, binding} = Code.eval_file(file)
+      config =
+        case List.keyfind(binding, {:config, Mix.Config}, 0) do
+          {_, value} -> value
+          nil -> config
+        end
+      validate!(config)
+      config
+    rescue
+      e in [LoadError] -> reraise(e, System.stacktrace)
+      e -> raise LoadError, file: file, error: e
+    end
   end
 
   @doc """
@@ -44,7 +169,7 @@ defmodule Mix.Config do
       end)
     else
       raise ArgumentError,
-        "expected config to return keyword list, got: #{inspect config}"
+        "expected config file to return keyword list, got: #{inspect config}"
     end
   end
 

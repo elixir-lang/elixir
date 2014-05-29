@@ -6,7 +6,8 @@
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
   * [Kernel] Add `get_in/2`, `put_in/3`, `update_in/3` and `get_and_update_in/3` to handle nested data structure operations
   * [Kernel] Add `get_in/1`, `put_in/2`, `update_in/2` and `get_and_update_in/2` to handle nested data structure operations via paths
-  * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation 
+  * [Mix] Add `Mix.Config` to ease definition of configuration files
+  * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation
   * [String] Add `String.chunk/2`
   * [Struct] Add support for `@derive` before `defstruct/2` definitions
 
@@ -86,7 +87,7 @@
   * [Mix] `mix deps.clean` now works accross environments
   * [Mix] Support line numbers in `mix test`, e.g. test/some/file_test.exs:12
   * [Mix] Use `@file` attributes to detect dependencies in between `.ex` and external files. This means changing an `.eex` file will no longer recompile the whole project only the files that depend directly on it
-  * [Mix] Support application configurations in `config/config.exs` which can be customized by specifying your own `:config_path`
+  * [Mix] Support application configurations in `config/config.exs`
   * [Mix] Support user-wide configuration with `~/.mix/config.exs`
   * [Mix] `mix help` now uses ANSI formatting to print guides
   * [Regex] Support functions in `Regex.replace/4`

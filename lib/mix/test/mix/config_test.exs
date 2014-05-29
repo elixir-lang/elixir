@@ -5,19 +5,65 @@ defmodule Mix.ConfigTest do
 
   doctest Mix.Config
 
-  test "read/1" do
-    assert Mix.Config.read(fixture_path("configs/good.exs")) ==
+  test "config/2" do
+    import Mix.Config
+
+    config :lager, key: :value
+    assert var!(config, Mix.Config) == [lager: [key: :value]]
+
+    config :lager, other: :value
+    assert var!(config, Mix.Config) == [lager: [other: :value, key: :value]]
+
+    config :lager, key: :other
+    assert var!(config, Mix.Config) == [lager: [key: :other, other: :value]]
+  end
+
+  test "config/3" do
+    import Mix.Config
+
+    config :app, Repo, key: :value
+    assert var!(config, Mix.Config) == [app: [{Repo, key: :value}]]
+
+    config :app, Repo, other: :value
+    assert var!(config, Mix.Config) == [app: [{Repo, other: :value, key: :value}]]
+
+    config :app, Repo, key: :other
+    assert var!(config, Mix.Config) == [app: [{Repo, [key: :other, other: :value]}]]
+  end
+
+  test "import_config/1" do
+    import Mix.Config
+    import_config fixture_path("configs/good_config.exs")
+    assert var!(config, Mix.Config) == [my_app: [key: :value]]
+  end
+
+  test "read!/1" do
+    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
            [my_app: [key: :value]]
 
-    msg = "expected config for app :sample to return keyword list, got: :oops"
-    assert_raise ArgumentError, msg, fn ->
-      Mix.Config.read fixture_path("configs/bad_app.exs")
+    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) ==
+           [my_app: [key: :value]]
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_app.exs")
     end
 
-    msg = "expected config to return keyword list, got: :oops"
-    assert_raise ArgumentError, msg, fn ->
-      Mix.Config.read fixture_path("configs/bad_root.exs")
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_app\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config for app :sample to return keyword list, got: :oops"
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_root.exs")
     end
+
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_root\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config file to return keyword list, got: :oops"
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_import.exs")
+    end
+
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_root\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config file to return keyword list, got: :oops"
   end
 
   test "persist/1" do

@@ -245,7 +245,7 @@ defmodule Code do
   """
   def eval_file(file, relative_to \\ nil) do
     file = find_file(file, relative_to)
-    eval_string File.read!(file), [], []
+    eval_string File.read!(file), [], [file: file, line: 1]
   end
 
   @doc """
