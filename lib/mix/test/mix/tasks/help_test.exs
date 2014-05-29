@@ -24,6 +24,15 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+  test "help --names" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Help.run ["--names"]
+      assert_received {:mix_shell, :info, ["compile"]}
+      assert_received {:mix_shell, :info, ["help"]}
+      assert_received {:mix_shell, :info, ["escriptize"]}
+    end
+  end
+
   test "help TASK" do
     in_fixture "no_mixfile", fn ->
       output =
