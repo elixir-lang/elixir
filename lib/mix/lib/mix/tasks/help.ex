@@ -58,6 +58,14 @@ defmodule Mix.Tasks.Help do
     display_iex_task_doc(max)
   end
 
+  def run(["--names"]) do
+    Mix.Task.load_all
+    tasks = for module <- Enum.sort(Mix.Task.all_modules), do: Mix.Task.task_name(module)
+    Enum.each tasks, fn task ->
+      Mix.shell.info "#{task}"
+    end
+  end
+
   def run([task]) do
     module = Mix.Task.get!(task)
     doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
