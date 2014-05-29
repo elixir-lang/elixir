@@ -60,8 +60,8 @@ defmodule Mix.Tasks.Help do
 
   def run(["--names"]) do
     Mix.Task.load_all
-    tasks = for module <- Enum.sort(Mix.Task.all_modules), do: Mix.Task.task_name(module)
-    Enum.each tasks, fn task ->
+    for module <- Enum.sort(Mix.Task.all_modules),
+                task = Mix.Task.task_name(module) do
       Mix.shell.info "#{task}"
     end
   end
