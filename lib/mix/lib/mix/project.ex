@@ -56,7 +56,7 @@ defmodule Mix.Project do
       :ok ->
         :ok
       {:error, other} when is_binary(other) ->
-        raise Mix.Error, message: "Trying to load #{inspect atom} from #{inspect file}" <>
+        Mix.raise "Trying to load #{inspect atom} from #{inspect file}" <>
           " but another project with the same name was already defined at #{inspect other}"
     end
   end
@@ -102,7 +102,7 @@ defmodule Mix.Project do
   is available.
   """
   def get! do
-    get || raise Mix.NoProjectError
+    get || Mix.raise Mix.NoProjectError, []
   end
 
   @doc """
@@ -265,7 +265,7 @@ defmodule Mix.Project do
       config[:apps_path] ->
         raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->
-        raise Mix.Error, message: "Cannot access build without an application name, " <>
+        Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
           "an :app name under the project configuration"
     end

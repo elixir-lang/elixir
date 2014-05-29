@@ -81,11 +81,11 @@ defmodule Mix.Dep.Loader do
             {:ok, req} ->
               Version.match?(version, req)
             :error ->
-              raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
+              Mix.raise "Invalid requirement #{req} for app #{app}"
           end
 
         :error ->
-          raise Mix.Error, message: "The application #{app} specified a non Semantic Version #{actual}. " <>
+          Mix.raise "The application #{app} specified a non Semantic Version #{actual}. " <>
             "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
             "version, please use a regex as requirement"
       end
@@ -128,8 +128,7 @@ defmodule Mix.Dep.Loader do
     end
 
     unless scm do
-      raise Mix.Error,
-        message: "could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+      Mix.raise "Could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
     end
 
     %Mix.Dep{
@@ -176,7 +175,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp invalid_dep_format(dep) do
-    raise Mix.Error, message: """
+    Mix.raise """
     Dependency specified in the wrong format:
 
         #{inspect dep}
@@ -233,7 +232,7 @@ defmodule Mix.Dep.Loader do
 
   defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
     if scm == Mix.SCM.Path and not manager in [:mix, nil] do
-      raise Mix.Error, message: ":path option can only be used with mix projects, " <>
+      Mix.raise ":path option can only be used with mix projects, " <>
                                 "invalid path dependency for #{inspect dep.app}"
     else
       dep

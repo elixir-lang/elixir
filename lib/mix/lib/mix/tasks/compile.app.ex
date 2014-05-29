@@ -182,6 +182,6 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp invalid(message) do
-    raise Mix.Error, message: message
+    Mix.raise message
   end
 end

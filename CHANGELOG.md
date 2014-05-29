@@ -22,6 +22,7 @@
   * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
   * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
   * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
+  * [Mix] Exceptions that define a `:mix_error` field to be compatible with Mix are no longer supported. Instead please provide a `:mix` field and use `Mix.raise/1` and `Mix.raise/2`
 
 * Backwards incompatible changes
   * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now requires `get/2` (instead of `access/2`) and `get_and_update/3` to be implemented

@@ -6,6 +6,6 @@ defmodule Mix.Tasks.Iex do
   """
 
   def run(_) do
-    raise Mix.Error, message: "To use IEx with Mix, please run: iex -S mix"
+    Mix.raise "To use IEx with Mix, please run: iex -S mix"
   end
 end

@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Local.Install do
 
       case Path.extname(path) do
         ".ez" -> install_archive(src, opts)
-        _     -> raise Mix.Error, message: "mix local.install doesn't know how to install #{path}"
+        _     -> Mix.raise "mix local.install doesn't know how to install #{path}"
       end
     else
       src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Local.Install do
       if File.exists?(src) do
         install_archive(src, opts)
       else
-        raise Mix.Error, message: "Expected PATH to be given, please use `mix local.install PATH`"
+        Mix.raise "Expected PATH to be given, please use `mix local.install PATH`"
       end
     end
   end

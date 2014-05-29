@@ -154,10 +154,10 @@ defmodule Mix.Task do
       if is_task?(module) do
         module
       else
-        raise Mix.InvalidTaskError, task: task
+        Mix.raise Mix.InvalidTaskError, task: task
       end
     else
-      raise Mix.NoTaskError, task: task
+      Mix.raise Mix.NoTaskError, task: task
     end
   end
 

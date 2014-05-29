@@ -35,11 +35,11 @@ defmodule Mix.Tasks.RunTest do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
     in_fixture "no_mixfile", fn ->
-      assert_raise Mix.Error, "require: No files matched pattern non-existent", fn ->
+      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         Mix.Tasks.Run.run ["-r", "non-existent"]
       end
 
-      assert_raise Mix.Error, "parallel-require: No files matched pattern non-existent", fn ->
+      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --parallel-require", fn ->
         Mix.Tasks.Run.run ["-pr", "non-existent"]
       end
 

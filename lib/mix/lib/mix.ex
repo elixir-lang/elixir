@@ -64,4 +64,35 @@ defmodule Mix do
   def shell(shell) do
     Application.put_env(:mix, :shell, shell)
   end
+
+  @doc """
+  Raises a mix error that is nicely formatted.
+  """
+  def raise(message) when is_binary(message) do
+    Kernel.raise Mix.Error, mix: mix_info, message: message
+  end
+
+  @doc """
+  Raises a mix compatible exception.
+
+  A mix compatible exception has a `mix_error` field which mix
+  uses to store the project or application name which is
+  automatically by the formatting tools.
+  """
+  def raise(exception, opts) when is_atom(exception) do
+    Kernel.raise %{exception.exception(opts) | mix: mix_info}
+  end
+
+  defp mix_info do
+    case Mix.ProjectStack.peek do
+      {name, config, _file} ->
+        if app = config[:app] do
+          {:app, app}
+        else
+          {:project, name}
+        end
+      _ ->
+        :none
+    end
+  end
 end

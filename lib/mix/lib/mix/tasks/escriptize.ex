@@ -74,11 +74,11 @@ defmodule Mix.Tasks.Escriptize do
 
     cond do
       !script_name ->
-        raise Mix.Error, message: "Could not generate escript, no name given, " <>
+        Mix.raise "Could not generate escript, no name given, " <>
           "set :escript_name or :app in the project settings"
 
       !main or !Code.ensure_loaded?(main)->
-        raise Mix.Error, message: "Could not generate escript, please set :escript_main_module " <>
+        Mix.raise "Could not generate escript, please set :escript_main_module " <>
           "in your project configuration to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Escriptize do
 
   defp app_tuples(app) do
     case :code.where_is_file('#{app}.app') do
-      :non_existing -> raise Mix.Error, message: "Could not find application #{app}"
+      :non_existing -> Mix.raise "Could not find application #{app}"
       file -> get_tuples(Path.dirname(Path.dirname(file)))
     end
   end

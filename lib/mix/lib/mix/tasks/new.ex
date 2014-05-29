@@ -41,7 +41,7 @@ defmodule Mix.Tasks.New do
 
     case argv do
       [] ->
-        raise Mix.Error, message: "Expected PATH to be given, please use `mix new PATH`"
+        Mix.raise "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
         name = Path.basename(Path.expand(path))
         check_project_name!(name)
@@ -133,7 +133,7 @@ defmodule Mix.Tasks.New do
 
   defp check_project_name!(name) do
     unless name =~ ~r/^[a-z][\w_]*$/ do
-      raise Mix.Error, message: "Project path must start with a letter and have only lowercase letters, numbers and underscore"
+      Mix.raise "Project path must start with a letter and have only lowercase letters, numbers and underscore"
     end
   end
 

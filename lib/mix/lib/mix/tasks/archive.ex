@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Archive do
       project ->
         Mix.Project.app_path
       true ->
-        raise Mix.Error, message: "Cannot create archive without input directory, " <>
+        Mix.raise "Cannot create archive without input directory, " <>
           "please pass -i as an option"
     end
 
@@ -53,12 +53,12 @@ defmodule Mix.Tasks.Archive do
       app = Mix.Project.config[:app] ->
         Mix.Archive.name(app, Mix.Project.config[:version])
       true ->
-        raise Mix.Error, message: "Cannot create archive without a name, " <>
+        Mix.raise "Cannot create archive without a name, " <>
           "please pass -o as an option"
     end
 
     unless File.dir?(source) do
-      raise Mix.Error, message: "Expected archive source #{inspect source} to be a directory"
+      Mix.raise "Expected archive source #{inspect source} to be a directory"
     end
 
     Mix.Archive.create(source, target)

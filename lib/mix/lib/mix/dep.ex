@@ -81,7 +81,7 @@ defmodule Mix.Dep do
 
     Enum.each apps, fn(app) ->
       unless Enum.any?(all_deps, &(&1.app == app)) do
-        raise Mix.Error, message: "Unknown dependency #{app} for environment #{Mix.env}"
+        Mix.raise "Unknown dependency #{app} for environment #{Mix.env}"
       end
     end
 

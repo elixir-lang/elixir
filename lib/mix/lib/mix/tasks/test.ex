@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Test do
     {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
-      raise Mix.Error, message: "mix test is running on environment #{Mix.env}. If you are " <>
+      Mix.raise "mix test is running on environment #{Mix.env}. If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
@@ -235,7 +235,7 @@ defmodule Mix.Tasks.Test do
     if File.exists?(file) do
       Code.require_file file
     else
-      raise Mix.Error, message: "Cannot run tests because test helper file #{inspect file} does not exist"
+      Mix.raise "Cannot run tests because test helper file #{inspect file} does not exist"
     end
   end
 end

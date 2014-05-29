@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(_) do
-    raise Mix.Error, message: "Unexpected arguments, expected `mix help` or `mix help TASK`"
+    Mix.raise "Unexpected arguments, expected `mix help` or `mix help TASK`"
   end
 
   defp ansi_docs?(opts) do

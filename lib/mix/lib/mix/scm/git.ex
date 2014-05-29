@@ -153,7 +153,7 @@ defmodule Mix.SCM.Git do
 
   defp run_cmd_or_raise(command) do
     if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "Command `#{command}` failed"
+      Mix.raise "Command `#{command}` failed"
     end
     true
   end

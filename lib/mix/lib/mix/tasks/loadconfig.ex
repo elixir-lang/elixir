@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Loadconfig do
       if Keyword.has_key?(base, app) and Keyword.has_key?(base[app], k) do
         v1
       else
-        raise Mix.Error, message: "umbrella child #{inspect dep.app} has set the configuration for " <>
+        Mix.raise "umbrella child #{inspect dep.app} has set the configuration for " <>
           "key #{inspect k} in app #{inspect app} to #{inspect v2} but another umbrella child has " <>
           "already set it to #{inspect v1}. You need to remove the configuration or resolve " <>
           "the conflict by defining a config file and setting a value in your umbrella project"

@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Local.Uninstall do
   def run(argv) do
     {_, argv, _} = OptionParser.parse(argv)
     if argv == [] do
-      raise Mix.Error, message: "No archive was given to uninstall"
+      Mix.raise "No archive was given to uninstall"
     else
       Enum.each argv, &do_uninstall(&1)
     end
@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Local.Uninstall do
     archives = Mix.Local.archive_files(name)
 
     if archives == [] do
-      raise Mix.Error, message: "Could not find a local archive named #{inspect name} "<>
+      Mix.raise "Could not find a local archive named #{inspect name} "<>
         "at #{inspect Mix.Local.archives_path}"
     end
 

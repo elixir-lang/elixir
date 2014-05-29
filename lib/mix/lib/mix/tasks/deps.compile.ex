@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp check_unavailable!(app, {:unavailable, _}) do
-    raise Mix.Error, message: "Cannot compile dependency #{app} because " <>
+    Mix.raise "Cannot compile dependency #{app} because " <>
       "it isn't available, run `mix deps.get` first"
   end
 
@@ -122,12 +122,12 @@ defmodule Mix.Tasks.Deps.Compile do
     shell.info "I can install a local copy which is just used by mix"
 
     unless shell.yes?("Shall I install rebar?") do
-      raise Mix.Error, message: "Could not find rebar to compile " <>
+      Mix.raise "Could not find rebar to compile " <>
         "dependency #{app}, please ensure rebar is available"
     end
 
     Mix.Tasks.Local.Rebar.run []
-    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar installation failed"
+    Mix.Rebar.local_rebar_cmd || Mix.raise "rebar installation failed"
   end
 
   defp do_make(dep) do
@@ -146,7 +146,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(%Mix.Dep{app: app, opts: opts}, command, extra \\ "") do
     File.cd! opts[:dest], fn ->
       if Mix.shell.cmd("#{command} #{extra}") != 0 do
-        raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
+        Mix.raise "Could not compile dependency #{app}, #{command} command failed. " <>
           "If you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
     end

@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Clean do
       args != [] ->
         do_clean args, opts
       true ->
-        raise Mix.Error, message: "mix deps.clean expects dependencies as arguments or " <>
+        Mix.raise "mix deps.clean expects dependencies as arguments or " <>
                                   "the --all option to clean all dependencies"
     end
   end

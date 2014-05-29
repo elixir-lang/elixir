@@ -94,6 +94,6 @@ defmodule Mix.Tasks.Deps.Check do
       shell.error "  #{format_status dep}"
     end
 
-    raise Mix.Error, message: "Can't continue due to errors on dependencies"
+    Mix.raise "Can't continue due to errors on dependencies"
   end
 end
