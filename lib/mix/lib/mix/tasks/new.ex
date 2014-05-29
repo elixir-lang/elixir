@@ -292,7 +292,7 @@ defmodule Mix.Tasks.New do
   embed_template :config_umbrella, ~S"""
 
   # Finally, note that configuration defined in children projects
-  # in apps are not automatically available to the umbrella parent.
+  # inside apps/ are not automatically available to the umbrella parent.
   # They can, however, be easily imported as well:
   #
   #     import_config "../apps/foo/config/config.exs"

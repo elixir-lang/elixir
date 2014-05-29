@@ -161,7 +161,7 @@ defmodule ExUnit.CLIFormatter do
       config.trace -> IO.puts ""
       true -> IO.puts "\n"
     end
-    IO.write formatted
+    IO.puts formatted
   end
 
   # Color styles
