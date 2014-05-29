@@ -2195,7 +2195,7 @@ defimpl Enumerable, for: Map do
 end
 
 defimpl Enumerable, for: Function do
-  def reduce(function, acc, fun),
+  def reduce(function, acc, fun) when is_function(function, 2),
     do: function.(acc, fun)
   def member?(_function, _value),
     do: {:error, __MODULE__}
