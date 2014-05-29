@@ -11,25 +11,25 @@ defmodule IEx.Evaluator do
 
   """
   def start(server, leader) do
-    IEx.History.init
+    {:ok, history_pid} = IEx.History.init
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server)
+      loop(server, history_pid)
     after
-      IEx.History.reset
+      IEx.History.reset(history_pid)
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server) do
+  defp loop(server, history_pid) do
     receive do
       {:eval, ^server, code, config} ->
-        send server, {:evaled, self, eval(code, config)}
-        loop(server)
+        send server, {:evaled, self, eval(code, config, history_pid)}
+        loop(server, history_pid)
       {:done, ^server} ->
-        IEx.History.reset
+        IEx.History.reset(history_pid)
         :ok
     end
   end
@@ -86,9 +86,9 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, config) do
+  defp eval(code, config, history_pid) do
     try do
-      do_eval(String.to_char_list(code), config)
+      do_eval(String.to_char_list(code), config, history_pid)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -96,24 +96,30 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp do_eval(@break_trigger, config=%IEx.Config{cache: ''}) do
+  defp do_eval(@break_trigger, config=%IEx.Config{cache: ''}, _) do
     config
   end
 
-  defp do_eval(@break_trigger, config) do
+  defp do_eval(@break_trigger, config, _) do
     :elixir_errors.parse_error(config.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, config) do
+  @history_key :"Very obscure key so that no one ever ever tries to use itt"
+
+  defp do_eval(latest_input, config, history_pid) do
     code = config.cache ++ latest_input
     line = config.counter
 
-    case Code.string_to_quoted(code, [line: line, file: "iex"]) do
+    # Put the history_pid into process dictionary so that IEx.Helpers can
+    # access it
+    Process.put(@history_key, history_pid)
+
+    ret = case Code.string_to_quoted(code, [line: line, file: "iex"]) do
       {:ok, forms} ->
         {result, new_binding, env, scope} =
           :elixir.eval_forms(forms, config.binding, config.env, config.scope)
         unless result == IEx.dont_display_result, do: io_put result
-        update_history(line, code, result)
+        update_history(line, code, result, history_pid)
         %{config | env: env,
                    cache: '',
                    scope: scope,
@@ -129,10 +135,13 @@ defmodule IEx.Evaluator do
           :elixir_errors.parse_error(line, "iex", error, token)
         end
     end
+
+    Process.delete(@history_key)
+    ret
   end
 
-  defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter,
+  defp update_history(counter, cache, result, history_pid) do
+    IEx.History.append(history_pid, {counter, cache, result}, counter,
                        Application.get_env(:iex, :history_size))
   end
 

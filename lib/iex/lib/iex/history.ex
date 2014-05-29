@@ -1,7 +1,6 @@
  defmodule IEx.History do
   @moduledoc false
 
-  @history_server IEx.History.Server
   alias IEx.History.Array
 
   @doc """
@@ -9,26 +8,26 @@
   information is kept in the process dictionary.
   """
   def init do
-    Agent.start_link(fn -> Array.new end, name: @history_server)
+    Agent.start_link(fn -> Array.new end)
   end
 
   @doc """
   Appends one entry to the history with the given counter.
   """
-  def append(entry, _counter, limit) do
-    should_collect = Agent.get_and_update(@history_server, fn entries ->
+  def append(pid, entry, _counter, limit) do
+    should_collect = Agent.get_and_update(pid, fn entries ->
       entries |> Array.append(entry) |> Array.limit(limit)
     end)
     if should_collect do
-      Agent.cast(@history_server, &collect_garbage/1)
+      Agent.cast(pid, &collect_garbage/1)
     end
   end
 
   @doc """
   Removes all entries from the history and forces a garbage collection cycle.
   """
-  def reset() do
-    @history_server
+  def reset(pid) do
+    pid
     |> Agent.update(fn _ -> Array.new end)
     |> Agent.cast(&collect_garbage/1)
     true
@@ -38,8 +37,8 @@
   Enumerates over all items in the history starting from the oldest one and
   applies `fun` to each one in turn.
   """
-  def each(fun) do
-    Agent.get(@history_server, &Array.to_list/1)
+  def each(pid, fun) do
+    Agent.get(pid, &Array.to_list/1)
     |> Enum.each(fun)
   end
 
@@ -48,8 +47,8 @@
 
   If `n` < 0, the count starts from the most recent item and goes back in time.
   """
-  def nth(n) do
-    entry = Agent.get(@history_server, &Array.nth(&1, n))
+  def nth(pid, n) do
+    entry = Agent.get(pid, &Array.nth(&1, n))
     if nil?(entry) do
       raise "v(#{n}) is out of bounds"
     end
