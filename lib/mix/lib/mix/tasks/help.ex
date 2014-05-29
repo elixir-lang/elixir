@@ -40,22 +40,27 @@ defmodule Mix.Tasks.Help do
     shell   = Mix.shell
     modules = Mix.Task.all_modules
 
-    docs = for module <- modules,
-        doc = Mix.Task.shortdoc(module) do
-      {"mix " <> Mix.Task.task_name(module), doc}
+    if completion_env? do
+      tasks = for module <- modules, do: Mix.Task.task_name(module)
+      shell.info Enum.join(Enum.sort(tasks), "\n")
+    else
+      docs = for module <- modules,
+          doc = Mix.Task.shortdoc(module) do
+        {"mix " <> Mix.Task.task_name(module), doc}
+      end
+
+      max = Enum.reduce docs, 0, fn({task, _}, acc) ->
+        max(size(task), acc)
+      end
+
+      display_default_task_doc(max)
+
+      Enum.each Enum.sort(docs), fn({task, doc}) ->
+        shell.info format_task(task, max, doc)
+      end
+
+      display_iex_task_doc(max)
     end
-
-    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
-      max(size(task), acc)
-    end
-
-    display_default_task_doc(max)
-
-    Enum.each Enum.sort(docs), fn({task, doc}) ->
-      shell.info format_task(task, max, doc)
-    end
-
-    display_iex_task_doc(max)
   end
 
   def run([task]) do
@@ -108,6 +113,12 @@ defmodule Mix.Tasks.Help do
         |> Path.expand
         |> Path.relative_to_cwd
     end
+  end
+
+  defp completion_env? do
+    keys = ["COMP_CWORD", "COMP_LINE", "COMP_POINT"]
+    vals = Enum.map(keys, &(System.get_env(&1)))
+    Enum.all?(vals, &(!nil?(&1)))
   end
 
   defp display_default_task_doc(max) do
