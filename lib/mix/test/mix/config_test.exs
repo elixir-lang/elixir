@@ -6,7 +6,8 @@ defmodule Mix.ConfigTest do
   doctest Mix.Config
 
   test "config/2" do
-    import Mix.Config
+    use Mix.Config
+    assert var!(config, Mix.Config) == []
 
     config :lager, key: :value
     assert var!(config, Mix.Config) == [lager: [key: :value]]
@@ -19,7 +20,7 @@ defmodule Mix.ConfigTest do
   end
 
   test "config/3" do
-    import Mix.Config
+    use Mix.Config
 
     config :app, Repo, key: :value
     assert var!(config, Mix.Config) == [app: [{Repo, key: :value}]]
@@ -32,7 +33,7 @@ defmodule Mix.ConfigTest do
   end
 
   test "import_config/1" do
-    import Mix.Config
+    use Mix.Config
     import_config fixture_path("configs/good_config.exs")
     assert var!(config, Mix.Config) == [my_app: [key: :value]]
   end

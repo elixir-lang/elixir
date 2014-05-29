@@ -115,6 +115,10 @@ defmodule Mix.Tasks.New do
 
     create_directory "apps"
 
+    create_directory "config"
+    create_file "config/config.exs",
+      config_template(assigns) <> config_umbrella_template(assigns)
+
     Mix.shell.info """
 
     Your umbrella project was created successfully.
@@ -261,30 +265,38 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :config, ~S"""
-  # This file is responsible for configuring your application and
-  # its dependencies. It must return a keyword list containing the
-  # application name and have as value another keyword list with
-  # the application key-value pairs.
+  # This file is responsible for configuring your application
+  # and its dependencies. The Mix.Config module provides functions
+  # to aid in doing so.
+  use Mix.Config
 
-  # Note this configuration is loaded before any dependency and is
-  # restricted to this project. If another project depends on this
-  # project, this file won't be loaded nor affect the parent project.
-
-  # You can customize the configuration path by setting :config_path
-  # in your mix.exs file. For example, you can emulate configuration
-  # per environment by setting:
-  #
-  #     config_path: "config/#{Mix.env}.exs"
-  #
-  # Changing any file inside the config directory causes the whole
-  # project to be recompiled.
+  # Note this file is loaded before any dependency and is restricted
+  # to this project. If another project depends on this project, this
+  # file won't be loaded nor affect the parent project.
 
   # Sample configuration:
   #
-  # [dep1: [key: :value],
-  #  dep2: [key: :value]]
+  #     config :my_dep,
+  #       key: :value,
+  #       limit: 42
 
-  []
+  # It is also possible to import configuration files, relative to this
+  # directory. For example, you can emulate configuration per environment
+  # by uncommenting the line below and defining dev.exs, test.exs and such.
+  # Configuration from the imported file will override the ones defined
+  # here (which is why it is important to import them last).
+  #
+  #     import_config "#{Mix.env}.exs"
+  """
+
+  embed_template :config_umbrella, ~S"""
+
+  # Finally, note that configuration defined in children projects
+  # in apps are not automatically available to the umbrella parent.
+  # They can, however, be easily imported as well:
+  #
+  #     import_config "../apps/foo/config/config.exs"
+  #     import_config "../apps/bar/config/config.exs"
   """
 
   embed_template :lib, """

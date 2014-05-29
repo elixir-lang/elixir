@@ -4,7 +4,7 @@ defmodule Mix.Config do
 
   Most commonly, this module is used to define your own configuration:
 
-      import Mix.Config
+      use Mix.Config
 
       config :plug,
         key1: "value1",
@@ -26,6 +26,14 @@ defmodule Mix.Config do
     def message(%LoadError{file: file, error: error}) do
       "could not load config #{Path.relative_to_cwd(file)}\n    " <>
         "#{Exception.format_banner(:error, error)}"
+    end
+  end
+
+  @doc false
+  defmacro __using__(_) do
+    quote do
+      import Mix.Config
+      var!(config, Mix.Config) = []
     end
   end
 
@@ -54,7 +62,7 @@ defmodule Mix.Config do
   defmacro config(app, opts) do
     quote do
       var!(config, Mix.Config) =
-        Mix.Config.merge(unquote(get_config(__CALLER__)), [{unquote(app), unquote(opts)}])
+        Mix.Config.merge(var!(config, Mix.Config), [{unquote(app), unquote(opts)}])
     end
   end
 
@@ -82,7 +90,7 @@ defmodule Mix.Config do
   defmacro config(app, key, opts) do
     quote do
       var!(config, Mix.Config) =
-        Mix.Config.merge(unquote(get_config(__CALLER__)),
+        Mix.Config.merge(var!(config, Mix.Config),
                          [{unquote(app), [{unquote(key), unquote(opts)}]}],
                          fn _app, _key, v1, v2 -> Keyword.merge(v1, v2) end)
     end
@@ -108,16 +116,8 @@ defmodule Mix.Config do
   defmacro import_config(file) do
     quote do
       var!(config, Mix.Config) =
-        Mix.Config.merge(unquote(get_config(__CALLER__)),
+        Mix.Config.merge(var!(config, Mix.Config),
                          Mix.Config.read!(Path.expand(unquote(file), __DIR__)))
-    end
-  end
-
-  defp get_config(%Macro.Env{vars: vars}) do
-    if {:config, Mix.Config} in vars do
-      quote do: var!(config, Mix.Config)
-    else
-      []
     end
   end
 
