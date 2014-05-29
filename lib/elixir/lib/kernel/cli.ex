@@ -139,7 +139,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_shared(["--app", h|t], config) do
-    parse_shared t, %{config | commands: &[{:app, h}|&1]}
+    parse_shared t, %{config | commands: [{:app, h} | config.commands]}
   end
 
   defp parse_shared(["--no-halt"|t], config) do
