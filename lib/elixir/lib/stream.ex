@@ -420,6 +420,7 @@ defmodule Stream do
       stream = File.stream!("code")
       |> Stream.map(&String.replace(&1, "#", "%"))
       |> Stream.into(File.stream!("new"))
+      |> Stream.run
 
   No computation will be done until we call one of the Enum functions
   or `Stream.run/1`.
