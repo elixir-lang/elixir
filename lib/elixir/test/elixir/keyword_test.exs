@@ -62,17 +62,39 @@ defmodule KeywordTest do
   test "keys/1" do
     assert Keyword.keys(create_keywords) == [:first_key, :second_key]
     assert Keyword.keys(create_empty_keywords) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.keys([:foo])
+    end
   end
 
   test "values/1" do
     assert Keyword.values(create_keywords) == [1, 2]
     assert Keyword.values(create_empty_keywords) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.values([:foo])
+    end
   end
 
   test "delete/2" do
     assert Keyword.delete(create_keywords, :second_key) == [first_key: 1]
     assert Keyword.delete(create_keywords, :other_key) == [first_key: 1, second_key: 2]
     assert Keyword.delete(create_empty_keywords, :other_key) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.delete([:foo], :foo)
+    end
+  end
+
+  test "delete/3" do
+    keywords = [a: 1, b: 2, c: 3, a: 2]
+    assert Keyword.delete(keywords, :a, 2) == [a: 1, b: 2, c: 3]
+    assert Keyword.delete(keywords, :a, 1) == [b: 2, c: 3, a: 2]
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.delete([:foo], :foo, 0)
+    end
   end
 
   test "put/3" do
@@ -90,6 +112,10 @@ defmodule KeywordTest do
     assert Keyword.merge(create_keywords, create_empty_keywords) == [first_key: 1, second_key: 2]
     assert Keyword.merge(create_keywords, create_keywords) == [first_key: 1, second_key: 2]
     assert Keyword.merge(create_empty_keywords, create_empty_keywords) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.delete([:foo], [:foo])
+    end
   end
 
   test "merge/3" do
@@ -136,6 +162,10 @@ defmodule Keyword.DuplicatedTest do
     assert Keyword.get_values(create_keywords, :first_key) == [1, 2]
     assert Keyword.get_values(create_keywords, :second_key) == [2]
     assert Keyword.get_values(create_keywords, :other_key) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.get_values([:foo], :foo)
+    end
   end
 
   test "keys/1" do
@@ -189,6 +219,28 @@ defmodule Keyword.DuplicatedTest do
   test "has_key?/2" do
     assert Keyword.has_key?([a: 1], :a) == true
     assert Keyword.has_key?([a: 1], :b) == false
+  end
+
+  test "take/2" do
+    assert Keyword.take([], []) == []
+    assert Keyword.take([a: 0, b: 1, a: 2], []) == []
+    assert Keyword.take([a: 0, b: 1, a: 2], [:a]) == [a: 0, a: 2]
+    assert Keyword.take([a: 0, b: 1, a: 2], [:b]) == [b: 1]
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.take([:foo], [:foo])
+    end
+  end
+
+  test "drop/2" do
+    assert Keyword.drop([], []) == []
+    assert Keyword.drop([a: 0, b: 1, a: 2], []) == [a: 0, b: 1, a: 2]
+    assert Keyword.drop([a: 0, b: 1, a: 2], [:a]) == [b: 1]
+    assert Keyword.drop([a: 0, b: 1, a: 2], [:b]) == [a: 0, a: 2]
+
+    assert_raise FunctionClauseError, fn ->
+      Keyword.drop([:foo], [:foo])
+    end
   end
 
   defp create_empty_keywords, do: []

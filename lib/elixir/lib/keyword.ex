@@ -24,6 +24,7 @@ defmodule Keyword do
   in `Enum` and `List` can also be applied.
   """
 
+  @compile :inline_list_funcs
   @behaviour Dict
 
   @type key :: atom
@@ -174,7 +175,12 @@ defmodule Keyword do
   """
   @spec get_values(t, key) :: [value]
   def get_values(keywords, key) when is_list(keywords) and is_atom(key) do
-    for {k, v} <- keywords, key == k, do: v
+    fun = fn
+      {k, v} when k === key -> {true, v}
+      {_, _} -> false
+    end
+
+    :lists.filtermap(fun, keywords)
   end
 
   @doc """
@@ -192,7 +198,7 @@ defmodule Keyword do
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    for {key, _} <- keywords, do: key
+    :lists.map(fn {k, _} -> k end, keywords)
   end
 
   @doc """
@@ -206,11 +212,11 @@ defmodule Keyword do
   """
   @spec values(t) :: [value]
   def values(keywords) when is_list(keywords) do
-    for {_, value} <- keywords, do: value
+    :lists.map(fn {_, v} -> v end, keywords)
   end
 
   @doc """
-  Deletes the entry in the keyword list for a `key` with `value`.
+  Deletes the entries in the keyword list for a `key` with `value`.
   If no `key` with `value` exists, returns the keyword list unchanged.
 
   ## Examples
@@ -227,11 +233,11 @@ defmodule Keyword do
   """
   @spec delete(t, key, value) :: t
   def delete(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    for {k, v} = tuple <- keywords, key != k or value != v, do: tuple
+    :lists.filter(fn {k, v} -> k != key or v != value end, keywords)
   end
 
   @doc """
-  Deletes all entries in the keyword list for a specific `key`.
+  Deletes the entries in the keyword list for a specific `key`.
   If the `key` does not exist, returns the keyword list unchanged.
   Use `delete_first` to delete just the first entry in case of
   duplicated keys.
@@ -250,7 +256,7 @@ defmodule Keyword do
   """
   @spec delete(t, key) :: t
   def delete(keywords, key) when is_list(keywords) and is_atom(key) do
-    for {k, _} = tuple <- keywords, key != k, do: tuple
+    :lists.filter(fn {k, _} -> k != key end, keywords)
   end
 
   @doc """
@@ -339,7 +345,8 @@ defmodule Keyword do
   """
   @spec merge(t, t) :: t
   def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    d2 ++ for({k, _} = tuple <- d1, not has_key?(d2, k), do: tuple)
+    fun = fn {k, _v} -> not has_key?(d2, k) end
+    d2 ++ :lists.filter(fun, d1)
   end
 
   @doc """
@@ -467,16 +474,16 @@ defmodule Keyword do
 
   """
   def split(keywords, keys) when is_list(keywords) do
-    acc = {[], []}
-
-    {take, drop} = Enum.reduce keywords, acc, fn({k, v}, {take, drop}) ->
+    fun = fn {k, v}, {take, drop} ->
       case k in keys do
         true  -> {[{k, v}|take], drop}
         false -> {take, [{k, v}|drop]}
       end
     end
 
-    {Enum.reverse(take), Enum.reverse(drop)}
+    acc = {[], []}
+    {take, drop} = :lists.foldl(fun, acc, keywords)
+    {:lists.reverse(take), :lists.reverse(drop)}
   end
 
   @doc """
@@ -497,7 +504,7 @@ defmodule Keyword do
 
   """
   def take(keywords, keys) when is_list(keywords) do
-    for {k, _} = tuple <- keywords, k in keys, do: tuple
+    :lists.filter(fn {k, _} -> k in keys end, keywords)
   end
 
   @doc """
@@ -517,7 +524,7 @@ defmodule Keyword do
 
   """
   def drop(keywords, keys) when is_list(keywords) do
-    for {k, _} = tuple <- keywords, not k in keys, do: tuple
+    :lists.filter(fn {k, _} -> not k in keys end, keywords)
   end
 
   @doc """
