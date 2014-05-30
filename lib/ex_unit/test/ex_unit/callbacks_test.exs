@@ -132,6 +132,89 @@ defmodule ExUnit.CallbacksTest do
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
+
+  test "doesn't choke on on_exit errors" do
+    defmodule OnExitErrorTest do
+      use ExUnit.Case, async: false
+
+      test "ok" do
+        on_exit fn ->
+          :ok = error
+        end
+
+        :ok
+      end
+
+      defp error, do: :error
+    end
+
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (MatchError) no match of right hand side value: :error"
+  end
+
+  test "doesn't choke when on_exit exits" do
+    defmodule OnExitExitTest do
+      use ExUnit.Case, async: false
+
+      test "ok" do
+        on_exit fn ->
+          Process.exit(self(), :kill)
+        end
+
+        :ok
+      end
+    end
+
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+    assert capture_io(fn -> ExUnit.run end) =~
+           ">) killed"
+  end
+
+  test "runs multiple on_exit exits and overrides by ref" do
+    defmodule OnExitOverrideTest do
+      use ExUnit.Case, async: false
+
+      setup do
+        on_exit fn ->
+          IO.puts "on_exit setup run"
+        end
+
+        on_exit {:overridden, 1}, fn ->
+          IO.puts "on_exit 1 overridden -> not run"
+        end
+      end
+
+      test "ok" do
+        on_exit fn ->
+          IO.puts "simple on_exit run"
+        end
+
+        on_exit {:overridden, 2}, fn ->
+          IO.puts "on_exit 2 overridden -> not run"
+        end
+
+        on_exit {:overridden, 2}, fn ->
+          IO.puts "on_exit 2 overrides -> run"
+        end
+
+        on_exit {:overridden, 1}, fn ->
+          IO.puts "on_exit 1 overrides -> run"
+        end
+
+        :ok
+      end
+    end
+
+    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+    captured_id = capture_io(fn -> ExUnit.run end)
+    assert captured_id =~ "on_exit setup run"
+    assert captured_id =~ "simple on_exit run"
+    refute captured_id =~ "not run"
+    assert captured_id =~ "on_exit 1 overrides -> run"
+    assert captured_id =~ "on_exit 2 overrides -> run"
+  end
 end
 
 defmodule ExUnit.CallbacksNoTests do
