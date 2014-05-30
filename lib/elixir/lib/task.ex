@@ -2,10 +2,10 @@ defmodule Task do
   @moduledoc """
   Conveniences for spawning and awaiting for tasks.
 
-  Tasks are processes that meant to execute one particular
-  action throughout their life-cycle, often with little
-  explicit communication with other processes. The most common
-  use case for tasks is to compute a value asynchronously:
+  Tasks are processes meant to execute one particular
+  action throughout their life-cycle, often with little or no
+  communication with other processes. The most common use case
+  for tasks is to compute a value asynchronously:
 
       task = Task.async(fn -> do_some_work() end)
       res  = do_some_other_work()
@@ -16,28 +16,21 @@ defmodule Task do
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
-  Besides `async/1` and `await/1`, tasks can also be used as part
-  of supervision trees and dynamically spawned in remote nodes.
-  We will explore all three scenarios next.
+  Besides `async/1` and `await/1`, tasks can also be used be
+  started as part of supervision trees and dynamically spawned
+  in remote nodes. We will explore all three scenarios next.
 
   ## async and await
 
   The most common way to spawn a task is with `Task.async/1`. A new
-  process will be created and this process is linked and monitored
-  by the caller. However, the processes are unlinked right before
-  the task finishes, allowing the proper error to be triggered only
-  on `await/1`.
+  process will be created, linked and monitored by the caller. Once
+  the task action finishes, a message will be sent to the caller
+  with its result.
 
-  This implies three things:
-
-  1) In case the caller crashes, the task will be killed and its
-     computation will abort;
-
-  2) In case the task crashes due to an error, the parent will
-     crash only on `await/1`;
-
-  3) In case the task crashes because a linked process caused
-     it to crash, the parent will crash immediately;
+  `Task.await/1` is used to read the message sent by the task. On
+  await, Elixir will also setup a monitor to verify if the process
+  exited with any abnormal reason (or in case exits are being
+  trapped by the caller).
 
   ## Supervised tasks
 
@@ -55,14 +48,9 @@ defmodule Task do
       ]
 
   Since such tasks are supervised and not directly linked to
-  the caller, they cannot be awaited on. For such reason,
-  differently from `async/1`, `start_link/1` returns `{:ok, pid}`
-  (which is the result expected by supervision trees).
-
-  Such tasks are useful as workers that run during your application
-  life-cycle and rarely communicate with other workers. For example,
-  a worker that pushes data to another server or a worker that consumes
-  events from an event manager and writes it to a log file.
+  the caller, they cannot be awaited on. Note `start_link/1`,
+  differently from `async/1`, returns `{:ok, pid}` (which is
+  the result expected by supervision trees).
 
   ## Supervision trees
 
@@ -78,7 +66,7 @@ defmodule Task do
       # In the remote node
       Task.Supervisor.start_link(name: :tasks_sup)
 
-      # On the client
+      # In the client
       Task.Supervisor.async({:tasks_sup, :remote@local}, fn -> do_work() end)
 
   `Task.Supervisor` is more often started in your supervision tree as:
@@ -118,7 +106,7 @@ defmodule Task do
   """
   @spec start_link(module, atom, [term]) :: {:ok, pid}
   def start_link(mod, fun, args) do
-    Task.Supervised.start_link(:undefined, {mod, fun, args})
+    Task.Supervised.start_link({mod, fun, args})
   end
 
   @doc """

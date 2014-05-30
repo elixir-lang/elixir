@@ -85,18 +85,21 @@ defmodule Task.SupervisorTest do
   end
 
   test "await/1 exits on task throw", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> throw :unknown end)
     assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task error", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
     assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task exit", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> exit :unknown end)
     assert {:unknown, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))

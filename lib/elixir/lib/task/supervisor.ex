@@ -98,6 +98,6 @@ defmodule Task.Supervisor do
   """
   @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
   def start_child(supervisor, module, fun, args) do
-    Supervisor.start_child(supervisor, [:undefined, {module, fun, args}])
+    Supervisor.start_child(supervisor, [{module, fun, args}])
   end
 end

@@ -1,7 +1,7 @@
 defmodule Task.Supervised do
   @moduledoc false
 
-  def start_link(:undefined, fun) do
+  def start_link(fun) do
     :proc_lib.start_link(__MODULE__, :noreply, [fun])
   end
 
@@ -9,7 +9,15 @@ defmodule Task.Supervised do
     :proc_lib.start_link(__MODULE__, :reply, [caller, fun])
   end
 
-  def async(caller, {module, fun, args}) do
+  def async(caller, mfa) do
+    ref = receive do: ({^caller, ref} -> ref)
+    send caller, {ref, apply(mfa)}
+  end
+
+  def reply(caller, mfa) do
+    :erlang.link(caller)
+    :proc_lib.init_ack({:ok, self()})
+
     ref =
       # There is a race condition on this operation when working accross
       # node that manifests if a `Task.Supervisor.async/1` call is made
@@ -33,29 +41,15 @@ defmodule Task.Supervised do
         5000 -> exit(:timeout)
       end
 
-    try do
-      apply(module, fun, args)
-    else
-      result ->
-        send caller, {ref, result}
-    catch
-      :error, reason ->
-        exit({reason, System.stacktrace()})
-      :throw, value ->
-        exit({{:nocatch, value}, System.stacktrace()})
-    after
-      :erlang.unlink(caller)
-    end
+    send caller, {ref, apply(mfa)}
   end
 
-  def reply(caller, mfa) do
-    :erlang.link(caller)
+  def noreply(mfa) do
     :proc_lib.init_ack({:ok, self()})
-    async(caller, mfa)
+    apply(mfa)
   end
 
-  def noreply({module, fun, args}) do
-    :proc_lib.init_ack({:ok, self()})
+  def apply({module, fun, args}) do
     try do
       apply(module, fun, args)
     catch

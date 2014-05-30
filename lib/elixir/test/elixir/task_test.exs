@@ -70,18 +70,21 @@ defmodule TaskTest do
   end
 
   test "await/1 exits on task throw" do
+    Process.flag(:trap_exit, true)
     task = Task.async(fn -> throw :unknown end)
     assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task error" do
+    Process.flag(:trap_exit, true)
     task = Task.async(fn -> raise "oops" end)
     assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task exit" do
+    Process.flag(:trap_exit, true)
     task = Task.async(fn -> exit :unknown end)
     assert {:unknown, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
