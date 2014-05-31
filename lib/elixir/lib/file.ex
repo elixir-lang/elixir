@@ -769,7 +769,7 @@ defmodule File do
       case F.read_file_info(IO.chardata_to_string(path)) do
         {:ok, file_info} ->
           if elem(file_info, 3) in [:read, :none] do
-            File.chmod(path, (elem(file_info, 7) + 200))
+            File.chmod(path, (elem(file_info, 7) + 0200))
           end
         {:error, reason} -> {:error, reason}
       end
