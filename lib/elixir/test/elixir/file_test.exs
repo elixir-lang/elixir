@@ -688,6 +688,15 @@ defmodule FileTest do
       assert File.rm(fixture) == :ok
       refute File.exists?(fixture)
     end
+    
+    test :rm_read_only_file do
+      fixture = tmp_path("tmp_test.txt")
+      File.write(fixture, "test")
+      assert File.exists?(fixture)
+      File.chmod(fixture, 0100444)
+      assert File.rm(fixture) == :ok
+      refute File.exists?(fixture)
+    end
 
     test :rm_file_with_dir do
       assert File.rm(fixture_path) == {:error, :eperm}
