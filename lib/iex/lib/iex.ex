@@ -338,7 +338,7 @@ defmodule IEx do
   Get the width to be used on helpers with a maximum (and default) of 80 chars.
   """
   def width do
-    case :io.columns(:standard_input) do
+    case :io.columns() do
       {:ok, width} -> min(width, 80)
       {:error, _}  -> 80
     end

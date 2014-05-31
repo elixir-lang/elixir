@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp width() do
-    case :io.columns(:standard_input) do
+    case :io.columns() do
       {:ok, width} -> min(width, 80)
       {:error, _}  -> 80
     end
