@@ -769,7 +769,7 @@ defmodule File do
       case F.read_file_info(IO.chardata_to_string(path)) do
         {:ok, file_info} ->
           if elem(file_info, 3) in [:read, :none] do
-            File.chmod(path, (elem(file_info, 7) + 128)) # 128 is octal mask 200 in decimal
+            File.chmod(path, (elem(file_info, 7) + 200))
           end
         {:error, reason} -> {:error, reason}
       end
