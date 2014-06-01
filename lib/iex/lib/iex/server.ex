@@ -128,7 +128,7 @@ defmodule IEx.Server do
 
   defp exit_loop(evaluator, evaluator_ref, done? \\ true) do
     Process.delete(:evaluator)
-    Process.demonitor(evaluator_ref)
+    Process.demonitor(evaluator_ref, [:flush])
     if done? do
       send(evaluator, {:done, self})
     end

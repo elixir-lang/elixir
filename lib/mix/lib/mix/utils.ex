@@ -405,10 +405,10 @@ defmodule Mix.Utils do
     if http_proxy = System.get_env("HTTP_PROXY"), do: proxy(http_proxy)
     if https_proxy = System.get_env("HTTPS_PROXY"), do: proxy(https_proxy)
 
-    # We are using relaxed: true because some clients (namely Github pages
-    # which we are using to download rebar) is returning a Location header
-    # with relative paths, which does not follow the spec. This would cause
-    # the request to fail with {:error, :no_scheme} unless :relaxed is given.
+    # We are using relaxed: true because some clients is returning a Location
+    # header with relative paths, which does not follow the spec. This would
+    # cause the request to fail with {:error, :no_scheme} unless :relaxed
+    # is given.
     case :httpc.request(:get, request, [relaxed: true], [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
@@ -417,6 +417,7 @@ defmodule Mix.Utils do
       {:error, reason} ->
         Mix.raise "Could not access url #{path}, error: #{inspect reason}"
     end
+  after
     :inets.stop(:httpc, :mix)
   end
 

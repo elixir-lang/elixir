@@ -743,7 +743,9 @@ defmodule File do
 
   @doc """
   Tries to delete the file `path`.
+
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+  Note the file is deleted even if in read-only mode.
 
   Typical error reasons are:
 
@@ -765,16 +767,27 @@ defmodule File do
   """
   @spec rm(Path.t) :: :ok | {:error, posix}
   def rm(path) do
+    path = IO.chardata_to_string(path)
+    case F.delete(path) do
+      :ok ->
+        :ok
+      {:error, :eaccess} = e ->
+        change_mode_windows(path) || e
+      {:error, _} = e ->
+        e
+    end
+  end
+
+  defp change_mode_windows(path) do
     if match? {:win32, _}, :os.type do
       case F.read_file_info(IO.chardata_to_string(path)) do
-        {:ok, file_info} ->
-          if elem(file_info, 3) in [:read, :none] do
-            File.chmod(path, (elem(file_info, 7) + 0200))
-          end
-        {:error, reason} -> {:error, reason}
+        {:ok, file_info} when elem(file_info, 3) in [:read, :none] ->
+          File.chmod(path, (elem(file_info, 7) + 0200))
+          F.delete(path)
+        _ ->
+          nil
       end
     end
-    F.delete(IO.chardata_to_string(path))
   end
 
   @doc """
