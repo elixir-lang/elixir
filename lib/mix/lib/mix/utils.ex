@@ -394,14 +394,22 @@ defmodule Mix.Utils do
     :ssl.start
     :inets.start
 
+    # Starting a http client profile allows us to scope
+    # the effects of using a http proxy to this function
+    {:ok, pid} = :inets.start(:httpc, [{:profile, :mix}])
+
     headers = [{'user-agent', 'Mix/#{System.version}'}]
     request = {:binary.bin_to_list(path), headers}
+
+    # If a proxy environment variable was supplied add a proxy to httpc
+    if http_proxy = System.get_env("HTTP_PROXY"), do: proxy(http_proxy)
+    if https_proxy = System.get_env("HTTPS_PROXY"), do: proxy(https_proxy)
 
     # We are using relaxed: true because some clients (namely Github pages
     # which we are using to download rebar) is returning a Location header
     # with relative paths, which does not follow the spec. This would cause
     # the request to fail with {:error, :no_scheme} unless :relaxed is given.
-    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary]) do
+    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
       {:ok, {{_, status, _}, _, _}} ->
@@ -409,7 +417,21 @@ defmodule Mix.Utils do
       {:error, reason} ->
         Mix.raise "Could not access url #{path}, error: #{inspect reason}"
     end
+    :inets.stop(:httpc, :mix)
   end
+
+  defp proxy(proxy) do
+     uri = URI.parse(proxy)
+     :httpc.set_options([{ proxy_scheme(uri.scheme),
+         { { uri.host |> String.to_char_list, uri.port }, [] } }], :mix)
+   end
+
+   defp proxy_scheme(scheme) do
+     case scheme do
+       "http" -> :proxy
+       "https" -> :https_proxy
+     end
+   end
 
   defp file?(path) do
     File.regular?(path)
