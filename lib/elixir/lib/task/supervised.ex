@@ -2,7 +2,7 @@ defmodule Task.Supervised do
   @moduledoc false
 
   def start_link(fun) do
-    :proc_lib.start_link(__MODULE__, :noreply, [fun])
+    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [fun])}
   end
 
   def start_link(caller, fun) do
@@ -45,7 +45,6 @@ defmodule Task.Supervised do
   end
 
   def noreply(mfa) do
-    :proc_lib.init_ack({:ok, self()})
     apply(mfa)
   end
 

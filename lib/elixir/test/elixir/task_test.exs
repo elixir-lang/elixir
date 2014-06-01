@@ -91,9 +91,10 @@ defmodule TaskTest do
   end
 
   test "await/1 exits on :noconnection" do
-    node = {:unknown, :unknown@node}
-    assert catch_noconnection(node) == {:nodedown, :unknown@node}
-    assert catch_noconnection(self) == {:nodedown, self}
+    ref  = make_ref()
+    task = %Task{ref: ref, pid: self()}
+    send self(), {:DOWN, ref, self(), self(), :noconnection}
+    assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :nonode@nohost}
   end
 
   test "find/2" do
@@ -105,12 +106,5 @@ defmodule TaskTest do
     msg = {:DOWN, task.ref, :process, self, :kill}
     assert catch_exit(Task.find([task], msg)) ==
            {:kill, {Task, :find, [[task], msg]}}
-  end
-
-  defp catch_noconnection(process) do
-    ref  = make_ref()
-    task = %Task{ref: ref, pid: process}
-    send self(), {:DOWN, ref, process, self(), :noconnection}
-    catch_exit(Task.await(task)) |> elem(0)
   end
 end

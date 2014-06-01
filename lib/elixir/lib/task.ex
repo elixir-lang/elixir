@@ -156,7 +156,7 @@ defmodule Task do
         reply
       {:DOWN, ^ref, _, _, :noconnection} ->
         mfa = {__MODULE__, :await, [task, timeout]}
-        exit({{:nodedown, get_node(task.pid)}, mfa})
+        exit({{:nodedown, node(task.pid)}, mfa})
       {:DOWN, ^ref, _, _, reason} ->
         exit({reason, {__MODULE__, :await, [task, timeout]}})
     after
@@ -198,7 +198,7 @@ defmodule Task do
     find = fn(%Task{ref: task_ref}) -> task_ref == ref end
     case Enum.find(tasks, find) do
       %Task{pid: pid} when reason == :noconnection ->
-        exit({{:nodedown, get_node(pid)}, {__MODULE__, :find, [tasks, msg]}})
+        exit({{:nodedown, node(pid)}, {__MODULE__, :find, [tasks, msg]}})
       %Task{} ->
         exit({reason, {__MODULE__, :find, [tasks, msg]}})
       nil ->
@@ -209,7 +209,4 @@ defmodule Task do
   def find(_tasks, _msg) do
     nil
   end
-
-  defp get_node({_, n}) when is_atom(n), do: n
-  defp get_node(pid) when is_pid(pid),     do: pid
 end

@@ -63,7 +63,7 @@ defmodule Path do
       :relative -> join(relative_to, path)
       :absolute ->
         cond do
-          :binary.first(path) == ?/ and size(path) == 1 ->
+          path == "/" ->
             path
           :binary.last(path) == ?/ ->
             binary_part(path, 0, byte_size(path) - 1)
