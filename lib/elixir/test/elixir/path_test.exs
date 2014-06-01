@@ -65,6 +65,8 @@ defmodule PathTest do
   end
 
   test :absname do
+    assert (Path.absname("/") |> strip_drive_letter_if_windows) == "/"
+    assert (Path.absname("/foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
     assert (Path.absname("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar/../bar"

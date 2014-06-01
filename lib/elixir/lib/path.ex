@@ -62,10 +62,13 @@ defmodule Path do
     case type(path) do
       :relative -> join(relative_to, path)
       :absolute ->
-        if :binary.last(path) == ?/ do
-          binary_part(path, 0, byte_size(path) - 1)
-        else
-          path
+        cond do
+          :binary.first(path) == ?/ and size(path) == 1 ->
+            path
+          :binary.last(path) == ?/ ->
+            binary_part(path, 0, byte_size(path) - 1)
+          true ->
+            path
         end
       :volumerelative ->
         relative_to = IO.chardata_to_string(relative_to)
@@ -138,6 +141,7 @@ defmodule Path do
 
   ## Unix examples
 
+      Path.type("/")                #=> :absolute
       Path.type("/usr/local/bin")   #=> :absolute
       Path.type("usr/local/bin")    #=> :relative
       Path.type("../usr/local/bin") #=> :relative
