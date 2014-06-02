@@ -771,7 +771,7 @@ defmodule File do
     case F.delete(path) do
       :ok ->
         :ok
-      {:error, :eaccess} = e ->
+      {:error, :eacces} = e ->
         change_mode_windows(path) || e
       {:error, _} = e ->
         e
