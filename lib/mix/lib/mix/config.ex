@@ -32,7 +32,7 @@ defmodule Mix.Config do
   @doc false
   defmacro __using__(_) do
     quote do
-      import Mix.Config
+      import Mix.Config, only: [config: 2, config: 3, import_config: 1]
       var!(config, Mix.Config) = []
     end
   end
