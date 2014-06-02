@@ -1,7 +1,6 @@
 defmodule Mix.Tasks.Compile.Leex do
-  alias Mix.Tasks.Compile.Erlang
-
   use Mix.Task
+  alias Mix.Compilers.Erlang
 
   @recursive true
   @manifest ".compile.leex"
@@ -21,12 +20,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
   ## Configuration
 
-  * `:erlc_paths` - directories to find source files.
-    Defaults to `["src"]`, can be configured as:
-
-    ```
-    [erlc_paths: ["src", "other"]]
-    ```
+  * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
   * `:leex_options` - compilation options that apply
      to Leex's compiler. There are many available options
@@ -45,7 +39,7 @@ defmodule Mix.Tasks.Compile.Leex do
     mappings     = Enum.zip(source_paths, source_paths)
     options      = project[:leex_options] || []
 
-    Erlang.compile_mappings(manifest(), mappings, :xrl, :erl, opts[:force], fn
+    Erlang.compile(manifest(), mappings, :xrl, :erl, opts[:force], fn
       input, output ->
         options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
         :leex.file(Erlang.to_erl_file(input), options)
@@ -57,4 +51,11 @@ defmodule Mix.Tasks.Compile.Leex do
   """
   def manifests, do: [manifest]
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
+
+  @doc """
+  Cleans up compilation artifacts.
+  """
+  def clean do
+    Erlang.clean(manifest())
+  end
 end

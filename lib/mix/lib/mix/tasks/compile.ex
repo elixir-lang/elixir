@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Compile do
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 
-    shell.info "\nEnabled compilers: #{Enum.join get_compilers, ", "}"
+    shell.info "\nEnabled compilers: #{Enum.join compilers(), ", "}"
   end
 
   def run(args) do
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile do
     Mix.Task.run "loadpaths", args
 
     res =
-      Enum.map(get_compilers, fn(compiler) ->
+      Enum.map(compilers(), fn(compiler) ->
         List.wrap Mix.Task.run("compile.#{compiler}", args)
       end)
 
@@ -71,10 +71,18 @@ defmodule Mix.Tasks.Compile do
   end
 
   @doc """
+  Returns all compilers.
+  """
+  def compilers do
+    Mix.Project.config[:compilers] ||
+      [:yecc, :leex, :erlang, :elixir, :app]
+  end
+
+  @doc """
   Returns manifests for all compilers.
   """
   def manifests do
-    Enum.flat_map(get_compilers, fn(compiler) ->
+    Enum.flat_map(compilers(), fn(compiler) ->
       module = Mix.Task.get!("compile.#{compiler}")
       if function_exported?(module, :manifests, 0) do
         module.manifests
@@ -82,11 +90,6 @@ defmodule Mix.Tasks.Compile do
         []
       end
     end)
-  end
-
-  defp get_compilers do
-    Mix.Project.config[:compilers] ||
-      [:yecc, :leex, :erlang, :elixir, :app]
   end
 
   defp format(expression, args) do

@@ -20,12 +20,12 @@ defmodule Mix.Tasks.Clean do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args)
 
-    manifests = Mix.Tasks.Compile.manifests
-    Enum.each(manifests, fn(manifest) ->
-      Enum.each Mix.Utils.read_manifest(manifest),
-                &(&1 |> String.split("\t") |> hd |> File.rm)
-      File.rm(manifest)
-    end)
+    for compiler <- Mix.Tasks.Compile.compilers() do
+      module = Mix.Task.get!("compile.#{compiler}")
+      if function_exported?(module, :clean, 0) do
+        module.clean
+      end
+    end
 
     if opts[:all] do
       Mix.Task.run("deps.clean", args)

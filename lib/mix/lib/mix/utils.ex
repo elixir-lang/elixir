@@ -98,31 +98,6 @@ defmodule Mix.Utils do
     end
   end
 
-  @doc ~S"""
-  Reads the given file as a manifest and returns each entry
-  as a list.
-
-  A manifest is a tabular file where each line is a row
-  and each entry in a row is separated by "\t". The first
-  entry must always be a path to a compiled artifact.
-
-  In case there is no manifest file, returns an empty list.
-  """
-  def read_manifest(file) do
-    case File.read(file) do
-      {:ok, contents} -> String.split(contents, "\n")
-      {:error, _} -> []
-    end
-  end
-
-  @doc """
-  Writes a manifest file with the given `entries` list.
-  """
-  def write_manifest(file, entries) do
-    Path.dirname(file) |> File.mkdir_p!
-    File.write!(file, Enum.join(entries, "\n"))
-  end
-
   @doc """
   Extract files from a list of paths.
 
