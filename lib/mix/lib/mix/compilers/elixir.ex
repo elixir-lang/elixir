@@ -61,7 +61,7 @@ defmodule Mix.Compilers.Elixir do
       {:ok, contents} ->
         contents
         |> String.split("\n")
-        |> Enum.each(& &1 |> String.split("\t") |> hd |> File.rm)
+        |> Enum.each &(&1 |> String.split("\t") |> hd |> File.rm)
         File.rm(manifest)
       {:error, _} ->
         :ok
