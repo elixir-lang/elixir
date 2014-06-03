@@ -11,6 +11,13 @@ defmodule Mix.ShellTest do
     ExUnit.CaptureIO.capture_io(from, somefunc) |> String.replace("\r\n","\n")
   end
 
+  setup do
+    on_exit fn ->
+      Mix.shell(Mix.Shell.Process)
+    end
+    :ok
+  end
+
   test "shell process" do
     Mix.shell.info "abc"
     Mix.shell.error "def"
@@ -56,10 +63,5 @@ defmodule Mix.ShellTest do
     assert (capture_io(fn ->
       assert Mix.shell.cmd("echo first && echo second") == 0
     end) |> String.replace(" \n", "\n")) == "first\nsecond\n"
-  end
-
-  teardown do
-    Mix.shell(Mix.Shell.Process)
-    :ok
   end
 end

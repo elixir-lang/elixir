@@ -22,22 +22,16 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   setup config do
-    if config[:app] do
-      :error_logger.tty(false)
-    end
-    :ok
-  end
-
-  teardown config do
     if app = config[:app] do
-      :application.stop(app)
-      :application.unload(app)
-    end
-    :ok
-  end
+      :error_logger.tty(false)
 
-  teardown do
-    :error_logger.tty(true)
+      on_exit fn ->
+        :application.stop(app)
+        :application.unload(app)
+        :error_logger.tty(true)
+      end
+    end
+
     :ok
   end
 

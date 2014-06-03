@@ -5,10 +5,12 @@ defmodule Mix.Tasks.LoadconfigTest do
 
   @apps [:my_app, :other_app]
 
-  teardown do
-    Enum.each @apps, fn app ->
-      Enum.each Application.get_all_env(app), fn {key, _} ->
-        Application.delete_env(app, key, persistent: true)
+  setup do
+    on_exit fn ->
+      Enum.each @apps, fn app ->
+        Enum.each Application.get_all_env(app), fn {key, _} ->
+          Application.delete_env(app, key, persistent: true)
+        end
       end
     end
     :ok

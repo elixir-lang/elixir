@@ -19,14 +19,17 @@ defmodule MixTest.Case do
     end
   end
 
-  teardown do
-    Mix.env(:dev)
-    Mix.Task.clear
-    Mix.Shell.Process.flush
-    Mix.ProjectStack.clear_cache
-    Mix.ProjectStack.clear_stack
-    System.put_env("MIX_HOME", tmp_path(".mix"))
-    delete_tmp_paths
+  setup do
+    on_exit fn ->
+      Mix.env(:dev)
+      Mix.Task.clear
+      Mix.Shell.Process.flush
+      Mix.ProjectStack.clear_cache
+      Mix.ProjectStack.clear_stack
+      System.put_env("MIX_HOME", tmp_path(".mix"))
+      delete_tmp_paths
+    end
+
     :ok
   end
 
@@ -97,7 +100,7 @@ defmodule MixTest.Case do
       end
     end
   end
-    
+
   def os_newline do
     case :os.type do
       {:win32, _} -> "\r\n"

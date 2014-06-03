@@ -15,6 +15,7 @@
   * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
 
 * Soft deprecations (no warnings emitted)
+  * [ExUnit] `teardown/2` and `teardown_all/2` are deprecated in favor of `on_exit/1` callbacks
 
 * Deprecations
   * [Access] `Access.access/2` is deprecated in favor of `Access.get/2`

@@ -5,11 +5,9 @@ defmodule ExUnitTest do
 
   setup do
     ExUnit.configure(formatters: [])
-    :ok
-  end
-
-  teardown do
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+    on_exit(fn ->
+      ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+    end)
     :ok
   end
 
