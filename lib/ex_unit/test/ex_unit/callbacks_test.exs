@@ -184,6 +184,12 @@ defmodule ExUnit.CallbacksTest do
         end
       end
 
+      setup_all do
+        on_exit fn ->
+          IO.puts "on_exit setup_all run"
+        end
+      end
+
       test "ok" do
         on_exit fn ->
           IO.puts "simple on_exit run"
@@ -213,6 +219,7 @@ defmodule ExUnit.CallbacksTest do
     simple on_exit run
     on_exit 1 overrides -> run
     on_exit setup run
+    on_exit setup_all run
     """
 
     refute output =~ "not run"

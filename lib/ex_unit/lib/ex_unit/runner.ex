@@ -142,6 +142,8 @@ defmodule ExUnit.Runner do
 
     {case_pid, case_ref} =
       spawn_monitor(fn ->
+        ExUnit.OnExitHandler.register(self)
+
         case exec_case_setup(test_case) do
           {:ok, test_case, context} ->
             Enum.each(tests, &run_test(config, &1, context))
@@ -154,12 +156,16 @@ defmodule ExUnit.Runner do
         end
       end)
 
-    receive do
-      {^case_pid, :case_finished, test_case, tests} ->
-        {test_case, tests}
-      {:DOWN, ^case_ref, :process, ^case_pid, error} ->
-        {%{test_case | state: {:failed, {{:EXIT, case_pid}, error, []}}}, []}
-    end
+    {test_case, pending} =
+      receive do
+        {^case_pid, :case_finished, test_case, tests} ->
+          {test_case, tests}
+        {:DOWN, ^case_ref, :process, ^case_pid, error} ->
+          test_case = %{test_case | state: {:failed, {{:EXIT, case_pid}, error, []}}}
+          {test_case, []}
+      end
+
+    {exec_on_exit(test_case, case_pid), pending}
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
@@ -249,13 +255,13 @@ defmodule ExUnit.Runner do
       %{test | state: state}
   end
 
-  defp exec_on_exit(test, test_pid) do
-    case ExUnit.OnExitHandler.run(test_pid) do
+  defp exec_on_exit(test_or_case, pid) do
+    case ExUnit.OnExitHandler.run(pid) do
       :ok ->
-        test
+        test_or_case
       {kind, reason, stack} ->
-        state = test.state || {:failed, {kind, reason, prune_stacktrace(stack)}}
-        %{test | state: state}
+        state = test_or_case.state || {:failed, {kind, reason, prune_stacktrace(stack)}}
+        %{test_or_case | state: state}
     end
   end
 
