@@ -145,9 +145,10 @@ defmodule ExUnit.Callbacks do
 
   @spec on_exit(term, (() -> term)) :: :ok
   def on_exit(ref \\ make_ref, callback) do
-    send(Process.get(ExUnit.Runner.Pid), {self(), :register_on_exit_callback, ref, callback})
-    receive do
-      {:registered_on_exit_callback, ^ref} -> :ok
+    case ExUnit.OnExitHandler.add(self, ref, callback) do
+      :ok -> :ok
+      :error ->
+        raise ArgumentError, "on_exit/1 callback can only be invoked from the test process"
     end
   end
 

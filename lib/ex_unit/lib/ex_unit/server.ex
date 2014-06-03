@@ -42,7 +42,7 @@ defmodule ExUnit.Server do
 
   def init(:ok) do
     config = %{async_cases: HashSet.new, sync_cases: HashSet.new,
-               start_load: nil, captured_devices: HashSet.new}
+               start_load: :os.timestamp, captured_devices: HashSet.new}
     {:ok, config}
   end
 

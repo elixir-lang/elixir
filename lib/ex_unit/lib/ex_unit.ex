@@ -101,9 +101,15 @@ defmodule ExUnit do
 
   @doc false
   def start(_type, []) do
-    pid = ExUnit.Sup.start_link
-    ExUnit.Server.start_load
-    pid
+    import Supervisor.Spec
+
+    children = [
+      worker(ExUnit.Server, []),
+      worker(ExUnit.OnExitHandler, [])
+    ]
+
+    opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 
   @doc """

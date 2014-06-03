@@ -206,12 +206,16 @@ defmodule ExUnit.CallbacksTest do
     end
 
     ExUnit.configure(formatters: [ExUnit.CLIFormatter])
-    captured_id = capture_io(fn -> ExUnit.run end)
-    assert captured_id =~ "on_exit setup run"
-    assert captured_id =~ "simple on_exit run"
-    refute captured_id =~ "not run"
-    assert captured_id =~ "on_exit 1 overrides -> run"
-    assert captured_id =~ "on_exit 2 overrides -> run"
+    output = capture_io(fn -> ExUnit.run end)
+
+    assert output =~ """
+    on_exit 2 overrides -> run
+    simple on_exit run
+    on_exit 1 overrides -> run
+    on_exit setup run
+    """
+
+    refute output =~ "not run"
   end
 end
 

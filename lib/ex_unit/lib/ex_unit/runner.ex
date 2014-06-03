@@ -143,7 +143,7 @@ defmodule ExUnit.Runner do
     {case_pid, case_ref} =
       spawn_monitor(fn ->
         case exec_case_setup(test_case) do
-          {:ok, {test_case, context}} ->
+          {:ok, test_case, context} ->
             Enum.each(tests, &run_test(config, &1, context))
             test_case = exec_case_teardown(test_case, context)
             send self_pid, {self, :case_finished, test_case, []}
@@ -164,7 +164,7 @@ defmodule ExUnit.Runner do
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
     {:ok, context} = case_name.__ex_unit__(:setup_all, %{case: case_name})
-    {:ok, {test_case, context}}
+    {:ok, test_case, context}
   catch
     kind, error ->
       failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
@@ -195,14 +195,13 @@ defmodule ExUnit.Runner do
 
     {test_pid, test_ref} =
       spawn_monitor(fn ->
-        Process.put(ExUnit.Runner.Pid, self_pid)
+        ExUnit.OnExitHandler.register(self)
+
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
-              {:ok, {test, context}} ->
-                if nil?(test.state) do
-                  test = exec_test(test, context)
-                end
+              {:ok, test, context} ->
+                test = exec_test(test, context)
                 exec_test_teardown(test, context)
               {:error, test} ->
                 test
@@ -212,34 +211,23 @@ defmodule ExUnit.Runner do
         send self_pid, {self, :test_finished, %{test | time: us}}
       end)
 
-    loop_test(test, test_pid, test_ref, HashDict.new)
-  end
-
-  defp loop_test(test, test_pid, test_ref, on_exit_callbacks) do
-    receive do
-      {^test_pid, :register_on_exit_callback, ref, callback} ->
-        on_exit_callbacks = Dict.put(on_exit_callbacks, ref, callback)
-        send(test_pid, {:registered_on_exit_callback, ref})
-        loop_test(test, test_pid, test_ref, on_exit_callbacks)
-      {^test_pid, :test_finished, test} ->
-        on_exit_state = exec_on_exit_callbacks(on_exit_callbacks)
-        if nil?(test.state) do
-          %{test | state: on_exit_state}
-        else
+    test =
+      receive do
+        {^test_pid, :test_finished, test} ->
           test
-        end
-      {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-        exec_on_exit_callbacks(on_exit_callbacks)
-        %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
-    end
+        {:DOWN, ^test_ref, :process, ^test_pid, error} ->
+          %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
+      end
+
+    exec_on_exit(test, test_pid)
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
     {:ok, context} = case.__ex_unit__(:setup, context)
-    {:ok, {test, context}}
+    {:ok, test, context}
   catch
     kind2, error2 ->
-      failed = {:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace}}
+      failed = {:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace()}}
       {:error, %{test | state: failed}}
   end
 
@@ -248,7 +236,7 @@ defmodule ExUnit.Runner do
     test
   catch
     kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
       %{test | state: failed}
   end
 
@@ -257,65 +245,19 @@ defmodule ExUnit.Runner do
     test
   catch
     kind, error ->
-      if nil?(test.state) do
-        %{test | state: {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}}
-      else
+      state = test.state || {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
+      %{test | state: state}
+  end
+
+  defp exec_on_exit(test, test_pid) do
+    case ExUnit.OnExitHandler.run(test_pid) do
+      :ok ->
         test
-      end
-  end
-
-  defp exec_on_exit_callbacks(callbacks) do
-    {runner_pid, runner_monitor, callback_state} = Enum.reduce Dict.values(callbacks), {nil, nil, nil}, fn(callback, {runner_pid, runner_monitor, callback_state}) ->
-      {runner_pid, runner_monitor} = ensure_alive_callback_runner(runner_pid, runner_monitor)
-      send(runner_pid, {:run, self(), callback})
-      receive do
-        {^runner_pid, nil} -> {runner_pid, runner_monitor, callback_state}
-        {^runner_pid, error} ->
-          if nil?(callback_state) do
-            {runner_pid, runner_monitor, error}
-          else
-            {runner_pid, runner_monitor, callback_state}
-          end
-        {:DOWN, ^runner_monitor, :process, ^runner_pid, error} ->
-          if nil?(callback_state) do
-            {nil, nil, {:failed, {{:EXIT, runner_pid}, error, []}}}
-          else
-            {nil, nil, callback_state}
-          end
-      end
-    end
-
-    if is_pid(runner_pid) and Process.alive?(runner_pid) do
-      send(runner_pid, :shutdown)
-      receive do
-        {:DOWN, ^runner_monitor, :process, ^runner_pid, _error} -> :ok
-      end
-    end
-
-    callback_state
-  end
-
-  defp ensure_alive_callback_runner(nil, nil), do: spawn_monitor(__MODULE__, :on_exit_runner_loop, [])
-  defp ensure_alive_callback_runner(runner_pid, runner_monitor), do: {runner_pid, runner_monitor}
-
-  def on_exit_runner_loop do
-    receive do
-      {:run, from, fun} ->
-        result = exec_on_exit_callback(fun)
-        send(from, {self(), result})
-        on_exit_runner_loop()
-      :shutdown -> :ok
+      {kind, reason, stack} ->
+        state = test.state || {:failed, {kind, reason, prune_stacktrace(stack)}}
+        %{test | state: state}
     end
   end
-
-  defp exec_on_exit_callback(callback) do
-    callback.()
-    nil
-  catch
-    kind, error ->
-      {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
-  end
-
 
   ## Helpers
 
