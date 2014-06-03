@@ -143,6 +143,14 @@ defmodule ExUnit.Callbacks do
     end
   end
 
+  @spec on_exit(term, (() -> term)) :: :ok
+  def on_exit(ref \\ make_ref, callback) do
+    send(Process.get(ExUnit.Runner.Pid), {self(), :register_on_exit_callback, ref, callback})
+    receive do
+      {:registered_on_exit_callback, ^ref} -> :ok
+    end
+  end
+
   ## Helpers
 
   @doc false

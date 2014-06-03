@@ -195,6 +195,7 @@ defmodule ExUnit.Runner do
 
     {test_pid, test_ref} =
       spawn_monitor(fn ->
+        Process.put(ExUnit.Runner.Pid, self_pid)
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
@@ -211,10 +212,24 @@ defmodule ExUnit.Runner do
         send self_pid, {self, :test_finished, %{test | time: us}}
       end)
 
+    loop_test(test, test_pid, test_ref, HashDict.new)
+  end
+
+  defp loop_test(test, test_pid, test_ref, on_exit_callbacks) do
     receive do
+      {^test_pid, :register_on_exit_callback, ref, callback} ->
+        on_exit_callbacks = Dict.put(on_exit_callbacks, ref, callback)
+        send(test_pid, {:registered_on_exit_callback, ref})
+        loop_test(test, test_pid, test_ref, on_exit_callbacks)
       {^test_pid, :test_finished, test} ->
-        test
+        on_exit_state = exec_on_exit_callbacks(on_exit_callbacks)
+        if nil?(test.state) do
+          %{test | state: on_exit_state}
+        else
+          test
+        end
       {:DOWN, ^test_ref, :process, ^test_pid, error} ->
+        exec_on_exit_callbacks(on_exit_callbacks)
         %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
     end
   end
@@ -248,6 +263,59 @@ defmodule ExUnit.Runner do
         test
       end
   end
+
+  defp exec_on_exit_callbacks(callbacks) do
+    {runner_pid, runner_monitor, callback_state} = Enum.reduce Dict.values(callbacks), {nil, nil, nil}, fn(callback, {runner_pid, runner_monitor, callback_state}) ->
+      {runner_pid, runner_monitor} = ensure_alive_callback_runner(runner_pid, runner_monitor)
+      send(runner_pid, {:run, self(), callback})
+      receive do
+        {^runner_pid, nil} -> {runner_pid, runner_monitor, callback_state}
+        {^runner_pid, error} ->
+          if nil?(callback_state) do
+            {runner_pid, runner_monitor, error}
+          else
+            {runner_pid, runner_monitor, callback_state}
+          end
+        {:DOWN, ^runner_monitor, :process, ^runner_pid, error} ->
+          if nil?(callback_state) do
+            {nil, nil, {:failed, {{:EXIT, runner_pid}, error, []}}}
+          else
+            {nil, nil, callback_state}
+          end
+      end
+    end
+
+    if is_pid(runner_pid) and Process.alive?(runner_pid) do
+      send(runner_pid, :shutdown)
+      receive do
+        {:DOWN, ^runner_monitor, :process, ^runner_pid, _error} -> :ok
+      end
+    end
+
+    callback_state
+  end
+
+  defp ensure_alive_callback_runner(nil, nil), do: spawn_monitor(__MODULE__, :on_exit_runner_loop, [])
+  defp ensure_alive_callback_runner(runner_pid, runner_monitor), do: {runner_pid, runner_monitor}
+
+  def on_exit_runner_loop do
+    receive do
+      {:run, from, fun} ->
+        result = exec_on_exit_callback(fun)
+        send(from, {self(), result})
+        on_exit_runner_loop()
+      :shutdown -> :ok
+    end
+  end
+
+  defp exec_on_exit_callback(callback) do
+    callback.()
+    nil
+  catch
+    kind, error ->
+      {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+  end
+
 
   ## Helpers
 
