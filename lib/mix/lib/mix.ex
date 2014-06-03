@@ -20,12 +20,22 @@ defmodule Mix do
   end
 
   @doc false
-  def start(_, []) do
-    res = Mix.Sup.start_link
+  def start(_type, []) do
+    import Supervisor.Spec
+
+    children = [
+      worker(Mix.TasksServer, []),
+      worker(Mix.ProjectStack, [])
+    ]
+
+    opts = [strategy: :one_for_one, name: Mix.Supervisor]
+    stat = Supervisor.start_link(children, opts)
+
     if env = System.get_env("MIX_ENV") do
       env(String.to_atom env)
     end
-    res
+
+    stat
   end
 
   @doc """
