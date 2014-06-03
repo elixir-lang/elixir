@@ -114,7 +114,7 @@ defmodule Mix.CLI do
     path = Path.expand("~/.mix/config.exs")
     if File.regular?(path) do
       path
-      |> Mix.Config.read()
+      |> Mix.Config.read!()
       |> Mix.Config.persist()
     end
   end
