@@ -1,4 +1,4 @@
-% Holds the logic responsible for functions definition (def(p) and defmacro(p)).
+% Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([table/1, clauses_table/1, setup/1,
   cleanup/1, reset_last/1, lookup_definition/2,
