@@ -225,6 +225,11 @@ defmodule Kernel do
     :erlang.setelement(index + 1, tuple, value)
   end
 
+  @doc false
+  def size(arg) do
+    :erlang.size(arg)
+  end
+
   ## END OF DEPRECATED
 
   @doc """
@@ -663,18 +668,6 @@ defmodule Kernel do
   @spec self() :: pid
   def self() do
     :erlang.self()
-  end
-
-  @doc """
-  Returns the size of the given argument, which must be a tuple or a binary.
-
-  Prefer using `tuple_size/1` or `byte_size/1` instead.
-
-  Allowed in guard tests. Inlined by the compiler.
-  """
-  @spec size(tuple|binary) :: non_neg_integer
-  def size(arg) do
-    :erlang.size(arg)
   end
 
   @doc """

@@ -444,7 +444,6 @@ inline(?kernel, 'rem', 2) -> {erlang, 'rem'};
 inline(?kernel, round, 1) -> {erlang, round};
 inline(?kernel, self, 0) -> {erlang, self};
 inline(?kernel, send, 2) -> {erlang, send};
-inline(?kernel, size, 1) -> {erlang, size};
 inline(?kernel, spawn, 1) -> {erlang, spawn};
 inline(?kernel, spawn, 3) -> {erlang, spawn};
 inline(?kernel, spawn_link, 1) -> {erlang, spawn_link};
@@ -482,6 +481,9 @@ inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
 inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
+
+%% DEPRECATED
+inline(?kernel, size, 1) -> {erlang, size};
 
 inline(_, _, _) -> false.
 

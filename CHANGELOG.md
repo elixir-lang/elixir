@@ -15,6 +15,7 @@
   * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
 
 * Soft deprecations (no warnings emitted)
+  * [Kernel] `size/1` is deprecated, please use `byte_size/1` or `tuple_size/1` instead
   * [ExUnit] `teardown/2` and `teardown_all/2` are deprecated in favor of `on_exit/1` callbacks
 
 * Deprecations
