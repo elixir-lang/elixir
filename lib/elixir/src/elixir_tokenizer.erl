@@ -709,11 +709,13 @@ tokenize_number([$_,H|T], Acc, Bool) when ?is_digit(H) ->
   tokenize_number(T, [H|Acc], Bool);
 
 %% Check if we have e- followed by numbers (valid only for floats);
-tokenize_number([$e,S,H|T], Acc, true) when ?is_digit(H), S == $+ orelse S == $- ->
+tokenize_number([E,S,H|T], Acc, true)
+    when (E == $E) or (E == $e), ?is_digit(H), S == $+ orelse S == $- ->
   tokenize_number(T, [H,S,$e|Acc], true);
 
 %% Check if we have e followed by numbers (valid only for floats);
-tokenize_number([$e,H|T], Acc, true) when ?is_digit(H) ->
+tokenize_number([E,H|T], Acc, true)
+    when (E == $E) or (E == $e), ?is_digit(H) ->
   tokenize_number(T, [H,$e|Acc], true);
 
 %% Finally just numbers.

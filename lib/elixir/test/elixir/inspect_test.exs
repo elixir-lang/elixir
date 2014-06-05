@@ -123,6 +123,7 @@ defmodule Inspect.NumberTest do
 
   test :float do
     assert inspect(1.0) == "1.0"
+    assert inspect(1.0E10) == "1.0e10"
     assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e-10) == "1.0e-10"
   end
