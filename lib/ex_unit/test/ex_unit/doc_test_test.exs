@@ -1,6 +1,6 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-import PathHelpers
+import ExUnit.TestHelpers
 
 defmodule ExUnit.DocTestTest.GoodModule do
   @doc """

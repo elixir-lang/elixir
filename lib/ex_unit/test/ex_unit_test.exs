@@ -1,15 +1,9 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule ExUnitTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
-  setup do
-    ExUnit.configure(formatters: [])
-    on_exit(fn ->
-      ExUnit.configure(formatters: [ExUnit.CLIFormatter])
-    end)
-    :ok
-  end
+  import ExUnit.CaptureIO
 
   test "it supports many runs" do
     defmodule SampleTest do
@@ -24,7 +18,9 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == %{failures: 2, total: 2}
+    assert capture_io(fn ->
+      assert ExUnit.run == %{failures: 2, total: 2}
+    end) =~ "2 tests, 2 failures"
   end
 
   test "it doesn't hang on exists" do
@@ -39,7 +35,9 @@ defmodule ExUnitTest do
       end
     end
 
-    assert ExUnit.run == %{failures: 1, total: 1}
+    assert capture_io(fn ->
+      assert ExUnit.run == %{failures: 1, total: 1}
+    end) =~ "1 tests, 1 failures"
   end
 
   test "filtering cases with tags" do
@@ -78,6 +76,9 @@ defmodule ExUnitTest do
 
   defp run_with_filter(filters, {async, sync, load_us}) do
     opts = Keyword.merge(ExUnit.configuration, filters)
-    ExUnit.Runner.run(async, sync, opts, load_us)
+    capture_io fn ->
+      Process.put :capture_result, ExUnit.Runner.run(async, sync, opts, load_us)
+    end
+    Process.get :capture_result
   end
 end

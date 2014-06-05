@@ -21,16 +21,6 @@ defmodule ExUnit.SampleCase do
     assert context[:context] == :setup_all
     {:ok, [context: :setup, setup: 1]}
   end
-
-  teardown context do
-    assert context[:context] == :setup
-    :ok
-  end
-
-  teardown_all context do
-    assert context[:context] == :setup_all
-    :ok
-  end
 end
 
 defmodule ExUnit.NestedCase do

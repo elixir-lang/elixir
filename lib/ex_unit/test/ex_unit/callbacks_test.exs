@@ -1,56 +1,35 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule ExUnit.CallbacksTest do
-  use ExUnit.Case, async: true
-
-  setup_all do
-    {:ok, [context: :setup_all]}
-  end
-
-  setup do
-    {:ok, [initial_setup: true]}
-  end
-
-  setup context do
-    assert context[:initial_setup]
-    assert context[:context] == :setup_all
-    {:ok, [context: :setup]}
-  end
-
-  setup context do
-    if Process.get(:ex_unit_callback) do
-      raise "ex_unit_callback was not cleaned"
-    else
-      Process.put(:ex_unit_callback, context[:test])
-    end
-    :ok
-  end
-
-  teardown context do
-    assert context[:context] == :setup
-    {:ok, context: :teardown}
-  end
-
-  teardown context do
-    assert Process.get(:ex_unit_callback) == context[:test]
-    Process.delete(:ex_unit_callback)
-    assert context[:context] == :teardown
-    :ok
-  end
-
-  teardown_all context do
-    assert context[:context] == :setup_all
-    :ok
-  end
+  use ExUnit.Case
 
   import ExUnit.CaptureIO
 
-  test "callbacks can run custom code" do
-    assert Process.get(:ex_unit_callback) == :"test callbacks can run custom code"
-  end
+  test "callbacks run custom code with context" do
+    defmodule CallbacksTest do
+      use ExUnit.Case
 
-  test "receives context from callback", context do
-    assert context[:context] == :setup
+      setup_all do
+        {:ok, [context: :setup_all]}
+      end
+
+      setup do
+        {:ok, [initial_setup: true]}
+      end
+
+      setup context do
+        assert context[:initial_setup]
+        assert context[:context] == :setup_all
+        {:ok, [context: :setup]}
+      end
+
+      test "callbacks", context do
+        assert context[:context] == :setup
+      end
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "1 tests, 0 failures"
   end
 
   test "doesn't choke on setup errors" do
@@ -87,46 +66,6 @@ defmodule ExUnit.CallbacksTest do
       defp error, do: :error
     end
 
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
-
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
-  end
-
-  test "doesn't choke on teardown errors" do
-    defmodule TeardownTest do
-      use ExUnit.Case, async: false
-
-      teardown _ do
-        :ok = error
-      end
-
-      test "ok" do
-        :ok
-      end
-
-      defp error, do: :error
-    end
-
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (MatchError) no match of right hand side value: :error"
-  end
-
-  test "doesn't choke on teardown_all errors" do
-    defmodule TeardownAllTest do
-      use ExUnit.Case, async: false
-
-      teardown_all _ do
-        :ok = error
-      end
-
-      test "ok" do
-        :ok
-      end
-
-      defp error, do: :error
-    end
-
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
   end
@@ -136,17 +75,12 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case, async: false
 
       test "ok" do
-        on_exit fn ->
-          :ok = error
-        end
-
+        on_exit fn -> :ok = error end
         :ok
       end
 
       defp error, do: :error
     end
-
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
 
     assert capture_io(fn -> ExUnit.run end) =~
            "** (MatchError) no match of right hand side value: :error"
@@ -157,21 +91,22 @@ defmodule ExUnit.CallbacksTest do
       use ExUnit.Case, async: false
 
       test "ok" do
-        on_exit fn ->
-          Process.exit(self(), :kill)
-        end
-
+        on_exit fn -> Process.exit(self(), :kill) end
         :ok
       end
     end
 
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
     assert capture_io(fn -> ExUnit.run end) =~
            ">) killed"
   end
 
+  defp no_formatters! do
+    ExUnit.configure(formatters: [])
+    on_exit fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end
+  end
+
   test "runs multiple on_exit exits and overrides by ref" do
-    defmodule OnExitOverrideTest do
+    defmodule OnExitSuccessTest do
       use ExUnit.Case, async: false
 
       setup do
@@ -182,12 +117,16 @@ defmodule ExUnit.CallbacksTest do
         on_exit {:overridden, 1}, fn ->
           IO.puts "on_exit 1 overridden -> not run"
         end
+
+        :ok
       end
 
       setup_all do
         on_exit fn ->
           IO.puts "on_exit setup_all run"
         end
+
+        :ok
       end
 
       test "ok" do
@@ -211,7 +150,7 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    ExUnit.configure(formatters: [ExUnit.CLIFormatter])
+    no_formatters!
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """
@@ -224,6 +163,45 @@ defmodule ExUnit.CallbacksTest do
 
     refute output =~ "not run"
   end
+
+  test "runs multiple on_exit on failure" do
+    defmodule OnExitFailureTest do
+      use ExUnit.Case, async: false
+
+      setup do
+        on_exit fn ->
+          IO.puts "on_exit setup run"
+        end
+
+        :ok
+      end
+
+      setup_all do
+        on_exit fn ->
+          IO.puts "on_exit setup_all run"
+        end
+
+        :ok
+      end
+
+      test "ok" do
+        on_exit fn ->
+          IO.puts "simple on_exit run"
+        end
+
+        flunk "oops"
+      end
+    end
+
+    no_formatters!
+    output = capture_io(fn -> ExUnit.run end)
+
+    assert output =~ """
+    simple on_exit run
+    on_exit setup run
+    on_exit setup_all run
+    """
+  end
 end
 
 defmodule ExUnit.CallbacksNoTests do
@@ -234,14 +212,6 @@ defmodule ExUnit.CallbacksNoTests do
   end
 
   setup do
-    raise "Never run"
-  end
-
-  teardown do
-    raise "Never run"
-  end
-
-  teardown_all do
     raise "Never run"
   end
 end
