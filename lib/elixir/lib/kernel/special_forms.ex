@@ -613,6 +613,14 @@ defmodule Kernel.SpecialForms do
   defmacro __DIR__
 
   @doc """
+  Returns the current calling environment as a `Macro.Env` struct.
+
+  In the environment you can access the filename, line numbers,
+  set up aliases, the function and others.
+  """
+  defmacro __CALLER__
+
+  @doc """
   Accesses an already bound variable in match clauses.
 
   ## Examples
