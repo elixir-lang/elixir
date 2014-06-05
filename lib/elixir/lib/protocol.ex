@@ -111,6 +111,16 @@ defmodule Protocol do
     end
   end
 
+  @doc """
+  Derive the `protocol` for `module` with the given options.
+  """
+  defmacro derive(protocol, module, options \\ []) do
+    quote do
+      module = unquote(module)
+      Protocol.__derive__([{unquote(protocol), unquote(options)}], module, __ENV__)
+    end
+  end
+
   ## Consolidation
 
   @doc """
@@ -527,17 +537,34 @@ defmodule Protocol do
   end
 
   @doc false
-  def __derive__(protocol, struct, %Macro.Env{} = env) do
-    for  = env.module
-    impl = Module.concat(protocol, Map)
+  def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
+    struct =
+      if for == env.module do
+        Module.get_attribute(for, :struct) ||
+          raise "struct is not defined for #{inspect for}"
+      else
+        for.__struct__
+      end
 
-    extra = ", cannot derive #{inspect protocol} for #{inspect env.module}"
+    :lists.foreach(fn
+      proto when is_atom(proto) ->
+        derive(proto, for, struct, [], env)
+      {proto, opts} when is_atom(proto) ->
+        derive(proto, for, struct, opts, env)
+    end, :lists.flatten(derives))
+
+    :ok
+  end
+
+  defp derive(protocol, for, struct, opts, env) do
+    impl  = Module.concat(protocol, Map)
+    extra = ", cannot derive #{inspect protocol} for #{inspect for}"
     assert_protocol!(protocol, extra)
     assert_impl!(protocol, impl, extra)
 
     # Clean up variables from eval context
-    env  = %{env | vars: []}
-    args = [env, struct]
+    env  = %{env | vars: [], export_vars: nil}
+    args = [for, struct, opts]
 
     :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
       mod, fun, args ->
@@ -556,8 +583,6 @@ defmodule Protocol do
           end)
         end
     end)
-
-    :ok
   end
 
   @doc false

@@ -243,7 +243,7 @@ expand({'try', Meta, [KV]}, E) ->
 
 %% Comprehensions
 
-expand({for, Meta, Args}, E) when is_list(Args) ->
+expand({for, Meta, [_|_] = Args}, E) ->
   elixir_for:expand(Meta, Args, E);
 
 %% Super

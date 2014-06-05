@@ -21,11 +21,11 @@ defmodule ProtocolTest do
   end
 
   defimpl Derivable, for: Map do
-    defmacro __deriving__(_env, struct) do
+    defmacro __deriving__(module, struct, options) do
       quote do
-        defimpl Derivable do
+        defimpl Derivable, for: unquote(module) do
           def ok(arg) do
-            {:ok, arg, unquote(Macro.escape(struct))}
+            {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
           end
         end
       end
@@ -176,15 +176,40 @@ defmodule ProtocolTest do
 
   test "custom derive implementation" do
     struct = %ImplStruct{a: 1, b: 1}
-    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}}
+    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
     struct = %ImplStruct{a: 1, b: 1}
-    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}}
+    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
     assert_raise Protocol.UndefinedError, fn ->
       struct = %NoImplStruct{a: 1, b: 1}
       Derivable.ok(struct)
     end
+  end
+
+  test "custom derive implementation with options" do
+    defmodule AnotherStruct do
+      @derive [{Derivable, :ok}]
+      @derive [WithAny]
+      defstruct a: 0, b: 0
+    end
+
+    struct = struct AnotherStruct, a: 1, b: 1
+    assert Derivable.ok(struct) ==
+           {:ok, struct, struct(AnotherStruct), :ok}
+  end
+
+  test "custom derive implementation via API" do
+    defmodule InlineStruct do
+      defstruct a: 0, b: 0
+    end
+
+    require Protocol
+    assert Protocol.derive(Derivable, InlineStruct, :oops) == :ok
+
+    struct = struct InlineStruct, a: 1, b: 1
+    assert Derivable.ok(struct) ==
+           {:ok, struct, struct(InlineStruct), :oops}
   end
 
   test "cannot derive without a map implementation" do

@@ -129,7 +129,7 @@ translate({'receive', Meta, [KV]}, #elixir_scope{return=Return} = RS) when is_li
 
 %% Comprehensions
 
-translate({for, Meta, Args}, S) when is_list(Args) ->
+translate({for, Meta, [_|_] = Args}, S) ->
   elixir_for:translate(Meta, Args, S);
 
 %% Super

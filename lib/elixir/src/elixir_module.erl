@@ -112,7 +112,7 @@ build(Line, File, Module, Lexical) ->
   end,
 
   Attributes = [behaviour, on_load, spec, type, export_type, opaque, callback, compile],
-  ets:insert(DataTable, {?acc_attr, [before_compile, after_compile, on_definition|Attributes]}),
+  ets:insert(DataTable, {?acc_attr, [before_compile, after_compile, on_definition, derive|Attributes]}),
   ets:insert(DataTable, {?persisted_attr, [vsn|Attributes]}),
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
   ets:insert(DataTable, {?lexical_attr, Lexical}),
@@ -128,7 +128,7 @@ build(Line, File, Module, Lexical) ->
 eval_form(Line, Module, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_def_overridable:store_pending(Module),
-  EV = elixir_env:linify({Line, EE#{vars := []}}),
+  EV = elixir_env:linify({Line, EE#{vars := [], export_vars := nil}}),
   EC = eval_callbacks(Line, Module, before_compile, [EV], EV),
   elixir_def_overridable:store_pending(Module),
   {Value, EC}.
@@ -137,7 +137,8 @@ eval_callbacks(Line, Module, Name, Args, E) ->
   Callbacks = lists:reverse(ets:lookup_element(data_table(Module), Name, 2)),
 
   lists:foldl(fun({M,F}, Acc) ->
-    expand_callback(Line, M, F, Args, Acc#{vars := []}, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+    expand_callback(Line, M, F, Args, Acc#{vars := [], export_vars := nil},
+                    fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
 
 %% Return the form with exports and function declarations.

@@ -3094,7 +3094,7 @@ defmodule Kernel do
 
   For each protocol given to `@derive`, Elixir will assert there is an
   implementation of that protocol for maps and check if the map
-  implementation defines a `__deriving__/2` callback. If so, the callback
+  implementation defines a `__deriving__/3` callback. If so, the callback
   is invoked, otherwise an implementation that simply points to the map
   one is automatically derived.
 
@@ -3125,18 +3125,18 @@ defmodule Kernel do
           other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
         end, fields)
 
+        @struct :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
+
         case Module.get_attribute(__MODULE__, :derive) do
-          nil ->
+          [] ->
             :ok
           derive ->
-            env = __ENV__
-            struct = :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
-            :lists.foreach(fn proto -> Protocol.__derive__(proto, struct, env) end, derive)
+            Protocol.__derive__(derive, __MODULE__, __ENV__)
         end
 
         @spec __struct__() :: t
         def __struct__() do
-          %{unquote_splicing(Macro.escape(fields)), __struct__: __MODULE__}
+          @struct
         end
       end
 
