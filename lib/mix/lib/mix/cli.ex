@@ -113,9 +113,7 @@ defmodule Mix.CLI do
   defp load_dot_config do
     path = Path.expand("~/.mix/config.exs")
     if File.regular?(path) do
-      path
-      |> Mix.Config.read!()
-      |> Mix.Config.persist()
+      Mix.Task.run "loadconfig", [path]
     end
   end
 

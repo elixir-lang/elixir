@@ -16,18 +16,25 @@ defmodule Mix.Tasks.LoadconfigTest do
     :ok
   end
 
-  test "reads and persists application configuration" do
+  test "reads and persists project configuration" do
     Mix.Project.push MixTest.Case.Sample
 
     in_fixture "no_mixfile", fn ->
       write_config """
-      [my_app: [key: :value]]
+      [my_app: [key: :project]]
       """
 
       assert Application.fetch_env(:my_app, :key) == :error
-      Mix.Tasks.Loadconfig.run []
-      assert Application.fetch_env(:my_app, :key) == {:ok, :value}
+      Mix.Task.run "loadconfig", []
+      assert Application.fetch_env(:my_app, :key) == {:ok, :project}
+
+      # App configuration should have lower precedence
       :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
+      assert Application.fetch_env(:my_app, :key) == {:ok, :project}
+
+      # laodconfig can be called multiple times
+      # Later values should have higher precedence
+      Mix.Task.run "loadconfig", [fixture_path("configs/good_config.exs")]
       assert Application.fetch_env(:my_app, :key) == {:ok, :value}
     end
   end
