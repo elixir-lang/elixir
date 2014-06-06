@@ -797,7 +797,7 @@ defmodule Module do
   end
 
   defp warn_info([entry|_]) do
-    opts = elem(entry, size(entry) - 1)
+    opts = elem(entry, tuple_size(entry) - 1)
     Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
   end
 

@@ -21,7 +21,7 @@ defmodule String.Unicode do
       _bidi_mirror, _unicode_1, _iso,
       upper, lower, title ] = :binary.split(line, ";", [:global])
 
-    title = :binary.part(title, 0, size(title) - 1)
+    title = :binary.part(title, 0, byte_size(title) - 1)
 
     cond do
       upper != "" or lower != "" or title != "" ->
@@ -215,35 +215,35 @@ defmodule String.Graphemes do
   # Break on control
   for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      {:binary.part(string, 0, unquote(size(codepoint))), rest}
+      {:binary.part(string, 0, unquote(byte_size(codepoint))), rest}
     end
   end
 
   # Break on Prepend*
   # for codepoint <- cluster["Prepend"] do
   #   def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-  #     next_prepend(rest, string, unquote(size(codepoint)))
+  #     next_prepend(rest, string, unquote(byte_size(codepoint)))
   #   end
   # end
 
   # Handle Hangul L
   for codepoint <- cluster["L"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_hangul_l(rest, string, unquote(size(codepoint)))
+      next_hangul_l(rest, string, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Hangul T
   for codepoint <- cluster["T"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_hangul_t(rest, string, unquote(size(codepoint)))
+      next_hangul_t(rest, string, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Regional
   for codepoint <- cluster["Regional_Indicator"] do
     def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_regional(rest, string, unquote(size(codepoint)))
+      next_regional(rest, string, unquote(byte_size(codepoint)))
     end
   end
 
@@ -263,19 +263,19 @@ defmodule String.Graphemes do
   # Handle Hangul L
   for codepoint <- cluster["L"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_l(rest, string, size + unquote(size(codepoint)))
+      next_hangul_l(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LV"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_v(rest, string, size + unquote(size(codepoint)))
+      next_hangul_v(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LVT"] do
     defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_t(rest, string, size + unquote(size(codepoint)))
+      next_hangul_t(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
@@ -286,7 +286,7 @@ defmodule String.Graphemes do
   # Handle Hangul V
   for codepoint <- cluster["V"] do
     defp next_hangul_v(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_v(rest, string, size + unquote(size(codepoint)))
+      next_hangul_v(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
@@ -297,7 +297,7 @@ defmodule String.Graphemes do
   # Handle Hangul T
   for codepoint <- cluster["T"] do
     defp next_hangul_t(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_t(rest, string, size + unquote(size(codepoint)))
+      next_hangul_t(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
@@ -308,7 +308,7 @@ defmodule String.Graphemes do
   # Handle regional
   for codepoint <- cluster["Regional_Indicator"] do
     defp next_regional(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_regional(rest, string, size + unquote(size(codepoint)))
+      next_regional(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
@@ -319,7 +319,7 @@ defmodule String.Graphemes do
   # Handle Extend+SpacingMark
   for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
     defp next_extend(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_extend(rest, string, size + unquote(size(codepoint)))
+      next_extend(rest, string, size + unquote(byte_size(codepoint)))
     end
   end
 
@@ -330,7 +330,7 @@ defmodule String.Graphemes do
   # Handle Prepend
   # for codepoint <- cluster["Prepend"] do
   #   defp next_prepend(<< unquote(codepoint), rest :: binary >>, string, size) do
-  #     next_prepend(rest, string, size + unquote(size(codepoint)))
+  #     next_prepend(rest, string, size + unquote(byte_size(codepoint)))
   #   end
   # end
   #

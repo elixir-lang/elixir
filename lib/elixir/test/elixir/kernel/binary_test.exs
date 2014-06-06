@@ -42,7 +42,7 @@ bar """
   end
 
   test :utf8 do
-    assert size(" ゆんゆん") == 13
+    assert byte_size(" ゆんゆん") == 13
   end
 
   test :utf8_char do

@@ -192,7 +192,7 @@ defmodule IO.ANSI.Docs do
     |> handle_links
     |> handle_inline(nil, [], [], options)
     |> String.split(~r{\s})
-    |> write_with_wrap(options[:width] - size(indent), indent, from_list)
+    |> write_with_wrap(options[:width] - byte_size(indent), indent, from_list)
 
     unless from_list, do: IO.puts(IO.ANSI.reset)
   end

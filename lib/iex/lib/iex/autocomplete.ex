@@ -250,10 +250,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_hint(%{kind: :module, name: name}, hint) do
-    :binary.part(name, size(hint), size(name) - size(hint)) <> "."
+    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint)) <> "."
   end
 
   defp to_hint(%{kind: :function, name: name}, hint) do
-    :binary.part(name, size(hint), size(name) - size(hint))
+    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint))
   end
 end

@@ -1183,8 +1183,8 @@ defmodule String do
   end
 
   defp do_ends_with(string, suffix) when is_binary(suffix) do
-    string_size = size(string)
-    suffix_size = size(suffix)
+    string_size = byte_size(string)
+    suffix_size = byte_size(suffix)
     scope = {string_size - suffix_size, suffix_size}
     (suffix_size <= string_size) and (:nomatch != :binary.match(string, suffix, [scope: scope]))
   end

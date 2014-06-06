@@ -348,63 +348,63 @@ end
 defmodule Kernel.QuoteTest.ImportsHygieneTest do
   use ExUnit.Case, async: true
 
-  defmacrop get_bin_size do
+  defmacrop get_list_length do
     quote do
-      size("hello")
+      length('hello')
     end
   end
 
-  defmacrop get_bin_size_with_partial do
+  defmacrop get_list_length_with_partial do
     quote do
-      (&size(&1)).("hello")
+      (&length(&1)).('hello')
     end
   end
 
-  defmacrop get_bin_size_with_function do
+  defmacrop get_list_length_with_function do
     quote do
-      (&size/1).("hello")
+      (&length/1).('hello')
     end
   end
 
   test :expand_imports do
-    import Kernel, except: [size: 1]
-    assert get_bin_size == 5
-    assert get_bin_size_with_partial == 5
-    assert get_bin_size_with_function == 5
+    import Kernel, except: [length: 1]
+    assert get_list_length == 5
+    assert get_list_length_with_partial == 5
+    assert get_list_length_with_function == 5
   end
 
-  defmacrop get_dict_size do
-    import Kernel, except: [size: 1]
+  defmacrop get_string_length do
+    import Kernel, except: [length: 1]
 
     quote do
-      size([a: 1, b: 2])
+      length("hello")
     end
   end
 
   test :lazy_expand_imports do
-    import Kernel, except: [size: 1]
-    import Dict, only: [size: 1]
-    assert get_dict_size == 2
+    import Kernel, except: [length: 1]
+    import String, only: [length: 1]
+    assert get_string_length == 5
   end
 
   test :lazy_expand_imports_no_conflicts do
-    import Kernel, except: [size: 1]
-    import Dict, only: [size: 1]
+    import Kernel, except: [length: 1]
+    import String, only: [length: 1]
 
-    assert get_bin_size == 5
-    assert get_bin_size_with_partial == 5
-    assert get_bin_size_with_function == 5
+    assert get_list_length == 5
+    assert get_list_length_with_partial == 5
+    assert get_list_length_with_function == 5
   end
 
-  defmacrop with_size do
+  defmacrop with_length do
     quote do
-      import Kernel, except: [size: 1]
-      import Dict, only: [size: 1]
-      size("foo")
+      import Kernel, except: [length: 1]
+      import String, only: [length: 1]
+      length('hello')
     end
   end
 
   test :explicitly_overridden_imports do
-    assert with_size == 3
+    assert with_length == 5
   end
 end
