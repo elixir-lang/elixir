@@ -82,9 +82,13 @@ defmodule Mix.Tasks.Test do
 
       mix test --include external --exclude test
 
-  When filtering tests by line number the following styles are equivalent:
+  In case a single file is being tested, it is possible pass a specific
+  line number:
 
       mix test test/some/particular/file_test.exs:12
+
+  Which is equivalent to:
+
       mix test --only line:12 test/some/particular/file_test.exs
 
   ## Configuration

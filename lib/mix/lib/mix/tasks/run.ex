@@ -22,6 +22,7 @@ defmodule Mix.Tasks.Run do
 
   ## Command line options
 
+  * `--config`, `-c` - loads the given configuration file
   * `--eval`, `-e` - evaluate the given code
   * `--require`, `-r` - require pattern before running the command
   * `--parallel-require`, `-pr` - requires pattern in parallel
@@ -33,8 +34,8 @@ defmodule Mix.Tasks.Run do
   """
   def run(args) do
     {opts, head, _} = OptionParser.parse_head(args,
-      aliases: [r: :require, pr: :parallel_require, e: :eval],
-      switches: [parallel_require: :keep, require: :keep, eval: :keep])
+      aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
+      switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep])
 
     # Require the project to be available
     Mix.Project.get!
@@ -47,37 +48,12 @@ defmodule Mix.Tasks.Run do
       end
 
     System.argv(argv)
+    process_config opts
 
     # Start app after rewriting System.argv,
     # but before requiring and evaling
     Mix.Task.run "app.start", args
-
-    Enum.each opts, fn({key, value}) ->
-      case key do
-        :parallel_require ->
-          case filter_patterns(value) do
-            [] ->
-              Mix.raise "No files matched pattern #{inspect value} given to --parallel-require"
-
-            filtered ->
-              Kernel.ParallelRequire.files(filtered)
-          end
-
-        :require ->
-          case filter_patterns(value) do
-            [] ->
-              Mix.raise "No files matched pattern #{inspect value} given to --require"
-
-            filtered ->
-              Enum.each(filtered, &Code.require_file(&1))
-          end
-
-        :eval ->
-          Code.eval_string(value)
-        _ ->
-          :ok
-      end
-    end
+    process_load opts
 
     if file do
       if File.regular?(file) do
@@ -89,7 +65,39 @@ defmodule Mix.Tasks.Run do
     if opts[:no_halt], do: :timer.sleep(:infinity)
   end
 
+  defp process_config(opts) do
+    Enum.each opts, fn
+      {:config, value} ->
+        Mix.Task.run "loadconfig", [value]
+      _ ->
+        :ok
+    end
+  end
+
+  defp process_load(opts) do
+    Enum.each opts, fn
+      {:parallel_require, value} ->
+        case filter_patterns(value) do
+          [] ->
+            Mix.raise "No files matched pattern #{inspect value} given to --parallel-require"
+          filtered ->
+            Kernel.ParallelRequire.files(filtered)
+        end
+      {:require, value} ->
+        case filter_patterns(value) do
+          [] ->
+            Mix.raise "No files matched pattern #{inspect value} given to --require"
+          filtered ->
+            Enum.each(filtered, &Code.require_file(&1))
+        end
+      {:eval, value} ->
+        Code.eval_string(value)
+      _ ->
+        :ok
+    end
+  end
+
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
+    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &:filelib.is_regular(&1))
   end
 end

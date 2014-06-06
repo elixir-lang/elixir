@@ -26,6 +26,17 @@ defmodule GenServerTest do
     def handle_cast(request, state) do
       super(request, state)
     end
+
+    def terminate(_reason, _state) do
+      # There is a race condition if the agent is
+      # restarted too fast and it is registered.
+      try do
+        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+      rescue
+        _ -> :ok
+      end
+      :ok
+    end
   end
 
   test "start_link/2, call/2 and cast/2" do
