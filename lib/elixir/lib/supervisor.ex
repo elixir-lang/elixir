@@ -195,6 +195,10 @@ defmodule Supervisor do
   an erroneous value, the supervisor will first terminate all already
   started child processes with reason `:shutdown` and then terminate
   itself and return `{:error, {:shutdown, reason}}`.
+
+  Note that the `Supervisor` is linked to the parent process
+  and will exit not only on crashes but also if the parent process
+  exits with `:normal` reason.
   """
   @spec start_link([tuple], options) :: on_start
   def start_link(children, options) when is_list(children) do

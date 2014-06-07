@@ -269,6 +269,11 @@ defmodule GenServer do
   passing the given `args` to initialize it. To ensure a synchronized start-up
   procedure, this function does not return until `init/1` has returned.
 
+  Note that a `GenServer` started with `start_link/3` is linked to the
+  parent process and will exit in case of crashes. The GenServer will also
+  exit due to the `:normal` reasons in case it is configured to trap exits
+  in the `init/1` callback.
+
   ## Options
 
   The `:name` option is used for name registration as described in the module
