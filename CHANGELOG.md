@@ -3,16 +3,26 @@
 ## v0.14.0-dev
 
 * Enhancements
+  * [ExUnit] Add `on_exit/1` callbacks that are guaranteed to run once the test process exits and always in another process
   * [Kernel] Store documentation in the abstract code to avoid loading them when the module is loaded
   * [Kernel] Add `get_in/2`, `put_in/3`, `update_in/3` and `get_and_update_in/3` to handle nested data structure operations
   * [Kernel] Add `get_in/1`, `put_in/2`, `update_in/2` and `get_and_update_in/2` to handle nested data structure operations via paths
   * [Mix] Add `Mix.Config` to ease definition of configuration files
+  * [Mix] Add `mix loadconfig` task that can be called multiple times to load external configs
+  * [Mix] Support `--config` option on `mix run`
+  * [Mix] Support `HTTP_PROXY` and `HTTPS_PROXY` on Mix url commands
+  * [Mix] Support `--names` options in `mix help` which emit only names (useful for autocompletion)
   * [Protocol] Add `Protocol.consolidate/2`, `Protocol.consolidated?/1` and a `mix compile.protocols` task for protocol consolidation
+  * [Protocol] Add `Protocol.derive/3` for runtime deriving of a struct
   * [String] Add `String.chunk/2`
   * [Struct] Add support for `@derive` before `defstruct/2` definitions
 
 * Bug fixes
+  * [File] `File.rm` now consistently deletes read-only across operating systems
   * [Kernel] Ensure Mix `_build` structure works on Windows when copying projects
+  * [Kernel] Ensure `1.0E10` (with uppercase E) is also valid syntax
+  * [Mix] Fix `mix do` task for Windows' powershell users
+  * [Path] Fix `Path.absname("/")` and `Path.expand("/")` to return the absolute path `"/"`.
 
 * Soft deprecations (no warnings emitted)
   * [Kernel] `size/1` is deprecated, please use `byte_size/1` or `tuple_size/1` instead
@@ -25,11 +35,13 @@
   * [Kernel] `defexception/3` is deprecated in favor of `defexception/1`
   * [Kernel] `raise/3` is deprecated in favor of `reraise/2`
   * [Kernel] `set_elem/3` is deprecated in favor of `put_elem/3`
+  * [Kernel] Passing an atom `var!/1` is deprecated, variables can be built dynamically with `Macro.var/2`
   * [Mix] Exceptions that define a `:mix_error` field to be compatible with Mix are no longer supported. Instead please provide a `:mix` field and use `Mix.raise/1` and `Mix.raise/2`
 
 * Backwards incompatible changes
   * [Access] `Kernel.access/2` no longer exists and the `Access` protocol now requires `get/2` (instead of `access/2`) and `get_and_update/3` to be implemented
   * [Kernel] Retrieving docs as `module.__info__(:docs)` is no longer supported, please use `Code.get_docs/2` instead
+  * [Kernel] `Code.compiler_options/1` no longer accepts custom options, only the ones specified by Elixir (use mix config instead)
   * [Mix] `mix new` no longer generates a supevision tree by default, please pass `--sup` instead
   * [Task] Tasks are automatically linked to callers and a failure in the task will crash the caller directly
 
