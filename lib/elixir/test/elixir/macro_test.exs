@@ -233,7 +233,7 @@ defmodule MacroTest do
   end
 
   test :var do
-    assert Macro.var(:foo) == {:foo, [], nil}
+    assert Macro.var(:foo, nil) == {:foo, [], nil}
     assert Macro.var(:foo, Other) == {:foo, [], Other}
   end
 

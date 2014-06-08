@@ -112,9 +112,25 @@ defmodule Macro do
   @doc """
   Genrates a AST node representing the variable given
   by the atoms `var` and `context`.
+
+  ## Examples
+
+  In order to build a variable, a context is expected.
+  Most of the times, in order to preserve hygiene, the
+  context must be `__MODULE__`:
+
+      iex> Macro.var(:foo, __MODULE__)
+      {:foo, [], __MODULE__}
+
+  However, if there is a need to access the user variable,
+  nil can be given:
+
+      iex> Macro.var(:foo, nil)
+      {:foo, [], nil}
+
   """
   @spec var(var, context) :: {var, [], context} when var: atom, context: atom
-  def var(var, context \\ nil) when is_atom(var) and is_atom(context) do
+  def var(var, context) when is_atom(var) and is_atom(context) do
     {var, [], context}
   end
 
