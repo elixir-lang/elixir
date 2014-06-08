@@ -110,6 +110,15 @@ defmodule Macro do
   end
 
   @doc """
+  Genrates a AST node representing the variable given
+  by the atoms `var` and `context`.
+  """
+  @spec var(var, context) :: {var, [], context} when var: atom, context: atom
+  def var(var, context \\ nil) when is_atom(var) and is_atom(context) do
+    {var, [], context}
+  end
+
+  @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
   """
   @spec prewalk(t, (t -> t)) :: t

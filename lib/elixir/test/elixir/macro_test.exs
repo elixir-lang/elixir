@@ -232,6 +232,11 @@ defmodule MacroTest do
     end)
   end
 
+  test :var do
+    assert Macro.var(:foo) == {:foo, [], nil}
+    assert Macro.var(:foo, Other) == {:foo, [], Other}
+  end
+
   ## to_string
 
   test :var_to_string do

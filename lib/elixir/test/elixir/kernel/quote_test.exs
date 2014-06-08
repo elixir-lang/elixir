@@ -229,7 +229,7 @@ defmodule Kernel.QuoteTest.VarHygiene do
   end
 
   defmacro cross_module_interference do
-    quote do: var!(:a, Kernel.QuoteTest.VarHygieneTest) = 1
+    quote do: var!(a, Kernel.QuoteTest.VarHygieneTest) = 1
   end
 end
 

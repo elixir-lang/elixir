@@ -2733,6 +2733,8 @@ defmodule Kernel do
   defmacro var!(var, context \\ nil)
 
   defmacro var!(var, context) when is_atom(var) do
+    IO.write :stderr, "passing an atom to var! is deprecated\n" <>
+                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
     do_var!(var, [], context, __CALLER__)
   end
 
