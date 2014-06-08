@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.14.0-dev
+## v0.14.0 (2014-06-08)
 
 * Enhancements
   * [ExUnit] Add `on_exit/1` callbacks that are guaranteed to run once the test process exits and always in another process
