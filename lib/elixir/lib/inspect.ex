@@ -360,7 +360,9 @@ defimpl Inspect, for: Map do
 
   def inspect(map, name, opts) do
     map = :maps.to_list(map)
-    surround_many("%" <> name <> "{", map, "}", opts.limit, traverse_fun(map, opts))
+    left  = concat(["%", name, "{", "\n", " "])
+    right = concat(["\n", "}"])
+    surround_many(left, map, right, opts.limit, traverse_fun(map, opts))
   end
 
   defp traverse_fun(list, opts) do
