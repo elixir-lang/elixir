@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Loadconfig do
   Loads and persists the given configuration.
 
   In case no configuration file is given, it
-  loads the project oe at "config/config.exs".
+  loads the project one at "config/config.exs".
 
   This task is automatically reenabled, so it
   can be called multiple times to load different
