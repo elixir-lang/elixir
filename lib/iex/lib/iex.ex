@@ -371,18 +371,21 @@ defmodule IEx do
   the process information. Let's see an example:
 
       import Enum, only: [map: 2]
-
-      def add(a, b) do
-        c = a + b
-        IEx.pry
+      require IEx
+      
+      defmodule Adder do
+        def add(a, b) do
+          c = a + b
+          IEx.pry
+        end
       end
 
-  When invoking `add(1, 2)`, you will receive a message in
+  When invoking `Adder.add(1, 2)`, you will receive a message in
   your shell to pry the given environment. By allowing it,
   the shell will be reset and you gain access to all variables
   and the lexical scope from above:
 
-      iex(1)> map([a,b,c], &IO.inspect(&1))
+      pry(1)> map([a,b,c], &IO.inspect(&1))
       1
       2
       3
@@ -392,7 +395,7 @@ defmodule IEx do
   process can be freed by calling `respawn`, which starts a
   new IEx evaluation cycle, letting this one go:
 
-      iex(2)> respawn
+      pry(2)> respawn
       true
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
