@@ -111,6 +111,10 @@ defmodule Mix.Dep.Loader do
       invalid_dep_format(other)
     end
 
+    unless Keyword.keyword?(opts) do
+      invalid_dep_format(other)
+    end
+
     bin_app = Atom.to_string(app)
 
     dest  = Path.join(Mix.Project.deps_path, bin_app)
