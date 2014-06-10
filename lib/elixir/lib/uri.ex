@@ -156,15 +156,15 @@ defmodule URI do
   """
   def encode(s), do: for(<<c <- s>>, into: "", do: percent(c))
 
-  defp percent(32), do: <<?+>>
+  defp percent(?~), do: <<?~>>
   defp percent(?-), do: <<?->>
   defp percent(?_), do: <<?_>>
   defp percent(?.), do: <<?.>>
 
   defp percent(c)
-      when c >= ?0 and c <= ?9
-      when c >= ?a and c <= ?z
-      when c >= ?A and c <= ?Z do
+      when c in ?0..?9
+      when c in ?a..?z
+      when c in ?A..?Z do
     <<c>>
   end
 
@@ -187,11 +187,11 @@ defmodule URI do
   end
 
   def decode(<<?%, hex1, hex2, tail :: binary >>, uri) do
-    << bsl(hex_to_dec(hex1, uri), 4) + hex_to_dec(hex2, uri) >> <> decode(tail, uri)
+    <<bsl(hex_to_dec(hex1, uri), 4) + hex_to_dec(hex2, uri)>> <> decode(tail, uri)
   end
 
   def decode(<<head, tail :: binary >>, uri) do
-    <<check_plus(head)>> <> decode(tail, uri)
+    <<head>> <> decode(tail, uri)
   end
 
   def decode(<<>>, _uri), do: <<>>
@@ -202,9 +202,6 @@ defmodule URI do
   defp hex_to_dec(_n, uri) do
     raise ArgumentError, "malformed URI #{inspect uri}"
   end
-
-  defp check_plus(?+), do: 32
-  defp check_plus(c),  do: c
 
   @doc """
   Parses a URI into components.
