@@ -187,7 +187,7 @@ defmodule URI do
   end
 
   def decode(<<?%, hex1, hex2, tail :: binary >>, uri) do
-    << bsl(hex2dec(hex1, uri), 4) + hex2dec(hex2, uri) >> <> decode(tail, uri)
+    << bsl(hex_to_dec(hex1, uri), 4) + hex_to_dec(hex2, uri) >> <> decode(tail, uri)
   end
 
   def decode(<<head, tail :: binary >>, uri) do
@@ -196,10 +196,10 @@ defmodule URI do
 
   def decode(<<>>, _uri), do: <<>>
 
-  defp hex2dec(n, _uri) when n in ?A..?F, do: n - ?A + 10
-  defp hex2dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
-  defp hex2dec(n, _uri) when n in ?0..?9, do: n - ?0
-  defp hex2dec(_n, uri) do
+  defp hex_to_dec(n, _uri) when n in ?A..?F, do: n - ?A + 10
+  defp hex_to_dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
+  defp hex_to_dec(n, _uri) when n in ?0..?9, do: n - ?0
+  defp hex_to_dec(_n, uri) do
     raise ArgumentError, "malformed URI #{inspect uri}"
   end
 
