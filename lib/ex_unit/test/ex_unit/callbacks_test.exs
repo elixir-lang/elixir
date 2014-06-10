@@ -53,7 +53,7 @@ defmodule ExUnit.CallbacksTest do
 
   test "doesn't choke on setup_all errors" do
     defmodule SetupAllTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       setup_all _ do
         :ok = error
@@ -72,7 +72,7 @@ defmodule ExUnit.CallbacksTest do
 
   test "doesn't choke on on_exit errors" do
     defmodule OnExitErrorTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       test "ok" do
         on_exit fn -> :ok = error end
@@ -105,9 +105,37 @@ defmodule ExUnit.CallbacksTest do
     on_exit fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end
   end
 
+  test "kills test process only after on_exit runs" do
+    defmodule OnExitAliveTest do
+      use ExUnit.Case
+
+      setup do
+        pid = spawn_link fn ->
+          Process.flag(:trap_exit, true)
+          receive do: ({:EXIT, _, _} -> :ok)
+        end
+
+        on_exit fn ->
+          assert Process.alive?(pid)
+          IO.puts "on_exit run"
+        end
+
+        :ok
+      end
+
+      test "ok" do
+        :ok
+      end
+    end
+
+    output = capture_io(fn -> ExUnit.run end)
+    assert output =~ "on_exit run"
+    assert output =~ "1 tests, 0 failures"
+  end
+
   test "runs multiple on_exit exits and overrides by ref" do
     defmodule OnExitSuccessTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       setup do
         on_exit fn ->
@@ -166,7 +194,7 @@ defmodule ExUnit.CallbacksTest do
 
   test "runs multiple on_exit on failure" do
     defmodule OnExitFailureTest do
-      use ExUnit.Case, async: false
+      use ExUnit.Case
 
       setup do
         on_exit fn ->

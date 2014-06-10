@@ -138,7 +138,7 @@ defmodule ExUnit.Runner do
   end
 
   defp spawn_case(config, test_case, tests) do
-    self_pid = self
+    parent = self
 
     {case_pid, case_ref} =
       spawn_monitor(fn ->
@@ -148,12 +148,14 @@ defmodule ExUnit.Runner do
           {:ok, test_case, context} ->
             Enum.each(tests, &run_test(config, &1, context))
             test_case = exec_case_teardown(test_case, context)
-            send self_pid, {self, :case_finished, test_case, []}
+            send parent, {self, :case_finished, test_case, []}
 
           {:error, test_case} ->
             failed_tests = Enum.map(tests, & %{&1 | state: {:invalid, test_case}})
-            send self_pid, {self, :case_finished, test_case, failed_tests}
+            send parent, {self, :case_finished, test_case, failed_tests}
         end
+
+        receive do: ({^parent, :done} -> :done)
       end)
 
     {test_case, pending} =
@@ -165,7 +167,9 @@ defmodule ExUnit.Runner do
           {test_case, []}
       end
 
-    {exec_on_exit(test_case, case_pid), pending}
+    test_case = exec_on_exit(test_case, case_pid)
+    send case_pid, {parent, :done}
+    {test_case, pending}
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
@@ -197,7 +201,7 @@ defmodule ExUnit.Runner do
   end
 
   defp spawn_test(_config, test, context) do
-    self_pid = self
+    parent = self()
 
     {test_pid, test_ref} =
       spawn_monitor(fn ->
@@ -214,7 +218,8 @@ defmodule ExUnit.Runner do
             end
           end)
 
-        send self_pid, {self, :test_finished, %{test | time: us}}
+        send parent, {self, :test_finished, %{test | time: us}}
+        receive do: ({^parent, :done} -> :done)
       end)
 
     test =
@@ -225,7 +230,9 @@ defmodule ExUnit.Runner do
           %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
       end
 
-    exec_on_exit(test, test_pid)
+    test = exec_on_exit(test, test_pid)
+    send test_pid, {parent, :done}
+    test
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
