@@ -79,8 +79,8 @@ defmodule Mix.CLI do
 
         cond do
           Map.get(exception, :mix_error, false) ->
-            # IO.write :stderr, "warning: setting mix_error: true in Mix exceptions is deprecated, " <>
-            #                   "please define a `:mix` field and use Mix.raise to raise them"
+            IO.write :stderr, "warning: setting mix_error: true in Mix exceptions is deprecated, " <>
+                              "please define a `:mix` field and use Mix.raise to raise them"
             Mix.shell.error "** (Mix) #{Exception.message(exception)}"
 
           info = Map.get(exception, :mix) ->

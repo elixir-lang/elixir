@@ -221,11 +221,6 @@ defmodule Kernel do
   end
 
   @doc false
-  def set_elem(tuple, index, value) do
-    :erlang.setelement(index + 1, tuple, value)
-  end
-
-  @doc false
   def size(arg) do
     :erlang.size(arg)
   end
@@ -1202,7 +1197,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Sets the element in `tuple` at the zero-based `index` to the given `value`.
+  Puts the element in `tuple` at the zero-based `index` to the given `value`.
 
   Inlined by the compiler.
 
@@ -2732,12 +2727,6 @@ defmodule Kernel do
   """
   defmacro var!(var, context \\ nil)
 
-  defmacro var!(var, context) when is_atom(var) do
-    IO.write :stderr, "passing an atom to var! is deprecated\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
-    do_var!(var, [], context, __CALLER__)
-  end
-
   defmacro var!({name, meta, atom}, context) when is_atom(name) and is_atom(atom) do
     do_var!(name, meta, context, __CALLER__)
   end
@@ -3267,23 +3256,6 @@ defmodule Kernel do
         end
 
         defoverridable message: 1
-      end
-    end
-  end
-
-  @doc false
-  defmacro defexception(name, fields, opts \\ []) do
-    {fields, opts} =
-      case is_list(fields) and Keyword.get(fields, :do, false) do
-        false -> {fields, opts}
-        other -> {Keyword.delete(fields, :do), [do: other]}
-      end
-
-    quote do
-      fields = unquote(fields)
-      Kernel.defmodule unquote(name) do
-        defexception fields
-        unquote(Keyword.get opts, :do)
       end
     end
   end

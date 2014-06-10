@@ -580,34 +580,6 @@ defmodule List do
     end
   end
 
-  @doc false
-  def from_char_data(char_data) do
-    case :unicode.characters_to_list(char_data) do
-      result when is_list(result) ->
-        {:ok, result}
-
-      {:error, _, _} = error ->
-        error
-
-      {:incomplete, _, _} = incomplete ->
-        incomplete
-    end
-  end
-
-  @doc false
-  def from_char_data!(char_data) do
-    case :unicode.characters_to_list(char_data) do
-      result when is_list(result) ->
-        result
-
-      {:error, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      {:incomplete, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
-
   ## Helpers
 
   # replace_at

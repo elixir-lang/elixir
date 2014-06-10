@@ -42,11 +42,6 @@ defprotocol Access do
   """
   @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
-
-  @doc false
-  Kernel.def access(container, key) do
-    get(container, key)
-  end
 end
 
 defimpl Access, for: List do

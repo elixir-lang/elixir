@@ -1356,40 +1356,4 @@ defmodule String do
   def to_float(string) do
     :erlang.binary_to_float(string)
   end
-
-  @doc false
-  def from_char_data(binary) when is_binary(binary) do
-    binary
-  end
-
-  def from_char_data(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
-      result when is_binary(result) ->
-        {:ok, result}
-
-      {:error, _, _} = error ->
-        error
-
-      {:incomplete, _, _} = incomplete ->
-        incomplete
-    end
-  end
-
-  @doc false
-  def from_char_data!(binary) when is_binary(binary) do
-    binary
-  end
-
-  def from_char_data!(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
-      result when is_binary(result) ->
-        result
-
-      {:error, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      {:incomplete, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
 end
