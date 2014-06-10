@@ -5,7 +5,8 @@ defmodule URITest do
 
   test :encode do
     assert URI.encode("4_test.is-s~") == "4_test.is-s~"
-    assert URI.encode("\r\n&<%>\" ゆ") == "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
+    assert URI.encode("\r\n&<%>\" ゆ", &URI.char_unreserved?/1) ==
+           "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
   test :encode_query do

@@ -145,30 +145,53 @@ defmodule URI do
     encode(to_string(k)) <> "=" <> encode(to_string(v))
   end
 
+  # RFC3986, section 2.2
+  @doc """
+  Returns true if the character is a "reserved" character in a URI.
+  """
+  def char_reserved?(c) do
+    c in ':/?#[]@!$&\'()*+,;='
+  end
+
+  # RFC3986, section 2.3
+  @doc """
+  Returns true if the character is a "unreserved" character in a URI.
+  """
+  def char_unreserved?(c) do
+    c in ?0..?9 or
+    c in ?a..?z or
+    c in ?A..?Z or
+    c in '~_-.'
+  end
+
+  @doc """
+  Returns true if the character is allowed unescaped in a URI.
+  """
+  def char_unescaped?(c) do
+    char_reserved?(c) or char_unreserved?(c)
+  end
+
   @doc """
   Percent-escape a URI.
+  Accepts `predicate` function as an argument to specify if char can be left as is.
 
   ## Example
 
-      iex> URI.encode("http://elixir-lang.org/getting_started/2.html")
-      "http%3A%2F%2Felixir-lang.org%2Fgetting_started%2F2.html"
+      iex> URI.encode("ftp://s-ite.tld/?value=put it+й")
+      "ftp://s-ite.tld/?value=put%20it+%D0%B9"
 
   """
-  def encode(s), do: for(<<c <- s>>, into: "", do: percent(c))
-
-  defp percent(?~), do: <<?~>>
-  defp percent(?-), do: <<?->>
-  defp percent(?_), do: <<?_>>
-  defp percent(?.), do: <<?.>>
-
-  defp percent(c)
-      when c in ?0..?9
-      when c in ?a..?z
-      when c in ?A..?Z do
-    <<c>>
+  def encode(str, predicate \\ &char_unescaped?/1) do
+    for <<c <- str>>, into: "", do: percent(c, predicate)
   end
 
-  defp percent(c), do: "%" <> hex(bsr(c, 4)) <> hex(band(c, 15))
+  defp percent(c, predicate) do
+    if predicate.(c) do
+      <<c>>
+    else
+      "%" <> hex(bsr(c, 4)) <> hex(band(c, 15))
+    end
+  end
 
   defp hex(n) when n <= 9, do: <<n + ?0>>
   defp hex(n), do: <<n + ?A - 10>>
