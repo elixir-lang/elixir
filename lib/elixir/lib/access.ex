@@ -4,8 +4,9 @@ defprotocol Access do
   empowers the nested update functions in Kernel.
 
   For instance, `foo[bar]` translates `Access.get(foo, bar)`.
-  `Kernel.get_in/2`, `Kernel.put_in/3` and `Kernel.update_in/3`
-  are also all powered by the Access protocol.
+  `Kernel.get_in/2`, Kernel.put_in/3`, `Kernel.update_in/3` and
+  `Kernel.get_and_update_in/3` are also all powered by the Access
+  protocol.
 
   This protocol is implemented by default for keywords, maps
   and dictionary like types:
@@ -22,19 +23,24 @@ defprotocol Access do
       iex> star_ratings[1.5]
       "★☆"
 
-  The key access must be implemented using the `===` operator.
+  The key comparison must be implemented using the `===` operator.
   """
 
   @doc """
   Accesses the given key in the container.
   """
+  @spec get(t, term) :: t
   def get(container, key)
 
   @doc """
-  Gets a value and updates the given key in one pass.
+  Gets a value and updates the given `key` in one pass.
 
-  In case the key is not set, invokes the function passing nil.
+  The function must receive the value for the given `key`
+  (or `nil` if the key doesn't exist in `container`) and
+  the function must return a tuple containing the `get`
+  value and the new value to be stored in the `container`.
   """
+  @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
 
   @doc false
