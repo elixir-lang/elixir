@@ -10,7 +10,7 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--bare] [--module MODULE] [--umbrella]
+      mix new PATH [--sup] [--module MODULE] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
