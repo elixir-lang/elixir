@@ -3,10 +3,10 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule URITest do
   use ExUnit.Case, async: true
 
-  test :encode_with_binary do
-    raw = <<13, 10, 38, 60, 62, 34, 32, 227, 130, 134, 227, 130, 147, 227, 130, 134, 227, 130, 147>>
-    expected = "%0D%0A%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
-    assert URI.encode(raw) == expected
+  test :encode do
+    assert URI.encode("4_test.is-s~") == "4_test.is-s~"
+    assert URI.encode("\r\n&<%>\" ゆ", &URI.char_unreserved?/1) ==
+           "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
   test :encode_query do
@@ -44,11 +44,12 @@ defmodule URITest do
   end
 
   test :decode do
-    data_to_be_decoded = "%26%3C%3E%22+%E3%82%86%E3%82%93%E3%82%86%E3%82%93"
-    assert URI.decode(data_to_be_decoded) == "&<>\" ゆんゆん"
+    assert URI.decode("%0D%0A%26%3C%25%3E%22%20%E3%82%86") == "\r\n&<%>\" ゆ"
+    assert URI.decode("%2f%41%4a%55") == "/AJU"
+    assert URI.decode("4_t+st.is-s~") == "4_t+st.is-s~"
 
-    assert_raise ArgumentError, ~r/malformed URI/, fn ->
-      assert URI.decode("% invalid")
+    assert_raise ArgumentError, ~R/malformed URI/, fn ->
+      URI.decode("% invalid")
     end
   end
 
@@ -179,10 +180,5 @@ defmodule URITest do
     assert to_string(URI.parse("http://google.com/elixir")) == "http://google.com/elixir"
     assert to_string(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
     assert to_string(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
-  end
-
-  test :escape do
-    assert URI.decode("%2f%41%4a%55") == "/AJU"
-    assert URI.decode("%2F%41%4A%55") == "/AJU"
   end
 end
