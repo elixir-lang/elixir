@@ -9,10 +9,16 @@ defmodule URITest do
            "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
+  test :encode_www_form do
+    assert URI.encode_www_form("4test ~1.x") == "4test+~1.x"
+    assert URI.encode_www_form("poll:146%") == "poll%3A146%25"
+    assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
+  end
+
   test :encode_query do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
-    assert URI.encode_query([{"foo", :bar}]) == "foo=bar"
+    assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{"foo", 'bar'}])

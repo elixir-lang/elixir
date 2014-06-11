@@ -142,7 +142,8 @@ defmodule URI do
   end
 
   defp pair({k, v}) do
-    encode(to_string(k)) <> "=" <> encode(to_string(v))
+    encode_www_form(to_string(k)) <>
+    "=" <> encode_www_form(to_string(v))
   end
 
   @doc """
@@ -154,7 +155,6 @@ defmodule URI do
     c in ':/?#[]@!$&\'()*+,;='
   end
 
-  #
   @doc """
   Checks if the character is a "unreserved" character in a URI.
 
@@ -189,6 +189,24 @@ defmodule URI do
   """
   def encode(str, predicate \\ &char_unescaped?/1) do
     for <<c <- str>>, into: "", do: percent(c, predicate)
+  end
+
+  @doc """
+  Encode a string as "x-www-urlencoded".
+
+  ## Example
+
+      iex> URI.encode_www_form("put: it+й")
+      "put%3A+it%2B%D0%B9"
+
+  """
+  def encode_www_form(str) do
+    for <<c <- str>>, into: "" do
+      case percent(c, &char_unreserved?/1) do
+        "%20" -> "+"
+        pct   -> pct
+      end
+    end
   end
 
   defp percent(c, predicate) do
