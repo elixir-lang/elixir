@@ -145,17 +145,20 @@ defmodule URI do
     encode(to_string(k)) <> "=" <> encode(to_string(v))
   end
 
-  # RFC3986, section 2.2
   @doc """
-  Returns true if the character is a "reserved" character in a URI.
+  Checks if the character is a "reserved" character in a URI.
+
+  Reserved characters are specified in RFC3986, section 2.2.
   """
   def char_reserved?(c) do
     c in ':/?#[]@!$&\'()*+,;='
   end
 
-  # RFC3986, section 2.3
+  #
   @doc """
-  Returns true if the character is a "unreserved" character in a URI.
+  Checks if the character is a "unreserved" character in a URI.
+
+  Unreserved characters are specified in RFC3986, section 2.3.
   """
   def char_unreserved?(c) do
     c in ?0..?9 or
@@ -165,7 +168,10 @@ defmodule URI do
   end
 
   @doc """
-  Returns true if the character is allowed unescaped in a URI.
+  Checks if the character is allowed unescaped in a URI.
+
+  This is the default used by `URI.encode/2` where both
+  reserved and unreserved characters are kept unescaped.
   """
   def char_unescaped?(c) do
     char_reserved?(c) or char_unreserved?(c)
