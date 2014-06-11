@@ -32,12 +32,19 @@ defmodule Mix.Shell do
   defcallback cmd(command :: String.t) :: integer
 
   @doc """
-  Returns if we should output application name to shell.
+  Prints the current application to shell if
+  it was not printed yet.
+  """
+  defcallback print_app() :: any
+
+  @doc """
+  Returns if we should print application name to shell.
+
   Calling this function automatically toggles its value
   to false.
   """
-  def output_app? do
-    Mix.ProjectStack.output_app?
+  def print_app? do
+    Mix.ProjectStack.print_app?
   end
 
   @doc """

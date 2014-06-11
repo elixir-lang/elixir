@@ -7,11 +7,21 @@ defmodule Mix.Shell.IO do
   @behaviour Mix.Shell
 
   @doc """
+  Prints the currently running application if it
+  was not printed yet.
+  """
+  def print_app do
+    if Mix.Shell.print_app? do
+      IO.puts "==> #{Mix.Project.config[:app]}"
+    end
+  end
+
+  @doc """
   Executes the given command and prints its output
   to stdout as it comes.
   """
   def cmd(command) do
-    put_app
+    print_app
     Mix.Shell.cmd(command, &IO.write(&1))
   end
 
@@ -19,7 +29,7 @@ defmodule Mix.Shell.IO do
   Writes a message to the shell followed by new line.
   """
   def info(message) do
-    put_app
+    print_app
     IO.puts IO.ANSI.escape(message)
   end
 
@@ -27,7 +37,7 @@ defmodule Mix.Shell.IO do
   Writes an error message to the shell followed by new line.
   """
   def error(message) do
-    put_app
+    print_app
     IO.puts :stderr, IO.ANSI.escape "%{red,bright}#{message}"
   end
 
@@ -36,7 +46,7 @@ defmodule Mix.Shell.IO do
   input. Input will be consumed until enter is pressed.
   """
   def prompt(message) do
-    put_app
+    print_app
     IO.gets IO.ANSI.escape(message <> " ")
   end
 
@@ -46,7 +56,7 @@ defmodule Mix.Shell.IO do
   regex `~r/^Y(es)?$/i`.
   """
   def yes?(message) do
-    put_app
+    print_app
     got_yes? IO.gets(message <> IO.ANSI.escape(" [Yn] "))
   end
 
@@ -56,10 +66,4 @@ defmodule Mix.Shell.IO do
 
   # The io server may return :eof or :error
   defp got_yes?(_), do: false
-
-  defp put_app do
-    if Mix.Shell.output_app? do
-      IO.puts "==> #{Mix.Project.config[:app]}"
-    end
-  end
 end

@@ -55,8 +55,8 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @spec output_app?() :: boolean
-  def output_app? do
+  @spec print_app?() :: boolean
+  def print_app? do
     get_and_update fn %{stack: stack} = state ->
       case stack do
         [h|t] ->
