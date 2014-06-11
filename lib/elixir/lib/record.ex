@@ -121,6 +121,10 @@ defmodule Record do
       user()        #=> {:user, "José", 25}
       user(age: 26) #=> {:user, "José", 26}
 
+      # To create records from a keyword list variable
+      list = [age: 26]
+      user(list)    #=> {:user, "José", 26}
+
       # To get a field from the record
       user(record, :name) #=> "José"
 
@@ -190,8 +194,9 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
-        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
-        raise ArgumentError, msg
+        quote do
+          Record.__runtime_access__(unquote(atom), unquote(fields), unquote(args))
+        end
     end
   end
 
@@ -204,7 +209,34 @@ defmodule Record do
       Keyword.keyword?(args) ->
         update(atom, fields, record, args, caller)
       true ->
-        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
+        quote do
+          Record.__runtime_access__(unquote(atom), unquote(fields), unquote(record), unquote(args))
+        end
+    end
+  end
+
+  @doc false
+  def __runtime_access__(atom, fields, args) do
+    cond do
+      is_atom(args) ->
+        index(atom, fields, args)
+      Keyword.keyword?(args) ->
+        runtime_create(atom, fields, args)
+      true ->
+        msg = "expected argument to be an atom or a keywords list, got: #{Macro.to_string args}"
+        raise ArgumentError, msg
+    end
+  end
+
+  @doc false
+  def __runtime_access__(atom, fields, record, args) do
+    cond do
+      is_atom(args) ->
+        runtime_get(atom, fields, record, args)
+      Keyword.keyword?(args) ->
+        runtime_update(atom, fields, record, args)
+      true ->
+        msg = "expected argument to be an atom or a keywords list, got: #{Macro.to_string args}"
         raise ArgumentError, msg
     end
   end
@@ -279,4 +311,66 @@ defmodule Record do
   defp find_index([{k, _}|_], k, i), do: i + 2
   defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
+
+  # Gets a record key from the given var. Key can be a variable that resolves to an atom at runtime.
+  defp runtime_get(atom, fields, var, key) do
+    index = find_index(fields, key, 0)
+    if index do
+      :erlang.element(index, var)
+    else
+      raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect key}"
+    end
+  end
+
+  # Creates a new record with the given default fields and keyword values.
+  # Keyword can be a variable that resolves to a keywords list at runtime.
+  defp runtime_create(atom, fields, keyword) do
+    invalid_keys = Enum.filter(keyword, fn({field, _}) ->
+      not Keyword.has_key?(fields, field)
+    end)
+
+    case invalid_keys do
+      [] ->
+        record = :erlang.make_tuple(Enum.count(fields) + 1, atom)
+        {record, _} =
+          Enum.reduce fields, {record, 2}, fn ({field, default}, {tuple, index}) ->
+            case Keyword.has_key?(keyword, field) do
+              true ->
+                {:erlang.setelement(index, tuple, Keyword.get(keyword, field)), index + 1}
+              false ->
+                {:erlang.setelement(index, tuple, default), index + 1}
+            end
+          end
+        record
+      _  ->
+        keys = for {key, _} <- invalid_keys, do: key
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
+    end
+  end
+
+  # Updates a record given by var with the given keyword.
+  # Keyword can be a variable that resolves to a keywords list at runtime.
+  defp runtime_update(atom, fields, record, keyword) do
+    invalid_keys = Enum.filter(keyword, fn({field, _}) ->
+      not Keyword.has_key?(fields, field)
+    end)
+
+    case invalid_keys do
+      [] ->
+        {record, _} =
+          Enum.reduce fields, {record, 2}, fn ({field, _default}, {tuple, index}) ->
+            case Keyword.has_key?(keyword, field) do
+              true ->
+                {:erlang.setelement(index, tuple, Keyword.get(keyword, field)), index + 1}
+              false ->
+                {tuple, index + 1}
+            end
+          end
+        record
+      _  ->
+        keys = for {key, _} <- invalid_keys, do: key
+        raise ArgumentError, "record #{inspect atom} does not have the key: #{inspect hd(keys)}"
+    end
+  end
+
 end
