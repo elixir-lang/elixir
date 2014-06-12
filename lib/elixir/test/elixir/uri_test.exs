@@ -57,6 +57,9 @@ defmodule URITest do
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
       URI.decode("% invalid")
     end
+    assert_raise ArgumentError, ~R/malformed URI/, fn ->
+      URI.decode("invalid%")
+    end
   end
 
   test :parse_http do

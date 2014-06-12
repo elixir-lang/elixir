@@ -230,25 +230,28 @@ defmodule URI do
 
   """
   def decode(uri) do
-    decode(uri, uri)
+    unpercent(uri)
+  catch
+    :malformed_uri ->
+      raise ArgumentError, "malformed URI #{inspect uri}"
   end
 
-  def decode(<<?%, hex1, hex2, tail :: binary >>, uri) do
-    <<bsl(hex_to_dec(hex1, uri), 4) + hex_to_dec(hex2, uri)>> <> decode(tail, uri)
+  defp unpercent(<<?%, hex_1, hex_2, tail :: binary>>) do
+    <<bsl(hex_to_dec(hex_1), 4) + hex_to_dec(hex_2)>> <> unpercent(tail)
+  end
+  defp unpercent(<<?%, _>>), do: throw(:malformed_uri)
+  defp unpercent(<<?%>>),    do: throw(:malformed_uri)
+
+  defp unpercent(<<head, tail :: binary>>) do
+    <<head>> <> unpercent(tail)
   end
 
-  def decode(<<head, tail :: binary >>, uri) do
-    <<head>> <> decode(tail, uri)
-  end
+  defp unpercent(<<>>), do: <<>>
 
-  def decode(<<>>, _uri), do: <<>>
-
-  defp hex_to_dec(n, _uri) when n in ?A..?F, do: n - ?A + 10
-  defp hex_to_dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
-  defp hex_to_dec(n, _uri) when n in ?0..?9, do: n - ?0
-  defp hex_to_dec(_n, uri) do
-    raise ArgumentError, "malformed URI #{inspect uri}"
-  end
+  defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
+  defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
+  defp hex_to_dec(n) when n in ?0..?9, do: n - ?0
+  defp hex_to_dec(_n), do: throw(:malformed_uri)
 
   @doc """
   Parses a URI into components.
