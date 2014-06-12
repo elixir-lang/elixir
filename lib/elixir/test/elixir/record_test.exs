@@ -69,6 +69,102 @@ defmodule RecordTest do
     assert name == "Eric"
   end
 
+  test "create with keywords list variable generates record tuple" do
+    list = [name: "Eric", age: 23]
+    record = user(list)
+    assert user(record, :name) == "Eric"
+    assert user(record, :age) == 23
+  end
+
+  test "create with keywords list variable with invalid key raises" do
+    assert_raise ArgumentError, "record #{inspect __MODULE__} does not have the key: :foo", fn ->
+      list = [name: "Eric", foo: 42]
+      user(list)
+    end
+  end
+
+  test "create with keywords list variable generates record tuple with defaults" do
+    list = [name: "Eric"]
+    record = user(list)
+    assert user(record, :age) == 25
+  end
+
+  test "create with invalid keywords list variable raises" do
+    assert_raise ArgumentError, "expected argument to be an atom or a keywords list, got: [1, 2, 3]", fn ->
+      list = [1, 2, 3]
+      user(list)
+    end
+  end
+
+  test "update with keywords list variable updates record tuple" do
+    record = user()
+    list = [name: "Eric", age: 23]
+    record = user(record, list)
+    assert user(record, :name) == "Eric"
+    assert user(record, :age) == 23
+  end
+
+  test "update with keywords list variable with invalid key raises" do
+    assert_raise ArgumentError, "record #{inspect __MODULE__} does not have the key: :foo", fn ->
+      record = user()
+      list = [name: "Eric", foo: 42]
+      user(record, list)
+    end
+  end
+
+  test "update with invalid keywords list variable raises" do
+    assert_raise ArgumentError, "expected argument to be an atom or a keywords list, got: [1, 2, 3]", fn ->
+      record = user()
+      list = [1, 2, 3]
+      user(record, list)
+    end
+  end
+
+  test "index with a variable returns the field index" do
+    name_field = :name
+    age_field = :age
+    assert user(name_field) == 1
+    assert user(age_field) == 2
+  end
+
+  test "index with a variable and invalid field key raises" do
+    assert_raise ArgumentError, "record #{inspect __MODULE__} does not have the key: :foo", fn ->
+      field = :foo
+      user(field)
+    end
+  end
+
+  test "index with a variable with invalid value raises" do
+    assert_raise ArgumentError, "expected argument to be an atom or a keywords list, got: \"foo\"", fn ->
+      field = "foo"
+      user(field)
+    end
+  end
+
+  test "get with a variable returns the field value" do
+    name_field = :name
+    age_field = :age
+    record = user()
+    assert user(record, name_field) == "José"
+    assert user(record, age_field) == 25
+  end
+
+  test "get with a variable and invalid field key raises" do
+    assert_raise ArgumentError, "record #{inspect __MODULE__} does not have the key: :foo", fn ->
+      field = :foo
+      record = user()
+      user(record, field)
+    end
+  end
+
+  test "get with a variable with invalid value raises" do
+    assert_raise ArgumentError, "expected argument to be an atom or a keywords list, got: \"foo\"", fn ->
+      field = "foo"
+      record = user()
+      user(record, field)
+    end
+  end
+
   test "records with no tag" do
     assert elem(file_info(), 0) == :file_info
   end
