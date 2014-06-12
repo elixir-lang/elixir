@@ -32,7 +32,9 @@ defmodule OptionParser do
 
   Note Elixir also converts the switches to underscore atoms, as
   `--source-path` becomes `:source_path`, to better suit Elixir
-  conventions.
+  conventions. This means that option names on the command line cannot contain
+  underscores; such options will be reported as `:undefined` (in strict mode)
+  or `:invalid` (in basic mode).
 
   ## Switches
 
@@ -224,7 +226,7 @@ defmodule OptionParser do
     else
       {opt_name, kinds, value} = normalize_option(tagged, value, switches)
       {value, kinds, rest} = normalize_value(value, kinds, rest, strict)
-      case validate_option(opt_name, value, kinds) do
+      case validate_option(value, kinds) do
         {:ok, new_value} -> {:ok, opt_name, new_value, rest}
         :invalid         -> {:invalid, opt_name_bin, value, rest}
       end
@@ -252,31 +254,31 @@ defmodule OptionParser do
     {aliases, switches, strict, all}
   end
 
-  defp validate_option(option, value, kinds) do
-    {invalid_opt, value} = cond do
+  defp validate_option(value, kinds) do
+    {is_invalid, value} = cond do
       :invalid in kinds ->
-        {option, value}
+        {true, value}
       :boolean in kinds ->
         case value do
           t when t in [true, "true"] -> {nil, true}
           f when f in [false, "false"] -> {nil, false}
-          _ -> {option, value}
+          _ -> {true, value}
         end
       :integer in kinds ->
         case Integer.parse(value) do
           {value, ""} -> {nil, value}
-          _ -> {option, value}
+          _ -> {true, value}
         end
       :float in kinds ->
         case Float.parse(value) do
           {value, ""} -> {nil, value}
-          _ -> {option, value}
+          _ -> {true, value}
         end
       true ->
         {nil, value}
     end
 
-    if invalid_opt do
+    if is_invalid do
       :invalid
     else
       {:ok, value}
@@ -301,11 +303,11 @@ defmodule OptionParser do
     if alias = aliases[opt] do
       {:default, alias}
     else
-      {:unknown, opt}
+      :unknown
     end
   end
 
-  defp option_defined?({:unknown, _option}, _switches) do
+  defp option_defined?(:unknown, _switches) do
     false
   end
 
@@ -317,8 +319,8 @@ defmodule OptionParser do
     Keyword.has_key?(switches, option)
   end
 
-  defp normalize_option({:unknown, option}, value, _switches) do
-    {option, [:invalid], value}
+  defp normalize_option(:unknown, value, _switches) do
+    {nil, [:invalid], value}
   end
 
   defp normalize_option({:negated, option}, nil, switches) do
@@ -374,12 +376,22 @@ defmodule OptionParser do
     end
   end
 
-  defp to_underscore(option) do
-    for <<c <- option>>, into: "", do: << if(c == ?-, do: ?_, else: c) >>
-  end
+  defp to_underscore(option), do: to_underscore(option, <<>>)
+
+  defp to_underscore("_" <> _rest, _acc), do: nil
+
+  defp to_underscore("-" <> rest, acc),
+    do: to_underscore(rest, acc <> "_")
+
+  defp to_underscore(<<c>> <> rest, acc),
+    do: to_underscore(rest, <<acc::binary, c>>)
+
+  defp to_underscore(<<>>, acc), do: acc
 
   defp get_option(option) do
-    option |> to_underscore |> String.to_atom
+    if str = to_underscore(option) do
+      String.to_atom(str)
+    end
   end
 
   defp reverse_negated(negated) do
@@ -387,16 +399,23 @@ defmodule OptionParser do
   end
 
   defp get_negated("no-" <> rest = option, value, switches) do
-    negated = get_option(rest)
-    option  = if Keyword.has_key?(switches, negated) and value == nil do
-      negated
+    if negated = get_option(rest) do
+      option = if Keyword.has_key?(switches, negated) and value == nil do
+        negated
+      else
+        get_option(option)
+      end
+      {:negated, option}
     else
-      get_option(option)
+      :unknown
     end
-    {:negated, option}
   end
 
   defp get_negated(rest, _value, _switches) do
-    {:default, get_option(rest)}
+    if option = get_option(rest) do
+      {:default, option}
+    else
+      :unknown
+    end
   end
 end

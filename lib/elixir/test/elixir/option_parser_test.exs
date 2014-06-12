@@ -209,6 +209,38 @@ defmodule OptionParserTest do
            == {[foo: true, boo: "-"], ["-"], []}
   end
 
+  test "multi-word option" do
+    config = [switches: [hello_world: :boolean]]
+    assert OptionParser.next(["--hello-world"], config)
+           == {:ok, :hello_world, true, []}
+    assert OptionParser.next(["--no-hello-world"], config)
+           == {:ok, :hello_world, false, []}
+
+    assert OptionParser.next(["--hello-world"], [])
+           == {:ok, :hello_world, true, []}
+    assert OptionParser.next(["--no-hello-world"], [])
+           == {:ok, :no_hello_world, true, []}
+    assert OptionParser.next(["--hello_world"], [])
+           == {:invalid, "--hello_world", nil, []}
+    assert OptionParser.next(["--no-hello_world"], [])
+           == {:invalid, "--no-hello_world", nil, []}
+
+    assert OptionParser.next(["--no-hello-world"], strict: [])
+           == {:undefined, "--no-hello-world", nil, []}
+    assert OptionParser.next(["--no-hello_world"], strict: [])
+           == {:undefined, "--no-hello_world", nil, []}
+
+    config = [strict: [hello_world: :boolean]]
+    assert OptionParser.next(["--hello-world"], config)
+           == {:ok, :hello_world, true, []}
+    assert OptionParser.next(["--no-hello-world"], config)
+           == {:ok, :hello_world, false, []}
+    assert OptionParser.next(["--hello_world"], config)
+           == {:undefined, "--hello_world", nil, []}
+    assert OptionParser.next(["--no-hello_world"], config)
+           == {:undefined, "--no-hello_world", nil, []}
+  end
+
   test "next strict: good options" do
     config = [strict: [str: :string, int: :integer, bool: :boolean]]
     assert OptionParser.next(["--str", "hello", "..."], config)
