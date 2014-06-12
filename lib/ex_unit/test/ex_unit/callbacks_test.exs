@@ -105,18 +105,27 @@ defmodule ExUnit.CallbacksTest do
     on_exit fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end
   end
 
-  test "kills test process only after on_exit runs" do
+  test "exits with shutdown reason" do
     defmodule OnExitAliveTest do
       use ExUnit.Case
 
       setup do
+        parent = self()
+
         pid = spawn_link fn ->
           Process.flag(:trap_exit, true)
-          receive do: ({:EXIT, _, _} -> :ok)
+          send parent, :ready
+          receive do
+            {:EXIT, ^parent, :shutdown} ->
+              receive do: ({:on_exit, pid} -> send pid, :done)
+          end
         end
 
+        receive do: (:ready -> :ok)
+
         on_exit fn ->
-          assert Process.alive?(pid)
+          send pid, {:on_exit, self}
+          assert_receive :done
           IO.puts "on_exit run"
         end
 

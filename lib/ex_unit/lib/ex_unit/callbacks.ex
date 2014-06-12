@@ -23,7 +23,9 @@ defmodule ExUnit.Callbacks do
   Finally, `setup_all` callbacks run in the test case process, while all
   `setup` callbacks run in the same process as the test itself. `on_exit`
   callbacks always run in a separate process than the test case or the
-  test itself.
+  test itself. Since the test process exits with reason `:shutdown`, most
+  of times `on_exit/1` can be avoided as processes are going to clean
+  up on their own.
 
   ## Context
 

@@ -155,7 +155,7 @@ defmodule ExUnit.Runner do
             send parent, {self, :case_finished, test_case, failed_tests}
         end
 
-        receive do: ({^parent, :done} -> :done)
+        exit(:shutdown)
       end)
 
     {test_case, pending} =
@@ -167,9 +167,7 @@ defmodule ExUnit.Runner do
           {test_case, []}
       end
 
-    test_case = exec_on_exit(test_case, case_pid)
-    send case_pid, {parent, :done}
-    {test_case, pending}
+    {exec_on_exit(test_case, case_pid), pending}
   end
 
   defp exec_case_setup(%ExUnit.TestCase{name: case_name} = test_case) do
@@ -219,7 +217,7 @@ defmodule ExUnit.Runner do
           end)
 
         send parent, {self, :test_finished, %{test | time: us}}
-        receive do: ({^parent, :done} -> :done)
+        exit(:shutdown)
       end)
 
     test =
@@ -230,9 +228,7 @@ defmodule ExUnit.Runner do
           %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
       end
 
-    test = exec_on_exit(test, test_pid)
-    send test_pid, {parent, :done}
-    test
+    exec_on_exit(test, test_pid)
   end
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
