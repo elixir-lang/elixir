@@ -1727,7 +1727,7 @@ defmodule Kernel do
 
       get_in(opts, [:foo, :bar])
 
-  Note the in order for this macro to work, the complete path must always
+  Note that in order for this macro to work, the complete path must always
   be visible by this macro.
 
   ## Examples
@@ -1789,7 +1789,7 @@ defmodule Kernel do
 
       put_in(opts, [:foo, :bar], :baz)
 
-  Note the in order for this macro to work, the complete path must always
+  Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
   expressions, please check `get_in/1` docs.
 
@@ -1822,7 +1822,7 @@ defmodule Kernel do
 
       update_in(opts, [:foo, :bar], &(&1 + 1))
 
-  Note the in order for this macro to work, the complete path must always
+  Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
   expressions, please check `get_in/1` docs.
 
@@ -1855,7 +1855,7 @@ defmodule Kernel do
 
       get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
 
-  Note the in order for this macro to work, the complete path must always
+  Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
   expressions, please check `get_in/1` docs.
 
