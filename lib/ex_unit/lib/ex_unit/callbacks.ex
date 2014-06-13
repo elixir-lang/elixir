@@ -129,9 +129,11 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  defmacro teardown(var \\ quote(do: _), block) do
-    IO.write :stderr, "teardown in ExUnit is deprecated, please use on_exit/1 instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+  defmacro teardown(var \\ quote(do: _), warn \\ true, block) do
+    if warn do
+      IO.write :stderr, "teardown in ExUnit is deprecated, please use on_exit/1 instead\n" <>
+                        Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+    end
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_#{length(@ex_unit_teardown)}"
       defp unquote(name)(unquote(var)), unquote(block)
@@ -140,9 +142,11 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  defmacro teardown_all(var \\ quote(do: _), block) do
-    IO.write :stderr, "teardown_all in ExUnit is deprecated, please use on_exit/1 instead\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+  defmacro teardown_all(var \\ quote(do: _), warn \\ true, block) do
+    if warn do
+      IO.write :stderr, "teardown_all in ExUnit is deprecated, please use on_exit/1 instead\n" <>
+                        Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+    end
     quote bind_quoted: [var: escape(var), block: escape(block)] do
       name = :"__ex_unit_teardown_all_#{length(@ex_unit_teardown_all)}"
       defp unquote(name)(unquote(var)), unquote(block)

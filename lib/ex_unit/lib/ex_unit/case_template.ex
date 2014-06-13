@@ -3,7 +3,7 @@ defmodule ExUnit.CaseTemplate do
   This module allows a developer to define a test case
   template to be used throughout his tests. This is useful
   when there are a set of functions that should be shared
-  between tests or a set of setup/teardown callbacks.
+  between tests or a set of setup callbacks.
 
   By using this module, the callbacks and assertions
   available for regular test cases will also be available.
@@ -57,12 +57,12 @@ defmodule ExUnit.CaseTemplate do
         unquote(module).__ex_unit__(:setup, context)
       end
 
-      teardown context do
-        unquote(module).__ex_unit__(:teardown, context)
+      teardown_all context, false do
+        unquote(module).__ex_unit__(:teardown_all, context)
       end
 
-      teardown_all context do
-        unquote(module).__ex_unit__(:teardown_all, context)
+      teardown context, false do
+        unquote(module).__ex_unit__(:teardown, context)
       end
     end
   end
