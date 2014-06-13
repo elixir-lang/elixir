@@ -29,7 +29,7 @@ defmodule URITest do
     assert URI.decode_query("", []) == []
     assert URI.decode_query("", %{}) == %{}
 
-    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block%20buster=") ==
+    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==
            %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
 
     assert URI.decode_query("something=weird%3Dhappening") ==
@@ -46,7 +46,7 @@ defmodule URITest do
   test :decoder do
     decoder  = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
-    assert Enum.map(decoder, fn(x) -> x end) == expected
+    assert Enum.map(decoder, &(&1)) == expected
   end
 
   test :decode do
@@ -60,6 +60,11 @@ defmodule URITest do
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
       URI.decode("invalid%")
     end
+  end
+
+  test :decode_www_form do
+    assert URI.decode_www_form("%3Eval+ue%2B") == ">val ue+"
+    assert URI.decode_www_form("%E3%82%86+") == "ゆ "
   end
 
   test :parse_http do

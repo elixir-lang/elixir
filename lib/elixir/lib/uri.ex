@@ -126,8 +126,10 @@ defmodule URI do
 
     current =
       case :binary.split(first, "=") do
-        [ key, value ] -> {decode(key), decode(value)}
-        [ key ]        -> {decode(key), nil}
+        [key, value] ->
+          {decode_www_form(key), decode_www_form(value)}
+        [key] ->
+          {decode_www_form(key), nil}
       end
 
     {current, next}
@@ -234,6 +236,22 @@ defmodule URI do
   catch
     :malformed_uri ->
       raise ArgumentError, "malformed URI #{inspect uri}"
+  end
+
+  @doc """
+  Decode a string as "x-www-urlencoded".
+
+  ## Examples
+
+      iex> URI.decode_www_form("%3Call+in%2F")
+      "<all in/"
+
+  """
+  def decode_www_form(str) do
+    String.split(str, "+") |> Enum.map_join(" ", &unpercent/1)
+  catch
+    :malformed_uri ->
+      raise ArgumentError, "malformed URI #{inspect str}"
   end
 
   defp unpercent(<<?%, hex_1, hex_2, tail :: binary>>) do
