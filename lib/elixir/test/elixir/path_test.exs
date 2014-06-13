@@ -111,6 +111,8 @@ defmodule PathTest do
             strip_drive_letter_if_windows) == "/bar"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
+
+    assert (Path.expand("/..") |> strip_drive_letter_if_windows) == "/"
   end
 
   test :relative_to do

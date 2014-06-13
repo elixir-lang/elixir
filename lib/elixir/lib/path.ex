@@ -548,6 +548,10 @@ defmodule Path do
 
   defp normalize(path), do: normalize(split(path), [])
 
+  defp normalize([".."|t], ["/"|_] = acc) do
+    normalize t, acc
+  end
+
   defp normalize([".."|t], [_|acc]) do
     normalize t, acc
   end
