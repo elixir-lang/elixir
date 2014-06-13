@@ -126,8 +126,10 @@ defmodule URI do
 
     current =
       case :binary.split(first, "=") do
-        [ key, value ] -> {decode(key), decode(value)}
-        [ key ]        -> {decode(key), nil}
+        [key, value] ->
+          {decode_www_form(key), decode_www_form(value)}
+        [key] ->
+          {decode_www_form(key), nil}
       end
 
     {current, next}
@@ -142,7 +144,8 @@ defmodule URI do
   end
 
   defp pair({k, v}) do
-    encode(to_string(k)) <> "=" <> encode(to_string(v))
+    encode_www_form(to_string(k)) <>
+    "=" <> encode_www_form(to_string(v))
   end
 
   @doc """
@@ -154,7 +157,6 @@ defmodule URI do
     c in ':/?#[]@!$&\'()*+,;='
   end
 
-  #
   @doc """
   Checks if the character is a "unreserved" character in a URI.
 
@@ -191,6 +193,24 @@ defmodule URI do
     for <<c <- str>>, into: "", do: percent(c, predicate)
   end
 
+  @doc """
+  Encode a string as "x-www-urlencoded".
+
+  ## Example
+
+      iex> URI.encode_www_form("put: it+й")
+      "put%3A+it%2B%D0%B9"
+
+  """
+  def encode_www_form(str) do
+    for <<c <- str>>, into: "" do
+      case percent(c, &char_unreserved?/1) do
+        "%20" -> "+"
+        pct   -> pct
+      end
+    end
+  end
+
   defp percent(c, predicate) do
     if predicate.(c) do
       <<c>>
@@ -212,25 +232,44 @@ defmodule URI do
 
   """
   def decode(uri) do
-    decode(uri, uri)
+    unpercent(uri)
+  catch
+    :malformed_uri ->
+      raise ArgumentError, "malformed URI #{inspect uri}"
   end
 
-  def decode(<<?%, hex1, hex2, tail :: binary >>, uri) do
-    <<bsl(hex_to_dec(hex1, uri), 4) + hex_to_dec(hex2, uri)>> <> decode(tail, uri)
+  @doc """
+  Decode a string as "x-www-urlencoded".
+
+  ## Examples
+
+      iex> URI.decode_www_form("%3Call+in%2F")
+      "<all in/"
+
+  """
+  def decode_www_form(str) do
+    String.split(str, "+") |> Enum.map_join(" ", &unpercent/1)
+  catch
+    :malformed_uri ->
+      raise ArgumentError, "malformed URI #{inspect str}"
   end
 
-  def decode(<<head, tail :: binary >>, uri) do
-    <<head>> <> decode(tail, uri)
+  defp unpercent(<<?%, hex_1, hex_2, tail :: binary>>) do
+    <<bsl(hex_to_dec(hex_1), 4) + hex_to_dec(hex_2)>> <> unpercent(tail)
+  end
+  defp unpercent(<<?%, _>>), do: throw(:malformed_uri)
+  defp unpercent(<<?%>>),    do: throw(:malformed_uri)
+
+  defp unpercent(<<head, tail :: binary>>) do
+    <<head>> <> unpercent(tail)
   end
 
-  def decode(<<>>, _uri), do: <<>>
+  defp unpercent(<<>>), do: <<>>
 
-  defp hex_to_dec(n, _uri) when n in ?A..?F, do: n - ?A + 10
-  defp hex_to_dec(n, _uri) when n in ?a..?f, do: n - ?a + 10
-  defp hex_to_dec(n, _uri) when n in ?0..?9, do: n - ?0
-  defp hex_to_dec(_n, uri) do
-    raise ArgumentError, "malformed URI #{inspect uri}"
-  end
+  defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
+  defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
+  defp hex_to_dec(n) when n in ?0..?9, do: n - ?0
+  defp hex_to_dec(_n), do: throw(:malformed_uri)
 
   @doc """
   Parses a URI into components.
