@@ -3,8 +3,13 @@
 ## v0.14.1-dev
 
 * Enhancements
+  * [ExUnit] The test process now exits with `:shutdown` reason
 
 * Bug fixes
+  * [Kernel] Disambiguate (w)erl to (w)erl.exe
+  * [OptionParser] Do not allow underscores in option names
+  * [Process] `Process.info(pid, :registered_name)` returns `{:registered_name, nil}` if there is no registered name
+  * [Task] Log when tasks crash
 
 * Soft deprecations (no warnings emitted)
 
