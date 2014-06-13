@@ -106,7 +106,7 @@ defmodule Task do
   """
   @spec start_link(module, atom, [term]) :: {:ok, pid}
   def start_link(mod, fun, args) do
-    Task.Supervised.start_link({mod, fun, args})
+    Task.Supervised.start_link(get_info(self), {mod, fun, args})
   end
 
   @doc """
@@ -135,10 +135,15 @@ defmodule Task do
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
     mfa = {mod, fun, args}
-    pid = :proc_lib.spawn_link(Task.Supervised, :async, [self(), mfa])
+    pid = :proc_lib.spawn_link(Task.Supervised, :async, [self, get_info(self), mfa])
     ref = Process.monitor(pid)
     send(pid, {self(), ref})
     %Task{pid: pid, ref: ref}
+  end
+
+  defp get_info(self) do
+    {node(),
+     self |> Process.info(:registered_name) |> elem(1) |> Kernel.||(self)}
   end
 
   @doc """

@@ -1,20 +1,20 @@
 defmodule Task.Supervised do
   @moduledoc false
 
-  def start_link(fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [fun])}
+  def start_link(info, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
 
-  def start_link(caller, fun) do
-    :proc_lib.start_link(__MODULE__, :reply, [caller, fun])
+  def start_link(caller, info, fun) do
+    :proc_lib.start_link(__MODULE__, :reply, [caller, info, fun])
   end
 
-  def async(caller, mfa) do
+  def async(caller, info, mfa) do
     ref = receive do: ({^caller, ref} -> ref)
-    send caller, {ref, apply(mfa)}
+    send caller, {ref, do_apply(info, mfa)}
   end
 
-  def reply(caller, mfa) do
+  def reply(caller, info, mfa) do
     :erlang.link(caller)
     :proc_lib.init_ack({:ok, self()})
 
@@ -41,21 +41,47 @@ defmodule Task.Supervised do
         5000 -> exit(:timeout)
       end
 
-    send caller, {ref, apply(mfa)}
+    send caller, {ref, do_apply(info, mfa)}
   end
 
-  def noreply(mfa) do
-    apply(mfa)
+  def noreply(info, mfa) do
+    do_apply(info, mfa)
   end
 
-  def apply({module, fun, args}) do
+  defp do_apply(info, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
     catch
-      :error, reason ->
-        exit({reason, System.stacktrace()})
+      :error, value ->
+        exit(info, mfa, {value, System.stacktrace()})
       :throw, value ->
-        exit({{:nocatch, value}, System.stacktrace()})
+        exit(info, mfa, {{:nocatch, value}, System.stacktrace()})
+      :exit, value ->
+        exit(info, mfa, value)
     end
   end
+
+  defp exit(_info, _mfa, reason)
+      when reason == :normal
+      when reason == :shutdown
+      when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
+    exit(reason)
+  end
+
+  defp exit(info, mfa, reason) do
+    :error_logger.format(
+      "** Task ~p terminating~n" <>
+      "** Started from ~p~n" <>
+      "** Running ~p~n" <>
+      "** Reason for termination == ~n" <>
+      "** ~p~n", [self, get_from(info), get_running(mfa), reason])
+
+    exit(reason)
+  end
+
+  defp get_from({node, pid_or_name}) when node == node(), do: pid_or_name
+  defp get_from(other), do: other
+
+  defp get_running({:erlang, :apply, [fun, []]}), do: fun
+  defp get_running(other), do: other
 end

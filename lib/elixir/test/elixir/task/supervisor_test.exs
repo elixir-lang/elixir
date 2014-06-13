@@ -8,8 +8,9 @@ defmodule Task.SupervisorTest do
     {:ok, supervisor: pid}
   end
 
-  teardown config do
-    Process.exit(config[:supervisor], :shutdown)
+  setup do
+    :error_logger.tty(false)
+    on_exit fn -> :error_logger.tty(true) end
     :ok
   end
 

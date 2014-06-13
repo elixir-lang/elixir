@@ -3,6 +3,12 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule TaskTest do
   use ExUnit.Case, async: true
 
+  setup do
+    :error_logger.tty(false)
+    on_exit fn -> :error_logger.tty(true) end
+    :ok
+  end
+
   def wait_and_send(caller, atom) do
     receive do: (true -> true)
     send caller, atom
