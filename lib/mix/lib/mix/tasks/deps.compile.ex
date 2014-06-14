@@ -21,10 +21,6 @@ defmodule Mix.Tasks.Deps.Compile do
 
       {:some_dependency, "0.1.0", git: "...", compile: "command to compile"}
 
-  ## Command line options
-
-  * `--quiet` - do not output verbose messages
-
   """
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
@@ -33,7 +29,7 @@ defmodule Mix.Tasks.Deps.Compile do
   def run(args) do
     Mix.Project.get! # Require the project to be available
 
-    case OptionParser.parse(args, switches: [quiet: :boolean]) do
+    case OptionParser.parse(args) do
       {opts, [], _} ->
         compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
       {opts, tail, _} ->
@@ -42,17 +38,13 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   @doc false
-  def compile(deps, run_opts) do
+  def compile(deps, _opts) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
     compiled =
       Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts} = dep ->
         check_unavailable!(app, status)
-
-        unless run_opts[:quiet] || opts[:compile] == false do
-          shell.info "* Compiling #{app}"
-        end
 
         compiled = cond do
           not nil?(opts[:compile]) ->

@@ -10,14 +10,21 @@ defmodule Mix.ProjectStack do
 
   @spec start_link :: {:ok, pid}
   def start_link() do
-    Agent.start_link fn -> %{stack: [], post_config: [], cache: HashDict.new} end, name: __MODULE__
+    initial = %{stack: [], post_config: [], cache: HashDict.new}
+    Agent.start_link fn -> initial end, name: __MODULE__
   end
 
   @spec push(module, config, file) :: :ok | {:error, file}
   def push(module, config, file) do
     get_and_update fn %{stack: stack} = state ->
+      # Consider the first children to always have io_done
+      # because we don't need to print anything unless another
+      # project talks ahold of the shell.
+      io_done? = stack == []
+
       config  = Keyword.merge(config, state.post_config)
-      project = %{name: module, config: config, file: file, recursing?: false, io_done: false, tasks: HashSet.new}
+      project = %{name: module, config: config, file: file,
+                  recursing?: false, io_done: io_done?, tasks: HashSet.new}
 
       cond do
         file = find_project_named(module, stack) ->
@@ -59,11 +66,14 @@ defmodule Mix.ProjectStack do
   def print_app? do
     get_and_update fn %{stack: stack} = state ->
       case stack do
-        [h|t] ->
-          output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
-          {output, %{state | stack: [%{h | io_done: true}|t]}}
         [] ->
           {false, state}
+        [%{io_done: true}|_] ->
+          {false, state}
+        [h|t] ->
+          h = %{h | io_done: true}
+          t = Enum.map(t, &%{&1 | io_done: false})
+          {true, %{state | stack: [h|t]}}
       end
     end
   end
@@ -130,19 +140,6 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  defp in_umbrella?(stack) do
-    Enum.any?(stack, fn(%{config: conf}) ->
-      conf[:apps_path] != nil
-    end)
-  end
-
-  defp umbrella?(stack) do
-    case stack do
-      [%{name: name, config: config}|_] when name != nil -> config[:apps_path] != nil
-      _ -> false
-    end
-  end
-
   defp find_project_named(name, stack) do
     name && Enum.find_value(stack, fn
       %{name: n, file: file} when n === name -> file
@@ -165,5 +162,4 @@ defmodule Mix.ProjectStack do
   defp cast(fun) do
     Agent.cast __MODULE__, fun
   end
-
 end

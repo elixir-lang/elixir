@@ -132,8 +132,11 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       File.touch!("_build/dev/lib/ok/.compile")
+      Mix.Tasks.Deps.run []
+      msg = "  the dependency build is outdated, please run `mix deps.compile`"
+      assert_received {:mix_shell, :info, [^msg]}
+
       Mix.Tasks.Deps.Check.run []
-      assert_received {:mix_shell, :info, ["* Compiling ok"]}
       refute File.exists?("_build/dev/lib/ok/.compile")
     end
   end
@@ -328,7 +331,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run ["--quiet"]
-      refute_received {:mix_shell, :info, ["* Compiling ok"]}
+      refute_received {:mix_shell, :info, ["==> ok"]}
     end
   end
 
@@ -507,12 +510,16 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
-      Mix.Tasks.Deps.run []
-      assert_received {:mix_shell, :info, ["* ok (deps/ok)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"]}
+      msg = "  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"
 
+      Mix.Tasks.Deps.run []
+      assert_received {:mix_shell, :info, [^msg]}
+
+      # deps.check will automatically recompiled it
       Mix.Tasks.Deps.Check.run []
-      assert_received {:mix_shell, :info, ["* Compiling ok"]}
+
+      Mix.Tasks.Deps.run []
+      refute_received {:mix_shell, :info, [^msg]}
     end
   end
 
@@ -534,8 +541,8 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
-      refute_received {:mix_shell, :info, ["* Compiling deps_repo"]}
-      refute_received {:mix_shell, :info, ["* Compiling git_repo"]}
+      refute_received {:mix_shell, :info, ["==> deps_repo"]}
+      refute_received {:mix_shell, :info, ["==> git_repo"]}
     end
   end
 

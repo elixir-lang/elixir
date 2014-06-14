@@ -21,7 +21,6 @@ defmodule Mix.Shell.IO do
   to stdout as it comes.
   """
   def cmd(command) do
-    print_app
     Mix.Shell.cmd(command, &IO.write(&1))
   end
 

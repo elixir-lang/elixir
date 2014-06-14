@@ -10,7 +10,8 @@ defmodule Mix.SCM do
 
   @doc """
   Returns a boolean if the dependency can be fetched
-  or it is meant to be previously available in the filesystem.
+  or it is meant to be previously available in the
+  filesystem.
   """
   defcallback fetchable? :: boolean
 

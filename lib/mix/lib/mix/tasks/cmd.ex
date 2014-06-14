@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Cmd do
   than zero.
   """
   def run(args) do
+    Mix.shell.print_app
     case Mix.shell.cmd(Enum.join(args, " ")) do
       0 -> :ok
       s -> exit(s)

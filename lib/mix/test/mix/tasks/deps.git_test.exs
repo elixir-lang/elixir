@@ -97,7 +97,7 @@ defmodule Mix.Tasks.DepsGitTest do
       # We can compile just fine
       Mix.Task.clear
       Mix.Tasks.Run.run ["-e", "1+2"]
-      assert_received {:mix_shell, :info, ["* Compiling git_repo"]}
+      assert_received {:mix_shell, :info, ["==> git_repo"]}
 
       # Now let's add a submodules option
       Mix.Project.pop

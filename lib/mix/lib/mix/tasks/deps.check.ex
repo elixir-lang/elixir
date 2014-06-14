@@ -14,11 +14,10 @@ defmodule Mix.Tasks.Deps.Check do
   ## Command line options
 
   * `--no-compile` - do not compile dependencies
-  * `--quiet` - do not output on compilation
 
   """
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [quiet: :boolean])
+    {opts, _, _} = OptionParser.parse(args)
     lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
@@ -41,14 +40,19 @@ defmodule Mix.Tasks.Deps.Check do
 
   defp partition_deps([dep|deps], not_ok, compile) do
     cond do
-      ok?(dep)      -> partition_deps(deps, not_ok, compile)
-      compile?(dep) -> partition_deps(deps, not_ok, [dep|compile])
-      true          -> partition_deps(deps, [dep|not_ok], compile)
+      compile?(dep)            -> partition_deps(deps, not_ok, [dep|compile])
+      ok?(dep) and local?(dep) -> partition_deps(deps, not_ok, [dep|compile])
+      ok?(dep)                 -> partition_deps(deps, not_ok, compile)
+      true                     -> partition_deps(deps, [dep|not_ok], compile)
     end
   end
 
   defp partition_deps([], not_ok, compile) do
     {Enum.reverse(not_ok), Enum.reverse(compile)}
+  end
+
+  defp local?(dep) do
+    not dep.scm.fetchable? and dep.opts[:from_umbrella] != true
   end
 
   defp compile?(%Mix.Dep{status: {:elixirlock, _}}), do: true

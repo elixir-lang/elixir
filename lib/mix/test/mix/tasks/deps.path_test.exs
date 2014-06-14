@@ -27,7 +27,7 @@ defmodule Mix.Tasks.DepsPathTest do
       assert File.exists?("_build/test/lib/raw_repo/.compile")
 
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
-      assert_received {:mix_shell, :info, ["* Compiling raw_repo"]}
+      assert_received {:mix_shell, :info, ["==> raw_repo"]}
       assert_received {:mix_shell, :info, ["world"]}
     end
   end
@@ -38,7 +38,7 @@ defmodule Mix.Tasks.DepsPathTest do
     in_fixture "deps_status", fn ->
       Mix.Dep.Lock.write [raw_repo: "abcdef"]
       Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
-      assert_received {:mix_shell, :info, ["* Compiling raw_repo"]}
+      assert_received {:mix_shell, :info, ["==> raw_repo"]}
       assert_received {:mix_shell, :info, ["world"]}
     end
   end

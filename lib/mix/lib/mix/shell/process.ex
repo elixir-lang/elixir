@@ -54,7 +54,6 @@ defmodule Mix.Shell.Process do
   the current process.
   """
   def cmd(command) do
-    print_app
     Mix.Shell.cmd(command, fn(data) ->
       send self, {:mix_shell, :run, [data]}
     end)

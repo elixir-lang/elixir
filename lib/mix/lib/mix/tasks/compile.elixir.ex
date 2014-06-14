@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
 
-    force = opts[:force] || path_deps_changed?(manifest)
+    force = opts[:force] || local_deps_changed?(manifest)
               || Mix.Utils.stale?(configs, [manifest])
 
     result = Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, fn ->
@@ -85,16 +85,13 @@ defmodule Mix.Tasks.Compile.Elixir do
     Code.compiler_options Keyword.merge(opts, extra)
   end
 
-  defp path_deps_changed?(manifest) do
+  defp local_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
 
-    deps = Enum.filter(Mix.Dep.children([]), fn dep ->
-      dep.scm == Mix.SCM.Path
-    end)
-
-    Enum.any?(deps, fn(dep) ->
-      Mix.Dep.in_dependency(dep, fn(_) ->
-        Mix.Utils.stale?(Mix.Tasks.Compile.manifests, [manifest])
+    Enum.any?(Mix.Dep.children([]), fn(dep) ->
+      not dep.scm.fetchable? and Mix.Dep.in_dependency(dep, fn(_) ->
+        files = Mix.Project.config_files ++ Mix.Tasks.Compile.manifests
+        Mix.Utils.stale?(files, [manifest])
       end)
     end)
   end

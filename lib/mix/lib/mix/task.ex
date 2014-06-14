@@ -213,7 +213,10 @@ defmodule Mix.Task do
     recursive = recursive(module)
 
     if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
-      config = [build_path: Mix.Project.build_path]
+      # Get all dependency configuration but not the deps path
+      # as we leave the control of the deps path still to the
+      # umbrella child.
+      config = Mix.Project.deps_config |> Keyword.delete(:deps_path)
       res = for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
         Mix.Project.in_project(app, opts[:path], config, fun)
       end

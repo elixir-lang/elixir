@@ -142,30 +142,43 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "recompiles after path dependency changed" do
+  test "recompiles after path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
-        Mix.Tasks.Deps.Compile.run []
 
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        Mix.Task.run "compile"
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
-        assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
-        purge [Bar]
+        assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        purge [Foo, Bar]
+        Mix.Task.clear
 
-        future = {{2020, 4, 17}, {14, 0, 0}}
+        ensure_touched("../foo/lib/foo.ex")
 
-        manifest = "_build/dev/lib/foo/.compile.elixir"
-        File.mkdir_p!(Path.dirname(manifest))
-        File.touch!(manifest, future)
-        assert Mix.Tasks.Compile.Elixir.run([]) == :ok
+        Mix.Task.run "compile"
+        assert Mix.Tasks.Compile.Elixir.run([]) == :noop
+        assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        purge [Foo, Bar]
       end)
     end)
   end
 
+  defp ensure_touched(file) do
+    ensure_touched(file, File.stat!(file).mtime)
+  end
+
+  defp ensure_touched(file, current) do
+    File.touch!(file)
+    unless File.stat!(file).mtime > current do
+      ensure_touched(file, current)
+    end
+  end
+
   defmodule Selective do
     def project do
-      [ apps_path: "apps",
-        apps: [:foo, :bar] ]
+      [apps_path: "apps",
+       apps: [:foo, :bar]]
     end
   end
 
