@@ -142,7 +142,9 @@ defmodule Mix.UmbrellaTest do
         purge [Foo, Bar]
         Mix.Task.clear
 
-        ensure_touched("../foo/lib/foo.ex")
+        # Ensure we can measure a timestamp difference
+        ensure_touched("../foo/lib/foo.ex",
+                       File.stat!("_build/dev/lib/foo/.compile.lock").mtime)
 
         Mix.Task.run "compile"
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
