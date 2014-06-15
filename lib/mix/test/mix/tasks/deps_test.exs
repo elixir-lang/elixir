@@ -300,15 +300,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "compiles dependencies with --quiet" do
-    Mix.Project.push SuccessfulDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Compile.run ["--quiet"]
-      refute_received {:mix_shell, :info, ["==> ok"]}
-    end
-  end
-
   test "fails on diverged dependencies" do
     Mix.Project.push DivergedDepsApp
 
