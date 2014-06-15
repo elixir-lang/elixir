@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Deps.Compile do
   """
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
-                          format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
+                         format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
     Mix.Project.get! # Require the project to be available
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Deps.Compile do
     config = Mix.Project.deps_config
 
     compiled =
-      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts} = dep ->
+      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
 
         compiled = cond do
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Deps.Compile do
         end
 
         unless mix?(dep), do: build_structure(dep, config)
-        File.rm(Path.join(opts[:build], ".compile"))
+        if scm.fetchable?, do: Mix.Dep.Lock.touch(opts[:build])
         compiled
       end)
 
@@ -70,8 +70,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   # All available dependencies can be compiled
   # except for umbrella applications.
-  defp compilable?(%Mix.Dep{manager: manager, extra: extra} = dep) do
-    available?(dep) and (manager != :mix or !extra[:umbrella?])
+  defp compilable?(%Mix.Dep{extra: extra} = dep) do
+    available?(dep) and !extra[:umbrella?]
   end
 
   defp check_unavailable!(app, {:unavailable, _}) do

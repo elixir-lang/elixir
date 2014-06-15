@@ -101,6 +101,17 @@ defmodule MixTest.Case do
     end
   end
 
+  def ensure_touched(file) do
+    ensure_touched(file, File.stat!(file).mtime)
+  end
+
+  defp ensure_touched(file, current) do
+    File.touch!(file)
+    unless File.stat!(file).mtime > current do
+      ensure_touched(file, current)
+    end
+  end
+
   def os_newline do
     case :os.type do
       {:win32, _} -> "\r\n"

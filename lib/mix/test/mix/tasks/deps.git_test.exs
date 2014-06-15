@@ -41,14 +41,15 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "get, update and clean git repos with compilation" do
+  test "gets and updates git repos with compilation" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received {:mix_shell, :info, [^message]}
-      assert File.read!("mix.lock") =~ ~r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
+      assert File.read!("mix.lock") =~
+             ~r/"git_repo": {:git, #{inspect fixture_path("git_repo")}, "[a-f0-9]+", \[\]}/
 
       Mix.Tasks.Deps.Update.run ["--all"]
       message = "* Updating git_repo (#{fixture_path("git_repo")})"
@@ -67,7 +68,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "gets many levels deep dependencies" do
+  test "gets and updates many levels deep dependencies" do
     Mix.Project.push DepsOnGitApp
 
     in_fixture "no_mixfile", fn ->
@@ -80,64 +81,56 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, [^message]}
 
       assert File.exists?("deps/deps_on_git_repo/mix.exs")
+      assert File.rm("deps/deps_on_git_repo/.fetch") == :ok
       assert File.exists?("deps/git_repo/mix.exs")
+      assert File.rm("deps/git_repo/.fetch") == :ok
+
+      Mix.Tasks.Deps.Update.run ["deps_on_git_repo"]
+      assert File.exists?("deps/deps_on_git_repo/.fetch")
+      assert File.exists?("deps/git_repo/.fetch")
     end
   after
     purge [GitRepo, GitRepo.Mix]
   end
 
-  test "checks if repo information changes" do
+  test "recompiles the project when a dep is fetched" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert_received {:mix_shell, :info, [^message]}
+      assert File.exists?("deps/git_repo/.fetch")
 
       # We can compile just fine
-      Mix.Task.clear
-      Mix.Tasks.Run.run ["-e", "1+2"]
-      assert_received {:mix_shell, :info, ["==> git_repo"]}
-
-      # Now let's add a submodules option
-      Mix.Project.pop
-      Mix.Project.push GitSubmodulesApp
-
-      # We should fail because the lock diverged
-      Mix.Task.clear
-      assert_raise Mix.Error, fn ->
-        Mix.Tasks.Run.run ["1+2"]
-      end
-    end
-  after
-    purge [GitRepo, GitRepo.Mix]
-  end
-
-  test "recompiles the project when a deps change" do
-    Mix.Project.push GitApp
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Deps.Get.run []
-      message = "* Getting git_repo (#{fixture_path("git_repo")})"
-      assert File.exists?("_build/dev/lib/git_app/.compile.lock")
-      assert_received {:mix_shell, :info, [^message]}
-
-      # We can compile just fine
-      Mix.Task.clear
       Mix.Tasks.Compile.run []
-
-      # Notify a deps changed
-      Mix.shell.flush
-      File.touch!("_build/dev/lib/git_app/.compile.lock", {{2020, 4, 17}, {14, 0, 0}})
-
-      # We are forced to recompile
-      purge [A, B, C]
-      Mix.Task.clear
-      Mix.Tasks.Compile.run []
+      assert_received {:mix_shell, :info, ["Compiled lib/git_repo.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      # Clear up to prepare for the update
+      File.rm("_build/dev/lib/git_repo/ebin/Elixir.GitRepo.beam")
+      File.rm("_build/dev/lib/git_repo/.compile.elixir")
+      File.rm("deps/git_repo/.fetch")
+      Mix.Task.clear
+      Mix.shell.flush
+      purge [A, B, C, GitRepo]
+
+      # Update will mark the update required
+      Mix.Tasks.Deps.Update.run ["git_repo"]
+      assert File.exists?("deps/git_repo/.fetch")
+      ensure_touched("deps/git_repo/.fetch") # Ensure timestamp differs
+
+      # mix deps.compile is required...
+      Mix.Tasks.Deps.run []
+      msg = "  the dependency build is outdated, please run `mix deps.compile`"
+      assert_received {:mix_shell, :info, [^msg]}
+
+      # But also ran automatically
+      Mix.Tasks.Compile.run []
+      assert_received {:mix_shell, :info, ["Compiled lib/git_repo.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      :ok
     end
   after
-    purge [GitRepo, GitRepo.Mix]
+    purge [A, B, C, GitRepo, GitRepo.Mix]
   end
 
   test "all up to date dependencies" do
@@ -233,6 +226,10 @@ defmodule Mix.Tasks.DepsGitTest do
       # Update the project configuration. It should force an update.
       refresh deps: [{:git_repo, "0.1.0", git: fixture_path("git_repo"), ref: last}]
 
+      Mix.Tasks.Deps.run []
+      msg = "  lock outdated: the lock is outdated compared to the options in your mixfile"
+      assert_received {:mix_shell, :info, [^msg]}
+
       # Check an update was triggered
       Mix.Tasks.Deps.Get.run []
       assert File.read!("mix.lock") =~ last
@@ -258,7 +255,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "does not load bad mix files on get" do
+  test "does not load bad mixfiles on get" do
     Mix.Project.push GitApp
     [last, _, bad|_] = get_git_repo_revs
 
@@ -274,7 +271,7 @@ defmodule Mix.Tasks.DepsGitTest do
     purge [GitRepo, GitRepo.Mix]
   end
 
-  test "does not load bad mix files on update" do
+  test "does not load bad mixfiles on update" do
     Mix.Project.push GitApp
     [last, _, bad|_] = get_git_repo_revs
 

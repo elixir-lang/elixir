@@ -31,10 +31,11 @@ defmodule Mix.Dep do
   * `:app` - The application name
   * `:dest` - The destination path for the dependency
   * `:lock` - The lock information retrieved from mix.lock
+  * `:build` - The build path for the dependency
 
   """
-  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-            deps: [], top_level: false, extra: nil, manager: nil, from: nil
+  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: [],
+            deps: [], top_level: false, extra: [], manager: nil, from: nil
 
   @doc """
   Returns all children dependencies for the current project,

@@ -12,6 +12,9 @@ defmodule Mix.SCM do
   Returns a boolean if the dependency can be fetched
   or it is meant to be previously available in the
   filesystem.
+
+  Local dependencies (i.e. non fetchable ones) are automatically
+  recompiled every time the parent project is compiled.
   """
   defcallback fetchable? :: boolean
 

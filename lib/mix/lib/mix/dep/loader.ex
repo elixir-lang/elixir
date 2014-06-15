@@ -245,20 +245,25 @@ defmodule Mix.Dep.Loader do
 
   defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app, status: status} = dep) do
     opts_app = opts[:app]
-    build    = opts[:build]
 
     cond do
       not ok?(status) ->
         dep
-      File.exists?(Path.join(opts[:build], ".compile")) ->
+      recently_fetched?(dep) ->
         %{dep | status: :compile}
       opts_app == false ->
         dep
       true ->
-        path  = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-        path  = Path.expand(path, build)
+        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+        path = Path.expand(path, opts[:build])
         %{dep | status: app_status(path, app, req)}
     end
+  end
+
+  defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
+    scm.fetchable? &&
+      Mix.Utils.stale?([Path.join(opts[:dest], ".fetch")],
+                       [Path.join(opts[:build], ".compile.lock")])
   end
 
   defp app_status(app_path, app, req) do

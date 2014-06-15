@@ -73,7 +73,7 @@ defmodule Mix.ProjectStack do
         [h|t] ->
           h = %{h | io_done: true}
           t = Enum.map(t, &%{&1 | io_done: false})
-          {true, %{state | stack: [h|t]}}
+          {has_app?(h), %{state | stack: [h|t]}}
       end
     end
   end
@@ -149,6 +149,10 @@ defmodule Mix.ProjectStack do
 
   defp project_to_tuple(%{name: name, config: config, file: file}) do
     {name, config, file}
+  end
+
+  defp has_app?(%{config: config}) do
+    config[:app]
   end
 
   defp get_and_update(fun) do

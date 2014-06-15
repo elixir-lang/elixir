@@ -15,20 +15,12 @@ defmodule Mix.Tasks.DepsPathTest do
     end
   end
 
-  test "marks for compilation across environments on get/update" do
+  test "does not mark for compilation on get/update" do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      File.mkdir_p!("_build/dev/lib/raw_repo")
-      File.mkdir_p!("_build/test/lib/raw_repo")
-
       Mix.Tasks.Deps.Get.run ["--all"]
-      assert File.exists?("_build/dev/lib/raw_repo/.compile")
-      assert File.exists?("_build/test/lib/raw_repo/.compile")
-
-      Mix.Tasks.Run.run ["-e", "Mix.shell.info RawRepo.hello"]
-      assert_received {:mix_shell, :info, ["==> raw_repo"]}
-      assert_received {:mix_shell, :info, ["world"]}
+      refute File.exists?("custom/raw_repo/.fetch")
     end
   end
 

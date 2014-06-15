@@ -127,20 +127,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "marks dependencies as needing compilation but automatically compile them on check" do
-    Mix.Project.push SuccessfulDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.touch!("_build/dev/lib/ok/.compile")
-      Mix.Tasks.Deps.run []
-      msg = "  the dependency build is outdated, please run `mix deps.compile`"
-      assert_received {:mix_shell, :info, [^msg]}
-
-      Mix.Tasks.Deps.Check.run []
-      refute File.exists?("_build/dev/lib/ok/.compile")
-    end
-  end
-
   test "checks list of dependencies and their status on failure" do
     Mix.Project.push DepsApp
 
@@ -251,18 +237,6 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   ## Nested dependencies
-
-  defmodule NestedDepsApp do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          {:deps_repo, "0.1.0", path: "custom/deps_repo"}
-        ]
-      ]
-    end
-  end
 
   defmodule DivergedDepsApp do
     def project do
@@ -479,24 +453,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   after
     purge [GitRepo, GitRepo.Mix]
-  end
-
-  test "updates parent dependencies" do
-    Mix.Project.push NestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-
-      File.mkdir_p!("_build/dev/lib/git_repo")
-      File.mkdir_p!("_build/test/lib/deps_repo")
-
-      Mix.Tasks.Deps.Update.run ["git_repo"]
-      message = "* Updating git_repo (#{fixture_path("git_repo")})"
-      assert_received {:mix_shell, :info, [^message]}
-
-      assert File.exists?("_build/dev/lib/git_repo/.compile")
-      assert File.exists?("_build/test/lib/deps_repo/.compile")
-    end
   end
 
   test "checks if dependencies are using old elixir version" do

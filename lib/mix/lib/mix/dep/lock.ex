@@ -56,8 +56,7 @@ defmodule Mix.Dep.Lock do
     case File.read(lockfile) do
       {:ok, info} ->
         {value, _binding} = Code.eval_string(info)
-        # TODO: Remove Enum.into() once apps migrate to new lock
-        Enum.into(value || [], %{})
+        value || %{}
       {:error, _} ->
         %{}
     end

@@ -6,6 +6,13 @@ defmodule Mix.UmbrellaTest do
   test "compiles umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run "deps"
+        assert_received {:mix_shell, :info, ["* bar (apps/bar)"]}
+        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
+
+        # Ensure we can compile and run checks
+        Mix.Task.run "deps.compile"
+        Mix.Task.run "deps.check"
         Mix.Task.run "compile"
 
         assert_received {:mix_shell, :info, ["==> bar"]}
@@ -18,24 +25,7 @@ defmodule Mix.UmbrellaTest do
         # Ensure foo was loaded and in the same env as Mix.env
         assert_received {:mix_shell, :info, [":foo env is dev"]}
         assert_received {:mix_shell, :info, [":bar env is dev"]}
-      end)
-    end
-  end
 
-  test "dependencies in umbrella" do
-    in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [build_per_environment: true], fn _ ->
-        Mix.Task.run "deps"
-        assert_received {:mix_shell, :info, ["* bar (apps/bar)"]}
-        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
-
-        # Ensure we can compile and run checks
-        Mix.Task.run "deps.compile"
-        Mix.Task.run "deps.check"
-
-        # Ensure we can also start each app and
-        # they won't remove each other build
-        Mix.Task.run "compile"
         Mix.Task.clear
         Mix.Task.run "app.start", ["--no-compile"]
       end)
@@ -44,8 +34,8 @@ defmodule Mix.UmbrellaTest do
 
   defmodule UmbrellaDeps do
     def project do
-      [ apps_path: "apps",
-        deps: [{:some_dep, path: "deps/some_dep"}] ]
+      [apps_path: "apps",
+       deps: [{:some_dep, path: "deps/some_dep"}]]
     end
   end
 
@@ -68,11 +58,11 @@ defmodule Mix.UmbrellaTest do
 
   defmodule CycleDeps do
     def project do
-      [ app: :umbrella_dep,
-        deps: [
-          {:bar, path: "deps/umbrella/apps/bar"},
-          {:umbrella, path: "deps/umbrella"}
-        ] ]
+      [app: :umbrella_dep,
+       deps: [
+         {:bar, path: "deps/umbrella/apps/bar"},
+         {:umbrella, path: "deps/umbrella"}
+       ]]
     end
   end
 
@@ -145,7 +135,6 @@ defmodule Mix.UmbrellaTest do
   test "recompiles after path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
-
         Mix.Task.run "compile"
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
@@ -162,17 +151,6 @@ defmodule Mix.UmbrellaTest do
         purge [Foo, Bar]
       end)
     end)
-  end
-
-  defp ensure_touched(file) do
-    ensure_touched(file, File.stat!(file).mtime)
-  end
-
-  defp ensure_touched(file, current) do
-    File.touch!(file)
-    unless File.stat!(file).mtime > current do
-      ensure_touched(file, current)
-    end
   end
 
   defmodule Selective do

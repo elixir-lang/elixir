@@ -32,10 +32,15 @@ defmodule Mix.Tasks.Deps do
   Mix also supports git and path dependencies:
 
       {:foobar, git: "https://github.com/elixir-lang/foobar.git", tag: "0.1"}
+      {:foobar, path: "path/to/foobar"}
 
-  And also umbrella applications:
+  And also in umbrella dependencies:
 
       {:myapp, in_umbrella: true}
+
+  Path and in umbrella dependencies are automatically recompiled by
+  the parent project whenever they change. While fetchable dependencies
+  like git are recompiled only when fetched/updated.
 
   The dependencies versions are expected to follow Semantic Versioning
   and the requirements must be specified as defined in the `Version`
@@ -74,7 +79,7 @@ defmodule Mix.Tasks.Deps do
 
   This task lists all dependencies in the following format:
 
-    * APP VERSION (SCM)
+      APP VERSION (SCM)
       [locked at REF]
       STATUS
 

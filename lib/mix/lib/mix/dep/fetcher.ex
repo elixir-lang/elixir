@@ -91,8 +91,9 @@ defmodule Mix.Dep.Fetcher do
 
     # Note we only retrieve the parent dependencies of the updated
     # deps if all dependencies are available. This is because if a
-    # dependency is missing, it could be a children of the parent
-    # (aka a sibling) which would make parent compilation fail.
+    # dependency is missing, it could directly affect one of the
+    # dependencies we are trying to compile, causing the whole thing
+    # to fail.
     #
     # If there is any other dependency that is not ok, we include
     # it for compilation too, this is our best to try to solve the
@@ -107,15 +108,17 @@ defmodule Mix.Dep.Fetcher do
     lock = Dict.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
 
-    require_compilation(deps)
+    mark_as_fetched(deps)
     {apps, all_deps}
   end
 
-  defp require_compilation(deps) do
-    envs = Path.wildcard("_build/*/lib")
-
-    for %Mix.Dep{app: app} <- deps, env <- envs do
-      File.touch Path.join [env, Atom.to_string(app), ".compile"]
+  defp mark_as_fetched(deps) do
+    # If the dependency is fetchable, we are going to write a .fetch
+    # file to it. Each build, regardless of the environment and location,
+    # will compared against this .fetch file to know if the depednency
+    # needs recompiling.
+    for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
+      File.touch Path.join opts[:dest], ".fetch"
     end
   end
 
