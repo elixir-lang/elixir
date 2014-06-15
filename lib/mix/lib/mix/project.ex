@@ -87,7 +87,7 @@ defmodule Mix.Project do
   """
   def get do
     case Mix.ProjectStack.peek do
-      {name, _config, _file} -> name
+      %{name: name} -> name
       _ -> nil
     end
   end
@@ -122,7 +122,7 @@ defmodule Mix.Project do
   """
   def config do
     case Mix.ProjectStack.peek do
-      {_name, config, _file} -> config
+      %{config: config} -> config
       _ -> default_config
     end
   end
@@ -139,12 +139,13 @@ defmodule Mix.Project do
   def config_files do
     [Mix.Dep.Lock.manifest] ++
       case Mix.ProjectStack.peek do
-        {_name, config, file} ->
-          configs = (config[:config_path] || "config/config.exs")
-                    |> Path.dirname
-                    |> Path.join("*.*")
-                    |> Path.wildcard
-                    |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
+        %{config: config, file: file} ->
+          configs =
+            (config[:config_path] || "config/config.exs")
+            |> Path.dirname
+            |> Path.join("*.*")
+            |> Path.wildcard
+            |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
           [file|configs]
         _ ->
           []

@@ -95,7 +95,7 @@ defmodule Mix do
 
   defp mix_info do
     case Mix.ProjectStack.peek do
-      {name, config, _file} ->
+      %{name: name, config: config, pos: pos} when pos > 0 ->
         if app = config[:app] do
           {:app, app}
         else

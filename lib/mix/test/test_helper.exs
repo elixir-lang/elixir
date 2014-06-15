@@ -105,7 +105,7 @@ defmodule MixTest.Case do
     ensure_touched(file, File.stat!(file).mtime)
   end
 
-  defp ensure_touched(file, current) do
+  def ensure_touched(file, current) do
     File.touch!(file)
     unless File.stat!(file).mtime > current do
       ensure_touched(file, current)

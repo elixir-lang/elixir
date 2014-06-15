@@ -104,8 +104,8 @@ defmodule Mix.CLI do
        (env = Mix.Project.config[:preferred_cli_env][task]) do
       Mix.env(env)
       if project = Mix.Project.pop do
-        {project, _config, file} = project
-        Mix.Project.push project, file
+        %{name: name, file: file} = project
+        Mix.Project.push name, file
       end
     end
   end

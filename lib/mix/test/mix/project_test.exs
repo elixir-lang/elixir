@@ -14,7 +14,7 @@ defmodule Mix.ProjectTest do
     Mix.Project.push(SampleProject, "sample")
     assert Mix.Project.get == SampleProject
 
-    assert {SampleProject, _config, "sample"} = Mix.Project.pop
+    assert %{name: SampleProject, config: _, file: "sample"} = Mix.Project.pop
     assert nil = Mix.Project.pop
   end
 
@@ -29,8 +29,8 @@ defmodule Mix.ProjectTest do
   test "allows nil projects to be pushed twice" do
     Mix.Project.push nil
     Mix.Project.push nil
-    assert is_tuple Mix.Project.pop
-    assert is_tuple Mix.Project.pop
+    assert is_map Mix.Project.pop
+    assert is_map Mix.Project.pop
     assert nil? Mix.Project.pop
   end
 

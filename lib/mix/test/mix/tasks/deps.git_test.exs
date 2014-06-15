@@ -288,9 +288,9 @@ defmodule Mix.Tasks.DepsGitTest do
   end
 
   defp refresh(post_config) do
-    {current, _config, file} = Mix.Project.pop
+    %{name: name, file: file} = Mix.Project.pop
     Mix.ProjectStack.post_config(post_config)
-    Mix.Project.push(current, file)
+    Mix.Project.push(name, file)
   end
 
   defp get_git_repo_revs do

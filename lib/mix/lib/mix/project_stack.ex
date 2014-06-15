@@ -23,7 +23,7 @@ defmodule Mix.ProjectStack do
       io_done? = stack == []
 
       config  = Keyword.merge(config, state.post_config)
-      project = %{name: module, config: config, file: file,
+      project = %{name: module, config: config, file: file, pos: length(stack),
                   recursing?: false, io_done: io_done?, tasks: HashSet.new}
 
       cond do
@@ -39,7 +39,7 @@ defmodule Mix.ProjectStack do
   def pop do
     get_and_update fn %{stack: stack} = state ->
       case stack do
-        [h|t] -> {project_to_tuple(h), %{state | stack: t}}
+        [h|t] -> {take(h), %{state | stack: t}}
         [] -> {nil, state}
       end
     end
@@ -49,7 +49,7 @@ defmodule Mix.ProjectStack do
   def peek do
     get fn %{stack: stack} ->
       case stack do
-        [h|_] -> project_to_tuple(h)
+        [h|_] -> take(h)
         [] -> nil
       end
     end
@@ -147,8 +147,8 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  defp project_to_tuple(%{name: name, config: config, file: file}) do
-    {name, config, file}
+  defp take(h) do
+    Map.take(h, [:name, :config, :file, :pos])
   end
 
   defp has_app?(%{config: config}) do
