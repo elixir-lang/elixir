@@ -182,6 +182,14 @@ defmodule EnumTest.List do
     result = Enum.group_by(1..6, %{3 => :default}, &rem(&1, 3))
     assert result[0] == [6, 3]
     assert result[3] == :default
+
+    assert Enum.group_by([a: 0, b: 1, c: 2, d: 0, e: 1, f: 4], %{}, fn {_, v} -> v end) ==
+           %{0 => [d: 0, a: 0], 1 => [e: 1, b: 1], 2 => [c: 2], 4 => [f: 4]}
+  end
+
+  test :group_by_4 do
+    assert Enum.group_by([a: 0, b: 1, c: 2, d: 0, e: 1, f: 4], %{}, fn({_, v}) -> v end, fn(x) -> elem(x,0) end) ==
+           %{0 => [:d, :a], 1 => [:e, :b], 2 => [:c], 4 => [:f]}
   end
 
   test :into do

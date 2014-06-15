@@ -1237,6 +1237,29 @@ defmodule Enum do
   end
 
   @doc """
+  Splits `collection` into groups based on `fun` invoking `fun_entry` for each entry.
+
+  The result is a dict (by default a map) where each key is
+  a group and each value is a list of elements from `collection`
+  for which `fun` returned that group. Ordering is not necessarily
+  preserved.
+
+  ## Examples
+
+      iex> Enum.group_by(~w{ant buffalo cat dingo}, %{}, &String.length/1, &String.capitalize/1)
+      %{3 => ["Cat", "Ant"], 5 => ["Dingo"], 7 => ["Buffalo"]}
+      iex> Enum.group_by([a: 1, b: 0, c: 4, d: 0, e: 1, f: 1], %{}, fn({_, v}) -> v end, fn({k, _}) -> to_string(k) end)
+      %{0 => ["d", "b"], 1 => ["f", "e", "a"], 4 => ["c"]}
+
+  """
+  @spec group_by(t, dict, (element -> any), (element -> any)) :: dict when dict: Dict.t
+  def group_by(collection, dict, fun, fun_entry) do
+    reduce(collection, dict, fn(entry, categories) ->
+      Dict.update(categories, fun.(entry), [fun_entry.(entry)], &[fun_entry.(entry)|&1])
+    end)
+  end
+
+  @doc """
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   Returns the accumulator.
