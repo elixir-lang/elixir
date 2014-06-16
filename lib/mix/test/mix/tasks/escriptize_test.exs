@@ -7,8 +7,11 @@ defmodule Mix.Tasks.EscriptizeTest do
     def project do
       [ app: :escripttest,
         version: "0.0.1",
-        escript_main_module: Escripttest,
-        escript_embed_elixir: true ]
+        escript: [
+          main_module: Escripttest,
+          embed_elixir: true
+        ]
+      ]
     end
   end
 
@@ -16,11 +19,14 @@ defmodule Mix.Tasks.EscriptizeTest do
     def project do
       [ app: :escripttestwithpath,
         version: "0.0.1",
-        escript_app: nil,
-        escript_embed_elixir: true,
-        escript_main_module: Escripttest,
-        escript_name: :escripttestwithpath,
-        escript_path: Path.join("ebin", "escripttestwithpath") ]
+        escript: [
+          app: nil,
+          embed_elixir: true,
+          main_module: Escripttest,
+          name: :escripttestwithpath,
+          path: Path.join("ebin", "escripttestwithpath")
+        ]
+      ]
     end
   end
 
@@ -28,8 +34,10 @@ defmodule Mix.Tasks.EscriptizeTest do
     def project do
       [ app: :escripttestwithdeps,
         version: "0.0.1",
-        escript_main_module: Escripttest,
-        escript_path: Path.join("ebin", "escripttestwithdeps"),
+        escript: [
+          main_module: Escripttest,
+          path: Path.join("ebin", "escripttestwithdeps"),
+        ],
         deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
     end
   end
