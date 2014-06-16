@@ -49,16 +49,16 @@ defmodule URITest do
     assert Enum.map(decoder, &(&1)) == expected
   end
 
-  test :decode do
-    assert URI.decode("%0D%0A%26%3C%25%3E%22%20%E3%82%86") == "\r\n&<%>\" ゆ"
-    assert URI.decode("%2f%41%4a%55") == "/AJU"
-    assert URI.decode("4_t+st.is-s~") == "4_t+st.is-s~"
+  test :decode! do
+    assert URI.decode!("%0D%0A%26%3C%25%3E%22%20%E3%82%86") == "\r\n&<%>\" ゆ"
+    assert URI.decode!("%2f%41%4a%55") == "/AJU"
+    assert URI.decode!("4_t+st.is-s~") == "4_t+st.is-s~"
 
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
-      URI.decode("% invalid")
+      URI.decode!("% invalid")
     end
     assert_raise ArgumentError, ~R/malformed URI/, fn ->
-      URI.decode("invalid%")
+      URI.decode!("invalid%")
     end
   end
 
