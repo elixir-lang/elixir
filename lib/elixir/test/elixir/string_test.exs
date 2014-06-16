@@ -311,18 +311,18 @@ defmodule StringTest do
     assert String.slice("elixir", -3, 2) == "xi"
     assert String.slice("あいうえお", -4, 3) == "いうえ"
     assert String.slice("ειξήριολ", -5, 3) == "ήρι"
-    assert String.slice("elixir", -10, 1) == nil
-    assert String.slice("あいうえお", -10, 2) == nil
-    assert String.slice("ειξήριολ", -10, 3) == nil
-    assert String.slice("elixir", 8, 2) == nil
-    assert String.slice("あいうえお", 6, 2) == nil
+    assert String.slice("elixir", -10, 1) == ""
+    assert String.slice("あいうえお", -10, 2) == ""
+    assert String.slice("ειξήριολ", -10, 3) == ""
+    assert String.slice("elixir", 8, 2) == ""
+    assert String.slice("あいうえお", 6, 2) == ""
     assert String.slice("ειξήριολ", 8, 1) == ""
-    assert String.slice("ειξήριολ", 9, 1) == nil
+    assert String.slice("ειξήριολ", 9, 1) == ""
     assert String.slice("elixir", 0, 0) == ""
     assert String.slice("elixir", 5, 0) == ""
     assert String.slice("elixir", -5, 0) == ""
     assert String.slice("", 0, 1) == ""
-    assert String.slice("", 1, 1) == nil
+    assert String.slice("", 1, 1) == ""
 
     assert String.slice("elixir", 0..-2) == "elixi"
     assert String.slice("elixir", 1..3) == "lix"
@@ -336,14 +336,14 @@ defmodule StringTest do
     assert String.slice("elixir", -3..-2) == "xi"
     assert String.slice("あいうえお", -4..-2) == "いうえ"
     assert String.slice("ειξήριολ", -5..-3) == "ήρι"
-    assert String.slice("elixir", 8..9) == nil
-    assert String.slice("あいうえお", 6..7) == nil
+    assert String.slice("elixir", 8..9) == ""
+    assert String.slice("あいうえお", 6..7) == ""
     assert String.slice("ειξήριολ", 8..8) == ""
-    assert String.slice("ειξήριολ", 9..9) == nil
+    assert String.slice("ειξήριολ", 9..9) == ""
     assert String.slice("", 0..0) == ""
-    assert String.slice("", 1..1) == nil
-    assert String.slice("あいうえお", -2..-4) == nil
-    assert String.slice("あいうえお", -10..-15) == nil
+    assert String.slice("", 1..1) == ""
+    assert String.slice("あいうえお", -2..-4) == ""
+    assert String.slice("あいうえお", -10..-15) == ""
   end
 
   test :valid? do
