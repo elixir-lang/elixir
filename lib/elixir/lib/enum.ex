@@ -1417,18 +1417,33 @@ defmodule Enum do
   @doc """
   Returns a subset list of the given collection. Drops elements
   until element position `start`, then takes `count` elements.
+  
+  If the count is greater than collection length, it returns as
+  much as possible. If zero, then it returns `[]`.
 
   ## Examples
 
       iex> Enum.slice(1..100, 5, 10)
       [6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 
+      iex> Enum.slice(1..10, 5, 100)
+      [6, 7, 8, 9, 10]
+
+      iex> Enum.slice(1..10, 5, 0)
+      []
+
   """
   @spec slice(t, integer, non_neg_integer) :: list
+  
+  def slice(_coll, _start, 0), do: []
 
   def slice(coll, start, count) when start < 0 do
     {list, new_start} = enumerate_and_count(coll, start)
-    if new_start >= 0, do: slice(list, new_start, count)
+    if new_start >= 0 do
+      slice(list, new_start, count)
+    else
+      []
+    end
   end
 
   def slice(coll, start, count) when is_list(coll) and start >= 0 and count > 0 do
@@ -1445,15 +1460,7 @@ defmodule Enum do
         {:halt, {start, count, [entry|list]}}
     end) |> elem(1)
 
-    if start <= 0, do: :lists.reverse(list)
-  end
-
-  def slice(coll, start, 0) do
-    res =
-      Enumerable.reduce(coll, {:cont, start}, fn _, start ->
-        if start > 0, do: {:cont, start-1}, else: {:halt, []}
-      end) |> elem(1)
-    if is_list(res), do: res
+    :lists.reverse(list)
   end
 
   @doc """
@@ -1468,10 +1475,22 @@ defmodule Enum do
   The first position (after adding count to negative positions) must be smaller
   or equal to the last position.
 
+  If the start of the range is not a valid offset for the given
+  collection or if the range is in reverse order, returns `[]`.
+
   ## Examples
 
       iex> Enum.slice(1..100, 5..10)
       [6, 7, 8, 9, 10, 11]
+
+      iex> Enum.slice(1..10, 5..20)
+      [6, 7, 8, 9, 10]
+
+      iex> Enum.slice(1..10, 11..20)
+      []
+
+      iex> Enum.slice(1..10, 6..5)
+      []
 
   """
   @spec slice(t, Range.t) :: list
@@ -1479,6 +1498,8 @@ defmodule Enum do
     # Simple case, which works on infinite collections
     if last - first >= 0 do
       slice(coll, first, last - first + 1)
+    else
+      []
     end
   end
 
@@ -1489,6 +1510,8 @@ defmodule Enum do
     length = corr_last - corr_first + 1
     if corr_first >= 0 and length > 0 do
       slice(list, corr_first, length)
+    else
+      []
     end
   end
 
@@ -2143,11 +2166,11 @@ defmodule Enum do
   ## slice
 
   defp do_slice([], start, _count) do
-    if start == 0, do: []
+    []
   end
 
   defp do_slice(list, start, 0) do
-    if start < length(list), do: []
+    []
   end
 
   defp do_slice([h|t], 0, count) do
