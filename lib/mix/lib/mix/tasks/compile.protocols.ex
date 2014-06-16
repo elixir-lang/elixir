@@ -3,6 +3,8 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   @recursive true
 
+  @shortdoc "Consolidates all protocols in all paths"
+
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
 
@@ -11,16 +13,18 @@ defmodule Mix.Tasks.Compile.Protocols do
   (defaults to "consolidated").
 
   A new directory will be created with the consolidated
-  protocol versions. Simply add it to your codepath to
-  make use of it:
+  protocol versions in the build directory for the given
+  environment. Simply add it to your codepath to make use
+  of it:
 
-      mix run -pa _build/dev/consolidated
+      $ mix run -pa _build/dev/consolidated
 
   You can verify a protocol is consolidated by checking
   its attributes:
 
-      elixir -pa _build/dev/consolidated -S \
-        mix run -e "IO.puts Protocol.consolidated?(Enumerable)"
+      $ iex -S mix run -pa _build/dev/consolidated
+      iex> Protocol.consolidated?(Enumerable)
+      true
 
   """
 
