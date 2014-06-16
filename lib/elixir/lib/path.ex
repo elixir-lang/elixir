@@ -552,6 +552,10 @@ defmodule Path do
     normalize t, acc
   end
 
+  defp normalize([".."|t], [<<_letter, ?:, relative :: binary>>|_] = acc) when relative == "/" do
+    normalize t, acc
+  end
+
   defp normalize([".."|t], [_|acc]) do
     normalize t, acc
   end
