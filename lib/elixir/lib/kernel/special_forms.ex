@@ -1064,9 +1064,9 @@ defmodule Kernel.SpecialForms do
   we are passing the representation of the variable `kv`, our
   code fails.
 
-  This is actually a common pitfall when developing macros. In
-  practice, we want to avoid doing work at compilation time as
-  much as possible. That said, let's attempt to improve our macro:
+  This is actually a common pitfall when developing macros. We are
+  assuming a particular shape in the macro. We can work around it
+  by unquoting the variable inside the quoted expression:
 
       defmacro defkv(kv) do
         quote do
