@@ -974,7 +974,7 @@ defmodule String do
   @doc """
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
-  If the offset is greater than string length, than it returns `nil`.
+  If the offset is greater than string length, than it returns `""`.
 
   ## Examples
 
@@ -985,13 +985,13 @@ defmodule String do
       "lixir"
 
       iex> String.slice("elixir", 10, 3)
-      nil
+      ""
 
       iex> String.slice("elixir", -4, 4)
       "ixir"
 
       iex> String.slice("elixir", -10, 3)
-      nil
+      ""
 
       iex> String.slice("a", 0, 1500)
       "a"
@@ -1000,16 +1000,13 @@ defmodule String do
       ""
 
       iex> String.slice("a", 2, 1500)
-      nil
+      ""
 
   """
-  @spec slice(t, integer, integer) :: grapheme | nil
+  @spec slice(t, integer, integer) :: grapheme
 
-  def slice(string, start, 0) do
-    case abs(start) <= length(string) do
-      true -> ""
-      false -> nil
-    end
+  def slice(_, _, 0) do
+    ""
   end
 
   def slice(string, start, len) when start >= 0 and len >= 0 do
@@ -1020,7 +1017,7 @@ defmodule String do
     real_start_pos = length(string) - abs(start)
     case real_start_pos >= 0 do
       true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
-      false -> nil
+      false -> ""
     end
   end
 
@@ -1029,7 +1026,7 @@ defmodule String do
   range to the offset given by the end of the range.
 
   If the start of the range is not a valid offset for the given
-  string or if the range is in reverse order, returns `nil`.
+  string or if the range is in reverse order, returns `""`.
 
   ## Examples
 
@@ -1040,7 +1037,7 @@ defmodule String do
       "lixir"
 
       iex> String.slice("elixir", 10..3)
-      nil
+      ""
 
       iex> String.slice("elixir", -4..-1)
       "ixir"
@@ -1052,10 +1049,10 @@ defmodule String do
       "ixir"
 
       iex> String.slice("elixir", -1..-4)
-      nil
+      ""
 
       iex> String.slice("elixir", -10..-7)
-      nil
+      ""
 
       iex> String.slice("a", 0..1500)
       "a"
@@ -1064,10 +1061,10 @@ defmodule String do
       ""
 
       iex> String.slice("a", 2..1500)
-      nil
+      ""
 
   """
-  @spec slice(t, Range.t) :: t | nil
+  @spec slice(t, Range.t) :: t
 
   def slice(string, range)
 
@@ -1088,11 +1085,13 @@ defmodule String do
 
     if first >= 0 do
       do_slice(next_grapheme(string), first, last, 0, "")
+    else
+      ""
     end
   end
 
   defp do_slice(_, start_pos, last_pos, _, _) when start_pos > last_pos do
-    nil
+    ""
   end
 
   defp do_slice({_, rest}, start_pos, last_pos, current_pos, acc) when current_pos < start_pos do
@@ -1106,16 +1105,9 @@ defmodule String do
   defp do_slice({char, _}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos == last_pos do
     acc <> char
   end
-
-  defp do_slice(nil, start_pos, _, current_pos, acc) when start_pos == current_pos do
-    acc
-  end
-
+  
   defp do_slice(nil, _, _, _, acc) do
-    case acc do
-      "" -> nil
-      _ -> acc
-    end
+    acc
   end
 
   @doc """
