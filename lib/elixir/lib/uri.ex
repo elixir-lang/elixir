@@ -189,7 +189,7 @@ defmodule URI do
       "ftp://s-ite.tld/?value=put%20it+%D0%B9"
 
   """
-  def encode(str, predicate \\ &char_unescaped?/1) do
+  def encode(str, predicate \\ &char_unescaped?/1) when is_binary(str) do
     for <<c <- str>>, into: "", do: percent(c, predicate)
   end
 
@@ -202,7 +202,7 @@ defmodule URI do
       "put%3A+it%2B%D0%B9"
 
   """
-  def encode_www_form(str) do
+  def encode_www_form(str) when is_binary(str) do
     for <<c <- str>>, into: "" do
       case percent(c, &char_unreserved?/1) do
         "%20" -> "+"
