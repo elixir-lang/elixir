@@ -196,22 +196,6 @@ defmodule KernelTest do
     end
   end
 
-  test "get_in/1" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-    assert get_in(users["josé"][:age]) == 27
-    assert get_in(users["dave"][:age]) == nil
-
-    assert get_in(users["josé"].age) == 27
-
-    assert_raise ArgumentError, fn ->
-      get_in(users["dave"].age)
-    end
-
-    assert_raise KeyError, fn ->
-      get_in(users["eric"].unknown)
-    end
-  end
-
   test "put_in/3" do
     users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
 
@@ -330,17 +314,17 @@ defmodule KernelTest do
   test "paths" do
     map = empty_map()
 
-    assert get_in(map[:foo]) == nil
-    assert get_in(empty_map()[:foo]) == nil
-    assert get_in(KernelTest.empty_map()[:foo]) == nil
-    assert get_in(__MODULE__.empty_map()[:foo]) == nil
+    assert put_in(map[:foo], "bar") == %{foo: "bar"}
+    assert put_in(empty_map()[:foo], "bar") == %{foo: "bar"}
+    assert put_in(KernelTest.empty_map()[:foo], "bar") == %{foo: "bar"}
+    assert put_in(__MODULE__.empty_map()[:foo], "bar") == %{foo: "bar"}
 
     assert_raise ArgumentError, ~r"access at least one field,", fn ->
-      Code.eval_quoted(quote(do: get_in(map)), [])
+      Code.eval_quoted(quote(do: put_in(map, "bar")), [])
     end
 
     assert_raise ArgumentError, ~r"must start with a variable, local or remote call", fn ->
-      Code.eval_quoted(quote(do: get_in(map.foo(1, 2)[:bar])), [])
+      Code.eval_quoted(quote(do: put_in(map.foo(1, 2)[:bar], "baz")), [])
     end
   end
 

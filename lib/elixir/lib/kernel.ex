@@ -1716,68 +1716,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Gets a value from a nested structure via the given `path`.
-
-  This is similar to `get_in/2`, except the path is extracted via
-  a macro rather than passing a list. For example:
-
-      get_in(opts[:foo][:bar])
-
-  Is equivalent to:
-
-      get_in(opts, [:foo, :bar])
-
-  Note that in order for this macro to work, the complete path must always
-  be visible by this macro.
-
-  ## Examples
-
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_in(users["josé"][:age])
-      27
-
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_in(users["josé"].age)
-      27
-
-  ## Paths
-
-  A path may start with a variable, local or remote call, and must be
-  followed by one or more:
-
-  * `foo[bar]` - access a field. In case an intermediate field is not
-    present or returns nil, an empty map is used;
-
-  * `foo.bar` - access a map/struct field. In case the field is not
-    present, an error is raised;
-
-  Here are some valid paths:
-
-      users["josé"][:age]
-      users["josé"].age
-      User.all["josé"].age
-      all_users()["josé"].age
-
-  Here are some invalid ones:
-
-      # Does a remote call after the initial value
-      users["josé"].do_something(arg1, arg2)
-
-      # Does not access any field
-      users
-
-  """
-  defmacro get_in(path) do
-    [h|t] = unnest(path, [], "get_in/2")
-    Enum.reduce(t, h, fn
-      {:access, key}, acc ->
-        quote do: Access.get(unquote(acc), unquote(key))
-      {:map, key}, acc ->
-        quote do: Access.Map.get!(unquote(acc), unquote(key))
-    end)
-  end
-
-  @doc """
   Puts a value in a nested structure via the given `path`.
 
   This is similar to `put_in/3`, except the path is extracted via
@@ -1791,7 +1729,7 @@ defmodule Kernel do
 
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
-  expressions, please check `get_in/1` docs.
+  expressions, please check `get_and_update_in/2` docs.
 
   ## Examples
 
@@ -1824,7 +1762,7 @@ defmodule Kernel do
 
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
-  expressions, please check `get_in/1` docs.
+  expressions, please check `get_and_update_in/2` docs.
 
   ## Examples
 
@@ -1856,14 +1794,39 @@ defmodule Kernel do
       get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
 
   Note that in order for this macro to work, the complete path must always
-  be visible by this macro. For more information about the supported path
-  expressions, please check `get_in/1` docs.
+  be visible by this macro. See the Paths section below.
 
   ## Examples
 
       iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
       iex> get_and_update_in(users["josé"][:age], &{&1, &1 + 1})
       {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+
+  ## Paths
+
+  A path may start with a variable, local or remote call, and must be
+  followed by one or more:
+
+  * `foo[bar]` - access a field. In case an intermediate field is not
+    present or returns nil, an empty map is used;
+
+  * `foo.bar` - access a map/struct field. In case the field is not
+    present, an error is raised;
+
+  Here are some valid paths:
+
+      users["josé"][:age]
+      users["josé"].age
+      User.all["josé"].age
+      all_users()["josé"].age
+
+  Here are some invalid ones:
+
+      # Does a remote call after the initial value
+      users["josé"].do_something(arg1, arg2)
+
+      # Does not access any field
+      users
 
   """
   defmacro get_and_update_in(path, fun) do
