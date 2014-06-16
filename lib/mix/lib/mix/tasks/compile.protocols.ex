@@ -14,15 +14,15 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   A new directory will be created with the consolidated
   protocol versions in the build directory for the given
-  environment. Simply add it to your codepath to make use
+  environment. Simply add it to your loadpath to make use
   of it:
 
-      $ mix run -pa _build/dev/consolidated
+      $ elixir -pa _build/dev/consolidated -S mix run
 
   You can verify a protocol is consolidated by checking
   its attributes:
 
-      $ iex -S mix run -pa _build/dev/consolidated
+      $ iex -pa _build/dev/consolidated -S mix run
       iex> Protocol.consolidated?(Enumerable)
       true
 
