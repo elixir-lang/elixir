@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
   @hex_url "https://hex.pm/installs/hex.ez"
-  @hex_requirement ">= 0.2.2"
+  @hex_requirement ">= 0.2.5"
 
   @shortdoc "Install hex locally"
 
