@@ -6,11 +6,11 @@ defmodule Process do
   exposes and auto-imports some basic functionality related to processes
   available through the functions:
 
-  * `Kernel.spawn/1` and `Kernel.spawn/3`
-  * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
-  * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
-  * `Kernel.self/0`
-  * `Kernel.send/2`
+    * `Kernel.spawn/1` and `Kernel.spawn/3`
+    * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
+    * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
+    * `Kernel.self/0`
+    * `Kernel.send/2`
 
   """
 

@@ -59,21 +59,24 @@ defmodule Code do
 
   Those options can be:
 
-  * `:file` - the file to be considered in the evaluation
-  * `:line` - the line on which the script starts
-  * `:delegate_locals_to` - delegate local calls to the given module,
-    the default is to not delegate
+    * `:file`               - the file to be considered in the evaluation
+    * `:line`               - the line on which the script starts
+    * `:delegate_locals_to` - delegate local calls to the given module,
+                              the default is to not delegate
 
   Additionally, the following scope values can be configured:
 
-  * `:aliases` - a list of tuples with the alias and its target
-  * `:requires` - a list of modules required
-  * `:functions` - a list of tuples where the first element is a module
-    and the second a list of imported function names and arity. The list
-    of function names and arity must be sorted
-  * `:macros` - a list of tuples where the first element is a module
-    and the second a list of imported macro names and arity. The list
-    of function names and arity must be sorted
+    * `:aliases` - a list of tuples with the alias and its target
+
+    * `:requires` - a list of modules required
+
+    * `:functions` - a list of tuples where the first element is a module
+      and the second a list of imported function names and arity. The list
+      of function names and arity must be sorted
+
+    * `:macros` - a list of tuples where the first element is a module
+      and the second a list of imported macro names and arity. The list
+      of function names and arity must be sorted
 
   Notice that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]`, will no longer
@@ -198,13 +201,13 @@ defmodule Code do
 
   ## Options
 
-  * `:file` - The filename to be used in stacktraces
-    and the file reported in the `__ENV__` variable.
+    * `:file` - The filename to be used in stacktraces
+      and the file reported in the `__ENV__` variable.
 
-  * `:line` - The line reported in the `__ENV__` variable.
+    * `:line` - The line reported in the `__ENV__` variable.
 
-  * `:existing_atoms_only` - When `true`, raises an error
-    when non-existing atoms are found by the tokenizer.
+    * `:existing_atoms_only` - When `true`, raises an error
+      when non-existing atoms are found by the tokenizer.
 
   ## Macro.to_string/2
 
@@ -324,17 +327,18 @@ defmodule Code do
 
   Available options are:
 
-  * `:docs` - when `true`, retain documentation in the compiled module,
-    `true` by default;
+    * `:docs` - when `true`, retain documentation in the compiled module,
+      `true` by default;
 
-  * `:debug_info` - when `true`, retain debug information in the compiled module.
-    This allows a developer to reconstruct the original source
-    code, `false` by default;
+    * `:debug_info` - when `true`, retain debug information in the compiled
+      module. This allows a developer to reconstruct the original source
+      code, `false` by default;
 
-  * `:ignore_module_conflict` - when `true`, override modules that were already defined
-    without raising errors, `false` by default;
+    * `:ignore_module_conflict` - when `true`, override modules that were
+      already defined without raising errors, `false` by default;
 
-  * `:warnings_as_errors` - cause compilation to fail when warnings are generated;
+    * `:warnings_as_errors` - cause compilation to fail when warnings are
+      generated;
 
   """
   def compiler_options(opts) do
@@ -472,14 +476,14 @@ defmodule Code do
 
   The return value depends on the `kind` value:
 
-  * `:docs` - list of all docstrings attached to functions and macros
-    using the `@doc` attribute
+    * `:docs` - list of all docstrings attached to functions and macros
+      using the `@doc` attribute
 
-  * `:moduledoc` - tuple `{<line>, <doc>}` where `line` is the line on
-    which module definition starts and `doc` is the string
-    attached to the module using the `@moduledoc` attribute
+    * `:moduledoc` - tuple `{<line>, <doc>}` where `line` is the line on
+      which module definition starts and `doc` is the string
+      attached to the module using the `@moduledoc` attribute
 
-  * `:all` - a keyword list with both `:docs` and `:moduledoc`
+    * `:all` - a keyword list with both `:docs` and `:moduledoc`
 
   """
   def get_docs(module, kind) when is_atom(module) do

@@ -670,23 +670,28 @@ defmodule Kernel.SpecialForms do
   The tuple above represents a function call to `sum` passing 1, 2 and
   3 as arguments. The tuple elements are:
 
-  * The first element of the tuple is always an atom or
-    another tuple in the same representation;
-  * The second element of the tuple represents metadata;
-  * The third element of the tuple are the arguments for the
-    function call. The third argument may be an atom, which is
-    usually a variable (or a local call);
+    * The first element of the tuple is always an atom or
+      another tuple in the same representation;
+
+    * The second element of the tuple represents metadata;
+
+    * The third element of the tuple are the arguments for the
+      function call. The third argument may be an atom, which is
+      usually a variable (or a local call);
 
   ## Options
 
-  * `:unquote` - When false, disables unquoting. Useful when you have a quote
-                 inside another quote and want to control what quote is
-                 able to unquote;
-  * `:location` - When set to `:keep`, keeps the current line and file from quote.
-                  Read the Stacktrace information section below for more information;
-  * `:context` - Sets the resolution context;
-  * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
-                    `unquote` is automatically disabled;
+    * `:unquote` - When false, disables unquoting. Useful when you have a quote
+      inside another quote and want to control what quote is able to unquote;
+
+    * `:location` - When set to `:keep`, keeps the current line and file from
+      quote.  Read the Stacktrace information section below for more
+      information;
+
+    * `:context` - Sets the resolution context;
+
+    * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is
+      given, `unquote` is automatically disabled;
 
   ## Quote literals
 
@@ -1651,11 +1656,11 @@ defmodule Kernel.SpecialForms do
   The `after` clause can be specified even if there are no match clauses.
   There are two special cases for the timeout value given to `after`
 
-  * `:infinity` - The process should wait indefinitely for a matching
-  message, this is the same as not using a timeout.
+    * `:infinity` - The process should wait indefinitely for a matching
+      message, this is the same as not using a timeout.
 
-  * 0 - if there is no matching message in the mailbox, the timeout
-  will occur immediately.
+    * 0 - if there is no matching message in the mailbox, the timeout
+      will occur immediately.
 
   ## Variables handling
 

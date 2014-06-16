@@ -14,7 +14,7 @@ defmodule Mix.Dep.Loader do
 
   ## Options
 
-  * `:env` - Filter dependencies on given environments
+    * `:env` - Filter dependencies on given environments
   """
   def children(opts) do
     from = Path.absname("mix.exs")

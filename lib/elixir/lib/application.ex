@@ -83,8 +83,8 @@ defmodule Application do
   setup where applications takeover and failovers are configured. This particular
   aspect of applications can be read with more detail in the OTP documentation:
 
-  * http://www.erlang.org/doc/man/application.html
-  * http://www.erlang.org/doc/design_principles/applications.html
+    * http://www.erlang.org/doc/man/application.html
+    * http://www.erlang.org/doc/design_principles/applications.html
 
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the
@@ -152,9 +152,9 @@ defmodule Application do
 
   ## Options
 
-  * `:timeout` - the timeout for the change (defaults to 5000ms);
+    * `:timeout` - the timeout for the change (defaults to 5000ms);
 
-  * `:persistent` - persists the given value on application load and reloads;
+    * `:persistent` - persists the given value on application load and reloads;
 
   If `put_env/4` is called before the application is loaded, the application
   environment values specified in the `.app` file will override the ones
@@ -223,13 +223,16 @@ defmodule Application do
 
   The `type` argument specifies the type of the application:
 
-  * `:permanent` - if `app` terminates, all other applications and the entire
-    node are also terminated;
-  * `:transient` - if `app` terminates with `:normal` reason, it is reported
-    but no other applications are terminated. If a transient application terminates
-    abnormally, all other applications and the entire node are also terminated;
-  * `:temporary` - if `app` termiantes, it is reported but no other applications
-    are terminated (the default);
+    * `:permanent` - if `app` terminates, all other applications and the entire
+      node are also terminated;
+
+    * `:transient` - if `app` terminates with `:normal` reason, it is reported
+      but no other applications are terminated. If a transient application
+      terminates abnormally, all other applications and the entire node are
+      also terminated;
+
+    * `:temporary` - if `app` termiantes, it is reported but no other
+      applications are terminated (the default);
 
   Note that it is always possible to stop an application explicitly by calling
   `stop/1`. Regardless of the type of the application, no other applications will

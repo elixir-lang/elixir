@@ -17,21 +17,22 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times;
-  * `--no-docs` - Do not attach documentation to compiled modules;
-  * `--no-debug-info` - Do not attach debug info to compiled modules;
-  * `--ignore-module-conflict`
-  * `--warnings-as-errors` - Treat warnings as errors and return a non-zero exit code
+    * `--force`         - forces compilation regardless of modification times;
+    * `--no-docs`       - Do not attach documentation to compiled modules;
+    * `--no-debug-info` - Do not attach debug info to compiled modules;
+    * `--ignore-module-conflict`
+    * `--warnings-as-errors`
+                        - Treat warnings as errors and return a non-zero exit code
 
   ## Configuration
 
-  * `:elixirc_paths` - directories to find source files.
-    Defaults to `["lib"]`, can be configured as:
+    * `:elixirc_paths` - directories to find source files.
+      Defaults to `["lib"]`, can be configured as:
 
-  * `:elixirc_options` - compilation options that apply
-     to Elixir's compiler, they are: `:ignore_module_conflict`,
-     `:docs` and `:debug_info`. By default, uses the same
-     behaviour as Elixir;
+    * `:elixirc_options` - compilation options that apply
+      to Elixir's compiler, they are: `:ignore_module_conflict`,
+      `:docs` and `:debug_info`. By default, uses the same
+      behaviour as Elixir;
 
   """
 

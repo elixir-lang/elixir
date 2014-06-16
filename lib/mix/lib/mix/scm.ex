@@ -86,11 +86,13 @@ defmodule Mix.SCM do
   particular, it checks if the revision stored in the lock
   is the same as the repository it is currently in. It may return:
 
-  * `:mismatch` - if the lock doesn't match and we need to
-    simply move to the latest lock
-  * `:outdated` - the repository options are outdated in the
-    lock and we need to trigger a full update
-  * `:ok` - everything is fine
+    * `:mismatch` - if the lock doesn't match and we need to
+      simply move to the latest lock
+
+    * `:outdated` - the repository options are outdated in the
+      lock and we need to trigger a full update
+
+    * `:ok` - everything is fine
 
   The lock is sent via `opts[:lock]` but it may not always be
   available. In such cases, if the SCM requires a lock, it must

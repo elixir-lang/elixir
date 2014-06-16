@@ -67,11 +67,11 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-    * `:name` - the test name
-    * `:case` - the test case
-    * `:state` - the test state (see ExUnit.state)
-    * `:time` - the time to run the test
-    * `:tags` - the test tags
+      * `:name`  - the test name
+      * `:case`  - the test case
+      * `:state` - the test state (see ExUnit.state)
+      * `:time`  - the time to run the test
+      * `:tags`  - the test tags
 
     """
     defstruct name: nil :: atom,
@@ -87,9 +87,9 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-    * `:name` - the test case name
-    * `:state` - the test state (see ExUnit.state)
-    * `:tests` - all tests for this case
+      * `:name`  - the test case name
+      * `:state` - the test state (see ExUnit.state)
+      * `:tests` - all tests for this case
 
     """
     defstruct name: nil :: module,
@@ -147,25 +147,27 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
-  * `:color` - When color should be used by specific formatters.
-               Defaults to the result of `IO.ANSI.terminal?/1`;
+    * `:color` - When color should be used by specific formatters.
+      Defaults to the result of `IO.ANSI.terminal?/1`;
 
-  * `:formatters` - The formatters that will print results.
-                    Defaults to `[ExUnit.CLIFormatter]`;
+    * `:formatters` - The formatters that will print results.
+      Defaults to `[ExUnit.CLIFormatter]`;
 
-  * `:max_cases` - Maximum number of cases to run in parallel.
-                   Defaults to `:erlang.system_info(:schedulers_online)`;
+    * `:max_cases` - Maximum number of cases to run in parallel.
+      Defaults to `:erlang.system_info(:schedulers_online)`;
 
-  * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to `1`
-               and prints each test case and test while running;
+    * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to `1` and
+      prints each test case and test while running;
 
-  * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
+    * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
 
-  * `:include` - Specify which tests are run by skipping tests that do not match the filter
+    * `:include` - Specify which tests are run by skipping tests that do not
+      match the filter
 
-  * `:exclude` - Specify which tests are run by skipping tests that match the filter
+    * `:exclude` - Specify which tests are run by skipping tests that match the
+      filter
 
-  * `:seed` - An integer seed value to randomize the test suite
+    * `:seed` - An integer seed value to randomize the test suite
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->

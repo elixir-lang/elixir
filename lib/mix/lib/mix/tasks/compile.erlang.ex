@@ -22,22 +22,24 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times
+    * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
-  * `ERL_COMPILER_OPTIONS` - can be used to give default compile options.
-     The value must be a valid Erlang term. If the value is a list, it will
-     be used as is. If it is not a list, it will be put into a list.
+    * `ERL_COMPILER_OPTIONS` - can be used to give default compile options.
+      The value must be a valid Erlang term. If the value is a list, it will
+      be used as is. If it is not a list, it will be put into a list.
 
-  * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
+    * `:erlc_paths` - directories to find source files.
+      Defaults to `["src"]`.
 
-  * `:erlc_include_path` - directory for adding include files. Defaults to `"include"`.
+    * `:erlc_include_path` - directory for adding include files.
+      Defaults to `"include"`.
 
-  * `:erlc_options` - compilation options that apply to Erlang's compiler.
-    `:debug_info` is enabled by default.
+    * `:erlc_options` - compilation options that apply to Erlang's compiler.
+      `:debug_info` is enabled by default.
 
-    There are many available options here: http://www.erlang.org/doc/man/compile.html#file-2
+  There are many available options here: http://www.erlang.org/doc/man/compile.html#file-2
   """
 
   @doc """

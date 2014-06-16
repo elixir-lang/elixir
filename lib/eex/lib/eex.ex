@@ -34,12 +34,11 @@ defmodule EEx do
   All functions in this module accepts EEx-related options.
   They are:
 
-  * `:line` - the line to be used as the template start.
-              Defaults to 1;
-  * `:file` - the file to be used in the template.
-              Defaults to the given file the template is read from
-              or to "nofile" when compiling from a string;
-  * `:engine` - the EEx engine to be used for compilation.
+    * `:line`   - the line to be used as the template start. Defaults to 1;
+    * `:file`   - the file to be used in the template. Defaults to the given
+                  file the template is read from or to "nofile" when compiling
+                  from a string;
+    * `:engine` - the EEx engine to be used for compilation.
 
   ## Engine
 

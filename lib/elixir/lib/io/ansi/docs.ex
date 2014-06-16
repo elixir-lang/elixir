@@ -8,14 +8,14 @@ defmodule IO.ANSI.Docs do
 
   The supported values are:
 
-  * `:enabled`         - toggles coloring on and off (true)
-  * `:doc_code`        - code blocks (cyan, bright)
-  * `:doc_inline_code` - inline code (cyan)
-  * `:doc_headings`    - h1 and h2 headings (yellow, bright)
-  * `:doc_title`       - top level heading (reverse, yellow, bright)
-  * `:doc_bold`        - bold text (bright)
-  * `:doc_underline`   - underlined text (underline)
-  * `:width`           - the width to format the text (80)
+    * `:enabled`         - toggles coloring on and off (true)
+    * `:doc_code`        - code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 headings (yellow, bright)
+    * `:doc_title`       - top level heading (reverse, yellow, bright)
+    * `:doc_bold`        - bold text (bright)
+    * `:doc_underline`   - underlined text (underline)
+    * `:width`           - the width to format the text (80)
 
   Values for the color settings are strings with
   comma-separated ANSI values.

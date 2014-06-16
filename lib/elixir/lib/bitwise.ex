@@ -24,8 +24,8 @@ defmodule Bitwise do
   Allow a developer to use this module in their programs with
   the following options:
 
-  * `:only_operators` - Include only operators;
-  * `:skip_operators` - Skip operators;
+    * `:only_operators` - Include only operators;
+    * `:skip_operators` - Skip operators;
 
   """
   defmacro __using__(options) do

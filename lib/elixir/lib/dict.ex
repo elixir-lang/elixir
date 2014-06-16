@@ -49,11 +49,11 @@ defmodule Dict do
 
   The client module must contain the following functions:
 
-  * `delete/2`
-  * `fetch/2`
-  * `put/3`
-  * `reduce/3`
-  * `size/1`
+    * `delete/2`
+    * `fetch/2`
+    * `put/3`
+    * `reduce/3`
+    * `size/1`
 
   All functions, except `reduce/3`, are required by the Dict behaviour.
   `reduce/3` must be implemtented as per the Enumerable protocol.
@@ -61,24 +61,24 @@ defmodule Dict do
   Based on these functions, `Dict` generates default implementations
   for the following functions:
 
-  * `drop/2`
-  * `equal?/2`
-  * `fetch!/2`
-  * `get/2`
-  * `get/3`
-  * `has_key?/2`
-  * `keys/1`
-  * `merge/2`
-  * `merge/3`
-  * `pop/2`
-  * `pop/3`
-  * `put_new/3`
-  * `split/2`
-  * `take/2`
-  * `to_list/1`
-  * `update/4`
-  * `update!/3`
-  * `values/1`
+    * `drop/2`
+    * `equal?/2`
+    * `fetch!/2`
+    * `get/2`
+    * `get/3`
+    * `has_key?/2`
+    * `keys/1`
+    * `merge/2`
+    * `merge/3`
+    * `pop/2`
+    * `pop/3`
+    * `put_new/3`
+    * `split/2`
+    * `take/2`
+    * `to_list/1`
+    * `update/4`
+    * `update!/3`
+    * `values/1`
 
   All of these functions are defined as overridable, so you can provide
   your own implementation if needed.

@@ -22,49 +22,56 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-  * `unicode` (u) - enables unicode specific patterns like \p. it expects valid unicode
-    strings to be given on match
-  * `caseless` (i) - add case insensitivity
-  * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
-    The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
-    `(*CRLF)` or `(*ANY)` according to re documentation
-  * `multiline` (m) - causes `^` and `$` to mark the beginning and end of each line.
-    Use `\A` and `\z` to match the end or beginning of the string
-  * `extended` (x) - whitespace characters are ignored except when escaped and
-    allow `#` to delimit comments
-  * `firstline` (f) - forces the unanchored pattern to match before or at the first
-    newline, though the matched text may continue over the newline
-  * `ungreedy` (r) - inverts the "greediness" of the regexp
+    * `unicode` (u) - enables unicode specific patterns like \p. it expects
+      valid unicode strings to be given on match
+
+    * `caseless` (i) - add case insensitivity
+
+    * `dotall` (s) - causes dot to match newlines and also set newline to
+      anycrlf. The new line setting can be overridden by setting `(*CR)` or
+      `(*LF)` or `(*CRLF)` or `(*ANY)` according to re documentation
+
+    * `multiline` (m) - causes `^` and `$` to mark the beginning and end of
+      each line. Use `\A` and `\z` to match the end or beginning of the string
+
+    * `extended` (x) - whitespace characters are ignored except when escaped
+      and allow `#` to delimit comments
+
+    * `firstline` (f) - forces the unanchored pattern to match before or at the
+      first newline, though the matched text may continue over the newline
+
+    * `ungreedy` (r) - inverts the "greediness" of the regexp
 
   The options not available are:
 
-  * `anchored` - not available, use `^` or `\A` instead
-  * `dollar_endonly` - not available, use `\z` instead
-  * `no_auto_capture` - not available, use `?:` instead
-  * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
-    or `(*ANY)` at the beginning of the regexp according to the re documentation
+    * `anchored` - not available, use `^` or `\A` instead
+    * `dollar_endonly` - not available, use `\z` instead
+    * `no_auto_capture` - not available, use `?:` instead
+    * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
+      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
+      re documentation
 
   ## Captures
 
   Many functions in this module allows what to capture in a regex
   match via the `:capture` option. The supported values are:
 
-  * `:all` - all captured subpatterns including the complete matching string.
-             This is the default;
+    * `:all` - all captured subpatterns including the complete matching string.
+      This is the default;
 
-  * `:first` - only the first captured subpattern, which is always the complete
-               matching part of the string. All explicitly captured subpatterns are
-               discarded;
+    * `:first` - only the first captured subpattern, which is always the
+      complete matching part of the string. All explicitly captured subpatterns
+      are discarded;
 
-  * `:all_but_first`- all but the first matching subpattern, i.e. all explicitly
-                      captured subpatterns, but not the complete matching part of
-                      the string;
+    * `:all_but_first`- all but the first matching subpattern, i.e. all
+      explicitly captured subpatterns, but not the complete matching part of
+      the string;
 
-  * `:none` - do not return matching subpatterns at all;
+    * `:none` - do not return matching subpatterns at all;
 
-  * `:all_names` - captures all names in the Regex;
+    * `:all_names` - captures all names in the Regex;
 
-  * `list(binary)` - a list of named captures to capture;
+    * `list(binary)` - a list of named captures to capture;
 
   """
 
@@ -167,9 +174,9 @@ defmodule Regex do
 
   ## Options
 
-  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
-  * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                 to see the possible capture values;
+    * `:return`  - Set to `:index` to return indexes. Defaults to `:binary`;
+    * `:capture` - What to capture in the result. Check the moduledoc for Regex
+                   to see the possible capture values;
 
   ## Examples
 
@@ -275,9 +282,9 @@ defmodule Regex do
 
   ## Options
 
-  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
-  * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                 to see the possible capture values;
+    * `:return`  - Set to `:index` to return indexes. Defaults to `:binary`;
+    * `:capture` - What to capture in the result. Check the moduledoc for Regex
+                   to see the possible capture values;
 
   ## Examples
 
@@ -310,13 +317,12 @@ defmodule Regex do
 
   ## Options
 
-  * `:parts` - when specified, splits the string into the
-               given number of parts. If not specified, `:parts`
-               is defaulted to `:infinity`, which will split the
-               string into the maximum number of parts possible
-               based on the given pattern.
+    * `:parts` - when specified, splits the string into the given number of
+      parts. If not specified, `:parts` is defaulted to `:infinity`, which will
+      split the string into the maximum number of parts possible based on the
+      given pattern.
 
-  * `:trim` - when true, remove blank strings from the result;
+    * `:trim` - when true, remove blank strings from the result;
 
   ## Examples
 
@@ -370,8 +376,8 @@ defmodule Regex do
 
   ## Options
 
-  * `:global` - when `false`, replaces only the first occurrence
-    (defaults to true)
+    * `:global` - when `false`, replaces only the first occurrence
+      (defaults to true)
 
   ## Examples
 

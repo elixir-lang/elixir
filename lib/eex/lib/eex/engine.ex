@@ -3,25 +3,22 @@ defmodule EEx.Engine do
   This is the basic EEx engine that ships with Elixir.
   An engine needs to implement three functions:
 
-  * `handle_body(quoted)` - receives the final built quoted
-    expression, should do final post-processing and return a
-    quoted expression;
+    * `handle_body(quoted)` - receives the final built quoted
+      expression, should do final post-processing and return a
+      quoted expression;
 
-  * `handle_text(buffer, text)` - it receives the buffer,
-    the text and must return a new quoted expression;
+    * `handle_text(buffer, text)` - it receives the buffer,
+      the text and must return a new quoted expression;
 
-  * `handle_expr(buffer, marker, expr)` - it receives the buffer,
-    the marker, the expr and must return a new quoted expression;
+    * `handle_expr(buffer, marker, expr)` - it receives the buffer,
+      the marker, the expr and must return a new quoted expression;
 
-    The marker is what follows exactly after `<%`. For example,
-    `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
-    as marker. The allowed markers so far are:
+      The marker is what follows exactly after `<%`. For example,
+      `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`
+      as marker. The allowed markers so far are: `""` and `"="`.
 
-    * `""`
-    * `"="`
-
-    Read `handle_expr/3` below for more information about the markers
-    implemented by default by this engine.
+      Read `handle_expr/3` below for more information about the markers
+      implemented by default by this engine.
   """
 
   use Behaviour

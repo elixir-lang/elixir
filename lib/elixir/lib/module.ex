@@ -14,7 +14,7 @@ defmodule Module do
   Each module can be decorated with one or more attributes. The following ones
   are currently defined by Elixir:
 
-  * `@after_compile`
+    * `@after_compile`
 
       A hook that will be invoked right after the current module is compiled.
 
@@ -33,7 +33,7 @@ defmodule Module do
             end
           end
 
-  * `@before_compile`
+    * `@before_compile`
 
       A hook that will be invoked before the module is compiled.
 
@@ -63,7 +63,7 @@ defmodule Module do
             @before_compile A
           end
 
-  * `@behaviour`   (notice the British spelling)
+    * `@behaviour`   (notice the British spelling)
 
       Specify an OTP or user-defined behaviour.
 
@@ -75,7 +75,7 @@ defmodule Module do
             # ...
           end
 
-  * `@compile`
+    * `@compile`
 
       Define options for module compilation that are passed to the Erlang
       compiler.
@@ -95,7 +95,7 @@ defmodule Module do
               end
             end
 
-  * `@doc`
+    * `@doc`
 
       Provide documentation for the function or macro that follows the
       attribute.
@@ -122,7 +122,7 @@ defmodule Module do
               end
             end
 
-  * `@file`
+    * `@file`
 
       Change the filename used in stacktraces for the function or macro that
       follows the attribute.
@@ -139,7 +139,7 @@ defmodule Module do
               end
             end
 
-  * `@moduledoc`
+    * `@moduledoc`
 
       Provide documentation for the current module.
 
@@ -156,7 +156,7 @@ defmodule Module do
             end
 
 
-  * `@on_definition`
+    * `@on_definition`
 
       A hook that will be invoked when each function or macro in the current
       module is defined. Useful when annotating functions.
@@ -211,7 +211,7 @@ defmodule Module do
               end
             end
 
-  * `@on_load`
+    * `@on_load`
 
       A hook that will be invoked whenever the module is loaded.
 
@@ -237,7 +237,7 @@ defmodule Module do
               end
             end
 
-  * `@vsn`
+    * `@vsn`
 
       Specify the module version. Accepts any valid Elixir value.
 
@@ -250,11 +250,11 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 
-  * `@type`        - defines a type to be used in `@spec`
-  * `@typep`       - defines a private type to be used in `@spec`
-  * `@opaque`      - defines an opaque type to be used in `@spec`
-  * `@spec`        - provides a specification for a function
-  * `@callback`    - provides a specification for the behaviour callback
+    * `@type`        - defines a type to be used in `@spec`
+    * `@typep`       - defines a private type to be used in `@spec`
+    * `@opaque`      - defines an opaque type to be used in `@spec`
+    * `@spec`        - provides a specification for a function
+    * `@callback`    - provides a specification for the behaviour callback
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
@@ -280,11 +280,11 @@ defmodule Module do
   Each module gets an `__info__/1` function when it's compiled. The function
   takes one of the following atoms:
 
-  * `:functions`  - keyword list of public functions along with their arities
+    * `:functions`  - keyword list of public functions along with their arities
 
-  * `:macros`     - keyword list of public macros along with their arities
+    * `:macros`     - keyword list of public macros along with their arities
 
-  * `:module`     - module name (`Module == Module.__info__(:module)`)
+    * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
   by Erlang's `module_info` function which also gets defined for each compiled
@@ -831,12 +831,12 @@ defmodule Module do
 
   When registering an attribute, two options can be given:
 
-  * `:accumulate` - Several calls to the same attribute will
-    accumulate instead of override the previous one. New attributes
-    are always added to the top of the accumulated list.
+    * `:accumulate` - Several calls to the same attribute will
+      accumulate instead of override the previous one. New attributes
+      are always added to the top of the accumulated list.
 
-  * `:persist` - The attribute will be persisted in the Erlang
-    Abstract Format. Useful when interfacing with Erlang libraries.
+    * `:persist` - The attribute will be persisted in the Erlang
+      Abstract Format. Useful when interfacing with Erlang libraries.
 
   By default, both options are `false`.
 

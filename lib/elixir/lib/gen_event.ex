@@ -67,51 +67,51 @@ defmodule GenEvent do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-  * `init(args)` - invoked when the event handler is added
+    * `init(args)` - invoked when the event handler is added
 
-    It must return:
+      It must return:
 
-    *  `{:ok, state}`
-    *  `{:ok, state, :hibernate}`
-    *  `{:error, reason}`
+      -  `{:ok, state}`
+      -  `{:ok, state, :hibernate}`
+      -  `{:error, reason}`
 
-  * `handle_event(msg, state)` - invoked whenever an event is sent via
-    `notify/2` or `sync_notify/2`.
+    * `handle_event(msg, state)` - invoked whenever an event is sent via
+      `notify/2` or `sync_notify/2`.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
-    *  `{:ok, new_state, :hibernate}`
-    *  `{:swap_handler, args1, new_state, handler2, args2}`
-    *  `:remove_handler`
+      -  `{:ok, new_state}`
+      -  `{:ok, new_state, :hibernate}`
+      -  `{:swap_handler, args1, new_state, handler2, args2}`
+      -  `:remove_handler`
 
-  * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific handler.
+    * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific handler.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, reply, new_state}`
-    *  `{:ok, reply, new_state, :hibernate}`
-    *  `{:swap_handler, reply, args1, new_state, handler2, args2}`
-    *  `{:remove_handler, reply}`
+      -  `{:ok, reply, new_state}`
+      -  `{:ok, reply, new_state, :hibernate}`
+      -  `{:swap_handler, reply, args1, new_state, handler2, args2}`
+      -  `{:remove_handler, reply}`
 
-  * `handle_info(msg, state)` - invoked to handle all other messages which
-    are received by the process. Must return the same values as `handle_event/2`;
+    * `handle_info(msg, state)` - invoked to handle all other messages which
+      are received by the process. Must return the same values as `handle_event/2`;
 
-    It must return:
+      It must return:
 
-    *  `{:noreply, state}`
-    *  `{:noreply, state, timeout}`
-    *  `{:stop, reason, state}`
+      -  `{:noreply, state}`
+      -  `{:noreply, state, timeout}`
+      -  `{:stop, reason, state}`
 
-  * `terminate(reason, state)` - called when the event handler is removed or the
-    event manager is terminating. It can return any term.
+    * `terminate(reason, state)` - called when the event handler is removed or the
+      event manager is terminating. It can return any term.
 
-  * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swapping).
+    * `code_change(old_vsn, state, extra)` - called when the application
+      code is being upgraded live (hot code swapping).
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
+      -  `{:ok, new_state}`
 
   ## Name Registration
 
@@ -142,9 +142,9 @@ defmodule GenEvent do
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-  * http://elixir-lang.org/getting_started/mix/1.html
-  * http://www.erlang.org/doc/man/gen_event.html
-  * http://learnyousomeerlang.com/event-handlers
+    * http://elixir-lang.org/getting_started/mix/1.html
+    * http://www.erlang.org/doc/man/gen_event.html
+    * http://learnyousomeerlang.com/event-handlers
   """
 
   @typedoc "Return values of `start*` functions"
@@ -168,10 +168,10 @@ defmodule GenEvent do
   This is a struct returned by `stream/2`. The struct is public and
   contains the following fields:
 
-  * `:manager` - the manager reference given to `GenEvent.stream/2`
-  * `:id` - the event stream id for cancellation
-  * `:timeout` - the timeout in between events, defaults to `:infinity`
-  * `:duration` - the duration of the subscription, defaults to `:infinity`
+    * `:manager`  - the manager reference given to `GenEvent.stream/2`
+    * `:id`       - the event stream id for cancellation
+    * `:timeout`  - the timeout in between events, defaults to `:infinity`
+    * `:duration` - the duration of the subscription, defaults to `:infinity`
   """
   defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity
 
@@ -264,11 +264,13 @@ defmodule GenEvent do
   The stream is a `GenEvent` struct that implements the `Enumerable`
   protocol. The supported options are:
 
-  * `:id` - an id to identify all live stream instances. When an `:id` is given,
-    existing streams can be called with via `cancel_streams`;
-  * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds;
-  * `:duration` (Enumerable) - only consume events during the X milliseconds
-    from the streaming start;
+    * `:id` - an id to identify all live stream instances. When an `:id` is
+      given, existing streams can be called with via `cancel_streams`;
+
+    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds;
+
+    * `:duration` (Enumerable) - only consume events during the X milliseconds
+      from the streaming start;
   """
   def stream(manager, options \\ []) do
     %GenEvent{manager: manager,
@@ -300,18 +302,18 @@ defmodule GenEvent do
   the event manager sends a message `{:gen_event_EXIT, handler, reason}`
   to the calling process. Reason is one of the following:
 
-  * `:normal` - if the event handler has been removed due to a call to
-    `remove_handler/3`, or `:remove_handler` has been returned by a callback
-    function;
+    * `:normal` - if the event handler has been removed due to a call to
+      `remove_handler/3`, or `:remove_handler` has been returned by a callback
+      function;
 
-  * `:shutdown` - if the event handler has been removed because the event
-    manager is terminating;
+    * `:shutdown` - if the event handler has been removed because the event
+      manager is terminating;
 
-  * `{:swapped, new_handler, pid}` - if the process pid has replaced the
-    event handler by another;
+    * `{:swapped, new_handler, pid}` - if the process pid has replaced the
+      event handler by another;
 
-  * a term - if the event handler is removed due to an error. Which term
-    depends on the error;
+    * a term - if the event handler is removed due to an error. Which term
+      depends on the error;
 
   """
   @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:EXIT, term} | {:error, term}

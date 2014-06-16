@@ -9,11 +9,12 @@ defmodule Mix.Tasks.App.Start do
 
   ## Command line options
 
-  * `--force` - force compilation regardless of compilation times
-  * `--no-compile` - do not compile even if files require compilation
-  * `--no-deps-check` - do not check dependencies
-  * `--no-elixir-version-check` - do not check elixir version
-  * `--no-start` - do not start applications after compilation
+    * `--force`         - force compilation regardless of compilation times
+    * `--no-compile`    - do not compile even if files require compilation
+    * `--no-deps-check` - do not check dependencies
+    * `--no-elixir-version-check`
+                        - do not check elixir version
+    * `--no-start`      - do not start applications after compilation
 
   """
   def run(args) do

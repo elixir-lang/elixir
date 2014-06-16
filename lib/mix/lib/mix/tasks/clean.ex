@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Clean do
 
   ## Command line options
 
-  * `--all` - Clean everything, including builds and dependencies
+    * `--all` - Clean everything, including builds and dependencies
 
   """
 

@@ -37,17 +37,17 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
-  * `--trace` - run tests with detailed reporting. Automatically sets `--max-cases` to 1
-  * `--max-cases` - set the maximum number of cases running async
-  * `--cover` - the directory to include coverage results
-  * `--force` - forces compilation regardless of modification times
-  * `--no-compile` - do not compile, even if files require compilation
-  * `--no-start` - do not start applications after compilation
-  * `--no-color` - disable color in the output
-  * `--include` - include tests that match the filter
-  * `--exclude` - exclude tests that match the filter
-  * `--only` - run only tests that match the filter
-  * `--seed` - seeds the random number generator used to randomize tests order
+    * `--trace`      - run tests with detailed reporting. Automatically sets `--max-cases` to 1
+    * `--max-cases`  - set the maximum number of cases running async
+    * `--cover`      - the directory to include coverage results
+    * `--force`      - forces compilation regardless of modification times
+    * `--no-compile` - do not compile, even if files require compilation
+    * `--no-start`   - do not start applications after compilation
+    * `--no-color`   - disable color in the output
+    * `--include`    - include tests that match the filter
+    * `--exclude`    - exclude tests that match the filter
+    * `--only`       - run only tests that match the filter
+    * `--seed`       - seeds the random number generator used to randomize tests order
 
   ## Filters
 
@@ -93,19 +93,21 @@ defmodule Mix.Tasks.Test do
 
   ## Configuration
 
-  * `:test_paths` - list of paths containing test files, defaults to `["test"]`.
-                    it is expected all test paths to contain a `test_helper.exs` file
+    * `:test_paths` - list of paths containing test files, defaults to
+      `["test"]`. It is expected all test paths to contain a `test_helper.exs`
+      file
 
-  * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`
+    * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`
 
-  * `:test_coverage` - a set of options to be passed down to the coverage mechanism
+    * `:test_coverage` - a set of options to be passed down to the coverage
+      mechanism
 
   ## Coverage
 
   The `:test_coverage` configuration accepts the following options:
 
-  * `:output` - the output for cover results, defaults to `"cover"`
-  * `:tool`   - the coverage tool
+    * `:output` - the output for cover results, defaults to `"cover"`
+    * `:tool`   - the coverage tool
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:

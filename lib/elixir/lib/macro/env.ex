@@ -6,25 +6,27 @@ defmodule Macro.Env do
   `__ENV__`. Inside macros, the caller environment can be
   accessed as `__CALLER__`. It contains the following fields:
 
-  * `module` - the current module name.
-  * `file` - the current file name as a binary
-  * `line` - the current line as an integer
-  * `function` - a tuple as `{atom, integer`}, where the first
-    element is the function name and the seconds its arity. Returns
-    `nil` if not inside a function
-  * `context` - the context of the environment. It can be nil
-    (default context), inside a guard or inside an assign
-  * `aliases` -  a list of two item tuples, where the first
-    item is the aliased name and the second the actual name
-  * `requires` - the list of required modules
-  * `functions` - a list of functions imported from each module
-  * `macros` - a list of macros imported from each module
-  * `macro_aliases` - a list of aliases defined inside the current macro
-  * `context_modules` - a list of modules defined in the current context
-  * `vars` - a list keeping all defined variables as {var, context}
-  * `export_vars` - a list keeping all variables to be exported in a construct (may be nil)
-  * `lexical_tracker` - PID to the lexical tracker which is responsible to keep user info
-  * `local` - the module to expand local functions to
+    * `module` - the current module name.
+    * `file` - the current file name as a binary
+    * `line` - the current line as an integer
+    * `function` - a tuple as `{atom, integer`}, where the first
+      element is the function name and the seconds its arity. Returns
+      `nil` if not inside a function
+    * `context` - the context of the environment. It can be nil
+      (default context), inside a guard or inside an assign
+    * `aliases` -  a list of two item tuples, where the first
+      item is the aliased name and the second the actual name
+    * `requires` - the list of required modules
+    * `functions` - a list of functions imported from each module
+    * `macros` - a list of macros imported from each module
+    * `macro_aliases` - a list of aliases defined inside the current macro
+    * `context_modules` - a list of modules defined in the current context
+    * `vars` - a list keeping all defined variables as {var, context}
+    * `export_vars` - a list keeping all variables to be exported in a
+      construct (may be nil)
+    * `lexical_tracker` - PID to the lexical tracker which is responsible to
+      keep user info
+    * `local` - the module to expand local functions to
   """
 
   @type name_arity :: {atom, non_neg_integer}

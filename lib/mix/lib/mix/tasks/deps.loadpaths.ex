@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   ## Command line options
 
-  * `--no-deps-check` - skip dependency check
+    * `--no-deps-check` - skip dependency check
   """
   def run(args) do
     unless "--no-deps-check" in args do
