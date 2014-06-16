@@ -76,18 +76,18 @@ defmodule Process do
 
   The following behaviour applies if reason is any term except `:normal` or `:kill`:
 
-  1) If pid is not trapping exits, pid will exit with the given reason;
+    1. If pid is not trapping exits, pid will exit with the given reason.
 
-  2) If pid is trapping exits, the exit signal is transformed into a message
-     {:EXIT, from, reason} and delivered to the message queue of pid;
+    2. If pid is trapping exits, the exit signal is transformed into a message
+       {:EXIT, from, reason} and delivered to the message queue of pid.
 
-  3) If reason is the atom `:normal`, pid will not exit. If it is trapping exits,
-     the exit signal is transformed into a message {:EXIT, from, :normal} and
-     delivered to its message queue;
+    3. If reason is the atom `:normal`, pid will not exit. If it is trapping
+       exits, the exit signal is transformed into a message {:EXIT, from,
+       :normal} and delivered to its message queue.
 
-  4) If reason is the atom `:kill`, that is if `exit(pid, :kill)` is called, an
-     untrappable exit signal is sent to pid which will unconditionally exit with
-     exit reason `:killed`.
+    4. If reason is the atom `:kill`, that is if `exit(pid, :kill)` is called,
+       an untrappable exit signal is sent to pid which will unconditionally
+       exit with exit reason `:killed`.
 
   Inlined by the compiler.
 

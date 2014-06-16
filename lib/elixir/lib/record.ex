@@ -14,8 +14,8 @@ defmodule Record do
 
   In Elixir, records are used mostly in two situations:
 
-  1. To work with short, internal data;
-  2. To interface with Erlang records;
+    1. to work with short, internal data
+    2. to interface with Erlang records
 
   The macros `defrecord/3` and `defrecordp/3` can be used to create
   records while `extract/2` can be used to extract records from Erlang

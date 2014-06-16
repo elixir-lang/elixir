@@ -40,15 +40,15 @@ defmodule Supervisor.Spec do
 
   Explicit supervisors as above are required when there is a need to:
 
-  1. partialy change the supervision tree during hot-code swaps;
+    1. Partialy change the supervision tree during hot-code swaps.
 
-  2. define supervisors inside other supervisors;
+    2. Define supervisors inside other supervisors.
 
-  3. perform actions inside the supervision `init/1` callback.
+    3. Perform actions inside the supervision `init/1` callback.
 
-     For example, you may want to start an ETS table that is linked to
-     the supervisor (i.e. if the supervision tree needs to be restarted,
-     the ETS table must be restarted too);
+       For example, you may want to start an ETS table that is linked to
+       the supervisor (i.e. if the supervision tree needs to be restarted,
+       the ETS table must be restarted too).
 
   ## Supervisor and worker options
 

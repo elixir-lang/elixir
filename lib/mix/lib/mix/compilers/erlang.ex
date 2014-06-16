@@ -24,14 +24,17 @@ defmodule Mix.Compilers.Erlang do
 
   The command above will:
 
-  1. Look for files ending with the `lfe` extension in `src`
-     and their `beam` counterpart in `ebin`;
-  2. For each stale file (or for all if `force` is true),
-     invoke the callback passing the calculated input
-     and output;
-  3. Update the manifest with the newly compiled outputs;
-  4. Remove any output in the manifest that that does not
-     have an equivalent source;
+    1. look for files ending with the `lfe` extension in `src`
+       and their `beam` counterpart in `ebin`
+
+    2. for each stale file (or for all if `force` is true),
+       invoke the callback passing the calculated input
+       and output
+
+    3. update the manifest with the newly compiled outputs
+
+    4. remove any output in the manifest that that does not
+       have an equivalent source
 
   The callback must return `{:ok, mod}` or `:error` in case
   of error. An error is raised at the end if any of the

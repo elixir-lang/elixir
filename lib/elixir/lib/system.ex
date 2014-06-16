@@ -153,11 +153,11 @@ defmodule System do
   Returns a writable temporary directory.
   Searches for directories in the following order:
 
-  1. The directory named by the TMPDIR environment variable
-  2. The directory named by the TEMP environment variable
-  3. The directory named by the TMP environment variable
-  4. `C:\TMP` on Windows or `/tmp` on Unix
-  5.  As a last resort, the current working directory
+    1. the directory named by the TMPDIR environment variable
+    2. the directory named by the TEMP environment variable
+    3. the directory named by the TMP environment variable
+    4. `C:\TMP` on Windows or `/tmp` on Unix
+    5. as a last resort, the current working directory
 
   Returns `nil` if none of the above are writable.
   """

@@ -1327,21 +1327,21 @@ defmodule Kernel.SpecialForms do
 
   On the other hand, aliases holds some properties:
 
-  1) The head element of aliases can be any term;
+    1. The head element of aliases can be any term.
 
-  2) The tail elements of aliases are guaranteed to always be atoms;
+    2. The tail elements of aliases are guaranteed to always be atoms.
 
-  3) When the head element of aliases is the atom `:Elixir`, no expansion happen;
+    3. When the head element of aliases is the atom `:Elixir`, no expansion happen.
 
-  4) When the head element of aliases is not an atom, it is expanded at runtime:
+    4. When the head element of aliases is not an atom, it is expanded at runtime:
 
-        quote do: some_var.Foo
-        {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
+           quote do: some_var.Foo
+           {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
 
-     Since `some_var` is not available at compilation time, the compiler
-     expands such expression to:
+       Since `some_var` is not available at compilation time, the compiler
+       expands such expression to:
 
-        Module.concat [some_var, Foo]
+           Module.concat [some_var, Foo]
 
   """
   defmacro __aliases__(args)
