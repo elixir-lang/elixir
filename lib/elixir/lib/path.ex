@@ -516,14 +516,18 @@ defmodule Path do
   "wildcard characters" are interpreted in a special way. The
   following characters are special:
 
-  * `?` - Matches one character.
-  * `*` - Matches any number of characters up to the end of
-          the filename, the next dot, or the next slash.
-  * `**` - Two adjacent <c>*</c>'s used as a single pattern will
-           match all files and zero or more directories and subdirectories.
-  * `[char1,char2,...]` - Matches any of the characters listed. Two characters
-                          separated by a hyphen will match a range of characters.
-  * `{item1,item2,...}` - Matches one of the alternatives.
+    * `?` - matches one character
+
+    * `*` - matches any number of characters up to the end of the filename, the
+      next dot, or the next slash
+
+    * `**` - two adjacent <c>*</c>'s used as a single pattern will match all
+      files and zero or more directories and subdirectories
+
+    * `[char1,char2,...]` - matches any of the characters listed; two
+      characters separated by a hyphen will match a range of characters
+
+    * `{item1,item2,...}` - matches one of the alternatives
 
   Other characters represent themselves. Only paths that have
   exactly the same character in the same position will match. Note

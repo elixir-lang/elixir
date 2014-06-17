@@ -68,8 +68,8 @@ defmodule ExUnit.DocTest do
 
   This is useful in two use cases:
 
-  * Being able to refer to specific numbered scenarios
-  * Copy-pasting examples from an actual iex session
+    * being able to refer to specific numbered scenarios
+    * copy-pasting examples from an actual iex session
 
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
@@ -124,17 +124,16 @@ defmodule ExUnit.DocTest do
 
   Options can also be supplied:
 
-  * `:except` — generate tests for all functions except those listed
-                (list of `{function, arity}` tuples)
+    * `:except` — generate tests for all functions except those listed
+      (list of `{function, arity}` tuples).
 
-  * `:only`   — generate tests only for functions listed
-                (list of `{function, arity}` tuples)
+    * `:only` — generate tests only for functions listed
+      (list of `{function, arity}` tuples).
 
-  * `:import` — when true, one can test a function defined in the module
-                without referring to the module name. However, this is not
-                feasible when there is a clash with a module like
-                Kernel. In these cases, `import` should be set to `false`
-                and a full `M.f` construct should be used.
+    * `:import` — when true, one can test a function defined in the module
+      without referring to the module name. However, this is not feasible when
+      there is a clash with a module like Kernel. In these cases, `import`
+      should be set to `false` and a full `M.f` construct should be used.
 
   ## Examples
 

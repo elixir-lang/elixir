@@ -12,17 +12,14 @@ defmodule Mix.Tasks.Compile do
 
   ## Configuration
 
-  * `:compilers` - compilers to run, defaults to:
-
-        [:leex, :yeec, :erlang, :elixir, :app]
+    * `:compilers` - compilers to run, defaults to:
+      `[:leex, :yeec, :erlang, :elixir, :app]`
 
   ## Command line options
 
-  * `--list` - List all enabled compilers
-
-  * `--no-deps-check` - Skips checking of dependencies
-
-  * `--force` - Forces compilation
+    * `--list`          - list all enabled compilers
+    * `--no-deps-check` - skip checking of dependencies
+    * `--force`         - force compilation
 
   """
   def run(["--list"]) do

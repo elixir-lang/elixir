@@ -21,12 +21,12 @@ defmodule IO do
   the atom must be the name of a registered process. However,
   there are three exceptions for this rule:
 
-  * `:standard_io` - when the `:standard_io` atom is given,
-    it is treated as a shortcut for `Process.group_leader`
+    * `:standard_io` - when the `:standard_io` atom is given,
+      it is treated as a shortcut for `Process.group_leader`
 
-  * `:stdio` - is a shortcut for `:standard_io`
+    * `:stdio` - is a shortcut for `:standard_io`
 
-  * `:stderr` - is a shortcut for `:standard_error`
+    * `:stderr` - is a shortcut for `:standard_error`
 
   """
 
@@ -46,13 +46,13 @@ defmodule IO do
   Reads `count` characters from the IO device or until
   the end of the line if `:line` is given. It returns:
 
-  * `data` - The input characters.
+    * `data` - the input characters
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec read(device, :line | non_neg_integer) :: chardata | nodata
   def read(device \\ group_leader, chars_or_line)
@@ -69,13 +69,13 @@ defmodule IO do
   Reads `count` bytes from the IO device or until
   the end of the line if `:line` is given. It returns:
 
-  * `data` - The input characters.
+    * `data` - the input characters
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec binread(device, :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ group_leader, chars_or_line)
@@ -174,13 +174,13 @@ defmodule IO do
   Otherwise, `count` is the number of raw bytes to be retrieved.
   It returns:
 
-  * `data` - The input characters.
+    * `data` - the input characters
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec getn(chardata | String.Chars.t, pos_integer) :: chardata | nodata
   @spec getn(device, chardata | String.Chars.t) :: chardata | nodata
@@ -208,14 +208,14 @@ defmodule IO do
   @doc """
   Reads a line from the IO device. It returns:
 
-  * `data` - The characters in the line terminated
-    by a LF (or end of file).
+    * `data` - the characters in the line terminated
+      by a LF (or end of file)
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
   def gets(device \\ group_leader(), prompt) do

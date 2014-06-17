@@ -113,9 +113,9 @@ defmodule IEx do
 
   Where "remsh" means "remote shell". In general, Elixir supports:
 
-  * remsh from an elixir node to an elixir node
-  * remsh from a plain erlang node to an elixir node (through the ^G menu)
-  * remsh from an elixir node to a plain erlang node (and get an erl shell there)
+    * remsh from an elixir node to an elixir node
+    * remsh from a plain erlang node to an elixir node (through the ^G menu)
+    * remsh from an elixir node to a plain erlang node (and get an erl shell there)
 
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
@@ -223,24 +223,24 @@ defmodule IEx do
 
   The value is a keyword list. List of supported keys:
 
-  * `:enabled`      - boolean value that allows for switching the coloring on and off
-  * `:eval_result`  - color for an expression's resulting value
-  * `:eval_info`    - … various informational messages
-  * `:eval_error`   - … error messages
-  * `:stack_app`    - … the app in stack traces
-  * `:stack_info`   - … the remaining info in stacktraces
-  * `:ls_directory` - … for directory entries (ls helper)
-  * `:ls_device`    - … device entries (ls helper)
+    * `:enabled`      - boolean value that allows for switching the coloring on and off
+    * `:eval_result`  - color for an expression's resulting value
+    * `:eval_info`    - … various informational messages
+    * `:eval_error`   - … error messages
+    * `:stack_app`    - … the app in stack traces
+    * `:stack_info`   - … the remaining info in stacktraces
+    * `:ls_directory` - … for directory entries (ls helper)
+    * `:ls_device`    - … device entries (ls helper)
 
   When printing documentation, IEx will convert the markdown
   documentation to ANSI as well. Those can be configured via:
 
-  * `:doc_code`        — the attributes for code blocks (cyan, bright)
-  * `:doc_inline_code` - inline code (cyan)
-  * `:doc_headings`    - h1 and h2 (yellow, bright)
-  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
-  * `:doc_bold`        - (bright)
-  * `:doc_underline`   - (underline)
+    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 (yellow, bright)
+    * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+    * `:doc_bold`        - (bright)
+    * `:doc_underline`   - (underline)
 
   ## Inspect
 
@@ -262,14 +262,14 @@ defmodule IEx do
 
   The value is a keyword list. Two prompt types:
 
-  * `:default_prompt` - used when `Node.alive?` returns false
-  * `:alive_prompt`   - used when `Node.alive?` returns true
+    * `:default_prompt` - used when `Node.alive?` returns false
+    * `:alive_prompt`   - used when `Node.alive?` returns true
 
   The part of the listed in the following of the prompt string is replaced.
 
-  * `%counter` - the index of the history
-  * `%prefix`  - a prefix given by `IEx.Server`
-  * `%node`    - the name of the local node
+    * `%counter` - the index of the history
+    * `%prefix`  - a prefix given by `IEx.Server`
+    * `%node`    - the name of the local node
 
   """
   def configure(options) do
@@ -372,7 +372,7 @@ defmodule IEx do
 
       import Enum, only: [map: 2]
       require IEx
-      
+
       defmodule Adder do
         def add(a, b) do
           c = a + b

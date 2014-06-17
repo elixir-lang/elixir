@@ -106,35 +106,35 @@ defmodule Supervisor do
 
   You may want to use a module-based supervisor if:
 
-  * You need to do some particular action on supervisor
-    initialization, like setting up a ETS table;
+    * You need to do some particular action on supervisor
+      initialization, like setting up a ETS table.
 
-  * You want to perform partial hot-code swapping of the
-    tree. For example, if you add or remove a children,
-    the module-based supervision will add and remove the
-    new children directly, while the dynamic supervision
-    requires the whole tree to be restarted in order to
-    perform such swaps;
+    * You want to perform partial hot-code swapping of the
+      tree. For example, if you add or remove a children,
+      the module-based supervision will add and remove the
+      new children directly, while the dynamic supervision
+      requires the whole tree to be restarted in order to
+      perform such swaps.
 
   ## Strategies
 
-  * `:one_for_one` - If a child process terminates, only that
-    process is restarted;
+    * `:one_for_one` - if a child process terminates, only that
+      process is restarted.
 
-  * `:one_for_all` - If a child process terminates, all other child
-    processes are terminated and then all child processes (including
-    the terminated one) are restarted;
+    * `:one_for_all` - if a child process terminates, all other child
+      processes are terminated and then all child processes (including
+      the terminated one) are restarted.
 
-  * `:rest_for_one` - If a child process terminates, the "rest" of
-    the child processes, i.e. the child processes after the terminated
-    one in start order, are terminated. Then the terminated child
-    process and the rest of the child processes are restarted;
+    * `:rest_for_one` - if a child process terminates, the "rest" of
+      the child processes, i.e. the child processes after the terminated
+      one in start order, are terminated. Then the terminated child
+      process and the rest of the child processes are restarted.
 
-  * `:simple_one_for_one` - Similar to `:one_for_one` but suits better
-    when dynamically attaching children. This strategy requires the
-    supervisor specification to contain only one children. Many functions
-    in this module behave slightly differently when this strategy is
-    used;
+    * `:simple_one_for_one` - similar to `:one_for_one` but suits better
+      when dynamically attaching children. This strategy requires the
+      supervisor specification to contain only one children. Many functions
+      in this module behave slightly differently when this strategy is
+      used.
 
   ## Name Registration
 
@@ -345,15 +345,16 @@ defmodule Supervisor do
 
   This function returns a list of tuples containing:
 
-  * `id` - as defined in the child specification or `:undefined` in the case
-    of a `simple_one_for_one` supervisor;
+    * `id` - as defined in the child specification or `:undefined` in the case
+      of a `simple_one_for_one` supervisor
 
-  * `child` - the pid of the corresponding child process, the atom `:restarting`
-    if the process is about to be restarted, or `:undefined` if there is no such process;
+    * `child` - the pid of the corresponding child process, the atom
+      `:restarting` if the process is about to be restarted, or `:undefined` if
+      there is no such process
 
-  * `type` - `:worker` or `:supervisor` as defined in the child specification;
+    * `type` - `:worker` or `:supervisor` as defined in the child specification
 
-  * `modules` – as defined in the child specification;
+    * `modules` – as defined in the child specification
   """
   @spec which_children(supervisor) ::
         [{Supervisor.Spec.child_id | :undefined,
@@ -367,16 +368,16 @@ defmodule Supervisor do
 
   The map contains the following keys:
 
-  * `:specs` - the total count of children, dead or alive;
+    * `:specs` - the total count of children, dead or alive
 
-  * `:active` - the count of all actively running child processes managed by
-    this supervisor;
+    * `:active` - the count of all actively running child processes managed by
+      this supervisor
 
-  * `:supervisors` - the count of all supervisors whether or not the child
-    process is still alive;
+    * `:supervisors` - the count of all supervisors whether or not the child
+      process is still alive
 
-  * `:workers` - the count of all workers, whether or not the child process is
-    still alive;
+    * `:workers` - the count of all workers, whether or not the child process
+      is still alive
 
   """
   @spec count_children(supervisor) ::

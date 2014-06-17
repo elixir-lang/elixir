@@ -9,8 +9,8 @@ defmodule Mix.Tasks.Deps.Get do
 
   ## Command line options
 
-  * `--quiet` - do not output verbose messages
-  * `--only` - only fetch dependencies for given environment
+    * `--quiet` - do not output verbose messages
+    * `--only`  - only fetch dependencies for given environment
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available

@@ -670,23 +670,28 @@ defmodule Kernel.SpecialForms do
   The tuple above represents a function call to `sum` passing 1, 2 and
   3 as arguments. The tuple elements are:
 
-  * The first element of the tuple is always an atom or
-    another tuple in the same representation;
-  * The second element of the tuple represents metadata;
-  * The third element of the tuple are the arguments for the
-    function call. The third argument may be an atom, which is
-    usually a variable (or a local call);
+    * The first element of the tuple is always an atom or
+      another tuple in the same representation.
+
+    * The second element of the tuple represents metadata.
+
+    * The third element of the tuple are the arguments for the
+      function call. The third argument may be an atom, which is
+      usually a variable (or a local call).
 
   ## Options
 
-  * `:unquote` - When false, disables unquoting. Useful when you have a quote
-                 inside another quote and want to control what quote is
-                 able to unquote;
-  * `:location` - When set to `:keep`, keeps the current line and file from quote.
-                  Read the Stacktrace information section below for more information;
-  * `:context` - Sets the resolution context;
-  * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
-                    `unquote` is automatically disabled;
+    * `:unquote` - when false, disables unquoting. Useful when you have a quote
+      inside another quote and want to control what quote is able to unquote.
+
+    * `:location` - when set to `:keep`, keeps the current line and file from
+      quote. Read the Stacktrace information section below for more
+      information.
+
+    * `:context` - sets the resolution context.
+
+    * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
+      given, `unquote` is automatically disabled.
 
   ## Quote literals
 
@@ -1322,21 +1327,21 @@ defmodule Kernel.SpecialForms do
 
   On the other hand, aliases holds some properties:
 
-  1) The head element of aliases can be any term;
+    1. The head element of aliases can be any term.
 
-  2) The tail elements of aliases are guaranteed to always be atoms;
+    2. The tail elements of aliases are guaranteed to always be atoms.
 
-  3) When the head element of aliases is the atom `:Elixir`, no expansion happen;
+    3. When the head element of aliases is the atom `:Elixir`, no expansion happen.
 
-  4) When the head element of aliases is not an atom, it is expanded at runtime:
+    4. When the head element of aliases is not an atom, it is expanded at runtime:
 
-        quote do: some_var.Foo
-        {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
+           quote do: some_var.Foo
+           {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
 
-     Since `some_var` is not available at compilation time, the compiler
-     expands such expression to:
+       Since `some_var` is not available at compilation time, the compiler
+       expands such expression to:
 
-        Module.concat [some_var, Foo]
+           Module.concat [some_var, Foo]
 
   """
   defmacro __aliases__(args)
@@ -1651,11 +1656,11 @@ defmodule Kernel.SpecialForms do
   The `after` clause can be specified even if there are no match clauses.
   There are two special cases for the timeout value given to `after`
 
-  * `:infinity` - The process should wait indefinitely for a matching
-  message, this is the same as not using a timeout.
+    * `:infinity` - the process should wait indefinitely for a matching
+      message, this is the same as not using a timeout
 
-  * 0 - if there is no matching message in the mailbox, the timeout
-  will occur immediately.
+    * 0 - if there is no matching message in the mailbox, the timeout
+      will occur immediately
 
   ## Variables handling
 

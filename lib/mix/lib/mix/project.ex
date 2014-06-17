@@ -292,7 +292,7 @@ defmodule Mix.Project do
 
   ## Options
 
-  * `:symlink_ebin` - Symlink ebin instead of copying it
+    * `:symlink_ebin` - symlink ebin instead of copying it
 
   """
   def build_structure(config \\ config(), opts \\ []) do

@@ -4,27 +4,32 @@ defmodule Inspect.Opts do
 
   The following fields are available:
 
-  * `:structs` - when false, structs are not formatted by the inspect protocol,
-                 they are instead printed as maps, defaults to true;
+    * `:structs` - when false, structs are not formatted by the inspect
+      protocol, they are instead printed as maps, defaults to true.
 
-  * `:binaries` - when `:as_strings` all binaries will be printed as strings,
-                  non-printable bytes will be escaped; when `:as_binaries` all
-                  binaries will be printed in bit syntax; when the default
-                  `:infer`, the binary will be printed as a string if it is
-                  printable, otherwise in bit syntax;
+    * `:binaries` - when `:as_strings` all binaries will be printed as strings,
+      non-printable bytes will be escaped.
 
-  * `:char_lists` - when `:as_char_lists` all lists will be printed as char lists,
-                    non-printable elements will be escaped; when `:as_lists` all
-                    lists will be printed as lists; when the default `:infer`, the
-                    list will be printed as a char list if it is printable,
-                    otherwise as list;
+      When `:as_binaries` all binaries will be printed in bit syntax.
 
-  * `:limit` - limits the number of items that are printed for tuples, bitstrings,
-               and lists, does not apply to strings nor char lists, defaults to 50;
+      When the default `:infer`, the binary will be printed as a string if it
+      is printable, otherwise in bit syntax.
 
-  * `:pretty` - if set to true enables pretty printing, defaults to false;
+    * `:char_lists` - when `:as_char_lists` all lists will be printed as char
+      lists, non-printable elements will be escaped.
 
-  * `:width` - defaults to the 80 characters;
+      When `:as_lists` all lists will be printed as lists.
+
+      When the default `:infer`, the list will be printed as a char list if it
+      is printable, otherwise as list.
+
+    * `:limit` - limits the number of items that are printed for tuples,
+      bitstrings, and lists, does not apply to strings nor char lists, defaults
+      to 50.
+
+    * `:pretty` - if set to true enables pretty printing, defaults to false.
+
+    * `:width` - defaults to the 80 characters.
   """
 
   defstruct structs: true :: boolean,

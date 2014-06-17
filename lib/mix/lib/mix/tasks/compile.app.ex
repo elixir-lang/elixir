@@ -17,29 +17,29 @@ defmodule Mix.Tasks.Compile.App do
   configure the generated application by defining an `application`
   function in your `mix.exs` with the following options:
 
-  * `:applications` - all applications your application depends
-    on at runtime. For example, if your application depends on
-    Erlang's `:crypto`, it needs to be added to this list. Most
-    of your dependencies must be added as well (unless they're
-    a development or test dependency). Mix and other tools use this
-    list in order to properly boot your application dependencies
-    before starting the application itself;
+    * `:applications` - all applications your application depends
+      on at runtime. For example, if your application depends on
+      Erlang's `:crypto`, it needs to be added to this list. Most
+      of your dependencies must be added as well (unless they're
+      a development or test dependency). Mix and other tools use this
+      list in order to properly boot your application dependencies
+      before starting the application itself.
 
-  * `:registered` - the name of all registered processes in the
-    application. If your application defines a local GenServer
-    with name `MyServer`, it is recommended to add `MyServer`
-    to this list. It is mostly useful to detect conflicts in
-    between applications that register the same names;
+    * `:registered` - the name of all registered processes in the
+      application. If your application defines a local GenServer
+      with name `MyServer`, it is recommended to add `MyServer`
+      to this list. It is mostly useful to detect conflicts in
+      between applications that register the same names.
 
-  * `:mod` - specify a module to invoke when the application
-    is started, it must be in the format `{Mod, args}` where
-    args is often an empty list. The module specified here must
-    implement the callbacks defined by the `Application`
-    module;
+    * `:mod` - specify a module to invoke when the application
+      is started, it must be in the format `{Mod, args}` where
+      args is often an empty list. The module specified here must
+      implement the callbacks defined by the `Application`
+      module.
 
-  * `:env` - default values for the application environment.
-    The application environment is one of the most common ways
-    to configure applications;
+    * `:env` - default values for the application environment.
+      The application environment is one of the most common ways
+      to configure applications.
 
   Let's see an example `application` function:
 
@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Compile.App do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times
+    * `--force` - forces compilation regardless of modification times
 
   """
   def run(args) do
@@ -90,8 +90,8 @@ defmodule Mix.Tasks.Compile.App do
       end
 
       # Ensure we always prepend the standard application dependencies
-      properties = Keyword.update!(properties, :applications, fn apps -> 
-        [:kernel, :stdlib, :elixir] ++ apps 
+      properties = Keyword.update!(properties, :applications, fn apps ->
+        [:kernel, :stdlib, :elixir] ++ apps
       end)
 
       properties = ensure_correct_properties(app, config, properties)

@@ -15,11 +15,11 @@ defmodule String do
   operations that work directly with binaries. Some
   of those can be found in the `Kernel` module, as:
 
-  * `Kernel.binary_part/3` - retrieves part of the binary
-  * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
-  * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
-  * Plus a number of functions for working with binaries (bytes)
-    [in the `:binary` module](http://erlang.org/doc/man/binary.html)
+    * `Kernel.binary_part/3` - retrieves part of the binary
+    * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
+    * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
+    * Plus a number of functions for working with binaries (bytes)
+      [in the `:binary` module](http://erlang.org/doc/man/binary.html)
 
   ## Codepoints and graphemes
 
@@ -772,11 +772,11 @@ defmodule String do
 
   The trait can be one of two options:
 
-  * `:valid` – the string is split into chunks of valid and invalid character
-    sequences
+    * `:valid` – the string is split into chunks of valid and invalid character
+      sequences
 
-  * `:printable` – the string is split into chunks of printable and
-    non-printable character sequences
+    * `:printable` – the string is split into chunks of printable and
+      non-printable character sequences
 
   Returns a list of binaries each of which contains only one kind of
   characters.

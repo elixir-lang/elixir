@@ -25,13 +25,13 @@ defmodule Mix.Tasks.Help do
 
   The available color options are:
 
-  * `:enabled`         - show ANSI formatting (defaults to IO.ANSI.terminal?)
-  * `:doc_code`        — the attributes for code blocks (cyan, bright)
-  * `:doc_inline_code` - inline code (cyan)
-  * `:doc_headings`    - h1 and h2 (yellow, bright)
-  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
-  * `:doc_bold`        - (bright)
-  * `:doc_underline`   - (underline)
+    * `:enabled`         - show ANSI formatting (defaults to IO.ANSI.terminal?)
+    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 (yellow, bright)
+    * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+    * `:doc_bold`        - (bright)
+    * `:doc_underline`   - (underline)
 
   """
 

@@ -25,8 +25,9 @@ defmodule Mix.Task do
   There are a couple attributes available in Mix tasks to
   configure them in Mix:
 
-  * `@shortdoc` - makes the task public with a short description that appears on `mix help`
-  * `@recursive` - run the task recursively in umbrella projects
+    * `@shortdoc`  - makes the task public with a short description that appears
+                     on `mix help`
+    * `@recursive` - run the task recursively in umbrella projects
 
   """
 
@@ -145,8 +146,8 @@ defmodule Mix.Task do
 
   ## Exceptions
 
-  * `Mix.NoTaskError` - raised if the task could not be found;
-  * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
+    * `Mix.NoTaskError`      - raised if the task could not be found
+    * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
 
   """
   def get!(task) do

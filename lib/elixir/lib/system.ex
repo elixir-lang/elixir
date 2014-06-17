@@ -153,11 +153,11 @@ defmodule System do
   Returns a writable temporary directory.
   Searches for directories in the following order:
 
-  1. The directory named by the TMPDIR environment variable
-  2. The directory named by the TEMP environment variable
-  3. The directory named by the TMP environment variable
-  4. `C:\TMP` on Windows or `/tmp` on Unix
-  5.  As a last resort, the current working directory
+    1. the directory named by the TMPDIR environment variable
+    2. the directory named by the TEMP environment variable
+    3. the directory named by the TMP environment variable
+    4. `C:\TMP` on Windows or `/tmp` on Unix
+    5. as a last resort, the current working directory
 
   Returns `nil` if none of the above are writable.
   """
@@ -355,14 +355,14 @@ defmodule System do
   Halts the Erlang runtime system where the argument `status` must be a
   non-negative integer, the atom `:abort` or a binary.
 
-  * If an integer, the runtime system exits with the integer value which
-    is returned to the operating system;
+    * If an integer, the runtime system exits with the integer value which
+      is returned to the operating system.
 
-  * If `:abort`, the runtime system aborts producing a core dump, if that is
-    enabled in the operating system;
+    * If `:abort`, the runtime system aborts producing a core dump, if that is
+      enabled in the operating system.
 
-  * If a string, an erlang crash dump is produced with status as slogan,
-    and then the runtime system exits with status code 1;
+    * If a string, an erlang crash dump is produced with status as slogan,
+      and then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.

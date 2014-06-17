@@ -22,14 +22,15 @@ defmodule Mix.Tasks.Run do
 
   ## Command line options
 
-  * `--config`, `-c` - loads the given configuration file
-  * `--eval`, `-e` - evaluate the given code
-  * `--require`, `-r` - require pattern before running the command
-  * `--parallel-require`, `-pr` - requires pattern in parallel
-  * `--no-compile` - do not compile even if files require compilation
-  * `--no-deps-check` - do not check dependencies
-  * `--no-halt` - do not halt the system after running the command
-  * `--no-start` - do not start applications after compilation
+    * `--config`, `-c`  - loads the given configuration file
+    * `--eval`, `-e`    - evaluate the given code
+    * `--require`, `-r` - require pattern before running the command
+    * `--parallel-require`, `-pr`
+                        - requires pattern in parallel
+    * `--no-compile`    - do not compile even if files require compilation
+    * `--no-deps-check` - do not check dependencies
+    * `--no-halt`       - do not halt the system after running the command
+    * `--no-start`      - do not start applications after compilation
 
   """
   def run(args) do

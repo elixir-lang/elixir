@@ -16,15 +16,15 @@ defmodule Mix.Tasks.Compile.Leex do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times;
+    * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
-  * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
+    * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
-  * `:leex_options` - compilation options that apply
-     to Leex's compiler. There are many available options
-     here: http://www.erlang.org/doc/man/leex.html#file-2
+    * `:leex_options` - compilation options that apply
+      to Leex's compiler. There are many available options
+      here: http://www.erlang.org/doc/man/leex.html#file-2.
 
   """
 

@@ -13,8 +13,8 @@ defmodule Mix.Tasks.Deps.Update do
 
   ## Command line options
 
-  * `--all` - update all dependencies
-  * `--only` - only fetch dependencies for given environment
+    * `--all`  - update all dependencies
+    * `--only` - only fetch dependencies for given environment
   """
   def run(args) do
     Mix.Project.get! # Require the project to be available

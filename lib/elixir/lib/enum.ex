@@ -39,9 +39,9 @@ defprotocol Enumerable do
 
   It must be a tagged tuple with one of the following "tags":
 
-  * `:cont`    - the enumeration should continue
-  * `:halt`    - the enumeration should halt immediately
-  * `:suspend` - the enumeration should be suspended immediately
+    * `:cont`    - the enumeration should continue
+    * `:halt`    - the enumeration should halt immediately
+    * `:suspend` - the enumeration should be suspended immediately
 
   Depending on the accumulator value, the result returned by
   `Enumerable.reduce/3` will change. Please check the `result`

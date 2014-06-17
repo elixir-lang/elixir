@@ -68,9 +68,9 @@ defmodule IEx.Server do
 
   The server responsibilities include:
 
-  * reading input
-  * sending messages to the evaluator
-  * handling takeover process of the evaluator
+    * reading input
+    * sending messages to the evaluator
+    * handling takeover process of the evaluator
 
   If there is any takeover during the callback execution
   we spawn a new server for it without waiting for its

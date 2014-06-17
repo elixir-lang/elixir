@@ -4,10 +4,10 @@ defmodule IEx.Evaluator do
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
-  * loading of .iex files
-  * evaluating code
-  * trapping exceptions in the code being evaluated
-  * keeping expression history
+    * loading of .iex files
+    * evaluating code
+    * trapping exceptions in the code being evaluated
+    * keeping expression history
 
   """
   def start(server, leader) do

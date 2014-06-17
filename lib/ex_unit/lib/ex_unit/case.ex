@@ -7,9 +7,9 @@ defmodule ExUnit.Case do
 
   When used, it accepts the following options:
 
-  * :async - configure Elixir to run that specific test case
-             in parallel with others. Must be used for performance
-             when your test cases do not change any global state;
+    * :async - configure Elixir to run that specific test case in parallel with
+      others. Must be used for performance when your test cases do not change
+      any global state.
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module's documentation for more
@@ -114,10 +114,10 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-  * `:case` - the test case module
-  * `:test` - the test name
-  * `:line` - the line on which the test was defined
-  * `:file` - the file on which the test was defined
+    * `:case` - the test case module
+    * `:test` - the test name
+    * `:line` - the line on which the test was defined
+    * `:file` - the file on which the test was defined
 
   ## Filters
 

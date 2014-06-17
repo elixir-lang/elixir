@@ -12,9 +12,9 @@ defmodule Mix.Tasks.Deps.Compile do
   By default, attempt to detect if the project contains one of
   the following files:
 
-  * `mix.exs`      - if so, invokes `mix compile`
-  * `rebar.config` - if so, invokes `rebar compile`
-  * `Makefile`     - if so, invokes `make`
+    * `mix.exs`      - if so, invokes `mix compile`
+    * `rebar.config` - if so, invokes `rebar compile`
+    * `Makefile`     - if so, invokes `make`
 
   The compilation can be customized by passing a `compile` option
   in the dependency:

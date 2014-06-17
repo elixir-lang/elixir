@@ -14,9 +14,9 @@ defmodule IO.Stream do
 
   The following fields are public:
 
-  * `device` - the IO device
-  * `raw` - a boolean indicating if bin functions should be used
-  * `line_or_bytes` - if reading should read lines or a given amount of bytes
+    * `device`        - the IO device
+    * `raw`           - a boolean indicating if bin functions should be used
+    * `line_or_bytes` - if reading should read lines or a given amount of bytes
 
   """
 

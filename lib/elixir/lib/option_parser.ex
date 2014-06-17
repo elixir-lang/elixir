@@ -42,22 +42,22 @@ defmodule OptionParser do
   switches and their formats. The switches can be specified via two
   different options:
 
-  * `:strict` - the switches are strict. Any switch that does not
-    exist in the switch list is treated as an error;
+    * `:strict` - the switches are strict. Any switch that does not
+      exist in the switch list is treated as an error.
 
-  * `:switches` - configure some switches. Switches that does not
-    exist in the switch list are still attempted to be parsed;
+    * `:switches` - configure some switches. Switches that does not
+      exist in the switch list are still attempted to be parsed.
 
   Note only `:strict` or `:switches` may be given at once.
 
   For each switch, the following types are supported:
 
-  * `:boolean` - Marks the given switch as a boolean. Boolean switches
-                 never consume the following value unless it is
-                 `true` or `false`;
-  * `:integer` - Parses the switch as an integer;
-  * `:float`   - Parses the switch as a float;
-  * `:string`  - Returns the switch as a string;
+    * `:boolean` - marks the given switch as a boolean. Boolean switches
+                   never consume the following value unless it is `true` or
+                   `false`.
+    * `:integer` - parses the switch as an integer.
+    * `:float`   - parses the switch as a float.
+    * `:string`  - returns the switch as a string.
 
   If a switch can't be parsed or is not specfied in the strict case,
   the option is returned in the invalid options list (third element
@@ -65,7 +65,7 @@ defmodule OptionParser do
 
   The following extra "types" are supported:
 
-  * `:keep` - Keeps duplicated items in the list instead of overriding;
+    * `:keep` - keeps duplicated items in the list instead of overriding
 
   Examples:
 
@@ -178,15 +178,17 @@ defmodule OptionParser do
   as both functions are built on top of next. This function
   may return:
 
-  * `{:ok, key, value, rest}` - the option `key` with `value` was successfully parsed
+    * `{:ok, key, value, rest}` - the option `key` with `value` was
+      successfully parsed
 
-  * `{:invalid, key, value, rest}` - the option `key` is invalid with `value`
-    (returned when the switch type does not match the one given via the command line)
+    * `{:invalid, key, value, rest}` - the option `key` is invalid with `value`
+      (returned when the switch type does not match the one given via the
+      command line)
 
-  * `{:undefined, key, value, rest}` - the option `key` is undefined
-    (returned on strict cases and the switch is unknown)
+    * `{:undefined, key, value, rest}` - the option `key` is undefined
+      (returned on strict cases and the switch is unknown)
 
-  * `{:error, rest}` - there are no switches at the top of the given argv
+    * `{:error, rest}` - there are no switches at the top of the given argv
   """
 
   @spec next(argv, options) ::

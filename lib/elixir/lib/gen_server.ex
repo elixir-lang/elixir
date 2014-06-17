@@ -63,48 +63,48 @@ defmodule GenServer do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-  * `init(args)` - invoked when the server is started
+    * `init(args)` - invoked when the server is started.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, state}`
-    *  `{:ok, state, timeout}`
-    *  `:ignore`
-    *  `{:stop, reason}`
+      -  `{:ok, state}`
+      -  `{:ok, state, timeout}`
+      -  `:ignore`
+      -  `{:stop, reason}`
 
-  * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
-    invoked to handle call (sync) and cast (async) messages.
+    * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
+      invoked to handle call (sync) and cast (async) messages.
 
-    It must return:
+      It must return:
 
-    *  `{:reply, reply, new_state}`
-    *  `{:reply, reply, new_state, timeout}`
-    *  `{:reply, reply, new_state, :hibernate}`
-    *  `{:noreply, new_state}`
-    *  `{:noreply, new_state, timeout}`
-    *  `{:noreply, new_state, :hibernate}`
-    *  `{:stop, reason, new_state}`
-    *  `{:stop, reason, reply, new_state}`
+      -  `{:reply, reply, new_state}`
+      -  `{:reply, reply, new_state, timeout}`
+      -  `{:reply, reply, new_state, :hibernate}`
+      -  `{:noreply, new_state}`
+      -  `{:noreply, new_state, timeout}`
+      -  `{:noreply, new_state, :hibernate}`
+      -  `{:stop, reason, new_state}`
+      -  `{:stop, reason, reply, new_state}`
 
-  * `handle_info(msg, state)` - invoked to handle all other messages which
-    are received by the process.
+    * `handle_info(msg, state)` - invoked to handle all other messages which
+      are received by the process.
 
-    It must return:
+      It must return:
 
-    *  `{:noreply, state}`
-    *  `{:noreply, state, timeout}`
-    *  `{:stop, reason, state}`
+      -  `{:noreply, state}`
+      -  `{:noreply, state, timeout}`
+      -  `{:stop, reason, state}`
 
-  * `terminate(reason, state)` - called when the server is about to
-    terminate, useful for cleaning up. It must return `:ok`
+    * `terminate(reason, state)` - called when the server is about to
+      terminate, useful for cleaning up. It must return `:ok`.
 
-  * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swapping).
+    * `code_change(old_vsn, state, extra)` - called when the application
+      code is being upgraded live (hot code swapping).
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
-    *  `{:error, reason}`
+      -  `{:ok, new_state}`
+      -  `{:error, reason}`
 
   ## Name Registration
 
@@ -112,15 +112,15 @@ defmodule GenServer do
   a name on start via the `:name` option. Registered names are also
   automatically cleaned up on termination. The supported values are:
 
-  * an atom - the GenServer is registered locally with the given name
-    using `Process.register/2`;
+    * an atom - the GenServer is registered locally with the given name
+      using `Process.register/2`.
 
-  * `{:global, term}`- the GenServer is registered globally with the given
-    term using the functions in the `:global` module;
+    * `{:global, term}`- the GenServer is registered globally with the given
+      term using the functions in the `:global` module.
 
-  * `{:via, module, term}` - the GenServer is registered with the given
-    mechanism and name. The `:via` option expects a module name to control
-    the registration mechanism alongside a name which can be any term;
+    * `{:via, module, term}` - the GenServer is registered with the given
+      mechanism and name. The `:via` option expects a module name to control
+      the registration mechanism alongside a name which can be any term.
 
   For example, we could start and register our Stack server locally as follows:
 
@@ -134,11 +134,12 @@ defmodule GenServer do
   `cast/2`, and friends) will also accept an atom, or any `:global` or `:via`
   tuples. In general, the following formats are supported:
 
-  * a `pid`
-  * an `atom` if the server is locally registered
-  * `{atom, node}` if the server is locally registered at another node
-  * `{:global, term}` if the server is globally registered
-  * `{:via, module, name}` if the server is registered through an alternative registry
+    * a `pid`
+    * an `atom` if the server is locally registered
+    * `{atom, node}` if the server is locally registered at another node
+    * `{:global, term}` if the server is globally registered
+    * `{:via, module, name}` if the server is registered through an alternative
+      registry
 
   ## Client / Server APIs
 
@@ -196,10 +197,10 @@ defmodule GenServer do
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-  * http://elixir-lang.org/getting_started/mix/1.html
-  * http://www.erlang.org/doc/man/gen_server.html
-  * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
-  * http://learnyousomeerlang.com/clients-and-servers
+    * http://elixir-lang.org/getting_started/mix/1.html
+    * http://www.erlang.org/doc/man/gen_server.html
+    * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
+    * http://learnyousomeerlang.com/clients-and-servers
   """
 
   @typedoc "Return values of `start*` functions"

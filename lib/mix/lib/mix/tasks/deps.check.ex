@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Deps.Check do
 
   ## Command line options
 
-  * `--no-compile` - do not compile dependencies
+    * `--no-compile` - do not compile dependencies
 
   """
   def run(args) do

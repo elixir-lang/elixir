@@ -76,8 +76,8 @@ defmodule Stream do
   There are many functions in Elixir's standard library that return
   streams, some examples are:
 
-  * `IO.stream/2` - Streams input lines, one by one;
-  * `URI.query_decoder/1` - Decodes a query string, pair by pair;
+    * `IO.stream/2`         - streams input lines, one by one
+    * `URI.query_decoder/1` - decodes a query string, pair by pair
 
   This module also provides many convenience functions for creating streams,
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
