@@ -108,8 +108,6 @@ defmodule Mix.Utils do
   the return result. If it is a directory, it is searched
   recursively for files with the given extensions or matching
   the given patterns.
-
-  Any file starting with `"."` is ignored.
   """
   def extract_files(paths, exts_or_pattern)
 
@@ -118,15 +116,9 @@ defmodule Mix.Utils do
   end
 
   def extract_files(paths, pattern) do
-    files = Enum.flat_map(paths, fn path ->
+    Enum.flat_map(paths, fn path ->
       if File.regular?(path), do: [path], else: Path.wildcard("#{path}/**/#{pattern}")
-    end)
-    files |> exclude_files |> Enum.uniq
-  end
-
-  defp exclude_files(files) do
-    filter = fn(x) -> not match?("." <> _, Path.basename(x)) end
-    Enum.filter files, filter
+    end) |> Enum.uniq
   end
 
   @doc """

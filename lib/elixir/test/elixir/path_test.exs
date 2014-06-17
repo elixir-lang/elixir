@@ -5,12 +5,28 @@ defmodule PathTest do
   import PathHelpers
 
   if :file.native_name_encoding == :utf8 do
-    test :wildcard do
+    test :wildcard_with_utf8 do
       File.mkdir_p(tmp_path("héllò"))
       assert Path.wildcard(tmp_path("héllò")) == [tmp_path("héllò")]
     after
       File.rm_rf tmp_path("héllò")
     end
+  end
+
+  test :wildcard do
+    hello = tmp_path("wildcard/.hello")
+    world = tmp_path("wildcard/.hello/world")
+    File.mkdir_p(world)
+
+    assert Path.wildcard(tmp_path("wildcard/*/*")) == []
+    assert Path.wildcard(tmp_path("wildcard/**/*")) == []
+    assert Path.wildcard(tmp_path("wildcard/?hello/world")) == []
+
+    assert Path.wildcard(tmp_path("wildcard/*/*"), match_dot: true) == [world]
+    assert Path.wildcard(tmp_path("wildcard/**/*"), match_dot: true) == [hello, world]
+    assert Path.wildcard(tmp_path("wildcard/?hello/world"), match_dot: true) == [world]
+  after
+    File.rm_rf tmp_path("wildcard")
   end
 
   if is_win? do

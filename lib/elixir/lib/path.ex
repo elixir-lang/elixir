@@ -483,6 +483,32 @@ defmodule Path do
     FN.split(IO.chardata_to_string(path))
   end
 
+  defmodule Wildcard do
+    @moduledoc false
+
+    def read_file_info(file) do
+      call({:read_link_info, file})
+    end
+
+    def list_dir(dir) do
+      case call({:list_dir, dir})  do
+        {:ok, files} ->
+          {:ok, for(file <- files, hd(file) != ?., do: file)}
+        other ->
+          other
+      end
+    end
+
+    @compile {:inline, call: 1}
+
+    defp call(tuple) do
+      x = :erlang.dt_spread_tag(true)
+      y = :gen_server.call(:file_server_2, tuple)
+      :erlang.dt_restore_tag(x)
+      y
+    end
+  end
+
   @doc """
   Traverses paths according to the given `glob` expression.
 
@@ -503,6 +529,9 @@ defmodule Path do
   exactly the same character in the same position will match. Note
   that matching is case-sensitive; i.e. "a" will not match "A".
 
+  By default, the patterns `*` and `?` do not match files starting
+  with a dot `.` unless `match_dot: true` is given.
+
   ## Examples
 
   Imagine you have a directory called `projects` with three Elixir projects
@@ -517,10 +546,11 @@ defmodule Path do
 
   """
   @spec wildcard(t) :: [binary]
-  def wildcard(glob) do
+  def wildcard(glob, opts \\ []) do
+    mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
     glob
-    |> chardata_to_list
-    |> :filelib.wildcard
+    |> chardata_to_list()
+    |> :filelib.wildcard(mod)
     |> Enum.map(&IO.chardata_to_string/1)
   end
 
@@ -552,7 +582,7 @@ defmodule Path do
     normalize t, acc
   end
 
-  defp normalize([".."|t], [<<_letter, ?:, ?/>>|_] = acc) when _letter in ?a..?z do
+  defp normalize([".."|t], [<<letter, ?:, ?/>>|_] = acc) when letter in ?a..?z do
     normalize t, acc
   end
 
