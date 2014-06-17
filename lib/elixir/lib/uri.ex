@@ -189,7 +189,7 @@ defmodule URI do
       "ftp://s-ite.tld/?value=put%20it+%D0%B9"
 
   """
-  def encode(str, predicate \\ &char_unescaped?/1) do
+  def encode(str, predicate \\ &char_unescaped?/1) when is_binary(str) do
     for <<c <- str>>, into: "", do: percent(c, predicate)
   end
 
@@ -202,7 +202,7 @@ defmodule URI do
       "put%3A+it%2B%D0%B9"
 
   """
-  def encode_www_form(str) do
+  def encode_www_form(str) when is_binary(str) do
     for <<c <- str>>, into: "" do
       case percent(c, &char_unreserved?/1) do
         "%20" -> "+"
@@ -225,18 +225,31 @@ defmodule URI do
   @doc """
   Percent-unescape a URI.
 
+  Raises an `ArgumentError` if if the string is malformed.
+
+  ## Examples
+
+      iex> URI.decode!("http%3A%2F%2Felixir-lang.org")
+      "http://elixir-lang.org"
+
+  """
+  def decode!(str) do
+    unpercent(str)
+  catch
+    :malformed_uri ->
+      raise ArgumentError, "malformed URI #{inspect str}"
+  end
+
+  @doc """
+  Percent-unescape a URI.
+
   ## Examples
 
       iex> URI.decode("http%3A%2F%2Felixir-lang.org")
       "http://elixir-lang.org"
 
   """
-  def decode(uri) do
-    unpercent(uri)
-  catch
-    :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect uri}"
-  end
+  def decode(str), do: decode!(str)
 
   @doc """
   Decode a string as "x-www-urlencoded".
