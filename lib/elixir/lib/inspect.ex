@@ -210,9 +210,8 @@ defimpl Inspect, for: BitString do
   end
   defp escape(<<>>, _char, binary), do: binary
 
-
   @doc false
-  # also used by Regex
+  # Also used by Regex
   def escape_char(char) when char in ?\000..?\377,
     do: octify(char)
 
@@ -236,7 +235,6 @@ defimpl Inspect, for: BitString do
 
   defp to_hex(c) when c in 0..9, do: ?0+c
   defp to_hex(c) when c in 10..15, do: ?a+c-10
-
 
   defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
   defp append(<<>>, binary), do: binary
@@ -355,7 +353,7 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    inspect(map, "", opts)
+    nest inspect(map, "", opts), 1
   end
 
   def inspect(map, name, opts) do

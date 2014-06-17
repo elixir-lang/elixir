@@ -180,8 +180,7 @@ defmodule Inspect.Algebra do
   end
 
   @doc """
-  Returns `:doc_nil` which is a document entity used to represent
-  nothingness. Takes no arguments.
+  Returns a document entity used to represent nothingness.
 
   ## Examples
 
@@ -193,8 +192,7 @@ defmodule Inspect.Algebra do
   def empty, do: :doc_nil
 
   @doc """
-  Concatenates two document entities. Takes two arguments:
-  left doc and right doc. Returns a DocCons doc
+  Concatenates two document entities.
 
   ## Examples
 
@@ -216,15 +214,16 @@ defmodule Inspect.Algebra do
     folddoc(docs, &concat(&1, &2))
   end
 
-  @doc """
-  Nests document entity `x` positions deep. Nesting will be
-  appended to the line breaks.
+  @doc ~S"""
+  Nests document entity `x` positions deep.
+
+  Nesting will be appended to the line breaks.
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.nest(Inspect.Algebra.concat(Inspect.Algebra.break, "6"), 5)
-      iex> Inspect.Algebra.pretty(doc, 80)
-      " 6"
+      iex> doc = Inspect.Algebra.nest(Inspect.Algebra.glue("hello", "world"), 5)
+      iex> Inspect.Algebra.pretty(doc, 5)
+      "hello\n     world"
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest
@@ -237,9 +236,11 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Document entity representing a break. This break can
-  be rendered as a linebreak or as spaces, depending on the
-  `mode` of the chosen layout or the provided separator.
+  Document entity representing a break.
+
+  This break can be rendered as a linebreak or as spaces,
+  depending on the `mode` of the chosen layout or the provided
+  separator.
 
   ## Examples
 

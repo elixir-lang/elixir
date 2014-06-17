@@ -214,7 +214,7 @@ defmodule Inspect.MapTest do
 
   test :basic do
     assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
-    assert inspect(%{1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
+    assert inspect(%{1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n  2 => \"c\"}"
   end
 
   test :keyword do
