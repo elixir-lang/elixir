@@ -174,8 +174,9 @@ defmodule GenEvent do
     * `:id`       - the event stream id for cancellation
     * `:timeout`  - the timeout in between events, defaults to `:infinity`
     * `:duration` - the duration of the subscription, defaults to `:infinity`
+    * `:mode`     - if the subscription mode is sync or async, defaults to `:sync`
   """
-  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity
+  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :sync
 
   @doc false
   defmacro __using__(_) do
@@ -267,18 +268,24 @@ defmodule GenEvent do
   protocol. The supported options are:
 
     * `:id` - an id to identify all live stream instances; when an `:id` is
-      given, existing streams can be called with via `cancel_streams`
+      given, existing streams can be called with via `cancel_streams`.
 
-    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds
+    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds.
 
     * `:duration` (Enumerable) - only consume events during the X milliseconds
-      from the streaming start
+      from the streaming start.
+
+    * `:mode` - the mode to consume events, can be `:sync` (default) or
+      `:async`. On sync, the event manager waits for the event to be consumed
+      before moving on to the next event handler.
+
   """
   def stream(manager, options \\ []) do
     %GenEvent{manager: manager,
               id: Keyword.get(options, :id),
               timeout: Keyword.get(options, :timeout, :infinity),
-              duration: Keyword.get(options, :duration, :infinity)}
+              duration: Keyword.get(options, :duration, :infinity),
+              mode: Keyword.get(options, :mode, :sync)}
   end
 
   @doc """
@@ -449,16 +456,26 @@ defimpl Enumerable, for: GenEvent do
   use GenEvent
 
   @doc false
-  def init({mon_pid, pid, ref}) do
+  def init({_mode, mon_pid, _pid, ref} = state) do
     # Tell the mon_pid we are good to go, and send self() so that this handler
     # can be removed later without using the managers name.
     send(mon_pid, {:UP, ref, self()})
-    {:ok, {pid, ref}}
+    {:ok, state}
   end
 
   @doc false
-  def handle_event(event, {pid, ref} = state) do
-    send pid, {ref, event}
+  def handle_event(event, {:sync, mon_pid, pid, ref} = state) do
+    sync = Process.monitor(mon_pid)
+    send pid, {ref, sync, event}
+    receive do
+      {^sync, :done} -> Process.demonitor(sync, [:flush])
+      {:DOWN, ^sync, _, _, _} -> :ok
+    end
+    {:ok, state}
+  end
+
+  def handle_event(event, {:async, _mon_pid, pid, ref} = state) do
+    send pid, {ref, nil, event}
     {:ok, state}
   end
 
@@ -466,7 +483,7 @@ defimpl Enumerable, for: GenEvent do
     start_fun = fn() -> start(stream) end
     next_fun = &next(stream, &1)
     stop_fun = &stop(stream, &1)
-    Stream.resource(start_fun, next_fun, stop_fun).(acc, fun)
+    Stream.resource(start_fun, next_fun, stop_fun).(acc, wrap_reducer(fun))
   end
 
   def count(_stream) do
@@ -477,24 +494,37 @@ defimpl Enumerable, for: GenEvent do
     {:error, __MODULE__}
   end
 
-  defp start(%{manager: manager, id: id, duration: duration} = stream) do
-    {mon_pid, mon_ref} = add_handler(manager, id, duration)
+  defp wrap_reducer(fun) do
+    fn
+      {nil, _manager, event}, acc ->
+        fun.(event, acc)
+      {ref, manager, event}, acc ->
+        acc = fun.(event, acc)
+        send manager, {ref, :done}
+        acc
+    end
+  end
+
+  defp start(%{manager: manager, id: id, duration: duration, mode: mode} = stream) do
+    {mon_pid, mon_ref} = add_handler(mode, manager, id, duration)
     send mon_pid, {:UP, mon_ref, self()}
 
     receive do
       # The subscription process gave us a go.
       {:UP, ^mon_ref, manager_pid} ->
         {mon_ref, manager_pid}
-        # The subscription process died due to an abnormal reason.
+      # The subscription process died due to an abnormal reason.
       {:DOWN, ^mon_ref, _, _, reason} ->
         exit({reason, {__MODULE__, :start, [stream]}})
     end
   end
 
-  defp next(%{timeout: timeout} = stream, {mon_ref, _manager_pid} = acc) do
+  defp next(%{timeout: timeout} = stream, {mon_ref, manager_pid} = acc) do
     receive do
-      {^mon_ref, event} -> {event, acc}
-      {:DOWN, ^mon_ref, _, _, :normal} -> nil
+      {^mon_ref, sync_ref, event} ->
+        {{sync_ref, manager_pid, event}, acc}
+      {:DOWN, ^mon_ref, _, _, :normal} ->
+        nil
       {:DOWN, ^mon_ref, _, _, reason} ->
         exit({reason, {__MODULE__, :next, [stream, acc]}})
     after
@@ -508,7 +538,7 @@ defimpl Enumerable, for: GenEvent do
     flush_events(mon_ref)
   end
 
-  defp add_handler(manager, id, duration) do
+  defp add_handler(mode, manager, id, duration) do
     parent = self()
 
     # The subscription is managed by another process, that dies if
@@ -530,7 +560,7 @@ defimpl Enumerable, for: GenEvent do
 
       cancel = cancel_ref(id, mon_ref)
       :ok = :gen_event.add_sup_handler(manager, {__MODULE__, cancel},
-                                       {self(), parent, mon_ref})
+                                       {mode, self(), parent, mon_ref})
 
       receive do
         # This message is already in the mailbox if we got this far.
@@ -581,7 +611,8 @@ defimpl Enumerable, for: GenEvent do
 
   defp flush_events(mon_ref) do
     receive do
-      {^mon_ref, _} -> flush_events(mon_ref)
+      {^mon_ref, _, _} ->
+        flush_events(mon_ref)
     after
       0 -> :ok
     end
