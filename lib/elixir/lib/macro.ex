@@ -686,10 +686,10 @@ defmodule Macro do
 
   The following contents are expanded:
 
-    * Macros (local or remote);
-    * Aliases are expanded (if possible) and return atoms;
-    * Pseudo-variables (`__ENV__`, `__MODULE__` and `__DIR__`);
-    * Module attributes reader (`@foo`);
+    * Macros (local or remote)
+    * Aliases are expanded (if possible) and return atoms
+    * Pseudo-variables (`__ENV__`, `__MODULE__` and `__DIR__`)
+    * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression
   itself. Notice that `expand_once/2` performs the expansion just

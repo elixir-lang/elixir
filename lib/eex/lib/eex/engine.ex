@@ -5,13 +5,13 @@ defmodule EEx.Engine do
 
     * `handle_body(quoted)` - receives the final built quoted
       expression, should do final post-processing and return a
-      quoted expression;
+      quoted expression.
 
     * `handle_text(buffer, text)` - it receives the buffer,
-      the text and must return a new quoted expression;
+      the text and must return a new quoted expression.
 
     * `handle_expr(buffer, marker, expr)` - it receives the buffer,
-      the marker, the expr and must return a new quoted expression;
+      the marker, the expr and must return a new quoted expression.
 
       The marker is what follows exactly after `<%`. For example,
       `<% foo %>` has an empty marker, but `<%= foo %>` has `"="`

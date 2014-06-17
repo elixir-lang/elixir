@@ -13,8 +13,8 @@ defmodule Mix.Tasks.Local.Hex do
 
   ## Command line options
 
-    * `--force` - forces installation without a shell prompt. Primarily
-      intended for automation in build systems like make.
+    * `--force` - forces installation without a shell prompt; primarily
+      intended for automation in build systems like make
   """
   def run(args) do
     Mix.Tasks.Local.Install.run [@hex_url|args]

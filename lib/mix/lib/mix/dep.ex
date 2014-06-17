@@ -6,14 +6,14 @@ defmodule Mix.Dep do
   It contains:
 
     * `scm` - a module representing the source code management tool (SCM)
-      operations;
+      operations
 
-    * `app` - the application name as an atom;
+    * `app` - the application name as an atom
 
     * `requirement` - a binary or regex with the dependency's requirement
 
     * `status` - the current status of the dependency, check
-      `Mix.Dep.format_status/1` for more info;
+      `Mix.Dep.format_status/1` for more info
 
     * `opts` - the options given by the developer
 
@@ -26,9 +26,9 @@ defmodule Mix.Dep do
 
     * `from` - path to the file where the dependency was defined
 
-    * `extra` - a slot for adding extra configuration based on the manager.
+    * `extra` - a slot for adding extra configuration based on the manager;
       the information on this field is private to the manager and should not be
-      relied on.
+      relied on
 
   A dependency is in two specific states: loaded and unloaded.
 
@@ -40,10 +40,10 @@ defmodule Mix.Dep do
   Furthermore, in the `opts` fields, Mix keeps some internal options, which
   can be accessed by SCMs:
 
-    * `:app`   - The application name
-    * `:dest`  - The destination path for the dependency
-    * `:lock`  - The lock information retrieved from mix.lock
-    * `:build` - The build path for the dependency
+    * `:app`   - the application name
+    * `:dest`  - the destination path for the dependency
+    * `:lock`  - the lock information retrieved from mix.lock
+    * `:build` - the build path for the dependency
 
   """
   defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: [],

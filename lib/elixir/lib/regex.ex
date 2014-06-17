@@ -22,17 +22,17 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like \p. it expects
+    * `unicode` (u) - enables unicode specific patterns like `\p`; it expects
       valid unicode strings to be given on match
 
     * `caseless` (i) - add case insensitivity
 
     * `dotall` (s) - causes dot to match newlines and also set newline to
-      anycrlf. The new line setting can be overridden by setting `(*CR)` or
+      anycrlf; the new line setting can be overridden by setting `(*CR)` or
       `(*LF)` or `(*CRLF)` or `(*ANY)` according to re documentation
 
     * `multiline` (m) - causes `^` and `$` to mark the beginning and end of
-      each line. Use `\A` and `\z` to match the end or beginning of the string
+      each line; use `\A` and `\z` to match the end or beginning of the string
 
     * `extended` (x) - whitespace characters are ignored except when escaped
       and allow `#` to delimit comments
@@ -56,22 +56,22 @@ defmodule Regex do
   Many functions in this module allows what to capture in a regex
   match via the `:capture` option. The supported values are:
 
-    * `:all` - all captured subpatterns including the complete matching string.
-      This is the default;
+    * `:all` - all captured subpatterns including the complete matching string
+      (this is the default)
 
     * `:first` - only the first captured subpattern, which is always the
-      complete matching part of the string. All explicitly captured subpatterns
-      are discarded;
+      complete matching part of the string; all explicitly captured subpatterns
+      are discarded
 
     * `:all_but_first`- all but the first matching subpattern, i.e. all
       explicitly captured subpatterns, but not the complete matching part of
-      the string;
+      the string
 
-    * `:none` - do not return matching subpatterns at all;
+    * `:none` - do not return matching subpatterns at all
 
-    * `:all_names` - captures all names in the Regex;
+    * `:all_names` - captures all names in the Regex
 
-    * `list(binary)` - a list of named captures to capture;
+    * `list(binary)` - a list of named captures to capture
 
   """
 
@@ -174,9 +174,9 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - Set to `:index` to return indexes. Defaults to `:binary`;
-    * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                   to see the possible capture values;
+    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+                   to see the possible capture values.
 
   ## Examples
 
@@ -282,9 +282,9 @@ defmodule Regex do
 
   ## Options
 
-    * `:return`  - Set to `:index` to return indexes. Defaults to `:binary`;
-    * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                   to see the possible capture values;
+    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+                   to see the possible capture values.
 
   ## Examples
 
@@ -322,7 +322,7 @@ defmodule Regex do
       split the string into the maximum number of parts possible based on the
       given pattern.
 
-    * `:trim` - when true, remove blank strings from the result;
+    * `:trim` - when true, remove blank strings from the result.
 
   ## Examples
 

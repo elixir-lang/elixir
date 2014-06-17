@@ -23,23 +23,23 @@ defmodule Mix.Tasks.Compile.App do
       of your dependencies must be added as well (unless they're
       a development or test dependency). Mix and other tools use this
       list in order to properly boot your application dependencies
-      before starting the application itself;
+      before starting the application itself.
 
     * `:registered` - the name of all registered processes in the
       application. If your application defines a local GenServer
       with name `MyServer`, it is recommended to add `MyServer`
       to this list. It is mostly useful to detect conflicts in
-      between applications that register the same names;
+      between applications that register the same names.
 
     * `:mod` - specify a module to invoke when the application
       is started, it must be in the format `{Mod, args}` where
       args is often an empty list. The module specified here must
       implement the callbacks defined by the `Application`
-      module;
+      module.
 
     * `:env` - default values for the application environment.
       The application environment is one of the most common ways
-      to configure applications;
+      to configure applications.
 
   Let's see an example `application` function:
 

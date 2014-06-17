@@ -63,7 +63,7 @@ defmodule GenServer do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-    * `init(args)` - invoked when the server is started
+    * `init(args)` - invoked when the server is started.
 
       It must return:
 
@@ -96,7 +96,7 @@ defmodule GenServer do
       -  `{:stop, reason, state}`
 
     * `terminate(reason, state)` - called when the server is about to
-      terminate, useful for cleaning up. It must return `:ok`
+      terminate, useful for cleaning up. It must return `:ok`.
 
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
@@ -113,14 +113,14 @@ defmodule GenServer do
   automatically cleaned up on termination. The supported values are:
 
     * an atom - the GenServer is registered locally with the given name
-      using `Process.register/2`;
+      using `Process.register/2`.
 
     * `{:global, term}`- the GenServer is registered globally with the given
-      term using the functions in the `:global` module;
+      term using the functions in the `:global` module.
 
     * `{:via, module, term}` - the GenServer is registered with the given
       mechanism and name. The `:via` option expects a module name to control
-      the registration mechanism alongside a name which can be any term;
+      the registration mechanism alongside a name which can be any term.
 
   For example, we could start and register our Stack server locally as follows:
 

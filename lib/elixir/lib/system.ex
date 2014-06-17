@@ -356,13 +356,13 @@ defmodule System do
   non-negative integer, the atom `:abort` or a binary.
 
     * If an integer, the runtime system exits with the integer value which
-      is returned to the operating system;
+      is returned to the operating system.
 
     * If `:abort`, the runtime system aborts producing a core dump, if that is
-      enabled in the operating system;
+      enabled in the operating system.
 
     * If a string, an erlang crash dump is produced with status as slogan,
-      and then the runtime system exits with status code 1;
+      and then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.

@@ -146,7 +146,7 @@ defmodule Mix.Task do
 
   ## Exceptions
 
-    * `Mix.NoTaskError`      - raised if the task could not be found;
+    * `Mix.NoTaskError`      - raised if the task could not be found
     * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
 
   """

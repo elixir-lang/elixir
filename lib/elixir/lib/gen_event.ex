@@ -67,7 +67,7 @@ defmodule GenEvent do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-    * `init(args)` - invoked when the event handler is added
+    * `init(args)` - invoked when the event handler is added.
 
       It must return:
 
@@ -85,7 +85,8 @@ defmodule GenEvent do
       -  `{:swap_handler, args1, new_state, handler2, args2}`
       -  `:remove_handler`
 
-    * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific handler.
+    * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific
+      handler.
 
       It must return:
 
@@ -95,7 +96,8 @@ defmodule GenEvent do
       -  `{:remove_handler, reply}`
 
     * `handle_info(msg, state)` - invoked to handle all other messages which
-      are received by the process. Must return the same values as `handle_event/2`;
+      are received by the process. Must return the same values as
+      `handle_event/2`.
 
       It must return:
 
@@ -103,8 +105,8 @@ defmodule GenEvent do
       -  `{:noreply, state, timeout}`
       -  `{:stop, reason, state}`
 
-    * `terminate(reason, state)` - called when the event handler is removed or the
-      event manager is terminating. It can return any term.
+    * `terminate(reason, state)` - called when the event handler is removed or
+      the event manager is terminating. It can return any term.
 
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
@@ -264,13 +266,13 @@ defmodule GenEvent do
   The stream is a `GenEvent` struct that implements the `Enumerable`
   protocol. The supported options are:
 
-    * `:id` - an id to identify all live stream instances. When an `:id` is
-      given, existing streams can be called with via `cancel_streams`;
+    * `:id` - an id to identify all live stream instances; when an `:id` is
+      given, existing streams can be called with via `cancel_streams`
 
-    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds;
+    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds
 
     * `:duration` (Enumerable) - only consume events during the X milliseconds
-      from the streaming start;
+      from the streaming start
   """
   def stream(manager, options \\ []) do
     %GenEvent{manager: manager,
@@ -304,16 +306,16 @@ defmodule GenEvent do
 
     * `:normal` - if the event handler has been removed due to a call to
       `remove_handler/3`, or `:remove_handler` has been returned by a callback
-      function;
+      function
 
     * `:shutdown` - if the event handler has been removed because the event
-      manager is terminating;
+      manager is terminating
 
     * `{:swapped, new_handler, pid}` - if the process pid has replaced the
-      event handler by another;
+      event handler by another
 
     * a term - if the event handler is removed due to an error. Which term
-      depends on the error;
+      depends on the error
 
   """
   @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:EXIT, term} | {:error, term}

@@ -20,15 +20,15 @@ defmodule Mix.Tasks.Escriptize do
 
     * `:main_module` - the module to be invoked once the escript starts.
       The module must contain a function named `main/1` that will receive the
-      command line arguments as binaries;
+      command line arguments as binaries.
 
   The remaining options can be specified to further customize the escript:
 
     * `:name` - the name of the generated escript.
-      Defaults to app name;
+      Defaults to app name.
 
     * `:path` - the path to write the escript to.
-      Defaults to app name;
+      Defaults to app name.
 
     * `:app` - the app to start with the escript.
       Defaults to app name. Set it to `nil` if no application should
@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Escriptize do
       Defaults to "#! /usr/bin/env escript\n".
 
     * `:comment` - comment line to follow shebang directive in the escript.
-      Defaults to "%%\n"
+      Defaults to "%%\n".
 
     * `:emu_args` - emulator arguments to embed in the escript file.
       Defaults to "%%!\n".

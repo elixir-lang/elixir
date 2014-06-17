@@ -831,11 +831,11 @@ defmodule Module do
 
   When registering an attribute, two options can be given:
 
-    * `:accumulate` - Several calls to the same attribute will
+    * `:accumulate` - several calls to the same attribute will
       accumulate instead of override the previous one. New attributes
       are always added to the top of the accumulated list.
 
-    * `:persist` - The attribute will be persisted in the Erlang
+    * `:persist` - the attribute will be persisted in the Erlang
       Abstract Format. Useful when interfacing with Erlang libraries.
 
   By default, both options are `false`.

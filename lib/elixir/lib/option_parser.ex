@@ -43,21 +43,21 @@ defmodule OptionParser do
   different options:
 
     * `:strict` - the switches are strict. Any switch that does not
-      exist in the switch list is treated as an error;
+      exist in the switch list is treated as an error.
 
     * `:switches` - configure some switches. Switches that does not
-      exist in the switch list are still attempted to be parsed;
+      exist in the switch list are still attempted to be parsed.
 
   Note only `:strict` or `:switches` may be given at once.
 
   For each switch, the following types are supported:
 
-    * `:boolean` - Marks the given switch as a boolean. Boolean switches
+    * `:boolean` - marks the given switch as a boolean. Boolean switches
                    never consume the following value unless it is `true` or
-                   `false`;
-    * `:integer` - Parses the switch as an integer;
-    * `:float`   - Parses the switch as a float;
-    * `:string`  - Returns the switch as a string;
+                   `false`.
+    * `:integer` - parses the switch as an integer.
+    * `:float`   - parses the switch as a float.
+    * `:string`  - returns the switch as a string.
 
   If a switch can't be parsed or is not specfied in the strict case,
   the option is returned in the invalid options list (third element
@@ -65,7 +65,7 @@ defmodule OptionParser do
 
   The following extra "types" are supported:
 
-    * `:keep` - Keeps duplicated items in the list instead of overriding;
+    * `:keep` - keeps duplicated items in the list instead of overriding
 
   Examples:
 

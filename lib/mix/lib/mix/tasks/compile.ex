@@ -17,9 +17,9 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
-    * `--list`          - List all enabled compilers
-    * `--no-deps-check` - Skips checking of dependencies
-    * `--force`         - Forces compilation
+    * `--list`          - list all enabled compilers
+    * `--no-deps-check` - skip checking of dependencies
+    * `--force`         - force compilation
 
   """
   def run(["--list"]) do

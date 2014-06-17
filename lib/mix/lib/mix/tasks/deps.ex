@@ -50,36 +50,36 @@ defmodule Mix.Tasks.Deps do
 
   ## Mix options
 
-    * `:app` - When set to false, does not read the app file for this
+    * `:app` - when set to false, does not read the app file for this
       dependency
 
-    * `:env` - The environment to run the dependency on, defaults to :prod
+    * `:env` - the environment to run the dependency on, defaults to :prod
 
-    * `:compile` - A command to compile the dependency, defaults to a mix,
+    * `:compile` - a command to compile the dependency, defaults to a mix,
       rebar or make command
 
-    * `:optional` - The dependency is optional and used only to specify
+    * `:optional` - the dependency is optional and used only to specify
       requirements
 
-    * `:only` - The dependency will belongs only to the given environments,
+    * `:only` - the dependency will belong only to the given environments,
       useful when declaring dev- or test-only dependencies
 
-    * `:override` - If set to true the dependency will override any other
+    * `:override` - if set to true the dependency will override any other
       definitions of itself by other dependencies
 
   ## Git options (`:git`)
 
-    * `:git`        - The git repository URI
-    * `:github`     - A shortcut for specifying git repos from github, uses `git:`
-    * `:ref`        - The reference to checkout (may be a branch, a commit sha or a tag)
-    * `:branch`     - The git branch to checkout
-    * `:tag`        - The git tag to checkout
-    * `:submodules` - When true, initialize submodules for the repo
+    * `:git`        - the git repository URI
+    * `:github`     - a shortcut for specifying git repos from github, uses `git:`
+    * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
+    * `:branch`     - the git branch to checkout
+    * `:tag`        - the git tag to checkout
+    * `:submodules` - when true, initialize submodules for the repo
 
   ## Path options (`:path`)
 
-    * `:path`        - The path for the dependency
-    * `:in_umbrella` - When true, sets a path dependency pointing to
+    * `:path`        - the path for the dependency
+    * `:in_umbrella` - when true, sets a path dependency pointing to
       "../#{app}", sharing the same environment as the current application
 
   ## mix deps task

@@ -1807,11 +1807,11 @@ defmodule Kernel do
   A path may start with a variable, local or remote call, and must be
   followed by one or more:
 
-    * `foo[bar]` - access a field. In case an intermediate field is not
-      present or returns nil, an empty map is used;
+    * `foo[bar]` - access a field; in case an intermediate field is not
+      present or returns nil, an empty map is used
 
-    * `foo.bar` - access a map/struct field. In case the field is not
-      present, an error is raised;
+    * `foo.bar` - access a map/struct field; in case the field is not
+      present, an error is raised
 
   Here are some valid paths:
 
@@ -3155,13 +3155,13 @@ defmodule Kernel do
     * `exception/1` - that receives the arguments given to `raise/2`
        and returns the exception struct. The default implementation
        accepts a set of keyword arguments that is merged into the
-       struct;
+       struct.
 
     * `message/1` - receives the exception struct and must return its
       message. Most commonly exceptions have a message field which
       by default is accessed by this function. However, if your exception
       does not have a message field, this function must be explicitly
-      implemented;
+      implemented.
 
   Since exceptions are structs, all the API supported by `defstruct/1`
   is also available in `defexception/1`.
@@ -3345,11 +3345,11 @@ defmodule Kernel do
   Any protocol module contains three extra functions:
 
 
-    * `__protocol__/1` - returns the protocol name when :name is given, and a
-      keyword list with the protocol functions when :functions is given;
+    * `__protocol__/1` - returns the protocol name when `:name` is given, and a
+      keyword list with the protocol functions when `:functions` is given
 
     * `impl_for/1` - receives a structure and returns the module that
-      implements the protocol for the structure, nil otherwise;
+      implements the protocol for the structure, `nil` otherwise
 
     * `impl_for!/1` - same as above but raises an error if an implementation is
       not found
@@ -3482,14 +3482,14 @@ defmodule Kernel do
 
   ## Options
 
-    * `:to` - The expression to delegate to. Any expression
-      is allowed and its results will be calculated on runtime;
+    * `:to` - the expression to delegate to. Any expression
+      is allowed and its results will be calculated on runtime.
 
-    * `:as` - The function to call on the target given in `:to`.
+    * `:as` - the function to call on the target given in `:to`.
       This parameter is optional and defaults to the name being
       delegated.
 
-    * `:append_first` - If true, when delegated, first argument
+    * `:append_first` - if true, when delegated, first argument
       passed to the delegate will be relocated to the end of the
       arguments when dispatched to the target.
 

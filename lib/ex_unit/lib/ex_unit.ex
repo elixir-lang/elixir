@@ -147,27 +147,27 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
-    * `:color` - When color should be used by specific formatters.
-      Defaults to the result of `IO.ANSI.terminal?/1`;
+    * `:color` - when color should be used by specific formatters;
+      defaults to the result of `IO.ANSI.terminal?/1`
 
-    * `:formatters` - The formatters that will print results.
-      Defaults to `[ExUnit.CLIFormatter]`;
+    * `:formatters` - the formatters that will print results;
+      defaults to `[ExUnit.CLIFormatter]`
 
-    * `:max_cases` - Maximum number of cases to run in parallel.
-      Defaults to `:erlang.system_info(:schedulers_online)`;
+    * `:max_cases` - maximum number of cases to run in parallel;
+      defaults to `:erlang.system_info(:schedulers_online)`
 
-    * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to `1` and
-      prints each test case and test while running;
+    * `:trace` - set ExUnit into trace mode, this sets `:max_cases` to `1` and
+      prints each test case and test while running
 
-    * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
+    * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
 
-    * `:include` - Specify which tests are run by skipping tests that do not
+    * `:include` - specify which tests are run by skipping tests that do not
       match the filter
 
-    * `:exclude` - Specify which tests are run by skipping tests that match the
+    * `:exclude` - specify which tests are run by skipping tests that match the
       filter
 
-    * `:seed` - An integer seed value to randomize the test suite
+    * `:seed` - an integer seed value to randomize the test suite
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->

@@ -17,10 +17,10 @@ defmodule Mix.Tasks.Archive do
   ## Command line options
 
     * `-o` - specify output file name.
-             If there is a mix.exs, defaults to app-vsn.ez
+             If there is a mix.exs, defaults to app-vsn.ez.
 
     * `-i` - specify the input directory to archive.
-             If there is a mix.exs, defaults to the current application build
+             If there is a mix.exs, defaults to the current application build.
 
     * `--no-compile`
            - skip compilation. Only applies to projects.

@@ -39,7 +39,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     * `:erlc_options` - compilation options that apply to Erlang's compiler.
       `:debug_info` is enabled by default.
 
-  There are many available options here: http://www.erlang.org/doc/man/compile.html#file-2
+      There are many available options here:
+      http://www.erlang.org/doc/man/compile.html#file-2
   """
 
   @doc """

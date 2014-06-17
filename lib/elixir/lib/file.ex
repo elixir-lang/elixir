@@ -10,40 +10,40 @@ defmodule File.Stat do
 
   Its fields are:
 
-    * `size` - Size of file in bytes.
+    * `size` - size of file in bytes.
 
-    * `type` - `:device`, `:directory`, `:regular`, `:other`. The type of the
+    * `type` - `:device | :directory | :regular | :other`; the type of the
       file.
 
-    * `access` - `:read`, `:write`, `:read_write`, `:none`. The current system
+    * `access` - `:read | :write | :read_write | :none`; the current system
       access to the file.
 
-    * `atime` - The last time the file was read.
+    * `atime` - the last time the file was read.
 
-    * `mtime` - The last time the file was written.
+    * `mtime` - the last time the file was written.
 
-    * `ctime` - The interpretation of this time field depends on the operating
+    * `ctime` - the interpretation of this time field depends on the operating
       system. On Unix, it is the last time the file or the inode was changed.
-      In Windows, it is the create time.
+      In Windows, it is the time of creation.
 
-    * `mode` - The file permissions.
+    * `mode` - the file permissions.
 
-    * `links` - The number of links to this file. This is always 1 for file
+    * `links` - the number of links to this file. This is always 1 for file
       systems which have no concept of links.
 
-    * `major_device` - Identifies the file system where the file is located.
+    * `major_device` - identifies the file system where the file is located.
       In windows, the number indicates a drive as follows: 0 means A:, 1 means
       B:, and so on.
 
-    * `minor_device` - Only valid for character devices on Unix. In all other
+    * `minor_device` - only valid for character devices on Unix. In all other
       cases, this field is zero.
 
-    * `inode` - Gives the inode number. On non-Unix file systems, this field
+    * `inode` - gives the inode number. On non-Unix file systems, this field
       will be zero.
 
-    * `uid` - Indicates the owner of the file.
+    * `uid` - indicates the owner of the file.
 
-    * `gid` - Gives the group that the owner of the file belongs to. Will be
+    * `gid` - gives the group that the owner of the file belongs to. Will be
       zero for non-Unix file systems.
 
   The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
@@ -280,13 +280,13 @@ defmodule File do
 
   Typical error reasons are:
 
-    * `:eacces`  - Missing search or write permissions for the parent directories
-                   of `path`.
-    * `:eexist`  - There is already a file or directory named `path`.
-    * `:enoent`  - A component of `path` does not exist.
-    * `:enospc`  - There is a no space left on the device.
-    * `:enotdir` - A component of `path` is not a directory.
-                   On some platforms, `:enoent` is returned instead.
+    * `:eacces`  - missing search or write permissions for the parent
+                   directories of `path`
+    * `:eexist`  - there is already a file or directory named `path`
+    * `:enoent`  - a component of `path` does not exist
+    * `:enospc`  - there is a no space left on the device
+    * `:enotdir` - a component of `path` is not a directory;
+                   on some platforms, `:enoent` is returned instead
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
@@ -312,10 +312,10 @@ defmodule File do
 
   Typical error reasons are:
 
-    * `:eacces`  - Missing search or write permissions for the parent directories
-                   of `path`.
-    * `:enospc`  - There is a no space left on the device.
-    * `:enotdir` - A component of `path` is not a directory.
+    * `:eacces`  - missing search or write permissions for the parent
+                   directories of `path`
+    * `:enospc`  - there is a no space left on the device
+    * `:enotdir` - a component of `path` is not a directory
   """
   @spec mkdir_p(Path.t) :: :ok | {:error, posix}
   def mkdir_p(path) do
@@ -341,13 +341,13 @@ defmodule File do
 
   Typical error reasons:
 
-    * `:enoent`  - The file does not exist.
-    * `:eacces`  - Missing permission for reading the file,
-                   or for searching one of the parent directories.
-    * `:eisdir`  - The named file is a directory.
-    * `:enotdir` - A component of the file name is not a directory.
-                   On some platforms, `:enoent` is returned instead.
-    * `:enomem`  - There is not enough memory for the contents of the file.
+    * `:enoent`  - the file does not exist
+    * `:eacces`  - missing permission for reading the file,
+                   or for searching one of the parent directories
+    * `:eisdir`  - the named file is a directory
+    * `:enotdir` - a component of the file name is not a directory;
+                   on some platforms, `:enoent` is returned instead
+    * `:enomem`  - there is not enough memory for the contents of the file
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
   """
@@ -381,8 +381,7 @@ defmodule File do
 
   The accepted options are:
 
-    * `:time` if the time should be `:local`, `:universal` or `:posix`.
-      Default is `:local`.
+    * `:time` - `:local | :universal | :posix`; default: `:local`
 
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
@@ -728,13 +727,13 @@ defmodule File do
 
   Typical error reasons are:
 
-    * `:enoent`  - A component of the file name does not exist.
-    * `:enotdir` - A component of the file name is not a directory.
-                   On some platforms, enoent is returned instead.
-    * `:enospc`  - There is a no space left on the device.
-    * `:eacces`  - Missing permission for writing the file or searching one of the
-                   parent directories.
-    * `:eisdir`  - The named file is a directory.
+    * `:enoent`  - a component of the file name does not exist
+    * `:enotdir` - a component of the file name is not a directory;
+                   on some platforms, enoent is returned instead
+    * `:enospc`  - there is a no space left on the device
+    * `:eacces`  - missing permission for writing the file or searching one of
+                   the parent directories
+    * `:eisdir`  - the named file is a directory
 
   The writing is automatically done in `:raw` mode. Check
   `File.open/2` for other available options.
@@ -765,12 +764,12 @@ defmodule File do
 
   Typical error reasons are:
 
-    * `:enoent`  - The file does not exist.
-    * `:eacces`  - Missing permission for the file or one of its parents.
-    * `:eperm`   - The file is a directory and user is not super-user.
-    * `:enotdir` - A component of the file name is not a directory.
-                   On some platforms, enoent is returned instead.
-    * `:einval`  - Filename had an improper type, such as tuple.
+    * `:enoent`  - the file does not exist
+    * `:eacces`  - missing permission for the file or one of its parents
+    * `:eperm`   - the file is a directory and user is not super-user
+    * `:enotdir` - a component of the file name is not a directory;
+                   on some platforms, enoent is returned instead
+    * `:einval`  - filename had an improper type, such as tuple
 
   ## Examples
 
@@ -966,31 +965,31 @@ defmodule File do
 
   The allowed modes:
 
-    * `:read` - The file, which must exist, is opened for reading.
+    * `:read` - the file, which must exist, is opened for reading.
 
-    * `:write` - The file is opened for writing. It is created if it does not
+    * `:write` - the file is opened for writing. It is created if it does not
       exist.
 
-      If the file exists, and if write is not combined with read, the file will
-      be truncated.
+      If the file does exists, and if write is not combined with read, the file
+      will be truncated.
 
-    * `:append` - The file will be opened for writing, and it will be created
+    * `:append` - the file will be opened for writing, and it will be created
       if it does not exist. Every write operation to a file opened with append
       will take place at the end of the file.
 
-    * `:exclusive` - The file, when opened for writing, is created if it does
+    * `:exclusive` - the file, when opened for writing, is created if it does
       not exist. If the file exists, open will return `{:error, :eexist}`.
 
-    * `:char_list` - When this term is given, read operations on the file will
-      return char lists rather than binaries;
+    * `:char_list` - when this term is given, read operations on the file will
+      return char lists rather than binaries.
 
-    * `:compressed` - Makes it possible to read or write gzip compressed files.
+    * `:compressed` - makes it possible to read or write gzip compressed files.
 
       The compressed option must be combined with either read or write, but not
       both. Note that the file size obtained with `stat/1` will most probably
       not match the number of bytes that can be read from a compressed file.
 
-    * `:utf8` - This option denotes how data is actually stored in the disk
+    * `:utf8` - this option denotes how data is actually stored in the disk
       file and makes the file perform automatic translation of characters to
       and from utf-8.
 
@@ -1004,7 +1003,7 @@ defmodule File do
 
   This function returns:
 
-    * `{:ok, io_device}` - The file has been opened in the requested mode.
+    * `{:ok, io_device}` - the file has been opened in the requested mode.
 
       `io_device` is actually the pid of the process which handles the file.
       This process is linked to the process which originally opened the file.
@@ -1014,7 +1013,7 @@ defmodule File do
       An `io_device` returned from this call can be used as an argument to the
       `IO` module functions.
 
-    * `{:error, reason}` - The file could not be opened.
+    * `{:error, reason}` - the file could not be opened.
 
   ## Examples
 

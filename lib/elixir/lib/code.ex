@@ -71,11 +71,11 @@ defmodule Code do
     * `:requires` - a list of modules required
 
     * `:functions` - a list of tuples where the first element is a module
-      and the second a list of imported function names and arity. The list
+      and the second a list of imported function names and arity; the list
       of function names and arity must be sorted
 
     * `:macros` - a list of tuples where the first element is a module
-      and the second a list of imported macro names and arity. The list
+      and the second a list of imported macro names and arity; the list
       of function names and arity must be sorted
 
   Notice that setting any of the values above overrides Elixir's default
@@ -201,13 +201,13 @@ defmodule Code do
 
   ## Options
 
-    * `:file` - The filename to be used in stacktraces
-      and the file reported in the `__ENV__` variable.
+    * `:file` - the filename to be used in stacktraces
+      and the file reported in the `__ENV__` variable
 
-    * `:line` - The line reported in the `__ENV__` variable.
+    * `:line` - the line reported in the `__ENV__` variable
 
-    * `:existing_atoms_only` - When `true`, raises an error
-      when non-existing atoms are found by the tokenizer.
+    * `:existing_atoms_only` - when `true`, raises an error
+      when non-existing atoms are found by the tokenizer
 
   ## Macro.to_string/2
 
@@ -328,17 +328,17 @@ defmodule Code do
   Available options are:
 
     * `:docs` - when `true`, retain documentation in the compiled module,
-      `true` by default;
+      `true` by default
 
     * `:debug_info` - when `true`, retain debug information in the compiled
-      module. This allows a developer to reconstruct the original source
-      code, `false` by default;
+      module; this allows a developer to reconstruct the original source
+      code, `false` by default
 
     * `:ignore_module_conflict` - when `true`, override modules that were
-      already defined without raising errors, `false` by default;
+      already defined without raising errors, `false` by default
 
     * `:warnings_as_errors` - cause compilation to fail when warnings are
-      generated;
+      generated
 
   """
   def compiler_options(opts) do
