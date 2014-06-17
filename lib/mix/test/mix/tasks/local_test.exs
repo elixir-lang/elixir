@@ -49,7 +49,14 @@ defmodule Mix.Tasks.LocalTest do
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Local.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+
+      # We don't do the assertion below on Windows because
+      # the archive is open by Erlang code server and the archive
+      # is not effectively removed until the Erlang process exits.
+      unless match? {:win32, _}, :os.type do
+        refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+      end
+
       Mix.Local.append_archives
 
       # Remove it!
