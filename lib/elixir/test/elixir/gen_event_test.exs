@@ -22,9 +22,9 @@ defmodule GenEventTest do
   defmodule SlowHandler do
     use GenEvent
 
-    def handle_event(_event, state) do
-      :timer.sleep(300)
-      {:ok, state}
+    def handle_event(_event, _state) do
+      :timer.sleep(100)
+      :remove_handler
     end
   end
 
@@ -116,12 +116,11 @@ defmodule GenEventTest do
 
     wait_for_handlers(pid, 1)
 
-    for i <- 1..10 do
+    for i <- 1..6 do
       GenEvent.notify(pid, i)
     end
 
-    assert Process.info(pid, :message_queue_len) ==
-           {:message_queue_len, 10}
+    wait_for_queue_length(pid, 5)
   end
 
   test "async stream/2" do
@@ -349,27 +348,28 @@ defmodule GenEventTest do
       wait_for_handlers(pid, 0)
     end
 
-    test "#{mode} stream/2 with slow handler" do
+    test "#{mode} stream/2 flushes events on abort" do
       # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, duration: 200, mode: unquote(mode))
 
       spawn_link fn ->
-        # Wait for stream to start
-        wait_for_handlers(pid, 1)
+        wait_for_handlers(pid, 2)
         GenEvent.notify(pid, 1)
-
-        # Add slow handler so that the second or
-        # third event arrives after duration of 200.
-        GenEvent.add_handler(pid, SlowHandler, [], link: true)
         GenEvent.notify(pid, 2)
         GenEvent.notify(pid, 3)
       end
 
-      # Evaluate stream.
-      _ = Enum.to_list(stream)
+      GenEvent.add_handler(pid, SlowHandler, [])
+      stream = GenEvent.stream(pid, mode: unquote(mode))
 
-      # Wait for the slow handler to be removed so all events have been handled.
+      try do
+        Enum.each stream, fn _ -> throw :done end
+      catch
+        :done -> :ok
+      end
+
+      # Wait for the slow handler to be removed
+      # so all events have been handled
       wait_for_handlers(pid, 0)
 
       # Check no messages leaked.
@@ -380,6 +380,13 @@ defmodule GenEventTest do
   defp wait_for_handlers(pid, count) do
     unless length(GenEvent.which_handlers(pid)) == count do
       wait_for_handlers(pid, count)
+    end
+  end
+
+  defp wait_for_queue_length(pid, count) do
+    {:message_queue_len, n} = Process.info(pid, :message_queue_len)
+    unless n == count do
+      wait_for_queue_length(pid, count)
     end
   end
 end
