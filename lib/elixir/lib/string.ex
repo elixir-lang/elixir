@@ -927,7 +927,7 @@ defmodule String do
 
   @doc """
   Returns the grapheme in the `position` of the given utf8 `string`.
-  If `position` is greater than `string` length, than it returns `nil`.
+  If `position` is greater than `string` length, then it returns `nil`.
 
   ## Examples
 
@@ -974,7 +974,7 @@ defmodule String do
   @doc """
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
-  If the offset is greater than string length, than it returns `""`.
+  If the offset is greater than string length, then it returns `""`.
 
   ## Examples
 
