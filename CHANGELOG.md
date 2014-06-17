@@ -4,18 +4,26 @@
 
 * Enhancements
   * [ExUnit] The test process now exits with `:shutdown` reason
+  * [Task] Log when tasks crash
 
 * Bug fixes
+  * [Enum] `Enum.slice/2` and `Enum.slice/3` always returns a list (and never nil)
   * [Kernel] Disambiguate (w)erl to (w)erl.exe
+  * [Mix] Ensure umbrella project is recompiled when a dependency inside an umbrella child changes
   * [OptionParser] Do not allow underscores in option names
+  * [Path] Fix path expansion of `"/.."`
+  * [Path] Do not match files starting with `.` in `Path.wildcard/2` by default
   * [Process] `Process.info(pid, :registered_name)` returns `{:registered_name, nil}` if there is no registered name
-  * [Task] Log when tasks crash
+  * [String] `Enum.slice/2` and `Enum.slice/3` always returns a list (and never nil)
+  * [URI] `encode/1` does not escape reserved/unreserved characters by default nor encodes whitespace as `+` (check `URI.encode_www_form/1` and `URI.decode_www_form/1` for previous behaviour)
 
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
+  * [Mix] `:escript_*` options were moved into a single `:escript` group
 
 * Backwards incompatible changes
+  * [Kernel] Remove `get_in/1`
 
 
 ## v0.14.0 (2014-06-08)
