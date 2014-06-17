@@ -3270,18 +3270,18 @@ defmodule Kernel do
   The supported types available are:
 
     * Structs (see below)
-    * Tuple
-    * Atom
-    * List
-    * BitString
-    * Integer
-    * Float
-    * Function
-    * PID
-    * Map
-    * Port
-    * Reference
-    * Any (see below)
+    * `Tuple`
+    * `Atom`
+    * `List`
+    * `BitString`
+    * `Integer`
+    * `Float`
+    * `Function`
+    * `PID`
+    * `Map`
+    * `Port`
+    * `Reference`
+    * `Any` (see below)
 
   ## Protocols + Structs
 

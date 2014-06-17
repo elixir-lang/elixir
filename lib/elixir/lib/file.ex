@@ -280,13 +280,13 @@ defmodule File do
 
   Typical error reasons are:
 
-    * :eacces  - Missing search or write permissions for the parent directories
-                 of `path`.
-    * :eexist  - There is already a file or directory named `path`.
-    * :enoent  - A component of `path` does not exist.
-    * :enospc  - There is a no space left on the device.
-    * :enotdir - A component of `path` is not a directory.
-                 On some platforms, `:enoent` is returned instead.
+    * `:eacces`  - Missing search or write permissions for the parent directories
+                   of `path`.
+    * `:eexist`  - There is already a file or directory named `path`.
+    * `:enoent`  - A component of `path` does not exist.
+    * `:enospc`  - There is a no space left on the device.
+    * `:enotdir` - A component of `path` is not a directory.
+                   On some platforms, `:enoent` is returned instead.
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
@@ -312,10 +312,10 @@ defmodule File do
 
   Typical error reasons are:
 
-    * :eacces  - Missing search or write permissions for the parent directories
-                 of `path`.
-    * :enospc  - There is a no space left on the device.
-    * :enotdir - A component of `path` is not a directory.
+    * `:eacces`  - Missing search or write permissions for the parent directories
+                   of `path`.
+    * `:enospc`  - There is a no space left on the device.
+    * `:enotdir` - A component of `path` is not a directory.
   """
   @spec mkdir_p(Path.t) :: :ok | {:error, posix}
   def mkdir_p(path) do
@@ -341,13 +341,13 @@ defmodule File do
 
   Typical error reasons:
 
-    * :enoent  - The file does not exist.
-    * :eacces  - Missing permission for reading the file,
-                 or for searching one of the parent directories.
-    * :eisdir  - The named file is a directory.
-    * :enotdir - A component of the file name is not a directory.
-                 On some platforms, `:enoent` is returned instead.
-    * :enomem  - There is not enough memory for the contents of the file.
+    * `:enoent`  - The file does not exist.
+    * `:eacces`  - Missing permission for reading the file,
+                   or for searching one of the parent directories.
+    * `:eisdir`  - The named file is a directory.
+    * `:enotdir` - A component of the file name is not a directory.
+                   On some platforms, `:enoent` is returned instead.
+    * `:enomem`  - There is not enough memory for the contents of the file.
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
   """
@@ -728,13 +728,13 @@ defmodule File do
 
   Typical error reasons are:
 
-    * :enoent  - A component of the file name does not exist.
-    * :enotdir - A component of the file name is not a directory.
-                 On some platforms, enoent is returned instead.
-    * :enospc  - There is a no space left on the device.
-    * :eacces  - Missing permission for writing the file or searching one of the
-                 parent directories.
-    * :eisdir  - The named file is a directory.
+    * `:enoent`  - A component of the file name does not exist.
+    * `:enotdir` - A component of the file name is not a directory.
+                   On some platforms, enoent is returned instead.
+    * `:enospc`  - There is a no space left on the device.
+    * `:eacces`  - Missing permission for writing the file or searching one of the
+                   parent directories.
+    * `:eisdir`  - The named file is a directory.
 
   The writing is automatically done in `:raw` mode. Check
   `File.open/2` for other available options.
@@ -765,12 +765,12 @@ defmodule File do
 
   Typical error reasons are:
 
-    * :enoent  - The file does not exist.
-    * :eacces  - Missing permission for the file or one of its parents.
-    * :eperm   - The file is a directory and user is not super-user.
-    * :enotdir - A component of the file name is not a directory.
-                 On some platforms, enoent is returned instead.
-    * :einval  - Filename had an improper type, such as tuple.
+    * `:enoent`  - The file does not exist.
+    * `:eacces`  - Missing permission for the file or one of its parents.
+    * `:eperm`   - The file is a directory and user is not super-user.
+    * `:enotdir` - A component of the file name is not a directory.
+                   On some platforms, enoent is returned instead.
+    * `:einval`  - Filename had an improper type, such as tuple.
 
   ## Examples
 
