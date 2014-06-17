@@ -552,6 +552,10 @@ defmodule Path do
     normalize t, acc
   end
 
+  defp normalize([".."|t], [<<_letter, ?:, ?/>>|_] = acc) when _letter in ?a..?z do
+    normalize t, acc
+  end
+
   defp normalize([".."|t], [_|acc]) do
     normalize t, acc
   end
