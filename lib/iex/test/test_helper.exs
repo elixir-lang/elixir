@@ -34,11 +34,7 @@ defmodule IEx.Case do
   setup do
     opts = IEx.configuration |>
            Keyword.take([:default_prompt, :alive_prompt, :inspect, :colors, :history_size])
-    {:ok, [iex_opts: opts]}
-  end
-
-  teardown context do
-    IEx.configure context[:iex_opts]
+    on_exit fn -> IEx.configure(opts) end
     :ok
   end
 

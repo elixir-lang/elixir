@@ -30,11 +30,6 @@ defmodule GenEventTest do
 
   @receive_timeout 1000
 
-  teardown _ do
-    Process.flag(:trap_exit, false)
-    :ok
-  end
-
   test "start_link/2 and handler workflow" do
     {:ok, pid} = GenEvent.start_link()
 

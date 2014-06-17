@@ -9,11 +9,6 @@ defmodule Kernel.LexicalTrackerTest do
     {:ok, [pid: D.start_link]}
   end
 
-  teardown config do
-    D.stop(config[:pid])
-    :ok
-  end
-
   test "can add remote dispatches", config do
     D.remote_dispatch(config[:pid], String)
     assert D.remotes(config[:pid]) == [String]

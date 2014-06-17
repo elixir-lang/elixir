@@ -19,11 +19,7 @@ defmodule Mix.RebarTest do
   setup do
     available = Mix.SCM.available
     Application.put_env(:mix, :scm, [Mix.SCM.Git, MyPath])
-    {:ok, [scm: available]}
-  end
-
-  teardown context do
-    Application.put_env(:mix, :scm, context[:scm])
+    on_exit fn -> Application.put_env(:mix, :scm, available) end
     :ok
   end
 

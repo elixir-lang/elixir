@@ -73,17 +73,10 @@ defmodule ExUnit.Case do
           if cd = context[:cd] do
             prev_cd = File.cwd!
             File.cd!(cd)
-            {:ok, [prev_cd: prev_cd]}
-          else
-            :ok
+            on_exit fn -> File.cd!(prev_cd) end
           end
-        end
 
-        teardown context do
-          # Revert to the previous working directory
-          if cd = context[:prev_cd] do
-            File.cd!(cd)
-          end
+          :ok
         end
 
         @tag cd: "fixtures"
@@ -93,10 +86,8 @@ defmodule ExUnit.Case do
       end
 
   In the example above, we have defined a tag called `:cd` that is
-  read in the setup callback to configure the working directory the test is
-  going to run on. We then use the same context to store the
-  previous working directory that is reverted to after the test
-  in the teardown callback.
+  read in the setup callback to configure the working directory the
+  test is going to run on.
 
   Tags are also very effective when used with case templates
   (`ExUnit.CaseTemplate`) allowing callbacks in the case template

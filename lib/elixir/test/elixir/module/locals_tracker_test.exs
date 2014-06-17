@@ -9,11 +9,6 @@ defmodule Module.LocalsTrackerTest do
     {:ok, [pid: D.start_link]}
   end
 
-  teardown config do
-    D.stop(config[:pid])
-    :ok
-  end
-
   ## Locals
 
   test "can add definitions", config do
