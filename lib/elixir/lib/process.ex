@@ -274,7 +274,7 @@ defmodule Process do
   already registered (check with `registered?/1`).
   """
   @spec register(pid | port, atom) :: true
-  def register(pid, name) do
+  def register(pid, name) when not name in [nil, false, true] do
     :erlang.register(name, pid)
   end
 

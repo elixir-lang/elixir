@@ -69,12 +69,15 @@ defmodule Task.Supervised do
   end
 
   defp exit(info, mfa, reason) do
+    {fun, args} = get_running(mfa)
+
     :error_logger.format(
       "** Task ~p terminating~n" <>
       "** Started from ~p~n" <>
-      "** Running ~p~n" <>
+      "** When function  == ~p~n" <>
+      "**      arguments == ~p~n" <>
       "** Reason for termination == ~n" <>
-      "** ~p~n", [self, get_from(info), get_running(mfa), reason])
+      "** ~p~n", [self, get_from(info), fun, args, reason])
 
     exit(reason)
   end
@@ -82,6 +85,6 @@ defmodule Task.Supervised do
   defp get_from({node, pid_or_name}) when node == node(), do: pid_or_name
   defp get_from(other), do: other
 
-  defp get_running({:erlang, :apply, [fun, []]}), do: fun
-  defp get_running(other), do: other
+  defp get_running({:erlang, :apply, [fun, []]}) when is_function(fun, 0), do: {fun, []}
+  defp get_running({mod, fun, args}), do: {:erlang.make_fun(mod, fun, length(args)), args}
 end
