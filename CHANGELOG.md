@@ -4,6 +4,7 @@
 
 * Enhancements
   * [ExUnit] The test process now exits with `:shutdown` reason
+  * [Node] Add `Node.start/3` and `Node.stop/0`
   * [Task] Log when tasks crash
 
 * Bug fixes
