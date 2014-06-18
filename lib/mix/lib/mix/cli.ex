@@ -77,18 +77,11 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        cond do
-          Map.get(exception, :mix_error, false) ->
-            IO.write :stderr, "warning: setting mix_error: true in Mix exceptions is deprecated, " <>
-                              "please define a `:mix` field and use Mix.raise to raise them"
-            Mix.shell.error "** (Mix) #{Exception.message(exception)}"
-
-          info = Map.get(exception, :mix) ->
-            mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
-            Mix.shell.error "** (#{mod})#{show_mix_info(info)} #{Exception.message(exception)}"
-
-          true ->
-            reraise exception, stacktrace
+        if info = Map.get(exception, :mix) do
+          mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
+          Mix.shell.error "** (#{mod})#{show_mix_info(info)} #{Exception.message(exception)}"
+        else
+          reraise exception, stacktrace
         end
 
         exit(1)

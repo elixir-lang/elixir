@@ -56,14 +56,6 @@ defmodule ExUnit.CaseTemplate do
       setup context do
         unquote(module).__ex_unit__(:setup, context)
       end
-
-      teardown_all context, false do
-        unquote(module).__ex_unit__(:teardown_all, context)
-      end
-
-      teardown context, false do
-        unquote(module).__ex_unit__(:teardown, context)
-      end
     end
   end
 

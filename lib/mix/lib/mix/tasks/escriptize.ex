@@ -79,30 +79,8 @@ defmodule Mix.Tasks.Escriptize do
     escriptize(Mix.Project.config, opts[:force])
   end
 
-
-  @deprecated_opts [
-    :escript_main_module, :escript_name, :escript_path, :escript_app,
-    :escript_embed_elixir, :escript_embed_extra_apps, :escript_shebang,
-    :escript_comment, :escript_mu_args, ]
-
-  @prefix_len String.length("escript_")
-
-  defp collect_deprecated_opts(project) do
-    Enum.reduce(@deprecated_opts, [], fn name, acc ->
-      if Keyword.has_key?(project, name) do
-        IO.puts :stderr, "Option #{inspect name} is deprecated. " <>
-            "Use the new `:escript` option that takes a keyword list instead."
-        new_name =
-          Atom.to_string(name) |> String.slice(@prefix_len, 100) |> String.to_atom()
-        [{new_name, project[name]}|acc]
-      else
-        acc
-      end
-    end)
-  end
-
   defp escriptize(project, force) do
-    escript_opts = project[:escript] || collect_deprecated_opts(project)
+    escript_opts = project[:escript] || []
 
     script_name  = escript_opts[:name] || project[:app]
     filename     = escript_opts[:path] || Atom.to_string(script_name)

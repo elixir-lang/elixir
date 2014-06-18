@@ -147,7 +147,6 @@ defmodule ExUnit.Runner do
         case exec_case_setup(test_case) do
           {:ok, test_case, context} ->
             Enum.each(tests, &run_test(config, &1, context))
-            test_case = exec_case_teardown(test_case, context)
             send parent, {self, :case_finished, test_case, []}
 
           {:error, test_case} ->
@@ -179,15 +178,6 @@ defmodule ExUnit.Runner do
       {:error, %{test_case | state: failed}}
   end
 
-  defp exec_case_teardown(%ExUnit.TestCase{name: case_name} = test_case, context) do
-    case_name.__ex_unit__(:teardown_all, context)
-    test_case
-  catch
-    kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
-      %{test_case | state: failed}
-  end
-
   defp run_test(config, test, context) do
     EM.test_started(config.manager, test)
 
@@ -209,8 +199,7 @@ defmodule ExUnit.Runner do
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
               {:ok, test, context} ->
-                test = exec_test(test, context)
-                exec_test_teardown(test, context)
+                exec_test(test, context)
               {:error, test} ->
                 test
             end
@@ -247,15 +236,6 @@ defmodule ExUnit.Runner do
     kind, error ->
       failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
       %{test | state: failed}
-  end
-
-  defp exec_test_teardown(%ExUnit.Test{case: case} = test, context) do
-    {:ok, _context} = case.__ex_unit__(:teardown, context)
-    test
-  catch
-    kind, error ->
-      state = test.state || {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
-      %{test | state: state}
   end
 
   defp exec_on_exit(test_or_case, pid) do

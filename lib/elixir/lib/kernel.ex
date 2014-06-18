@@ -88,145 +88,6 @@ defmodule Kernel do
     :erlang.apply(module, fun, args)
   end
 
-  ## DEPRECATED
-
-  @doc false
-  def atom_to_binary(some_atom) do
-    :erlang.atom_to_binary(some_atom, :utf8)
-  end
-
-  @doc false
-  def atom_to_list(atom) do
-    :erlang.atom_to_list(atom)
-  end
-
-  @doc false
-  def binary_to_atom(some_binary) do
-    :erlang.binary_to_atom(some_binary, :utf8)
-  end
-
-  @doc false
-  def binary_to_existing_atom(some_binary) do
-    :erlang.binary_to_existing_atom(some_binary, :utf8)
-  end
-
-  @doc false
-  def binary_to_integer(some_binary) do
-    :erlang.binary_to_integer(some_binary)
-  end
-
-  @doc false
-  def binary_to_integer(some_binary, base) do
-    :erlang.binary_to_integer(some_binary, base)
-  end
-
-  @doc false
-  def binary_to_float(some_binary) do
-    :erlang.binary_to_float(some_binary)
-  end
-
-  @doc false
-  def bitstring_to_list(bitstring) do
-    :erlang.bitstring_to_list(bitstring)
-  end
-
-  @doc false
-  def float_to_list(number) do
-    :erlang.float_to_list(number)
-  end
-
-  @doc false
-  def float_to_binary(some_float) do
-    :erlang.float_to_binary(some_float)
-  end
-
-  @doc false
-  def float_to_binary(float, options) do
-    Float.to_string(float, options)
-  end
-
-  @doc false
-  def float_to_list(float, options) do
-    Float.to_char_list(float, options)
-  end
-
-  @doc false
-  def iodata_length(item) do
-    :erlang.iolist_size(item)
-  end
-
-  @doc false
-  def iodata_to_binary(item) do
-    :erlang.iolist_to_binary(item)
-  end
-
-  @doc false
-  def integer_to_binary(some_integer) do
-    :erlang.integer_to_binary(some_integer)
-  end
-
-  @doc false
-  def integer_to_binary(some_integer, base) do
-    :erlang.integer_to_binary(some_integer, base)
-  end
-
-  @doc false
-  def integer_to_list(number) do
-    :erlang.integer_to_list(number)
-  end
-
-  @doc false
-  def integer_to_list(number, base) do
-    :erlang.integer_to_list(number, base)
-  end
-
-  @doc false
-  def list_to_atom(list) do
-    :erlang.list_to_atom(list)
-  end
-
-  @doc false
-  def list_to_bitstring(bitstring_list) do
-    :erlang.list_to_bitstring(bitstring_list)
-  end
-
-  @doc false
-  def list_to_existing_atom(list) do
-    :erlang.list_to_existing_atom(list)
-  end
-
-  @doc false
-  def list_to_float(list) do
-    :erlang.list_to_float(list)
-  end
-
-  @doc false
-  def list_to_integer(list) do
-    :erlang.list_to_integer(list)
-  end
-
-  @doc false
-  def list_to_integer(list, base) do
-    :erlang.list_to_integer(list, base)
-  end
-
-  @doc false
-  def list_to_tuple(list) do
-    :erlang.list_to_tuple(list)
-  end
-
-  @doc false
-  def tuple_to_list(tuple) do
-    :erlang.tuple_to_list(tuple)
-  end
-
-  @doc false
-  def size(arg) do
-    :erlang.size(arg)
-  end
-
-  ## END OF DEPRECATED
-
   @doc """
   Extracts the part of the binary starting at `start` with length `length`.
   Binaries are zero-indexed.
@@ -663,6 +524,11 @@ defmodule Kernel do
   @spec self() :: pid
   def self() do
     :erlang.self()
+  end
+
+  @doc false
+  def size(arg) do
+    :erlang.size(arg)
   end
 
   @doc """

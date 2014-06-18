@@ -147,9 +147,17 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
-      case rewrite(Receiver, Name, Args, Arity) of
-        {ok, _, _, _} = Res -> Res;
-        false -> {ok, Receiver, Name, Args}
+
+      %% DEPRECATED
+      case {Receiver, Name, Arity} of
+        {?kernel, size, 1} ->
+          check_deprecation(Meta, Receiver, Name, Arity, E),
+          {ok, erlang, size, Args};
+        _ ->
+          case rewrite(Receiver, Name, Args, Arity) of
+            {ok, _, _, _} = Res -> Res;
+            false -> {ok, Receiver, Name, Args}
+          end
       end;
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
@@ -482,9 +490,6 @@ inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 
-%% DEPRECATED
-inline(?kernel, size, 1) -> {erlang, size};
-
 inline(_, _, _) -> false.
 
 check_deprecation(Meta, Receiver, Name, Arity, #{file := File}) ->
@@ -512,58 +517,6 @@ deprecation_message(Warning, Message) ->
 
 deprecation('Elixir.Kernel', 'size', 1) ->
   "use byte_size/1 or tuple_size/1 instead";
-deprecation('Elixir.Kernel', 'atom_to_binary', 1) ->
-  "use Atom.to_string/1 instead";
-deprecation('Elixir.Kernel', 'atom_to_list', 1) ->
-  "use Atom.to_char_list/1 instead";
-deprecation('Elixir.Kernel', 'binary_to_atom', 1) ->
-  "use String.to_atom/1 instead";
-deprecation('Elixir.Kernel', 'binary_to_existing_atom', 1) ->
-  "use String.to_existing_atom/1 instead";
-deprecation('Elixir.Kernel', 'binary_to_integer', 1) ->
-  "use String.to_integer/1 instead";
-deprecation('Elixir.Kernel', 'binary_to_integer', 2) ->
-  "use String.to_integer/2 instead";
-deprecation('Elixir.Kernel', 'binary_to_float', 1) ->
-  "use String.to_float/1 instead";
-deprecation('Elixir.Kernel', 'bitstring_to_list', 1) ->
-  "use BitString.to_list/1 instead";
-deprecation('Elixir.Kernel', 'float_to_binary', 1) ->
-  "use Float.to_string/1 instead";
-deprecation('Elixir.Kernel', 'float_to_binary', 2) ->
-  "use Float.to_string/2 instead";
-deprecation('Elixir.Kernel', 'float_to_list', 1) ->
-  "use Float.to_char_list/1 instead";
-deprecation('Elixir.Kernel', 'float_to_list', 2) ->
-  "use Float.to_char_list/2 instead";
-deprecation('Elixir.Kernel', 'iodata_length', 1) ->
-  "use IO.iodata_length/1 instead";
-deprecation('Elixir.Kernel', 'iodata_to_binary', 1) ->
-  "use IO.iodata_to_binary/1 instead";
-deprecation('Elixir.Kernel', 'integer_to_binary', 1) ->
-  "use Integer.to_string/1 instead";
-deprecation('Elixir.Kernel', 'integer_to_binary', 2) ->
-  "use Integer.to_string/2 instead";
-deprecation('Elixir.Kernel', 'integer_to_list', 1) ->
-  "use Integer.to_char_list/1 instead";
-deprecation('Elixir.Kernel', 'integer_to_list', 2) ->
-  "use Integer.to_char_list/2 instead";
-deprecation('Elixir.Kernel', 'list_to_atom', 1) ->
-  "use List.to_atom/1 instead";
-deprecation('Elixir.Kernel', 'list_to_bitstring', 1) ->
-  true;
-deprecation('Elixir.Kernel', 'list_to_existing_atom', 1) ->
-  "use List.to_existing_atom/1 instead";
-deprecation('Elixir.Kernel', 'list_to_float', 1) ->
-  "use List.to_float/2 instead";
-deprecation('Elixir.Kernel', 'list_to_integer', 1) ->
-  "use List.to_integer/1 instead";
-deprecation('Elixir.Kernel', 'list_to_integer', 2) ->
-  "use List.to_integer/2 instead";
-deprecation('Elixir.Kernel', 'list_to_tuple', 1) ->
-  "use List.to_tuple/1 instead";
-deprecation('Elixir.Kernel', 'tuple_to_list', 1) ->
-  "use Tuple.to_list/1 instead";
 
 deprecation(_, _, _) ->
   false.
