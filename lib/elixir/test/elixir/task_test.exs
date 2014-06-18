@@ -10,15 +10,15 @@ defmodule TaskTest do
   end
 
   def wait_and_send(caller, atom) do
+    send caller, :ready
     receive do: (true -> true)
     send caller, atom
   end
 
   test "async/1" do
-    task = Task.async fn ->
-      receive do: (true -> true)
-      :done
-    end
+    parent = self()
+    fun = fn -> wait_and_send(parent, :done) end
+    task = Task.async(fun)
 
     # Assert the struct
     assert task.__struct__ == Task
@@ -28,6 +28,12 @@ defmodule TaskTest do
     # Assert the link
     {:links, links} = Process.info(self, :links)
     assert task.pid in links
+
+    receive do: (:ready -> :ok)
+
+    # Assert the initial call
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
     # Run the task
     send task.pid, true
@@ -39,17 +45,34 @@ defmodule TaskTest do
   end
 
   test "async/3" do
-    task = Task.async(List, :flatten, [[1, [2], 3]])
+    task = Task.async(__MODULE__, :wait_and_send, [self(), :done])
     assert task.__struct__ == Task
-    assert Task.await(task) == [1, 2, 3]
+
+    {:links, links} = Process.info(self, :links)
+    assert task.pid in links
+
+    receive do: (:ready -> :ok)
+
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(task.pid)
+
+    send(task.pid, true)
+
+    assert Task.await(task) === :done
+    assert_receive :done
   end
 
   test "start_link/1" do
     parent = self()
-    {:ok, pid} = Task.start_link(fn -> wait_and_send(parent, :done) end)
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.start_link(fun)
 
     {:links, links} = Process.info(self, :links)
     assert pid in links
+
+    receive do: (:ready -> :ok)
+
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
@@ -60,6 +83,10 @@ defmodule TaskTest do
 
     {:links, links} = Process.info(self, :links)
     assert pid in links
+
+    receive do: (:ready -> :ok)
+
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
@@ -113,4 +140,5 @@ defmodule TaskTest do
     assert catch_exit(Task.find([task], msg)) ==
            {:kill, {Task, :find, [[task], msg]}}
   end
+
 end

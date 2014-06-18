@@ -10,11 +10,13 @@ defmodule Task.Supervised do
   end
 
   def async(caller, info, mfa) do
+    initial_call(mfa)
     ref = receive do: ({^caller, ref} -> ref)
     send caller, {ref, do_apply(info, mfa)}
   end
 
   def reply(caller, info, mfa) do
+    initial_call(mfa)
     :erlang.link(caller)
     :proc_lib.init_ack({:ok, self()})
 
@@ -45,7 +47,22 @@ defmodule Task.Supervised do
   end
 
   def noreply(info, mfa) do
+    initial_call(mfa)
     do_apply(info, mfa)
+  end
+
+  defp initial_call(mfa) do
+    Process.put(:"$initial_call", get_initial_call(mfa))
+  end
+
+  defp get_initial_call({:erlang, :apply, [fun, []]}) when is_function(fun, 0) do
+    {:module, module} = :erlang.fun_info(fun, :module)
+    {:name, name} = :erlang.fun_info(fun, :name)
+    {module, name, 0}
+  end
+
+  defp get_initial_call({mod, fun, args}) do
+    {mod, fun, length(args)}
   end
 
   defp do_apply(info, {module, fun, args} = mfa) do
