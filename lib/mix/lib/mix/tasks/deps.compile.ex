@@ -9,18 +9,18 @@ defmodule Mix.Tasks.Deps.Compile do
   By default, compile all dependencies. A list of dependencies can
   be given to force the compilation of specific dependencies.
 
-  By default, attempt to detect if the project contains one of
-  the following files:
+  This task attempts to detect if the project contains one of
+  the following files and act accordingly:
 
-    * `mix.exs`      - if so, invokes `mix compile`
-    * `rebar.config` - if so, invokes `rebar compile`
-    * `Makefile.win` - if so, invokes `nmake /F Makefile.win` (only on Windows)
-    * `Makefile`     - if so, invokes `make` (except on Windows)
+    * `mix.exs`      - invokes `mix compile`
+    * `rebar.config` - invokes `rebar compile`
+    * `Makefile.win` - invokes `nmake /F Makefile.win` (only on Windows)
+    * `Makefile`     - invokes `make` (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
 
-      {:some_dependency, "0.1.0", git: "...", compile: "command to compile"}
+      {:some_dependency, "0.1.0", compile: "command to compile"}
 
   """
 
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_make(dep) do
-    if match? {:win32, _}, :os.type do
+    if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
       do_command(dep, "nmake /F Makefile.win")
     else
       do_command(dep, "make")

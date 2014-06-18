@@ -165,17 +165,19 @@ defmodule Mix.Dep.Loader do
   defp ok?(_), do: false
 
   defp mix?(dest) do
-    File.regular?(Path.join(dest, "mix.exs"))
+    any_of?(dest, ["mix.exs"])
   end
 
   defp rebar?(dest) do
-    Enum.any?(["rebar.config", "rebar.config.script"], fn file ->
-      File.regular?(Path.join(dest, file))
-    end) or File.regular?(Path.join(dest, "rebar"))
+    any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"])
   end
 
   defp make?(dest) do
-    (File.regular? Path.join(dest, "Makefile")) or (File.regular? Path.join(dest, "Makefile.win"))
+    any_of?(dest, ["Makefile", "Makefile.win"])
+  end
+
+  defp any_of?(dest, files) do
+    Enum.any?(files, &File.regular?(Path.join(dest, &1)))
   end
 
   defp invalid_dep_format(dep) do
