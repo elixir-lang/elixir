@@ -2893,7 +2893,7 @@ defmodule Kernel do
 
   ## Deriving
 
-  Alhought structs are maps, by default structs do not implement
+  Although structs are maps, by default structs do not implement
   any of the protocols implemented for maps. For example, if you
   attempt to use the access protocol with the User struct, it
   will lead to an error:
