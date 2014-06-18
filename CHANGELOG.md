@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.14.2-dev
+
+* Enhancements
+
+* Bug fixes
+
+* Soft deprecations (no warnings emitted)
+
+* Deprecations
+
+* Backwards incompatible changes
+
 ## v0.14.1 (2014-06-18)
 
 * Enhancements
