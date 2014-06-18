@@ -519,18 +519,22 @@ defimpl Enumerable, for: GenEvent do
     receive do
       # The subscription process gave us a go.
       {:UP, ^mon_ref, manager_pid} ->
-        {mon_ref, manager_pid}
+        {mon_ref, mon_pid, manager_pid}
       # The subscription process died due to an abnormal reason.
       {:DOWN, ^mon_ref, _, _, reason} ->
         exit({reason, {__MODULE__, :start, [stream]}})
     end
   end
 
-  defp next(%{timeout: timeout} = stream, {mon_ref, manager_pid} = acc) do
+  defp next(%{timeout: timeout} = stream, {mon_ref, mon_pid, manager_pid} = acc) do
+    # If :DOWN is received must resend it to self so that stop/2 can receive it
+    # and know that the handler has been removed.
     receive do
       {:DOWN, ^mon_ref, _, _, :normal} ->
+        send(self(), {:DOWN, mon_ref, :process, mon_pid, :normal})
         nil
       {:DOWN, ^mon_ref, _, _, reason} ->
+        send(self(), {:DOWN, mon_ref, :process, mon_pid, :normal})
         exit({reason, {__MODULE__, :next, [stream, acc]}})
       {^mon_ref, sync_ref, event} ->
         {{sync_ref, manager_pid, event}, acc}
@@ -540,9 +544,15 @@ defimpl Enumerable, for: GenEvent do
     end
   end
 
-  defp stop(%{id: id}, {mon_ref, manager_pid}) do
-    remove_handler(mon_ref, manager_pid, id)
-    flush_events(mon_ref)
+  defp stop(%{mode: mode} = stream, {mon_ref, mon_pid, manager_pid} = acc) do
+    case remove_handler(mon_ref, mon_pid, manager_pid) do
+      :ok when mode == :async ->
+        flush_events(mon_ref)
+      :ok ->
+        :ok
+      {:error, reason} ->
+        exit({reason, {__MODULE__, :stop, [stream, acc]}})
+    end
   end
 
   defp add_handler(mode, manager, id, duration) do
@@ -574,6 +584,10 @@ defimpl Enumerable, for: GenEvent do
         {:UP, ^mon_ref, manager_pid} ->
           send(parent, {:UP, mon_ref, manager_pid})
           receive do
+            # The stream has finished, remove the handler.
+            {:DONE, ^mon_ref} ->
+              exit_handler(manager_pid, parent_ref, cancel)
+
             # If the parent died, we can exit normally.
             {:DOWN, ^parent_ref, _, _, _} ->
               exit(:normal)
@@ -599,36 +613,43 @@ defimpl Enumerable, for: GenEvent do
   defp cancel_ref(nil, mon_ref), do: mon_ref
   defp cancel_ref(id, mon_ref),  do: {id, mon_ref}
 
-  defp remove_handler(mon_ref, manager_pid, id) do
-    Process.demonitor(mon_ref, [:flush])
-    handler = {__MODULE__, cancel_ref(id, mon_ref)}
+  defp exit_handler(manager_pid, parent_ref, cancel) do
+    # Send exit signal so manager removes handler.
+    Process.exit(manager_pid, :shutdown)
+    receive do
+      # If the parent died, we can exit normally.
+      {:DOWN, ^parent_ref, _, _, _} ->
+        exit(:normal)
 
-    {_pid, ref} = spawn_monitor fn ->
-      try do
-        # handler may nolonger be there, if it is the removal will cause the monitor
-        # process to exit. If this returns successfuly then no more events will be
-        # forwarded.
-        _ = :gen_event.delete_handler(manager_pid, handler, :remove_handler)
-      catch
-        # Do not want to overide the exit reason of the mon_pid so catch errors.
-        # However if the exit is due to a disconnection, exit because messages could
-        # leak if the nodes are reconnected before the manager on the other node
-        # removes the handler. In this case it is very likely that the mon_pid
-        # exited with the same reason.
-        :exit, reason when reason != {:nodedown, node(manager_pid)} ->
-          :ok
-      end
+      # Probably the reason is :shutdown, which occurs when the manager receives
+      # an exit signal from a handler supervising process. However whatever the
+      # reason the handler has been removed so it is ok.
+      {:gen_event_EXIT, {__MODULE__, ^cancel}, _} ->
+        exit(:normal)
+
+      # The connection broke, perhaps the handler might try to forward events
+      # before it removes the handler, so must exit abnormally.
+      {:EXIT, ^manager_pid, :noconnection} ->
+        exit({:nodedown, node(manager_pid)})
+
+      # The manager has exited but don't exit abnormally as the handler has died
+      # with the manager and all expected events have been handled. This is ok.
+      {:EXIT, ^manager_pid, _} ->
+        exit(:normal)
     end
+  end
 
+  defp remove_handler(mon_ref, mon_pid, manager_pid) do
+    send(mon_pid, {:DONE, mon_ref})
     receive do
       {^mon_ref, sync, _} when sync != nil ->
         send(manager_pid, {sync, :done})
-        Process.demonitor(ref, [:flush])
+        Process.demonitor(mon_ref, [:flush])
         :ok
-      {:DOWN, ^ref, _, _, :normal} ->
+      {:DOWN, ^mon_ref, _, _, :normal} ->
         :ok
-      {:DOWN, ^ref, _, _, other} ->
-        exit(other)
+      {:DOWN, ^mon_ref, _, _, reason} ->
+        {:error, reason}
     end
   end
 
