@@ -3,7 +3,9 @@
 ## v0.14.1-dev
 
 * Enhancements
+  * [Base] Decoding and encoding functions now accept the `:case` as an option
   * [ExUnit] The test process now exits with `:shutdown` reason
+  * [GenEvent] `GenEvent.stream/2` now accepts `:sync` and `:async` modes
   * [Node] Add `Node.start/3` and `Node.stop/0`
   * [String] Updated Unicode database to 7.0
   * [Task] Log when tasks crash
@@ -25,6 +27,7 @@
   * [Mix] `:escript_*` options were moved into a single `:escript` group
 
 * Backwards incompatible changes
+  * [GenEvent] `GenEvent.stream/2` defaults to `:sync` mode
   * [Kernel] Remove `get_in/1`
 
 
