@@ -1451,7 +1451,7 @@ defmodule Enum do
   end
 
   def slice(coll, start, count) when start >= 0 and count > 0 do
-    {start, _, list} = Enumerable.reduce(coll, {:cont, {start, count, []}}, fn
+    {_, _, list} = Enumerable.reduce(coll, {:cont, {start, count, []}}, fn
       _entry, {start, count, _list} when start > 0 ->
         {:cont, {start-1, count, []}}
       entry, {start, count, list} when count > 1 ->
@@ -2165,11 +2165,11 @@ defmodule Enum do
 
   ## slice
 
-  defp do_slice([], start, _count) do
+  defp do_slice([], _start, _count) do
     []
   end
 
-  defp do_slice(list, start, 0) do
+  defp do_slice(_list, _start, 0) do
     []
   end
 
