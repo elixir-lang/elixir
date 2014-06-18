@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.14.1-dev
+## v0.14.1 (2014-06-18)
 
 * Enhancements
   * [Base] Decoding and encoding functions now accept the `:case` as an option
@@ -21,15 +21,12 @@
   * [String] `Enum.slice/2` and `Enum.slice/3` always returns a list (and never nil)
   * [URI] `encode/1` does not escape reserved/unreserved characters by default nor encodes whitespace as `+` (check `URI.encode_www_form/1` and `URI.decode_www_form/1` for previous behaviour)
 
-* Soft deprecations (no warnings emitted)
-
 * Deprecations
   * [Mix] `:escript_*` options were moved into a single `:escript` group
 
 * Backwards incompatible changes
   * [GenEvent] `GenEvent.stream/2` defaults to `:sync` mode
   * [Kernel] Remove `get_in/1`
-
 
 ## v0.14.0 (2014-06-08)
 
