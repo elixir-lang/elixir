@@ -175,7 +175,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp make?(dest) do
-    File.regular? Path.join(dest, "Makefile")
+    (File.regular? Path.join(dest, "Makefile")) or (File.regular? Path.join(dest, "Makefile.win"))
   end
 
   defp invalid_dep_format(dep) do

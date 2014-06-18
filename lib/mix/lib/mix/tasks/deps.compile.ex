@@ -14,7 +14,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
     * `mix.exs`      - if so, invokes `mix compile`
     * `rebar.config` - if so, invokes `rebar compile`
-    * `Makefile`     - if so, invokes `make`
+    * `Makefile.win` - if so, invokes `nmake /F Makefile.win` (only on Windows)
+    * `Makefile`     - if so, invokes `make` (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -123,7 +124,11 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_make(dep) do
-    do_command(dep, "make")
+    if match? {:win32, _}, :os.type do
+      do_command(dep, "nmake /F Makefile.win")
+    else
+      do_command(dep, "make")
+    end
   end
 
   defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
