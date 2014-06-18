@@ -262,60 +262,18 @@ defmodule Kernel.Typespec do
     end
   end
 
-  ## Helpers
-
   @doc """
-  Defines a `type`, `typep` or `opaque` by receiving Erlang's typespec.
+  Defines a `type`, `typep` or `opaque` by receiving a typespec expression.
   """
-  def define_type(caller, kind, {name, _, vars} = type) when kind in [:type, :typep, :opaque] do
-    {kind, export} =
-      case kind do
-        :type   -> {:type, true}
-        :typep  -> {:type, false}
-        :opaque -> {:opaque, true}
-      end
-
-    module = caller.module
-    arity  = length(vars)
-
-    Module.compile_typespec module, kind, type
-
-    if export do
-      Module.compile_typespec(module, :export_type, [{name, arity}])
-    end
-
-    define_doc(caller, kind, name, arity, export)
-    type
-  end
-
-  defp define_doc(caller, kind, name, arity, export) do
-    module = caller.module
-    doc    = Module.get_attribute(module, :typedoc)
-
-    if doc do
-      if export do
-        Module.add_doc(module, caller.line, kind, {name, arity}, doc)
-      else
-        :elixir_errors.warn caller.line, caller.file, "type #{name}/#{arity} is private, " <>
-                            "@typedoc's are always discarded for private types\n"
-      end
-    end
-
-    Module.delete_attribute(module, :typedoc)
+  def define_type(kind, expr, doc \\ nil, env) do
+    Module.store_typespec(env.module, kind, {kind, expr, doc, env})
   end
 
   @doc """
-  Defines a `spec` by receiving Erlang's typespec.
+  Defines a `spec` by receiving a typespec expression.
   """
-  def define_spec(module, tuple, definition) do
-    Module.compile_typespec module, :spec, {tuple, definition}
-  end
-
-  @doc """
-  Defines a `callback` by receiving Erlang's typespec.
-  """
-  def define_callback(module, tuple, definition) do
-    Module.compile_typespec module, :callback, {tuple, definition}
+  def define_spec(kind, expr, env) do
+    Module.store_typespec(env.module, kind, {kind, expr, env})
   end
 
   @doc """
@@ -324,9 +282,12 @@ defmodule Kernel.Typespec do
   for modules being compiled.
   """
   def defines_type?(module, name, arity) do
-    finder = &match?({^name, _, vars} when length(vars) == arity, &1)
+    finder = fn {_kind, expr, _doc, _caller} ->
+      type_to_signature(expr) == {name, arity}
+    end
+
     :lists.any(finder, Module.get_attribute(module, :type)) or
-      :lists.any(finder, Module.get_attribute(module, :opaque))
+    :lists.any(finder, Module.get_attribute(module, :opaque))
   end
 
   @doc """
@@ -334,8 +295,10 @@ defmodule Kernel.Typespec do
   This function is only available for modules being compiled.
   """
   def defines_spec?(module, name, arity) do
-    tuple = {name, arity}
-    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :spec))
+    finder = fn {_kind, expr, _caller} ->
+      spec_to_signature(expr) == {name, arity}
+    end
+    :lists.any(finder, Module.get_attribute(module, :spec))
   end
 
   @doc """
@@ -343,8 +306,10 @@ defmodule Kernel.Typespec do
   This function is only available for modules being compiled.
   """
   def defines_callback?(module, name, arity) do
-    tuple = {name, arity}
-    :lists.any(&match?(^tuple, &1), Module.get_attribute(module, :callback))
+    finder = fn {_kind, expr, _caller} ->
+      spec_to_signature(expr) == {name, arity}
+    end
+    :lists.any(finder, Module.get_attribute(module, :callback))
   end
 
   @doc """
@@ -514,10 +479,40 @@ defmodule Kernel.Typespec do
     binary
   end
 
+  ## Helpers
+
+  @doc false
+  def spec_to_signature({:when, _, [spec, _]}),
+    do: type_to_signature(spec)
+  def spec_to_signature(other),
+    do: type_to_signature(other)
+
+  @doc false
+  def type_to_signature({:::, _, [{name, _, nil}, _]}),
+    do: {name, 0}
+  def type_to_signature({:::, _, [{name, _, args}, _]}),
+    do: {name, length(args)}
+
   ## Macro callbacks
 
   @doc false
-  def deftype(kind, {:::, _, [{name, _, args}, definition]}, caller) when is_atom(name) and name != ::: do
+  def defspec(kind, expr, caller) do
+    Module.store_typespec(caller.module, kind, {kind, expr, caller})
+  end
+
+  @doc false
+  def deftype(kind, expr, caller) do
+    module = caller.module
+    doc    = Module.get_attribute(module, :typedoc)
+
+    Module.delete_attribute(module, :typedoc)
+    Module.store_typespec(module, kind, {kind, expr, doc, caller})
+  end
+
+  ## Translation from Elixir AST to typespec AST
+
+  @doc false
+  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, doc, caller) when is_atom(name) and name != ::: do
     args =
       if is_atom(args) do
         []
@@ -525,31 +520,43 @@ defmodule Kernel.Typespec do
         for(arg <- args, do: variable(arg))
       end
 
-    vars = for {:var, _, var} <- args, do: var
-    spec = typespec(definition, vars, caller)
+    vars   = for {:var, _, var} <- args, do: var
+    spec   = typespec(definition, vars, caller)
 
-    vars = for {:var, _, _} = var <- args, do: var
-    type = {name, spec, vars}
+    vars   = for {:var, _, _} = var <- args, do: var
+    type   = {name, spec, vars}
+    arity  = length(vars)
 
-    define_type(caller, kind, type)
+    {kind, export} =
+      case kind do
+        :type   -> {:type, true}
+        :typep  -> {:type, false}
+        :opaque -> {:opaque, true}
+      end
+
+    if not export and doc do
+      :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
+                          "@typedoc's are always discarded for private types\n")
+    end
+
+    {{kind, {name, arity}, type}, caller.line, export, doc}
   end
 
-  def deftype(_kind, other, caller) do
+  def translate_type(_kind, other, _doc, caller) do
     type_spec = Macro.to_string(other)
     compile_error caller, "invalid type specification: #{type_spec}"
   end
 
   @doc false
-
-  def defspec(type, {:when, _meta, [spec, guard]}, caller) do
-    defspec(type, spec, guard, caller)
+  def translate_spec(kind, {:when, _meta, [spec, guard]}, caller) do
+    translate_spec(kind, spec, guard, caller)
   end
 
-  def defspec(type, spec, caller) do
-    defspec(type, spec, [], caller)
+  def translate_spec(kind, spec, caller) do
+    translate_spec(kind, spec, [], caller)
   end
 
-  defp defspec(type, {:::, meta, [{name, _, args}, return]}, guard, caller) when is_atom(name) and name != ::: do
+  defp translate_spec(kind, {:::, meta, [{name, _, args}, return]}, guard, caller) when is_atom(name) and name != ::: do
     if is_atom(args), do: args = []
 
     unless Keyword.keyword?(guard) do
@@ -565,12 +572,11 @@ defmodule Kernel.Typespec do
       spec = {:type, line(meta), :bounded_fun, [spec, constraints]}
     end
 
-    code = {{name, Kernel.length(args)}, spec}
-    Module.compile_typespec(caller.module, type, code)
-    code
+    arity = length(args)
+    {{kind, {name, arity}, spec}, caller.line}
   end
 
-  defp defspec(_type, spec, _guard, caller) do
+  defp translate_spec(_kind, spec, _guard, caller) do
     spec = Macro.to_string(spec)
     compile_error caller, "invalid function type specification: #{spec}"
   end

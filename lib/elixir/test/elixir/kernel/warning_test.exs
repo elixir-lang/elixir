@@ -214,11 +214,10 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2]
   end
 
-  test :unused_docs do
+  test :empty_clause do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
-        @doc "Oops"
         def hello
       end
       """

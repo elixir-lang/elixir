@@ -904,7 +904,7 @@ defmodule Module do
   @doc false
   # Used internally to compile types. This function
   # is private and must be used only internally.
-  def compile_typespec(module, key, value) when is_atom(key) do
+  def store_typespec(module, key, value) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 

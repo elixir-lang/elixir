@@ -587,13 +587,15 @@ defmodule Protocol do
 
   @doc false
   def __spec__?(module, name, arity) do
-    tuple = {name, arity}
-    specs = Module.get_attribute(module, :spec)
+    signature = {name, arity}
+    specs     = Module.get_attribute(module, :spec)
 
-    found = for {k, v} <- specs, k == tuple do
-      Kernel.Typespec.define_callback(module, tuple, v)
-      true
-    end
+    found =
+      for {:spec, expr, caller} <- specs,
+          Kernel.Typespec.spec_to_signature(expr) == signature do
+          Kernel.Typespec.define_spec(:callback, expr, caller)
+          true
+        end
 
     found != []
   end
