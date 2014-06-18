@@ -30,7 +30,7 @@
   * [Path] Fix path expansion of `"/.."`
   * [Path] Do not match files starting with `.` in `Path.wildcard/2` by default
   * [Process] `Process.info(pid, :registered_name)` returns `{:registered_name, nil}` if there is no registered name
-  * [String] `Enum.slice/2` and `Enum.slice/3` always returns a list (and never nil)
+  * [String] `String.slice/2` and `String.slice/3` always returns a list (and never nil)
   * [URI] `encode/1` does not escape reserved/unreserved characters by default nor encodes whitespace as `+` (check `URI.encode_www_form/1` and `URI.decode_www_form/1` for previous behaviour)
 
 * Deprecations
