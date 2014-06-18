@@ -39,7 +39,7 @@ defmodule BehaviourTest do
   end
 
   test :callbacks do
-    assert Sample.__behaviour__(:callbacks) == [first: 1, foo: 2, bar: 2, guarded: 1, orr: 1, literal: 5, "MACRO-last": 2]
+    assert Sample.__behaviour__(:callbacks) == [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
   end
 
   test :specs do

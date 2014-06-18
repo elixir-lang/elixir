@@ -55,8 +55,8 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     {All, Forms0} = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
     Forms1        = specs_form(Module, Private, Defmacro, Forms0),
-    Forms2        = attributes_form(Line, File, Module, Forms1),
-    Forms3        = typedocs_form(Module, Forms2),
+    Forms2        = types_form(Module, Forms1),
+    Forms3        = attributes_form(Line, File, Module, Forms2),
 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
@@ -111,7 +111,7 @@ build(Line, File, Module, Lexical) ->
     _    -> ets:insert(DataTable, {on_definition, []})
   end,
 
-  Attributes = [behaviour, on_load, spec, type, export_type, opaque, callback, compile],
+  Attributes = [behaviour, on_load, spec, type, typep, opaque, callback, compile],
   ets:insert(DataTable, {?acc_attr, [before_compile, after_compile, on_definition, derive|Attributes]}),
   ets:insert(DataTable, {?persisted_attr, [vsn|Attributes]}),
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
@@ -176,59 +176,103 @@ attributes_form(Line, _File, Module, Current) ->
 
   ets:foldl(Transform, Current, Table).
 
-%% Add typedocs to the form
-typedocs_form(Module, Current) ->
-  Table = docs_table(Module),
-  Transform = fun({Tuple, Line, Kind, _Sig, Doc}, Acc) ->
-    case Kind of
-      type      -> [{attribute, Line, typedoc, {Tuple, Doc}} | Acc];
-      opaque    -> [{attribute, Line, typedoc, {Tuple, Doc}} | Acc];
-      _         -> Acc
-    end
+%% Types
+
+types_form(Module, Forms0) ->
+  case code:ensure_loaded('Elixir.Kernel.Typespec') of
+    {module, 'Elixir.Kernel.Typespec'} ->
+      Types0 = 'Elixir.Module':get_attribute(Module, type) ++
+               'Elixir.Module':get_attribute(Module, typep) ++
+               'Elixir.Module':get_attribute(Module, opaque),
+
+      Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Doc, Caller) ||
+                {Kind, Expr, Doc, Caller} <- Types0],
+
+      'Elixir.Module':delete_attribute(Module, type),
+      'Elixir.Module':delete_attribute(Module, typep),
+      'Elixir.Module':delete_attribute(Module, opaque),
+
+      Forms1 = types_attributes(Types1, Forms0),
+      Forms2 = export_types_attributes(Types1, Forms1),
+      typedocs_attributes(Types1, Forms2);
+
+    {error, _} ->
+      Forms0
+  end.
+
+types_attributes(Types, Forms) ->
+  Fun = fun({{Kind, _NameArity, Expr}, Line, _Export, _Doc}, Acc) ->
+    [{attribute, Line, Kind, Expr}|Acc]
   end,
-  ets:foldl(Transform, Current, Table).
+  lists:foldl(Fun, Forms, Types).
+
+export_types_attributes(Types, Forms) ->
+  Fun = fun
+    ({{_Kind, NameArity, _Expr}, Line, true, _Doc}, Acc) ->
+      [{attribute, Line, export_type, [NameArity]}|Acc];
+    ({_Type, _Line, false, _Doc}, Acc) ->
+      Acc
+  end,
+  lists:foldl(Fun, Forms, Types).
+
+typedocs_attributes(Types, Forms) ->
+  Fun = fun
+    ({{_Kind, NameArity, _Expr}, Line, true, Doc}, Acc) when Doc =/= nil ->
+      [{attribute, Line, typedoc, {NameArity, Doc}}|Acc];
+    ({_Type, _Line, _Export, _Doc}, Acc) ->
+      Acc
+  end,
+  lists:foldl(Fun, Forms, Types).
 
 %% Specs
 
 specs_form(Module, Private, Defmacro, Forms) ->
-  Defmacrop = [Tuple || {Tuple, defmacrop, _, _, _} <- Private],
   case code:ensure_loaded('Elixir.Kernel.Typespec') of
     {module, 'Elixir.Kernel.Typespec'} ->
-      Callbacks = 'Elixir.Module':get_attribute(Module, callback),
-      Specs     = [translate_spec(Spec, Defmacro, Defmacrop) ||
-                    Spec <- 'Elixir.Module':get_attribute(Module, spec)],
+      Defmacrop = [Tuple || {Tuple, defmacrop, _, _, _} <- Private],
+
+      Specs0 = 'Elixir.Module':get_attribute(Module, spec) ++
+               'Elixir.Module':get_attribute(Module, callback),
+
+      Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
+                {Kind, Expr, Caller} <- Specs0],
+      Specs2 = lists:flatmap(fun(Spec) ->
+                               translate_macro_spec(Spec, Defmacro, Defmacrop)
+                             end, Specs1),
 
       'Elixir.Module':delete_attribute(Module, spec),
       'Elixir.Module':delete_attribute(Module, callback),
+      specs_attributes(Forms, Specs2);
 
-      Temp = specs_attributes(spec, Forms, Specs),
-      specs_attributes(callback, Temp, Callbacks);
     {error, _} ->
       Forms
   end.
 
-specs_attributes(Type, Forms, Specs) ->
-  Keys = lists:foldl(fun({Tuple, Value}, Acc) ->
-                       lists:keystore(Tuple, 1, Acc, {Tuple, Value})
-                     end, [], Specs),
-  lists:foldl(fun({Tuple, _}, Acc) ->
-    Values = [V || {K, V} <- Specs, K == Tuple],
-    {type, Line, _, _} = hd(Values),
-    [{attribute, Line, Type, {Tuple, Values}}|Acc]
-  end, Forms, Keys).
+specs_attributes(Forms, Specs) ->
+  Dict = lists:foldl(fun({{Kind, NameArity, Spec}, Line}, Acc) ->
+                       dict:append({Kind, NameArity}, {Spec, Line}, Acc)
+                     end, dict:new(), Specs),
+  dict:fold(fun({Kind, NameArity}, ExprsLines, Acc) ->
+    {Exprs, Lines} = lists:unzip(ExprsLines),
+    Line = lists:min(Lines),
+    [{attribute, Line, Kind, {NameArity, Exprs}}|Acc]
+  end, Forms, Dict).
 
-translate_spec({Spec, Rest}, Defmacro, Defmacrop) ->
-  case ordsets:is_element(Spec, Defmacrop) of
-    true  -> {Spec, Rest};
+translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
+  case ordsets:is_element(NameArity, Defmacrop) of
+    true  -> [];
     false ->
-      case ordsets:is_element(Spec, Defmacro) of
+      case ordsets:is_element(NameArity, Defmacro) of
         true ->
-          {Name, Arity} = Spec,
-          {{elixir_utils:macro_name(Name), Arity + 1}, spec_for_macro(Rest)};
+          {Name, Arity} = NameArity,
+          [{{spec, {elixir_utils:macro_name(Name), Arity + 1}, spec_for_macro(Spec)}, Line}];
         false ->
-          {Spec, Rest}
+          [{{spec, NameArity, Spec}, Line}]
       end
-  end.
+  end;
+
+translate_macro_spec({{callback, NameArity, Spec}, Line}, _Defmacro, _Defmacrop) ->
+  [{{callback, NameArity, Spec}, Line}].
 
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args}|T]}) ->
   NewArgs = [{type, Line, term, []}|Args],
