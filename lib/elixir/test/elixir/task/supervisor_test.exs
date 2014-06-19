@@ -15,15 +15,15 @@ defmodule Task.SupervisorTest do
   end
 
   def wait_and_send(caller, atom) do
+    send caller, :ready
     receive do: (true -> true)
     send caller, atom
   end
 
   test "async/1", config do
-    task = Task.Supervisor.async config[:supervisor], fn ->
-      receive do: (true -> true)
-      :done
-    end
+    parent = self()
+    fun = fn -> wait_and_send(parent, :done) end
+    task = Task.Supervisor.async(config[:supervisor], fun)
 
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
@@ -35,6 +35,12 @@ defmodule Task.SupervisorTest do
     # Assert the link
     {:links, links} = Process.info(self, :links)
     assert task.pid in links
+
+    receive do: (:ready -> :ok)
+
+    # Assert the initial call
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
     # Run the task
     send task.pid, true
@@ -49,6 +55,9 @@ defmodule Task.SupervisorTest do
     task = Task.Supervisor.async(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
+    receive do: (:ready -> :ok)
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(task.pid)
+
     send task.pid, true
     assert task.__struct__ == Task
     assert Task.await(task) == :done
@@ -56,11 +65,16 @@ defmodule Task.SupervisorTest do
 
   test "start_child/1", config do
     parent = self()
-    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fn -> wait_and_send(parent, :done) end)
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fun)
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
 
     {:links, links} = Process.info(self, :links)
     refute pid in links
+
+    receive do: (:ready -> :ok)
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
@@ -72,6 +86,9 @@ defmodule Task.SupervisorTest do
 
     {:links, links} = Process.info(self, :links)
     refute pid in links
+
+    receive do: (:ready -> :ok)
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
