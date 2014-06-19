@@ -238,7 +238,7 @@ defmodule IEx.Helpers do
   """
   def v do
     inspect_opts = Application.get_env(:iex, :inspect)
-    IEx.History.each(&print_history_entry(&1, inspect_opts))
+    IEx.History.each(history_pid, &print_history_entry(&1, inspect_opts))
   end
 
   defp print_history_entry({counter, cache, result}, inspect_opts) do
@@ -253,7 +253,7 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) do
-    IEx.History.nth(n) |> elem(2)
+    IEx.History.nth(history_pid, n) |> elem(2)
   end
 
   @doc """
@@ -454,4 +454,7 @@ defmodule IEx.Helpers do
         raise CompileError
     end
   end
+
+  @history_key :"Very obscure key so that no one ever ever tries to use itt"
+  defp history_pid, do: Process.get(@history_key)
 end
