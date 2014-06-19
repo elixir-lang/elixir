@@ -13,7 +13,7 @@ defmodule Application do
 
   In Elixir, Mix is responsible for compiling your source code and
   generating your application `.app` file. Furthermore, Mix is also
-  responsible for configuring, starting and stoping your application
+  responsible for configuring, starting and stopping your application
   and its dependencies. For this reason, this documentation will focus
   on the remaining aspects of your application: the application environment,
   and the application callback module.
@@ -48,7 +48,7 @@ defmodule Application do
   developers to configure the environment of their dependencies.
 
   Keep in mind that each application is responsible for its environment.
-  Do not use the fucntions in this module for directly access or modify
+  Do not use the functions in this module for directly access or modify
   the environment of other application (as it may lead to inconsistent
   data in the application environment).
 
@@ -230,7 +230,7 @@ defmodule Application do
       terminates abnormally, all other applications and the entire node are
       also terminated.
 
-    * `:temporary` - if `app` termiantes, it is reported but no other
+    * `:temporary` - if `app` terminates, it is reported but no other
       applications are terminated (the default).
 
   Note that it is always possible to stop an application explicitly by calling
