@@ -4,7 +4,7 @@ defprotocol Access do
   empowers the nested update functions in Kernel.
 
   For instance, `foo[bar]` translates `Access.get(foo, bar)`.
-  `Kernel.get_in/2`, Kernel.put_in/3`, `Kernel.update_in/3` and
+  `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3` and
   `Kernel.get_and_update_in/3` are also all powered by the Access
   protocol.
 
