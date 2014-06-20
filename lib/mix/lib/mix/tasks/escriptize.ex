@@ -42,13 +42,13 @@ defmodule Mix.Tasks.Escriptize do
       Defaults to `[]`.
 
     * `:shebang` - shebang interpreter directive used to execute the escript.
-      Defaults to "#! /usr/bin/env escript\n".
+      Defaults to `"#! /usr/bin/env escript\n"`.
 
     * `:comment` - comment line to follow shebang directive in the escript.
-      Defaults to "%%\n".
+      Defaults to `""`.
 
     * `:emu_args` - emulator arguments to embed in the escript file.
-      Defaults to "%%!\n".
+      Defaults to `""`.
 
   ## Example
 
@@ -82,12 +82,14 @@ defmodule Mix.Tasks.Escriptize do
   defp escriptize(project, force) do
     escript_opts = project[:escript] || []
 
-    script_name  = escript_opts[:name] || project[:app]
-    filename     = escript_opts[:path] || Atom.to_string(script_name)
+    script_name  = to_string(escript_opts[:name] || project[:app])
+    filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
     embed        = Keyword.get(escript_opts, :embed_elixir, true)
     app          = Keyword.get(escript_opts, :app, project[:app])
     files        = project_files()
+
+    escript_mod = String.to_atom(Atom.to_string(app) <> "-escript-main")
 
     cond do
       !script_name ->
@@ -99,7 +101,7 @@ defmodule Mix.Tasks.Escriptize do
           "in your project configuration (under `:escript` option) to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
-        tuples = gen_main(script_name, main, app) ++ to_tuples(files)
+        tuples = gen_main(escript_mod, main, app) ++ to_tuples(files)
         tuples = tuples ++ deps_tuples()
 
         if embed do
@@ -116,8 +118,8 @@ defmodule Mix.Tasks.Escriptize do
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
             shebang  = escript_opts[:shebang]  || "#! /usr/bin/env escript\n"
-            comment  = escript_opts[:comment]  || "%%\n"
-            emu_args = escript_opts[:emu_args] || "%%!\n"
+            comment  = build_comment(escript_opts[:comment])
+            emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
 
             script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
 
@@ -171,6 +173,26 @@ defmodule Mix.Tasks.Escriptize do
     for f <- files do
       {String.to_char_list(Path.basename(f)), File.read!(f)}
     end
+  end
+
+  defp build_comment("%%" <> user_comment) do
+    IO.puts :stderr, "Including the '%%' marker as part of :comment value " <>
+                     "is deprecated. Pass a string with just the comment."
+    build_comment(user_comment)
+  end
+
+  defp build_comment(user_comment) do
+    "%% #{user_comment}\n"
+  end
+
+  defp build_emu_args("%%!" <> user_args, escript_mod) do
+    IO.puts :stderr, "Including the '%%!' marker as part of :emu_args value " <>
+                     "is deprecated. Pass a string with just arguments."
+    build_emu_args(user_args, escript_mod)
+  end
+
+  defp build_emu_args(user_args, escript_mod) do
+    "%%! -escript main #{escript_mod} #{user_args}\n"
   end
 
   defp gen_main(name, module, app) do
