@@ -118,14 +118,14 @@ you're all set.  Specifically, here's what you need to do to get up and running:
 [MinGW Installation Manager](http://sourceforge.net/projects/mingw/files/latest/download?source=files).
 2. Use the MinGW Installation Manager to install the msys-bash, msys-make, and
 msys-grep packages.
-3. Add `;C:\Program Files (x86)\Git\bin;C:\Program Files\erl6.0\bin;C:\MinGW\msys\1.0\bin`
+3. Add `;C:\Program Files (x86)\Git\bin;C:\Program Files\erl6.0\bin;C:\Program Files\erl6.0\erts-6.0\bin;C:\MinGW\msys\1.0\bin`
 to your "Path" environment variable .  (This is under Control Panel > System 
 and Security > System > Advanced system settings > Environment Variables > 
 System variables)
 
-You can now work in the Command Prompt (but currently **not in PowerShell**)
-similar to how you would on other OS'es, except for some things (like creating
-symlinks) you'll need to run the Command Prompt as an Administrator.
+You can now work in the Command Prompt similar to how you would on other OS'es,
+except for some things (like creating symlinks) you'll need to run the Command
+Prompt as an Administrator.
 
 ## Contributing Documentation
 
