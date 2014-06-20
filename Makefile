@@ -172,7 +172,7 @@ test_doc_test: compile
 
 test_stdlib: compile
 	@ echo "==> elixir (exunit)"
-	$(Q) epmd -daemon
+	$(Q) exec epmd & exit
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
 
 .dialyzer.base_plt:
