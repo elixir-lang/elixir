@@ -143,6 +143,28 @@ defimpl Range.Iterator, for: BitString do
   end
 end
 
+defimpl Range.Iterator, for: List do
+  def next([first], _ .. [last]) when is_integer(last) do
+    if last >= first do
+      fn([x]) ->
+        [x + 1]
+      end
+    else
+      fn([x]) ->
+        [x - 1]
+      end
+    end
+  end
+
+  def count([first], _ .. [last]) when is_integer(last) do
+    if last >= first do
+      last - first + 1
+    else
+      first - last + 1
+    end
+  end
+end
+
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
