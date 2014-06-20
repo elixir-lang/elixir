@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Compile do
     end
 
     max = Enum.reduce docs, 0, fn({task, _}, acc) ->
-      max(size(task), acc)
+      max(byte_size(task), acc)
     end
 
     sorted = Enum.sort(docs)

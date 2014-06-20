@@ -167,9 +167,9 @@ bar """
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"
-    << size(refb) :: [size(1), big, signed, integer, unit(8)],
+    << byte_size(refb) :: [size(1), big, signed, integer, unit(8)],
        refb :: binary,
-       size(sec_data) :: [size(1), big, signed, integer, unit(16)],
+       byte_size(sec_data) :: [size(1), big, signed, integer, unit(16)],
        sec_data :: binary >>
   end
 
@@ -193,9 +193,9 @@ bar """
   test :bitsyntax_macro do
     refb = "sample"
     sec_data = "another"
-    << size(refb) :: refb_spec,
+    << byte_size(refb) :: refb_spec,
        refb :: binary,
-       size(sec_data) :: [size(1), signed_16],
+       byte_size(sec_data) :: [size(1), signed_16],
        sec_data :: binary >>
   end
 end

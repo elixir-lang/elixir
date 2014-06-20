@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Help do
     end
 
     max = Enum.reduce docs, 0, fn({task, _}, acc) ->
-      max(size(task), acc)
+      max(byte_size(task), acc)
     end
 
     display_default_task_doc(max)
