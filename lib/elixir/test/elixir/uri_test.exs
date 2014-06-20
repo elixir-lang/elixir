@@ -67,6 +67,10 @@ defmodule URITest do
     assert URI.decode_www_form("%E3%82%86+") == "ゆ "
   end
 
+  test :parse_uri do
+    assert URI.parse(uri = %URI{scheme: "http", host: "foo.com"}) == uri
+  end
+
   test :parse_http do
     assert %URI{scheme: "http", host: "foo.com", path: "/path/to/something",
                 query: "foo=bar&bar=foo", fragment: "fragment", port: 80,

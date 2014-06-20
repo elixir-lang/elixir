@@ -287,6 +287,8 @@ defmodule URI do
            host: "elixir-lang.org", port: 80}
 
   """
+  def parse(%URI{} = uri), do: uri
+
   def parse(s) when is_binary(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
     regex = ~r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
