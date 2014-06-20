@@ -3,8 +3,8 @@ defmodule Agent do
   Agents are a simple abstraction around state.
 
   Often in Elixir there is a need to share or store state that
-  must be accessed from different processes or by a same process
-  in different points in time.
+  must be accessed from different processes or by the same process
+  at different points in time.
 
   The Agent module provides a basic server implementation that
   allows state to be retrieved and updated via a simple API.
@@ -35,12 +35,12 @@ defmodule Agent do
         end
       end
 
-  Note that agents still provide a segregation in between the
+  Note that agents still provide a segregation between the
   client and server APIs, as seen in GenServers. In particular,
   all code inside the function passed to the agent is executed
   by the agent. This distinction is important because you may
   want to avoid expensive operations inside the agent, as it will
-  effectively block the agent until the request is fullfilled.
+  effectively block the agent until the request is fulfilled.
 
   Consider these two examples:
 
@@ -68,13 +68,13 @@ defmodule Agent do
   ## A word on distributed agents
 
   It is important to consider the limitations of distributed agents. Agents
-  work by sending anonymous functions in between the caller and the agent.
+  work by sending anonymous functions between the caller and the agent.
   In a distributed setup with multiple nodes, agents only work if the caller
   (client) and the agent have the same version of a given module.
 
   This setup may exhibit issues when doing "rolling upgrades". By rolling
   upgrades we mean the following situation: you wish to deploy a new version of
-  your software by *shutting down* some of your nodes and replacing them by
+  your software by *shutting down* some of your nodes and replacing them with
   nodes running a new version of the software. In this setup, part of your
   environment will have one version of a given module and the other part
   another version (the newer one) of the same module; this may cause agents to
@@ -125,7 +125,7 @@ defmodule Agent do
   documentation.
 
   If the `:timeout` option is present, the agent is allowed to spend at most
-  the given amount of milliseconds on initialization or it will be terminated
+  the given number of milliseconds on initialization or it will be terminated
   and the start function will return `{:error, :timeout}`.
 
   If the `:debug` option is present, the corresponding function in the
@@ -137,7 +137,7 @@ defmodule Agent do
   ## Return values
 
   If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where pid is the pid of the server. If there already exists
+  `{:ok, pid}`, where `pid` is the pid of the server. If there already exists
   an agent with the specified name, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
@@ -178,7 +178,7 @@ defmodule Agent do
 
   The function `fun` is sent to the `agent` which invokes the function
   passing the agent state. The function must return a tuple with two
-  elements, the first being the value to return (i.e. the get value)
+  elements, the first being the value to return (i.e. the `get` value)
   and the second one is the new state.
 
   A timeout can also be specified (it has a default value of 5000).

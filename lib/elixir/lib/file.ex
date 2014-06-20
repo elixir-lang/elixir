@@ -75,7 +75,7 @@ end
 
 defmodule File.Stream do
   @moduledoc """
-  Defines a `File.Stream` struct returned by `File.stream!/2`.
+  Defines a `File.Stream` struct returned by `File.stream!/3`.
 
   The following fields are public:
 
