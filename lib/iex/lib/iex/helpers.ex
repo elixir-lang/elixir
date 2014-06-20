@@ -237,7 +237,7 @@ defmodule IEx.Helpers do
   their results.
   """
   def v do
-    inspect_opts = Application.get_env(:iex, :inspect)
+    inspect_opts = IEx.inspect_opts
     IEx.History.each(&print_history_entry(&1, inspect_opts))
   end
 
@@ -301,7 +301,7 @@ defmodule IEx.Helpers do
   """
   def flush do
     inspect_opts = Application.get_env(:iex, :inspect)
-    do_flush(inspect_opts)
+    do_flush(IEx.inspect_opts)
   end
 
   defp do_flush(inspect_opts) do

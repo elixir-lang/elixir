@@ -34,7 +34,9 @@ defmodule IEx.Case do
   setup do
     opts = IEx.configuration |>
            Keyword.take([:default_prompt, :alive_prompt, :inspect, :colors, :history_size])
-    on_exit fn -> IEx.configure(opts) end
+    on_exit fn ->
+      Enum.each opts, fn {k, v} -> Application.put_env(:iex, k, v) end
+    end
     :ok
   end
 

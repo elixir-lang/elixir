@@ -317,31 +317,47 @@ defmodule IEx do
   end
 
   @doc """
-  Returns `true` if IEx was properly started.
+  Returns `true` if IEx was started.
   """
   def started? do
     Application.get_env(:iex, :started, false)
   end
 
   @doc """
-  Returns `string` escaped using the specified color.
+  Returns `string` escaped using the specified `color`.
+
   ANSI escapes in `string` are not processed in any way.
   """
-  def color(color_name, string) do
+  def color(color, string) do
     colors = Application.get_env(:iex, :colors)
-    enabled = colors[:enabled]
-    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
-      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
+
+    if colors[:enabled] do
+      ansi = Keyword.get(colors, color, default_color(color))
+      IO.ANSI.escape_fragment("%{#{ansi}}", true) <> string <>
+        IO.ANSI.escape_fragment("%{reset}", true)
+    else
+      string
+    end
   end
 
   @doc """
-  Get the width to be used on helpers with a maximum (and default) of 80 chars.
+  Gets the IEx width for printing.
+
+  Used by helpers and it has a maximum cap of 80 chars.
   """
   def width do
     case :io.columns() do
       {:ok, width} -> min(width, 80)
       {:error, _}  -> 80
     end
+  end
+
+  @doc """
+  Gets the options used for inspecting.
+  """
+  def inspect_opts do
+    Application.get_env(:iex, :inspect) ++
+      [width: width(), pretty: true]
   end
 
   @doc """
@@ -359,8 +375,6 @@ defmodule IEx do
   such, it is evaluated and cannot access private functions
   of the module being pried. Module functions still need to be
   accessed via `Mod.fun(args)`.
-
-  Status: This feature is experimental.
 
   ## Examples
 
@@ -436,7 +450,7 @@ defmodule IEx do
         _        -> :init.wait_until_started()
       end
 
-      callback = start_iex(callback)
+      start_iex()
       set_expand_fun()
       run_after_spawn()
       IEx.Server.start(opts, callback)
@@ -446,64 +460,17 @@ defmodule IEx do
   @doc false
   def dont_display_result, do: :"do not show this result in output"
 
-  @doc false
-  def default_colors do
-    [# Enabled should be commented as it is calculated if missing
-     # enabled: true,
-
-     # Used by default on evaluation cycle
-     eval_interrupt: "yellow",
-     eval_result:    "yellow",
-     eval_error:     "red",
-     eval_info:      "normal",
-     stack_app:      "red,bright",
-     stack_info:     "red",
-
-     # Used by ls
-     ls_directory: "blue",
-     ls_device: "green",
-
-     # Used by ansi docs
-     doc_bold: "bright",
-     doc_code: "cyan,bright",
-     doc_headings: "yellow,bright",
-     doc_inline_code: "cyan",
-     doc_underline: "underline",
-     doc_title: "reverse,yellow,bright"]
-  end
-
-  @doc false
-  def default_inspect do
-    [structs: true, binaries: :infer,
-     char_lists: :infer, limit: 50, pretty: true]
-  end
-
   ## Helpers
 
-  defp start_iex(callback) do
-    if started? do
-      callback
-    else
+  defp start_iex() do
+    unless started? do
       Application.start(:elixir)
       Application.start(:iex)
       Application.put_env(:iex, :started, true)
 
-      fn ->
-        # The callback may actually configure IEx (for example,
-        # if it is a Mix project), so we wrap the original callback
-        # so we can normalize options afterwards.
-        callback.()
-
-        colors = default_colors
-                 |> Keyword.merge(Application.get_env(:iex, :colors))
-                 |> Keyword.put_new(:enabled, IO.ANSI.terminal?)
-
-        inspect = default_inspect
-                  |> Keyword.merge(Application.get_env(:iex, :inspect))
-
-        Application.put_env(:iex, :colors, colors)
-        Application.put_env(:iex, :inspect, inspect)
-      end
+      colors = [enabled: IO.ANSI.terminal?] ++
+               Application.get_env(:iex, :colors)
+      Application.put_env(:iex, :colors, colors)
     end
   end
 
@@ -531,4 +498,24 @@ defmodule IEx do
   defp run_after_spawn do
     for fun <- Enum.reverse(after_spawn), do: fun.()
   end
+
+  # Used by default on evaluation cycle
+  defp default_color(:eval_interrupt), do: "yellow"
+  defp default_color(:eval_result), do: "yellow"
+  defp default_color(:eval_error), do: "red"
+  defp default_color(:eval_info), do: "normal"
+  defp default_color(:stack_app), do: "red,bright"
+  defp default_color(:stack_info), do: "red"
+
+  # Used by ls
+  defp default_color(:ls_directory), do: "blue"
+  defp default_color(:ls_device), do: "green"
+
+  # Used by ansi docs
+  defp default_color(:doc_bold), do: "bright"
+  defp default_color(:doc_code), do: "cyan,bright"
+  defp default_color(:doc_headings), do: "yellow,bright"
+  defp default_color(:doc_inline_code), do: "cyan"
+  defp default_color(:doc_underline), do: "underline"
+  defp default_color(:doc_title), do: "reverse,yellow,bright"
 end

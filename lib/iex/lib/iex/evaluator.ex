@@ -137,15 +137,11 @@ defmodule IEx.Evaluator do
   end
 
   defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
+    IO.puts :stdio, IEx.color(:eval_result, inspect(result, IEx.inspect_opts))
   end
 
   defp io_error(result) do
     IO.puts :stdio, IEx.color(:eval_error, result)
-  end
-
-  defp inspect_opts do
-    [width: IEx.width] ++ Application.get_env(:iex, :inspect)
   end
 
   ## Error handling

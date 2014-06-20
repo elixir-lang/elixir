@@ -10,8 +10,8 @@ defmodule IEx.Mixfile do
   def application do
     [env: [
        after_spawn: [],
-       colors: IEx.default_colors,
-       inspect: IEx.default_inspect,
+       colors: [],
+       inspect: [],
        history_size: 20,
        default_prompt: "%prefix(%counter)>",
        alive_prompt: "%prefix(%node)%counter>"]]

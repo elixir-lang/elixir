@@ -155,7 +155,7 @@ defmodule IO.ANSI do
 
   """
   @spec escape(String.t, emit :: boolean) :: String.t
-  def escape(string, emit \\ terminal?) do
+  def escape(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
     {rendered, emitted} = do_escape(string, emit, false, nil, [])
     if emitted do
       rendered <> reset
@@ -185,7 +185,7 @@ defmodule IO.ANSI do
 
   """
   @spec escape_fragment(String.t, emit :: boolean) :: String.t
-  def escape_fragment(string, emit \\ terminal?) do
+  def escape_fragment(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
     {escaped, _emitted} = do_escape(string, emit, false, nil, [])
     escaped
   end
