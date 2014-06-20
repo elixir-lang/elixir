@@ -115,6 +115,34 @@ defimpl Range.Iterator, for: Integer do
   end
 end
 
+defimpl Range.Iterator, for: BitString do
+  def next((<< _ :: utf8 >> = first), _ .. (<< _ :: utf8 >> = last)) when is_binary(last) do
+    [f] = String.to_char_list(first)
+    [l] = String.to_char_list(last)
+    if l >= f do
+      fn x ->
+        [c] = String.to_char_list(x)
+        String.Chars.to_string([c + 1])
+      end
+    else
+      fn x ->
+        [c] = String.to_char_list(x)
+        String.Chars.to_string([c - 1])
+      end
+    end
+  end
+
+  def count((<< _ :: utf8 >> = first), _ .. (<< _ :: utf8 >> = last)) when is_binary(last) do
+    [f] = String.to_char_list(first)
+    [l] = String.to_char_list(last)
+    if last >= first do
+      l - f + 1
+    else
+      f - l + 1
+    end
+  end
+end
+
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
