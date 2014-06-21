@@ -300,7 +300,6 @@ defmodule IEx.Helpers do
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
-    inspect_opts = Application.get_env(:iex, :inspect)
     do_flush(IEx.inspect_opts)
   end
 
