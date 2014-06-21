@@ -9,6 +9,7 @@ defmodule Mix.Tasks.EscriptizeTest do
         version: "0.0.1",
         escript: [
           main_module: Escripttest,
+          name: "escriptest",
           embed_elixir: true
         ]
       ]
@@ -23,7 +24,6 @@ defmodule Mix.Tasks.EscriptizeTest do
           app: nil,
           embed_elixir: true,
           main_module: Escripttest,
-          name: :escripttestwithpath,
           path: Path.join("ebin", "escripttestwithpath")
         ]
       ]
@@ -47,11 +47,11 @@ defmodule Mix.Tasks.EscriptizeTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escriptize.run []
-      assert_received {:mix_shell, :info, ["Generated escript escripttest"]}
-      assert System.cmd("escript escripttest") == "TEST\n"
+      assert_received {:mix_shell, :info, ["Generated escript escriptest"]}
+      assert System.cmd("escript escriptest") == "TEST\n"
 
       Mix.Tasks.Escriptize.run []
-      refute_received {:mix_shell, :info, ["Generated escript escripttest"]}
+      refute_received {:mix_shell, :info, ["Generated escript escriptest"]}
     end
   end
 
