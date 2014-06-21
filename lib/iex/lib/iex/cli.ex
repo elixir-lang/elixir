@@ -92,7 +92,12 @@ defmodule IEx.CLI do
   end
 
   def local_start do
-    IEx.start(config(), fn -> :elixir.start_cli end)
+    IEx.start(config(), {:elixir, :start_cli, []})
+  end
+
+  def remote_start(parent, ref) do
+    send parent, {:begin, ref, self}
+    receive do: ({:done, ^ref} -> :ok)
   end
 
   defp local_start_function do
@@ -112,10 +117,7 @@ defmodule IEx.CLI do
     end
 
     fn ->
-      IEx.start(config, fn ->
-        send parent, {:begin, ref, self}
-        receive do: ({:done, ^ref} -> :ok)
-      end)
+      IEx.start(config, {__MODULE__, :remote_start, [parent, ref]})
     end
   end
 

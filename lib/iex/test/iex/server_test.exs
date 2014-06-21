@@ -55,6 +55,7 @@ defmodule IEx.ServerTest do
   # Helpers
 
   defp boot(opts, callback \\ fn -> end) do
-    IEx.Server.start(Keyword.merge([dot_iex_path: ""], opts), callback)
+    IEx.Server.start(Keyword.merge([dot_iex_path: ""], opts),
+                     {:erlang, :apply, [callback, []]})
   end
 end

@@ -443,7 +443,7 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
-  def start(opts \\ [], callback \\ fn -> end) do
+  def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
     spawn fn ->
       case :init.notify_when_started(self()) do
         :started -> :ok
@@ -453,7 +453,7 @@ defmodule IEx do
       start_iex()
       set_expand_fun()
       run_after_spawn()
-      IEx.Server.start(opts, callback)
+      IEx.Server.start(opts, mfa)
     end
   end
 

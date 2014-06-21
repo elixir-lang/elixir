@@ -55,7 +55,7 @@ defmodule IEx.Case do
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
-      IEx.Server.start(server_options, fn -> end)
+      IEx.Server.start(server_options, {IEx, :dont_display_result, []})
     end) |> strip_iex
   end
 

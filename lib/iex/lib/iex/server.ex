@@ -76,9 +76,9 @@ defmodule IEx.Server do
   we spawn a new server for it without waiting for its
   conclusion.
   """
-  @spec start(list, fun) :: :ok
-  def start(opts, callback) do
-    {pid, ref} = spawn_monitor(callback)
+  @spec start(list, mfa) :: :ok
+  def start(opts, {m, f, a}) do
+    {pid, ref} = spawn_monitor(m, f, a)
     start_loop(opts, pid, ref)
   end
 
