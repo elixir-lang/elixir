@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Local.Install do
 
   import Mix.Generator, only: [create_file: 2]
 
-  @shortdoc "Install a task or an archive locally"
+  @shortdoc "Install an archive locally"
 
   @moduledoc """
   Install an archive locally.
