@@ -18,21 +18,28 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  %% Set the shell to unicode so printing inside scripts work
-  %% Those can take a while, so let's do it in a new process
-  spawn(fun() ->
-    io:setopts(standard_io, [binary,{encoding,utf8}]),
-    io:setopts(standard_error, [{unicode,true}]),
-    case file:native_name_encoding() of
-      latin1 ->
-        io:format(standard_error,
-          "warning: the VM is running with native name encoding of latin1 which may cause "
-          "Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 "
-          "(which can be verified by running \"locale\" in your shell)~n", []);
-      _ ->
-        ok
-    end
-  end),
+  %% In case there is a shell, we can't really change its
+  %% encoding, so we just set binary to true. Otherwise
+  %% we must set the encoding as the user with no shell
+  %% has encoding set to latin1.
+  Opts =
+    case init:get_argument(noshell) of
+      {ok, _} -> [binary,{encoding,utf8}];
+      error   -> [binary]
+    end,
+
+  io:setopts(standard_io, Opts),
+  io:setopts(standard_error, [{unicode,true}]),
+  case file:native_name_encoding() of
+    latin1 ->
+      io:format(standard_error,
+        "warning: the VM is running with native name encoding of latin1 which may cause "
+        "Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 "
+        "(which can be verified by running \"locale\" in your shell)~n", []);
+    _ ->
+      ok
+  end,
+
   elixir_sup:start_link().
 
 stop(_S) ->
