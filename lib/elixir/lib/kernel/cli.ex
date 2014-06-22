@@ -129,12 +129,12 @@ defmodule Kernel.CLI do
   end
 
   defp parse_shared(["-pa", h|t], config) do
-    Enum.each Path.wildcard(Path.expand(h)), &Code.prepend_path(&1)
+    add_code_path(h, &Code.prepend_path/1)
     parse_shared t, config
   end
 
   defp parse_shared(["-pz", h|t], config) do
-    Enum.each Path.wildcard(Path.expand(h)), &Code.append_path(&1)
+    add_code_path(h, &Code.append_path/1)
     parse_shared t, config
   end
 
@@ -168,6 +168,15 @@ defmodule Kernel.CLI do
 
   defp parse_shared(list, config) do
     {list, config}
+  end
+
+
+  defp add_code_path(path, fun) do
+    path = Path.expand(path)
+    case Path.wildcard(path) do
+      []   -> fun.(path)
+      list -> Enum.each(list, fun)
+    end
   end
 
   # Process init options
