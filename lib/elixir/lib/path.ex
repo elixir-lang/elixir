@@ -521,7 +521,7 @@ defmodule Path do
     * `*` - matches any number of characters up to the end of the filename, the
       next dot, or the next slash
 
-    * `**` - two adjacent <c>*</c>'s used as a single pattern will match all
+    * `**` - two adjacent `*`'s used as a single pattern will match all
       files and zero or more directories and subdirectories
 
     * `[char1,char2,...]` - matches any of the characters listed; two
