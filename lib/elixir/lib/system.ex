@@ -60,9 +60,9 @@ defmodule System do
 
   Returns a keyword list with Elixir version, git tag info and compilation date.
   """
-  @spec build_info() :: Keyword.t
+  @spec build_info() :: map
   def build_info do
-    [version: version, tag: get_describe, date: get_date]
+    %{version: version, tag: get_describe, date: get_date}
   end
 
   @doc """

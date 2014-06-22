@@ -5,6 +5,7 @@ defmodule SystemTest do
   import PathHelpers
 
   test "build_info" do
+    assert is_map System.build_info
     assert not nil?(System.build_info[:version])
     assert not nil?(System.build_info[:tag])
     assert not nil?(System.build_info[:date])
