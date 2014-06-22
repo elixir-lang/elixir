@@ -735,12 +735,11 @@ defmodule File do
                    the parent directories
     * `:eisdir`  - the named file is a directory
 
-  The writing is automatically done in `:raw` mode. Check
-  `File.open/2` for other available options.
+  Check `File.open/2` for other available options.
   """
   @spec write(Path.t, iodata, list) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
-    F.write_file(IO.chardata_to_string(path), content, [:raw|modes])
+    F.write_file(IO.chardata_to_string(path), content, modes)
   end
 
   @doc """
@@ -1038,14 +1037,15 @@ defmodule File do
 
   The file is opened, given to the function as argument and
   automatically closed after the function returns, regardless
-  if there was an error or not.
+  if there was an error when executing the function.
 
   It returns `{:ok, function_result}` in case of success,
   `{:error, reason}` otherwise.
 
-  Do not use this function with `:delayed_write` option
-  since automatically closing the file may fail
-  (as writes are delayed).
+  This function expects the file to be closed with success,
+  which is usually the case unless the `:delayed_write` option
+  is given. For this reason, we do not recommend passing
+  `:delayed_write` to this function.
 
   ## Examples
 
@@ -1069,6 +1069,7 @@ defmodule File do
 
   @doc """
   Same as `open/2` but raises an error if file could not be opened.
+
   Returns the `io_device` otherwise.
   """
   @spec open!(Path.t, list) :: io_device | no_return
@@ -1083,6 +1084,7 @@ defmodule File do
 
   @doc """
   Same as `open/3` but raises an error if file could not be opened.
+
   Returns the function result otherwise.
   """
   @spec open!(Path.t, list, (io_device -> res)) :: res | no_return when res: var
@@ -1237,7 +1239,7 @@ defmodule File do
 
     modes =
       if raw do
-        if :lists.keyfind(:read_ahead, 1, modes) do
+        if :lists.keyfind(:read_ahead, 1, modes) == {:read_ahead, false} do
           [:raw|modes]
         else
           [:raw, :read_ahead|modes]
