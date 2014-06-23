@@ -7,7 +7,7 @@ defmodule Task.Supervisor do
   `:simple_one_for_one` supervisor where the workers are temporary
   (i.e. they are not restarted after they die).
 
-  The functions in this module allow tasks can be spawned and awaited
+  The functions in this module allow tasks to be spawned and awaited
   from a supervisor, similar to the functions defined in the `Task` module.
 
   ## Name Registration
@@ -26,7 +26,7 @@ defmodule Task.Supervisor do
     docs;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-    or an integer indicating the timeout value, defaults to 5000 miliseconds;
+    or an integer indicating the timeout value, defaults to 5000 milliseconds;
   """
   @spec start_link(Supervisor.options) :: Supervisor.on_start
   def start_link(opts \\ []) do
@@ -63,7 +63,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Terminates the given child at pid.
+  Terminates the child with the given `pid`.
   """
   @spec terminate_child(Supervisor.supervisor, pid) :: :ok
   def terminate_child(supervisor, pid) when is_pid(pid) do
@@ -81,9 +81,9 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task as child of the given `supervisor`.
 
-  Note the spawned process is not linked to the caller but
+  Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
-  task needs to emit side-effects (like I/O) and does not need
+  task needs to perform side-effects (like I/O) and does not need
   to report back to the caller.
   """
   @spec start_child(Supervisor.supervisor, fun) :: {:ok, pid}

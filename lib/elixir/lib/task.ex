@@ -11,12 +11,12 @@ defmodule Task do
       res  = do_some_other_work()
       res + Task.await(task)
 
-  Tasks spawned with async can be awaited on by its caller
+  Tasks spawned with `async` can be awaited on by its caller
   process (and only its caller) as shown in the example above.
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
-  Besides `async/1` and `await/1`, tasks can also be used be
+  Besides `async/1` and `await/2`, tasks can also be 
   started as part of supervision trees and dynamically spawned
   in remote nodes. We will explore all three scenarios next.
 
@@ -25,11 +25,11 @@ defmodule Task do
   The most common way to spawn a task is with `Task.async/1`. A new
   process will be created, linked and monitored by the caller. Once
   the task action finishes, a message will be sent to the caller
-  with its result.
+  with the result.
 
-  `Task.await/1` is used to read the message sent by the task. On
-  await, Elixir will also setup a monitor to verify if the process
-  exited with any abnormal reason (or in case exits are being
+  `Task.await/2` is used to read the message sent by the task. On
+  `await`, Elixir will also setup a monitor to verify if the process
+  exited for any abnormal reason (or in case exits are being
   trapped by the caller).
 
   ## Supervised tasks
@@ -39,7 +39,7 @@ defmodule Task do
 
       Task.start_link(fn -> IO.puts "ok" end)
 
-  Such can be mounted in your supervision tree as:
+  Such tasks can be mounted in your supervision tree as:
 
       import Supervisor.Spec
 
@@ -47,9 +47,9 @@ defmodule Task do
         worker(Task, [fn -> IO.puts "ok" end])
       ]
 
-  Since such tasks are supervised and not directly linked to
+  Since these tasks are supervised and not directly linked to
   the caller, they cannot be awaited on. Note `start_link/1`,
-  differently from `async/1`, returns `{:ok, pid}` (which is
+  unlike `async/1`, returns `{:ok, pid}` (which is
   the result expected by supervision trees).
 
   ## Supervision trees
@@ -85,7 +85,7 @@ defmodule Task do
 
   It contains two fields:
 
-    * `:pid` - the proces reference of the task process; it may be a pid
+    * `:pid` - the process reference of the task process; it may be a pid
       or a tuple containing the process and node names
 
     * `:ref` - the task monitor reference
@@ -112,14 +112,14 @@ defmodule Task do
   @doc """
   Starts a task that can be awaited on.
 
-  This function spawns a process that is linked and monitored
-  to the caller process. A `Task` struct is returned containing
+  This function spawns a process that is linked to and monitored
+  by the caller process. A `Task` struct is returned containing
   the relevant information.
 
   ## Task's message format
 
   The reply sent by the task will be in the format `{ref, msg}`,
-  where `ref` is the monitoring reference hold by the task.
+  where `ref` is the monitoring reference held by the task.
   """
   @spec async(fun) :: t
   def async(fun) do
@@ -152,7 +152,7 @@ defmodule Task do
   @doc """
   Awaits for a task reply.
 
-  A timeout, in miliseconds, can be given with default value
+  A timeout, in milliseconds, can be given with default value
   of `5000`. In case the task process dies, this function will
   exit with the same reason as the task.
   """
@@ -181,13 +181,13 @@ defmodule Task do
   This function returns a tuple with the task and the
   returned value in case the message matches a task that
   exited with success, it raises in case the found task
-  failed or nil if no task was found.
+  failed or `nil` if no task was found.
 
   This function is useful in situations where multiple
-  tasks are spawned and their results are collected just
-  later on. For example, a GenServer can spawn tasks,
+  tasks are spawned and their results are collected
+  later on. For example, a `GenServer` can spawn tasks,
   store the tasks in a list and later use `Task.find/2`
-  to see if upcoming messages are from any of the tasks.
+  to see if incoming messages are from any of the tasks.
   """
   @spec find([t], any) :: {term, t} | nil | no_return
   def find(tasks, msg)
