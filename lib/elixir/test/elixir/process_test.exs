@@ -27,7 +27,7 @@ defmodule ProcessTest do
            nil
 
     assert Process.info(self, :registered_name) ==
-           {:registered_name, nil}
+           {:registered_name, []}
 
     Process.register(self, __MODULE__)
     assert Process.info(self, :registered_name) ==

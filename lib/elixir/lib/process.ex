@@ -374,7 +374,7 @@ defmodule Process do
   def info(pid, :registered_name) do
     case :erlang.process_info(pid, :registered_name) do
       :undefined -> nil
-      [] -> {:registered_name, nil}
+      [] -> {:registered_name, []}
       other -> other
     end
   end

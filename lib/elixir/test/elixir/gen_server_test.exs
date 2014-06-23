@@ -51,6 +51,11 @@ defmodule GenServerTest do
     assert GenServer.call(pid, :stop) == :ok
   end
 
+  test "nil name" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello], name: nil)
+    assert Process.info(pid, :registered_name) == {:registered_name, []}
+  end
+
   test "start/2" do
     {:ok, pid} = GenServer.start(Stack, [:hello])
     {:links, links} = Process.info(self, :links)

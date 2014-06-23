@@ -143,7 +143,10 @@ defmodule Task do
 
   defp get_info(self) do
     {node(),
-     self |> Process.info(:registered_name) |> elem(1) |> Kernel.||(self)}
+     case Process.info(self, :registered_name) do
+       {:registered_name, []} -> self()
+       {:registered_name, name} -> name
+     end}
   end
 
   @doc """
