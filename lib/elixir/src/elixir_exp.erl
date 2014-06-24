@@ -225,11 +225,22 @@ expand({fn, Meta, Pairs}, E) ->
 
 %% Case/Receive/Try
 
+expand({'cond', Meta, [KV]}, E) ->
+  assert_no_match_or_guard_scope(Meta, 'cond', E),
+  {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
+  {{'cond', Meta, [EClauses]}, EC};
+
 expand({'case', Meta, [Expr, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
   {EExpr, EE} = expand(Expr, E),
   {EClauses, EC} = elixir_exp_clauses:'case'(Meta, KV, EE),
-  {{'case', Meta, [EExpr, EClauses]}, EC};
+  FClauses =
+    case (lists:keyfind(optimize_boolean, 1, Meta) == {optimize_boolean, true}) and
+         elixir_utils:returns_boolean(EExpr) of
+      true  -> rewrite_case_clauses(EClauses);
+      false -> EClauses
+    end,
+  {{'case', Meta, [EExpr, FClauses]}, EC};
 
 expand({'receive', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'receive', E),
@@ -401,6 +412,9 @@ expand_arg(Arg, {Acc1, Acc2}) ->
   {EArg, EAcc} = expand(Arg, Acc1),
   {EArg, {elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc)}}.
 
+expand_args([Arg], E) ->
+  {EArg, EE} = expand(Arg, E),
+  {[EArg], EE};
 expand_args(Args, #{context := match} = E) ->
   expand_many(Args, E);
 expand_args(Args, E) ->
@@ -524,6 +538,27 @@ expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
     "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
 
 %% Assertions
+
+rewrite_case_clauses([{do,[
+  {'->', FalseMeta, [
+    [{'when', _, [Var, {'__op__', _,[
+      'orelse',
+      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
+      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
+    ]}]}],
+    FalseExpr
+  ]},
+  {'->', TrueMeta, [
+    [{'_', _, _}],
+    TrueExpr
+  ]}
+]}]) ->
+  [{do, [
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
+  ]}];
+rewrite_case_clauses(Clauses) ->
+  Clauses.
 
 assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),

@@ -70,24 +70,36 @@ translate({'&', Meta, [Arg]}, S) when is_integer(Arg) ->
 translate({fn, Meta, Clauses}, S) ->
   elixir_fn:translate(Meta, Clauses, S);
 
+%% Cond
+
+translate({'cond', _Meta, [[{do, Pairs}]]}, S) ->
+  [{'->', Meta, [[Condition], Body]}|T] = lists:reverse(Pairs),
+  Case =
+    case Condition of
+      {'_', _, Atom} when is_atom(Atom) ->
+        compile_error(Meta, S#elixir_scope.file, "unbound variable _ inside cond. "
+          "If you want the last clause to always match, you probably meant to use: true ->");
+      X when is_atom(X) and (X /= false) and (X /= nil) ->
+        build_cond_clauses(T, Body, Meta);
+      _ ->
+        {Clause, _} = build_truthy_clause(Meta, Condition, Body),
+        Acc = {'case', Meta, [Condition, [{do, [Clause]}]]},
+        build_cond_clauses(T, Acc, Meta)
+    end,
+  translate(Case, S);
+
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, #elixir_scope{return=Return} = RS) when is_list(KV) ->
-  S = RS#elixir_scope{noname=true, return=true},
-  Clauses = elixir_clauses:get_pairs(do, KV),
+translate({'case', Meta, [Expr, KV]}, #elixir_scope{return=Return} = RS) ->
+  S = RS#elixir_scope{return=true},
+  Clauses = elixir_clauses:get_pairs(do, KV, match),
   {TExpr, NS} = translate(Expr, S),
-
-  RClauses = case elixir_utils:returns_boolean(TExpr) of
-    true  -> rewrite_case_clauses(Clauses);
-    false -> Clauses
-  end,
-
-  {TClauses, TS} = elixir_clauses:clauses(Meta, RClauses, Return, NS),
+  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, Return, NS),
   {{'case', ?line(Meta), TExpr, TClauses}, TS};
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_list(Clauses) ->
+translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) ->
   S  = RS#elixir_scope{noname=true, return=true},
   Do = proplists:get_value('do', Clauses, nil),
   {TDo, SB} = elixir_translator:translate(Do, S),
@@ -103,7 +115,7 @@ translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_l
       {TAfter, SA} = {[], mergec(S, SC)}
   end,
 
-  Else = elixir_clauses:get_pairs(else, Clauses),
+  Else = elixir_clauses:get_pairs(else, Clauses, match),
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, Return, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
@@ -111,16 +123,16 @@ translate({'try', Meta, [Clauses]}, #elixir_scope{return=Return} = RS) when is_l
 
 %% Receive
 
-translate({'receive', Meta, [KV]}, #elixir_scope{return=Return} = RS) when is_list(KV) ->
+translate({'receive', Meta, [KV]}, #elixir_scope{return=Return} = RS) ->
   S  = RS#elixir_scope{return=true},
-  Do = elixir_clauses:get_pairs(do, KV, true),
+  Do = elixir_clauses:get_pairs(do, KV, match, true),
 
   case lists:keyfind('after', 1, KV) of
     false ->
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do, Return, S),
       {{'receive', ?line(Meta), TClauses}, SC};
     _ ->
-      After = elixir_clauses:get_pairs('after', KV),
+      After = elixir_clauses:get_pairs('after', KV, expr),
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do ++ After, Return, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,
@@ -154,7 +166,7 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
 
 %% Variables
 
-translate({'^', Meta, [ {Name, VarMeta, Kind} ]}, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
   case orddict:find(Tuple, S#elixir_scope.backup_vars) of
     {ok, {Value, _Counter}} ->
@@ -316,24 +328,9 @@ var_kind(Meta, Kind) ->
     false -> Kind
   end.
 
-%% Case
-
-rewrite_case_clauses([
-    {do,Meta1,[{'when',_,[{V,M,C},{'__op__',_,['orelse',_,_]}]}],False},
-    {do,Meta2,[{'_',_,UC}],True}] = Clauses)
-    when is_atom(V), is_list(M), is_atom(C), is_atom(UC) ->
-  case lists:keyfind('cond', 1, M) of
-    {'cond',true} ->
-      [{do,Meta1,[false],False},{do,Meta2,[true],True}];
-    _ ->
-      Clauses
-  end;
-rewrite_case_clauses(Clauses) ->
-  Clauses.
-
 %% Pack a list of expressions from a block.
 unblock({'block', _, Exprs}) -> Exprs;
-unblock(Expr)                  -> [Expr].
+unblock(Expr)                -> [Expr].
 
 %% Translate args
 
@@ -367,14 +364,42 @@ translate_block(Expr, Return, S) ->
     false -> translate(Expr, S)
   end.
 
-%% Expressions that can handle no return may receive
-%% return=false but must always return return=true.
+%% return is typically true, except when we find one
+%% of the expressions below, which may handle return=false
+%% but must always return return=true.
 handles_no_return({'try', _, [_]}) -> true;
+handles_no_return({'cond', _, [_]}) -> true;
 handles_no_return({'for', _, [_|_]}) -> true;
 handles_no_return({'case', _, [_, _]}) -> true;
 handles_no_return({'receive', _, [_]}) -> true;
 handles_no_return({'__block__', _, [_|_]}) -> true;
 handles_no_return(_) -> false.
+
+%% Cond
+
+build_cond_clauses([{'->', NewMeta, [[Condition], Body]}|T], Acc, OldMeta) ->
+  {Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
+  Falsy = {'->', OldMeta, [[Other], Acc]},
+  Case = {'case', NewMeta, [Condition, [{do, [Truthy, Falsy]}]]},
+  build_cond_clauses(T, Case, NewMeta);
+build_cond_clauses([], Acc, _) ->
+  Acc.
+
+build_truthy_clause(Meta, Condition, Body) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true ->
+      {{'->', Meta, [[true], Body]}, false};
+    false ->
+      Var  = {'cond', [{export, false}], 'Elixir'},
+      Head = {'when', [], [Var,
+        {'__op__', [], [
+          'andalso',
+          {{'.', [], [erlang, '/=']}, [], [Var, nil]},
+          {{'.', [], [erlang, '/=']}, [], [Var, false]}
+        ]}
+      ]},
+      {{'->', Meta, [[Head], Body]}, {'_', [], nil}}
+  end.
 
 %% Assertions
 

@@ -109,7 +109,7 @@ translate_filters(T, S) ->
 
 translate_filter(Filter, S) ->
   {TFilter, TS} = elixir_translator:translate(Filter, S),
-  case elixir_utils:returns_boolean(TFilter) of
+  case elixir_utils:returns_boolean(Filter) of
     true ->
       {{nil, TFilter}, TS};
     false ->

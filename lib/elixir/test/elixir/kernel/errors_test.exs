@@ -561,8 +561,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :unbound_cond do
-    assert_compile_fail ArgumentError,
-      "unbound variable _ inside cond. If you want the last clause to match, you probably meant to use true ->",
+    assert_compile_fail CompileError,
+      "nofile:1: unbound variable _ inside cond. If you want the last clause to always match, " <>
+      "you probably meant to use: true ->",
       'cond do _ -> true end'
   end
 

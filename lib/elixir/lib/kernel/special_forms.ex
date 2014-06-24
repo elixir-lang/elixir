@@ -1397,7 +1397,27 @@ defmodule Kernel.SpecialForms do
   case, clauses that do not explicitly bind a value have the variable
   bound to nil.
   """
-  defmacro case(condition, blocks)
+  defmacro case(condition, clauses)
+
+  @doc """
+  Evaluates the expression corresponding to the first clause that
+  evaluates to truth value.
+
+  Raises an error if all conditions evaluate to to nil or false.
+
+  ## Examples
+
+      cond do
+        1 + 1 == 1 ->
+          "This will never match"
+        2 * 2 != 4 ->
+          "Nor this"
+        true ->
+          "This will"
+      end
+
+  """
+  defmacro cond(clauses)
 
   @doc ~S"""
   Evaluate the given expressions and handle any error, exit

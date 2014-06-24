@@ -126,35 +126,42 @@ elixir_to_erl_cons_2([], Acc) ->
 
 %% Boolean checks
 
-returns_boolean({op, _, Op, _}) when Op == 'not' -> true;
+returns_boolean(Bool) when is_boolean(Bool) -> true;
 
-returns_boolean({op, _, Op, _, _}) when
+returns_boolean({{'.', _, [erlang, Op]}, _, [_]}) when Op == 'not' -> true;
+
+returns_boolean({{'.', _, [erlang, Op]}, _, [_, _]}) when
   Op == 'and'; Op == 'or'; Op == 'xor';
   Op == '==';  Op == '/='; Op == '=<';  Op == '>=';
   Op == '<';   Op == '>';  Op == '=:='; Op == '=/=' -> true;
 
-returns_boolean({op, _, Op, _, Right}) when Op == 'andalso'; Op == 'orelse' ->
+returns_boolean({'__op__', _, [Op, _, Right]}) when Op == 'andalso'; Op == 'orelse' ->
   returns_boolean(Right);
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_]}) when
   Fun == is_atom;   Fun == is_binary;   Fun == is_bitstring; Fun == is_boolean;
   Fun == is_float;  Fun == is_function; Fun == is_integer;   Fun == is_list;
   Fun == is_number; Fun == is_pid;      Fun == is_port;      Fun == is_reference;
   Fun == is_tuple -> true;
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_,_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
   Fun == is_function -> true;
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_,_,_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
   Fun == function_exported -> true;
 
-returns_boolean({atom, _, Bool}) when is_boolean(Bool) -> true;
-
-returns_boolean({'case', _, _, Clauses}) ->
+returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun
-    ({clause,_,_,_,[Expr]}) -> returns_boolean(Expr);
-    (_) -> false
+    ({'->',_,[_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
+
+returns_boolean({'cond', _, [[{do, Clauses}]]}) ->
+  lists:all(fun
+    ({'->',_,[_, Expr]}) -> returns_boolean(Expr)
+  end, Clauses);
+
+returns_boolean({'__block__', [], Exprs}) ->
+  returns_boolean(lists:last(Exprs));
 
 returns_boolean(_) -> false.
 

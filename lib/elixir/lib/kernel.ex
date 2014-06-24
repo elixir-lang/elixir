@@ -1130,21 +1130,21 @@ defmodule Kernel do
   defmacro !(arg)
 
   defmacro !({:!, _, [arg]}) do
-    quote do
+    optimize_boolean(quote do
       case unquote(arg) do
-        unquote(cond_var) when unquote(cond_var) in [false, nil] -> false
+        x when x in [false, nil] -> false
         _ -> true
       end
-    end
+    end)
   end
 
   defmacro !(arg) do
-    quote do
+    optimize_boolean(quote do
       case unquote(arg) do
-        unquote(cond_var) when unquote(cond_var) in [false, nil] -> true
+        x when x in [false, nil] -> true
         _ -> false
       end
-    end
+    end)
   end
 
   @doc """
@@ -2100,94 +2100,12 @@ defmodule Kernel do
     do_clause = Keyword.get(clauses, :do, nil)
     else_clause = Keyword.get(clauses, :else, nil)
 
-    quote do
+    optimize_boolean(quote do
       case unquote(condition) do
-        unquote(cond_var) when unquote(cond_var) in [false, nil] -> unquote(else_clause)
+        x when x in [false, nil] -> unquote(else_clause)
         _ -> unquote(do_clause)
       end
-    end
-  end
-
-  @doc """
-  Evaluates the expression corresponding to the first clause that
-  evaluates to true. Raises an error if all conditions evaluate to
-  to nil or false.
-
-  ## Examples
-
-      cond do
-        1 + 1 == 1 ->
-          "This will never match"
-        2 * 2 != 4 ->
-          "Nor this"
-        true ->
-          "This will"
-      end
-
-  """
-  defmacro cond([do: pairs]) do
-    [{:->, meta, [[condition], clause]}|t] = :lists.reverse pairs
-
-    new_acc =
-      case condition do
-        {:_, _, atom} when is_atom(atom) ->
-          raise ArgumentError, <<"unbound variable _ inside cond. ",
-            "If you want the last clause to match, you probably meant to use true ->">>
-        x when is_atom(x) and x != false and x != nil ->
-          clause
-        _ ->
-          head = quote(do: unquote(cond_var) when unquote(cond_var) != false and unquote(cond_var) != nil)
-
-          quote line: get_line(meta) do
-            case unquote(condition) do
-              unquote(head) -> unquote(clause)
-            end
-          end
-      end
-
-    build_cond_clauses(t, new_acc, meta)
-  end
-
-  # Builds cond clauses by nesting them recursively.
-  #
-  #     case !foo do
-  #       false -> 1
-  #       true ->
-  #         case !bar do
-  #           false -> 2
-  #           true -> 3
-  #         end
-  #     end
-  #
-  defp build_cond_clauses([{:->, new, [[condition], clause]}|t], acc, old) do
-    clauses = [falsy_clause(old, acc), truthy_clause(new, clause)]
-    acc = quote do: (case unquote(condition), do: unquote(clauses))
-    build_cond_clauses(t, acc, new)
-  end
-
-  defp build_cond_clauses([], acc, _), do: acc
-
-  defp falsy_clause(meta, acc) do
-    head = quote(do: unquote(cond_var) when unquote(cond_var) == false or unquote(cond_var) == nil)
-    {:->, meta, [[head], acc]}
-  end
-
-  defp truthy_clause(meta, clause) do
-    {:->, meta, [[quote(do: _)], clause]}
-  end
-
-  # Setting cond: true in metadata turns on a small optimization
-  # in Elixir compiler. In the long run, we want to bring this
-  # optimization to Elixir land, but not right now.
-  defp cond_var do
-    {:x, [cond: true], Kernel}
-  end
-
-  defp get_line(meta) do
-    case :lists.keyfind(:line, 1, meta) do
-      {:line, line} -> line
-      false -> 0
-    end
+    end)
   end
 
   @doc """
@@ -3599,6 +3517,10 @@ defmodule Kernel do
   end
 
   ## Shared functions
+
+  defp optimize_boolean({:case, meta, args}) do
+    {:case, [{:optimize_boolean, true}|meta], args}
+  end
 
   # We need this check only for bootstrap purposes.
   # Once Kernel is loaded and we recompile, it is a no-op.

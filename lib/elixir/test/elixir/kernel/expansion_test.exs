@@ -261,10 +261,13 @@ defmodule Kernel.ExpansionTest do
            quote do: (for(a <- b(), c = a, do: c))
   end
 
-  # test "variables inside comprehensions options do not leak" do
-  #   assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
-  #          quote do: (for(a <- b(), do: 1, into: c = []); c())
-  # end
+  test "variables inside comprehensions options do not leak" do
+    assert expand(quote do: (for(a <- c = b, into: [], do: 1); c)) ==
+           quote do: (for(a <- c = b(), do: 1, into: []); c())
+
+    assert expand(quote do: (for(a <- b, into: c = [], do: 1); c)) ==
+           quote do: (for(a <- b(), do: 1, into: c = []); c())
+  end
 
   ## Capture
 
@@ -309,6 +312,28 @@ defmodule Kernel.ExpansionTest do
   test "fn: does not leak vars" do
     assert expand(quote do: (fn x -> x end; x)) ==
            quote do: (fn x -> x end; x())
+  end
+
+  ## Cond
+
+  test "cond: expands each clause" do
+    assert expand_and_clean(quote do: (cond do x = 1 -> x; _ -> x end)) ==
+           quote do: (cond do x = 1 -> x; _ -> x() end)
+  end
+
+  test "cond: does not share lexical in between clauses" do
+    assert expand_and_clean(quote do: (cond do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
+           quote do: (cond do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
+  end
+
+  test "cond: does not leaks vars on head" do
+    assert expand_and_clean(quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x, y))) ==
+           quote do: (cond do x = 1 -> x; y = 2 -> y end; :erlang.+(x(), y()))
+  end
+
+  test "cond: leaks vars" do
+    assert expand_and_clean(quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))) ==
+           quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
   end
 
   ## Case

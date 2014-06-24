@@ -3,8 +3,8 @@
 -include("elixir.hrl").
 
 clauses(_Meta, Clauses, Return, S) ->
-  Catch  = elixir_clauses:get_pairs('catch', Clauses),
-  Rescue = elixir_clauses:get_pairs(rescue, Clauses),
+  Catch  = elixir_clauses:get_pairs('catch', Clauses, 'catch'),
+  Rescue = elixir_clauses:get_pairs(rescue, Clauses, rescue),
   reduce_clauses(Rescue ++ Catch, [], S, Return, S).
 
 reduce_clauses([H|T], Acc, SAcc, Return, S) ->
@@ -18,10 +18,7 @@ each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
 
   Final = case Args of
     [X]   -> [throw, X, {'_', Meta, nil}];
-    [X,Y] -> [X, Y, {'_', Meta, nil}];
-    _ ->
-      elixir_errors:compile_error(Meta, S#elixir_scope.file,
-        "too many arguments given for catch")
+    [X,Y] -> [X, Y, {'_', Meta, nil}]
   end,
 
   Condition = [{'{}', Meta, Final}],

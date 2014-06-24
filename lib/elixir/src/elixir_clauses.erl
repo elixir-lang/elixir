@@ -1,18 +1,18 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/7, clauses/4, guards/4, get_pairs/2, get_pairs/3,
+-export([match/3, clause/7, clauses/4, guards/4, get_pairs/3, get_pairs/4,
   extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 
 %% Get pairs from a clause.
 
-get_pairs(Key, Clauses) ->
-  get_pairs(Key, Clauses, false).
-get_pairs(Key, Clauses, AllowNil) ->
+get_pairs(Key, Clauses, As) ->
+  get_pairs(Key, Clauses, As, false).
+get_pairs(Key, Clauses, As, AllowNil) ->
   case lists:keyfind(Key, 1, Clauses) of
     {Key, Pairs} when is_list(Pairs) ->
-      [{Key, Meta, Left, Right} || {'->', Meta, [Left, Right]} <- Pairs];
+      [{As, Meta, Left, Right} || {'->', Meta, [Left, Right]} <- Pairs];
     {Key, nil} when AllowNil ->
       [];
     false ->
@@ -80,8 +80,7 @@ do_clauses(Meta, DecoupledClauses, Return, S) ->
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, VAcc}) ->
     {TX, TS} = each_clause(X, Return, SAcc),
-    {TX,
-      {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
+    {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
   end,
 
   {TClauses, {TS, ReverseCV}} =
@@ -140,15 +139,11 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause({do, Meta, [Condition], Expr}, Return, S) ->
+each_clause({match, Meta, [Condition], Expr}, Return, S) ->
   {Arg, Guards} = extract_guards(Condition),
   clause(?line(Meta), fun elixir_translator:translate_args/2, [Arg], Expr, Guards, Return, S);
 
-each_clause({else, Meta, [Condition], Expr}, Return, S) ->
-  {Arg, Guards} = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate_args/2, [Arg], Expr, Guards, Return, S);
-
-each_clause({'after', Meta, [Condition], Expr}, Return, S) ->
+each_clause({expr, Meta, [Condition], Expr}, Return, S) ->
   {TCondition, SC} = elixir_translator:translate(Condition, S),
   {TExpr, SB} = elixir_translator:translate_block(Expr, Return, SC),
   {{clause, ?line(Meta), [TCondition], [], unblock(TExpr)}, SB}.
