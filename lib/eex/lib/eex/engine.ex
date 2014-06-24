@@ -1,6 +1,7 @@
 defmodule EEx.Engine do
   @moduledoc ~S"""
-  This is the basic EEx engine that ships with Elixir.
+  Basic EEx engine that ships with Elixir.
+
   An engine needs to implement three functions:
 
     * `handle_body(quoted)` - receives the final built quoted
@@ -19,6 +20,9 @@ defmodule EEx.Engine do
 
       Read `handle_expr/3` below for more information about the markers
       implemented by default by this engine.
+
+  `EEx.Engine` can be used directly if one desires to use the
+  default implementations for the functions above.
   """
 
   use Behaviour
@@ -26,6 +30,47 @@ defmodule EEx.Engine do
   defcallback handle_body(Macro.t) :: Macro.t
   defcallback handle_text(Macro.t, binary) :: Macro.t
   defcallback handle_expr(Macro.t, binary, Macro.t) :: Macro.t
+
+  @doc false
+  defmacro __using__(_) do
+    quote do
+      @behaviour EEx.Engine
+
+      def handle_body(body) do
+        EEx.Engine.handle_body(body)
+      end
+
+      def handle_text(buffer, text) do
+        EEx.Engine.handle_text(buffer, text)
+      end
+
+      def handle_expr(buffer, mark, expr) do
+        EEx.Engine.handle_expr(buffer, mark, expr)
+      end
+
+      defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2]
+    end
+  end
+
+  @doc """
+  Handles assigns in quoted expressions.
+
+  This can be added to any custom engine by invoking
+  `handle_assign/3` with `Macro.prewalk/1`:
+
+      def handle_expr(buffer, token, expr) do
+        expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
+        EEx.Engine.handle_expr(buffer, token, expr)
+      end
+
+  """
+  def handle_assign({:@, line, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
+    quote line: line, do: Dict.get(var!(assigns), unquote(name))
+  end
+
+  def handle_assign(arg) do
+    arg
+  end
 
   @doc """
   The default implementation implementation simply returns the

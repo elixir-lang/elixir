@@ -1,7 +1,7 @@
 defmodule EEx.Compiler do
   @moduledoc false
 
-  # when changing this setting, don't forget to update the docs for EEx
+  # When changing this setting, don't forget to update the docs for EEx
   @default_engine EEx.SmartEngine
 
   @doc """

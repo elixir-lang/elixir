@@ -13,6 +13,7 @@
   * [Kernel] Ensure derived protocols are defined with a file
 
 * Soft deprecations (no warnings emitted)
+  * [EEx] Using `EEx.TransformerEngine` and `EEx.AssignsEngine` are deprecated in favor of function composition with `Macro.prewalk/1` (see `EEx.SmartEngine` for an example)
 
 * Deprecations
   * [Kernel] `size/1` is deprecated in favor of `byte_size/1` and `tuple_size/1` (this change was soft deprecated two releases ago)
