@@ -38,8 +38,8 @@ defmodule Mix.SCM.Git do
   def checked_out?(opts) do
     File.dir?(Path.join(opts[:dest], ".git")) &&
       File.cd!(opts[:dest], fn ->
-        # Make sure git can read the dependency .git folder
-        String.strip(System.cmd "git rev-parse --git-dir") == ".git"
+        # Are we inside a git repository?
+        File.regular?(".git/HEAD")
       end)
   end
 
@@ -85,7 +85,7 @@ defmodule Mix.SCM.Git do
       location = opts[:git]
       update_origin(location)
 
-      command = "git fetch --force"
+      command = "git --git-dir=.git fetch --force"
 
       if {1, 7, 1} <= git_version() do
         command = command <> " --progress"
@@ -104,10 +104,10 @@ defmodule Mix.SCM.Git do
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
-    run_cmd_or_raise "git checkout --quiet #{ref}"
+    run_cmd_or_raise "git --git-dir=.git checkout --quiet #{ref}"
 
     if opts[:submodules] do
-      run_cmd_or_raise "git submodule update --init --recursive"
+      run_cmd_or_raise "git --git-dir=.git submodule update --init --recursive"
     end
 
     get_lock(opts)
@@ -141,14 +141,14 @@ defmodule Mix.SCM.Git do
 
   defp get_rev_info do
     destructure [origin, rev],
-      System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
+      System.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [ origin: origin, rev: rev ]
   end
 
   defp update_origin(location) do
-    System.cmd('git config remote.origin.url #{location}')
+    System.cmd('git --git-dir=.git config remote.origin.url #{location}')
   end
 
   defp run_cmd_or_raise(command) do

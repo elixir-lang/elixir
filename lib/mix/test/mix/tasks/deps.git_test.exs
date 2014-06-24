@@ -57,7 +57,7 @@ defmodule Mix.Tasks.DepsGitTest do
     end
   end
 
-  test "handles invalid and/or existing checkouts" do
+  test "handles invalid .git directory" do
     Mix.Project.push GitApp
 
     in_fixture "no_mixfile", fn ->
@@ -65,6 +65,21 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Get.run []
       message = "* Getting git_repo (#{fixture_path("git_repo")})"
       assert_received {:mix_shell, :info, [^message]}
+    end
+  end
+
+  test "handles missing .git directory" do
+    Mix.Project.push GitApp
+
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+      File.rm_rf!("deps/git_repo/.git")
+
+      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
+        Mix.Tasks.Deps.Check.run ["git_repo"]
+      end
     end
   end
 

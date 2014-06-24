@@ -77,10 +77,10 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
-  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),        do: true
-  defp out_of_date?(%Mix.Dep{status: :nolock}),              do: true
+  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),      do: true
+  defp out_of_date?(%Mix.Dep{status: :nolock}),            do: true
   defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
-  defp out_of_date?(%Mix.Dep{}),                             do: false
+  defp out_of_date?(%Mix.Dep{}),                           do: false
 
   defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
     # Let's get the loaded versions of deps
