@@ -44,6 +44,8 @@ defmodule Mix.SCM.Git do
   end
 
   def lock_status(opts) do
+    assert_git
+
     case opts[:lock] do
       {:git, lock_repo, lock_rev, lock_opts} ->
         File.cd!(opts[:dest], fn ->
@@ -69,6 +71,8 @@ defmodule Mix.SCM.Git do
   end
 
   def checkout(opts) do
+    assert_git
+
     path     = opts[:dest]
     location = opts[:git]
 
@@ -80,6 +84,8 @@ defmodule Mix.SCM.Git do
   end
 
   def update(opts) do
+    assert_git
+
     File.cd! opts[:dest], fn ->
       # Ensures origin is set the lock repo
       location = opts[:git]
@@ -156,6 +162,22 @@ defmodule Mix.SCM.Git do
       Mix.raise "Command `#{command}` failed"
     end
     true
+  end
+
+  defp assert_git do
+    case Application.fetch_env(:mix, :git_available) do
+      {:ok, true} ->
+        :ok
+      :error ->
+        if :os.find_executable('git') == false do
+          Mix.raise "Git executable is not available. " <>
+            "Fetching or updating Git is not possible. " <>
+            "Pass --no-deps-check if you want to run your application on " <>
+            "without Git."
+        else
+          Application.put_env(:mix, :git_available, true)
+        end
+    end
   end
 
   defp git_version do
