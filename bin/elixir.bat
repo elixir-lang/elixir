@@ -41,6 +41,9 @@ set allPars=%*
 rem Get the original path name from the batch file
 set originPath=%~dp0
 
+rem Derive library path from originPath
+set libPath=%originPath:\bin\=\lib%
+
 rem Optional parameters before the "-extra" parameter
 set beforeExtra=
 
@@ -53,11 +56,11 @@ set par="%1"
 shift
 if "%par%"=="" (
   rem if no parameters defined
-  goto :expand_erl_libs
+  goto :run
 )
 if "%par%"=="""" (
   rem if no parameters defined - special case for parameter that is already quoted
-  goto :expand_erl_libs
+  goto :run
 )
 rem ******* EXECUTION OPTIONS **********************
 IF "%par%"==""+iex"" (Set useWerl=1)
@@ -81,17 +84,16 @@ IF NOT "%par%"=="%par:--remsh=%" (shift)
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
-:expand_erl_libs
-rem ******* expand all ebin paths as Windows does not support the ..\*\ebin wildcard ********************
-SETLOCAL enabledelayedexpansion
-set ext_libs=
-for  /d %%d in ("%originPath%..\lib\*.") do (
-  set ext_libs=!ext_libs! -pa "%%~fd\ebin"
-)
-SETLOCAL disabledelayedexpansion
 :run
-IF %useWerl% EQU 1 (
-    werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+setlocal
+IF DEFINED ERL_LIBS (
+	set ERL_LIBS=%libPath%;%ERL_LIBS%
 ) ELSE (
-    erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+	set ERL_LIBS=%libPath%
+)
+
+IF %useWerl% EQU 1 (
+    werl.exe %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+) ELSE (
+    erl.exe -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
