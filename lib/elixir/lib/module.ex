@@ -349,8 +349,10 @@ defmodule Module do
 
   @doc """
   Creates a module with the given name and defined by
-  the given quoted expressions. The line where the module
-  is defined and its file can be passed as options.
+  the given quoted expressions.
+
+  The line where the module is defined and its file **must**
+  be passed as options.
 
   ## Examples
 
@@ -376,13 +378,16 @@ defmodule Module do
   when defining the module, while `defmodule` automatically
   shares the same environment.
   """
-  def create(module, quoted, opts \\ [])
+  def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) do
     create(module, quoted, Map.to_list(env))
   end
 
-  def create(module, quoted, opts) when is_atom(module) do
+  def create(module, quoted, opts) when is_atom(module) and is_list(opts) do
+    unless Keyword.has_key?(opts, :file) do
+      raise ArgumentError, "expected :file to be given as option"
+    end
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 

@@ -72,37 +72,37 @@ env_for_eval(Opts) ->
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of
-    {line, RawLine} when is_integer(RawLine) -> RawLine;
+    {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
     false -> ?m(Env, line)
   end,
 
   File = case lists:keyfind(file, 1, Opts) of
-    {file, RawFile} when is_binary(RawFile) -> RawFile;
+    {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
     false -> ?m(Env, file)
   end,
 
   Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    {delegate_locals_to, LocalOpt} -> LocalOpt;
+    {delegate_locals_to, LocalOpt} when is_atom(LocalOpt) -> LocalOpt;
     false -> ?m(Env, local)
   end,
 
   Aliases = case lists:keyfind(aliases, 1, Opts) of
-    {aliases, AliasesOpt} -> AliasesOpt;
+    {aliases, AliasesOpt} when is_list(AliasesOpt) -> AliasesOpt;
     false -> ?m(Env, aliases)
   end,
 
   Requires = case lists:keyfind(requires, 1, Opts) of
-    {requires, List} -> ordsets:from_list(List);
+    {requires, RequiresOpt} when is_list(RequiresOpt) -> ordsets:from_list(RequiresOpt);
     false -> ?m(Env, requires)
   end,
 
   Functions = case lists:keyfind(functions, 1, Opts) of
-    {functions, FunctionsOpt} -> FunctionsOpt;
+    {functions, FunctionsOpt} when is_list(FunctionsOpt) -> FunctionsOpt;
     false -> ?m(Env, functions)
   end,
 
   Macros = case lists:keyfind(macros, 1, Opts) of
-    {macros, MacrosOpt} -> MacrosOpt;
+    {macros, MacrosOpt} when is_list(MacrosOpt) -> MacrosOpt;
     false -> ?m(Env, macros)
   end,
 
@@ -115,7 +115,7 @@ env_for_eval(Env, Opts) ->
     file := File, local := Local, module := Module,
     macros := Macros, functions := Functions,
     requires := Requires, aliases := Aliases, line := Line
- }.
+  }.
 
 %% String evaluation
 

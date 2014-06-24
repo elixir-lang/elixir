@@ -174,6 +174,11 @@ defmodule ProtocolTest do
     assert WithAny.ok(struct) == {:ok, struct}
   end
 
+  test "derived protocol keeps local file/line info" do
+    assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
+           String.to_char_list(__ENV__.file)
+  end
+
   test "custom derive implementation" do
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}

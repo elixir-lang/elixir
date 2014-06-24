@@ -580,7 +580,7 @@ defmodule Protocol do
             def __impl__(:target),   do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for),      do: unquote(for)
-          end)
+          end, Macro.Env.location(env))
         end
     end)
   end
