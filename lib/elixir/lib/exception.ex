@@ -578,6 +578,14 @@ defmodule CaseClauseError do
   end
 end
 
+defmodule CondClauseError do
+  defexception []
+
+  def message(_exception) do
+    "no cond clause evaluated to a true value"
+  end
+end
+
 defmodule TryClauseError do
   defexception [term: nil]
 
@@ -731,6 +739,10 @@ defmodule ErlangError do
 
   def normalize(:system_limit, _stacktrace) do
     %SystemLimitError{}
+  end
+
+  def normalize(:cond_clause, _stacktrace) do
+    %CondClauseError{}
   end
 
   def normalize({:badarity, {fun, args}}, _stacktrace) do

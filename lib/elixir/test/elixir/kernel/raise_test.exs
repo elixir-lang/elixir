@@ -317,6 +317,18 @@ defmodule Kernel.RaiseTest do
     assert result == "no case clause matching: 0"
   end
 
+  test :cond_clause_error do
+    result = try do
+      cond do
+        !zero(0) -> :ok
+      end
+    rescue
+      x in [CondClauseError] -> Exception.message(x)
+    end
+
+    assert result == "no cond clause evaluated to a true value"
+  end
+
   test :try_clause_error do
     f = fn() -> :example end
     result = try do

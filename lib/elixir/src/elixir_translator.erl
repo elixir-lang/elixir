@@ -82,8 +82,10 @@ translate({'cond', _Meta, [[{do, Pairs}]]}, S) ->
       X when is_atom(X) and (X /= false) and (X /= nil) ->
         build_cond_clauses(T, Body, Meta);
       _ ->
-        {Clause, _} = build_truthy_clause(Meta, Condition, Body),
-        Acc = {'case', Meta, [Condition, [{do, [Clause]}]]},
+        {Truthy, Other} = build_truthy_clause(Meta, Condition, Body),
+        Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
+        Falsy = {'->', Meta, [[Other], Error]},
+        Acc = {'case', Meta, [Condition, [{do, [Truthy, Falsy]}]]},
         build_cond_clauses(T, Acc, Meta)
     end,
   translate(Case, S);
