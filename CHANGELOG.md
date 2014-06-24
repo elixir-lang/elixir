@@ -3,14 +3,23 @@
 ## v0.14.2-dev
 
 * Enhancements
+  * [Task] Set `:proc_lib` initial call on task to aid debugging
+  * [Typespec] Delay typespec compilation to after expansion
+  * [URI] Allow `parse/1` now accepts `%URI{}` as argument and return the uri itself
 
 * Bug fixes
+  * [CLI] Support paths inside archives in -pa and -pz options
+  * [IEx] Remove dely when printing data from the an application start callback
+  * [Kernel] Ensure derived protocols are defined with a file
 
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
+  * [Kernel] `size/1` is deprecated in favor of `byte_size/1` and `tuple_size/1` (this change was soft deprecated two releases ago)
 
 * Backwards incompatible changes
+  * [Kernel] Sigils no longer balance start and end tokens, e.g. the sigil `~s(f(o)o)` is no longer valid as it finishes in the first closing `)`
+  * [System] `build_info/0` now returns a map
 
 ## v0.14.1 (2014-06-18)
 
