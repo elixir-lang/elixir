@@ -71,11 +71,11 @@ bar """
     assert x == "foo"
 
     assert_raise ErlangError, fn ->
-      Code.eval_string(~s(<<x :: [binary, size(3), unit(4)]>> <> _ = "foobar"))
+      Code.eval_string(~s{<<x :: [binary, size(3), unit(4)]>> <> _ = "foobar"})
     end
 
     assert_raise ErlangError, fn ->
-      Code.eval_string(~s(<<x :: [integer, size(4)]>> <> _ = "foobar"))
+      Code.eval_string(~s{<<x :: [integer, size(4)]>> <> _ = "foobar"})
     end
   end
 

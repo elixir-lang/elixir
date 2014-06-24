@@ -47,10 +47,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail TokenMissingError,
       "nofile:3: missing terminator: } (for sigil ~r{ starting at line 1)",
       '~r{foo\n\n'
-
-    assert_compile_fail TokenMissingError,
-      "nofile:3: missing terminator: ) (for sigil ~r( starting at line 1)",
-      '~r(f(oo)\n\n'
   end
 
   test :dot_terminator do

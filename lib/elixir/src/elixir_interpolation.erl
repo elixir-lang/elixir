@@ -9,73 +9,53 @@ unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 extract(Line, Raw, Interpol, String, Last) ->
   %% Ignore whatever is in the scope and enable terminator checking.
   Scope = Raw#elixir_tokenizer{terminators=[], check_terminators=true},
-  extract(Line, Scope, Interpol, String, [], 0, [], Last).
+  extract(Line, Scope, Interpol, String, [], [], Last).
 
 %% Terminators
 
-extract(Line, _Scope, _Interpol, [], Buffer, 0, Output, []) ->
+extract(Line, _Scope, _Interpol, [], Buffer, Output, []) ->
   finish_extraction(Line, Buffer, Output, []);
 
-extract(Line, _Scope, _Interpol, [], _Buffer, 0, _Output, Last) ->
+extract(Line, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
   {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
-extract(Line, _Scope, _Interpol, [Last|Remaining], Buffer, 0, Output, Last) ->
+extract(Line, _Scope, _Interpol, [Last|Remaining], Buffer, Output, Last) ->
   finish_extraction(Line, Buffer, Output, Remaining);
-
-extract(Line, _Scope, _Interpol, [], _Buffer, _Search, _Output, Last) ->
-  {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
 %% Going through the string
 
-extract(Line, Scope, Interpol, [$\\, $\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, Buffer, Search, Output, Last);
+extract(Line, Scope, Interpol, [$\\, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, Scope, Interpol, Rest, Buffer, Output, Last);
 
-extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, Buffer, Search, Output, Last);
+extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, Scope, Interpol, Rest, Buffer, Output, Last);
 
-extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Search, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Search, Output, Last);
+extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
 
-extract(Line, Scope, Interpol, [$\\, $#, ${|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [${,$#|Buffer], Search, Output, Last);
+extract(Line, Scope, Interpol, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, Interpol, Rest, [${,$#|Buffer], Output, Last);
 
-extract(Line, Scope, Interpol, [$\\,Char|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Char,$\\|Buffer], Search, Output, Last);
+extract(Line, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
 
-extract(Line, Scope, true, [$#, ${|Rest], Buffer, Search, Output, Last) ->
+extract(Line, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
 
   case elixir_tokenizer:tokenize(Rest, Line, Scope) of
     {error, {EndLine, _, "}"}, [$}|NewRest], Tokens} ->
       Output2 = build_interpol(Line, Tokens, Output1),
-      extract(EndLine, Scope, true, NewRest, [], Search, Output2, Last);
+      extract(EndLine, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
     {ok, _EndLine, _} ->
       {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
 
-%% Matching () [] {} <> inside sigils
-
-extract(Line, Scope, Interpol, [$(|Rest], Buffer, Search, Output, $)) ->
-  extract(Line, Scope, Interpol, Rest, [$(|Buffer], Search + 1, Output, $));
-
-extract(Line, Scope, Interpol, [$[|Rest], Buffer, Search, Output, $]) ->
-  extract(Line, Scope, Interpol, Rest, [$[|Buffer], Search + 1, Output, $]);
-
-extract(Line, Scope, Interpol, [${|Rest], Buffer, Search, Output, $}) ->
-  extract(Line, Scope, Interpol, Rest, [${|Buffer], Search + 1, Output, $});
-
-extract(Line, Scope, Interpol, [$<|Rest], Buffer, Search, Output, $>) ->
-  extract(Line, Scope, Interpol, Rest, [$<|Buffer], Search + 1, Output, $>);
-
-extract(Line, Scope, Interpol, [Last|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Last|Buffer], Search - 1, Output, Last);
-
 %% Catch all clause
 
-extract(Line, Scope, Interpol, [Char|Rest], Buffer, Search, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Char|Buffer], Search, Output, Last).
+extract(Line, Scope, Interpol, [Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, Interpol, Rest, [Char|Buffer], Output, Last).
 
 %% Unescape a series of tokens as returned by extract.
 
