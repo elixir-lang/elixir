@@ -36,11 +36,8 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    File.dir?(Path.join(opts[:dest], ".git")) &&
-      File.cd!(opts[:dest], fn ->
-        # Are we inside a git repository?
-        File.regular?(".git/HEAD")
-      end)
+    # Are we inside a git repository?
+    File.regular?(Path.join(opts[:dest], ".git/HEAD"))
   end
 
   def lock_status(opts) do
@@ -173,7 +170,7 @@ defmodule Mix.SCM.Git do
           Mix.raise "Git executable is not available. " <>
             "Fetching or updating Git is not possible. " <>
             "Pass --no-deps-check if you want to run your application on " <>
-            "without Git."
+            "a system without Git."
         else
           Application.put_env(:mix, :git_available, true)
         end
