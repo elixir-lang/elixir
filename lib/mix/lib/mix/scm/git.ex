@@ -167,10 +167,10 @@ defmodule Mix.SCM.Git do
         :ok
       :error ->
         if :os.find_executable('git') == false do
-          Mix.raise "Git executable is not available. " <>
-            "Fetching or updating Git is not possible. " <>
-            "Pass --no-deps-check if you want to run your application on " <>
-            "a system without Git."
+          Mix.raise "Error fetching/updating Git repository: the `git` "  <>
+            "executable is not available in your PATH. Please install "   <>
+            "Git on this machine or pass --no-deps-check if you want to " <>
+            "run a previously built application on a system without Git."
         else
           Application.put_env(:mix, :git_available, true)
         end

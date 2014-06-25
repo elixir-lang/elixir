@@ -3,6 +3,7 @@
 ## v0.14.2-dev
 
 * Enhancements
+  * [Mix] Allow built Git dependencies to run on a system with Git
   * [Task] Set `:proc_lib` initial call on task to aid debugging
   * [Typespec] Delay typespec compilation to after expansion
   * [URI] Allow `parse/1` now accepts `%URI{}` as argument and return the uri itself
@@ -20,6 +21,7 @@
 
 * Backwards incompatible changes
   * [Kernel] Sigils no longer balance start and end tokens, e.g. the sigil `~s(f(o)o)` is no longer valid as it finishes in the first closing `)`
+  * [Kernel] Variables set in `cond` clause heads are no longer available outside of that particular `cond` clause (this is the behaviour also found in `case`, `receive` and friends)
   * [System] `build_info/0` now returns a map
 
 ## v0.14.1 (2014-06-18)
