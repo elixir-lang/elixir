@@ -3,7 +3,7 @@
 ## v0.14.2-dev
 
 * Enhancements
-  * [Mix] Allow built Git dependencies to run on a system with Git
+  * [Mix] Allow built Git dependencies to run on a system without Git by passing `--no-deps-check`
   * [Task] Set `:proc_lib` initial call on task to aid debugging
   * [Typespec] Delay typespec compilation to after expansion
   * [URI] Allow `parse/1` now accepts `%URI{}` as argument and return the uri itself
