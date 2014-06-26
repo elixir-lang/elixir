@@ -21,6 +21,7 @@
   * [Kernel] `size/1` is deprecated in favor of `byte_size/1` and `tuple_size/1` (this change was soft deprecated two releases ago)
 
 * Backwards incompatible changes
+  * [CLI] Remove support for the `--gen-debug` option as its usage is not documented by OTP
   * [Kernel] Sigils no longer balance start and end tokens, e.g. the sigil `~s(f(o)o)` is no longer valid as it finishes in the first closing `)`
   * [Kernel] Variables set in `cond` clause heads are no longer available outside of that particular `cond` clause (this is the behaviour also found in `case`, `receive` and friends)
   * [System] `build_info/0` now returns a map

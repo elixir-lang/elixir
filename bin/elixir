@@ -17,7 +17,6 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   --hidden          Makes a hidden node
   --detached        Starts the Erlang VM detached from console
   --no-halt         Does not halt the Erlang VM after execution
-  --gen-debug       Turns on default debugging for all GenServers
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code
@@ -71,9 +70,6 @@ while [ $I -le $# ]; do
         I=$(expr $I + 1)
         eval "VAL=\${$I}"
         ERL="$ERL "$VAL""
-        ;;
-    --gen-debug)
-        ERL="$ERL -generic_debug"
         ;;
     *)
         break

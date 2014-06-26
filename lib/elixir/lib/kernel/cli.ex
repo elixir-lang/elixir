@@ -162,7 +162,7 @@ defmodule Kernel.CLI do
     parse_shared t, config
   end
 
-  defp parse_shared([erl|t], config) when erl in ["--detached", "--hidden", "--gen-debug"] do
+  defp parse_shared([erl|t], config) when erl in ["--detached", "--hidden"] do
     parse_shared t, config
   end
 
