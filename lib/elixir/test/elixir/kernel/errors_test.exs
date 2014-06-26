@@ -600,6 +600,17 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
+  test :invalid_args_for_bodyless_clause do
+    assert_compile_fail CompileError,
+      "nofile:2: can use only variables and \\\\ as arguments of bodyless clause",
+      '''
+      defmodule ErrorsTest do
+        def foo(arg // nil)
+        def foo(_), do: :ok
+      end
+      '''
+  end
+
   test :invalid_function_on_match do
     assert_compile_fail CompileError,
       "nofile:1: cannot invoke function something_that_does_not_exist/0 inside match",
