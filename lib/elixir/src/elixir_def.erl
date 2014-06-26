@@ -129,19 +129,27 @@ make_struct_available(_, _, _, _) ->
 %% Retrieve location from meta file or @file, otherwise nil
 
 retrieve_location(Line, File, Module) ->
-  case not(elixir_compiler:get_opt(internal)) andalso
-       'Elixir.Module':get_attribute(Module, file) of
-    X when X == nil; X == false ->
-      if
-        is_binary(File) ->
-          {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line};
-        true ->
-          nil
-      end;
+  case get_location_attribute(Module) of
+    nil when not is_binary(File) ->
+      nil;
+    nil ->
+      {normalize_location(File), Line};
     X when is_binary(X) ->
       'Elixir.Module':delete_attribute(Module, file),
-      {elixir_utils:characters_to_list(X), 0}
+      {normalize_location(X), 0};
+    {X, L} when is_binary(X) andalso is_integer(L) ->
+      'Elixir.Module':delete_attribute(Module, file),
+      {normalize_location(X), L}
   end.
+
+get_location_attribute(Module) ->
+  case elixir_compiler:get_opt(internal) of
+    true  -> nil;
+    false -> 'Elixir.Module':get_attribute(Module, file)
+  end.
+
+normalize_location(X) ->
+  elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(X)).
 
 %% Compile super
 

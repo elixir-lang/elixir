@@ -6,7 +6,7 @@ defmodule Mix.GeneratorTest do
   import Mix.Generator
 
   embed_text :foo,     "foo"
-  embed_text :self,    from_file("../generator_test.exs")
+  embed_text :self,    from_file: __ENV__.file
   embed_template :bar, "<%= @a + @b %>"
 
   test :embed_text do

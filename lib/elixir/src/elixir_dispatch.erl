@@ -517,6 +517,10 @@ deprecation_message(Warning, Message) ->
 
 deprecation('Elixir.Kernel', 'size', 1) ->
   "use byte_size/1 or tuple_size/1 instead";
+% deprecation('Elixir.Mix.Generator', 'from_file', _) ->
+%   "instead pass [from_file: file] to embed_text/2 and embed_template/2 macros. "
+%   "Note that [from_file: file] expects paths relative to the current working "
+%   "directory and not to the current file";
 % deprecation('Elixir.EEx.TransformerEngine', '__using__', _) ->
 %   "check EEx.SmartEngine for how to build custom engines";
 % deprecation('Elixir.EEx.AssignsEngine', '__using__', _) ->
