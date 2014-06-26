@@ -8,6 +8,12 @@ defmodule Mix.Utils do
 
   It defaults to `~/.mix` unless the `MIX_HOME`
   environment variable is set.
+
+  Mix stores archives and configurations in the `MIX_HOME`
+  directory. Since archives and configurations may be
+  specific to an Elixir version, it is expected from build
+  tools to swap the `MIX_HOME` to different locations
+  based on particular Elixir installations.
   """
   def mix_home do
     System.get_env("MIX_HOME") || Path.expand("~/.mix")
