@@ -166,6 +166,8 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
                                    Args, Guards, expr_from_body(Line, Body), E),
 
+  Body == nil andalso check_args_for_bodyless_clause(Line, EArgs, E),
+
   %% Macros receive a special argument on invocation. Notice it does
   %% not affect the arity of the stored function, but the clause
   %% already contains it.
@@ -335,6 +337,18 @@ defaults_conflict(A, D, Arity, Defaults) ->
   ((Arity >= (A - D)) andalso (Arity < A)) orelse
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
+check_args_for_bodyless_clause(Line, Args, E) ->
+  [ begin
+      elixir_errors:form_error(Line, ?m(E, file), ?MODULE, invalid_args_for_bodyless_clause)
+    end || Arg <- Args, invalid_arg(Arg) ].
+
+invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) ->
+  false;
+invalid_arg({'\\\\', _, [{Name, _, Kind}, _]}) when is_atom(Name), is_atom(Kind) ->
+  false;
+invalid_arg(_) ->
+  true.
+
 assert_no_aliases_name(Line, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
   elixir_errors:form_error(Line, File, ?MODULE, {no_alias, Atom});
 
@@ -373,6 +387,9 @@ format_error({no_alias, Atom}) ->
 
 format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
+
+format_error(invalid_args_for_bodyless_clause) ->
+  "can use only variables and \\\\ as arguments of bodyless clause";
 
 format_error({missing_do, Kind}) ->
   io_lib:format("missing do keyword in ~ts", [Kind]).
