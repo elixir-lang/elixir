@@ -57,15 +57,16 @@ defmodule IEx.Evaluator do
   defp eval_dot_iex(config, path) do
     try do
       code = File.read!(path)
-      env  = :elixir.env_for_eval(config.env, file: path)
+      env  = :elixir.env_for_eval(config.env, file: path, line: 1)
 
       # Evaluate the contents in the same environment server_loop will run in
       {_result, binding, env, _scope} =
         :elixir.eval(String.to_char_list(code), config.binding, env)
 
-      %{config | binding: binding, env: :elixir.env_for_eval(env, file: "iex")}
+      %{config | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
+        io_result "Error while evaluating: #{path}"
         print_error(kind, error, System.stacktrace)
         System.halt(1)
     end
@@ -112,7 +113,7 @@ defmodule IEx.Evaluator do
       {:ok, forms} ->
         {result, new_binding, env, scope} =
           :elixir.eval_forms(forms, config.binding, config.env, config.scope)
-        unless result == IEx.dont_display_result, do: io_put result
+        unless result == IEx.dont_display_result, do: io_inspect(result)
         update_history(line, code, result)
         %{config | env: env,
                    cache: '',
@@ -136,8 +137,12 @@ defmodule IEx.Evaluator do
                        Application.get_env(:iex, :history_size))
   end
 
-  defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, IEx.inspect_opts))
+  defp io_inspect(result) do
+    io_result inspect(result, IEx.inspect_opts)
+  end
+
+  defp io_result(result) do
+    IO.puts :stdio, IEx.color(:eval_result, result)
   end
 
   defp io_error(result) do
