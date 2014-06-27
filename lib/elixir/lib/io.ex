@@ -248,8 +248,7 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    struct IO.Stream,
-      device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints
+    IO.Stream.__build__(map_dev(device), false, line_or_codepoints)
   end
 
   @doc """
@@ -267,8 +266,7 @@ defmodule IO do
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    struct IO.Stream,
-      device: map_dev(device), raw: true, line_or_bytes: line_or_bytes
+    IO.Stream.__build__(map_dev(device), true, line_or_bytes)
   end
 
   @doc """

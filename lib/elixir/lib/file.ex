@@ -1,157 +1,3 @@
-require Record
-
-defmodule File.Stat do
-  @moduledoc """
-  A struct responsible to hold file information.
-
-  In Erlang, this struct is represented by a `:file_info` record.
-  Therefore this module also provides functions for converting
-  in between the Erlang record and the Elixir struct.
-
-  Its fields are:
-
-    * `size` - size of file in bytes.
-
-    * `type` - `:device | :directory | :regular | :other`; the type of the
-      file.
-
-    * `access` - `:read | :write | :read_write | :none`; the current system
-      access to the file.
-
-    * `atime` - the last time the file was read.
-
-    * `mtime` - the last time the file was written.
-
-    * `ctime` - the interpretation of this time field depends on the operating
-      system. On Unix, it is the last time the file or the inode was changed.
-      In Windows, it is the time of creation.
-
-    * `mode` - the file permissions.
-
-    * `links` - the number of links to this file. This is always 1 for file
-      systems which have no concept of links.
-
-    * `major_device` - identifies the file system where the file is located.
-      In windows, the number indicates a drive as follows: 0 means A:, 1 means
-      B:, and so on.
-
-    * `minor_device` - only valid for character devices on Unix. In all other
-      cases, this field is zero.
-
-    * `inode` - gives the inode number. On non-Unix file systems, this field
-      will be zero.
-
-    * `uid` - indicates the owner of the file.
-
-    * `gid` - gives the group that the owner of the file belongs to. Will be
-      zero for non-Unix file systems.
-
-  The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
-  time type set in options. `{:time, type}` where type can be `:local`,
-  `:universal`, or `:posix`. Default is `:local`.
-  """
-
-  record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
-  keys   = :lists.map(&elem(&1, 0), record)
-  vals   = :lists.map(&{&1, [], nil}, keys)
-  pairs  = :lists.zip(keys, vals)
-
-  defstruct keys
-
-  @doc """
-  Converts a `File.Stat` struct to a `:file_info` record.
-  """
-  def to_record(%File.Stat{unquote_splicing(pairs)}) do
-    {:file_info, unquote_splicing(vals)}
-  end
-
-  @doc """
-  Converts a `:file_info` record into a `File.Stat`.
-  """
-  def from_record({:file_info, unquote_splicing(vals)}) do
-    %File.Stat{unquote_splicing(pairs)}
-  end
-end
-
-defmodule File.Stream do
-  @moduledoc """
-  Defines a `File.Stream` struct returned by `File.stream!/3`.
-
-  The following fields are public:
-
-    * `path`          - the file path
-    * `modes`         - the file modes
-    * `raw`           - a boolean indicating if bin functions should be used
-    * `line_or_bytes` - if reading should read lines or a given amount of bytes
-
-  """
-
-  defstruct path: nil, modes: [], line_or_bytes: :line, raw: true
-
-  defimpl Collectable do
-    def empty(stream) do
-      stream
-    end
-
-    def into(%{path: path, modes: modes, raw: raw} = stream) do
-      modes = for mode <- modes, not mode in [:read], do: mode
-
-      case :file.open(path, [:write|modes]) do
-        {:ok, device} ->
-          {:ok, into(device, stream, raw)}
-        {:error, reason} ->
-          raise File.Error, reason: reason, action: "stream", path: path
-      end
-    end
-
-    defp into(device, stream, raw) do
-      fn
-        :ok, {:cont, x} ->
-          case raw do
-            true  -> IO.binwrite(device, x)
-            false -> IO.write(device, x)
-          end
-        :ok, :done ->
-          :file.close(device)
-          stream
-        :ok, :halt ->
-          :file.close(device)
-      end
-    end
-  end
-
-  defimpl Enumerable do
-    def reduce(%{path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw}, acc, fun) do
-      modes = for mode <- modes, not mode in [:write, :append], do: mode
-
-      start_fun =
-        fn ->
-          case :file.open(path, modes) do
-            {:ok, device}    -> device
-            {:error, reason} ->
-              raise File.Error, reason: reason, action: "stream", path: path
-          end
-        end
-
-      next_fun =
-        case raw do
-          true  -> &IO.each_binstream(&1, line_or_bytes)
-          false -> &IO.each_stream(&1, line_or_bytes)
-        end
-
-      Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
-    end
-
-    def count(_stream) do
-      {:error, __MODULE__}
-    end
-
-    def member?(_stream, _term) do
-      {:error, __MODULE__}
-    end
-  end
-end
-
 defmodule File do
   @moduledoc ~S"""
   This module contains functions to manipulate files.
@@ -224,8 +70,7 @@ defmodule File do
   about such options and other performance considerations.
   """
 
-  alias :file,    as: F
-  alias :filelib, as: FL
+  alias :file, as: F
 
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
@@ -241,7 +86,7 @@ defmodule File do
   """
   @spec regular?(Path.t) :: boolean
   def regular?(path) do
-    FL.is_regular(IO.chardata_to_string(path))
+    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :regular}
   end
 
   @doc """
@@ -249,7 +94,7 @@ defmodule File do
   """
   @spec dir?(Path.t) :: boolean
   def dir?(path) do
-    FL.is_dir(IO.chardata_to_string(path))
+    :elixir_utils.read_file_type(IO.chardata_to_string(path)) == {:ok, :directory}
   end
 
   @doc """
@@ -319,7 +164,31 @@ defmodule File do
   """
   @spec mkdir_p(Path.t) :: :ok | {:error, posix}
   def mkdir_p(path) do
-    FL.ensure_dir(Path.join(path, "."))
+    do_mkdir_p(IO.chardata_to_string(path))
+  end
+
+  defp do_mkdir_p("/") do
+    :ok
+  end
+
+  defp do_mkdir_p(path) do
+    if dir?(path) do
+      :ok
+    else
+      parent = Path.dirname(path)
+      if parent == path do
+        # Protect against infinite loop
+        {:error, :einval}
+      else
+        _ = do_mkdir_p(parent)
+        case :file.make_dir(path) do
+          {:error, :eexist} = error ->
+            if dir?(path), do: :ok, else: error
+          other ->
+            other
+        end
+      end
+    end
   end
 
   @doc """
@@ -636,7 +505,7 @@ defmodule File do
   # src may be a file or a directory, dest is definitely
   # a directory. Returns nil unless an error is found.
   defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
-    case :elixir_utils.file_type(src) do
+    case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
         do_cp_file(src, dest, callback, acc)
       {:ok, :symlink} ->
@@ -922,9 +791,9 @@ defmodule File do
   end
 
   defp safe_list_dir(path) do
-    case :elixir_utils.file_type(path) do
+    case :elixir_utils.read_link_type(path) do
       {:ok, :symlink} ->
-        case :elixir_utils.file_type(path, :read_file_info) do
+        case :elixir_utils.read_file_type(path) do
           {:ok, :directory} -> {:ok, :directory}
           _ -> {:ok, :regular}
         end
@@ -1235,21 +1104,7 @@ defmodule File do
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)
-    raw   = :lists.keyfind(:encoding, 1, modes) == false
-
-    modes =
-      if raw do
-        if :lists.keyfind(:read_ahead, 1, modes) == {:read_ahead, false} do
-          [:raw|modes]
-        else
-          [:raw, :read_ahead|modes]
-        end
-      else
-        modes
-      end
-
-    %File.Stream{path: IO.chardata_to_string(path), modes: modes,
-                 raw: raw, line_or_bytes: line_or_bytes}
+    File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)
   end
 
   @doc """

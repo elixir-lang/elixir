@@ -249,7 +249,7 @@ defmodule Kernel.CLI do
       "-" <> _ ->
         shared_option? list, config, &parse_compiler(&1, &2)
       _ ->
-        pattern = if :filelib.is_dir(h), do: "#{h}/**/*.ex", else: h
+        pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
         parse_compiler t, %{config | compile: [pattern | config.compile]}
     end
   end
@@ -324,7 +324,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:file, file}, _config) when is_binary(file) do
-    if :filelib.is_regular(file) do
+    if File.regular?(file) do
       wrapper fn -> Code.require_file(file) end
     else
       {:error, "No file named #{file}"}
@@ -369,7 +369,7 @@ defmodule Kernel.CLI do
   end
 
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &:filelib.is_regular(&1))
+    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
   end
 
   defp filter_multiple_patterns(patterns) do

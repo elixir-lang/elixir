@@ -70,13 +70,13 @@ defmodule Mix.Archive do
 
   defp files_to_add(path, dir) do
     File.cd! path, fn ->
-      ebin = :filelib.wildcard('ebin/*.{beam,app}')
-      priv = :filelib.wildcard('priv/**/*')
+      ebin = Path.wildcard("ebin/*.{beam,app}")
+      priv = Path.wildcard("priv/**/*")
 
       Enum.reduce ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
           {:ok, bin} ->
-            [{:filename.join(dir, f), bin}|acc]
+            [{Path.join(dir, f) |> String.to_char_list, bin}|acc]
           {:error, _} ->
             acc
         end

@@ -4,7 +4,7 @@
 -export([elixir_to_erl/1, get_line/1, split_last/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
-  file_type/1, file_type/2, relative_to_cwd/1, erl_call/4]).
+  read_file_type/1, read_link_type/1, relative_to_cwd/1, erl_call/4]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -31,11 +31,14 @@ split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> {lists:reverse(Acc), H};
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
-file_type(File) ->
-  file_type(File, read_link_info).
+read_file_type(File) ->
+  case file:read_file_info(File) of
+    {ok, #file_info{type=Type}} -> {ok, Type};
+    {error, _} = Error -> Error
+  end.
 
-file_type(File, Op) ->
-  case file:Op(File) of
+read_link_type(File) ->
+  case file:read_link_info(File) of
     {ok, #file_info{type=Type}} -> {ok, Type};
     {error, _} = Error -> Error
   end.
