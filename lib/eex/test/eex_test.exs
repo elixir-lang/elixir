@@ -2,7 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 require EEx
 
-defmodule EExText.Compiled do
+defmodule EExTest.Compiled do
   def before_compile do
     fill_in_stacktrace
     {__ENV__.line, hd(tl(System.stacktrace))}
@@ -12,6 +12,10 @@ defmodule EExText.Compiled do
 
   filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
   EEx.function_from_file :defp, :private_file_sample, filename, [:bar]
+
+  filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
+  EEx.function_from_file :def, :public_file_sample, filename, [:bar]
+
   def file_sample(arg), do: private_file_sample(arg)
 
   def after_compile do
@@ -319,39 +323,45 @@ foo
     end
   end
 
+  test "sets external resource attribute" do
+    assert EExTest.Compiled.__info__(:attributes)[:external_resource] ==
+           [Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")]
+  end
+
   test "defined from string" do
-    assert EExText.Compiled.string_sample(1, 2) == "3"
+    assert EExTest.Compiled.string_sample(1, 2) == "3"
   end
 
   test "defined from file" do
-    assert EExText.Compiled.file_sample(1) == "foo 1\n"
+    assert EExTest.Compiled.file_sample(1) == "foo 1\n"
+    assert EExTest.Compiled.public_file_sample(1) == "foo 1\n"
   end
 
   test "defined from file do not affect backtrace" do
-    assert EExText.Compiled.before_compile ==
+    assert EExTest.Compiled.before_compile ==
       {8,
-        {EExText.Compiled,
+        {EExTest.Compiled,
           :before_compile,
           0,
           [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 7]
        }
      }
 
-    assert EExText.Compiled.after_compile ==
-      {19,
-        {EExText.Compiled,
+    assert EExTest.Compiled.after_compile ==
+      {23,
+        {EExTest.Compiled,
           :after_compile,
           0,
-          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 18]
+          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 22]
        }
      }
 
-    assert EExText.Compiled.unknown ==
-      {25,
-        {EExText.Compiled,
+    assert EExTest.Compiled.unknown ==
+      {29,
+        {EExTest.Compiled,
           :unknown,
           0,
-          [file: 'unknown', line: 24]
+          [file: 'unknown', line: 28]
        }
      }
   end

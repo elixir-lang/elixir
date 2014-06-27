@@ -247,6 +247,17 @@ defmodule Module do
               @vsn "1.0"
             end
 
+    * `@external_resource`
+
+      Specify an external resource to the current module.
+
+      Many times a module embeds information from an external file. This
+      attribute allows the module to annotate which external resources
+      have been used.
+
+      Tools like Mix may use this information to ensure the module is
+      recompiled in case any of the external resources change.
+
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 

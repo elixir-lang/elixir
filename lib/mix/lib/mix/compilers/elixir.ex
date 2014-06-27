@@ -107,23 +107,17 @@ defmodule Mix.Compilers.Elixir do
            |> Enum.map(&Atom.to_string(&1))
            |> Enum.reject(&match?("elixir_" <> _, &1))
 
-    files = get_beam_files(binary, cwd)
-            |> List.delete(source)
-            |> Enum.filter(&(Path.type(&1) == :relative))
+    files = for file <- get_external_resources(module, cwd),
+                File.regular?(file),
+                relative = Path.relative_to(file, cwd),
+                Path.type(relative) == :relative,
+                do: relative
 
     Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, bin, source, deps, files, binary})
   end
 
-  defp get_beam_files(binary, cwd) do
-    case :beam_lib.chunks(binary, [:abstract_code]) do
-      {:ok, {_, [abstract_code: {:raw_abstract_v1, code}]}} ->
-        for {:attribute, _, :file, {file, _}} <- code,
-            File.exists?(file) do
-          Path.relative_to(file, cwd)
-        end
-      _ ->
-        []
-    end
+  defp get_external_resources(module, cwd) do
+    module.__info__(:attributes)[:external_resource] || []
   end
 
   defp each_file(file) do

@@ -82,7 +82,7 @@ defmodule EEx do
       iex> EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
       "1"
 
-  In other words, <%= @foo %> is simply translated to:
+  In other words, `<%= @foo %>` is simply translated to:
 
       <%= Dict.get assigns, :foo %>
 
@@ -92,6 +92,7 @@ defmodule EEx do
 
   @doc """
   Generates a function definition from the string.
+
   The kind (`:def` or `:defp`) must be given, the
   function name, its arguments and the compilation options.
 
@@ -120,6 +121,7 @@ defmodule EEx do
 
   @doc """
   Generates a function definition from the file contents.
+
   The kind (`:def` or `:defp`) must be given, the
   function name, its arguments and the compilation options.
 
@@ -147,6 +149,7 @@ defmodule EEx do
       args = Enum.map args, fn arg -> {arg, [line: 1], nil} end
       compiled = EEx.compile_file(file, info)
 
+      @external_resource file
       @file file
       case kind do
         :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))

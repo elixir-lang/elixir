@@ -111,7 +111,7 @@ build(Line, File, Module, Lexical) ->
     _    -> ets:insert(DataTable, {on_definition, []})
   end,
 
-  Attributes = [behaviour, on_load, spec, type, typep, opaque, callback, compile],
+  Attributes = [behaviour, on_load, spec, type, typep, opaque, callback, compile, external_resource],
   ets:insert(DataTable, {?acc_attr, [before_compile, after_compile, on_definition, derive|Attributes]}),
   ets:insert(DataTable, {?persisted_attr, [vsn|Attributes]}),
   ets:insert(DataTable, {?docs_attr, ets:new(DataTable, [ordered_set, public])}),
@@ -156,7 +156,7 @@ functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunct
 
 %% Add attributes handling to the form
 
-attributes_form(Line, _File, Module, Current) ->
+attributes_form(Line, File, Module, Current) ->
   Table = data_table(Module),
 
   AccAttrs = ets:lookup_element(Table, '__acc_attributes', 2),
@@ -166,15 +166,30 @@ attributes_form(Line, _File, Module, Current) ->
     case lists:member(Key, PersistedAttrs) of
       false -> Acc;
       true  ->
-        Attrs = case lists:member(Key, AccAttrs) of
-          true  -> Value;
-          false -> [Value]
-        end,
-        lists:foldl(fun(X, Final) -> [{attribute, Line, Key, X}|Final] end, Acc, Attrs)
+        Values =
+          case lists:member(Key, AccAttrs) of
+            true  -> Value;
+            false -> [Value]
+          end,
+
+        lists:foldl(fun(X, Final) ->
+          [{attribute, Line, Key, X}|Final]
+        end, Acc, process_attribute(Line, File, Key, Values))
     end
   end,
 
   ets:foldl(Transform, Current, Table).
+
+process_attribute(Line, File, external_resource, Values) ->
+  lists:usort([process_external_resource(Line, File, Value) || Value <- Values]);
+process_attribute(_Line, _File, _Key, Values) ->
+  Values.
+
+process_external_resource(_Line, _File, Value) when is_binary(Value) ->
+  Value;
+process_external_resource(Line, File, Value) ->
+  elixir_errors:handle_file_error(File,
+    {Line, ?MODULE, {invalid_external_resource, Value}}).
 
 %% Types
 
@@ -463,6 +478,9 @@ prune_stacktrace(Info, []) ->
 
 format_error({invalid_clause, {Name, Arity}}) ->
   io_lib:format("empty clause provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
+format_error({invalid_external_resource, Value}) ->
+  io_lib:format("expected a string value for @external_resource, got: ~p",
+    ['Elixir.Kernel':inspect(Value)]);
 format_error({unused_doc, typedoc}) ->
   "@typedoc provided but no type follows it";
 format_error({unused_doc, doc}) ->
@@ -470,7 +488,7 @@ format_error({unused_doc, doc}) ->
 format_error({internal_function_overridden, {Name, Arity}}) ->
   io_lib:format("function ~ts/~B is internal and should not be overridden", [Name, Arity]);
 format_error({invalid_module, Module}) ->
-  io_lib:format("invalid module name: ~p", [Module]);
+  io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->
   io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
 format_error({module_reserved, Module}) ->
