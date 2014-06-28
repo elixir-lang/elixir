@@ -3,7 +3,11 @@
 ## v0.14.2-dev
 
 * Enhancements
+  * [Enum] Improve performance of `Enum.join/2` and `Enum.map_join/3` by using iolists
+  * [Kernel] Ensure compatibility with Erlang 17.1
+  * [Kernel] Support `@external_resource` attribute to external dependencies to a module
   * [Mix] Allow built Git dependencies to run on a system without Git by passing `--no-deps-check`
+  * [Mix] Add `MIX_ARCHIVES` env variable (it is recommended for Elixir build tools to swap this environment)
   * [Task] Set `:proc_lib` initial call on task to aid debugging
   * [Typespec] Delay typespec compilation to after expansion
   * [URI] Allow `parse/1` now accepts `%URI{}` as argument and return the uri itself
@@ -11,7 +15,10 @@
 * Bug fixes
   * [CLI] Support paths inside archives in -pa and -pz options
   * [IEx] Remove dely when printing data from the an application start callback
+  * [IEx] Ensure we show a consistent error when we cannot evaluate `.iex.exs`
   * [Kernel] Ensure derived protocols are defined with a file
+  * [Kernel] Change precedence of `&` to not special case `/`
+  * [Kernel] Ensure we can only use variables and `\\` as arguments of bodyless clause
 
 * Soft deprecations (no warnings emitted)
   * [EEx] Using `EEx.TransformerEngine` and `EEx.AssignsEngine` are deprecated in favor of function composition with `Macro.prewalk/1` (see `EEx.SmartEngine` for an example)
