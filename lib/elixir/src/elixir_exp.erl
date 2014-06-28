@@ -283,7 +283,7 @@ expand({'_', _, Kind} = Var, E) when is_atom(Kind) ->
 expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
   Pair      = {Name, var_kind(Meta, Kind)},
   NewVars   = ordsets:add_element(Pair, ?m(E, vars)),
-  NewExport = case (Export /= nil) andalso (lists:keyfind(export, 1, Meta) /= {export, false}) of
+  NewExport = case (Export /= nil) of
     true  -> ordsets:add_element(Pair, Export);
     false -> Export
   end,

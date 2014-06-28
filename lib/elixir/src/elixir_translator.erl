@@ -392,7 +392,7 @@ build_truthy_clause(Meta, Condition, Body) ->
     true ->
       {{'->', Meta, [[true], Body]}, false};
     false ->
-      Var  = {'cond', [{export, false}], 'Elixir'},
+      Var  = {'cond', [], 'Elixir'},
       Head = {'when', [], [Var,
         {'__op__', [], [
           'andalso',

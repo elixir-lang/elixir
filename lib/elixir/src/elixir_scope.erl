@@ -27,29 +27,27 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
         true ->
           {{var, Line, Current}, S};
         false ->
-          %% If the variable is not exported, we use a counter name.
-          %% The same if the variable already exists or we are in a
-          %% noname context.
-          Private = (lists:keyfind(export, 1, Meta) == {export, false}),
-
+          %% We attempt to give vars a nice name because we
+          %% still use the unused vars warnings from erl_lint.
+          %%
+          %% Once we move the warning to Elixir compiler, we
+          %% can name vars as _@COUNTER.
           {NewVar, Counter, NS} =
             if
               Kind /= nil ->
                 build_var('_', S);
-              Private orelse Exists orelse S#elixir_scope.noname ->
-                build_var(Name, S);
               true ->
-                {Name, 0, S}
+                build_var(Name, S)
             end,
 
           FS = NS#elixir_scope{
             vars=orddict:store(Tuple, {NewVar, Counter}, Vars),
             match_vars=ordsets:add_element(Tuple, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
-              EV when Private; EV == nil -> EV;
-              EV -> orddict:store(Tuple, {NewVar, Counter}, EV)
+              nil -> nil;
+              EV  -> orddict:store(Tuple, {NewVar, Counter}, EV)
             end
-         },
+          },
 
           {{var, Line, NewVar}, FS}
       end;

@@ -79,7 +79,7 @@ do_clauses(Meta, DecoupledClauses, Return, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, VAcc}) ->
-    {TX, TS} = each_clause(X, Return, SAcc),
+    {TX, TS} = each_clause(Meta, X, Return, SAcc),
     {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
   end,
 
@@ -139,14 +139,26 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause({match, Meta, [Condition], Expr}, Return, S) ->
+each_clause(Export, {match, Meta, [Condition], Expr}, Return, S) ->
+  Fun = wrap_export_fun(Export, fun elixir_translator:translate_args/2),
   {Arg, Guards} = extract_guards(Condition),
-  clause(?line(Meta), fun elixir_translator:translate_args/2, [Arg], Expr, Guards, Return, S);
+  clause(?line(Meta), Fun, [Arg], Expr, Guards, Return, S);
 
-each_clause({expr, Meta, [Condition], Expr}, Return, S) ->
-  {TCondition, SC} = elixir_translator:translate(Condition, S),
+each_clause(Export, {expr, Meta, [Condition], Expr}, Return, S) ->
+  {TCondition, SC} = (wrap_export_fun(Export, fun elixir_translator:translate/2))(Condition, S),
   {TExpr, SB} = elixir_translator:translate_block(Expr, Return, SC),
   {{clause, ?line(Meta), [TCondition], [], unblock(TExpr)}, SB}.
+
+wrap_export_fun(Meta, Fun) ->
+  case lists:keyfind(export_head, 1, Meta) of
+    {export_head, true} ->
+      Fun;
+    _ ->
+      fun(Args, S) ->
+        {TArgs, TS} = Fun(Args, S),
+        {TArgs, TS#elixir_scope{export_vars = S#elixir_scope.export_vars}}
+      end
+  end.
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
@@ -176,7 +188,7 @@ normalize_vars(Key, Value, #elixir_scope{vars=Vars,export_vars=ClauseVars} = S) 
   VS = S#elixir_scope{
     vars=orddict:store(Key, Value, Vars),
     export_vars=orddict:store(Key, Value, ClauseVars)
- },
+  },
 
   Expr = case orddict:find(Key, Vars) of
     {ok, {PreValue, _}} -> {var, 0, PreValue};

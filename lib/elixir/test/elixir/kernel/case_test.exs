@@ -37,6 +37,17 @@ defmodule Kernel.CaseTest do
     refute 1.0 in [1, 2, 3], "not in assertion"
   end
 
+  test :in_cond_clause do
+    assert (cond do
+      format() && (f = format()) ->
+        f
+      true ->
+        :text
+    end) == :html
+  end
+
+  defp format, do: :html
+
   defp vars_case(x, vx) do
     case x > 400 do
       true ->

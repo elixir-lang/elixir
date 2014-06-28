@@ -171,17 +171,6 @@ normalize_rescue(Other) ->
 
 %% Expansion helpers
 
-export_vars({Left, Meta, Right}) when is_atom(Left), is_list(Meta), is_atom(Right) ->
-  {Left, [{export,false}|Meta], Right};
-export_vars({Left, Meta, Right}) ->
-  {export_vars(Left), Meta, export_vars(Right)};
-export_vars({Left, Right}) ->
-  {export_vars(Left), export_vars(Right)};
-export_vars(List) when is_list(List) ->
-  [export_vars(X) || X <- List];
-export_vars(Other) ->
-  Other.
-
 %% Returns a function that expands arguments
 %% considering we have at maximum one entry.
 expand_one(Meta, Kind, Key, Fun) ->
@@ -197,8 +186,13 @@ expand_one(Meta, Kind, Key, Fun) ->
 expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses) ->
   EFun =
     case lists:keyfind(export_head, 1, Meta) of
-      {export_head, true} -> Fun;
-      _ -> fun(ExportArgs, ExportE) -> Fun(export_vars(ExportArgs), ExportE) end
+      {export_head, true} ->
+        Fun;
+      _ ->
+        fun(Args, #{export_vars := ExportVars} = EE) ->
+          {FArgs, FE} = Fun(Args, EE),
+          {FArgs, FE#{export_vars := ExportVars}}
+        end
     end,
   Transformer = fun(Clause, Vars) ->
     {EClause, EC} = clause(Meta, Kind, EFun, Clause, E),

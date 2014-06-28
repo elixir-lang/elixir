@@ -168,16 +168,8 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
 
   Body == nil andalso check_args_for_bodyless_clause(Line, EArgs, E),
 
-  %% Macros receive a special argument on invocation. Notice it does
-  %% not affect the arity of the stored function, but the clause
-  %% already contains it.
-  EAllArgs = case is_macro(Kind) of
-    true  -> [{'_@CALLER', [{line,Line}], nil}|EArgs];
-    false -> EArgs
-  end,
-
   S = elixir_env:env_to_scope(E),
-  {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EAllArgs, S),
+  {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
   {Clauses, Super} = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
 
   run_on_definition_callbacks(Kind, Line, Module, Name, EArgs, EGuards, EBody, E),
@@ -192,22 +184,30 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   {TClause, TS} = elixir_clauses:clause(Line,
     fun elixir_translator:translate_args/2, Args, Body, Guards, true, S),
 
-  %% Set __CALLER__ if used
-  FClause = case is_macro(Kind) andalso TS#elixir_scope.caller of
-    true  ->
-      FBody = {'match', Line,
-        {'var', Line, '__CALLER__'},
-        elixir_utils:erl_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
-     },
-      setelement(5, TClause, [FBody|element(5, TClause)]);
-    false -> TClause
+  FClause = case is_macro(Kind) of
+    true ->
+      FArgs = {var, Line, '_@CALLER'},
+      MClause = setelement(3, TClause, [FArgs|element(3, TClause)]),
+
+      case TS#elixir_scope.caller of
+        true  ->
+          FBody = {'match', Line,
+            {'var', Line, '__CALLER__'},
+            elixir_utils:erl_call(Line, elixir_env, linify, [{var, Line, '_@CALLER'}])
+          },
+          setelement(5, MClause, [FBody|element(5, TClause)]);
+        false ->
+          MClause
+      end;
+    false ->
+      TClause
   end,
 
   {[FClause], TS#elixir_scope.super}.
 
-expr_from_body(_Line, nil)            -> nil;
+expr_from_body(_Line, nil)          -> nil;
 expr_from_body(_Line, [{do, Expr}]) -> Expr;
-expr_from_body(Line, Else)            -> {'try', [{line,Line}], [Else]}.
+expr_from_body(Line, Else)          -> {'try', [{line,Line}], [Else]}.
 
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
