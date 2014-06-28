@@ -937,13 +937,13 @@ defmodule Enum do
 
   def join(collection, joiner) when is_binary(joiner) do
     reduced = reduce(collection, :first, fn
-      entry, :first  -> [enum_to_string(entry)]
-      entry, acc -> [enum_to_string(entry), joiner|acc]
+      entry, :first -> enum_to_string(entry)
+      entry, acc -> [acc, joiner|enum_to_string(entry)]
     end)
     if reduced == :first do
       ""
     else
-      IO.chardata_to_string :lists.reverse(reduced)
+      IO.chardata_to_string reduced
     end
   end
 
@@ -996,14 +996,14 @@ defmodule Enum do
 
   def map_join(collection, joiner, mapper) when is_binary(joiner) do
     reduced = reduce(collection, :first, fn
-      entry, :first -> [enum_to_string(mapper.(entry))]
-      entry, acc    -> [enum_to_string(mapper.(entry)), joiner|acc]
+      entry, :first -> enum_to_string(mapper.(entry))
+      entry, acc    -> [acc, joiner|enum_to_string(mapper.(entry))]
     end)
 
     if reduced == :first do
       ""
     else
-      IO.chardata_to_string :lists.reverse(reduced)
+      IO.chardata_to_string reduced
     end
   end
 
