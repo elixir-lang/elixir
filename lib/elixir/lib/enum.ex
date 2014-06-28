@@ -943,7 +943,7 @@ defmodule Enum do
     if reduced == :first do
       ""
     else
-      IO.chardata_to_string reduced
+      IO.iodata_to_binary reduced
     end
   end
 
@@ -1003,7 +1003,7 @@ defmodule Enum do
     if reduced == :first do
       ""
     else
-      IO.chardata_to_string reduced
+      IO.iodata_to_binary reduced
     end
   end
 
