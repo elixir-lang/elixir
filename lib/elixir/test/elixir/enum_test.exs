@@ -280,6 +280,42 @@ defmodule EnumTest.List do
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
   end
 
+  test :sort_by do
+    assert Enum.sort_by(
+        [
+         [other_data: 1, sorted_data: 5],
+         [other_data: 3, sorted_data: 4],
+         [other_data: 4, sorted_data: 3],
+         [other_data: 2, sorted_data: 2],
+         [other_data: 5, sorted_data: 1]
+        ],
+        &(&1[:sorted_data])
+      ) == [
+        [other_data: 5, sorted_data: 1],
+        [other_data: 2, sorted_data: 2],
+        [other_data: 4, sorted_data: 3],
+        [other_data: 3, sorted_data: 4],
+        [other_data: 1, sorted_data: 5]
+      ]
+    assert Enum.sort_by(
+        [
+         [other_data: 1, sorted_data: 5],
+         [other_data: 3, sorted_data: 4],
+         [other_data: 4, sorted_data: 3],
+         [other_data: 2, sorted_data: 2],
+         [other_data: 5, sorted_data: 1]
+        ],
+        &(&1[:sorted_data]),
+        &>=/2
+      ) == [
+       [other_data: 1, sorted_data: 5],
+       [other_data: 3, sorted_data: 4],
+       [other_data: 4, sorted_data: 3],
+       [other_data: 2, sorted_data: 2],
+       [other_data: 5, sorted_data: 1]
+      ]
+  end
+
   test :split do
     assert Enum.split([1, 2, 3], 0) == {[], [1, 2, 3]}
     assert Enum.split([1, 2, 3], 1) == {[1], [2, 3]}
