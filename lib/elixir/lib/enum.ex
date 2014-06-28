@@ -1568,6 +1568,13 @@ defmodule Enum do
     reduce(collection, [], &sort_reducer(&1, &2, fun)) |> sort_terminator(fun)
   end
 
+  def sort_by(collection, mapper, sorter \\ &<=/2) do
+    collection 
+    |> map(&{ &1, mapper.(&1) })
+    |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
+    |> map(&elem(&1, 0))
+  end
+
   @doc """
   Splits the enumerable into two collections, leaving `count`
   elements in the first one. If `count` is a negative number,
