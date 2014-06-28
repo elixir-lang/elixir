@@ -6,8 +6,10 @@
 -define(at_op(T),
   T == $@).
 
+-define(capture_op(T),
+  T == $&).
+
 -define(unary_op(T),
-  T == $&;
   T == $!;
   T == $^).
 
@@ -294,7 +296,7 @@ tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
     ?match_op(T); ?pipe_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T])}|Tokens]);
 
@@ -385,6 +387,9 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?stab_op(T1, T2) ->
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?at_op(T) ->
   handle_unary_op(Rest, Line, at_op, list_to_atom([T]), Scope, Tokens);
+
+tokenize([T|Rest], Line, Scope, Tokens) when ?capture_op(T) ->
+  handle_unary_op(Rest, Line, capture_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
   handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
@@ -549,7 +554,7 @@ handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
 
 % ## Single Token Operators
 handle_dot([$.,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
+    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
     ?match_op(T); ?pipe_op(T); T == $% ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 

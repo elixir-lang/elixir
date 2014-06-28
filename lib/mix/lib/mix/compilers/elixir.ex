@@ -107,7 +107,7 @@ defmodule Mix.Compilers.Elixir do
            |> Enum.map(&Atom.to_string(&1))
            |> Enum.reject(&match?("elixir_" <> _, &1))
 
-    files = for file <- get_external_resources(module, cwd),
+    files = for file <- get_external_resources(module),
                 File.regular?(file),
                 relative = Path.relative_to(file, cwd),
                 Path.type(relative) == :relative,
@@ -116,7 +116,7 @@ defmodule Mix.Compilers.Elixir do
     Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, bin, source, deps, files, binary})
   end
 
-  defp get_external_resources(module, cwd) do
+  defp get_external_resources(module) do
     module.__info__(:attributes)[:external_resource] || []
   end
 

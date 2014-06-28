@@ -3,7 +3,7 @@ Nonterminals
   expr container_expr block_expr no_parens_expr no_parens_one_expr access_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
   op_expr matched_op_expr no_parens_op_expr
-  comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol
+  comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   add_op_eol mult_op_eol exp_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol type_op_eol
   open_paren close_paren empty_paren
@@ -29,7 +29,7 @@ Terminals
   number signed_number atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op type_op
-  dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op assoc_op
+  dual_op add_op mult_op exp_op two_op pipe_op stab_op when_op assoc_op capture_op
   'true' 'false' 'nil' 'do' eol ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   .
@@ -45,6 +45,7 @@ Expect 2.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
+Nonassoc  30 capture_op_eol.  %% &
 Left      40 in_match_op_eol. %% <-, \\ (allowed in matches along =)
 Right     50 when_op_eol.     %% when
 Right     60 type_op_eol.     %% ::
@@ -60,7 +61,7 @@ Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% + (op), - (op)
 Left     220 mult_op_eol.     %% * (op), / (op)
 Left     250 exp_op_eol.      %% ^ (op) (e.g ^^^)
-Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, &, ~~~
+Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.          %% .
 Nonassoc 320 at_op_eol.       %% @
@@ -112,6 +113,8 @@ matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
+matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
+matched_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> access_expr : '$1'.
 
@@ -123,6 +126,7 @@ unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', elemen
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
+unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
@@ -189,7 +193,9 @@ no_parens_one_expr -> dot_identifier : build_identifier('$1', nil).
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
+access_expr -> at_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
+access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(reverse('$2'))).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> number : ?exprs('$1').
@@ -312,6 +318,9 @@ two_op_eol -> two_op eol : '$1'.
 
 pipe_op_eol -> pipe_op : '$1'.
 pipe_op_eol -> pipe_op eol : '$1'.
+
+capture_op_eol -> capture_op : '$1'.
+capture_op_eol -> capture_op eol : '$1'.
 
 unary_op_eol -> unary_op : '$1'.
 unary_op_eol -> unary_op eol : '$1'.
@@ -531,12 +540,6 @@ meta(Line) when is_integer(Line) -> [{line,Line}];
 meta(Node) -> meta(?line(Node)).
 
 %% Operators
-
-build_op({_Kind, Line, '/'}, {'&', _, [{Kind, _, Atom} = Left]}, Right) when is_number(Right), is_atom(Atom), is_atom(Kind) ->
-  {'&', meta(Line), [{'/', meta(Line), [Left, Right]}]};
-
-build_op({_Kind, Line, '/'}, {'&', _, [{{'.', _, [_, _]}, _, []} = Left]}, Right) when is_number(Right) ->
-  {'&', meta(Line), [{'/', meta(Line), [Left, Right]}]};
 
 build_op({_Kind, Line, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
   {UOp, meta(Line), [{'in', meta(Line), [Left, Right]}]};
