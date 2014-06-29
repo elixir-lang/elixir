@@ -281,14 +281,16 @@ defmodule EnumTest.List do
   end
 
   test :sort_by do
+    collection = [
+      [other_data: 1, sorted_data: 5],
+      [other_data: 3, sorted_data: 4],
+      [other_data: 4, sorted_data: 3],
+      [other_data: 2, sorted_data: 2],
+      [other_data: 5, sorted_data: 1]
+    ]
+
     assert Enum.sort_by(
-        [
-         [other_data: 1, sorted_data: 5],
-         [other_data: 3, sorted_data: 4],
-         [other_data: 4, sorted_data: 3],
-         [other_data: 2, sorted_data: 2],
-         [other_data: 5, sorted_data: 1]
-        ],
+        collection,
         &(&1[:sorted_data])
       ) == [
         [other_data: 5, sorted_data: 1],
@@ -297,23 +299,7 @@ defmodule EnumTest.List do
         [other_data: 3, sorted_data: 4],
         [other_data: 1, sorted_data: 5]
       ]
-    assert Enum.sort_by(
-        [
-         [other_data: 1, sorted_data: 5],
-         [other_data: 3, sorted_data: 4],
-         [other_data: 4, sorted_data: 3],
-         [other_data: 2, sorted_data: 2],
-         [other_data: 5, sorted_data: 1]
-        ],
-        &(&1[:sorted_data]),
-        &>=/2
-      ) == [
-       [other_data: 1, sorted_data: 5],
-       [other_data: 3, sorted_data: 4],
-       [other_data: 4, sorted_data: 3],
-       [other_data: 2, sorted_data: 2],
-       [other_data: 5, sorted_data: 1]
-      ]
+    assert Enum.sort_by(collection, &(&1[:sorted_data]), &>=/2) == collection
   end
 
   test :split do
