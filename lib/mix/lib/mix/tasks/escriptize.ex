@@ -175,20 +175,8 @@ defmodule Mix.Tasks.Escriptize do
     end
   end
 
-  defp build_comment("%%" <> user_comment) do
-    IO.puts :stderr, "Including the '%%' marker as part of :comment value " <>
-                     "is deprecated. Pass a string with just the comment."
-    build_comment(user_comment)
-  end
-
   defp build_comment(user_comment) do
     "%% #{user_comment}\n"
-  end
-
-  defp build_emu_args("%%!" <> user_args, escript_mod) do
-    IO.puts :stderr, "Including the '%%!' marker as part of :emu_args value " <>
-                     "is deprecated. Pass a string with just arguments."
-    build_emu_args(user_args, escript_mod)
   end
 
   defp build_emu_args(user_args, escript_mod) do

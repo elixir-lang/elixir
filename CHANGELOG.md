@@ -34,6 +34,7 @@
 
 * Soft deprecations (no warnings emitted)
   * [EEx] Using `EEx.TransformerEngine` and `EEx.AssignsEngine` are deprecated in favor of function composition with `Macro.prewalk/1` (see `EEx.SmartEngine` for an example)
+  * [Kernel] `Kernel.xor/2` is deprecated
   * [Mix] `Mix.Generator.from_file/1` is deprecated in favor of passing `from_file: file` option to `embed_text/2` and `embed_template/2` (note though that `from_file/1` expects a path relative to the current file while the `from_file: file` expects one relative to the current working directory)
 
 * Deprecations

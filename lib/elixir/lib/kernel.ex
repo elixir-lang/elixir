@@ -526,11 +526,6 @@ defmodule Kernel do
     :erlang.self()
   end
 
-  @doc false
-  def size(arg) do
-    :erlang.size(arg)
-  end
-
   @doc """
   Spawns the given function and returns its pid.
 
@@ -843,22 +838,7 @@ defmodule Kernel do
     :erlang.--(left, right)
   end
 
-  @doc """
-  Boolean exclusive-or. Arguments must be booleans.
-  Returns `true` if and only if both arguments are different.
-
-  Allowed in guard tests. Inlined by the compiler.
-
-  ## Examples
-
-      iex> true xor false
-      true
-
-      iex> true xor true
-      false
-
-  """
-  @spec (boolean xor boolean) :: boolean
+  @doc false
   def left xor right do
     :erlang.xor(left, right)
   end

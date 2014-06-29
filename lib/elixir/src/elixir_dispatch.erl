@@ -148,16 +148,9 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
 
-      %% DEPRECATED
-      case {Receiver, Name, Arity} of
-        {?kernel, size, 1} ->
-          check_deprecation(Meta, Receiver, Name, Arity, E),
-          {ok, erlang, size, Args};
-        _ ->
-          case rewrite(Receiver, Name, Args, Arity) of
-            {ok, _, _, _} = Res -> Res;
-            false -> {ok, Receiver, Name, Args}
-          end
+      case rewrite(Receiver, Name, Args, Arity) of
+        {ok, _, _, _} = Res -> Res;
+        false -> {ok, Receiver, Name, Args}
       end;
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
@@ -407,7 +400,6 @@ inline(?kernel, '*', 2) -> {erlang, '*'};
 inline(?kernel, '/', 2) -> {erlang, '/'};
 inline(?kernel, '++', 2) -> {erlang, '++'};
 inline(?kernel, '--', 2) -> {erlang, '--'};
-inline(?kernel, 'xor', 2) -> {erlang, 'xor'};
 inline(?kernel, 'not', 1) -> {erlang, 'not'};
 inline(?kernel, '<', 2) -> {erlang, '<'};
 inline(?kernel, '>', 2) -> {erlang, '>'};
@@ -515,16 +507,15 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
-deprecation('Elixir.Kernel', 'size', 1) ->
-  "use byte_size/1 or tuple_size/1 instead";
-% deprecation('Elixir.Mix.Generator', 'from_file', _) ->
-%   "instead pass [from_file: file] to embed_text/2 and embed_template/2 macros. "
-%   "Note that [from_file: file] expects paths relative to the current working "
-%   "directory and not to the current file";
-% deprecation('Elixir.EEx.TransformerEngine', '__using__', _) ->
-%   "check EEx.SmartEngine for how to build custom engines";
-% deprecation('Elixir.EEx.AssignsEngine', '__using__', _) ->
-%   "check EEx.SmartEngine for how to build custom engines";
-
+deprecation('Elixir.Mix.Generator', 'from_file', _) ->
+  "instead pass [from_file: file] to embed_text/2 and embed_template/2 macros. "
+  "Note that [from_file: file] expects paths relative to the current working "
+  "directory and not to the current file";
+deprecation('Elixir.EEx.TransformerEngine', '__using__', _) ->
+  "check EEx.SmartEngine for how to build custom engines";
+deprecation('Elixir.EEx.AssignsEngine', '__using__', _) ->
+  "check EEx.SmartEngine for how to build custom engines";
+deprecation('Elixir.Kernel', 'xor', _) ->
+  true; %% Remember to remove xor operator from tokenizer
 deprecation(_, _, _) ->
   false.

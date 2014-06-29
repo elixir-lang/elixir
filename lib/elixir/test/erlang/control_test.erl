@@ -161,22 +161,6 @@ integer_and_float_test() ->
   {false,_} = eval("1 === 1.0"),
   {true,_} = eval("1 !== 1.0").
 
-xor_test() ->
-  F = fun() ->
-    eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {false, _} = eval("true xor true"),
-    {true, _} = eval("true xor false"),
-    {true, _} = eval("false xor true"),
-    {false, _} = eval("false xor false"),
-    {false, _} = eval("Bar.foo xor Bar.foo"),
-    {true, _} = eval("Bar.foo xor Bar.bar"),
-    {false, _} = eval("Bar.bar xor Bar.bar"),
-    {true, _} = eval("Bar.bar xor Bar.baz 1"),
-    {false, _} = eval("Bar.bar xor Bar.baz 2"),
-    ?assertError(badarg, eval("1 xor 2"))
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Bar']).
-
 and_test() ->
   F = fun() ->
     eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
