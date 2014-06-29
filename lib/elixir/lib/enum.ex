@@ -1603,7 +1603,7 @@ defmodule Enum do
   @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) :: list when mapped_element: element
   def sort_by(collection, mapper, sorter \\ &<=/2) do
     collection 
-    |> map(&{ &1, mapper.(&1) })
+    |> map(&{&1, mapper.(&1)})
     |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
     |> map(&elem(&1, 0))
   end
