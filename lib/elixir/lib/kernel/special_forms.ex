@@ -213,7 +213,7 @@ defmodule Kernel.SpecialForms do
   is an arbitrary series of bits. A binary is a special case of
   bitstring that has a total size divisible by 8.
 
-  The utf8, utf16, and utf32 types are for UTF code points. They
+  The utf8, utf16, and utf32 types are for unicode codepoints. They
   can also be applied to literal strings and char lists:
 
       iex> <<"foo" :: utf16>>
@@ -223,8 +223,8 @@ defmodule Kernel.SpecialForms do
   alias for binary.
 
   The signedness can also be given as signed or unsigned. The
-  signedness only matters for matching. If unspecified, it
-  defaults to unsigned. Example:
+  signedness only matters for matching and relevant only for
+  integers. If unspecified, it defaults to unsigned. Example:
 
       iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
       <<156,102,111,111>>
@@ -240,8 +240,6 @@ defmodule Kernel.SpecialForms do
       156
 
   Here, `val` is interpreted as unsigned.
-
-  Signedness is only relevant on integers.
 
   The endianness of a segment can be big, little or native (the
   latter meaning it will be resolved at VM load time). Passing
@@ -260,31 +258,33 @@ defmodule Kernel.SpecialForms do
 
   Finally, we can also specify size and unit for each segment. The
   unit is multiplied by the size to give the effective size of
-  the segment:
+  the segment in bits. The default unit for integers, floats,
+  and bitstrings is 1. For binaries, it is 8.
 
-      iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
-      "foo"
+  Since integers are default, the default unit is 1. The example below
+  matches because the string "foo" takes 24 bits and we match it
+  against a segment of 24 bits, 8 of which are taken by the integer
+  102 and the remaining 16 bits are specified on the rest.
 
       iex> <<102, _rest :: size(16)>> = "foo"
       "foo"
 
+  We can also match by specifying size and unit explicitly:
+
+      iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
+      "foo"
+
+  However, if we expect a size of 32, it won't match:
+
       iex> <<102, _rest :: size(32)>> = "foo"
       ** (MatchError) no match of right hand side value: "foo"
-
-  In the example above, the first two expressions matches
-  because the string "foo" takes 24 bits and we are matching
-  against a segment of 24 bits as well, 8 of which are taken by
-  the integer 102 and the remaining 16 bits are specified on
-  the rest. On the last example, we expect a rest with size 32,
-  which won't match.
 
   Size and unit are not applicable to utf8, utf16, and utf32.
 
   The default size for integers is 8. For floats, it is 64. For
   binaries, it is the size of the binary. Only the last binary
   in a binary match can use the default size (all others must
-  have their size specified explicitly). Bitstrings do not have
-  a default size.
+  have their size specified explicitly).
 
   Size can also be specified using a syntax shortcut. Instead of
   writing `size(8)`, one can write just `8` and it will be interpreted
@@ -293,10 +293,7 @@ defmodule Kernel.SpecialForms do
       iex> << 1 :: 3 >> == << 1 :: size(3) >>
       true
 
-  The default unit for integers, floats, and bitstrings is 1. For
-  binaries, it is 8.
-
-  For floats, unit * size must result in 32 or 64, corresponding
+  For floats, `size * unit` must result in 32 or 64, corresponding
   to binary32 and binary64, respectively.
   """
   defmacro unquote(:<<>>)(args)
