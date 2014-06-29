@@ -16,7 +16,7 @@
 -define(unary_op3(T1, T2, T3),
   T1 == $~, T2 == $~, T3 == $~).
 
--define(exp_op3(T1, T2, T3),
+-define(hat_op3(T1, T2, T3),
   T1 == $^, T2 == $^, T3 == $^).
 
 -define(two_op(T1, T2),
@@ -38,16 +38,18 @@
 -define(arrow_op(T1, T2),
   T1 == $|, T2 == $>).
 
--define(comp_op(T),
+-define(rel_op(T),
   T == $<;
   T == $>).
+
+-define(rel_op2(T1, T2),
+  T1 == $<, T2 == $=;
+  T1 == $>, T2 == $=).
 
 -define(comp_op2(T1, T2),
   T1 == $=, T2 == $=;
   T1 == $=, T2 == $~;
-  T1 == $!, T2 == $=;
-  T1 == $<, T2 == $=;
-  T1 == $>, T2 == $=).
+  T1 == $!, T2 == $=).
 
 -define(comp_op3(T1, T2, T3),
   T1 == $=, T2 == $=, T3 == $=;
@@ -285,19 +287,20 @@ tokenize("{}:" ++ Rest, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
   tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T1,T2,T3])}|Tokens]);
 
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
+    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
+    ?type_op(T1, T2) ->
   tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T1,T2])}|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?pipe_op(T); T == $. ->
+    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
+    ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $. ->
   tokenize(Rest, Line, Scope, [{atom, Line, list_to_atom([T])}|Tokens]);
 
 % End of line
@@ -345,8 +348,8 @@ tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
 tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, arrow_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
-tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?exp_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, exp_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
+tokenize([T1,T2,T3|Rest], Line, Scope, Tokens) when ?hat_op3(T1, T2, T3) ->
+  handle_op(Rest, Line, hat_op, list_to_atom([T1,T2,T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
 tokenize([T,T|Rest], Line, Scope, Tokens) when T == $<; T == $> ->
@@ -367,6 +370,9 @@ tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?arrow_op(T1, T2) ->
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?comp_op2(T1, T2) ->
   handle_op(Rest, Line, comp_op, list_to_atom([T1, T2]), Scope, Tokens);
+
+tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?rel_op2(T1, T2) ->
+  handle_op(Rest, Line, rel_op, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1,T2|Rest], Line, Scope, Tokens) when ?and_op(T1, T2) ->
   handle_op(Rest, Line, and_op, list_to_atom([T1, T2]), Scope, Tokens);
@@ -394,8 +400,8 @@ tokenize([T|Rest], Line, Scope, Tokens) when ?capture_op(T) ->
 tokenize([T|Rest], Line, Scope, Tokens) when ?unary_op(T) ->
   handle_unary_op(Rest, Line, unary_op, list_to_atom([T]), Scope, Tokens);
 
-tokenize([T|Rest], Line, Scope, Tokens) when ?comp_op(T) ->
-  handle_op(Rest, Line, comp_op, list_to_atom([T]), Scope, Tokens);
+tokenize([T|Rest], Line, Scope, Tokens) when ?rel_op(T) ->
+  handle_op(Rest, Line, rel_op, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?dual_op(T) ->
   handle_unary_op(Rest, Line, dual_op, list_to_atom([T]), Scope, Tokens);
@@ -543,19 +549,20 @@ handle_op(Rest, Line, Kind, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$.,T1,T2,T3|Rest], Line, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?exp_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
 handle_dot([$.,T1,T2|Rest], Line, Scope, Tokens) when
-    ?comp_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2); ?arrow_op(T1, T2);
-    ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
+    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
+    ?type_op(T1, T2) ->
   handle_call_identifier(Rest, Line, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 handle_dot([$.,T|Rest], Line, Scope, Tokens) when
-    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T); ?comp_op(T);
-    ?match_op(T); ?pipe_op(T); T == $% ->
+    ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
+    ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $% ->
   handle_call_identifier(Rest, Line, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser

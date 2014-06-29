@@ -5,6 +5,8 @@
 * Enhancements
 
 * Bug fixes
+  * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
+  * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison ones (`==`, `!=`, etc) in operator table
 
 * Soft deprecations (no warnings emitted)
 

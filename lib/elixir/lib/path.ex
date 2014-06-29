@@ -184,7 +184,7 @@ defmodule Path do
   def relative(name) do
     case :os.type() do
       {:win32, _} -> win32_pathtype(name)
-      _             -> unix_pathtype(name)
+      _           -> unix_pathtype(name)
     end |> elem(1) |> IO.chardata_to_string
   end
 

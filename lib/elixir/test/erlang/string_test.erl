@@ -59,7 +59,7 @@ extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_tes
 
 extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
-   {1,[{number,1,1},{comp_op,1,'<'},{number,1,2}]},
+   {1,[{number,1,1},{rel_op,1,'<'},{number,1,2}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->

@@ -30,20 +30,22 @@ defmodule Macro do
   @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
   defp binary_op_props(o) do
     case o do
-      o when o in [:<-, :\\, :::]                               -> {:left,  40}
-      :|                                                        -> {:right, 50}
-      :when                                                     -> {:right, 70}
-      :=                                                        -> {:right, 80}
-      o when o in [:||, :|||, :or, :xor]                        -> {:left, 130}
-      o when o in [:&&, :&&&, :and]                             -> {:left, 140}
-      o when o in [:==, :!=, :<, :<=, :>=, :>, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:|>, :<<<, :>>>]                             -> {:right, 160}
-      :in                                                       -> {:left, 170}
-      o when o in [:++, :--, :.., :<>]                          -> {:right, 200}
-      o when o in [:+, :-]                                      -> {:left, 210}
-      o when o in [:*, :/]                                      -> {:left, 220}
-      :^^^                                                      -> {:left, 250}
-      :.                                                        -> {:left, 310}
+      o when o in [:<-, :\\]                  -> {:left,  40}
+      :when                                   -> {:right, 50}
+      :::                                     -> {:right, 60}
+      :|                                      -> {:right, 70}
+      :=                                      -> {:right, 90}
+      o when o in [:||, :|||, :or, :xor]      -> {:left, 130}
+      o when o in [:&&, :&&&, :and]           -> {:left, 140}
+      o when o in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
+      o when o in [:<, :<=, :>=, :>]          -> {:left, 160}
+      o when o in [:|>, :<<<, :>>>]           -> {:left, 170}
+      :in                                     -> {:left, 180}
+      o when o in [:++, :--, :.., :<>]        -> {:right, 200}
+      o when o in [:+, :-]                    -> {:left, 210}
+      o when o in [:*, :/]                    -> {:left, 220}
+      :^^^                                    -> {:left, 250}
+      :.                                      -> {:left, 310}
     end
   end
 
@@ -53,12 +55,16 @@ defmodule Macro do
   Raises if the pipeline is ill-formed.
   """
   @spec unpipe(Macro.t) :: [Macro.t]
-  def unpipe({:|> , _, [left, right]}) do
-    [{left, 0}|unpipe(right)]
+  def unpipe(expr) do
+    :lists.reverse(unpipe(expr, []))
   end
 
-  def unpipe(other) do
-    [{other, 0}]
+  defp unpipe({:|>, _, [left, right]}, acc) do
+    unpipe(right, unpipe(left, acc))
+  end
+
+  defp unpipe(other, acc) do
+    [{other, 0}|acc]
   end
 
   @doc """
