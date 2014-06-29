@@ -1569,16 +1569,16 @@ defmodule Enum do
   end
 
   @doc """
-  Sorts the collection by a map of its elements using the given `sorter` function.
+  Sorts the mapped results of the `collection` according to the `sorter` function.
 
   This function maps each element of the collection using the `mapper`
   function.  The collection is then sorted by the mapped elements using the
   `sorter` function, which defaults to `<=/2`
 
-  `sort_by/3` differs from `sort/1` and `sort/2` in that it only calculates
-  the comparison value for each element in the collection once instead of
-  once for each element in each comparison.  If the same function is being
-  called on both element, it's also more compact to use `sort_by/3`.
+  `sort_by/3` differs from `sort/2` in that it only calculates the comparison
+  value for each element in the collection once instead of once for each
+  element in each comparison.  If the same function is being called on both
+  element, it's also more compact to use `sort_by/3`.
 
   This technique is also known as a
   [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform),
