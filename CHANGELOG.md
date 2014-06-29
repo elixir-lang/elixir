@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.14.2-dev
+## v0.14.2
 
 * Enhancements
   * [Enum] Improve performance of `Enum.join/2` and `Enum.map_join/3` by using iolists
@@ -13,7 +13,7 @@
   * [URI] Allow `parse/1` now accepts `%URI{}` as argument and return the uri itself
 
 * Bug fixes
-  * [CLI] Support paths inside archives in -pa and -pz options
+  * [CLI] Support paths inside archives in `-pa` and `-pz` options
   * [IEx] Remove dely when printing data from the an application start callback
   * [IEx] Ensure we show a consistent error when we cannot evaluate `.iex.exs`
   * [Kernel] Ensure derived protocols are defined with a file
