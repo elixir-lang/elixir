@@ -26,7 +26,7 @@
 
 * Bug fixes
   * [CLI] Support paths inside archives in `-pa` and `-pz` options
-  * [IEx] Remove dely when printing data from the an application start callback
+  * [IEx] Remove delay when printing data from the an application start callback
   * [IEx] Ensure we show a consistent error when we cannot evaluate `.iex.exs`
   * [Kernel] Ensure derived protocols are defined with a file
   * [Kernel] Change precedence of `&` to not special case `/`
