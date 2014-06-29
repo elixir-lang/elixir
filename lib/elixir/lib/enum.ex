@@ -176,6 +176,7 @@ defmodule Enum do
   @type element :: any
   @type index :: non_neg_integer
   @type default :: any
+  @type mapped_element :: element
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
@@ -1600,6 +1601,8 @@ defmodule Enum do
       ["monster", "some", "kind", "of"]
 
   """
+  @spec sort_by(t, (element -> mapped_element)) :: list
+  @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) :: list
   def sort_by(collection, mapper, sorter \\ &<=/2) do
     collection 
     |> map(&{ &1, mapper.(&1) })
