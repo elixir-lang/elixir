@@ -1,6 +1,18 @@
 # Changelog
 
-## v0.14.2
+## v0.14.3-dev
+
+* Enhancements
+
+* Bug fixes
+
+* Soft deprecations (no warnings emitted)
+
+* Deprecations
+
+* Backwards incompatible changes
+
+## v0.14.2 (2014-06-29)
 
 * Enhancements
   * [Enum] Improve performance of `Enum.join/2` and `Enum.map_join/3` by using iolists
