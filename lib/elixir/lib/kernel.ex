@@ -2468,7 +2468,7 @@ defmodule Kernel do
   @doc """
   When used inside quoting, marks that the variable should
   not be hygienized. The argument can be either a variable
-  unquoted or an atom representing the variable name.
+  unquoted or in standard tuple form `{name, meta, context}`.
 
   Check `Kernel.SpecialForms.quote/2` for more information.
   """
