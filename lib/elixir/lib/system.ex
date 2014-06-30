@@ -232,14 +232,11 @@ defmodule System do
   and Windows. It also considers the proper executable
   extension for each OS, so for Windows it will try to
   lookup files with `.com`, `.cmd` or similar extensions.
-
-  If `program` is a char list, a char list is returned.
-  Returns a binary otherwise.
   """
   @spec find_executable(binary) :: binary | nil
-  @spec find_executable(char_list) :: char_list | nil
 
   def find_executable(program) when is_list(program) do
+    IO.puts :stderr, "warning: passing a char_list to System.find_executable/1 is deprecated\n#{Exception.format_stacktrace}"
     :os.find_executable(program) || nil
   end
 

@@ -67,15 +67,9 @@ defmodule SystemTest do
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
   end
 
-  test "find_executable/1 with binary" do
+  test "find_executable/1" do
     assert System.find_executable("erl")
     assert is_binary System.find_executable("erl")
     assert !System.find_executable("does-not-really-exist-from-elixir")
-  end
-
-  test "find_executable/1 with list" do
-    assert System.find_executable('erl')
-    assert is_list System.find_executable('erl')
-    assert !System.find_executable('does-not-really-exist-from-elixir')
   end
 end
