@@ -287,7 +287,6 @@ defmodule Enum do
       :none
 
   """
-  @spec at(t, integer) :: element | nil
   @spec at(t, integer, default) :: element | default
   def at(collection, n, default \\ nil) do
     case fetch(collection, n) do
@@ -330,7 +329,6 @@ defmodule Enum do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(t, non_neg_integer, non_neg_integer) :: [list]
   @spec chunk(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
   def chunk(coll, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
@@ -689,7 +687,6 @@ defmodule Enum do
       3
 
   """
-  @spec find(t, (element -> any)) :: element | nil
   @spec find(t, default, (element -> any)) :: element | default
   def find(collection, ifnone \\ nil, fun)
 
@@ -716,7 +713,6 @@ defmodule Enum do
       true
 
   """
-  @spec find_value(t, (element -> any)) :: any | :nil
   @spec find_value(t, any, (element -> any)) :: any | :nil
   def find_value(collection, ifnone \\ nil, fun)
 
@@ -931,7 +927,6 @@ defmodule Enum do
       "1 = 2 = 3"
 
   """
-  @spec join(t) :: String.t
   @spec join(t, String.t) :: String.t
   def join(collection, joiner \\ "")
 
@@ -990,7 +985,6 @@ defmodule Enum do
       "2 = 4 = 6"
 
   """
-  @spec map_join(t, (element -> any)) :: String.t
   @spec map_join(t, String.t, (element -> any)) :: String.t
   def map_join(collection, joiner \\ "", mapper)
 
