@@ -166,13 +166,13 @@ defmodule Mix.SCM.Git do
       {:ok, true} ->
         :ok
       :error ->
-        if :os.find_executable('git') == false do
+        if System.find_executable('git') do
+          Application.put_env(:mix, :git_available, true)
+        else
           Mix.raise "Error fetching/updating Git repository: the `git` "  <>
             "executable is not available in your PATH. Please install "   <>
             "Git on this machine or pass --no-deps-check if you want to " <>
             "run a previously built application on a system without Git."
-        else
-          Application.put_env(:mix, :git_available, true)
         end
     end
   end
@@ -182,11 +182,11 @@ defmodule Mix.SCM.Git do
       {:ok, version} ->
         version
       :error ->
-        'git version ' ++ version = :string.strip :os.cmd('git --version')
+        "git version " <> version = String.strip IO.iodata_to_binary :os.cmd('git --version')
         version =
-          :string.tokens(version, '.')
+          String.split(version, ".")
           |> Enum.take(3)
-          |> Enum.map(&List.to_integer(&1))
+          |> Enum.map(&String.to_integer(&1))
           |> List.to_tuple
         Application.put_env(:mix, :git_version, version)
         version
