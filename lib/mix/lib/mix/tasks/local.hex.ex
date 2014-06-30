@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Local.Hex do
 
         if Mix.shell.yes?("Shall I abort the current command and update hex?") do
           run ["--force"]
-          exit(0)
+          exit({:shutdown, 0})
         end
       end
     end

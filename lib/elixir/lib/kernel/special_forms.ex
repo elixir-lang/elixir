@@ -1513,9 +1513,9 @@ defmodule Kernel.SpecialForms do
   The catch clause can be used to catch throws values and exits.
 
       try do
-        exit(1)
+        exit(:shutdown)
       catch
-        :exit, 1 -> IO.puts "Exited with 1"
+        :exit, :shutdown -> IO.puts "Exited with shutdown reason"
       end
 
       try do
