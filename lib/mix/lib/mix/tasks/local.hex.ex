@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Local.Hex do
       intended for automation in build systems like make
   """
   def run(args) do
-    Mix.Tasks.Local.Install.run [@hex_url|args]
+    Mix.Tasks.Archive.Install.run [@hex_url|args]
   end
 
   @doc false
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Local.Hex do
       kind, reason ->
         stacktrace = System.stacktrace
         Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
-                        "`mix local.hex` or uninstalling it with `mix local.uninstall hex`"
+                        "`mix local.hex` or uninstalling it with `mix archive.uninstall hex.ez`"
         :erlang.raise(kind, reason, stacktrace)
     end
   end

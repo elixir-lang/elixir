@@ -1,5 +1,4 @@
 defmodule Mix.ProjectStack do
-  # Keeps the project stack.
   @moduledoc false
 
   @timeout 30_000

@@ -99,7 +99,7 @@ defmodule Mix.Config do
   @doc ~S"""
   Imports configuration from the given file.
 
-  The path is expected to be related to the directory the
+  The path is expected to be relative to the directory the
   current configuration file is on.
 
   ## Examples

@@ -346,7 +346,7 @@ defmodule Mix.Utils do
   @doc """
   Opens and reads content from either a URL or a local filesystem path.
 
-  Used by tasks like `local.install` and `local.rebar` that support
+  Used by tasks like `archive.install` and `local.rebar` that support
   installation either from a URL or a local file.
 
   Raises if the given path is not a url, nor a file or if the

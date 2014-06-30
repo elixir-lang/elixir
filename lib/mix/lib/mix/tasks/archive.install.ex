@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Local.Install do
+defmodule Mix.Tasks.Archive.Install do
   use Mix.Task
 
   import Mix.Generator, only: [create_file: 2]
@@ -12,11 +12,11 @@ defmodule Mix.Tasks.Local.Install do
   (created with mix archive), then the archive will be installed
   locally. For example:
 
-      mix do archive, local.install
+      mix do archive.build, archive.install
 
   The argument can be an archive located at some URL:
 
-      mix local.install http://example.com/foo.ez
+      mix archive.install http://example.com/foo.ez
 
   After installed, the tasks in the archive are available locally:
 
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Local.Install do
 
       case Path.extname(path) do
         ".ez" -> install_archive(src, opts)
-        _     -> Mix.raise "mix local.install doesn't know how to install #{path}"
+        _     -> Mix.raise "mix archive.install doesn't know how to install #{path}"
       end
     else
       src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Local.Install do
       if File.exists?(src) do
         install_archive(src, opts)
       else
-        Mix.raise "Expected PATH to be given, please use `mix local.install PATH`"
+        Mix.raise "Expected PATH to be given, please use `mix archive.install PATH`"
       end
     end
   end
