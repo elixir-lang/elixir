@@ -4,13 +4,7 @@ defmodule Mix.Local do
   @doc """
   The path for local archives.
 
-  It checks the `MIX_ARCHIVES` variable or it uses the
-  "archives" directory inside `Mix.Utils.mix_home/0`.
-
-  Since archives are specific to Elixir versions, it is
-  expected from build tools to swap the `MIX_ARCHIVES`
-  variable to different locations based on a particular
-  Elixir installation.
+  Check `mix archive` for info.
   """
   def archives_path do
     System.get_env("MIX_ARCHIVES") ||
