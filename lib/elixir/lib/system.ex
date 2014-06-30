@@ -202,7 +202,7 @@ defmodule System do
   end
 
   @doc """
-  Register a program exit handler function.
+  Registers a program exit handler function.
 
   Registers a function that will be invoked
   at the end of program execution. Useful for
@@ -215,19 +215,7 @@ defmodule System do
     :elixir_code_server.cast {:at_exit, fun}
   end
 
-  @doc """
-  Execute a system command.
-
-  Executes `command` in a command shell of the target OS,
-  captures the standard output of the command and returns
-  the result as a binary.
-
-  If `command` is a char list, a char list is returned.
-  Otherwise a string, correctly encoded in UTF-8, is expected.
-  """
-  @spec cmd(String.t)  :: String.t
-  @spec cmd(char_list) :: char_list
-
+  @doc false
   def cmd(command) when is_list(command) do
     :os.cmd(command)
   end
@@ -237,7 +225,7 @@ defmodule System do
   end
 
   @doc """
-  Locate an executable on the system.
+  Locates an executable on the system.
 
   This function looks up an executable program given
   its name using the environment variable PATH on Unix
@@ -386,5 +374,117 @@ defmodule System do
 
   def halt(status) when is_binary(status) do
     :erlang.halt(String.to_char_list(status))
+  end
+
+  @doc """
+  Executes the given `command` with `args`.
+
+  `command` is expected to be an executable available in PATH
+  unless an absolute path is given.
+
+  `args` must be a list of strings and they are not expanded
+  in any way. For example, this means wildcard expansion will
+  not happen unless `Path.wildcard/2` is used. On Windows though,
+  wildcard expansion is up to the program.
+
+  A set of options are also supported and described below.
+
+  ## Options
+
+    * `:into` - injects the result into the given collectable, defaults to `""`
+    * `:cd` - the directory to run the command on
+    * `:env` - an enumerable of tuples containing environment key-value as binary
+    * `:arg0` - set the command arg0
+    * `:stderr_to_stdout` - redirects stderr to stdout when true
+    * `:parallelism` - when true, the VM will schedule port tasks to improve
+      parallelism in the system. If set to false, the VM will try to perform
+      commands immediately, improving latency at the expense of parallelism.
+      The default can be set on system startup by passing the "+spp" argument
+      to `--erl`.
+
+  ## Error reasons
+
+  If invalid arguments are given, `ArgumentError` is raised by
+  `System.cmd/3`. `System.cmd/3` also expect a strict set of
+  options and will raise if unknown or invalid options are given.
+
+  Furthermore, `System.cmd/3` may fail with one of the POSIX reasons
+  detailed below:
+
+    * `:system_limit` - all available ports in the Erlang emulator are in use
+
+    * `:enomem` - there was not enough memory to create the port
+
+    * `:eagain` - there are no more available operating system processes
+
+    * `:enametoolong` - the external command given was too long.
+
+    * `:emfile` - there are no more available file descriptors
+      (for the operating system process that the Erlang emulator runs in)
+
+    * `:enfile` - the file table is full (for the entire operating system)
+
+    * `:eacces` - the command does not point to an executable file
+
+    * `:enoent` - the command does not point to an existing file
+
+  """
+  @spec cmd(binary, [binary], Keyword.t) ::
+        {:ok, Collectable.t, exit_status :: non_neg_integer} | {:error, atom}
+  def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
+    command = String.to_char_list(command)
+
+    command =
+      if Path.type(command) == :absolute do
+        command
+      else
+        :os.find_executable(command) || command
+      end
+
+    {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
+    {initial, fun} = Collectable.into(into)
+    do_cmd Port.open({:spawn_executable, command}, opts), initial, fun
+  end
+
+  defp do_cmd(port, acc, fun) do
+    receive do
+      {^port, {:data, data}} ->
+        do_cmd(port, fun.(acc, {:cont, data}), fun)
+      {^port, {:exit_status, status}} ->
+        {fun.(acc, :done), status}
+    end
+  end
+
+  defp cmd_opts([{:into, any}|t], opts, _into),
+    do: cmd_opts(t, opts, any)
+
+  defp cmd_opts([{:cd, bin}|t], opts, into) when is_binary(bin),
+    do: cmd_opts(t, [{:cd, bin}|opts], into)
+
+  defp cmd_opts([{:arg0, bin}|t], opts, into) when is_binary(bin),
+    do: cmd_opts(t, [{:arg0, bin}|opts], into)
+
+  defp cmd_opts([{:stderr_to_stdout, bool}|t], opts, into) when is_boolean(bool),
+    do: cmd_opts(t, [:stderr_to_stdout|opts], into)
+
+  defp cmd_opts([{:parallelism, bool}|t], opts, into) when is_boolean(bool),
+    do: cmd_opts(t, [{:parallelism, bool}|opts], into)
+
+  defp cmd_opts([{:env, enum}|t], opts, into),
+    do: cmd_opts(t, [{:env, validate_env(enum)}|opts], into)
+
+  defp cmd_opts([{key, val}|_], _opts, _into),
+    do: raise(ArgumentError, "invalid option #{inspect key} with value #{inspect val}")
+
+  defp cmd_opts([], opts, into),
+    do: {into, opts}
+
+  defp validate_env(enum) do
+    Enum.map enum, fn
+      {k, v} ->
+        {String.to_char_list(k), String.to_char_list(v)}
+      other ->
+        raise ArgumentError, "invalid environment key-value #{inspect other}"
+    end
   end
 end
