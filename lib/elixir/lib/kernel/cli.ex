@@ -416,8 +416,8 @@ defmodule Kernel.CLI do
       # the actual Elixir executable.
       case :os.type() do
         {:win32, _} ->
-          exec = Path.rootname(exec)
-          if File.regular?(exec), do: exec
+          base = Path.rootname(exec)
+          if File.regular?(base), do: base, else: exec
         _ ->
           exec
       end
