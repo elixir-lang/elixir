@@ -279,7 +279,6 @@ We have saved some excellent pull requests we have received in the past in case
 you are looking for some examples:
 
 * https://github.com/elixir-lang/elixir/pull/992
-* https://github.com/elixir-lang/elixir/pull/1041
 * https://github.com/elixir-lang/elixir/pull/1058
 * https://github.com/elixir-lang/elixir/pull/1059
 
