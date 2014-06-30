@@ -59,7 +59,7 @@ defmodule Kernel.CLI.AtExitTest do
 
   test "invokes at_exit callbacks" do
     assert elixir(fixture_path("at_exit.exs") |> to_char_list) ==
-           'goodbye cruel world with status 0\n'
+           'goodbye cruel world with status 1\n'
   end
 end
 
@@ -69,7 +69,7 @@ defmodule Kernel.CLI.ErrorTest do
   test "properly format errors" do
     assert :string.str('** (throw) 1', elixir('-e "throw 1"')) == 0
     assert :string.str('** (ErlangError) erlang error: 1', elixir('-e "error 1"')) == 0
-    assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit(1)"') == 'false\n'
+    assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})"') == 'false\n'
   end
 end
 
