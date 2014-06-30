@@ -3,6 +3,10 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.TypespecTest do
   use ExUnit.Case, async: true
 
+  alias Kernel.TypespecTest.TestTypespec
+
+  defstruct [:hello]
+
   # This macro allows us to focus on the result of the
   # definition and not on the hassles of handling test
   # module
@@ -174,28 +178,40 @@ defmodule Kernel.TypespecTest do
 
   test "@type with a struct" do
     module = test_module do
-      @type mytype :: %User{hello: :world}
+      defstruct [hello: nil, eric: nil]
+      @type mytype :: %TestTypespec{hello: :world}
     end
 
     assert [type: {:mytype,
              {:type, _, :map, [
-               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, User}},
-               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}},
+               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}},
+               {:type, _, :map_field_assoc, {:atom, _, :eric}, {:type, _, :term, []}}
              ]},
             []}] = types(module)
   end
 
-  test "@type with a tuple" do
-    module = test_module do
-      @type mytype :: tuple
-      @type mytype1 :: {}
-      @type mytype2 :: {1, 2}
+  test "@type with undefined struct" do
+    assert_raise UndefinedFunctionError, fn ->
+      test_module do
+        @type mytype :: %ThisModuleDoesNotExist{}
+      end
     end
 
-    assert [type: {:mytype, {:type, _, :tuple, :any}, []},
-            type: {:mytype1, {:type, _, :tuple, []}, []},
-            type: {:mytype2, {:type, _, :tuple, [{:integer, _, 1}, {:integer, _, 2}]}, []}] =
-           types(module)
+    assert_raise CompileError, ~r"struct is not defined for TestTypespec", fn ->
+      test_module do
+        @type mytype :: %TestTypespec{}
+      end
+    end
+  end
+
+  test "@type with a struct with undefined field" do
+    assert_raise CompileError, ~r"undefined field no_field on struct TestTypespec", fn ->
+      test_module do
+        defstruct [hello: nil, eric: nil]
+        @type mytype :: %TestTypespec{no_field: :world}
+      end
+    end
   end
 
   test "@type with list shortcuts" do
@@ -318,31 +334,6 @@ defmodule Kernel.TypespecTest do
     assert [opaque: {:mytype1, _, []},
             type: {:mytype, _, []},] =
            types(module)
-  end
-
-  test "@type from structs" do
-    module = test_module do
-      defstruct name: nil, age: 0 :: non_neg_integer
-    end
-
-    assert [type: {:t, {:type, _, :map, [
-              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
-              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :non_neg_integer, []}},
-              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}}
-           ]}, []}] = types(module)
-  end
-
-  test "@type from dynamic structs" do
-    module = test_module do
-      fields = [name: nil, age: 0]
-      defstruct fields
-    end
-
-    assert [type: {:t, {:type, _, :map, [
-              {:type, _, :map_field_assoc, {:atom, _, :name}, {:type, _, :term, []}},
-              {:type, _, :map_field_assoc, {:atom, _, :age}, {:type, _, :term, []}},
-              {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}}
-           ]}, []}] = types(module)
   end
 
   test "@type unquote fragment" do
@@ -473,11 +464,11 @@ defmodule Kernel.TypespecTest do
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
       (quote do: @type ops() :: {+1,-1}),
       (quote do: @type my_map() :: %{hello: :world}),
-      (quote do: @type my_struct() :: %User{hello: :world}),
+      (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
     ] |> Enum.sort
 
     module = test_module do
-      Module.eval_quoted __MODULE__, quote do: (unquote_splicing(quoted))
+      Module.eval_quoted __MODULE__, quoted
     end
 
     types = types(module)
