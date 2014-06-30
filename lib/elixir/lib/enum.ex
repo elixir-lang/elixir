@@ -1569,6 +1569,46 @@ defmodule Enum do
   end
 
   @doc """
+  Sorts the mapped results of the `collection` according to the `sorter` function.
+
+  This function maps each element of the collection using the `mapper`
+  function.  The collection is then sorted by the mapped elements using the
+  `sorter` function, which defaults to `<=/2`
+
+  `sort_by/3` differs from `sort/2` in that it only calculates the comparison
+  value for each element in the collection once instead of once for each
+  element in each comparison.  If the same function is being called on both
+  element, it's also more compact to use `sort_by/3`.
+
+  This technique is also known as a
+  [Schwartzian Transform](https://en.wikipedia.org/wiki/Schwartzian_transform),
+  or the Lisp decorate-sort-undecorate idiom as the `mapper` is decorating the
+  original `collection`, then `sorter` is sorting the decorations, and finally
+  the `collection` is being undecorated so only the original elements remain,
+  but now in sorted order.
+
+  ## Examples
+
+  Using the default `sorter` of `<=/2`:
+
+      iex> Enum.sort_by ["some", "kind", "of", "monster"], &byte_size/1
+      ["of", "some", "kind", "monster"]
+
+  Using a custom `sorter` to override the order:
+
+      iex> Enum.sort_by ["some", "kind", "of", "monster"], &byte_size/1, &>=/2
+      ["monster", "some", "kind", "of"]
+
+  """
+  @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) :: list when mapped_element: element
+  def sort_by(collection, mapper, sorter \\ &<=/2) do
+    collection 
+    |> map(&{&1, mapper.(&1)})
+    |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
+    |> map(&elem(&1, 0))
+  end
+
+  @doc """
   Splits the enumerable into two collections, leaving `count`
   elements in the first one. If `count` is a negative number,
   it starts counting from the back to the beginning of the
