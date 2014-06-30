@@ -486,6 +486,11 @@ defmodule Path do
   defmodule Wildcard do
     @moduledoc false
 
+    def read_link_info(file) do
+      call({:read_link_info, file})
+    end
+
+    # For compatibility with buggy Erlang 17.1.
     def read_file_info(file) do
       call({:read_link_info, file})
     end
