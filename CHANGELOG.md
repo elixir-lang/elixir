@@ -7,12 +7,16 @@
 * Bug fixes
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
   * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison ones (`==`, `!=`, etc) in operator table
+  * [Kernel] Run command line and escripts in a process that does not trap exits
 
 * Soft deprecations (no warnings emitted)
+  * [System] `System.cmd/1` is deprecated in favor of `System.cmd/3`
 
 * Deprecations
 
 * Backwards incompatible changes
+  * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
+  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstal` respectively 
 
 ## v0.14.2 (2014-06-29)
 
