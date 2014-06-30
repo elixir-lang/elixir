@@ -147,11 +147,11 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"bad\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "bad"])
   end
 
   File.write! Path.join(target, "mix.exs"), """
@@ -166,8 +166,8 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 
   File.write! Path.join(target, "lib/git_repo.ex"), """
@@ -180,8 +180,8 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git add .")
-    System.cmd("git commit -m \"lib\"")
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "lib"])
   end
 end
 
@@ -205,11 +205,11 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 end
 
@@ -236,11 +236,11 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 end
 

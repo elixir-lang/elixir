@@ -144,14 +144,14 @@ defmodule Mix.SCM.Git do
 
   defp get_rev_info do
     destructure [origin, rev],
-      System.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
+      :os.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [ origin: origin, rev: rev ]
   end
 
   defp update_origin(location) do
-    System.cmd('git --git-dir=.git config remote.origin.url #{location}')
+    :os.cmd('git --git-dir=.git config remote.origin.url #{location}')
   end
 
   defp run_cmd_or_raise(command) do
@@ -182,12 +182,12 @@ defmodule Mix.SCM.Git do
       {:ok, version} ->
         version
       :error ->
-        "git version " <> version = String.strip System.cmd("git --version")
-        version = String.split(version, ".")
-                  |> Enum.take(3)
-                  |> Enum.map(&String.to_integer(&1))
-                  |> List.to_tuple
-
+        'git version ' ++ version = :string.strip :os.cmd('git --version')
+        version =
+          :string.tokens(version, '.')
+          |> Enum.take(3)
+          |> Enum.map(&List.to_integer(&1))
+          |> List.to_tuple
         Application.put_env(:mix, :git_version, version)
         version
     end
