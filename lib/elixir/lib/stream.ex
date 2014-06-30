@@ -91,10 +91,11 @@ defmodule Stream do
 
   defstruct enum: nil, funs: [], accs: [], done: nil
 
-  @type acc :: any
+  @type acc     :: any
   @type element :: any
-  @type index :: non_neg_integer
+  @type index   :: non_neg_integer
   @type default :: any
+  @type       t :: %__MODULE__{}
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R

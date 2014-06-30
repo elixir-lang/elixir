@@ -57,6 +57,7 @@ defmodule File.Stat do
   pairs  = :lists.zip(keys, vals)
 
   defstruct keys
+  @type t :: %__MODULE__{}
 
   @doc """
   Converts a `File.Stat` struct to a `:file_info` record.

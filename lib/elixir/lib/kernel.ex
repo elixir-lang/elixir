@@ -2819,28 +2819,31 @@ defmodule Kernel do
 
   ## Types
 
-  `defstruct` automatically generates a type `t` unless one exists.
-  The following definition:
+  It is recommended to define types for structs, by convention this type
+  is called `t`. To define a struct in a type the struct literal syntax
+  is used:
 
       defmodule User do
-        defstruct name: "José" :: String.t,
-                  age: 25 :: integer
+        defstruct name: "José", age: 25
+        @type t :: %User{name: String.t, age: integer}
       end
 
-  Generates a type as follows:
+  It is recommended to only use the struct syntax when defining the struct's
+  type. When referring to another struct use `User.t`, not `%User{}`. Fields
+  in the struct not included in the type defaults to `term`.
 
-      @type t :: %User{name: String.t, age: integer}
-
-  In case a struct does not declare a field type, it defaults to `term`.
+  Private structs that are not used outside its module should use the private
+  type attribute `@typep`. Public structs whose internal structure is private
+  to the local module (you are not allowed to pattern match it or directly
+  access fields) should use the `@opaque` attribute. Structs whose internal
+  structure is public should use `@type`.
   """
   defmacro defstruct(kv) do
-    {fields, types} = split_fields_and_types(kv)
-
     fields =
-      quote bind_quoted: [fields: fields] do
+      quote bind_quoted: [fields: kv] do
         fields = :lists.map(fn
-          { key, _ } = pair when is_atom(key) -> pair
-          key when is_atom(key) -> { key, nil }
+          {key, _} = pair when is_atom(key) -> pair
+          key when is_atom(key) -> {key, nil}
           other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
         end, fields)
 
@@ -2853,61 +2856,16 @@ defmodule Kernel do
             Protocol.__derive__(derive, __MODULE__, __ENV__)
         end
 
-        @spec __struct__() :: t
+        @spec __struct__() :: %__MODULE__{}
         def __struct__() do
           @struct
         end
       end
 
-    types =
-      case bootstraped?(Kernel.Typespec) do
-        true when types == [] ->
-          quote unquote: false do
-            unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-              types = :lists.map(fn {key, _} ->
-                {key, quote(do: term)}
-              end, fields)
-              @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
-            end
-          end
-        true ->
-          quote do
-            unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
-              @type t :: %{unquote_splicing(types), __struct__: __MODULE__}
-            end
-          end
-        false ->
-          nil
-      end
-
     quote do
       unquote(fields)
-      unquote(types)
       fields
     end
-  end
-
-  defp split_fields_and_types(kv) do
-    case Keyword.keyword?(kv) do
-      true  -> split_fields_and_types(kv, [], [])
-      false -> {kv, []}
-    end
-  end
-
-  defp split_fields_and_types([{field, {:::, _, [default, type]}}|t], fields, types) do
-    split_fields_and_types(t, [{field, default}|fields], [{field, type}|types])
-  end
-
-  defp split_fields_and_types([{field, default}|t], fields, types) do
-    split_fields_and_types(t, [{field, default}|fields], [{field, quote(do: term)}|types])
-  end
-
-  defp split_fields_and_types([field|t], fields, types) do
-    split_fields_and_types(t, [field|fields], [{field, quote(do: term)}|types])
-  end
-
-  defp split_fields_and_types([], fields, types) do
-    {:lists.reverse(fields), :lists.reverse(types)}
   end
 
   @doc ~S"""
@@ -2970,7 +2928,7 @@ defmodule Kernel do
       @behaviour Exception
       fields = defstruct unquote(fields)
 
-      @spec exception(term) :: t
+      @spec exception(Keyword.t) :: Exception.t
       def exception(args) when is_list(args) do
         Kernel.struct(__struct__, args)
       end
@@ -2978,7 +2936,7 @@ defmodule Kernel do
       defoverridable exception: 1
 
       if Keyword.has_key?(fields, :message) do
-        @spec message(t) :: String.t
+        @spec message(Exception.t) :: String.t
         def message(exception) do
           exception.message
         end

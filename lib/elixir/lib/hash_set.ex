@@ -21,7 +21,7 @@ defmodule HashSet do
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
 
-  @opaque t :: map
+  @opaque t :: %__MODULE__{size: non_neg_integer, root: term}
   @doc false
   defstruct size: 0, root: @node_template
 
