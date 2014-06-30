@@ -131,7 +131,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
   test "does not hang on missing dependencies" do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->
-      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == 1
+      assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == {:shutdown, 1}
     end) =~ "Compilation error"
   end
 
@@ -140,7 +140,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
                 fixture_path("parallel_deadlock/bar.ex")]
 
     msg = capture_io(fn ->
-      assert catch_exit(Kernel.ParallelCompiler.files fixtures) == 1
+      assert catch_exit(Kernel.ParallelCompiler.files fixtures) == {:shutdown, 1}
     end)
 
     assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/foo\.ex =="
@@ -155,7 +155,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
       Code.compiler_options(warnings_as_errors: true)
 
       capture_io :stderr, fn ->
-        assert catch_exit(Kernel.ParallelCompiler.files fixtures) == 1
+        assert catch_exit(Kernel.ParallelCompiler.files fixtures) == {:shutdown, 1}
       end
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)

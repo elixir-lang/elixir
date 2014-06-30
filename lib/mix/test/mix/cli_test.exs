@@ -11,16 +11,18 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-      
+
       System.put_env("MIX_ENV", "prod")
       System.put_env("MIX_EXS", "custom.exs")
-      
-      output = System.cmd ~s(#{elixir_executable} #{mix_executable}) <>
-                          ~s( run -e "IO.inspect {Mix.env, System.argv}" -- 1 2 3)
-      
+
+      {output, _status} =
+        System.cmd elixir_executable,
+                   [mix_executable, "run", "-e", "IO.inspect {Mix.env, System.argv}",
+                    "--", "1", "2", "3"]
+
       System.delete_env("MIX_ENV")
       System.delete_env("MIX_EXS")
-      
+
       assert output =~ ~s({:prod, ["1", "2", "3"]})
       assert output =~ "Compiled lib/a.ex"
     end
@@ -34,7 +36,7 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-      output = mix ""
+      output = mix ~w[]
       assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
     end
@@ -48,7 +50,7 @@ defmodule Mix.CLITest do
         def project, do: [app: :p]
       end
       """
-      output = mix ""
+      output = mix ~w[]
       assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
     end
@@ -84,7 +86,7 @@ defmodule Mix.CLITest do
       end
       """
 
-      contents = mix("hello")
+      contents = mix ~w[hello]
       assert contents =~ "Hello from MyProject!\n"
       assert contents =~ "Compiled lib/hello.ex\n"
     end
@@ -92,14 +94,14 @@ defmodule Mix.CLITest do
 
   test "no task error" do
     in_fixture "no_mixfile", fn ->
-      contents = mix("no_task")
+      contents = mix ~w[no_task]
       assert contents =~ "** (Mix) The task no_task could not be found\n"
     end
   end
 
   test "--help smoke test" do
     in_fixture "no_mixfile", fn ->
-      output = mix "--help"
+      output = mix ~w[--help]
       assert output =~ ~r/mix compile\s+# Compile source files/
       refute output =~ "mix invalid"
     end
@@ -107,17 +109,17 @@ defmodule Mix.CLITest do
 
   test "--version smoke test" do
     in_fixture "no_mixfile", fn ->
-      output = mix "--version"
+      output = mix ~w[--version]
       assert output =~ ~r/Elixir [0-9\.a-z]+/
     end
   end
 
   test "new with tests" do
     in_tmp "new_with_tests", fn ->
-      output = mix "new ."
+      output = mix ~w[new .]
       assert output =~ "* creating lib/new_with_tests.ex"
 
-      output = mix "test test/new_with_tests_test.exs --cover"
+      output = mix ~w[test test/new_with_tests_test.exs --cover]
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 tests, 0 failures"
       assert output =~ "Generating cover results ..."
@@ -127,24 +129,17 @@ defmodule Mix.CLITest do
 
   test "new --sup with tests" do
     in_tmp "sup_with_tests", fn ->
-      output = mix "new --sup ."
+      output = mix ~w[new --sup .]
       assert output =~ "* creating lib/sup_with_tests.ex"
 
-      output = mix "test"
+      output = mix ~w[test]
       assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
       assert output =~ "1 tests, 0 failures"
     end
   end
 
-  defp mix(args) do
-    System.cmd "#{elixir_executable} #{mix_executable} #{args} #{stderr_on_win}"
-  end
-  
-  defp stderr_on_win do
-    case :os.type do
-      {:win32, _} -> "2>&1"
-      _ -> ""
-    end
+  defp mix(args) when is_list(args) do
+    System.cmd(elixir_executable, [mix_executable|args], [stderr_to_stdout: true]) |> elem(0)
   end
 
   defp mix_executable do

@@ -256,7 +256,7 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      elixirc("sample.ex")
+      elixirc ["sample.ex"]
 
       assert l(Sample) == {:module, Sample}
       assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
@@ -377,7 +377,7 @@ defmodule IEx.HelpersTest do
 
   defp elixirc(args) do
     executable = Path.expand("../../../../bin/elixirc", __DIR__)
-    System.cmd("#{executable}#{executable_extension} #{args}")
+    System.cmd("#{executable}#{executable_extension}", args, [stderr_to_stdout: true])
   end
 
   defp iex_path do

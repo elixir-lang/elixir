@@ -428,6 +428,11 @@ defmodule System do
 
     * `:enoent` - the command does not point to an existing file
 
+  ## Shell commands
+
+  If you desire to execute a trusted command inside a shell, with pipes,
+  redirecting and so on, please check
+  [Erlang's :os.cmd/1 function](http://www.erlang.org/doc/man/os.html#cmd-1).
   """
   @spec cmd(binary, [binary], Keyword.t) ::
         {:ok, Collectable.t, exit_status :: non_neg_integer} | {:error, atom}
