@@ -34,7 +34,7 @@ defmodule Kernel.CLI do
   """
   def run(fun, halt \\ true) do
     res = exec_fun(fun, {:ok, 0})
-    if elem(res, 0) == :exit or halt do
+    if elem(res, 0) == :shutdown or halt do
       {_, int} = at_exit(res)
       System.halt(int)
     end
@@ -61,31 +61,40 @@ defmodule Kernel.CLI do
   end
 
   defp exec_fun(fun, res) when is_function(fun, 1) and is_tuple(res) do
+    parent = self()
+
     {pid, ref} =
       spawn_monitor fn ->
         try do
           fun.(elem(res, 1))
         catch
-          :exit, int when is_integer(int) ->
-            exit({:exit, int})
-          :exit, :normal ->
-            exit({:exit, 0})
+          :exit, {:shutdown, int} when is_integer(int) ->
+            send parent, {self, {:shutdown, int}}
+            exit({:shutdown, int})
+          :exit, reason
+              when reason == :normal
+              when reason == :shutdown
+              when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown ->
+            send parent, {self, {:shutdown, 0}}
+            exit(reason)
           kind, reason ->
-            print_error(kind, reason, System.stacktrace)
-            exit({:exit, 1})
+            stack = System.stacktrace
+            print_error(kind, reason, stack)
+            send parent, {self, {:shutdown, 1}}
+            :erlang.raise(kind, reason, stack)
         else
-          _ -> exit(res)
+          _ ->
+            send parent, {self, res}
         end
       end
 
     receive do
-      {:DOWN, ^ref, _, _, {:ok, int}} when is_integer(int) ->
-        {:ok, int}
-      {:DOWN, ^ref, _, _, {:exit, int}} when is_integer(int) ->
-        {:exit, int}
+      {^pid, res} ->
+        :erlang.demonitor(ref, [:flush])
+        res
       {:DOWN, ^ref, _, _, other} ->
         print_error({:EXIT, pid}, other, [])
-        {:exit, 1}
+        {:shutdown, 1}
     end
   end
 
