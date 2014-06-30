@@ -159,7 +159,7 @@ defmodule Path do
   def type(name) when is_list(name) or is_binary(name) do
     case :os.type() do
       {:win32, _} -> win32_pathtype(name)
-      _             -> unix_pathtype(name)
+      _           -> unix_pathtype(name)
     end |> elem(0)
   end
 

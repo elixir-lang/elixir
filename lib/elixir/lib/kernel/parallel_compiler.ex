@@ -54,7 +54,7 @@ defmodule Kernel.ParallelCompiler do
     # compilation status will be set to error and we fail with CompileError
     case :elixir_code_server.call({:compilation_status, compiler_pid}) do
       :ok    -> result
-      :error -> exit(1)
+      :error -> exit({:shutdown, 1})
     end
   end
 
@@ -186,7 +186,7 @@ defmodule Kernel.ParallelCompiler do
       if all_missing?(entries, waiting, queued) do
         collect_failures(queued, length(queued) - 1)
       end
-      exit(1)
+      exit({:shutdown, 1})
     end
   end
 
