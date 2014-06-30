@@ -177,7 +177,7 @@ defmodule Mix.Tasks.Test do
     if cover, do: cover.()
 
     System.at_exit fn _ ->
-      if failures > 0, do: System.halt(1)
+      if failures > 0, do: exit({:shutdown, 1})
     end
   end
 
