@@ -166,7 +166,7 @@ defmodule Mix.SCM.Git do
       {:ok, true} ->
         :ok
       :error ->
-        if System.find_executable('git') do
+        if :os.find_executable('git') do
           Application.put_env(:mix, :git_available, true)
         else
           Mix.raise "Error fetching/updating Git repository: the `git` "  <>

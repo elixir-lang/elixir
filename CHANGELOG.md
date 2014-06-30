@@ -3,6 +3,7 @@
 ## v0.14.3-dev
 
 * Enhancements
+  * [Enum] Add `Enum.sort_by/3`
 
 * Bug fixes
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
@@ -13,6 +14,7 @@
   * [System] `System.cmd/1` is deprecated in favor of `System.cmd/3`
 
 * Deprecations
+  * [System] Giving a char lit `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes
   * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
