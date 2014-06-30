@@ -194,7 +194,7 @@ defmodule Mix.Tasks.Escriptize do
             :ok ->
               start_app(@app)
               args = Enum.map(args, &List.to_string(&1))
-              Kernel.CLI.run fn -> @module.main(args) end, true
+              Kernel.CLI.run fn _ -> @module.main(args) end, true
             _   ->
               io_error "Elixir is not in the code path, aborting."
               System.halt(1)
