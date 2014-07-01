@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path = Mix.Project.compile_path
-    mods = modules_from(Path.wildcard('#{path}/*.beam')) |> Enum.sort
+    mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort
 
     target  = Path.join(path, "#{app}.app")
     sources = Mix.Project.config_files
@@ -109,8 +109,8 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_changed?(mods, target) do
     case :file.consult(target) do
-      {:ok, [ {:application, _app, properties} ]} ->
-        properties[:registered] == mods
+      {:ok, [{:application, _app, properties}]} ->
+        properties[:modules] != mods
       _ ->
         false
     end
