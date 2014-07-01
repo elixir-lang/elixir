@@ -23,7 +23,7 @@
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
   * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
-  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstal` respectively
+  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstall` respectively
 
 ## v0.14.2 (2014-06-29)
 
@@ -39,7 +39,7 @@
 
 * Bug fixes
   * [CLI] Support paths inside archives in `-pa` and `-pz` options
-  * [IEx] Remove delay when printing data from the an application start callback
+  * [IEx] Remove delay when printing data from the application start callback
   * [IEx] Ensure we show a consistent error when we cannot evaluate `.iex.exs`
   * [Kernel] Ensure derived protocols are defined with a file
   * [Kernel] Change precedence of `&` to not special case `/`
