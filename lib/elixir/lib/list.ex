@@ -307,6 +307,8 @@ defmodule List do
   @doc """
   Zips corresponding elements from each list in `list_of_lists`.
 
+  The zipping finishes as soon as any list terminates.
+
   ## Examples
 
       iex> List.zip([[1, 2], [3, 4], [5, 6]])
@@ -323,8 +325,10 @@ defmodule List do
   end
 
   @doc """
-  Unzips the given list of lists or tuples into separate lists and returns a
-  list of lists.
+  Unzips the given list of tuples into a list of lists.
+
+  The number of unzipped elements is equal to the size
+  of the smallest tuple in the list.
 
   ## Examples
 
