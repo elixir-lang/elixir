@@ -8,6 +8,14 @@ defmodule Mix.Tasks.Escriptize do
   @moduledoc ~S"""
   Generates an escript for the project.
 
+  An escript is an executable that can be invoked from the
+  command line.  An escript can run on any machine that has
+  Erlang installed and by default does not require Elixir to
+  be installed, as Elixir is embedded as part of the escript.
+
+  This task guarantees the project and its dependencies are
+  compiled and packages them inside an escript.
+
   ## Command line options
 
     * `--force`      - forces compilation regardless of modification times
@@ -37,10 +45,6 @@ defmodule Mix.Tasks.Escriptize do
     * `:embed_elixir` - if `true` embed elixir in the escript file.
       Defaults to `true`.
 
-    * `:embed_extra_apps` - embed additional Elixir applications.
-      if `:embed_elixir` is `true`.
-      Defaults to `[]`.
-
     * `:shebang` - shebang interpreter directive used to execute the escript.
       Defaults to `"#! /usr/bin/env escript\n"`.
 
@@ -54,14 +58,13 @@ defmodule Mix.Tasks.Escriptize do
 
       defmodule MyApp.Mixfile do
         def project do
-          [ app: :myapp,
-            version: "0.0.1",
-            escript: escript ]
+          [app: :myapp,
+           version: "0.0.1",
+           escript: escript]
         end
 
         def escript do
-          [ main_module: MyApp.CLI,
-            embed_extra_apps: [:mix] ]
+          [main_module: MyApp.CLI]
         end
       end
 
@@ -85,7 +88,6 @@ defmodule Mix.Tasks.Escriptize do
     script_name  = to_string(escript_opts[:name] || project[:app])
     filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
-    embed        = Keyword.get(escript_opts, :embed_elixir, true)
     app          = Keyword.get(escript_opts, :app, project[:app])
     files        = project_files()
 
@@ -101,19 +103,8 @@ defmodule Mix.Tasks.Escriptize do
           "in your project configuration (under `:escript` option) to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
-        tuples = gen_main(escript_mod, main, app) ++ to_tuples(files)
-        tuples = tuples ++ deps_tuples()
-
-        if embed do
-          extra_apps = escript_opts[:embed_extra_apps] || []
-          tuples = Enum.reduce [:elixir|extra_apps], tuples, fn(app, acc) ->
-            app_tuples(app) ++ acc
-          end
-        end
-
-        # We might get duplicate tuples in umbrella projects from applications
-        # sharing the same dependencies
-        tuples = Enum.uniq(tuples, fn {name, _} -> name end)
+        tuples = gen_main(escript_mod, main, app) ++
+                 to_tuples(files) ++ deps_tuples() ++ embed_tuples(escript_opts)
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
@@ -122,14 +113,13 @@ defmodule Mix.Tasks.Escriptize do
             emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
 
             script = IO.iodata_to_binary([shebang, comment, emu_args, zip])
-
             File.mkdir_p!(Path.dirname(filename))
             File.write!(filename, script)
+            set_perms(filename)
           {:error, error} ->
-            Mix.shell.error "Error creating escript: #{error}"
+            Mix.raise "Error creating escript: #{error}"
         end
 
-        set_perms(filename)
         Mix.shell.info "Generated escript #{filename}"
         :ok
       true ->
@@ -139,25 +129,6 @@ defmodule Mix.Tasks.Escriptize do
 
   defp project_files do
     get_files(Mix.Project.app_path)
-  end
-
-  defp deps_tuples do
-    deps = Mix.Dep.loaded(env: Mix.env) || []
-    Enum.reduce(deps, [], fn dep, acc ->
-      get_tuples(dep.opts[:build]) ++ acc
-    end)
-  end
-
-  defp set_perms(filename) do
-    stat = File.stat!(filename)
-    :ok  = :file.change_mode(filename, stat.mode ||| 73)
-  end
-
-  defp app_tuples(app) do
-    case :code.where_is_file('#{app}.app') do
-      :non_existing -> Mix.raise "Could not find application #{app}"
-      file -> get_tuples(Path.dirname(Path.dirname(file)))
-    end
   end
 
   defp get_files(app) do
@@ -172,6 +143,47 @@ defmodule Mix.Tasks.Escriptize do
   defp to_tuples(files) do
     for f <- files do
       {String.to_char_list(Path.basename(f)), File.read!(f)}
+    end
+  end
+
+  defp set_perms(filename) do
+    stat = File.stat!(filename)
+    :ok  = File.chmod(filename, stat.mode ||| 0111)
+  end
+
+  defp deps_tuples do
+    deps = Mix.Dep.loaded(env: Mix.env) || []
+    Enum.flat_map(deps, fn dep -> get_tuples(dep.opts[:build]) end)
+  end
+
+  defp embed_tuples(escript_opts) do
+    if Keyword.get(escript_opts, :embed, true) do
+      if escript_opts[:embed_extra_apps] do
+        IO.puts :stderr, "embed_extra_apps for escripts has no effect. " <>
+                         "Instead list the extra apps as applications inside def application"
+      end
+
+      Enum.flat_map [:elixir|extra_apps()], &app_tuples(&1)
+    else
+      []
+    end
+  end
+
+  defp extra_apps() do
+    mod = Mix.Project.get!
+
+    extra_apps =
+      if function_exported?(mod, :application, 0) do
+        mod.application[:applications]
+      end
+
+    Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex]))
+  end
+
+  defp app_tuples(app) do
+    case :code.where_is_file('#{app}.app') do
+      :non_existing -> Mix.raise "Could not find application #{app}"
+      file -> get_tuples(Path.dirname(Path.dirname(file)))
     end
   end
 
