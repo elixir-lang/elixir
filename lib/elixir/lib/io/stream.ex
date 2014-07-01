@@ -22,6 +22,8 @@ defmodule IO.Stream do
 
   defstruct device: nil, raw: true, line_or_bytes: :line
 
+  @type t :: %__MODULE__{}
+
   @doc false
   def __build__(device, raw, line_or_bytes) do
     %IO.Stream{device: device, raw: raw, line_or_bytes: line_or_bytes}

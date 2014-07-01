@@ -32,12 +32,20 @@ defmodule Inspect.Opts do
     * `:width` - defaults to the 80 characters.
   """
 
-  defstruct structs: true :: boolean,
-            binaries: :infer :: :infer | :as_binaries | :as_strings,
-            char_lists: :infer :: :infer | :as_lists | :as_char_lists,
-            limit: 50 :: pos_integer,
-            width: 80 :: pos_integer | :infinity,
-            pretty: false :: boolean
+  defstruct structs: true,
+            binaries: :infer,
+            char_lists: :infer,
+            limit: 50,
+            width: 80,
+            pretty: false
+
+  @type t :: %__MODULE__{
+               structs: boolean,
+               binaries: :infer | :as_binaries | :as_strings,
+               char_lists: :infer | :as_lists | :as_char_lists,
+               limit: pos_integer,
+               width: pos_integer | :infinity,
+               pretty: boolean}
 end
 
 defmodule Inspect.Algebra do

@@ -38,6 +38,7 @@ defmodule Kernel.Typespec do
             | Fun
             | Integer
             | List
+            | Map
             | Tuple
             | Union
             | UserDefined # Described in section "Defining a type"
@@ -66,15 +67,29 @@ defmodule Kernel.Typespec do
             | []                                # empty list
             | [Type]                            # shorthand for list(Type)
             | [Type, ...]                       # shorthand for nonempty_list(Type)
+            | [Keyword]
+
+      Map :: map()            # map of any size
+           | %{}              # map of any size
+           | %Struct{}        # struct (see defstruct/1)
+           | %Struct{Keyword}
+           | %{Keyword}
+           | %{Pairs}
 
       Tuple :: tuple     # a tuple of any size
              | {}        # empty tuple
              | {TList}
 
+      Keyword :: ElixirAtom: Type
+               | ElixirAtom: Type, Keyword
+
+      Pairs :: Type => Type
+             | Type => Type, Pairs
+
       TList :: Type
              | Type, TList
 
-      Union :: Type1 | Type2
+      Union :: Type | Type
 
   ### Bit strings
 
@@ -792,7 +807,30 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:%, _, [name, {:%{}, meta, fields}]}, vars, caller) do
-    typespec({:%{}, meta, [{:__struct__, name}|fields]}, vars, caller)
+    module = Macro.expand(name, caller)
+
+    struct =
+      if module == caller.module do
+        Module.get_attribute(module, :struct) ||
+          compile_error(caller, "struct is not defined for #{Macro.to_string(name)}")
+      else
+        module.__struct__
+      end
+
+    struct =
+      :lists.map(fn {field, _} ->
+        {field, quote do: term()}
+      end, Map.to_list(struct))
+
+
+    :lists.foreach(fn {field, _} ->
+      unless Keyword.has_key?(struct, field) do
+        compile_error(caller, "undefined field #{field} on struct #{Macro.to_string(name)}")
+      end
+    end, fields)
+
+    fields = Keyword.merge(struct, [__struct__: module] ++ fields)
+    typespec({:%{}, meta, fields}, vars, caller)
   end
 
   # Handle ranges

@@ -16,7 +16,7 @@ defmodule Task do
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
-  Besides `async/1` and `await/2`, tasks can also be 
+  Besides `async/1` and `await/2`, tasks can also be
   started as part of supervision trees and dynamically spawned
   in remote nodes. We will explore all three scenarios next.
 
@@ -92,6 +92,8 @@ defmodule Task do
 
   """
   defstruct pid: nil, ref: nil
+
+  @type t :: %__MODULE__{}
 
   @doc """
   Starts a task as part of a supervision tree.

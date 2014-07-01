@@ -58,14 +58,26 @@ defmodule Version do
 
   @type version     :: String.t | t
   @type requirement :: String.t | Version.Requirement.t
-  @type matchable   :: {major :: String.t | non_neg_integer,
-                        minor :: non_neg_integer | nil,
-                        patch :: non_neg_integer | nil,
-                        pre   :: [String.t]}
+  @type major       :: String.t | non_neg_integer
+  @type minor       :: non_neg_integer | nil
+  @type patch       :: non_neg_integer | nil
+  @type pre         :: [String.t]
+  @type build       :: String.t | nil
+  @type matchable   :: {major :: major,
+                        minor :: minor,
+                        patch :: patch,
+                        pre   :: pre}
+  @type t           :: %__MODULE__{
+                         major: major,
+                         minor: minor,
+                         patch: patch,
+                         pre:   pre,
+                         build: build}
 
   defmodule Requirement do
     @moduledoc false
     defstruct [:source, :matchspec]
+    @type t :: %__MODULE__{}
   end
 
   defmodule InvalidRequirementError do
