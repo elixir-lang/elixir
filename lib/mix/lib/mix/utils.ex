@@ -317,14 +317,16 @@ defmodule Mix.Utils do
   end
 
   defp do_symlink_or_copy(source, target) do
-    if match? {:win32, _}, :os.type do
-      {:ok, File.cp_r!(source, target)}
-    else
-      symlink_source = make_relative_path(source, target)
-      case :file.make_symlink(symlink_source, target) do
-        :ok -> :ok
-        {:error, _} -> {:ok, File.cp_r!(source, target)}
-      end
+   
+    # relative symbolic links on windows are broken
+    source_path = case :os.type do
+      {:win32, _} -> source
+      _ -> make_relative_path(source, target)
+    end
+    
+    case :file.make_symlink(source_path, target) do
+      :ok -> :ok
+      {:error, _} -> {:ok, File.cp_r!(source, target)}
     end
   end
 
