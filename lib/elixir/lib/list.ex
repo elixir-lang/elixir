@@ -570,7 +570,7 @@ defmodule List do
       "abc"
 
   """
-  @spec to_string(:unicode.char_list) :: String.t
+  @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
