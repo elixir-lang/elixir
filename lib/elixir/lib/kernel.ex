@@ -1603,7 +1603,9 @@ defmodule Kernel do
   ages inside a list:
 
       iex> users = [%{name: "josé", age: 27}, %{name: "eric", age: 23}]
-      iex> all = fn :get_and_update, data, next -> List.unzip(Enum.map(data, next)) end
+      iex> all = fn :get_and_update, data, next ->
+      ...>   Enum.map(data, next) |> List.unzip() |> List.to_tuple()
+      ...> end
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "josé", age: 28}, %{name: "eric", age: 24}]}
 
