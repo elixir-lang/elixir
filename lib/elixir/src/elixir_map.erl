@@ -22,19 +22,8 @@ expand_struct(Meta, Left, Right, E) ->
 
   EMeta =
     case lists:member(ELeft, ?m(E, context_modules)) of
-      true ->
-        case (ELeft == ?m(E, module)) and
-             (?m(E, function) == nil) of
-          true ->
-            compile_error(Meta, ?m(E, file),
-              "cannot access struct ~ts in body of the module that defines it as "
-              "the struct fields are not yet accessible",
-              [elixir_aliases:inspect(ELeft)]);
-          false ->
-            [{struct, context}|Meta]
-        end;
-      false ->
-        Meta
+      true  -> [{struct, context}|Meta];
+      false -> Meta
     end,
 
   case ERight of
@@ -90,12 +79,11 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 %% Helpers
 
 load_struct(Meta, Name, S) ->
+  Context = lists:keyfind(struct, 1, Meta) == {struct, context},
+
   Local =
     elixir_module:is_open(Name) andalso
-    (case lists:keyfind(struct, 1, Meta) of
-      {struct, context} -> true;
-      _ -> wait_for_struct(Name)
-    end),
+      (Context orelse wait_for_struct(Name)),
 
   try
     case Local of
@@ -112,8 +100,16 @@ load_struct(Meta, Name, S) ->
   catch
     error:undef ->
       Inspected = elixir_aliases:inspect(Name),
-      compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
-        "cannot expand struct ~ts", [Inspected, Inspected])
+
+      case Context of
+        true ->
+          compile_error(Meta, S#elixir_scope.file,
+            "cannot access struct ~ts in the same context that defines it as "
+            "the struct fields are not yet accessible", [Inspected]);
+        false ->
+          compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
+            "cannot expand struct ~ts", [Inspected, Inspected])
+      end
   end.
 
 wait_for_struct(Module) ->
