@@ -119,7 +119,7 @@ defimpl Access, for: Map do
 
   def get_and_update!(other, key, _fun) do
     raise ArgumentError,
-      "could not update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
 end
 
@@ -132,8 +132,9 @@ defimpl Access, for: Atom do
     undefined(atom)
   end
 
-  def get_and_update(nil, _, fun) do
-    fun.(nil)
+  def get_and_update(nil, key, _fun) do
+    raise ArgumentError,
+      "could not put/update key #{inspect key} on a nil value"
   end
 
   def get_and_update(atom, _key, _fun) do

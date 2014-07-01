@@ -1522,13 +1522,8 @@ defmodule Kernel do
       iex> put_in(users, ["josé", :age], 28)
       %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
-  In case any of entries in the middle returns `nil`, a map is dynamically
-  created:
-
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> put_in(users, ["dave", :age], 13)
-      %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 13}}
-
+  In case any of entries in the middle returns `nil`,
+  an error will be raised when trying to access it next.
   """
   @spec put_in(Access.t, nonempty_list(term), term) :: Access.t
   def put_in(data, keys, value) do
@@ -1549,13 +1544,8 @@ defmodule Kernel do
       iex> update_in(users, ["josé", :age], &(&1 + 1))
       %{"josé" => %{age: 28}, "eric" => %{age: 23}}
 
-  In case any of entries in the middle returns `nil`, a map is dynamically
-  created:
-
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> update_in(users, ["dave", :age], &((&1 || 0) + 1))
-      %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 1}}
-
+  In case any of entries in the middle returns `nil`,
+  an error will be raised when trying to access it next.
   """
   @spec update_in(Access.t, nonempty_list(term), (term -> term)) :: Access.t
   def update_in(data, keys, fun) do
@@ -1591,13 +1581,6 @@ defmodule Kernel do
       iex> get_and_update_in(users, ["josé", :age], &{&1, &1 + 1})
       {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
 
-  In case any of entries in the middle returns `nil`, a map is dynamically
-  created:
-
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_and_update_in(users, ["dave", :age], &{&1, 13})
-      {nil, %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 13}}}
-
   When one of the keys is a function, the function is invoked.
   In the example below, we use a function to get and increment all
   ages inside a list:
@@ -1610,8 +1593,8 @@ defmodule Kernel do
       {[27, 23], [%{name: "josé", age: 28}, %{name: "eric", age: 24}]}
 
   If the previous value before invoking the function is nil,
-  the function *will* receive nil as a value and must handle it
-  accordingly.
+  the function *will* receive `nil` as a value and must handle it
+  accordingly (be it by failing or providing a sane default).
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),
                           (term -> {get, term})) :: {get, Access.t} when get: var
@@ -1623,13 +1606,9 @@ defmodule Kernel do
     do: h.(:get_and_update, data, &get_and_update_in(&1, t, fun))
 
   def get_and_update_in(data, [h], fun),
-    do: Access.get_and_update(mapify(data), h, fun)
+    do: Access.get_and_update(data, h, fun)
   def get_and_update_in(data, [h|t], fun),
-    do: Access.get_and_update(mapify(data), h, &get_and_update_in(&1, t, fun))
-
-  @compile {:inline, mapify: 1}
-  defp mapify(nil), do: %{}
-  defp mapify(oth), do: oth
+    do: Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
 
   @doc """
   Puts a value in a nested structure via the given `path`.
