@@ -3,7 +3,9 @@
 ## v0.14.3-dev
 
 * Enhancements
+  * [Access] Allow function access on `get_in/2` and `get_and_update_in/3`
   * [Enum] Add `Enum.sort_by/3`
+  * [ExUnit] Match test lines by proximity
 
 * Bug fixes
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table

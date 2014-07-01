@@ -173,7 +173,7 @@ defmodule KernelTest do
   dynamic = :dynamic_flatten
   defdelegate unquote(dynamic)(list), to: List, as: :flatten
 
-  test "defdelefate/2" do
+  test "defdelegate/2" do
     assert my_flatten([[1]]) == [1]
   end
 
@@ -190,6 +190,11 @@ defmodule KernelTest do
     assert get_in(users, ["josé", :age]) == 27
     assert get_in(users, ["dave", :age]) == nil
     assert get_in(nil, ["josé", :age]) == nil
+
+    map = %{"fruits" => ["banana", "apple", "orange"]}
+    assert get_in(map, ["fruits", by_index(0)])  == "banana"
+    assert get_in(map, ["fruits", by_index(3)])  == nil
+    assert get_in(map, ["unknown", by_index(3)]) == :oops
 
     assert_raise FunctionClauseError, fn ->
       get_in(users, [])
@@ -288,6 +293,16 @@ defmodule KernelTest do
     assert get_and_update_in(users, ["josé", :age], &{&1, &1 + 1}) ==
            {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
 
+    map = %{"fruits" => ["banana", "apple", "orange"]}
+    assert get_and_update_in(map, ["fruits", by_index(0)], &{&1, String.reverse(&1)}) ==
+           {"banana", %{"fruits" => ["ananab", "apple", "orange"]}}
+
+    assert get_and_update_in(map, ["fruits", by_index(3)], &{&1, &1}) ==
+           {nil, %{"fruits" => ["banana", "apple", "orange"]}}
+
+    assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
+           {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
+
     assert_raise FunctionClauseError, fn ->
       update_in(users, [], fn _ -> %{} end)
     end
@@ -319,7 +334,7 @@ defmodule KernelTest do
     assert put_in(KernelTest.empty_map()[:foo], "bar") == %{foo: "bar"}
     assert put_in(__MODULE__.empty_map()[:foo], "bar") == %{foo: "bar"}
 
-    assert_raise ArgumentError, ~r"access at least one field,", fn ->
+    assert_raise ArgumentError, ~r"access at least one element,", fn ->
       Code.eval_quoted(quote(do: put_in(map, "bar")), [])
     end
 
@@ -329,6 +344,18 @@ defmodule KernelTest do
   end
 
   def empty_map, do: %{}
+
+  def by_index(index) do
+    fn
+      _, nil, next ->
+        next.(:oops)
+      :get, data, next ->
+        next.(Enum.at(data, index))
+      :get_and_update, data, next ->
+        {get, update} = next.(Enum.at(data, index))
+        {get, List.replace_at(data, index, update)}
+    end
+  end
 
   defmodule PipelineOp do
     use ExUnit.Case, async: true

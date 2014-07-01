@@ -1453,7 +1453,16 @@ defmodule Kernel do
   Gets a value from a nested structure.
 
   Uses the `Access` protocol to traverse the structures
-  according to the given `keys`.
+  according to the given `keys`, unless the `key` is a
+  function.
+
+  If a key is a function, the function will be invoked
+  passing three arguments, the operation (`:get`), the
+  data to be accessed, and a function to be invoked next.
+
+  This means `get_in/2` can be extended to provide
+  custom lookups. The downside is that functions cannot be
+  stored as keys in the accessed data structures.
 
   ## Examples
 
@@ -1468,18 +1477,44 @@ defmodule Kernel do
       iex> get_in(users, ["unknown", :age])
       nil
 
+  When one of the keys is a function, the function is invoked.
+  In the example below, we use a function to get all the maps
+  inside a list:
+
+      iex> users = [%{name: "josé", age: 27}, %{name: "eric", age: 23}]
+      iex> all = fn :get, data, next -> Enum.map(data, next) end
+      iex> get_in(users, [all, :age])
+      [27, 23]
+
+  If the previous value before invoking the function is nil,
+  the function *will* receive nil as a value and must handle it
+  accordingly.
   """
   @spec get_in(Access.t, nonempty_list(term)) :: term
   def get_in(data, keys)
-  def get_in(nil, list) when is_list(list), do: nil
-  def get_in(data, [h]),                    do: Access.get(data, h)
-  def get_in(data, [h|t]),                  do: get_in(Access.get(data, h), t)
+
+  def get_in(data, [h]) when is_function(h),
+    do: h.(:get, data, &(&1))
+  def get_in(data, [h|t]) when is_function(h),
+    do: h.(:get, data, &get_in(&1, t))
+
+  def get_in(nil, [_]),
+    do: nil
+  def get_in(nil, [_|t]),
+    do: get_in(nil, t)
+
+  def get_in(data, [h]),
+    do: Access.get(data, h)
+  def get_in(data, [h|t]),
+    do: get_in(Access.get(data, h), t)
 
   @doc """
   Puts a value in a nested structure.
 
   Uses the `Access` protocol to traverse the structures
-  according to the given `keys`.
+  according to the given `keys`, unless the `key` is a
+  function. If the key is a function, it will be invoked
+  as specified in `get_and_update_in/3`.
 
   ## Examples
 
@@ -1504,7 +1539,9 @@ defmodule Kernel do
   Updates a key in a nested structure.
 
   Uses the `Access` protocol to traverse the structures
-  according to the given `keys`.
+  according to the given `keys`, unless the `key` is a
+  function. If the key is a function, it will be invoked
+  as specified in `get_and_update_in/3`.
 
   ## Examples
 
@@ -1528,9 +1565,20 @@ defmodule Kernel do
   @doc """
   Gets a value and updates a nested structure.
 
-  It expects a tuple to be returned, containing the value retrieved
-  and the update one. Uses the `Access` protocol to traverse the
-  structures according to the given `keys`.
+  It expects a tuple to be returned, containing the value
+  retrieved and the update one.
+
+  Uses the `Access` protocol to traverse the structures
+  according to the given `keys`, unless the `key` is a
+  function.
+
+  If a key is a function, the function will be invoked
+  passing three arguments, the operation (`:get_and_update`),
+  the data to be accessed, and a function to be invoked next.
+
+  This means `get_and_update_in/3` can be extended to provide
+  custom lookups. The downside is that functions cannot be stored
+  as keys in the accessed data structures.
 
   ## Examples
 
@@ -1550,16 +1598,36 @@ defmodule Kernel do
       iex> get_and_update_in(users, ["dave", :age], &{&1, 13})
       {nil, %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 13}}}
 
+  When one of the keys is a function, the function is invoked.
+  In the example below, we use a function to get and increment all
+  ages inside a list:
+
+      iex> users = [%{name: "josé", age: 27}, %{name: "eric", age: 23}]
+      iex> all = fn :get_and_update, data, next -> List.unzip(Enum.map(data, next)) end
+      iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
+      {[27, 23], [%{name: "josé", age: 28}, %{name: "eric", age: 24}]}
+
+  If the previous value before invoking the function is nil,
+  the function *will* receive nil as a value and must handle it
+  accordingly.
   """
   @spec get_and_update_in(Access.t, nonempty_list(term),
                           (term -> {get, term})) :: {get, Access.t} when get: var
   def get_and_update_in(data, keys, fun)
 
-  def get_and_update_in(nil, list, fun), do: get_and_update_in(%{}, list, fun)
-  def get_and_update_in(data, [h], fun), do: Access.get_and_update(data, h, fun)
-  def get_and_update_in(data, [h|t], fun) do
-    Access.get_and_update(data, h, &get_and_update_in(&1, t, fun))
-  end
+  def get_and_update_in(data, [h], fun) when is_function(h),
+    do: h.(:get_and_update, data, fun)
+  def get_and_update_in(data, [h|t], fun) when is_function(h),
+    do: h.(:get_and_update, data, &get_and_update_in(&1, t, fun))
+
+  def get_and_update_in(data, [h], fun),
+    do: Access.get_and_update(mapify(data), h, fun)
+  def get_and_update_in(data, [h|t], fun),
+    do: Access.get_and_update(mapify(data), h, &get_and_update_in(&1, t, fun))
+
+  @compile {:inline, mapify: 1}
+  defp mapify(nil), do: %{}
+  defp mapify(oth), do: oth
 
   @doc """
   Puts a value in a nested structure via the given `path`.
@@ -1645,7 +1713,7 @@ defmodule Kernel do
   ## Examples
 
       iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_and_update_in(users["josé"][:age], &{&1, &1 + 1})
+      iex> get_and_update_in(users["josé"].age, &{&1, &1 + 1})
       {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
 
   ## Paths
@@ -1714,7 +1782,7 @@ defmodule Kernel do
 
   defp unnest(other, [], kind) do
     raise ArgumentError,
-      "expected expression given to #{kind} to access at least one field, got: #{Macro.to_string other}"
+      "expected expression given to #{kind} to access at least one element, got: #{Macro.to_string other}"
   end
 
   defp unnest(other, acc, kind) do
@@ -1723,7 +1791,7 @@ defmodule Kernel do
       false ->
         raise ArgumentError,
           "expression given to #{kind} must start with a variable, local or remote call " <>
-          "and be followed by field access, got: #{Macro.to_string other}"
+          "and be followed by an element access, got: #{Macro.to_string other}"
     end
   end
 
