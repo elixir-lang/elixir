@@ -126,8 +126,9 @@ defmodule Kernel.Typespec do
       `bitstring`           | `<< _ :: _ * 1 >>`
       `boolean`             | `false` &#124; `true`
       `byte`                | `0..255`
-      `char`                | `0..0xffff`
+      `char`                | `0..0x10ffff`
       `number`              | `integer` &#124; `float`
+      `char_list`           |  [char]
       `list`                | `[any]`
       `maybe_improper_list` | `maybe_improper_list(any, any)`
       `nonempty_list`       | `nonempty_list(any)`

@@ -115,7 +115,7 @@ defmodule Integer do
       '7'
 
   """
-  @spec to_char_list(integer) :: list
+  @spec to_char_list(integer) :: char_list
   def to_char_list(number) do
     :erlang.integer_to_list(number)
   end
@@ -132,7 +132,7 @@ defmodule Integer do
       '3FF'
 
   """
-  @spec to_char_list(integer, pos_integer) :: list
+  @spec to_char_list(integer, pos_integer) :: char_list
   def to_char_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
