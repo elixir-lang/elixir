@@ -20,7 +20,9 @@ defmodule AccessTest do
   test "for nil" do
     assert nil[:foo] == nil
     assert Access.get(nil, :foo) == nil
-    assert Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end) == {:ok, :bar}
+    assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
+      Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
+    end
   end
 
   test "for keywords" do

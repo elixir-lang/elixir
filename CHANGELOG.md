@@ -19,8 +19,9 @@
   * [System] Giving a char lit `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes
+  * [Access] No longer fill in missing intermediate values with empty maps
   * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
-  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstal` respectively 
+  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstal` respectively
 
 ## v0.14.2 (2014-06-29)
 
