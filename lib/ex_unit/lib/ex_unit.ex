@@ -74,11 +74,18 @@ defmodule ExUnit do
       * `:tags`  - the test tags
 
     """
-    defstruct name: nil :: atom,
-              case: nil :: module,
-              state: nil :: ExUnit.state,
-              time: 0 :: non_neg_integer,
-              tags: %{} :: map
+    defstruct name: nil,
+              case: nil,
+              state: nil,
+              time: 0,
+              tags: %{}
+
+    @type t :: %__MODULE__{
+                 name: atom,
+                 case: module,
+                 state: ExUnit.state,
+                 time: non_neg_integer,
+                 tags: map}
   end
 
   defmodule TestCase do
@@ -92,9 +99,14 @@ defmodule ExUnit do
       * `:tests` - all tests for this case
 
     """
-    defstruct name: nil :: module,
-              state: nil :: ExUnit.state,
-              tests: [] :: [ExUnit.Test.t]
+    defstruct name: nil,
+              state: nil,
+              tests: []
+
+    @type t :: %__MODULE__{
+                 name: module,
+                 state: ExUnit.state,
+                 tests: [ExUnit.Test.t]}
   end
 
   use Application

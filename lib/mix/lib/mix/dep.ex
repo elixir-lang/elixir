@@ -49,6 +49,17 @@ defmodule Mix.Dep do
   defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: [],
             deps: [], top_level: false, extra: [], manager: nil, from: nil
 
+  @type t :: %__MODULE__{
+               scm: module,
+               app: atom,
+               requirement: String.t | Regex.t,
+               status: atom,
+               opts: Keyword.t,
+               top_level: boolean,
+               manager: :rebar | :mix | :make | nil,
+               from: String.t,
+               extra: term}
+
   @doc """
   Returns all children dependencies for the current project,
   as well as the defined apps in case of umbrella projects.

@@ -164,6 +164,16 @@ defmodule GenEvent do
   @typedoc "Supported values for new handlers"
   @type handler :: module | {module, term}
 
+  @typedoc "The subscription mode"
+  @type mode :: :sync | :async
+
+  @type t :: %__MODULE__{
+               manager: manager,
+               id: term,
+               timeout: timeout,
+               duration: timeout,
+               mode: mode}
+
   @doc """
   Defines a `GenEvent` stream.
 

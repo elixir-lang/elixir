@@ -7,6 +7,8 @@ defmodule URI do
             fragment: nil, authority: nil,
             userinfo: nil, host: nil, port: nil
 
+  @type t :: %__MODULE__{}
+
   import Bitwise
 
   @ports %{
