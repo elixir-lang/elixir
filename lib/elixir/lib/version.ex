@@ -169,7 +169,8 @@ defmodule Version do
 
   ## Examples
 
-      iex> Version.parse("2.0.1-alpha1") |> elem(1)
+      iex> {:ok, version} = Version.parse("2.0.1-alpha1")
+      iex> version
       #Version<2.0.1-alpha1>
 
       iex> Version.parse("2.0-alpha1")
@@ -193,7 +194,8 @@ defmodule Version do
 
   ## Examples
 
-      iex> Version.parse_requirement("== 2.0.1") |> elem(1)
+      iex> {:ok, req} = Version.parse_requirement("== 2.0.1")
+      iex> req
       #Version.Requirement<== 2.0.1>
 
       iex> Version.parse_requirement("== == 2.0.1")
