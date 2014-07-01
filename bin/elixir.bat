@@ -60,13 +60,6 @@ if "%par%"=="""" (
 )
 rem ******* EXECUTION OPTIONS **********************
 IF "%par%"==""+iex"" (Set useWerl=1)
-rem ******* ERLANG PARAMETERS **********************
-IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
-IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
-IF NOT "%par%"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF NOT "%par%"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF NOT "%par%"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF NOT "%par%"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF NOT "%par%"=="%par:-e=%"      (shift) 
@@ -76,6 +69,13 @@ IF NOT "%par%"=="%par:-pa=%"     (shift)
 IF NOT "%par%"=="%par:-pz=%"     (shift) 
 IF NOT "%par%"=="%par:--app=%"   (shift) 
 IF NOT "%par%"=="%par:--remsh=%" (shift) 
+rem ******* ERLANG PARAMETERS **********************
+IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
+IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
+IF NOT "%par%"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
+IF NOT "%par%"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
+IF NOT "%par%"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
+IF NOT "%par%"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
