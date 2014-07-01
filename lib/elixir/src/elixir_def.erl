@@ -253,12 +253,12 @@ unwrap_definition(defmacro, {Name, Arity} = Tuple, Fun, Exports, Private, Def, D
   Macro = {elixir_utils:macro_name(Name), Arity + 1},
   {setelement(1, Fun, Macro), [Macro|Exports], Private, Def, [Tuple|Defmacro]};
 unwrap_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  %% {Name, Arity}, Kind, Line, Check, Defaults
-  Info = {Tuple, defp, element(3, Fun), element(5, Fun), element(7, Fun)},
+  {_, _, Line, _, Check, _, {Defaults, _, _}} = Fun,
+  Info = {Tuple, defp, Line, Check, Defaults},
   {Fun, Exports, [Info|Private], Def, Defmacro};
 unwrap_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  %% {Name, Arity}, Kind, Line, Check, Defaults
-  Info  = {Tuple, defmacrop, element(3, Fun), element(5, Fun), element(7, Fun)},
+  {_, _, Line, _, Check, _, {Defaults, _, _}} = Fun,
+  Info  = {Tuple, defmacrop, Line, Check, Defaults},
   {false, Exports, [Info|Private], Def, Defmacro}.
 
 %% Helpers
@@ -285,19 +285,20 @@ default_function_for(_, Name, {clause, Line, Args, _Guards, _Exprs} = Clause) ->
 
 store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line, Name, Arity, Clauses}) ->
   Tuple = {Name, Arity},
+  HasBody = Clauses =/= [],
   case ets:lookup(Table, Tuple) of
-    [{Tuple, StoredKind, StoredLine, StoredFile, StoredCheck, StoredLocation, StoredDefaults}] ->
+    [{Tuple, StoredKind, StoredLine, StoredFile, StoredCheck, StoredLocation, {StoredDefaults, LastHasBody, LastDefaults}}] ->
       FinalLine = StoredLine,
       FinalLocation = StoredLocation,
-      FinalDefaults = max(Defaults, StoredDefaults),
+      FinalDefaults = {max(Defaults, StoredDefaults), HasBody, Defaults},
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
       (Check and StoredCheck) andalso
         check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile),
-      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults);
+      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, LastDefaults, LastHasBody);
     [] ->
       FinalLine = Line,
       FinalLocation = Location,
-      FinalDefaults = Defaults
+      FinalDefaults = {Defaults, HasBody, Defaults}
   end,
   Check andalso ets:insert(Table, {last, {Name, Arity}}),
   ets:insert(CTable, [{Tuple, Clause} || Clause <- Clauses ]),
@@ -320,14 +321,20 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
         {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}}})
   end.
 
-check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _) -> [];
-check_valid_defaults(Line, File, Name, Arity, Kind, _, 0) ->
+% Any clause after clause with defaults (body less does not count)
+check_valid_defaults(Line, File, Name, Arity, Kind, _, StoredDefaults, true) when StoredDefaults > 0 ->
+  elixir_errors:form_error(Line, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
+% Clause without defaults
+check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _) -> [];
+% Clause with defaults after clause without defaults
+check_valid_defaults(Line, File, Name, Arity, Kind, _, 0, _) ->
   elixir_errors:handle_file_warning(File, {Line, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}}});
-check_valid_defaults(Line, File, Name, Arity, Kind, _, _) ->
+% Clause with defaults after clause with defaults
+check_valid_defaults(Line, File, Name, Arity, Kind, _, _, _) ->
   elixir_errors:form_error(Line, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}}).
 
 check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, E) ->
-  Matches = ets:match(Table, {{Name, '$2'}, '$1', '_', '_', '_', '_', '$3'}),
+  Matches = ets:match(Table, {{Name, '$2'}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
   [ begin
       elixir_errors:form_error(Line, ?m(E, file), ?MODULE,
         {defs_with_defaults, Name, {Kind, Arity}, {K, A}})

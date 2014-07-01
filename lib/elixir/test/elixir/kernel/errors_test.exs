@@ -137,6 +137,19 @@ defmodule Kernel.ErrorsTest do
         def hello(arg \\ 1), do: nil
       end
       '''
+
+    assert_compile_fail CompileError,
+      "nofile:6: def hello/1 has default values and multiple clauses, " <>
+      "define a function head with the defaults",
+      ~C'''
+      defmodule ErrorsTest do
+        def bye(arg \\ 0)
+        def bye(arg), do: arg
+
+        def hello(arg \\ 0), do: nil
+        def hello(arg), do: arg
+      end
+      '''
   end
 
   test :invalid_match_pattern do
