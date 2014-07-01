@@ -36,7 +36,7 @@ store(Module, Function, GenerateName) ->
     {_Count, _Clause, _Neighbours, true} -> ok;
     {Count, Clause, Neighbours, false} ->
       overridable(Module, orddict:store(Function, {Count, Clause, Neighbours, true}, Overridable)),
-      {{{Name, Arity}, Kind, Line, File, _Check, Location, Defaults}, Clauses} = Clause,
+      {{{Name, Arity}, Kind, Line, File, _Check, Location, {Defaults, _HasBody, _LastDefaults}}, Clauses} = Clause,
 
       {FinalKind, FinalName} = case GenerateName of
         true  -> {defp, name(Module, Function, Overridable)};
