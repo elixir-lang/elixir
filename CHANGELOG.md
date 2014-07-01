@@ -16,6 +16,8 @@
   * [System] `System.cmd/1` is deprecated in favor of `System.cmd/3`
 
 * Deprecations
+  * [Mix] `mix escriptize` is deprecated in favor of `escript.build`
+  * [Mix] `:embed_extra_apps` for escripts is deprecated, instead list the dependencies inside `def application`
   * [System] Giving a char lit `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes

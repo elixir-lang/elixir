@@ -1,6 +1,6 @@
 Code.require_file "../../test_helper.exs", __DIR__
 
-defmodule Mix.Tasks.EscriptizeTest do
+defmodule Mix.Tasks.EscriptTest do
   use MixTest.Case
 
   defmodule Escript do
@@ -46,11 +46,11 @@ defmodule Mix.Tasks.EscriptizeTest do
     Mix.Project.push Escript
 
     in_fixture "escripttest", fn ->
-      Mix.Tasks.Escriptize.run []
+      Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest"]}
       assert System.cmd("escript escriptest") == "TEST\n"
 
-      Mix.Tasks.Escriptize.run []
+      Mix.Tasks.Escript.Build.run []
       refute_received {:mix_shell, :info, ["Generated escript escriptest"]}
     end
   end
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.EscriptizeTest do
     Mix.Project.push EscriptWithPath
 
     in_fixture "escripttest", fn ->
-      Mix.Tasks.Escriptize.run []
+      Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithpath"]}
       assert System.cmd("escript ebin/escripttestwithpath") == "TEST\n"
     end
@@ -69,7 +69,7 @@ defmodule Mix.Tasks.EscriptizeTest do
     Mix.Project.push EscriptWithDeps
 
     in_fixture "escripttest", fn ->
-      Mix.Tasks.Escriptize.run []
+      Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"]}
       assert System.cmd("escript ebin/escripttestwithdeps") == "TEST\n"
     end
