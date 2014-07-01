@@ -5,6 +5,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#open_port-2.
+
+  Inlined by the compiler.
   """
   def open(name, settings) do
     :erlang.open_port(name, settings)
@@ -12,6 +14,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_close-1.
+
+  Inlined by the compiler.
   """
   def close(port) do
     :erlang.port_close(port)
@@ -19,6 +23,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_command-2.
+
+  Inlined by the compiler.
   """
   def command(port, data, options \\ []) do
     :erlang.port_command(port, data, options)
@@ -26,6 +32,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_connect-2.
+
+  Inlined by the compiler.
   """
   def connect(port, pid) do
     :erlang.port_connect(port, pid)
@@ -33,6 +41,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_control-3.
+
+  Inlined by the compiler.
   """
   def control(port, operation, data) do
     :erlang.port_control(port, operation, data)
@@ -40,6 +50,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_call-3.
+
+  Inlined by the compiler.
   """
   def call(port, operation, data) do
     :erlang.port_call(port, operation, data)
@@ -47,6 +59,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_info-1.
+
+  Inlined by the compiler.
   """
   def info(port) do
     :erlang.port_info(port)
@@ -54,6 +68,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#port_info-2.
+
+  Inlined by the compiler.
   """
   def info(port, item) do
     :erlang.port_info(port, item)
@@ -61,6 +77,8 @@ defmodule Port do
 
   @doc """
   See http://www.erlang.org/doc/man/erlang.html#ports-0.
+
+  Inlined by the compiler.
   """
   def list do
     :erlang.ports
