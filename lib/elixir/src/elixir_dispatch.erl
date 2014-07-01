@@ -18,6 +18,7 @@
 -define(list, 'Elixir.List').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
+-define(port, 'Elixir.Port').
 -define(process, 'Elixir.Process').
 -define(string, 'Elixir.String').
 -define(system, 'Elixir.System').
@@ -475,6 +476,17 @@ inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, link, 1) -> {erlang, link};
 inline(?process, unlink, 1) -> {erlang, unlink};
+
+inline(?port, open, 2) -> {erlang, open_port};
+inline(?port, call, 3) -> {erlang, port_call};
+inline(?port, close, 1) -> {erlang, port_close};
+inline(?port, command, 2) -> {erlang, port_command};
+inline(?port, command, 3) -> {erlang, port_command};
+inline(?port, connect, 2) -> {erlang, port_connect};
+inline(?port, control, 3) -> {erlang, port_control};
+inline(?port, info, 1) -> {erlang, port_info};
+inline(?port, info, 2) -> {erlang, port_info};
+inline(?port, list, 0) -> {erlang, ports};
 
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
 inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
