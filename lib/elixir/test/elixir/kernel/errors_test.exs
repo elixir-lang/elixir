@@ -219,7 +219,7 @@ defmodule Kernel.ErrorsTest do
 
   test :struct_access_on_body do
     assert_compile_fail CompileError,
-      "nofile:3: cannot access struct TZ in body of the module that defines it " <>
+      "nofile:3: cannot access struct TZ in the same context that defines it " <>
       "as the struct fields are not yet accessible",
       '''
       defmodule TZ do
