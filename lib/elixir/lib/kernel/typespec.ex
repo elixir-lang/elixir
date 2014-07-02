@@ -656,8 +656,16 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp typespec_to_ast({:type, _line, :list, args}) do
-    for arg <- args, do: typespec_to_ast(arg)
+  defp typespec_to_ast({:type, line, :list, []}) do
+    {:list, [line: line], []}
+  end
+
+  defp typespec_to_ast({:type, _line, :list, [arg]}) do
+    [typespec_to_ast(arg)]
+  end
+
+  defp typespec_to_ast({:type, line, :nonempty_list, [arg]}) do
+    [typespec_to_ast(arg), {:..., [line: line], nil}]
   end
 
   defp typespec_to_ast({:type, line, :map, fields}) do
@@ -707,6 +715,10 @@ defmodule Kernel.Typespec do
 
   defp typespec_to_ast({:type, line, :range, [left, right]}) do
     {:"..", [line: line], [typespec_to_ast(left), typespec_to_ast(right)]}
+  end
+
+  defp typespec_to_ast({:type, _line, nil, []}) do
+    []
   end
 
   defp typespec_to_ast({:type, line, name, args}) do
@@ -942,7 +954,7 @@ defmodule Kernel.Typespec do
     typespec({:list, [], [spec]}, vars, caller)
   end
 
-  defp typespec([spec, {:"...", _, quoted}], vars, caller) when is_atom(quoted) do
+  defp typespec([spec, {:..., _, atom}], vars, caller) when is_atom(atom) do
     typespec({:nonempty_list, [], [spec]}, vars, caller)
   end
 
