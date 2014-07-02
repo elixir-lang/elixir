@@ -87,7 +87,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_mix(dep) do
     Mix.Dep.in_dependency dep, fn _ ->
       try do
-        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
+        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check", "--no-readd"])
         :ok in List.wrap(res)
       catch
         kind, reason ->

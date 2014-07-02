@@ -19,17 +19,17 @@ defmodule Mix.Tasks.App.Start do
   """
   def run(args) do
     {opts, _, _} = OptionParser.parse(args)
-
-    Mix.Task.run "deps.loadpaths", args
-    Mix.Task.run "loadpaths", args
+    Mix.Task.run "loadpaths", ["--no-readd"|args]
 
     unless opts[:no_compile] do
-      Mix.Task.run "compile", args
+      Mix.Task.run "compile", ["--no-readd"|args]
     end
 
     unless opts[:no_start] do
       start(Mix.Project.config[:app])
     end
+
+    Code.readd_paths()
   end
 
   @doc false

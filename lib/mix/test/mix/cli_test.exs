@@ -3,7 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.CLITest do
   use MixTest.Case
 
-  test "env configs" do
+  test "env and path configs" do
     in_fixture "no_mixfile", fn ->
       File.write! "custom.exs", """
       defmodule P do
@@ -15,16 +15,23 @@ defmodule Mix.CLITest do
       System.put_env("MIX_ENV", "prod")
       System.put_env("MIX_EXS", "custom.exs")
 
+      # Emulate protocol consolidation
+      File.mkdir_p!("_build/prod/consolidated")
+
       {output, _status} =
         System.cmd elixir_executable,
-                   [mix_executable, "run", "-e", "IO.inspect {Mix.env, System.argv}",
+                   ["-pa", "_build/prod/consolidated",
+                    mix_executable, "run",
+                    "-e", "IO.inspect {Mix.env, System.argv}",
+                    "-e", "IO.inspect hd(:code.get_path)",
                     "--", "1", "2", "3"]
 
       System.delete_env("MIX_ENV")
       System.delete_env("MIX_EXS")
 
-      assert output =~ ~s({:prod, ["1", "2", "3"]})
       assert output =~ "Compiled lib/a.ex"
+      assert output =~ ~s({:prod, ["1", "2", "3"]})
+      assert output =~ ~s('#{Path.expand("_build/prod/consolidated")}')
     end
   end
 

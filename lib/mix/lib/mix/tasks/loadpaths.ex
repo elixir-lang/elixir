@@ -6,34 +6,62 @@ defmodule Mix.Tasks.Loadpaths do
 
   ## Command line options
 
+    * `--no-deps-check` - do not check depednecnies
     * `--no-elixir-version-check` - do not check elixir version
 
   """
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args)
+    config = Mix.Project.config
 
-    unless opts[:no_elixir_version_check] do
-      config = Mix.Project.config
-
-      if req = config[:elixir] do
-        case Version.parse_requirement(req) do
-          {:ok, req} ->
-            unless Version.match?(System.version, req) do
-              Mix.raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
-                                                expected: req,
-                                                actual: System.version
-            end
-          :error ->
-            Mix.raise "Invalid Elixir version requirement #{req} in mix.exs file"
-        end
-      end
+    unless "--no-elixir-version-check" in args do
+      check_elixir_version(config, args)
     end
 
-    # Force recompile if we have a version mismatch.
-    # Skip it for umbrella apps since they have no build.
+    # --no-deps is used only internally. It has not purpose
+    # from Mix.CLI because the CLI itself already loads deps.
+    unless "--no-deps" in args do
+      load_deps(config, args)
+    end
+
+    load_project(config, args)
+
+    unless "--no-readd" in args do
+      Code.readd_paths()
+    end
+  end
+
+  defp check_elixir_version(config, _) do
+    if req = config[:elixir] do
+      case Version.parse_requirement(req) do
+        {:ok, req} ->
+          unless Version.match?(System.version, req) do
+            Mix.raise Mix.ElixirVersionError, target: config[:app] || Mix.Project.get,
+                                              expected: req,
+                                              actual: System.version
+          end
+        :error ->
+          Mix.raise "Invalid Elixir version requirement #{req} in mix.exs file"
+      end
+    end
+  end
+
+  defp load_deps(config, args) do
+    unless "--no-deps-check" in args do
+      Mix.Task.run "deps.check", args
+    end
+
+    Mix.Project.build_path(config)
+    |> Path.join("lib/*/ebin")
+    |> Path.wildcard
+    |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
+    |> Enum.each(&Code.prepend_path/1)
+  end
+
+  defp load_project(config, _args) do
+    # Force recompile if we have a version mismatch
     old_vsn = Mix.Dep.Lock.elixir_vsn
     if old_vsn && old_vsn != System.version, do: Mix.Dep.Lock.touch
 
-    Enum.each Mix.Project.load_paths, &Code.prepend_path(&1)
+    Enum.each Mix.Project.load_paths(config), &Code.prepend_path(&1)
   end
 end

@@ -53,9 +53,7 @@ defmodule Mix.CLI do
     try do
       if Mix.Project.get do
         Mix.Task.run "loadconfig"
-        Mix.Task.run "deps.loadpaths", ["--no-deps-check"]
-        Mix.Task.run "loadpaths", ["--no-elixir-version-check"]
-        Mix.Task.reenable "deps.loadpaths"
+        Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
         Mix.Task.reenable "loadpaths"
       end
 

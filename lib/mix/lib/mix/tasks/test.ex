@@ -134,7 +134,6 @@ defmodule Mix.Tasks.Test do
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
-    Mix.Task.run "deps.loadpaths", args
     Mix.Task.run "loadpaths", args
 
     unless opts[:no_compile] do
