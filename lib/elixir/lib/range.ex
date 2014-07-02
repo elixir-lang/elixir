@@ -18,7 +18,8 @@ defmodule Range do
 
   defstruct first: nil, last: nil
 
-  @type t(first, last) :: %{__struct__: Range, first: first, last: last}
+  @type t :: %Range{}
+  @type t(first, last) :: %Range{first: first, last: last}
 
   @doc """
   Creates a new range.
