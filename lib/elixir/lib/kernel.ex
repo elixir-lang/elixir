@@ -2887,9 +2887,26 @@ defmodule Kernel do
   access fields) should use the `@opaque` attribute. Structs whose internal
   structure is public should use `@type`.
   """
-  defmacro defstruct(kv) do
+  defmacro defstruct(fields) do
+    {fields, types} = split_fields_and_types(fields)
+
+    types =
+      case types do
+        true ->
+          stacktrace = Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+          IO.write :stderr, "warning: passing types to struct fields with :: is deprecated, " <>
+                   "please define a type explicitly instead\n#{stacktrace}"
+          quote do
+            unless Kernel.Typespec.defines_type?(__MODULE__, :t, 0) do
+              @type t :: %{__struct__: __MODULE__}
+            end
+          end
+        false ->
+          :ok
+      end
+
     fields =
-      quote bind_quoted: [fields: kv] do
+      quote bind_quoted: [fields: fields] do
         fields = :lists.map(fn
           {key, _} = pair when is_atom(key) -> pair
           key when is_atom(key) -> {key, nil}
@@ -2913,8 +2930,32 @@ defmodule Kernel do
 
     quote do
       unquote(fields)
+      unquote(types)
       fields
     end
+  end
+
+  defp split_fields_and_types(kv) do
+     case Keyword.keyword?(kv) do
+       true  -> split_fields_and_types(kv, [], false)
+       false -> {kv, false}
+     end
+   end
+
+  defp split_fields_and_types([{field, {:::, _, [default, _]}}|t], fields, _types) do
+    split_fields_and_types(t, [{field, default}|fields], true)
+  end
+
+  defp split_fields_and_types([{field, default}|t], fields, types) do
+    split_fields_and_types(t, [{field, default}|fields], types)
+  end
+
+  defp split_fields_and_types([field|t], fields, types) do
+    split_fields_and_types(t, [field|fields], types)
+  end
+
+  defp split_fields_and_types([], fields, types) do
+    {:lists.reverse(fields), types}
   end
 
   @doc ~S"""
