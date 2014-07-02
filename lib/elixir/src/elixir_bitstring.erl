@@ -105,10 +105,10 @@ validate_bit_type_args(Meta, unit, [Unit], E) when not is_integer(Unit) ->
 validate_bit_type_args(_Meta, _Expr, _Args, _E) ->
   ok.
 
-handle_unknown_bit_info(Meta, {_, ExprMeta, _} = Expr, T, Size, Types, E) ->
-  case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(ExprMeta), E})) of
+handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
+  case 'Elixir.Macro':expand(Expr, elixir_env:linify({?line(Meta), E})) of
     Expr ->
-      elixir_errors:compile_error(ExprMeta, ?m(E, file),
+      elixir_errors:compile_error(Meta, ?m(E, file),
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
     Info ->
       expand_bit_info(Meta, unpack_bit_info(Meta, Info, E) ++ T, Size, Types, E)

@@ -199,7 +199,7 @@ defmodule StringIO do
   end
 
   defp do_get_chars(input, :latin1, n) do
-    <<chars :: [binary, size(n)], rest :: binary>> = input
+    <<chars :: binary-size(n), rest :: binary>> = input
     {chars, rest}
   end
 
@@ -209,7 +209,7 @@ defmodule StringIO do
         {buf_count, split_pos} when buf_count < n or split_pos == :none ->
           {input, ""}
         {_buf_count, split_pos} ->
-          <<chars :: [binary, size(split_pos)], rest :: binary>> = input
+          <<chars :: binary-size(split_pos), rest :: binary>> = input
           {chars, rest}
       end
     catch

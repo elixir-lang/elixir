@@ -512,7 +512,7 @@ defmodule Kernel.ErrorsTest do
   test :duplicated_bitstring_size do
     assert_compile_fail CompileError,
       "nofile:1: duplicated size definition in bitstring",
-      '<<1 :: [size(12), size(13)]>>'
+      '<<1 :: size(12)-size(13)>>'
   end
 
   test :invalid_bitstring_specified do

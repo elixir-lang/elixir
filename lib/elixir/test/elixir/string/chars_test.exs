@@ -81,7 +81,7 @@ defmodule String.Chars.ErrorsTest do
     assert_raise Protocol.UndefinedError,
                  "protocol String.Chars not implemented for <<0, 1::size(4)>>, " <>
                  "cannot convert a bitstring to a string", fn ->
-      to_string(<<1 :: [size(12), integer, signed]>>)
+      to_string(<<1 :: size(12)-integer-signed>>)
     end
   end
 

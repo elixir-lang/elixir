@@ -60,22 +60,22 @@ bar """
     <<"f", "oo">> <> x = "foobar"
     assert x == "bar"
 
-    <<x :: [binary, size(3)]>> <> _ = "foobar"
+    <<x :: binary-size(3)>> <> _ = "foobar"
     assert x == "foo"
 
     size = 3
-    <<x :: [binary, size(size)]>> <> _ = "foobar"
+    <<x :: binary-size(size)>> <> _ = "foobar"
     assert x == "foo"
 
-    <<x :: [binary, size(6), unit(4)]>> <> _ = "foobar"
+    <<x :: 6*4-binary>> <> _ = "foobar"
     assert x == "foo"
 
     assert_raise ErlangError, fn ->
-      Code.eval_string(~s{<<x :: [binary, size(3), unit(4)]>> <> _ = "foobar"})
+      Code.eval_string(~s{<<x :: binary-size(3)-unit(4)>> <> _ = "foobar"})
     end
 
     assert_raise ErlangError, fn ->
-      Code.eval_string(~s{<<x :: [integer, size(4)]>> <> _ = "foobar"})
+      Code.eval_string(~s{<<x :: integer-size(4)>> <> _ = "foobar"})
     end
   end
 
@@ -136,7 +136,7 @@ bar """
 
     assert <<106,111,115,195,169>> == << "josé" :: utf8 >>
     assert <<0,106,0,111,0,115,0,233>> == << "josé" :: utf16 >>
-    assert <<106,0,111,0,115,0,233,0>> == << "josé" :: [utf16, little] >>
+    assert <<106,0,111,0,115,0,233,0>> == << "josé" :: little-utf16 >>
     assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,233>> == << "josé" :: utf32 >>
   end
 
@@ -167,26 +167,26 @@ bar """
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"
-    << byte_size(refb) :: [size(1), big, signed, integer, unit(8)],
+    << byte_size(refb) :: size(1)-big-signed-integer-unit(8),
        refb :: binary,
-       byte_size(sec_data) :: [size(1), big, signed, integer, unit(16)],
+       byte_size(sec_data) :: 1*16-big-signed-integer,
        sec_data :: binary >>
   end
 
   test :bitsyntax_size_shorcut do
     assert << 1 :: 3 >> == << 1 :: size(3) >>
-    assert << 1 :: [unit(8), 3] >> == << 1 :: [unit(8), size(3)] >>
+    assert << 1 :: 3*8 >> == << 1 :: size(3)-unit(8) >>
   end
 
   defmacrop signed_16 do
     quote do
-      [big, signed, integer, unit(16)]
+      big-signed-integer-unit(16)
     end
   end
 
   defmacrop refb_spec do
     quote do
-      [size(1), big, signed, integer, unit(8)]
+      1*8-big-signed-integer
     end
   end
 
@@ -195,7 +195,7 @@ bar """
     sec_data = "another"
     << byte_size(refb) :: refb_spec,
        refb :: binary,
-       byte_size(sec_data) :: [size(1), signed_16],
+       byte_size(sec_data) :: size(1)-signed_16,
        sec_data :: binary >>
   end
 end
