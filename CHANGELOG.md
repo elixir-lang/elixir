@@ -5,23 +5,29 @@
 * Enhancements
   * [Access] Allow function access on `get_in/2` and `get_and_update_in/3`
   * [Enum] Add `Enum.sort_by/3`
-  * [ExUnit] Match test lines by proximity
+  * [ExUnit] Match the line filter by proximity instead of exact match
+  * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
+  * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
 * Bug fixes
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
   * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison ones (`==`, `!=`, etc) in operator table
   * [Kernel] Run command line and escripts in a process that does not trap exits
+  * [Kernel] Fix a bug where Mix paths had higher priority than CLI ones, causing protocol consolidations to not be properly loaded
+  * [Typespec] Fix a bug where the `list` typespec was incorrectly rendered as `[]`
 
 * Soft deprecations (no warnings emitted)
+  * [Kernel] Using a list for bitstring modifiers is deprecated (as in `<<x :: [little, utf16]>>`), please use `-` as separator instead (as in `<<x :: little-utf16>>`)
   * [System] `System.cmd/1` is deprecated in favor of `System.cmd/3`
 
 * Deprecations
   * [Mix] `mix escriptize` is deprecated in favor of `escript.build`
   * [Mix] `:embed_extra_apps` for escripts is deprecated, instead list the dependencies inside `def application`
-  * [System] Giving a char lit `System.find_executable/1` is deprecated
+  * [System] Giving a char list `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
+  * [Kernel] `defstruct` no longer automatically defines a type
   * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
   * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstall` respectively
 
