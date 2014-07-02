@@ -473,12 +473,12 @@ defmodule Regex do
 
   defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
     length = mpos - pos
-    <<untouched :: [size(length), binary], rest :: binary>> = string
+    <<untouched :: binary-size(length), rest :: binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
   defp apply_list(whole, string, pos, replacement, [[{mpos, length} | _] = head | tail]) when mpos == pos do
-    <<_ :: [size(length), binary], rest :: binary>> = string
+    <<_ :: size(length)-binary, rest :: binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
   end
@@ -511,7 +511,7 @@ defmodule Regex do
   end
 
   defp get_index(string, {pos, len}) do
-    <<_ :: [size(pos), binary], res :: [size(len), binary], _ :: binary>> = string
+    <<_ :: size(pos)-binary, res :: size(len)-binary, _ :: binary>> = string
     res
   end
 

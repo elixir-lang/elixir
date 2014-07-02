@@ -242,14 +242,14 @@ defmodule Kernel.SpecialForms do
   Here, `val` is interpreted as unsigned.
 
   The endianness of a segment can be big, little or native (the
-  latter meaning it will be resolved at VM load time). Passing
-  many options can be done by giving a list:
+  latter meaning it will be resolved at VM load time). Many options
+  can be given by using `-` as separator:
 
-      <<102 :: [integer, native], rest :: binary>>
+      <<102 :: integer-native, rest :: binary>>
 
   Or:
 
-      <<102 :: [unsigned, big, integer], rest :: binary>>
+      <<102 :: unsigned-big-integer, rest :: binary>>
 
   And so on.
 
@@ -271,7 +271,7 @@ defmodule Kernel.SpecialForms do
 
   We can also match by specifying size and unit explicitly:
 
-      iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
+      iex> <<102, _rest :: size(2)-unit(8)>> = "foo"
       "foo"
 
   However, if we expect a size of 32, it won't match:
@@ -286,12 +286,15 @@ defmodule Kernel.SpecialForms do
   in a binary match can use the default size (all others must
   have their size specified explicitly).
 
-  Size can also be specified using a syntax shortcut. Instead of
-  writing `size(8)`, one can write just `8` and it will be interpreted
-  as `size(8)`
+  Size and unit can also be specified using a syntax shortcut
+  when passing integer values:
 
-      iex> << 1 :: 3 >> == << 1 :: size(3) >>
-      true
+      << x :: 8 >> == << x :: size(8) >>
+      << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
+      << x :: _ * 4 >> == << x :: unit(4) >>
+
+  This syntax reflects the fact the effective size is given by
+  multiplying the size by the unit.
 
   For floats, `size * unit` must result in 32 or 64, corresponding
   to binary32 and binary64, respectively.
