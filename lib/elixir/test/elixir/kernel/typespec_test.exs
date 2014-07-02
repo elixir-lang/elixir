@@ -467,7 +467,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
       (quote do: @type list1() :: list()),
       (quote do: @type list2() :: [0]),
-      (quote do: @type list3() :: [0, ...]),
+      (quote do: @type list3() :: [...]),
+      (quote do: @type list4() :: [0, ...]),
       (quote do: @type nil_list() :: []),
     ] |> Enum.sort
 

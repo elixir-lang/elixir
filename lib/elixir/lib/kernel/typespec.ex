@@ -66,6 +66,7 @@ defmodule Kernel.Typespec do
             | nonempty_list(Type)               # proper non-empty list
             | []                                # empty list
             | [Type]                            # shorthand for list(Type)
+            | [...]                             # shorthand for nonempty_list()
             | [Type, ...]                       # shorthand for nonempty_list(Type)
             | [Keyword]
 
@@ -664,6 +665,10 @@ defmodule Kernel.Typespec do
     [typespec_to_ast(arg)]
   end
 
+  defp typespec_to_ast({:type, line, :nonempty_list, []}) do
+    [{:..., [line: line], nil}]
+  end
+
   defp typespec_to_ast({:type, line, :nonempty_list, [arg]}) do
     [typespec_to_ast(arg), {:..., [line: line], nil}]
   end
@@ -714,7 +719,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({:type, line, :range, [left, right]}) do
-    {:"..", [line: line], [typespec_to_ast(left), typespec_to_ast(right)]}
+    {:.., [line: line], [typespec_to_ast(left), typespec_to_ast(right)]}
   end
 
   defp typespec_to_ast({:type, _line, nil, []}) do
@@ -950,12 +955,16 @@ defmodule Kernel.Typespec do
     typespec({nil, [], []}, vars, caller)
   end
 
-  defp typespec([spec], vars, caller) do
-    typespec({:list, [], [spec]}, vars, caller)
+  defp typespec([{:..., _, atom}], vars, caller) when is_atom(atom) do
+    typespec({:nonempty_list, [], []}, vars, caller)
   end
 
   defp typespec([spec, {:..., _, atom}], vars, caller) when is_atom(atom) do
     typespec({:nonempty_list, [], [spec]}, vars, caller)
+  end
+
+  defp typespec([spec], vars, caller) do
+    typespec({:list, [], [spec]}, vars, caller)
   end
 
   defp typespec(list, vars, caller) do
@@ -992,7 +1001,7 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp fn_args(meta, [{:"...", _, _}], _vars, _caller) do
+  defp fn_args(meta, [{:..., _, _}], _vars, _caller) do
     {:type, line(meta), :any}
   end
 
