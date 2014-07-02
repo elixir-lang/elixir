@@ -11,7 +11,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip check_erlang_release
+.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -175,14 +175,20 @@ test_stdlib: compile
 	$(Q) exec epmd & exit
 	$(Q) cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
 
-.dialyzer.base_plt:
-	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
-	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler tools syntax_tools parsetools
+#==> Dialyzer tasks
 
-dialyze: .dialyzer.base_plt
-	$(Q) rm -f .dialyzer_plt
-	$(Q) cp .dialyzer.base_plt .dialyzer_plt
-	@ echo "==> Adding Elixir to PLT..."
-	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
+DIALYZER_OPTS = --no_check_plt --fullpath -Werror_handling -Wunmatched_returns -Wrace_conditions -Wunderspecs
+PLT = .elixir.plt
+
+$(PLT):
+	@ echo "==> Building PLT with Elixir's dependencies..."
+	$(Q) dialyzer --output_plt $(PLT) --build_plt --apps erts kernel stdlib compiler syntax_tools parsetools tools ssl inets
+
+clean_plt:
+	$(Q) rm -f $(PLT)
+
+build_plt: clean_plt $(PLT)
+
+dialyze: compile $(PLT)
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
+	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin 
