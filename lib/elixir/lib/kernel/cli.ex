@@ -3,7 +3,7 @@ defmodule Kernel.CLI do
 
   @blank_config %{commands: [], output: ".", compile: [],
                   halt: true, compiler_options: [], errors: [],
-                  verbose_compile: false}
+                  pa: [], pz: [], verbose_compile: false}
 
   @doc """
   This is the API invoked by Elixir boot process.
@@ -12,6 +12,7 @@ defmodule Kernel.CLI do
     argv = for arg <- argv, do: IO.chardata_to_string(arg)
 
     {config, argv} = parse_argv(argv)
+    :elixir_code_server.cast({:paths, config.pa, config.pz})
     System.argv(argv)
 
     run fn _ ->
@@ -138,13 +139,15 @@ defmodule Kernel.CLI do
   end
 
   defp parse_shared(["-pa", h|t], config) do
-    add_code_path(h, &Code.prepend_path/1)
-    parse_shared t, config
+    paths = expand_code_path(h)
+    Enum.each(paths, &:code.add_patha/1)
+    parse_shared t, %{config | pa: config.pa ++ paths}
   end
 
   defp parse_shared(["-pz", h|t], config) do
-    add_code_path(h, &Code.append_path/1)
-    parse_shared t, config
+    paths = expand_code_path(h)
+    Enum.each(paths, &:code.add_pathz/1)
+    parse_shared t, %{config | pz: config.pz ++ paths}
   end
 
   defp parse_shared(["--app", h|t], config) do
@@ -179,12 +182,11 @@ defmodule Kernel.CLI do
     {list, config}
   end
 
-
-  defp add_code_path(path, fun) do
+  defp expand_code_path(path) do
     path = Path.expand(path)
     case Path.wildcard(path) do
-      []   -> fun.(path)
-      list -> Enum.each(list, fun)
+      []   -> [to_char_list(path)]
+      list -> Enum.map(list, &to_char_list/1)
     end
   end
 

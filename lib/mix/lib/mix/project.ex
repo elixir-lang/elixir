@@ -155,7 +155,7 @@ defmodule Mix.Project do
   @doc """
   Returns `true` if project is an umbrella project.
   """
-  def umbrella? do
+  def umbrella?(config \\ config()) do
     config[:apps_path] != nil
   end
 
@@ -320,11 +320,11 @@ defmodule Mix.Project do
   @doc """
   Returns all load paths for this project.
   """
-  def load_paths do
-    if umbrella? do
+  def load_paths(config \\ config()) do
+    if umbrella?(config) do
       []
     else
-      [compile_path]
+      [compile_path(config)]
     end
   end
 

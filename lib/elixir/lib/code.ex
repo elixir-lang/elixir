@@ -52,6 +52,23 @@ defmodule Code do
   end
 
   @doc """
+  Re-add paths given to the command line to keep their position
+  on the overall code path.
+
+  Some tools may change the code path by prepending new items but
+  still want the paths given by the user to have higher priority.
+  Calling this function guarantees the paths are re-added on
+  top of the user given ones.
+  """
+  @spec readd_paths() :: :ok
+  def readd_paths() do
+    {pa, pz} = :elixir_code_server.call(:paths)
+    :code.add_pathsa(pa)
+    :code.add_pathsz(pz)
+    :ok
+  end
+
+  @doc """
   Evaluate the contents given by `string`.
 
   The `binding` argument is a keyword list of variable bindings.

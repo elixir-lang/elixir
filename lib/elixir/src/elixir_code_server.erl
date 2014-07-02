@@ -11,6 +11,7 @@
   loaded=[],
   at_exit=[],
   pool={[],0},
+  paths={[],[]},
   compiler_options=[{docs,true},{debug_info,true},{warnings_as_errors,false}],
   erl_compiler_options=nil
 }).
@@ -64,7 +65,8 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
   CompilationStatusList    = Config#elixir_code_server.compilation_status,
   CompilationStatusListNew = orddict:erase(CompilerPid, CompilationStatusList),
   CompilationStatus        = orddict:fetch(CompilerPid, CompilationStatusList),
-  {reply, CompilationStatus, Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
+  {reply, CompilationStatus,
+   Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
 
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.pool of
@@ -82,6 +84,9 @@ handle_call(erl_compiler_options, _From, Config) ->
     Opts ->
       {reply, Opts, Config}
   end;
+
+handle_call(paths, _From, Config) ->
+  {reply, Config#elixir_code_server.paths, Config};
 
 handle_call(Request, _From, Config) ->
   {stop, {badcall, Request}, Config}.
@@ -130,6 +135,9 @@ handle_cast({unload_files, Files}, Config) ->
 
 handle_cast({return_module_name, H}, #elixir_code_server{pool={T,Counter}} = Config) ->
   {noreply, Config#elixir_code_server{pool={[H|T],Counter}}};
+
+handle_cast({paths, PA, PZ}, #elixir_code_server{} = Config) ->
+  {noreply, Config#elixir_code_server{paths={PA,PZ}}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.

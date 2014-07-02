@@ -462,7 +462,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
 
-      # deps.check will automatically recompiled it
+      # deps.check will automatically recompile it
       Mix.Tasks.Deps.Check.run []
 
       Mix.Tasks.Deps.run []

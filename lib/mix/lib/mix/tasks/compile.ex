@@ -49,21 +49,15 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
-    # --no-deps is used only internally. It has not purpose
-    # from Mix.CLI because the CLI itself already loads
-    # dependencies.
-    unless "--no-deps" in args do
-      Mix.Task.run "deps.loadpaths", args
-    end
-
-    Mix.Task.run "loadpaths", args
+    Mix.Task.run "loadpaths", ["--no-readd"|args]
 
     res =
       Enum.map(compilers(), fn(compiler) ->
         List.wrap Mix.Task.run("compile.#{compiler}", args)
       end)
 
-    Code.prepend_path Mix.Project.compile_path
+    Code.prepend_path(Mix.Project.compile_path)
+    unless "--no-readd" in args, do: Code.readd_paths()
     if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
   end
 
