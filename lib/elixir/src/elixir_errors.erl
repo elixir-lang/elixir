@@ -130,6 +130,10 @@ handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 
 handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
   [];
 
+%% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
+handle_file_warning(_, File, {Line, sys_core_fold, nomatch_guard}) ->
+  warn(Line, File, "this check/guard will always yield the same result");
+
 %% Properly format other unused vars
 handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, {unused_var, format_var(Var)}),

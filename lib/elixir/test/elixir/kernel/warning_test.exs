@@ -195,7 +195,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "nofile:5: warning: the guard for this clause evaluates to 'false'"
+    end) =~ "nofile:5: warning: this check/guard will always yield the same result"
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -347,7 +347,7 @@ defmodule Kernel.WarningTest do
         def a(x) when x in [], do: x
       end
       """
-    end) =~ "warning: the guard for this clause evaluates to 'false'"
+    end) =~ "nofile:2: warning: this check/guard will always yield the same result"
   after
     purge Sample
   end
