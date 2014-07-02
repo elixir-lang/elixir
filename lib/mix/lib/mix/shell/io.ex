@@ -1,6 +1,7 @@
 defmodule Mix.Shell.IO do
   @moduledoc """
   This is Mix's default shell.
+
   It simply prints messages to stdio and stderr.
   """
 
