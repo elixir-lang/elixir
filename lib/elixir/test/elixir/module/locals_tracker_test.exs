@@ -54,6 +54,19 @@ defmodule Module.LocalsTrackerTest do
     assert {:private, 1} in D.reachable(config[:pid])
   end
 
+  test "can yank and reattach nodes", config do
+    D.add_definition(config[:pid], :def, {:foo, 1})
+    D.add_local(config[:pid], {:foo, 1}, {:bar, 1})
+    D.add_definition(config[:pid], :defp, {:bar, 1})
+
+    {infoo, outfoo}   = D.yank(config[:pid], {:foo, 1})
+    {inbar, outbar} = D.yank(config[:pid], {:bar, 1})
+
+    D.reattach(config[:pid], :defp, {:bar, 1}, {inbar, outbar})
+    D.reattach(config[:pid], :def, {:foo, 1}, {infoo, outfoo})
+    assert {:bar, 1} in D.reachable(config[:pid])
+  end
+
   @unused [
     {{:private, 1}, :defp, 0}
   ]
