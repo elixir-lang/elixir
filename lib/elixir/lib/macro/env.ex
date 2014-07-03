@@ -29,7 +29,7 @@ defmodule Macro.Env do
     * `local` - the module to expand local functions to
   """
 
-  @type name_arity :: {atom, non_neg_integer}
+  @type name_arity :: {atom, arity}
   @type file :: binary
   @type line :: non_neg_integer
   @type aliases :: [{module, module}]
@@ -42,10 +42,10 @@ defmodule Macro.Env do
   @type vars :: [{atom, atom | non_neg_integer}]
   @type export_vars :: vars | nil
   @type lexical_tracker :: pid
-  @type local :: module | nil
+  @type local :: atom | nil
 
   @type t :: %{__struct__: __MODULE__,
-               module: module,
+               module: atom,
                file: file,
                line: line,
                function: name_arity | nil,

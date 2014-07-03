@@ -135,7 +135,7 @@ defmodule Kernel.Typespec do
       `nonempty_list`       | `nonempty_list(any)`
       `iodata`              | `iolist` &#124; `binary`
       `iolist`              | `maybe_improper_list(byte` &#124; `binary` &#124; `iolist, binary` &#124; `[])`
-      `module`              | `atom`
+      `module`              | `atom` | `tuple`
       `mfa`                 | `{atom, atom, arity}`
       `arity`               | `0..255`
       `node`                | `atom`
@@ -922,11 +922,11 @@ defmodule Kernel.Typespec do
   end
 
   # Handle local calls
-  defp typespec({:string, meta, arguments}, vars, caller) do
-    :elixir_errors.warn caller.line, caller.file, "string() type use is discouraged. For character lists, use " <>
+  defp typespec({type, meta, arguments}, vars, caller) when type in [:string, :nonempty_string] do
+    :elixir_errors.warn caller.line, caller.file, "#{type}() type use is discouraged. For character lists, use " <>
       "char_list() type, for strings, String.t()\n#{Exception.format_stacktrace(Macro.Env.stacktrace(caller))}"
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-    {:type, line(meta), :string, arguments}
+    {:type, line(meta), type, arguments}
   end
 
   defp typespec({:char_list, _meta, []}, vars, caller) do
