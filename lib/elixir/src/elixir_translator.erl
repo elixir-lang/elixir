@@ -249,7 +249,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
               {atom, Line, 'true'}},
             {map_field_assoc, Line,
               {atom, Line, key},
-              {atom, Line, TRight}},
+              TRight},
             {map_field_assoc, Line,
               {atom, Line, term},
               TVar}]},
