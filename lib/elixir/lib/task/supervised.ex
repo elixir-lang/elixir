@@ -89,12 +89,12 @@ defmodule Task.Supervised do
     {fun, args} = get_running(mfa)
 
     :error_logger.format(
-      "** Task ~p terminating~n" <>
-      "** Started from ~p~n" <>
-      "** When function  == ~p~n" <>
-      "**      arguments == ~p~n" <>
-      "** Reason for termination == ~n" <>
-      "** ~p~n", [self, get_from(info), fun, args, reason])
+      '** Task ~p terminating~n' ++
+      '** Started from ~p~n' ++
+      '** When function  == ~p~n' ++
+      '**      arguments == ~p~n' ++
+      '** Reason for termination == ~n' ++
+      '** ~p~n', [self, get_from(info), fun, args, reason])
 
     exit(reason)
   end
