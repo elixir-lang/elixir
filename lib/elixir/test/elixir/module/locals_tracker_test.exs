@@ -75,11 +75,11 @@ defmodule Module.LocalsTrackerTest do
     D.add_definition(config[:pid], :def, {:public, 1})
 
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == [{:unused_def, {:private, 1}, :defp}]
+    assert unused == {[private: 1], [{:unused_def, {:private, 1}, :defp}]}
 
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    refute unused == [{:unused_def, {:private, 1}, :defp}]
+    assert unused == {[], []}
   end
 
   @unused [
@@ -90,25 +90,25 @@ defmodule Module.LocalsTrackerTest do
     D.add_definition(config[:pid], :def, {:public, 1})
 
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == [{:unused_def, {:private, 3}, :defp}]
+    assert unused == {[private: 3], [{:unused_def, {:private, 3}, :defp}]}
 
     D.add_local(config[:pid], {:public, 1}, {:private, 3})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == [{:unused_args, {:private, 3}}]
+    assert unused == {[], [unused_args: {:private, 3}]}
   end
 
   test "private definitions with some unused default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
     D.add_local(config[:pid], {:public, 1}, {:private, 1})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == [{:unused_args, {:private, 3}, 1}]
+    assert unused == {[private: 3], [{:unused_args, {:private, 3}, 1}]}
   end
 
   test "private definitions with all used default arguments", config do
     D.add_definition(config[:pid], :def, {:public, 1})
     D.add_local(config[:pid], {:public, 1}, {:private, 0})
     unused = D.collect_unused_locals(config[:pid], @unused)
-    assert unused == []
+    assert unused == {[private: 3], []}
   end
 
   ## Defaults
@@ -159,5 +159,16 @@ defmodule Module.LocalsTrackerTest do
     D.add_local(config[:pid], {:foo, 2})
     D.add_import(config[:pid], {:foo, 2}, Module, {:conflict, 1})
     assert {[Module], :conflict, 1} in D.collect_imports_conflicts(config[:pid], [conflict: 1])
+  end
+
+  defmodule NoPrivate do
+    defmacrop foo(), do: bar()
+    defp bar(), do: :baz
+    def baz(), do: foo()
+  end
+
+  test "does not include unreachable locals" do
+    assert NoPrivate.module_info(:functions) ==
+           [__info__: 1, baz: 0, module_info: 0, module_info: 1]
   end
 end

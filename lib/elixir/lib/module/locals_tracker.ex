@@ -65,8 +65,11 @@ defmodule Module.LocalsTracker do
   """
   @spec reachable(ref) :: [local]
   def reachable(ref) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    :sets.to_list(reduce_reachable(d, :local, :sets.new))
+    reachable_from(:gen_server.call(to_pid(ref), :digraph, @timeout), :local)
+  end
+
+  defp reachable_from(d, starting) do
+    :sets.to_list(reduce_reachable(d, starting, :sets.new))
   end
 
   defp reduce_reachable(d, vertex, vertices) do
@@ -154,12 +157,42 @@ defmodule Module.LocalsTracker do
   # given also accounting the expected amount of default
   # clauses a private function have.
   @doc false
-  def collect_unused_locals(pid, private) do
-    reachable = reachable(pid)
-    :lists.foldl(&collect_unused_locals(&1, &2, reachable), [], private)
+  def collect_unused_locals(ref, private) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    {unreachable(d, private), collect_warnings(d, private)}
   end
 
-  defp collect_unused_locals({tuple, kind, 0}, acc, reachable) do
+  defp unreachable(d, private) do
+    unreachable = for {tuple, _, _} <- private, do: tuple
+
+    private =
+      for {tuple, :defp, _} <- private do
+        neighbours = :digraph.in_neighbours(d, tuple)
+        neighbours = for {_, _} = t <- neighbours, do: t
+        {tuple, :sets.from_list(neighbours)}
+      end
+
+    reduce_unreachable(private, [], :sets.from_list(unreachable))
+  end
+
+  defp reduce_unreachable([{vertex, callers}|t], acc, unreachable) do
+    if :sets.is_subset(callers, unreachable) do
+      reduce_unreachable(t, [{vertex, callers}|acc], unreachable)
+    else
+      reduce_unreachable(acc ++ t, [], :sets.del_element(vertex, unreachable))
+    end
+  end
+
+  defp reduce_unreachable([], _acc, unreachable) do
+    :sets.to_list(unreachable)
+  end
+
+  defp collect_warnings(d, private) do
+    reachable = reachable_from(d, :local)
+    :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
+  end
+
+  defp collect_warnings({tuple, kind, 0}, acc, reachable) do
     if :lists.member(tuple, reachable) do
       acc
     else
@@ -167,7 +200,7 @@ defmodule Module.LocalsTracker do
     end
   end
 
-  defp collect_unused_locals({tuple, kind, default}, acc, reachable) when default > 0 do
+  defp collect_warnings({tuple, kind, default}, acc, reachable) when default > 0 do
     {name, arity} = tuple
     min = arity - default
     max = arity
