@@ -426,7 +426,7 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote bind_quoted: [builtin: builtin] do
-      @spec impl_for(term) :: module | nil
+      @spec impl_for(term) :: atom() | nil
       Kernel.def impl_for(data)
 
       # Define the implementation for structs.
@@ -449,7 +449,7 @@ defmodule Protocol do
         end
       end
 
-      @spec impl_for!(term) :: module | no_return
+      @spec impl_for!(term) :: atom() | no_return()
       Kernel.def impl_for!(data) do
         impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
       end
@@ -494,11 +494,18 @@ defmodule Protocol do
       @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
       @doc false
-      @spec __protocol__(:name | :functions) :: module | [{atom, non_neg_integer}]
-      Kernel.def __protocol__(:name),      do: __MODULE__
+      @spec __protocol__(:name) :: __MODULE__
+      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
+      Kernel.def __protocol__(:name), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
     end
   end
+
+  @doc false
+  def __functions_spec__([]),
+    do: []
+  def __functions_spec__([h|t]),
+    do: [:lists.foldl(&{:|, [], [&1, &2]}, h, t), quote(do: ...)]
 
   @doc false
   def __impl__(protocol, opts) do
@@ -510,6 +517,20 @@ defmodule Protocol do
   end
 
   defp do_defimpl(protocol, [do: block, for: for]) do
+    # Unquote the implementation just later
+    # when all variables will already be injected
+    # into the module body.
+    __impl__ =
+      quote unquote: false do
+        @doc false
+        @spec __impl__(:for) :: unquote(for)
+        @spec __impl__(:target) :: __MODULE__
+        @spec __impl__(:protocol) :: unquote(protocol)
+        def __impl__(:for),      do: unquote(for)
+        def __impl__(:target),   do: __MODULE__
+        def __impl__(:protocol), do: unquote(protocol)
+      end
+
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)
@@ -527,11 +548,7 @@ defmodule Protocol do
         Module.register_attribute(__MODULE__, :impl, persist: true)
         @impl [protocol: @protocol, for: @for]
 
-        @doc false
-        @spec __impl__(:target | :protocol | :for) :: module
-        def __impl__(:target),   do: __MODULE__
-        def __impl__(:protocol), do: @protocol
-        def __impl__(:for),      do: @for
+        unquote(__impl__)
       end
     end
   end
@@ -576,7 +593,9 @@ defmodule Protocol do
             @impl [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
-            @spec __impl__(:target | :protocol | :for) :: module()
+            @spec __impl__(:target) :: unquote(impl)
+            @spec __impl__(:protocol) :: unquote(protocol)
+            @spec __impl__(:for) :: unquote(for)
             def __impl__(:target),   do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for),      do: unquote(for)
