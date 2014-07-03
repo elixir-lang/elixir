@@ -7,6 +7,7 @@
   * [Enum] Add `Enum.sort_by/3`
   * [ExUnit] Match the line filter by proximity instead of exact match
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
+  * [Mix] Add `Mix.compilers`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
 * Bug fixes
@@ -14,6 +15,9 @@
   * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison ones (`==`, `!=`, etc) in operator table
   * [Kernel] Run command line and escripts in a process that does not trap exits
   * [Kernel] Fix a bug where Mix paths had higher priority than CLI ones, causing protocol consolidations to not be properly loaded
+  * [Kernel] Fix wording on error messages when a check/guard always pass or always fails
+  * [Kernel] Fix a bug where a unused function warning was printed even when the function was used via defoverridable
+  * [Kernel] Improve typespecs so they don't generate supertype dialyzer warnings
   * [Typespec] Fix a bug where the `list` typespec was incorrectly rendered as `[]`
 
 * Soft deprecations (no warnings emitted)
