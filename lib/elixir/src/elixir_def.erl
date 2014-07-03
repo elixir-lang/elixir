@@ -2,7 +2,7 @@
 -module(elixir_def).
 -export([table/1, clauses_table/1, setup/1,
   cleanup/1, reset_last/1, lookup_definition/2,
-  delete_definition/2, store_definition/6, unwrap_definitions/1,
+  delete_definition/2, store_definition/6, unwrap_definitions/2,
   store_each/8, format_error/1]).
 -include("elixir.hrl").
 
@@ -216,68 +216,90 @@ is_macro(_)         -> false.
 % Unwrap the functions stored in the functions table.
 % It returns a list of all functions to be exported, plus the macros,
 % and the body of all functions.
-unwrap_definitions(Module) ->
-  Table = table(Module),
+unwrap_definitions(File, Module) ->
+  Table  = table(Module),
   CTable = clauses_table(Module),
   ets:delete(Table, last),
-  unwrap_definition(ets:tab2list(Table), CTable, [], [], [], [], [], [], []).
 
-unwrap_definition([Fun|T], CTable, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
-  Tuple   = element(1, Fun),
-  Clauses = [Clause || {_, Clause} <- ets:lookup(CTable, Tuple)],
+  {All, Private} = unwrap_definition(ets:tab2list(Table), File, Module, CTable, [], []),
+  elixir_locals:warn_unused_local(File, Module, Private),
+  split_definition(All, [], [], [], [], {[], []}).
 
-  {NewFun, NewExports, NewPrivate, NewDef, NewDefmacro} =
-    case Clauses of
-      [] -> {false, Exports, Private, Def, Defmacro};
-      _  -> unwrap_definition(element(2, Fun), Tuple, Fun, Exports, Private, Def, Defmacro)
-    end,
+unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
+  {Tuple, Kind, Line, _, Check, Location, {Defaults, _, _}} = Fun,
+  Export = export(Kind, Tuple),
 
-  {NewFunctions, NewTail} = case NewFun of
-    false ->
-      NewAll = All,
-      {Functions, Tail};
-    _ ->
-      NewAll = [Tuple|All],
-      function_for_stored_definition(NewFun, Clauses, Functions, Tail)
-  end,
+  case [Clause || {_, Clause} <- ets:lookup(CTable, Tuple)] of
+    [] ->
+      warn_bodyless_function(Line, File, Module, Kind, Tuple),
+      unwrap_definition(T, File, Module, CTable, All, Private);
+    Clauses ->
+      Unwrapped = {Tuple, Kind, Line, Location,
+                   function_for_stored_definition(Line, Export, Clauses)},
 
-  unwrap_definition(T, CTable, NewAll, NewExports, NewPrivate,
-    NewDef, NewDefmacro, NewFunctions, NewTail);
-unwrap_definition([], _CTable, All, Exports, Private, Def, Defmacro, Functions, Tail) ->
-  {All, Exports, Private, ordsets:from_list(Def),
-    ordsets:from_list(Defmacro), lists:reverse(Tail ++ Functions)}.
+      NewPrivate =
+        if
+          Kind == defp; Kind == defmacrop ->
+            [{Tuple, Kind, Line, Check, Defaults}|Private];
+          true ->
+            Private
+        end,
 
-unwrap_definition(def, Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  {Fun, [Tuple|Exports], Private, [Tuple|Def], Defmacro};
-unwrap_definition(defmacro, {Name, Arity} = Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  Macro = {elixir_utils:macro_name(Name), Arity + 1},
-  {setelement(1, Fun, Macro), [Macro|Exports], Private, Def, [Tuple|Defmacro]};
-unwrap_definition(defp, Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  {_, _, Line, _, Check, _, {Defaults, _, _}} = Fun,
-  Info = {Tuple, defp, Line, Check, Defaults},
-  {Fun, Exports, [Info|Private], Def, Defmacro};
-unwrap_definition(defmacrop, Tuple, Fun, Exports, Private, Def, Defmacro) ->
-  {_, _, Line, _, Check, _, {Defaults, _, _}} = Fun,
-  Info  = {Tuple, defmacrop, Line, Check, Defaults},
-  {false, Exports, [Info|Private], Def, Defmacro}.
+      unwrap_definition(T, File, Module, CTable, [Unwrapped|All], NewPrivate)
+  end;
+
+unwrap_definition([], _File, _Module, _CTable, All, Private) ->
+  {All, Private}.
+
+split_definition([{Tuple, def, Line, Location, Body}|T],
+                 Def, Defp, Defmacro, Defmacrop, Functions) ->
+  split_definition(T, [Tuple|Def], Defp, Defmacro, Defmacrop,
+                   add_definition(Line, Location, Body, Functions));
+
+split_definition([{Tuple, defp, Line, Location, Body}|T],
+                 Def, Defp, Defmacro, Defmacrop, Functions) ->
+  split_definition(T, Def, [Tuple|Defp], Defmacro, Defmacrop,
+                   add_definition(Line, Location, Body, Functions));
+
+split_definition([{Tuple, defmacro, Line, Location, Body}|T],
+                 Def, Defp, Defmacro, Defmacrop, Functions) ->
+  split_definition(T, Def, Defp, [Tuple|Defmacro], Defmacrop,
+                   add_definition(Line, Location, Body, Functions));
+
+split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T],
+                 Def, Defp, Defmacro, Defmacrop, Functions) ->
+  split_definition(T, Def, Defp, Defmacro, [Tuple|Defmacrop], Functions);
+
+split_definition([], Def, Defp, Defmacro, Defmacrop, {Head, Tail}) ->
+  {Def, Defp, Defmacro, Defmacrop, Head ++ Tail}.
 
 %% Helpers
 
-function_for_stored_definition({{Name,Arity}, _, Line, _, _, nil, _}, Clauses, Functions, Tail) ->
-  {[{function, Line, Name, Arity, Clauses}|Functions], Tail};
+export(Kind, {Name, Arity}) when Kind == defmacro; Kind == defmacrop ->
+  {elixir_utils:macro_name(Name), Arity + 1};
+export(Kind, {Name, Arity}) when Kind == def; Kind == defp ->
+  {Name, Arity}.
 
-function_for_stored_definition({{Name,Arity}, _, Line, _, _, Location, _}, Clauses, Functions, Tail) ->
-  {Functions, [
-    {function, Line, Name, Arity, Clauses},
-    {attribute, Line, file, Location} | Tail
-  ]}.
+function_for_stored_definition(Line, {Name,Arity}, Clauses) ->
+  {function, Line, Name, Arity, Clauses}.
+
+add_definition(_Line, nil, Body, {Head, Tail}) ->
+  {[Body|Head], Tail};
+add_definition(Line, Location, Body, {Head, Tail}) ->
+  {Head,
+   [{attribute, Line, file, Location}, Body|Tail]}.
 
 default_function_for(Kind, Name, {clause, Line, Args, _Guards, _Exprs} = Clause)
     when Kind == defmacro; Kind == defmacrop ->
   {function, Line, Name, length(Args) - 1, [Clause]};
-
 default_function_for(_, Name, {clause, Line, Args, _Guards, _Exprs} = Clause) ->
   {function, Line, Name, length(Args), [Clause]}.
+
+warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
+    when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
+  ok;
+warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
+  elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}).
 
 %% Store each definition in the table.
 %% This function also checks and emit warnings in case
@@ -363,6 +385,9 @@ assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
 %% Format errors
+
+format_error({bodyless_fun, Kind, {Name, Arity}}) ->
+  io_lib:format("bodyless clause provided for nonexistent ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({no_module,{Kind,Name,Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
