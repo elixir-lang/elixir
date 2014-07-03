@@ -65,8 +65,7 @@ defmodule Mix.Tasks.Compile do
   Returns all compilers.
   """
   def compilers do
-    Mix.Project.config[:compilers] ||
-      [:yecc, :leex, :erlang, :elixir, :app]
+    Mix.Project.config[:compilers] || Mix.compilers
   end
 
   @doc """

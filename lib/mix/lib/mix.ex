@@ -57,6 +57,21 @@ defmodule Mix do
   end
 
   @doc """
+  Returns the default compilers used by Mix.
+
+  It can be used in your `mix.exs` to prepend or
+  append new compilers to Mix:
+
+      def project do
+        [compilers: Mix.compilers ++ [:foo, :bar]]
+      end
+
+  """
+  def compilers do
+    [:yecc, :leex, :erlang, :elixir, :app]
+  end
+
+  @doc """
   The shell is a wrapper for doing IO.
 
   It contains conveniences for asking the user information,
