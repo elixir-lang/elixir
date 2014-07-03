@@ -4,7 +4,7 @@
   setup/1, cleanup/1, cache_env/1, get_cached_env/1,
   record_local/2, record_local/3, record_import/4,
   record_definition/3, record_defaults/4,
-  ensure_no_function_conflict/4, warn_unused_local/3, format_error/1
+  ensure_no_import_conflict/4, warn_unused_local/3, format_error/1
 ]).
 -export([macro_for/3, local_for/3, local_for/4]).
 
@@ -140,11 +140,13 @@ get_cached_env(Env) -> Env.
 
 %% ERROR HANDLING
 
-ensure_no_function_conflict(Meta, File, Module, AllDefined) ->
+ensure_no_import_conflict(_Line, _File, 'Elixir.Kernel', _All) ->
+  ok;
+ensure_no_import_conflict(Line, File, Module, All) ->
   if_tracker(Module, fun(Pid) ->
     [ begin
-        elixir_errors:form_error(Meta, File, ?MODULE, {function_conflict, Error})
-      end || Error <- ?tracker:collect_imports_conflicts(Pid, AllDefined) ]
+        elixir_errors:form_error(Line, File, ?MODULE, {function_conflict, Error})
+      end || Error <- ?tracker:collect_imports_conflicts(Pid, All) ]
   end),
   ok.
 

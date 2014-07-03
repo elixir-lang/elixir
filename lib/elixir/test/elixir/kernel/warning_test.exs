@@ -221,7 +221,7 @@ defmodule Kernel.WarningTest do
         def hello
       end
       """
-    end) =~ "warning: empty clause provided for nonexistent function or macro hello/0"
+    end) =~ "warning: bodyless clause provided for nonexistent def hello/0"
   after
     purge [Sample1]
   end

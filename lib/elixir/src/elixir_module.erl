@@ -51,12 +51,6 @@ do_compile(Line, Module, Block, Vars, E) ->
 
   try
     {Result, NE} = eval_form(Line, Module, Block, Vars, E),
-    {Base, Export, Private, Def, Defmacro, Functions} = elixir_def:unwrap_definitions(Module),
-
-    {All, Forms0} = functions_form(Line, File, Module, Base, Export, Def, Defmacro, Functions),
-    Forms1        = specs_form(Module, Private, Defmacro, Forms0),
-    Forms2        = types_form(Module, Forms1),
-    Forms3        = attributes_form(Line, File, Module, Forms2),
 
     case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
@@ -64,10 +58,15 @@ do_compile(Line, Module, Block, Vars, E) ->
         [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
-    AllFunctions = Def ++ [T || {T, defp, _, _, _} <- Private],
-    elixir_locals:ensure_no_function_conflict(Line, File, Module, AllFunctions),
-    elixir_locals:warn_unused_local(File, Module, Private),
-    warn_invalid_clauses(Line, File, Module, All),
+    {Def, Defp, Defmacro, Defmacrop, Functions} =
+      elixir_def:unwrap_definitions(File, Module),
+
+    {All, Forms0} = functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Functions),
+    Forms1        = specs_form(Module, Defmacro, Defmacrop, Forms0),
+    Forms2        = types_form(Module, Forms1),
+    Forms3        = attributes_form(Line, File, Module, Forms2),
+
+    elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
     warn_unused_docs(Line, File, Module),
 
     Location = {elixir_utils:relative_to_cwd(elixir_utils:characters_to_list(File)), Line},
@@ -143,16 +142,15 @@ eval_callbacks(Line, Module, Name, Args, E) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, BaseAll, BaseExport, Def, Defmacro, BaseFunctions) ->
-  {InfoSpec, Info} = add_info_function(Line, File, Module, BaseExport, Def, Defmacro),
+functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Body) ->
+  All = Def ++ Defp ++ Defmacro ++ Defmacrop,
+  {Spec, Info} = add_info_function(Line, File, Module, All, Def, Defmacro),
 
-  All       = [{'__info__', 1}|BaseAll],
-  Export    = [{'__info__', 1}|BaseExport],
-  Functions = [InfoSpec,Info|BaseFunctions],
+  NewBody = [Spec, Info|Body],
+  Export  = [{Name, Arity} || {function, _, Name, Arity, _} <- NewBody],
 
-  {All, [
-    {attribute, Line, export, lists:sort(Export)} | Functions
-  ]}.
+  {[{'__info__',1}|All],
+   [{attribute, Line, export, lists:sort(Export)} | NewBody]}.
 
 %% Add attributes handling to the form
 
@@ -241,11 +239,9 @@ typedocs_attributes(Types, Forms) ->
 
 %% Specs
 
-specs_form(Module, Private, Defmacro, Forms) ->
+specs_form(Module, Defmacro, Defmacrop, Forms) ->
   case code:ensure_loaded('Elixir.Kernel.Typespec') of
     {module, 'Elixir.Kernel.Typespec'} ->
-      Defmacrop = [Tuple || {Tuple, defmacrop, _, _, _} <- Private],
-
       Specs0 = 'Elixir.Module':get_attribute(Module, spec) ++
                'Elixir.Module':get_attribute(Module, callback),
 
@@ -274,10 +270,10 @@ specs_attributes(Forms, Specs) ->
   end, Forms, Dict).
 
 translate_macro_spec({{spec, NameArity, Spec}, Line}, Defmacro, Defmacrop) ->
-  case ordsets:is_element(NameArity, Defmacrop) of
+  case lists:member(NameArity, Defmacrop) of
     true  -> [];
     false ->
-      case ordsets:is_element(NameArity, Defmacro) of
+      case lists:member(NameArity, Defmacro) of
         true ->
           {Name, Arity} = NameArity,
           [{{spec, {elixir_utils:macro_name(Name), Arity + 1}, spec_for_macro(Spec)}, Line}];
@@ -367,20 +363,6 @@ check_module_availability(Line, File, Module) ->
       ok
   end.
 
-warn_invalid_clauses(_Line, _File, 'Elixir.Kernel.SpecialForms', _All) -> ok;
-warn_invalid_clauses(_Line, File, Module, All) ->
-  ets:foldl(fun
-    ({_, _, Kind, _, _}, _) when Kind == type; Kind == opaque ->
-      ok;
-    ({Tuple, Line, _, _, _}, _) ->
-      case lists:member(Tuple, All) of
-        false ->
-          elixir_errors:handle_file_warning(File, {Line, ?MODULE, {invalid_clause, Tuple}});
-        true ->
-          ok
-      end
-  end, ok, docs_table(Module)).
-
 warn_unused_docs(Line, File, Module) ->
   lists:foreach(fun(Attribute) ->
     case ets:member(data_table(Module), Attribute) of
@@ -391,32 +373,37 @@ warn_unused_docs(Line, File, Module) ->
     end
   end, [typedoc]).
 
-% EXTRA FUNCTIONS
+% __INFO__
 
-add_info_function(Line, File, Module, Export, Def, Defmacro) ->
+add_info_function(Line, File, Module, All, Def, Defmacro) ->
   Pair = {'__info__', 1},
-  case lists:member(Pair, Export) of
+  case lists:member(Pair, All) of
     true  ->
       elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
     false ->
-      {
-        {attribute, Line, spec, {{'__info__', 1},
-          [{type, Line, 'fun', [{type, Line, product, [ {type, Line, atom, []}]}, {type, Line, term, []} ]}]
+      Spec =
+        {attribute, Line, spec, {Pair,
+          [{type, Line, 'fun', [
+            {type, Line, product, [{type, Line, atom, []}]},
+            {type, Line, term, []}]}]
         }},
+
+      Info =
         {function, 0, '__info__', 1, [
           functions_clause(Def),
           macros_clause(Defmacro),
           module_clause(Module),
           else_clause()
-        ]}
-      }
+        ]},
+
+      {Spec, Info}
   end.
 
 functions_clause(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_utils:elixir_to_erl(Def)]}.
+  {clause, 0, [{atom, 0, functions}], [], [elixir_utils:elixir_to_erl(lists:sort(Def))]}.
 
 macros_clause(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_utils:elixir_to_erl(Defmacro)]}.
+  {clause, 0, [{atom, 0, macros}], [], [elixir_utils:elixir_to_erl(lists:sort(Defmacro))]}.
 
 module_clause(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
@@ -476,8 +463,6 @@ prune_stacktrace(Info, []) ->
 
 % ERROR HANDLING
 
-format_error({invalid_clause, {Name, Arity}}) ->
-  io_lib:format("empty clause provided for nonexistent function or macro ~ts/~B", [Name, Arity]);
 format_error({invalid_external_resource, Value}) ->
   io_lib:format("expected a string value for @external_resource, got: ~p",
     ['Elixir.Kernel':inspect(Value)]);
