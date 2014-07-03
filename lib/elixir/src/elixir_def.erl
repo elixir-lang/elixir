@@ -222,8 +222,8 @@ unwrap_definitions(File, Module) ->
   ets:delete(Table, last),
 
   {All, Private} = unwrap_definition(ets:tab2list(Table), File, Module, CTable, [], []),
-  elixir_locals:warn_unused_local(File, Module, Private),
-  split_definition(All, [], [], [], [], {[], []}).
+  Unreachable = elixir_locals:warn_unused_local(File, Module, Private),
+  split_definition(All, Unreachable, [], [], [], [], {[], []}).
 
 unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
   {Tuple, Kind, Line, _, Check, Location, {Defaults, _, _}} = Fun,
@@ -251,26 +251,31 @@ unwrap_definition([Fun|T], File, Module, CTable, All, Private) ->
 unwrap_definition([], _File, _Module, _CTable, All, Private) ->
   {All, Private}.
 
-split_definition([{Tuple, def, Line, Location, Body}|T],
+split_definition([{Tuple, def, Line, Location, Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Functions) ->
-  split_definition(T, [Tuple|Def], Defp, Defmacro, Defmacrop,
+  split_definition(T, Unreachable, [Tuple|Def], Defp, Defmacro, Defmacrop,
                    add_definition(Line, Location, Body, Functions));
 
-split_definition([{Tuple, defp, Line, Location, Body}|T],
+split_definition([{Tuple, defp, Line, Location, Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Functions) ->
-  split_definition(T, Def, [Tuple|Defp], Defmacro, Defmacrop,
+  case lists:member(Tuple, Unreachable) of
+    false ->
+      split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop,
+                       add_definition(Line, Location, Body, Functions));
+    true ->
+      split_definition(T, Unreachable, Def, [Tuple|Defp], Defmacro, Defmacrop, Functions)
+  end;
+
+split_definition([{Tuple, defmacro, Line, Location, Body}|T], Unreachable,
+                 Def, Defp, Defmacro, Defmacrop, Functions) ->
+  split_definition(T, Unreachable, Def, Defp, [Tuple|Defmacro], Defmacrop,
                    add_definition(Line, Location, Body, Functions));
 
-split_definition([{Tuple, defmacro, Line, Location, Body}|T],
+split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T], Unreachable,
                  Def, Defp, Defmacro, Defmacrop, Functions) ->
-  split_definition(T, Def, Defp, [Tuple|Defmacro], Defmacrop,
-                   add_definition(Line, Location, Body, Functions));
+  split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple|Defmacrop], Functions);
 
-split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T],
-                 Def, Defp, Defmacro, Defmacrop, Functions) ->
-  split_definition(T, Def, Defp, Defmacro, [Tuple|Defmacrop], Functions);
-
-split_definition([], Def, Defp, Defmacro, Defmacrop, {Head, Tail}) ->
+split_definition([], _Unreachable, Def, Defp, Defmacro, Defmacrop, {Head, Tail}) ->
   {Def, Defp, Defmacro, Defmacrop, Head ++ Tail}.
 
 %% Helpers

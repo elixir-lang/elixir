@@ -78,7 +78,7 @@ setup(Module) ->
   end.
 
 cleanup(Module) ->
-  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid) end).
+  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid), true end).
 
 record_local(Tuple, Module) when is_atom(Module) ->
   if_tracker(Module, fun(Pid) ->
@@ -116,10 +116,13 @@ record_defaults(Tuple, Kind, Module, Defaults) ->
   end).
 
 if_tracker(Module, Callback) ->
+  if_tracker(Module, false, Callback).
+
+if_tracker(Module, Default, Callback) ->
   try ets:lookup_element(Module, ?attr, 2) of
     Pid -> Callback(Pid)
   catch
-    error:badarg -> false
+    error:badarg -> Default
   end.
 
 %% CACHING
@@ -151,16 +154,18 @@ ensure_no_import_conflict(Line, File, Module, All) ->
   ok.
 
 warn_unused_local(File, Module, Private) ->
-  if_tracker(Module, fun(Pid) ->
+  if_tracker(Module, [], fun(Pid) ->
     Args = [{Fun, Kind, Defaults} ||
             {Fun, Kind, _Line, true, Defaults} <- Private],
 
-    Unused = ?tracker:collect_unused_locals(Pid, Args),
+    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Args),
 
     [ begin
         {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
         elixir_errors:handle_file_warning(File, {Line, ?MODULE, Error})
-      end || Error <- Unused ]
+      end || Error <- Warnings ],
+
+    Unreachable
   end).
 
 format_error({function_conflict,{Receivers, Name, Arity}}) ->
