@@ -150,8 +150,8 @@ ensure_no_function_conflict(Meta, File, Module, AllDefined) ->
 
 warn_unused_local(File, Module, Private) ->
   if_tracker(Module, fun(Pid) ->
-    Args = [ {Fun, Kind, Defaults} ||
-             {Fun, Kind, _Line, true, Defaults} <- Private],
+    Args = [{Fun, Kind, Defaults} ||
+            {Fun, Kind, _Line, true, Defaults} <- Private],
 
     Unused = ?tracker:collect_unused_locals(Pid, Args),
 
