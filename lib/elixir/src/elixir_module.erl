@@ -384,8 +384,27 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
       Spec =
         {attribute, Line, spec, {Pair,
           [{type, Line, 'fun', [
-            {type, Line, product, [{type, Line, atom, []}]},
-            {type, Line, term, []}]}]
+            {type, Line, product, [
+              {type, Line, union, [
+                {atom, Line, attributes},
+                {atom, Line, compile},
+                {atom, Line, exports},
+                {atom, Line, functions},
+                {atom, Line, imports},
+                {atom, Line, macros},
+                {atom, Line, module}
+              ]}
+            ]},
+            {type, Line, union, [
+              {type, Line, atom, []},
+              {type, Line, list, [
+                {type, Line, tuple, [
+                  {type, Line, atom, []},
+                  {type, Line, any, []}
+                ]}
+              ]}
+            ]}
+          ]}]
         }},
 
       Info =

@@ -494,7 +494,8 @@ defmodule Protocol do
       @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
 
       @doc false
-      @spec __protocol__(atom) :: term
+      @spec __protocol__(:name) :: module
+      @spec __protocol__(:functions) :: [{atom, non_neg_integer}]
       Kernel.def __protocol__(:name),      do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
     end
@@ -576,7 +577,7 @@ defmodule Protocol do
             @impl [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
-            @spec __impl__(atom) :: term
+            @spec __impl__(:target | :protocol | :for) :: module()
             def __impl__(:target),   do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for),      do: unquote(for)
