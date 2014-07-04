@@ -367,8 +367,8 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
-    :ok = :ssl.start
-    :ok = :inets.start
+    {:ok, _} = Application.ensure_all_started(:ssl)
+    {:ok, _} = Application.ensure_all_started(:inets)
 
     # Starting a http client profile allows us to scope
     # the effects of using a http proxy to this function

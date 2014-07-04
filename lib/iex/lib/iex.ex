@@ -471,6 +471,8 @@ defmodule IEx do
                Application.get_env(:iex, :colors)
       Application.put_env(:iex, :colors, colors)
     end
+
+    :ok
   end
 
   defp set_expand_fun do
