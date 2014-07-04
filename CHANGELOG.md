@@ -7,7 +7,8 @@
   * [Enum] Add `Enum.sort_by/3`
   * [ExUnit] Match the line filter by proximity instead of exact match
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
-  * [Mix] Add `Mix.compilers`
+  * [Mix] Add `mix.compilers`
+  * [Mix] Add `mix archive`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
 * Bug fixes
@@ -26,14 +27,15 @@
 
 * Deprecations
   * [Mix] `mix escriptize` is deprecated in favor of `escript.build`
+  * [Mix] `mix local.install` and `mix local.uninstall` have been deprecated in favor of `mix archive.install` and `mix archive.uninstall` respectively
   * [Mix] `:embed_extra_apps` for escripts is deprecated, instead list the dependencies inside `def application`
   * [System] Giving a char list `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
   * [Kernel] `defstruct` no longer automatically defines a type
-  * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead;
-  * [Mix] `mix archive`, `mix local.install` and `mix local.uninstall` have been renamed to `mix archive.build`, `mix archive.install` and `mix archive.uninstall` respectively
+  * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
+  * [Mix] `mix archive` have been renamed to `mix archive.build`
 
 ## v0.14.2 (2014-06-29)
 
