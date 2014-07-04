@@ -77,7 +77,7 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
 
-  Note: do not use this file on IO devices in unicode mode
+  Note: do not use this function on IO devices in unicode mode
   as it will return the wrong result.
   """
   @spec binread(device, :line | non_neg_integer) :: iodata | nodata
@@ -123,7 +123,7 @@ defmodule IO do
 
   Check `write/2` for more information.
 
-  Note: do not use this file on IO devices in unicode mode
+  Note: do not use this function on IO devices in unicode mode
   as it will return the wrong result.
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
@@ -270,8 +270,8 @@ defmodule IO do
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
-  Finally, do not use this file on IO devices in unicode mode
-  as it will return the wrong result.
+  Finally, do not use this function on IO devices in unicode
+  mode as it will return the wrong result.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
