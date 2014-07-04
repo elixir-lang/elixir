@@ -64,7 +64,8 @@ defmodule EEx.Engine do
       end
 
   """
-  def handle_assign({:@, line, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
+  def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
+    line = meta[:line] || 0
     quote line: line, do: Dict.get(var!(assigns), unquote(name))
   end
 
@@ -98,7 +99,10 @@ defmodule EEx.Engine do
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp = unquote(buffer)
-      tmp <> to_string(unquote(expr))
+      tmp <> (case unquote(expr) do
+        bin when is_binary(bin) -> bin
+        oth -> String.Chars.to_string(oth)
+      end)
     end
   end
 
