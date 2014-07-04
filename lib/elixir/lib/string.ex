@@ -974,7 +974,12 @@ defmodule String do
   @doc """
   Returns a substring starting at the offset given by the first, and
   a length given by the second.
+
   If the offset is greater than string length, then it returns `""`.
+
+  Remember this function works with unicode codepoints and consider
+  the slices to represent codepoints offsets. If you want to split
+  on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
 
@@ -1027,6 +1032,10 @@ defmodule String do
 
   If the start of the range is not a valid offset for the given
   string or if the range is in reverse order, returns `""`.
+
+  Remember this function works with unicode codepoints and consider
+  the slices to represent codepoints offsets. If you want to split
+  on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
 
