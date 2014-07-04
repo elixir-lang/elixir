@@ -15,8 +15,8 @@ defmodule Mix do
 
   @doc false
   def start do
-    Application.start(:elixir)
-    Application.start(:mix)
+    {:ok, _} = Application.ensure_all_started(:mix)
+    :ok
   end
 
   @doc false

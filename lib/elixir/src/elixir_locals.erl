@@ -146,7 +146,7 @@ get_cached_env(Env) -> Env.
 ensure_no_import_conflict(_Line, _File, 'Elixir.Kernel', _All) ->
   ok;
 ensure_no_import_conflict(Line, File, Module, All) ->
-  if_tracker(Module, fun(Pid) ->
+  _ = if_tracker(Module, fun(Pid) ->
     [ begin
         elixir_errors:form_error(Line, File, ?MODULE, {function_conflict, Error})
       end || Error <- ?tracker:collect_imports_conflicts(Pid, All) ]
@@ -160,7 +160,7 @@ warn_unused_local(File, Module, Private) ->
 
     {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Args),
 
-    [ begin
+    _ = [ begin
         {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
         elixir_errors:handle_file_warning(File, {Line, ?MODULE, Error})
       end || Error <- Warnings ],

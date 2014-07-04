@@ -450,9 +450,9 @@ defmodule IEx do
         _        -> :init.wait_until_started()
       end
 
-      start_iex()
-      set_expand_fun()
-      run_after_spawn()
+      :ok = start_iex()
+      :ok = set_expand_fun()
+      :ok = run_after_spawn()
       IEx.Server.start(opts, mfa)
     end
   end
@@ -464,8 +464,7 @@ defmodule IEx do
 
   defp start_iex() do
     unless started? do
-      Application.start(:elixir)
-      Application.start(:iex)
+      {:ok, _} = Application.ensure_all_started(:iex)
       Application.put_env(:iex, :started, true)
 
       colors = [enabled: IO.ANSI.terminal?] ++
@@ -478,12 +477,13 @@ defmodule IEx do
     gl = Process.group_leader
     glnode = node gl
 
-    if glnode != node do
-      ensure_module_exists glnode, IEx.Remsh
-      expand_fun = IEx.Remsh.expand node
-    else
-      expand_fun = &IEx.Autocomplete.expand(&1)
-    end
+    expand_fun =
+      if glnode != node do
+        _ = ensure_module_exists glnode, IEx.Remsh
+        IEx.Remsh.expand node
+      else
+        &IEx.Autocomplete.expand(&1)
+      end
 
     :io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]
   end
@@ -496,7 +496,8 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    for fun <- Enum.reverse(after_spawn), do: fun.()
+    _ = for fun <- Enum.reverse(after_spawn), do: fun.()
+    :ok
   end
 
   # Used by default on evaluation cycle

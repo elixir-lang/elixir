@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Local.Rebar do
   The local copy is stored in your MIX_HOME (defaults to ~/.mix).
   This version of rebar will be used as required by `mix deps.compile`.
   """
-
+  @spec run(OptionParser.argv) :: true
   def run(argv) do
     {_, argv, _} = OptionParser.parse(argv)
     do_install(case argv do
@@ -28,6 +28,7 @@ defmodule Mix.Tasks.Local.Rebar do
     local_rebar_path = Mix.Rebar.local_rebar_path
     File.mkdir_p! Path.dirname(local_rebar_path)
     create_file local_rebar_path, rebar
-    :file.change_mode local_rebar_path, 0755
+    :ok = :file.change_mode local_rebar_path, 0755
+    true
   end
 end

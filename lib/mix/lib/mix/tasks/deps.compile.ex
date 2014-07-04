@@ -119,8 +119,8 @@ defmodule Mix.Tasks.Deps.Compile do
         "dependency #{app}, please ensure rebar is available"
     end
 
-    Mix.Tasks.Local.Rebar.run []
-    Mix.Rebar.local_rebar_cmd || Mix.raise "rebar installation failed"
+    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd) ||
+      Mix.raise "rebar installation failed"
   end
 
   defp do_make(dep) do

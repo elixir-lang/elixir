@@ -127,18 +127,19 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp sort_dependencies(erls) do
     graph = :digraph.new
 
-    for erl <- erls do
+    _ = for erl <- erls do
       :digraph.add_vertex(graph, erl.module, erl)
     end
 
-    for erl <- erls do
-      for b <- erl.behaviours, do: :digraph.add_edge(graph, b, erl.module)
-      for c <- erl.compile do
+    _ = for erl <- erls do
+      _ = for b <- erl.behaviours, do: :digraph.add_edge(graph, b, erl.module)
+      _ = for c <- erl.compile do
         case c do
           {:parse_transform, transform} -> :digraph.add_edge(graph, transform, erl.module)
           _ -> :ok
         end
       end
+      :ok
     end
 
     result =

@@ -428,7 +428,7 @@ defmodule Stream do
   """
   @spec run(Enumerable.t) :: :ok
   def run(stream) do
-    Enumerable.reduce(stream, {:cont, nil}, fn(_, _) -> {:cont, nil} end)
+    _ = Enumerable.reduce(stream, {:cont, nil}, fn(_, _) -> {:cont, nil} end)
     :ok
   end
 
