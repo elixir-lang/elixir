@@ -339,6 +339,10 @@ defmodule ExUnit.DocTest do
 
   defp extract(module) do
     all_docs = Code.get_docs(module, :all)
+    if all_docs[:moduledoc] == nil do
+      raise Error, message: "could not retrieve the documentation for module MODULENAME. "
+      <> "Or the module was not compiled with documentation or its beam file cannot be accessed."
+    end
     moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
 
     docs = for doc <- all_docs[:docs] do
