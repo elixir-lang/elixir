@@ -40,7 +40,7 @@ file(Relative) when is_binary(Relative) ->
 
 file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
   Lists = file(File),
-  [binary_to_path(X, Path) || X <- Lists],
+  _ = [binary_to_path(X, Path) || X <- Lists],
   Lists.
 
 %% Evaluation
@@ -144,7 +144,7 @@ module(Forms, File, Options, Bootstrap, Callback) when
   case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
     {ok, ModuleName, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
-      code:load_binary(ModuleName, Listname, Binary),
+      {module, ModuleName} = code:load_binary(ModuleName, Listname, Binary),
       Callback(ModuleName, Binary);
     {error, Errors, Warnings} ->
       format_warnings(Bootstrap, Warnings),
@@ -157,14 +157,14 @@ no_auto_import() ->
 %% CORE HANDLING
 
 core() ->
-  application:start(elixir),
+  ok = application:start(elixir),
   elixir_code_server:cast({compiler_options, [{docs,false},{internal,true}]}),
   [core_file(File) || File <- core_main()].
 
 core_file(File) ->
   try
     Lists = file(File),
-    [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
+    _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~ts~n", [File])
   catch
     Kind:Reason ->

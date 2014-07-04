@@ -940,7 +940,8 @@ defmodule Module do
   end
 
   defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
-    Code.ensure_compiled(atom)
+    # Attempt to compile behaviour but ignore failure (will warn later)
+    _ = Code.ensure_compiled(atom)
     atom
   end
 

@@ -52,7 +52,7 @@ do_compile(Line, Module, Block, Vars, E) ->
   try
     {Result, NE} = eval_form(Line, Module, Block, Vars, E),
 
-    case ets:lookup(data_table(Module), 'on_load') of
+    _ = case ets:lookup(data_table(Module), 'on_load') of
       [] -> ok;
       [{on_load,OnLoad}] ->
         [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
@@ -79,7 +79,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     Binary = load_form(Line, Final, compile_opts(Module), NE),
     {module, Module, Binary, Result}
   after
-    elixir_locals:cleanup(Module),
+    _ = elixir_locals:cleanup(Module),
     elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
     ets:delete(data_table(Module))
@@ -101,7 +101,7 @@ build(Line, File, Module, Lexical) ->
       []
   end,
 
-  ets:new(DataTable, [set, named_table, public]),
+  DataTable = ets:new(DataTable, [set, named_table, public]),
   ets:insert(DataTable, {before_compile, []}),
   ets:insert(DataTable, {after_compile, []}),
 
@@ -310,14 +310,14 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
         put(elixir_compiled, [{Module,Binary}|Current]),
 
         case get(elixir_compiler_pid) of
-          undefined -> [];
+          undefined -> ok;
           PID ->
             Ref = make_ref(),
             PID ! {module_available, self(), Ref, File, Module, Binary},
             receive {Ref, ack} -> ok end
         end;
       _ ->
-        []
+        ok
     end,
 
     Binary
@@ -355,7 +355,8 @@ check_module_availability(Line, File, Module) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:handle_file_warning(File, {Line, ?MODULE, {module_defined, Module}});
+          _ = elixir_errors:handle_file_warning(File, {Line, ?MODULE, {module_defined, Module}}),
+          ok;
         {error, _}  ->
           ok
       end;

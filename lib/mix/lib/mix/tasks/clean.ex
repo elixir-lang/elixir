@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Clean do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args)
 
-    for compiler <- Mix.Tasks.Compile.compilers() do
+    _ = for compiler <- Mix.Tasks.Compile.compilers() do
       module = Mix.Task.get!("compile.#{compiler}")
       if function_exported?(module, :clean, 0) do
         module.clean

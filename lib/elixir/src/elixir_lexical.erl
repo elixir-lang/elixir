@@ -64,14 +64,16 @@ if_tracker(Pid, Callback) when is_pid(Pid) -> Callback(Pid).
 %% ERROR HANDLING
 
 warn_unused_imports(File, Pid) ->
-  [ begin
+  _ = [ begin
       elixir_errors:handle_file_warning(File, {L, ?MODULE, {unused_import, M}})
-    end || {M, L} <- ?tracker:collect_unused_imports(Pid)].
+    end || {M, L} <- ?tracker:collect_unused_imports(Pid)],
+  ok.
 
 warn_unused_aliases(File, Pid) ->
-  [ begin
+  _ = [ begin
       elixir_errors:handle_file_warning(File, {L, ?MODULE, {unused_alias, M}})
-    end || {M, L} <- ?tracker:collect_unused_aliases(Pid)].
+    end || {M, L} <- ?tracker:collect_unused_aliases(Pid)],
+  ok.
 
 format_error({unused_alias, Module}) ->
   io_lib:format("unused alias ~ts", [elixir_aliases:inspect(Module)]);

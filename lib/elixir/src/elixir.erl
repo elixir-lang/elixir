@@ -28,8 +28,10 @@ start(_Type, _Args) ->
       error   -> [binary]
     end,
 
-  io:setopts(standard_io, Opts),
-  io:setopts(standard_error, [{unicode,true}]),
+  ok = io:setopts(standard_io, Opts),
+  %% Must use undocument {unicode, true} to set unicode on standard_error, more
+  %% info: http://erlang.org/pipermail/erlang-bugs/2014-April/004310.html
+  ok = io:setopts(standard_error, [{unicode,true}]),
   case file:native_name_encoding() of
     latin1 ->
       io:format(standard_error,
@@ -51,13 +53,13 @@ config_change(_Changed, _New, _Remove) ->
 %% escript entry point
 
 main(Args) ->
-  application:start(?MODULE),
+  ok = application:start(?MODULE),
   'Elixir.Kernel.CLI':main(Args).
 
 %% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
-  application:start(?MODULE),
+  ok = application:start(?MODULE),
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS

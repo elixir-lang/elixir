@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Archive.Install do
       intended for automation in build systems like make
 
   """
-
+  @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
 
@@ -59,7 +59,9 @@ defmodule Mix.Tasks.Archive.Install do
       File.mkdir_p!(dest)
       archive = Path.join(dest, basename(src))
       create_file archive, Mix.Utils.read_path!(src)
-      Code.append_path(Mix.Archive.ebin(archive))
+      true = Code.append_path(Mix.Archive.ebin(archive))
+    else
+      false
     end
   end
 

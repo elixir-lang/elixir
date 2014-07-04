@@ -186,7 +186,7 @@ defmodule IEx.Introspection do
   Print types in module.
   """
   def t(module) when is_atom(module) do
-    case Kernel.Typespec.beam_types(module) do
+    _ = case Kernel.Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
       types -> for type <- types, do: print_type(type)

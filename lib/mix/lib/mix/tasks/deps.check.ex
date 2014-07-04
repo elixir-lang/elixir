@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Deps.Check do
     lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
-    prune_deps(all)
+    _ = prune_deps(all)
     {not_ok, compile} = partition_deps(all, [], [])
 
     cond do
@@ -79,9 +79,12 @@ defmodule Mix.Tasks.Deps.Check do
       to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
-        Code.delete_path(path)
+        # path may not be in code path
+        _ = Code.delete_path(path)
         File.rm_rf!(path |> Path.dirname)
       end)
+    else
+      []
     end
   end
 

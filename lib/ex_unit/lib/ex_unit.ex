@@ -132,8 +132,7 @@ defmodule ExUnit do
   If you want to run tests manually, you can set `:autorun` to `false`.
   """
   def start(options \\ []) do
-    Application.start(:elixir)
-    Application.start(:ex_unit)
+    {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
 
