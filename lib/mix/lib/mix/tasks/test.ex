@@ -4,13 +4,15 @@ defmodule Mix.Tasks.Test do
 
     def start(compile_path, opts) do
       Mix.shell.info "Cover compiling modules ... "
-      {:ok, _} = :cover.start
+      _ = :cover.start
+
       case :cover.compile_beam_directory(compile_path |> to_char_list) do
         results when is_list(results) ->
           :ok
         {:error, _} ->
           Mix.raise "Failed to cover compile directory: " <> compile_path
       end
+
       output = opts[:output]
 
       fn() ->

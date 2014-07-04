@@ -73,8 +73,8 @@ rewrite_clause(Else, _) -> Else.
 
 setup(Module) ->
   case code:is_loaded(?tracker) of
-    {file, _} -> ets:insert(Module, {?attr, ?tracker:start_link()});
-    false -> ok
+    {file, _} -> ets:insert(Module, {?attr, ?tracker:start_link()}), true;
+    false -> false
   end.
 
 cleanup(Module) ->
