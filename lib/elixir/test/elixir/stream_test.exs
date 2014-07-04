@@ -282,6 +282,16 @@ defmodule StreamTest do
     assert Process.get(:stream_flat_map)
   end
 
+  test "flat_map/2 with inner flat_map/2" do
+    stream = Stream.flat_map(1..5, fn x ->
+      Stream.flat_map([x], fn x ->
+        x .. x * x
+      end) |> Stream.map(& &1 * 1)
+    end)
+
+    assert Enum.take(stream, 5) == [1, 2, 3, 4, 3]
+  end
+
   test "into/2 and run/1" do
     Process.put(:stream_cont, [])
     Process.put(:stream_done, false)
