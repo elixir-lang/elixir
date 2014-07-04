@@ -617,12 +617,14 @@ defmodule Stream do
           {[], user_acc} ->
             do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner)
           {list, user_acc} when is_list(list) ->
-            do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.List.reduce(list, &1, fun))
+            do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
+                              &Enumerable.List.reduce(list, &1, fun))
           {:halt, _user_acc} ->
             next.({:halt, next_acc})
             {:halted, elem(inner_acc, 1)}
           {other, user_acc} ->
-            do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, &Enumerable.reduce(other, &1, inner))
+            do_enum_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
+                              &Enumerable.reduce(other, &1, inner))
         end
       {reason, _} ->
         {reason, elem(inner_acc, 1)}
@@ -648,29 +650,31 @@ defmodule Stream do
     end
   end
 
-  defp do_other_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce) do
+  defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce) do
     try do
-      reduce.(inner_acc)
+      reduce.({op, [:outer|inner_acc]})
     catch
-      {:stream_transform, h} ->
-        next.({:halt, next_acc})
-        {:halted, h}
       kind, reason ->
         stacktrace = System.stacktrace
         next.({:halt, next_acc})
         :erlang.raise(kind, reason, stacktrace)
     else
-      {_, acc} ->
+      {:halted, [:outer|acc]} ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
-      {:suspended, acc, c} ->
-        {:suspended, acc, &do_other_transform(user_acc, user, fun, next_acc, next, &1, inner, c)}
+      {:halted, [:inner|acc]} ->
+        next.({:halt, next_acc})
+        {:halted, acc}
+      {:done, [_|acc]} ->
+        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
+      {:suspended, [_|acc], c} ->
+        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c)}
     end
   end
 
-  defp do_transform_each(x, acc, f) do
+  defp do_transform_each(x, [:outer|acc], f) do
     case f.(x, acc) do
-      {:halt, h} -> throw({:stream_transform, h})
-      {_, _} = o -> o
+      {:halt, res} -> {:halt, [:inner|res]}
+      {op, res}    -> {op, [:outer|res]}
     end
   end
 
