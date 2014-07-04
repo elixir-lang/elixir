@@ -63,6 +63,7 @@
 -define(is_quote(S), S == $" orelse S == $').
 
 %% Spaces
--define(is_horizontal_space(S), (S == $\s) orelse (S == $\t)).
+-define(nbsp, 160).
+-define(is_horizontal_space(S), (S == $\s) orelse (S == $\t) orelse (S == ?nbsp)).
 -define(is_vertical_space(S), (S == $\r) orelse (S == $\n)).
 -define(is_space(S), ?is_horizontal_space(S) orelse ?is_vertical_space(S)).
