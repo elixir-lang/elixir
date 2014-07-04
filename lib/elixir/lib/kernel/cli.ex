@@ -363,7 +363,8 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:compile, patterns}, config) do
-    :filelib.ensure_dir(:filename.join(config.output, "."))
+    # If ensuring the dir returns an error no files will be found.
+    _ = :filelib.ensure_dir(:filename.join(config.output, "."))
 
     case filter_multiple_patterns(patterns) do
       {:ok, []} ->

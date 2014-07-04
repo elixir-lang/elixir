@@ -28,9 +28,9 @@ start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, ok, []).
 
 init(ok) ->
-  code:ensure_loaded('Elixir.Macro.Env'),
-  code:ensure_loaded('Elixir.Module.LocalsTracker'),
-  code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
+  _ = code:ensure_loaded('Elixir.Macro.Env'),
+  _ = code:ensure_loaded('Elixir.Module.LocalsTracker'),
+  _ = code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
   {ok, #elixir_code_server{}}.
 
 handle_call({acquire, Path}, From, Config) ->
@@ -120,7 +120,7 @@ handle_cast({loaded, Path}, Config) ->
     {ok, true} ->
       {noreply, Config};
     {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
-      [Pid ! {elixir_code_server, Ref, loaded} || {Pid, _Tag} <- lists:reverse(List)],
+      _ = [Pid ! {elixir_code_server, Ref, loaded} || {Pid, _Tag} <- lists:reverse(List)],
       Done = orddict:store(Path, true, Current),
       {noreply, Config#elixir_code_server{loaded=Done}};
     error ->

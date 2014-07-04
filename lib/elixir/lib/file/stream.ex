@@ -57,10 +57,14 @@ defmodule File.Stream do
             false -> IO.write(device, x)
           end
         :ok, :done ->
-          :file.close(device)
+          # If delayed_write option is used and the last write failed will
+          # MatchError here as {:error, _} is returned.
+          :ok = :file.close(device)
           stream
         :ok, :halt ->
-          :file.close(device)
+          # If delayed_write option is used and the last write failed will
+          # MatchError here as {:error, _} is returned.
+          :ok = :file.close(device)
       end
     end
   end

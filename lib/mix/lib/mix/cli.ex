@@ -19,7 +19,7 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    Mix.Tasks.Local.Hex.maybe_update()
+    _ = Mix.Tasks.Local.Hex.ensure_updated?()
     load_dot_config()
     args = load_mixfile(args)
     {task, args} = get_task(args)
@@ -29,7 +29,7 @@ defmodule Mix.CLI do
 
   defp load_mixfile(args) do
     file = System.get_env("MIX_EXS") || "mix.exs"
-    if File.regular?(file) do
+    _ = if File.regular?(file) do
       Code.load_file(file)
     end
     args

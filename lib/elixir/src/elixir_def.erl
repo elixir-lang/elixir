@@ -83,13 +83,13 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   Arity = length(Args),
   Tuple = {Name, Arity},
   E = ER#{function := Tuple},
-  elixir_locals:record_definition(Tuple, Kind, Module),
+  _ = elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(Line, MetaFile, Module),
   {Function, Defaults, Super} = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
-  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
+  _ = elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
   File   = ?m(E, file),
   Table  = table(Module),
@@ -115,13 +115,16 @@ run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
     _ ->
       Env = elixir_env:linify({Line, E}),
       Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
-      [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks]
+      _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
+      ok
   end.
 
 make_struct_available(def, Module, '__struct__', []) ->
   case erlang:get(elixir_compiler_pid) of
     undefined -> ok;
-    Pid -> Pid ! {struct_available, Module}
+    Pid ->
+      Pid ! {struct_available, Module},
+      ok
   end;
 make_struct_available(_, _, _, _) ->
   ok.
@@ -304,7 +307,8 @@ warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
     when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
   ok;
 warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
-  elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}).
+  _ = elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}),
+  ok.
 
 %% Store each definition in the table.
 %% This function also checks and emit warnings in case

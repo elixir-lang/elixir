@@ -58,8 +58,9 @@ store(Module, Function, GenerateName) ->
 %% Store pending declarations that were not manually made concrete.
 
 store_pending(Module) ->
-  [store(Module, X, false) || {X, {_, _, _, false}} <- overridable(Module),
-    not 'Elixir.Module':'defines?'(Module, X)].
+  _ = [store(Module, X, false) || {X, {_, _, _, false}} <- overridable(Module),
+    not 'Elixir.Module':'defines?'(Module, X)],
+  ok.
 
 %% Error handling
 

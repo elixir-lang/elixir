@@ -255,7 +255,7 @@ defmodule ExUnit.Runner do
   end
 
   defp shuffle(%{seed: seed}, list) do
-    :random.seed(3172, 9814, seed)
+    _ = :random.seed(3172, 9814, seed)
     Enum.shuffle(list)
   end
 

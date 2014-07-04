@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Run do
     Mix.Task.run "app.start", args
     process_load opts
 
-    if file do
+    _ = if file do
       if File.regular?(file) do
         Code.require_file(file)
       else

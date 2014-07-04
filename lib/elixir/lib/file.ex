@@ -308,11 +308,15 @@ defmodule File do
   def touch(path, time \\ :calendar.local_time) do
     path = IO.chardata_to_string(path)
     case F.change_time(path, time) do
-      {:error, :enoent} ->
-        write(path, "")
-        F.change_time(path, time)
-      other ->
-        other
+      {:error, :enoent} -> touch_new(path, time)
+      other -> other
+    end
+  end
+
+  defp touch_new(path, time) do
+    case write(path, "", [:append]) do
+      :ok -> F.change_time(path, time)
+      {:error, _reason} = error -> error
     end
   end
 
@@ -548,7 +552,8 @@ defmodule File do
         [dest|acc]
       {:error, :eexist} ->
         if callback.(src, dest) do
-          rm(dest)
+          # If rm/1 fails, copy/2 will fail
+          _ = rm(dest)
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
@@ -569,7 +574,8 @@ defmodule File do
         [dest|acc]
       {:error, :eexist} ->
         if callback.(src, dest) do
-          rm(dest)
+          # If rm/1 fails, iF.make_symlink/2 will fail
+          _ = rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
             {:error, reason} -> {:error, reason, src}
@@ -665,11 +671,17 @@ defmodule File do
     if match? {:win32, _}, :os.type do
       case F.read_file_info(IO.chardata_to_string(path)) do
         {:ok, file_info} when elem(file_info, 3) in [:read, :none] ->
-          File.chmod(path, (elem(file_info, 7) + 0200))
-          F.delete(path)
+          change_mode_windows(path, file_info)
         _ ->
           nil
       end
+    end
+  end
+
+  defp change_mode_windows(path, file_info) do
+    case File.chmod(path, (elem(file_info, 7) + 0200)) do
+      :ok -> F.delete(path)
+      {:error, _reason} = error -> error
     end
   end
 

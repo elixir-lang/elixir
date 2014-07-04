@@ -302,18 +302,18 @@ defmodule Mix.Project do
     source = Path.expand("ebin")
     target = Path.join(app, "ebin")
 
-    cond do
+    _ = cond do
       opts[:symlink_ebin] ->
-        Mix.Utils.symlink_or_copy(source, target)
+        _ = Mix.Utils.symlink_or_copy(source, target)
       match?({:ok, _}, :file.read_link(target)) ->
-        File.rm_rf!(target)
+        _ = File.rm_rf!(target)
         File.mkdir_p!(target)
       true ->
         File.mkdir_p!(target)
     end
 
-    Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
-    Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
+    _ = Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
+    _ = Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
     :ok
   end
 
@@ -341,7 +341,7 @@ defmodule Mix.Project do
       file = Path.expand("mix.exs")
       old_proj = get
 
-      if File.regular?(file) do
+      _ = if File.regular?(file) do
         Code.load_file(file)
       end
 
