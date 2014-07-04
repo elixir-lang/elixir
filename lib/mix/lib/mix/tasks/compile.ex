@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Compile do
         List.wrap Mix.Task.run("compile.#{compiler}", args)
       end)
 
-    Code.prepend_path(Mix.Project.compile_path)
+    true = Code.prepend_path(Mix.Project.compile_path)
     unless "--no-readd" in args, do: Code.readd_paths()
     if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
   end

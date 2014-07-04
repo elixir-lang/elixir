@@ -4,15 +4,20 @@ defmodule Mix.Tasks.Test do
 
     def start(compile_path, opts) do
       Mix.shell.info "Cover compiling modules ... "
-      :cover.start
-      :cover.compile_beam_directory(compile_path |> to_char_list)
+      {:ok, _} = :cover.start
+      case :cover.compile_beam_directory(compile_path |> to_char_list) do
+        results when is_list(results) ->
+          :ok
+        {:error, _} ->
+          Mix.raise "Failed to cover compile directory: " <> compile_path
+      end
       output = opts[:output]
 
       fn() ->
         Mix.shell.info "\nGenerating cover results ... "
         File.mkdir_p!(output)
         Enum.each :cover.modules, fn(mod) ->
-          :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+          {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
         end
       end
     end
@@ -155,7 +160,12 @@ defmodule Mix.Tasks.Test do
     # that command line options override test_helper.exs
     Mix.shell.print_app
     Mix.Task.run "app.start", args
-    Application.load(:ex_unit)
+
+    # Ensure ex_unit is loaded.
+    case Application.load(:ex_unit) do
+      :ok -> :ok
+      {:error, {:already_loaded, :ex_unit}} -> :ok
+    end
 
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)

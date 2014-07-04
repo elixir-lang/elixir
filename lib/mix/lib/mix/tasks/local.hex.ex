@@ -16,40 +16,56 @@ defmodule Mix.Tasks.Local.Hex do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
   """
+  @spec run(OptionParser.argv) :: boolean
   def run(args) do
     Mix.Tasks.Archive.Install.run [@hex_url|args]
   end
 
   @doc false
-  def maybe_install(app) do
-    unless Code.ensure_loaded?(Hex) do
+  # Returns true if Hex is loaded or installed, otherwise returns false.
+  @spec ensure_installed?(atom) :: boolean
+  def ensure_installed?(app) do
+    if Code.ensure_loaded?(Hex) do
+      true
+    else
       shell = Mix.shell
       shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
 
       if shell.yes?("Shall I install hex?") do
         run ["--force"]
+      else
+        false
       end
     end
   end
 
   @doc false
-  def maybe_update do
+  # Returns true if have required Hex, returns false if don't and don't update,
+  # if update then exits.
+  @spec ensure_updated?() :: boolean
+  def ensure_updated?() do
     if Code.ensure_loaded?(Hex) do
-      unless Version.match?(Hex.version, @hex_requirement) do
+      if Version.match?(Hex.version, @hex_requirement) do
+        true
+      else
         Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
 
         if Mix.shell.yes?("Shall I abort the current command and update hex?") do
           run ["--force"]
           exit({:shutdown, 0})
+        else
+          false
         end
       end
+    else
+      false
     end
   end
 
   @doc false
-  def maybe_start do
+  def start do
     try do
-      Code.ensure_loaded?(Hex) && Hex.start
+      Hex.start
     catch
       kind, reason ->
         stacktrace = System.stacktrace

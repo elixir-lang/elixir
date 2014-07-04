@@ -397,7 +397,7 @@ defmodule GenEvent do
   def cancel_streams(%GenEvent{manager: manager, id: id}) do
     handlers = :gen_event.which_handlers(manager)
 
-    for {Enumerable.GenEvent, {handler_id, _}} = ref <- handlers,
+    _ = for {Enumerable.GenEvent, {handler_id, _}} = ref <- handlers,
         handler_id === id do
       :gen_event.delete_handler(manager, ref, :remove_handler)
     end

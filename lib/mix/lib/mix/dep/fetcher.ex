@@ -27,7 +27,7 @@ defmodule Mix.Dep.Fetcher do
     {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
-    Mix.Dep.loaded_by_name(names, deps, opts)
+    _ = Mix.Dep.loaded_by_name(names, deps, opts)
     apps
   end
 
@@ -117,9 +117,10 @@ defmodule Mix.Dep.Fetcher do
     # file to it. Each build, regardless of the environment and location,
     # will compared against this .fetch file to know if the depednency
     # needs recompiling.
-    for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
-      File.touch Path.join opts[:dest], ".fetch"
+    _ = for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
+      File.touch! Path.join opts[:dest], ".fetch"
     end
+    :ok
   end
 
   defp with_depending(deps, all_deps) do

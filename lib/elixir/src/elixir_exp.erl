@@ -452,7 +452,7 @@ expand_local(Meta, Name, Args, #{local := nil, function := nil} = E) ->
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA};
 expand_local(Meta, Name, Args, #{local := nil, module := Module, function := Function} = E) ->
-  elixir_locals:record_local({Name, length(Args)}, Module, Function),
+  _ = elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA};
 expand_local(Meta, Name, Args, E) ->

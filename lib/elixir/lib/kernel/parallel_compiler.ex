@@ -43,7 +43,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp spawn_compilers(files, path, callbacks) do
-    Code.ensure_loaded(Kernel.ErrorHandler)
+    true = Code.ensure_loaded?(Kernel.ErrorHandler)
     compiler_pid = self()
     :elixir_code_server.cast({:reset_warnings, compiler_pid})
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
@@ -87,7 +87,7 @@ defmodule Kernel.ParallelCompiler do
         :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
 
         exit(try do
-          if output do
+          _ = if output do
             :elixir_compiler.file_to_path(h, output)
           else
             :elixir_compiler.file(h)

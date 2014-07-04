@@ -308,7 +308,7 @@ defmodule Mix.Utils do
         {:error, :enoent} ->
           do_symlink_or_copy(source, target)
         {:error, _} ->
-          File.rm_rf!(target)
+          _ = File.rm_rf!(target)
           do_symlink_or_copy(source, target)
       end
     else
@@ -367,8 +367,8 @@ defmodule Mix.Utils do
   end
 
   defp read_url(path) do
-    :ssl.start
-    :inets.start
+    :ok = :ssl.start
+    :ok = :inets.start
 
     # Starting a http client profile allows us to scope
     # the effects of using a http proxy to this function
@@ -399,8 +399,8 @@ defmodule Mix.Utils do
 
   defp proxy(proxy) do
      uri = URI.parse(proxy)
-     :httpc.set_options([{ proxy_scheme(uri.scheme),
-         { { uri.host |> String.to_char_list, uri.port }, [] } }], :mix)
+     :ok = :httpc.set_options([{ proxy_scheme(uri.scheme),
+          { { uri.host |> String.to_char_list, uri.port }, [] } }], :mix)
    end
 
    defp proxy_scheme(scheme) do

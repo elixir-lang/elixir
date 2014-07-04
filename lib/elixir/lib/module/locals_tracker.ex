@@ -277,12 +277,12 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_cast({:add_local, from, to}, {d, _} = state) do
-    handle_add_local(d, from, to)
+    _ = handle_add_local(d, from, to)
     {:noreply, state}
   end
 
   def handle_cast({:add_import, function, module, {name, arity}}, {d, _} = state) do
-    handle_import(d, function, module, name, arity)
+    _ = handle_import(d, function, module, name, arity)
     {:noreply, state}
   end
 
@@ -292,7 +292,7 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_cast({:add_defaults, kind, {name, arity}, defaults}, {d, _} = state) do
-    for i <- :lists.seq(arity - defaults, arity - 1) do
+    _ = for i <- :lists.seq(arity - defaults, arity - 1) do
       handle_add_definition(d, kind, {name, i})
       handle_add_local(d, {name, i}, {name, i + 1})
     end
@@ -302,12 +302,12 @@ defmodule Module.LocalsTracker do
   def handle_cast({:reattach, kind, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
     handle_add_definition(d, kind, tuple)
 
-    for from <- in_neigh do
+    _ = for from <- in_neigh do
       :digraph.add_vertex(d, from)
       replace_edge!(d, from, tuple)
     end
 
-    for to <- out_neigh do
+    _ = for to <- out_neigh do
       :digraph.add_vertex(d, to)
       replace_edge!(d, tuple, to)
     end
@@ -336,7 +336,7 @@ defmodule Module.LocalsTracker do
 
     tuple = {:import, name, arity}
     :digraph.add_vertex(d, tuple)
-    replace_edge!(d, tuple, module)
+    _ = replace_edge!(d, tuple, module)
 
     if function != nil do
       replace_edge!(d, function, tuple)

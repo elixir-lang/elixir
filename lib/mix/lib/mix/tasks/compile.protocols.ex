@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp consolidate(protocols, paths, output) do
     File.mkdir_p!(output)
 
-    for protocol <- protocols do
+    _ = for protocol <- protocols do
       impls = Protocol.extract_impls(protocol, paths)
       maybe_reload(protocol)
       {:ok, binary} = Protocol.consolidate(protocol, impls)

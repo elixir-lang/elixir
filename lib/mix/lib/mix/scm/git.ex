@@ -73,7 +73,7 @@ defmodule Mix.SCM.Git do
     path     = opts[:dest]
     location = opts[:git]
 
-    File.rm_rf!(path)
+    _ = File.rm_rf!(path)
     command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
 
     run_cmd_or_raise(command)
@@ -151,7 +151,8 @@ defmodule Mix.SCM.Git do
   end
 
   defp update_origin(location) do
-    :os.cmd('git --git-dir=.git config remote.origin.url #{location}')
+    _ = :os.cmd('git --git-dir=.git config remote.origin.url #{location}')
+    :ok
   end
 
   defp run_cmd_or_raise(command) do

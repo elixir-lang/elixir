@@ -80,7 +80,7 @@ defmodule Mix.Compilers.Elixir do
     end)
 
     try do
-      Kernel.ParallelCompiler.files :lists.usort(stale),
+      _ = Kernel.ParallelCompiler.files :lists.usort(stale),
         each_module: &each_module(pid, dest, cwd, &1, &2, &3),
         each_file: &each_file(&1)
       Agent.cast pid, fn entries ->
@@ -140,7 +140,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries([{beam, module, source, _d, _f} = entry|t], changed, removed, acc) do
     if source in changed do
-      File.rm(beam)
+      File.rm!(beam)
       remove_stale_entries(t, changed, [module|removed], acc)
     else
       remove_stale_entries(t, changed, removed, [entry|acc])
