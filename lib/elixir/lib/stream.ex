@@ -634,8 +634,9 @@ defmodule Stream do
       reduce.(inner_acc)
     catch
       kind, reason ->
+        stacktrace = System.stacktrace
         next.({:halt, next_acc})
-        :erlang.raise(kind, reason, :erlang.get_stacktrace)
+        :erlang.raise(kind, reason, stacktrace)
     else
       {:done, acc} ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
