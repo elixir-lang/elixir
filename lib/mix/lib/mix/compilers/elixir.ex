@@ -117,7 +117,9 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp get_external_resources(module) do
-    module.__info__(:attributes)[:external_resource] || []
+    for {:external_resource, values} <- module.__info__(:attributes),
+        value <- values,
+        do: value
   end
 
   defp each_file(file) do
