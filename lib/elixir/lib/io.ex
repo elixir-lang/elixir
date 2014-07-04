@@ -76,6 +76,9 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  Note: do not use this file on IO devices in unicode mode
+  as it will return the wrong result.
   """
   @spec binread(device, :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ group_leader, chars_or_line)
@@ -119,6 +122,9 @@ defmodule IO do
   as a binary, no unicode conversion happens.
 
   Check `write/2` for more information.
+
+  Note: do not use this file on IO devices in unicode mode
+  as it will return the wrong result.
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
   def binwrite(device \\ group_leader(), item) when is_iodata(item) do
@@ -263,6 +269,9 @@ defmodule IO do
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
+
+  Finally, do not use this file on IO devices in unicode mode
+  as it will return the wrong result.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
