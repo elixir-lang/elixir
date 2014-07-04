@@ -132,6 +132,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("lib/a.eex")
       File.write!("lib/a.ex", """
       defmodule A do
+        @external_resource "lib/b.eex"
         @external_resource "lib/a.eex"
         def a, do: :ok
       end
