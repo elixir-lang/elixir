@@ -15,7 +15,8 @@ warn(Warning) ->
       elixir_code_server:cast({register_warning, CompilerPid});
     true -> false
   end,
-  io:put_chars(standard_error, Warning).
+  io:put_chars(standard_error, Warning),
+  ok.
 
 warn(Caller, Warning) ->
   warn([Caller, "warning: ", Warning]).
@@ -76,17 +77,17 @@ parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
 %% Handle warnings and errors (called during module compilation)
 
 %% Ignore on bootstrap
-handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> [];
-handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> [];
+handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
+handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> ok;
 
 %% Ignore always
-handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> [];
+handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
 
 %% This is an Erlang bug, it considers {tuple, _}.call to always fail
-handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> [];
+handle_file_warning(_, _File, {_Line, v3_kernel, bad_call}) -> ok;
 
 %% We handle unused local warnings ourselves
-handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> [];
+handle_file_warning(_, _File, {_Line, erl_lint, {unused_function, _}}) -> ok;
 
 %% Make no_effect clauses pretty
 handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}}) ->
@@ -116,7 +117,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
 
 handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   case elixir_compiler:get_opt(internal) of
-    true  -> [];
+    true  -> ok;
     false ->
       Message = io_lib:format("behaviour ~ts undefined", [elixir_aliases:inspect(Module)]),
       warn(Line, File, Message)
@@ -124,11 +125,11 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
 
 %% Ignore unused vars at "weird" lines (<= 0)
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
-  [];
+  ok;
 
 %% Ignore shadowed vars as we guarantee no conflicts ourselves
 handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
-  [];
+  ok;
 
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
 handle_file_warning(_, File, {Line, sys_core_fold, nomatch_guard}) ->

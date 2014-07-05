@@ -145,10 +145,10 @@ warn_unused_local(File, Module, Private) ->
 
     {Unreachable, Warnings} = ?tracker:collect_unused_locals(Pid, Args),
 
-    _ = [ begin
-        {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
-        elixir_errors:handle_file_warning(File, {Line, ?MODULE, Error})
-      end || Error <- Warnings ],
+    [begin
+      {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
+      elixir_errors:handle_file_warning(File, {Line, ?MODULE, Error})
+     end || Error <- Warnings ],
 
     Unreachable
   end).

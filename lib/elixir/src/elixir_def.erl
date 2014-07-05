@@ -307,7 +307,7 @@ warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
     when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
   ok;
 warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
-  _ = elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}),
+  elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}),
   ok.
 
 %% Store each definition in the table.
