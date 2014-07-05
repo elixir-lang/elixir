@@ -29,6 +29,7 @@ defmodule RegexTest do
     assert Regex.regex?(regex)
     assert {:error, _} = Regex.compile("*foo")
     assert {:error, _} = Regex.compile("foo", "y")
+    assert {:error, _} = Regex.compile("foo", "uy")
   end
 
   test :compile_with_erl_opts do
@@ -79,6 +80,10 @@ defmodule RegexTest do
   test :unicode do
     assert "josé" =~ ~r"\p{Latin}$"u
     refute "£" =~ ~r/\p{Lu}/u
+
+    # Non breaking space matches [[:space:]] with unicode
+    assert <<0xA0::utf8>> =~ ~r/[[:space:]]/u
+    assert <<0xA0::utf8>> =~ ~r/\s/u
 
     assert <<?<, 255, ?>>> =~ ~r/<.>/
     refute <<?<, 255, ?>>> =~ ~r/<.>/u
