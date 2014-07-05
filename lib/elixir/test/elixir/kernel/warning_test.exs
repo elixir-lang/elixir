@@ -482,6 +482,18 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
+  test :doc_with_no_function do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @doc "Something"
+      end
+      """
+    end) =~ "nofile:1: warning: @doc provided but no definition follows it"
+  after
+    purge [Sample]
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each list, &purge/1
   end

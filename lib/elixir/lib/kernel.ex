@@ -1943,10 +1943,7 @@ defmodule Kernel do
 
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
-            case name == :typedoc and not bootstraped?(Kernel.Typespec) do
-              true  -> nil
-              false -> do_at(args, name, function?, __CALLER__)
-            end
+            do_at(args, name, function?, __CALLER__)
           macro ->
             case bootstraped?(Kernel.Typespec) do
               false -> nil
