@@ -267,6 +267,24 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
+  test "fails on invalid module" do
+    assert_raise CompileError, ~r"module ExUnit.DocTestTest.Unknown is not loaded and could not be found", fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.Unknown
+      end
+    end
+  end
+
+  test "fails when there are no docs" do
+    assert_raise ExUnit.DocTest.Error, ~r"could not retrieve the documentation for module ExUnit.DocTestTest", fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest
+      end
+    end
+  end
+
   test "fails in indentation mismatch" do
     assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "   iex> bar = 2", should have been 2 spaces/, fn ->
       defmodule NeverCompiled do
