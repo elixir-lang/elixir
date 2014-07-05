@@ -13,16 +13,16 @@
 
 * Bug fixes
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
-  * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison ones (`==`, `!=`, etc) in operator table
+  * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison operators (`==`, `!=`, etc) in the operator table
   * [Kernel] Run command line and escripts in a process that does not trap exits
   * [Kernel] Fix a bug where Mix paths had higher priority than CLI ones, causing protocol consolidations to not be properly loaded
-  * [Kernel] Fix wording on error messages when a check/guard always pass or always fails
-  * [Kernel] Fix a bug where a unused function warning was printed even when the function was used via defoverridable
+  * [Kernel] Fix wording on error messages when a check/guard always passes or always fails
+  * [Kernel] Fix a bug where an unused function warning was printed even when the function was used via `defoverridable`
   * [Kernel] Improve typespecs so they don't generate supertype dialyzer warnings
   * [Typespec] Fix a bug where the `list` typespec was incorrectly rendered as `[]`
 
 * Soft deprecations (no warnings emitted)
-  * [Kernel] Using a list for bitstring modifiers is deprecated (as in `<<x :: [little, utf16]>>`), please use `-` as separator instead (as in `<<x :: little-utf16>>`)
+  * [Kernel] Using a list for bitstring modifiers is deprecated (as in `<<x :: [little, utf16]>>`), please use `-` as the separator instead (as in `<<x :: little-utf16>>`)
   * [System] `System.cmd/1` is deprecated in favor of `System.cmd/3`
 
 * Deprecations
@@ -34,8 +34,8 @@
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
   * [Kernel] `defstruct` no longer automatically defines a type
-  * [Kernel] `exit(integer)` is no longer supported from the scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
-  * [Mix] `mix archive` have been renamed to `mix archive.build`
+  * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
+  * [Mix] `mix archive` has been renamed to `mix archive.build`
 
 ## v0.14.2 (2014-06-29)
 
