@@ -253,13 +253,19 @@ oror_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 
+cond_line_test() ->
+  {'case',1,_,
+    [{clause,2,_,_,_},
+     {clause,3,_,_,_}]
+  } = to_erl("cond do\n  1 -> :ok\n  2 -> :ok\nend").
+
 % Optimized
 
 optimized_if_test() ->
   {'case', _, _,
     [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
      {clause,_,[{atom,_,true}],[],[{atom,_,do}]}]
- } = to_erl("if is_list([]), do: :do, else: :else").
+  } = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->
   {'case', _, _,
@@ -268,7 +274,7 @@ optimized_andand_test() ->
       [[{op,_,'orelse',_,_}]],
       [{var,_,Var}]},
     {clause,_,[{var,_,'_'}],[],[{atom,0,done}]}]
- } = to_erl("is_list([]) && :done").
+  } = to_erl("is_list([]) && :done").
 
 optimized_oror_test() ->
   {'case', _, _,
@@ -277,7 +283,7 @@ optimized_oror_test() ->
       [[{op,1,'orelse',_,_}]],
       [{atom,0,done}]},
     {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
- } = to_erl("is_list([]) || :done").
+  } = to_erl("is_list([]) || :done").
 
 no_after_in_try_test() ->
   {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").
