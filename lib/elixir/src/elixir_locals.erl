@@ -73,50 +73,35 @@ rewrite_clause(Else, _) -> Else.
 
 setup(Module) ->
   case code:is_loaded(?tracker) of
-    {file, _} -> ets:insert(Module, {?attr, ?tracker:start_link()}), true;
-    false -> false
+    {file, _} -> ets:insert(Module, {?attr, ?tracker:start_link()}), ok;
+    false -> ok
   end.
 
 cleanup(Module) ->
-  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid), true end).
+  if_tracker(Module, fun(Pid) -> unlink(Pid), ?tracker:stop(Pid), ok end).
 
 record_local(Tuple, Module) when is_atom(Module) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_local(Pid, Tuple),
-    true
-  end).
+  if_tracker(Module, fun(Pid) -> ?tracker:add_local(Pid, Tuple), ok end).
 record_local(Tuple, _Module, Function)
-  when Function == nil; Function == Tuple -> false;
+  when Function == nil; Function == Tuple -> ok;
 record_local(Tuple, Module, Function) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_local(Pid, Function, Tuple),
-    true
-  end).
+  if_tracker(Module, fun(Pid) -> ?tracker:add_local(Pid, Function, Tuple), ok end).
 
 record_import(_Tuple, Receiver, Module, _Function)
   when Module == nil; Module == Receiver -> false;
 record_import(Tuple, Receiver, Module, Function) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_import(Pid, Function, Receiver, Tuple),
-    true
-  end).
+  if_tracker(Module, fun(Pid) -> ?tracker:add_import(Pid, Function, Receiver, Tuple), ok end).
 
 record_definition(Tuple, Kind, Module) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_definition(Pid, Kind, Tuple),
-    true
-  end).
+  if_tracker(Module, fun(Pid) -> ?tracker:add_definition(Pid, Kind, Tuple), ok end).
 
 record_defaults(_Tuple, _Kind, _Module, 0) ->
-  true;
+  ok;
 record_defaults(Tuple, Kind, Module, Defaults) ->
-  if_tracker(Module, fun(Pid) ->
-    ?tracker:add_defaults(Pid, Kind, Tuple, Defaults),
-    true
-  end).
+  if_tracker(Module, fun(Pid) -> ?tracker:add_defaults(Pid, Kind, Tuple, Defaults), ok end).
 
 if_tracker(Module, Callback) ->
-  if_tracker(Module, false, Callback).
+  if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
   try ets:lookup_element(Module, ?attr, 2) of
@@ -146,12 +131,12 @@ get_cached_env(Env) -> Env.
 ensure_no_import_conflict(_Line, _File, 'Elixir.Kernel', _All) ->
   ok;
 ensure_no_import_conflict(Line, File, Module, All) ->
-  _ = if_tracker(Module, fun(Pid) ->
-    [ begin
+  if_tracker(Module, ok, fun(Pid) ->
+    _ = [ begin
         elixir_errors:form_error(Line, File, ?MODULE, {function_conflict, Error})
-      end || Error <- ?tracker:collect_imports_conflicts(Pid, All) ]
-  end),
-  ok.
+      end || Error <- ?tracker:collect_imports_conflicts(Pid, All) ],
+    ok
+  end).
 
 warn_unused_local(File, Module, Private) ->
   if_tracker(Module, [], fun(Pid) ->

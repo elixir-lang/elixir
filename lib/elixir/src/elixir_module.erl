@@ -79,7 +79,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     Binary = load_form(Line, Final, compile_opts(Module), NE),
     {module, Module, Binary, Result}
   after
-    _ = elixir_locals:cleanup(Module),
+    elixir_locals:cleanup(Module),
     elixir_def:cleanup(Module),
     ets:delete(docs_table(Module)),
     ets:delete(data_table(Module))
@@ -120,7 +120,8 @@ build(Line, File, Module, Lexical) ->
 
   %% Setup other modules
   elixir_def:setup(Module),
-  elixir_locals:setup(Module).
+  elixir_locals:setup(Module),
+  ok.
 
 %% Receives the module representation and evaluates it.
 
