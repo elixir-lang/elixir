@@ -13,7 +13,7 @@ defmodule GenEvent do
   ## Example
 
   There are many use cases for event handlers. For example, a logging
-  system can be built using event handlers where which log message is
+  system can be built using event handlers where each log message is
   an event and different event handlers can be plugged to handle the
   log messages. One handler may print error messages on the terminal,
   another can write it to a file, while a third one can keep the
