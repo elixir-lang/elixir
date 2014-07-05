@@ -72,7 +72,7 @@ translate({fn, Meta, Clauses}, S) ->
 
 %% Cond
 
-translate({'cond', _Meta, [[{do, Pairs}]]}, S) ->
+translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
   [{'->', Meta, [[Condition], Body]}|T] = lists:reverse(Pairs),
   Case =
     case Condition of
@@ -88,7 +88,7 @@ translate({'cond', _Meta, [[{do, Pairs}]]}, S) ->
         Acc = {'case', Meta, [Condition, [{do, [Truthy, Falsy]}]]},
         build_cond_clauses(T, Acc, Meta)
     end,
-  translate(Case, S);
+  translate(replace_case_meta(CondMeta, Case), S);
 
 %% Case
 
@@ -386,6 +386,11 @@ build_cond_clauses([{'->', NewMeta, [[Condition], Body]}|T], Acc, OldMeta) ->
   build_cond_clauses(T, Case, NewMeta);
 build_cond_clauses([], Acc, _) ->
   Acc.
+
+replace_case_meta(Meta, {'case', _, Args}) ->
+  {'case', Meta, Args};
+replace_case_meta(_Meta, Other) ->
+  Other.
 
 build_truthy_clause(Meta, Condition, Body) ->
   case elixir_utils:returns_boolean(Condition) of
