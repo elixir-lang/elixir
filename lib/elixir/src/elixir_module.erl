@@ -342,7 +342,6 @@ get_docs(Module) ->
 get_moduledoc(Line, Module) ->
   {Line, 'Elixir.Module':get_attribute(Module, moduledoc)}.
 
-
 check_module_availability(Line, File, Module) ->
   Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.Function', 'Elixir.PID',
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
@@ -356,8 +355,7 @@ check_module_availability(Line, File, Module) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          _ = elixir_errors:handle_file_warning(File, {Line, ?MODULE, {module_defined, Module}}),
-          ok;
+          elixir_errors:handle_file_warning(File, {Line, ?MODULE, {module_defined, Module}});
         {error, _}  ->
           ok
       end;
