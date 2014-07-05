@@ -6,7 +6,11 @@ defmodule IEx.HelpersTest do
   import IEx.Helpers
 
   test "clear helper" do
-    assert "\e[H\e[2J" == capture_iex("clear")
+    IEx.configure colors: [enabled: true]
+    assert capture_iex("clear") == "\e[H\e[2J"
+
+    IEx.configure colors: [enabled: false]
+    assert capture_iex("clear") =~ "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
   end
 
   test "h helper" do
