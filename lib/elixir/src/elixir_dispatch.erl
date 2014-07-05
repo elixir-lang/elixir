@@ -37,11 +37,11 @@ find_import(Meta, Name, Arity, E) ->
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      _ = elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     {macro, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      _ = elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     _ ->
       false
@@ -54,7 +54,7 @@ import_function(Meta, Name, Arity, E) ->
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      _ = elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
       false;
@@ -64,7 +64,7 @@ import_function(Meta, Name, Arity, E) ->
       case elixir_import:special_form(Name, Arity) of
         true  -> false;
         false ->
-          _ = elixir_locals:record_local(Tuple, ?m(E, module), ?m(E, function)),
+          elixir_locals:record_local(Tuple, ?m(E, module), ?m(E, function)),
           {local, Name, Arity}
       end
   end.
@@ -139,7 +139,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra) ->
 
     %% Dispatch to the local.
     _ ->
-      _ = elixir_locals:record_local(Tuple, Module, Function),
+      elixir_locals:record_local(Tuple, Module, Function),
       {ok, Module, expand_macro_fun(Meta, Local(), Module, Name, Args, E)}
   end.
 
@@ -147,7 +147,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   case Result of
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      _ = elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
+      elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
 
       case rewrite(Receiver, Name, Args, Arity) of
         {ok, _, _, _} = Res -> Res;
@@ -156,7 +156,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      _ = elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
+      elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
       case expand_require([{require,false}|Meta], Receiver, Tuple, Args, E) of

@@ -27,38 +27,23 @@ run(File, Callback) ->
 %% RECORD
 
 record_alias(Module, Line, Warn, Ref) ->
-  if_tracker(Ref, fun(Pid) ->
-    ?tracker:add_alias(Pid, Module, Line, Warn),
-    true
-  end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:add_alias(Pid, Module, Line, Warn), ok end).
 
 record_import(Module, Line, Warn, Ref) ->
-  if_tracker(Ref, fun(Pid) ->
-    ?tracker:add_import(Pid, Module, Line, Warn),
-    true
-  end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:add_import(Pid, Module, Line, Warn), ok end).
 
 record_alias(Module, Ref) ->
-  if_tracker(Ref, fun(Pid) ->
-    ?tracker:alias_dispatch(Pid, Module),
-    true
-  end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module), ok end).
 
 record_import(Module, Ref) ->
-  if_tracker(Ref, fun(Pid) ->
-    ?tracker:import_dispatch(Pid, Module),
-    true
-  end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module), ok end).
 
 record_remote(Module, Ref) ->
-  if_tracker(Ref, fun(Pid) ->
-    ?tracker:remote_dispatch(Pid, Module),
-    true
-  end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module), ok end).
 
 %% HELPERS
 
-if_tracker(nil, _Callback) -> false;
+if_tracker(nil, _Callback) -> ok;
 if_tracker(Pid, Callback) when is_pid(Pid) -> Callback(Pid).
 
 %% ERROR HANDLING

@@ -83,13 +83,13 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #
   Arity = length(Args),
   Tuple = {Name, Arity},
   E = ER#{function := Tuple},
-  _ = elixir_locals:record_definition(Tuple, Kind, Module),
+  elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(Line, MetaFile, Module),
   {Function, Defaults, Super} = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
-  _ = elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
+  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
   File   = ?m(E, file),
   Table  = table(Module),
