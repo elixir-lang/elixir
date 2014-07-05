@@ -47,7 +47,9 @@ compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
 do_compile(Line, Module, Block, Vars, E) ->
   File = ?m(E, file),
   check_module_availability(Line, File, Module),
-  build(Line, File, Module, ?m(E, lexical_tracker)),
+
+  Docs = elixir_compiler:get_opt(docs),
+  build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
     {Result, NE} = eval_form(Line, Module, Block, Vars, E),
@@ -63,11 +65,15 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     {All, Forms0} = functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Functions),
     Forms1        = specs_form(Module, Defmacro, Defmacrop, Forms0),
-    Forms2        = types_form(Module, Forms1),
+    Forms2        = types_form(Line, File, Module, Forms1),
     Forms3        = attributes_form(Line, File, Module, Forms2),
 
     elixir_locals:ensure_no_import_conflict(Line, File, Module, All),
-    warn_unused_docs(Line, File, Module),
+
+    case Docs of
+      true  -> warn_unused_docs(Line, File, Module, doc);
+      false -> false
+    end,
 
     Location = {elixir_utils:relative_to_cwd(elixir_utils:characters_to_list(File)), Line},
 
@@ -87,7 +93,7 @@ do_compile(Line, Module, Block, Vars, E) ->
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Line, File, Module, Lexical) ->
+build(Line, File, Module, Docs, Lexical) ->
   %% Table with meta information about the module.
   DataTable = data_table(Module),
 
@@ -105,7 +111,7 @@ build(Line, File, Module, Lexical) ->
   ets:insert(DataTable, {before_compile, []}),
   ets:insert(DataTable, {after_compile, []}),
 
-  case elixir_compiler:get_opt(docs) of
+  case Docs of
     true -> ets:insert(DataTable, {on_definition, [{'Elixir.Module', compile_doc}]});
     _    -> ets:insert(DataTable, {on_definition, []})
   end,
@@ -192,7 +198,7 @@ process_external_resource(Line, File, Value) ->
 
 %% Types
 
-types_form(Module, Forms0) ->
+types_form(Line, File, Module, Forms0) ->
   case code:ensure_loaded('Elixir.Kernel.Typespec') of
     {module, 'Elixir.Kernel.Typespec'} ->
       Types0 = 'Elixir.Module':get_attribute(Module, type) ++
@@ -205,6 +211,8 @@ types_form(Module, Forms0) ->
       'Elixir.Module':delete_attribute(Module, type),
       'Elixir.Module':delete_attribute(Module, typep),
       'Elixir.Module':delete_attribute(Module, opaque),
+
+      warn_unused_docs(Line, File, Module, typedoc),
 
       Forms1 = types_attributes(Types1, Forms0),
       Forms2 = export_types_attributes(Types1, Forms1),
@@ -363,15 +371,13 @@ check_module_availability(Line, File, Module) ->
       ok
   end.
 
-warn_unused_docs(Line, File, Module) ->
-  lists:foreach(fun(Attribute) ->
-    case ets:member(data_table(Module), Attribute) of
-      true ->
-        elixir_errors:handle_file_warning(File, {Line, ?MODULE, {unused_doc, Attribute}});
-      _ ->
-        ok
-    end
-  end, [typedoc]).
+warn_unused_docs(Line, File, Module, Attribute) ->
+  case ets:member(data_table(Module), Attribute) of
+    true ->
+      elixir_errors:handle_file_warning(File, {Line, ?MODULE, {unused_doc, Attribute}});
+    _ ->
+      ok
+  end.
 
 % __INFO__
 
