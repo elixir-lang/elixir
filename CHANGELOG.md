@@ -12,8 +12,8 @@
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
 * Bug fixes
-  * [Kernel] `|>`, `<<<`, `>>>` and `^^^` were made left associative in operator table
-  * [Kernel] `<`, `>`, `<=`, `>=` were given higher precedence than comparison operators (`==`, `!=`, etc) in the operator table
+  * [Kernel] `|>`, `<<<`, `>>>` and `^^^` made left associative in operator table
+  * [Kernel] `<`, `>`, `<=`, `>=` given higher precedence than comparison operators (`==`, `!=`, etc) in the operator table
   * [Kernel] Run command line and escripts in a process that does not trap exits
   * [Kernel] Fix a bug where Mix paths had higher priority than CLI ones, causing protocol consolidations to not be properly loaded
   * [Kernel] Fix wording on error messages when a check/guard always passes or always fails
@@ -29,7 +29,7 @@
   * [Mix] `mix escriptize` is deprecated in favor of `escript.build`
   * [Mix] `mix local.install` and `mix local.uninstall` have been deprecated in favor of `mix archive.install` and `mix archive.uninstall` respectively
   * [Mix] `:embed_extra_apps` for escripts is deprecated, instead list the dependencies inside `def application`
-  * [System] Giving a char list `System.find_executable/1` is deprecated
+  * [System] Giving a char list to `System.find_executable/1` is deprecated
 
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
@@ -93,7 +93,7 @@
   * [URI] `encode/1` does not escape reserved/unreserved characters by default nor encodes whitespace as `+` (check `URI.encode_www_form/1` and `URI.decode_www_form/1` for previous behaviour)
 
 * Deprecations
-  * [Mix] `:escript_*` options were moved into a single `:escript` group
+  * [Mix] `:escript_*` options moved into a single `:escript` group
 
 * Backwards incompatible changes
   * [GenEvent] `GenEvent.stream/2` defaults to `:sync` mode
