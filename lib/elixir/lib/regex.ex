@@ -22,8 +22,9 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like `\p`; it expects
-      valid unicode strings to be given on match
+    * `unicode` (u) - enables unicode specific patterns like `\p` and changes
+      modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
+      It expects valid unicode strings to be given on match
 
     * `caseless` (i) - add case insensitivity
 
@@ -106,7 +107,7 @@ defmodule Regex do
   def compile(source, options \\ "")
 
   def compile(source, options) when is_binary(options) do
-    case translate_options(options) do
+    case translate_options(options, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
@@ -561,18 +562,13 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?g, t :: binary>>) do
-    IO.write :stderr, "The /g flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
-    translate_options(t)
-  end
-
-  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
-  defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
-  defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
-  defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
-  defp translate_options(<<?r, t :: binary>>), do: [:ungreedy|translate_options(t)]
-  defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
-  defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
-  defp translate_options(<<>>), do: []
-  defp translate_options(rest), do: {:error, rest}
+  defp translate_options(<<?u, t :: binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
+  defp translate_options(<<?i, t :: binary>>, acc), do: translate_options(t, [:caseless|acc])
+  defp translate_options(<<?x, t :: binary>>, acc), do: translate_options(t, [:extended|acc])
+  defp translate_options(<<?f, t :: binary>>, acc), do: translate_options(t, [:firstline|acc])
+  defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?s, t :: binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
+  defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
+  defp translate_options(<<>>, acc), do: acc
+  defp translate_options(rest, _acc), do: {:error, rest}
 end
