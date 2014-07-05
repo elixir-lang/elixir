@@ -2,7 +2,7 @@ defmodule Range do
   @moduledoc """
   Defines a Range.
 
-  A Range are represented internally as a struct. However,
+  A Range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
   is via the `../2` macro, auto-imported from Kernel:
 
