@@ -90,10 +90,18 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Clear the console screen.
+  Clears the console screen.
+
+  This function only works if ANSI escape codes are enabled
+  on the shell, which means this function is by default
+  unavailable on Windows machines.
   """
   def clear do
-    IO.write [IO.ANSI.home, IO.ANSI.clear]
+    if Application.get_env(:iex, :colors)[:enabled] do
+      IO.write [IO.ANSI.home, IO.ANSI.clear]
+    else
+      IO.write "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
+    end
     dont_display_result
   end
 
