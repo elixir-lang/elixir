@@ -20,6 +20,16 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :underscored_variable_on_match do
+    assert capture_err(fn ->
+      Code.eval_string """
+      {_arg, _arg} = {1, 1}
+      """
+    end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
+  after
+    purge Sample
+  end
+
   test :unused_function do
     assert capture_err(fn ->
       Code.eval_string """

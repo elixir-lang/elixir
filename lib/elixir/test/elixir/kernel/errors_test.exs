@@ -537,12 +537,6 @@ defmodule Kernel.ErrorsTest do
       '<<1 :: unit(:x)>>'
   end
 
-  test :invalid_var! do
-    assert_compile_fail CompileError,
-      "nofile:1: expected var x to expand to an existing variable or be a part of a match",
-      'var!(x)'
-  end
-
   test :invalid_alias do
     assert_compile_fail CompileError,
       "nofile:1: invalid value for keyword :as, expected an alias, got nested alias: Sample.Lists",

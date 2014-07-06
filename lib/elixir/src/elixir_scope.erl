@@ -1,9 +1,10 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
--export([translate_var/4, build_var/2,
+-export([translate_var/4, build_var/2, context_info/1,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, mergef/2,
-  merge_vars/2, merge_opt_vars/2
+  merge_vars/2, merge_opt_vars/2,
+  format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -25,6 +26,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
       case Exists andalso ordsets:is_element(Tuple, MatchVars) of
         true ->
+          warn_underscored_var(Line, S#elixir_scope.file, Name, Kind),
           {{var, Line, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
@@ -59,6 +61,19 @@ build_var(Key, S) ->
   New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
   Cnt = orddict:fetch(Key, New),
   {elixir_utils:atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
+
+context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
+context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
+
+warn_underscored_var(Line, File, Name, Kind) ->
+  case atom_to_list(Name) of
+    "_@" ++ _ ->
+      ok; %% Automatically generated variables
+    "_" ++ _ ->
+      elixir_errors:handle_file_warning(File, {Line, ?MODULE, {unused_match, Name, Kind}});
+    _ ->
+      ok
+  end.
 
 %% SCOPE MERGING
 
@@ -138,3 +153,12 @@ dump_binding([{{Var, Kind} = Key, {InternalName,_}}|T], Binding, Acc) when is_at
 dump_binding([_|T], Binding, Acc) ->
   dump_binding(T, Binding, Acc);
 dump_binding([], _Binding, Acc) -> Acc.
+
+%% Errors
+
+format_error({unused_match, Name, Kind}) ->
+  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
+                "match. This means the pattern will only match if all \"~ts\" bind "
+                "to the same value. If this is the intended behaviour, please "
+                "remove the leading underscore from the variable name, otherwise "
+                "give the variables different names", [Name, context_info(Kind), Name]).
