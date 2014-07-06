@@ -11,7 +11,8 @@ defmodule Mix.Generator do
   If the file already exists, asks for user confirmation.
   """
   def create_file(path, contents) when is_binary(path) do
-    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}"
+    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}",
+                   escape: true
 
     if overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
@@ -23,7 +24,9 @@ defmodule Mix.Generator do
   Creates a directory if one does not exist yet.
   """
   def create_directory(path) when is_binary(path) do
-    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}"
+    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}",
+                   escape: true
+
     File.mkdir_p! path
   end
 
