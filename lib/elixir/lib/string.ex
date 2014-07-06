@@ -231,7 +231,14 @@ defmodule String do
 
   def split("", _pattern, _options), do: [""]
 
-  def split(binary, "", options), do: split(binary, ~r""u, options)
+  def split(binary, "", options) do
+    index =
+      case Keyword.get(options, :parts, :infinity) do
+        num when is_number(num) and num > 0 -> num
+        _ -> 0
+      end
+    split_codepoints(binary, index - 1, Keyword.get(options, :trim, false))
+  end
 
   def split(binary, pattern, options) do
     if Regex.regex?(pattern) do
@@ -252,6 +259,14 @@ defmodule String do
       end
     end
   end
+
+  defp split_codepoints(binary, 0, _trim), do: [binary]
+  defp split_codepoints(<<h :: utf8, t :: binary>>, count, trim),
+    do: [<<h :: utf8>>|split_codepoints(t, count - 1, trim)]
+  defp split_codepoints(<<h, t :: binary>>, count, trim),
+    do: [<<h>>|split_codepoints(t, count - 1, trim)]
+  defp split_codepoints(<<>>, _, true), do: []
+  defp split_codepoints(<<>>, _, false), do: [""]
 
   defp split_parts("", _pattern, _num),         do: [""]
   defp split_parts(binary, pattern, num),       do: split_parts(binary, pattern, num, [])
