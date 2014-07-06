@@ -30,7 +30,7 @@ defmodule Mix.Shell.IO do
   """
   def info(message) do
     print_app
-    IO.puts IO.ANSI.escape(message)
+    IO.puts message
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Mix.Shell.IO do
   """
   def error(message) do
     print_app
-    IO.puts :stderr, IO.ANSI.escape "%{red,bright}#{message}"
+    IO.puts :stderr, red(message)
   end
 
   @doc """
@@ -47,7 +47,7 @@ defmodule Mix.Shell.IO do
   """
   def prompt(message) do
     print_app
-    IO.gets IO.ANSI.escape(message <> " ")
+    IO.gets message <> " "
   end
 
   @doc """
@@ -57,7 +57,7 @@ defmodule Mix.Shell.IO do
   """
   def yes?(message) do
     print_app
-    got_yes? IO.gets(message <> IO.ANSI.escape(" [Yn] "))
+    got_yes? IO.gets(message <> " [Yn] ")
   end
 
   defp got_yes?(answer) when is_binary(answer) do
@@ -66,4 +66,10 @@ defmodule Mix.Shell.IO do
 
   # The io server may return :eof or :error
   defp got_yes?(_), do: false
+
+  defp red(message) do
+    [IO.ANSI.escape_fragment("%{red,bright}"),
+     message,
+     IO.ANSI.escape_fragment("%{reset}")]
+  end
 end
