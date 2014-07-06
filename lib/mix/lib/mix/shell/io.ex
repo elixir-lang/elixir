@@ -30,12 +30,12 @@ defmodule Mix.Shell.IO do
 
   ## Options
 
-    * `:escape` - If `true` message will be ANSI escaped
+    * `:ansi` - If `true` message will be ANSI escaped
   """
   def info(message, opts \\ []) do
     print_app
 
-    if opts[:escape] do
+    if opts[:ansi] do
       message = IO.ANSI.escape(message)
     end
 

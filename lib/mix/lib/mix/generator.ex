@@ -12,7 +12,7 @@ defmodule Mix.Generator do
   """
   def create_file(path, contents) when is_binary(path) do
     Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}",
-                   escape: true
+                   ansi: true
 
     if overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
@@ -25,7 +25,7 @@ defmodule Mix.Generator do
   """
   def create_directory(path) when is_binary(path) do
     Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}",
-                   escape: true
+                   ansi: true
 
     File.mkdir_p! path
   end
