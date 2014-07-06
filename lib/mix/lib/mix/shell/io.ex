@@ -27,9 +27,18 @@ defmodule Mix.Shell.IO do
 
   @doc """
   Writes a message to the shell followed by new line.
+
+  ## Options
+
+    * `:escape` - If `true` message will be ANSI escaped
   """
-  def info(message) do
+  def info(message, opts \\ []) do
     print_app
+
+    if opts[:escape] do
+      message = IO.ANSI.escape(message)
+    end
+
     IO.puts message
   end
 

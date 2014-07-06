@@ -7,8 +7,13 @@ defmodule Mix.Shell do
 
   @doc """
   Informs the given message.
+
+  ## Options
+
+    * `:escape` - If `true` message will be ANSI escaped
   """
   defcallback info(message :: String.t) :: any
+  defcallback info(message :: String.t, opts :: Keyword.t) :: any
 
   @doc """
   Warns about the given error message.

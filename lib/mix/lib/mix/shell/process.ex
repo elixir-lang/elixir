@@ -61,10 +61,19 @@ defmodule Mix.Shell.Process do
 
   @doc """
   Forwards the message to the current process.
+
+  ## Options
+
+    * `:escape` - If `true` ANSI sequences will be removed from message
   """
-  def info(message) do
+  def info(message, opts \\ []) do
     print_app
-    send self, {:mix_shell, :info, [IO.ANSI.escape(message, false)]}
+
+    if opts[:escape] do
+      message = IO.ANSI.escape(message, false)
+    end
+
+    send self, {:mix_shell, :info, [message]}
   end
 
   @doc """
@@ -72,7 +81,7 @@ defmodule Mix.Shell.Process do
   """
   def error(message) do
     print_app
-    send self, {:mix_shell, :error, [IO.ANSI.escape(message, false)]}
+    send self, {:mix_shell, :error, [message]}
   end
 
   @doc """
@@ -86,7 +95,7 @@ defmodule Mix.Shell.Process do
   """
   def prompt(message) do
     print_app
-    send self, {:mix_shell, :prompt, [IO.ANSI.escape(message, false)]}
+    send self, {:mix_shell, :prompt, [message]}
 
     receive do
       {:mix_shell_input, :prompt, response} -> response
@@ -106,7 +115,7 @@ defmodule Mix.Shell.Process do
   """
   def yes?(message) do
     print_app
-    send self, {:mix_shell, :yes?, [IO.ANSI.escape(message, false)]}
+    send self, {:mix_shell, :yes?, [message]}
 
     receive do
       {:mix_shell_input, :yes?, response} -> response
