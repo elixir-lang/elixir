@@ -296,13 +296,8 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
       VarMeta = lists:keyfind(var, 1, Meta),
       if
         VarMeta == {var, true} ->
-          Extra = case Kind of
-            nil -> "";
-            _   -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)])
-          end,
-
-          compile_error(Meta, ?m(E, file), "expected var ~ts~ts to expand to an existing "
-                        "variable or be a part of a match", [Name, Extra]);
+          compile_error(Meta, ?m(E, file), "expected var \"~ts\"~ts to expand to an existing variable "
+                        "or be part of a match", [Name, elixir_scope:context_info(Kind)]);
         true ->
           expand({Name, Meta, []}, E)
       end
