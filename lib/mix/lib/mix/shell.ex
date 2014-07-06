@@ -10,7 +10,7 @@ defmodule Mix.Shell do
 
   ## Options
 
-    * `:escape` - If `true` message will be ANSI escaped
+    * `:ansi` - If `true` message will be ANSI escaped
   """
   defcallback info(message :: String.t) :: any
   defcallback info(message :: String.t, opts :: Keyword.t) :: any

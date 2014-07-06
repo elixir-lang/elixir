@@ -64,12 +64,12 @@ defmodule Mix.Shell.Process do
 
   ## Options
 
-    * `:escape` - If `true` ANSI sequences will be removed from message
+    * `:ansi` - If `true` ANSI sequences will be removed from message
   """
   def info(message, opts \\ []) do
     print_app
 
-    if opts[:escape] do
+    if opts[:ansi] do
       message = IO.ANSI.escape(message, false)
     end
 
