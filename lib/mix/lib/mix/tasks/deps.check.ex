@@ -52,6 +52,11 @@ defmodule Mix.Tasks.Deps.Check do
   end
 
   defp local?(dep) do
+    # Every local dependency (i.e. that are not fetchable) are
+    # automatically recompiled if they are ok. However, note
+    # we skip dependencies from umbrella, because they are
+    # recompiled anyway by the umbrella project whenever there
+    # is a need.
     not dep.scm.fetchable? and dep.opts[:from_umbrella] != true
   end
 

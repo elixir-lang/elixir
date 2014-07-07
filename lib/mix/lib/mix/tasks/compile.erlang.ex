@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
     erlc_options = Enum.map erlc_options, fn
-      {kind, dir} when kind in [:i, :outdit] ->
+      {kind, dir} when kind in [:i, :outdir] ->
         {kind, to_erl_file(dir)}
       opt ->
         opt
