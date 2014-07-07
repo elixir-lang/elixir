@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.Compile do
         end
 
         unless mix?(dep), do: build_structure(dep, config)
-        if scm.fetchable?, do: Mix.Dep.Lock.touch(opts[:build])
+        touch_fetchable(scm, opts[:build])
         compiled
       end)
 
@@ -73,6 +73,13 @@ defmodule Mix.Tasks.Deps.Compile do
   # except for umbrella applications.
   defp compilable?(%Mix.Dep{extra: extra} = dep) do
     available?(dep) and !extra[:umbrella?]
+  end
+
+  defp touch_fetchable(scm, path) do
+    if scm.fetchable? do
+      File.mkdir_p!(path)
+      File.touch!(Path.join(path, ".compile.fetch"))
+    end
   end
 
   defp check_unavailable!(app, {:unavailable, _}) do

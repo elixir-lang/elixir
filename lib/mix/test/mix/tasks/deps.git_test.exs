@@ -142,6 +142,7 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Compile.run []
       assert_received {:mix_shell, :info, ["Compiled lib/git_repo.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert File.exists?("_build/dev/lib/git_repo/.compile.fetch")
       :ok
     end
   after

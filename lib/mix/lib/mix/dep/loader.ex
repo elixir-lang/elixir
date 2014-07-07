@@ -264,7 +264,7 @@ defmodule Mix.Dep.Loader do
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
     scm.fetchable? &&
       Mix.Utils.stale?([Path.join(opts[:dest], ".fetch")],
-                       [Path.join(opts[:build], ".compile.lock")])
+                       [Path.join(opts[:build], ".compile.fetch")])
   end
 
   defp app_status(app_path, app, req) do
