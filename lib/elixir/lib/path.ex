@@ -458,9 +458,14 @@ defmodule Path do
   defp maybe_remove_dirsep(name, _), do:
     :lists.reverse(name)
 
-  @doc """
-  Returns a list with the path split by the path separator.
-  If an empty string is given, returns the root path.
+  @doc ~S"""
+  Splits the path into a list at the path separator.
+
+  If an empty string is given, returns an empty list.
+
+  On Windows, path is split on both "\" and "/" separators
+  and the driver letter, if there is one, is always returned
+  in lowercase.
 
   ## Examples
 
