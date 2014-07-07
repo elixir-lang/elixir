@@ -30,7 +30,7 @@ defmodule PathTest do
   end
 
   if is_win? do
-    test :relative do
+    test :relative_win do
       assert Path.relative("C:/usr/local/bin")    == "usr/local/bin"
       assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
       assert Path.relative("C:usr\\local\\bin")   == "usr\\local\\bin"
@@ -40,7 +40,7 @@ defmodule PathTest do
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
     end
 
-    test :type do
+    test :type_win do
       assert Path.type("C:/usr/local/bin")    == :absolute
       assert Path.type('C:\\usr\\local\\bin') == :absolute
       assert Path.type("C:usr\\local\\bin")   == :volumerelative
@@ -49,15 +49,20 @@ defmodule PathTest do
       assert Path.type('usr/local/bin')    == :relative
       assert Path.type("../usr/local/bin") == :relative
     end
+
+    test :split_win do
+      assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
+      assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
+    end
   else
-    test :relative do
+    test :relative_unix do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
     end
 
-    test :type do
+    test :type_unix do
       assert Path.type("/usr/local/bin")   == :absolute
       assert Path.type("usr/local/bin")    == :relative
       assert Path.type("../usr/local/bin") == :relative
@@ -201,7 +206,7 @@ defmodule PathTest do
     assert Path.join([?/, "foo"], "./bar") == "/foo/bar"
   end
 
-  test :split_with_binary do
+  test :split do
     assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
     assert Path.split("/foo/bar") == ["/", "foo", "bar"]
