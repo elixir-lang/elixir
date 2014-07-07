@@ -10,7 +10,7 @@ defmodule Exception do
   Do not rely on the particular format returned by the `format`
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
-  by using the functions in this module it is guarantee you will
+  by using the functions in this module it is guaranteed you will
   format exceptions as in the current Elixir version being used.
   """
 
@@ -517,7 +517,7 @@ defmodule UnsizedBinaryAtEndError do
   defexception []
 
   def message(_) do
-    "unsized binary cannot be at the end of patterns"
+    "unsized binary can only be at the end of patterns"
   end
 end
 
