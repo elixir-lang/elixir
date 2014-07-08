@@ -11,7 +11,7 @@ defmodule Mix.Utils do
 
   Developers should only store entries in the
   `MIX_HOME` directory which are guaranteed to
-  work accross multiple Elixir versions, as it is
+  work across multiple Elixir versions, as it is
   not recommended to swap the `MIX_HOME` directory
   as configuration and other important data may be
   stored there.
@@ -317,13 +317,13 @@ defmodule Mix.Utils do
   end
 
   defp do_symlink_or_copy(source, target) do
-   
+
     # relative symbolic links on windows are broken
     source_path = case :os.type do
       {:win32, _} -> source
       _ -> make_relative_path(source, target)
     end
-    
+
     case :file.make_symlink(source_path, target) do
       :ok -> :ok
       {:error, _} -> {:ok, File.cp_r!(source, target)}
