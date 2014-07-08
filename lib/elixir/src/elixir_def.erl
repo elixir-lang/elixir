@@ -64,11 +64,17 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   DoCheckClauses = (not lists:keymember(context, 1, Meta)) andalso (CheckClauses),
 
   %% Check if there is a file information in the definition.
-  %% If so, we assume this come from another source and we need
-  %% to linify taking into account keep line numbers.
-  {File, Key}  = case lists:keyfind(file, 1, Meta) of
-    {file, Bin} when is_binary(Bin) -> {Bin, keep};
-    _ -> {nil, line}
+  %% If so, we assume this come from another source and
+  %% we need to linify taking into account keep line numbers.
+  {Location, Key} = case lists:keyfind(file, 1, Meta) of
+    {file, KeepFile} when is_binary(KeepFile) ->
+      case lists:keyfind(keep, 1, Meta) of
+        {keep, KeepLine} when is_integer(KeepLine) -> KeepLine;
+        _ -> KeepLine = 0
+      end,
+      {{KeepFile, KeepLine}, keep};
+    _ ->
+      {nil, line}
   end,
 
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
@@ -77,15 +83,15 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
 
   assert_no_aliases_name(Line, Name, Args, E),
   store_definition(Line, Kind, DoCheckClauses, Name,
-                   LinifyArgs, LinifyGuards, LinifyBody, File, E).
+                   LinifyArgs, LinifyGuards, LinifyBody, Location, E).
 
-store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, MetaFile, #{module := Module} = ER) ->
+store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation, #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
   E = ER#{function := Tuple},
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_location(Line, MetaFile, Module),
+  Location = retrieve_location(KeepLocation, Module),
   {Function, Defaults, Super} = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
 
   DefaultsLength = length(Defaults),
@@ -129,20 +135,22 @@ make_struct_available(def, Module, '__struct__', []) ->
 make_struct_available(_, _, _, _) ->
   ok.
 
-%% Retrieve location from meta file or @file, otherwise nil
+%% Retrieve location from meta file (if Key == keep)
+%% or @file, otherwise nil
 
-retrieve_location(Line, File, Module) ->
+retrieve_location(Location, Module) ->
   case get_location_attribute(Module) of
-    nil when not is_binary(File) ->
-      nil;
-    nil ->
+    nil when is_tuple(Location) ->
+      {File, Line} = Location,
       {normalize_location(File), Line};
-    X when is_binary(X) ->
+    nil ->
+      nil;
+    File when is_binary(File) ->
       'Elixir.Module':delete_attribute(Module, file),
-      {normalize_location(X), 0};
-    {X, L} when is_binary(X) andalso is_integer(L) ->
+      {normalize_location(File), 0};
+    {File, Line} when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
-      {normalize_location(X), L}
+      {normalize_location(File), Line}
   end.
 
 get_location_attribute(Module) ->
@@ -151,8 +159,8 @@ get_location_attribute(Module) ->
     false -> 'Elixir.Module':get_attribute(Module, file)
   end.
 
-normalize_location(X) ->
-  elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(X)).
+normalize_location(File) ->
+  elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)).
 
 %% Compile super
 
