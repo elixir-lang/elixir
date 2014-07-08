@@ -70,7 +70,7 @@ warn_underscored_var(Line, File, Name, Kind) ->
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ ->
-      elixir_errors:handle_file_warning(File, {Line, ?MODULE, {unused_match, Name, Kind}});
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
     _ ->
       ok
   end.
