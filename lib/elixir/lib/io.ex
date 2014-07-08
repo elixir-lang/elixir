@@ -66,20 +66,20 @@ defmodule IO do
     do_read_all(map_dev(device), "")
   end
 
-  defp do_read_all(mapped_dev, acc) do
-    case :io.get_line(mapped_dev, "") do
-      line when is_binary(line) -> do_read_all(mapped_dev, acc <> line)
-      :eof -> acc
-      other -> other
-    end
-  end
-
   def read(device, :line) do
     :io.get_line(map_dev(device), '')
   end
 
   def read(device, count) when count >= 0 do
     :io.get_chars(map_dev(device), '', count)
+  end
+
+  defp do_read_all(mapped_dev, acc) do
+    case :io.get_line(mapped_dev, "") do
+      line when is_binary(line) -> do_read_all(mapped_dev, acc <> line)
+      :eof -> acc
+      other -> other
+    end
   end
 
   @doc """
@@ -109,14 +109,6 @@ defmodule IO do
     do_binread_all(map_dev(device), "")
   end
 
-  defp do_binread_all(mapped_dev, acc) do
-    case :file.read_line(mapped_dev) do
-      {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
-      :eof -> acc
-      other -> other
-    end
-  end
-
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
       {:ok, data} -> data
@@ -127,6 +119,14 @@ defmodule IO do
   def binread(device, count) when count >= 0 do
     case :file.read(map_dev(device), count) do
       {:ok, data} -> data
+      other -> other
+    end
+  end
+
+  defp do_binread_all(mapped_dev, acc) do
+    case :file.read_line(mapped_dev) do
+      {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
+      :eof -> acc
       other -> other
     end
   end

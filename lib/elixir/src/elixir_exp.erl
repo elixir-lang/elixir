@@ -169,7 +169,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts = [context, location, line, unquote, bind_quoted],
+  ValidOpts = [context, location, line, file, unquote, bind_quoted],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
 
   Context = case lists:keyfind(context, 1, EKV) of
@@ -185,8 +185,20 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       end
   end,
 
-  Keep = lists:keyfind(location, 1, EKV) == {location, keep},
-  Line = proplists:get_value(line, EKV, false),
+  {File, Line} = case lists:keyfind(location, 1, EKV) of
+    {location, keep} ->
+      {elixir_utils:relative_to_cwd(?m(E, file)), false};
+    false ->
+      { case lists:keyfind(file, 1, EKV) of
+          {file, F} -> F;
+          false -> nil
+        end,
+
+        case lists:keyfind(line, 1, EKV) of
+          {line, L} -> L;
+          false -> false
+        end }
+  end,
 
   {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EKV) of
     {bind_quoted, BQ} -> {BQ, false};
@@ -194,11 +206,11 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   end,
 
   Unquote = case lists:keyfind(unquote, 1, EKV) of
-    {unquote, Bool} when is_boolean(Bool) -> Bool;
+    {unquote, U} when is_boolean(U) -> U;
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{line=Line, keep=Keep, unquote=Unquote, context=Context},
+  Q = #elixir_quote{line=Line, file=File, unquote=Unquote, context=Context},
 
   {Quoted, _Q} = elixir_quote:quote(Exprs, Binding, Q, ET),
   expand(Quoted, ET);
