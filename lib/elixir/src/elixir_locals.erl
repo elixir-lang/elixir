@@ -133,7 +133,7 @@ ensure_no_import_conflict(_Line, _File, 'Elixir.Kernel', _All) ->
 ensure_no_import_conflict(Line, File, Module, All) ->
   if_tracker(Module, ok, fun(Pid) ->
     _ = [ begin
-        elixir_errors:form_error(Line, File, ?MODULE, {function_conflict, Error})
+        elixir_errors:form_error([{line, Line}], File, ?MODULE, {function_conflict, Error})
       end || Error <- ?tracker:collect_imports_conflicts(Pid, All) ],
     ok
   end).
