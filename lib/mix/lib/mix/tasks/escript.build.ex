@@ -42,7 +42,9 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:embed_elixir` - if `true` embed elixir in the escript file.
+    * `:embed_elixir` - if `true` embed elixir and its children apps
+      (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
+      `application` function in `mix.exs`.
       Defaults to `true`.
 
     * `:shebang` - shebang interpreter directive used to execute the escript.
@@ -157,7 +159,7 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp embed_tuples(escript_opts) do
-    if Keyword.get(escript_opts, :embed, true) do
+    if Keyword.get(escript_opts, :embed_elixir, true) do
       if escript_opts[:embed_extra_apps] do
         IO.puts :stderr, "embed_extra_apps for escripts has no effect. " <>
                          "Instead list the extra apps as applications inside def application"
