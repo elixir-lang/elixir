@@ -43,8 +43,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` characters from the IO device or until
-  the end of the line if `:line` is given. It returns:
+  Reads `count` characters from the IO device, until the
+  end of the line if `:line` is given or until encounter
+  with the end of file if `:all` is given. It returns:
 
     * `data` - the input characters
 
@@ -54,8 +55,24 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
   """
-  @spec read(device, :line | non_neg_integer) :: chardata | nodata
+  @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ group_leader, chars_or_line)
+
+  def read(device, :all) do
+    mapped_dev = map_dev(device)
+    case :io.get_line(mapped_dev, "") do
+      line when is_binary(line) -> do_read_all(mapped_dev, line)
+      other -> other
+    end
+  end
+
+  defp do_read_all(mapped_dev, acc) do
+    case :io.get_line(mapped_dev, "") do
+      line when is_binary(line) -> do_read_all(mapped_dev, acc <> line)
+      :eof -> acc
+      other -> other
+    end
+  end
 
   def read(device, :line) do
     :io.get_line(map_dev(device), '')
@@ -66,8 +83,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` bytes from the IO device or until
-  the end of the line if `:line` is given. It returns:
+  Reads `count` bytes from the IO device, until the
+  end of the line if `:line` is given or until encounter
+  with the end of file if `:all` is given. It returns:
 
     * `data` - the input characters
 
@@ -80,8 +98,24 @@ defmodule IO do
   Note: do not use this function on IO devices in unicode mode
   as it will return the wrong result.
   """
-  @spec binread(device, :line | non_neg_integer) :: iodata | nodata
+  @spec binread(device, :all | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ group_leader, chars_or_line)
+
+  def binread(device, :all) do
+    mapped_dev = map_dev(device)
+    case :file.read_line(mapped_dev) do
+      {:ok, data} -> do_binread_all(mapped_dev, data)
+      other -> other
+    end
+  end
+
+  defp do_binread_all(mapped_dev, acc) do
+    case :file.read_line(mapped_dev) do
+      {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
+      :eof -> acc
+      other -> other
+    end
+  end
 
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
