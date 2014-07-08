@@ -43,9 +43,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` characters from the IO device or until
-  the end of the line if `:line` is given. If `:all` is
-  given, returns empty string instead of `:eof`.
+  Reads `count` characters from the IO device, a whole
+  `:line` or the whole device with `:all`.
+
   It returns:
 
     * `data` - the input characters
@@ -55,6 +55,9 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  If `:all` is given, `:eof` is never returned, but an
+  empty string in case the device has reached EOF.
   """
   @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ group_leader, chars_or_line)
@@ -80,9 +83,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` bytes from the IO device or until
-  the end of the line if `:line` is given. If `:all` is
-  given, returns empty string instead of `:eof`.
+  Reads `count` characters from the IO device, a whole
+  `:line` or the whole device with `:all`.
+
   It returns:
 
     * `data` - the input characters
@@ -92,6 +95,9 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  If `:all` is given, `:eof` is never returned, but an
+  empty string in case the device has reached EOF.
 
   Note: do not use this function on IO devices in unicode mode
   as it will return the wrong result.
