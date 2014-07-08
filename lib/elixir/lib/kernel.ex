@@ -2607,7 +2607,7 @@ defmodule Kernel do
 
           # Generate the alias for this module definition
           {new, old} = module_nesting(env.module, full)
-          meta = [defined: full, context: true] ++ alias_meta(alias)
+          meta = [defined: full, context: env.module] ++ alias_meta(alias)
 
           {full, {:alias, meta, [old, [as: new, warn: false]]}}
         false ->

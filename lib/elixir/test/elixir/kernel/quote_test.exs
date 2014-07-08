@@ -13,7 +13,8 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(location: :keep, do: bar(1, 2, 3)) == {:bar, [keep: 16], [1, 2, 3]}
+    assert quote(location: :keep, do: bar(1, 2, 3)) ==
+           {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16], [1, 2, 3]}
   end
 
   test :fixed_line do
@@ -23,7 +24,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 25], [1, 2, 3]}
+    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26], [1, 2, 3]}
   end
 
   test :unquote_call do
@@ -201,7 +202,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, :add, 2, [file: ^file, line: 181]}|_] = System.stacktrace
+    assert [{^mod, :add, 2, [file: ^file, line: 182]}|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -211,7 +212,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, _, _, [file: ^file, line: 209]}|_] = System.stacktrace
+    assert [{^mod, _, _, [file: ^file, line: 210]}|_] = System.stacktrace
   end
 end
 

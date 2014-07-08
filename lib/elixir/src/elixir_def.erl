@@ -355,7 +355,7 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
     {Name,Arity} -> [];
     [] -> [];
     _ ->
-      Relative = elixir_utils:relative_to_cwd(StoredFile),
+      Relative = elixir_utils:relative_to_cwd(elixir_utils:relative_to_cwd(StoredFile)),
       elixir_errors:handle_file_warning(File, {Line, ?MODULE,
         {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}}})
   end.

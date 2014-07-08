@@ -21,7 +21,7 @@
 
 -record(elixir_quote, {
   line=false,
-  keep=false,
+  file=nil,
   context=nil,
   vars_hygiene=true,
   aliases_hygiene=true,

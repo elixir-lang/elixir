@@ -46,7 +46,7 @@ read_link_type(File) ->
 relative_to_cwd(Path) ->
   case elixir_compiler:get_opt(internal) of
     true  -> Path;
-    false -> 'Elixir.String':to_char_list('Elixir.Path':relative_to_cwd(Path))
+    false -> 'Elixir.Path':relative_to_cwd(Path)
   end.
 
 characters_to_list(Data) when is_list(Data) ->

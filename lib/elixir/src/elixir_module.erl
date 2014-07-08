@@ -75,7 +75,7 @@ do_compile(Line, Module, Block, Vars, E) ->
       false -> false
     end,
 
-    Location = {elixir_utils:relative_to_cwd(elixir_utils:characters_to_list(File)), Line},
+    Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
 
     Final = [
       {attribute, Line, file, Location},
