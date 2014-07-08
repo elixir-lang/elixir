@@ -147,7 +147,7 @@ warn_unused_local(File, Module, Private) ->
 
     [begin
       {_, _, Line, _, _} = lists:keyfind(element(2, Error), 1, Private),
-      elixir_errors:handle_file_warning(File, {Line, ?MODULE, Error})
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, Error)
      end || Error <- Warnings ],
 
     Unreachable

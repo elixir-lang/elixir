@@ -193,8 +193,8 @@ process_attribute(_Line, _File, _Key, Values) ->
 process_external_resource(_Line, _File, Value) when is_binary(Value) ->
   Value;
 process_external_resource(Line, File, Value) ->
-  elixir_errors:handle_file_error(File,
-    {Line, ?MODULE, {invalid_external_resource, Value}}).
+  elixir_errors:form_error([{line, Line}], File,
+    ?MODULE, {invalid_external_resource, Value}).
 
 %% Types
 
@@ -355,7 +355,7 @@ check_module_availability(Line, File, Module) ->
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
-    true  -> elixir_errors:handle_file_error(File, {Line, ?MODULE, {module_reserved, Module}});
+    true  -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {module_reserved, Module});
     false -> ok
   end,
 
@@ -363,7 +363,7 @@ check_module_availability(Line, File, Module) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:handle_file_warning(File, {Line, ?MODULE, {module_defined, Module}});
+          elixir_errors:form_warn([{line, Line}], File, ?MODULE, {module_defined, Module});
         {error, _}  ->
           ok
       end;
@@ -374,7 +374,7 @@ check_module_availability(Line, File, Module) ->
 warn_unused_docs(Line, File, Module, Attribute) ->
   case ets:member(data_table(Module), Attribute) of
     true ->
-      elixir_errors:handle_file_warning(File, {Line, ?MODULE, {unused_doc, Attribute}});
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_doc, Attribute});
     _ ->
       ok
   end.

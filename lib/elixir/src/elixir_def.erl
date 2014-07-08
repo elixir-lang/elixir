@@ -315,7 +315,7 @@ warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
     when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
   ok;
 warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
-  elixir_errors:handle_file_warning(File, {Line, ?MODULE, {bodyless_fun, Kind, Tuple}}),
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {bodyless_fun, Kind, Tuple}),
   ok.
 
 %% Store each definition in the table.
@@ -356,8 +356,8 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
     [] -> [];
     _ ->
       Relative = elixir_utils:relative_to_cwd(elixir_utils:relative_to_cwd(StoredFile)),
-      elixir_errors:handle_file_warning(File, {Line, ?MODULE,
-        {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}}})
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE,
+        {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}})
   end.
 
 % Any clause after clause with defaults (body less does not count)
@@ -368,7 +368,7 @@ check_valid_defaults(Line, File, Name, Arity, Kind, _, StoredDefaults, true) whe
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _) -> [];
 % Clause with defaults after clause without defaults
 check_valid_defaults(Line, File, Name, Arity, Kind, _, 0, _) ->
-  elixir_errors:handle_file_warning(File, {Line, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}}});
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause with defaults
 check_valid_defaults(Line, File, Name, Arity, Kind, _, _, _) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE,
