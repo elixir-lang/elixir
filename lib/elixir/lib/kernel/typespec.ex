@@ -553,7 +553,7 @@ defmodule Kernel.Typespec do
 
     if not export and doc do
       :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
-                          "@typedoc's are always discarded for private types\n")
+                          "@typedoc's are always discarded for private types")
     end
 
     {{kind, {name, arity}, type}, caller.line, export, doc}

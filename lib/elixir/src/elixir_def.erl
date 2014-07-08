@@ -55,7 +55,7 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
     {N, _, A} when is_atom(N), is_list(A) -> {N, A};
-    _ -> elixir_errors:form_error(Line, ?m(E, file), ?MODULE, {invalid_def, Kind, NameAndArgs})
+    _ -> elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
 
   %% Now that we have verified the call format,
@@ -190,7 +190,7 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
 translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
   {[], false};
 translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, {missing_do, Kind});
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {missing_do, Kind});
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   {TClause, TS} = elixir_clauses:clause(Line,
     fun elixir_translator:translate_args/2, Args, Body, Guards, true, S),
@@ -347,7 +347,7 @@ store_each(Check, Kind, File, Location, Table, CTable, Defaults, {function, Line
 
 check_valid_kind(_Line, _File, _Name, _Arity, Kind, Kind) -> [];
 check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
-  elixir_errors:form_error(Line, File, ?MODULE,
+  elixir_errors:form_error([{line, Line}], File, ?MODULE,
     {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
 check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile) ->
@@ -362,7 +362,8 @@ check_valid_clause(Line, File, Name, Arity, Kind, Table, StoredLine, StoredFile)
 
 % Any clause after clause with defaults (body less does not count)
 check_valid_defaults(Line, File, Name, Arity, Kind, _, StoredDefaults, true) when StoredDefaults > 0 ->
-  elixir_errors:form_error(Line, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
+  elixir_errors:form_error([{line, Line}], File, ?MODULE,
+    {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _) -> [];
 % Clause with defaults after clause without defaults
@@ -370,12 +371,13 @@ check_valid_defaults(Line, File, Name, Arity, Kind, _, 0, _) ->
   elixir_errors:handle_file_warning(File, {Line, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}}});
 % Clause with defaults after clause with defaults
 check_valid_defaults(Line, File, Name, Arity, Kind, _, _, _) ->
-  elixir_errors:form_error(Line, File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}}).
+  elixir_errors:form_error([{line, Line}], File, ?MODULE,
+    {clauses_with_defaults, {Kind, Name, Arity}}).
 
 check_previous_defaults(Table, Line, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(Table, {{Name, '$2'}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
   [ begin
-      elixir_errors:form_error(Line, ?m(E, file), ?MODULE,
+      elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
         {defs_with_defaults, Name, {Kind, Arity}, {K, A}})
     end || [K, A, D] <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
@@ -385,7 +387,8 @@ defaults_conflict(A, D, Arity, Defaults) ->
 
 check_args_for_bodyless_clause(Line, Args, E) ->
   [ begin
-      elixir_errors:form_error(Line, ?m(E, file), ?MODULE, invalid_args_for_bodyless_clause)
+      elixir_errors:form_error([{line, Line}], ?m(E, file), ?MODULE,
+        invalid_args_for_bodyless_clause)
     end || Arg <- Args, invalid_arg(Arg) ].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) ->
@@ -396,7 +399,7 @@ invalid_arg(_) ->
   true.
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
-  elixir_errors:form_error(Line, File, ?MODULE, {no_alias, Atom});
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {no_alias, Atom});
 
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.

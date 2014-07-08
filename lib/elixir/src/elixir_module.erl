@@ -42,7 +42,7 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   end;
 
 compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
-  elixir_errors:form_error(Line, File, ?MODULE, {invalid_module, Module}).
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module}).
 
 do_compile(Line, Module, Block, Vars, E) ->
   File = ?m(E, file),
@@ -102,7 +102,7 @@ build(Line, File, Module, Docs, Lexical) ->
     true ->
       [{OldFile, OldLine}] = ets:lookup_element(OldTable, ?location_attr, 2),
       Error = {module_in_definition, Module, OldFile, OldLine},
-      elixir_errors:form_error(Line, File, ?MODULE, Error);
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, Error);
     false ->
       []
   end,
@@ -385,7 +385,7 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
   Pair = {'__info__', 1},
   case lists:member(Pair, All) of
     true  ->
-      elixir_errors:form_error(Line, File, ?MODULE, {internal_function_overridden, Pair});
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
     false ->
       Spec =
         {attribute, Line, spec, {Pair,

@@ -2,37 +2,37 @@
 % This is not exposed in the Elixir language.
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
-  form_error/4, parse_error/4, warn/2, warn/3,
+  form_error/4, form_warn/4, parse_error/4, warn/2, warn/3,
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
--type line_or_meta() :: integer() | list().
+-spec warn(non_neg_integer(), binary(), iolist()) -> ok.
 
-warn(Warning) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      elixir_code_server:cast({register_warning, CompilerPid});
-    true -> false
-  end,
-  io:put_chars(standard_error, Warning),
-  ok.
+warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
+  warn(file_format(Line, File), Warning).
+
+-spec warn(iolist(), iolist()) -> ok.
 
 warn(Caller, Warning) ->
-  warn([Caller, "warning: ", Warning]).
+  do_warn([Caller, "warning: ", Warning, $\n]).
 
-warn(Line, File, Warning) when is_integer(Line) ->
-  warn(file_format(Line, File, "warning: " ++ Warning)).
+%% General forms handling.
 
-%% Raised during expansion/translation/compilation.
-
--spec form_error(line_or_meta(), binary(), module(), any()) -> no_return().
+-spec form_error(list(), binary(), module(), any()) -> no_return().
 
 form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, format_error(Module, Desc)).
 
--spec compile_error(line_or_meta(), binary(), iolist()) -> no_return().
--spec compile_error(line_or_meta(), binary(), iolist(), list()) -> no_return().
+-spec form_warn(list(), binary(), module(), any()) -> ok.
+
+form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
+  {MetaLine, MetaFile} = meta_location(Meta, File),
+  warn(MetaLine, MetaFile, format_error(Module, Desc)).
+
+%% Compilation error.
+
+-spec compile_error(list(), binary(), iolist()) -> no_return().
+-spec compile_error(list(), binary(), iolist(), list()) -> no_return().
 
 compile_error(Meta, File, Message) when is_list(Message) ->
   raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
@@ -40,23 +40,23 @@ compile_error(Meta, File, Message) when is_list(Message) ->
 compile_error(Meta, File, Format, Args) when is_list(Format)  ->
   compile_error(Meta, File, io_lib:format(Format, Args)).
 
-%% Raised on tokenizing/parsing
+%% Tokenization parsing/errors.
 
--spec parse_error(line_or_meta(), binary(), binary(), binary()) -> no_return().
+-spec parse_error(non_neg_integer(), binary(), binary(), binary()) -> no_return().
 
-parse_error(Meta, File, Error, <<>>) ->
+parse_error(Line, File, Error, <<>>) ->
   Message = case Error of
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
     _ -> Error
   end,
-  raise(Meta, File, 'Elixir.TokenMissingError', Message);
+  do_raise(Line, File, 'Elixir.TokenMissingError', Message);
 
 %% Show a nicer message for missing end tokens
-parse_error(Meta, File, <<"syntax error before: ">>, <<"'end'">>) ->
-  raise(Meta, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
+parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
+  do_raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
 %% Binaries are wrapped in [<<...>>], so we need to unwrap them
-parse_error(Meta, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
+parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
   Rest =
     case binary:split(Full, <<"<<">>) of
       [Lead, Token] ->
@@ -67,14 +67,14 @@ parse_error(Meta, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) -
       [_] ->
         <<$">>
     end,
-  raise(Meta, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
+  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
 
 %% Everything else is fine as is
-parse_error(Meta, File, Error, Token) when is_binary(Error), is_binary(Token) ->
-  Message = <<Error / binary, Token / binary >>,
-  raise(Meta, File, 'Elixir.SyntaxError', Message).
+parse_error(Line, File, Error, Token) when is_binary(Error), is_binary(Token) ->
+  Message = <<Error/binary, Token/binary >>,
+  do_raise(Line, File, 'Elixir.SyntaxError', Message).
 
-%% Handle warnings and errors (called during module compilation)
+%% Handle warnings and errors from Erlang land (called during module compilation)
 
 %% Ignore on bootstrap
 handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
@@ -157,39 +157,27 @@ handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
     _ -> In
   end,
   Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
-  raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
+  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line,erl_lint,{spec_fun_undefined,{M,F,A}}}) ->
   Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
-  raise(Line, File, 'Elixir.CompileError', iolist_to_binary(Message));
+  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line,Module,Desc}) ->
-  form_error(Line, File, Module, Desc).
+  Message = format_error(Module, Desc),
+  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
 
 %% Helpers
 
 raise(Meta, File, Kind, Message) when is_list(Meta) ->
-  raise(?line(Meta), File, Kind, Message);
+  {MetaLine, MetaFile} = meta_location(Meta, File),
+  do_raise(MetaLine, MetaFile, Kind, Message).
 
-raise(none, File, Kind, Message) ->
-  raise(0, File, Kind, Message);
+file_format(0, File) ->
+  io_lib:format("~ts: ", [elixir_utils:relative_to_cwd(File)]);
 
-raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File) ->
-  %% Populate the stacktrace so we can raise it
-  try
-    throw(ok)
-  catch
-    ok -> ok
-  end,
-  Stacktrace = erlang:get_stacktrace(),
-  Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
-  erlang:raise(error, Exception, tl(Stacktrace)).
-
-file_format(0, File, Message) when is_binary(File) ->
-  io_lib:format("~ts: ~ts~n", [elixir_utils:relative_to_cwd(File), Message]);
-
-file_format(Line, File, Message) when is_binary(File) ->
-  io_lib:format("~ts:~w: ~ts~n", [elixir_utils:relative_to_cwd(File), Line, Message]).
+file_format(Line, File) ->
+  io_lib:format("~ts:~w: ", [elixir_utils:relative_to_cwd(File), Line]).
 
 format_var(Var) ->
   list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).
@@ -220,3 +208,37 @@ translate_comp_op('=<') -> '<=';
 translate_comp_op('=:=') -> '===';
 translate_comp_op('=/=') -> '!==';
 translate_comp_op(Other) -> Other.
+
+meta_location(Meta, File) ->
+  case lists:keyfind(file, 1, Meta) of
+    {file, MetaFile} when is_binary(MetaFile) ->
+      case lists:keyfind(keep, 1, Meta) of
+        {keep, MetaLine} when is_integer(MetaLine) -> ok;
+        _ -> MetaLine = 0
+      end,
+      {MetaLine, MetaFile};
+    _ ->
+      {?line(Meta), File}
+  end.
+
+do_warn(Warning) ->
+  CompilerPid = get(elixir_compiler_pid),
+  if
+    CompilerPid =/= undefined ->
+      elixir_code_server:cast({register_warning, CompilerPid});
+    true -> false
+  end,
+  io:put_chars(standard_error, Warning),
+  ok.
+
+do_raise(none, File, Kind, Message) ->
+  do_raise(0, File, Kind, Message);
+do_raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File), is_binary(Message) ->
+  try
+    throw(ok)
+  catch
+    ok -> ok
+  end,
+  Stacktrace = erlang:get_stacktrace(),
+  Exception = Kind:exception([{description, Message}, {file, File}, {line, Line}]),
+  erlang:raise(error, Exception, tl(Stacktrace)).

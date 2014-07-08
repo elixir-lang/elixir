@@ -804,7 +804,7 @@ defmodule Module do
             []
           is_list(warn) ->
             :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
-              "please remove access to @#{key} or explicitly set it to nil before access\n"
+              "please remove access to @#{key} or explicitly set it to nil before access"
             nil
           true ->
             nil
@@ -911,7 +911,9 @@ defmodule Module do
       :ok ->
         :ok
       {:error, :private_doc} ->
-        :elixir_errors.warn line, env.file, "function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
+        :elixir_errors.warn line, env.file,
+          "function #{name}/#{arity} is private, " <>
+          "@doc's are always discarded for private functions"
     end
 
     delete_attribute(module, :doc)
