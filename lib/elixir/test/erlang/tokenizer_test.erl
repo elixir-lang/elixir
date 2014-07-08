@@ -100,6 +100,21 @@ dot_keyword_test() ->
   {'.',1},
   {identifier,1,do}] = tokenize("foo.do").
 
+space_test() ->
+  [{number,1,1},
+   {two_op,1,'++'},
+   {number,1,2}]  = tokenize("1\s++2").
+
+tab_test() ->
+  [{number,1,1},
+   {two_op,1,'++'},
+   {number,1,2}]  = tokenize("1\t++2").
+
+non_breaking_space_test() ->
+  [{number,1,1},
+   {two_op,1,'++'},
+   {number,1,2}]  = tokenize("1\240++2").
+
 newline_test() ->
  [{identifier,1,foo},
   {'.',2},
