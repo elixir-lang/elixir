@@ -295,7 +295,7 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, ~r/Unknown dependency invalid for environment dev/, fn ->
-        Mix.Tasks.Deps.Get.run ["invalid"]
+        Mix.Tasks.Deps.Update.run ["invalid"]
       end
     end
   end
