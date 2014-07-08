@@ -178,10 +178,25 @@ defmodule Inspect.Algebra do
         Inspect.inspect(map, opts)
       rescue
         e ->
-          res = Inspect.Map.inspect(map, opts)
-          raise ArgumentError,
-            "Got #{inspect e.__struct__} with message " <>
-            "\"#{Exception.message(e)}\" while inspecting #{pretty(res, opts.width)}"
+          # Because we try to raise a nice error message in case
+          # we can't inspect a struct, there is a chance the error
+          # message itself relies on the struct being printed, so
+          # we need to trap the inspected messages to guarantee
+          # we won't try to render any failed instruct when building
+          # the error message.
+          if Process.get(:inspect_trap) do
+            Inspect.Map.inspect(map, opts)
+          else
+            try do
+              Process.put(:inspect_trap, true)
+              res = Inspect.Map.inspect(map, opts)
+              raise ArgumentError,
+                "Got #{inspect e.__struct__} with message " <>
+                "\"#{Exception.message(e)}\" while inspecting #{pretty(res, opts.width)}"
+            after
+              Process.delete(:inspect_trap)
+            end
+          end
       end
     else
       Inspect.Map.inspect(map, opts)

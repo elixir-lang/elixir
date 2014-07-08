@@ -256,15 +256,16 @@ defmodule Inspect.MapTest do
     end
 
     defimpl Inspect do
-      def inspect(_, _) do
-        raise "failing"
+      def inspect(struct, _) do
+        struct.unknown
       end
     end
   end
 
   test :bad_implementation do
-    msg = "Got RuntimeError with message \"failing\" " <>
-          "while inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+    msg = "Got KeyError with message \"key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
+          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert_raise ArgumentError, msg, fn ->
       inspect(%Failing{})
