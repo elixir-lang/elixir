@@ -28,6 +28,10 @@ start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, ok, []).
 
 init(ok) ->
+  %% We attempt to load those modules here so throughout
+  %% the codebase we can use a code:is_loaded/1 check on
+  %% bootstrap instead of using the more expensive
+  %% code:ensure_loaded/1 multiple times.
   _ = code:ensure_loaded('Elixir.Macro.Env'),
   _ = code:ensure_loaded('Elixir.Module.LocalsTracker'),
   _ = code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
