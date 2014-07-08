@@ -64,7 +64,9 @@ defmodule Mix.Shell.Process do
 
   ## Options
 
-    * `:ansi` - If `true` ANSI sequences will be removed from message
+    * `:ansi` - If `true`, it means ANSI sequences exist in the message
+      The escape sequences are then removed by this function to aid
+      debugging/testing
   """
   def info(message, opts \\ []) do
     print_app

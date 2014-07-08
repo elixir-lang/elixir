@@ -6,12 +6,17 @@
   * [Access] Allow function access on `get_in/2` and `get_and_update_in/3`
   * [Enum] Add `Enum.sort_by/3`
   * [ExUnit] Match the line filter by proximity instead of exact match
+  * [IO] Add `IO.(bin)read(device, :all)`
+  * [Kernel] Print a warning if a dangling `@doc` cause is found
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
-  * [Mix] Add `mix.compilers`
+  * [Mix] Add `Mix.compilers` that returns all default compilers used by mix tasks
   * [Mix] Add `mix archive`
+  * [String] Improve performance of `String.split/1`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
 * Bug fixes
+  * [IEx] Do not print ANSI sequences on `IEx.Helpers.clear/0` if ANSI sequences are not supported
+  * [Inspect] Ensure `Inspect.Algebra.to_doc/2` doesn't go into a loop when there is a failure printing a struct
   * [Kernel] `|>`, `<<<`, `>>>` and `^^^` made left associative in operator table
   * [Kernel] `<`, `>`, `<=`, `>=` given higher precedence than comparison operators (`==`, `!=`, etc) in the operator table
   * [Kernel] Run command line and escripts in a process that does not trap exits
@@ -19,6 +24,10 @@
   * [Kernel] Fix wording on error messages when a check/guard always passes or always fails
   * [Kernel] Fix a bug where an unused function warning was printed even when the function was used via `defoverridable`
   * [Kernel] Improve typespecs so they don't generate supertype dialyzer warnings
+  * [Mix] Ensure Mix dependencies are not compiled every second time when `mix deps.compile` is invoked
+  * [Mix] Fix a bug where `Mix.shell.error/1` and friends choked when printing a map
+  * [Mix] Ensure multiple `@external_resource` entries are read by Mix compilers
+  * [Stream] Fix bug when `flat_map` is used inside another `flat_map` with an Enumerable
   * [Typespec] Fix a bug where the `list` typespec was incorrectly rendered as `[]`
 
 * Soft deprecations (no warnings emitted)
@@ -36,6 +45,7 @@
   * [Kernel] `defstruct` no longer automatically defines a type
   * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
   * [Mix] `mix archive` has been renamed to `mix archive.build`
+  * [Mix] `Mix.shell.info/1` no longer automatically escape ANSI sequences. Instead if has to be explicitly enabled with the `ansi: true` option
 
 ## v0.14.2 (2014-06-29)
 
