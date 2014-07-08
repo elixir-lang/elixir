@@ -61,14 +61,14 @@ defmodule IOTest do
   test :readall do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "FOO\n" == IO.read(file, :all)
-    assert :eof == IO.read(file, :all)
+    assert "" == IO.read(file, :all)
     assert File.close(file) == :ok
   end
 
   test :readall_with_utf8_and_binary do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский\n日\n" == IO.read(file, :all)
-    assert :eof == IO.read(file, :all)
+    assert "" == IO.read(file, :all)
     assert File.close(file) == :ok
   end
 
@@ -89,6 +89,7 @@ defmodule IOTest do
   test :binreadall do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский\n日\n" == IO.binread(file, :all)
+    assert "" == IO.binread(file, :all)
     assert File.close(file) == :ok
   end
 

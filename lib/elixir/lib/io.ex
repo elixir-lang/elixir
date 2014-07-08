@@ -43,9 +43,10 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` characters from the IO device, until the
-  end of the line if `:line` is given or until encounter
-  with the end of file if `:all` is given. It returns:
+  Reads `count` characters from the IO device or until
+  the end of the line if `:line` is given. If `:all` is
+  given, returns empty string instead of `:eof`.
+  It returns:
 
     * `data` - the input characters
 
@@ -59,11 +60,7 @@ defmodule IO do
   def read(device \\ group_leader, chars_or_line)
 
   def read(device, :all) do
-    mapped_dev = map_dev(device)
-    case :io.get_line(mapped_dev, "") do
-      line when is_binary(line) -> do_read_all(mapped_dev, line)
-      other -> other
-    end
+    do_read_all(map_dev(device), "")
   end
 
   defp do_read_all(mapped_dev, acc) do
@@ -83,9 +80,10 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` bytes from the IO device, until the
-  end of the line if `:line` is given or until encounter
-  with the end of file if `:all` is given. It returns:
+  Reads `count` bytes from the IO device or until
+  the end of the line if `:line` is given. If `:all` is
+  given, returns empty string instead of `:eof`.
+  It returns:
 
     * `data` - the input characters
 
@@ -102,11 +100,7 @@ defmodule IO do
   def binread(device \\ group_leader, chars_or_line)
 
   def binread(device, :all) do
-    mapped_dev = map_dev(device)
-    case :file.read_line(mapped_dev) do
-      {:ok, data} -> do_binread_all(mapped_dev, data)
-      other -> other
-    end
+    do_binread_all(map_dev(device), "")
   end
 
   defp do_binread_all(mapped_dev, acc) do
