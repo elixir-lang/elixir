@@ -1048,6 +1048,10 @@ defmodule String do
   If the start of the range is not a valid offset for the given
   string or if the range is in reverse order, returns `""`.
 
+  If the start or end of the range are negative, the whole string
+  is traversed first in order to convert the negative indexes into
+  positive ones.
+
   Remember this function works with unicode codepoints and consider
   the slices to represent codepoints offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
