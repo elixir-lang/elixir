@@ -525,11 +525,15 @@ defmodule Macro do
 
   # All other calls
   def to_string({target, _, args} = ast, fun) when is_list(args) do
-    {list, last} = :elixir_utils.split_last(args)
-    fun.(ast, case kw_blocks?(last) do
-      true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
-      false -> call_to_string_with_args(target, args, fun)
-    end)
+    if sigil = sigil_call(ast, fun) do
+      sigil
+    else
+      {list, last} = :elixir_utils.split_last(args)
+      fun.(ast, case kw_blocks?(last) do
+        true  -> call_to_string_with_args(target, list, fun) <> kw_blocks_to_string(last, fun)
+        false -> call_to_string_with_args(target, args, fun)
+      end)
+    end
   end
 
   # Two-item tuples
@@ -564,6 +568,26 @@ defmodule Macro do
 
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
+
+  defp sigil_call({func, _, [{:<<>>, _, [string]}, args]} = ast, fun) when is_list(args) do
+    sigil =
+      case Atom.to_string(func) do
+        <<"sigil_", name>> ->
+          "~" <> <<name>> <>
+          fun.(string, inspect(string, [])) <>
+          sigil_args(args, fun)
+        _ ->
+          nil
+      end
+    fun.(ast, sigil)
+  end
+
+  defp sigil_call(_other, _fun) do
+    nil
+  end
+
+  defp sigil_args([], _fun),   do: ""
+  defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
 
   defp call_to_string(atom, _fun) when is_atom(atom), do: Atom.to_string(atom)
   defp call_to_string({:., _, [arg]}, fun),           do: module_to_string(arg, fun) <> "."
