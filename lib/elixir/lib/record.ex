@@ -111,6 +111,7 @@ defmodule Record do
   ## Examples
 
       defmodule User do
+        require Record
         Record.defrecord :user, [name: "José", age: "25"]
       end
 
@@ -131,6 +132,7 @@ defmodule Record do
   the tuple (the tag). But it can be changed to something else:
 
       defmodule User do
+        require Record
         Record.defrecord :user, User, name: nil
       end
 
