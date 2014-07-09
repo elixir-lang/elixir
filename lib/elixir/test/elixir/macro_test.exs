@@ -275,6 +275,16 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
   end
 
+  test :sigil_call_to_string do
+    assert Macro.to_string(quote do: ~r"123") == ~s/~r"123"/
+    assert Macro.to_string(quote do: ~r"123"u) == ~s/~r"123"u/
+    assert Macro.to_string(quote do: ~r"\n123") == ~s/~r"\\\\n123"/
+
+    assert Macro.to_string(quote do: ~R"123") == ~s/~R"123"/
+    assert Macro.to_string(quote do: ~R"123"u) == ~s/~R"123"u/
+    assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
+  end
+
   test :arrow_to_string do
     assert Macro.to_string(quote do: foo(1, (2 -> 3))) == "foo(1, (2 -> 3))"
   end
