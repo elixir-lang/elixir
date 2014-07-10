@@ -7,7 +7,7 @@
   * [Enum] Add `Enum.sort_by/3`
   * [ExUnit] Match the line filter by proximity instead of exact match
   * [IO] Add `IO.(bin)read(device, :all)`
-  * [Kernel] Print a warning if a dangling `@doc` cause is found
+  * [Kernel] Print a warning if a dangling `@doc` clause is found
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
   * [Mix] Add `Mix.compilers` that returns all default compilers used by mix tasks
   * [Mix] Add `mix archive`
@@ -24,6 +24,7 @@
   * [Kernel] Fix wording on error messages when a check/guard always passes or always fails
   * [Kernel] Fix a bug where an unused function warning was printed even when the function was used via `defoverridable`
   * [Kernel] Improve typespecs so they don't generate supertype dialyzer warnings
+  * [Macro] `to_string` correctly displays sigils
   * [Mix] Ensure Mix dependencies are not compiled every second time when `mix deps.compile` is invoked
   * [Mix] Fix a bug where `Mix.shell.error/1` and friends choked when printing a map
   * [Mix] Ensure multiple `@external_resource` entries are read by Mix compilers
@@ -44,6 +45,7 @@
   * [Access] No longer fill in missing intermediate values with empty maps
   * [Kernel] `defstruct` no longer automatically defines a type
   * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
+  * [Kernel] Default argument values have to be defined in a function head if the function has multiple clauses
   * [Mix] `mix archive` has been renamed to `mix archive.build`
   * [Mix] `Mix.shell.info/1` no longer automatically escape ANSI sequences. Instead if has to be explicitly enabled with the `ansi: true` option
   * [OptionParser] `--no-SWITCH` are only allowed for declared booleans switches
