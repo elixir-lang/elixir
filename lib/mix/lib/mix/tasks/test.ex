@@ -144,7 +144,7 @@ defmodule Mix.Tasks.Test do
 
     Mix.Task.run "loadpaths", args
 
-    unless "--no-compile" in args do
+    if Keyword.get(opts, :compile, true) do
       Mix.Task.run "compile", args
     end
 
