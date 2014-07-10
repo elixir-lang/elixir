@@ -26,7 +26,8 @@ defmodule Mix.Compilers.Elixir do
         # changed, let's just compile everything
         all
       else
-        modified = Mix.Utils.last_modified(manifest)
+        modified   = Mix.Utils.last_modified(manifest)
+        all_mtimes = mtimes(all_entries)
 
         # Otherwise let's start with the new ones
         # plus the ones that have changed
@@ -35,7 +36,8 @@ defmodule Mix.Compilers.Elixir do
             do: source)
           ++
         for({_b, _m, source, _d, files} <- all_entries,
-            Mix.Utils.stale?([source|files], [modified]),
+            times = Enum.map([source|files], &HashDict.fetch!(all_mtimes, &1)),
+            Mix.Utils.stale?(times, [modified]),
             do: source)
       end
 
@@ -51,6 +53,18 @@ defmodule Mix.Compilers.Elixir do
       true ->
         :noop
     end
+  end
+
+  defp mtimes(entries) do
+    Enum.reduce(entries, HashDict.new, fn {_b, _m, source, _d, files}, dict ->
+      Enum.reduce([source|files], dict, fn file, dict ->
+        if HashDict.has_key?(dict, file) do
+          dict
+        else
+          HashDict.put(dict, file, Mix.Utils.last_modified(file))
+        end
+      end)
+    end)
   end
 
   @doc """
