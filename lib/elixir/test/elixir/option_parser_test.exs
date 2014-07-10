@@ -285,4 +285,33 @@ defmodule OptionParserTest do
     assert OptionParser.next(["--no-bool=", "..."], config)
            == {:invalid, "--no-bool", "", ["..."]}
   end
+
+  test "split" do
+    assert OptionParser.split(~S[])
+           == []
+
+    assert OptionParser.split(~S[foo])
+           == ["foo"]
+
+    assert OptionParser.split(~S[foo bar])
+           == ["foo", "bar"]
+
+    assert OptionParser.split(~S[  foo  bar  ])
+           == ["foo", "bar"]
+
+    assert OptionParser.split(~S[foo\ bar])
+           == ["foo bar"]
+
+    assert OptionParser.split(~S[foo" bar"])
+           == ["foo bar"]
+
+    assert OptionParser.split(~S[foo\" bar\"])
+           == ["foo\"", "bar\""]
+
+    assert OptionParser.split(~S[foo "\ bar\""])
+           == ["foo", "\\ bar\""]
+
+    assert OptionParser.split(~S[foo '\"bar"\'\ '])
+           == ["foo", "\\\"bar\"'\\ "]
+  end
 end
