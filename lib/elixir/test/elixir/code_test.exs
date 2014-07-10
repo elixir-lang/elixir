@@ -28,6 +28,16 @@ defmodule CodeTest do
     assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a,Sample},1}]}
   end
 
+  test :eval_binary_errors do
+    msg = "nofile:2: a binary field without size is only allowed at the end of a binary pattern"
+    assert_raise CompileError, msg, fn ->
+      Code.eval_string("""
+      foo = "foo"
+      "\\"" <> bar <> "\\"" = foo
+      """)
+    end
+  end
+
   test :eval_with_unnamed_scopes do
     assert {%RuntimeError{}, [a: %RuntimeError{}]} =
            Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
