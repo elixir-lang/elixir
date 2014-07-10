@@ -31,6 +31,9 @@ defmodule Mix.Task do
 
   """
 
+  @type task_name :: String.t | atom
+  @type task_module :: atom
+
   @doc """
   A task needs to implement `run` which receives
   a list of command line args.
@@ -42,7 +45,6 @@ defmodule Mix.Task do
     quote do
       Enum.each [:shortdoc, :recursive],
         &Module.register_attribute(__MODULE__, &1, persist: true)
-
       @behaviour Mix.Task
     end
   end
@@ -50,50 +52,56 @@ defmodule Mix.Task do
   @doc """
   Loads all tasks in all code paths.
   """
+  @spec load_all() :: [task_module]
   def load_all, do: load_tasks(:code.get_path)
 
   @doc """
   Loads all tasks in the given `paths`.
   """
-  def load_tasks(paths) do
-    Enum.reduce(paths, [], fn(path, matches) ->
-      {:ok, files} = :erl_prim_loader.list_dir(path |> to_char_list)
-      Enum.reduce(files, matches, &match_tasks/2)
-    end)
+  @spec load_tasks([List.Chars.t]) :: [task_module]
+  def load_tasks(dirs) do
+    for dir <- dirs,
+        {:ok, files} = :erl_prim_loader.list_dir(to_char_list(dir)),
+        file <- files,
+        mod = task_from_path(file),
+        do: mod
   end
 
-  @re_pattern Regex.re_pattern(~r/Elixir\.Mix\.Tasks\..*\.beam$/)
+  @prefix_size byte_size("Elixir.Mix.Tasks.")
+  @suffix_size byte_size(".beam")
 
-  defp match_tasks(filename, modules) do
-    if :re.run(filename, @re_pattern, [capture: :none]) == :match do
-      mod = :filename.rootname(filename, '.beam') |> List.to_atom
-      if Code.ensure_loaded?(mod), do: [mod | modules], else: modules
-    else
-      modules
+  defp task_from_path(filename) do
+    base = Path.basename(filename)
+    part = byte_size(base) - @prefix_size - @suffix_size
+
+    case base do
+      <<"Elixir.Mix.Tasks.", rest :: binary-size(part), ".beam">> ->
+        mod = :"Elixir.Mix.Tasks.#{rest}"
+        ensure_task?(mod) && mod
+      _ ->
+        nil
     end
   end
 
   @doc """
-  Returns all loaded tasks.
+  Returns all loaded task modules.
 
   Modules that are not yet loaded won't show up.
   Check `load_all/0` if you want to preload all tasks.
   """
+  @spec all_modules() :: [task_module]
   def all_modules do
-    Enum.reduce :code.all_loaded, [], fn({module, _}, acc) ->
-      case Atom.to_char_list(module) do
-        'Elixir.Mix.Tasks.' ++ _ ->
-          if is_task?(module), do: [module|acc], else: acc
-        _ ->
-          acc
-      end
-    end
+    for {module, _} <- :code.all_loaded,
+        task?(module),
+        do: module
   end
 
   @doc """
   Gets the moduledoc for the given task `module`.
+
   Returns the moduledoc or `nil`.
   """
+  @spec moduledoc(task_module) :: String.t | nil
   def moduledoc(module) when is_atom(module) do
     case Code.get_docs(module, :moduledoc) do
       {_line, moduledoc} -> moduledoc
@@ -103,8 +111,10 @@ defmodule Mix.Task do
 
   @doc """
   Gets the shortdoc for the given task `module`.
+
   Returns the shortdoc or `nil`.
   """
+  @spec shortdoc(task_module) :: String.t | nil
   def shortdoc(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :shortdoc, 0 do
       {:shortdoc, [shortdoc]} -> shortdoc
@@ -114,8 +124,11 @@ defmodule Mix.Task do
 
   @doc """
   Checks if the task should be run recursively for all sub-apps in
-  umbrella projects. Returns `true`, `false` or `:both`.
+  umbrella projects.
+
+  Returns `true` or `false`.
   """
+  @spec recursive(task_module) :: boolean
   def recursive(module) when is_atom(module) do
     case List.keyfind module.__info__(:attributes), :recursive, 0 do
       {:recursive, [setting]} -> setting
@@ -126,18 +139,25 @@ defmodule Mix.Task do
   @doc """
   Returns the task name for the given `module`.
   """
-  def task_name(module) do
+  @spec task_name(task_module) :: task_name
+  def task_name(module) when is_atom(module) do
     Mix.Utils.module_name_to_command(module, 2)
   end
 
   @doc """
-  Receives a task name and retrieves the task module.
-  Returns nil if the task cannot be found.
+  Receives a task name and returns `{:ok, module}` if a task is found.
+
+  Otherwise returns `{:error, :invalid}` in case the module
+  exists but it isn't a task or `{:error, :not_found}`.
   """
-  def get(task) do
-    case Mix.Utils.command_to_module(task, Mix.Tasks) do
-      {:module, module} -> module
-      {:error, _} -> nil
+  @spec get(task_name) :: {:ok, task_module} | {:error, :invalid} | {:error, :not_found}
+
+  def get(task) when is_binary(task) or is_atom(task) do
+    case Mix.Utils.command_to_module(to_string(task), Mix.Tasks) do
+      {:module, module} ->
+        if task?(module), do: {:ok, module}, else: {:error, :invalid}
+      {:error, _} ->
+        {:error, :not_found}
     end
   end
 
@@ -150,15 +170,15 @@ defmodule Mix.Task do
     * `Mix.InvalidTaskError` - raised if the task is not a valid `Mix.Task`
 
   """
+  @spec get!(task_name) :: task_module | no_return
   def get!(task) do
-    if module = get(task) do
-      if is_task?(module) do
+    case get(task) do
+      {:ok, module} ->
         module
-      else
+      {:error, :invalid} ->
         Mix.raise Mix.InvalidTaskError, task: task
-      end
-    else
-      Mix.raise Mix.NoTaskError, task: task
+      {:error, :not_found} ->
+        Mix.raise Mix.NoTaskError, task: task
     end
   end
 
@@ -174,7 +194,8 @@ defmodule Mix.Task do
   It may raise an exception if the task was not found
   or it is invalid. Check `get!/1` for more information.
   """
-  def run(task, args \\ []) do
+  @spec run(task_name, [any]) :: any
+  def run(task, args \\ []) when is_binary(task) or is_atom(task) do
     task = to_string(task)
 
     if Mix.TasksServer.run_task(task, Mix.Project.get) do
@@ -192,15 +213,18 @@ defmodule Mix.Task do
   @doc """
   Clears all invoked tasks, allowing them to be reinvoked.
   """
+  @spec clear :: :ok
   def clear do
     Mix.TasksServer.clear_tasks
   end
 
   @doc """
-  Reenables a given task so it can be executed again down the stack. If
-  an umbrella project reenables a task it is reenabled for all sub projects.
+  Reenables a given task so it can be executed again down the stack.
+
+  If an umbrella project reenables a task it is reenabled for all sub projects.
   """
-  def reenable(task) do
+  @spec reenable(task_name) :: :ok
+  def reenable(task) when is_binary(task) or is_atom(task) do
     task   = to_string(task)
     module = get!(task)
 
@@ -209,6 +233,8 @@ defmodule Mix.Task do
     recur module, fn project ->
       Mix.TasksServer.delete_task(task, project)
     end
+
+    :ok
   end
 
   defp recur(module, fun) do
@@ -233,7 +259,12 @@ defmodule Mix.Task do
   @doc """
   Returns `true` if given module is a task.
   """
-  def is_task?(module) do
-    function_exported?(module, :run, 1)
+  @spec task?(task_module) :: boolean()
+  def task?(module) when is_atom(module) do
+    match?('Elixir.Mix.Tasks.' ++ _, Atom.to_char_list(module)) and ensure_task?(module)
+  end
+
+  defp ensure_task?(module) do
+    Code.ensure_loaded?(module) and function_exported?(module, :run, 1)
   end
 end

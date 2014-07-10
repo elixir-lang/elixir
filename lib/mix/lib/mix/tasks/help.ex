@@ -36,13 +36,11 @@ defmodule Mix.Tasks.Help do
   """
 
   def run([]) do
-    Mix.Task.load_all
-
     shell   = Mix.shell
-    modules = Mix.Task.all_modules
+    modules = Mix.Task.load_all()
 
     docs = for module <- modules,
-        doc = Mix.Task.shortdoc(module) do
+               doc = Mix.Task.shortdoc(module) do
       {"mix " <> Mix.Task.task_name(module), doc}
     end
 
@@ -60,10 +58,8 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--names"]) do
-    Mix.Task.load_all
-    for module <- Enum.sort(Mix.Task.all_modules),
-                task = Mix.Task.task_name(module) do
-      Mix.shell.info "#{task}"
+    for module <- Enum.sort(Mix.Task.load_all()) do
+      Mix.shell.info "#{Mix.Task.task_name(module)}"
     end
   end
 

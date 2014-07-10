@@ -6,9 +6,7 @@ defmodule Mix.TasksServer do
   end
 
   def clear_tasks() do
-    get_and_update fn set ->
-      { set, HashSet.new }
-    end
+    update fn _ -> HashSet.new end
   end
 
   def run_task(task, proj) do

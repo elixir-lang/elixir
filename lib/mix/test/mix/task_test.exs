@@ -48,8 +48,9 @@ defmodule Mix.TaskTest do
   end
 
   test :clear do
-    Mix.Task.run("hello")
-    assert {"hello", nil} in Mix.Task.clear
+    assert Mix.Task.run("hello") == "Hello, World!"
+    Mix.Task.clear
+    assert Mix.Task.run("hello") == "Hello, World!"
   end
 
   test :reenable do
