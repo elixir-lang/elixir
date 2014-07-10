@@ -185,8 +185,8 @@ defmodule OptionParser do
 
   @spec next(argv, options) ::
         {:ok, key :: atom, value :: term, argv} |
-        {:invalid, key :: atom, value :: term, argv} |
-        {:undefined, key :: atom, value :: term, argv} |
+        {:invalid, String.t, String.t | nil, argv} |
+        {:undefined, String.t, String.t | nil, argv} |
         {:error, argv}
 
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
@@ -230,6 +230,62 @@ defmodule OptionParser do
   defp next(argv, _aliases, _switches, _strict) do
     {:error, argv}
   end
+
+  @doc ~S"""
+  Splits a string into argv chunks.
+
+  ## Examples
+
+      iex> OptionParser.split("foo bar")
+      ["foo", "bar"]
+
+      iex> OptionParser.split("foo \"bar baz\"")
+      ["foo", "bar baz"]
+  """
+  @spec split(String.t) :: argv
+  def split(string) do
+    do_split(strip_leading_spaces(string), "", [], nil)
+  end
+
+  # If we have a escaped quote, simply remove the escape
+  defp do_split(<<?\\, quote, t :: binary>>, buffer, acc, quote),
+    do: do_split(t, <<buffer::binary, quote>>, acc, quote)
+
+  # If we have a quote and we were not in a quote, start one
+  defp do_split(<<quote, t :: binary>>, buffer, acc, nil) when quote in [?", ?'],
+    do: do_split(t, buffer, acc, quote)
+
+  # If we have a quote and we were inside it, close it
+  defp do_split(<<quote, t :: binary>>, buffer, acc, quote),
+    do: do_split(t, buffer, acc, nil)
+
+  # If we have a escaped quote/space, simply remove the escape as long as we are not inside a quote
+  defp do_split(<<?\\, h, t :: binary>>, buffer, acc, nil) when h in [?\s, ?', ?"],
+    do: do_split(t, <<buffer::binary, h>>, acc, nil)
+
+  # If we have space and we are outside of a quote, start new segment
+  defp do_split(<<?\s, t :: binary>>, buffer, acc, nil),
+    do: do_split(strip_leading_spaces(t), "", [buffer|acc], nil)
+
+  # All other characters are moved to buffer
+  defp do_split(<<h, t::binary>>, buffer, acc, quote) do
+    do_split(t, <<buffer::binary, h>>, acc, quote)
+  end
+
+  # Finish the string expecting a nil marker
+  defp do_split(<<>>, "", acc, nil),
+    do: Enum.reverse(acc)
+
+  defp do_split(<<>>, buffer, acc, nil),
+    do: Enum.reverse([buffer|acc])
+
+  # Otherwise raise
+  defp do_split(<<>>, _, _acc, marker) do
+    raise "argv string did not terminate properly, a #{<<marker>>} was opened but never closed"
+  end
+
+  defp strip_leading_spaces(" " <> t), do: strip_leading_spaces(t)
+  defp strip_leading_spaces(t), do: t
 
   ## Helpers
 
