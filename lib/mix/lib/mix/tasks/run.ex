@@ -36,7 +36,8 @@ defmodule Mix.Tasks.Run do
   def run(args) do
     {opts, head, _} = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
-      switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep])
+      switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
+                 halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean])
 
     # Require the project to be available
     Mix.Project.get!
@@ -63,7 +64,8 @@ defmodule Mix.Tasks.Run do
         Mix.raise "No such file: #{file}"
       end
     end
-    if opts[:no_halt], do: :timer.sleep(:infinity)
+
+    unless Keyword.get(opts, :halt, true), do: :timer.sleep(:infinity)
   end
 
   defp process_config(opts) do

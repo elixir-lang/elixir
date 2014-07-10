@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
   import Mix.Dep, only: [loaded: 1, loaded_by_name: 2, format_dep: 1,
-                          format_status: 1, check_lock: 2, ok?: 1]
+                         format_status: 1, check_lock: 2, ok?: 1]
 
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.
@@ -17,7 +17,6 @@ defmodule Mix.Tasks.Deps.Check do
 
   """
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args)
     lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
@@ -27,10 +26,10 @@ defmodule Mix.Tasks.Deps.Check do
     cond do
       not_ok != [] ->
         show_not_ok(not_ok)
-      compile == [] or opts[:no_compile] ->
+      compile == [] or "--no-compile" in args ->
         :ok
       true ->
-        Mix.Tasks.Deps.Compile.compile(compile, opts)
+        Mix.Tasks.Deps.Compile.compile(compile)
         show_not_ok compile
                     |> Enum.map(& &1.app)
                     |> loaded_by_name(env: Mix.env)

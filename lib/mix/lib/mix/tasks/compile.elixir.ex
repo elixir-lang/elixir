@@ -17,13 +17,11 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
-    * `--force`         - forces compilation regardless of modification times
-    * `--no-docs`       - do not attach documentation to compiled modules
-    * `--no-debug-info` - do not attach debug info to compiled modules
-    * `--ignore-module-conflict`
-                        - do not emit warnings if a module was previously defined
-    * `--warnings-as-errors`
-                        - treat warnings as errors and return a non-zero exit code
+    * `--force` - forces compilation regardless of modification times
+    * `--docs` (`--no-docs`) - attach (or not) documentation to compiled modules
+    * `--debug-info` (`--no-debug-info`) - attach (or not) debug info to compiled modules
+    * `--ignore-module-conflict` - do not emit warnings if a module was previously defined
+    * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
 
   ## Configuration
 

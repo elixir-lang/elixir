@@ -45,7 +45,7 @@ defmodule OptionParser do
     * `:strict` - the switches are strict. Any switch that does not
       exist in the switch list is treated as an error.
 
-    * `:switches` - configure some switches. Switches that does not
+    * `:switches` - defines some switches. Switches that does not
       exist in the switch list are still attempted to be parsed.
 
   Note only `:strict` or `:switches` may be given at once.
@@ -59,7 +59,7 @@ defmodule OptionParser do
     * `:float`   - parses the switch as a float.
     * `:string`  - returns the switch as a string.
 
-  If a switch can't be parsed or is not specfied in the strict case,
+  If a switch can't be parsed or is not specified in the strict case,
   the option is returned in the invalid options list (third element
   of the returned tuple).
 
@@ -91,14 +91,8 @@ defmodule OptionParser do
 
   ## Negation switches
 
-  All switches starting with `--no-` are considered to be booleans and never
-  parse the next value:
-
-      iex> OptionParser.parse(["--no-op", "path/to/file"])
-      {[no_op: true], ["path/to/file"], []}
-
-  However, in case the base switch exists, it sets that particular switch to
-  false:
+  In case a switch is declared as boolean, it may be passed as `--no-SWITCH`
+  which will set the option to false:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
       {[op: false], ["path/to/file"], []}
@@ -221,7 +215,7 @@ defmodule OptionParser do
   defp next(["-" <> option|rest], aliases, switches, strict) do
     {option, value} = split_option(option)
     opt_name_bin = "-" <> option
-    tagged = tag_option(option, value, switches, aliases)
+    tagged = tag_option(option, switches, aliases)
 
     if strict and not option_defined?(tagged, switches) do
       {:undefined, opt_name_bin, value, rest}
@@ -296,11 +290,11 @@ defmodule OptionParser do
     end
   end
 
-  defp tag_option(<<?-, option :: binary>>, value, switches, _aliases) do
-    get_negated(option, value, switches)
+  defp tag_option(<<?-, option :: binary>>, switches, _aliases) do
+    get_negated(option, switches)
   end
 
-  defp tag_option(option, _value, _switches, aliases) when is_binary(option) do
+  defp tag_option(option, _switches, aliases) when is_binary(option) do
     opt = get_option(option)
     if alias = aliases[opt] do
       {:default, alias}
@@ -325,21 +319,12 @@ defmodule OptionParser do
     {nil, [:invalid], value}
   end
 
-  defp normalize_option({:negated, option}, nil, switches) do
-    kinds = List.wrap(switches[option])
-
-    cond do
-      :boolean in kinds ->
-        {option, kinds, false}
-      kinds == [] ->
-        {option, kinds, true}
-      true ->
-        {reverse_negated(option), [:invalid], nil}
+  defp normalize_option({:negated, option}, value, switches) do
+    if value do
+      {option, [:invalid], value}
+    else
+      {option, List.wrap(switches[option]), false}
     end
-  end
-
-  defp normalize_option({:negated, option}, value, _switches) do
-    {option, [:invalid], value}
   end
 
   defp normalize_option({:default, option}, value, switches) do
@@ -396,24 +381,18 @@ defmodule OptionParser do
     end
   end
 
-  defp reverse_negated(negated) do
-    String.to_atom("no_" <> Atom.to_string(negated))
-  end
-
-  defp get_negated("no-" <> rest = option, value, switches) do
-    if negated = get_option(rest) do
-      option = if Keyword.has_key?(switches, negated) and value == nil do
-        negated
-      else
-        get_option(option)
-      end
-      {:negated, option}
-    else
-      :unknown
+  defp get_negated("no-" <> rest = original, switches) do
+    cond do
+      (negated = get_option(rest)) && :boolean in List.wrap(switches[negated]) ->
+        {:negated, negated}
+      option = get_option(original) ->
+        {:default, option}
+      true ->
+        :unknown
     end
   end
 
-  defp get_negated(rest, _value, _switches) do
+  defp get_negated(rest, _switches) do
     if option = get_option(rest) do
       {:default, option}
     else
