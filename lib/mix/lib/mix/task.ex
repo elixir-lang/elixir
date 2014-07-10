@@ -204,6 +204,8 @@ defmodule Mix.Task do
     task   = to_string(task)
     module = get!(task)
 
+    Mix.TasksServer.delete_task(task, Mix.Project.get)
+
     recur module, fn project ->
       Mix.TasksServer.delete_task(task, project)
     end
