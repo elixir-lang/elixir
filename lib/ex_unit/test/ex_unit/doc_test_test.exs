@@ -11,6 +11,12 @@ defmodule ExUnit.DocTestTest.GoodModule do
   """
   def test_fun, do: 1
 
+  @doc ~S"""
+  iex> ~S(f#{o}o)
+  "f\#{o}o"
+  """
+  def test_sigil, do: :ok
+
   @doc """
   iex> a = 1
   iex> b = a + 2
@@ -203,58 +209,58 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:106: syntax error before: '*'
+         test/ex_unit/doc_test_test.exs:204
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:112: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
+         test/ex_unit/doc_test_test.exs:204
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
+         test/ex_unit/doc_test_test.exs:204
          Doctest failed
          code: inspect(:oops) === "#HashDict<[]>"
          lhs:  ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
+         test/ex_unit/doc_test_test.exs:204
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0
          code:  Hello.world
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
+         test/ex_unit/doc_test_test.exs:204
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:198
+         test/ex_unit/doc_test_test.exs:204
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:106: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:112: ExUnit.DocTestTest.Invalid (module)
     """
   end
 

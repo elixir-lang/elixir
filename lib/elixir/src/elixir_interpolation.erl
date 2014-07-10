@@ -33,11 +33,8 @@ extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
 extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
   extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
 
-extract(Line, Scope, Interpol, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [${,$#|Buffer], Output, Last);
-
-extract(Line, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
+extract(Line, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, true, Rest, [${,$#|Buffer], Output, Last);
 
 extract(Line, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
@@ -51,6 +48,9 @@ extract(Line, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
     {ok, _EndLine, _} ->
       {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
+
+extract(Line, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
 
 %% Catch all clause
 
