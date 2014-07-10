@@ -28,7 +28,9 @@ defmodule Mix.Local do
   @doc """
   Returns all tasks in local archives.
   """
-  def all_tasks, do: Mix.Task.load_tasks(archives_ebin)
+  def all_tasks do
+    Mix.Task.load_tasks(archives_ebin)
+  end
 
   @doc """
   Returns paths of all archive files matching given

@@ -11,8 +11,7 @@ defmodule Mix.Tasks.Local do
     shell   = Mix.shell
     modules = Mix.Local.all_tasks
 
-    docs = for module <- modules,
-        Mix.Task.is_task?(module) do
+    docs = for module <- modules do
       {Mix.Task.task_name(module), Mix.Task.shortdoc(module)}
     end
 
