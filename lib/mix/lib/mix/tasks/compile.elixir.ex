@@ -31,7 +31,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `:elixirc_options` - compilation options that apply
       to Elixir's compiler, they are: `:ignore_module_conflict`,
       `:docs` and `:debug_info`. By default, uses the same
-      behaviour as Elixir.
+      defaults as `elixirc` and they can always be overridden from
+      the command line according to the options above.
 
   """
 
