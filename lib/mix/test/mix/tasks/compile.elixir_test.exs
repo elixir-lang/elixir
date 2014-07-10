@@ -79,6 +79,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("lib/a.ex", future)
       Mix.Tasks.Compile.Elixir.run []
 
+      assert_received {:mix_shell, :error, ["warning: mtime (modified time) for \"lib/a.ex\" was set to the future, resetting to now"]}
+      refute_received {:mix_shell, :error, ["warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"]}
+
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
