@@ -31,15 +31,15 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Project.get! # Require the project to be available
 
     case OptionParser.parse(args) do
-      {opts, [], _} ->
-        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
-      {opts, tail, _} ->
-        compile(loaded_by_name(tail, env: Mix.env), opts)
+      {_, [], _} ->
+        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1))
+      {_, tail, _} ->
+        compile(loaded_by_name(tail, env: Mix.env))
     end
   end
 
   @doc false
-  def compile(deps, _opts) do
+  def compile(deps) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 

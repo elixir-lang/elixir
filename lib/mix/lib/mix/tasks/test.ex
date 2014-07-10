@@ -129,7 +129,8 @@ defmodule Mix.Tasks.Test do
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
-             exclude: :keep, seed: :integer, only: :keep]
+             exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
+             start: :boolean]
 
   @cover [output: "cover", tool: Cover]
 
@@ -143,7 +144,7 @@ defmodule Mix.Tasks.Test do
 
     Mix.Task.run "loadpaths", args
 
-    unless opts[:no_compile] do
+    unless "--no-compile" in args do
       Mix.Task.run "compile", args
     end
 

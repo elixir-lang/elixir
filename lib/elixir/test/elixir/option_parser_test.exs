@@ -48,7 +48,7 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--no-bool"], strict: [])
            == {[], [], [{"--no-bool", nil}]}
     assert OptionParser.parse(["--no-bool=...", "other"])
-           == {[], ["other"], [{"--no-bool", "..."}]}
+           == {[no_bool: "..."], ["other"], []}
   end
 
   test "does not parse -- as an alias" do
@@ -103,7 +103,7 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--value"], switches: [value: :string])
            == {[], [], [{"--value", nil}]}
     assert OptionParser.parse(["--no-value"], switches: [value: :string])
-           == {[], [], [{"--no-value", nil}]}
+           == {[no_value: true], [], []}
   end
 
   test "parses configured integers" do
@@ -134,11 +134,6 @@ defmodule OptionParserTest do
            == {[], ["foo"], [{"--value", "WAT"}]}
   end
 
-  test "parses no switches as flags" do
-    assert OptionParser.parse(["--no-docs", "foo"])
-           == {[no_docs: true], ["foo"], []}
-  end
-
   test "overrides options by default" do
     assert OptionParser.parse(["--require", "foo", "--require", "bar", "baz"])
            == {[require: "bar"], ["baz"], []}
@@ -157,17 +152,17 @@ defmodule OptionParserTest do
   end
 
   test "stops on --" do
-    options = OptionParser.parse(["--source", "from_docs/", "--", "1", "2", "3"])
-    assert options == {[source: "from_docs/"], ["1", "2", "3"], []}
+    options = OptionParser.parse(["--source", "foo", "--", "1", "2", "3"])
+    assert options == {[source: "foo"], ["1", "2", "3"], []}
 
-    options = OptionParser.parse_head(["--source", "from_docs/", "--", "1", "2", "3"])
-    assert options == {[source: "from_docs/"], ["1", "2", "3"], []}
+    options = OptionParser.parse_head(["--source", "foo", "--", "1", "2", "3"])
+    assert options == {[source: "foo"], ["1", "2", "3"], []}
 
-    options = OptionParser.parse(["--no-dash", "foo", "bar", "--", "-x"])
-    assert options == {[no_dash: true], ["foo", "bar", "-x"], []}
+    options = OptionParser.parse(["--source", "foo", "bar", "--", "-x"])
+    assert options == {[source: "foo"], ["bar", "-x"], []}
 
-    options = OptionParser.parse_head(["--no-dash", "foo", "bar", "--", "-x"])
-    assert options == {[no_dash: true], ["foo", "bar", "--", "-x"], []}
+    options = OptionParser.parse_head(["--source", "foo", "bar", "--", "-x"])
+    assert options == {[source: "foo"], ["bar", "--", "-x"], []}
   end
 
   test "goes beyond the first non option arguments" do
@@ -288,6 +283,6 @@ defmodule OptionParserTest do
     assert OptionParser.next(["--bool=", "..."], config)
            == {:invalid, "--bool", "", ["..."]}
     assert OptionParser.next(["--no-bool=", "..."], config)
-           == {:undefined, "--no-bool", "", ["..."]}
+           == {:invalid, "--no-bool", "", ["..."]}
   end
 end

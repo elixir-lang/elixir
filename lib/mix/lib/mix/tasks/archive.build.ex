@@ -33,11 +33,11 @@ defmodule Mix.Tasks.Archive.Build do
 
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, aliases: [o: :output, i: :input],
-                                      switches: [force: :boolean, no_compile: :boolean])
+                                      switches: [force: :boolean, compile: :boolean])
 
     project = Mix.Project.get
 
-    if project && !opts[:no_compile] do
+    if project && Keyword.get(opts, :compile, true) do
       Mix.Task.run :compile, args
     end
 

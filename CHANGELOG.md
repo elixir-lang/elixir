@@ -46,6 +46,7 @@
   * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
   * [Mix] `mix archive` has been renamed to `mix archive.build`
   * [Mix] `Mix.shell.info/1` no longer automatically escape ANSI sequences. Instead if has to be explicitly enabled with the `ansi: true` option
+  * [OptionParser] `--no-SWITCH` are only allowed for declared booleans switches
 
 ## v0.14.2 (2014-06-29)
 
