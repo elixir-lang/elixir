@@ -25,6 +25,7 @@ defmodule Kernel.SigilsTest do
     assert ~S/foo/ == "foo"
     assert ~S|foo| == "foo"
     assert ~S(f#{o}o) == "f\#{o}o"
+    assert ~S(f\#{o}o) == "f\\\#{o}o"
     assert ~S(f\no) == "f\\no"
   end
 
