@@ -101,23 +101,19 @@ defmodule Float do
 
   ## Examples
 
-      iex> Float.floor(34)
-      34
-
       iex> Float.floor(34.25)
-      34
+      34.0
 
       iex> Float.floor(-56.5)
-      -57
+      -57.0
 
   """
-  @spec floor(float | integer) :: integer
-  def floor(num) when is_integer(num), do: num
+  @spec floor(float) :: float
   def floor(num) when is_float(num) do
     truncated = :erlang.trunc(num)
     case :erlang.abs(num - truncated) do
-      x when x > 0 and num < 0 -> truncated - 1
-      _ -> truncated
+      x when x > 0 and num < 0 -> truncated - 1.0
+      _ -> truncated + 0.0
     end
   end
 
@@ -126,23 +122,19 @@ defmodule Float do
 
   ## Examples
 
-      iex> Float.ceil(34)
-      34
-
       iex> Float.ceil(34.25)
-      35
+      35.0
 
       iex> Float.ceil(-56.5)
-      -56
+      -56.0
 
   """
-  @spec ceil(float | integer) :: integer
-  def ceil(num) when is_integer(num), do: num
+  @spec ceil(float) :: float
   def ceil(num) when is_float(num) do
     truncated = :erlang.trunc(num)
     case :erlang.abs(num - truncated) do
-      x when x > 0 and num > 0 -> truncated + 1
-      _ -> truncated
+      x when x > 0 and num > 0 -> truncated + 1.0
+      _ -> truncated + 0.0
     end
   end
 
