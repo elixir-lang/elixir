@@ -107,8 +107,7 @@ defmodule OptionParser do
   """
   @spec parse(argv, options) :: {parsed, argv, errors}
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config = compile_config(opts, true)
-    do_parse(argv, config, [], [], [])
+    do_parse(argv, compile_config(opts), [], [], [], true)
   end
 
   @doc """
@@ -128,37 +127,36 @@ defmodule OptionParser do
   """
   @spec parse_head(argv, options) :: {parsed, argv, errors}
   def parse_head(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    config = compile_config(opts, false)
-    do_parse(argv, config, [], [], [])
+    do_parse(argv, compile_config(opts), [], [], [], false)
   end
 
-  defp do_parse([], _config, opts, args, invalid) do
+  defp do_parse([], _config, opts, args, invalid, _all?) do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
   end
 
-  defp do_parse(argv, {aliases, switches, strict, all}=config, opts, args, invalid) do
+  defp do_parse(argv, {aliases, switches, strict}=config, opts, args, invalid, all?) do
     case next(argv, aliases, switches, strict) do
       {:ok, option, value, rest} ->
         # the option exist and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
         new_opts = do_store_option(opts, option, value, kinds)
-        do_parse(rest, config, new_opts, args, invalid)
+        do_parse(rest, config, new_opts, args, invalid, all?)
 
       {:invalid, option, value, rest} ->
         # the option exist but it has wrong value
-        do_parse(rest, config, opts, args, [{option, value}|invalid])
+        do_parse(rest, config, opts, args, [{option, value}|invalid], all?)
 
       {:undefined, option, _value, rest} ->
         # the option does not exist (for strict cases)
-        do_parse(rest, config, opts, args, [{option, nil}|invalid])
+        do_parse(rest, config, opts, args, [{option, nil}|invalid], all?)
 
       {:error, ["--"|rest]} ->
         {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
 
       {:error, [arg|rest]=remaining_args} ->
         # there is no option
-        if all do
-          do_parse(rest, config, opts, [arg|args], invalid)
+        if all? do
+          do_parse(rest, config, opts, [arg|args], invalid, all?)
         else
           {Enum.reverse(opts), Enum.reverse(args, remaining_args), Enum.reverse(invalid)}
         end
@@ -192,7 +190,7 @@ defmodule OptionParser do
         {:error, argv}
 
   def next(argv, opts \\ []) when is_list(argv) and is_list(opts) do
-    {aliases, switches, strict, _} = compile_config(opts, true)
+    {aliases, switches, strict} = compile_config(opts)
     next(argv, aliases, switches, strict)
   end
 
@@ -235,7 +233,7 @@ defmodule OptionParser do
 
   ## Helpers
 
-  defp compile_config(opts, all) do
+  defp compile_config(opts) do
     aliases = opts[:aliases] || []
 
     {switches, strict} = cond do
@@ -247,7 +245,7 @@ defmodule OptionParser do
         {[], false}
     end
 
-    {aliases, switches, strict, all}
+    {aliases, switches, strict}
   end
 
   defp validate_option(value, kinds) do
