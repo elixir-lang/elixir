@@ -11,6 +11,7 @@
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
   * [Mix] Add `Mix.compilers` that returns all default compilers used by mix tasks
   * [Mix] Add `mix archive`
+  * [Mix] Issue warning and reset mtime for source files from the future
   * [String] Improve performance of `String.split/1`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 
@@ -28,6 +29,7 @@
   * [Mix] Ensure Mix dependencies are not compiled every second time when `mix deps.compile` is invoked
   * [Mix] Fix a bug where `Mix.shell.error/1` and friends choked when printing a map
   * [Mix] Ensure multiple `@external_resource` entries are read by Mix compilers
+  * [Mix] Fix a bug where tasks for umbrella projects were not properly reenabled
   * [Stream] Fix bug when `flat_map` is used inside another `flat_map` with an Enumerable
   * [Typespec] Fix a bug where the `list` typespec was incorrectly rendered as `[]`
 
