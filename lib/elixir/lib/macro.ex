@@ -867,7 +867,7 @@ defmodule Macro do
       end
 
       expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args,
-                                              env, extra)
+                                              env, extra, true)
 
       case expand do
         {:ok, receiver, quoted} ->
