@@ -183,9 +183,56 @@ defmodule Kernel do
 
   ## Examples
 
+  When a process reaches its end, by default it exits with
+  reason `:normal`. You can also call it explicitly if you
+  want to terminate a process but not signal any failure:
+
       exit(:normal)
+
+  In case something goes wrong, you can also use `exit/1` with
+  a different reason:
+
       exit(:seems_bad)
 
+  If the reason is not `:normal`, all linked process to the
+  exited process will crash (unless they are trapping exits).
+
+  ## OTP exits
+
+  Exits are used by OTP to determine if a process exited abnormally
+  or not. The following exits are considered "normal":
+
+    * `exit(:normal)`
+    * `exit(:shutdown)`
+    * `exit({:shutdown, term})`
+
+  Exiting with any other reason is considered abnormal and treated
+  as a crash. This means the default supervisor behaviour kicks in,
+  error reports are emitted, etc.
+
+  This behaviour is relied on in many different places. For example,
+  `ExUnit` uses `exit(:shutdown)` when exiting the test process to
+  signal linked processes, supervision trees and so on to politely
+  shutdown too.
+
+  ## CLI exits
+
+  Building on top of the exit signals mentioned above, if the
+  process started by the command line exits with any of the three
+  reasons above, its exit is considered normal and the Operating
+  System process will exit with status 0.
+
+  It is, however, possible to customize the Operating System exit
+  signal by invoking:
+
+      exit({:shutdown, integer})
+
+  This will cause the OS process to exit with the status given by
+  `integer` while signaling all linked OTP processes to politely
+  shutdown.
+
+  Any other exit reason will cause the OS process to exit with
+  status `1` and linked OTP processes to crash.
   """
   @spec exit(term) :: no_return
   def exit(reason) do

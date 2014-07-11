@@ -766,15 +766,9 @@ defmodule Module do
 
       @foo
 
-  Expands to:
+  Expands close to:
 
-      Module.get_attribute(__MODULE__, :foo, [{Module, :func, 0, [file: "module.ex", line: 1]}])
-
-  Notice the third argument may be given to indicate a stacktrace
-  to be emitted when the attribute was not previously defined.
-  The default value for `warn` is nil for direct calls but the `@foo`
-  macro sets it to the proper stacktrace automatically, warning
-  every time `@foo` is used but not set previously.
+      Module.get_attribute(__MODULE__, :foo)
 
   ## Examples
 
@@ -788,37 +782,9 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, atom, warn :: nil | [tuple]) :: term
-  def get_attribute(module, key, warn \\ nil) when
-      is_atom(key) and (is_list(warn) or nil?(warn)) do
-    assert_not_compiled!(:get_attribute, module)
-    table = data_table_for(module)
-
-    case :ets.lookup(table, key) do
-      [{^key, val}] -> val
-      [] ->
-        acc = :ets.lookup_element(table, :__acc_attributes, 2)
-
-        cond do
-          :lists.member(key, acc) ->
-            []
-          is_list(warn) ->
-            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
-              "please remove access to @#{key} or explicitly set it to nil before access"
-            nil
-          true ->
-            nil
-        end
-    end
-  end
-
-  defp warn_info([entry|_]) do
-    opts = elem(entry, tuple_size(entry) - 1)
-    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
-  end
-
-  defp warn_info([]) do
-    ""
+  @spec get_attribute(atom, atom) :: term
+  def get_attribute(module, key) do
+    get_attribute(module, key, nil)
   end
 
   @doc """
@@ -832,10 +798,12 @@ defmodule Module do
       end
 
   """
+  @spec delete_attribute(atom, atom) :: :ok
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
     :ets.delete(table, key)
+    :ok
   end
 
   @doc """
@@ -933,6 +901,38 @@ defmodule Module do
       end
 
     :ets.insert(table, {key, new})
+  end
+
+  @doc false
+  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or nil?(warn)) do
+    assert_not_compiled!(:get_attribute, module)
+    table = data_table_for(module)
+
+    case :ets.lookup(table, key) do
+      [{^key, val}] -> val
+      [] ->
+        acc = :ets.lookup_element(table, :__acc_attributes, 2)
+
+        cond do
+          :lists.member(key, acc) ->
+            []
+          is_list(warn) ->
+            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
+              "please remove access to @#{key} or explicitly set it to nil before access"
+            nil
+          true ->
+            nil
+        end
+    end
+  end
+
+  defp warn_info([entry|_]) do
+    opts = elem(entry, tuple_size(entry) - 1)
+    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
+  end
+
+  defp warn_info([]) do
+    ""
   end
 
   ## Helpers
