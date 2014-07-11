@@ -10,7 +10,6 @@
   * [Kernel] Print a warning if a dangling `@doc` clause is found
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
   * [Mix] Add `Mix.compilers` that returns all default compilers used by mix tasks
-  * [Mix] Add `mix archive`
   * [Mix] Issue warning and reset mtime for source files from the future
   * [String] Improve performance of `String.split/1`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
@@ -48,7 +47,7 @@
   * [Kernel] `defstruct` no longer automatically defines a type
   * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
   * [Kernel] Default argument values have to be defined in a function head if the function has multiple clauses
-  * [Mix] `mix archive` has been renamed to `mix archive.build`
+  * [Mix] `mix archive.build` replaces the functionality of `mix archive`, `mix archive` now lists locally installed archives
   * [Mix] `Mix.shell.info/1` no longer automatically escape ANSI sequences. Instead if has to be explicitly enabled with the `ansi: true` option
   * [OptionParser] `--no-SWITCH` are only allowed for declared booleans switches
 
