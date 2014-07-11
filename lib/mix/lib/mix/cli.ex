@@ -60,7 +60,7 @@ defmodule Mix.CLI do
       # If the task is not available, let's try to
       # compile the repository and then run it again.
       cond do
-        match?({:ok, _}, Mix.Task.get(name)) ->
+        Mix.Task.get(name) ->
           Mix.Task.run(name, args)
         Mix.Project.get ->
           Mix.Task.run("compile")

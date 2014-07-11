@@ -1,40 +1,9 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-path = MixTest.Case.tmp_path("beams")
-File.rm_rf!(path)
-File.mkdir_p!(path)
-
-write_beam = fn {:module, name, bin, _} ->
-  path
-  |> Path.join(Atom.to_string(name) <> ".beam")
-  |> File.write!(bin)
-end
-
-defmodule Mix.Tasks.Hello do
-  use Mix.Task
-  @shortdoc "This is short documentation, see"
-
-  @moduledoc """
-  A test task.
-  """
-
-  def run(_) do
-    "Hello, World!"
-  end
-end |> write_beam.()
-
-defmodule Mix.Tasks.Invalid do
-end |> write_beam.()
-
 defmodule Mix.TaskTest do
   use MixTest.Case
 
-  setup do
-    Code.prepend_path unquote(path)
-    :ok
-  end
-
-  test :run do
+  test "run/1" do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
@@ -47,19 +16,19 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test :clear do
+  test "clear/0" do
     assert Mix.Task.run("hello") == "Hello, World!"
     Mix.Task.clear
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
-  test :reenable do
+  test "reenable/1" do
     assert Mix.Task.run("hello") == "Hello, World!"
     Mix.Task.reenable("hello")
     assert Mix.Task.run("hello") == "Hello, World!"
   end
 
-  test "reenable for umbrella" do
+  test "reenable/1 for umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert [:ok, :ok] = Mix.Task.run "clean"
@@ -72,7 +41,7 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test :get! do
+  test "get!" do
     assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
     assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
@@ -84,18 +53,19 @@ defmodule Mix.TaskTest do
     end
   end
 
-  test :all_modules do
+  test "all_modules/0" do
     Mix.Task.load_all
     modules = Mix.Task.all_modules
     assert Mix.Tasks.Hello in modules
     assert Mix.Tasks.Compile in modules
   end
 
-  test :moduledoc do
+  test "moduledoc/1" do
+    Code.prepend_path MixTest.Case.tmp_path("beams")
     assert Mix.Task.moduledoc(Mix.Tasks.Hello) == "A test task.\n"
   end
 
-  test :shortdoc do
+  test "shortdoc/1" do
     assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
   end
 end

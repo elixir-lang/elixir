@@ -57,7 +57,7 @@ defmodule Mix.Project do
         :ok
       {:error, other} when is_binary(other) ->
         Mix.raise "Trying to load #{inspect atom} from #{inspect file}" <>
-          " but another project with the same name was already defined at #{inspect other}"
+                  " but another project with the same name was already defined at #{inspect other}"
     end
   end
 
@@ -359,7 +359,8 @@ defmodule Mix.Project do
   end
 
   defp default_config do
-    [build_per_environment: true,
+    [aliases: [],
+     build_per_environment: true,
      default_task: "run",
      deps: [],
      deps_path: "deps",
