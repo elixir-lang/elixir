@@ -20,6 +20,20 @@ defmodule Record do
   The macros `defrecord/3` and `defrecordp/3` can be used to create
   records while `extract/2` can be used to extract records from Erlang
   files.
+
+  ## Types
+
+  Types can be defined for tuples with the `record/2` macro (only available
+  in typespecs). Like with the generated record macros it will expand to
+  a tuple.
+
+      defmodule MyModule do
+        require Record
+        Record.defrecord :user name: "José", age: 25
+
+        @type user :: record(:user, name: String.t, age: integer)
+        # expands to: `@type user :: {:user, String.t, integer}`
+      end
   """
 
   @doc """
@@ -195,7 +209,15 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
-        quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
+        case Macro.expand(args, caller) do
+          {:{}, _, [^atom|list]} when length(list) == length(fields) ->
+            record = List.to_tuple([atom|list])
+            Macro.escape(Record.__keyword__(atom, fields, record))
+          {^atom, arg} when length(fields) == 1 ->
+            Macro.escape(Record.__keyword__(atom, fields, {atom, arg}))
+          _ ->
+            quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
+        end
     end
   end
 
@@ -291,7 +313,7 @@ defmodule Record do
       [_tag|values] = Tuple.to_list(record)
       join_keyword(fields, values, [])
     else
-      msg = "expected argument to be a literal atom, literal keyword or a #{atom}() record, got runtime: #{inspect record}"
+      msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
       raise ArgumentError, msg
     end
   end
