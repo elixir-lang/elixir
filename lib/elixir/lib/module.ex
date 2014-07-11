@@ -768,7 +768,7 @@ defmodule Module do
 
   Expands to:
 
-      Module.get_attribute(__MODULE__, :foo, true)
+      Module.get_attribute(__MODULE__, :foo, [{Module, :func, 0, [file: "module.ex", line: 1]}])
 
   Notice the third argument may be given to indicate a stacktrace
   to be emitted when the attribute was not previously defined.
