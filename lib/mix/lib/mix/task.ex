@@ -150,14 +150,11 @@ defmodule Mix.Task do
   Otherwise returns `{:error, :invalid}` in case the module
   exists but it isn't a task or `{:error, :not_found}`.
   """
-  @spec get(task_name) :: {:ok, task_module} | {:error, :invalid} | {:error, :not_found}
-
-  def get(task) when is_binary(task) or is_atom(task) do
-    case Mix.Utils.command_to_module(to_string(task), Mix.Tasks) do
-      {:module, module} ->
-        if task?(module), do: {:ok, module}, else: {:error, :invalid}
-      {:error, _} ->
-        {:error, :not_found}
+  @spec get(task_name) :: task_module | nil
+  def get(task) do
+    case fetch(task) do
+      {:ok, module} -> module
+      {:error, _}   -> nil
     end
   end
 
@@ -172,13 +169,22 @@ defmodule Mix.Task do
   """
   @spec get!(task_name) :: task_module | no_return
   def get!(task) do
-    case get(task) do
+    case fetch(task) do
       {:ok, module} ->
         module
       {:error, :invalid} ->
         Mix.raise Mix.InvalidTaskError, task: task
       {:error, :not_found} ->
         Mix.raise Mix.NoTaskError, task: task
+    end
+  end
+
+  defp fetch(task) when is_binary(task) or is_atom(task) do
+    case Mix.Utils.command_to_module(to_string(task), Mix.Tasks) do
+      {:module, module} ->
+        if task?(module), do: {:ok, module}, else: {:error, :invalid}
+      {:error, _} ->
+        {:error, :not_found}
     end
   end
 
@@ -197,62 +203,101 @@ defmodule Mix.Task do
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) when is_binary(task) or is_atom(task) do
     task = to_string(task)
+    proj = Mix.Project.get
 
-    if Mix.TasksServer.run_task(task, Mix.Project.get) do
-      module = get!(task)
+    alias = Mix.Project.config[:aliases][String.to_atom(task)]
 
-      recur module, fn proj ->
-        Mix.TasksServer.put_task(task, proj)
-        module.run(args)
-      end
-    else
-      :noop
+    cond do
+      alias && Mix.TasksServer.run({:alias, task, proj}) ->
+        res = run_alias(List.wrap(alias), args, :ok)
+        Mix.TasksServer.put({:task, task, proj})
+        res
+      Mix.TasksServer.run({:task, task, proj}) ->
+        run_task(task, args)
+      true ->
+        :noop
     end
   end
 
+  defp run_task(task, args) do
+    module = get!(task)
+
+    fun = fn proj ->
+      Mix.TasksServer.put({:task, task, proj})
+      module.run(args)
+    end
+
+    if recursive(module) and Mix.Project.umbrella? and Mix.ProjectStack.enable_recursion do
+      res = recur(fun)
+      Mix.ProjectStack.disable_recursion
+      res
+    else
+      fun.(Mix.Project.get)
+    end
+  end
+
+  defp run_alias([h|t], alias_args, _res) when is_binary(h) do
+    [task|args] = OptionParser.split(h)
+    res = Mix.Task.run task, join_args(args, alias_args, t)
+    run_alias(t, alias_args, res)
+  end
+
+  defp run_alias([h|t], alias_args, _res) when is_function(h, 1) do
+    res = h.(join_args([], alias_args, t))
+    run_alias(t, alias_args, res)
+  end
+
+  defp run_alias([], _alias_task, res) do
+    res
+  end
+
+  defp join_args(args, alias_args, []), do: args ++ alias_args
+  defp join_args(args, _alias_args, _), do: args
+
   @doc """
   Clears all invoked tasks, allowing them to be reinvoked.
+
+  This operation is not recursive.
   """
   @spec clear :: :ok
   def clear do
-    Mix.TasksServer.clear_tasks
+    Mix.TasksServer.clear
   end
 
   @doc """
   Reenables a given task so it can be executed again down the stack.
 
-  If an umbrella project reenables a task it is reenabled for all sub projects.
+  Both alias and the regular stack are reenabled when this function
+  is called.
+
+  If an umbrella project reenables a task, it is reenabled for all
+  children projects.
   """
   @spec reenable(task_name) :: :ok
   def reenable(task) when is_binary(task) or is_atom(task) do
-    task   = to_string(task)
-    module = get!(task)
+    task = to_string(task)
+    proj = Mix.Project.get
 
-    Mix.TasksServer.delete_task(task, Mix.Project.get)
+    Mix.TasksServer.delete_many([{:task, task, proj},
+                                 {:alias, task, proj}])
 
-    recur module, fn project ->
-      Mix.TasksServer.delete_task(task, project)
+    if (module = get(task)) && recursive(module) && Mix.Project.umbrella? do
+      recur fn proj ->
+        Mix.TasksServer.delete_many([{:task, task, proj},
+                                     {:alias, task, proj}])
+      end
     end
 
     :ok
   end
 
-  defp recur(module, fun) do
-    umbrella? = Mix.Project.umbrella?
-    recursive = recursive(module)
-
-    if umbrella? && recursive && Mix.ProjectStack.enable_recursion do
-      # Get all dependency configuration but not the deps path
-      # as we leave the control of the deps path still to the
-      # umbrella child.
-      config = Mix.Project.deps_config |> Keyword.delete(:deps_path)
-      res = for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
-        Mix.Project.in_project(app, opts[:path], config, fun)
-      end
-      Mix.ProjectStack.disable_recursion
-      res
-    else
-      fun.(Mix.Project.get)
+  defp recur(fun) do
+    # Get all dependency configuration but not the deps path
+    # as we leave the control of the deps path still to the
+    # umbrella child.
+    config = Mix.Project.deps_config |> Keyword.delete(:deps_path)
+    for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.loaded do
+      Mix.Project.in_project(app, opts[:path], config, fun)
     end
   end
 

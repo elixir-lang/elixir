@@ -247,3 +247,36 @@ end
 Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
   File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end
+
+## Generate helper modules
+
+path = MixTest.Case.tmp_path("beams")
+File.rm_rf!(path)
+File.mkdir_p!(path)
+Code.prepend_path(path)
+
+write_beam = fn {:module, name, bin, _} ->
+  path
+  |> Path.join(Atom.to_string(name) <> ".beam")
+  |> File.write!(bin)
+end
+
+defmodule Mix.Tasks.Hello do
+  use Mix.Task
+  @shortdoc "This is short documentation, see"
+
+  @moduledoc """
+  A test task.
+  """
+
+  def run([]) do
+    "Hello, World!"
+  end
+
+  def run(args) do
+    "Hello, #{Enum.join(args, " ")}!"
+  end
+end |> write_beam.()
+
+defmodule Mix.Tasks.Invalid do
+end |> write_beam.()
