@@ -144,6 +144,18 @@ defmodule KeywordTest do
     assert Keyword.update([a: 1], :b, 11, &(&1 * 2)) == [a: 1, b: 11]
   end
 
+  test "bool!/2" do
+    kw = [a: true, b: false, c: 1]
+    assert Keyword.bool!(kw, :a) == true
+    assert Keyword.bool!(kw, :b) == false
+    assert_raise RuntimeError, fn ->
+      Keyword.bool!(kw, :c)
+    end
+    assert_raise KeyError, fn ->
+      Keyword.bool!(kw, :non_existing)
+    end
+  end
+
   defp create_empty_keywords, do: []
   defp create_keywords, do: [first_key: 1, second_key: 2]
 end
