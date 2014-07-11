@@ -67,6 +67,8 @@ defmodule RecordTest do
 
     user(name: name) = record
     assert name == "Eric"
+
+    assert user(:name) == 1
   end
 
   test "records with no tag" do
@@ -76,6 +78,15 @@ defmodule RecordTest do
   test "records with dynamic arguments" do
     record = file_info()
     assert file_info(record, :size) == :undefined
+
+    record = user()
+    assert user(record) == [name: "José", age: 25]
+
+    msg = "expected argument to be a literal atom, literal keyword or a file_info() record, " <>
+          "got runtime: {RecordTest, \"José\", 25}"
+    assert_raise ArgumentError, msg, fn ->
+      file_info(record)
+    end
   end
 
   test "records visibility" do
