@@ -9,8 +9,9 @@ defmodule Mix.Tasks.Help do
   ## Arguments
 
       mix help         - prints all tasks and their shortdoc
-      mix help --names - prints all task names
       mix help TASK    - prints full docs for the given task
+      mix help --names - prints all task names and aliases
+                         (useful for autocompleting)
 
   ## Colors
 
@@ -58,8 +59,17 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--names"]) do
-    for module <- Enum.sort(Mix.Task.load_all()) do
-      Mix.shell.info "#{Mix.Task.task_name(module)}"
+    tasks =
+      Mix.Task.load_all()
+      |> Enum.map(&Mix.Task.task_name/1)
+
+    aliases =
+      Mix.Project.config[:aliases]
+      |> Dict.keys
+      |> Enum.map(&Atom.to_string/1)
+
+    for info <- Enum.sort(aliases ++ tasks) do
+      Mix.shell.info info
     end
   end
 
