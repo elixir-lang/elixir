@@ -77,9 +77,11 @@ defmodule Kernel.Typespec do
            | %{Keyword}
            | %{Pairs}
 
-      Tuple :: tuple     # a tuple of any size
-             | {}        # empty tuple
+      Tuple :: tuple                 # a tuple of any size
+             | {}                    # empty tuple
              | {TList}
+             | record(Atom)          # record (see Record)
+             | record(Atom, Keyword)
 
       Keyword :: ElixirAtom: Type
                | ElixirAtom: Type, Keyword
@@ -849,6 +851,34 @@ defmodule Kernel.Typespec do
 
     fields = Keyword.merge(struct, [__struct__: module] ++ fields)
     typespec({:%{}, meta, fields}, vars, caller)
+  end
+
+  # Handle records
+  defp typespec({:record, meta, [atom]}, vars, caller) do
+    typespec({:record, meta, [atom, []]}, vars, caller)
+  end
+
+  defp typespec({:record, meta, [atom, fields]}, vars, caller) do
+    case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
+      keyword when is_list(keyword) ->
+        keyword =
+          :lists.map(fn {field, _} ->
+            {field, quote do: term()}
+          end, keyword)
+
+        :lists.foreach(fn {field, _} ->
+          unless Keyword.has_key?(keyword, field) do
+            compile_error(caller, "undefined field #{field} on record #{inspect atom}")
+          end
+        end, fields)
+
+        fields = Keyword.merge(keyword, fields)
+        types = Keyword.values(fields)
+
+        typespec({:{}, meta, [atom|types]}, vars, caller)
+      _ ->
+        compile_error(caller, "unknown record #{inspect atom}")
+    end
   end
 
   # Handle ranges
