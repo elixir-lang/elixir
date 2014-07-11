@@ -192,8 +192,9 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
-        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
-        raise ArgumentError, msg
+        quote bind_quoted: [atom: atom, fields: fields, args: args] do
+          Record.__keyword__(atom, fields, args)
+        end
     end
   end
 
@@ -281,4 +282,21 @@ defmodule Record do
   defp find_index([{k, _}|_], k, i), do: i + 2
   defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
+
+  # Returns a keyword list of the record
+  @doc false
+  def __keyword__(atom, fields, record) do
+    if record?(record, atom) do
+      [_tag|values] = Tuple.to_list(record)
+      join_keyword(fields, values, [])
+    else
+      msg = "expected argument to be a literal atom, literal keyword or a #{atom}() record, got runtime: #{inspect record}"
+      raise ArgumentError, msg
+    end
+  end
+
+  defp join_keyword([{field, _default}|fields], [value|values], acc),
+    do: join_keyword(fields, values, [{field, value}| acc])
+  defp join_keyword([], [], acc),
+    do: :lists.reverse(acc)
 end
