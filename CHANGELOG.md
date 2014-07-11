@@ -11,6 +11,9 @@
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
   * [Mix] Add `Mix.compilers` that returns all default compilers used by mix tasks
   * [Mix] Issue warning and reset mtime for source files from the future
+  * [Mix] Support task aliases in Mix
+  * [OptionParser] Add `OptionParser.split/1` that splits a string into argv
+  * [Record] Allow a record to be converted to a keyword list with `record(some_record)`
   * [String] Improve performance of `String.split/1`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
 

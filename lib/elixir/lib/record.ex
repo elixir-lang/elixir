@@ -119,14 +119,17 @@ defmodule Record do
   arities will be defined to manipulate the underlying record:
 
       # To create records
-      user()        #=> {:user, "José", 25}
-      user(age: 26) #=> {:user, "José", 26}
+      record = user()        #=> {:user, "José", 25}
+      record = user(age: 26) #=> {:user, "José", 26}
 
       # To get a field from the record
       user(record, :name) #=> "José"
 
       # To update the record
       user(record, age: 26) #=> {:user, "José", 26}
+
+      # Convert a record to a keyword list
+      user(record) #=> [name: "José", age: 26]
 
   By default, Elixir uses the record name as the first element of
   the tuple (the tag). But it can be changed to something else:
@@ -192,9 +195,7 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
-        quote bind_quoted: [atom: atom, fields: fields, args: args] do
-          Record.__keyword__(atom, fields, args)
-        end
+        quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
     end
   end
 
