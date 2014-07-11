@@ -81,8 +81,9 @@ defmodule RecordTest do
 
     record = user()
     assert user(record) == [name: "José", age: 25]
+    assert user(user()) == [name: "José", age: 25]
 
-    msg = "expected argument to be a literal atom, literal keyword or a file_info() record, " <>
+    msg = "expected argument to be a literal atom, literal keyword or a :file_info record, " <>
           "got runtime: {RecordTest, \"José\", 25}"
     assert_raise ArgumentError, msg, fn ->
       file_info(record)
