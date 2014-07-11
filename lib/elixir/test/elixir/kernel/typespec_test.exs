@@ -214,6 +214,52 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "@type with public record" do
+    module = test_module do
+      require Record
+      Record.defrecord :timestamp, [date: 1, time: 2]
+      @type mytype :: record(:timestamp, time: :foo)
+    end
+
+    assert [type: {:mytype,
+             {:type, _, :tuple, [
+               {:atom, 0, :timestamp}, {:atom, 0, :foo}, {:type, 0, :term, []}
+             ]},
+            []}] = types(module)
+  end
+
+  test "@type with private record" do
+    module = test_module do
+      require Record
+      Record.defrecordp :timestamp, [date: 1, time: 2]
+      @type mytype :: record(:timestamp, time: :foo)
+    end
+
+    assert [type: {:mytype,
+             {:type, _, :tuple, [
+               {:atom, 0, :timestamp}, {:atom, 0, :foo}, {:type, 0, :term, []}
+             ]},
+            []}] = types(module)
+  end
+
+  test "@type with undefined record" do
+    assert_raise CompileError, ~r"unknown record :this_record_does_not_exist", fn ->
+      test_module do
+        @type mytype :: record(:this_record_does_not_exist, [])
+      end
+    end
+  end
+
+  test "@type with a record with undefined field" do
+    assert_raise CompileError, ~r"undefined field no_field on record :timestamp", fn ->
+      test_module do
+        require Record
+        Record.defrecord :timestamp, [date: 1, time: 2]
+        @type mytype :: record(:timestamp, no_field: :foo)
+      end
+    end
+  end
+
   test "@type with list shortcuts" do
     module = test_module do
       @type mytype :: []
