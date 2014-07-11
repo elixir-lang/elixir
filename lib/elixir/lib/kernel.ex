@@ -3354,7 +3354,7 @@ defmodule Kernel do
 
   ## Sigils
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~S. It simply returns a string
   without escaping characters and without interpolations.
 
@@ -3363,15 +3363,15 @@ defmodule Kernel do
       iex> ~S(foo)
       "foo"
 
-      iex> ~S(f\#{o}o)
-      "f\\\#{o}o"
+      iex> ~S(f#{o}o)
+      "f\#{o}o"
 
   """
   defmacro sigil_S(string, []) do
     string
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~s. It returns a string as if it was double quoted
   string, unescaping characters and replacing interpolations.
 
@@ -3380,15 +3380,18 @@ defmodule Kernel do
       iex> ~s(foo)
       "foo"
 
-      iex> ~s(f\#{:o}o)
+      iex> ~s(f#{:o}o)
       "foo"
+
+      iex> ~s(f\#{:o}o)
+      "f\#{:o}o"
 
   """
   defmacro sigil_s({:<<>>, line, pieces}, []) do
     {:<<>>, line, Macro.unescape_tokens(pieces)}
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~C. It simply returns a char list
   without escaping characters and without interpolations.
 
@@ -3397,15 +3400,15 @@ defmodule Kernel do
       iex> ~C(foo)
       'foo'
 
-      iex> ~C(f\#{o}o)
-      'f\\\#{o}o'
+      iex> ~C(f#{o}o)
+      'f\#{o}o'
 
   """
   defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
     String.to_char_list(string)
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~c. It returns a char list as if it were a single
   quoted string, unescaping characters and replacing interpolations.
 
@@ -3414,8 +3417,11 @@ defmodule Kernel do
       iex> ~c(foo)
       'foo'
 
-      iex> ~c(f\#{:o}o)
+      iex> ~c(f#{:o}o)
       'foo'
+
+      iex> ~c(f\#{:o}o)
+      'f\#{:o}o'
 
   """
 
@@ -3450,13 +3456,13 @@ defmodule Kernel do
     quote do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options)))
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~R. It returns a Regex pattern without escaping
   nor interpreting interpolations.
 
   ## Examples
 
-      iex> Regex.match?(~R(f\#{1,3}o), "f\#o")
+      iex> Regex.match?(~R(f#{1,3}o), "f#o")
       true
 
   """
@@ -3465,7 +3471,7 @@ defmodule Kernel do
     Macro.escape(regex)
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~w. It returns a list of "words" split by whitespace.
 
   ## Modifiers
@@ -3476,7 +3482,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> ~w(foo \#{:bar} baz)
+      iex> ~w(foo #{:bar} baz)
       ["foo", "bar", "baz"]
 
       iex> ~w(--source test/enum_test.exs)
@@ -3496,7 +3502,7 @@ defmodule Kernel do
     split_words(binary, modifiers)
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil ~W. It returns a list of "words" split by whitespace
   without escaping nor interpreting interpolations.
 
@@ -3508,8 +3514,8 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> ~W(foo \#{bar} baz)
-      ["foo", "\\\#{bar}", "baz"]
+      iex> ~W(foo #{bar} baz)
+      ["foo", "\#{bar}", "baz"]
 
   """
   defmacro sigil_W({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
