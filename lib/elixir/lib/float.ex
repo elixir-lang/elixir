@@ -115,18 +115,14 @@ defmodule Float do
       iex> Float.floor(34.253, 2)
       34.25
   """
-  @spec floor(float) :: float
-  def floor(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num < 0 -> truncated - 1.0
-      _ -> truncated + 0.0
-    end
-  end
 
   @spec floor(float, integer) :: float
-  def floor(num, precision) when is_float(num) do
-    num - (0.5 / :math.pow(10, precision)) |> round(precision)
+  def floor(num, precision\\0) when is_float(num) do
+    calculate_precision(num, -0.5, precision) |> round(precision)
+  end
+
+  defp calculate_precision(num, variance, precision) do
+    num + (variance / :math.pow(10, precision))
   end
 
   @doc """
@@ -149,18 +145,9 @@ defmodule Float do
       34.26
   """
 
-  @spec ceil(float) :: float
-  def ceil(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num > 0 -> truncated + 1.0
-      _ -> truncated + 0.0
-    end
-  end
-
   @spec ceil(float, integer) :: float
-  def ceil(num, precision) when is_float(num) do
-    num + (0.5 / :math.pow(10, precision)) |> round(precision)
+  def ceil(num, precision\\0) when is_float(num) do
+    calculate_precision(num, 0.5, precision) |> round(precision)
   end
 
   @doc """
