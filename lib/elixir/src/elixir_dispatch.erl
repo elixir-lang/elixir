@@ -4,7 +4,7 @@
 -module(elixir_dispatch).
 -export([dispatch_import/5, dispatch_require/6,
   require_function/5, import_function/4,
-  expand_import/5, expand_require/5,
+  expand_import/6, expand_require/5,
   default_functions/0, default_macros/0, default_requires/0,
   find_import/4, format_error/1]).
 -include("elixir.hrl").
@@ -88,7 +88,7 @@ remote_function(Meta, Receiver, Name, Arity, E) ->
 
 dispatch_import(Meta, Name, Args, E, Callback) ->
   Arity = length(Args),
-  case expand_import(Meta, {Name, Arity}, Args, E, []) of
+  case expand_import(Meta, {Name, Arity}, Args, E, [], false) of
     {ok, Receiver, Quoted} ->
       expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
     {ok, Receiver, NewName, NewArgs} ->
@@ -115,12 +115,12 @@ dispatch_require(_Meta, Receiver, Name, Args, _E, Callback) ->
 
 %% Macros expansion
 
-expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra) ->
-  Module   = ?m(E, module),
-  Dispatch = find_dispatch(Meta, Tuple, Extra, E),
-  Function = ?m(E, function),
-  Local    = (Function /= nil) andalso (Function /= Tuple) andalso
-              elixir_locals:macro_for(Module, Name, Arity),
+expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
+  Module      = ?m(E, module),
+  Dispatch    = find_dispatch(Meta, Tuple, Extra, E),
+  Function    = ?m(E, function),
+  AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
+  Local       = AllowLocals andalso elixir_locals:macro_for(Module, Name, Arity),
 
   case Dispatch of
     %% In case it is an import, we dispatch the import.
