@@ -98,52 +98,46 @@ defmodule Float do
 
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
+  Floor also accepts a precision to round a floating point value down
+  to an arbitrary number of fractional digits (between 0 and 15).
 
   ## Examples
 
-      iex> Float.floor(34)
-      34
-
       iex> Float.floor(34.25)
-      34
+      34.0
 
       iex> Float.floor(-56.5)
-      -57
+      -57.0
 
+      iex> Float.floor(34.253, 2)
+      34.25
   """
-  @spec floor(float | integer) :: integer
-  def floor(num) when is_integer(num), do: num
-  def floor(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num < 0 -> truncated - 1
-      _ -> truncated
-    end
+
+  @spec floor(float, integer) :: float
+  def floor(num, precision\\0) when is_float(num) do
+    calculate_precision(num, -0.5, precision) |> round(precision)
   end
 
   @doc """
   Rounds a float to the largest integer greater than or equal to `num`.
+  Ceil also accepts a precision to round a floating point value down to
+  an arbitrary number of fractional digits (between 0 and 15).
 
   ## Examples
 
-      iex> Float.ceil(34)
-      34
-
       iex> Float.ceil(34.25)
-      35
+      35.0
 
       iex> Float.ceil(-56.5)
-      -56
+      -56.0
 
+      iex> Float.ceil(34.253, 2)
+      34.26
   """
-  @spec ceil(float | integer) :: integer
-  def ceil(num) when is_integer(num), do: num
-  def ceil(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num > 0 -> truncated + 1
-      _ -> truncated
-    end
+
+  @spec ceil(float, integer) :: float
+  def ceil(num, precision\\0) when is_float(num) do
+    calculate_precision(num, 0.5, precision) |> round(precision)
   end
 
   @doc """
@@ -163,6 +157,10 @@ defmodule Float do
 
       iex> Float.round(-5.5675, 3)
       -5.568
+
+  Round uses `Kernel.round/1` to round both float and integer values to the
+  nearest precision. `Kernel.round/1` always returns an integer and can be
+  used in guards.
 
   """
   @spec round(float, integer) :: float
@@ -245,6 +243,10 @@ defmodule Float do
   @spec to_string(float, list) :: String.t
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
+  end
+
+  defp calculate_precision(num, variance, precision) do
+    num + (variance / :math.pow(10, precision))
   end
 
   defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
