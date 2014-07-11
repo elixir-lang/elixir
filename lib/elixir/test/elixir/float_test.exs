@@ -41,6 +41,11 @@ defmodule FloatTest do
     assert Float.floor(1.32453e-10) === 0.0
   end
 
+  test :floor_with_precision do
+    assert Float.floor(12.524235, 2) === 12.52
+    assert Float.floor(-12.524235, 3) === -12.525
+  end
+
   test :ceil do
     assert Float.ceil(12.524235) === 13.0
     assert Float.ceil(-12.5) === -12.0

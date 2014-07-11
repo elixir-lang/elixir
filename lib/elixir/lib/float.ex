@@ -107,6 +107,13 @@ defmodule Float do
       iex> Float.floor(-56.5)
       -57.0
 
+  Floor also accepts a precision to round a floating point value down to an arbitrary number of fractional digits
+  (between 0 and 15).
+
+  ## Examples
+
+      iex> Float.floor(34.253, 2)
+      34.25
   """
   @spec floor(float) :: float
   def floor(num) when is_float(num) do
@@ -115,6 +122,11 @@ defmodule Float do
       x when x > 0 and num < 0 -> truncated - 1.0
       _ -> truncated + 0.0
     end
+  end
+
+  @spec floor(float, integer) :: float
+  def floor(num, precision) when is_float(num) do
+    num - (0.5 / :math.pow(10, precision)) |> round(precision)
   end
 
   @doc """
@@ -129,6 +141,8 @@ defmodule Float do
       -56.0
 
   """
+
+
   @spec ceil(float) :: float
   def ceil(num) when is_float(num) do
     truncated = :erlang.trunc(num)
