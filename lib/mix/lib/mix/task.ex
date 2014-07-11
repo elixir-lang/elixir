@@ -13,7 +13,7 @@ defmodule Mix.Task do
         use Mix.Task
 
         def run(_) do
-          IO.puts "hello"
+          Mix.shell.info "hello"
         end
       end
 
@@ -194,11 +194,15 @@ defmodule Mix.Task do
   If the task was not yet invoked, it runs the task and
   returns the result.
 
-  If the task was already invoked, it does not run the task
-  again and simply aborts with `:noop`.
+  If there is an alias with the same name, the alias
+  will be invoked instead of a task.
 
-  It may raise an exception if the task was not found
-  or it is invalid. Check `get!/1` for more information.
+  If the task or alias were already invoked, it does not
+  run them again and simply aborts with `:noop`.
+
+  It may raise an exception if the an alias or a task can't
+  be found or the task is invalid. Check `get!/1` for more
+  information.
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) when is_binary(task) or is_atom(task) do

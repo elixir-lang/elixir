@@ -8,6 +8,7 @@ defmodule Mix.AliasesTest do
       [aliases: [h: "hello",
                  p: &inspect/1,
                  compile: "hello",
+                 help: ["help", "hello"],
                  "nested.h": [&Mix.shell.info(inspect(&1)), "h foo bar"]]]
     end
   end
@@ -43,5 +44,10 @@ defmodule Mix.AliasesTest do
   test "run alias override" do
     assert Mix.Task.run("compile", []) == "Hello, World!"
     assert Mix.Task.run("compile", []) == :noop
+  end
+
+  test "run alias override with recursion" do
+    assert Mix.Task.run("help", []) == "Hello, World!"
+    assert_received {:mix_shell, :info, ["mix test" <> _]}
   end
 end

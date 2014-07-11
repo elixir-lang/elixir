@@ -21,7 +21,7 @@ defmodule Mix.Project do
   even without a project.
 
   In case the developer needs a project or wants to access a special
-  function in the project, he/she can call `Mix.Project.get!/0`
+  function in the project, the developer can call `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
   """

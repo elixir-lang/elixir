@@ -24,10 +24,21 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+
+  defmodule Aliases do
+    def project do
+      [aliases: [h: "hello", c: "compile"]]
+    end
+  end
+
   test "help --names" do
+    Mix.Project.push Aliases
+
     in_fixture "no_mixfile", fn ->
       Mix.Tasks.Help.run ["--names"]
+      assert_received {:mix_shell, :info, ["c"]}
       assert_received {:mix_shell, :info, ["compile"]}
+      assert_received {:mix_shell, :info, ["h"]}
       assert_received {:mix_shell, :info, ["help"]}
       assert_received {:mix_shell, :info, ["escriptize"]}
     end
