@@ -6,6 +6,7 @@
   * [Access] Allow function access on `get_in/2` and `get_and_update_in/3`
   * [Enum] Add `Enum.sort_by/3`
   * [ExUnit] Match the line filter by proximity instead of exact match
+  * [Float] Support precision in `Float.ceil/1` and `Float.floor/1`
   * [IO] Add `IO.(bin)read(device, :all)`
   * [Kernel] Print a warning if a dangling `@doc` clause is found
   * [Mix] Use absolute symbolic links on Windows for `_build` instead of copying
@@ -16,6 +17,7 @@
   * [Record] Allow a record to be converted to a keyword list with `record(some_record)`
   * [String] Improve performance of `String.split/1`
   * [Typespec] Allow `%Struct{}` syntax to be used in typespecs
+  * [Typespec] Allow `record(:record, fields)` syntax to be used in typespecs
 
 * Bug fixes
   * [IEx] Do not print ANSI sequences on `IEx.Helpers.clear/0` if ANSI sequences are not supported
@@ -47,6 +49,7 @@
 
 * Backwards incompatible changes
   * [Access] No longer fill in missing intermediate values with empty maps
+  * [Float] `Float.ceil/2` and `Float.floor/2` now always returns floats and no longer accept integers
   * [Kernel] `defstruct` no longer automatically defines a type
   * [Kernel] `exit(integer)` is no longer supported from scripts to configure the exit signal. Use `exit({:shutdown, integer})` instead
   * [Kernel] Default argument values have to be defined in a function head if the function has multiple clauses
