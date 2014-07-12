@@ -1,6 +1,6 @@
 {application, elixir,
 [{description, "elixir"},
- {vsn, "0.14.3-dev"},
+ {vsn, "0.14.3"},
  {modules, [
 	elixir
   ]},
