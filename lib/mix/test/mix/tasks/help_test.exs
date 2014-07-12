@@ -40,7 +40,7 @@ defmodule Mix.Tasks.HelpTest do
       assert_received {:mix_shell, :info, ["compile"]}
       assert_received {:mix_shell, :info, ["h"]}
       assert_received {:mix_shell, :info, ["help"]}
-      assert_received {:mix_shell, :info, ["escriptize"]}
+      assert_received {:mix_shell, :info, ["escript.build"]}
     end
   end
 

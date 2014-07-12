@@ -16,7 +16,7 @@ defmodule Macro do
     :&&, :||, :<>, :++, :--, :\\, :::, :<-, :.., :|>, :=~,
     :<, :>, :->,
     :+, :-, :*, :/, :=, :|, :.,
-    :and, :or, :xor, :when, :in,
+    :and, :or, :when, :in,
     :<<<, :>>>, :|||, :&&&, :^^^, :~~~]
 
   @doc false
@@ -35,7 +35,7 @@ defmodule Macro do
       :::                                     -> {:right, 60}
       :|                                      -> {:right, 70}
       :=                                      -> {:right, 90}
-      o when o in [:||, :|||, :or, :xor]      -> {:left, 130}
+      o when o in [:||, :|||, :or]            -> {:left, 130}
       o when o in [:&&, :&&&, :and]           -> {:left, 140}
       o when o in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
       o when o in [:<, :<=, :>=, :>]          -> {:left, 160}

@@ -50,7 +50,8 @@ defmodule EExTest do
   use ExUnit.Case, async: true
 
   doctest EEx
-  doctest EEx.AssignsEngine
+  doctest EEx.Engine
+  doctest EEx.SmartEngine
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"

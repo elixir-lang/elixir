@@ -234,12 +234,6 @@ defmodule System do
   lookup files with `.com`, `.cmd` or similar extensions.
   """
   @spec find_executable(binary) :: binary | nil
-
-  def find_executable(program) when is_list(program) do
-    IO.puts :stderr, "warning: passing a char_list to System.find_executable/1 is deprecated\n#{Exception.format_stacktrace}"
-    :os.find_executable(program) || nil
-  end
-
   def find_executable(program) when is_binary(program) do
     case :os.find_executable(String.to_char_list(program)) do
       false -> nil
