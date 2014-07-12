@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.14.3-dev
+## v0.14.3 (2014-07-12)
 
 * Enhancements
   * [Access] Allow function access on `get_in/2` and `get_and_update_in/3`
