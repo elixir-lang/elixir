@@ -48,7 +48,7 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest"]}
-      assert System.cmd("escript escriptest") == "TEST\n"
+      assert System.cmd("escript", ["escriptest"]) == {"TEST\n", 0}
 
       Mix.Tasks.Escript.Build.run []
       refute_received {:mix_shell, :info, ["Generated escript escriptest"]}
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithpath"]}
-      assert System.cmd("escript ebin/escripttestwithpath") == "TEST\n"
+      assert System.cmd("escript", ["ebin/escripttestwithpath"]) == {"TEST\n", 0}
     end
   end
 
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"]}
-      assert System.cmd("escript ebin/escripttestwithdeps") == "TEST\n"
+      assert System.cmd("escript", ["ebin/escripttestwithdeps"]) == {"TEST\n", 0}
     end
   after
     purge [Ok.Mixfile]

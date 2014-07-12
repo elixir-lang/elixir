@@ -311,7 +311,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   defp get_git_repo_revs do
     File.cd! fixture_path("git_repo"), fn ->
-      Regex.split ~r(\r?\n), System.cmd("git log --format=%H")
+      Regex.split ~r(\r?\n), System.cmd("git", ["log", "--format=%H"]) |> elem(0)
     end
   end
 end

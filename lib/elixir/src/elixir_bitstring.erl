@@ -114,8 +114,10 @@ handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
       expand_bit_info(Meta, unpack_bit_info(Meta, Info, E) ++ T, Size, Types, E)
   end.
 
-%% Deprecate me: we can remove unpack_bit_info/3 once deprecated.
-unpack_bit_info(Meta, [H|T], _E) ->
+%% We can remove unpack_bit_info/3 once deprecated.
+unpack_bit_info(Meta, [H|T], E) ->
+  elixir_errors:warn(?line(Meta), ?m(E, file), "passing a list of bitstring modifiers is deprecated, "
+    "please separate them with - instead"),
   Dashed = lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T),
   unpack_bit_info(Dashed, []);
 unpack_bit_info(_Meta, Expr, _E) ->

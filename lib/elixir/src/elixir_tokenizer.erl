@@ -945,7 +945,6 @@ keyword('nil')   -> token;
 keyword('not')    -> unary_op;
 keyword('and')    -> and_op;
 keyword('or')     -> or_op;
-keyword('xor')    -> or_op;
 keyword('when')   -> when_op;
 keyword('in')     -> in_op;
 
