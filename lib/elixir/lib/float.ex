@@ -1,3 +1,5 @@
+import Kernel, except: [round: 1]
+
 defmodule Float do
   @moduledoc """
   Functions for working with floating point numbers.
@@ -98,8 +100,12 @@ defmodule Float do
 
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
+
   Floor also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).
+
+  This function always returns floats. One may use `Kernel.trunc/1` to
+  truncate the result to an integer afterwards.
 
   ## Examples
 
@@ -113,24 +119,23 @@ defmodule Float do
       34.25
 
   """
-  @spec floor(float) :: float
-  def floor(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num < 0 -> truncated - 1.0
-      _ -> truncated + 0.0
-    end
-  end
-
-  @spec floor(float, integer) :: float
-  def floor(num, precision) when is_float(num) do
-    calculate_precision(num, -0.5, precision) |> round(precision)
+  @spec floor(float, 0..15) :: float
+  def floor(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power     = power_of_10(precision)
+    number    = number * power
+    truncated = trunc(number)
+    variance  = if number - truncated < 0, do: -1.0, else: 0.0
+    (truncated + variance) / power
   end
 
   @doc """
   Rounds a float to the largest integer greater than or equal to `num`.
+
   Ceil also accepts a precision to round a floating point value down to
   an arbitrary number of fractional digits (between 0 and 15).
+
+  This function always returns floats. One may use `Kernel.trunc/1` to
+  truncate the result to an integer afterwards.
 
   ## Examples
 
@@ -144,24 +149,22 @@ defmodule Float do
       34.26
 
   """
-
-  @spec ceil(float) :: float
-  def ceil(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num > 0 -> truncated + 1.0
-      _ -> truncated + 0.0
-    end
-  end
-
-  @spec ceil(float, integer) :: float
-  def ceil(num, precision) when is_float(num) do
-    calculate_precision(num, 0.5, precision) |> round(precision)
+  @spec ceil(float, 0..15) :: float
+  def ceil(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power     = power_of_10(precision)
+    number    = number * power
+    truncated = trunc(number)
+    variance  = if number - truncated > 0, do: 1.0, else: 0.0
+    (truncated + variance) / power
   end
 
   @doc """
   Rounds a floating point value to an arbitrary number of fractional digits
   (between 0 and 15).
+
+  This function only accepts floats and returns floats. Use `Kernel.round/1`
+  if you want a function that accepts both floats and integers and always
+  returns an integer.
 
   ## Examples
 
@@ -178,9 +181,15 @@ defmodule Float do
       -5.568
 
   """
-  @spec round(float, integer) :: float
-  def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
-    Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
+  @spec round(float, 0..15) :: float
+  def round(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power = power_of_10(precision)
+    Kernel.round(number * power) / power
+  end
+
+  Enum.reduce 0..15, 1, fn x, acc ->
+    defp power_of_10(unquote(x)), do: unquote(acc)
+    acc * 10
   end
 
   @doc """
@@ -258,10 +267,6 @@ defmodule Float do
   @spec to_string(float, list) :: String.t
   def to_string(float, options) do
     :erlang.float_to_binary(float, expand_compact(options))
-  end
-
-  defp calculate_precision(num, variance, precision) do
-    num + (variance / :math.pow(10, precision))
   end
 
   defp expand_compact([{:compact, false}|t]), do: expand_compact(t)
