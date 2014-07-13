@@ -1088,13 +1088,12 @@ defmodule String do
       iex> String.slice("a", 1..1500)
       ""
 
-      iex> String.slice("a", 2..1500)
-      ""
-
   """
   @spec slice(t, Range.t) :: t
 
   def slice(string, range)
+
+  def slice("", _.._), do: ""
 
   def slice(string, first..-1) when first >= 0 do
     nbytes = count_bytes_until(string, first)
@@ -1109,21 +1108,22 @@ defmodule String do
     do_slice(next_grapheme(string), string, first, last, 0, 0, 0)
   end
 
-  def slice(string, first..last) do
-    total = length(string)
+  def slice(string, first..last) when first >= 0 do
+    count = abs(last)
+    do_slice_neg_lb(next_grapheme(string), string, first, 0, count, init_bytes)
+  end
 
-    if first < 0 do
-      first = total + first
-    end
+  def slice(string, first..last) when last >= 0 do
+    count = abs(first)
+    do_slice_neg(next_grapheme(string), string, first, last, count, 0, init_bytes)
+  end
 
-    if last < 0 do
-      last = total + last
-    end
-
-    if first >= 0 do
-      do_slice(next_grapheme(string), string, first, last, 0, 0, 0)
-    else
+  def slice(string, first..last) when first < 0 and last < 0 do
+    if first > last do
       ""
+    else
+      count = abs(first)
+      do_slice_neg(next_grapheme(string), string, first, last, count, 0, init_bytes)
     end
   end
 
@@ -1141,6 +1141,73 @@ defmodule String do
 
   defp count_bytes_until({_, _}, index, index, nbytes) do
     nbytes
+  end
+
+  # "lb" stands for known lower bound
+  defp do_slice_neg_lb(nil, str, first, pos, count, bytes) do
+    cond do
+      pos < first+1 ->
+        # starting position is out of bounds
+        ""
+      pos-count < first ->
+        # the negative right bound is out of bounds
+        ""
+      true ->
+        {bytes, _, start_bytes} = bytes
+        len_bytes = sum_bytes(bytes, count-1)
+        binary_part(str, start_bytes, byte_size(str)-start_bytes-len_bytes)
+    end
+  end
+
+  defp do_slice_neg_lb({char, rest}, str, first, pos, count, bytes) do
+    bytes = update_bytes(bytes, char, first, pos, count)
+    do_slice_neg_lb(next_grapheme(rest), str, first, pos+1, count, bytes)
+  end
+
+  # both bounds are negative
+  defp do_slice_neg(nil, str, first, last, count, pos, bytes) do
+    # get positive bounds
+    if first < 0, do: first = pos + first
+    if last < 0, do: last = pos + last
+    cond do
+      first < 0 or first > last ->
+        # negative left bound is out of bounds
+        ""
+      true ->
+        {bytes, _, _} = bytes
+        str_bytes = byte_size(str)
+        start_bytes = str_bytes - sum_bytes(bytes, count)
+        last = min(last, pos-1)
+        len_bytes =
+          bytes |> drop_bytes(pos-last-1) |> sum_bytes(last-first+1)
+        binary_part(str, start_bytes, min(len_bytes, str_bytes-start_bytes))
+    end
+  end
+
+  defp do_slice_neg({char, rest}, str, first, last, count, pos, bytes) do
+    bytes = update_bytes(bytes, char, 0, 0, count)
+    do_slice_neg(next_grapheme(rest), str, first, last, count, pos+1, bytes)
+  end
+
+  defp init_bytes(), do: {[], 0, 0}
+
+  defp sum_bytes(bytes, count) do
+    bytes |> Enum.take(count) |> Enum.sum
+  end
+
+  defp drop_bytes(bytes, count) do
+    Enum.drop(bytes, count)
+  end
+
+  defp update_bytes({bytes, n, start_bytes}, char, first, pos, cnt) do
+    char_bytes = byte_size(char)
+    if pos < first do
+      start_bytes = start_bytes + char_bytes
+    end
+    if n < cnt do
+      n = n + 1
+    end
+    {[char_bytes|bytes], n, start_bytes}
   end
 
   defp do_slice(_, _, start_pos, last_pos, _, _, _) when start_pos > last_pos do
