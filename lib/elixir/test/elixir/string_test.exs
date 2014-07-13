@@ -345,6 +345,7 @@ defmodule StringTest do
     assert String.slice("あいうえお", -2..-4) == ""
     assert String.slice("あいうえお", -10..-15) == ""
     assert String.slice("hello あいうえお unicode", 8..-1) == "うえお unicode"
+    assert String.slice("abc", -1..14) == "c"
   end
 
   test :valid? do
