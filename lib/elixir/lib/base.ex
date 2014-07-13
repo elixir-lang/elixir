@@ -499,7 +499,7 @@ defmodule Base do
   defp do_encode64(<<>>, _), do: <<>>
   defp do_encode64(data, enc) do
     split =  3 * div(byte_size(data), 3)
-    <<main::[size(split), binary], rest::binary>> = data
+    <<main::size(split)-binary, rest::binary>> = data
     main = for <<c::6 <- main>>, into: <<>>, do: <<enc.(c)::8>>
     case rest do
       <<c1::6, c2::6, c3::4>> ->
@@ -514,7 +514,7 @@ defmodule Base do
   defp do_decode64(<<>>, _), do: <<>>
   defp do_decode64(string, dec) when rem(byte_size(string), 4) == 0 do
     split = byte_size(string) - 4
-    <<main::[size(split), binary], rest::binary>> = string
+    <<main::size(split)-binary, rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec.(c)::6>>
     case rest do
       <<c1::8, c2::8, ?=, ?=>> ->
@@ -534,7 +534,7 @@ defmodule Base do
   defp do_encode32(<<>>, _), do: <<>>
   defp do_encode32(data, enc) do
     split =  5 * div(byte_size(data), 5)
-    <<main::[size(split), binary], rest::binary>> = data
+    <<main::size(split)-binary, rest::binary>> = data
     main = for <<c::5 <- main>>, into: <<>>, do: <<enc.(c)::8>>
     case rest do
       <<c1::5, c2::5, c3::5, c4::5, c5::5, c6::5, c7::2>> ->
@@ -561,7 +561,7 @@ defmodule Base do
   defp do_decode32(<<>>, _), do: <<>>
   defp do_decode32(string, dec) when rem(byte_size(string), 8) == 0 do
     split = byte_size(string) - 8
-    <<main::[size(split), binary], rest::binary>> = string
+    <<main::size(split)-binary, rest::binary>> = string
     main = for <<c::8 <- main>>, into: <<>>, do: <<dec.(c)::5>>
     case rest do
       <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
