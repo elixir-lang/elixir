@@ -1,24 +1,22 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  def expand([]) do
-    funs = module_funs(IEx.Helpers) ++ module_funs(Kernel)
-    mods = [%{name: "Elixir", type: :elixir, kind: :module}]
-    format_expansion mods ++ funs
+  def expand('') do
+    expand_import("")
   end
 
   def expand([h|t]=expr) do
     cond do
       h === ?. and t != []->
-        expand_dot reduce(t)
+        expand_dot(reduce(t))
       h === ?: ->
         expand_erlang_modules
       identifier?(h) ->
-        expand_expr reduce(expr)
+        expand_expr(reduce(expr))
       (h == ?/) and t != [] and identifier?(hd(t)) ->
-        expand_expr reduce(t)
+        expand_expr(reduce(t))
       h in '(+[' ->
-        expand ''
+        expand('')
       true ->
         no()
     end
@@ -31,9 +29,9 @@ defmodule IEx.Autocomplete do
   defp expand_dot(expr) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_call atom, ""
+        expand_call(atom, "")
       {:ok, {:__aliases__, _, list}} ->
-        expand_elixir_modules list
+        expand_elixir_modules(list, "")
       _ ->
         no()
     end
@@ -44,7 +42,7 @@ defmodule IEx.Autocomplete do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules Atom.to_string(atom)
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_call Kernel, Atom.to_string(atom)
+        expand_import Atom.to_string(atom)
       {:ok, {:__aliases__, _, [root]}} ->
         expand_elixir_modules [], Atom.to_string(root)
       {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
@@ -79,8 +77,6 @@ defmodule IEx.Autocomplete do
   end
 
   ## Formatting
-
-  defp format_expansion(list, hint \\ "")
 
   defp format_expansion([], _) do
     no()
@@ -127,20 +123,27 @@ defmodule IEx.Autocomplete do
 
   # :atom.fun
   defp expand_call(mod, hint) when is_atom(mod) do
-    expand_module_funs mod, hint
+    expand_require mod, hint
   end
 
   # Elixir.fun
   defp expand_call({:__aliases__, _, list}, hint) do
-    expand_module_funs Module.concat(list), hint
+    expand_require Module.concat(list), hint
   end
 
   defp expand_call(_, _) do
     no()
   end
 
-  defp expand_module_funs(mod, hint) do
+  defp expand_require(mod, hint) do
     format_expansion module_funs(mod, hint), hint
+  end
+
+  defp expand_import(hint) do
+    funs = module_funs(IEx.Helpers, hint) ++
+           module_funs(Kernel, hint) ++
+           module_funs(Kernel.SpecialForms, hint)
+    format_expansion funs, hint
   end
 
   ## Erlang modules
@@ -159,7 +162,7 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  defp expand_elixir_modules(list, hint \\ "") do
+  defp expand_elixir_modules(list, hint) do
     mod = Module.concat(list)
     format_expansion elixir_submodules(mod, hint, list == []) ++ module_funs(mod, hint), hint
   end
@@ -194,7 +197,7 @@ defmodule IEx.Autocomplete do
 
   ## Helpers
 
-  defp module_funs(mod, hint \\ "") do
+  defp module_funs(mod, hint) do
     case ensure_loaded(mod) do
       {:module, _} ->
         falist = get_funs(mod)
@@ -208,7 +211,7 @@ defmodule IEx.Autocomplete do
 
         for {fun, arities} <- list,
             name = Atom.to_string(fun),
-            String.starts_with?(name, hint) do
+            hint == "" or String.starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
         end
       _ ->

@@ -5,6 +5,7 @@
 * Enhancements
 
 * Bug fixes
+  * [IEx] Ensure functions in `Kernel.SpecialForms` and `IEx.Helpers` are also auto-completed
 
 * Soft deprecations (no warnings emitted)
 

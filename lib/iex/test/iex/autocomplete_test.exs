@@ -71,11 +71,15 @@ defmodule IEx.AutocompleteTest do
     {:yes, '', list} = expand('')
     assert is_list(list)
     assert 'h/1' in list
-    assert 'Elixir' in list
+    assert 'unquote/1' in list
   end
 
   test :elixir_kernel_completion do
     assert expand('defstru') == {:yes, 'ct', []}
+  end
+
+  test :elixir_special_form_completion do
+    assert expand('unquote_spl') == {:yes, 'icing', []}
   end
 
   test :elixir_proxy do
