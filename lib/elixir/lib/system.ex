@@ -376,7 +376,7 @@ defmodule System do
   `command` is expected to be an executable available in PATH
   unless an absolute path is given.
 
-  `args` must be a list of strings and they are not expanded
+  `args` must be a list of strings which are not expanded
   in any way. For example, this means wildcard expansion will
   not happen unless `Path.wildcard/2` is used. On Windows though,
   wildcard expansion is up to the program.
@@ -386,7 +386,7 @@ defmodule System do
   ## Options
 
     * `:into` - injects the result into the given collectable, defaults to `""`
-    * `:cd` - the directory to run the command on
+    * `:cd` - the directory to run the command in
     * `:env` - an enumerable of tuples containing environment key-value as binary
     * `:arg0` - set the command arg0
     * `:stderr_to_stdout` - redirects stderr to stdout when true
@@ -399,7 +399,7 @@ defmodule System do
   ## Error reasons
 
   If invalid arguments are given, `ArgumentError` is raised by
-  `System.cmd/3`. `System.cmd/3` also expect a strict set of
+  `System.cmd/3`. `System.cmd/3` also expects a strict set of
   options and will raise if unknown or invalid options are given.
 
   Furthermore, `System.cmd/3` may fail with one of the POSIX reasons
@@ -411,7 +411,7 @@ defmodule System do
 
     * `:eagain` - there are no more available operating system processes
 
-    * `:enametoolong` - the external command given was too long.
+    * `:enametoolong` - the external command given was too long
 
     * `:emfile` - there are no more available file descriptors
       (for the operating system process that the Erlang emulator runs in)
@@ -429,7 +429,7 @@ defmodule System do
   [Erlang's :os.cmd/1 function](http://www.erlang.org/doc/man/os.html#cmd-1).
   """
   @spec cmd(binary, [binary], Keyword.t) ::
-        {:ok, Collectable.t, exit_status :: non_neg_integer} | {:error, atom}
+        {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     command = String.to_char_list(command)
 
