@@ -1030,13 +1030,13 @@ defmodule String do
   end
 
   def slice(string, start, len) when start >= 0 and len >= 0 do
-    do_slice(next_grapheme(string), start, start + len - 1, 0, "")
+    do_slice(next_grapheme(string), string, start, start + len - 1, 0, 0, 0)
   end
 
   def slice(string, start, len) when start < 0 and len >= 0 do
     real_start_pos = length(string) - abs(start)
     case real_start_pos >= 0 do
-      true -> do_slice(next_grapheme(string), real_start_pos, real_start_pos + len - 1, 0, "")
+      true -> do_slice(next_grapheme(string), string, real_start_pos, real_start_pos + len - 1, 0, 0, 0)
       false -> ""
     end
   end
@@ -1096,8 +1096,17 @@ defmodule String do
 
   def slice(string, range)
 
+  def slice(string, first..-1) when first >= 0 do
+    nbytes = count_bytes_until(string, first)
+    if nbytes >= 0 do
+      binary_part(string, nbytes, byte_size(string) - nbytes)
+    else
+      ""
+    end
+  end
+
   def slice(string, first..last) when first >= 0 and last >= 0 do
-    do_slice(next_grapheme(string), first, last, 0, "")
+    do_slice(next_grapheme(string), string, first, last, 0, 0, 0)
   end
 
   def slice(string, first..last) do
@@ -1112,30 +1121,52 @@ defmodule String do
     end
 
     if first >= 0 do
-      do_slice(next_grapheme(string), first, last, 0, "")
+      do_slice(next_grapheme(string), string, first, last, 0, 0, 0)
     else
       ""
     end
   end
 
-  defp do_slice(_, start_pos, last_pos, _, _) when start_pos > last_pos do
+  defp count_bytes_until(string, index) do
+    count_bytes_until(next_grapheme(string), index, 0, 0)
+  end
+
+  defp count_bytes_until({char, rest}, index, pos, nbytes) when pos < index do
+    count_bytes_until(next_grapheme(rest), index, pos+1, nbytes+byte_size(char))
+  end
+
+  defp count_bytes_until(nil, _, _, _) do
+    -1
+  end
+
+  defp count_bytes_until({_, _}, index, index, nbytes) do
+    nbytes
+  end
+
+  defp do_slice(_, _, start_pos, last_pos, _, _, _) when start_pos > last_pos do
     ""
   end
 
-  defp do_slice({_, rest}, start_pos, last_pos, current_pos, acc) when current_pos < start_pos do
-    do_slice(next_grapheme(rest), start_pos, last_pos, current_pos + 1, acc)
+  defp do_slice({char, rest}, str, start_pos, last_pos, current_pos, start_bytes, len_bytes)
+    when current_pos < start_pos
+  do
+    do_slice(next_grapheme(rest), str, start_pos, last_pos, current_pos + 1, start_bytes+byte_size(char), len_bytes)
   end
 
-  defp do_slice({char, rest}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos < last_pos do
-    do_slice(next_grapheme(rest), start_pos, last_pos, current_pos + 1, acc <> char)
+  defp do_slice({char, rest}, str, start_pos, last_pos, current_pos, start_bytes, len_bytes)
+    when current_pos >= start_pos and current_pos < last_pos
+  do
+    do_slice(next_grapheme(rest), str, start_pos, last_pos, current_pos + 1, start_bytes, len_bytes+byte_size(char))
   end
 
-  defp do_slice({char, _}, start_pos, last_pos, current_pos, acc) when current_pos >= start_pos and current_pos == last_pos do
-    acc <> char
+  defp do_slice({char, _}, str, start_pos, last_pos, current_pos, start_bytes, len_bytes)
+    when current_pos >= start_pos and current_pos == last_pos
+  do
+    binary_part(str, start_bytes, len_bytes+byte_size(char))
   end
-  
-  defp do_slice(nil, _, _, _, acc) do
-    acc
+
+  defp do_slice(nil, str, _, _, _, start_bytes, len_bytes) do
+    binary_part(str, start_bytes, len_bytes)
   end
 
   @doc """
