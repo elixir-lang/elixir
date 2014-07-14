@@ -1042,11 +1042,20 @@ defmodule String do
   end
 
   @doc """
-  Returns a substring from the offset given by the start of the
-  range to the offset given by the end of the range.
+  Returns a substring using one of two methods for determining the size of
+  the slice. The first method is by providing a start index for the slice,
+  where the length of the slice is assumed to be the remaining length
+  of the string following the start index. Use this to easily slice off
+  a portion of a string and return the rest. The second method available is
+  to provide a range, where the start of the range defines the start index
+  for the slice, and the end of the range defines the offset to slice to.
 
-  If the start of the range is not a valid offset for the given
-  string or if the range is in reverse order, returns `""`.
+  If an index is given, and it is greater than the length of the string,
+  then `""` is returned. If the index is negative, then the start index
+  will be calculated from the end of the string instead of the beginning.
+
+  If a range is given, and the start of the range is not a valid offset for
+  the string or if the range is in reverse order, returns `""`.
 
   If the start or end of the range are negative, the whole string
   is traversed first in order to convert the negative indexes into
@@ -1057,6 +1066,12 @@ defmodule String do
   on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
+
+      iex> String.slice("elixir", 1)
+      "lixir"
+
+      iex> String.slice("elixir", -4)
+      "ixir"
 
       iex> String.slice("elixir", 1..3)
       "lix"
@@ -1092,9 +1107,21 @@ defmodule String do
       ""
 
   """
-  @spec slice(t, Range.t) :: t
+  @spec slice(t, integer | Range.t) :: t
 
   def slice(string, range)
+
+  def slice(string, 0), do: string
+  def slice(string, start) when is_number(start) and start >= 0 do
+    do_slice(next_grapheme(string), start, byte_size(string), 0, "")
+  end
+  def slice(string, start) when is_number(start) and start < 0 do
+    real_start_pos = length(string) - abs(start)
+    case real_start_pos >= 0 do
+      true -> do_slice(next_grapheme(string), real_start_pos, byte_size(string), 0, "")
+      false -> ""
+    end
+  end
 
   def slice(string, first..last) when first >= 0 and last >= 0 do
     do_slice(next_grapheme(string), first, last, 0, "")
