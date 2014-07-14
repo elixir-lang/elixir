@@ -100,7 +100,7 @@ defmodule IEx.Helpers do
     if Application.get_env(:iex, :colors)[:enabled] do
       IO.write [IO.ANSI.home, IO.ANSI.clear]
     else
-      IO.write "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
+      IO.puts "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
     end
     dont_display_result
   end
