@@ -19,7 +19,7 @@ INSTALL_PROGRAM = $(INSTALL) -m755
 # This check should work for older versions like R16B
 # as well as new verions like 17.1 and 18
 define CHECK_ERLANG_RELEASE
-	$(Q) erl -noshell -eval 'V = erlang:system_info(otp_release), case erlang:list_to_integer(V) >= 17 of true -> erlang:halt(0); false -> erlang:halt(1) end'; \
+	$(Q) erl -noshell -eval 'io:fwrite("~s", [erlang:system_info(otp_release)])' -s erlang halt | grep -q '^1[789]'; \
 		if [ $$? != 0 ]; then                                                                                        \
 		   echo "At least Erlang 17.0 is required to build Elixir";                                                  \
 		   exit 1;                                                                                                   \
