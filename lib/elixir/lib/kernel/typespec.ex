@@ -507,9 +507,9 @@ defmodule Kernel.Typespec do
     do: type_to_signature(other)
 
   @doc false
-  def type_to_signature({:::, _, [{name, _, nil}, _]}),
+  def type_to_signature({:::, _, [{name, _, context}, _]}) when is_atom(name) and is_atom(context),
     do: {name, 0}
-  def type_to_signature({:::, _, [{name, _, args}, _]}),
+  def type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name),
     do: {name, length(args)}
 
   ## Macro callbacks
