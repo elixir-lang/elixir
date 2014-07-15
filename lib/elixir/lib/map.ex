@@ -38,5 +38,22 @@ defmodule Map do
     end, map1, map2
   end
 
+  @doc """
+  Converts a struct to map.
+
+  ## Example
+
+      defmodule User do
+        defstruct [:name]
+      end
+
+      Map.from_struct(%User{name: "valim"})
+      #=> %{name: "valim"}
+
+  """
+  def from_struct(struct) do
+    :maps.delete(:__struct__, struct)
+  end
+
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
 end
