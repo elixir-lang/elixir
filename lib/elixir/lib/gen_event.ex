@@ -272,10 +272,12 @@ defmodule GenEvent do
   end
 
   @doc """
-  Returns a stream that consumes and notifies events to the `manager`.
+  Returns a stream that consumes events from the `manager`.
 
   The stream is a `GenEvent` struct that implements the `Enumerable`
-  protocol. The supported options are:
+  protocol. Consumption of events only begins when enumeration starts.
+
+  `The supported options are:
 
     * `:id` - an id to identify all live stream instances; when an `:id` is
       given, existing streams can be called with via `cancel_streams`.
