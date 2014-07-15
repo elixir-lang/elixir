@@ -273,7 +273,7 @@ defmodule Enum do
 
   Returns `default` if index is out of bounds.
 
-  Note this operation is always linear. In order to access
+  Note this operation takes linear time. In order to access
   the element at index `n`, it will need to traverse `n`
   previous elements.
 
@@ -576,7 +576,7 @@ defmodule Enum do
   enumerated once and the index is counted from the end (i.e.
   `-1` fetches the last element).
 
-  Note this operation is always linear. In order to access
+  Note this operation takes linear time. In order to access
   the element at index `n`, it will need to traverse `n`
   previous elements.
 
@@ -623,7 +623,7 @@ defmodule Enum do
   Raises `OutOfBoundsError` if the given position
   is outside the range of the collection.
 
-  Note this operation is always linear. In order to access
+  Note this operation takes linear time. In order to access
   the element at index `n`, it will need to traverse `n`
   previous elements.
 
