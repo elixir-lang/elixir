@@ -124,6 +124,11 @@ defmodule MapTest do
     end
   end
 
+  test "map from struct" do
+    assert Map.from_struct(%ExternalUser{name: "valim"}) == %{name: "valim", age: 27}
+    assert Map.from_struct(%{name: "valim"}) == %{name: "valim"}
+  end
+
   defmodule LocalUser do
     defmodule NestedUser do
       defstruct []
