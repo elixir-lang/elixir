@@ -270,7 +270,12 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
+
   Returns `default` if index is out of bounds.
+
+  Note this operation is always linear. In order to access
+  the element at index `n`, it will need to traverse `n`
+  previous elements.
 
   ## Examples
 
@@ -564,11 +569,16 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
+
   Returns `{:ok, element}` if found, otherwise `:error`.
 
   A negative index can be passed, which means the collection is
   enumerated once and the index is counted from the end (i.e.
   `-1` fetches the last element).
+
+  Note this operation is always linear. In order to access
+  the element at index `n`, it will need to traverse `n`
+  previous elements.
 
   ## Examples
 
@@ -609,8 +619,13 @@ defmodule Enum do
 
   @doc """
   Finds the element at the given index (zero-based).
+
   Raises `OutOfBoundsError` if the given position
   is outside the range of the collection.
+
+  Note this operation is always linear. In order to access
+  the element at index `n`, it will need to traverse `n`
+  previous elements.
 
   ## Examples
 
