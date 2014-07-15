@@ -1,3 +1,4 @@
 #!/usr/bin/env elixir
+if path = :os.getenv("MIXCALLERDIR"), do: File.cd path
 Mix.start
 Mix.CLI.main
