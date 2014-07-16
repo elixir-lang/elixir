@@ -114,7 +114,7 @@ defmodule Kernel.SpecialForms do
 
       defmodule User do
         def __struct__ do
-          %{name: "josé", age: 27}
+          %{name: "john", age: 27}
         end
       end
 
@@ -122,7 +122,7 @@ defmodule Kernel.SpecialForms do
   `Kernel.defstruct/1` macro:
 
       defmodule User do
-        defstruct name: "josé", age: 27
+        defstruct name: "john", age: 27
       end
 
   Now a struct can be created as follows:
@@ -132,13 +132,13 @@ defmodule Kernel.SpecialForms do
   Underneath a struct is just a map with a `__struct__` field
   pointing to the `User` module:
 
-      %User{} == %{__struct__: User, name: "josé", age: 27}
+      %User{} == %{__struct__: User, name: "john", age: 27}
 
   A struct also validates that the given keys are part of the defined
   struct. The example below will fail because there is no key
   `:full_name` in the `User` struct:
 
-      %User{full_name: "José Valim"}
+      %User{full_name: "john doe"}
 
   Note that a struct specifies a minimum set of keys required
   for operations. Other keys can be added to structs via the
@@ -1174,10 +1174,10 @@ defmodule Kernel.SpecialForms do
   Note generators can also be used to filter as it removes any value
   that doesn't match the left side of `<-`:
 
-      iex> for {:user, name} <- [user: "jose", admin: "john", user: "eric"] do
+      iex> for {:user, name} <- [user: "john", admin: "john", user: "meg"] do
       ...>   String.upcase(name)
       ...> end
-      ["JOSE", "ERIC"]
+      ["JOHN", "MEG"]
 
   Bitstring generators are also supported and are very useful when you
   need to organize bitstring streams:

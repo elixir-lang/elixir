@@ -178,7 +178,7 @@ defmodule Kernel.TypespecTest do
 
   test "@type with a struct" do
     module = test_module do
-      defstruct [hello: nil, eric: nil]
+      defstruct [hello: nil, other: nil]
       @type mytype :: %TestTypespec{hello: :world}
     end
 
@@ -186,7 +186,7 @@ defmodule Kernel.TypespecTest do
              {:type, _, :map, [
                {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}},
                {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}},
-               {:type, _, :map_field_assoc, {:atom, _, :eric}, {:type, _, :term, []}}
+               {:type, _, :map_field_assoc, {:atom, _, :other}, {:type, _, :term, []}}
              ]},
             []}] = types(module)
   end

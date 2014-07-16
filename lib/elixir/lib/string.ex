@@ -71,29 +71,29 @@ defmodule String do
   Although codepoints could be represented as integers, this
   module represents all codepoints as strings. For example:
 
-      iex> String.codepoints("josé")
-      ["j", "o", "s", "é"]
+      iex> String.codepoints("olá")
+      ["o", "l", "á"]
 
   There are a couple of ways to retrieve a character integer
-  codepoint. One may use the `?` special macro:
+  codepoint. One may use the `?` construct:
 
-      iex> ?j
-      106
+      iex> ?o
+      111
 
-      iex> ?é
-      233
+      iex> ?á
+      225
 
   Or also via pattern matching:
 
-      iex> << eacute :: utf8 >> = "é"
+      iex> << eacute :: utf8 >> = "á"
       iex> eacute
-      233
+      225
 
   As we have seen above, codepoints can be inserted into
   a string by their hexadecimal code:
 
-      "jos\x{0065}\x{0301}" #=>
-      "josé"
+      "ol\x{0061}\x{0301}" #=>
+      "olá"
 
   ## Self-synchronization
 
@@ -337,8 +337,8 @@ defmodule String do
       iex> String.upcase("ab 123 xpto")
       "AB 123 XPTO"
 
-      iex> String.upcase("josé")
-      "JOSÉ"
+      iex> String.upcase("olá")
+      "OLÁ"
 
   """
   @spec upcase(t) :: t
@@ -355,8 +355,8 @@ defmodule String do
       iex> String.downcase("AB 123 XPTO")
       "ab 123 xpto"
 
-      iex> String.downcase("JOSÉ")
-      "josé"
+      iex> String.downcase("OLÁ")
+      "olá"
 
   """
   @spec downcase(t) :: t
@@ -379,8 +379,8 @@ defmodule String do
       iex> String.capitalize("ﬁn")
       "Fin"
 
-      iex> String.capitalize("josé")
-      "José"
+      iex> String.capitalize("olá")
+      "Olá"
 
   """
   @spec capitalize(t) :: t
@@ -687,8 +687,8 @@ defmodule String do
 
   ## Examples
 
-      iex> String.codepoints("josé")
-      ["j", "o", "s", "é"]
+      iex> String.codepoints("olá")
+      ["o", "l", "á"]
 
       iex> String.codepoints("оптими зации")
       ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
@@ -714,8 +714,8 @@ defmodule String do
 
   ## Examples
 
-      iex> String.next_codepoint("josé")
-      {"j", "osé"}
+      iex> String.next_codepoint("olá")
+      {"o", "lá"}
 
   """
   @compile {:inline, next_codepoint: 1}
@@ -864,8 +864,8 @@ defmodule String do
 
   ## Examples
 
-      iex> String.next_grapheme("josé")
-      {"j", "osé"}
+      iex> String.next_grapheme("olá")
+      {"o", "lá"}
 
   """
   @compile {:inline, next_grapheme: 1}

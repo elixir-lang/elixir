@@ -4,7 +4,7 @@ defmodule Record do
 
   Records are simply tuples where the first element is an atom:
 
-      iex> Record.record? {User, "jose", 27}
+      iex> Record.record? {User, "john", 27}
       true
 
   This module provides conveniences for working with records at
@@ -29,7 +29,7 @@ defmodule Record do
 
       defmodule MyModule do
         require Record
-        Record.defrecord :user name: "José", age: 25
+        Record.defrecord :user name: "john", age: 25
 
         @type user :: record(:user, name: String.t, age: integer)
         # expands to: `@type user :: {:user, String.t, integer}`
@@ -63,7 +63,7 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = {User, "jose", 27}
+      iex> record = {User, "john", 27}
       iex> Record.record?(record, User)
       true
 
@@ -91,7 +91,7 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = {User, "jose", 27}
+      iex> record = {User, "john", 27}
       iex> Record.record?(record)
       true
       iex> tuple = {}
@@ -126,24 +126,24 @@ defmodule Record do
 
       defmodule User do
         require Record
-        Record.defrecord :user, [name: "José", age: "25"]
+        Record.defrecord :user, [name: "meg", age: "25"]
       end
 
   In the example above, a set of macros named `user` but with different
   arities will be defined to manipulate the underlying record:
 
       # To create records
-      record = user()        #=> {:user, "José", 25}
-      record = user(age: 26) #=> {:user, "José", 26}
+      record = user()        #=> {:user, "meg", 25}
+      record = user(age: 26) #=> {:user, "meg", 26}
 
       # To get a field from the record
-      user(record, :name) #=> "José"
+      user(record, :name) #=> "meg"
 
       # To update the record
-      user(record, age: 26) #=> {:user, "José", 26}
+      user(record, age: 26) #=> {:user, "meg", 26}
 
       # Convert a record to a keyword list
-      user(record) #=> [name: "José", age: 26]
+      user(record) #=> [name: "meg", age: 26]
 
   By default, Elixir uses the record name as the first element of
   the tuple (the tag). But it can be changed to something else:

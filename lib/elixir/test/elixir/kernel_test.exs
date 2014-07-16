@@ -144,7 +144,7 @@ defmodule KernelTest do
   end
 
   defmodule User do
-    defstruct name: "jose"
+    defstruct name: "john"
   end
 
   defmodule UserTuple do
@@ -154,17 +154,17 @@ defmodule KernelTest do
   end
 
   test "struct/1 and struct/2" do
-    assert struct(User) == %User{name: "jose"}
+    assert struct(User) == %User{name: "john"}
 
-    user = struct(User, name: "eric")
-    assert user == %User{name: "eric"}
+    user = struct(User, name: "meg")
+    assert user == %User{name: "meg"}
 
     assert struct(user, unknown: "key") == user
-    assert struct(user, %{name: "jose"}) == %User{name: "jose"}
+    assert struct(user, %{name: "john"}) == %User{name: "john"}
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
 
     user_tuple = {UserTuple, :ok}
-    assert struct(user_tuple, name: "eric") == %User{name: "eric"}
+    assert struct(user_tuple, name: "meg") == %User{name: "meg"}
   end
 
   defdelegate my_flatten(list), to: List, as: :flatten
@@ -186,10 +186,10 @@ defmodule KernelTest do
   end
 
   test "get_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-    assert get_in(users, ["josé", :age]) == 27
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+    assert get_in(users, ["john", :age]) == 27
     assert get_in(users, ["dave", :age]) == nil
-    assert get_in(nil, ["josé", :age]) == nil
+    assert get_in(nil, ["john", :age]) == nil
 
     map = %{"fruits" => ["banana", "apple", "orange"]}
     assert get_in(map, ["fruits", by_index(0)])  == "banana"
@@ -202,79 +202,79 @@ defmodule KernelTest do
   end
 
   test "put_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(users, ["josé", :age], 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert put_in(users, ["john", :age], 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise FunctionClauseError, fn ->
       put_in(users, [], %{})
     end
 
-    assert_raise ArgumentError, "could not put/update key \"josé\" on a nil value", fn ->
-      put_in(nil, ["josé", :age], 28)
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      put_in(nil, ["john", :age], 28)
     end
   end
 
   test "put_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(nil["josé"][:age], 28) ==
-           %{"josé" => %{age: 28}}
+    assert put_in(nil["john"][:age], 28) ==
+           %{"john" => %{age: 28}}
 
-    assert put_in(users["josé"][:age], 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert put_in(users["john"][:age], 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert put_in(users["josé"].age, 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert put_in(users["john"].age, 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       put_in(users["dave"].age, 19)
     end
 
     assert_raise KeyError, fn ->
-      put_in(users["eric"].unknown, "value")
+      put_in(users["meg"].unknown, "value")
     end
   end
 
   test "update_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert update_in(users, ["josé", :age], &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert update_in(users, ["john", :age], &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise FunctionClauseError, fn ->
       update_in(users, [], fn _ -> %{} end)
     end
 
-    assert_raise ArgumentError, "could not put/update key \"josé\" on a nil value", fn ->
-      update_in(nil, ["josé", :age], fn _ -> %{} end)
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      update_in(nil, ["john", :age], fn _ -> %{} end)
     end
   end
 
   test "update_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert update_in(users["josé"][:age], &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert update_in(users["john"][:age], &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert update_in(users["josé"].age, &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert update_in(users["john"].age, &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       update_in(users["dave"].age, &(&1 + 1))
     end
 
     assert_raise KeyError, fn ->
-      put_in(users["eric"].unknown, &(&1 + 1))
+      put_in(users["meg"].unknown, &(&1 + 1))
     end
   end
 
   test "get_and_update_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(users, ["josé", :age], &{&1, &1 + 1}) ==
-           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+    assert get_and_update_in(users, ["john", :age], &{&1, &1 + 1}) ==
+           {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
     map = %{"fruits" => ["banana", "apple", "orange"]}
     assert get_and_update_in(map, ["fruits", by_index(0)], &{&1, String.reverse(&1)}) ==
@@ -292,20 +292,20 @@ defmodule KernelTest do
   end
 
   test "get_and_update_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(nil["josé"][:age], fn nil -> {:ok, 28} end) ==
-           {:ok, %{"josé" => %{age: 28}}}
+    assert get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end) ==
+           {:ok, %{"john" => %{age: 28}}}
 
-    assert get_and_update_in(users["josé"].age, &{&1, &1 + 1}) ==
-           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+    assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
+           {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
     assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})
     end
 
     assert_raise KeyError, fn ->
-      get_and_update_in(users["eric"].unknown, &{&1, &1 + 1})
+      get_and_update_in(users["meg"].unknown, &{&1, &1 + 1})
     end
   end
 

@@ -269,7 +269,7 @@ defmodule Kernel.ErrorsTest do
 
     defmodule GoodStruct do
       def __struct__ do
-        %{name: "josé"}
+        %{name: "john"}
       end
     end
 
