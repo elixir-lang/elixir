@@ -226,7 +226,6 @@ max_expr -> parens_call call_args_parens : build_identifier('$1', '$2').
 max_expr -> parens_call call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3').
 max_expr -> dot_alias : '$1'.
 
-bracket_arg -> open_bracket ']' : build_list('$1', []).
 bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2').
