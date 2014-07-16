@@ -5,12 +5,12 @@ defmodule Exception do
   Note that stacktraces in Elixir are updated on throw,
   errors and exits. For example, at any given moment,
   `System.stacktrace` will return the stacktrace for the
-  last throw/error/exit that ocurred in the current process.
+  last throw/error/exit that occurred in the current process.
 
   Do not rely on the particular format returned by the `format`
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
-  by using the functions in this module it is guarantee you will
+  by using the functions in this module it is guaranteed you will
   format exceptions as in the current Elixir version being used.
   """
 
