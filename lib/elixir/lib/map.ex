@@ -41,18 +41,28 @@ defmodule Map do
   @doc """
   Converts a struct to map.
 
+  It accepts the struct module or a struct itself and
+  simply removes the `__struct__` field from the struct.
+
   ## Example
 
       defmodule User do
         defstruct [:name]
       end
 
-      Map.from_struct(%User{name: "valim"})
-      #=> %{name: "valim"}
+      Map.from_struct(User)
+      #=> %{name: nil}
+
+      Map.from_struct(%User{name: "john"})
+      #=> %{name: "john"}
 
   """
-  def from_struct(struct) do
-    :maps.delete(:__struct__, struct)
+  def from_struct(struct) when is_atom(struct) do
+    :maps.remove(:__struct__, struct.__struct__)
+  end
+
+  def from_struct(%{__struct__: _} = struct) do
+    :maps.remove(:__struct__, struct)
   end
 
   def equal?(%{} = map1, %{} = map2), do: map1 === map2

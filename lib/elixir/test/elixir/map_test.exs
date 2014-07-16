@@ -125,8 +125,9 @@ defmodule MapTest do
   end
 
   test "map from struct" do
+    assert Map.from_struct(ExternalUser) == %{name: "josé", age: 27}
     assert Map.from_struct(%ExternalUser{name: "valim"}) == %{name: "valim", age: 27}
-    assert Map.from_struct(%{name: "valim"}) == %{name: "valim"}
+    assert_raise FunctionClauseError, fn -> Map.from_struct(%{name: "valim"}) end
   end
 
   defmodule LocalUser do
