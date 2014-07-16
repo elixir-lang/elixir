@@ -231,6 +231,36 @@ defmodule OptionParser do
     {:error, argv}
   end
 
+  @doc """
+  Receives a key-value enumerable and convert it to argv.
+
+  Keys must be atoms. Keys with nil value are discarded,
+  boolean values are converted to `--key` or `--no-key`
+  and all other values are converted using `to_string/1`.
+
+  ## Examples
+
+      iex>  OptionParser.to_argv([foo_bar: "baz"])
+      ["--foo-bar", "baz"]
+
+      iex>  OptionParser.to_argv([bool: true, bool: false, discarded: nil])
+      ["--bool", "--no-bool"]
+
+  """
+  @spec to_argv(Enumerable.t) :: argv
+  def to_argv(enum) do
+    Enum.flat_map(enum, fn
+      {_key, nil}  -> []
+      {key, true}  -> [to_switch(key)]
+      {key, false} -> [to_switch(key, "--no-")]
+      {key, value} -> [to_switch(key), to_string(value)]
+    end)
+  end
+
+  defp to_switch(key, prefix \\ "--") when is_atom(key) do
+    prefix <> String.replace(Atom.to_string(key), "_", "-")
+  end
+
   @doc ~S"""
   Splits a string into argv chunks.
 

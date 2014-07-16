@@ -314,4 +314,12 @@ defmodule OptionParserTest do
     assert OptionParser.split(~S[foo '\"bar"\'\ '])
            == ["foo", "\\\"bar\"'\\ "]
   end
+
+  test "to_argv" do
+    assert OptionParser.to_argv([foo_bar: "baz"]) ==
+           ["--foo-bar", "baz"]
+
+    assert OptionParser.to_argv([bool: true, bool: false, discarded: nil]) ==
+           ["--bool", "--no-bool"]
+  end
 end
