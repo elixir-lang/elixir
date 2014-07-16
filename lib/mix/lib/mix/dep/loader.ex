@@ -237,8 +237,7 @@ defmodule Mix.Dep.Loader do
 
   defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
     if scm == Mix.SCM.Path and not manager in [:mix, nil] do
-      Mix.raise ":path option can only be used with mix projects, " <>
-                                "invalid path dependency for #{inspect dep.app}"
+      dep
     else
       dep
     end

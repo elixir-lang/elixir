@@ -34,21 +34,4 @@ defmodule Mix.Tasks.DepsPathTest do
       assert_received {:mix_shell, :info, ["world"]}
     end
   end
-
-  defmodule InvalidPathDepsApp do
-    def project do
-      [
-        app: :rebar_as_dep,
-        version: "0.1.0",
-        deps: [{:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep")}]
-      ]
-    end
-  end
-
-  test "raises on non-mix path deps" do
-    Mix.Project.push InvalidPathDepsApp
-    assert_raise Mix.Error, ~r/:path option can only be used with mix projects/, fn ->
-      Mix.Tasks.Deps.Get.run []
-    end
-  end
 end
