@@ -92,20 +92,20 @@ defmodule Inspect.BitStringTest do
   end
 
   test :opt_infer do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == ~s(<<101, 114, 105, 99, 193, 109, 106>>)
-    assert inspect(<<"eric">>, binaries: :infer) == ~s("eric")
+    assert inspect(<<"john", 193, "doe">>, binaries: :infer) == ~s(<<106, 111, 104, 110, 193, 100, 111, 101>>)
+    assert inspect(<<"john">>, binaries: :infer) == ~s("john")
     assert inspect(<<193>>, binaries: :infer) == ~s(<<193>>)
   end
 
   test :opt_as_strings do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :as_strings) == ~s("eric\\301mj")
-    assert inspect(<<"eric">>, binaries: :as_strings) == ~s("eric")
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\301doe")
+    assert inspect(<<"john">>, binaries: :as_strings) == ~s("john")
     assert inspect(<<193>>, binaries: :as_strings) == ~s("\\301")
   end
 
   test :opt_as_binaries do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :as_binaries) == "<<101, 114, 105, 99, 193, 109, 106>>"
-    assert inspect(<<"eric">>, binaries: :as_binaries) == "<<101, 114, 105, 99>>"
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
+    assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
   end
 
@@ -169,20 +169,20 @@ defmodule Inspect.ListTest do
   end
 
   test :opt_infer do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :infer) == "[101, 114, 105, 99, 0, 109, 106]"
-    assert inspect('eric', char_lists: :infer) == "'eric'"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', char_lists: :infer) == "'john'"
     assert inspect([0], char_lists: :infer) == "[0]"
   end
 
   test :opt_as_strings do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_char_lists) == "'eric\\000mj'"
-    assert inspect('eric', char_lists: :as_char_lists) == "'eric'"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\000doe'"
+    assert inspect('john', char_lists: :as_char_lists) == "'john'"
     assert inspect([0], char_lists: :as_char_lists) == "'\\000'"
   end
 
   test :opt_as_lists do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_lists) == "[101, 114, 105, 99, 0, 109, 106]"
-    assert inspect('eric', char_lists: :as_lists) == "[101, 114, 105, 99]"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', char_lists: :as_lists) == "[106, 111, 104, 110]"
     assert inspect([0], char_lists: :as_lists) == "[0]"
   end
 

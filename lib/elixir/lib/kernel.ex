@@ -1414,14 +1414,14 @@ defmodule Kernel do
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
 
-      iex> inspect("josé" <> <<0>>)
-      "<<106, 111, 115, 195, 169, 0>>"
+      iex> inspect("olá" <> <<0>>)
+      "<<111, 108, 195, 161, 0>>"
 
-      iex> inspect("josé" <> <<0>>, binaries: :as_strings)
-      "\"josé\\000\""
+      iex> inspect("olá" <> <<0>>, binaries: :as_strings)
+      "\"olá\\000\""
 
-      iex> inspect("josé", binaries: :as_binaries)
-      "<<106, 111, 115, 195, 169>>"
+      iex> inspect("olá", binaries: :as_binaries)
+      "<<111, 108, 195, 161>>"
 
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result
@@ -1457,18 +1457,18 @@ defmodule Kernel do
   ## Example
 
       defmodule User do
-        defstruct name: "jose"
+        defstruct name: "john"
       end
 
       struct(User)
-      #=> %User{name: "jose"}
+      #=> %User{name: "john"}
 
-      opts = [name: "eric"]
+      opts = [name: "meg"]
       user = struct(User, opts)
-      #=> %User{name: "eric"}
+      #=> %User{name: "meg"}
 
       struct(user, unknown: "value")
-      #=> %User{name: "eric"}
+      #=> %User{name: "meg"}
 
   """
   @spec struct(module | map, Enum.t) :: map
@@ -1508,14 +1508,14 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_in(users, ["josé", :age])
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_in(users, ["john", :age])
       27
 
   In case any of entries in the middle returns `nil`, `nil` will be returned
   as per the Access protocol:
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
       nil
 
@@ -1523,7 +1523,7 @@ defmodule Kernel do
   In the example below, we use a function to get all the maps
   inside a list:
 
-      iex> users = [%{name: "josé", age: 27}, %{name: "eric", age: 23}]
+      iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get, data, next -> Enum.map(data, next) end
       iex> get_in(users, [all, :age])
       [27, 23]
@@ -1560,9 +1560,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> put_in(users, ["josé", :age], 28)
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in(users, ["john", :age], 28)
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   In case any of entries in the middle returns `nil`,
   an error will be raised when trying to access it next.
@@ -1582,9 +1582,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> update_in(users, ["josé", :age], &(&1 + 1))
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> update_in(users, ["john", :age], &(&1 + 1))
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   In case any of entries in the middle returns `nil`,
   an error will be raised when trying to access it next.
@@ -1619,20 +1619,20 @@ defmodule Kernel do
   update it at the same time. For example, it could be used to increase
   the age of a user by one and return the previous age in one pass:
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_and_update_in(users, ["josé", :age], &{&1, &1 + 1})
-      {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_and_update_in(users, ["john", :age], &{&1, &1 + 1})
+      {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
   When one of the keys is a function, the function is invoked.
   In the example below, we use a function to get and increment all
   ages inside a list:
 
-      iex> users = [%{name: "josé", age: 27}, %{name: "eric", age: 23}]
+      iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get_and_update, data, next ->
       ...>   Enum.map(data, next) |> List.unzip() |> List.to_tuple()
       ...> end
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
-      {[27, 23], [%{name: "josé", age: 28}, %{name: "eric", age: 24}]}
+      {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
 
   If the previous value before invoking the function is nil,
   the function *will* receive `nil` as a value and must handle it
@@ -1670,13 +1670,13 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> put_in(users["josé"][:age], 28)
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in(users["john"][:age], 28)
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> put_in(users["josé"].age, 28)
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in(users["john"].age, 28)
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   """
   defmacro put_in(path, value) do
@@ -1703,13 +1703,13 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> update_in(users["josé"][:age], &(&1 + 1))
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> update_in(users["john"][:age], &(&1 + 1))
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> update_in(users["josé"].age, &(&1 + 1))
-      %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> update_in(users["john"].age, &(&1 + 1))
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
   """
   defmacro update_in(path, fun) do
@@ -1735,9 +1735,9 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-      iex> get_and_update_in(users["josé"].age, &{&1, &1 + 1})
-      {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_and_update_in(users["john"].age, &{&1, &1 + 1})
+      {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
   ## Paths
 
@@ -1752,15 +1752,15 @@ defmodule Kernel do
 
   Here are some valid paths:
 
-      users["josé"][:age]
-      users["josé"].age
-      User.all["josé"].age
-      all_users()["josé"].age
+      users["john"][:age]
+      users["john"].age
+      User.all["john"].age
+      all_users()["john"].age
 
   Here are some invalid ones:
 
       # Does a remote call after the initial value
-      users["josé"].do_something(arg1, arg2)
+      users["john"].do_something(arg1, arg2)
 
       # Does not access any field
       users
@@ -2912,7 +2912,7 @@ defmodule Kernel do
   is used:
 
       defmodule User do
-        defstruct name: "José", age: 25
+        defstruct name: "john", age: 25
         @type t :: %User{name: String.t, age: integer}
       end
 

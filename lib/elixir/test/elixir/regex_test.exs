@@ -78,7 +78,7 @@ defmodule RegexTest do
   end
 
   test :unicode do
-    assert "josé" =~ ~r"\p{Latin}$"u
+    assert "olá" =~ ~r"\p{Latin}$"u
     refute "£" =~ ~r/\p{Lu}/u
 
     # Non breaking space matches [[:space:]] with unicode
