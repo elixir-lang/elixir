@@ -3,9 +3,12 @@
 ## v0.14.4-dev
 
 * Enhancements
+  * [Map] Add `Map.from_struct/1`
+  * [String] `String.slice/2` and `String.slice/3` have been optimized
 
 * Bug fixes
   * [IEx] Ensure functions in `Kernel.SpecialForms` and `IEx.Helpers` are also auto-completed
+  * [IEx] Ensure remote shells can be started with `--remsh`
 
 * Soft deprecations (no warnings emitted)
 
