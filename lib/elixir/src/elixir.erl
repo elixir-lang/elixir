@@ -53,13 +53,13 @@ config_change(_Changed, _New, _Remove) ->
 %% escript entry point
 
 main(Args) ->
-  ok = application:ensure_started(?MODULE),
+  {ok, _} = application:ensure_all_started(?MODULE),
   'Elixir.Kernel.CLI':main(Args).
 
 %% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
-  ok = application:ensure_started(?MODULE),
+  {ok, _} = application:ensure_all_started(?MODULE),
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS
