@@ -99,12 +99,6 @@ defmodule GenEvent do
       are received by the process. Must return the same values as
       `handle_event/2`.
 
-      It must return:
-
-      -  `{:noreply, state}`
-      -  `{:noreply, state, timeout}`
-      -  `{:stop, reason, state}`
-
     * `terminate(reason, state)` - called when the event handler is removed or
       the event manager is terminating. It can return any term.
 
