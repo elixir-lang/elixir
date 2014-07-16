@@ -28,7 +28,7 @@ defmodule Supervisor do
           {:reply, h, t}
         end
 
-        def handle_cast({:push, h}, _from, t) do
+        def handle_cast({:push, h}, t) do
           {:noreply, [h|t]}
         end
       end
