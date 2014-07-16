@@ -420,7 +420,7 @@ defmodule String do
   # does not traverse the whole binary).
   def rstrip(string, char) when char in 0..127 do
     if :binary.last(string) == char do
-      do_rstrip(string, "", char)
+      rstrip(binary_part(string, 0, byte_size(string) - 1), char)
     else
       string
     end
