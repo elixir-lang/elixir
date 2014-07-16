@@ -39,7 +39,7 @@ defmodule Map do
   end
 
   @doc """
-  Returns a map from a struct
+  Coverts a map to a struct
 
   ## Example
 
@@ -52,7 +52,7 @@ defmodule Map do
 
   """
   def from_struct(struct) do
-    Enum.into(:maps.without([:__struct__], struct), %{})
+    :maps.without([:__struct__], struct)
   end
 
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
