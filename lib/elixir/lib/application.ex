@@ -322,7 +322,7 @@ defmodule Application do
 
   @doc """
   Formats the error reason returned by `start/2`,
-  `ensure_started/2, `stop/1`, `load/1` and `unload/1`,
+  `ensure_started/2`, `stop/1`, `load/1` and `unload/1`,
   returns a string.
   """
   @spec format_error(any) :: String.t
