@@ -65,7 +65,11 @@ defmodule Mix.Tasks.ArchiveTest do
       # Remove it!
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
-      refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      
+      # See reason for previous refutation.
+      unless match? {:win32, _}, :os.type do
+        refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+      end
     end
   end
 end
