@@ -1,27 +1,17 @@
-# Initialize with path to mix.bat relative to caller's working directory
-$toCmd = '' + (Resolve-Path -relative (Split-Path $MyInvocation.MyCommand.Path)) + '\mix.bat'
+# Store path to mix.bat as a FileInfo object
+$mixBatPath = (Get-ChildItem (((Get-ChildItem $MyInvocation.MyCommand.Path).Directory.FullName) + '\mix.bat'))
 
-foreach ($arg in $args)
+for ($i = 0; $i -lt $args.length; $i++)
 {
-  $toCmd += ' '
-  
-  if ($arg -is [array])
+  if ($args[$i] -is [array])
   {
     # Commas created the array so we need to reintroduce those commas
-    for ($i = 0; $i -lt $arg.length; $i++)
+    for ($j = 0; $j -lt $args[$i].length - 1; $i++)
     {
-      $toCmd += $arg[$i]
-      if ($i -ne ($arg.length - 1))
-      {
-        $toCmd += ', '
-      }
+      $args[$i][$j] += ','
     }
-  }
-  else
-  {
-    $toCmd += $arg
   }
 }
 
 # Corrected arguments are ready to pass to batch file
-cmd /c $toCmd
+& $mixBatPath $args
