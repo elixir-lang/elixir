@@ -9,19 +9,19 @@ defmodule Keyword do
   behave exactly as a dictionary and mimic the API defined
   by the `Dict` behaviour.
 
-  For example, `Keyword.get` will get the first entry matching
+  For example, `Keyword.get/3` will get the first entry matching
   the given key, regardless if duplicated entries exist.
-  Similarly, `Keyword.put` and `Keyword.delete` ensure all
+  Similarly, `Keyword.put/3` and `Keyword.delete/3` ensure all
   duplicated entries for a given key are removed when invoked.
 
   A handful of functions exist to handle duplicated keys, in
-  particular, `from_enum` allows creating a new keywords without
-  removing duplicated keys, `get_values` returns all values for
-  a given key and `delete_first` deletes just one of the existing
+  particular, `Enum.into/2` allows creating new keywords without
+  removing duplicated keys, `get_values/2` returns all values for
+  a given key and `delete_first/2` deletes just one of the existing
   entries.
 
   Since a keyword list is simply a list, all the operations defined
-  in `Enum` and `List` can also be applied.
+  in `Enum` and `List` can be applied.
   """
 
   @compile :inline_list_funcs
@@ -34,7 +34,7 @@ defmodule Keyword do
   @type t(value) :: [{key, value}]
 
   @doc """
-  Checks if the given argument is a keywords list or not.
+  Checks if the given argument is a keyword list or not.
   """
   @spec keyword?(term) :: boolean
   def keyword?([{key, _value} | rest]) when is_atom(key) do
@@ -56,7 +56,7 @@ defmodule Keyword do
   Creates a keyword from an enumerable.
 
   Duplicated entries are removed, the latest one prevails.
-  I.e. differently from `Enum.into(enumerable, [])`,
+  Unlike `Enum.into(enumerable, [])`,
   `Keyword.new(enumerable)` guarantees the keys are unique.
 
   ## Examples
@@ -76,7 +76,7 @@ defmodule Keyword do
   Creates a keyword from an enumerable via the transformation function.
 
   Duplicated entries are removed, the latest one prevails.
-  I.e. differently from `Enum.into(enumerable, [], fun)`,
+  Unlike `Enum.into(enumerable, [], fun)`,
   `Keyword.new(enumerable, fun)` guarantees the keys are unique.
 
   ## Examples
@@ -96,7 +96,7 @@ defmodule Keyword do
   @doc """
   Gets the value for a specific `key`.
 
-  If `key` does not exist, return default value (`nil` if no default value).
+  If `key` does not exist, return the default value (`nil` if no default value).
 
   If duplicated entries exist, the first one is returned.
   Use `get_values/2` to retrieve all entries.
@@ -124,6 +124,7 @@ defmodule Keyword do
 
   @doc """
   Fetches the value for a specific `key` and returns it in a tuple.
+
   If the `key` does not exist, returns `:error`.
 
   ## Examples
@@ -144,8 +145,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Fetches the value for specific `key`. If `key` does not exist,
-  a `KeyError` is raised.
+  Fetches the value for specific `key`. 
+  
+  If `key` does not exist, a `KeyError` is raised.
 
   ## Examples
 
@@ -184,8 +186,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns all keys from the keyword list. Duplicated
-  keys appear duplicated in the final list of keys.
+  Returns all keys from the keyword list. 
+  
+  Duplicated keys appear duplicated in the final list of keys.
 
   ## Examples
 
@@ -217,6 +220,7 @@ defmodule Keyword do
 
   @doc """
   Deletes the entries in the keyword list for a `key` with `value`.
+
   If no `key` with `value` exists, returns the keyword list unchanged.
 
   ## Examples
@@ -238,8 +242,9 @@ defmodule Keyword do
 
   @doc """
   Deletes the entries in the keyword list for a specific `key`.
+
   If the `key` does not exist, returns the keyword list unchanged.
-  Use `delete_first` to delete just the first entry in case of
+  Use `delete_first/2` to delete just the first entry in case of
   duplicated keys.
 
   ## Examples
@@ -261,6 +266,7 @@ defmodule Keyword do
 
   @doc """
   Deletes the first entry in the keyword list for a specific `key`.
+
   If the `key` does not exist, returns the keyword list unchanged.
 
   ## Examples
@@ -319,7 +325,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Checks if two keywords are equal. I.e. they contain
+  Checks if two keywords are equal. 
+  
+  Two keywords are considered to be equal if they contain
   the same keys and those keys contain the same values.
 
   ## Examples
@@ -334,8 +342,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keyword lists into one. If they have duplicated
-  entries, the one given as second argument wins.
+  Merges two keyword lists into one. 
+  
+  If they have duplicated keys, the one given in the second argument wins.
 
   ## Examples
 
@@ -350,8 +359,9 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keyword lists into one. If they have duplicated
-  entries, the given function is invoked to solve conflicts.
+  Merges two keyword lists into one. 
+  
+  If they have duplicated keys, the given function is invoked to solve conflicts.
 
   ## Examples
 
@@ -392,10 +402,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the `key` with the given function. If the `key` does
-  not exist, raises `KeyError`.
+  Updates the `key` with the given function. 
+  
+  If the `key` does not exist, raises `KeyError`.
 
-  If there are duplicated entries, they are all removed and only the first one
+  If there are duplicated keys, they are all removed and only the first one
   is updated.
 
   ## Examples
@@ -425,10 +436,11 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the `key` with the given function. If the `key` does
-  not exist, inserts the given `initial` value.
+  Updates the `key` with the given function. 
+  
+  If the `key` does not exist, inserts the given `initial` value.
 
-  If there are duplicated entries, they are all removed and only the first one
+  If there are duplicated keys, they are all removed and only the first one
   is updated.
 
   ## Examples
@@ -455,8 +467,9 @@ defmodule Keyword do
 
   @doc """
   Takes all entries corresponding to the given keys and extracts them into a
-  separate keyword list. Returns a tuple with the new list and the old list
-  with removed keys.
+  separate keyword list. 
+  
+  Returns a tuple with the new list and the old list with removed keys.
 
   Keys for which there are no entires in the keyword list are ignored.
 
@@ -508,7 +521,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Drops the given keys from the dict.
+  Drops the given keys from the keyword list.
 
   Duplicated keys are preserved in the new keyword list.
 
@@ -531,7 +544,7 @@ defmodule Keyword do
   Returns the first value associated with `key` in the keyword
   list as well as the keyword list without `key`.
 
-  All duplicated entries are removed. See `pop_first/3` for
+  All duplicated keys are removed. See `pop_first/3` for
   removing only the first entry.
 
   ## Examples
@@ -558,10 +571,10 @@ defmodule Keyword do
 
   @doc """
   Returns the first value associated with `key` in the keyword
-  list as well as the keyword list without that particular ocurrence
+  list as well as the keyword list without that particular occurrence
   of `key`.
 
-  Duplicated entries are not removed.
+  Duplicated keys are not removed.
 
   ## Examples
 
