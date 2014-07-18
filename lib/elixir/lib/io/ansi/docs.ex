@@ -9,32 +9,30 @@ defmodule IO.ANSI.Docs do
 
   The supported values are:
 
-  Option             | Meaning
-  -----------------  | ------------------------------------------
-  `:enabled`         | toggles coloring on and off (true)
-  `:doc_code`        | code blocks (cyan, bright)
-  `:doc_inline_code` | inline code (cyan)
-  `:doc_headings`    | h1 and h2 headings (yellow, bright)
-  `:doc_title`       | top level heading (reverse, yellow, bright)
-  `:doc_bold`        | bold text (bright)
-  `:doc_underline`   | underlined text (underline)
-  `:table_heading`   | style for table headings
-  `:width`           | the width to format the text (80)
+  * `:enabled`           - toggles coloring on and off (true)
+  * `:doc_bold`          - bold text (bright)
+  * `:doc_code`          - code blocks (cyan, bright)
+  * `:doc_headings`      - h1 and h2 headings (yellow, bright)
+  * `:doc_inline_code`   - inline code (cyan)
+  * `:doc_table_heading` - style for table headings
+  * `:doc_title`         - top level heading (reverse, yellow, bright)
+  * `:doc_underline`     - underlined text (underline)
+  * `:width`             - the width to format the text (80)
 
   Values for the color settings are strings with
   comma-separated ANSI values.
   """
   def default_options do
     [
-      enabled:         true,
-      doc_code:        "cyan,bright",
-      doc_inline_code: "cyan",
-      doc_headings:    "yellow,bright",
-      doc_title:       "reverse,yellow,bright",
-      doc_bold:        "bright",
-      doc_underline:   "underline",
-      table_heading:   "reverse",
-      width:           80
+      doc_bold:          "bright",
+      doc_code:          "cyan,bright",
+      doc_headings:      "yellow,bright",
+      doc_inline_code:   "cyan",
+      doc_table_heading: "reverse",
+      doc_title:         "reverse,yellow,bright",
+      doc_underline:     "underline",
+      enabled:           true,
+      width:             80
     ]
   end
 
@@ -94,7 +92,7 @@ defmodule IO.ANSI.Docs do
 
   defp process(all=[line | rest], indent, options) do
     {stripped, count} = strip_spaces(line, 0)
-    if is_table_line?(stripped) do
+    if is_table_line?(stripped) && length(rest) > 0 && is_table_line?(hd(rest)) do
       process_table(all, indent, options)
     else
       case stripped do
@@ -316,7 +314,7 @@ defmodule IO.ANSI.Docs do
     end |> Enum.join(" | ")
 
     if heading do
-      write(:table_heading, columns, options)
+      write(:doc_table_heading, columns, options)
     else
       IO.puts columns
     end
@@ -334,7 +332,6 @@ defmodule IO.ANSI.Docs do
 
   defp write(style, string, options) do
     IO.puts color(style, options) <> string <> IO.ANSI.reset
-  ## why ?? ##    IO.puts IO.ANSI.reset
   end
 
   defp write_with_wrap([], _available, _indent, _first) do
