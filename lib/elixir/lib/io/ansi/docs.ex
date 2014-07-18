@@ -23,17 +23,15 @@ defmodule IO.ANSI.Docs do
   comma-separated ANSI values.
   """
   def default_options do
-    [
-      doc_bold:          "bright",
-      doc_code:          "cyan,bright",
-      doc_headings:      "yellow,bright",
-      doc_inline_code:   "cyan",
-      doc_table_heading: "reverse",
-      doc_title:         "reverse,yellow,bright",
-      doc_underline:     "underline",
-      enabled:           true,
-      width:             80
-    ]
+    [enabled:           true,
+     doc_bold:          "bright",
+     doc_code:          "cyan,bright",
+     doc_headings:      "yellow,bright",
+     doc_inline_code:   "cyan",
+     doc_table_heading: "reverse",
+     doc_title:         "reverse,yellow,bright",
+     doc_underline:     "underline",
+     width:             80]
   end
 
   @doc """
