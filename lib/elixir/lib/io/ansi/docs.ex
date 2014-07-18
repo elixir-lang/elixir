@@ -50,12 +50,13 @@ defmodule IO.ANSI.Docs do
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
     write(:doc_title, heading, options)
+    newline_after_block
   end
 
   @doc """
   Prints the documentation body.
 
-  In addition to the priting string, takes a set of options
+  In addition to the printing string, takes a set of options
   defined in `default_options/1`.
   """
   def print(doc, options \\ []) do
@@ -121,11 +122,13 @@ defmodule IO.ANSI.Docs do
 
   defp write_h2(heading, options) do
     write(:doc_headings, heading, options)
+    newline_after_block
   end
 
   defp write_h3(heading, indent, options) do
     IO.write(indent)
     write(:doc_headings, heading, options)
+    newline_after_block
   end
 
   ## Lists
@@ -205,7 +208,7 @@ defmodule IO.ANSI.Docs do
     |> String.split(~r{\s})
     |> write_with_wrap(options[:width] - byte_size(indent), indent, from_list)
 
-    unless from_list, do: IO.puts(IO.ANSI.reset)
+    unless from_list, do: newline_after_block
   end
 
   ## Code blocks
@@ -230,6 +233,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_code(code, indent, options) do
     write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", options)
+    newline_after_block          
   end
 
   ## Tables
@@ -237,6 +241,7 @@ defmodule IO.ANSI.Docs do
   defp process_table(lines, indent, options) do
     { table, rest } = Enum.split_while(lines, &is_table_line?/1)
     table_lines(table, options)
+    newline_after_block
     process(rest, indent, options)
   end
 
@@ -252,7 +257,6 @@ defmodule IO.ANSI.Docs do
                              List.duplicate(0, col_count), 
                              &max_column_widths/2)
 
-    IO.puts ""
     render_table(lines, col_widths, options)                             
   end
 
@@ -293,7 +297,6 @@ defmodule IO.ANSI.Docs do
     combined = Enum.zip(first, widths)
     draw_table_row(combined, options)
     render_table(rest, widths, options)
-    IO.puts ""
   end                                                 
 
   defp render_table([], _, _), do: nil
@@ -469,14 +472,20 @@ defmodule IO.ANSI.Docs do
     [color_for(h, options)|t]
   end
 
-  defp color_for("`", colors),  do: color(:doc_inline_code, colors)
-  defp color_for("_", colors),  do: color(:doc_underline, colors)
-  defp color_for("*", colors),  do: color(:doc_bold, colors)
-  defp color_for("**", colors), do: color(:doc_bold, colors)
+  defp color_for(mark, colors) do
+    case mark do
+      "`"  -> color(:doc_inline_code, colors)
+      "_"  -> color(:doc_underline, colors)
+      "*"  -> color(:doc_bold, colors)
+      "**" -> color(:doc_bold, colors)
+    end
+  end
 
   defp color(style, colors) do
     color = colors[style]
     enabled = colors[:enabled]
     IO.ANSI.escape_fragment("%{#{color}}", enabled)
   end
+
+  defp newline_after_block, do: IO.puts(IO.ANSI.reset)
 end
