@@ -264,12 +264,7 @@ defmodule IO.ANSI.Docs do
     |> Enum.map(&String.strip/1)
   end
 
-  defp pad_to_number_of_columns(cols, col_count)
-  when length(cols) == col_count, do: cols
-
-  defp pad_to_number_of_columns(cols, col_count) do
-    cols ++ List.duplicate("", col_count - length(cols))
-  end
+  defp pad_to_number_of_columns(cols, col_count), do: String.ljust(cols, col_count)
 
   defp max_column_widths(cols, widths) do
     Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
