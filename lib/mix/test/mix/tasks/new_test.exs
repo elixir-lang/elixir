@@ -52,6 +52,28 @@ defmodule Mix.Tasks.NewTest do
     end
   end
 
+  test "new with --app" do
+    in_tmp "new app", fn ->
+      Mix.Tasks.New.run ["HELLO_WORLD", "--app", "hello_world"]
+
+      assert_file "HELLO_WORLD/mix.exs", fn(file) ->
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+      end
+
+      assert_file "HELLO_WORLD/README.md", ~r/# HelloWorld/
+      assert_file "HELLO_WORLD/.gitignore"
+
+      assert_file "HELLO_WORLD/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
+
+      assert_file "HELLO_WORLD/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "HELLO_WORLD/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
+
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+    end
+  end
+
   test "new with --umbrella" do
     in_tmp "new umbrella", fn ->
       Mix.Tasks.New.run ["hello_world", "--umbrella"]
