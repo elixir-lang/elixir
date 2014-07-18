@@ -1,5 +1,5 @@
 defmodule Kernel.Typespec do
-  @moduledoc """
+  @moduledoc ~S"""
   Provides macros and functions for working with typespecs.
 
   Elixir comes with a notation for declaring types and specifications. Elixir is
@@ -122,37 +122,38 @@ defmodule Kernel.Typespec do
 
   ## Built-in types
 
-      Built-in type         | Defined as
-      :-------------------- | :---------
-      `term`                | `any`
-      `binary`              | `<< _ :: _ * 8 >>`
-      `bitstring`           | `<< _ :: _ * 1 >>`
-      `boolean`             | `false` &#124; `true`
-      `byte`                | `0..255`
-      `char`                | `0..0x10ffff`
-      `number`              | `integer` &#124; `float`
-      `char_list`           | `[char]`
-      `list`                | `[any]`
-      `maybe_improper_list` | `maybe_improper_list(any, any)`
-      `nonempty_list`       | `nonempty_list(any)`
-      `iodata`              | `iolist` &#124; `binary`
-      `iolist`              | `maybe_improper_list(byte` &#124; `binary` &#124; `iolist, binary` &#124; `[])`
-      `module`              | `atom` | `tuple`
-      `mfa`                 | `{atom, atom, arity}`
-      `arity`               | `0..255`
-      `node`                | `atom`
-      `timeout`             | `:infinity` &#124; `non_neg_integer`
-      `no_return`           | `none`
-      `fun`                 | `(... -> any)`
+  Built-in type         | Defined as
+  :-------------------- | :---------
+  `term`                | `any`
+  `binary`              | `<< _ :: _ * 8 >>`
+  `bitstring`           | `<< _ :: _ * 1 >>`
+  `boolean`             | `false` \| `true`
+  `byte`                | `0..255`
+  `char`                | `0..0x10ffff`
+  `number`              | `integer` \| `float`
+  `char_list`           | `[char]`
+  `list`                | `[any]`
+  `maybe_improper_list` | `maybe_improper_list(any, any)`
+  `nonempty_list`       | `nonempty_list(any)`
+  `iodata`              | `iolist` \| `binary`
+  `iolist`              | `maybe_improper_list(byte` \| `binary` \| `iolist, binary` \| `[])`
+  `module`              | `atom` \| `tuple`
+  `mfa`                 | `{atom, atom, arity}`
+  `arity`               | `0..255`
+  `node`                | `atom`
+  `timeout`             | `:infinity` \| `non_neg_integer`
+  `no_return`           | `none`
+  `fun`                 | `(... -> any)`
+
 
   Some built-in types cannot be expressed with valid syntax according to the
   language defined above.
 
-      Built-in type     | Can be interpreted as
-      :---------------- | :--------------------
-      `non_neg_integer` | `0..`
-      `pos_integer`     | `1..`
-      `neg_integer`     | `..-1`
+  Built-in type     | Can be interpreted as
+  :---------------- | :--------------------
+  `non_neg_integer` | `0..`
+  `pos_integer`     | `1..`
+  `neg_integer`     | `..-1`
 
   Types defined in other modules are referred to as "remote types", they are
   referenced as `Module.type_name` (ex. `Enum.t` or `String.t`).

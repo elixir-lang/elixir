@@ -74,7 +74,6 @@ defmodule IEx.Introspection do
     if docs = Code.get_docs(mod, :docs) do
       result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
         h(mod, fun, arity)
-        IO.puts ""
       end
 
       if result != [], do: :ok, else: :not_found
