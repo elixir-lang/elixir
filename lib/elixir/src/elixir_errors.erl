@@ -96,7 +96,7 @@ handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}})
     false ->
       case erl_internal:bif(F, A) of
         false -> {"the call to :erlang.~ts/~B has no effect", [F,A]};
-        true -> {"the call to ~ts/~B has no effect", [F,A]}
+        true ->  {"the call to ~ts/~B has no effect", [F,A]}
       end
   end,
   Message = io_lib:format(Fmt, Args),

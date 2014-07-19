@@ -198,9 +198,9 @@ defmodule ExUnit.Case do
   defmacro test(message, var \\ quote(do: _), contents) do
     contents =
       case contents do
-        [do: _] ->
+        [do: block] ->
           quote do
-            unquote(contents)
+            unquote(block)
             :ok
           end
         _ ->
