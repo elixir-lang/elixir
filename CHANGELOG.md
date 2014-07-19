@@ -13,6 +13,7 @@
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
+  * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
 
 * Backwards incompatible changes
 

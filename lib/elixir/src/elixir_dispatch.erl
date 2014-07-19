@@ -521,5 +521,7 @@ deprecation_message(Warning, Message) ->
 
 deprecation('Elixir.System', 'cmd', 1) ->
   "use System.cmd/3 instead";
+deprecation('Elixir.Inspect.Algebra', 'pretty', 2) ->
+  "use Inspect.Algebra.format/2 instead";
 deprecation(_, _, _) ->
   false.

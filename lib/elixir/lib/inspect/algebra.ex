@@ -29,7 +29,8 @@ defmodule Inspect.Opts do
 
     * `:pretty` - if set to true enables pretty printing, defaults to false.
 
-    * `:width` - defaults to the 80 characters.
+    * `:width` - defaults to the 80 characters, used when pretty is true or
+      when printing to IO devices.
   """
 
   defstruct structs: true,
@@ -66,8 +67,8 @@ defmodule Inspect.Algebra do
   elements together and render them:
 
       iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty, "foo")
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "foo"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["foo"]
 
   The functions `nest/2`, `space/2` and `line/2` help you put the
   document together into a rigid structure. However, the document
@@ -77,15 +78,15 @@ defmodule Inspect.Algebra do
   render it:
 
       iex> doc = Inspect.Algebra.glue("a", " ", "b")
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "a b"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["a", " ", "b"]
 
   Notice the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
-      iex> Inspect.Algebra.pretty(doc, 10)
-      "aaaaaaaaaaaaaaaaaaaa\nb"
+      iex> Inspect.Algebra.format(doc, 10)
+      ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
   Finally, this module also contains Elixir related functions, a bit
   tied to Elixir formatting, namely `surround/3` and `surround_many/5`.
@@ -190,9 +191,10 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
               res = Inspect.Map.inspect(map, opts)
+              formatted = IO.iodata_to_binary(format(res, :infinity))
               raise ArgumentError,
                 "Got #{inspect e.__struct__} with message " <>
-                "\"#{Exception.message(e)}\" while inspecting #{pretty(res, opts.width)}"
+                "\"#{Exception.message(e)}\" while inspecting #{formatted}"
             after
               Process.delete(:inspect_trap)
             end
@@ -224,9 +226,9 @@ defmodule Inspect.Algebra do
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.concat "Tasteless", "Artosis"
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "TastelessArtosis"
+      iex> doc = Inspect.Algebra.concat "hello", "world"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["hello", "world"]
 
   """
   @spec concat(t, t) :: doc_cons
@@ -250,8 +252,8 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.nest(Inspect.Algebra.glue("hello", "world"), 5)
-      iex> Inspect.Algebra.pretty(doc, 5)
-      "hello\n     world"
+      iex> Inspect.Algebra.format(doc, 5)
+      ["hello", "\n     ", "world"]
 
   """
   @spec nest(t, non_neg_integer) :: doc_nest
@@ -275,15 +277,15 @@ defmodule Inspect.Algebra do
   Let's glue two docs together with a break and then render it:
 
       iex> doc = Inspect.Algebra.glue("a", " ", "b")
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "a b"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["a", " ", "b"]
 
   Notice the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
-      iex> Inspect.Algebra.pretty(doc, 10)
-      "aaaaaaaaaaaaaaaaaaaa\nb"
+      iex> Inspect.Algebra.format(doc, 10)
+      ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
 
   """
   @spec break(binary) :: doc_break
@@ -326,10 +328,10 @@ defmodule Inspect.Algebra do
       ...>       "B"
       ...>     )
       ...> ))
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "Hello, A B"
-      iex> Inspect.Algebra.pretty(doc, 6)
-      "Hello,\nA B"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["Hello,", " ", "A", " ", "B"]
+      iex> Inspect.Algebra.format(doc, 6)
+      ["Hello,", "\n", "A", " ", "B"]
 
   """
   @spec group(t) :: doc_group
@@ -343,8 +345,8 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.space "Hughes", "Wadler"
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "Hughes Wadler"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["Hughes", " ", "Wadler"]
 
   """
   @spec space(t, t) :: doc_cons
@@ -356,8 +358,8 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.line "Hughes", "Wadler"
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "Hughes\nWadler"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["Hughes", "\n", "Wadler"]
 
   """
   @spec line(t, t) :: doc_cons
@@ -373,8 +375,8 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) ->
       ...>   Inspect.Algebra.concat [x, "!", y]
       ...> end)
-      iex> Inspect.Algebra.pretty(doc, 80)
-      "A!B"
+      iex> Inspect.Algebra.format(doc, 80)
+      ["A", "!", "B"]
 
   """
   @spec folddoc([t], ((t, t) -> t)) :: t
@@ -394,8 +396,8 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.surround "[", Inspect.Algebra.glue("a", "b"), "]"
-      iex> Inspect.Algebra.pretty(doc, 3)
-      "[a\n b]"
+      iex> Inspect.Algebra.format(doc, 3)
+      ["[", "a", "\n ", "b", "]"]
 
   """
   @spec surround(binary, t, binary) :: t
@@ -411,15 +413,15 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, &Integer.to_string(&1))
-      iex> Inspect.Algebra.pretty(doc, 5)
+      iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
       iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1))
-      iex> Inspect.Algebra.pretty(doc, 20)
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1, 2, 3, ...]"
 
       iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1), "!")
-      iex> Inspect.Algebra.pretty(doc, 20)
+      iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1! 2! 3! ...]"
 
   """
@@ -460,50 +462,50 @@ defmodule Inspect.Algebra do
   defp decrement(counter),   do: counter - 1
 
   @doc """
-  The pretty printing function.
+  The formatting function.
 
   Takes the maximum width and a document to print as its arguments
-  and returns the string representation of the best layout for the
+  and returns an IO data representation of the best layout for the
   document to fit in the given width.
   """
-  @spec pretty(t, non_neg_integer | :infinity) :: binary
+  @spec format(t, non_neg_integer | :infinity) :: binary
+  def format(d, w) do
+    format(w, 0, [{0, default_mode(w), doc_group(d)}])
+  end
+
+  @doc false
   def pretty(d, w) do
-    sdoc = format w, 0, [{0, default_mode(w), doc_group(d)}]
-    render(sdoc)
+    format(d, w) |> IO.iodata_to_binary
   end
 
   defp default_mode(:infinity), do: :flat
   defp default_mode(_),         do: :break
 
-  # Rendering and internal helpers
-
   # Record representing the document mode to be rendered: flat or broken
   @typep mode :: :flat | :break
 
-  @doc false
   @spec fits?(integer, [{integer, mode, t}]) :: boolean
-  def fits?(w, _) when w < 0,                      do: false
-  def fits?(_, []),                                do: true
-  def fits?(_, [{_, _, :doc_line} | _]),           do: true
-  def fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
-  def fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
-  def fits?(w, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, [{i + j, m, x} | t])
-  def fits?(w, [{i, _, doc_group(x)} | t]),        do: fits?(w, [{i, :flat, x} | t])
-  def fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size s), t)
-  def fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size s), t)
-  def fits?(_, [{_, :break, doc_break(_)} | _]),   do: true
+  defp fits?(w, _) when w < 0,                      do: false
+  defp fits?(_, []),                                do: true
+  defp fits?(_, [{_, _, :doc_line} | _]),           do: true
+  defp fits?(w, [{_, _, :doc_nil} | t]),            do: fits?(w, t)
+  defp fits?(w, [{i, m, doc_cons(x, y)} | t]),      do: fits?(w, [{i, m, x} | [{i, m, y} | t]])
+  defp fits?(w, [{i, m, doc_nest(x, j)} | t]),      do: fits?(w, [{i + j, m, x} | t])
+  defp fits?(w, [{i, _, doc_group(x)} | t]),        do: fits?(w, [{i, :flat, x} | t])
+  defp fits?(w, [{_, _, s} | t]) when is_binary(s), do: fits?((w - byte_size s), t)
+  defp fits?(w, [{_, :flat, doc_break(s)} | t]),    do: fits?((w - byte_size s), t)
+  defp fits?(_, [{_, :break, doc_break(_)} | _]),   do: true
 
-  @doc false
   @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
-  def format(_, _, []),                                do: []
-  def format(w, _, [{i, _, :doc_line} | t]),           do: [indent(i) | format(w, i, t)]
-  def format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
-  def format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
-  def format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
-  def format(w, k, [{i, m, doc_group(x)} | t]),        do: format(w, k, [{i, m, x} | t])
-  def format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size s), t)]
-  def format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size s), t)]
-  def format(w, k, [{i, :break, doc_break(s)} | t]) do
+  defp format(_, _, []),                                do: []
+  defp format(w, _, [{i, _, :doc_line} | t]),           do: [indent(i) | format(w, i, t)]
+  defp format(w, k, [{_, _, :doc_nil} | t]),            do: format(w, k, t)
+  defp format(w, k, [{i, m, doc_cons(x, y)} | t]),      do: format(w, k, [{i, m, x} | [{i, m, y} | t]])
+  defp format(w, k, [{i, m, doc_nest(x, j)} | t]),      do: format(w, k, [{i + j, m, x} | t])
+  defp format(w, k, [{i, m, doc_group(x)} | t]),        do: format(w, k, [{i, m, x} | t])
+  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, (k + byte_size s), t)]
+  defp format(w, k, [{_, :flat, doc_break(s)} | t]),    do: [s | format(w, (k + byte_size s), t)]
+  defp format(w, k, [{i, :break, doc_break(s)} | t]) do
     k = k + byte_size(s)
 
     if w == :infinity or fits?(w - k, t) do
@@ -515,10 +517,4 @@ defmodule Inspect.Algebra do
 
   defp indent(0), do: @newline
   defp indent(i), do: @newline <> :binary.copy(" ", i)
-
-  @doc false
-  @spec render([binary]) :: binary
-  def render(sdoc) do
-    IO.iodata_to_binary sdoc
-  end
 end

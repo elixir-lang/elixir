@@ -179,17 +179,13 @@ defmodule IO do
   @doc """
   Inspects and writes the given argument to the device.
 
-  It sets by default pretty printing to true and returns
-  the item itself.
-
-  Note this function does not use the IO device width
-  because some IO devices does not implement the
-  appropriate functions. Setting the width must be done
-  explicitly by passing the `:width` option.
+  It enables pretty printing by default with width of
+  80 characters. Th width can be changed by explicitly
+  passing the `:width` option.
 
   ## Examples
 
-      IO.inspect Process.list
+      IO.inspect Process.list, width: 40
 
   """
   @spec inspect(term, Keyword.t) :: term
@@ -202,8 +198,9 @@ defmodule IO do
   """
   @spec inspect(device, term, Keyword.t) :: term
   def inspect(device, item, opts) when is_list(opts) do
-    opts = Keyword.put_new(opts, :pretty, true)
-    puts device, Kernel.inspect(item, opts)
+    opts   = struct(Inspect.Opts, opts)
+    iodata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
+    puts device, iodata
     item
   end
 
