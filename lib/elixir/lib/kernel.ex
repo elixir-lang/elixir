@@ -1438,7 +1438,9 @@ defmodule Kernel do
       true  -> opts.width
       false -> :infinity
     end
-    Inspect.Algebra.pretty(Inspect.Algebra.to_doc(arg, opts), limit)
+    IO.iodata_to_binary(
+      Inspect.Algebra.format(Inspect.Algebra.to_doc(arg, opts), limit)
+    )
   end
 
   @doc """
