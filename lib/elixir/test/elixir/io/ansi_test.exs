@@ -4,63 +4,76 @@ defmodule IO.ANSITest do
   use ExUnit.Case, async: true
 
   test :format_ansicode do
-    assert IO.ANSI.format(:green, true) ==
+    assert IO.chardata_to_string(IO.ANSI.format(:green, true)) ==
            "#{IO.ANSI.green}#{IO.ANSI.reset}"
-    assert IO.ANSI.format(:green, false) ==
+    assert IO.chardata_to_string(IO.ANSI.format(:green, false)) ==
            ""
   end
 
   test :format_binary do
-    assert IO.ANSI.format("Hello, world!", true) ==
+    assert IO.chardata_to_string(IO.ANSI.format("Hello, world!", true)) ==
            "Hello, world!"
-    assert IO.ANSI.format("This is a map: %{foo: :bar}", false) ==
-           "This is a map: %{foo: :bar}"
+    assert IO.chardata_to_string(IO.ANSI.format("A map: %{foo: :bar}", false)) ==
+           "A map: %{foo: :bar}"
   end
 
   test :format_empty_list do
-    assert IO.ANSI.format([], true) ==
+    assert IO.chardata_to_string(IO.ANSI.format([], true)) ==
            ""
-    assert IO.ANSI.format([], false) ==
+    assert IO.chardata_to_string(IO.ANSI.format([], false)) ==
            ""
   end
 
   test :format_ansicode_list do
-    assert IO.ANSI.format([:red, :bright], true) ==
+    assert IO.chardata_to_string(IO.ANSI.format([:red, :bright], true)) ==
            "#{IO.ANSI.red}#{IO.ANSI.bright}#{IO.ANSI.reset}"
-    assert IO.ANSI.format([:red, :bright], false) ==
+    assert IO.chardata_to_string(IO.ANSI.format([:red, :bright], false)) ==
            ""
   end
 
   test :format_binary_list do
-    assert IO.ANSI.format(["Hello, ", "world!"], true) ==
+    assert IO.chardata_to_string(IO.ANSI.format(["Hello, ", "world!"], true)) ==
            "Hello, world!"
-    assert IO.ANSI.format(["Hello, ", "world!"], false) ==
+    assert IO.chardata_to_string(IO.ANSI.format(["Hello, ", "world!"], false)) ==
            "Hello, world!"
   end
 
   test :format_char_list do
-    assert IO.ANSI.format('Hello, world!', true) ==
+    assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', true)) ==
            "Hello, world!"
-    assert IO.ANSI.format('Hello, world!', false) ==
+    assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', false)) ==
            "Hello, world!"
   end
 
   test :format_mixed_list do
-    assert IO.ANSI.format(["Hello", ?,, 32, :red, "world!"], true) ==
+    data = ["Hello", ?,, 32, :red, "world!"]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
-    assert IO.ANSI.format(["Hello", ?,, 32, :red, "world!"], false) ==
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) ==
            "Hello, world!"
   end
 
   test :format_nested_list do
-    assert IO.ANSI.format(["Hello, ", ["nested", 32, :red, "world!"]], true) ==
+    data = ["Hello, ", ["nested", 32, :red, "world!"]]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
            "Hello, nested #{IO.ANSI.red}world!#{IO.ANSI.reset}"
-    assert IO.ANSI.format(["Hello, ", ["nested", 32, :red, "world!"]], false) ==
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) ==
            "Hello, nested world!"
   end
 
+  test :format_improper_list do
+    data = ["Hello, ", :red, "world!" | :reset]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+           "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) ==
+           "Hello, world!"
+  end
+
   test :format_fragment do
-    assert IO.ANSI.format_fragment([:red, "Hello!"], true) ==
+    assert IO.chardata_to_string(IO.ANSI.format_fragment([:red, "Hello!"], true)) ==
            "#{IO.ANSI.red}Hello!"
   end
 
