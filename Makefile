@@ -71,7 +71,7 @@ erlang:
 elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
 
 stdlib: $(KERNEL) VERSION
-$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
+$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                    \
 		echo "==> bootstrap (compile)";                 \
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
@@ -191,4 +191,4 @@ build_plt: clean_plt $(PLT)
 
 dialyze: compile $(PLT)
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin 
+	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin
