@@ -131,7 +131,7 @@ defmodule Kernel.Typespec do
       `byte`                | `0..255`
       `char`                | `0..0x10ffff`
       `number`              | `integer` &#124; `float`
-      `char_list`           |  [char]
+      `char_list`           | `[char]`
       `list`                | `[any]`
       `maybe_improper_list` | `maybe_improper_list(any, any)`
       `nonempty_list`       | `nonempty_list(any)`
