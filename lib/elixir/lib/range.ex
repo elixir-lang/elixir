@@ -36,6 +36,9 @@ defmodule Range do
       iex> Range.range?(1..3)
       true
 
+      iex> Range.range?(1.0..1.5)
+      true
+
       iex> Range.range?(0)
       false
 
@@ -113,6 +116,39 @@ defimpl Range.Iterator, for: Integer do
     else
       first - last + 1
     end
+  end
+end
+
+defimpl Range.Iterator, for: Float do
+
+  def next(first, _ .. last) when is_float(last) do
+    { increment, p } = precision last
+
+    if last >= first do
+      &(&1 + increment) |> Float.round p
+    else
+      &(&1 - increment) |> Float.round p
+    end
+  end
+
+  def count(first, _ .. last) when is_float(last) do
+    { increment, _ } = precision last
+
+    if last >= first do
+      (last - first + increment) / increment |> Kernel.round
+    else
+      (first - last + increment) / increment |> Kernel.round
+    end
+  end
+
+  defp precision(n) do
+    [_, p] = String.split("#{n}", ".")
+    length = String.length p
+    power  = Enum.reduce 1..length, 1, fn(_, acc) ->
+      acc * 10
+    end
+
+    { 1 / power, length }
   end
 end
 
