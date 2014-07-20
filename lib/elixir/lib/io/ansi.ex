@@ -144,7 +144,7 @@ defmodule IO.ANSI do
 
   defp do_format([], buffer, _emit, append_reset) do
     if append_reset == true do
-      Enum.reverse(buffer) ++ IO.ANSI.reset
+      Enum.reverse(buffer) ++ [IO.ANSI.reset]
     else
       Enum.reverse(buffer)
     end
