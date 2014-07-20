@@ -134,10 +134,45 @@ defmodule IO.ANSI do
     raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
 
+  @doc ~S"""
+  Formats a chardata-like argument by converting named ANSI sequences into actual
+  ANSI codes.
+
+  The named sequences are represented by atoms.
+
+  It will also append an `IO.ANSI.reset` to the chardata when a conversion is
+  performed. If you don't want this behaviour, use `format_fragment/2`.
+
+  An optional boolean parameter can be passed to enable or disable
+  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
+  By default, standard output will be checked if it is a terminal capable
+  of handling these sequences (using `terminal?/1` function)
+
+  ## Examples
+
+      iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
+      ["Hello, ", "\e[31m", "\e[1m", "world!", "\e[0m"]
+  """
   def format(chardata, emit \\ terminal?) do
     do_format(chardata, [], emit, :maybe)
   end
 
+  @doc ~S"""
+  Formats a chardata-like argument by converting named ANSI sequences into actual
+  ANSI codes.
+
+  The named sequences are represented by atoms.
+
+  An optional boolean parameter can be passed to enable or disable
+  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
+  By default, standard output will be checked if it is a terminal capable
+  of handling these sequences (using `terminal?/1` function)
+
+  ## Examples
+
+      iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
+      ["\e[1m", 87, 111, 114, 100]
+  """
   def format_fragment(chardata, emit \\ terminal?) do
     do_format(chardata, [], emit, false)
   end
