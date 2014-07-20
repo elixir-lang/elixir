@@ -134,6 +134,46 @@ defmodule IO.ANSI do
     raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
 
+  def format(chardata, emit \\ terminal?) do
+    do_format(chardata, [], emit, :maybe)
+  end
+
+  def format_fragment(chardata, emit \\ terminal?) do
+    do_format(chardata, [], emit, false)
+  end
+
+  defp do_format([], buffer, _emit, append_reset) do
+    if append_reset == true do
+      Enum.reverse(buffer) ++ IO.ANSI.reset
+    else
+      Enum.reverse(buffer)
+    end
+  end
+
+  defp do_format(chardata, buffer, emit, append_reset) when not is_list(chardata) do
+    do_format([chardata], buffer, emit, append_reset)
+  end
+
+  defp do_format(chardata, buffer, emit, append_reset) do
+    [elem|rest] = chardata
+
+    cond do
+      is_atom(elem) and emit ->
+        try do
+          do_format(rest, [apply(IO.ANSI, elem, [])|buffer], emit, !!append_reset)
+        rescue
+          _ in UndefinedFunctionError ->
+            raise ArgumentError, message: "invalid ANSI sequence specification: #{elem}"
+        end
+      is_atom(elem) and not emit ->
+        do_format(rest, buffer, emit, append_reset)
+      is_list(elem) ->
+        do_format(elem ++ rest, buffer, emit, append_reset)
+      true ->
+        do_format(rest, [elem|buffer], emit, append_reset)
+    end
+  end
+
   @doc ~S"""
   Escapes a string by converting named ANSI sequences into actual ANSI codes.
 
