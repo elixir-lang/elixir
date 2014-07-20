@@ -64,7 +64,7 @@ defmodule IO.ANSITest do
   end
 
   test :format_improper_list do
-    data = ["Hello, ", :red, "world!" | :reset]
+    data = ["Hello, ", :red, "world" | "!"]
 
     assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
            "Hello, #{IO.ANSI.red}world!#{IO.ANSI.reset}"
