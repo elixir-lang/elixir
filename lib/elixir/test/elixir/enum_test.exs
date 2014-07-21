@@ -275,6 +275,12 @@ defmodule EnumTest.List do
     assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 4, 1, 5, 3]
   end
 
+  test :sample do
+    # set a fixed seed so the test can be deterministic
+    :random.seed(1374, 347975, 449264)
+    assert Enum.sample([1, 2, 3, 4, 5]) == 3
+  end
+
   test :sort do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
