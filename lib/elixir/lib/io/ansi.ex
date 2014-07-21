@@ -154,7 +154,7 @@ defmodule IO.ANSI do
       ["Hello, ", "\e[31m", "\e[1m", "world!", "\e[0m"]
   """
   def format(chardata, emit \\ terminal?) do
-    do_format(chardata, [], emit, :maybe)
+    do_format(chardata, [], [], emit, :maybe)
   end
 
   @doc ~S"""
@@ -174,39 +174,40 @@ defmodule IO.ANSI do
       ["\e[1m", 87, 111, 114, 100]
   """
   def format_fragment(chardata, emit \\ terminal?) do
-    do_format(chardata, [], emit, false)
+    do_format(chardata, [], [], emit, false)
   end
 
-  defp do_format([], buffer, _emit, append_reset) do
-    if append_reset == true do
-      Enum.reverse(buffer) ++ [IO.ANSI.reset]
-    else
-      Enum.reverse(buffer)
+  defp do_format([term | rest], rem, acc, emit, append_reset) do
+    do_format(term, [rest | rem], acc, emit, append_reset)
+  end
+
+  defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
+    try do
+      do_format([], rem, [acc | [apply(IO.ANSI, term, [])]], true, !!append_reset)
+    rescue
+      _ in UndefinedFunctionError ->
+        raise ArgumentError, message: "invalid ANSI sequence specification: #{term}"
     end
   end
 
-  defp do_format(chardata, buffer, emit, append_reset) when not is_list(chardata) do
-    do_format([chardata], buffer, emit, append_reset)
+  defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
+    do_format([], rem, acc, false, append_reset)
   end
 
-  defp do_format(chardata, buffer, emit, append_reset) do
-    [elem|rest] = chardata
+  defp do_format(term, rem, acc, emit, append_reset) when not is_list(term) do
+    do_format([], rem, [acc | [term]], emit, append_reset)
+  end
 
-    cond do
-      is_atom(elem) and emit ->
-        try do
-          do_format(rest, [apply(IO.ANSI, elem, [])|buffer], emit, !!append_reset)
-        rescue
-          _ in UndefinedFunctionError ->
-            raise ArgumentError, message: "invalid ANSI sequence specification: #{elem}"
-        end
-      is_atom(elem) and not emit ->
-        do_format(rest, buffer, emit, append_reset)
-      is_list(elem) ->
-        do_format(elem ++ rest, buffer, emit, append_reset)
-      true ->
-        do_format(rest, [elem|buffer], emit, append_reset)
-    end
+  defp do_format([], [next | rest], acc, emit, append_reset) do
+    do_format(next, rest, acc, emit, append_reset)
+  end
+
+  defp do_format([], [], acc, true, true) do
+    [acc | IO.ANSI.reset]
+  end
+
+  defp do_format([], [], acc, _emit, _append_reset) do
+    acc
   end
 
   @doc ~S"""
