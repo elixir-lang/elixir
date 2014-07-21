@@ -1,14 +1,14 @@
 defmodule Mix.Tasks.Clean do
   use Mix.Task
 
-  @shortdoc "Clean generated application files"
+  @shortdoc "Delete generated application files"
   @recursive true
 
   @moduledoc """
-  Clean generated application files.
+  Delete generated application files.
 
-  This command delete all build artifacts for the current application
-  accross all environments. Dependencies are only cleaned up if the
+  This command deletes all build artifacts for the current application
+  across all environments. Dependencies are only cleaned if the
   `--all` option is given.
 
   ## Command line options
