@@ -1424,7 +1424,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a sample element of a collection.
+  Returns a random element or random subset of a collection.
 
   Notice that you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
@@ -1440,11 +1440,18 @@ defmodule Enum do
       2
       iex> Enum.sample([1, 2, 3])
       3
+      iex> Enum.sample([1, 2, 3, 4], 2)
+      [1, 4]
   """
   @spec sample(t) :: element
   def sample(collection) do
     index = :random.uniform(count(collection)) - 1
     at(collection, index)
+  end
+
+  @spec sample(t, integer) :: list
+  def sample(collection, count) do
+    collection |> shuffle |> take(count)
   end
 
   @doc """

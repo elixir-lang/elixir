@@ -279,6 +279,7 @@ defmodule EnumTest.List do
     # set a fixed seed so the test can be deterministic
     :random.seed(1374, 347975, 449264)
     assert Enum.sample([1, 2, 3, 4, 5]) == 3
+    assert Enum.sample([1, 2, 3, 4, 5], 2) == [1, 5]
   end
 
   test :sort do
