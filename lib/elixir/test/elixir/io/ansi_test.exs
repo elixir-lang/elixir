@@ -72,6 +72,15 @@ defmodule IO.ANSITest do
            "Hello, world!"
   end
 
+  test :format_nested_improper_list do
+    data = [["Hello, " | :red], "world!" | :green]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+           "Hello, #{IO.ANSI.red}world!#{IO.ANSI.green}#{IO.ANSI.reset}"
+    assert IO.chardata_to_string(IO.ANSI.format(data, false)) ==
+           "Hello, world!"
+  end
+
   test :format_fragment do
     assert IO.chardata_to_string(IO.ANSI.format_fragment([:red, "Hello!"], true)) ==
            "#{IO.ANSI.red}Hello!"
