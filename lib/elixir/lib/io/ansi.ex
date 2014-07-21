@@ -151,7 +151,7 @@ defmodule IO.ANSI do
   ## Examples
 
       iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
-      ["Hello, ", "\e[31m", "\e[1m", "world!", "\e[0m"]
+      [[[[[[], "Hello, "], "\e[31m"], "\e[1m"], "world!"] | "\e[0m"]
   """
   def format(chardata, emit \\ terminal?) do
     do_format(chardata, [], [], emit, :maybe)
@@ -171,7 +171,7 @@ defmodule IO.ANSI do
   ## Examples
 
       iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
-      ["\e[1m", 87, 111, 114, 100]
+      [[[[[[], "\e[1m"], 87], 111], 114], 100]
   """
   def format_fragment(chardata, emit \\ terminal?) do
     do_format(chardata, [], [], emit, false)
