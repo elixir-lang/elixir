@@ -219,9 +219,6 @@ defmodule KernelTest do
   test "put_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(nil["john"][:age], 28) ==
-           %{"john" => %{age: 28}}
-
     assert put_in(users["john"][:age], 28) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
@@ -294,11 +291,12 @@ defmodule KernelTest do
   test "get_and_update_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end) ==
-           {:ok, %{"john" => %{age: 28}}}
-
     assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
            {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
+    end
 
     assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})
