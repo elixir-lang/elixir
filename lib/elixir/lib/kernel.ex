@@ -1783,7 +1783,7 @@ defmodule Kernel do
   defp nest_get_and_update_in(h, [{:access, key}|t], fun) do
     quote do
       Access.get_and_update(
-        case(unquote(h), do: (nil -> %{}; o -> o)),
+        unquote(h),
         unquote(key),
         unquote(nest_get_and_update_in(t, fun))
       )
