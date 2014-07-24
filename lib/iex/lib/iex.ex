@@ -486,11 +486,12 @@ defmodule IEx do
       else
         &IEx.Autocomplete.expand(&1)
       end
-    
-    case (:io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]) do
-      :ok -> :ok
-      _ -> :io.setopts gl, [binary: true, encoding: :unicode]
-    end
+
+    # expand_fun is not supported by a shell variant
+    # on Windows, so we do two io calls, not caring
+    # about the result of the expand_fun one.
+    _ = :io.setopts(gl, expand_fun: expand_fun)
+    :io.setopts(gl, binary: true, encoding: :unicode)
   end
 
   defp ensure_module_exists(node, mod) do
