@@ -23,6 +23,7 @@ echo   --sname name      Makes and assigns a short name to the distributed node
 echo   --cookie cookie   Sets a cookie for this distributed node
 echo   --hidden          Makes a hidden node
 echo   --detached        Starts the Erlang VM detached from console
+echo   --werl            Uses Erlang's Windows shell GUI
 echo   --no-halt         Does not halt the Erlang VM after execution
 echo.
 echo ** Options marked with (*) can be given more than once
@@ -60,7 +61,7 @@ if "%par%"=="""" (
   goto :expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-IF "%par%"==""+iex"" (Set useWerl=1)
+IF "%par%"==""--werl"" (Set useWerl=1)
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF """"=="%par:-e=%"      (shift) 
