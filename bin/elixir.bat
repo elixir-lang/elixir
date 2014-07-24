@@ -90,7 +90,7 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 IF %useWerl% EQU 1 (
-    werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
     erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
