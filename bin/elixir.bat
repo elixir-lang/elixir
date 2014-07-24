@@ -1,4 +1,5 @@
 @echo off
+setlocal
 if "%1"==""       goto documentation
 if "%1"=="--help" goto documentation
 if "%1"=="-h"     goto documentation
@@ -27,7 +28,7 @@ echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
 echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
-goto :EOF
+goto end
 
 :parseopts
 
@@ -93,3 +94,5 @@ IF %useWerl% EQU 1 (
 ) ELSE (
     erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
+:end
+endlocal
