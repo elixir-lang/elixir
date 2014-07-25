@@ -456,8 +456,8 @@ defmodule Dict do
   @doc """
   Merges the dict `dict2` into dict `dict1`.
 
-  If one of the dict `dict2` entries already exists in the `dict`,
-  the functions in entries in `dict2` have higher precedence unless a
+  If one of the `dict2` entries already exists in `dict1`, the
+  functions in entries in `dict2` have higher precedence unless a
   function is given to resolve conflicts.
 
   Notice this function is polymorphic as it merges dicts of any
