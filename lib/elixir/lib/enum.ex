@@ -1392,7 +1392,7 @@ defmodule Enum do
   end
 
   @spec sample(t, integer) :: list
-  def sample(collection, count) when count >= 0 do
+  def sample(collection, count) when count > 0 do
     sample = List.duplicate(nil, count) |> List.to_tuple
 
     reducer = fn x, {i, sample} ->
@@ -1410,6 +1410,8 @@ defmodule Enum do
     {n, sample} = reduce(collection, {0, sample}, reducer)
     sample |> Tuple.to_list |> Enum.take(Kernel.min(count, n))
   end
+
+  def sample(_collection, 0), do: []
 
   @doc """
   Applies the given function to each element in the collection,
