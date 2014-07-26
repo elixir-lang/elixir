@@ -1361,6 +1361,58 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a random element or random sublist of a collection.
+
+  Notice that you need to explicitly call `:random.seed/1` and
+  set a seed value for the random algorithm. Otherwise, the
+  default seed will be set which will always return the same
+  result. For example, one could do the following to set a seed
+  dynamically:
+
+      :random.seed(:erlang.now)
+
+  The implementation assumes that the sample being returned
+  can fit into memory.
+
+  If the requested sample size is equal or greater than collection
+  size, the whole collection is returned unshuffled as a list.
+
+  ## Examples
+
+      iex> Enum.sample([1,2,3,4])
+      2
+      iex> Enum.sample([1,2,3,4])
+      3
+      iex> Enum.sample(1..10, 2)
+      [7, 10]
+      iex> Enum.sample(?a..?z, 5)
+      'ugcst'
+
+  """
+  @spec sample(t) :: element | nil
+  def sample(collection) do
+    sample(collection, 1) |> List.first
+  end
+
+  @spec sample(t, integer) :: list
+  def sample(collection, count) do
+    sample = List.duplicate(nil, count) |> List.to_tuple
+
+    reducer = fn x, {i, sample} ->
+      if i < count do
+        {i + 1, sample |> put_elem(i, x)}
+      else
+        j = random_index(i)
+        if j < count, do: sample = sample |> put_elem(j, x)
+        {i + 1, sample}
+      end
+    end
+
+    {n, sample} = reduce(collection, {0, sample}, reducer)
+    sample |> Tuple.to_list |> Enum.take(Kernel.min(count, n))
+  end
+
+  @doc """
   Applies the given function to each element in the collection,
   storing the result in a list and passing it as the accumulator
   for the next computation.
@@ -1900,6 +1952,10 @@ defmodule Enum do
 
   defp enum_to_string(entry) when is_binary(entry), do: entry
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
+
+  defp random_index(n) do
+    :random.uniform(n + 1) - 1
+  end
 
   ## Implementations
 
