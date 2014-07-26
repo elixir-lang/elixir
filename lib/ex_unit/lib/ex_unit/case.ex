@@ -167,6 +167,9 @@ defmodule ExUnit.Case do
         Enum.each [:ex_unit_tests, :tag, :moduletag],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
+        Module.register_attribute(__MODULE__, :ex_unit_namespace, [])
+        Module.put_attribute(__MODULE__, :ex_unit_namespace, [])
+
         @before_compile ExUnit.Case
         use ExUnit.Callbacks
       end
@@ -175,6 +178,33 @@ defmodule ExUnit.Case do
       import ExUnit.Assertions
       import ExUnit.Case
       import ExUnit.DocTest
+    end
+  end
+
+  @doc """
+  Define a namespace for several tests.
+
+  The message provided to the namespace will be prepended
+  to any tests defined within the namespace. Namespaces can
+  be nested.
+
+  ## Examples
+
+      namespace "outer" do
+        namespace "inner" do
+          test "true is equal to true" do
+            assert true == true
+          end
+        end
+      end
+
+  """
+  defmacro namespace(message, contents) do
+    quote do
+      previous_namespace = Module.get_attribute(__MODULE__, :ex_unit_namespace)
+      Module.put_attribute(__MODULE__, :ex_unit_namespace, [unquote(message)|previous_namespace])
+      unquote(contents)
+      Module.put_attribute(__MODULE__, :ex_unit_namespace, previous_namespace)
     end
   end
 
@@ -214,7 +244,9 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      test = :"test #{message}"
+      namespace = Module.get_attribute(__MODULE__, :ex_unit_namespace) |> Enum.reverse
+      test = ["test", namespace, message] |> List.flatten |> Enum.join(" ") |> String.to_atom
+
       ExUnit.Case.__on_definition__(__ENV__, test)
       def unquote(test)(unquote(var)), do: unquote(contents)
     end

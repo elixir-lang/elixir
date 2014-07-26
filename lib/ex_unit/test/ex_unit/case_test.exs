@@ -36,4 +36,18 @@ defmodule ExUnit.CaseTest do
   test "module tags can be overridden", context do
     assert context[:moduletag] == :overridden
   end
+
+  namespace "outer" do
+    namespace "middle" do
+      test "inner" do
+        name = __ENV__.function |> elem(0)
+        assert name == :"test outer middle inner"
+      end
+    end
+
+    test "other" do
+      name = __ENV__.function |> elem(0)
+      assert name == :"test outer other"
+    end
+  end
 end
