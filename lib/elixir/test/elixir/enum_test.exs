@@ -261,6 +261,38 @@ defmodule EnumTest.List do
     assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 
+  test :sample_1 do
+    # corner cases, independent of the seed
+    assert Enum.sample([]) == nil
+    assert Enum.sample([1]) == 1
+    # set a fixed seed so the test can be deterministic
+    :random.seed(1374, 347975, 449264)
+    assert Enum.sample([1, 2, 3, 4, 5]) == 4
+  end
+
+  test :sample_2 do
+    # corner cases, independent of the seed
+    assert Enum.sample([], 0) == []
+    assert Enum.sample([], 3) == []
+    assert Enum.sample([1], 0) == []
+    assert Enum.sample([1], 2) == [1]
+    assert Enum.sample([1, 2], 0) == []
+    assert Enum.sample([1, 2, 3], 3) == [1, 2, 3]
+    assert Enum.sample([1, 2, 3], 4) == [1, 2, 3]
+    # set a fixed seed so the test can be deterministic
+    # please note the order of following assertions is important
+    :random.seed(1374, 347975, 449264)
+    assert Enum.sample([1, 2, 3, 4, 5], 1) == [4]
+    assert Enum.sample([1, 2, 3, 4, 5], 2) == [3, 2]
+    assert Enum.sample([1, 2, 3, 4, 5], 3) == [1, 2, 5]
+    assert Enum.sample([1, 2, 3, 4, 5], 4) == [1, 5, 3, 4]
+    # assert that every item in the sample comes from the input list
+    list = for _<-1..100, do: make_ref
+    for x <- Enum.sample(list, 50) do
+      assert Enum.find(list, &(&1 == x))
+    end
+ end
+
   test :scan do
     assert Enum.scan([1,2,3,4,5], &(&1 + &2)) == [1,3,6,10,15]
     assert Enum.scan([], &(&1 + &2)) == []
@@ -763,6 +795,42 @@ defmodule EnumTest.Range do
     assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse([1, 2, 3], 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
+  end
+
+  test :sample_1 do
+    # corner cases, independent of the seed
+    assert Enum.sample(1..1) == 1
+    # set a fixed seed so the test can be deterministic
+    :random.seed(1374, 347975, 449264)
+    assert Enum.sample(1..5) == 4
+    assert Enum.sample(?a..?z) == ?x
+    assert Enum.sample(?0..?9) == ?3
+  end
+
+  test :sample_2 do
+    # corner cases, independent of the seed
+    assert Enum.sample(1..1, 0) == []
+    assert Enum.sample(1..1, 2) == [1]
+    assert Enum.sample(1..2, 0) == []
+    assert Enum.sample(1..3, 3) == [1, 2, 3]
+    assert Enum.sample(1..3, 4) == [1, 2, 3]
+    # set a fixed seed so the test can be deterministic
+    # please note the order of following assertions is important
+    :random.seed(1374, 347975, 449264)
+    assert Enum.sample(1..5, 1) == [4]
+    assert Enum.sample(1..5, 2) == [3, 2]
+    assert Enum.sample(1..5, 3) == [1, 2, 5]
+    assert Enum.sample(1..5, 4) == [1, 5, 3, 4]
+    assert Enum.sample(?a..?z, 1) == 't'
+    assert Enum.sample(?a..?z, 2) == 'cx'
+    assert Enum.sample(?a..?z, 3) == 'dno'
+    assert Enum.sample(?a..?z, 4) == 'vnyr'
+    assert Enum.sample(?a..?z, 5) == 'rkcum'
+    assert Enum.sample(?0..?9, 1) == '5'
+    assert Enum.sample(?0..?9, 2) == '58'
+    assert Enum.sample(?0..?9, 3) == '682'
+    assert Enum.sample(?0..?9, 4) == '9724'
+    assert Enum.sample(?0..?9, 5) == '09237'
   end
 
   test :scan do
