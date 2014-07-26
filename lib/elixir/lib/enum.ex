@@ -1374,19 +1374,16 @@ defmodule Enum do
   The implementation assumes that the sample being returned
   can fit into memory.
 
-  If the requested sample size is equal or greater than collection
-  size, the whole collection is returned unshuffled as a list.
-
   ## Examples
 
-      iex> Enum.sample([1,2,3,4])
+      iex> Enum.sample([1,2,3])
+      1
+      iex> Enum.sample([1,2,3])
       2
-      iex> Enum.sample([1,2,3,4])
-      3
       iex> Enum.sample(1..10, 2)
-      [7, 10]
+      [5, 8]
       iex> Enum.sample(?a..?z, 5)
-      'ugcst'
+      'vxmks'
 
   """
   @spec sample(t) :: element | nil
@@ -1400,7 +1397,9 @@ defmodule Enum do
 
     reducer = fn x, {i, sample} ->
       if i < count do
-        {i + 1, sample |> put_elem(i, x)}
+        j = random_index(i)
+        swapped = sample |> elem(j)
+        {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
       else
         j = random_index(i)
         if j < count, do: sample = sample |> put_elem(j, x)
