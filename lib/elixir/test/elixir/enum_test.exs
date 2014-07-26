@@ -272,6 +272,7 @@ defmodule EnumTest.List do
 
   test :sample_2 do
     # corner cases, independent of the seed
+    assert_raise FunctionClauseError, fn -> Enum.sample([1,2], -1) end
     assert Enum.sample([], 0) == []
     assert Enum.sample([], 3) == []
     assert Enum.sample([1], 0) == []
@@ -809,6 +810,7 @@ defmodule EnumTest.Range do
 
   test :sample_2 do
     # corner cases, independent of the seed
+    assert_raise FunctionClauseError, fn -> Enum.sample(1..2, -1) end
     assert Enum.sample(1..1, 0) == []
     assert Enum.sample(1..1, 2) == [1]
     assert Enum.sample(1..2, 0) == []
