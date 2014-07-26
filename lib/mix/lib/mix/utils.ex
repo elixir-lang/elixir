@@ -386,8 +386,10 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # If a proxy environment variable was supplied add a proxy to httpc
-    if http_proxy = System.get_env("HTTP_PROXY"), do: proxy(http_proxy)
-    if https_proxy = System.get_env("HTTPS_PROXY"), do: proxy(https_proxy)
+    http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+    if http_proxy,  do: proxy(http_proxy)
+    if https_proxy, do: proxy(https_proxy)
 
     # We are using relaxed: true because some clients is returning a Location
     # header with relative paths, which does not follow the spec. This would
