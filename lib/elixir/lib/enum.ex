@@ -1361,7 +1361,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a random element or random sublist of a collection.
+  Returns a random element of a collection.
 
   Notice that you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
@@ -1369,10 +1369,13 @@ defmodule Enum do
   result. For example, one could do the following to set a seed
   dynamically:
 
-      :random.seed(:erlang.now)
+      :random.seed(:os.timestamp)
 
-  The implementation assumes that the sample being returned
-  can fit into memory.
+  The implementation is based on the
+  [reservoir sampling](http://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
+  algorithm.
+  It assumes that the sample being returned can fit into memory;
+  the input collection doesn't have to - it is traversed just once.
 
   ## Examples
 
@@ -1380,10 +1383,6 @@ defmodule Enum do
       1
       iex> Enum.sample([1,2,3])
       2
-      iex> Enum.sample(1..10, 2)
-      [5, 8]
-      iex> Enum.sample(?a..?z, 5)
-      'vxmks'
 
   """
   @spec sample(t) :: element | nil
@@ -1391,6 +1390,19 @@ defmodule Enum do
     sample(collection, 1) |> List.first
   end
 
+  @doc """
+  Returns a random sublist of a collection.
+
+  See `sample/1` for notes on implementation and random seed.
+
+  ## Examples
+
+      iex> Enum.sample(1..10, 2)
+      [1, 5]
+      iex> Enum.sample(?a..?z, 5)
+      'tfesm'
+
+  """
   @spec sample(t, integer) :: list
   def sample(collection, count) when count > 0 do
     sample = List.duplicate(nil, count) |> List.to_tuple
