@@ -101,6 +101,7 @@ defmodule Kernel.LexicalTracker do
     {:ok, :ets.new(:lexical, [:protected])}
   end
 
+  @doc false
   def handle_call(:ets, _from, d) do
     {:reply, d, d}
   end
