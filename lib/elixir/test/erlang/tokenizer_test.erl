@@ -127,6 +127,10 @@ empty_string_test() ->
 addadd_test() ->
   [{identifier,1,x},{two_op,1,'++'},{identifier,1,y}] = tokenize("x ++ y").
 
+space_test() ->
+  [{op_identifier,1,foo},{dual_op,1,'-'},{number,1,2}] = tokenize("foo -2"),
+  [{op_identifier,1,foo},{dual_op,1,'-'},{number,1,2}] = tokenize("foo  -2").
+
 chars_test() ->
   [{number,1,97}]      = tokenize("?a"),
   [{number,1,99}]      = tokenize("?c"),
