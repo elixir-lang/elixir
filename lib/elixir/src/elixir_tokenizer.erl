@@ -461,22 +461,10 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
       Error
   end;
 
-% Ambiguous unary/binary operators tokens
-
-tokenize([Space, Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens]) when
-    ?dual_op(Sign),
-    ?is_horizontal_space(Space),
-    not(?is_space(NotMarker)),
-    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
-    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
-    Identifier == identifier ->
-  Rest = [NotMarker|T],
-  tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
-
 % Spaces
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
-  tokenize(strip_horizontal_space(Rest), Line, Scope, Tokens);
+  handle_space_sensitive_tokens(strip_horizontal_space(Rest), Line, Scope, Tokens);
 tokenize(T, Line, _Scope, Tokens) ->
   {error, {Line, "invalid token: ", until_eol(T)}, T, Tokens}.
 
@@ -589,6 +577,19 @@ handle_dot([$.|Rest], Line, Scope, Tokens) ->
 handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, Op, Rest),
   tokenize(Rest, Line, Scope, [Token|add_token_with_nl({'.', Line}, Tokens)]).
+
+% ## Ambiguous unary/binary operators tokens
+handle_space_sensitive_tokens([Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens]) when
+    ?dual_op(Sign),
+    not(?is_space(NotMarker)),
+    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
+    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
+    Identifier == identifier ->
+  Rest = [NotMarker|T],
+  tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
+
+handle_space_sensitive_tokens(String, Line, Scope, Tokens) ->
+  tokenize(String, Line, Scope, Tokens).
 
 %% Helpers
 
