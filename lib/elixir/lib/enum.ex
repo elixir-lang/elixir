@@ -1405,7 +1405,7 @@ defmodule Enum do
   result. For example, one could do the following to set a seed
   dynamically:
 
-      :random.seed(:erlang.now)
+      :random.seed(:os.timestamp)
 
   ## Examples
 
