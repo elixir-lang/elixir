@@ -1424,6 +1424,43 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a random element from a collection.
+
+  Notice that you need to explicitly call `:random.seed/1` and
+  set a seed value for the random algorithm. Otherwise, the
+  default seed will be set which will always return the same
+  result. For example, one could do the following to set a seed
+  dynamically:
+
+      :random.seed(:erlang.now)
+
+  ## Examples
+
+      iex> Enum.sample([1, 2, 3])
+      2
+      iex> Enum.sample([1, 2, 3])
+      3
+  """
+  @spec sample(t) :: element
+  def sample(collection) do
+    index = :random.uniform(count(collection)) - 1
+    at(collection, index)
+  end
+
+  @doc """
+  Returns a random subset of a collection.
+
+  ## Examples
+
+      iex> Enum.sample([1, 2, 3, 4], 2)
+      [3, 2]
+  """
+  @spec sample(t, integer) :: list
+  def sample(collection, count) do
+    collection |> shuffle |> take(count)
+  end
+
+  @doc """
   Returns a subset list of the given collection. Drops elements
   until element position `start`, then takes `count` elements.
   
