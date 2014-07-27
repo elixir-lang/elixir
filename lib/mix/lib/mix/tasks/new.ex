@@ -10,11 +10,11 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE] [--umbrella]
+      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
-  from the path, unless `--module` is given.
+  from the path, unless `--module` or `--app` is given.
 
   A `--sup` option can be given to generate an OTP application
   skeleton including a supervision tree. Normally an app is
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.New do
       [] ->
         Mix.raise "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
-        name = Path.basename(Path.expand(path))
+        name = opts[:app] || Path.basename(Path.expand(path))
         check_project_name!(name)
         File.mkdir_p!(path)
 
