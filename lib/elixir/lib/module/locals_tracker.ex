@@ -242,6 +242,7 @@ defmodule Module.LocalsTracker do
     {:ok, {d, []}}
   end
 
+  @doc false
   def handle_call({:cache_env, env}, _from, {d, cache}) do
     case cache do
       [{i,^env}|_] ->
