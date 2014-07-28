@@ -324,10 +324,12 @@ defmodule Module.LocalsTracker do
     {:stop, {:bad_cast, msg}, state}
   end
 
+  @doc false
   def terminate(_reason, _state) do
     :ok
   end
 
+  @doc false
   def code_change(_old, state, _extra) do
     {:ok, state}
   end
