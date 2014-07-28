@@ -147,10 +147,12 @@ defmodule Kernel.LexicalTracker do
     {:noreply, d}
   end
 
+  @doc false
   def terminate(_reason, _d) do
     :ok
   end
 
+  @doc false
   def code_change(_old, d, _extra) do
     {:ok, d}
   end
