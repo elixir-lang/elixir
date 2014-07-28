@@ -54,7 +54,9 @@ defmodule IEx.CLI do
       :user_drv.start([:"tty_sl -c -e", tty_args])
     else
       :user.start
-      IO.puts "Warning: could not run smart terminal, falling back to dumb one"
+      unless match? {:win32, _}, :os.type do
+        IO.puts "Warning: could not run smart terminal, falling back to dumb one"
+      end
       local_start()
     end
   end
