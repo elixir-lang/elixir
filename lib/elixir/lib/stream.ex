@@ -1088,3 +1088,12 @@ defimpl Enumerable, for: Stream do
     end
   end
 end
+
+defimpl Inspect, for: Stream do
+  import Inspect.Algebra
+
+  def inspect(%{enum: enum, funs: funs}, opts) do
+    inner = [enum: enum, funs: Enum.reverse(funs)]
+    concat ["#Stream<", to_doc(inner, opts), ">"]
+  end
+end
