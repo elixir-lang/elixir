@@ -11,7 +11,7 @@ defmodule GenServer do
   ## Example
 
   The GenServer behaviour abstracts the common client-server interaction.
-  Developer are only required to implement the callbacks and functionality they are
+  Developers are only required to implement the callbacks and functionality they are
   interested in.
 
   Let's start with a code example and then explore the available callbacks.
