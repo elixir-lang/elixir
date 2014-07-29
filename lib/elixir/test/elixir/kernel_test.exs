@@ -113,6 +113,14 @@ defmodule KernelTest do
     assert not ({:__info__, 1} in Kernel.__info__(:functions))
   end
 
+  def exported?,      do: not_exported?
+  defp not_exported?, do: true
+
+  test "function_exported?/3" do
+    assert function_exported?(__MODULE__, :exported?, 0)
+    refute function_exported?(__MODULE__, :not_exported?, 0)
+  end
+
   test "macro_exported?/3" do
     assert macro_exported?(Kernel, :in, 2) == true
     assert macro_exported?(Kernel, :def, 1) == true
