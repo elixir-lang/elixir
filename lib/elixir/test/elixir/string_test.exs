@@ -3,12 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringTest do
   use ExUnit.Case, async: true
 
-  test :integer_codepoints do
-    assert ?é == 233
-    assert ?\xE9 == 233
-    assert ?\351 == 233
-  end
-
   test :next_codepoint do
     assert String.next_codepoint("ésoj") == {"é", "soj"}
     assert String.next_codepoint(<<255>>) == {<<255>>, ""}
@@ -369,8 +363,8 @@ defmodule StringTest do
   test :chunk_valid do
     assert String.chunk("", :valid) == []
 
-    assert String.chunk("ødskfjあ\011ska", :valid)
-           == ["ødskfjあ\011ska"]
+    assert String.chunk("ødskfjあ\x11ska", :valid)
+           == ["ødskfjあ\x11ska"]
     assert String.chunk("abc\x{0ffff}def", :valid)
            == ["abc", <<0x0ffff::utf8>>, "def"]
     assert String.chunk("\x{0fffe}\x{3ffff}привет\x{0ffff}мир", :valid)
@@ -386,8 +380,8 @@ defmodule StringTest do
            == ["ødskfjあska"]
     assert String.chunk("abc\x{0ffff}def", :printable)
            == ["abc", <<0x0ffff::utf8>>, "def"]
-    assert String.chunk("\006ab\005cdef\003\000", :printable)
-           == [<<06>>, "ab", <<05>>, "cdef", <<03, 0>>]
+    assert String.chunk("\x06ab\x05cdef\x03\0", :printable)
+           == [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
   end
 
   test :starts_with? do

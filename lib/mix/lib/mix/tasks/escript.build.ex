@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp set_perms(filename) do
     stat = File.stat!(filename)
-    :ok  = File.chmod(filename, stat.mode ||| 0111)
+    :ok  = File.chmod(filename, stat.mode ||| 0o111)
   end
 
   defp deps_tuples do

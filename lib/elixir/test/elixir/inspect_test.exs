@@ -98,9 +98,9 @@ defmodule Inspect.BitStringTest do
   end
 
   test :opt_as_strings do
-    assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\301doe")
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\xC1doe")
     assert inspect(<<"john">>, binaries: :as_strings) == ~s("john")
-    assert inspect(<<193>>, binaries: :as_strings) == ~s("\\301")
+    assert inspect(<<193>>, binaries: :as_strings) == ~s("\\xC1")
   end
 
   test :opt_as_binaries do
@@ -175,9 +175,9 @@ defmodule Inspect.ListTest do
   end
 
   test :opt_as_strings do
-    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\000doe'"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\0doe'"
     assert inspect('john', char_lists: :as_char_lists) == "'john'"
-    assert inspect([0], char_lists: :as_char_lists) == "'\\000'"
+    assert inspect([0], char_lists: :as_char_lists) == "'\\0'"
   end
 
   test :opt_as_lists do
@@ -338,7 +338,7 @@ defmodule Inspect.OthersTest do
 
   test :regex do
     "~r/foo/m" = inspect(~r(foo)m)
-    "~r/\\a\\010\\177\\033\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
+    "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
     "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
   end
 end

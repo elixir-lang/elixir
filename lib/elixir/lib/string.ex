@@ -129,7 +129,7 @@ defmodule String do
   @spec printable?(t) :: boolean
 
   def printable?(<< h :: utf8, t :: binary >>)
-      when h in ?\040..?\176
+      when h in 0x20..0x7E
       when h in 0xA0..0xD7FF
       when h in 0xE000..0xFFFD
       when h in 0x10000..0x10FFFF do
@@ -801,10 +801,10 @@ defmodule String do
   ## Examples
 
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
-      ["abc\000"]
+      ["abc\0"]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :valid)
-      ["abc\000", <<0x0ffff::utf8>>]
+      ["abc\0", <<0x0ffff::utf8>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :printable)
       ["abc", <<0, 0x0ffff::utf8>>]

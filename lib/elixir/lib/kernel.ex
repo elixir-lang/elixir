@@ -1418,7 +1418,7 @@ defmodule Kernel do
       "<<111, 108, 195, 161, 0>>"
 
       iex> inspect("olá" <> <<0>>, binaries: :as_strings)
-      "\"olá\\000\""
+      "\"olá\\0\""
 
       iex> inspect("olá", binaries: :as_binaries)
       "<<111, 108, 195, 161>>"

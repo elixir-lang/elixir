@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Local.Rebar do
     local_rebar_path = Mix.Rebar.local_rebar_path
     File.mkdir_p! Path.dirname(local_rebar_path)
     create_file local_rebar_path, rebar
-    :ok = :file.change_mode local_rebar_path, 0755
+    :ok = :file.change_mode local_rebar_path, 0o755
     true
   end
 end
