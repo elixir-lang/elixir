@@ -157,7 +157,7 @@ no_auto_import() ->
 %% CORE HANDLING
 
 core() ->
-  ok = application:ensure_started(elixir),
+  {ok, _} = application:ensure_all_started(elixir),
   elixir_code_server:cast({compiler_options, [{docs,false},{internal,true}]}),
   [core_file(File) || File <- core_main()].
 

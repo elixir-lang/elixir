@@ -13,7 +13,7 @@
 ]).
 
 test() ->
-  application:start(elixir),
+  application:ensure_all_started(elixir),
   case eunit:test(?TESTS) of
     error -> erlang:halt(1);
     _Res  -> erlang:halt(0)

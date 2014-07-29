@@ -204,13 +204,13 @@ defmodule Mix.Tasks.Escript.Build do
         @app app
 
         def main(args) do
-          case :application.start(:elixir) do
-            :ok ->
+          case :application.ensure_all_started(:elixir) do
+            {:ok, _} ->
               start_app(@app)
               args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn _ -> @module.main(args) end, true
             _   ->
-              io_error "Elixir is not in the code path, aborting."
+              io_error "Elixir is not available, aborting."
               System.halt(1)
           end
         end
