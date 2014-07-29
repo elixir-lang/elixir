@@ -13,12 +13,18 @@
   * [IEx] Ensure functions in `Kernel.SpecialForms` and `IEx.Helpers` are also auto-completed
   * [IEx] Ensure remote shells can be started with `--remsh`
   * [Kernel] Correctly parse unary/binary operators regardless of number of spaces
-  * [Stream] Implement the Inspect protocol for Streams so we do not leak Stream representation
+  * [Kernel] Ensure private functions are not exported
+  * [Protocol] Do not expose protocol convention on `assert_impl!/2`
+  * [Stream] Implement the Inspect protocol for Streams so we do not leak the Stream representation
 
 * Soft deprecations (no warnings emitted)
 
 * Deprecations
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
+  * [Kernel] Leading `0` for octals is deprecated in favor of `0o`
+  * [Kernel] `0X` for hexadecimals is deprecated in favor of `0x`
+  * [Kernel] `0B` for binaries is deprecated in favor of `0b`
+  * [String] `\NNN`, `\NN` and `\N` for octals are deprecated inside string, sigils and chars in favor of hexadecimal entries with `\x`
 
 * Backwards incompatible changes
 
