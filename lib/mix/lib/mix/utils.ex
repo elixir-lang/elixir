@@ -408,17 +408,17 @@ defmodule Mix.Utils do
   end
 
   defp proxy(proxy) do
-     uri = URI.parse(proxy)
-     :ok = :httpc.set_options([{ proxy_scheme(uri.scheme),
-          { { uri.host |> String.to_char_list, uri.port }, [] } }], :mix)
-   end
+    uri = URI.parse(proxy)
+    :ok = :httpc.set_options([{proxy_scheme(uri.scheme),
+            {{String.to_char_list(uri.host), uri.port}, []}}], :mix)
+  end
 
-   defp proxy_scheme(scheme) do
-     case scheme do
-       "http" -> :proxy
-       "https" -> :https_proxy
-     end
-   end
+  defp proxy_scheme(scheme) do
+    case scheme do
+      "http" -> :proxy
+      "https" -> :https_proxy
+    end
+  end
 
   defp file?(path) do
     File.regular?(path)
