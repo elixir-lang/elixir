@@ -5,7 +5,7 @@
 	elixir
   ]},
  {registered, [elixir_code_server]},
- {applications, [kernel,stdlib]},
+ {applications, [kernel,stdlib,crypto,compiler,syntax_tools]},
  {mod, {elixir,[]}},
  {env, [{uri, #{}}]}
 ]}.
