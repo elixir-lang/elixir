@@ -89,6 +89,7 @@ defmodule Stream do
   returns an anonymous function may return a struct in future releases.
   """
 
+  @doc false
   defstruct enum: nil, funs: [], accs: [], done: nil
 
   @type acc     :: any
