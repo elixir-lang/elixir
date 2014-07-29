@@ -79,16 +79,6 @@ bar """
     end
   end
 
-  test :octals do
-    assert "\1" == <<1>>
-    assert "\12" == "\n"
-    assert "\123" == "S"
-    assert "\123" == "S"
-    assert "\377" == "ÿ"
-    assert "\128" == "\n8"
-    assert "\18"  == <<1, ?8>>
-  end
-
   test :hex do
     assert "\xa" == "\n"
     assert "\xE9" == "é"

@@ -312,9 +312,9 @@ defmodule Macro do
   single- and double-quoted strings. Check `unescape_string/2`
   for information on how to customize the escaping map.
 
-  In this setup, Elixir will escape the following: `\a`, `\b`,
-  `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Octals are
-  also escaped according to the latin1 set they represent.
+  In this setup, Elixir will escape the following: `\0`, `\a`, `\b`,
+  `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Hexadecimals
+  are also supported via `\xNN` and `\x{NN...}` syntax.
 
   This function is commonly used on sigil implementations
   (like `~r`, `~s` and others) which receive a raw, unescaped
@@ -345,6 +345,7 @@ defmodule Macro do
   representing the codepoint of the character it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
+      def unescape_map(?0), do: ?0
       def unescape_map(?a), do: ?\a
       def unescape_map(?b), do: ?\b
       def unescape_map(?d), do: ?\d
@@ -355,20 +356,14 @@ defmodule Macro do
       def unescape_map(?s), do: ?\s
       def unescape_map(?t), do: ?\t
       def unescape_map(?v), do: ?\v
+      def unescape_map(?x), do: true
       def unescape_map(e),  do: e
 
   If the `unescape_map` function returns `false`. The char is
   not escaped and `\` is kept in the char list.
 
-  ## Octals
-
-  Octals will by default be escaped unless the map function
-  returns `false` for `?0`.
-
-  ## Hex
-
-  Hexadecimals will by default be escaped unless the map function
-  returns `false` for `?x`.
+  Hexadecimals will be escaped if the map function returns `true`
+  for `?x`.
 
   ## Examples
 
