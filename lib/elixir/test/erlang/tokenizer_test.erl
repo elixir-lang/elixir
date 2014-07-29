@@ -32,7 +32,6 @@ hex_bin_octal_test() ->
   [{number,1,255}] = tokenize("0xFF"),
   [{number,1,255}] = tokenize("0Xff"),
   [{number,1,63}] = tokenize("077"),
-  [{number,1,63}] = tokenize("077"),
   [{number,1,3}] = tokenize("0b11"),
   [{number,1,3}] = tokenize("0B11").
 
