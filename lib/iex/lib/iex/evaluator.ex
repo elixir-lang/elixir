@@ -123,15 +123,15 @@ defmodule IEx.Evaluator do
                counter: config.counter + 1}
   end
 
-  defp handle_eval({:error, {line, error, ""}}, code, _line, config) do
-      # Update config.cache so that IEx continues to add new input to
-      # the unfinished expression in `code`
-      %{config | cache: code}
+  defp handle_eval({:error, {_, _, ""}}, code, _line, config) do
+    # Update config.cache so that IEx continues to add new input to
+    # the unfinished expression in `code`
+    %{config | cache: code}
   end
 
-  defp handle_eval({:error, {line, error, token}}, code, _line, config) do
-      # Encountered malformed expression
-      :elixir_errors.parse_error(line, "iex", error, token)
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _config) do
+    # Encountered malformed expression
+    :elixir_errors.parse_error(line, "iex", error, token)
   end
 
   defp update_history(counter, cache, result) do
