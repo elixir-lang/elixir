@@ -1,14 +1,19 @@
 # Changelog
 
-## v0.14.4-dev
+## v0.15.0-dev
 
 * Enhancements
+  * [IEx] Support `--werl` call on Windows
   * [Map] Add `Map.from_struct/1`
+  * [Mix] Allow `--app` flag to be passed to `mix new`
+  * [Mix] Support lowercase `http(s)_proxy` environment variables
   * [String] `String.slice/2` and `String.slice/3` have been optimized
 
 * Bug fixes
   * [IEx] Ensure functions in `Kernel.SpecialForms` and `IEx.Helpers` are also auto-completed
   * [IEx] Ensure remote shells can be started with `--remsh`
+  * [Kernel] Correctly parse unary/binary operators regardless of number of spaces
+  * [Stream] Implement the Inspect protocol for Streams so we do not leak Stream representation
 
 * Soft deprecations (no warnings emitted)
 
