@@ -15,6 +15,7 @@
   * [Kernel] Correctly parse unary/binary operators regardless of number of spaces
   * [Kernel] Ensure private functions are not exported
   * [Protocol] Do not expose protocol convention on `assert_impl!/2`
+  * [Regex] Do not consider subpatterns on `Regex.split/3`
   * [Stream] Implement the Inspect protocol for Streams so we do not leak the Stream representation
 
 * Soft deprecations (no warnings emitted)

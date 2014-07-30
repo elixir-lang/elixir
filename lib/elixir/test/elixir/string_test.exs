@@ -23,7 +23,7 @@ defmodule StringTest do
   end
 
   test :split do
-    assert String.split("") == [""]
+    assert String.split("") == []
     assert String.split("foo bar") == ["foo", "bar"]
     assert String.split(" foo bar") == ["foo", "bar"]
     assert String.split("foo bar ") == ["foo", "bar"]
@@ -32,24 +32,29 @@ defmodule StringTest do
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
     assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 
-    assert String.split("", ",") == [""]
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
     assert String.split("1,2 3,4", [" ", ","]) == ["1", "2", "3", "4"]
-    assert String.split(" a b c ", " ") == ["", "a", "b", "c", ""]
 
+    assert String.split("", ",") == [""]
+    assert String.split(" a b c ", " ") == ["", "a", "b", "c", ""]
+    assert String.split(" a b c ", " ", parts: :infinity) == ["", "a", "b", "c", ""]
+    assert String.split(" a b c ", " ", parts: 1) == [" a b c "]
+    assert String.split(" a b c ", " ", parts: 2) == ["", "a b c "]
+
+    assert String.split("", ",", trim: true) == []
     assert String.split(" a b c ", " ", trim: true) == ["a", "b", "c"]
-    assert String.split(" a b c ", " ", trim: true, parts: 0) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, parts: :infinity) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
+    assert String.split(" a b c ", " ", trim: true, parts: 2) == ["a",  "b c "]
 
     assert String.split("abé", "") == ["a", "b", "é", ""]
-    assert String.split("abé", "", parts: 0) == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: :infinity) == ["a", "b", "é", ""]
     assert String.split("abé", "", parts: 1) == ["abé"]
     assert String.split("abé", "", parts: 2) == ["a", "bé"]
     assert String.split("abé", "", parts: 10) == ["a", "b", "é", ""]
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
-    assert String.split("abé", "", trim: true, parts: 0) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: :infinity) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
   end
 

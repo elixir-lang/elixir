@@ -321,7 +321,7 @@ defmodule Regex do
   ## Options
 
     * `:parts` - when specified, splits the string into the given number of
-      parts. If not specified, `:parts` is defaulted to `:infinity`, which will
+      parts. If not specified, `:parts` defaults to `:infinity`, which will
       split the string into the maximum number of parts possible based on the
       given pattern.
 
@@ -348,20 +348,43 @@ defmodule Regex do
 
   def split(regex, string, options \\ [])
 
-  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    parts  = Keyword.get(options, :parts, :infinity)
-    opts   = [return: :binary, parts: zero_to_infinity(parts)]
-    splits = :re.split(string, compiled, opts)
+  def split(%Regex{}, "", _options), do: [""]
 
-    if Keyword.get(options, :trim, false) do
-      for split <- splits, split != "", do: split
-    else
-      splits
+  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+    case :re.run(string, compiled, [:global, capture: :first]) do
+      {:match, matches} ->
+        do_split(matches, string, 0,
+                 parts_to_index(Keyword.get(options, :parts, :infinity)),
+                 Keyword.get(options, :trim, false))
+      :nomatch ->
+        [string]
     end
   end
 
-  defp zero_to_infinity(0), do: :infinity
-  defp zero_to_infinity(n), do: n
+  defp parts_to_index(:infinity),                      do: 0
+  defp parts_to_index(n) when is_integer(n) and n > 0, do: n
+
+  defp do_split(_, "", _index, _counter, true),       do: []
+  defp do_split(_, string, _index, 1, _trim),         do: [string]
+  defp do_split([], string, _index, _counter, _trim), do: [string]
+
+  defp do_split([[{0, 0}]|t], string, index, counter, trim) do
+    do_split(t, string, index, counter, trim)
+  end
+
+  defp do_split([[{pos, length}]|t], string, index, counter, trim) do
+    first = pos - index
+    last  = first + length
+
+    head = binary_part(string, 0, first)
+    tail = binary_part(string, last, byte_size(string) - last)
+
+    if trim and head == "" do
+      do_split(t, tail, pos + length, counter, trim)
+    else
+      [head|do_split(t, tail, pos + length, counter - 1, trim)]
+    end
+  end
 
   @doc ~S"""
   Receives a regex, a binary and a replacement, returns a new
