@@ -119,6 +119,12 @@ defmodule Mix.RebarTest do
 
       assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
       assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
+
+      # Assert we have no .compile.lock as a .compile.lock
+      # means we check for the Elixir version on every command.
+      refute File.exists?("_build/dev/lib/rebar_dep/.compile.lock")
+      refute File.exists?("_build/dev/lib/git_rebar/.compile.lock")
+
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
