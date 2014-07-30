@@ -28,7 +28,8 @@ defmodule Logger.Backends.Console do
   ## Helpers
 
   defp configure(options) do
-    console = Keyword.merge(Application.get_env(:logger, :console, []), options)
+    env = Application.get_env(:logger, :console, [])
+    console = configure_merge(env, options)
     Application.put_env(:logger, :console, console)
 
     format = console
@@ -37,11 +38,41 @@ defmodule Logger.Backends.Console do
 
     level    = Keyword.get(console, :level)
     metadata = Keyword.get(console, :metadata, [])
-    %{format: format, metadata: metadata, level: level}
+    colors   = configure_colors(console)
+    %{format: format, metadata: metadata, level: level, colors: colors}
   end
 
-  defp log_event(level, msg, ts, md, %{format: format, metadata: metadata}) do
-    :io.put_chars :user,
-      Logger.Formatter.format(format, level, msg, ts, Dict.take(md, metadata))
+  defp configure_merge(env, options) do
+    env_colors = Keyword.get(env, :colors, [])
+    opts_colors = Keyword.get(options, :colors, [])
+    colors = Keyword.merge(env_colors, opts_colors)
+
+    Keyword.merge(env, options)
+    |> Keyword.put(:colors, colors)
   end
+
+  defp configure_colors(console) do
+    colors  = Keyword.get(console, :colors, [])
+    debug   = Keyword.get(colors, :debug, :magenta)
+    info    = Keyword.get(colors, :info, :normal)
+    warn    = Keyword.get(colors, :warn, :yellow)
+    error   = Keyword.get(colors, :error, :red)
+    enabled = Keyword.get(colors, :enabled, false)
+    %{debug: debug, info: info, warn: warn, error: error, enabled: enabled}
+  end
+
+  defp log_event(level, msg, ts, md, %{colors: colors} = state) do
+    ansidata = format_event(level, msg, ts, md, state)
+    chardata = color_event(level, ansidata, colors)
+    :io.put_chars(:user, chardata)
+  end
+
+  defp format_event(level, msg, ts, md, %{format: format, metadata: metadata}) do
+    Logger.Formatter.format(format, level, msg, ts, Dict.take(md, metadata))
+  end
+
+  defp color_event(level, data, %{enabled: enabled} = colors) do
+    IO.ANSI.format([Map.fetch!(colors, level) | data], enabled)
+  end
+
 end
