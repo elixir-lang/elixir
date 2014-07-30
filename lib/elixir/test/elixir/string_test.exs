@@ -3,12 +3,6 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringTest do
   use ExUnit.Case, async: true
 
-  test :integer_codepoints do
-    assert ?é == 233
-    assert ?\xE9 == 233
-    assert ?\351 == 233
-  end
-
   test :next_codepoint do
     assert String.next_codepoint("ésoj") == {"é", "soj"}
     assert String.next_codepoint(<<255>>) == {<<255>>, ""}
@@ -29,7 +23,7 @@ defmodule StringTest do
   end
 
   test :split do
-    assert String.split("") == [""]
+    assert String.split("") == []
     assert String.split("foo bar") == ["foo", "bar"]
     assert String.split(" foo bar") == ["foo", "bar"]
     assert String.split("foo bar ") == ["foo", "bar"]
@@ -38,24 +32,29 @@ defmodule StringTest do
     assert String.split("foo" <> <<31>> <> "bar") == ["foo", "bar"]
     assert String.split("foo" <> <<194, 133>> <> "bar") == ["foo", "bar"]
 
-    assert String.split("", ",") == [""]
     assert String.split("a,b,c", ",") == ["a", "b", "c"]
     assert String.split("a,b", ".") == ["a,b"]
     assert String.split("1,2 3,4", [" ", ","]) == ["1", "2", "3", "4"]
-    assert String.split(" a b c ", " ") == ["", "a", "b", "c", ""]
 
+    assert String.split("", ",") == [""]
+    assert String.split(" a b c ", " ") == ["", "a", "b", "c", ""]
+    assert String.split(" a b c ", " ", parts: :infinity) == ["", "a", "b", "c", ""]
+    assert String.split(" a b c ", " ", parts: 1) == [" a b c "]
+    assert String.split(" a b c ", " ", parts: 2) == ["", "a b c "]
+
+    assert String.split("", ",", trim: true) == []
     assert String.split(" a b c ", " ", trim: true) == ["a", "b", "c"]
-    assert String.split(" a b c ", " ", trim: true, parts: 0) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, parts: :infinity) == ["a", "b", "c"]
     assert String.split(" a b c ", " ", trim: true, parts: 1) == [" a b c "]
+    assert String.split(" a b c ", " ", trim: true, parts: 2) == ["a",  "b c "]
 
     assert String.split("abé", "") == ["a", "b", "é", ""]
-    assert String.split("abé", "", parts: 0) == ["a", "b", "é", ""]
+    assert String.split("abé", "", parts: :infinity) == ["a", "b", "é", ""]
     assert String.split("abé", "", parts: 1) == ["abé"]
     assert String.split("abé", "", parts: 2) == ["a", "bé"]
     assert String.split("abé", "", parts: 10) == ["a", "b", "é", ""]
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
-    assert String.split("abé", "", trim: true, parts: 0) == ["a", "b", "é"]
+    assert String.split("abé", "", trim: true, parts: :infinity) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
   end
 
@@ -369,8 +368,8 @@ defmodule StringTest do
   test :chunk_valid do
     assert String.chunk("", :valid) == []
 
-    assert String.chunk("ødskfjあ\011ska", :valid)
-           == ["ødskfjあ\011ska"]
+    assert String.chunk("ødskfjあ\x11ska", :valid)
+           == ["ødskfjあ\x11ska"]
     assert String.chunk("abc\x{0ffff}def", :valid)
            == ["abc", <<0x0ffff::utf8>>, "def"]
     assert String.chunk("\x{0fffe}\x{3ffff}привет\x{0ffff}мир", :valid)
@@ -386,8 +385,8 @@ defmodule StringTest do
            == ["ødskfjあska"]
     assert String.chunk("abc\x{0ffff}def", :printable)
            == ["abc", <<0x0ffff::utf8>>, "def"]
-    assert String.chunk("\006ab\005cdef\003\000", :printable)
-           == [<<06>>, "ab", <<05>>, "cdef", <<03, 0>>]
+    assert String.chunk("\x06ab\x05cdef\x03\0", :printable)
+           == [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
   end
 
   test :starts_with? do

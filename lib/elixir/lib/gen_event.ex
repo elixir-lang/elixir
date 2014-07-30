@@ -1,3 +1,29 @@
+defmodule GenEvent.Stream do
+  @moduledoc """
+  Defines a `GenEvent` stream.
+
+  This is a struct returned by `stream/2`. The struct is public and
+  contains the following fields:
+
+    * `:manager`  - the manager reference given to `GenEvent.stream/2`
+    * `:id`       - the event stream id for cancellation
+    * `:timeout`  - the timeout in between events, defaults to `:infinity`
+    * `:duration` - the duration of the subscription, defaults to `:infinity`
+    * `:mode`     - if the subscription mode is sync or async, defaults to `:sync`
+  """
+  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :sync
+
+  @typedoc "The stream mode"
+  @type mode :: :sync | :async
+
+  @type t :: %__MODULE__{
+               manager: GenEvent.manager,
+               id: term,
+               timeout: timeout,
+               duration: timeout,
+               mode: mode}
+end
+
 defmodule GenEvent do
   @moduledoc """
   A behaviour module for implementing event handling functionality.
@@ -158,30 +184,6 @@ defmodule GenEvent do
   @typedoc "Supported values for new handlers"
   @type handler :: module | {module, term}
 
-  @typedoc "The subscription mode"
-  @type mode :: :sync | :async
-
-  @type t :: %__MODULE__{
-               manager: manager,
-               id: term,
-               timeout: timeout,
-               duration: timeout,
-               mode: mode}
-
-  @doc """
-  Defines a `GenEvent` stream.
-
-  This is a struct returned by `stream/2`. The struct is public and
-  contains the following fields:
-
-    * `:manager`  - the manager reference given to `GenEvent.stream/2`
-    * `:id`       - the event stream id for cancellation
-    * `:timeout`  - the timeout in between events, defaults to `:infinity`
-    * `:duration` - the duration of the subscription, defaults to `:infinity`
-    * `:mode`     - if the subscription mode is sync or async, defaults to `:sync`
-  """
-  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :sync
-
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
@@ -198,8 +200,12 @@ defmodule GenEvent do
       end
 
       @doc false
-      def handle_call(_request, state) do
-        {:ok, {:error, :bad_call}, state}
+      def handle_call(msg, state) do
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_call, msg})
+          2 -> {:remove_handler, :ok}
+        end
       end
 
       @doc false
@@ -286,12 +292,14 @@ defmodule GenEvent do
       before moving on to the next event handler.
 
   """
+  @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
   def stream(manager, options \\ []) do
-    %GenEvent{manager: manager,
-              id: Keyword.get(options, :id),
-              timeout: Keyword.get(options, :timeout, :infinity),
-              duration: Keyword.get(options, :duration, :infinity),
-              mode: Keyword.get(options, :mode, :sync)}
+    %GenEvent.Stream{
+      manager: manager,
+      id: Keyword.get(options, :id),
+      timeout: Keyword.get(options, :timeout, :infinity),
+      duration: Keyword.get(options, :duration, :infinity),
+      mode: Keyword.get(options, :mode, :sync)}
   end
 
   @doc """
@@ -385,15 +393,15 @@ defmodule GenEvent do
   when the stream is created via `stream/2`. Passing a stream without
   an id leads to an argument error.
   """
-  @spec cancel_streams(t) :: :ok
-  def cancel_streams(%GenEvent{id: nil}) do
+  @spec cancel_streams(GenEvent.Stream.t) :: :ok
+  def cancel_streams(%GenEvent.Stream{id: nil}) do
     raise ArgumentError, "cannot cancel streams without an id"
   end
 
-  def cancel_streams(%GenEvent{manager: manager, id: id}) do
+  def cancel_streams(%GenEvent.Stream{manager: manager, id: id}) do
     handlers = :gen_event.which_handlers(manager)
 
-    _ = for {Enumerable.GenEvent, {handler_id, _}} = ref <- handlers,
+    _ = for {Enumerable.GenEvent.Stream, {handler_id, _}} = ref <- handlers,
         handler_id === id do
       :gen_event.delete_handler(manager, ref, :remove_handler)
     end
@@ -458,7 +466,7 @@ defmodule GenEvent do
   defdelegate stop(manager), to: :gen_event
 end
 
-defimpl Enumerable, for: GenEvent do
+defimpl Enumerable, for: GenEvent.Stream do
   use GenEvent
 
   @doc false

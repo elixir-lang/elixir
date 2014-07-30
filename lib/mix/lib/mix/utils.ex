@@ -386,8 +386,10 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # If a proxy environment variable was supplied add a proxy to httpc
-    if http_proxy = System.get_env("HTTP_PROXY"), do: proxy(http_proxy)
-    if https_proxy = System.get_env("HTTPS_PROXY"), do: proxy(https_proxy)
+    http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+    if http_proxy,  do: proxy(http_proxy)
+    if https_proxy, do: proxy(https_proxy)
 
     # We are using relaxed: true because some clients is returning a Location
     # header with relative paths, which does not follow the spec. This would
@@ -406,17 +408,17 @@ defmodule Mix.Utils do
   end
 
   defp proxy(proxy) do
-     uri = URI.parse(proxy)
-     :ok = :httpc.set_options([{ proxy_scheme(uri.scheme),
-          { { uri.host |> String.to_char_list, uri.port }, [] } }], :mix)
-   end
+    uri = URI.parse(proxy)
+    :ok = :httpc.set_options([{proxy_scheme(uri.scheme),
+            {{String.to_char_list(uri.host), uri.port}, []}}], :mix)
+  end
 
-   defp proxy_scheme(scheme) do
-     case scheme do
-       "http" -> :proxy
-       "https" -> :https_proxy
-     end
-   end
+  defp proxy_scheme(scheme) do
+    case scheme do
+      "http" -> :proxy
+      "https" -> :https_proxy
+    end
+  end
 
   defp file?(path) do
     File.regular?(path)

@@ -129,7 +129,7 @@ defmodule String do
   @spec printable?(t) :: boolean
 
   def printable?(<< h :: utf8, t :: binary >>)
-      when h in ?\040..?\176
+      when h in 0x20..0x7E
       when h in 0xA0..0xD7FF
       when h in 0xE000..0xFFFD
       when h in 0x10000..0x10FFFF do
@@ -227,40 +227,31 @@ defmodule String do
   """
   @spec split(t, t | [t] | Regex.t) :: [t]
   @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
-  def split(binary, pattern, options \\ [])
+  def split(string, pattern, options \\ [])
 
-  def split("", _pattern, _options), do: [""]
-
-  def split(binary, "", options) do
-    index =
-      case Keyword.get(options, :parts, :infinity) do
-        num when is_number(num) and num > 0 -> num
-        _ -> 0
-      end
-    split_codepoints(binary, index - 1, Keyword.get(options, :trim, false))
+  def split(string, "", options) do
+    parts = Keyword.get(options, :parts, :infinity)
+    split_codepoints(string, parts_to_index(parts), Keyword.get(options, :trim, false))
   end
 
-  def split(binary, pattern, options) do
+  def split(string, pattern, options) do
     if Regex.regex?(pattern) do
-      Regex.split(pattern, binary, options)
+      Regex.split(pattern, string, options)
     else
-      splits =
-        case Keyword.get(options, :parts, :infinity) do
-          num when is_number(num) and num > 0 ->
-            split_parts(binary, pattern, num - 1)
-          _ ->
-            :binary.split(binary, pattern, [:global])
-        end
-
-      if Keyword.get(options, :trim, false) do
-        for split <- splits, split != "", do: split
+      parts = Keyword.get(options, :parts, :infinity)
+      trim  = Keyword.get(options, :trim, false)
+      if parts == :infinity and trim == false do
+        :binary.split(string, pattern, [:global])
       else
-        splits
+        split_parts(string, pattern, parts_to_index(parts), trim)
       end
     end
   end
 
-  defp split_codepoints(binary, 0, _trim), do: [binary]
+  defp parts_to_index(:infinity),                      do: 0
+  defp parts_to_index(n) when is_integer(n) and n > 0, do: n
+
+  defp split_codepoints(binary, 1, _trim), do: [binary]
   defp split_codepoints(<<h :: utf8, t :: binary>>, count, trim),
     do: [<<h :: utf8>>|split_codepoints(t, count - 1, trim)]
   defp split_codepoints(<<h, t :: binary>>, count, trim),
@@ -268,14 +259,21 @@ defmodule String do
   defp split_codepoints(<<>>, _, true), do: []
   defp split_codepoints(<<>>, _, false), do: [""]
 
-  defp split_parts("", _pattern, _num),         do: [""]
-  defp split_parts(binary, pattern, num),       do: split_parts(binary, pattern, num, [])
-  defp split_parts("", _pattern, _num, parts),  do: Enum.reverse([""|parts])
-  defp split_parts(binary, _pattern, 0, parts), do: Enum.reverse([binary|parts])
-  defp split_parts(binary, pattern, num, parts) do
-    case :binary.split(binary, pattern) do
-      [head]       -> Enum.reverse([head|parts])
-      [head, rest] -> split_parts(rest, pattern, num - 1, [head|parts])
+  defp split_parts("", _pattern, _num, true),   do: []
+  defp split_parts("", _pattern, _num, _trim),  do: [""]
+  defp split_parts(string, _pattern, 1, _trim), do: [string]
+  defp split_parts(string, pattern, num, trim) do
+    case :binary.split(string, pattern) do
+      [""] when trim ->
+        []
+      [head] ->
+        [head]
+      [head, tail] ->
+        if trim and head == "" do
+          split_parts(tail, pattern, num, trim)
+        else
+          [head|split_parts(tail, pattern, num-1, trim)]
+        end
     end
   end
 
@@ -801,10 +799,10 @@ defmodule String do
   ## Examples
 
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
-      ["abc\000"]
+      ["abc\0"]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :valid)
-      ["abc\000", <<0x0ffff::utf8>>]
+      ["abc\0", <<0x0ffff::utf8>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0ffff::utf8>>, :printable)
       ["abc", <<0, 0x0ffff::utf8>>]

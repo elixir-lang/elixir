@@ -108,28 +108,30 @@ defmodule IEx.Evaluator do
   defp do_eval(latest_input, config) do
     code = config.cache ++ latest_input
     line = config.counter
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, config)
+  end
+  
+  defp handle_eval({:ok, forms}, code, line, config) do
+    {result, new_binding, env, scope} =
+      :elixir.eval_forms(forms, config.binding, config.env, config.scope)
+    unless result == IEx.dont_display_result, do: io_inspect(result)
+    update_history(line, code, result)
+    %{config | env: env,
+               cache: '',
+               scope: scope,
+               binding: new_binding,
+               counter: config.counter + 1}
+  end
 
-    case Code.string_to_quoted(code, [line: line, file: "iex"]) do
-      {:ok, forms} ->
-        {result, new_binding, env, scope} =
-          :elixir.eval_forms(forms, config.binding, config.env, config.scope)
-        unless result == IEx.dont_display_result, do: io_inspect(result)
-        update_history(line, code, result)
-        %{config | env: env,
-                   cache: '',
-                   scope: scope,
-                   binding: new_binding,
-                   counter: config.counter + 1}
-      {:error, {line, error, token}} ->
-        if token == "" do
-          # Update config.cache so that IEx continues to add new input to
-          # the unfinished expression in `code`
-          %{config | cache: code}
-        else
-          # Encountered malformed expression
-          :elixir_errors.parse_error(line, "iex", error, token)
-        end
-    end
+  defp handle_eval({:error, {_, _, ""}}, code, _line, config) do
+    # Update config.cache so that IEx continues to add new input to
+    # the unfinished expression in `code`
+    %{config | cache: code}
+  end
+
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _config) do
+    # Encountered malformed expression
+    :elixir_errors.parse_error(line, "iex", error, token)
   end
 
   defp update_history(counter, cache, result) do

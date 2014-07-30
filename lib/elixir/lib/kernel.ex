@@ -1418,7 +1418,7 @@ defmodule Kernel do
       "<<111, 108, 195, 161, 0>>"
 
       iex> inspect("olá" <> <<0>>, binaries: :as_strings)
-      "\"olá\\000\""
+      "\"olá\\0\""
 
       iex> inspect("olá", binaries: :as_binaries)
       "<<111, 108, 195, 161>>"
@@ -1783,7 +1783,7 @@ defmodule Kernel do
   defp nest_get_and_update_in(h, [{:access, key}|t], fun) do
     quote do
       Access.get_and_update(
-        case(unquote(h), do: (nil -> %{}; o -> o)),
+        unquote(h),
         unquote(key),
         unquote(nest_get_and_update_in(t, fun))
       )
@@ -2054,8 +2054,9 @@ defmodule Kernel do
   defp typespec(_),         do: false
 
   @doc """
-  Returns the binding as a keyword list where the variable name
-  is the key and the variable value is the value.
+  Returns the binding for the given context as a keyword list.
+
+  The variable name is the key and the variable value is the value.
 
   ## Examples
 
@@ -2066,59 +2067,18 @@ defmodule Kernel do
       iex> binding()
       [x: 2]
 
-  """
-  defmacro binding() do
-    do_binding(nil, nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
-  end
-
-  @doc """
-  Receives a list of atoms at compilation time and returns the
-  binding of the given variables as a keyword list where the
-  variable name is the key and the variable value is the value.
-
-  In case a variable in the list does not exist in the binding,
-  it is not included in the returned result.
-
-  ## Examples
-
-      iex> x = 1
-      iex> binding([:x, :y])
-      [x: 1]
-
-  """
-  defmacro binding(list) when is_list(list) do
-    do_binding(list, nil, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
-  end
-
-  defmacro binding(context) when is_atom(context) do
-    do_binding(nil, context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
-  end
-
-  @doc """
-  Receives a list of atoms at compilation time and returns the
-  binding of the given variables in the given context as a keyword
-  list where the variable name is the key and the variable value
-  is the value.
-
-  In case a variable in the list does not exist in the binding,
-  it is not included in the returned result.
-
-  ## Examples
-
-      iex> var!(x, :foo) = 1
-      iex> binding([:x, :y])
+      iex> binding(:foo)
       []
-      iex> binding([:x, :y], :foo)
+      iex> var!(x, :foo) = 1
+      1
+      iex> binding(:foo)
       [x: 1]
 
   """
-  defmacro binding(list, context) when is_list(list) and is_atom(context) do
-    do_binding(list, context, __CALLER__.vars, Macro.Env.in_match?(__CALLER__))
-  end
-
-  defp do_binding(list, context, vars, in_match) do
-    for {v, c} <- vars, c == context, list == nil or :lists.member(v, list) do
-      {v, wrap_binding(in_match, {v, [], c})}
+  defmacro binding(context \\ nil) do
+    in_match? = Macro.Env.in_match?(__CALLER__)
+    for {v, c} <- __CALLER__.vars, c == context do
+      {v, wrap_binding(in_match?, {v, [], c})}
     end
   end
 

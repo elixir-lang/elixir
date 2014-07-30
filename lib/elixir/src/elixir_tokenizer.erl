@@ -118,17 +118,39 @@ tokenize([], EndLine, #elixir_tokenizer{terminators=[{Start, StartLine}|_]}, Tok
 
 % Base integers
 
-tokenize([$0,X,H|T], Line, Scope, Tokens) when (X == $x orelse X == $X), ?is_hex(H) ->
+tokenize([$0,$x,H|T], Line, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number} = tokenize_hex([H|T], []),
   tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
 
-tokenize([$0,B,H|T], Line, Scope, Tokens) when (B == $b orelse B == $B), ?is_bin(H) ->
+tokenize([$0,$b,H|T], Line, Scope, Tokens) when ?is_bin(H) ->
+  {Rest, Number} = tokenize_bin([H|T], []),
+  tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
+
+tokenize([$0,$o,H|T], Line, Scope, Tokens) when ?is_octal(H) ->
+  {Rest, Number} = tokenize_octal([H|T], []),
+  tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
+
+%% Deprecated
+
+tokenize([$0,$X,H|T], Line, Scope, Tokens) when ?is_hex(H) ->
+  io:format("~ts:~w: warning: 0X for hexadecimals is deprecated, please use 0x instead~n",
+          [Scope#elixir_tokenizer.file, Line]),
+  {Rest, Number} = tokenize_hex([H|T], []),
+  tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
+
+tokenize([$0,$B,H|T], Line, Scope, Tokens) when ?is_bin(H) ->
+  io:format("~ts:~w: warning: 0B for binaries is deprecated, please use 0b instead~n",
+            [Scope#elixir_tokenizer.file, Line]),
   {Rest, Number} = tokenize_bin([H|T], []),
   tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
 
 tokenize([$0,H|T], Line, Scope, Tokens) when ?is_octal(H) ->
+  io:format("~ts:~w: warning: octals starting with leading 0 is deprecated, please use 0o instead, got octal start with: ~ts~n",
+            [Scope#elixir_tokenizer.file, Line, <<$0, H>>]),
   {Rest, Number} = tokenize_octal([H|T], []),
   tokenize(Rest, Line, Scope, [{number, Line, Number}|Tokens]);
+
+%% End of deprecated
 
 % Comments
 
@@ -159,44 +181,86 @@ tokenize([$~,S,H|T] = Original, Line, Scope, Tokens) when ?is_sigil(H), ?is_upca
 
 % Char tokens
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
-  Char = escape_char([$\\,P,${,A,B,C,D,E,F,$}]),
+tokenize([$?,$\\,$x,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  Char = escape_char([$\\,$x,${,A,B,C,D,E,F,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,E,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
-  Char = escape_char([$\\,P,${,A,B,C,D,E,$}]),
+tokenize([$?,$\\,$x,${,A,B,C,D,E,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  Char = escape_char([$\\,$x,${,A,B,C,D,E,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,D,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
-  Char = escape_char([$\\,P,${,A,B,C,D,$}]),
+tokenize([$?,$\\,$x,${,A,B,C,D,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  Char = escape_char([$\\,$x,${,A,B,C,D,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,C,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
-  Char = escape_char([$\\,P,${,A,B,C,$}]),
+tokenize([$?,$\\,$x,${,A,B,C,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  Char = escape_char([$\\,$x,${,A,B,C,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,B,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
-  Char = escape_char([$\\,P,${,A,B,$}]),
+tokenize([$?,$\\,$x,${,A,B,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B) ->
+  Char = escape_char([$\\,$x,${,A,B,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,${,A,$}|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A) ->
-  Char = escape_char([$\\,P,${,A,$}]),
+tokenize([$?,$\\,$x,${,A,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A) ->
+  Char = escape_char([$\\,$x,${,A,$}]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A,B|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
-  Char = escape_char([$\\,P,A,B]),
+tokenize([$?,$\\,$x,A,B|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B) ->
+  Char = escape_char([$\\,$x,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
-tokenize([$?,$\\,P,A|T], Line, Scope, Tokens)
-    when (P == $x orelse P == $X), ?is_hex(A) ->
-  Char = escape_char([$\\,P,A]),
+tokenize([$?,$\\,$x,A|T], Line, Scope, Tokens)
+    when ?is_hex(A) ->
+  Char = escape_char([$\\,$x,A]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+%% Deprecated
+
+tokenize([$?,$\\,$X,${,A,B,C,D,E,F,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  Char = escape_char([$\\,$X,${,A,B,C,D,E,F,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,${,A,B,C,D,E,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  Char = escape_char([$\\,$X,${,A,B,C,D,E,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,${,A,B,C,D,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  Char = escape_char([$\\,$X,${,A,B,C,D,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,${,A,B,C,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  Char = escape_char([$\\,$X,${,A,B,C,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,${,A,B,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B) ->
+  Char = escape_char([$\\,$X,${,A,B,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,${,A,$}|T], Line, Scope, Tokens)
+    when ?is_hex(A) ->
+  Char = escape_char([$\\,$X,${,A,$}]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,A,B|T], Line, Scope, Tokens)
+    when ?is_hex(A), ?is_hex(B) ->
+  Char = escape_char([$\\,$X,A,B]),
+  tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+tokenize([$?,$\\,$X,A|T], Line, Scope, Tokens)
+    when ?is_hex(A) ->
+  Char = escape_char([$\\,$X,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
 tokenize([$?,$\\,A,B,C|T], Line, Scope, Tokens)
@@ -209,10 +273,15 @@ tokenize([$?,$\\,A,B|T], Line, Scope, Tokens)
   Char = escape_char([$\\,A,B]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
+tokenize([$?,$\\,$0|T], Line, Scope, Tokens) ->
+  tokenize(T, Line, Scope, [{number, Line, 0}|Tokens]);
+
 tokenize([$?,$\\,A|T], Line, Scope, Tokens)
     when ?is_octal(A) ->
   Char = escape_char([$\\,A]),
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
+
+%% End of deprecation
 
 tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
@@ -461,22 +530,10 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
       Error
   end;
 
-% Ambiguous unary/binary operators tokens
-
-tokenize([Space, Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens]) when
-    ?dual_op(Sign),
-    ?is_horizontal_space(Space),
-    not(?is_space(NotMarker)),
-    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
-    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
-    Identifier == identifier ->
-  Rest = [NotMarker|T],
-  tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
-
 % Spaces
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
-  tokenize(strip_horizontal_space(Rest), Line, Scope, Tokens);
+  handle_space_sensitive_tokens(strip_horizontal_space(Rest), Line, Scope, Tokens);
 tokenize(T, Line, _Scope, Tokens) ->
   {error, {Line, "invalid token: ", until_eol(T)}, T, Tokens}.
 
@@ -498,7 +555,7 @@ until_eol([])          -> [];
 until_eol([H|T])       -> [H|until_eol(T)].
 
 escape_char(List) ->
-  << Char/utf8 >> = elixir_interpolation:unescape_chars(list_to_binary(List)),
+  <<Char/utf8>> = elixir_interpolation:unescape_chars(list_to_binary(List)),
   Char.
 
 %% Handlers
@@ -589,6 +646,19 @@ handle_dot([$.|Rest], Line, Scope, Tokens) ->
 handle_call_identifier(Rest, Line, Op, Scope, Tokens) ->
   Token = check_call_identifier(identifier, Line, Op, Rest),
   tokenize(Rest, Line, Scope, [Token|add_token_with_nl({'.', Line}, Tokens)]).
+
+% ## Ambiguous unary/binary operators tokens
+handle_space_sensitive_tokens([Sign, NotMarker|T], Line, Scope, [{Identifier, _, _} = H|Tokens]) when
+    ?dual_op(Sign),
+    not(?is_space(NotMarker)),
+    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
+    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
+    Identifier == identifier ->
+  Rest = [NotMarker|T],
+  tokenize(Rest, Line, Scope, [{dual_op, Line, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
+
+handle_space_sensitive_tokens(String, Line, Scope, Tokens) ->
+  tokenize(String, Line, Scope, Tokens).
 
 %% Helpers
 

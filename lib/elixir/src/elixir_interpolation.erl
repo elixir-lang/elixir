@@ -75,41 +75,87 @@ unescape_chars(String) ->
 
 unescape_chars(String, Map) ->
   Octals = Map($0) /= false,
-  Hex    = Map($x) /= false,
+  Hex    = Map($x) == true,
   unescape_chars(String, Map, Octals, Hex, <<>>).
 
+%% Deprecated
+
 unescape_chars(<<$\\,A,B,C,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), A =< $3, ?is_octal(B), ?is_octal(C) ->
+  io:format(standard_error, "warning: octals inside strings/sigils/chars are deprecated, got: \\~ts~n", [<<A, B, C>>]),
   append_escaped(Rest, Map, [A,B,C], true, Hex, Acc, 8);
 
 unescape_chars(<<$\\,A,B,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A), ?is_octal(B) ->
+  io:format(standard_error, "warning: octals inside strings/sigils/chars are deprecated, got: \\~ts~n", [<<A, B>>]),
   append_escaped(Rest, Map, [A,B], true, Hex, Acc, 8);
 
+unescape_chars(<<$\\,$0,Rest/binary>>, Map, true, Hex, Acc) ->
+  append_escaped(Rest, Map, [$0], true, Hex, Acc, 8);
+
 unescape_chars(<<$\\,A,Rest/binary>>, Map, true, Hex, Acc) when ?is_octal(A) ->
+  io:format(standard_error, "warning: octals inside strings/sigils/chars are deprecated, got: \\~ts~n", [<<A>>]),
   append_escaped(Rest, Map, [A], true, Hex, Acc, 8);
 
-unescape_chars(<<$\\,P,A,B,Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+unescape_chars(<<$\\,$X,A,B,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,A,Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A) ->
+unescape_chars(<<$\\,$X,A,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A) ->
+unescape_chars(<<$\\,$X,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B) ->
+unescape_chars(<<$\\,$X,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+unescape_chars(<<$\\,$X,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A,B,C], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+unescape_chars(<<$\\,$X,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A,B,C,D], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
-    append_escaped(Rest, Map, [A,B,C,D,E], Octal, true, Acc, 16);
+unescape_chars(<<$\\,$X,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
+  append_escaped(Rest, Map, [A,B,C,D,E], Octal, true, Acc, 16);
 
-unescape_chars(<<$\\,P,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when (P == $x orelse P == $X), ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+unescape_chars(<<$\\,$X,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  io:format(standard_error, "warning: \\X inside strings/sigils/chars is deprecated, please use \\x instead~n", []),
   append_escaped(Rest, Map, [A,B,C,D,E,F], Octal, true, Acc, 16);
+
+%% End of deprecated
+
+unescape_chars(<<$\\,$x,A,B,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,A,Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+  append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A) ->
+  append_escaped(Rest, Map, [A], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A,B], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  append_escaped(Rest, Map, [A,B,C], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,D,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  append_escaped(Rest, Map, [A,B,C,D], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,D,E,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  append_escaped(Rest, Map, [A,B,C,D,E], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,${,A,B,C,D,E,F,$},Rest/binary>>, Map, Octal, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  append_escaped(Rest, Map, [A,B,C,D,E,F], Octal, true, Acc, 16);
+
+unescape_chars(<<$\\,$x,_/binary>>, _Map, _Octal, true, _Acc) ->
+  Msg = <<"missing hex sequence after \\x">>,
+  error('Elixir.ArgumentError':exception([{message,Msg}]));
 
 unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Octals, Hex, Acc) ->
   case Map(Escaped) of
@@ -134,6 +180,7 @@ append_escaped(Rest, Map, List, Octal, Hex, Acc, Base) ->
 
 % Unescape Helpers
 
+unescape_map($0) -> 0;
 unescape_map($a) -> 7;
 unescape_map($b) -> $\b;
 unescape_map($d) -> $\d;
@@ -144,6 +191,7 @@ unescape_map($r) -> $\r;
 unescape_map($s) -> $\s;
 unescape_map($t) -> $\t;
 unescape_map($v) -> $\v;
+unescape_map($x) -> true;
 unescape_map(E)  -> E.
 
 % Extract Helpers

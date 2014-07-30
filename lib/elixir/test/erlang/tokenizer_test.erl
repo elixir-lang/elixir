@@ -32,7 +32,6 @@ hex_bin_octal_test() ->
   [{number,1,255}] = tokenize("0xFF"),
   [{number,1,255}] = tokenize("0Xff"),
   [{number,1,63}] = tokenize("077"),
-  [{number,1,63}] = tokenize("077"),
   [{number,1,3}] = tokenize("0b11"),
   [{number,1,3}] = tokenize("0B11").
 
@@ -127,17 +126,18 @@ empty_string_test() ->
 addadd_test() ->
   [{identifier,1,x},{two_op,1,'++'},{identifier,1,y}] = tokenize("x ++ y").
 
+space_test() ->
+  [{op_identifier,1,foo},{dual_op,1,'-'},{number,1,2}] = tokenize("foo -2"),
+  [{op_identifier,1,foo},{dual_op,1,'-'},{number,1,2}] = tokenize("foo  -2").
+
 chars_test() ->
   [{number,1,97}]      = tokenize("?a"),
   [{number,1,99}]      = tokenize("?c"),
+  [{number,1,0}]       = tokenize("?\\0"),
   [{number,1,7}]       = tokenize("?\\a"),
   [{number,1,10}]      = tokenize("?\\n"),
   [{number,1,92}]      = tokenize("?\\\\"),
   [{number,1,10}]      = tokenize("?\\xa"),
-  [{number,1,26}]      = tokenize("?\\X1a"),
-  [{number,1,6}]       = tokenize("?\\6"),
-  [{number,1,49}]      = tokenize("?\\61"),
-  [{number,1,255}]     = tokenize("?\\377"),
   [{number,1,10}]      = tokenize("?\\x{a}"),
   [{number,1,171}]     = tokenize("?\\x{ab}"),
   [{number,1,2748}]    = tokenize("?\\x{abc}"),

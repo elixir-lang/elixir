@@ -123,7 +123,7 @@ defmodule String.Unicode do
 
   # Split
 
-  def split(""), do: [""]
+  def split(""), do: []
 
   def split(string) when is_binary(string) do
     :lists.reverse do_split(string, "", [])

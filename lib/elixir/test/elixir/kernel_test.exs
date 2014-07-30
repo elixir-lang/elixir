@@ -31,14 +31,14 @@ defmodule KernelTest do
 
   test "match?/2" do
     assert match?(_, List.first(1)) == true
-    assert binding([:x]) == []
+    assert binding() == []
 
     a = List.first([0])
     assert match?(b when b > a, 1) == true
-    assert binding([:b]) == []
+    assert binding() == [a: 0]
 
     assert match?(b when b > a, -1) == false
-    assert binding([:b]) == []
+    assert binding() == [a: 0]
   end
 
   test "nil?/1" do
@@ -113,6 +113,14 @@ defmodule KernelTest do
     assert not ({:__info__, 1} in Kernel.__info__(:functions))
   end
 
+  def exported?,      do: not_exported?
+  defp not_exported?, do: true
+
+  test "function_exported?/3" do
+    assert function_exported?(__MODULE__, :exported?, 0)
+    refute function_exported?(__MODULE__, :not_exported?, 0)
+  end
+
   test "macro_exported?/3" do
     assert macro_exported?(Kernel, :in, 2) == true
     assert macro_exported?(Kernel, :def, 1) == true
@@ -126,21 +134,19 @@ defmodule KernelTest do
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
-  test "binding/0, binding/1 and binding/2" do
+  test "binding/0 and binding/1" do
     x = 1
-    assert binding == [x: 1]
-    assert binding([:x, :y]) == [x: 1]
-    assert binding([:x, :y], nil) == [x: 1]
+    assert binding() == [x: 1]
 
     x = 2
-    assert binding == [x: 2]
+    assert binding() == [x: 2]
 
     y = 3
-    assert binding == [x: 2, y: 3]
+    assert binding() == [x: 2, y: 3]
 
-    var!(x, :foo) = 2
-    assert binding(:foo) == [x: 2]
-    assert binding([:x, :y], :foo) == [x: 2]
+    var!(x, :foo) = 4
+    assert binding() == [x: 2, y: 3]
+    assert binding(:foo) == [x: 4]
   end
 
   defmodule User do
@@ -219,9 +225,6 @@ defmodule KernelTest do
   test "put_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(nil["john"][:age], 28) ==
-           %{"john" => %{age: 28}}
-
     assert put_in(users["john"][:age], 28) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
@@ -294,11 +297,12 @@ defmodule KernelTest do
   test "get_and_update_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end) ==
-           {:ok, %{"john" => %{age: 28}}}
-
     assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
            {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
+    end
 
     assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})

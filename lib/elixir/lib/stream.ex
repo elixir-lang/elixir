@@ -89,6 +89,7 @@ defmodule Stream do
   returns an anonymous function may return a struct in future releases.
   """
 
+  @doc false
   defstruct enum: nil, funs: [], accs: [], done: nil
 
   @type acc     :: any
@@ -1086,5 +1087,14 @@ defimpl Enumerable, for: Stream do
             end
         end
     end
+  end
+end
+
+defimpl Inspect, for: Stream do
+  import Inspect.Algebra
+
+  def inspect(%{enum: enum, funs: funs}, opts) do
+    inner = [enum: enum, funs: Enum.reverse(funs)]
+    concat ["#Stream<", to_doc(inner, opts), ">"]
   end
 end

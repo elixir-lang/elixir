@@ -1,0 +1,24 @@
+defmodule Logger.Mixfile do
+  use Mix.Project
+
+  def project do
+    [app: :logger,
+     version: System.version,
+     build_per_environment: false]
+  end
+
+  def application do
+    [registered: [Logger, Logger.Supervisor, Logger.Watcher],
+     mod: {Logger, []},
+     env: [level: :debug,
+           utc_log: false,
+           truncate: 8096,
+           backends: [:console],
+           translators: [{Logger.Translator, :translate}],
+           sync_threshold: 20,
+           handle_otp_reports: true,
+           compile_time_purge_level: :debug,
+           discard_threshold_for_error_logger: 500,
+           console: []]]
+  end
+end

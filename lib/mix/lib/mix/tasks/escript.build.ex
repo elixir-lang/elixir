@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp set_perms(filename) do
     stat = File.stat!(filename)
-    :ok  = File.chmod(filename, stat.mode ||| 0111)
+    :ok  = File.chmod(filename, stat.mode ||| 0o111)
   end
 
   defp deps_tuples do
@@ -204,13 +204,13 @@ defmodule Mix.Tasks.Escript.Build do
         @app app
 
         def main(args) do
-          case :application.start(:elixir) do
-            :ok ->
+          case :application.ensure_all_started(:elixir) do
+            {:ok, _} ->
               start_app(@app)
               args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn _ -> @module.main(args) end, true
             _   ->
-              io_error "Elixir is not in the code path, aborting."
+              io_error "Elixir is not available, aborting."
               System.halt(1)
           end
         end

@@ -60,10 +60,11 @@ do_compile(Line, Module, Block, Vars, E) ->
         [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
-    {Def, Defp, Defmacro, Defmacrop, Functions} =
+    {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
       elixir_def:unwrap_definitions(File, Module),
 
-    {All, Forms0} = functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Functions),
+    {All, Forms0} = functions_form(Line, File, Module, Def, Defp,
+                                   Defmacro, Defmacrop, Exports, Functions),
     Forms1        = specs_form(Module, Defmacro, Defmacrop, Forms0),
     Forms2        = types_form(Line, File, Module, Forms1),
     Forms3        = attributes_form(Line, File, Module, Forms2),
@@ -149,15 +150,13 @@ eval_callbacks(Line, Module, Name, Args, E) ->
 
 %% Return the form with exports and function declarations.
 
-functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Body) ->
-  All = Def ++ Defp ++ Defmacro ++ Defmacrop,
+functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body) ->
+  All = Def ++ Defmacro ++ Defp ++ Defmacrop,
   {Spec, Info} = add_info_function(Line, File, Module, All, Def, Defmacro),
 
-  NewBody = [Spec, Info|Body],
-  Export  = [{Name, Arity} || {function, _, Name, Arity, _} <- NewBody],
-
   {[{'__info__',1}|All],
-   [{attribute, Line, export, lists:sort(Export)} | NewBody]}.
+   [{attribute, Line, export, lists:sort([{'__info__',1}|Exports])},
+    Spec, Info | Body]}.
 
 %% Add attributes handling to the form
 

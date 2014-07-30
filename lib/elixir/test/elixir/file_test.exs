@@ -689,7 +689,7 @@ defmodule FileTest do
       fixture = tmp_path("tmp_test.txt")
       File.write(fixture, "test")
       assert File.exists?(fixture)
-      File.chmod(fixture, 0100444)
+      File.chmod(fixture, 0o100444)
       assert File.rm(fixture) == :ok
       refute File.exists?(fixture)
     end
@@ -1195,14 +1195,14 @@ defmodule FileTest do
 
     File.touch(fixture)
     try do
-      assert File.chmod(fixture, 0100666) == :ok
+      assert File.chmod(fixture, 0o100666) == :ok
       stat = File.stat!(fixture)
-      assert stat.mode == 0100666
+      assert stat.mode == 0o100666
 
       unless is_win? do
-        assert File.chmod(fixture, 0100777) == :ok
+        assert File.chmod(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
-        assert stat.mode == 0100777
+        assert stat.mode == 0o100777
       end
     after
       File.rm(fixture)
@@ -1214,14 +1214,14 @@ defmodule FileTest do
 
     File.touch(fixture)
     try do
-      assert File.chmod!(fixture, 0100666) == :ok
+      assert File.chmod!(fixture, 0o100666) == :ok
       stat = File.stat!(fixture)
-      assert stat.mode == 0100666
+      assert stat.mode == 0o100666
 
       unless is_win? do
-        assert File.chmod!(fixture, 0100777) == :ok
+        assert File.chmod!(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
-        assert stat.mode == 0100777
+        assert stat.mode == 0o100777
       end
     after
       File.rm(fixture)
@@ -1232,7 +1232,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chmod(fixture, 0100777) == {:error,:enoent}
+    assert File.chmod(fixture, 0o100777) == {:error,:enoent}
   end
 
   test :chmod_with_failure! do
@@ -1241,7 +1241,7 @@ defmodule FileTest do
 
     message = ~r"could not change mode for #{escape fixture}: no such file or directory"
     assert_raise File.Error, message, fn ->
-      File.chmod!(fixture, 0100777)
+      File.chmod!(fixture, 0o100777)
     end
   end
 

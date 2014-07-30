@@ -2,7 +2,7 @@
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
--export([main/1, start_cli/0,
+-export([start_cli/0,
   string_to_quoted/4, 'string_to_quoted!'/4,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
@@ -50,16 +50,16 @@ stop(_S) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-%% escript entry point
-
-main(Args) ->
-  {ok, _} = application:ensure_all_started(?MODULE),
-  'Elixir.Kernel.CLI':main(Args).
-
 %% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
   {ok, _} = application:ensure_all_started(?MODULE),
+  %% We start the Logger so tools that depend on Elixir
+  %% always have the Logger directly accessible. However
+  %% Logger is not a dependency of the Elixir application,
+  %% which means releases that want to use Logger must
+  %% always list it as part of its applications.
+  _ = application:start(logger),
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS

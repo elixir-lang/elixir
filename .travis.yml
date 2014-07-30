@@ -7,3 +7,4 @@ notifications:
     - eric.meadows.jonsson@gmail.com
 otp_release:
   - 17.0
+  - 17.1

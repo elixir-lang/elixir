@@ -10,11 +10,11 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--sup] [--module MODULE] [--umbrella]
+      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
-  from the path, unless `--module` is given.
+  from the path, unless `--module` or `--app` is given.
 
   A `--sup` option can be given to generate an OTP application
   skeleton including a supervision tree. Normally an app is
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.New do
       [] ->
         Mix.raise "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
-        name = Path.basename(Path.expand(path))
+        name = opts[:app] || Path.basename(Path.expand(path))
         check_project_name!(name)
         File.mkdir_p!(path)
 
@@ -98,11 +98,11 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(_mod, false) do
-    "    [applications: []]"
+    "    [applications: [:logger]]"
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [],\n     mod: {#{mod}, []}]"
+    "    [applications: [:logger],\n     mod: {#{mod}, []}]"
   end
 
   defp do_generate_umbrella(app, path, _opts) do
@@ -275,14 +275,14 @@ defmodule Mix.Tasks.New do
   # This configuration is loaded before any dependency and is restricted
   # to this project. If another project depends on this project, this
   # file won't be loaded nor affect the parent project. For this reason,
-  # if you want to provide default values for your application, it should
-  # be done in your mix.exs file.
+  # if you want to provide default values for your application for third-
+  # party users, it should be done in your mix.exs file.
 
   # Sample configuration:
   #
-  #     config :my_dep,
-  #       key: :value,
-  #       limit: 42
+  #     config :logger,
+  #       level: :info,
+  #       format: "$time $metadata[$level] $message\n"
 
   # It is also possible to import configuration files, relative to this
   # directory. For example, you can emulate configuration per environment

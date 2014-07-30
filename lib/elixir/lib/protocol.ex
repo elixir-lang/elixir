@@ -85,11 +85,13 @@ defmodule Protocol do
   Returns `:ok` if so, otherwise raises ArgumentError.
   """
   @spec assert_impl!(module, module) :: :ok | no_return
-  def assert_impl!(protocol, impl) do
-    assert_impl!(protocol, impl, "")
+  def assert_impl!(protocol, base) do
+    assert_impl!(protocol, base, "")
   end
 
-  defp assert_impl!(protocol, impl, extra) do
+  defp assert_impl!(protocol, base, extra) do
+    impl = Module.concat(protocol, base)
+
     case Code.ensure_compiled(impl) do
       {:module, ^impl} -> :ok
       _ -> raise ArgumentError,
@@ -574,14 +576,14 @@ defmodule Protocol do
   end
 
   defp derive(protocol, for, struct, opts, env) do
-    impl  = Module.concat(protocol, Map)
     extra = ", cannot derive #{inspect protocol} for #{inspect for}"
     assert_protocol!(protocol, extra)
-    assert_impl!(protocol, impl, extra)
+    assert_impl!(protocol, Map, extra)
 
     # Clean up variables from eval context
     env  = %{env | vars: [], export_vars: nil}
     args = [for, struct, opts]
+    impl = Module.concat(protocol, Map)
 
     :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
       mod, fun, args ->

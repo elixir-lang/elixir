@@ -68,7 +68,7 @@ erlang:
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile EEx fully
-elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
+elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
 stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
@@ -90,6 +90,7 @@ $(UNICODE): lib/elixir/unicode/*
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
+$(eval $(call APP_TEMPLATE,logger,Logger))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
@@ -133,6 +134,7 @@ docs: compile ../ex_doc/bin/ex_doc
 	$(call DOCS,Mix,mix,Mix)
 	$(call DOCS,IEx,iex,IEx)
 	$(call DOCS,ExUnit,ex_unit,ExUnit)
+	$(call DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
@@ -164,7 +166,7 @@ $(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
 	$(Q) mkdir -p $(TEST_EBIN)
 	$(Q) $(ERLC) -o $(TEST_EBIN) $<
 
-test_elixir: test_stdlib test_ex_unit test_doc_test test_mix test_eex test_iex
+test_elixir: test_stdlib test_ex_unit test_logger test_doc_test test_mix test_eex test_iex
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"

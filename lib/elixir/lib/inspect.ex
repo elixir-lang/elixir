@@ -212,29 +212,28 @@ defimpl Inspect, for: BitString do
 
   @doc false
   # Also used by Regex
-  def escape_char(char) when char in ?\000..?\377,
-    do: octify(char)
-
-  def escape_char(char), do: hexify(char)
-
-  defp octify(byte) do
-    << hi :: size(2), mi :: size(3), lo :: size(3) >> = << byte >>
-    << ?\\, ?0 + hi, ?0 + mi, ?0 + lo >>
+  def escape_char(0) do
+    <<?\\, ?0>>
   end
 
-  defp hexify(char) when char < 0x10000 do
+  def escape_char(char) when char < 0x100 do
+    <<a::4, b::4>> = <<char::size(8)>>
+    <<?\\, ?x, to_hex(a), to_hex(b)>>
+  end
+
+  def escape_char(char) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::size(16)>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
   end
 
-  defp hexify(char) when char < 0x1000000 do
+  def escape_char(char) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::size(24)>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
                    to_hex(d), to_hex(e), to_hex(f), ?}>>
   end
 
   defp to_hex(c) when c in 0..9, do: ?0+c
-  defp to_hex(c) when c in 10..15, do: ?a+c-10
+  defp to_hex(c) when c in 10..15, do: ?A+c-10
 
   defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
   defp append(<<>>, binary), do: binary

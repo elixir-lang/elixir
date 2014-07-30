@@ -1,21 +1,34 @@
 # Changelog
 
-## v0.14.4-dev
+## v0.15.0-dev
 
 * Enhancements
+  * [IEx] Support `--werl` call on Windows
+  * [Logger] Add `Logger`
   * [Map] Add `Map.from_struct/1`
+  * [Mix] Allow `--app` flag to be passed to `mix new`
+  * [Mix] Support lowercase `http(s)_proxy` environment variables
   * [String] `String.slice/2` and `String.slice/3` have been optimized
 
 * Bug fixes
   * [IEx] Ensure functions in `Kernel.SpecialForms` and `IEx.Helpers` are also auto-completed
   * [IEx] Ensure remote shells can be started with `--remsh`
-
-* Soft deprecations (no warnings emitted)
+  * [Kernel] Correctly parse unary/binary operators regardless of number of spaces
+  * [Kernel] Ensure private functions are not exported
+  * [Protocol] Do not expose protocol convention on `assert_impl!/2`
+  * [Regex] Do not consider subpatterns on `Regex.split/3`
+  * [Stream] Implement the Inspect protocol for Streams so we do not leak the Stream representation
 
 * Deprecations
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
+  * [IO] `IO.ANSI.escape/2` and `IO.ANSI.escape_fragment/2` is deprecated in favor of `IO.ANSI.format/2` and `IO.ANSI.format_fragment/2`
+  * [Kernel] Leading `0` for octals is deprecated in favor of `0o`
+  * [Kernel] `0X` for hexadecimals is deprecated in favor of `0x`
+  * [Kernel] `0B` for binaries is deprecated in favor of `0b`
+  * [String] `\NNN`, `\NN` and `\N` for octals are deprecated inside string, sigils and chars in favor of hexadecimal entries with `\x`
 
 * Backwards incompatible changes
+  * [Kernel] `binding/1` and `binding/2` expecting a list were removed
 
 ## v0.14.3 (2014-07-12)
 

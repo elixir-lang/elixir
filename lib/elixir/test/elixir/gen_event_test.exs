@@ -44,9 +44,6 @@ defmodule GenEventTest do
     assert GenEvent.call(pid, LoggerHandler, :messages) == [1, 2]
     assert GenEvent.call(pid, LoggerHandler, :messages) == []
 
-    assert GenEvent.call(pid, LoggerHandler, :whatever)  == {:error, :bad_call}
-    assert GenEvent.call(pid, UnknownHandler, :messages) == {:error, :bad_module}
-
     assert GenEvent.remove_handler(pid, LoggerHandler, []) == :ok
     assert GenEvent.stop(pid) == :ok
   end
@@ -88,6 +85,20 @@ defmodule GenEventTest do
   test "start/2 with registered name" do
     {:ok, _} = GenEvent.start(name: :logger)
     assert GenEvent.stop(:logger) == :ok
+  end
+
+  test "bad calls" do
+    :error_logger.tty(false)
+    {:ok, pid} = GenEvent.start_link()
+    assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
+    assert GenEvent.call(pid, UnknownHandler, :messages) ==
+             {:error, :bad_module}
+    assert GenEvent.call(pid, LoggerHandler, :whatever) ==
+             {:error, {:EXIT, {:bad_call, :whatever}}}
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop(pid) == :ok
+  after
+    :error_logger.tty(true)
   end
 
   test "sync stream/2" do
@@ -185,7 +196,7 @@ defmodule GenEventTest do
       end
 
       assert_receive {:EXIT, ^pid,
-                       {:timeout, {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
+                       {:timeout, {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with error/timeout on subscription" do
@@ -220,7 +231,7 @@ defmodule GenEventTest do
       Process.flag(:trap_exit, true)
       GenEvent.stop(pid)
       assert_receive {:EXIT, ^stream_pid,
-                       {:shutdown, {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
+                       {:shutdown, {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with cancel streams" do
@@ -261,7 +272,7 @@ defmodule GenEventTest do
       GenEvent.swap_handler(pid, handler, :swap_handler, LogHandler, [])
       assert_receive {:EXIT, ^stream_pid,
                        {{:swapped, LogHandler, _},
-                        {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
+                        {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with duration" do
@@ -302,7 +313,7 @@ defmodule GenEventTest do
       Process.exit(pid, :kill)
       assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
       assert_receive {:EXIT, ^stream_pid,
-                       {:killed, {Enumerable.GenEvent, :next, [_,_]}}}, @receive_timeout
+                       {:killed, {Enumerable.GenEvent.Stream, :next, [_,_]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with manager not alive" do
@@ -316,7 +327,7 @@ defmodule GenEventTest do
 
       Process.flag(:trap_exit, true)
       assert_receive {:EXIT, ^stream_pid,
-                       {:noproc, {Enumerable.GenEvent, :start, [_]}}}, @receive_timeout
+                       {:noproc, {Enumerable.GenEvent.Stream, :start, [_]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with manager unregistered" do

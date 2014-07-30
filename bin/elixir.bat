@@ -1,4 +1,5 @@
 @echo off
+setlocal
 if "%1"==""       goto documentation
 if "%1"=="--help" goto documentation
 if "%1"=="-h"     goto documentation
@@ -22,12 +23,13 @@ echo   --sname name      Makes and assigns a short name to the distributed node
 echo   --cookie cookie   Sets a cookie for this distributed node
 echo   --hidden          Makes a hidden node
 echo   --detached        Starts the Erlang VM detached from console
+echo   --werl            Uses Erlang's Windows shell GUI
 echo   --no-halt         Does not halt the Erlang VM after execution
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
 echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
-goto :EOF
+goto end
 
 :parseopts
 
@@ -59,7 +61,7 @@ if "%par%"=="""" (
   goto :expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-IF "%par%"==""+iex"" (Set useWerl=1)
+IF "%par%"==""--werl"" (Set useWerl=1)
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF """"=="%par:-e=%"      (shift) 
@@ -89,7 +91,9 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 IF %useWerl% EQU 1 (
-    werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+    start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 ) ELSE (
     erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
+:end
+endlocal
