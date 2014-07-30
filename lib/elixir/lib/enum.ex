@@ -1405,7 +1405,7 @@ defmodule Enum do
   """
   @spec sample(t, integer) :: list
   def sample(collection, count) when count > 0 do
-    sample = List.duplicate(nil, count) |> List.to_tuple
+    sample = Tuple.duplicate(nil, count)
 
     reducer = fn x, {i, sample} ->
       if i < count do
