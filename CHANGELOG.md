@@ -4,6 +4,7 @@
 
 * Enhancements
   * [IEx] Support `--werl` call on Windows
+  * [Logger] Add `Logger`
   * [Map] Add `Map.from_struct/1`
   * [Mix] Allow `--app` flag to be passed to `mix new`
   * [Mix] Support lowercase `http(s)_proxy` environment variables
@@ -18,8 +19,6 @@
   * [Regex] Do not consider subpatterns on `Regex.split/3`
   * [Stream] Implement the Inspect protocol for Streams so we do not leak the Stream representation
 
-* Soft deprecations (no warnings emitted)
-
 * Deprecations
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
   * [IO] `IO.ANSI.escape/2` and `IO.ANSI.escape_fragment/2` is deprecated in favor of `IO.ANSI.format/2` and `IO.ANSI.format_fragment/2`
@@ -29,6 +28,7 @@
   * [String] `\NNN`, `\NN` and `\N` for octals are deprecated inside string, sigils and chars in favor of hexadecimal entries with `\x`
 
 * Backwards incompatible changes
+  * [Kernel] `binding/1` and `binding/2` expecting a list were removed
 
 ## v0.14.3 (2014-07-12)
 
