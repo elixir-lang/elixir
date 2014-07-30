@@ -327,6 +327,11 @@ defmodule Regex do
 
     * `:trim` - when true, remove blank strings from the result.
 
+    * `:on` - specifies which captures and order to split the string
+      on. Check the moduledoc for `Regex` to see the possible capture
+      values. Defaults to `:first` which means captures inside the
+      Regex does not affect the split result.
+
   ## Examples
 
       iex> Regex.split(~r/-/, "a-b-c")
@@ -341,21 +346,27 @@ defmodule Regex do
       iex> Regex.split(~r//, "abc")
       ["a", "b", "c", ""]
 
-      iex> Regex.split(~r//, "abc", trim: true)
-      ["a", "b", "c"]
+      iex> Regex.split(~r/a(?<second>b)c/, "abc")
+      ["", ""]
+
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
+      ["a", "c"]
 
   """
 
   def split(regex, string, options \\ [])
 
-  def split(%Regex{}, "", _options), do: [""]
+  def split(%Regex{}, "", _opts), do: [""]
 
-  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    case :re.run(string, compiled, [:global, capture: :first]) do
+  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) do
+    on = Keyword.get(opts, :on, :first)
+    case :re.run(string, compiled, [:global, capture: on]) do
       {:match, matches} ->
         do_split(matches, string, 0,
-                 parts_to_index(Keyword.get(options, :parts, :infinity)),
-                 Keyword.get(options, :trim, false))
+                 parts_to_index(Keyword.get(opts, :parts, :infinity)),
+                 Keyword.get(opts, :trim, false))
+      :match ->
+        [string]
       :nomatch ->
         [string]
     end
@@ -364,25 +375,30 @@ defmodule Regex do
   defp parts_to_index(:infinity),                      do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
-  defp do_split(_, "", _index, _counter, true),       do: []
-  defp do_split(_, string, _index, 1, _trim),         do: [string]
-  defp do_split([], string, _index, _counter, _trim), do: [string]
+  defp do_split(_, string, offset, _counter, true) when byte_size(string) <= offset,
+    do: []
 
-  defp do_split([[{0, 0}]|t], string, index, counter, trim) do
-    do_split(t, string, index, counter, trim)
-  end
+  defp do_split(_, string, offset, 1, _trim),
+    do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([[{pos, length}]|t], string, index, counter, trim) do
-    first = pos - index
-    last  = first + length
+  defp do_split([], string, offset, _counter, _trim),
+    do: [binary_part(string, offset, byte_size(string) - offset)]
 
-    head = binary_part(string, 0, first)
-    tail = binary_part(string, last, byte_size(string) - last)
+  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim) when pos - offset < 0,
+    do: do_split([h|t], string, offset, counter, trim)
 
-    if trim and head == "" do
-      do_split(t, tail, pos + length, counter, trim)
+  defp do_split([[]|t], string, offset, counter, trim),
+    do: do_split(t, string, offset, counter, trim)
+
+  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim) do
+    new_offset = pos + length
+    keep = pos - offset
+
+    if keep == 0 and (length == 0 or trim) do
+      do_split([h|t], string, new_offset, counter, trim)
     else
-      [head|do_split(t, tail, pos + length, counter - 1, trim)]
+      <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
+      [part|do_split([h|t], string, new_offset, counter - 1, trim)]
     end
   end
 
