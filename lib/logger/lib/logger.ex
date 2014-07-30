@@ -138,12 +138,30 @@ defmodule Logger do
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata)
 
+    * `:colors` - a keyword list of coloring options.
+
+  The supported keys in the `:colors` keyword list are:
+
+    * `:enabled` - boolean value that allows for switching the
+    coloring on and off. Defaults to: `false`
+
+    * `:debug` - color for debug messages. Defaults to: `:magenta`
+
+    * `:info` - color for info messages. Defaults to: `:normal`
+
+    * `:warn` - color for warn messages. Defaults to: `:yellow`
+
+    * `:error` - color for error messages. Defaults to: `:red`
+
+  See the `IO.ANSI` module for a list of colors and attributes.
+
   Here is an example on how to configure the `:console` in a
   `config/config.exs` file:
 
       config :logger, :console,
         format: "$date $time [$level] $metadata$message\n",
-        metadata: [:user_id]
+        metadata: [:user_id],
+        colors: [enabled: true]
 
   You can read more about formatting in `Logger.Formatter`.
 

@@ -4,7 +4,8 @@ defmodule Logger.Backends.ConsoleTest do
 
   setup do
     on_exit fn ->
-      :ok = Logger.configure_backend(:console, [format: nil, level: nil, metadata: []])
+      :ok = Logger.configure_backend(:console,
+          [format: nil, level: nil, metadata: [], colors: [enabled: false]])
     end
   end
 
@@ -48,5 +49,49 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn ->
       Logger.debug("hello")
     end) == ""
+  end
+
+  test "can configure colors" do
+    Logger.configure_backend(:console, [format: "$message", colors: [enabled: true]])
+
+    assert capture_log(fn ->
+      Logger.debug("hello")
+    end) == IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
+    Logger.configure_backend(:console, [colors: [debug: :cyan]])
+
+    assert capture_log(fn ->
+      Logger.debug("hello")
+    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn ->
+      Logger.info("hello")
+    end) == IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
+
+    Logger.configure_backend(:console, [colors: [info: :cyan]])
+
+    assert capture_log(fn ->
+      Logger.info("hello")
+    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn ->
+      Logger.warn("hello")
+    end) == IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
+
+    Logger.configure_backend(:console, [colors: [warn: :cyan]])
+
+    assert capture_log(fn ->
+      Logger.warn("hello")
+    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+    assert capture_log(fn ->
+      Logger.error("hello")
+    end) == IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+
+    Logger.configure_backend(:console, [colors: [error: :cyan]])
+
+    assert capture_log(fn ->
+      Logger.error("hello")
+    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
   end
 end
