@@ -10,6 +10,10 @@ defmodule IO.ANSI.Sequence do
       defp escape_sequence(unquote(Atom.to_char_list(name))) do
         unquote(name)()
       end
+
+      defp format_sequence(unquote(name)) do
+        unquote(name)()
+      end
     end
   end
 end
@@ -134,6 +138,10 @@ defmodule IO.ANSI do
     raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
 
+  defp format_sequence(other) do
+    raise ArgumentError, "invalid ANSI sequence specification: #{other}"
+  end
+
   @doc ~S"""
   Formats a chardata-like argument by converting named ANSI sequences into actual
   ANSI codes.
@@ -184,12 +192,7 @@ defmodule IO.ANSI do
   end
 
   defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
-    try do
-      do_format([], rem, [acc | [apply(IO.ANSI, term, [])]], true, !!append_reset)
-    rescue
-      _ in UndefinedFunctionError ->
-        raise ArgumentError, message: "invalid ANSI sequence specification: #{term}"
-    end
+    do_format([], rem, [acc | format_sequence(term)], true, !!append_reset)
   end
 
   defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
