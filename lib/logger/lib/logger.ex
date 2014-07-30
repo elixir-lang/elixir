@@ -120,8 +120,9 @@ defmodule Logger do
   The initial backends are loaded via the `:backends` configuration,
   which must be set before the logger application is started. However,
   backends can be added or removed dynamically via the `add_backend/2`,
-  `remove_backend/1` and `configure_backend/2` functions. Note though
-  that dynamically added backends are not restarded in case of crashes.
+  `remove_backend/1` and `configure_backend/2` functions, although such
+  backends are not persisted (i.e. if the Logger supervision tree crashes,
+  they are not re-added).
 
   ### Console backend
 
@@ -154,15 +155,15 @@ defmodule Logger do
   writing a new backend is a matter of creating an event
   handler, as described in the `GenEvent` module.
 
-  From now on, we will be using event handler to refer to
-  your custom backend, as we head into implementation details.
+  From now on, we will be using the term "event handler" to refer
+  to your custom backend, as we head into implementation details.
 
-  The `add_backend/1` function is used to start a new
-  backend, which installs the given event handler to the
-  Logger event manager. This event handler is automatically
-  supervised by Logger.
+  Once Logger starts, it installs all event handlers under
+  the `:backends` configuration into Logger event manager.
+  The event manager and all added event handlers are
+  automatically supervised by Logger.
 
-  Once added, the handler should be able to handle events
+  Once initialized, the handler should be able to handle events
   in the following format:
 
       {level, group_leader,
@@ -178,15 +179,15 @@ defmodule Logger do
   the group leader is in a different node than the one
   the handler is installed.
 
-  Furthermore, backends can be configured via the `configure_backend/2`
-  function which requires event handlers to handle calls of
-  the following format:
+  Furthermore, backends can be configured via the
+  `configure_backend/2` function which requires event handlers
+  to handle calls of the following format:
 
       {:configure, options}
 
   where options is a keyword list. The result of the call is
-  the result returned by `configure_backend/2`. You may simply
-  return `:ok` if you don't perform any kind of validation.
+  the result returned by `configure_backend/2`. The recommended
+  return value for successful configuration is `:ok`.
 
   It is recommended that backends support at least the following
   configuration values:
