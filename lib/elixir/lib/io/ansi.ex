@@ -152,8 +152,9 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
       [[[[[[], "Hello, "], "\e[31m"], "\e[1m"], "world!"] | "\e[0m"]
+
   """
-  def format(chardata, emit \\ terminal?) do
+  def format(chardata, emit \\ terminal?) when is_boolean(emit) do
     do_format(chardata, [], [], emit, :maybe)
   end
 
@@ -172,8 +173,9 @@ defmodule IO.ANSI do
 
       iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
       [[[[[[], "\e[1m"], 87], 111], 114], 100]
+
   """
-  def format_fragment(chardata, emit \\ terminal?) do
+  def format_fragment(chardata, emit \\ terminal?) when is_boolean(emit) do
     do_format(chardata, [], [], emit, false)
   end
 
@@ -210,27 +212,7 @@ defmodule IO.ANSI do
     acc
   end
 
-  @doc ~S"""
-  Escapes a string by converting named ANSI sequences into actual ANSI codes.
-
-  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences).
-
-  It will also append a `%{reset}` to the string. If you don't want this
-  behaviour, use `escape_fragment/2`.
-
-  An optional boolean parameter can be passed to enable or disable
-  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
-
-  ## Examples
-
-      iex> IO.ANSI.escape("Hello %{red,bright,green}yes", true)
-      "Hello \e[31m\e[1m\e[32myes\e[0m"
-
-  """
-  @spec escape(String.t, emit :: boolean) :: String.t
+  @doc false
   def escape(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
     {rendered, emitted} = do_escape(string, emit, false, nil, [])
     if emitted do
@@ -240,27 +222,7 @@ defmodule IO.ANSI do
     end
   end
 
-  @doc ~S"""
-  Escapes a string by converting named ANSI sequences into actual ANSI codes.
-
-  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences).
-
-  An optional boolean parameter can be passed to enable or disable
-  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
-
-  ## Examples
-
-      iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
-      "Hello \e[31m\e[1m\e[32myes"
-
-      iex> IO.ANSI.escape_fragment("%{reset}bye", true)
-      "\e[0mbye"
-
-  """
-  @spec escape_fragment(String.t, emit :: boolean) :: String.t
+  @doc false
   def escape_fragment(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
     {escaped, _emitted} = do_escape(string, emit, false, nil, [])
     escaped
