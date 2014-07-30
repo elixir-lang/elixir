@@ -1,0 +1,59 @@
+defmodule Logger.ErrorHandlerTest do
+  use Logger.Case
+
+  test "survives after crashes" do
+    assert error_log(:info_msg, "~p~n", []) == ""
+    assert capture_log(fn ->
+      wait_for_handler(:error_logger, Logger.ErrorHandler)
+    end) =~ "[error] GenEvent handler Logger.ErrorHandler installed at :error_logger\n" <>
+            "** (exit) an exception was raised:"
+    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info] :hello\n")
+  end
+
+  test "formats error_logger info message" do
+    assert error_log(:info_msg, "hello", []) =~ msg("[info] hello")
+    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info] :hello\n")
+  end
+
+  test "formats error_logger info report" do
+    assert error_log(:info_report, "hello") =~ msg("[info] \"hello\"")
+    assert error_log(:info_report, :hello) =~ msg("[info] :hello\n")
+    assert error_log(:info_report, :special, :hello) == ""
+  end
+
+  test "formats error_logger error message" do
+    assert error_log(:error_msg, "hello", []) =~ msg("[error] hello")
+    assert error_log(:error_msg, "~p~n", [:hello]) =~ msg("[error] :hello\n")
+  end
+
+  test "formats error_logger error report" do
+    assert error_log(:error_report, "hello") =~ msg("[error] \"hello\"")
+    assert error_log(:error_report, :hello) =~ msg("[error] :hello\n")
+    assert error_log(:error_report, :special, :hello) == ""
+  end
+
+  test "formats error_logger warning message" do
+    # Warnings by default are logged as errors by Erlang
+    assert error_log(:warning_msg, "hello", []) =~ msg("[error] hello")
+    assert error_log(:warning_msg, "~p~n", [:hello]) =~ msg("[error] :hello\n")
+  end
+
+  test "formats error_logger warning report" do
+    # Warnings by default are logged as errors by Erlang
+    assert error_log(:warning_report, "hello") =~ msg("[error] \"hello\"")
+    assert error_log(:warning_report, :hello) =~ msg("[error] :hello\n")
+    assert error_log(:warning_report, :special, :hello) == ""
+  end
+
+  defp error_log(fun, format) do
+    do_error_log(fun, [format])
+  end
+
+  defp error_log(fun, format, args) do
+    do_error_log(fun, [format, args])
+  end
+
+  defp do_error_log(fun, args) do
+    capture_log(fn -> apply(:error_logger, fun, args) end)
+  end
+end
