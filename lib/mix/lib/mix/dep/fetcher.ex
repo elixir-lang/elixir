@@ -86,9 +86,6 @@ defmodule Mix.Dep.Fetcher do
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
-    # Do not mark dependencies that are not available
-    deps = Enum.filter(deps, &available?/1)
-
     # Note we only retrieve the parent dependencies of the updated
     # deps if all dependencies are available. This is because if a
     # dependency is missing, it could directly affect one of the
@@ -99,8 +96,9 @@ defmodule Mix.Dep.Fetcher do
     # it for compilation too, this is our best to try to solve the
     # maximum we can at each deps.get and deps.update.
     if Enum.all?(all_deps, &available?/1) do
-      deps = with_depending(deps, all_deps) ++
-             Enum.filter(all_deps, fn dep -> not ok?(dep) end)
+      deps = (with_depending(deps, all_deps) ++
+              Enum.filter(all_deps, fn dep -> not ok?(dep) end))
+             |> Enum.uniq(&(&1.app))
     end
 
     # Merge the new lock on top of the old to guarantee we don't
@@ -124,7 +122,7 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp with_depending(deps, all_deps) do
-    (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))
+    deps ++ do_with_depending(deps, all_deps)
   end
 
   defp do_with_depending([], _all_deps) do
