@@ -31,14 +31,14 @@ defmodule KernelTest do
 
   test "match?/2" do
     assert match?(_, List.first(1)) == true
-    assert binding([:x]) == []
+    assert binding() == []
 
     a = List.first([0])
     assert match?(b when b > a, 1) == true
-    assert binding([:b]) == []
+    assert binding() == [a: 0]
 
     assert match?(b when b > a, -1) == false
-    assert binding([:b]) == []
+    assert binding() == [a: 0]
   end
 
   test "nil?/1" do
@@ -134,21 +134,19 @@ defmodule KernelTest do
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
-  test "binding/0, binding/1 and binding/2" do
+  test "binding/0 and binding/1" do
     x = 1
-    assert binding == [x: 1]
-    assert binding([:x, :y]) == [x: 1]
-    assert binding([:x, :y], nil) == [x: 1]
+    assert binding() == [x: 1]
 
     x = 2
-    assert binding == [x: 2]
+    assert binding() == [x: 2]
 
     y = 3
-    assert binding == [x: 2, y: 3]
+    assert binding() == [x: 2, y: 3]
 
-    var!(x, :foo) = 2
-    assert binding(:foo) == [x: 2]
-    assert binding([:x, :y], :foo) == [x: 2]
+    var!(x, :foo) = 4
+    assert binding() == [x: 2, y: 3]
+    assert binding(:foo) == [x: 4]
   end
 
   defmodule User do
