@@ -1,4 +1,6 @@
 defmodule Logger.ErrorHandler do
+  @moduledoc false
+
   use GenEvent
 
   require Logger

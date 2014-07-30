@@ -1,4 +1,6 @@
 defmodule Logger.Backends.Console do
+  @moduledoc false
+
   use GenEvent
 
   def init(_) do

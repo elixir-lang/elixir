@@ -134,7 +134,7 @@ docs: compile ../ex_doc/bin/ex_doc
 	$(call DOCS,Mix,mix,Mix)
 	$(call DOCS,IEx,iex,IEx)
 	$(call DOCS,ExUnit,ex_unit,ExUnit)
-	$(call DOCS,ExUnit,logger,Logger)
+	$(call DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
