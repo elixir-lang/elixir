@@ -104,17 +104,6 @@ defmodule IEx.InteractionTest do
              == "\e[34mhello\e[0m\n\e[31m:ok\e[0m"
       assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", [colors: [enabled: false]])
              == "\e[34mhello\e[0m\n:ok"
-
-      # Test that ANSI escapes in the docs are left alone
-      opts = [colors: [enabled: true]]
-      assert capture_iex("h IO.ANSI.escape_fragment", opts)
-             =~ ~r"%\{red\}"
-
-      # Test that ANSI escapes in iex output are left alone
-      opts = [colors: [enabled: true, eval_result: "red", eval_info: "red"]]
-      assert capture_iex("\"%{red} %{blue}\"", opts) == "\e[31m\"%{red} %{blue}\"\e[0m"
-      assert capture_iex("IO.puts IEx.color(:eval_info, \"%{red} %{blue}\")", opts)
-             == "\e[31m%{red} %{blue}\e[0m\n\e[31m:ok\e[0m"
     end
   end
 

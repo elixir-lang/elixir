@@ -22,6 +22,7 @@
 
 * Deprecations
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
+  * [IO] `IO.ANSI.escape/2` and `IO.ANSI.escape_fragment/2` is deprecated in favor of `IO.ANSI.format/2` and `IO.ANSI.format_fragment/2`
   * [Kernel] Leading `0` for octals is deprecated in favor of `0o`
   * [Kernel] `0X` for hexadecimals is deprecated in favor of `0x`
   * [Kernel] `0B` for binaries is deprecated in favor of `0b`
