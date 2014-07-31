@@ -27,6 +27,15 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   defp load(file) do
-    Mix.Config.persist Mix.Config.read! file
+    opts = Mix.Config.read!(file)
+    Mix.Config.persist(opts)
+
+    # In case the Logger was changed, we reload the whole
+    # Logger. This is required because many of Logger config
+    # reflects on its supervision tree. No other application
+    # that is bundled with Elixir requires such reloading.
+    if opts[:logger], do: Logger.Config.restart
+
+    :ok
   end
 end

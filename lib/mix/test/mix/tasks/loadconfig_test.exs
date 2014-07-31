@@ -21,8 +21,12 @@ defmodule Mix.Tasks.LoadconfigTest do
 
     in_fixture "no_mixfile", fn ->
       write_config """
-      [my_app: [key: :project]]
+      [my_app: [key: :project],
+       logger: [level: :error]]
       """
+
+      # Original Logger level
+      assert Logger.level == :debug
 
       assert Application.fetch_env(:my_app, :key) == :error
       Mix.Task.run "loadconfig", []
@@ -32,11 +36,16 @@ defmodule Mix.Tasks.LoadconfigTest do
       :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
 
+      # Logger is reloaded
+      assert Logger.level == :error
+
       # laodconfig can be called multiple times
       # Later values should have higher precedence
       Mix.Task.run "loadconfig", [fixture_path("configs/good_config.exs")]
       assert Application.fetch_env(:my_app, :key) == {:ok, :value}
     end
+  after
+    Logger.configure(level: :debug)
   end
 
   defp write_config(path \\ "config/config.exs", contents) do
