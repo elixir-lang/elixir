@@ -28,8 +28,7 @@ defmodule Mix.Tasks.App.StartTest do
       on_exit fn ->
         :application.stop(app)
         :application.unload(app)
-        :gen_event.which_handlers(:error_logger)
-        Logger.add_backend(:console)
+        Logger.add_backend(:console, flush: true)
       end
     end
 

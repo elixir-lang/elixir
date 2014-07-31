@@ -338,8 +338,16 @@ defmodule Logger do
 
   @doc """
   Adds a new backend.
+
+  ## Options
+
+    * `:flush` - when true, guarantees all messages currently sent
+      to both Logger and Erlang's `error_logger` are processed before
+      the backend is added
+
   """
-  def add_backend(backend) do
+  def add_backend(backend, opts \\ []) do
+    _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
     Logger.Watcher.watch(Logger, translate_backend(backend), [])
   end
 

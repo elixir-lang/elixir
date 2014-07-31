@@ -98,8 +98,7 @@ defmodule GenEventTest do
     assert GenEvent.which_handlers(pid) == []
     assert GenEvent.stop(pid) == :ok
   after
-    :gen_event.which_handlers(:error_logger)
-    Logger.add_backend(:console)
+    Logger.add_backend(:console, flush: true)
   end
 
   test "sync stream/2" do
