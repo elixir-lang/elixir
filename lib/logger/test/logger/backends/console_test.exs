@@ -56,17 +56,17 @@ defmodule Logger.Backends.ConsoleTest do
 
     assert capture_log(fn ->
       Logger.debug("hello")
-    end) == IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 
-    Logger.configure_backend(:console, [colors: [debug: :cyan]])
+    Logger.configure_backend(:console, [colors: [debug: :magenta]])
 
     assert capture_log(fn ->
       Logger.debug("hello")
-    end) == IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+    end) == IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
 
     assert capture_log(fn ->
       Logger.info("hello")
-    end) == IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
+    end) == IO.ANSI.green() <> "hello" <> IO.ANSI.reset()
 
     Logger.configure_backend(:console, [colors: [info: :cyan]])
 
@@ -86,7 +86,7 @@ defmodule Logger.Backends.ConsoleTest do
 
     assert capture_log(fn ->
       Logger.error("hello")
-    end) == IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+    end) == IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
 
     Logger.configure_backend(:console, [colors: [error: :cyan]])
 
