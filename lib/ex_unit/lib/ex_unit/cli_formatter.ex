@@ -13,7 +13,7 @@ defmodule ExUnit.CLIFormatter do
     config = %{
       seed: opts[:seed],
       trace: opts[:trace],
-      color: opts[:color],
+      colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
       tests_counter: 0,
       failures_counter: 0,
@@ -166,10 +166,11 @@ defmodule ExUnit.CLIFormatter do
 
   # Color styles
 
-  defp colorize(escape, string, %{color: color}) do
-    [IO.ANSI.format_fragment(escape, color),
+  defp colorize(escape, string, %{colors: colors}) do
+    enabled = colors[:enabled]
+    [IO.ANSI.format_fragment(escape, enabled),
      string,
-     IO.ANSI.format_fragment(:reset, color)] |> IO.iodata_to_binary
+     IO.ANSI.format_fragment(:reset, enabled)] |> IO.iodata_to_binary
   end
 
   defp success(msg, config) do

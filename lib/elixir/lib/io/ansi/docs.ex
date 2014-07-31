@@ -21,7 +21,8 @@ defmodule IO.ANSI.Docs do
   comma-separated ANSI values.
   """
   def default_options do
-    [doc_code: [:cyan, :bright],
+    [enabled: true,
+     doc_code: [:cyan, :bright],
      doc_inline_code: [:cyan],
      doc_headings: [:yellow, :bright],
      doc_title: [:reverse, :yellow, :bright],
@@ -374,6 +375,6 @@ defmodule IO.ANSI.Docs do
                        "they now must be a list of atoms, got #{inspect color} for #{inspect style}"
       color = String.split(color, ",") |> Enum.map(&String.to_atom/1)
     end
-    IO.ANSI.format_fragment(color, true)
+    IO.ANSI.format_fragment(color, !!colors[:enabled])
   end
 end

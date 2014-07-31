@@ -158,8 +158,8 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
-    * `:color` - when color should be used by specific formatters;
-      defaults to the result of `IO.ANSI.terminal?/1`
+    * `:colors` - a keyword list of colors to be used by some formatters.
+      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/1`
 
     * `:formatters` - the formatters that will print results;
       defaults to `[ExUnit.CLIFormatter]`

@@ -1,5 +1,6 @@
 Mix.start()
 Mix.shell(Mix.Shell.Process)
+Application.put_env(:mix, :colors, [enabled: false])
 
 ExUnit.start [trace: "--trace" in System.argv]
 

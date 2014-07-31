@@ -473,8 +473,8 @@ defmodule IEx do
       {:ok, _} = Application.ensure_all_started(:iex)
       Application.put_env(:iex, :started, true)
 
-      colors = [enabled: IO.ANSI.terminal?] ++
-               Application.get_env(:iex, :colors)
+      colors = Application.get_env(:iex, :colors)
+               |> Keyword.put_new(:enabled, IO.ANSI.enabled?)
       Application.put_env(:iex, :colors, colors)
     end
 

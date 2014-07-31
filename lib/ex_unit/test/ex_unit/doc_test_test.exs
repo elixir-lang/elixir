@@ -204,7 +204,7 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Invalid
     end
 
-    ExUnit.configure(seed: 0)
+    ExUnit.configure(seed: 0, colors: [enabled: false])
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """

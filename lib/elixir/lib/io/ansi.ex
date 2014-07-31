@@ -32,19 +32,25 @@ defmodule IO.ANSI do
   @typep ansilist :: maybe_improper_list(char() | ansicode() | binary() | ansilist(), binary() | ansicode() | [])
   @type  ansidata :: ansilist() | ansicode() | binary()
 
-  @doc """
-  Checks whether the default I/O device is a terminal or a file.
-
-  Used to identify whether printing ANSI escape sequences will likely
-  be displayed as intended. This is checked by sending a message to
-  the group leader. In case the group leader does not support the message,
-  it will likely lead to a timeout (and a slow down on execution time).
-  """
-  @spec terminal? :: boolean
-  @spec terminal?(:io.device) :: boolean
+  @doc false
   def terminal?(device \\ :erlang.group_leader) do
     !match?({:win32, _}, :os.type()) and
       match?({:ok, _}, :io.columns(device))
+  end
+
+  @doc """
+  Checks if ANSI coloring is supported and enabled on this machine.
+
+  By default, ANSI is only enabled on UNIX machines. Enabling or
+  disabling ANSI escapes can be done by configuring the
+  `:ansi_enabled` value in the `:elixir` application.
+  """
+  @spec enabled? :: boolean
+  def enabled? do
+    case Application.fetch_env(:elixir, :ansi_enabled) do
+      {:ok, boolean} when is_boolean(boolean) -> boolean
+      :error -> !match?({:win32, _}, :os.type())
+    end
   end
 
   @doc "Resets all attributes"
@@ -157,8 +163,7 @@ defmodule IO.ANSI do
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
+  By default checks if ANSI is enabled using the `enabled?/0` function.
 
   ## Examples
 
@@ -166,7 +171,7 @@ defmodule IO.ANSI do
       [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  def format(chardata, emit \\ terminal?) when is_boolean(emit) do
+  def format(chardata, emit \\ enabled?) when is_boolean(emit) do
     do_format(chardata, [], [], emit, :maybe)
   end
 
@@ -178,8 +183,7 @@ defmodule IO.ANSI do
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
+  By default checks if ANSI is enabled using the `enabled?/0` function.
 
   ## Examples
 
@@ -187,7 +191,7 @@ defmodule IO.ANSI do
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  def format_fragment(chardata, emit \\ terminal?) when is_boolean(emit) do
+  def format_fragment(chardata, emit \\ enabled?) when is_boolean(emit) do
     do_format(chardata, [], [], emit, false)
   end
 
