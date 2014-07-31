@@ -22,6 +22,7 @@
 
 * Deprecations
   * [IEx] IEx color configuration expects a list of atoms instead of a string with colors separated by comma
+  * [Inspect] `Inspect.Algebra.surround_many/6` now expects Inspect.Opts instead of an integer limit
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
   * [IO] `IO.ANSI.terminal?` is deprecated in favor of `IO.ANSI.enabled?`
   * [IO] `IO.ANSI.escape/2` and `IO.ANSI.escape_fragment/2` is deprecated in favor of `IO.ANSI.format/2` and `IO.ANSI.format_fragment/2`
