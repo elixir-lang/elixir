@@ -27,19 +27,10 @@ defmodule Mix.Shell.IO do
 
   @doc """
   Writes a message to the shell followed by new line.
-
-  ## Options
-
-    * `:ansi` - If `true` message will be ANSI escaped
   """
-  def info(message, opts \\ []) do
+  def info(message) do
     print_app
-
-    if opts[:ansi] do
-      message = IO.ANSI.escape(message)
-    end
-
-    IO.puts message
+    IO.puts IO.ANSI.format message
   end
 
   @doc """
@@ -47,7 +38,7 @@ defmodule Mix.Shell.IO do
   """
   def error(message) do
     print_app
-    IO.puts :stderr, red(message)
+    IO.puts :stderr, red(IO.ANSI.format(message))
   end
 
   @doc """
@@ -77,8 +68,6 @@ defmodule Mix.Shell.IO do
   defp got_yes?(_), do: false
 
   defp red(message) do
-    [IO.ANSI.escape_fragment("%{red,bright}"),
-     message,
-     IO.ANSI.escape_fragment("%{reset}")]
+    [IO.ANSI.red, IO.ANSI.bright, message, IO.ANSI.reset]
   end
 end

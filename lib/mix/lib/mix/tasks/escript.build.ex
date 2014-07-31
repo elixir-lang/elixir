@@ -160,11 +160,6 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp embed_tuples(escript_opts) do
     if Keyword.get(escript_opts, :embed_elixir, true) do
-      if escript_opts[:embed_extra_apps] do
-        IO.puts :stderr, "embed_extra_apps for escripts has no effect. " <>
-                         "Instead list the extra apps as applications inside def application"
-      end
-
       Enum.flat_map [:elixir|extra_apps()], &app_tuples(&1)
     else
       []
@@ -230,7 +225,7 @@ defmodule Mix.Tasks.Escript.Build do
         end
 
         defp io_error(message) do
-           IO.puts :stderr, IO.ANSI.escape("%{red, bright} " <> message)
+           IO.puts :stderr, IO.ANSI.format([:red, :bright, message])
         end
       end
 

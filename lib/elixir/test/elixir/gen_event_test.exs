@@ -88,7 +88,7 @@ defmodule GenEventTest do
   end
 
   test "bad calls" do
-    :error_logger.tty(false)
+    Logger.remove_backend(:console)
     {:ok, pid} = GenEvent.start_link()
     assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
     assert GenEvent.call(pid, UnknownHandler, :messages) ==
@@ -98,7 +98,8 @@ defmodule GenEventTest do
     assert GenEvent.which_handlers(pid) == []
     assert GenEvent.stop(pid) == :ok
   after
-    :error_logger.tty(true)
+    :gen_event.which_handlers(:error_logger)
+    Logger.add_backend(:console)
   end
 
   test "sync stream/2" do

@@ -4,8 +4,11 @@ defmodule TaskTest do
   use ExUnit.Case, async: true
 
   setup do
-    :error_logger.tty(false)
-    on_exit fn -> :error_logger.tty(true) end
+    Logger.remove_backend(:console)
+    on_exit fn ->
+      :gen_event.which_handlers(:error_logger)
+      Logger.add_backend(:console)
+    end
     :ok
   end
 

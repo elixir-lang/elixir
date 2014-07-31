@@ -61,21 +61,10 @@ defmodule Mix.Shell.Process do
 
   @doc """
   Forwards the message to the current process.
-
-  ## Options
-
-    * `:ansi` - If `true`, it means ANSI sequences exist in the message
-      The escape sequences are then removed by this function to aid
-      debugging/testing
   """
-  def info(message, opts \\ []) do
+  def info(message) do
     print_app
-
-    if opts[:ansi] do
-      message = IO.ANSI.escape(message, false)
-    end
-
-    send self, {:mix_shell, :info, [message]}
+    send self, {:mix_shell, :info, [format(message)]}
   end
 
   @doc """
@@ -83,7 +72,11 @@ defmodule Mix.Shell.Process do
   """
   def error(message) do
     print_app
-    send self, {:mix_shell, :error, [message]}
+    send self, {:mix_shell, :error, [format(message)]}
+  end
+
+  defp format(message) do
+    message |> IO.ANSI.format(false) |> IO.iodata_to_binary
   end
 
   @doc """

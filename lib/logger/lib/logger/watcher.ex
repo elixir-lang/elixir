@@ -25,10 +25,7 @@ defmodule Logger.Watcher do
   Removes the given handler.
   """
   def unwatch(mod, handler) do
-    case Supervisor.terminate_child(@name, {mod, handler}) do
-      :ok -> Supervisor.delete_child(@name, {mod, handler})
-      res -> res
-    end
+    GenEvent.remove_handler(mod, handler, :ok)
   end
 
   @doc """
@@ -63,7 +60,7 @@ defmodule Logger.Watcher do
   ## Callbacks
 
   def init({mod, handler, args}) do
-    case :gen_event.add_sup_handler(mod, handler, args) do
+    case GenEvent.add_handler(mod, handler, args, link: true) do
       :ok               -> {:ok, {mod, handler}}
       {:error, :ignore} -> :ignore
       {:error, reason}  -> {:stop, reason}
