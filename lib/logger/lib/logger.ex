@@ -144,7 +144,7 @@ defmodule Logger do
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
-      coloring on and off. Defaults to: `false`
+      coloring on and off. Defaults to: `IO.ANSI.enabled?`
 
     * `:debug` - color for debug messages. Defaults to: `:magenta`
 
@@ -161,8 +161,7 @@ defmodule Logger do
 
       config :logger, :console,
         format: "$date $time [$level] $metadata$message\n",
-        metadata: [:user_id],
-        colors: [enabled: true]
+        metadata: [:user_id]
 
   You can read more about formatting in `Logger.Formatter`.
 

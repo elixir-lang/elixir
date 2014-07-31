@@ -146,7 +146,10 @@ defmodule Mix.CLITest do
   end
 
   defp mix(args) when is_list(args) do
-    System.cmd(elixir_executable, [mix_executable|args], [stderr_to_stdout: true]) |> elem(0)
+    System.cmd(elixir_executable,
+               ["-e", "Application.put_env(:elixir, :ansi_enabled, false)",
+                "-r", mix_executable, "--"|args],
+               [stderr_to_stdout: true]) |> elem(0)
   end
 
   defp mix_executable do

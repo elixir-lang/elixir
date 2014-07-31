@@ -24,7 +24,6 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-
   defmodule Aliases do
     def project do
       [aliases: [h: "hello", c: "compile"]]

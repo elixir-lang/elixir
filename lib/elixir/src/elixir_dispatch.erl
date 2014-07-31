@@ -527,5 +527,7 @@ deprecation('Elixir.IO.ANSI', 'escape', _) ->
   "use the new API in IO.ANSI.format/2 instead";
 deprecation('Elixir.IO.ANSI', 'escape_fragment', _) ->
   "use the new API in IO.ANSI.format_fragment/2 instead";
+deprecation('Elixir.IO.ANSI', 'terminal?', _) ->
+  "use IO.ANSI.enabled?/0 instead";
 deprecation(_, _, _) ->
   false.

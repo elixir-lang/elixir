@@ -13,10 +13,10 @@ defmodule ExUnit.Mixfile do
      env: [
        # Calculated on demand
        # max_cases: :erlang.system_info(:schedulers_online),
-       # color: IO.ANSI.terminal?,
        # seed: rand(),
 
        autorun: true,
+       colors: [],
        trace: false,
        formatters: [ExUnit.CLIFormatter],
        include: [],

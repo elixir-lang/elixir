@@ -46,7 +46,6 @@ defmodule ExUnit.Runner do
     opts
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
-    |> Keyword.put_new(:color, IO.ANSI.terminal?)
     |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
     |> Keyword.put_new(:seed, :erlang.now |> elem(2))
   end

@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Help do
 
   The available color options are:
 
-    * `:enabled`         - show ANSI formatting (defaults to IO.ANSI.terminal?)
+    * `:enabled`         - show ANSI formatting (defaults to `IO.ANSI.enabled?`)
     * `:doc_code`        — the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
@@ -98,7 +98,7 @@ defmodule Mix.Tasks.Help do
     if Keyword.has_key?(opts, :enabled) do
       opts[:enabled]
     else
-      IO.ANSI.terminal?
+      IO.ANSI.enabled?
     end
   end
 

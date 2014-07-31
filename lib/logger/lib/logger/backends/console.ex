@@ -53,11 +53,11 @@ defmodule Logger.Backends.Console do
 
   defp configure_colors(console) do
     colors  = Keyword.get(console, :colors, [])
-    debug   = Keyword.get(colors, :debug, :magenta)
-    info    = Keyword.get(colors, :info, :normal)
+    debug   = Keyword.get(colors, :debug, :cyan)
+    info    = Keyword.get(colors, :info, :green)
     warn    = Keyword.get(colors, :warn, :yellow)
-    error   = Keyword.get(colors, :error, :red)
-    enabled = Keyword.get(colors, :enabled, false)
+    error   = Keyword.get(colors, :error, :magenta)
+    enabled = Keyword.get(colors, :enabled, IO.ANSI.enabled?)
     %{debug: debug, info: info, warn: warn, error: error, enabled: enabled}
   end
 
