@@ -202,16 +202,10 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      config    = Mix.Project.config
       umbrella? = Mix.Project.umbrella?
 
       if umbrella? do
         opts = Keyword.put_new(opts, :app, false)
-      end
-
-      if req = old_elixir_req(config) do
-        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
-                        "but you are running on v#{System.version}"
       end
 
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
@@ -285,13 +279,6 @@ defmodule Mix.Dep.Loader do
         end
       {:ok, _} -> {:invalidapp, app_path}
       {:error, _} -> {:noappfile, app_path}
-    end
-  end
-
-  defp old_elixir_req(config) do
-    req = config[:elixir]
-    if req && not Version.match?(System.version, req) do
-      req
     end
   end
 end

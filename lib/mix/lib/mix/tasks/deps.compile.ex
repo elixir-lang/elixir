@@ -93,6 +93,11 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_mix(dep) do
     Mix.Dep.in_dependency dep, fn _ ->
+      if req = old_elixir_req(Mix.Project.config) do
+        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
+                        "but you are running on v#{System.version}"
+      end
+
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check", "--no-readd"])
         :ok in List.wrap(res)
@@ -170,6 +175,13 @@ defmodule Mix.Tasks.Deps.Compile do
     File.cd! dest, fn ->
       config = Keyword.put(config, :app_path, build)
       Mix.Project.build_structure(config, symlink_ebin: true)
+    end
+  end
+
+  defp old_elixir_req(config) do
+    req = config[:elixir]
+    if req && not Version.match?(System.version, req) do
+      req
     end
   end
 end

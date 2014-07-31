@@ -84,7 +84,7 @@ defmodule Mix.Tasks.DepsTest do
       end
       """
 
-      Mix.Tasks.Deps.run []
+      Mix.Tasks.Deps.Compile.run [:ok]
 
       msg = "warning: the dependency ok requires Elixir \"~> 0.1.0\" " <>
             "but you are running on v#{System.version}"
