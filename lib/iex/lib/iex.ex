@@ -333,8 +333,14 @@ defmodule IEx do
 
     if colors[:enabled] do
       ansi = Keyword.get(colors, color, default_color(color))
-      IO.ANSI.escape_fragment("%{#{ansi}}", true) <> string <>
-        IO.ANSI.escape_fragment("%{reset}", true)
+
+      if is_binary(ansi) do
+        IO.puts :stderr, "warning: ANSI colors as strings is deprecated, " <>
+                         "they now must be a list of atoms, got #{inspect ansi} for #{inspect color}"
+        ansi = String.split(ansi, ",") |> Enum.map(&String.to_atom/1)
+      end
+
+      IO.iodata_to_binary(IO.ANSI.format_fragment(ansi, true)) <> string <> IO.ANSI.reset
     else
       string
     end
@@ -507,22 +513,22 @@ defmodule IEx do
   end
 
   # Used by default on evaluation cycle
-  defp default_color(:eval_interrupt), do: "yellow"
-  defp default_color(:eval_result), do: "yellow"
-  defp default_color(:eval_error), do: "red"
-  defp default_color(:eval_info), do: "normal"
-  defp default_color(:stack_app), do: "red,bright"
-  defp default_color(:stack_info), do: "red"
+  defp default_color(:eval_interrupt), do: [:yellow]
+  defp default_color(:eval_result), do: [:yellow]
+  defp default_color(:eval_error), do: [:red]
+  defp default_color(:eval_info), do: [:normal]
+  defp default_color(:stack_app), do: [:red, :bright]
+  defp default_color(:stack_info), do: [:red]
 
   # Used by ls
-  defp default_color(:ls_directory), do: "blue"
-  defp default_color(:ls_device), do: "green"
+  defp default_color(:ls_directory), do: [:blue]
+  defp default_color(:ls_device), do: [:green]
 
   # Used by ansi docs
-  defp default_color(:doc_bold), do: "bright"
-  defp default_color(:doc_code), do: "cyan,bright"
-  defp default_color(:doc_headings), do: "yellow,bright"
-  defp default_color(:doc_inline_code), do: "cyan"
-  defp default_color(:doc_underline), do: "underline"
-  defp default_color(:doc_title), do: "reverse,yellow,bright"
+  defp default_color(:doc_bold), do: [:bright]
+  defp default_color(:doc_code), do: [:cyan, :bright]
+  defp default_color(:doc_headings), do: [:yellow, :bright]
+  defp default_color(:doc_inline_code), do: [:cyan]
+  defp default_color(:doc_underline), do: [:underline]
+  defp default_color(:doc_title), do: [:reverse, :yellow, :bright]
 end

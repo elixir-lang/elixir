@@ -17,14 +17,16 @@
   * [Kernel] Ensure private functions are not exported
   * [Protocol] Do not expose protocol convention on `assert_impl!/2`
   * [Regex] Do not consider subpatterns on `Regex.split/3`
-  * [Stream] Implement the Inspect protocol for Streams so we do not leak the Stream representation
+  * [Stream] Implement the `Inspect` protocol for Streams so we do not leak the Stream representation
 
 * Deprecations
+  * [IEx] IEx color configuration expects a list of atoms instead of a string with colors separated by comma
   * [Inspect] `Inspect.Algebra.pretty/2` is deprecated in favor of `Inspect.Algebra.format/2` that instead returns iodata. This function was used only by documentation examples and it is unlikely to affect actual code
   * [IO] `IO.ANSI.escape/2` and `IO.ANSI.escape_fragment/2` is deprecated in favor of `IO.ANSI.format/2` and `IO.ANSI.format_fragment/2`
   * [Kernel] Leading `0` for octals is deprecated in favor of `0o`
   * [Kernel] `0X` for hexadecimals is deprecated in favor of `0x`
   * [Kernel] `0B` for binaries is deprecated in favor of `0b`
+  * [Mix] Mix color configuration expects a list of atoms instead of a string with colors separated by comma
   * [String] `\NNN`, `\NN` and `\N` for octals are deprecated inside string, sigils and chars in favor of hexadecimal entries with `\x`
 
 * Backwards incompatible changes

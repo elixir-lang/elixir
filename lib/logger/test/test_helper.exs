@@ -1,4 +1,4 @@
-ExUnit.start seed: 362385, trace: true
+ExUnit.start()
 
 defmodule Logger.Case do
   use ExUnit.CaseTemplate

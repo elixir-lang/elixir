@@ -21,13 +21,12 @@ defmodule IO.ANSI.Docs do
   comma-separated ANSI values.
   """
   def default_options do
-    [enabled: true,
-     doc_code: "cyan,bright",
-     doc_inline_code: "cyan",
-     doc_headings: "yellow,bright",
-     doc_title: "reverse,yellow,bright",
-     doc_bold: "bright",
-     doc_underline: "underline",
+    [doc_code: [:cyan, :bright],
+     doc_inline_code: [:cyan],
+     doc_headings: [:yellow, :bright],
+     doc_title: [:reverse, :yellow, :bright],
+     doc_bold: [:bright],
+     doc_underline: [:underline],
      width: 80]
   end
 
@@ -224,7 +223,7 @@ defmodule IO.ANSI.Docs do
   ## Helpers
 
   defp write(style, string, options) do
-    IO.puts color(style, options) <> string <> IO.ANSI.reset
+    IO.puts [color(style, options), string, IO.ANSI.reset]
     IO.puts IO.ANSI.reset
   end
 
@@ -370,7 +369,11 @@ defmodule IO.ANSI.Docs do
 
   defp color(style, colors) do
     color = colors[style]
-    enabled = colors[:enabled]
-    IO.ANSI.escape_fragment("%{#{color}}", enabled)
+    if is_binary(color) do
+      IO.puts :stderr, "warning: ANSI colors as strings is deprecated, " <>
+                       "they now must be a list of atoms, got #{inspect color} for #{inspect style}"
+      color = String.split(color, ",") |> Enum.map(&String.to_atom/1)
+    end
+    IO.ANSI.format_fragment(color, true)
   end
 end

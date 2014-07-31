@@ -28,6 +28,10 @@ defmodule IO.ANSI do
 
   import IO.ANSI.Sequence
 
+  @typep ansicode :: atom()
+  @typep ansilist :: maybe_improper_list(char() | ansicode() | binary() | ansilist(), binary() | ansicode() | [])
+  @type  ansidata :: ansilist() | ansicode() | binary()
+
   @doc """
   Checks whether the default I/O device is a terminal or a file.
 
@@ -159,7 +163,7 @@ defmodule IO.ANSI do
   ## Examples
 
       iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
-      [[[[[[], "Hello, "], "\e[31m"], "\e[1m"], "world!"] | "\e[0m"]
+      [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
   def format(chardata, emit \\ terminal?) when is_boolean(emit) do
@@ -180,7 +184,7 @@ defmodule IO.ANSI do
   ## Examples
 
       iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
-      [[[[[[], "\e[1m"], 87], 111], 114], 100]
+      [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
   def format_fragment(chardata, emit \\ terminal?) when is_boolean(emit) do

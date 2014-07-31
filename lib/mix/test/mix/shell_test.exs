@@ -45,7 +45,7 @@ defmodule Mix.ShellTest do
            "abc\n"
 
     assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
-           (IO.ANSI.escape "%{red,bright}def") <> "\n"
+           "#{IO.ANSI.red}#{IO.ANSI.bright}def#{IO.ANSI.reset}\n"
 
     assert capture_io("world", fn -> assert Mix.shell.prompt("hello?") == "world" end) ==
            "hello? "

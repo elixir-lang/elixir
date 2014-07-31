@@ -33,7 +33,7 @@ defmodule LoggerTest do
   test "add_backend/1 and remove_backend/1" do
     assert :ok = Logger.remove_backend(:console)
     assert Logger.remove_backend(:console) ==
-           {:error, :not_found}
+           {:error, :module_not_found}
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
@@ -154,10 +154,10 @@ defmodule LoggerTest do
   end
 
   test "Logger.Config survives Logger exit" do
-    Process.whereis(Logger)
-      |> Process.exit(:kill)
+    Process.whereis(Logger) |> Process.exit(:kill)
     wait_for_logger()
     wait_for_handler(Logger, Logger.Config)
+    wait_for_handler(:error_logger, Logger.ErrorHandler)
   end
 
   test "Logger.Config can restart the application" do
@@ -171,5 +171,8 @@ defmodule LoggerTest do
     assert {:ok, pid} = Logger.add_backend(:console)
     assert Logger.add_backend(:console) ==
            {:error, {:already_started, pid}}
+  after
+    Application.put_env(:logger, :backends, [:console])
+    Logger.Config.restart()
   end
 end

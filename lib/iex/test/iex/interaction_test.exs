@@ -94,16 +94,10 @@ defmodule IEx.InteractionTest do
 
   unless match?({:win32,_}, :os.type) do
     test "color" do
-      opts = [colors: [enabled: true, eval_result: "red"]]
+      opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
-
-      # Sanity checks
-      assert capture_iex("IO.ANSI.escape(\"%{blue}hello\", true)", opts)
-             == "\e[31m\"\\e[34mhello\\e[0m\"\e[0m"
-      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", opts)
-             == "\e[34mhello\e[0m\n\e[31m:ok\e[0m"
-      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", [colors: [enabled: false]])
-             == "\e[34mhello\e[0m\n:ok"
+      assert capture_iex("IO.ANSI.blue", opts)
+             == "\e[31m\"\\e[34m\"\e[0m"
     end
   end
 

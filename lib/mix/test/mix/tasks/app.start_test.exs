@@ -23,12 +23,13 @@ defmodule Mix.Tasks.App.StartTest do
 
   setup config do
     if app = config[:app] do
-      :error_logger.tty(false)
+      Logger.remove_backend(:console)
 
       on_exit fn ->
         :application.stop(app)
         :application.unload(app)
-        :error_logger.tty(true)
+        :gen_event.which_handlers(:error_logger)
+        Logger.add_backend(:console)
       end
     end
 
