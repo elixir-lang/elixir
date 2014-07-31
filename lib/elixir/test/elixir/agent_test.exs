@@ -3,7 +3,11 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule AgentTest do
   use ExUnit.Case, async: true
 
-  test "start_link/2 workflow with unregistered name" do
+  def identity(state) do
+    state
+  end
+
+  test "start_link/2 workflow with unregistered name and anonymous functions" do
     {:ok, pid} = Agent.start_link(fn -> %{} end)
 
     {:links, links} = Process.info(self, :links)
@@ -17,13 +21,13 @@ defmodule AgentTest do
     wait_until_dead(pid)
   end
 
-  test "start/2 workflow with registered name" do
-    {:ok, pid} = Agent.start(fn -> %{} end, name: :agent)
+  test "start/2 workflow with registered name and module functions" do
+    {:ok, pid} = Agent.start(Map, :new, [], name: :agent)
     assert Process.info(pid, :registered_name) == {:registered_name, :agent}
-    assert Agent.cast(:agent, &Map.put(&1, :hello, :world)) == :ok
-    assert Agent.get(:agent, &Map.get(&1, :hello)) == :world
-    assert Agent.get_and_update(:agent, &Map.pop(&1, :hello)) == :world
-    assert Agent.get(:agent, &(&1)) == %{}
+    assert Agent.cast(:agent, Map, :put, [:hello, :world]) == :ok
+    assert Agent.get(:agent, Map, :get, [:hello]) == :world
+    assert Agent.get_and_update(:agent, Map, :pop, [:hello]) == :world
+    assert Agent.get(:agent, AgentTest, :identity, []) == %{}
     assert Agent.stop(:agent) == :ok
     assert Process.info(pid, :registered_name) == nil
   end
@@ -31,7 +35,7 @@ defmodule AgentTest do
   test ":sys.change_code/4 with mfa" do
     { :ok, pid } = Agent.start_link(fn -> %{} end)
     :ok = :sys.suspend(pid)
-    mfa = { Map, :put, [:hello, :world] }
+    mfa = {Map, :put, [:hello, :world]}
     assert :sys.change_code(pid, __MODULE__, "vsn", mfa) == :ok
     :ok = :sys.resume(pid)
     assert Agent.get(pid, &Map.get(&1, :hello)) == :world

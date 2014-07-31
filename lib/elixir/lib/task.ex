@@ -58,7 +58,7 @@ defmodule Task do
   that dynamically supervise tasks:
 
       {:ok, pid} = Task.Supervisor.start_link()
-      Task.Supervisor.async(pid, fn -> do_work() end)
+      Task.Supervisor.async(pid, MyMod, :my_fun, [arg1, arg2, arg3])
 
   `Task.Supervisor` also makes it possible to spawn tasks in remote nodes as
   long as the supervisor is registered locally or globally:
@@ -67,7 +67,7 @@ defmodule Task do
       Task.Supervisor.start_link(name: :tasks_sup)
 
       # In the client
-      Task.Supervisor.async({:tasks_sup, :remote@local}, fn -> do_work() end)
+      Task.Supervisor.async({:tasks_sup, :remote@local}, MyMod, :my_fun, [arg1, arg2, arg3])
 
   `Task.Supervisor` is more often started in your supervision tree as:
 
@@ -77,7 +77,15 @@ defmodule Task do
         supervisor(Task.Supervisor, [[name: :tasks_sup]])
       ]
 
-  Check `Task.Supervisor` for other operations supported by the Task supervisor.
+  Note that, when working with distributed tasks, one should use the `async/4` API,
+  that expects explicit module, function and arguments, instead of `async/2` that
+  works with anonymous functions. That's because the anonymous function API expects
+  the same module version to exist on all involved nodes. Check the `Agent` module
+  documentation for more information on distributed processes, as the limitations
+  described in the agents documentation apply to the whole ecosystem.
+
+  Finally, check `Task.Supervisor` for other operations supported by the Task
+  supervisor.
   """
 
   @doc """
