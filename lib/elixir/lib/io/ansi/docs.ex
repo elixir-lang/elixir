@@ -375,6 +375,6 @@ defmodule IO.ANSI.Docs do
                        "they now must be a list of atoms, got #{inspect color} for #{inspect style}"
       color = String.split(color, ",") |> Enum.map(&String.to_atom/1)
     end
-    IO.ANSI.format_fragment(color, !!colors[:enabled])
+    IO.ANSI.format_fragment(color, colors[:enabled])
   end
 end
