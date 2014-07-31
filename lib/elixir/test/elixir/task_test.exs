@@ -5,10 +5,7 @@ defmodule TaskTest do
 
   setup do
     Logger.remove_backend(:console)
-    on_exit fn ->
-      :gen_event.which_handlers(:error_logger)
-      Logger.add_backend(:console)
-    end
+    on_exit fn -> Logger.add_backend(:console, flush: true) end
     :ok
   end
 
