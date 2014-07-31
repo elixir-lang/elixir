@@ -68,22 +68,22 @@ defmodule Agent do
   ## A word on distributed agents
 
   It is important to consider the limitations of distributed agents. Agents
-  work by sending anonymous functions between the caller and the agent.
-  In a distributed setup with multiple nodes, agents only work if the caller
-  (client) and the agent have the same version of a given module.
+  provides two APIs, one that works with anonymous functions and another
+  that expects explicit module, function and arguments.
 
-  This setup may exhibit issues when doing "rolling upgrades". By rolling
-  upgrades we mean the following situation: you wish to deploy a new version of
-  your software by *shutting down* some of your nodes and replacing them with
-  nodes running a new version of the software. In this setup, part of your
-  environment will have one version of a given module and the other part
-  another version (the newer one) of the same module; this may cause agents to
-  crash. That said, if you plan to run in distributed environments, agents
-  should likely be avoided.
+  In a distributed setup with multiple nodes, the API that accepts anonymous
+  functions only works if the caller (client) and the agent have the same
+  version of the caller module.
 
-  Note, however, that agents work fine if you want to perform hot code
-  swapping, as it keeps both the old and new versions of a given module.
-  We detail how to do hot code swapping with agents in the next section.
+  Keep in mind this issue also shows up when performing "rolling upgrades"
+  with agents. By rolling upgrades we mean the following situation: you wish
+  to deploy a new version of your software by *shutting down* some of your
+  nodes and replacing them with nodes running a new version of the software.
+  In this setup, part of your environment will have one version of a given
+  module and the other part another version (the newer one) of the same module.
+
+  The best solution is to simply use the explicit module, function and arguments
+  APIs when working with distributed agents.
 
   ## Hot code swapping
 
@@ -111,7 +111,7 @@ defmodule Agent do
   @type state :: term
 
   @doc """
-  Starts an agent linked to the current process.
+  Starts an agent linked to the current process with the given function.
 
   This is often used to start the agent as part of a supervision tree.
 
@@ -150,6 +150,18 @@ defmodule Agent do
   end
 
   @doc """
+  Starts an agent linked to the current process with the given module
+  function and arguments.
+
+  Same as `start_link/2` but a module, function and args are expected
+  instead of an anonymous function.
+  """
+  @spec start_link(module, atom, [any], GenServer.options) :: on_start
+  def start_link(module, fun, args, options \\ []) do
+    GenServer.start_link(Agent.Server, {module, fun, args}, options)
+  end
+
+  @doc """
   Starts an agent process without links (outside of a supervision tree).
 
   See `start_link/2` for more information.
@@ -160,7 +172,18 @@ defmodule Agent do
   end
 
   @doc """
-  Gets the agent value and executes the given function.
+  Starts an agent with the given module function and arguments.
+
+  Similar to `start/2` but a module, function and args are expected
+  instead of an anonymous function.
+  """
+  @spec start(module, atom, [any], GenServer.options) :: on_start
+  def start(module, fun, args, options \\ []) do
+    GenServer.start(Agent.Server, {module, fun, args}, options)
+  end
+
+  @doc """
+  Gets an agent value via the given function.
 
   The function `fun` is sent to the `agent` which invokes the function
   passing the agent state. The result of the function invocation is
@@ -171,6 +194,18 @@ defmodule Agent do
   @spec get(agent, (state -> a), timeout) :: a when a: var
   def get(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:get, fun}, timeout)
+  end
+
+  @doc """
+  Gets an agent value via the given function.
+
+  Same as `get/3` but a module, function and args are expected
+  instead of an anonymous function. The state is added as first
+  argument to the given list of args.
+  """
+  @spec get(agent, module, atom, [term], timeout) :: any
+  def get(agent, module, fun, args, timeout \\ 5000) do
+    GenServer.call(agent, {:get, {module, fun, args}}, timeout)
   end
 
   @doc """
@@ -189,6 +224,18 @@ defmodule Agent do
   end
 
   @doc """
+  Gets and updates the agent state in one operation.
+
+  Same as `get_and_update/3` but a module, function and args are expected
+  instead of an anonymous function. The state is added as first
+  argument to the given list of args.
+  """
+  @spec get_and_update(agent, module, atom, [term], timeout) :: any
+  def get_and_update(agent, module, fun, args, timeout \\ 5000) do
+    GenServer.call(agent, {:get_and_update, {module, fun, args}}, timeout)
+  end
+
+  @doc """
   Updates the agent state.
 
   The function `fun` is sent to the `agent` which invokes the function
@@ -197,9 +244,21 @@ defmodule Agent do
   A timeout can also be specified (it has a default value of 5000).
   This function always returns `:ok`.
   """
-  @spec update(agent, (state -> state)) :: :ok
+  @spec update(agent, (state -> state), timeout) :: :ok
   def update(agent, fun, timeout \\ 5000) when is_function(fun, 1) do
     GenServer.call(agent, {:update, fun}, timeout)
+  end
+
+  @doc """
+  Updates the agent state.
+
+  Same as `update/3` but a module, function and args are expected
+  instead of an anonymous function. The state is added as first
+  argument to the given list of args.
+  """
+  @spec update(agent, module, atom, [term], timeout) :: :ok
+  def update(agent, module, fun, args, timeout \\ 5000) do
+    GenServer.call(agent, {:update, {module, fun, args}}, timeout)
   end
 
   @doc """
@@ -213,7 +272,19 @@ defmodule Agent do
   """
   @spec cast(agent, (state -> state)) :: :ok
   def cast(agent, fun) when is_function(fun, 1) do
-    GenServer.cast(agent, fun)
+    GenServer.cast(agent, {:cast, fun})
+  end
+
+  @doc """
+  Performs a cast (fire and forget) operation on the agent state.
+
+  Same as `cast/2` but a module, function and args are expected
+  instead of an anonymous function. The state is added as first
+  argument to the given list of args.
+  """
+  @spec cast(agent, module, atom, [term]) :: :ok
+  def cast(agent, module, fun, args) do
+    GenServer.cast(agent, {:cast, {module, fun, args}})
   end
 
   @doc """

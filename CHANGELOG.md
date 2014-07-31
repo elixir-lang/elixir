@@ -3,6 +3,7 @@
 ## v0.15.0-dev
 
 * Enhancements
+  * [Agent] Improve the Agent API to also accept functions that receive explicit module, function and arguments
   * [IEx] Support `--werl` call on Windows
   * [Logger] Add `Logger`
   * [Map] Add `Map.from_struct/1`
