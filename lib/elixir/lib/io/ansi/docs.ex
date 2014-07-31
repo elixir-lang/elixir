@@ -3,32 +3,35 @@ defmodule IO.ANSI.Docs do
 
   @bullets [?*, ?-, ?+]
 
+
   @doc """
   The default options used by this module.
 
   The supported values are:
 
-    * `:enabled`         - toggles coloring on and off (true)
-    * `:doc_code`        - code blocks (cyan, bright)
-    * `:doc_inline_code` - inline code (cyan)
-    * `:doc_headings`    - h1 and h2 headings (yellow, bright)
-    * `:doc_title`       - top level heading (reverse, yellow, bright)
-    * `:doc_bold`        - bold text (bright)
-    * `:doc_underline`   - underlined text (underline)
-    * `:width`           - the width to format the text (80)
+  * `:enabled`           - toggles coloring on and off (true)
+  * `:doc_bold`          - bold text (bright)
+  * `:doc_code`          - code blocks (cyan, bright)
+  * `:doc_headings`      - h1 and h2 headings (yellow, bright)
+  * `:doc_inline_code`   - inline code (cyan)
+  * `:doc_table_heading` - style for table headings
+  * `:doc_title`         - top level heading (reverse, yellow, bright)
+  * `:doc_underline`     - underlined text (underline)
+  * `:width`             - the width to format the text (80)
 
   Values for the color settings are strings with
   comma-separated ANSI values.
   """
   def default_options do
-    [enabled: true,
-     doc_code: "cyan,bright",
-     doc_inline_code: "cyan",
-     doc_headings: "yellow,bright",
-     doc_title: "reverse,yellow,bright",
-     doc_bold: "bright",
-     doc_underline: "underline",
-     width: 80]
+    [enabled:           true,
+     doc_bold:          "bright",
+     doc_code:          "cyan,bright",
+     doc_headings:      "yellow,bright",
+     doc_inline_code:   "cyan",
+     doc_table_heading: "reverse",
+     doc_title:         "reverse,yellow,bright",
+     doc_underline:     "underline",
+     width:             80]
   end
 
   @doc """
@@ -43,12 +46,13 @@ defmodule IO.ANSI.Docs do
     padding = div(width + String.length(heading), 2)
     heading = heading |> String.rjust(padding) |> String.ljust(width)
     write(:doc_title, heading, options)
+    newline_after_block
   end
 
   @doc """
   Prints the documentation body.
 
-  In addition to the priting string, takes a set of options
+  In addition to the printing string, takes a set of options
   defined in `default_options/1`.
   """
   def print(doc, options \\ []) do
@@ -84,13 +88,17 @@ defmodule IO.ANSI.Docs do
     process_code(rest, [line], indent, options)
   end
 
-  defp process([line | rest], indent, options) do
+  defp process(all=[line | rest], indent, options) do
     {stripped, count} = strip_spaces(line, 0)
-    case stripped do
-      <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
-        process_list(item, rest, count, indent, options)
-      _ ->
-        process_text(rest, [line], indent, false, options)
+    if is_table_line?(stripped) && length(rest) > 0 && is_table_line?(hd(rest)) do
+      process_table(all, indent, options)
+    else
+      case stripped do
+        <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
+          process_list(item, rest, count, indent, options)
+        _ ->
+          process_text(rest, [line], indent, false, options)
+      end
     end
   end
 
@@ -110,11 +118,13 @@ defmodule IO.ANSI.Docs do
 
   defp write_h2(heading, options) do
     write(:doc_headings, heading, options)
+    newline_after_block
   end
 
   defp write_h3(heading, indent, options) do
     IO.write(indent)
     write(:doc_headings, heading, options)
+    newline_after_block
   end
 
   ## Lists
@@ -194,7 +204,7 @@ defmodule IO.ANSI.Docs do
     |> String.split(~r{\s})
     |> write_with_wrap(options[:width] - byte_size(indent), indent, from_list)
 
-    unless from_list, do: IO.puts(IO.ANSI.reset)
+    unless from_list, do: newline_after_block
   end
 
   ## Code blocks
@@ -219,13 +229,102 @@ defmodule IO.ANSI.Docs do
 
   defp write_code(code, indent, options) do
     write(:doc_code, "#{indent}┃ #{Enum.join(Enum.reverse(code), "\n#{indent}┃ ")}", options)
+    newline_after_block          
   end
 
+  ## Tables
+
+  defp process_table(lines, indent, options) do
+    { table, rest } = Enum.split_while(lines, &is_table_line?/1)
+    table_lines(table, options)
+    newline_after_block
+    process(rest, indent, options)
+  end
+
+  defp table_lines(lines, options) do
+    lines = Enum.map(lines, &split_into_columns/1)
+    col_count = lines |> Enum.map(&length/1) |> Enum.max
+    lines = Enum.map(lines, fn line -> pad_to_number_of_columns(line, col_count) end)
+
+    widths = for line <- lines, do:
+                    (for col <- line, do: effective_length(col))
+
+    col_widths = Enum.reduce(widths, 
+                             List.duplicate(0, col_count), 
+                             &max_column_widths/2)
+
+    render_table(lines, col_widths, options)                             
+  end
+
+  defp split_into_columns(line) do
+    (if String.ends_with?(line, "|"), do: String.strip(line, "|"), else: line)
+    |> String.split(~r/\s\|\s/)
+    |> Enum.map(&String.strip/1)
+  end
+
+  defp pad_to_number_of_columns(cols, col_count), do: String.ljust(cols, col_count)
+
+  defp max_column_widths(cols, widths) do
+    Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
+  end
+
+  defp effective_length(text) do
+    String.length(Regex.replace(~r/((^|\b)[`*_]+)|([`*_]+\b)/, text, ""))
+  end
+
+  # If second line is heading separator, use the heading style on the first
+  defp render_table([first, second | rest], widths, options) do
+    combined = Enum.zip(first, widths)
+    if table_header?(second) do
+      draw_table_row(combined, options, :heading)
+      render_table(rest, widths, options)
+    else
+      draw_table_row(combined, options)
+      render_table([second | rest], widths, options)
+    end
+  end                                                 
+
+  defp render_table([first | rest], widths, options) do
+    combined = Enum.zip(first, widths)
+    draw_table_row(combined, options)
+    render_table(rest, widths, options)
+  end                                                 
+
+  defp render_table([], _, _), do: nil
+
+
+  defp table_header?(row), 
+  do: Enum.all?(row, fn col -> col =~ ~r/^:?-+:?$/ end)
+
+  defp draw_table_row(cols_and_widths, options, heading \\ false) do
+    columns = for { col, width } <- cols_and_widths do
+      padding = width - effective_length(col)
+      col = Regex.replace(~r/\\ \|/x, col, "|")  # escaped bars 
+      text = col
+             |> handle_links
+             |> handle_inline(nil, [], [], options)
+      text <> String.duplicate(" ", padding)
+    end |> Enum.join(" | ")
+
+    if heading do
+      write(:doc_table_heading, columns, options)
+    else
+      IO.puts columns
+    end
+  end
+  
   ## Helpers
+
+  @table_line_re ~r'''
+      ( ^ \s{0,3} \| (?: [^|]+ \|)+ \s* $ )
+    |
+      (\s \| \s)
+  '''x
+
+  defp is_table_line?(line), do: Regex.match?(@table_line_re, line)
 
   defp write(style, string, options) do
     IO.puts color(style, options) <> string <> IO.ANSI.reset
-    IO.puts IO.ANSI.reset
   end
 
   defp write_with_wrap([], _available, _indent, _first) do
@@ -363,14 +462,20 @@ defmodule IO.ANSI.Docs do
     [color_for(h, options)|t]
   end
 
-  defp color_for("`", colors),  do: color(:doc_inline_code, colors)
-  defp color_for("_", colors),  do: color(:doc_underline, colors)
-  defp color_for("*", colors),  do: color(:doc_bold, colors)
-  defp color_for("**", colors), do: color(:doc_bold, colors)
+  defp color_for(mark, colors) do
+    case mark do
+      "`"  -> color(:doc_inline_code, colors)
+      "_"  -> color(:doc_underline, colors)
+      "*"  -> color(:doc_bold, colors)
+      "**" -> color(:doc_bold, colors)
+    end
+  end
 
   defp color(style, colors) do
     color = colors[style]
     enabled = colors[:enabled]
     IO.ANSI.escape_fragment("%{#{color}}", enabled)
   end
+
+  defp newline_after_block, do: IO.puts(IO.ANSI.reset)
 end
