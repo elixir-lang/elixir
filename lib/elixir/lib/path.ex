@@ -585,8 +585,20 @@ defmodule Path do
 
   defp expand_home(type) do
     case IO.chardata_to_string(type) do
-      "~" <> rest -> System.user_home! <> rest
+      "~" <> rest -> resolve_home(rest)
       rest        -> rest
+    end
+  end
+
+  defp resolve_home(""), do: System.user_home!
+
+  defp resolve_home(rest) do
+    case {rest, major_os_type} do
+      {"\\" <> _, :win32} ->
+        System.user_home! <> rest
+      {"/" <> _, _} ->
+        System.user_home! <> rest
+      _ -> rest
     end
   end
 

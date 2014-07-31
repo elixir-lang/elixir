@@ -112,6 +112,7 @@ defmodule PathTest do
     assert Path.expand("~/file", "whatever") == Path.join(home, "file")
     assert Path.expand("file", Path.expand("~")) == Path.expand("~/file")
     assert Path.expand("file", "~") == Path.join(home, "file")
+    assert Path.expand("~file") == Path.join(System.cwd!, "file")
   end
 
   test :expand_path do
