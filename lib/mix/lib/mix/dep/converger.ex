@@ -156,8 +156,7 @@ defmodule Mix.Dep.Converger do
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              dep = Mix.Dep.Loader.load(dep)
-              %{dep | deps: Enum.filter(dep.deps, &(!children || &1.app in children))}
+              Mix.Dep.Loader.load(dep, children)
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
