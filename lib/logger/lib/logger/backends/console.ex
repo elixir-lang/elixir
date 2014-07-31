@@ -45,12 +45,10 @@ defmodule Logger.Backends.Console do
   end
 
   defp configure_merge(env, options) do
-    env_colors = Keyword.get(env, :colors, [])
-    opts_colors = Keyword.get(options, :colors, [])
-    colors = Keyword.merge(env_colors, opts_colors)
-
-    Keyword.merge(env, options)
-    |> Keyword.put(:colors, colors)
+    Keyword.merge(env, options, fn
+      :colors, v1, v2 -> Keyword.merge(v1, v2)
+      _, _v1, v2 -> v2
+    end)
   end
 
   defp configure_colors(console) do
@@ -73,8 +71,8 @@ defmodule Logger.Backends.Console do
     Logger.Formatter.format(format, level, msg, ts, Dict.take(md, metadata))
   end
 
-  defp color_event(level, data, %{enabled: enabled} = colors) do
-    IO.ANSI.format([Map.fetch!(colors, level) | data], enabled)
-  end
-
+  defp color_event(level, data, %{enabled: true} = colors), do:
+    [IO.ANSI.format_fragment(Map.fetch!(colors, level), true), data|IO.ANSI.reset]
+  defp color_event(_level, data, %{enabled: false}), do:
+    data
 end
