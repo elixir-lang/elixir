@@ -17,26 +17,14 @@ defmodule Mix.Dep.Loader do
     * `:env` - filter dependencies on given environments
   """
   def children(opts) do
-    from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
-
-    # Filter deps not matching mix environment
-    if env = opts[:env] do
-      deps =
-        Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-          only = opts[:only]
-          if only, do: env in List.wrap(only), else: true
-        end)
-    end
-
-    deps ++ Mix.Dep.Umbrella.unloaded
+    mix_children(opts) ++ Mix.Dep.Umbrella.unloaded
   end
 
   @doc """
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep) do
+  def load(dep, children) do
     %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
@@ -47,16 +35,16 @@ defmodule Mix.Dep.Loader do
           {dep, []}
 
         manager == :rebar ->
-          rebar_dep(dep)
+          rebar_dep(dep, children)
 
         mix?(dest) ->
-          mix_dep(%{dep | manager: :mix})
+          mix_dep(dep, children)
 
         rebar?(dest) ->
-          rebar_dep(%{dep | manager: :rebar})
+          rebar_dep(dep, children)
 
         make?(dest) ->
-          {%{dep | manager: :make}, []}
+          make_dep(dep)
 
         true ->
           {dep, []}
@@ -200,7 +188,7 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       umbrella? = Mix.Project.umbrella?
 
@@ -208,18 +196,40 @@ defmodule Mix.Dep.Loader do
         opts = Keyword.put_new(opts, :app, false)
       end
 
+      children = (mix_children(env: opts[:env] || :prod) |> filter_children(children))
+                 ++ Mix.Dep.Umbrella.unloaded
+
       dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      {dep, children(env: opts[:env] || :prod)}
+      {dep, children}
     end)
   end
 
-  defp rebar_dep(%Mix.Dep{} = dep) do
+  defp rebar_dep(%Mix.Dep{} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
       dep   = %{dep | manager: :rebar, extra: extra}
-      {dep, rebar_children(rebar)}
+      {dep, rebar |> rebar_children |> filter_children(children)}
     end)
+  end
+
+  defp make_dep(dep) do
+    {%{dep | manager: :make}, []}
+  end
+
+  defp mix_children(opts) do
+    from = Path.absname("mix.exs")
+    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
+
+    # Filter deps not matching mix environment
+    if env = opts[:env] do
+      Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
+        only = opts[:only]
+        if only, do: env in List.wrap(only), else: true
+      end)
+    else
+      deps
+    end
   end
 
   defp rebar_children(root_config) do
@@ -228,6 +238,9 @@ defmodule Mix.Dep.Loader do
       Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
     end) |> Enum.concat
   end
+
+  defp filter_children(deps, nil), do: deps
+  defp filter_children(deps, children), do: Enum.filter(deps, &(&1.app in children))
 
   defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
     if scm == Mix.SCM.Path and not manager in [:mix, nil] do
