@@ -7,7 +7,7 @@ defmodule Logger.ErrorHandlerTest do
       wait_for_handler(:error_logger, Logger.ErrorHandler)
     end) =~ "[error] GenEvent handler Logger.ErrorHandler installed at :error_logger\n" <>
             "** (exit) an exception was raised:"
-    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info] :hello\n")
+    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info]  :hello\n")
   end
 
   test "survives after Logger exit" do
@@ -18,13 +18,13 @@ defmodule Logger.ErrorHandlerTest do
   end
 
   test "formats error_logger info message" do
-    assert error_log(:info_msg, "hello", []) =~ msg("[info] hello")
-    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info] :hello\n")
+    assert error_log(:info_msg, "hello", []) =~ msg("[info]  hello")
+    assert error_log(:info_msg, "~p~n", [:hello]) =~ msg("[info]  :hello\n")
   end
 
   test "formats error_logger info report" do
-    assert error_log(:info_report, "hello") =~ msg("[info] \"hello\"")
-    assert error_log(:info_report, :hello) =~ msg("[info] :hello\n")
+    assert error_log(:info_report, "hello") =~ msg("[info]  \"hello\"")
+    assert error_log(:info_report, :hello) =~ msg("[info]  :hello\n")
     assert error_log(:info_report, :special, :hello) == ""
   end
 

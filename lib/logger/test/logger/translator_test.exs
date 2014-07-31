@@ -92,7 +92,7 @@ defmodule Logger.TranslatorTest do
 
     assert capture_log(fn ->
       Application.stop(:eex)
-    end) =~ msg("[info] Application eex exited with reason :stopped")
+    end) =~ msg("[info]  Application eex exited with reason :stopped")
   end
 
   def task(parent) do
