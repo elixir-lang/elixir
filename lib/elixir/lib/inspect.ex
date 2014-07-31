@@ -297,9 +297,9 @@ defimpl Inspect, for: List do
       lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
         << ?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
-        surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
+        surround_many("[", thing, "]", opts, &keyword/2)
       true ->
-        surround_many("[", thing, "]", opts.limit, &to_doc(&1, opts))
+        surround_many("[", thing, "]", opts, &to_doc/2)
     end
   end
 
@@ -346,7 +346,7 @@ defimpl Inspect, for: Tuple do
   def inspect({}, _opts), do: "{}"
 
   def inspect(tuple, opts) do
-    surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
+    surround_many("{", Tuple.to_list(tuple), "}", opts, &to_doc/2)
   end
 end
 
@@ -357,14 +357,14 @@ defimpl Inspect, for: Map do
 
   def inspect(map, name, opts) do
     map = :maps.to_list(map)
-    surround_many("%" <> name <> "{", map, "}", opts.limit, traverse_fun(map, opts))
+    surround_many("%" <> name <> "{", map, "}", opts, traverse_fun(map))
   end
 
-  defp traverse_fun(list, opts) do
+  defp traverse_fun(list) do
     if Inspect.List.keyword?(list) do
-      &Inspect.List.keyword(&1, opts)
+      &Inspect.List.keyword/2
     else
-      &to_map(&1, opts)
+      &to_map/2
     end
   end
 

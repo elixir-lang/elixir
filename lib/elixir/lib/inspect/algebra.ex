@@ -406,52 +406,95 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Maps and glues a collection of items together using the given separator
-  and surrounds them. A limit can be passed which, once reached, stops
-  gluing and outputs "..." instead.
+  Maps and glues a collection of items.
+
+  It uses the given left and right as surrounding and a separator for
+  each item. A limit can be passed which, once reached, stops gluing
+  and outputs "..." instead.
 
   ## Examples
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", :infinity, &Integer.to_string(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: :infinity}, fn i, _opts -> to_string(i) end)
       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1))
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1, 2, 3, ...]"
 
-      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]", 3, &Integer.to_string(&1), "!")
+      iex> doc = Inspect.Algebra.surround_many("[", Enum.to_list(1..5), "]",
+      ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, "!")
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1! 2! 3! ...]"
 
   """
   @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
-  def surround_many(left, docs, right, limit, fun, separator \\ @surround_separator)
+  def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) do
+    if is_integer(opts) do
+      IO.write :stderr, "Inspect.Algebra.surround_many/6 with an integer limit is deprecated, " <>
+                        "please pass Inspect.Opts instead\n#{Exception.format_stacktrace}" 
+      old_surround_many(left, docs, right, opts, fun, separator)
+    else
+      do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
+    end
+  end
 
-  def surround_many(left, [], right, _, _fun, _) do
+  def do_surround_many(left, [], right, _, _opts, _fun, _) do
     concat(left, right)
   end
 
-  def surround_many(left, docs, right, limit, fun, sep) do
-    surround(left, surround_many(docs, limit, fun, sep), right)
+  def do_surround_many(left, docs, right, limit, _opts, fun, sep) do
+    surround(left, do_surround_many(docs, limit, _opts, fun, sep), right)
   end
 
-  defp surround_many(_, 0, _fun, _sep) do
+  defp do_surround_many(_, 0, _opts, _fun, _sep) do
     "..."
   end
 
-  defp surround_many([h], _limit, fun, _sep) do
-    fun.(h)
+  defp do_surround_many([h], _limit, opts, fun, _sep) do
+    fun.(h, opts)
   end
 
-  defp surround_many([h|t], limit, fun, sep) when is_list(t) do
+  defp do_surround_many([h|t], limit, opts, fun, sep) when is_list(t) do
     glue(
-      concat(fun.(h), sep),
-      surround_many(t, decrement(limit), fun, sep)
+      concat(fun.(h, opts), sep),
+      do_surround_many(t, decrement(limit), opts, fun, sep)
     )
   end
 
-  defp surround_many([h|t], _limit, fun, _sep) do
+  defp do_surround_many([h|t], _limit, opts, fun, _sep) do
+    glue(
+      concat(fun.(h, opts), @tail_separator),
+      fun.(t, opts)
+    )
+  end
+
+  def old_surround_many(left, [], right, _, _fun, _) do
+    concat(left, right)
+  end
+
+  def old_surround_many(left, docs, right, limit, fun, sep) do
+    surround(left, old_surround_many(docs, limit, fun, sep), right)
+  end
+
+  defp old_surround_many(_, 0, _fun, _sep) do
+    "..."
+  end
+
+  defp old_surround_many([h], _limit, fun, _sep) do
+    fun.(h)
+  end
+
+  defp old_surround_many([h|t], limit, fun, sep) when is_list(t) do
+    glue(
+      concat(fun.(h), sep),
+      old_surround_many(t, decrement(limit), fun, sep)
+    )
+  end
+
+  defp old_surround_many([h|t], _limit, fun, _sep) do
     glue(
       concat(fun.(h), @tail_separator),
       fun.(t)
