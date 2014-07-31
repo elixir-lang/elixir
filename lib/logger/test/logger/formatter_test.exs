@@ -12,7 +12,7 @@ defmodule Logger.FormatterTest do
 
   test "compile/1 with nil" do
     assert compile(nil) ==
-           [:time, " ", :metadata, "[", :level, "] ", :message, "\n"]
+           [:time, " ", :metadata, "[", :level, "] ", :levelpad, :message, "\n"]
   end
 
   test "compile/1 with str" do
@@ -50,5 +50,15 @@ defmodule Logger.FormatterTest do
     compiled = compile("$date $time")
     assert IO.iodata_to_binary(format(compiled, :error, nil, timestamp, [])) ==
            "2014-12-30 12:06:30.100"
+  end
+
+  test "padding takes account of length of level" do
+    compiled = compile("[$level] $levelpad $message")
+    assert format(compiled, :error, "hello", nil, []) ==
+           ["[", "error", "] ", "", " ", "hello"]
+
+    assert format(compiled, :info, "hello", nil, []) ==
+           ["[", "info", "] ", " ", " ", "hello"]
+
   end
 end
