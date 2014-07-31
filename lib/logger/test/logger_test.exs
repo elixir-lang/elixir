@@ -25,7 +25,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       :error_logger.info_msg('world: ~p', [:ok])
-    end) =~ "\[info\] rewritten"
+    end) =~ "\[info\]  rewritten"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
   end
@@ -83,7 +83,7 @@ defmodule LoggerTest do
   test "info/2" do
     assert capture_log(fn ->
       assert Logger.info("hello", []) == :ok
-    end) =~ msg("[info] hello")
+    end) =~ msg("[info]  hello")
 
     assert capture_log(:warn, fn ->
       assert Logger.info("hello", []) == :ok
@@ -93,7 +93,7 @@ defmodule LoggerTest do
   test "warn/2" do
     assert capture_log(fn ->
       assert Logger.warn("hello", []) == :ok
-    end) =~ msg("[warn] hello")
+    end) =~ msg("[warn]  hello")
 
     assert capture_log(:error, fn ->
       assert Logger.warn("hello", []) == :ok
@@ -125,7 +125,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Sample.info == :ok
-    end) =~ msg("[info] hello")
+    end) =~ msg("[info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
   end
