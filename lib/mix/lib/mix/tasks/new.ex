@@ -143,16 +143,20 @@ defmodule Mix.Tasks.New do
 
   defp check_application_name!(name, from_app_flag) do
     unless name =~ ~r/^[a-z][\w_]*$/ do
-      error = "Application name must start with a letter and have only lowercase letters, numbers and underscore"
-      if !from_app_flag, do: error = error <> ". The application name is inferred from the path, if you'd like to explicitly name the application then use the `--app APP` option."
-      Mix.raise error
+      Mix.raise "Application name must start with a letter and have only lowercase " <>
+                "letters, numbers and underscore, got: #{inspect name}" <>
+                (if !from_app_flag do
+                  ". The application name is inferred from the path, if you'd like to " <>
+                  "explicitly name the application then use the `--app APP` option."
+                else
+                  ""
+                end)
     end
   end
 
   defp check_mod_name!(name) do
-    unless name =~ ~r/^[A-Z][A-Za-z0-9]*(\.[A-Z][A-Za-z0-9]*)*$/ do
-      error = "Module name must start with a capital letter, have all periods immediately followed by a capital letter, and must contain only letters, numbers, and periods"
-      Mix.raise error
+    unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
+      Mix.raise "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect name}"
     end
   end
 

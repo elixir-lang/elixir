@@ -111,19 +111,19 @@ defmodule Mix.Tasks.NewTest do
 
   test "new with invalid args" do
     in_tmp "new with an invalid application name", fn ->
-      assert_raise Mix.Error, "Application name must start with a letter and have only lowercase letters, numbers and underscore. The application name is inferred from the path, if you'd like to explicitly name the application then use the `--app APP` option.", fn ->
+      assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
     end
 
     in_tmp "new with an invalid application name from the app option", fn ->
-      assert_raise Mix.Error, "Application name must start with a letter and have only lowercase letters, numbers and underscore", fn ->
+      assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run ["valid", "--app", "007invalid"]
       end
     end
 
     in_tmp "new with an invalid module name from the module options", fn ->
-      assert_raise Mix.Error, "Module name must start with a capital letter, have all periods immediately followed by a capital letter, and must contain only letters, numbers, and periods", fn ->
+      assert_raise Mix.Error, ~r"Module name must be a valid Elixir alias", fn ->
         Mix.Tasks.New.run ["valid", "--module", "not.valid"]
       end
     end
