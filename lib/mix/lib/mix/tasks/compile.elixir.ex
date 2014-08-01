@@ -22,6 +22,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--debug-info` (`--no-debug-info`) - attach (or not) debug info to compiled modules
     * `--ignore-module-conflict` - do not emit warnings if a module was previously defined
     * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
+    * `--elixirc-paths` - paths to lookup for Elixir source.
+      Can be given multiple times and, once given, overrides the project elixirc_paths config.
 
   ## Configuration
 
@@ -37,7 +39,8 @@ defmodule Mix.Tasks.Compile.Elixir do
   """
 
   @switches [force: :boolean, docs: :boolean, warnings_as_errors: :boolean,
-             ignore_module_conflict: :boolean, debug_info: :boolean]
+             ignore_module_conflict: :boolean, debug_info: :boolean,
+             elixirc_paths: :keep]
 
   @doc """
   Runs this task.
@@ -46,8 +49,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     project = Mix.Project.config
-    srcs = project[:elixirc_paths]
     dest = Mix.Project.compile_path(project)
+    srcs = case Keyword.get_values(opts, :elixirc_paths) do
+      [] -> project[:elixirc_paths]
+      ep -> ep
+    end
 
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests

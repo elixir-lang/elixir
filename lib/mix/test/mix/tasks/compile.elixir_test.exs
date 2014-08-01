@@ -180,6 +180,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Nothing to compile with the custom source paths
       assert Mix.Tasks.Compile.Elixir.run([])
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
 end

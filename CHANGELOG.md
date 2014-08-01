@@ -9,6 +9,7 @@
   * [Map] Add `Map.from_struct/1`
   * [Mix] Allow `--app` flag to be passed to `mix new`
   * [Mix] Support lowercase `http(s)_proxy` environment variables
+  * [Mix] Allow `elixirc_paths` to also be given through the command line to `mix compile.elixir`
   * [String] `String.slice/2` and `String.slice/3` have been optimized
 
 * Bug fixes
@@ -17,7 +18,7 @@
   * [Kernel] Correctly parse unary/binary operators regardless of number of spaces
   * [Kernel] Ensure private functions are not exported
   * [Protocol] Do not expose protocol convention on `assert_impl!/2`
-  * [Regex] Do not consider subpatterns on `Regex.split/3`
+  * [Regex] Do not consider include captures on `Regex.split/3` results
   * [Stream] Implement the `Inspect` protocol for Streams so we do not leak the Stream representation
 
 * Deprecations
@@ -34,6 +35,7 @@
 
 * Backwards incompatible changes
   * [Kernel] `binding/1` and `binding/2` expecting a list were removed
+  * [Regex] Do not consider include captures on `Regex.split/3` results
 
 ## v0.14.3 (2014-07-12)
 
