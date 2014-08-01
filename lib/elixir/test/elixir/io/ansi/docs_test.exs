@@ -218,27 +218,32 @@ defmodule IO.ANSI.DocsTest do
   end
 
   test "lone thing that looks like a table line isn't" do
-    result = format("one\n2 | 3\ntwo\n")
-    assert result == "one 2 | 3 two\n\e[0m"
+    assert format("one\n2 | 3\ntwo\n") ==
+           "one 2 | 3 two\n\e[0m"
   end
 
   test "lone table line at end of input isn't" do
-    result = format("one\n2 | 3")
-    assert result == "one 2 | 3\n\e[0m"
+    assert format("one\n2 | 3") ==
+           "one 2 | 3\n\e[0m"
   end
 
   test "two successive table lines are a table" do
-    result = format("a | b\none | two\n")
-    assert result == "a   | b  \none | two\n\e[0m"  # note spacing
+    assert format("a | b\none | two\n") ==
+           "a   | b  \none | two\n\e[0m"  # note spacing
   end
 
   test "table with heading" do
-    result = format("column 1 | and 2\n-- | --\na | b\none | two\n")
-    assert result == "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
+    assert format("column 1 | and 2\n-- | --\na | b\none | two\n") ==
+           "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
   end
 
-  test "formatting in a table cell works" do
-    result = format("`a` | _b_\nc | d")
-    assert result == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
+  test "table with formatting in cells" do
+    assert format("`a` | _b_\nc | d") ==
+           "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
+  end
+
+  test "table with variable number of columns" do
+    assert format("a | b | c\nd | e") ==
+           "a | b | c\nd | e |  \n\e[0m"
   end
 end
