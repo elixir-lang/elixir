@@ -241,5 +241,4 @@ defmodule IO.ANSI.DocsTest do
     result = format("`a` | _b_\nc | d")
     assert result == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
   end
-
 end
