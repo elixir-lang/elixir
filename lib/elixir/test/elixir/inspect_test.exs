@@ -190,10 +190,17 @@ defmodule Inspect.ListTest do
     assert inspect([{:b, 1}, {:a, 1}]) == "[b: 1, a: 1]"
   end
 
-  test :unproper do
+  test :improper do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
     assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+  end
+
+  test :nested do
+    assert inspect(Enum.reduce(1..100, [0], &[&2 , Integer.to_string(&1)]), [limit: 5]) ==
+           "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
+    assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), [limit: 5]) ==
+           "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
   end
 
   test :codepoints do
