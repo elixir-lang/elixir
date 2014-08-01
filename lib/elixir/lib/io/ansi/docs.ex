@@ -277,7 +277,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp pad_to_number_of_columns(cols, col_count),
-    do: cols ++ List.duplicate("", col_count - length(cols))
+    do: cols ++ List.duplicate({"", 0}, col_count - length(cols))
 
   defp max_column_widths(cols, widths),
     do: Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
