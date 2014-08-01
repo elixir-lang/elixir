@@ -453,21 +453,23 @@ defmodule Inspect.Algebra do
     "..."
   end
 
-  defp do_surround_many([h], _limit, opts, fun, _sep) do
-    fun.(h, opts)
+  defp do_surround_many([h], limit, opts, fun, _sep) do
+    fun.(h, %{opts | limit: limit})
   end
 
   defp do_surround_many([h|t], limit, opts, fun, sep) when is_list(t) do
+    limit = decrement(limit)
     glue(
-      concat(fun.(h, opts), sep),
-      do_surround_many(t, decrement(limit), opts, fun, sep)
+      concat(fun.(h, %{opts | limit: limit}), sep),
+      do_surround_many(t, limit, opts, fun, sep)
     )
   end
 
-  defp do_surround_many([h|t], _limit, opts, fun, _sep) do
+  defp do_surround_many([h|t], limit, opts, fun, _sep) do
+    limit = decrement(limit)
     glue(
-      concat(fun.(h, opts), @tail_separator),
-      fun.(t, opts)
+      concat(fun.(h, %{opts | limit: limit}), @tail_separator),
+      fun.(t, %{opts | limit: limit})
     )
   end
 
