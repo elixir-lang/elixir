@@ -259,10 +259,9 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_call({:yank, local}, _from, {d, _} = state) do
-    in_vertices  = :digraph.in_neighbours(d, local)
     out_vertices = :digraph.out_neighbours(d, local)
-    :digraph.del_vertex(d, local)
-    {:reply, {in_vertices, out_vertices}, state}
+    :digraph.del_edges(d, :digraph.out_edges(d, local))
+    {:reply, {[], out_vertices}, state}
   end
 
   def handle_call(:digraph, _from, {d, _} = state) do
@@ -300,9 +299,7 @@ defmodule Module.LocalsTracker do
     {:noreply, state}
   end
 
-  def handle_cast({:reattach, kind, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
-    handle_add_definition(d, kind, tuple)
-
+  def handle_cast({:reattach, _kind, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
     for from <- in_neigh do
       :digraph.add_vertex(d, from)
       replace_edge!(d, from, tuple)
