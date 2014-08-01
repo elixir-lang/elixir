@@ -23,6 +23,12 @@ defmodule Mix.Tasks.New do
   An `--umbrella` option can be given to generate an
   umbrella project.
 
+  An `--app` option can be given in order to
+  name the OTP application for the project.
+
+  A `--module` option can be given in order
+  to name the modules in the generated code skeleton.
+
   ## Examples
 
       mix new hello_world
@@ -43,22 +49,23 @@ defmodule Mix.Tasks.New do
       [] ->
         Mix.raise "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
-        name = opts[:app] || Path.basename(Path.expand(path))
-        check_project_name!(name)
+        app = opts[:app] || Path.basename(Path.expand(path))
+        check_application_name!(app, !!opts[:app])
+        mod = opts[:module] || camelize(app)
+        check_mod_name!(mod)
         File.mkdir_p!(path)
 
         File.cd! path, fn ->
           if opts[:umbrella] do
-            do_generate_umbrella(name, path, opts)
+            do_generate_umbrella(app, mod, path, opts)
           else
-            do_generate(name, path, opts)
+            do_generate(app, mod, path, opts)
           end
         end
     end
   end
 
-  defp do_generate(app, path, opts) do
-    mod     = opts[:module] || camelize(app)
+  defp do_generate(app, mod, path, opts) do
     assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup])]
 
     create_file "README.md",  readme_template(assigns)
@@ -105,8 +112,7 @@ defmodule Mix.Tasks.New do
     "    [applications: [:logger],\n     mod: {#{mod}, []}]"
   end
 
-  defp do_generate_umbrella(app, path, _opts) do
-    mod = camelize(app)
+  defp do_generate_umbrella(app, mod, path, _opts) do
     assigns = [mod: mod]
 
     create_file ".gitignore", gitignore_text
@@ -135,9 +141,18 @@ defmodule Mix.Tasks.New do
     """
   end
 
-  defp check_project_name!(name) do
+  defp check_application_name!(name, from_app_flag) do
     unless name =~ ~r/^[a-z][\w_]*$/ do
-      Mix.raise "Project path must start with a letter and have only lowercase letters, numbers and underscore"
+      error = "Application name must start with a letter and have only lowercase letters, numbers and underscore"
+      if !from_app_flag, do: error = error <> ". The application name is inferred from the path, if you'd like to explicitly name the application then use the `--app APP` option."
+      Mix.raise error
+    end
+  end
+
+  defp check_mod_name!(name) do
+    unless name =~ ~r/^[A-Z][A-Za-z0-9]*(\.[A-Z][A-Za-z0-9]*)*$/ do
+      error = "Module name must start with a capital letter, have all periods immediately followed by a capital letter, and must contain only letters, numbers, and periods"
+      Mix.raise error
     end
   end
 
