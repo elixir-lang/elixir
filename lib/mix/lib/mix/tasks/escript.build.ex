@@ -174,7 +174,7 @@ defmodule Mix.Tasks.Escript.Build do
         mod.application[:applications]
       end
 
-    Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex]))
+    Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
   end
 
   defp app_tuples(app) do
