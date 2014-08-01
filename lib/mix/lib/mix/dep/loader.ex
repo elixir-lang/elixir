@@ -188,7 +188,7 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
       umbrella? = Mix.Project.umbrella?
 
@@ -196,20 +196,32 @@ defmodule Mix.Dep.Loader do
         opts = Keyword.put_new(opts, :app, false)
       end
 
-      children = (mix_children(env: opts[:env] || :prod) |> filter_children(children))
-                 ++ Mix.Dep.Umbrella.unloaded
-
-      dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      {dep, children}
+      deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
+      {%{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}, deps}
     end)
+  end
+
+  # If we have a Mix dependency that came from a remote converger,
+  # we just use the dependencies given by the remote converger, we
+  # don't need to load the mixfile at all. We can only do this for
+  # now because umbrella projects are not supported.
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
+    from = Path.join(opts[:dest], "mix.exs")
+    deps = Enum.map(children, &to_dep({&1, []}, from))
+    {%{dep | manager: :mix, extra: [umbrella: false]}, deps}
   end
 
   defp rebar_dep(%Mix.Dep{} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
-      dep   = %{dep | manager: :rebar, extra: extra}
-      {dep, rebar |> rebar_children |> filter_children(children)}
+      deps  = if children do
+        from = Path.absname("rebar.config")
+        Enum.map(children, &to_dep({&1, []}, from, :rebar))
+      else
+        rebar_children(rebar)
+      end
+      {%{dep | manager: :rebar, extra: extra}, deps}
     end)
   end
 
@@ -238,9 +250,6 @@ defmodule Mix.Dep.Loader do
       Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
     end) |> Enum.concat
   end
-
-  defp filter_children(deps, nil), do: deps
-  defp filter_children(deps, children), do: Enum.filter(deps, &(&1.app in children))
 
   defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
     if scm == Mix.SCM.Path and not manager in [:mix, nil] do
