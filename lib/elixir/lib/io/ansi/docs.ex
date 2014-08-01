@@ -241,12 +241,12 @@ defmodule IO.ANSI.Docs do
   end
 
   defp table_lines(lines, options) do
-    lines = Enum.map(lines, &split_into_columns/1)
-    count = lines |> Enum.map(&length/1) |> Enum.max
+    lines = Enum.map(lines, &split_into_columns(&1, options))
+    count = Enum.map(lines, &length/1) |> Enum.max
     lines = Enum.map(lines, &pad_to_number_of_columns(&1, count))
 
     widths = for line <- lines, do:
-              (for col <- line, do: effective_length(col))
+              (for {_col, length} <- line, do: length)
 
     col_widths = Enum.reduce(widths,
                              List.duplicate(0, count),
@@ -255,23 +255,32 @@ defmodule IO.ANSI.Docs do
     render_table(lines, col_widths, options)
   end
 
-  defp split_into_columns(line) do
+  defp split_into_columns(line, options) do
     line
     |> String.strip(?|)
     |> String.strip()
     |> String.split(~r/\s\|\s/)
+    |> Enum.map(&render_column(&1, options))
+  end
+
+  defp render_column(col, options) do
+    col = col
+          |> String.replace(~r/\\ \|/x, "|")
+          |> handle_links
+          |> handle_inline(nil, [], [], options)
+
+    len = col
+          |> String.replace(~r/\e\[\d+m/, "")
+          |> String.length
+
+    {col, len}
   end
 
   defp pad_to_number_of_columns(cols, col_count),
     do: cols ++ List.duplicate("", col_count - length(cols))
 
-  defp max_column_widths(cols, widths) do
-    Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
-  end
-
-  defp effective_length(text) do
-    String.length(Regex.replace(~r/((^|\b)[`*_]+)|([`*_]+\b)/, text, ""))
-  end
+  defp max_column_widths(cols, widths),
+    do: Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
 
   # If second line is heading separator, use the heading style on the first
   defp render_table([first, second | rest], widths, options) do
@@ -291,20 +300,17 @@ defmodule IO.ANSI.Docs do
     render_table(rest, widths, options)
   end
 
-  defp render_table([], _, _), do: nil
+  defp render_table([], _, _),
+    do: nil
 
   defp table_header?(row), do:
-    Enum.all?(row, fn col -> col =~ ~r/^:?-+:?$/ end)
+    Enum.all?(row, fn {col, _} -> col =~ ~r/^:?-+:?$/ end)
 
   defp draw_table_row(cols_and_widths, options, heading \\ false) do
-    columns = for { col, width } <- cols_and_widths do
-      padding = width - effective_length(col)
-      col = Regex.replace(~r/\\ \|/x, col, "|")  # escaped bars
-      text = col
-             |> handle_links
-             |> handle_inline(nil, [], [], options)
-      text <> String.duplicate(" ", padding)
-    end |> Enum.join(" | ")
+    columns =
+      Enum.map_join(cols_and_widths, " | ", fn {{col, length}, width} ->
+        col <> String.duplicate(" ", width - length)
+      end)
 
     if heading do
       write(:doc_table_heading, columns, options)
