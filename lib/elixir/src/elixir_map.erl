@@ -82,7 +82,7 @@ load_struct(Meta, Name, S) ->
   Context = lists:keyfind(struct, 1, Meta) == {struct, context},
 
   Local =
-    elixir_module:is_open(Name) andalso
+    not(ensure_loaded(Name)) andalso
       (Context orelse wait_for_struct(Name)),
 
   try
@@ -110,6 +110,12 @@ load_struct(Meta, Name, S) ->
           compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
             "cannot expand struct ~ts", [Inspected, Inspected])
       end
+  end.
+
+ensure_loaded(Module) ->
+  case code:ensure_loaded(Module) of
+    {module, Module} -> true;
+    {error, _} -> false
   end.
 
 wait_for_struct(Module) ->
