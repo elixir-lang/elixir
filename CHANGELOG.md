@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.15.0-dev
+## v0.15.0 (2014-08-02)
 
 * Enhancements
   * [Agent] Improve the Agent API to also accept functions that receive explicit module, function and arguments
