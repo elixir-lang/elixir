@@ -432,13 +432,7 @@ defmodule Inspect.Algebra do
   """
   @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
   def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) do
-    if is_integer(opts) do
-      IO.write :stderr, "Inspect.Algebra.surround_many/6 with an integer limit is deprecated, " <>
-                        "please pass Inspect.Opts instead\n#{Exception.format_stacktrace}" 
-      old_surround_many(left, docs, right, opts, fun, separator)
-    else
-      do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
-    end
+    do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 
   def do_surround_many(left, [], right, _, _opts, _fun, _) do
@@ -473,36 +467,6 @@ defmodule Inspect.Algebra do
     )
   end
 
-  def old_surround_many(left, [], right, _, _fun, _) do
-    concat(left, right)
-  end
-
-  def old_surround_many(left, docs, right, limit, fun, sep) do
-    surround(left, old_surround_many(docs, limit, fun, sep), right)
-  end
-
-  defp old_surround_many(_, 0, _fun, _sep) do
-    "..."
-  end
-
-  defp old_surround_many([h], _limit, fun, _sep) do
-    fun.(h)
-  end
-
-  defp old_surround_many([h|t], limit, fun, sep) when is_list(t) do
-    glue(
-      concat(fun.(h), sep),
-      old_surround_many(t, decrement(limit), fun, sep)
-    )
-  end
-
-  defp old_surround_many([h|t], _limit, fun, _sep) do
-    glue(
-      concat(fun.(h), @tail_separator),
-      fun.(t)
-    )
-  end
-
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 
@@ -516,11 +480,6 @@ defmodule Inspect.Algebra do
   @spec format(t, non_neg_integer | :infinity) :: binary
   def format(d, w) do
     format(w, 0, [{0, default_mode(w), doc_group(d)}])
-  end
-
-  @doc false
-  def pretty(d, w) do
-    format(d, w) |> IO.iodata_to_binary
   end
 
   defp default_mode(:infinity), do: :flat

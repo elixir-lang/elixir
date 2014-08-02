@@ -54,12 +54,17 @@ config_change(_Changed, _New, _Remove) ->
 
 start_cli() ->
   {ok, _} = application:ensure_all_started(?MODULE),
+
   %% We start the Logger so tools that depend on Elixir
   %% always have the Logger directly accessible. However
   %% Logger is not a dependency of the Elixir application,
   %% which means releases that want to use Logger must
   %% always list it as part of its applications.
-  _ = application:start(logger),
+  _ = case code:ensure_loaded('Elixir.Logger') of
+    {module, _} -> application:start(logger);
+    {error, _}  -> ok
+  end,
+
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS

@@ -218,15 +218,6 @@ defmodule System do
     :elixir_code_server.cast {:at_exit, fun}
   end
 
-  @doc false
-  def cmd(command) when is_list(command) do
-    :os.cmd(command)
-  end
-
-  def cmd(command) when is_binary(command) do
-    List.to_string :os.cmd(String.to_char_list(command))
-  end
-
   @doc """
   Locates an executable on the system.
 
