@@ -79,6 +79,15 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "in_project pushes given configuration" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
+        assert Mix.Project.config[:app] == :foo
+        assert Mix.Project.config[:hello] == :world
+      end
+    end
+  end
+
   test "config_files" do
     Mix.Project.push(SampleProject)
 

@@ -44,11 +44,11 @@ defmodule Mix.Project do
   # Push a project onto the project stack.
   # Only the top of the stack can be accessed.
   @doc false
-  def push(atom, file \\ nil) when is_atom(atom) do
+  def push(atom, file \\ nil, app \\ nil) when is_atom(atom) do
     file = file ||
            (atom && List.to_string(atom.__info__(:compile)[:source]))
 
-    config = default_config
+    config = ([app: app] ++ default_config)
              |> Keyword.merge(get_project_config(atom))
              |> Keyword.drop(@private_config)
 
@@ -335,23 +335,24 @@ defmodule Mix.Project do
 
     if cached = Mix.ProjectStack.read_cache(app) do
       {project, file} = cached
-      push(project, file)
+      push(project, file, app)
       project
     else
       file = Path.expand("mix.exs")
-      old_proj = get
+      old_proj = get()
 
-      _ = if File.regular?(file) do
-        Code.load_file(file)
-      end
-
-      new_proj = get
-
-      if old_proj == new_proj do
-        file = "nofile"
-        new_proj = nil
-        push new_proj, file
-      end
+      new_proj =
+        if File.regular?(file) do
+          _ = Code.load_file(file)
+          case get() do
+            ^old_proj -> Mix.raise "Could not find a Mix project at #{file}"
+            new_proj  -> new_proj
+          end
+        else
+          file = "nofile"
+          push(nil, file, app)
+          nil
+        end
 
       Mix.ProjectStack.write_cache(app, {new_proj, file})
       new_proj
