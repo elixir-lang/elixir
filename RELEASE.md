@@ -14,9 +14,9 @@ This document simply outlines the release process:
 
 6. Release new docs with `make release_docs`, move docs to `docs/stable`
 
-7. Release new zip with `make release_zip`, push new zip to GitHub Releases, name it Precompiled.zip
+7. Release new zip with `make release_zip`, push new zip to GitHub Releases, name it `Precompiled.zip`
 
-8. Fast-forward merge master into stable branch and push it
+8. Fast-forward merge master into stable branch with `git merge master --ff` and push it
 
 9. After release, bump versions, add `-dev` back and commit
 
