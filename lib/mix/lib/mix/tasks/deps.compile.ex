@@ -136,11 +136,13 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_make(dep) do
-    if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
-      do_command(dep, "nmake /F Makefile.win")
+    command = if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
+      "nmake /F Makefile.win"
     else
-      do_command(dep, "make")
+      "make"
     end
+    Mix.shell.info("==> #{dep.app} (#{command})")
+    do_command(dep, command)
   end
 
   defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
