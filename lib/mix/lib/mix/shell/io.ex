@@ -12,8 +12,8 @@ defmodule Mix.Shell.IO do
   was not printed yet.
   """
   def print_app do
-    if Mix.Shell.print_app? do
-      IO.puts "==> #{Mix.Project.config[:app]}"
+    if name = Mix.Shell.printable_app_name do
+      IO.puts "==> #{name}"
     end
   end
 
