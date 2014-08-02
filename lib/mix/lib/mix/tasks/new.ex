@@ -112,7 +112,7 @@ defmodule Mix.Tasks.New do
     "    [applications: [:logger],\n     mod: {#{mod}, []}]"
   end
 
-  defp do_generate_umbrella(app, mod, path, _opts) do
+  defp do_generate_umbrella(_app, mod, path, _opts) do
     assigns = [mod: mod]
 
     create_file ".gitignore", gitignore_text
