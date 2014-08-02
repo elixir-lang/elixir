@@ -172,13 +172,19 @@ defmodule Mix.Project do
   def in_project(app, path, post_config \\ [], fun)
 
   def in_project(app, ".", post_config, fun) do
-    cached = load_project(app, post_config)
-    result = try do
+    cached = try do
+      load_project(app, post_config)
+    rescue
+      any ->
+        Mix.shell.error "Error while loading project #{inspect app} at #{File.cwd!}"
+        reraise any, System.stacktrace
+    end
+
+    try do
       fun.(cached)
     after
       Mix.Project.pop
     end
-    result
   end
 
   def in_project(app, path, post_config, fun) do
@@ -264,7 +270,7 @@ defmodule Mix.Project do
       app = config[:app] ->
         Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
-        raise "Trying to access app_path for an umbrella project but umbrellas have no app"
+        Mix.raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->
         Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
