@@ -207,7 +207,7 @@ defmodule Mix.Dep.Loader do
   # now because umbrella projects are not supported.
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
-    deps = Enum.map(children, &to_dep(remote_dep(&1), from))
+    deps = Enum.map(children, &to_dep(&1, from))
     {%{dep | manager: :mix, extra: [umbrella: false]}, deps}
   end
 
@@ -217,7 +217,7 @@ defmodule Mix.Dep.Loader do
       extra = Dict.take(rebar, [:sub_dirs])
       deps  = if children do
         from = Path.absname("rebar.config")
-        Enum.map(children, &to_dep(remote_dep(&1), from, :rebar))
+        Enum.map(children, &to_dep(&1, from, :rebar))
       else
         rebar_children(rebar)
       end
@@ -228,12 +228,6 @@ defmodule Mix.Dep.Loader do
   defp make_dep(dep) do
     {%{dep | manager: :make}, []}
   end
-
-  # TODO: Deprecated - future Hex releases will return a
-  # tuple and no longer an atom, so we can remove the atom
-  # check from here.
-  defp remote_dep(app) when is_atom(app),  do: {app, []}
-  defp remote_dep(dep) when is_tuple(dep), do: dep
 
   defp mix_children(opts) do
     from = Path.absname("mix.exs")
