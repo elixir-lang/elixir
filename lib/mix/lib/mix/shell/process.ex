@@ -44,8 +44,8 @@ defmodule Mix.Shell.Process do
   was not printed yet.
   """
   def print_app do
-    if Mix.Shell.print_app? do
-      send self, {:mix_shell, :info, ["==> #{Mix.Project.config[:app]}"]}
+    if name = Mix.Shell.printable_app_name do
+      send self, {:mix_shell, :info, ["==> #{name}"]}
     end
   end
 

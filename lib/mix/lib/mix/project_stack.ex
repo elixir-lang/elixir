@@ -61,18 +61,18 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @spec print_app?() :: boolean
-  def print_app? do
+  @spec printable_app_name() :: atom | nil
+  def printable_app_name do
     get_and_update fn %{stack: stack} = state ->
       case stack do
         [] ->
-          {false, state}
+          {nil, state}
         [%{io_done: true}|_] ->
-          {false, state}
+          {nil, state}
         [h|t] ->
           h = %{h | io_done: true}
           t = Enum.map(t, &%{&1 | io_done: false})
-          {has_app?(h), %{state | stack: [h|t]}}
+          {h.config[:app], %{state | stack: [h|t]}}
       end
     end
   end
@@ -148,10 +148,6 @@ defmodule Mix.ProjectStack do
 
   defp take(h) do
     Map.take(h, [:name, :config, :file, :pos])
-  end
-
-  defp has_app?(%{config: config}) do
-    config[:app]
   end
 
   defp get_and_update(fun) do

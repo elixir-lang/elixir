@@ -48,13 +48,18 @@ defmodule Mix.Shell do
   defcallback print_app() :: any
 
   @doc """
-  Returns if we should print application name to shell.
+  Returns the printable app name.
+
+  This function returns the current application name
+  but only if the application name should be printed.
 
   Calling this function automatically toggles its value
-  to false.
+  to false until the current project is re-entered. The
+  goal is to exactly avoid printing the application name
+  multiple times.
   """
-  def print_app? do
-    Mix.ProjectStack.print_app?
+  def printable_app_name do
+    Mix.ProjectStack.printable_app_name
   end
 
   @doc """
