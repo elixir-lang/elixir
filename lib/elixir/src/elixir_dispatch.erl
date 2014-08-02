@@ -519,15 +519,5 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
-deprecation('Elixir.System', 'cmd', 1) ->
-  "use System.cmd/3 instead";
-deprecation('Elixir.Inspect.Algebra', 'pretty', 2) ->
-  "use Inspect.Algebra.format/2 instead";
-deprecation('Elixir.IO.ANSI', 'escape', _) ->
-  "use the new API in IO.ANSI.format/2 instead";
-deprecation('Elixir.IO.ANSI', 'escape_fragment', _) ->
-  "use the new API in IO.ANSI.format_fragment/2 instead";
-deprecation('Elixir.IO.ANSI', 'terminal?', _) ->
-  "use IO.ANSI.enabled?/0 instead";
 deprecation(_, _, _) ->
   false.

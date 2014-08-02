@@ -36,7 +36,7 @@ expand_bitstr(Fun, [H|T], Acc, E) ->
 %% Expand bit info
 
 expand_bit_info(Meta, Info, E) ->
-  expand_bit_info(Meta, unpack_bit_info(Meta, Info, E), default, [], E).
+  expand_bit_info(Meta, unpack_bit_info(Info, []), default, [], E).
 
 expand_bit_info(Meta, [{size, _, [_]=Args}|T], Size, Types, E) ->
   case Size of
@@ -111,17 +111,8 @@ handle_unknown_bit_info(Meta, Expr, T, Size, Types, E) ->
       elixir_errors:compile_error(Meta, ?m(E, file),
         "unknown bitstring specifier ~ts", ['Elixir.Macro':to_string(Expr)]);
     Info ->
-      expand_bit_info(Meta, unpack_bit_info(Meta, Info, E) ++ T, Size, Types, E)
+      expand_bit_info(Meta, unpack_bit_info(Info, []) ++ T, Size, Types, E)
   end.
-
-%% We can remove unpack_bit_info/3 once deprecated.
-unpack_bit_info(Meta, [H|T], E) ->
-  elixir_errors:warn(?line(Meta), ?m(E, file), "passing a list of bitstring modifiers is deprecated, "
-    "please separate them with - instead"),
-  Dashed = lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T),
-  unpack_bit_info(Dashed, []);
-unpack_bit_info(_Meta, Expr, _E) ->
-  unpack_bit_info(Expr, []).
 
 unpack_bit_info({'-', _, [H, T]}, Acc) ->
   unpack_bit_info(H, unpack_bit_info(T, Acc));

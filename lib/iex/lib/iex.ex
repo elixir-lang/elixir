@@ -333,13 +333,6 @@ defmodule IEx do
 
     if colors[:enabled] do
       ansi = Keyword.get(colors, color, default_color(color))
-
-      if is_binary(ansi) do
-        IO.puts :stderr, "warning: ANSI colors as strings is deprecated, " <>
-                         "they now must be a list of atoms, got #{inspect ansi} for #{inspect color}"
-        ansi = String.split(ansi, ",") |> Enum.map(&String.to_atom/1)
-      end
-
       IO.iodata_to_binary(IO.ANSI.format_fragment(ansi, true)) <> string <> IO.ANSI.reset
     else
       string

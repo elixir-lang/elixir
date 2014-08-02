@@ -7,10 +7,6 @@ defmodule IO.ANSI.Sequence do
         "\e[#{unquote(code)}#{unquote(terminator)}"
       end
 
-      defp escape_sequence(unquote(Atom.to_char_list(name))) do
-        unquote(name)()
-      end
-
       defp format_sequence(unquote(name)) do
         unquote(name)()
       end
@@ -31,12 +27,6 @@ defmodule IO.ANSI do
   @typep ansicode :: atom()
   @typep ansilist :: maybe_improper_list(char() | ansicode() | binary() | ansilist(), binary() | ansicode() | [])
   @type  ansidata :: ansilist() | ansicode() | binary()
-
-  @doc false
-  def terminal?(device \\ :erlang.group_leader) do
-    !match?({:win32, _}, :os.type()) and
-      match?({:ok, _}, :io.columns(device))
-  end
 
   @doc """
   Checks if ANSI coloring is supported and enabled on this machine.
@@ -144,10 +134,6 @@ defmodule IO.ANSI do
   @doc "Clear screen"
   defsequence :clear, "2", "J"
 
-  defp escape_sequence(other) do
-    raise ArgumentError, "invalid ANSI sequence specification: #{other}"
-  end
-
   defp format_sequence(other) do
     raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
@@ -221,57 +207,5 @@ defmodule IO.ANSI do
 
   defp do_format([], [], acc, _emit, _append_reset) do
     acc
-  end
-
-  @doc false
-  def escape(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
-    {rendered, emitted} = do_escape(string, emit, false, nil, [])
-    if emitted do
-      rendered <> reset
-    else
-      rendered
-    end
-  end
-
-  @doc false
-  def escape_fragment(string, emit \\ terminal?) when is_binary(string) and is_boolean(emit) do
-    {escaped, _emitted} = do_escape(string, emit, false, nil, [])
-    escaped
-  end
-
-  defp do_escape(<<?}, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
-    sequences =
-      buffer
-      |> Enum.reverse()
-      |> :string.tokens(',')
-      |> Enum.map(&(&1 |> :string.strip |> escape_sequence))
-      |> Enum.reverse()
-
-    if emit and sequences != [] do
-      do_escape(t, emit, true, nil, sequences ++ acc)
-    else
-      do_escape(t, emit, emitted, nil, acc)
-    end
-  end
-
-  defp do_escape(<<h, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
-    do_escape(t, emit, emitted, [h|buffer], acc)
-  end
-
-  defp do_escape(<<>>, _emit, _emitted, buffer, _acc) when is_list(buffer) do
-    buffer = IO.iodata_to_binary Enum.reverse(buffer)
-    raise ArgumentError, "missing } for escape fragment #{buffer}"
-  end
-
-  defp do_escape(<<?%, ?{, t :: binary>>, emit, emitted, nil, acc) do
-    do_escape(t, emit, emitted, [], acc)
-  end
-
-  defp do_escape(<<h, t :: binary>>, emit, emitted, nil, acc) do
-    do_escape(t, emit, emitted, nil, [h|acc])
-  end
-
-  defp do_escape(<<>>, _emit, emitted, nil, acc) do
-    {IO.iodata_to_binary(Enum.reverse(acc)), emitted}
   end
 end
