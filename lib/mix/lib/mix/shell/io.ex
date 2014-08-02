@@ -67,6 +67,21 @@ defmodule Mix.Shell.IO do
   # The io server may return :eof or :error
   defp got_yes?(_), do: false
 
+  @doc """
+  The same as `yes/1`, ask the user with prompt.
+  The difference is that the dafult option is "No".
+  """
+  def no?(message) do
+    print_app
+    got_no? IO.gets(message <> " [yN] ")
+  end
+
+  defp got_no?(answer) when is_binary(answer) do
+    answer =~ ~r/^(No?)?$/i
+  end
+
+  defp got_no?(_), do: true
+
   defp red(message) do
     [IO.ANSI.red, IO.ANSI.bright, message, IO.ANSI.reset]
   end

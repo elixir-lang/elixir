@@ -28,4 +28,15 @@ defmodule Mix.Shell.IOTest do
     assert capture_io("n", fn -> refute yes?("Ok?") end)
     assert capture_io("", fn -> refute yes?("Ok?") end)
   end
+
+  test "asks the user with no?" do
+    assert capture_io("\n", fn -> no?("Ok?") end) == "Ok? [yN] "
+    assert capture_io("\n", fn -> assert no?("Ok?") end)
+    assert capture_io("No", fn -> assert no?("Ok?") end)
+    assert capture_io("no", fn -> assert no?("Ok?") end)
+    assert capture_io("n", fn -> assert no?("Ok?") end)
+
+    assert capture_io("y", fn -> refute no?("Ok?") end)
+    assert capture_io("", fn -> assert no?("Ok?") end)
+  end
 end
