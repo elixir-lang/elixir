@@ -26,10 +26,20 @@ defmodule Mix.Shell do
   defcallback yes?(message :: String.t) :: boolean
 
   @doc """
-  Executes the given command and returns
-  its exit status.
+  Executes the given command and returns its exit status.
   """
   defcallback cmd(command :: String.t) :: integer
+
+  @doc """
+  Executes the given command and returns its exit status.
+
+  ## Options
+
+    * `:print_app` - when false, does not print the app name
+      when the command outputs something.
+
+  """
+  defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
 
   @doc """
   Prints the current application to shell if

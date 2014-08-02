@@ -21,8 +21,12 @@ defmodule Mix.Shell.IO do
   Executes the given command and prints its output
   to stdout as it comes.
   """
-  def cmd(command) do
-    Mix.Shell.cmd(command, &IO.write(&1))
+  def cmd(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
+    Mix.Shell.cmd(command, fn data ->
+      if print_app?, do: print_app()
+      IO.write(data)
+    end)
   end
 
   @doc """

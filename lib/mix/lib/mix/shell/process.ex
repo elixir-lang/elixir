@@ -53,8 +53,10 @@ defmodule Mix.Shell.Process do
   Executes the given command and forwards its messages to
   the current process.
   """
-  def cmd(command) do
+  def cmd(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
     Mix.Shell.cmd(command, fn(data) ->
+      if print_app?, do: print_app()
       send self, {:mix_shell, :run, [data]}
     end)
   end

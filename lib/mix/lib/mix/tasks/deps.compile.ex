@@ -114,7 +114,8 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(%Mix.Dep{app: app} = dep, config) do
-    do_command dep, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
+    do_command dep, rebar_cmd(app), false,
+               "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
   end
 
   defp rebar_cmd(app) do
@@ -141,22 +142,20 @@ defmodule Mix.Tasks.Deps.Compile do
     else
       "make"
     end
-    Mix.shell.info("==> #{dep.app} (#{command})")
-    do_command(dep, command)
+    do_command(dep, command, true)
   end
 
-  defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
+  defp do_compile(%Mix.Dep{opts: opts} = dep) do
     if command = opts[:compile] do
-      Mix.shell.info("#{app}: #{command}")
-      do_command(dep, command)
+      do_command(dep, command, true)
     else
       false
     end
   end
 
-  defp do_command(%Mix.Dep{app: app, opts: opts}, command, extra \\ "") do
-    File.cd! opts[:dest], fn ->
-      if Mix.shell.cmd("#{command} #{extra}") != 0 do
+  defp do_command(%Mix.Dep{app: app} = dep, command, print_app?, extra \\ "") do
+    Mix.Dep.in_dependency dep, fn _ ->
+      if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?) != 0 do
         Mix.raise "Could not compile dependency #{app}, #{command} command failed. " <>
           "If you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
