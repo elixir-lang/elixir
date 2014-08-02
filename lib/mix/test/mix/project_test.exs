@@ -88,6 +88,22 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "in_project prints nice error message if fails to load file" do
+    in_fixture "no_mixfile", fn ->
+      File.write "mix.exs", """
+      raise "oops"
+      """
+
+      assert_raise RuntimeError, "oops", fn ->
+        Mix.Project.in_project :hello, ".", [], fn _ ->
+          :ok
+        end
+      end
+
+      assert_receive {:mix_shell, :error, ["Error while loading project :hello at" <> _]}
+    end
+  end
+
   test "config_files" do
     Mix.Project.push(SampleProject)
 
@@ -104,7 +120,7 @@ defmodule Mix.ProjectTest do
       refute "config/.exs" in files
     end
   end
-  
+
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
       {:ok, path} -> assert path == symlink_path

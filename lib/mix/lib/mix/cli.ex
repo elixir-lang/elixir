@@ -75,20 +75,15 @@ defmodule Mix.CLI do
       exception ->
         stacktrace = System.stacktrace
 
-        if info = Map.get(exception, :mix) do
+        if Map.get(exception, :mix) do
           mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
-          Mix.shell.error "** (#{mod})#{show_mix_info(info)} #{Exception.message(exception)}"
+          Mix.shell.error "** (#{mod}) #{Exception.message(exception)}"
+          exit({:shutdown, 1})
         else
           reraise exception, stacktrace
         end
-
-        exit({:shutdown, 1})
     end
   end
-
-  defp show_mix_info({:project, proj}), do: " [#{inspect proj}]"
-  defp show_mix_info({:app, app}),      do: " [#{app}]"
-  defp show_mix_info(:none),            do: ""
 
   defp change_env(task) do
     if nil?(System.get_env("MIX_ENV")) &&
