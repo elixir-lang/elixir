@@ -187,10 +187,7 @@ defmodule Path do
   """
   @spec type(t) :: :absolute | :relative | :volumerelative
   def type(name) when is_list(name) or is_binary(name) do
-    case :os.type() do
-      {:win32, _} -> win32_pathtype(name)
-      _           -> unix_pathtype(name)
-    end |> elem(0)
+    pathtype(name, major_os_type) |> elem(0)
   end
 
   @doc """
@@ -215,11 +212,17 @@ defmodule Path do
     relative(name, major_os_type())
   end
 
-  defp relative(name, major_os_type) do
-    case major_os_type do
+  defp relative(name, os_type) do
+    pathtype(name, os_type)
+    |> elem(1)
+    |> IO.chardata_to_string
+  end
+
+  defp pathtype(name, os_type) do
+    case os_type do
       :win32 -> win32_pathtype(name)
       _      -> unix_pathtype(name)
-    end |> elem(1) |> IO.chardata_to_string
+    end
   end
 
   defp unix_pathtype(<<?/, relative :: binary>>), do:
