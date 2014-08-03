@@ -124,14 +124,14 @@ defmodule IEx do
 
   When starting IEx, it will look for a local `.iex.exs` file (located in the current
   working directory), then a global one (located at `~/.iex.exs`) and will load the
-  first one it finds (if any). The code in the chosen .iex file will be
+  first one it finds (if any). The code in the chosen .iex.exs file will be
   evaluated in the shell's context. So, for instance, any modules that are
-  loaded or variables that are bound in the .iex file will be available in the
+  loaded or variables that are bound in the .iex.exs file will be available in the
   shell after it has booted.
 
-  Sample contents of a local .iex file:
+  Sample contents of a local .iex.exs file:
 
-      # source another `.iex` file
+      # source another `.iex.exs` file
       import_file "~/.iex.exs"
 
       # print something before the shell starts
@@ -140,7 +140,7 @@ defmodule IEx do
       # bind a variable that'll be accessible in the shell
       value = 13
 
-  Running the shell in the directory where the above .iex file is located
+  Running the shell in the directory where the above .iex.exs file is located
   results in:
 
       $ iex
@@ -162,7 +162,7 @@ defmodule IEx do
   Those options can be configured in your project configuration file or globally
   by calling `IEx.configure/1` from your `~/.iex.exs` file like this:
 
-      # .iex
+      # .iex.exs
       IEx.configure(inspect: [limit: 3])
 
       ### now run the shell ###
