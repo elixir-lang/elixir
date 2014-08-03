@@ -88,6 +88,7 @@ defmodule PathTest do
   test :absname do
     assert (Path.absname("/") |> strip_drive_letter_if_windows) == "/"
     assert (Path.absname("/foo") |> strip_drive_letter_if_windows) == "/foo"
+    assert (Path.absname("/./foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
     assert (Path.absname("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar/../bar"
@@ -118,6 +119,7 @@ defmodule PathTest do
   test :expand_path do
     assert (Path.expand("/") |> strip_drive_letter_if_windows) == "/"
     assert (Path.expand("/foo") |> strip_drive_letter_if_windows) == "/foo"
+    assert (Path.expand("/./foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.expand("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows)== "/foo/bar"
@@ -131,10 +133,9 @@ defmodule PathTest do
 
     assert (Path.expand(['..', ?/, "bar/../bar"], '/foo/../foo/../foo') |>
             strip_drive_letter_if_windows) == "/bar"
+    assert (Path.expand("/..") |> strip_drive_letter_if_windows) == "/"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
-
-    assert (Path.expand("/..") |> strip_drive_letter_if_windows) == "/"
   end
 
   test :relative_to do
@@ -200,11 +201,17 @@ defmodule PathTest do
     assert Path.join("/foo", "bar") == "/foo/bar"
     assert Path.join("~", "foo") == "~/foo"
 
-    assert Path.join("", "bar") == "/bar"
-    assert Path.join("/foo", "/bar") == "/foo/bar"
-    assert Path.join("/foo", "./bar") == "/foo/bar"
+    assert Path.join("", "bar")  == "bar"
+    assert Path.join("bar", "")  == "bar"
+    assert Path.join("", "/bar") == "bar"
+    assert Path.join("/bar", "") == "/bar"
 
-    assert Path.join([?/, "foo"], "./bar") == "/foo/bar"
+    assert Path.join("foo", "/bar") == "foo/bar"
+    assert Path.join("/foo", "/bar") == "/foo/bar"
+    assert Path.join("/foo", "/bar") == "/foo/bar"
+    assert Path.join("/foo", "./bar") == "/foo/./bar"
+
+    assert Path.join([?/, "foo"], "./bar") == "/foo/./bar"
   end
 
   test :split do

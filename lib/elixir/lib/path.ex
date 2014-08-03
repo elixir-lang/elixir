@@ -60,39 +60,69 @@ defmodule Path do
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
     case type(path) do
-      :relative -> join(relative_to, path)
-      :absolute ->
-        cond do
-          path == "/" ->
-            path
-          :binary.last(path) == ?/ ->
-            binary_part(path, 0, byte_size(path) - 1)
-          true ->
-            path
-        end
+      :relative -> absname_join(relative_to, path)
+      :absolute -> absname_join([path])
       :volumerelative ->
         relative_to = IO.chardata_to_string(relative_to)
         absname_vr(split(path), split(relative_to), relative_to)
     end
   end
 
-  ## Absolute path on current drive
+  # Absolute path on current drive
   defp absname_vr(["/"|rest], [volume|_], _relative),
-    do: join([volume|rest])
+    do: absname_join([volume|rest])
 
-  ## Relative to current directory on current drive.
+  # Relative to current directory on current drive.
   defp absname_vr([<<x, ?:>>|rest], [<<x, _ :: binary>>|_], relative),
-    do: absname(join(rest), relative)
+    do: absname(absname_join(rest), relative)
 
-  ## Relative to current directory on another drive.
+  # Relative to current directory on another drive.
   defp absname_vr([<<x, ?:>>|name], _, _relative) do
     cwd =
       case :file.get_cwd([x, ?:]) do
         {:ok, dir}  -> IO.chardata_to_string(dir)
         {:error, _} -> <<x, ?:, ?/>>
       end
-    absname(join(name), cwd)
+    absname(absname_join(name), cwd)
   end
+
+  # Joins a list
+  defp absname_join([name1, name2|rest]), do:
+    absname_join([absname_join(name1, name2)|rest])
+  defp absname_join([name]), do:
+    do_absname_join(IO.chardata_to_string(name), <<>>, [], major_os_type())
+
+  # Joins two paths
+  defp absname_join(left, right),
+    do: do_absname_join(IO.chardata_to_string(left), relative(right), [], major_os_type())
+
+  defp do_absname_join(<<uc_letter, ?:, rest :: binary>>, relativename, [], :win32) when uc_letter in ?A..?Z, do:
+    do_absname_join(rest, relativename, [?:, uc_letter+?a-?A], :win32)
+  defp do_absname_join(<<?\\, rest :: binary>>, relativename, result, :win32), do:
+    do_absname_join(<<?/, rest :: binary>>, relativename, result, :win32)
+  defp do_absname_join(<<?/, rest :: binary>>, relativename, [?., ?/|result], os_type), do:
+    do_absname_join(rest, relativename, [?/|result], os_type)
+  defp do_absname_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
+    do_absname_join(rest, relativename, [?/|result], os_type)
+  defp do_absname_join(<<>>, <<>>, result, os_type), do:
+    IO.iodata_to_binary(reverse_maybe_remove_dirsep(result, os_type))
+  defp do_absname_join(<<>>, relativename, [?:|rest], :win32), do:
+    do_absname_join(relativename, <<>>, [?:|rest], :win32)
+  defp do_absname_join(<<>>, relativename, [?/|result], os_type), do:
+    do_absname_join(relativename, <<>>, [?/|result], os_type)
+  defp do_absname_join(<<>>, relativename, result, os_type), do:
+    do_absname_join(relativename, <<>>, [?/|result], os_type)
+  defp do_absname_join(<<char, rest :: binary>>, relativename, result, os_type), do:
+    do_absname_join(rest, relativename, [char|result], os_type)
+
+  defp reverse_maybe_remove_dirsep([?/, ?:, letter], :win32), do:
+    [letter, ?:, ?/]
+  defp reverse_maybe_remove_dirsep([?/], _), do:
+    [?/]
+  defp reverse_maybe_remove_dirsep([?/|name], _), do:
+    :lists.reverse(name)
+  defp reverse_maybe_remove_dirsep(name, _), do:
+    :lists.reverse(name)
 
   @doc """
   Converts the path to an absolute one and expands
@@ -106,7 +136,7 @@ defmodule Path do
   """
   @spec expand(t) :: binary
   def expand(path) do
-    normalize absname(expand_home(path), System.cwd!)
+    expand_dot absname(expand_home(path), System.cwd!)
   end
 
   @doc """
@@ -133,7 +163,7 @@ defmodule Path do
   """
   @spec expand(t, t) :: binary
   def expand(path, relative_to) do
-    normalize absname(absname(expand_home(path), expand_home(relative_to)), System.cwd!)
+    expand_dot absname(absname(expand_home(path), expand_home(relative_to)), System.cwd!)
   end
 
   @doc """
@@ -182,9 +212,13 @@ defmodule Path do
   """
   @spec relative(t) :: binary
   def relative(name) do
-    case :os.type() do
-      {:win32, _} -> win32_pathtype(name)
-      _           -> unix_pathtype(name)
+    relative(name, major_os_type())
+  end
+
+  defp relative(name, major_os_type) do
+    case major_os_type do
+      :win32 -> win32_pathtype(name)
+      _      -> unix_pathtype(name)
     end |> elem(1) |> IO.chardata_to_string
   end
 
@@ -390,7 +424,7 @@ defmodule Path do
   end
 
   @doc """
-  Returns a string with one or more path components joined by the path separator.
+  Joins a list of strings.
 
   This function should be used to convert a list of strings to a path.
   Note that any trailing slash is removed on join.
@@ -411,10 +445,13 @@ defmodule Path do
   def join([name1, name2|rest]), do:
     join([join(name1, name2)|rest])
   def join([name]), do:
-    do_join(IO.chardata_to_string(name), <<>>, [], major_os_type())
+    name
 
   @doc """
   Joins two paths.
+
+  The right path will always be expanded to its relative format
+  and any trailing slash is removed on join.
 
   ## Examples
 
@@ -423,40 +460,25 @@ defmodule Path do
 
   """
   @spec join(t, t) :: binary
-  def join(left, right),
-    do: do_join(IO.chardata_to_string(left), relative(right), [], major_os_type())
-
-  defp major_os_type do
-    :os.type |> elem(0)
+  def join(left, right) do
+    left    = IO.chardata_to_string(left)
+    os_type = major_os_type()
+    do_join(left, right, os_type) |> remove_dirsep(os_type)
   end
 
-  defp do_join(<<uc_letter, ?:, rest :: binary>>, relativename, [], :win32) when uc_letter in ?A..?Z, do:
-    do_join(rest, relativename, [?:, uc_letter+?a-?A], :win32)
-  defp do_join(<<?\\, rest :: binary>>, relativename, result, :win32), do:
-    do_join(<<?/, rest :: binary>>, relativename, result, :win32)
-  defp do_join(<<?/, rest :: binary>>, relativename, [?., ?/|result], os_type), do:
-    do_join(rest, relativename, [?/|result], os_type)
-  defp do_join(<<?/, rest :: binary>>, relativename, [?/|result], os_type), do:
-    do_join(rest, relativename, [?/|result], os_type)
-  defp do_join(<<>>, <<>>, result, os_type), do:
-    IO.iodata_to_binary(maybe_remove_dirsep(result, os_type))
-  defp do_join(<<>>, relativename, [?:|rest], :win32), do:
-    do_join(relativename, <<>>, [?:|rest], :win32)
-  defp do_join(<<>>, relativename, [?/|result], os_type), do:
-    do_join(relativename, <<>>, [?/|result], os_type)
-  defp do_join(<<>>, relativename, result, os_type), do:
-    do_join(relativename, <<>>, [?/|result], os_type)
-  defp do_join(<<char, rest :: binary>>, relativename, result, os_type), do:
-    do_join(rest, relativename, [char|result], os_type)
+  defp do_join("", right, os_type),   do: relative(right, os_type)
+  defp do_join(left, "", _os_type),   do: left
+  defp do_join(left, right, os_type), do: remove_dirsep(left, os_type) <> "/" <> relative(right, os_type)
 
-  defp maybe_remove_dirsep([?/, ?:, letter], :win32), do:
-    [letter, ?:, ?/]
-  defp maybe_remove_dirsep([?/], _), do:
-    [?/]
-  defp maybe_remove_dirsep([?/|name], _), do:
-    :lists.reverse(name)
-  defp maybe_remove_dirsep(name, _), do:
-    :lists.reverse(name)
+  defp remove_dirsep("", _os_type), do: ""
+  defp remove_dirsep(bin, os_type) do
+    last = :binary.last(bin)
+    if last == ?/ or (last == ?\\ and os_type == :win32) do
+      binary_part(bin, 0, byte_size(bin) - 1)
+    else
+      bin
+    end
+  end
 
   @doc ~S"""
   Splits the path into a list at the path separator.
@@ -568,7 +590,7 @@ defmodule Path do
     |> Enum.map(&IO.chardata_to_string/1)
   end
 
-  # Normalize the given path by expanding "..", "." and "~".
+  # expand_dot the given path by expanding "..", "." and "~".
 
   defp chardata_to_list(chardata) do
     case :unicode.characters_to_list(chardata) do
@@ -602,29 +624,34 @@ defmodule Path do
     end
   end
 
-  defp normalize(path), do: normalize(split(path), [])
+  defp expand_dot(<<"/../", rest::binary>>),
+    do: expand_dot("/" <> rest)
+  defp expand_dot(<<letter, ":/../", rest::binary>>) when letter in ?a..?z,
+    do: expand_dot(<<letter, ":/", rest::binary>>)
+  defp expand_dot("/.."),
+    do: "/"
+  defp expand_dot(<<letter, ":/..">>) when letter in ?a..?z,
+    do: expand_dot(<<letter, ":/">>)
+  defp expand_dot(path),
+    do: expand_dot(:binary.split(path, "/", [:global]), [])
 
-  defp normalize([".."|t], ["/"|_] = acc) do
-    normalize t, acc
+  defp expand_dot([".."|t], [_, _|acc]) do
+    expand_dot t, acc
   end
 
-  defp normalize([".."|t], [<<letter, ?:, ?/>>|_] = acc) when letter in ?a..?z do
-    normalize t, acc
+  defp expand_dot(["."|t], acc) do
+    expand_dot t, acc
   end
 
-  defp normalize([".."|t], [_|acc]) do
-    normalize t, acc
+  defp expand_dot([h|t], acc) do
+    expand_dot t, ["/", h|acc]
   end
 
-  defp normalize(["."|t], acc) do
-    normalize t, acc
+  defp expand_dot([], ["/"|acc]) do
+    IO.iodata_to_binary(:lists.reverse(acc))
   end
 
-  defp normalize([h|t], acc) do
-    normalize t, [h|acc]
-  end
-
-  defp normalize([], acc) do
-    join :lists.reverse(acc)
+  defp major_os_type do
+    :os.type |> elem(0)
   end
 end
