@@ -81,7 +81,7 @@ defmodule GenEvent do
 
   We start a new event manager by calling `GenEvent.start_link/0`.
   Notifications can be sent to the event manager which will then
-  invoke `handle_event/0` for each registered handler.
+  invoke `handle_event/2` for each registered handler.
 
   We can add new handlers with `add_handler/4`. Calls can also
   be made to specific handlers by using `call/3`.
