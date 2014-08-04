@@ -21,9 +21,8 @@ defmodule Logger.Formatter do
     * `$level`    - the log level
     * `$node`     - the node that prints the message
     * `$metadata` - user controled data presented in "key=val key2=val2" format
-    * `$levelpad` - set to a single space if level is 4 characters long, otherwise
-      set to the empty strip. Used to align the rest of the message after
-      [$level]
+    * `$levelpad` - set to a single space if level is 4 characters long,
+      otherwise set to the empty space. Used to align the message after level.
 
   Backends typically allow developers to supply such control
   strings via configuration files. This module provides `compile/1`,
@@ -44,26 +43,11 @@ defmodule Logger.Formatter do
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "$time $metadata[$level] $levelpad$message\n"
 
-  @max_level_length 5
-
-
   @doc ~S"""
   Compiles a format string into an array that the `format/5` can handle.
 
-  The valid parameters you can use are:
-
-  * $time
-  * $date
-  * $message
-  * $level
-  * $node
-  * $metadata - metadata is presented in key=val key2=val2 format.
-  * $levelpad - set to a single space if level is 4 characters long, otherwise
-    set to the empty strip. Used to align the rest of the message after
-    [$level]
-
-  If you pass nil into compile it will use the default
-  format of `$time $metadata [$level] $message`
+  Check the module doc for documentation on the valid parameters. If you
+  pass nil, it defaults to: `$time $metadata [$level] $levelpad$message\n`
 
   If you would like to make your own custom formatter simply pass
   `{module, function}` to compile and the rest is handled.
@@ -120,13 +104,13 @@ defmodule Logger.Formatter do
   end
 
   defp output(:levelpad, level, _, _, _) do
-    len = level |> Atom.to_string |> String.length
-    if len < @max_level_length do
-      String.duplicate(" ", @max_level_length - len)
-    else
-      ""
-    end
+    levelpad(level)
   end
 
   defp output(other, _, _, _, _), do: other
+
+  defp levelpad(:debug), do: ""
+  defp levelpad(:info), do: " "
+  defp levelpad(:warn), do: " "
+  defp levelpad(:error), do: ""
 end

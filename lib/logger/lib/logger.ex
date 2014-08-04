@@ -134,7 +134,7 @@ defmodule Logger do
       `:level` configuration in `:logger`
 
     * `:format` - the format message used to print logs.
-      Defaults to: "$time $metadata[$level] $message\n"
+      Defaults to: "$time $metadata[$level] $levelpad$message\n"
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata)
