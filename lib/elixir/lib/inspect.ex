@@ -377,8 +377,45 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  def inspect(thing, _opts) do
-    Integer.to_string(thing)
+  @doc ~S"""
+  Represents an integer, printing in decimal format by default.
+  Other formats include :binary, :octal, and :hex.
+
+  ## Examples
+
+      iex> inspect(86, base: :binary)
+      "0b1010110"
+
+      iex> inspect(100, base: :octal)
+      "0o144"
+
+      iex> inspect(100, base: :hex)
+      "0x64"
+
+  """
+
+  def inspect(thing, %Inspect.Opts{base: base}) do
+    Integer.to_string(thing, base_to_value(base))
+      |> prepend_prefix(base)
+  end
+
+  defp base_to_value(base) do
+    case base do
+      :binary  -> 2
+      :decimal -> 10
+      :octal   -> 8
+      :hex     -> 16
+    end
+  end
+
+  defp prepend_prefix(value, :decimal), do: value
+  defp prepend_prefix(value, base) do
+    prefix = case base do
+      :binary -> "0b"
+      :octal  -> "0o"
+      :hex    -> "0x"
+    end
+    prefix <> value
   end
 end
 
