@@ -107,26 +107,6 @@ check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang
 With tests running and passing, you are ready to contribute to Elixir and
 send your pull requests.
 
-### Building on Windows
-
-There are a few extra steps you'll need to take for contributing from Windows.
-Basically, once you have Erlang 17, Git, and MSYS from MinGW on your system,
-you're all set.  Specifically, here's what you need to do to get up and running:
-
-1. Install [Git](http://www.git-scm.com/download/win), 
-[Erlang](http://www.erlang.org/download.html), and the
-[MinGW Installation Manager](http://sourceforge.net/projects/mingw/files/latest/download?source=files).
-2. Use the MinGW Installation Manager to install the msys-bash, msys-make, and
-msys-grep packages.
-3. Add `;C:\Program Files (x86)\Git\bin;C:\Program Files\erl6.0\bin;C:\Program Files\erl6.0\erts-6.0\bin;C:\MinGW\msys\1.0\bin`
-to your "Path" environment variable .  (This is under Control Panel > System 
-and Security > System > Advanced system settings > Environment Variables > 
-System variables)
-
-You can now work in the Command Prompt similar to how you would on other OS'es,
-except for some things (like creating symlinks) you'll need to run the Command
-Prompt as an Administrator.
-
 ## Contributing Documentation
 
 Code documentation (`@doc`, `@moduledoc`, `@typedoc`) has a special convention:
