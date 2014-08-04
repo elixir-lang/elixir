@@ -271,25 +271,6 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  @doc ~S"""
-  Represents a list, checking if it can be printed or not.
-  If so, a single-quoted representation is returned,
-  otherwise the brackets syntax is used. Keywords are
-  printed in keywords syntax.
-
-  ## Examples
-
-      iex> inspect('bar')
-      "'bar'"
-
-      iex> inspect([0|'bar'])
-      "[0, 98, 97, 114]"
-
-      iex> inspect([:foo,:bar])
-      "[:foo, :bar]"
-
-  """
-
   def inspect([], _opts), do: "[]"
 
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
@@ -377,26 +358,9 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  @doc ~S"""
-  Represents an integer, printing in decimal format by default.
-  Other formats include :binary, :octal, and :hex.
-
-  ## Examples
-
-      iex> inspect(86, base: :binary)
-      "0b1010110"
-
-      iex> inspect(100, base: :octal)
-      "0o144"
-
-      iex> inspect(100, base: :hex)
-      "0x64"
-
-  """
-
   def inspect(thing, %Inspect.Opts{base: base}) do
     Integer.to_string(thing, base_to_value(base))
-      |> prepend_prefix(base)
+    |> prepend_prefix(base)
   end
 
   defp base_to_value(base) do
