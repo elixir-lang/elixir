@@ -399,6 +399,7 @@ inline(?kernel, '+', 1) -> {erlang, '+'};
 inline(?kernel, '-', 1) -> {erlang, '-'};
 inline(?kernel, '*', 2) -> {erlang, '*'};
 inline(?kernel, '/', 2) -> {erlang, '/'};
+inline(?kernel, '**', 2) -> {math, pow};
 inline(?kernel, '++', 2) -> {erlang, '++'};
 inline(?kernel, '--', 2) -> {erlang, '--'};
 inline(?kernel, 'not', 1) -> {erlang, 'not'};

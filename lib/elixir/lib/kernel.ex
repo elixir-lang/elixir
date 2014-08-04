@@ -847,6 +847,22 @@ defmodule Kernel do
   end
 
   @doc """
+  Exponentiation.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> 2 ** 3
+      8.0
+
+  """
+  @spec (number ** number) :: float
+  def left ** right do
+    :math.pow(left, right)
+  end
+
+  @doc """
   Concatenates two lists.
 
   Allowed in guard tests. Inlined by the compiler.
