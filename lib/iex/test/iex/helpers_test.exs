@@ -6,11 +6,13 @@ defmodule IEx.HelpersTest do
   import IEx.Helpers
 
   test "clear helper" do
-    IEx.configure colors: [enabled: true]
+    Application.put_env(:elixir, :ansi_enabled, true)
     assert capture_iex("clear") == "\e[H\e[2J"
 
-    IEx.configure colors: [enabled: false]
+    Application.put_env(:elixir, :ansi_enabled, false)
     assert capture_iex("clear") =~ "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
+  after
+    Application.delete_env(:elixir, :ansi_enabled)
   end
 
   test "h helper" do
