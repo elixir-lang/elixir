@@ -1408,12 +1408,11 @@ defmodule Enum do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn x, {i, sample} ->
+      j = random_index(i)
       if i < count do
-        j = random_index(i)
         swapped = sample |> elem(j)
         {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
       else
-        j = random_index(i)
         if j < count, do: sample = sample |> put_elem(j, x)
         {i + 1, sample}
       end
