@@ -284,7 +284,7 @@ defmodule Logger do
   Adds the given keyword list to the current process metadata.
   """
   def metadata(dict) do
-    Process.put(@metadata, dict ++ metadata)
+    Process.put(@metadata, Keyword.merge(metadata, dict))
   end
 
   @doc """
