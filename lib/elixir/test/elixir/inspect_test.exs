@@ -121,6 +121,22 @@ defmodule Inspect.NumberTest do
     assert inspect(100) == "100"
   end
 
+  test :decimal do
+    assert inspect(100, base: :decimal) == "100"
+  end
+
+  test :hex do
+    assert inspect(100, base: :hex) == "0x64"
+  end
+
+  test :octal do
+    assert inspect(100, base: :octal) == "0o144"
+  end
+
+  test :binary do
+    assert inspect(86, base: :binary) == "0b1010110"
+  end
+
   test :float do
     assert inspect(1.0) == "1.0"
     assert inspect(1.0E10) == "1.0e10"
