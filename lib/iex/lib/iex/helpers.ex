@@ -97,7 +97,7 @@ defmodule IEx.Helpers do
   unavailable on Windows machines.
   """
   def clear do
-    if Application.get_env(:iex, :colors)[:enabled] do
+    if IO.ANSI.enabled? do
       IO.write [IO.ANSI.home, IO.ANSI.clear]
     else
       IO.puts "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
