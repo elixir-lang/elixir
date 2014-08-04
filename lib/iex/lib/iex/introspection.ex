@@ -176,10 +176,13 @@ defmodule IEx.Introspection do
 
   defp ansi_docs() do
     opts = Application.get_env(:iex, :colors)
-    if opts[:enabled] do
+    if color_enabled?(opts[:enabled]) do
       [width: IEx.width] ++ opts
     end
   end
+
+  defp color_enabled?(nil), do: IO.ANSI.enabled?
+  defp color_enabled?(bool) when is_boolean(bool), do: bool
 
   @doc """
   Print types in module.
