@@ -6,7 +6,12 @@ defmodule Logger.ErrorHandler do
   require Logger
 
   def init({otp?, threshold}) do
-    {:ok, %{otp: otp?, threshold: threshold,
+    # We store the logger PID in the state because when we are shutting
+    # down the Logger application, the Logger process may be terminated
+    # and then trying to reach it will lead to crashes. So we send a
+    # message to a PID, instead of named process, to avoid crashes on
+    # send since this handler will be removed soon by the supervisor.
+    {:ok, %{otp: otp?, threshold: threshold, logger: Process.whereis(Logger),
             last_length: 0, last_time: :os.timestamp, dropped: 0}}
   end
 
@@ -24,25 +29,25 @@ defmodule Logger.ErrorHandler do
 
   ## Helpers
 
-  defp log_event({:error, _gl, {pid, format, data}}, %{otp: true}),
-    do: log_event(:error, :format, pid, {format, data})
-  defp log_event({:error_report, _gl, {pid, :std_error, format}}, %{otp: true}),
-    do: log_event(:error, :report, pid, {:std_error, format})
+  defp log_event({:error, _gl, {pid, format, data}}, %{otp: true} = state),
+    do: log_event(:error, :format, pid, {format, data}, state)
+  defp log_event({:error_report, _gl, {pid, :std_error, format}}, %{otp: true} = state),
+    do: log_event(:error, :report, pid, {:std_error, format}, state)
 
-  defp log_event({:warning_msg, _gl, {pid, format, data}}, %{otp: true}),
-    do: log_event(:warn, :format, pid, {format, data})
-  defp log_event({:warning_report, _gl, {pid, :std_warning, format}}, %{otp: true}),
-    do: log_event(:warn, :report, pid, {:std_warning, format})
+  defp log_event({:warning_msg, _gl, {pid, format, data}}, %{otp: true} = state),
+    do: log_event(:warn, :format, pid, {format, data}, state)
+  defp log_event({:warning_report, _gl, {pid, :std_warning, format}}, %{otp: true} = state),
+    do: log_event(:warn, :report, pid, {:std_warning, format}, state)
 
-  defp log_event({:info_msg, _gl, {pid, format, data}}, %{otp: true}),
-    do: log_event(:info, :format, pid, {format, data})
-  defp log_event({:info_report, _gl, {pid, :std_info, format}}, %{otp: true}),
-    do: log_event(:info, :report, pid, {:std_info, format})
+  defp log_event({:info_msg, _gl, {pid, format, data}}, %{otp: true} = state),
+    do: log_event(:info, :format, pid, {format, data}, state)
+  defp log_event({:info_report, _gl, {pid, :std_info, format}}, %{otp: true} = state),
+    do: log_event(:info, :report, pid, {:std_info, format}, state)
 
   defp log_event(_, _state),
     do: :ok
 
-  defp log_event(level, kind, pid, data) do
+  defp log_event(level, kind, pid, data, state) do
     %{level: min_level, truncate: truncate,
       utc_log: utc_log?, translators: translators} = Logger.Config.__data__
 
@@ -51,7 +56,7 @@ defmodule Logger.ErrorHandler do
       message = Logger.Utils.truncate(message, truncate)
 
       # Mode is always async to avoid clogging the error_logger
-      GenEvent.notify(Logger,
+      GenEvent.notify(state.logger,
         {level, Process.group_leader(),
           {Logger, message, Logger.Utils.timestamp(utc_log?), [pid: ensure_pid(pid)]}})
     end
