@@ -195,18 +195,16 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
   if
     S#elixir_scope.context == match ->
       compile_error(Meta, S#elixir_scope.file,
-                    "cannot invoke function ~ts/~B inside match", [Name, length(Args)]);
+                    "cannot invoke local ~ts/~B inside match", [Name, length(Args)]);
     S#elixir_scope.context == guard ->
       Arity = length(Args),
       File  = S#elixir_scope.file,
       case Arity of
         0 -> compile_error(Meta, File, "unknown variable ~ts or cannot invoke "
-                           "function ~ts/~B inside guard", [Name, Name, Arity]);
+                           "local ~ts/~B inside guard", [Name, Name, Arity]);
         _ -> compile_error(Meta, File, "cannot invoke local ~ts/~B inside guard",
                            [Name, Arity])
       end;
-    S#elixir_scope.function == nil ->
-      compile_error(Meta, S#elixir_scope.file, "undefined function ~ts/~B", [Name, length(Args)]);
     true ->
       Line = ?line(Meta),
       {TArgs, NS} = translate_args(Args, S),
