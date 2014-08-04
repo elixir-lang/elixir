@@ -3,6 +3,7 @@
 ## v0.15.1-dev
 
 * Enhancements
+  * [Inspect] Support `:base` option in `inspect/2` to choose the base (`:binary`, `:octal`, `:decimal` or `:hex`) numbers a printed
 
 * Bug fixes
 
