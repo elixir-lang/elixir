@@ -31,6 +31,10 @@ defmodule Inspect.Opts do
 
     * `:width` - defaults to the 80 characters, used when pretty is true or
       when printing to IO devices.
+
+    * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
+      to :decimal
+
   """
 
   defstruct structs: true,
@@ -38,6 +42,7 @@ defmodule Inspect.Opts do
             char_lists: :infer,
             limit: 50,
             width: 80,
+            base: :decimal,
             pretty: false
 
   @type t :: %__MODULE__{
@@ -46,6 +51,7 @@ defmodule Inspect.Opts do
                char_lists: :infer | :as_lists | :as_char_lists,
                limit: pos_integer,
                width: pos_integer | :infinity,
+               base: :decimal | :binary | :hex | :octal,
                pretty: boolean}
 end
 
@@ -428,7 +434,6 @@ defmodule Inspect.Algebra do
       ...>         %Inspect.Opts{limit: 3}, fn i, _opts -> to_string(i) end, "!")
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1! 2! 3! ...]"
-
   """
   @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
   def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) do
