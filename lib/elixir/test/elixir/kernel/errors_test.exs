@@ -206,8 +206,8 @@ defmodule Kernel.ErrorsTest do
 
   test :unbound_expr do
     assert_compile_fail CompileError,
-      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^x(1)",
-      '^x(1) = 1'
+      "nofile:1: invalid argument for unary operator ^, expected an existing variable, got: ^is_atom(:foo)",
+      '^is_atom(:foo) = true'
   end
 
   test :literal_on_map_and_struct do
@@ -321,7 +321,7 @@ defmodule Kernel.ErrorsTest do
   test :undefined_non_local_function do
     assert_compile_fail CompileError,
       "nofile:1: undefined function casea/2",
-      'casea foo, do: 1'
+      'casea foo, do: @hello :world'
   end
 
   test :invalid_fn_args do
@@ -558,7 +558,7 @@ defmodule Kernel.ErrorsTest do
   test :invalid_for_without_generators do
     assert_compile_fail CompileError,
       "nofile:1: for comprehensions must start with a generator",
-      'for x, do: x'
+      'for is_atom(:foo), do: :foo'
   end
 
   test :invalid_for_bit_generator do
@@ -588,11 +588,15 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_var_or_function_on_guard do
     assert_compile_fail CompileError,
-      "nofile:2: unknown variable something_that_does_not_exist or " <>
-      "cannot invoke function something_that_does_not_exist/0 inside guard",
+      "nofile:4: unknown variable something_that_does_not_exist or " <>
+      "cannot invoke local something_that_does_not_exist/0 inside guard",
       '''
-      case [] do
-        [] when something_that_does_not_exist == [] -> :ok
+      defmodule ErrorsTest do
+        def bar do
+          case [] do
+            [] when something_that_does_not_exist == [] -> :ok
+          end
+        end
       end
       '''
   end
@@ -620,8 +624,14 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_function_on_match do
     assert_compile_fail CompileError,
-      "nofile:1: cannot invoke function something_that_does_not_exist/0 inside match",
-      'case [] do; something_that_does_not_exist() -> :ok; end'
+      "nofile:3: cannot invoke local something_that_does_not_exist/0 inside match",
+      '''
+      defmodule ErrorsTest do
+        def fun do
+          case [] do; something_that_does_not_exist() -> :ok; end
+        end
+      end
+      '''
   end
 
   test :invalid_remote_on_match do
