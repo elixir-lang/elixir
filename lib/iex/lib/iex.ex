@@ -331,13 +331,16 @@ defmodule IEx do
   def color(color, string) do
     colors = Application.get_env(:iex, :colors)
 
-    if colors[:enabled] do
+    if color_enabled?(colors[:enabled]) do
       ansi = Keyword.get(colors, color, default_color(color))
       IO.iodata_to_binary(IO.ANSI.format_fragment(ansi, true)) <> string <> IO.ANSI.reset
     else
       string
     end
   end
+
+  defp color_enabled?(nil), do: IO.ANSI.enabled?
+  defp color_enabled?(bool) when is_boolean(bool), do: bool
 
   @doc """
   Gets the IEx width for printing.
@@ -465,10 +468,6 @@ defmodule IEx do
     unless started? do
       {:ok, _} = Application.ensure_all_started(:iex)
       Application.put_env(:iex, :started, true)
-
-      colors = Application.get_env(:iex, :colors)
-               |> Keyword.put_new(:enabled, IO.ANSI.enabled?)
-      Application.put_env(:iex, :colors, colors)
     end
 
     :ok
