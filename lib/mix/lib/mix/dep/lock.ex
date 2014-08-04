@@ -21,8 +21,7 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Touches the manifest timestamp and updates the elixir version
-  and mix environment information in the given path.
+  Touches the manifest timestamp and updates the elixir version.
   """
   def touch(manifest_path) do
     File.mkdir_p!(manifest_path)
@@ -30,7 +29,7 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Returns the elixir version in the lock manifest unless is an umbrella app.
+  Returns the elixir version in the lock manifest.
   """
   def elixir_vsn() do
     elixir_vsn(Mix.Project.manifest_path)
