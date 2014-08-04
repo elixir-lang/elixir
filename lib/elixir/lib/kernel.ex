@@ -1423,6 +1423,18 @@ defmodule Kernel do
       iex> inspect("olá", binaries: :as_binaries)
       "<<111, 108, 195, 161>>"
 
+      iex> inspect('bar')
+      "'bar'"
+
+      iex> inspect([0|'bar'])
+      "[0, 98, 97, 114]"
+
+      iex> inspect(100, base: :octal)
+      "0o144"
+
+      iex> inspect(100, base: :hex)
+      "0x64"
+
   Note that the inspect protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
