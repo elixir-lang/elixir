@@ -36,6 +36,7 @@ defmodule Logger.Backends.ConsoleTest do
       Logger.debug("hello")
     end) =~ "hello"
 
+    Logger.metadata(user_id: 11)
     Logger.metadata(user_id: 13)
 
     assert capture_log(fn ->
