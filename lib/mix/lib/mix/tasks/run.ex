@@ -39,9 +39,6 @@ defmodule Mix.Tasks.Run do
       switches: [parallel_require: :keep, require: :keep, eval: :keep, config: :keep,
                  halt: :boolean, compile: :boolean, deps_check: :boolean, start: :boolean])
 
-    # Require the project to be available
-    Mix.Project.get!
-
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
         {true, _}  -> {nil, head}

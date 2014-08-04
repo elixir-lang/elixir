@@ -51,11 +51,7 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
-      if Mix.Project.get do
-        Mix.Task.run "loadconfig"
-        Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
-        Mix.Task.reenable "loadpaths"
-      end
+      Mix.Task.run "loadconfig"
 
       # If the task is not available, let's try to
       # compile the repository and then run it again.

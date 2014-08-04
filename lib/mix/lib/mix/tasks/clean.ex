@@ -18,14 +18,15 @@ defmodule Mix.Tasks.Clean do
   """
 
   def run(args) do
+    Mix.Project.get!
+    loadpaths!
+
     {opts, _, _} = OptionParser.parse(args)
 
-    _ = for compiler <- Mix.Tasks.Compile.compilers() do
-      module = Mix.Task.get!("compile.#{compiler}")
-      if function_exported?(module, :clean, 0) do
-        module.clean
-      end
-    end
+    _ = for compiler <- Mix.Tasks.Compile.compilers(),
+            module = Mix.Task.get("compile.#{compiler}"),
+            function_exported?(module, :clean, 0),
+            do: module.clean
 
     if opts[:all] do
       Mix.Task.run("deps.clean", args)
@@ -40,5 +41,11 @@ defmodule Mix.Tasks.Clean do
       |> Path.wildcard
       |> Enum.each(&File.rm_rf/1)
     end
+  end
+
+  # Loadpaths without checks because compilers may be defined in deps.
+  defp loadpaths! do
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.reenable "loadpaths"
   end
 end

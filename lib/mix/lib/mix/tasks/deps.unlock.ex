@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   """
 
   def run(args) do
-    Mix.Project.get! # Require the project to be available
+    Mix.Project.get!
     {opts, args, _} = OptionParser.parse(args, switches: [all: :boolean])
 
     cond do

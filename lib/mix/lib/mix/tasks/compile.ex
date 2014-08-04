@@ -23,6 +23,7 @@ defmodule Mix.Tasks.Compile do
 
   """
   def run(["--list"]) do
+    loadpaths!
     Mix.Task.load_all
 
     shell   = Mix.shell
@@ -49,6 +50,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   def run(args) do
+    Mix.Project.get!
     Mix.Task.run "loadpaths", ["--no-readd"|args]
 
     res =
@@ -59,6 +61,12 @@ defmodule Mix.Tasks.Compile do
     true = Code.prepend_path(Mix.Project.compile_path)
     unless "--no-readd" in args, do: Code.readd_paths()
     if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
+  end
+
+  # Loadpaths without checks because compilers may be defined in deps.
+  defp loadpaths! do
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.reenable "loadpaths"
   end
 
   @doc """

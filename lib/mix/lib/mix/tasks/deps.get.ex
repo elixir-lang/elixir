@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Deps.Get do
     * `--only`  - only fetch dependencies for given environment
   """
   def run(args) do
-    Mix.Project.get! # Require the project to be available
+    Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args, switches: [quiet: :boolean, only: :string])
 
     # Fetch all deps by default unless --only is given

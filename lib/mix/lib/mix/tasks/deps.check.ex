@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Deps.Check do
       paths = Mix.Project.build_path(config)
               |> Path.join("lib/*/ebin")
               |> Path.wildcard
-              |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
+              |> List.delete(config[:app] && Mix.Project.compile_path(config))
 
       to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 

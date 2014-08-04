@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Deps.Update do
     * `--only` - only fetch dependencies for given environment
   """
   def run(args) do
-    Mix.Project.get! # Require the project to be available
+    Mix.Project.get!
     {opts, rest, _} = OptionParser.parse(args, switches: [all: :boolean, only: :string])
 
     # Fetch all deps by default unless --only is given

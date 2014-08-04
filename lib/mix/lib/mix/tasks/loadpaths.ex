@@ -23,7 +23,9 @@ defmodule Mix.Tasks.Loadpaths do
       load_deps(config, args)
     end
 
-    load_project(config, args)
+    if config[:app] do
+      load_project(config, args)
+    end
 
     unless "--no-readd" in args do
       Code.readd_paths()
@@ -53,12 +55,12 @@ defmodule Mix.Tasks.Loadpaths do
     Mix.Project.build_path(config)
     |> Path.join("lib/*/ebin")
     |> Path.wildcard
-    |> List.delete(not Mix.Project.umbrella? && Mix.Project.compile_path(config))
+    |> List.delete(config[:app] && Mix.Project.compile_path(config))
     |> Enum.each(&Code.prepend_path/1)
   end
 
   defp load_project(config, _args) do
-    # Force recompile if we have a version mismatch
+    # Force recompile if we have an app and a version mismatch
     old_vsn = Mix.Dep.Lock.elixir_vsn
     if old_vsn && old_vsn != System.version, do: Mix.Dep.Lock.touch
 

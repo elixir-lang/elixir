@@ -18,6 +18,7 @@ defmodule Mix.Tasks.App.Start do
 
   """
   def run(args) do
+    Mix.Project.get!
     Mix.Task.run "loadpaths", ["--no-readd"|args]
 
     unless "--no-compile" in args do

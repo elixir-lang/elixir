@@ -18,7 +18,7 @@ defmodule Mix.Project do
   After being defined, the configuration for this project can be read
   as `Mix.Project.config/0`. Notice that `config/0` won't fail if a
   project is not defined; this allows many mix tasks to work
-  even without a project.
+  without a project.
 
   In case the developer needs a project or wants to access a special
   function in the project, the developer can call `Mix.Project.get!/0`

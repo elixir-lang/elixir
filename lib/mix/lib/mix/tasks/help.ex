@@ -37,6 +37,8 @@ defmodule Mix.Tasks.Help do
   """
 
   def run([]) do
+    loadpaths!
+
     shell   = Mix.shell
     modules = Mix.Task.load_all()
 
@@ -59,6 +61,8 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--names"]) do
+    loadpaths!
+
     tasks =
       Mix.Task.load_all()
       |> Enum.map(&Mix.Task.task_name/1)
@@ -74,6 +78,8 @@ defmodule Mix.Tasks.Help do
   end
 
   def run([task]) do
+    loadpaths!
+
     module = Mix.Task.get!(task)
     doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
     opts   = Application.get_env(:mix, :colors)
@@ -92,6 +98,12 @@ defmodule Mix.Tasks.Help do
 
   def run(_) do
     Mix.raise "Unexpected arguments, expected `mix help` or `mix help TASK`"
+  end
+
+  # Loadpaths without checks because tasks may be defined in deps.
+  defp loadpaths! do
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.reenable "loadpaths"
   end
 
   defp ansi_docs?(opts) do
