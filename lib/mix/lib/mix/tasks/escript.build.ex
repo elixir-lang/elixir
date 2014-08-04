@@ -72,10 +72,8 @@ defmodule Mix.Tasks.Escript.Build do
 
   """
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile: :boolean])
-
-    # Require the project to be available
     Mix.Project.get!
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile: :boolean])
 
     if Keyword.get(opts, :compile, true) do
       Mix.Task.run :compile, args

@@ -28,8 +28,7 @@ defmodule Mix.Tasks.Deps.Compile do
                          format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
   def run(args) do
-    Mix.Project.get! # Require the project to be available
-
+    Mix.Project.get!
     case OptionParser.parse(args) do
       {_, [], _} ->
         compile(Enum.filter(loaded(env: Mix.env), &compilable?/1))

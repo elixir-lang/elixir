@@ -33,7 +33,7 @@ defmodule Mix.Dep.Lock do
   Returns the elixir version in the lock manifest unless is an umbrella app.
   """
   def elixir_vsn() do
-    unless Mix.Project.umbrella?, do: elixir_vsn(Mix.Project.manifest_path)
+    elixir_vsn(Mix.Project.manifest_path)
   end
 
   @doc """

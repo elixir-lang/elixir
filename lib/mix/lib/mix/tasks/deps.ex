@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Deps do
 
   """
   def run(args) do
-    Mix.Project.get! # Require the project to be available
+    Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args)
 
     if opts[:all] do
