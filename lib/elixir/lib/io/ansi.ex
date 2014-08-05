@@ -39,7 +39,7 @@ defmodule IO.ANSI do
   def enabled? do
     case Application.fetch_env(:elixir, :ansi_enabled) do
       {:ok, boolean} when is_boolean(boolean) -> boolean
-      :error -> !match?({:win32, _}, :os.type())
+      :error -> not match?({:win32, _}, :os.type())
     end
   end
 
