@@ -5,14 +5,15 @@ defmodule Logger.ErrorHandler do
 
   require Logger
 
-  def init({otp?, threshold}) do
+  def init({otp?, sasl?, threshold}) do
     # We store the logger PID in the state because when we are shutting
     # down the Logger application, the Logger process may be terminated
     # and then trying to reach it will lead to crashes. So we send a
     # message to a PID, instead of named process, to avoid crashes on
     # send since this handler will be removed soon by the supervisor.
-    {:ok, %{otp: otp?, threshold: threshold, logger: Process.whereis(Logger),
-            last_length: 0, last_time: :os.timestamp, dropped: 0}}
+    {:ok, %{otp: otp?, sasl: sasl?, threshold: threshold,
+            logger: Process.whereis(Logger), last_length: 0,
+            last_time: :os.timestamp, dropped: 0}}
   end
 
   ## Handle event
@@ -33,6 +34,10 @@ defmodule Logger.ErrorHandler do
     do: log_event(:error, :format, pid, {format, data}, state)
   defp log_event({:error_report, _gl, {pid, :std_error, format}}, %{otp: true} = state),
     do: log_event(:error, :report, pid, {:std_error, format}, state)
+  defp log_event({:error_report, _gl, {pid, :supervisor_report, data}}, %{sasl: true} = state),
+    do: log_event(:error, :report, pid, {:supervisor_report, data}, state)
+  defp log_event({:error_report, _gl, {pid, :crash_report, data}}, %{sasl: true} = state),
+    do: log_event(:error, :report, pid, {:crash_report, data}, state)
 
   defp log_event({:warning_msg, _gl, {pid, format, data}}, %{otp: true} = state),
     do: log_event(:warn, :format, pid, {format, data}, state)
@@ -43,6 +48,8 @@ defmodule Logger.ErrorHandler do
     do: log_event(:info, :format, pid, {format, data}, state)
   defp log_event({:info_report, _gl, {pid, :std_info, format}}, %{otp: true} = state),
     do: log_event(:info, :report, pid, {:std_info, format}, state)
+  defp log_event({:info_report, _gl, {pid, :progress, data}}, %{sasl: true} = state),
+    do: log_event(:info, :report, pid, {:progress, data}, state)
 
   defp log_event(_, _state),
     do: :ok
