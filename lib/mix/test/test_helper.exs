@@ -81,7 +81,6 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = tmp_path |> String.to_char_list
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -94,11 +93,7 @@ defmodule MixTest.Case do
       File.cd! dest, function
     after
       :code.set_path(get_path)
-      Enum.each (:code.all_loaded -- previous), fn {mod, file} ->
-        if is_list(file) and :lists.prefix(flag, file) do
-          purge [mod]
-        end
-      end
+      for {mod, :in_memory} <- :code.all_loaded -- previous, do: purge [mod]
     end
   end
 
@@ -122,8 +117,9 @@ defmodule MixTest.Case do
 
   defp delete_tmp_paths do
     tmp = tmp_path |> String.to_char_list
-    to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
-    Enum.map to_remove, &(:code.del_path(&1))
+    for path <- :code.get_path,
+        :string.str(path, tmp) != 0,
+        do: :code.del_path(path)
   end
 end
 

@@ -92,8 +92,7 @@ defmodule Module.LocalsTracker do
   # Starts the tracker and returns its pid.
   @doc false
   def start_link do
-    {:ok, pid} = :gen_server.start_link(__MODULE__, [], [])
-    pid
+    :gen_server.start_link(__MODULE__, [], [])
   end
 
   # Adds a definition into the tracker. A public

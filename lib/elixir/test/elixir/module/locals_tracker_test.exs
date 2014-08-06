@@ -6,7 +6,8 @@ defmodule Module.LocalsTrackerTest do
   alias Module.LocalsTracker, as: D
 
   setup do
-    {:ok, [pid: D.start_link]}
+    {:ok, pid} = D.start_link
+    {:ok, [pid: pid]}
   end
 
   ## Locals

@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp maybe_reload(module) do
     case :code.which(module) do
-      :non_existing ->
+      atom when is_atom(atom) ->
         module
       file ->
         unless Path.extname(file) == ".beam" do

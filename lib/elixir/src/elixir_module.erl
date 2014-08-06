@@ -34,7 +34,7 @@ compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
 
   case ?m(LexEnv, lexical_tracker) of
     nil ->
-      elixir_lexical:run(?m(LexEnv, file), fun(Pid) ->
+      elixir_lexical:run(?m(LexEnv, file), nil, fun(Pid) ->
         do_compile(Line, Module, Block, Vars, LexEnv#{lexical_tracker := Pid})
       end);
     _ ->
@@ -307,8 +307,8 @@ compile_opts(Module) ->
     [] -> []
   end.
 
-load_form(Line, Forms, Opts, #{file := File} = E) ->
-  elixir_compiler:module(Forms, File, Opts, fun(Module, Binary0) ->
+load_form(Line, Forms, Opts, E) ->
+  elixir_compiler:module(Forms, Opts, E, fun(Module, Binary0) ->
     Docs = elixir_compiler:get_opt(docs),
     Binary = add_docs_chunk(Binary0, Module, Line, Docs),
     eval_callbacks(Line, Module, after_compile, [E, Binary], E),
@@ -321,7 +321,7 @@ load_form(Line, Forms, Opts, #{file := File} = E) ->
           undefined -> ok;
           PID ->
             Ref = make_ref(),
-            PID ! {module_available, self(), Ref, File, Module, Binary},
+            PID ! {module_available, self(), Ref, ?m(E, file), Module, Binary},
             receive {Ref, ack} -> ok end
         end;
       _ ->
