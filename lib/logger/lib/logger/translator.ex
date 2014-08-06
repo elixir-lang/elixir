@@ -85,7 +85,7 @@ defmodule Logger.Translator do
     offender = Keyword.fetch!(data, :offender)
     reason = Keyword.fetch!(data, :reason)
     case Keyword.fetch(offender, :pid) do
-      {:ok, pid} when is_pid(pid) ->
+      {:ok, pid} when is_pid(pid) and context !== :shutdown ->
         ["Child ", child_name(offender), " of Supervisor ",
           sup_name(sup), ?\s, sup_context(context), ?\n,
           "Pid: ", inspect(pid), ?\n,
@@ -110,7 +110,7 @@ defmodule Logger.Translator do
     case Keyword.fetch(data, :application) do
       {:ok, app} ->
         node_name = Keyword.fetch!(data, :started_at)
-        ["Application ", inspect(app), " started at " | inspect(node_name)]
+        ["Application ", to_string(app), " started at " | inspect(node_name)]
       :error ->
         translate_sup_progress(min_level, data)
     end
@@ -133,7 +133,7 @@ defmodule Logger.Translator do
 
   defp sup_context(:start_error), do: "failed to start"
   defp sup_context(:child_terminated), do: "terminated"
-  defp sup_context(:shutdown), do: "shutdown"
+  defp sup_context(:shutdown), do: "caused shutdown"
   defp sup_context(:shutdown_error), do: "shutdown abnormally"
 
   defp child_name(offender) do
@@ -214,10 +214,9 @@ defmodule Logger.Translator do
   end
 
   defp crash_debug(:debug, info, prefix) do
-    [{:messages, "Messages"}, {:links, "Links"}, {:dictionary, "Dictionary"},
-      {:trap_exit, "Trapping Exits"}, {:status, "Status"},
-      {:heap_size, "Heap Size"}, {:stack_size, "Stack Size"},
-      {:reductions, "Reductions"}]
+    [messages: "Messages", links: "Links", dictionary: "Dictionary",
+      trap_exit: "Trapping Exits", status: "Status", heap_size: "Heap Size",
+      stack_size: "Stack Size", reductions: "Reductions"]
     |> Enum.reduce([], fn({key, text}, acc) ->
       [acc, prefix, text, ": ", inspect(Keyword.fetch!(info, key)), ?\n]
     end)
