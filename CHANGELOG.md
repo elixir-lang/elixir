@@ -4,8 +4,16 @@
 
 * Enhancements
   * [Inspect] Support `:base` option in `inspect/2` to choose the base (`:binary`, `:octal`, `:decimal` or `:hex`) numbers a printed
+  * [Logger] Add SASL log forwarding option to Logger
+  * [Logger] Add `$padlevel` to option Logger formatter
+  * [Mix] Load mix deps only when there is a need to use them (this improves the timing for the majority of tasks in a Mix project)
 
 * Bug fixes
+  * [Kernel] Modules compiled by Elixir now report the correct beam location when `:code.which/1` is invoked. If the bytecode is only available in memory, `:code.which/1` returns `:in_memory`
+  * [Kernel] Do not expand args for unknown functions/macros
+  * [Logger] Metadata is now correctly merged on each `Logger.metadata/1` call
+  * [Logger] Use the Logger PID on `:error_logger` wrapper to avoid race conditions on shutdown
+  * [Path] Do not normalize paths in `Path.join/2` as normalization is beyond the scope of such function
 
 * Deprecations
 
