@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Escript.Build do
     app          = Keyword.get(escript_opts, :app, project[:app])
     files        = project_files()
 
-    escript_mod = String.to_atom(Atom.to_string(app) <> "-escript-main")
+    escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
     cond do
       !script_name ->
@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Escript.Build do
             Mix.raise "Error creating escript: #{error}"
         end
 
-        Mix.shell.info "Generated escript #{filename}"
+        Mix.shell.info "Generated escript #{filename} with MIX_ENV=#{Mix.env}"
         :ok
       true ->
         :noop
@@ -197,12 +197,12 @@ defmodule Mix.Tasks.Escript.Build do
         @app app
 
         def main(args) do
-          case :application.ensure_all_started(:elixir) do
+          case Application.ensure_all_started(:elixir) do
             {:ok, _} ->
               start_app(@app)
               args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn _ -> @module.main(args) end, true
-            _   ->
+            _ ->
               io_error "Elixir is not available, aborting."
               System.halt(1)
           end
@@ -213,7 +213,7 @@ defmodule Mix.Tasks.Escript.Build do
         end
 
         defp start_app(app) do
-          case :application.ensure_all_started(app) do
+          case Application.ensure_all_started(app) do
             {:ok, _} -> :ok
             {:error, {app, reason}} ->
               io_error "Could not start application #{app}: " <>
@@ -223,7 +223,7 @@ defmodule Mix.Tasks.Escript.Build do
         end
 
         defp io_error(message) do
-           IO.puts :stderr, IO.ANSI.format([:red, :bright, message])
+          IO.puts :stderr, IO.ANSI.format([:red, :bright, message])
         end
       end
 
