@@ -64,67 +64,92 @@ defmodule Logger.Translator do
   end
 
   def translate(min_level, :error, :report, {:supervisor_report, data}) do
-    {:ok, translate_supervisor(min_level, data)}
+    translate_supervisor(min_level, data)
   end
 
   def translate(min_level, :error, :report, {:crash_report, data}) do
-    {:ok, translate_crash(min_level, data)}
+    translate_crash(min_level, data)
   end
 
   def translate(min_level, :info, :report, {:progress, data}) do
-    {:ok, translate_progress(min_level, data)}
+    translate_progress(min_level, data)
   end
 
   def translate(_min_level, _level, _kind, _message) do
     :none
   end
 
-  def translate_supervisor(min_level, data) do
-    sup = Keyword.fetch!(data, :supervisor)
-    context = Keyword.fetch!(data, :errorContext)
-    offender = Keyword.fetch!(data, :offender)
-    reason = Keyword.fetch!(data, :reason)
-    case Keyword.fetch(offender, :pid) do
-      {:ok, pid} when is_pid(pid) and context !== :shutdown ->
-        ["Child ", child_name(offender), " of Supervisor ",
-          sup_name(sup), ?\s, sup_context(context), ?\n,
-          "Pid: ", inspect(pid), ?\n,
-          child_info(min_level, offender), ?\n,
-          "** (exit) " | offender_reason(reason, context)]
-      {:ok, _} ->
-        ["Child ", child_name(offender), " of Supervisor ",
-          sup_name(sup), ?\s, sup_context(context), ?\n,
-          child_info(min_level, offender), ?\n,
-          "** (exit) " | offender_reason(reason, context)]
-      :error ->
-        number = Keyword.fetch!(offender, :nb_children)
-        ["Children ", child_name(offender), " of Supervisor ",
-          sup_name(sup), ?\s, sup_context(context), ?\n,
-          "Number: ", inspect(number), ?\n,
-          child_info(min_level, offender), ?\n,
-          "** (exit) " | offender_reason(reason, context)]
-    end
+  defp translate_supervisor(min_level,
+                           [supervisor: sup, errorContext: context,
+                             reason: reason,
+                             offender: [{:pid, pid}, {:name, name} | offender]])
+                           when is_pid(pid) and context !== :shutdown do
+    {:ok, ["Child ", inspect(name), " of Supervisor ",
+            sup_name(sup), ?\s, sup_context(context), ?\n,
+            "Pid: ", inspect(pid), ?\n,
+            child_info(min_level, offender), ?\n,
+            "** (exit) " | offender_reason(reason, context)]}
   end
 
-  defp translate_progress(min_level, data) do
-    case Keyword.fetch(data, :application) do
-      {:ok, app} ->
-        node_name = Keyword.fetch!(data, :started_at)
-        ["Application ", to_string(app), " started at " | inspect(node_name)]
-      :error ->
-        translate_sup_progress(min_level, data)
-    end
+  defp translate_supervisor(min_level,
+                           [supervisor: sup, errorContext: context,
+                             reason: reason,
+                             offender: [{:pid, _pid},
+                                        {:name, name} | offender]]) do
+    {:ok, ["Child ", inspect(name), " of Supervisor ",
+            sup_name(sup), ?\s, sup_context(context), ?\n,
+            child_info(min_level, offender), ?\n,
+            "** (exit) " | offender_reason(reason, context)]}
   end
 
-  defp translate_sup_progress(min_level, data) do
-    sup = Keyword.fetch!(data, :supervisor)
-    started = Keyword.fetch!(data, :started)
-    pid = Keyword.fetch!(started, :pid)
-    ["Child ", child_name(started), " of Supervisor ",
-      sup_name(sup), " started\n",
-      "Pid: ", inspect(pid), ?\n |
-      child_info(min_level, started)]
+  defp translate_supervisor(min_level,
+                           [supervisor: sup, errorContext: context,
+                             reason: reason,
+                             offender: [{:pid, pid} | offender]]) do
+    {:ok, ["Child of Supervisor ",
+            sup_name(sup), ?\s, sup_context(context), ?\n,
+            "Pid: ", inspect(pid), ?\n,
+            child_info(min_level, offender), ?\n,
+            "** (exit) " | offender_reason(reason, context)]}
   end
+
+  defp translate_supervisor(min_level,
+                           [supervisor: sup, errorContext: context,
+                             reason: reason,
+                             offender: [{:nb_children, n},
+                                        {:name, name} | offender]]) do
+    {:ok, ["Children ", inspect(name), " of Supervisor ",
+            sup_name(sup), ?\s, sup_context(context), ?\n,
+            "Number: ", inspect(n), ?\n,
+            child_info(min_level, offender), ?\n,
+            "** (exit) " | offender_reason(reason, context)]}
+  end
+
+  defp translate_supervisor(_min_level, _other), do: :none
+
+  defp translate_progress(_min_level,
+                          [application: app, started_at: node_name]) do
+    {:ok, ["Application ", to_string(app), " started at " | inspect(node_name)]}
+  end
+
+  defp translate_progress(min_level,
+                          [supervisor: sup,
+                            started: [{:pid, pid}, {:name, name} | started]]) do
+    {:ok, ["Child ", inspect(name), " of Supervisor ",
+            sup_name(sup), " started\n",
+            "Pid: ", inspect(pid), ?\n |
+            child_info(min_level, started)]}
+  end
+
+  defp translate_progress(min_level,
+                          [supervisor: sup,
+                            started: [{:pid, pid} | started]]) do
+    {:ok, ["Child of Supervisor ", sup_name(sup), " started\n",
+            "Pid: ", inspect(pid), ?\n |
+            child_info(min_level, started)]}
+  end
+
+  defp translate_progress(_min_level, _other), do: :none
 
   defp sup_name({:local, name}), do: inspect(name)
   defp sup_name({:global, name}), do: inspect(name)
@@ -136,20 +161,23 @@ defmodule Logger.Translator do
   defp sup_context(:shutdown), do: "caused shutdown"
   defp sup_context(:shutdown_error), do: "shutdown abnormally"
 
-  defp child_name(offender) do
-    inspect(Keyword.fetch!(offender, :name))
-  end
-
-  defp child_info(min_level, child) do
-    {mod, fun, args} = Keyword.fetch!(child, :mfargs)
+  defp child_info(min_level, [{:mfargs, {mod, fun, args}} | debug]) do
     ["Start Call: ", Exception.format_mfa(mod, fun, args) |
-      child_debug(min_level, child)]
+      child_debug(min_level, debug)]
   end
 
-  defp child_debug(:debug, child) do
-    restart = Keyword.fetch!(child, :restart_type)
-    shutdown = Keyword.fetch!(child, :shutdown)
-    type = Keyword.fetch!(child, :child_type)
+  defp child_info(min_level, [{:mfa, {mod, fun, args}} | debug]) do
+    ["Start Call: ", Exception.format_mfa(mod, fun, args) |
+      child_debug(min_level, debug)]
+  end
+
+  defp child_info(min_level, [{:mod, mod} | debug]) do
+    ["Start Module: ", inspect(mod) |
+      child_debug(min_level, debug)]
+  end
+
+  defp child_debug(:debug,
+                   [restart_type: restart, shutdown: shutdown, child_type: type]) do
     [?\n,
       "Restart: ", inspect(restart), ?\n,
       "Shutdown: ", inspect(shutdown), ?\n,
@@ -169,57 +197,76 @@ defmodule Logger.Translator do
     Exception.format_exit(reason)
   end
 
-  defp translate_crash(min_level, [crashed, linked]) do
-    pid = Keyword.fetch!(crashed, :pid)
-    {kind, exception, stack} = Keyword.fetch!(crashed, :error_info)
-    ["Process ", inspect(pid) , " terminating\n",
-      crash_info(min_level, crashed),
-      crash_linked(min_level, linked),
-      Exception.format_banner(kind, exception, stack)]
+  defp translate_crash(min_level,
+                       [[{:initial_call, _} = initial_call,
+                         {:pid, pid},
+                         {:registered_name, name},
+                         {:error_info, {kind, exception, stack}} | crashed],
+                        linked]) do
+    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+            crash_info(min_level, [initial_call | crashed]),
+            crash_linked(min_level, linked) |
+            Exception.format_banner(kind, exception, stack)]}
   end
 
-  defp crash_info(min_level, info, prefix \\ []) do
-    ancestors = Keyword.fetch!(info, :ancestors)
-    [crash_name(info, prefix),
-      prefix, "Initial Call: ", initial_call(info), ?\n,
-      crash_current(info, prefix),
-      prefix, "Ancestors: ", inspect(ancestors), ?\n |
-      crash_debug(min_level, info, prefix)]
+  defp translate_crash(min_level,
+                       [[{:pid, pid},
+                         {:registered_name, name},
+                         {:error_info, {kind, exception, stack}} | crashed],
+                        linked]) do
+    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+            crash_info(min_level, crashed),
+            crash_linked(min_level, linked) |
+            Exception.format_banner(kind, exception, stack)]}
   end
 
-  defp crash_name(info, prefix) do
-    case Keyword.fetch!(info, :registered_name) do
-      [] -> []
-      name -> [prefix, "Name: ", inspect(name), ?\n]
-    end
+  defp crash_name(pid, []), do: inspect(pid)
+  defp crash_name(pid, name), do: [inspect(name), " (", inspect(pid), ?)]
+
+  defp crash_info(min_level, info, prefix \\ [])
+
+  defp crash_info(min_level,
+                  [{:initial_call, {mod, fun, args}} | info], prefix) do
+    [prefix, "Initial Call: ", crash_call(mod, fun, args), ?\n |
+      crash_info(min_level, info, prefix)]
   end
 
-  defp initial_call(info) do
-    case Keyword.fetch!(info, :initial_call) do
-      {mod, fun, arity} when is_integer(arity) ->
-        Exception.format_mfa(mod, fun, arity)
-      {mod, fun, args} ->
-        # args are fake list
-        Exception.format_mfa(mod, fun, length(args))
-    end
+  defp crash_info(min_level,
+                  [{:current_function, {mod, fun, args}} | info], prefix) do
+    [prefix, "Current Call: ", crash_call(mod, fun, args), ?\n |
+      crash_info(min_level, info, prefix)]
   end
 
-  defp crash_current(info, prefix) do
-    case Keyword.fetch(info, :current_function) do
-      {:ok, {mod, fun, arity}} ->
-        [prefix, "Current Call: ", Exception.format_mfa(mod, fun, arity), ?\n]
-      :error ->
-        []
-    end
+  defp crash_info(min_level, [{:current_function, []} | info], prefix) do
+    crash_info(min_level, info, prefix)
   end
 
-  defp crash_debug(:debug, info, prefix) do
-    [messages: "Messages", links: "Links", dictionary: "Dictionary",
-      trap_exit: "Trapping Exits", status: "Status", heap_size: "Heap Size",
-      stack_size: "Stack Size", reductions: "Reductions"]
-    |> Enum.reduce([], fn({key, text}, acc) ->
-      [acc, prefix, text, ": ", inspect(Keyword.fetch!(info, key)), ?\n]
-    end)
+  defp crash_info(min_level,
+                  [{:ancestors, ancestors} | debug], prefix) do
+    [prefix, "Ancestors: ", inspect(ancestors), ?\n |
+      crash_debug(min_level, debug, prefix)]
+  end
+
+  defp crash_call(mod, fun, arity) when is_integer(arity) do
+    Exception.format_mfa(mod, fun, arity)
+  end
+
+  defp crash_call(mod, fun, args) do
+    Exception.format_mfa(mod, fun, length(args))
+  end
+
+  defp crash_debug(:debug,
+                   [messages: msgs, links: links, dictionary: dict,
+                     trap_exit: trap, status: status, heap_size: heap_size,
+                     stack_size: stack_size, reductions: reductions], prefix) do
+    [prefix, "Messages: ", inspect(msgs), ?\n,
+      prefix, "Links: ", inspect(links), ?\n,
+      prefix, "Dictionary: ", inspect(dict), ?\n,
+      prefix, "Trapping Exits: ", inspect(trap), ?\n,
+      prefix, "Status: ", inspect(status), ?\n,
+      prefix, "Heap Size: ", inspect(heap_size), ?\n,
+      prefix, "Stack Size: ", inspect(stack_size), ?\n,
+      prefix, "Reductions: ", inspect(reductions), ?\n]
   end
 
   defp crash_debug(_min_level, _info, _prefix) do
@@ -234,10 +281,17 @@ defmodule Logger.Translator do
     end)
   end
 
-  defp crash_neighbour(min_level, info) do
-    pid = Keyword.fetch!(info, :pid)
+  defp crash_neighbour(min_level,
+                       [{:pid, pid}, {:registered_name, []} | info]) do
     prefix = "    "
     [prefix, inspect(pid), ?\n |
+      crash_info(min_level, info, [prefix | prefix])]
+  end
+
+  defp crash_neighbour(min_level,
+                       [{:pid, pid}, {:registered_name, name} | info]) do
+    prefix = "    "
+    [prefix, inspect(name), " (", inspect(pid), ")\n" |
       crash_info(min_level, info, [prefix | prefix])]
   end
 

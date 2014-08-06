@@ -18,6 +18,19 @@ defmodule Logger.TranslatorTest do
     end
   end
 
+  defmodule MyBridge do
+    @behaviour :supervisor_bridge
+
+    def init(reason) do
+      {:ok, pid} = Task.start_link(Kernel, :exit, [reason])
+      {:ok, pid, pid}
+    end
+
+    def terminate(_reason, pid) do
+      Process.exit(pid, :shutdown)
+    end
+  end
+
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
@@ -136,6 +149,48 @@ defmodule Logger.TranslatorTest do
     """
   end
 
+  test "translates :proc_lib crashes with name" do
+    {:ok, pid} = Task.start_link(__MODULE__, :task,
+                                 [self(), fn() ->
+                                            Process.register(self(), __MODULE__)
+                                            raise "oops"
+                                          end])
+
+    assert capture_log(:info, fn ->
+      ref = Process.monitor(pid)
+      send(pid, :message)
+      send(pid, :go)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ """
+    [error] Process Logger.TranslatorTest (#{inspect pid}) terminating
+    Initial Call: Logger.TranslatorTest.task/2
+    Ancestors: #{inspect [self]}
+    ** (exit) an exception was raised:
+        ** (RuntimeError) oops
+    """
+  end
+
+  test "translates :proc_lib crashes without initial call" do
+    {:ok, pid} = Task.start_link(__MODULE__, :task,
+                                 [self(), fn() ->
+                                            Process.delete(:"$initial_call")
+                                            raise "oops"
+                                          end])
+
+    assert capture_log(:info, fn ->
+      ref = Process.monitor(pid)
+      send(pid, :message)
+      send(pid, :go)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ """
+    [error] Process #{inspect pid} terminating
+    Ancestors: #{inspect [self]}
+    ** (exit) an exception was raised:
+        ** (RuntimeError) oops
+    """
+  end
+
+
   test "translates :proc_lib crashes with neighbour" do
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task, [self()])
 
@@ -148,6 +203,29 @@ defmodule Logger.TranslatorTest do
     Ancestors: \[#PID<\d+\.\d+\.\d+>\]
     Neighbours:
         #PID<\d+\.\d+\.\d+>
+            Initial Call: :timer.sleep/1
+            Current Call: :timer.sleep/1
+            Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
+    \*\* \(exit\).*
+    """
+  end
+
+  test "translates :proc_lib crashes with neighbour with name" do
+    {:ok, pid} = Task.start_link(__MODULE__, :sub_task,
+                                 [self(), fn(pid2) ->
+                                            Process.register(pid2, __MODULE__)
+                                            raise "oops"
+                                          end])
+
+    assert capture_log(:info, fn ->
+      ref = Process.monitor(pid)
+      send(pid, :message)
+      send(pid, :go)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ ~r"""
+    Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+    Neighbours:
+        Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\)
             Initial Call: :timer.sleep/1
             Current Call: :timer.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
@@ -347,15 +425,59 @@ defmodule Logger.TranslatorTest do
     """
   end
 
-  def task(parent) do
-    Process.unlink(parent)
-    receive do: (:go -> raise "oops")
+  test "translates Supervisor reports abnormal shutdown in simple_one_for_one" do
+    assert capture_log(:info, fn ->
+      trap = Process.flag(:trap_exit, true)
+      {:ok, pid} = Supervisor.start_link([worker(__MODULE__, [], [function: :abnormal])],
+        [strategy: :simple_one_for_one])
+      {:ok, _pid2} = Supervisor.start_child(pid, [])
+      Process.exit(pid, :normal)
+      receive do: ({:EXIT, ^pid, _} -> :ok)
+      Process.flag(:trap_exit, trap)
+    end) =~ ~r"""
+    \[error\] Children Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+    Number: 1
+    Start Call: Logger.TranslatorTest.abnormal\(\)
+    \*\* \(exit\) :stop
+    """
   end
 
-  def sub_task(parent) do
+  test "translates :supervisor_bridge progress" do
+    assert capture_log(:info, fn ->
+      trap = Process.flag(:trap_exit, true)
+      {:ok, pid} = :supervisor_bridge.start_link(MyBridge, :normal)
+      receive do: ({:EXIT, ^pid, _} -> :ok)
+      Process.flag(:trap_exit, trap)
+    end) =~ ~r"""
+    \[info\]  Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) started
+    Pid: #PID<\d+\.\d+\.\d+>
+    Start Call: Logger.TranslatorTest.MyBridge.init\(:normal\)
+    """
+  end
+
+  test "translates :supervisor_bridge reports" do
+    assert capture_log(:info, fn ->
+      trap = Process.flag(:trap_exit, true)
+      {:ok, pid} = :supervisor_bridge.start_link(MyBridge, :stop)
+      receive do: ({:EXIT, ^pid, _} -> :ok)
+      Process.flag(:trap_exit, trap)
+    end) =~ ~r"""
+    \[error\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) terminated
+    Pid: #PID<\d+\.\d+\.\d+>
+    Start Module: Logger.TranslatorTest.MyBridge
+    \*\* \(exit\) :stop
+    """
+  end
+
+  def task(parent, fun \\ (fn() -> raise "oops" end)) do
     Process.unlink(parent)
-    {:ok, _} = Task.start_link(:timer, :sleep, [500])
-    receive do: (:go -> raise "oops")
+    receive do: (:go -> fun.())
+  end
+
+  def sub_task(parent, fun \\ (fn(_) -> raise "oops" end)) do
+    Process.unlink(parent)
+    {:ok, pid} = Task.start_link(:timer, :sleep, [500])
+    receive do: (:go -> fun.(pid))
   end
 
   def error(), do: {:error, :stop}
