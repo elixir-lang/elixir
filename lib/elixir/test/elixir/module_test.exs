@@ -54,6 +54,10 @@ defmodule ModuleTest do
     end
   end
 
+  test :in_memory do
+    assert :code.which(__MODULE__) == :in_memory
+  end
+
   ## Eval
 
   test :eval_quoted do

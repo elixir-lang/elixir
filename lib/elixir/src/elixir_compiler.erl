@@ -15,15 +15,19 @@ get_opt(Key) ->
 %% Compilation entry points.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
+  string(Contents, File, nil).
+string(Contents, File, Dest) ->
   Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
-  quoted(Forms, File).
+  quoted(Forms, File, Dest).
 
 quoted(Forms, File) when is_binary(File) ->
+  quoted(Forms, File, nil).
+quoted(Forms, File, Dest) ->
   Previous = get(elixir_compiled),
 
   try
     put(elixir_compiled, []),
-    elixir_lexical:run(File, fun
+    elixir_lexical:run(File, Dest, fun
       (Pid) ->
         Env = elixir:env_for_eval([{line,1},{file,File}]),
         eval_forms(Forms, [], Env#{lexical_tracker := Pid})
@@ -34,14 +38,17 @@ quoted(Forms, File) when is_binary(File) ->
   end.
 
 file(Relative) when is_binary(Relative) ->
+  file(Relative, nil).
+file(Relative, Dest) ->
   File = filename:absname(Relative),
   {ok, Bin} = file:read_file(File),
-  string(elixir_utils:characters_to_list(Bin), File).
+  string(elixir_utils:characters_to_list(Bin), File, Dest).
 
 file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
-  Lists = file(File),
-  _ = [binary_to_path(X, Path) || X <- Lists],
-  Lists.
+  Dest = filename:absname(Path),
+  Comp = file(File, Dest),
+  _ = [binary_to_path(X, Dest) || X <- Comp],
+  Comp.
 
 %% Evaluation
 
@@ -70,7 +77,7 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
   %% process when native is set to true
   AllOpts   = elixir_code_server:call(erl_compiler_options),
   FinalOpts = AllOpts -- [native, warn_missing_spec],
-  module(Form, ?m(E, file), FinalOpts, true, fun(_, Binary) ->
+  inner_module(Form, FinalOpts, true, E, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
@@ -128,27 +135,36 @@ allows_fast_compilation(_) -> false.
 %% Compile the module by forms based on the scope information
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, File, Opts, Callback) ->
+module(Forms, Opts, E, Callback) ->
   Final =
     case (get_opt(debug_info) == true) orelse
          lists:member(debug_info, Opts) of
       true  -> [debug_info] ++ elixir_code_server:call(erl_compiler_options);
       false -> elixir_code_server:call(erl_compiler_options)
     end,
-  module(Forms, File, Final, false, Callback).
+  inner_module(Forms, Final, false, E, Callback).
 
-module(Forms, File, Options, Bootstrap, Callback) when
-    is_binary(File), is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
-  Listname = elixir_utils:characters_to_list(File),
+inner_module(Forms, Options, Bootstrap, #{file := File} = E, Callback) when
+    is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
+  Source = elixir_utils:characters_to_list(File),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
-    {ok, ModuleName, Binary, Warnings} ->
+  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Source}|Options]) of
+    {ok, Module, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
-      {module, ModuleName} = code:load_binary(ModuleName, Listname, Binary),
-      Callback(ModuleName, Binary);
+      {module, Module} = code:load_binary(Module, beam_location(E), Binary),
+      Callback(Module, Binary);
     {error, Errors, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       format_errors(Errors)
+  end.
+
+beam_location(#{module := nil}) -> in_memory;
+beam_location(#{lexical_tracker := Pid, module := Module}) ->
+  case elixir_lexical:dest(Pid) of
+    nil  -> in_memory;
+    Dest ->
+      filename:join(elixir_utils:characters_to_list(Dest),
+                    atom_to_list(Module) ++ ".beam")
   end.
 
 no_auto_import() ->

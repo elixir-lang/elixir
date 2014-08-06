@@ -1,6 +1,6 @@
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
--export([run/2,
+-export([run/3, dest/1,
   record_alias/4, record_alias/2,
   record_import/4, record_import/2,
   record_remote/2, format_error/1
@@ -9,10 +9,10 @@
 
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
-run(File, Callback) ->
+run(File, Dest, Callback) ->
   case code:is_loaded(?tracker) of
     {file, _} ->
-      Pid = ?tracker:start_link(),
+      {ok, Pid} = ?tracker:start_link(Dest),
       try
         Callback(Pid)
       after
@@ -23,6 +23,9 @@ run(File, Callback) ->
     false ->
       Callback(nil)
   end.
+
+dest(nil) -> nil;
+dest(Pid) -> ?tracker:dest(Pid).
 
 %% RECORD
 
