@@ -349,12 +349,20 @@ defimpl String.Chars, for: URI do
       if uri.port == port, do: uri = %{uri | port: nil}
     end
 
+    # Based on http://tools.ietf.org/html/rfc3986#section-5.3
+
+    if uri.host do
+      authority = uri.host
+      if uri.userinfo, do: authority = uri.userinfo <> "@" <> authority
+      if uri.port, do: authority = authority <> ":" <> Integer.to_string(uri.port)
+    else
+      authority = uri.authority
+    end
+
     result = ""
 
-    if uri.scheme,   do: result = result <> uri.scheme <> "://"
-    if uri.userinfo, do: result = result <> uri.userinfo <> "@"
-    if uri.host,     do: result = result <> uri.host
-    if uri.port,     do: result = result <> ":" <> Integer.to_string(uri.port)
+    if uri.scheme,   do: result = result <> uri.scheme <> ":"
+    if authority,    do: result = result <> "//" <> authority
     if uri.path,     do: result = result <> uri.path
     if uri.query,    do: result = result <> "?" <> uri.query
     if uri.fragment, do: result = result <> "#" <> uri.fragment
