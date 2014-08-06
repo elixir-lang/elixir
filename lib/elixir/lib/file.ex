@@ -126,12 +126,12 @@ defmodule File do
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
-                   directories of `path`
+       directories of `path`
     * `:eexist`  - there is already a file or directory named `path`
     * `:enoent`  - a component of `path` does not exist
     * `:enospc`  - there is a no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
-                   on some platforms, `:enoent` is returned instead
+       on some platforms, `:enoent` is returned instead
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
