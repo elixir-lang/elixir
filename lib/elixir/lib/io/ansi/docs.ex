@@ -59,54 +59,61 @@ defmodule IO.ANSI.Docs do
     doc
     |> String.split(["\r\n","\n"], trim: false)
     |> Enum.map(&String.rstrip/1)
-    |> process("", options)
+    |> process([], "", options)
   end
 
-  defp process([], _indent, _options), do: nil
+  defp process([], text, indent, options) do
+    write_text(text, indent, options)
+  end
 
-  defp process(["# " <> heading | rest], _indent, options) do
+  defp process(["# " <> heading | rest], text, indent, options) do
+    write_text(text, indent, options)
     write_h1(String.strip(heading), options)
-    process(rest, "", options)
+    process(rest, [], "", options)
   end
 
-  defp process(["## " <> heading | rest], _indent, options) do
+  defp process(["## " <> heading | rest], text, indent, options) do
+    write_text(text, indent, options)
     write_h2(String.strip(heading), options)
-    process(rest, "", options)
+    process(rest, [], "", options)
   end
 
-  defp process(["### " <> heading | rest], indent, options) do
+  defp process(["### " <> heading | rest], text, indent, options) do
+    write_text(text, indent, options)
     write_h3(String.strip(heading), indent, options)
-    process(rest, indent, options)
+    process(rest, [], "", options)
   end
 
-  defp process(["" | rest], indent, options) do
-    process(rest, indent, options)
+  defp process(["" | rest], text, indent, options) do
+    write_text(text, indent, options)
+    process(rest, [], indent, options)
   end
 
-  defp process(["    " <> line | rest], indent, options) do
+  defp process(["    " <> line | rest], text, indent, options) do
+    write_text(text, indent, options)
     process_code(rest, [line], indent, options)
   end
 
-  defp process(all=[line | rest], indent, options) do
-    {stripped, count} = strip_spaces(line, 0)
-    if is_table_line?(stripped) && length(rest) > 0 && is_table_line?(hd(rest)) do
+  defp process(all=[line | rest], text, indent, options) do
+    {stripped, count} = strip_spaces(line, 0, :infinity)
+    if is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) do
+      write_text(text, indent, options)
       process_table(all, indent, options)
     else
       case stripped do
-        <<bullet, ?\s, item :: binary >> when bullet in @bullets ->
-          process_list(item, rest, count, indent, options)
+        <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
+          write_text(text, indent, options)
+          process_list("• ", item, rest, count, indent, options)
+        <<d1, ?., ?\s, item :: binary>> when d1 in ?0..?9 ->
+          write_text(text, indent, options)
+          process_list(<<d1, ?., ?\s>>, item, rest, count, indent, options)
+        <<d1, d2, ?., ?\s, item :: binary>> when d1 in ?0..?9 and d2 in ?0..?9 ->
+          write_text(text, indent, options)
+          process_list(<<d1, d2, ?., ?\s>>, item, rest, count, indent, options)
         _ ->
-          process_text(rest, [line], indent, false, options)
+          process(rest, [stripped | text], indent, options)
       end
     end
-  end
-
-  defp strip_spaces(" " <> line, acc) do
-    strip_spaces(line, acc + 1)
-  end
-
-  defp strip_spaces(rest, acc) do
-    {rest, acc}
   end
 
   ## Headings
@@ -128,82 +135,70 @@ defmodule IO.ANSI.Docs do
 
   ## Lists
 
-  defp process_list(line, rest, count, indent, options) do
-    IO.write indent <> "• "
-    {contents, rest, done} = process_list_next(rest, count, false, [])
-    process_text(contents, [line], indent <> "  ", true, options)
-    if done, do: IO.puts(IO.ANSI.reset)
-    process(rest, indent, options)
+  defp process_list(entry, line, rest, count, indent, options) do
+    # The first list always win some extra padding
+    if indent == "", do: entry = "  " <> entry
+    new_indent = indent <> String.duplicate(" ", String.length(entry))
+
+    {contents, rest, done} = process_list_next(rest, count, byte_size(new_indent), [])
+    process(contents, [indent <> entry <> line, :no_wrap], new_indent, options)
+
+    if done, do: newline_after_block()
+    process(rest, [], indent, options)
   end
 
-  # Process the thing after a list item entry. It can be either:
-  #
-  # * Continuation of the list
-  # * A nested list
-  # * The end of the list
-  #
-  defp process_list_next([" " <> _ = line | rest], count, _done, acc) do
-    case list_next(line, count) do
-      :done    -> {Enum.reverse(acc), [line|rest], false}
-      chopped  -> process_list_next(rest, count, false, [chopped|acc])
+  defp process_list_next([line | rest], count, max, acc) do
+    {stripped, next_count} = strip_spaces(line, 0, max)
+    case process_list_next_kind(stripped, rest, count, next_count) do
+      :next -> process_list_next(rest, count, max, [stripped | acc])
+      :done -> {Enum.reverse(acc), [line | rest], true}
+      :list -> {Enum.reverse(acc), [line | rest], false}
     end
   end
 
-  defp process_list_next([<<bullet, ?\s, _ :: binary>> | _] = rest, _count, _done, acc) when bullet in @bullets do
-    {Enum.reverse(acc), rest, false}
+  defp process_list_next([], _count, _max, acc) do
+    {Enum.reverse(acc), [], true}
   end
 
-  defp process_list_next(["" | rest], count, _done, acc) do
-    process_list_next(rest, count, true, [""|acc])
-  end
-
-  defp process_list_next(rest, _count, done, acc) do
-    {Enum.reverse(acc), rest, done}
-  end
-
-  defp list_next(<<bullet, ?\s, _ :: binary>>, 0) when bullet in @bullets, do: :done
-  defp list_next(line, 0),          do: chop(line, 2)
-  defp list_next(" " <> line, acc), do: list_next(line, acc - 1)
-  defp list_next(line, _acc),       do: line
-
-  defp chop(" " <> line, acc) when acc > 0, do: chop(line, acc - 1)
-  defp chop(line, _acc), do: line
-
-  ## Text (paragraphs / lists)
-
-  defp process_text(doc=["" | _], para, indent, from_list, options) do
-    write_text(Enum.reverse(para), indent, from_list, options)
-    process(doc, indent, options)
-  end
-
-  defp process_text([], para, indent, from_list, options) do
-    write_text(Enum.reverse(para), indent, from_list, options)
-  end
-
-  defp process_text([line | rest], para, indent, true, options) do
-    {stripped, count} = strip_spaces(line, 0)
-    case stripped do
-      <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
-        write_text(Enum.reverse(para), indent, true, options)
-        process_list(item, rest, count, indent, options)
+  defp process_list_next_kind(stripped, rest, count, next_count) do
+    case {stripped, rest} do
+      {<<bullet, ?\s, _ :: binary>>, _} when bullet in @bullets and next_count <= count ->
+        :list
+      {<<d1, ?., ?\s, _ :: binary>>, _} when d1 in ?0..?9 and next_count <= count ->
+        :list
+      {<<d1, d2, ?., ?\s, _ :: binary>>, _} when d1 in ?0..?9 and d2 in ?0..?9 and next_count <= count ->
+        :list
+      {"", [" " <> _ | _]} ->
+        :next
+      {"", _} ->
+        :done
       _ ->
-        process_text(rest, [line | para], indent, true, options)
+        :next
     end
   end
 
-  defp process_text([line | rest], para, indent, from_list, options) do
-    process_text(rest, [line | para], indent, from_list, options)
+  ## Text
+
+  defp write_text(text, indent, options) do
+    case Enum.reverse(text) do
+      [:no_wrap|rest] -> write_text(rest, indent, options, true)
+      rest -> write_text(rest, indent, options, false)
+    end
   end
 
-  defp write_text(lines, indent, from_list, options) do
+  defp write_text([], _indent, _options, _no_wrap) do
+    :ok
+  end
+
+  defp write_text(lines, indent, options, no_wrap) do
     lines
     |> Enum.join(" ")
     |> handle_links
     |> handle_inline(nil, [], [], options)
     |> String.split(~r{\s})
-    |> write_with_wrap(options[:width] - byte_size(indent), indent, from_list)
+    |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap)
 
-    unless from_list, do: newline_after_block
+    unless no_wrap, do: newline_after_block()
   end
 
   ## Code blocks
@@ -213,17 +208,17 @@ defmodule IO.ANSI.Docs do
   end
 
   # Blank line between code blocks
-  defp process_code([ "", "    " <> line | rest ], code, indent, options) do
+  defp process_code(["", "    " <> line | rest], code, indent, options) do
     process_code(rest, [line, "" | code], indent, options)
   end
 
-  defp process_code([ "    " <> line | rest ], code, indent, options) do
+  defp process_code(["    " <> line | rest], code, indent, options) do
     process_code(rest, [line|code], indent, options)
   end
 
   defp process_code(rest, code, indent, options) do
     write_code(code, indent, options)
-    process(rest, indent, options)
+    process(rest, [], indent, options)
   end
 
   defp write_code(code, indent, options) do
@@ -237,7 +232,7 @@ defmodule IO.ANSI.Docs do
     {table, rest} = Enum.split_while(lines, &is_table_line?/1)
     table_lines(table, options)
     newline_after_block
-    process(rest, indent, options)
+    process(rest, [], indent, options)
   end
 
   defp table_lines(lines, options) do
@@ -268,12 +263,7 @@ defmodule IO.ANSI.Docs do
           |> String.replace(~r/\\ \|/x, "|")
           |> handle_links
           |> handle_inline(nil, [], [], options)
-
-    len = col
-          |> String.replace(~r/\e\[\d+m/, "")
-          |> String.length
-
-    {col, len}
+    {col, length_without_escape(col, 0)}
   end
 
   defp pad_to_number_of_columns(cols, col_count),
@@ -319,15 +309,20 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  ## Helpers
-
-  @table_line_re ~r'''
+  defp is_table_line?(line) do
+    Regex.match?(~r'''
       ( ^ \s{0,3} \| (?: [^|]+ \|)+ \s* $ )
     |
       (\s \| \s)
-  '''x
+    '''x, line)
+  end
 
-  defp is_table_line?(line), do: Regex.match?(@table_line_re, line)
+  ## Helpers
+
+  defp strip_spaces(" " <> line, acc, max) when acc < max,
+    do: strip_spaces(line, acc + 1, max)
+  defp strip_spaces(rest, acc, _max),
+    do: {rest, acc}
 
   defp write(style, string, options) do
     IO.puts [color(style, options), string, IO.ANSI.reset]
@@ -375,7 +370,7 @@ defmodule IO.ANSI.Docs do
 
   defp length_without_escape(rest, count) do
     case String.next_grapheme(rest) do
-      {_, rest}  -> length_without_escape(rest, count + 1)
+      {_, rest} -> length_without_escape(rest, count + 1)
       nil -> count
     end
   end
@@ -388,10 +383,8 @@ defmodule IO.ANSI.Docs do
 
   defp escape_underlines_in_link(text) do
     case Regex.match?(~r{.*(https?\S*)}, text) do
-      true ->
-        Regex.replace(~r{_}, text, "\\\\_")
-      _ ->
-        text
+      true -> Regex.replace(~r{_}, text, "\\\\_")
+      _    -> text
     end
   end
 

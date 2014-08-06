@@ -5,11 +5,11 @@ defmodule IO.ANSI.DocsTest do
   import ExUnit.CaptureIO
 
   def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.strip
+    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.rstrip
   end
 
   def format(str) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.strip
+    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.rstrip
   end
 
   test "heading is formatted" do
@@ -41,52 +41,47 @@ defmodule IO.ANSI.DocsTest do
 
   test "* list is converted" do
     result = format("* one\n* two\n* three\n")
-    assert result == "• one\n• two\n• three\n\e[0m"
+    assert result == "  • one\n  • two\n  • three\n\e[0m"
   end
 
   test "* list surrounded by text is converted" do
     result = format("Count:\n\n* one\n* two\n* three\n\nDone")
-    assert result == "Count:\n\e[0m\n• one\n• two\n• three\n\e[0m\nDone\n\e[0m"
+    assert result == "Count:\n\e[0m\n  • one\n  • two\n  • three\n\e[0m\nDone\n\e[0m"
   end
 
   test "* list with continuation is converted" do
-    result = format("* one\n  two\n  three\n* four")
-    assert result == "• one two three\n• four"
+    result = format("* one\ntwo\n\n    three\nfour\n* five")
+    assert result == "  • one two\n    three four\n\e[0m\n  • five\n\e[0m"
   end
 
   test "* nested lists are converted" do
     result = format("* one\n  * one.one\n  * one.two\n* two")
-    assert result == "• one\n  • one.one\n  • one.two\n• two"
+    assert result == "  • one\n    • one.one\n    • one.two\n\e[0m\n  • two\n\e[0m"
   end
 
   test "* lists with spaces are converted" do
     result = format("  * one\n  * two\n  * three")
-    assert result == "• one\n• two\n• three"
+    assert result == "  • one\n  • two\n  • three\n\e[0m"
+  end
+
+  test "* lists with code" do
+    result = format("  * one\n        two three")
+    assert result == "  • one\n\e[36m\e[1m    ┃ two three\e[0m\n\e[0m\n\e[0m"
   end
 
   test "- list is converted" do
     result = format("- one\n- two\n- three\n")
-    assert result == "• one\n• two\n• three\n\e[0m"
-  end
-
-  test "- list surrounded by text is converted" do
-    result = format("Count:\n\n- one\n- two\n- three\n\nDone")
-    assert result == "Count:\n\e[0m\n• one\n• two\n• three\n\e[0m\nDone\n\e[0m"
-  end
-
-  test "- list with continuation is converted" do
-    result = format("- one\n  two\n  three\n- four")
-    assert result == "• one two three\n• four"
+    assert result == "  • one\n  • two\n  • three\n\e[0m"
   end
 
   test "+ list is converted" do
     result = format("+ one\n+ two\n+ three\n")
-    assert result == "• one\n• two\n• three\n\e[0m"
+    assert result == "  • one\n  • two\n  • three\n\e[0m"
   end
 
   test "+ and - nested lists are converted" do
     result = format("- one\n  + one.one\n  + one.two\n- two")
-    assert result == "• one\n  • one.one\n  • one.two\n• two"
+    assert result == "  • one\n    • one.one\n    • one.two\n\e[0m\n  • two\n\e[0m"
   end
 
   test "paragraphs are split" do
@@ -101,7 +96,7 @@ defmodule IO.ANSI.DocsTest do
 
   test "extra whitespace doesn't mess up a following list" do
     result = format("para1\n   \n* one\n* two")
-    assert result == "para1\n\e[0m\n• one\n• two"
+    assert result == "para1\n\e[0m\n  • one\n  • two\n\e[0m"
   end
 
   test "star/underscore/backtick works" do
