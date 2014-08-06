@@ -47,11 +47,11 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript escriptest"]}
+      assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escriptest"]) == {"TEST\n", 0}
 
       Mix.Tasks.Escript.Build.run []
-      refute_received {:mix_shell, :info, ["Generated escript escriptest"]}
+      refute_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
     end
   end
 
@@ -60,7 +60,7 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithpath"]}
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithpath with MIX_ENV=dev"]}
       assert System.cmd("escript", ["ebin/escripttestwithpath"]) == {"TEST\n", 0}
     end
   end
@@ -70,7 +70,7 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps"]}
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps with MIX_ENV=dev"]}
       assert System.cmd("escript", ["ebin/escripttestwithdeps"]) == {"TEST\n", 0}
     end
   after
