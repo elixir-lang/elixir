@@ -44,6 +44,20 @@ defmodule LoggerTest do
            {:error, {:already_started, pid}}
   end
 
+  test "add_backend/1 with {module, id}" do
+    defmodule MyBackend do
+      use GenEvent
+
+      def init({MyBackend, :hello}) do
+        {:ok, :hello}
+      end
+    end
+
+    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
+    assert {:error, {:already_started, _}} = Logger.add_backend({MyBackend, :hello})
+    assert :ok = Logger.remove_backend({MyBackend, :hello})
+  end
+
   test "level/0" do
     assert Logger.level == :debug
   end

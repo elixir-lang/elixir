@@ -237,7 +237,7 @@ defmodule Logger do
 
     handlers =
       for backend <- Application.get_env(:logger, :backends) do
-        {Logger, translate_backend(backend), []}
+        {Logger, translate_backend(backend), backend}
       end
 
     options  = [strategy: :rest_for_one, name: Logger.Supervisor]
@@ -355,7 +355,7 @@ defmodule Logger do
   """
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
-    Logger.Watcher.watch(Logger, translate_backend(backend), [])
+    Logger.Watcher.watch(Logger, translate_backend(backend), backend)
   end
 
   @doc """
