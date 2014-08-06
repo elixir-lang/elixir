@@ -92,5 +92,8 @@ defmodule Logger.UtilsTest do
   test "format_time" do
     time = {12, 30, 10, 1}
     assert format_time(time) == ["12", ?:, "30", ?:, "10", ?., [?0, ?0, "1"]]
+
+    time = {12, 30, 10, 10}
+    assert format_time(time) == ["12", ?:, "30", ?:, "10", ?., [?0, "10"]]
   end
 end
