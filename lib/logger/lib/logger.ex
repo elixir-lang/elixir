@@ -93,6 +93,11 @@ defmodule Logger do
       they are formatted in Elixir terms. This uninstalls Erlang's
       logger that prints terms to terminal.
 
+    * `:handle_sasl_reports` - redirects supervisor, crash and
+      progress reports to Logger so they are formatted in Elixir
+      terms. This uninstalls `sasl`'s logger that prints these
+      reports to the terminal.
+
     * `:discard_threshold_for_error_logger` - a value that, when
       reached, triggers the error logger to discard messages. This
       value must be a positive number that represents the maximum
@@ -226,8 +231,9 @@ defmodule Logger do
   def start(_type, _args) do
     import Supervisor.Spec
 
-    otp_reports? = Application.get_env(:logger, :handle_otp_reports)
-    threshold    = Application.get_env(:logger, :discard_threshold_for_error_logger)
+    otp_reports?  = Application.get_env(:logger, :handle_otp_reports)
+    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
+    threshold     = Application.get_env(:logger, :discard_threshold_for_error_logger)
 
     handlers =
       for backend <- Application.get_env(:logger, :backends) do
@@ -240,12 +246,14 @@ defmodule Logger do
                   [id: Logger.Config, function: :watcher]),
                 supervisor(Logger.Watcher, [handlers]),
                 worker(Logger.Watcher,
-                  [:error_logger, Logger.ErrorHandler, {otp_reports?, threshold}],
+                  [:error_logger, Logger.ErrorHandler,
+                    {otp_reports?, sasl_reports?, threshold}],
                   [id: Logger.ErrorHandler, function: :watcher])]
 
     case Supervisor.start_link(children, options) do
       {:ok, _} = ok ->
         deleted = delete_error_logger_handler(otp_reports?, :error_logger_tty_h, [])
+        deleted = delete_error_logger_handler(sasl_reports?, :sasl_report_tty_h, deleted)
         store_deleted_handlers(deleted)
         ok
       {:error, _} = error ->
