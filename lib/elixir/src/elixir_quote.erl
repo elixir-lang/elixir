@@ -242,6 +242,15 @@ do_quote({Left, Right}, Q, E) ->
   {TRight, RQ} = do_quote(Right, LQ, E),
   {{TLeft, TRight}, RQ};
 
+do_quote(BitString, #elixir_quote{escape=true} = Q, E) when is_bitstring(BitString) ->
+  case bit_size(BitString) rem 8 of
+    0 ->
+      {BitString, Q};
+    Size ->
+      <<Bits:Size, Bytes/binary>> = BitString,
+      {{'<<>>', [], [{'::', [], [Bits, Size]}, Bytes]}, Q}
+  end;
+
 do_quote(Map, #elixir_quote{escape=true} = Q, E) when is_map(Map) ->
   {TT, TQ} = do_quote(maps:to_list(Map), Q, E),
   {{'%{}', [], TT}, TQ};
@@ -259,6 +268,7 @@ do_quote(List, #elixir_quote{escape=true} = Q, E) when is_list(List) ->
       {TR, QR} = do_quote(R, QL, E),
       {update_last(TL, fun(X) -> {'|', [], [X, TR]} end), QR}
   end;
+
 do_quote(List, Q, E) when is_list(List) ->
     do_splice(lists:reverse(List), Q, E);
 

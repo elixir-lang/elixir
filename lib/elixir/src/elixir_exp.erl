@@ -354,7 +354,7 @@ expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
 
 expand({_, _, _} = Tuple, E) ->
   compile_error([{line,0}], ?m(E, file), "invalid quoted expression: ~ts",
-    ['Elixir.Kernel':inspect(Tuple, [{records,false}])]);
+    ['Elixir.Kernel':inspect(Tuple, [])]);
 
 %% Literals
 

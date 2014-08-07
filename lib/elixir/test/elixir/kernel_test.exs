@@ -89,6 +89,12 @@ defmodule KernelTest do
     assert case_in(-3, -1..-3) == true
   end
 
+  @bitstring <<"foo", 16::4>>
+
+  test "bitstring attribute" do
+    assert @bitstring == <<"foo", 16::4>>
+  end
+
   test "paren as nil" do
     assert nil?(()) == true
     assert ((); ();) == nil

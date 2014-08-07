@@ -42,6 +42,10 @@ defmodule MacroTest do
     assert {:%{}, [], [a: 1]} = Macro.escape(%{a: 1})
   end
 
+  test :escape_handles_bitstring do
+    assert {:<<>>, [], [{:::, [], [1, 4]}, ","]} == Macro.escape(<<300::12>>)
+  end
+
   test :escape_works_recursively do
     assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, {:a, :b, :c}, 3])
   end
@@ -443,6 +447,30 @@ defmodule MacroTest do
 
     assert Macro.to_string(quote(do: Bar.foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
            "::Bar:.foo(:1:, :2:, :3:):"
+  end
+
+  ## validate
+
+  test :validate do
+    ref = make_ref()
+
+    assert Macro.validate(1) == :ok
+    assert Macro.validate(1.0) == :ok
+    assert Macro.validate(:foo) == :ok
+    assert Macro.validate("bar") == :ok
+    assert Macro.validate(self()) == :ok
+    assert Macro.validate({1, 2}) == :ok
+    assert Macro.validate({:foo, [], :baz}) == :ok
+    assert Macro.validate({:foo, [], []}) == :ok
+    assert Macro.validate([1, 2, 3]) == :ok
+
+    assert Macro.validate(<<0::4>>) == {:error, <<0::4>>}
+    assert Macro.validate(ref) == {:error, ref}
+    assert Macro.validate({1, ref}) == {:error, ref}
+    assert Macro.validate({ref, 2}) == {:error, ref}
+    assert Macro.validate([1, ref, 3]) == {:error, ref}
+    assert Macro.validate({:foo, [], 0}) == {:error, {:foo, [], 0}}
+    assert Macro.validate({:foo, 0, []}) == {:error, {:foo, 0, []}}
   end
 
   ## decompose_call

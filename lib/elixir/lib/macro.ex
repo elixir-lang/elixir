@@ -305,6 +305,40 @@ defmodule Macro do
     elem(:elixir_quote.escape(expr, Keyword.get(opts, :unquote, false)), 0)
   end
 
+  @doc """
+  Validates the given expressions are valid quoted expressions.
+
+  Check the `type:Macro.t` for the specification of a valid
+  quoted expression.
+  """
+  @spec validate(term) :: :ok | {:error, term}
+  def validate(expr) do
+    find_invalid(expr) || :ok
+  end
+
+  defp find_invalid({left, right}), do:
+    find_invalid(left) || find_invalid(right)
+
+  defp find_invalid({left, meta, right}) when is_list(meta) and (is_atom(right) or is_list(right)), do:
+    find_invalid(left) || find_invalid(right)
+
+  defp find_invalid(list) when is_list(list), do:
+    Enum.find_value(list, &find_invalid/1)
+
+  defp find_invalid(pid)  when is_pid(pid),    do: nil
+  defp find_invalid(atom) when is_atom(atom),  do: nil
+  defp find_invalid(num)  when is_number(num), do: nil
+  defp find_invalid(bin)  when is_binary(bin), do: nil
+
+  defp find_invalid(fun) when is_function(fun) do
+    unless :erlang.fun_info(fun, :env) == {:env, []} and
+           :erlang.fun_info(fun, :type) == {:type, :external} do
+      {:error, fun}
+    end
+  end
+
+  defp find_invalid(other), do: {:error, other}
+
   @doc ~S"""
   Unescape the given chars.
 
