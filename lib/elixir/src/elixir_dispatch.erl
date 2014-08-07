@@ -522,5 +522,7 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
+deprecation('Elixir.Module', 'function', 3) ->
+  "use :erlang.make_fun/3";
 deprecation(_, _, _) ->
   false.
