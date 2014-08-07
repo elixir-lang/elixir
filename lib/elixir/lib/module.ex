@@ -476,15 +476,7 @@ defmodule Module do
     :elixir_aliases.safe_concat([left, right])
   end
 
-  @doc """
-  Gets an anonymous function from the given module, function
-  and arity. The module and function are not verified to exist.
-
-      iex> fun = Module.function(Kernel, :is_atom, 1)
-      iex> fun.(:hello)
-      true
-
-  """
+  @doc false
   def function(mod, fun, arity) do
     :erlang.make_fun(mod, fun, arity)
   end

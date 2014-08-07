@@ -16,6 +16,7 @@
   * [Path] Do not normalize paths in `Path.join/2` as normalization is beyond the scope of such function
 
 * Deprecations
+  * [Module] `Module.function/3` is deprecated, please use `:erlang.make_fun/3` instead
 
 * Backwards incompatible changes
 

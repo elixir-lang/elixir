@@ -81,7 +81,7 @@ defmodule Logger.Formatter do
   """
 
   def format({mod, fun}, level, msg, ts, md) do
-    Module.function(mod, fun, 4).(level, msg, ts, md)
+    apply(mod, fun, [level, msg, ts, md])
   end
 
   def format(config, level, msg, ts, md) do
