@@ -80,7 +80,12 @@ done
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-if [ "$MODE" != "iex" ]; then ERL="$ERL -noshell -s elixir start_cli"; fi
+
+if [ "$(uname -o)" = "Cygwin" ]; then
+  ERL="-noshell -s elixir start_cli $ERL"
+else
+  if [ "$MODE" != "iex" ]; then ERL="$ERL -noshell -s elixir start_cli"; fi
+fi
 
 if [ -z "$ERL_PATH" ]; then
   if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]; then
