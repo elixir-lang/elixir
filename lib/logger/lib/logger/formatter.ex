@@ -20,7 +20,7 @@ defmodule Logger.Formatter do
     * `$message`  - the log message
     * `$level`    - the log level
     * `$node`     - the node that prints the message
-    * `$metadata` - user controled data presented in "key=val key2=val2" format
+    * `$metadata` - user controlled data presented in `"key=val key2=val2"` format
     * `$levelpad` - set to a single space if level is 4 characters long,
       otherwise set to the empty space. Used to align the message after level.
 
@@ -36,7 +36,7 @@ defmodule Logger.Formatter do
   the `Logger.metadata/0` and `Logger.metadata/1` functions. For example,
   you can set `Logger.metadata([user_id: 13])` to add user_id metadata
   to the current process. The user can configure the backend to chose
-  which metadata it wants to print and it will replace the $metadata
+  which metadata it wants to print and it will replace the `$metadata`
   value.
   """
 
@@ -47,10 +47,10 @@ defmodule Logger.Formatter do
   Compiles a format string into an array that the `format/5` can handle.
 
   Check the module doc for documentation on the valid parameters. If you
-  pass nil, it defaults to: `$time $metadata [$level] $levelpad$message\n`
+  pass `nil`, it defaults to: `$time $metadata [$level] $levelpad$message\n`
 
   If you would like to make your own custom formatter simply pass
-  `{module, function}` to compile and the rest is handled.
+  `{module, function}` to `compile/1` and the rest is handled.
 
       iex> Logger.Formatter.compile("$time $metadata [$level] $message\n")
       [:time, " ", :metadata, " [", :level, "] ", :message, "\n"]

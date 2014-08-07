@@ -3,12 +3,12 @@ defmodule Logger.Translator do
   Default translation for Erlang log messages.
 
   Logger allows developers to rewrite log messages provided by
-  Erlang applications into a format more compatible to Elixir
-  log messages by providing translator.
+  Erlang applications into a format more compatible with Elixir
+  log messages by providing a translator.
 
   A translator is simply a tuple containing a module and a function
-  that can be added and removed via the `add_translator/1` and
-  `remove_translator/1` functions and is invoked for every Erlang
+  that can be added and removed via the `Logger.add_translator/1` and
+  `Logger.remove_translator/1` functions and is invoked for every Erlang
   message above the minimum log level with four arguments:
 
     * `min_level` - the current Logger level

@@ -14,11 +14,11 @@ defmodule Logger do
     * Formats and truncates messages on the client
       to avoid clogging logger backends.
 
-    * Alternates between sync and async modes to keep
-      it performant when required but also apply back-
-      pressure when under stress.
+    * Alternates between sync and async modes to remain
+      performant when required but also apply back-pressure 
+      when under stress.
 
-    * Wraps OTP's error_logger to avoid it from
+    * Wraps OTP's `error_logger` to prevent it from
       overflowing.
 
   ## Levels
@@ -32,7 +32,7 @@ defmodule Logger do
 
   ## Configuration
 
-  Logger supports a wide range of configuration.
+  Logger supports a wide range of configurations.
 
   This configuration is split in three categories:
 
@@ -40,10 +40,10 @@ defmodule Logger do
       application is started
 
     * Runtime configuration - can be set before the logger
-      application is started but changed during runtime
+      application is started, but may be changed during runtime
 
     * Error logger configuration - configuration for the
-      wrapper around OTP's error_logger
+      wrapper around OTP's `error_logger`
 
   ### Application configuration
 
@@ -55,38 +55,38 @@ defmodule Logger do
 
     * `:compile_time_purge_level` - purge all calls that have log level
       lower than the configured value at compilation time. This means the
-      Logger call will be completely removed at compile time, occuring
-      no overhead at runtime. By default, defaults to `:debug` and only
+      Logger call will be completely removed at compile time, accruing
+      no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug`, `Logger.info`, etc style of calls.
 
   ### Runtime Configuration
 
-  All configuration below can be set via the config files but also
+  All configuration below can be set via config files but also
   changed dynamically during runtime via `Logger.configure/1`.
 
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
-      may have its specific level too.
+      may have its specific level, too.
 
-    * `:utc_log` - when true, uses UTC in logs. By default it uses
-      local time (i.e. it defaults to false).
+    * `:utc_log` - when `true`, uses UTC in logs. By default it uses
+      local time (i.e. it defaults to `false`).
 
     * `:truncate` - the maximum message size to be logged. Defaults
       to 8192 bytes. Note this configuration is approximate. Truncated
-      messages will have " (truncated)" at the end.
+      messages will have `" (truncated)"` at the end.
 
     * `:sync_threshold` - if the logger manager has more than
-      `sync_threshold` messages in its queue, logger will change
+      `sync_threshold` messages in its queue, Logger will change
       to sync mode, to apply back-pressure to the clients.
-      Logger will return to sync mode once the number of messages
-      in the queue reduce to `sync_threshold * 0.75` messages.
+      Logger will return to async mode once the number of messages
+      in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
   ### Error logger configuration
 
   The following configuration applies to the Logger wrapper around
-  Erlang's error_logger. All the configurations below must be set
+  Erlang's `error_logger`. All the configurations below must be set
   before the logger application starts.
 
     * `:handle_otp_reports` - redirects OTP reports to Logger so
@@ -102,11 +102,11 @@ defmodule Logger do
       reached, triggers the error logger to discard messages. This
       value must be a positive number that represents the maximum
       number of messages accepted per second. Once above this
-      threshold, the error_logger enters in discard mode for the
-      remaining of that second. Defaults to 500 messages.
+      threshold, the `error_logger` enters discard mode for the
+      remainder of that second. Defaults to 500 messages.
 
   Furthermore, Logger allows messages sent by Erlang's `error_logger`
-  to be translated into an Elixir format via translators. Translator
+  to be translated into an Elixir format via translators. Translators
   can be dynamically added at any time with the `add_translator/1`
   and `remove_translator/1` APIs. Check `Logger.Translator` for more
   information.
@@ -135,11 +135,11 @@ defmodule Logger do
   following options:
 
     * `:level` - the level to be logged by this backend.
-      Note though messages are first filtered by the general
+      Note that messages are first filtered by the general
       `:level` configuration in `:logger`
 
     * `:format` - the format message used to print logs.
-      Defaults to: "$time $metadata[$level] $levelpad$message\n"
+      Defaults to: `"$time $metadata[$level] $levelpad$message\n"`
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata)
@@ -161,7 +161,7 @@ defmodule Logger do
 
   See the `IO.ANSI` module for a list of colors and attributes.
 
-  Here is an example on how to configure the `:console` in a
+  Here is an example of how to configure the `:console` backend in a
   `config/config.exs` file:
 
       config :logger, :console,
@@ -181,11 +181,11 @@ defmodule Logger do
   to your custom backend, as we head into implementation details.
 
   Once Logger starts, it installs all event handlers under
-  the `:backends` configuration into Logger event manager.
+  the `:backends` configuration into the Logger event manager.
   The event manager and all added event handlers are
   automatically supervised by Logger.
 
-  Once initialized, the handler should be able to handle events
+  Once initialized, the handler should be designed to handle events
   in the following format:
 
       {level, group_leader,
@@ -214,9 +214,9 @@ defmodule Logger do
   It is recommended that backends support at least the following
   configuration values:
 
-    * level - the logging level for that backend
-    * format - the logging format for that backend
-    * metadata - the metadata to include the backend
+    * `level` - the logging level for that backend
+    * `format` - the logging format for that backend
+    * `metadata` - the metadata to include the backend
 
   Check the implementation for `Logger.Backends.Console` for
   examples on how to handle the recommendations in this section
@@ -317,7 +317,7 @@ defmodule Logger do
   @doc """
   Compare log levels.
 
-  Receives to log levels and compares the `left`
+  Receives two log levels and compares the `left`
   against `right` and returns `:lt`, `:eq` or `:gt`.
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
@@ -393,7 +393,7 @@ defmodule Logger do
   @doc """
   Logs a message.
 
-  Developers should rather use the macros `Logger.debug/2`,
+  Developers should use the macros `Logger.debug/2`,
   `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
   of this function as they automatically include caller metadata
   and can eliminate the Logger call altogether at compile time if
@@ -422,7 +422,7 @@ defmodule Logger do
 
   ## Examples
 
-      Logger.warn "knob turned too much to the right"
+      Logger.warn "knob turned too far to the right"
       Logger.warn fn -> "expensive to calculate warning" end
 
   """
