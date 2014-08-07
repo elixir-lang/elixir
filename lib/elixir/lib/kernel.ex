@@ -2013,7 +2013,7 @@ defmodule Kernel do
   defp do_at([arg], name, function?, env) do
     case function? do
       true ->
-        raise ArgumentError, "cannot dynamically set attribute @#{name} inside function"
+        raise ArgumentError, "cannot set attribute @#{name} inside function/macro"
       false ->
         case name do
           :behavior ->
@@ -2034,7 +2034,14 @@ defmodule Kernel do
     case function? do
       true ->
         attr = Module.get_attribute(env.module, name, stack)
-        :erlang.element(1, :elixir_quote.escape(attr, false))
+        try do
+          :elixir_quote.escape(attr, false)
+        rescue
+          e in [ArgumentError] ->
+            raise ArgumentError, "cannot inject attribute @#{name} into function/macro because " <> Exception.message(e)
+        else
+          {val, _} -> val
+        end
       false ->
         escaped = case stack do
           [] -> []
@@ -2901,31 +2908,35 @@ defmodule Kernel do
   structure is public should use `@type`.
   """
   defmacro defstruct(fields) do
-    fields =
-      quote bind_quoted: [fields: fields] do
-        fields = :lists.map(fn
-          {key, _} = pair when is_atom(key) -> pair
-          key when is_atom(key) -> {key, nil}
-          other -> raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
-        end, fields)
+    quote bind_quoted: [fields: fields] do
+      fields = :lists.map(fn
+        {key, val} when is_atom(key) ->
+          try do
+            Macro.escape(val)
+          rescue
+            e in [ArgumentError] ->
+              raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
+          else
+            _ -> {key, val}
+          end
+        key when is_atom(key) ->
+          {key, nil}
+        other ->
+          raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
+      end, fields)
 
-        @struct :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
+      @struct :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
 
-        case Module.get_attribute(__MODULE__, :derive) do
-          [] ->
-            :ok
-          derive ->
-            Protocol.__derive__(derive, __MODULE__, __ENV__)
-        end
-
-        @spec __struct__() :: %__MODULE__{}
-        def __struct__() do
-          @struct
-        end
+      case Module.get_attribute(__MODULE__, :derive) do
+        [] -> :ok
+        derive -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
-    quote do
-      unquote(fields)
+      @spec __struct__() :: %__MODULE__{}
+      def __struct__() do
+        @struct
+      end
+
       fields
     end
   end

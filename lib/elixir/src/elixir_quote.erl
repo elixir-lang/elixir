@@ -242,7 +242,7 @@ do_quote({Left, Right}, Q, E) ->
   {TRight, RQ} = do_quote(Right, LQ, E),
   {{TLeft, TRight}, RQ};
 
-do_quote(BitString, #elixir_quote{escape=true} = Q, E) when is_bitstring(BitString) ->
+do_quote(BitString, #elixir_quote{escape=true} = Q, _) when is_bitstring(BitString) ->
   case bit_size(BitString) rem 8 of
     0 ->
       {BitString, Q};
@@ -260,7 +260,7 @@ do_quote(Tuple, #elixir_quote{escape=true} = Q, E) when is_tuple(Tuple) ->
   {{'{}', [], TT}, TQ};
 
 do_quote(List, #elixir_quote{escape=true} = Q, E) when is_list(List) ->
-  % The improper case is pretty inefficient, but improper lists are are.
+  %% The improper case is a bit inefficient, but improper lists are rare.
   case reverse_improper(List) of
     {L}       -> do_splice(L, Q, E);
     {L, R}    ->
@@ -269,13 +269,33 @@ do_quote(List, #elixir_quote{escape=true} = Q, E) when is_list(List) ->
       {update_last(TL, fun(X) -> {'|', [], [X, TR]} end), QR}
   end;
 
+do_quote(Other, #elixir_quote{escape=true} = Q, _)
+    when is_number(Other); is_pid(Other); is_atom(Other) ->
+  {Other, Q};
+
+do_quote(Fun, #elixir_quote{escape=true} = Q, _) when is_function(Fun) ->
+  case (erlang:fun_info(Fun, env) == {env, []}) andalso
+       (erlang:fun_info(Fun, type) == {type, external}) of
+    true  -> {Fun, Q};
+    false -> bad_escape(Fun)
+  end;
+
+do_quote(Other, #elixir_quote{escape=true}, _) ->
+  bad_escape(Other);
+
 do_quote(List, Q, E) when is_list(List) ->
-    do_splice(lists:reverse(List), Q, E);
+  do_splice(lists:reverse(List), Q, E);
 
 do_quote(Other, Q, _) ->
   {Other, Q}.
 
 %% Quote helpers
+
+bad_escape(Arg) ->
+  Msg = <<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
+          "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
+          "pids and remote functions in the format &Mod.fun/arity">>,
+  error('Elixir.ArgumentError':exception([{message,Msg}])).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
   All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args,

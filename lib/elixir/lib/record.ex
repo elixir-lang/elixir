@@ -160,7 +160,7 @@ defmodule Record do
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape Record.__fields__(:defrecord, kv)
+      fields = Record.__fields__(:defrecord, kv)
 
       defmacro(unquote(name)(args \\ [])) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -178,7 +178,7 @@ defmodule Record do
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape Record.__fields__(:defrecordp, kv)
+      fields = Record.__fields__(:defrecordp, kv)
 
       defmacrop(unquote(name)(args \\ [])) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -194,9 +194,19 @@ defmodule Record do
   @doc false
   def __fields__(type, fields) do
     :lists.map(fn
-      { key, _ } = pair when is_atom(key) -> pair
-      key when is_atom(key) -> { key, nil }
-      other -> raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
+      {key, val} when is_atom(key) ->
+        try do
+          Macro.escape(val)
+        rescue
+          e in [ArgumentError] ->
+            raise ArgumentError, "invalid value for record field #{key}, " <> Exception.message(e)
+        else
+          val -> {key, val}
+        end
+      key when is_atom(key) ->
+        {key, nil}
+      other ->
+        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
     end, fields)
   end
 
