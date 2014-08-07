@@ -324,6 +324,16 @@ defmodule Kernel.ErrorsTest do
       'casea foo, do: @hello :world'
   end
 
+  test :invalid_attribute do
+    msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
+    assert_raise ArgumentError, msg, fn ->
+      defmodule Foo do
+        @foo fn -> end
+        def bar, do: @foo
+      end
+    end
+  end
+
   test :invalid_fn_args do
     assert_compile_fail TokenMissingError,
       "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",
