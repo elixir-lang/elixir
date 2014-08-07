@@ -31,17 +31,20 @@ default_macros() ->
 default_requires() ->
   ['Elixir.Kernel', 'Elixir.Kernel.Typespec'].
 
+%% This is used by elixir_quote. Note we don't record the
+%% import locally because at that point there is no
+%% ambiguity.
 find_import(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
 
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     {macro, Receiver} ->
       elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
-      elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
+      %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     _ ->
       false

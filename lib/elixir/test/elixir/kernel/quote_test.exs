@@ -409,3 +409,11 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     assert with_length == 5
   end
 end
+
+defmodule Kernel.QuoteTest.NoQuoteConflictTest do
+  defmacro x |> f do
+    quote do
+      unquote(x) |> unquote(f)
+    end
+  end
+end
