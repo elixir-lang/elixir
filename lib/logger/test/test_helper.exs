@@ -39,8 +39,7 @@ defmodule Logger.Case do
     Logger.configure(level: level)
     capture_io(:user, fn ->
       fun.()
-      GenEvent.which_handlers(:error_logger)
-      GenEvent.which_handlers(Logger)
+      Logger.flush()
     end)
   after
     Logger.configure(level: :debug)
