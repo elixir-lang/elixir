@@ -77,8 +77,8 @@ defmodule Task do
         supervisor(Task.Supervisor, [[name: :tasks_sup]])
       ]
 
-  Note that, when working with distributed tasks, one should use the `async/4` API,
-  that expects explicit module, function and arguments, instead of `async/2` that
+  Note that, when working with distributed tasks, one should use the `async/3` API,
+  that expects explicit module, function and arguments, instead of `async/1` that
   works with anonymous functions. That's because the anonymous function API expects
   the same module version to exist on all involved nodes. Check the `Agent` module
   documentation for more information on distributed processes, as the limitations
@@ -160,7 +160,7 @@ defmodule Task do
   end
 
   @doc """
-  Awaits for a task reply.
+  Awaits a task reply.
 
   A timeout, in milliseconds, can be given with default value
   of `5000`. In case the task process dies, this function will
