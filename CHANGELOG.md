@@ -4,16 +4,28 @@
 
 * Enhancements
   * [Inspect] Support `:base` option in `inspect/2` to choose the base (`:binary`, `:octal`, `:decimal` or `:hex`) numbers a printed
+  * [kernel] Print warnings when used ? with characters with escape codes
   * [Logger] Add SASL log forwarding option to Logger
   * [Logger] Add `$padlevel` to option Logger formatter
+  * [Logger] Backends receive the exact handler value when added, allowing a key to be passed for configuration lookup
+  * [Logger] Add `Logger.flush/0` to flush the Logger (useful for testing)
+  * [Logger] Persist backends dynamically added or removed via `add_backend/2` and `remove_backend/2`
+  * [Macro] Add `Macro.validate/1` to recursively check if a value is a valid quoted expression
   * [Mix] Load mix deps only when there is a need to use them (this improves the timing for the majority of tasks in a Mix project)
+  * [Mix] Make the environment explicit on the success message generated after `escript.build` is invoked
+  * [Mix] Load `config/config.exs` inside escripts
+  * [Mix] Store and check Elixir version requirement for generated archives
 
 * Bug fixes
   * [Kernel] Modules compiled by Elixir now report the correct beam location when `:code.which/1` is invoked. If the bytecode is only available in memory, `:code.which/1` returns `:in_memory`
   * [Kernel] Do not expand args for unknown functions/macros
+  * [Kernel] Ensure `defstruct`, `@attr` inside and friends raise a nice error messages when values cannot be properly escaped
+  * [Kernel] Do not raise conflicts on imports used from inside quotes
   * [Logger] Metadata is now correctly merged on each `Logger.metadata/1` call
   * [Logger] Use the Logger PID on `:error_logger` wrapper to avoid race conditions on shutdown
+  * [Macro] Ensure bitstrings work with `Macro.escape/1`
   * [Path] Do not normalize paths in `Path.join/2` as normalization is beyond the scope of such function
+  * [URI] `to_string/1` now properly converts URI to strings when the schema is missing
 
 * Deprecations
   * [Module] `Module.function/3` is deprecated, please use `:erlang.make_fun/3` instead
