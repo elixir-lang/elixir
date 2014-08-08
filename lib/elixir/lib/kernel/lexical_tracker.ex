@@ -147,6 +147,7 @@ defmodule Kernel.LexicalTracker do
     {:stop, {:bad_cast, msg}, {d, dest}}
   end
 
+  @doc false
   def handle_info(_msg, {d, dest}) do
     {:noreply, {d, dest}}
   end
