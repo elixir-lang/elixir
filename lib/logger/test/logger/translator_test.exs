@@ -119,7 +119,7 @@ defmodule Logger.TranslatorTest do
     :ok = Application.start(:eex)
       Application.stop(:eex)
     end) =~ """
-    Application eex exited with reason :stopped
+    Application eex exited: :stopped
     """
   end
 
