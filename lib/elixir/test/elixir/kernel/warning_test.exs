@@ -465,6 +465,14 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
+  test :warning_on_codepoint_escape do
+    assert capture_err(fn ->
+      Code.eval_string "? "
+    end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
+  after
+    purge [Sample]
+  end
+
   test :typedoc_on_typep do
     assert capture_err(fn ->
       Code.eval_string """
