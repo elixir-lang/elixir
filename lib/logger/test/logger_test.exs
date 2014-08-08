@@ -32,6 +32,7 @@ defmodule LoggerTest do
 
   test "add_backend/1 and remove_backend/1" do
     assert :ok = Logger.remove_backend(:console)
+    assert Application.get_env(:logger, :backends) == []
     assert Logger.remove_backend(:console) ==
            {:error, :module_not_found}
 
@@ -40,8 +41,10 @@ defmodule LoggerTest do
     end) == ""
 
     assert {:ok, pid} = Logger.add_backend(:console)
+    assert Application.get_env(:logger, :backends) == [:console]
     assert Logger.add_backend(:console) ==
            {:error, {:already_started, pid}}
+    assert Application.get_env(:logger, :backends) == [:console]
   end
 
   test "add_backend/1 with {module, id}" do
