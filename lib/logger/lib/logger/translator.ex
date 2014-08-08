@@ -60,7 +60,7 @@ defmodule Logger.Translator do
 
   def translate(_min_level, :info, :report,
                 {:std_info, [application: app, exited: reason, type: _type]}) do
-    {:ok, "Application #{app} exited with reason #{Exception.format_exit(reason)}"}
+    {:ok, "Application #{app} exited: #{Application.format_error(reason)}"}
   end
 
   def translate(min_level, :error, :report, {:supervisor_report, data}) do
@@ -206,7 +206,7 @@ defmodule Logger.Translator do
     {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
             crash_info(min_level, [initial_call | crashed]),
             crash_linked(min_level, linked) |
-            Exception.format_banner(kind, exception, stack)]}
+            Exception.format(kind, exception, stack)]}
   end
 
   defp translate_crash(min_level,
@@ -217,7 +217,7 @@ defmodule Logger.Translator do
     {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
             crash_info(min_level, crashed),
             crash_linked(min_level, linked) |
-            Exception.format_banner(kind, exception, stack)]}
+            Exception.format(kind, exception, stack)]}
   end
 
   defp crash_name(pid, []), do: inspect(pid)
