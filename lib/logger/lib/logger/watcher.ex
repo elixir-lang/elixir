@@ -8,11 +8,11 @@ defmodule Logger.Watcher do
   @doc """
   Starts the watcher supervisor.
   """
-  def start_link(handlers) do
+  def start_link(m, f, a) do
     options  = [strategy: :one_for_one, name: @name]
     case Supervisor.start_link([], options) do
       {:ok, _} = ok ->
-        _ = for {mod, handler, args} <- handlers do
+        _ = for {mod, handler, args} <- apply(m, f, a) do
           {:ok, _} = watch(mod, handler, args)
         end
         ok
@@ -29,7 +29,7 @@ defmodule Logger.Watcher do
   end
 
   @doc """
-  Watches the given handler as part of the handler supervision tree.
+  Watches the given handler as part of the watcher supervision tree.
   """
   def watch(mod, handler, args) do
     import Supervisor.Spec

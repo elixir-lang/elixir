@@ -9,7 +9,7 @@ defmodule Logger.Mixfile do
 
   def application do
     [registered: [Logger, Logger.Supervisor, Logger.Watcher],
-     mod: {Logger, []},
+     mod: {Logger.App, []},
      env: [level: :debug,
            utc_log: false,
            truncate: 8096,
