@@ -81,7 +81,7 @@ done
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
-if [ "$(uname -o)" = "Cygwin" ]; then
+if [ "$OSTYPE" = "cygwin" ]; then
   ERL="-noshell -s elixir start_cli $ERL"
   SCRIPT_PATH=$(echo $SCRIPT_PATH | sed 's_/cygdrive/\(.\)/_\1:/_g')
 else
