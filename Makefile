@@ -86,7 +86,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
+	@ echo "Embedding the Unicode database... (this may take a while)"
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
