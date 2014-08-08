@@ -15,7 +15,9 @@ defmodule Mix.Local do
   Append archives paths into Erlang code path.
   """
   def append_archives do
-    Enum.each(archives_ebin, &Code.append_path(&1))
+    archives = archives_ebin()
+    Enum.each(archives, &check_elixir_archive_vsn/1)
+    Enum.each(archives, &Code.append_path/1)
   end
 
   @doc """
@@ -48,5 +50,20 @@ defmodule Mix.Local do
 
   defp archives_ebin do
     Path.join(archives_path, "*.ez") |> Path.wildcard |> Enum.map(&Mix.Archive.ebin/1)
+  end
+
+  defp check_elixir_archive_vsn(ebin) do
+    elixir = ebin |> Path.dirname() |> Path.join(".elixir") |> String.to_char_list
+    case :erl_prim_loader.get_file(elixir) do
+      {:ok, req, _} ->
+        unless Version.match?(System.version, req) do
+          archive = ebin |> Path.dirname() |> Path.basename
+          Mix.shell.error "warning: the archive #{archive} requires Elixir #{inspect req} " <>
+                          "but you are running on v#{System.version}"
+        end
+        :ok
+      :error ->
+        :ok
+    end
   end
 end
