@@ -204,6 +204,14 @@ tokenize([$?,$\\,H|T], Line, Scope, Tokens) ->
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
 tokenize([$?,Char|T], Line, Scope, Tokens) ->
+  case handle_char(Char) of
+    {Escape, Name} ->
+      Msg = io_lib:format("found ? followed by codepoint 0x~.16B (~ts), please use ~ts instead",
+                          [Char, Name, Escape]),
+      elixir_errors:warn(Line, Scope#elixir_tokenizer.file, Msg);
+    false ->
+      ok
+  end,
   tokenize(T, Line, Scope, [{number, Line, Char}|Tokens]);
 
 % Heredocs
@@ -469,6 +477,18 @@ until_eol("\r\n" ++ _) -> [];
 until_eol("\n" ++ _)   -> [];
 until_eol([])          -> [];
 until_eol([H|T])       -> [H|until_eol(T)].
+
+handle_char(7)   -> {"\\a", "alert"};
+handle_char($\b) -> {"\\b", "backspace"};
+handle_char($\d) -> {"\\d", "delete"};
+handle_char($\e) -> {"\\e", "escape"};
+handle_char($\f) -> {"\\f", "form feed"};
+handle_char($\n) -> {"\\n", "newline"};
+handle_char($\r) -> {"\\r", "carriage return"};
+handle_char($\s) -> {"\\s", "space"};
+handle_char($\t) -> {"\\t", "tab"};
+handle_char($\v) -> {"\\v", "vertical tab"};
+handle_char(_)  -> false.
 
 escape_char(List) ->
   <<Char/utf8>> = elixir_interpolation:unescape_chars(list_to_binary(List)),
