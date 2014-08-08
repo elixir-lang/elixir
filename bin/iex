@@ -38,4 +38,6 @@ readlink_f () {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-exec "$SCRIPT_PATH"/elixir --no-halt --erl "-user Elixir.IEx.CLI" +iex "$@"
+
+if [ "$OSTYPE" = "cygwin" ]; then NOSHELL="-noshell "; fi
+exec "$SCRIPT_PATH"/elixir --no-halt --erl "$NOSHELL -user Elixir.IEx.CLI" +iex "$@"
