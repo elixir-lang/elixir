@@ -1,6 +1,4 @@
 defmodule Logger do
-  use Application
-
   @moduledoc ~S"""
   A logger for Elixir applications.
 
@@ -223,65 +221,6 @@ defmodule Logger do
   @type level :: :error | :info | :warn | :debug
   @levels [:error, :info, :warn, :debug]
 
-  @doc false
-  def start(_type, _args) do
-    import Supervisor.Spec
-
-    otp_reports?  = Application.get_env(:logger, :handle_otp_reports)
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
-    threshold     = Application.get_env(:logger, :discard_threshold_for_error_logger)
-
-    handlers =
-      for backend <- Application.get_env(:logger, :backends) do
-        {Logger, translate_backend(backend), backend}
-      end
-
-    options  = [strategy: :rest_for_one, name: Logger.Supervisor]
-    children = [worker(GenEvent, [[name: Logger]]),
-                worker(Logger.Watcher, [Logger, Logger.Config, []],
-                  [id: Logger.Config, function: :watcher]),
-                supervisor(Logger.Watcher, [handlers]),
-                worker(Logger.Watcher,
-                  [:error_logger, Logger.ErrorHandler,
-                    {otp_reports?, sasl_reports?, threshold}],
-                  [id: Logger.ErrorHandler, function: :watcher])]
-
-    case Supervisor.start_link(children, options) do
-      {:ok, _} = ok ->
-        deleted = delete_error_logger_handler(otp_reports?, :error_logger_tty_h, [])
-        deleted = delete_error_logger_handler(sasl_reports?, :sasl_report_tty_h, deleted)
-        store_deleted_handlers(deleted)
-        ok
-      {:error, _} = error ->
-        error
-    end
-  end
-
-  @doc false
-  def stop(_) do
-    Application.get_env(:logger, :deleted_handlers)
-    |> Enum.each(&:error_logger.add_report_handler/1)
-
-    # We need to do this in another process as the Application
-    # Controller is currently blocked shutting down this app.
-    spawn_link(fn -> Logger.Config.clear_data end)
-
-    :ok
-  end
-
-  defp store_deleted_handlers(list) do
-    Application.put_env(:logger, :deleted_handlers, Enum.into(list, HashSet.new))
-  end
-
-  defp delete_error_logger_handler(should_delete?, handler, deleted) do
-    if should_delete? and
-         :error_logger.delete_report_handler(handler) != {:error, :module_not_found} do
-      [handler|deleted]
-    else
-      deleted
-    end
-  end
-
   @metadata :logger_metadata
 
   @doc """
@@ -365,7 +304,7 @@ defmodule Logger do
   """
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
-    case Logger.Watcher.watch(Logger, translate_backend(backend), backend) do
+    case Logger.Watcher.watch(Logger, Logger.Config.translate_backend(backend), backend) do
       {:ok, _} = ok ->
         Logger.Config.add_backend(backend)
         ok
@@ -386,7 +325,7 @@ defmodule Logger do
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
     Logger.Config.remove_backend(backend)
-    Logger.Watcher.unwatch(Logger, translate_backend(backend))
+    Logger.Watcher.unwatch(Logger, Logger.Config.translate_backend(backend))
   end
 
   @doc """
@@ -411,11 +350,8 @@ defmodule Logger do
   """
   @spec configure_backend(backend, Keywowrd.t) :: term
   def configure_backend(backend, options) when is_list(options) do
-    GenEvent.call(Logger, translate_backend(backend), {:configure, options})
+    GenEvent.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
   end
-
-  defp translate_backend(:console), do: Logger.Backends.Console
-  defp translate_backend(other),    do: other
 
   @doc """
   Logs a message.
