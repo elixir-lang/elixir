@@ -405,6 +405,9 @@ defmodule Logger do
 
   @doc """
   Configures the given backend.
+
+  The backends needs to be started and running in order to
+  be configured at runtime.
   """
   @spec configure_backend(backend, Keywowrd.t) :: term
   def configure_backend(backend, options) when is_list(options) do
