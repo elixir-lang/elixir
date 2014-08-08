@@ -42,7 +42,7 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
-  test "generate simple escript" do
+  test "generate escript" do
     Mix.Project.push Escript
 
     in_fixture "escripttest", fn ->
@@ -55,7 +55,20 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
-  test "generate simple escript with path" do
+  test "generate escript with config" do
+    Mix.Project.push Escript
+
+    in_fixture "escripttest", fn ->
+      File.write! "config/config.exs", """
+      [foobar: [value: "FROM CONFIG"]]
+      """
+      Mix.Tasks.Escript.Build.run []
+      assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escriptest"]) == {"FROM CONFIG\n", 0}
+    end
+  end
+
+  test "generate escript with path" do
     Mix.Project.push EscriptWithPath
 
     in_fixture "escripttest", fn ->
