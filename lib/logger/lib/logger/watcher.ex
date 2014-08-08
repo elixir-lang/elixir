@@ -68,6 +68,7 @@ defmodule Logger.Watcher do
     end
   end
 
+  @doc false
   def handle_info({:gen_event_EXIT, handler, reason}, {_, handler} = state)
       when reason in [:normal, :shutdown] do
     {:stop, reason, state}

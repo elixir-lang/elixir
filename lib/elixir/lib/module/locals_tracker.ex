@@ -271,6 +271,7 @@ defmodule Module.LocalsTracker do
     {:stop, {:bad_call, request}, state}
   end
 
+  @doc false
   def handle_info(_msg, state) do
     {:noreply, state}
   end
