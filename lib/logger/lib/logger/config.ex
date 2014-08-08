@@ -22,6 +22,14 @@ defmodule Logger.Config do
     GenEvent.call(Logger, @name, {:remove_translator, translator})
   end
 
+  def add_backend(backend) do
+    GenEvent.call(Logger, @name, {:add_backend, backend})
+  end
+
+  def remove_backend(backend) do
+    GenEvent.call(Logger, @name, {:remove_backend, backend})
+  end
+
   def __data__() do
     Application.get_env(:logger, @data)
   end
@@ -88,7 +96,22 @@ defmodule Logger.Config do
     {:ok, :ok, state}
   end
 
+  def handle_call({:add_backend, backend}, state) do
+    update_backends(&[backend|List.delete(&1, backend)])
+    {:ok, :ok, state}
+  end
+
+  def handle_call({:remove_backend, backend}, state) do
+    update_backends(&List.delete(&1, backend))
+    {:ok, :ok, state}
+  end
+
   ## Helpers
+
+  defp update_backends(fun) do
+    backends = fun.(Application.get_env(:logger, :backends, []))
+    Application.put_env(:logger, :backends, backends)
+  end
 
   defp update_translators(%{translators: translators} = state, fun) do
     translators = fun.(translators)

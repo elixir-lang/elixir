@@ -123,11 +123,7 @@ defmodule Logger do
   is explored with detail below.
 
   The initial backends are loaded via the `:backends` configuration,
-  which must be set before the logger application is started. However,
-  backends can be added or removed dynamically via the `add_backend/2`,
-  `remove_backend/1` and `configure_backend/2` functions, although such
-  backends are not persisted (i.e. if the Logger supervision tree crashes,
-  they are not re-added).
+  which must be set before the logger application is started.
 
   ### Console backend
 
@@ -369,13 +365,27 @@ defmodule Logger do
   """
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
-    Logger.Watcher.watch(Logger, translate_backend(backend), backend)
+    case Logger.Watcher.watch(Logger, translate_backend(backend), backend) do
+      {:ok, _} = ok ->
+        Logger.Config.add_backend(backend)
+        ok
+      {:error, _} = error ->
+        error
+    end
   end
 
   @doc """
   Removes a backend.
+
+  ## Options
+
+    * `:flush` - when true, guarantees all messages currently sent
+      to both Logger and Erlang's `error_logger` are processed before
+      the backend is removed
   """
-  def remove_backend(backend) do
+  def remove_backend(backend, opts \\ []) do
+    _ = if opts[:flush], do: GenEvent.which_handlers(:error_logger)
+    Logger.Config.remove_backend(backend)
     Logger.Watcher.unwatch(Logger, translate_backend(backend))
   end
 
