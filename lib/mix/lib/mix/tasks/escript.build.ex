@@ -191,21 +191,39 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp gen_main(name, module, app) do
+    config =
+      if File.regular?("config/config.exs") do
+        Mix.Config.read!("config/config.exs")
+      else
+        []
+      end
+
     {:module, ^name, binary, _} =
       defmodule name do
         @module module
+        @config config
         @app app
 
+        # We need to use Erlang modules at this point
+        # because we are not sure Elixir is available.
         def main(args) do
-          case Application.ensure_all_started(:elixir) do
+          case :application.ensure_all_started(:elixir) do
             {:ok, _} ->
+              load_config(@config)
               start_app(@app)
               args = Enum.map(args, &List.to_string(&1))
               Kernel.CLI.run fn _ -> @module.main(args) end, true
             _ ->
-              io_error "Elixir is not available, aborting."
-              System.halt(1)
+              :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
+              :erlang.halt(1)
           end
+        end
+
+        defp load_config(config) do
+          for {app, kw} <- config, {k, v} <- kw do
+            :application.set_env(app, k, v, persistent: true)
+          end
+          :ok
         end
 
         defp start_app(nil) do
@@ -213,7 +231,7 @@ defmodule Mix.Tasks.Escript.Build do
         end
 
         defp start_app(app) do
-          case Application.ensure_all_started(app) do
+          case :application.ensure_all_started(app) do
             {:ok, _} -> :ok
             {:error, {app, reason}} ->
               io_error "Could not start application #{app}: " <>
