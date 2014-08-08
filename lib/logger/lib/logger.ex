@@ -348,7 +348,7 @@ defmodule Logger do
   The backends needs to be started and running in order to
   be configured at runtime.
   """
-  @spec configure_backend(backend, Keywowrd.t) :: term
+  @spec configure_backend(backend, Keyword.t) :: term
   def configure_backend(backend, options) when is_list(options) do
     GenEvent.call(Logger, Logger.Config.translate_backend(backend), {:configure, options})
   end
