@@ -68,7 +68,7 @@ defmodule URI do
 
   Takes an enumerable (containing a sequence of two-item tuples)
   and returns a string of the form "key1=value1&key2=value2..." where
-  keys and values are URL encoded as per `encode/1`.
+  keys and values are URL encoded as per `encode/2`.
 
   Keys and values can be any term that implements the `String.Chars`
   protocol, except lists which are explicitly forbidden.
