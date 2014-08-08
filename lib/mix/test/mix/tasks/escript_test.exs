@@ -59,6 +59,7 @@ defmodule Mix.Tasks.EscriptTest do
     Mix.Project.push Escript
 
     in_fixture "escripttest", fn ->
+      File.mkdir_p! "config"
       File.write! "config/config.exs", """
       [foobar: [value: "FROM CONFIG"]]
       """
