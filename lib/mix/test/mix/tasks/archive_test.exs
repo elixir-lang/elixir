@@ -5,13 +5,13 @@ defmodule Mix.Tasks.ArchiveTest do
 
   defmodule ArchiveProject do
     def project do
-      [ app: :archive, version: "0.1.0" ]
+      [app: :archive, version: "0.1.0", elixir: "~> 0.1.0"]
     end
   end
 
   defmodule ArchiveProject2 do
     def project do
-      [ app: :archive, version: "0.2.0" ]
+      [app: :archive, version: "0.2.0"]
     end
   end
 
@@ -22,7 +22,7 @@ defmodule Mix.Tasks.ArchiveTest do
 
     in_fixture "archive", fn() ->
       # Install it!
-      Mix.Tasks.Archive.Build.run []
+      Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert File.regular? "archive-0.1.0.ez"
 
       send self, {:mix_shell_input, :yes?, true}
@@ -32,10 +32,16 @@ defmodule Mix.Tasks.ArchiveTest do
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
       assert to_char_list(archive) in :code.get_path
 
-      # List it!
+      # Load it!
       Mix.Local.append_archives
+      error = "warning: the archive archive-0.1.0 requires Elixir \"~> 0.1.0\" but you are running on v#{System.version}"
+      assert_received {:mix_shell, :error, [^error]}
+
+      # List it!
       Mix.Tasks.Local.run []
-      assert_received {:mix_shell, :info, ["mix local.sample # A local install sample"]}
+      info  = "mix local.sample # A local install sample"
+      assert_received {:mix_shell, :info, [^info]}
+
 
       Mix.Tasks.Archive.run []
       assert_received {:mix_shell, :info, ["* archive-0.1.0.ez"]}
@@ -60,12 +66,14 @@ defmodule Mix.Tasks.ArchiveTest do
         refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
       end
 
+      # Load it! No warnings because there is no :elixir in mix.exs.
       Mix.Local.append_archives
+      refute_received {:mix_shell, :error, [_]}
 
       # Remove it!
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
-      
+
       # See reason for previous refutation.
       unless match? {:win32, _}, :os.type do
         refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")

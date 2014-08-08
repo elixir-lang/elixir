@@ -70,10 +70,11 @@ defmodule Mix.Archive do
 
   defp files_to_add(path, dir) do
     File.cd! path, fn ->
+      evsn = Path.wildcard(".elixir")
       ebin = Path.wildcard("ebin/*.{beam,app}")
       priv = Path.wildcard("priv/**/*")
 
-      Enum.reduce ebin ++ priv, [], fn(f, acc) ->
+      Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
         case File.read(f) do
           {:ok, bin} ->
             [{Path.join(dir, f) |> String.to_char_list, bin}|acc]

@@ -45,7 +45,13 @@ defmodule Mix.Tasks.Archive.Build do
       input = opts[:input] ->
         input
       project ->
-        Mix.Project.app_path
+        path = Mix.Project.app_path
+        if elixir = Mix.Project.config[:elixir] do
+          File.write Path.join(path, ".elixir"), elixir
+        else
+          File.rm Path.join(path, ".elixir")
+        end
+        path
       true ->
         Mix.raise "Cannot create archive without input directory, " <>
           "please pass -i as an option"
