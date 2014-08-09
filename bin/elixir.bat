@@ -48,6 +48,9 @@ set beforeExtra=
 rem Flag which determines whether or not to use werl vs erl
 set useWerl=0
 
+rem Designates which mode / Elixir component to run as
+set runMode="elixir"
+
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set par="%1"
@@ -62,6 +65,7 @@ if "%par%"=="""" (
 )
 rem ******* EXECUTION OPTIONS **********************
 IF "%par%"==""--werl"" (Set useWerl=1)
+IF "%par%"==""+iex"" (Set runMode="iex")
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
 IF """"=="%par:-e=%"      (shift) 
@@ -90,10 +94,13 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 )
 SETLOCAL disabledelayedexpansion
 :run
+IF NOT %runMode% == "iex" (
+  set beforeExtra=-s elixir start_cli %beforeExtra%
+)
 IF %useWerl% EQU 1 (
-    start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+  start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) ELSE (
-    erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+  erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 :end
 endlocal
