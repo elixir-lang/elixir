@@ -183,14 +183,26 @@ defmodule Mix.SCM.Git do
       {:ok, version} ->
         version
       :error ->
-        "git version " <> version = String.strip IO.iodata_to_binary :os.cmd('git --version')
         version =
-          String.split(version, ".")
-          |> Enum.take(3)
-          |> Enum.map(&String.to_integer(&1))
-          |> List.to_tuple
+          :os.cmd('git --version')
+          |> IO.iodata_to_binary
+          |> String.strip
+          |> parse_version
+
         Application.put_env(:mix, :git_version, version)
         version
     end
+  end
+
+  defp parse_version("git version " <> version) do
+    String.split(version, ".")
+    |> Enum.take(3)
+    |> Enum.map(&to_integer/1)
+    |> List.to_tuple
+  end
+
+  defp to_integer(string) do
+    {int, _} = Integer.parse(string)
+    int
   end
 end
