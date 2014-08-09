@@ -3,6 +3,7 @@ defmodule Logger.App do
 
   use Application
 
+  @doc false
   def start(_type, _args) do
     import Supervisor.Spec
 
@@ -31,6 +32,7 @@ defmodule Logger.App do
     end
   end
 
+  @doc false
   def stop(_) do
     Application.get_env(:logger, :deleted_handlers)
     |> Enum.each(&:error_logger.add_report_handler/1)
@@ -40,6 +42,16 @@ defmodule Logger.App do
     spawn_link(fn -> Logger.Config.clear_data end)
 
     :ok
+  end
+
+  @doc """
+  Stops the application without sending messages to error logger.
+  """
+  def stop() do
+    set = Application.get_env(:logger, :deleted_handlers)
+    Application.put_env(:logger, :deleted_handlers, HashSet.new)
+    Application.stop(:logger)
+    Enum.each(set, &:error_logger.add_report_handler/1)
   end
 
   defp store_deleted_handlers(list) do

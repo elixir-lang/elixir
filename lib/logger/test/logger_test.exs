@@ -170,16 +170,10 @@ defmodule LoggerTest do
     end
   end
 
-  test "Logger.Config survives Logger exit" do
-    Process.whereis(Logger) |> Process.exit(:kill)
-    wait_for_logger()
-    wait_for_handler(Logger, Logger.Config)
-    wait_for_handler(:error_logger, Logger.ErrorHandler)
-  end
-
-  test "Logger.Config can restart the application" do
+  test "stop the application silently" do
     Application.put_env(:logger, :backends, [])
-    Logger.Config.restart()
+    Logger.App.stop()
+    Application.start(:logger)
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
@@ -190,6 +184,14 @@ defmodule LoggerTest do
            {:error, {:already_started, pid}}
   after
     Application.put_env(:logger, :backends, [:console])
-    Logger.Config.restart()
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "restarts Logger.Config on Logger exits" do
+    Process.whereis(Logger) |> Process.exit(:kill)
+    wait_for_logger()
+    wait_for_handler(Logger, Logger.Config)
+    wait_for_handler(:error_logger, Logger.ErrorHandler)
   end
 end

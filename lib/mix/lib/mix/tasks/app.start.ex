@@ -25,6 +25,11 @@ defmodule Mix.Tasks.App.Start do
       Mix.Task.run "compile", ["--no-readd"|args]
     end
 
+    # Stop the Logger after we have used it for compilation.
+    # It is up to the application to decide if it should be
+    # restarted or not.
+    Logger.App.stop()
+
     unless "--no-start" in args do
       start(Mix.Project.config[:app])
     end

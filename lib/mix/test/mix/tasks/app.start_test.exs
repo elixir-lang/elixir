@@ -7,6 +7,10 @@ defmodule Mix.Tasks.App.StartTest do
     def project do
       [app: :app_start_sample, version: "0.1.0"]
     end
+
+    def application do
+      [applications: [:logger]]
+    end
   end
 
   defmodule WrongElixirProject do
@@ -22,37 +26,21 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   setup config do
+    on_exit fn ->
+      Application.start(:logger)
+    end
+
     if app = config[:app] do
       Logger.remove_backend(:console)
 
       on_exit fn ->
-        :application.stop(app)
-        :application.unload(app)
+        Application.stop(app)
+        Application.unload(app)
         Logger.add_backend(:console, flush: true)
       end
     end
 
     :ok
-  end
-
-  test "recompiles project if elixir version changed" do
-    Mix.Project.push MixTest.Case.Sample
-
-    in_fixture "no_mixfile", fn ->
-      Mix.Tasks.Compile.run []
-      purge [A, B, C]
-
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert System.version == Mix.Dep.Lock.elixir_vsn
-
-      Mix.Task.clear
-      File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
-      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
-
-      Mix.Tasks.App.Start.run ["--no-start"]
-      assert System.version == Mix.Dep.Lock.elixir_vsn
-      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
-    end
   end
 
   test "compiles and starts the project" do
@@ -66,10 +54,13 @@ defmodule Mix.Tasks.App.StartTest do
       Mix.Tasks.App.Start.run ["--no-start"]
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
-      refute List.keyfind(:application.loaded_applications, :app_start_sample, 0)
+
+      refute List.keyfind(:application.which_applications, :app_start_sample, 0)
+      refute List.keyfind(:application.which_applications, :logger, 0)
 
       Mix.Tasks.App.Start.run []
-      assert List.keyfind(:application.loaded_applications, :app_start_sample, 0)
+      assert List.keyfind(:application.which_applications, :app_start_sample, 0)
+      assert List.keyfind(:application.which_applications, :logger, 0)
     end
   end
 

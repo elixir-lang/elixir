@@ -34,13 +34,18 @@ defmodule Logger.TranslatorTest do
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
+
+    # Restart the app but change the level before to avoid warnings
     level = Logger.level()
-    Logger.configure([level: :error])
-    Logger.Config.restart()
-    Logger.configure([level: level])
+    Logger.configure(level: :error)
+    Logger.App.stop()
+    Application.start(:logger)
+    Logger.configure(level: level)
+
     on_exit(fn() ->
       Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
-      Logger.Config.restart()
+      Logger.App.stop()
+      Application.start(:logger)
     end)
   end
 
