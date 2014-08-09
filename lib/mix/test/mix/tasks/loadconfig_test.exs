@@ -24,9 +24,6 @@ defmodule Mix.Tasks.LoadconfigTest do
       [my_app: [key: :project]]
       """
 
-      # Original Logger level
-      assert Logger.level == :debug
-
       assert Application.fetch_env(:my_app, :key) == :error
       Mix.Task.run "loadconfig", []
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
@@ -40,8 +37,6 @@ defmodule Mix.Tasks.LoadconfigTest do
       Mix.Task.run "loadconfig", [fixture_path("configs/good_config.exs")]
       assert Application.fetch_env(:my_app, :key) == {:ok, :value}
     end
-  after
-    Logger.configure(level: :debug)
   end
 
   defp write_config(path \\ "config/config.exs", contents) do
