@@ -3,6 +3,25 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StreamTest do
   use ExUnit.Case, async: true
 
+  defmodule PDict do
+    defstruct []
+
+    defimpl Collectable do
+      def empty(struct) do
+        struct
+      end
+
+      def into(struct) do
+        {struct,
+         fn
+           _, {:cont, x} -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
+           _, :done -> Process.put(:stream_done, true)
+           _, :halt -> Process.put(:stream_halt, true)
+         end}
+      end
+    end
+  end
+
   test "streams as enumerables" do
     stream = Stream.map([1,2,3], &(&1 * 2))
 
@@ -297,7 +316,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], collectable_pdict)
+    stream = Stream.into([1, 2, 3], %PDict{})
 
     assert is_lazy(stream)
     assert Stream.run(stream) == :ok
@@ -305,7 +324,7 @@ defmodule StreamTest do
     assert Process.get(:stream_done)
     refute Process.get(:stream_halt)
 
-    stream = Stream.into(fn _, _ -> raise "error" end, collectable_pdict)
+    stream = Stream.into(fn _, _ -> raise "error" end, %PDict{})
     catch_error(Stream.run(stream))
     assert Process.get(:stream_halt)
   end
@@ -315,7 +334,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], collectable_pdict, fn x -> x*2 end)
+    stream = Stream.into([1, 2, 3], %PDict{}, fn x -> x*2 end)
 
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1, 2, 3]
@@ -329,7 +348,7 @@ defmodule StreamTest do
     Process.put(:stream_done, false)
     Process.put(:stream_halt, false)
 
-    stream = Stream.into([1, 2, 3], collectable_pdict)
+    stream = Stream.into([1, 2, 3], %PDict{})
 
     assert is_lazy(stream)
     assert Enum.take(stream, 1) == [1]
@@ -561,7 +580,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on inner error" do
-    stream = Stream.into([1, 2, 3], collectable_pdict)
+    stream = Stream.into([1, 2, 3], %PDict{})
     stream = Stream.zip(stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end))
 
     Process.put(:stream_done, false)
@@ -570,7 +589,7 @@ defmodule StreamTest do
   end
 
   test "zip/2 closes on outer error" do
-    stream = Stream.into([1, 2, 3], collectable_pdict)
+    stream = Stream.into([1, 2, 3], %PDict{})
              |> Stream.zip([:a, :b, :c])
              |> Stream.map(fn _ -> throw(:error) end)
 
@@ -590,14 +609,6 @@ defmodule StreamTest do
 
   defp is_lazy(stream) do
     match?(%Stream{}, stream) or is_function(stream, 2)
-  end
-
-  defp collectable_pdict do
-    fn
-      _, {:cont, x} -> Process.put(:stream_cont, [x|Process.get(:stream_cont)])
-      _, :done -> Process.put(:stream_done, true)
-      _, :halt -> Process.put(:stream_halt, true)
-    end
   end
 
   defp inbox_stream({:suspend, acc}, f) do
