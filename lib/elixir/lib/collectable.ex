@@ -98,6 +98,7 @@ defimpl Collectable, for: Function do
   end
 
   def into(function) do
+    IO.write :stderr, "warning: passing a function as Collectable is deprecated\n#{Exception.format_stacktrace}"
     {function, function}
   end
 end

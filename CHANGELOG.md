@@ -28,6 +28,7 @@
   * [URI] `to_string/1` now properly converts URI to strings when the schema is missing
 
 * Deprecations
+  * [Collectable] Having a function as collectable is deprecated
   * [Module] `Module.function/3` is deprecated, please use `:erlang.make_fun/3` instead
 
 * Backwards incompatible changes
