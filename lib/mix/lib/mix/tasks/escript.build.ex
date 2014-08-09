@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Escript.Build do
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
-            shebang  = escript_opts[:shebang]  || "#! /usr/bin/env escript\n"
+            shebang  = escript_opts[:shebang] || "#! /usr/bin/env escript\n"
             comment  = build_comment(escript_opts[:comment])
             emu_args = build_emu_args(escript_opts[:emu_args], escript_mod)
 
