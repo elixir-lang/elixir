@@ -518,11 +518,8 @@ defimpl Enumerable, for: GenEvent.Stream do
       {nil, _manager, event}, acc ->
         fun.(event, acc)
       {ref, manager, event}, acc ->
-        try do
-          fun.(event, acc)
-        after
-          send manager, {ref, :next}
-        end
+        send manager, {ref, :next}
+        fun.(event, acc)
     end
   end
 
