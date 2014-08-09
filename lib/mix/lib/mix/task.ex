@@ -205,10 +205,14 @@ defmodule Mix.Task do
   information.
   """
   @spec run(task_name, [any]) :: any
-  def run(task, args \\ []) when is_binary(task) or is_atom(task) do
-    task = to_string(task)
-    proj = Mix.Project.get
+  def run(task, args \\ [])
 
+  def run(task, args) when is_atom(task) do
+    run(Atom.to_string(task), args)
+  end
+
+  def run(task, args) when is_binary(task) do
+    proj  = Mix.Project.get
     alias = Mix.Project.config[:aliases][String.to_atom(task)]
 
     cond do
@@ -217,26 +221,22 @@ defmodule Mix.Task do
         Mix.TasksServer.put({:task, task, proj})
         res
       Mix.TasksServer.run({:task, task, proj}) ->
-        run_task(task, args)
+        run_task(proj, task, args)
       true ->
         :noop
     end
   end
 
-  defp run_task(task, args) do
+  defp run_task(proj, task, args) do
     module = get!(task)
 
-    fun = fn proj ->
-      Mix.TasksServer.put({:task, task, proj})
-      module.run(args)
-    end
-
     if recursive(module) and Mix.Project.umbrella? and Mix.ProjectStack.enable_recursion do
-      res = recur(fun)
+      res = recur(fn _ -> run(task, args) end)
       Mix.ProjectStack.disable_recursion
       res
     else
-      fun.(Mix.Project.get)
+      Mix.TasksServer.put({:task, task, proj})
+      module.run(args)
     end
   end
 

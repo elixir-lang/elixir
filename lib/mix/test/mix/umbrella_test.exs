@@ -55,6 +55,25 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
+  test "list deps for umbrella as dependency" do
+    in_fixture("umbrella_dep", fn ->
+      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
+        Mix.Task.run "deps"
+        assert_received {:mix_shell, :info, ["* umbrella (deps/umbrella)"]}
+        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
+      end)
+    end)
+  end
+
+  test "compile for umbrella as dependency" do
+    in_fixture "umbrella_dep", fn ->
+      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
+        Mix.Task.run "deps.compile"
+        assert Bar.bar == "hello world"
+      end)
+    end
+  end
+
   defmodule CycleDeps do
     def project do
       [app: :umbrella_dep,
@@ -112,22 +131,25 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "list deps for umbrella as dependency" do
-    in_fixture("umbrella_dep", fn ->
-      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Task.run "deps"
-        assert_received {:mix_shell, :info, ["* umbrella (deps/umbrella)"]}
-        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
-      end)
-    end)
-  end
+  test "uses dependency aliases" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.Mix do
+          use Mix.Project
 
-  test "compile for umbrella as dependency" do
-    in_fixture "umbrella_dep", fn ->
-      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Task.run "deps.compile"
-        assert "hello world" == Bar.bar
-      end)
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             aliases: [compile: fn _ -> Mix.shell.info "no compile bar" end]]
+          end
+        end
+        """
+
+        Mix.Task.run "compile"
+        assert_receive {:mix_shell, :info, ["no compile bar"]}
+        refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end
     end
   end
 
