@@ -51,14 +51,6 @@ defmodule Logger.Config do
     Application.delete_env(:logger, @data)
   end
 
-  def restart do
-    set = Application.get_env(:logger, :deleted_handlers)
-    Application.put_env(:logger, :deleted_handlers, HashSet.new)
-    Application.stop(:logger)
-    Enum.each(set, &:error_logger.add_report_handler/1)
-    Application.start(:logger)
-  end
-
   ## Callbacks
 
   def init(_) do

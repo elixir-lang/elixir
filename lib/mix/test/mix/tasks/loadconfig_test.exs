@@ -21,8 +21,7 @@ defmodule Mix.Tasks.LoadconfigTest do
 
     in_fixture "no_mixfile", fn ->
       write_config """
-      [my_app: [key: :project],
-       logger: [level: :error]]
+      [my_app: [key: :project]]
       """
 
       # Original Logger level
@@ -35,9 +34,6 @@ defmodule Mix.Tasks.LoadconfigTest do
       # App configuration should have lower precedence
       :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
-
-      # Logger is reloaded
-      assert Logger.level == :error
 
       # laodconfig can be called multiple times
       # Later values should have higher precedence
