@@ -131,7 +131,9 @@ defmodule GenEventTest do
       GenEvent.notify(pid, i)
     end
 
-    wait_for_queue_length(pid, 5)
+    # The length is 4 instead of 5 because we wait for
+    # message acks and not consumptions acks.
+    wait_for_queue_length(pid, 4)
   end
 
   test "async stream/2" do
