@@ -26,10 +26,6 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   setup config do
-    on_exit fn ->
-      Application.start(:logger)
-    end
-
     if app = config[:app] do
       Logger.remove_backend(:console)
 

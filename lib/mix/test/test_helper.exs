@@ -9,8 +9,8 @@ defmodule MixTest.Case do
 
   defmodule Sample do
     def project do
-      [ app: :sample,
-        version: "0.1.0" ]
+      [app: :sample,
+       version: "0.1.0"]
     end
   end
 
@@ -22,6 +22,7 @@ defmodule MixTest.Case do
 
   setup do
     on_exit fn ->
+      Application.start(:logger)
       Mix.env(:dev)
       Mix.Task.clear
       Mix.Shell.Process.flush
