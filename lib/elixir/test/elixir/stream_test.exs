@@ -311,6 +311,13 @@ defmodule StreamTest do
     assert Enum.take(stream, 5) == [1, 2, 3, 4, 3]
   end
 
+  test "interval/1" do
+    stream = Stream.interval(10)
+    now = :erlang.now
+    assert Enum.take(stream, 5) == [0, 1, 2, 3, 4]
+    assert :timer.now_diff(:erlang.now, now) > 50000
+  end
+
   test "into/2 and run/1" do
     Process.put(:stream_cont, [])
     Process.put(:stream_done, false)
@@ -516,6 +523,13 @@ defmodule StreamTest do
 
     stream = Stream.drop(1..100, 5)
     assert Stream.take_while(stream, &(&1 < 11)) |> Enum.to_list == [6,7,8,9,10]
+  end
+
+  test "timer/1" do
+    stream = Stream.timer(10)
+    now = :erlang.now
+    assert Enum.to_list(stream) == [0]
+    assert :timer.now_diff(:erlang.now, now) > 10000
   end
 
   test "unfold/2" do
