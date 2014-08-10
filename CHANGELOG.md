@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.15.1-dev
+## v0.15.1 (2014-08-10)
 
 * Enhancements
   * [GenEvent] Support `:ack` mode for GenEvent streams
