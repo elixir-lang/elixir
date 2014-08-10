@@ -339,8 +339,9 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that emits a value every `n` milliseconds. The values emitted are an
-  increasing counter starting at `0`.
+  Creates a stream that emits a value every `n` milliseconds.
+
+  The values emitted are an increasing counter starting at `0`.
 
   ## Examples
 
@@ -350,7 +351,7 @@ defmodule Stream do
   """
   @spec interval(non_neg_integer) :: Enumerable.t
   def interval(n) do
-    Stream.unfold 0, fn (count) ->
+    unfold 0, fn (count) ->
       :timer.sleep(n)
       {count, count + 1}
     end
@@ -582,8 +583,9 @@ defmodule Stream do
   end
 
   @doc """
-  Creates a stream that emits a single value after `n` milliseconds. The value emitted is
-  `0`.
+  Creates a stream that emits a single value after `n` milliseconds.
+  
+  The value emitted is `0`.
   
   ## Examples
 
@@ -593,7 +595,7 @@ defmodule Stream do
   """
   @spec timer(non_neg_integer) :: Enumerable.t
   def timer(n) do
-    Stream.take(interval(n), 1)
+    take(interval(n), 1)
   end
 
   @doc """
