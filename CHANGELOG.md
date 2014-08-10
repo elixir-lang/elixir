@@ -3,6 +3,7 @@
 ## v0.15.1-dev
 
 * Enhancements
+  * [GenEvent] Support `:ack` mode for GenEvent streams
   * [Inspect] Support `:base` option in `inspect/2` to choose the base (`:binary`, `:octal`, `:decimal` or `:hex`) numbers a printed
   * [kernel] Print warnings when used ? with characters with escape codes
   * [Logger] Add SASL log forwarding option to Logger
@@ -17,6 +18,7 @@
   * [Mix] Store and check Elixir version requirement for generated archives
 
 * Bug fixes
+  * [CLI] Fix shell bugs when running on Windows with Cygwin or MinGW
   * [Kernel] Modules compiled by Elixir now report the correct beam location when `:code.which/1` is invoked. If the bytecode is only available in memory, `:code.which/1` returns `:in_memory`
   * [Kernel] Do not expand args for unknown functions/macros
   * [Kernel] Ensure `defstruct`, `@attr` inside and friends raise a nice error messages when values cannot be properly escaped
@@ -24,14 +26,15 @@
   * [Logger] Metadata is now correctly merged on each `Logger.metadata/1` call
   * [Logger] Use the Logger PID on `:error_logger` wrapper to avoid race conditions on shutdown
   * [Macro] Ensure bitstrings work with `Macro.escape/1`
+  * [Mix] Ensure aliases are invoked on umbrella recursive tasks
+  * [Mix] Leave it up to the application to start the Logger after compilation
+  * [Mix] Accept more forms of git versions (like "git version 1.9.3 (Apple Git-50)")
   * [Path] Do not normalize paths in `Path.join/2` as normalization is beyond the scope of such function
   * [URI] `to_string/1` now properly converts URI to strings when the schema is missing
 
 * Deprecations
   * [Collectable] Having a function as collectable is deprecated
   * [Module] `Module.function/3` is deprecated, please use `:erlang.make_fun/3` instead
-
-* Backwards incompatible changes
 
 ## v0.15.0 (2014-08-02)
 
