@@ -34,7 +34,7 @@ defmodule IO.ANSI do
   This function simply reads the configuration value for
   `:ansi_enabled` in the `:elixir` application. The value is by
   default false unless Elixir can detect during startup that
-  `stdout` is a terminal.
+  both `stdout` and `stderr` are terminals.
   """
   @spec enabled? :: boolean
   def enabled? do
