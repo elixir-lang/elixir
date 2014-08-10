@@ -85,7 +85,9 @@ if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m $SCRIPT_PATH); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 # Check for terminal support
-if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
+if [ "$OS" != "Windows_NT" ]; then
+  if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
+fi
 
 if [ -z "$ERL_PATH" ]; then
   if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]; then
