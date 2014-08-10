@@ -80,7 +80,7 @@
 -define(type_op(T1, T2),
   T1 == $:, T2 == $:).
 
--define(pipe_op(T1),
+-define(pipe_op(T),
   T == $|).
 
 tokenize(String, Line, #elixir_tokenizer{} = Scope) ->
