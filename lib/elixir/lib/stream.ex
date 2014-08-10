@@ -339,6 +339,24 @@ defmodule Stream do
   end
 
   @doc """
+  Creates a stream that emits a value every `n` milliseconds. The values emitted are an
+  increasing counter starting at `0`.
+
+  ## Examples
+
+    iex> Stream.interval(10) |> Enum.take(10)
+    [0,1,2,3,4,5,6,7,8,9]
+
+  """
+  @spec interval(non_neg_integer) :: Enumerable.t
+  def interval(n) do
+    Stream.unfold 0, fn (count) ->
+      :timer.sleep(n)
+      {count, count + 1}
+    end
+  end
+
+  @doc """
   Injects the stream values into the given collectable as a side-effect.
 
   This function is often used with `run/1` since any evaluation
@@ -561,6 +579,21 @@ defmodule Stream do
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
   def take_while(enum, fun) do
     lazy enum, fn(f1) -> R.take_while(fun, f1) end
+  end
+
+  @doc """
+  Creates a stream that emits a single value after `n` milliseconds. The value emitted is
+  `0`.
+  
+  ## Examples
+
+    iex> Stream.timer(10) |> Enum.to_list
+    [0]
+
+  """
+  @spec timer(non_neg_integer) :: Enumerable.t
+  def timer(n) do
+    Stream.take(interval(n), 1)
   end
 
   @doc """
