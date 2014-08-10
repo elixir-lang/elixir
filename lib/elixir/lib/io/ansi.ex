@@ -31,16 +31,14 @@ defmodule IO.ANSI do
   @doc """
   Checks if ANSI coloring is supported and enabled on this machine.
 
-  By default, ANSI is only enabled on UNIX machines. Enabling or
-  disabling ANSI escapes can be done by configuring the
-  `:ansi_enabled` value in the `:elixir` application.
+  This function simply reads the configuration value for
+  `:ansi_enabled` in the `:elixir` application. The value is by
+  default false unless Elixir can detect during startup that
+  `stdout` is a terminal.
   """
   @spec enabled? :: boolean
   def enabled? do
-    case Application.fetch_env(:elixir, :ansi_enabled) do
-      {:ok, boolean} when is_boolean(boolean) -> boolean
-      :error -> not match?({:win32, _}, :os.type())
-    end
+    Application.get_env(:elixir, :ansi_enabled, false)
   end
 
   @doc "Resets all attributes"
