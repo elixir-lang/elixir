@@ -9,12 +9,12 @@ defmodule GenEvent.Stream do
     * `:id`       - the event stream id for cancellation
     * `:timeout`  - the timeout in between events, defaults to `:infinity`
     * `:duration` - the duration of the subscription, defaults to `:infinity`
-    * `:mode`     - if the subscription mode is sync or async, defaults to `:sync`
+    * `:mode`     - if the subscription mode is ack, sync or async, defaults to `:ack`
   """
-  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :sync
+  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :ack
 
   @typedoc "The stream mode"
-  @type mode :: :sync | :async
+  @type mode :: :ack | :sync | :async
 
   @type t :: %__MODULE__{
                manager: GenEvent.manager,
@@ -277,7 +277,7 @@ defmodule GenEvent do
   The stream is a `GenEvent` struct that implements the `Enumerable`
   protocol. Consumption of events only begins when enumeration starts.
 
-  `The supported options are:
+  ## Options
 
     * `:id` - an id to identify all live stream instances; when an `:id` is
       given, existing streams can be called with via `cancel_streams`.
@@ -287,9 +287,23 @@ defmodule GenEvent do
     * `:duration` (Enumerable) - only consume events during the X milliseconds
       from the streaming start.
 
-    * `:mode` - the mode to consume events, can be `:sync` (default) or
-      `:async`. On sync, the event manager waits for the event to be consumed
-      before moving on to the next event handler.
+    * `:mode` - the mode to consume events, can be `:ack` (default), `:sync`
+      or `:async`. See modes below.
+
+  ## Modes
+
+  GenEvent stream supports three different modes.
+
+  On `:ack`, the stream acknowledges each event, providing back pressure,
+  but processing of the message happens asynchronously, allowing the event
+  manager to move on to the next handler as soon as the event is
+  acknowledged.
+
+  On `:sync`, the event manager waits for the event to be consumed
+  before moving on to the next event handler.
+
+  On `:async`, all events are processed asynchronously but there is no
+  ack (which means there is no backpressure).
 
   """
   @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
@@ -299,7 +313,7 @@ defmodule GenEvent do
       id: Keyword.get(options, :id),
       timeout: Keyword.get(options, :timeout, :infinity),
       duration: Keyword.get(options, :duration, :infinity),
-      mode: Keyword.get(options, :mode, :sync)}
+      mode: Keyword.get(options, :mode, :ack)}
   end
 
   @doc """
@@ -478,7 +492,7 @@ defimpl Enumerable, for: GenEvent.Stream do
   end
 
   @doc false
-  def handle_event(event, {:sync, mon_pid, pid, ref} = state) do
+  def handle_event(event, {mode, mon_pid, pid, ref} = state) when mode in [:sync, :ack] do
     sync = Process.monitor(mon_pid)
     send pid, {ref, sync, event}
     receive do
@@ -515,11 +529,17 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp wrap_reducer(fun) do
     fn
-      {nil, _manager, event}, acc ->
-        fun.(event, acc)
-      {ref, manager, event}, acc ->
+      {:ack, ref, manager, event}, acc ->
         send manager, {ref, :next}
         fun.(event, acc)
+      {:async, _, _manager, event}, acc ->
+        fun.(event, acc)
+      {:sync, ref, manager, event}, acc ->
+        try do
+          fun.(event, acc)
+        after
+          send manager, {ref, :next}
+        end
     end
   end
 
@@ -548,7 +568,7 @@ defimpl Enumerable, for: GenEvent.Stream do
         send(self(), {:DOWN, mon_ref, :process, mon_pid, :normal})
         exit({reason, {__MODULE__, :next, [stream, acc]}})
       {^mon_ref, sync_ref, event} ->
-        {{sync_ref, manager_pid, event}, acc}
+        {{stream.mode, sync_ref, manager_pid, event}, acc}
     after
       timeout ->
         exit({:timeout, {__MODULE__, :next, [stream, acc]}})
