@@ -101,6 +101,41 @@ defmodule GenEventTest do
     Logger.add_backend(:console, flush: true)
   end
 
+  test "ack stream/2" do
+    {:ok, pid} = GenEvent.start_link()
+    parent = self()
+
+    spawn_link fn ->
+      send parent, Enum.take(GenEvent.stream(pid, mode: :ack), 3)
+    end
+
+    wait_for_handlers(pid, 1)
+
+    for i <- 1..3 do
+      GenEvent.sync_notify(pid, i)
+    end
+
+    # Receive one of the results
+    assert_receive [1, 2, 3], @receive_timeout
+    wait_for_handlers(pid, 0)
+
+    spawn_link fn ->
+      Enum.each(GenEvent.stream(pid, mode: :ack), fn _ ->
+        :timer.sleep(:infinity)
+      end)
+    end
+
+    wait_for_handlers(pid, 1)
+
+    for i <- 1..6 do
+      GenEvent.notify(pid, i)
+    end
+
+    # The length is 4 instead of 5 because we wait for
+    # message acks and not consumptions acks.
+    wait_for_queue_length(pid, 4)
+  end
+
   test "sync stream/2" do
     {:ok, pid} = GenEvent.start_link()
     parent = self()
@@ -131,9 +166,7 @@ defmodule GenEventTest do
       GenEvent.notify(pid, i)
     end
 
-    # The length is 4 instead of 5 because we wait for
-    # message acks and not consumptions acks.
-    wait_for_queue_length(pid, 4)
+    wait_for_queue_length(pid, 5)
   end
 
   test "async stream/2" do
