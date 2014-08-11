@@ -26,8 +26,6 @@ defmodule Kernel.WarningTest do
       {_arg, _arg} = {1, 1}
       """
     end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
-  after
-    purge Sample
   end
 
   test :unused_function do
@@ -160,7 +158,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: unused import :lists"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_alias do
@@ -173,7 +171,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: unused alias List"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_inside_dynamic_module do
@@ -189,7 +187,7 @@ defmodule Kernel.WarningTest do
       end
     end) =~ "warning: unused import String"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_guard do
@@ -233,7 +231,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: bodyless clause provided for nonexistent def hello/0"
   after
-    purge [Sample1]
+    purge Sample1
   end
 
   test :used_import_via_alias do
@@ -420,7 +418,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: @behavior attribute is not supported, please use @behaviour instead"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :undefined_macro_for_protocol do
@@ -449,7 +447,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:4: warning: clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :warning_with_overridden_file do
@@ -462,15 +460,13 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "sample:3: warning: variable x is unused"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :warning_on_codepoint_escape do
     assert capture_err(fn ->
       Code.eval_string "? "
     end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
-  after
-    purge [Sample]
   end
 
   test :typedoc_on_typep do
@@ -485,7 +481,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:3: warning: type priv/0 is private, @typedoc's are always discarded for private types"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :typedoc_with_no_type do
@@ -497,7 +493,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:1: warning: @typedoc provided but no type follows it"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :doc_with_no_function do
@@ -509,7 +505,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:1: warning: @doc provided but no definition follows it"
   after
-    purge [Sample]
+    purge Sample
   end
 
   defp purge(list) when is_list(list) do
