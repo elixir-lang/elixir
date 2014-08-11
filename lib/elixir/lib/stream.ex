@@ -584,9 +584,9 @@ defmodule Stream do
 
   @doc """
   Creates a stream that emits a single value after `n` milliseconds.
-  
+
   The value emitted is `0`.
-  
+
   ## Examples
 
     iex> Stream.timer(10) |> Enum.to_list
@@ -885,9 +885,9 @@ defmodule Stream do
   def cycle(enumerable)
 
   def cycle(enumerable) when is_list(enumerable) do
-    Stream.unfold {enumerable, enumerable}, fn
-      ({source, [h | t]}) -> {h, {source, t}}
-      ({source = [h | t], []}) -> {h, {source, t}}
+    unfold {enumerable, enumerable}, fn
+      {source, [h | t]}      -> {h, {source, t}}
+      {source = [h | t], []} -> {h, {source, t}}
     end
   end
 
