@@ -29,6 +29,14 @@ defmodule IEx.InteractionTest do
     assert capture_iex(code) =~ "10"
   end
 
+  test "code escape" do
+    code = """
+    1 \\
+    + 2
+    """
+    assert capture_iex(code) =~ "3"
+  end
+
   test "exception" do
     exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
     assert capture_iex("1 + :atom\n:this_is_still_working")
