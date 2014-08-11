@@ -340,6 +340,12 @@ defmodule Kernel.ErrorsTest do
       'fn 1'
   end
 
+  test :invalid_escape do
+    assert_compile_fail TokenMissingError,
+      "nofile:1: invalid escape \\ at end of file",
+      '1 \\'
+  end
+
   test :function_local_conflict do
     assert_compile_fail CompileError,
       "nofile:1: imported Kernel.&&/2 conflicts with local function",

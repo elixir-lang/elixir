@@ -304,6 +304,15 @@ tokenize(";" ++ Rest, Line, Scope, []) ->
 tokenize(";" ++ Rest, Line, Scope, [Top|Tokens]) when element(1, Top) /= eol ->
   tokenize(Rest, Line, Scope, eol(Line, ';', [Top|Tokens]));
 
+tokenize("\\" = Original, Line, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
+tokenize("\\\n" = Original, Line, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
+tokenize("\\\r\n" = Original, Line, _Scope, Tokens) ->
+  {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
+
 tokenize("\\\n" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line + 1, Scope, Tokens);
 
