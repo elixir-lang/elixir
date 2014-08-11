@@ -882,6 +882,15 @@ defmodule Stream do
 
   """
   @spec cycle(Enumerable.t) :: Enumerable.t
+  def cycle(enumerable)
+
+  def cycle(enumerable) when is_list(enumerable) do
+    Stream.unfold {enumerable, enumerable}, fn
+      ({source, [h | t]}) -> {h, {source, t}}
+      ({source = [h | t], []}) -> {h, {source, t}}
+    end
+  end
+
   def cycle(enumerable) do
     fn acc, fun ->
       inner = &do_cycle_each(&1, &2, fun)
