@@ -361,6 +361,54 @@ defmodule String do
   defdelegate downcase(binary), to: String.Unicode
 
   @doc """
+  Checks if all cased characters are uppercase and there is at least
+  one cased character. Returns `true` if so, `false` otherwise.
+
+  ## Examples
+
+      iex> String.upcase?("ABCD")
+      true
+
+      iex> String.upcase?("aBCd")
+      false
+
+      iex> String.upcase?("OLÁ")
+      true
+
+      iex> String.upcase?("olá")
+      false
+
+      iex> String.upcase?(" ")
+      false
+  """
+  @spec upcase?(t) :: boolean
+  defdelegate upcase?(binary), to: String.Unicode
+
+  @doc """
+  Checks if all cased characters are lowercase and there is at least
+  one cased character. Returns `true` if so, `false` otherwise.
+
+  ## Examples
+
+      iex> String.downcase?("abcd")
+      true
+
+      iex> String.downcase?("aBCd")
+      false
+
+      iex> String.downcase?("olá")
+      true
+
+      iex> String.downcase?("OLÁ")
+      false
+
+      iex> String.downcase?(" ")
+      false
+  """
+  @spec downcase?(t) :: boolean
+  defdelegate downcase?(binary), to: String.Unicode
+
+  @doc """
   Converts the first character in the given string to
   uppercase and the remaining to lowercase.
 

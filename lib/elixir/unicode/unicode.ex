@@ -87,6 +87,40 @@ defmodule String.Unicode do
     {<< char >>, rest}
   end
 
+  # Is uppercase
+
+  def upcase?(string) do
+    codepoints = String.codepoints(string)
+    Enum.any?(codepoints, &is_cased?/1) and not Enum.any?(codepoints, &is_downcase?/1)
+  end
+
+  # Is lowercase
+
+  def downcase?(string) do
+    codepoints = String.codepoints(string)
+    Enum.any?(codepoints, &is_cased?/1) and not Enum.any?(codepoints, &is_upcase?/1)
+  end
+
+  # Case check helpers
+
+  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
+    defp is_upcase?(unquote(upper)), do: true
+  end
+
+  defp is_upcase?(_codepoint), do: false
+
+  for {codepoint, _upper, lower, _title} <- codes, lower && lower != codepoint do
+    defp is_downcase?(unquote(lower)), do: true
+  end
+
+  defp is_downcase?(_codepoint), do: false
+
+  for {codepoint, upper, lower, _title} <- codes, lower || upper do
+    defp is_cased?(unquote(codepoint)), do: true
+  end
+
+  defp is_cased?(_codepoint), do: false
+
   # Strip
 
   def lstrip(""), do: ""
