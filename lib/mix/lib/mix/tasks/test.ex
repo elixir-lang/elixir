@@ -200,10 +200,17 @@ defmodule Mix.Tasks.Test do
            |> filter_opts(:exclude)
            |> filter_only_opts()
 
+    default_opts(opts) ++
+      Dict.take(opts, [:trace, :max_cases, :include, :exclude, :seed])
+  end
+
+  defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    [autorun: false] ++
-      Dict.take(opts, [:trace, :max_cases, :color, :include, :exclude, :seed])
+    case Dict.get(opts, :color) do
+      nil -> [autorun: false]
+      enabled? -> [autorun: false, colors: [enabled: enabled?]]
+    end
   end
 
   defp parse_files([], test_paths) do
