@@ -36,7 +36,7 @@ defmodule StringIO do
   """
   @spec open(binary, Keyword.t) :: {:ok, pid}
   def open(string, options \\ []) when is_binary(string) do
-    :gen_server.start_link(__MODULE__, {string, options}, [])
+    GenServer.start_link(__MODULE__, {string, options}, [])
   end
 
   @doc """
@@ -52,7 +52,7 @@ defmodule StringIO do
   """
   @spec contents(pid) :: {binary, binary}
   def contents(pid) when is_pid(pid) do
-    :gen_server.call(pid, :contents)
+    GenServer.call(pid, :contents)
   end
 
   @doc """
@@ -68,7 +68,7 @@ defmodule StringIO do
   """
   @spec close(pid) :: {:ok, {binary, binary}}
   def close(pid) when is_pid(pid) do
-    :gen_server.call(pid, :close)
+    GenServer.call(pid, :close)
   end
 
   ## callbacks
