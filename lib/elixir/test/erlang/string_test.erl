@@ -39,7 +39,7 @@ extract_interpolations_with_tuple_inside_interpolation_test() ->
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-   {1,[{number,1,1},{eol,1,newline},{number,2,2}]},
+   {1,[{number,1,1},{eol,1},{number,2,2}]},
     <<"o">>] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
