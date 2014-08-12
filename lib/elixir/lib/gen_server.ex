@@ -349,18 +349,56 @@ defmodule GenServer do
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000) do
-    :gen_server.call(server, request, timeout)
+    try do
+      :gen.call(server, :"$gen_call", request, timeout)
+    catch
+      :exit, reason ->
+        exit({reason, {__MODULE__, :call, [server, request, timeout]}})
+    else
+      {:ok, res} -> res
+    end
   end
 
   @doc """
   Sends an asynchronous request to the `server`.
 
-  This function returns `:ok` immediately, regardless of whether the
-  destination node or server does exists. `handle_cast/2` will be called on the
-  server to handle the request.
+  This function returns `:ok` immediately, regardless of
+  whether the destination node or server does exists.
+
+  `handle_cast/2` will be called on the server to handle
+  the request. In case the server is a node which is not
+  yet connected to the caller one, the call is going to
+  block until a connection happens. This is different than
+  the behaviour in OTP's `:gen_server` where the message
+  would be sent by another process, which could cause
+  messages to arrive out of order.
   """
   @spec cast(server, term) :: :ok
-  defdelegate cast(server, request), to: :gen_server
+  def cast(server, request)
+
+  def cast({:global, name}, request) do
+    try do
+      :global.send(name, cast_msg(request))
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def cast({:via, mod, name}, request) do
+    try do
+      mod.send(name, cast_msg(request))
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def cast({name, node}, request) when is_atom(name) and is_atom(node),
+    do: do_send({name, node}, cast_msg(request))
+
+  def cast(dest, request) when is_atom(dest) or is_pid(dest),
+    do: do_send(dest, cast_msg(request))
 
   @doc """
   Casts all servers locally registered as `name` at the specified nodes.
@@ -371,8 +409,23 @@ defmodule GenServer do
   See `multi_call/4` for more information.
   """
   @spec abcast([node], name :: atom, term) :: :abcast
-  def abcast(nodes \\ nodes(), name, request) do
-    :gen_server.abcast(nodes, name, request)
+  def abcast(nodes \\ nodes(), name, request) when is_list(nodes) and is_atom(name) do
+    msg = cast_msg(request)
+    _   = for node <- nodes, do: do_send({name, node}, msg)
+    :abcast
+  end
+
+  defp cast_msg(req) do
+    {:"$gen_cast", req}
+  end
+
+  defp do_send(dest, msg) do
+    try do
+      send(dest, msg)
+      :ok
+    catch
+      _, _ -> :ok
+    end
   end
 
   @doc """
