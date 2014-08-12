@@ -1893,8 +1893,8 @@ defmodule Kernel do
   end
 
   @doc """
-  A convenient macro that checks if the right side matches
-  the left side. The left side is allowed to be a match pattern.
+  A convenience macro that checks if the right side (an expression)
+  matches the left side (a pattern).
 
   ## Examples
 
