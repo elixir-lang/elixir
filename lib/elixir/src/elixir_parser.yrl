@@ -7,7 +7,7 @@ Nonterminals
   add_op_eol mult_op_eol hat_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   type_op_eol rel_op_eol
-  open_paren close_paren empty_paren
+  open_paren close_paren empty_paren eoe
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bit_string open_bit close_bit
@@ -16,11 +16,11 @@ Nonterminals
   container_args_base container_args call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
   call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
-  stab stab_eol stab_expr stab_maybe_expr stab_parens_many
+  stab stab_eoe stab_expr stab_maybe_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
-  do_block fn_eol do_eol end_eol block_eol block_item block_list
+  do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
   .
 
 Terminals
@@ -32,13 +32,13 @@ Terminals
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op add_op mult_op hat_op two_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
-  'true' 'false' 'nil' 'do' eol ',' '.'
+  'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   .
 
 Rootsymbol grammar.
 
-%% There are two shift/reduce conflicts coming from call_args_parens.
+%% Two shift/reduce conflicts coming from call_args_parens.
 Expect 2.
 
 %% Changes in ops and precedence should be reflected on lib/elixir/lib/macro.ex
@@ -72,16 +72,16 @@ Nonassoc 330 dot_identifier.
 
 %%% MAIN FLOW OF EXPRESSIONS
 
-grammar -> eol : nil.
+grammar -> eoe : nil.
 grammar -> expr_list : to_block('$1').
-grammar -> eol expr_list : to_block('$2').
-grammar -> expr_list eol : to_block('$1').
-grammar -> eol expr_list eol : to_block('$2').
+grammar -> eoe expr_list : to_block('$2').
+grammar -> expr_list eoe : to_block('$1').
+grammar -> eoe expr_list eoe : to_block('$2').
 grammar -> '$empty' : nil.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> expr_list eol expr : ['$3'|'$1'].
+expr_list -> expr_list eoe expr : ['$3'|'$1'].
 
 expr -> empty_paren : nil.
 expr -> matched_expr : '$1'.
@@ -202,8 +202,12 @@ access_expr -> bracket_expr : '$1'.
 access_expr -> at_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
-access_expr -> fn_eol stab end_eol : build_fn('$1', build_stab(reverse('$2'))).
+access_expr -> fn_eoe stab end_eoe : build_fn('$1', build_stab(reverse('$2'))).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
+access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
+access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
+access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
+access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> number : ?exprs('$1').
 access_expr -> signed_number : {element(4, '$1'), meta('$1'), ?exprs('$1')}.
 access_expr -> list : element(1, '$1').
@@ -240,28 +244,32 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 
 %% Blocks
 
-do_block -> do_eol 'end' : [[{do,nil}]].
-do_block -> do_eol stab end_eol : [[{do, build_stab(reverse('$2'))}]].
-do_block -> do_eol block_list 'end' : [[{do, nil}|'$2']].
-do_block -> do_eol stab_eol block_list 'end' : [[{do, build_stab(reverse('$2'))}|'$3']].
+do_block -> do_eoe 'end' : [[{do,nil}]].
+do_block -> do_eoe stab end_eoe : [[{do, build_stab(reverse('$2'))}]].
+do_block -> do_eoe block_list 'end' : [[{do, nil}|'$2']].
+do_block -> do_eoe stab_eoe block_list 'end' : [[{do, build_stab(reverse('$2'))}|'$3']].
 
-fn_eol -> 'fn' : '$1'.
-fn_eol -> 'fn' eol : '$1'.
+eoe -> eol : '$1'.
+eoe -> ';' : '$1'.
+eoe -> eol ';' : '$1'.
 
-do_eol -> 'do' : '$1'.
-do_eol -> 'do' eol : '$1'.
+fn_eoe -> 'fn' : '$1'.
+fn_eoe -> 'fn' eoe : '$1'.
 
-end_eol -> 'end' : '$1'.
-end_eol -> eol 'end' : '$2'.
+do_eoe -> 'do' : '$1'.
+do_eoe -> 'do' eoe : '$1'.
 
-block_eol -> block_identifier : '$1'.
-block_eol -> block_identifier eol : '$1'.
+end_eoe -> 'end' : '$1'.
+end_eoe -> eoe 'end' : '$2'.
+
+block_eoe -> block_identifier : '$1'.
+block_eoe -> block_identifier eoe : '$1'.
 
 stab -> stab_expr : ['$1'].
-stab -> stab eol stab_expr : ['$3'|'$1'].
+stab -> stab eoe stab_expr : ['$3'|'$1'].
 
-stab_eol -> stab : '$1'.
-stab_eol -> stab eol : '$1'.
+stab_eoe -> stab : '$1'.
+stab_eoe -> stab eoe : '$1'.
 
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op_eol stab_maybe_expr : build_op('$1', [], '$2').
@@ -275,8 +283,8 @@ stab_expr -> stab_parens_many when_op expr stab_op_eol stab_maybe_expr :
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
 
-block_item -> block_eol stab_eol : {?exprs('$1'), build_stab(reverse('$2'))}.
-block_item -> block_eol : {?exprs('$1'), nil}.
+block_item -> block_eoe stab_eoe : {?exprs('$1'), build_stab(reverse('$2'))}.
+block_item -> block_eoe : {?exprs('$1'), nil}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1'|'$2'].

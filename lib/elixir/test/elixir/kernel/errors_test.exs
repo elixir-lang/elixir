@@ -596,9 +596,47 @@ defmodule Kernel.ErrorsTest do
       'fn x -> x; x, y -> x + y end'
   end
 
+  test :end_of_expression do
+    # All valid examples
+    Code.eval_quoted '''
+    1;
+    2;
+    3
+
+    (;)
+    (;1)
+    (1;)
+    (1; 2)
+
+    fn -> 1; 2 end
+    fn -> ; end
+
+    if true do
+      ;
+    end
+
+    try do
+      ;
+    catch
+      _, _ -> ;
+    after
+      ;
+    end
+    '''
+
+    # All invalid examples
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: ';'",
+      '1+;\n2'
+
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: ';'",
+      'max(1,;2)'
+  end
+
   test :new_line_error do
     assert_compile_fail SyntaxError,
-      "nofile:3: syntax error before: newline",
+      "nofile:3: syntax error before: eol",
       'if true do\n  foo = [],\n  baz\nend'
   end
 

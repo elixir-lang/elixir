@@ -299,10 +299,10 @@ tokenize([$:,T|Rest], Line, Scope, Tokens) when
 % End of line
 
 tokenize(";" ++ Rest, Line, Scope, []) ->
-  tokenize(Rest, Line, Scope, eol(Line, ';', []));
+  tokenize(Rest, Line, Scope, [{';', Line}]);
 
-tokenize(";" ++ Rest, Line, Scope, [Top|Tokens]) when element(1, Top) /= eol ->
-  tokenize(Rest, Line, Scope, eol(Line, ';', [Top|Tokens]));
+tokenize(";" ++ Rest, Line, Scope, [Top|_] = Tokens) when element(1, Top) /= ';' ->
+  tokenize(Rest, Line, Scope, [{';', Line}|Tokens]);
 
 tokenize("\\" = Original, Line, _Scope, Tokens) ->
   {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
@@ -320,10 +320,10 @@ tokenize("\\\r\n" ++ Rest, Line, Scope, Tokens) ->
   tokenize(Rest, Line + 1, Scope, Tokens);
 
 tokenize("\n" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, Scope, eol(Line, newline, Tokens));
+  tokenize(Rest, Line + 1, Scope, eol(Line, Tokens));
 
 tokenize("\r\n" ++ Rest, Line, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, Scope, eol(Line, newline, Tokens));
+  tokenize(Rest, Line + 1, Scope, eol(Line, Tokens));
 
 % Stand-alone tokens
 
@@ -607,9 +607,10 @@ handle_space_sensitive_tokens(String, Line, Scope, Tokens) ->
 
 %% Helpers
 
-eol(_Line, _Mod, [{',',_}|_] = Tokens)   -> Tokens;
-eol(_Line, _Mod, [{eol,_,_}|_] = Tokens) -> Tokens;
-eol(Line, Mod, Tokens) -> [{eol,Line,Mod}|Tokens].
+eol(_Line, [{';',_}|_] = Tokens) -> Tokens;
+eol(_Line, [{',',_}|_] = Tokens) -> Tokens;
+eol(_Line, [{eol,_}|_] = Tokens) -> Tokens;
+eol(Line, Tokens) -> [{eol,Line}|Tokens].
 
 unsafe_to_atom(Part, Line, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;
@@ -836,7 +837,7 @@ check_call_identifier(_Kind, Line, Atom, [$(|_]) -> {paren_identifier, Line, Ato
 check_call_identifier(_Kind, Line, Atom, [$[|_]) -> {bracket_identifier, Line, Atom};
 check_call_identifier(Kind, Line, Atom, _Rest)   -> {Kind, Line, Atom}.
 
-add_token_with_nl(Left, [{eol,_,newline}|T]) -> [Left|T];
+add_token_with_nl(Left, [{eol,_}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
 
 %% Error handling
