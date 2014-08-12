@@ -1112,7 +1112,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-  Imagine the situation you have a variable `name` and
+  Imagine the situation you have a variable `value` and
   you want to inject it inside some quote. The first attempt
   would be:
 
