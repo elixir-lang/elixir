@@ -268,7 +268,9 @@ defmodule Supervisor do
   and child specification.
   """
   @spec start_child(supervisor, Supervisor.Spec.spec | [term]) :: on_start_child
-  defdelegate start_child(supervisor, child_spec_or_args), to: :supervisor
+  def start_child(supervisor, child_spec_or_args) do
+    call(supervisor, {:start_child, child_spec_or_args})
+  end
 
   @doc """
   Terminates the given pid or child id.
@@ -290,7 +292,9 @@ defmodule Supervisor do
   """
   @spec terminate_child(supervisor, pid | Supervisor.Spec.child_id) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one
-  defdelegate terminate_child(supervisor, pid_or_child_id), to: :supervisor
+  def terminate_child(supervisor, pid_or_child_id) do
+    call(supervisor, {:terminate_child, pid_or_child_id})
+  end
 
   @doc """
   Deletes the child specification identified by `child_id`.
@@ -306,7 +310,9 @@ defmodule Supervisor do
   """
   @spec delete_child(supervisor, Supervisor.Spec.child_id) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting
-  defdelegate delete_child(supervisor, child_id), to: :supervisor
+  def delete_child(supervisor, child_id) do
+    call(supervisor, {:delete_child, child_id})
+  end
 
   @doc """
   Restarts a child process identified by `child_id`.
@@ -335,7 +341,9 @@ defmodule Supervisor do
   @spec restart_child(supervisor, Supervisor.Spec.child_id) ::
         {:ok, child} | {:ok, child, term} | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting | term
-  defdelegate restart_child(supervisor, child_id), to: :supervisor
+  def restart_child(supervisor, child_id) do
+    call(supervisor, {:restart_child, child_id})
+  end
 
   @doc """
   Returns a list with information about all children.
@@ -361,7 +369,9 @@ defmodule Supervisor do
            child | :restarting,
            Supervisor.Spec.worker,
            Supervisor.Spec.modules}]
-  defdelegate which_children(supervisor), to: :supervisor
+  def which_children(supervisor) do
+    call(supervisor, :which_children)
+  end
 
   @doc """
   Returns a map containing count values for the supervisor.
@@ -384,6 +394,12 @@ defmodule Supervisor do
         [specs: non_neg_integer, active: non_neg_integer,
          supervisors: non_neg_integer, workers: non_neg_integer]
   def count_children(supervisor) do
-    :supervisor.count_children(supervisor) |> :maps.from_list
+    call(supervisor, :count_children) |> :maps.from_list
+  end
+
+  @compile {:inline, call: 2}
+
+  defp call(supervisor, req) do
+    GenServer.call(supervisor, req, :infinity)
   end
 end
