@@ -260,14 +260,16 @@ defmodule GenEvent do
     do_start(:nolink, options)
   end
 
+  @no_callback :"no callback module"
+
   defp do_start(mode, options) do
     case Keyword.get(options, :name) do
       nil ->
-        :gen.start(:gen_event, mode, :"no callback module", [], [])
+        :gen.start(:gen_event, mode, @no_callback, [], [])
       atom when is_atom(atom) ->
-        :gen.start(:gen_event, mode, {:local, atom}, :"no callback module", [], [])
+        :gen.start(:gen_event, mode, {:local, atom}, @no_callback, [], [])
       other when is_tuple(other) ->
-        :gen.start(:gen_event, mode, other, :"no callback module", [], [])
+        :gen.start(:gen_event, mode, other, @no_callback, [], [])
     end
   end
 
@@ -356,22 +358,39 @@ defmodule GenEvent do
   @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:EXIT, term} | {:error, term}
   def add_handler(manager, handler, args, options \\ []) do
     case Keyword.get(options, :link, false) do
-      true  -> :gen_event.add_sup_handler(manager, handler, args)
-      false -> :gen_event.add_handler(manager, handler, args)
+      true  -> rpc(manager, {:add_sup_handler, handler, args, self()})
+      false -> rpc(manager, {:add_handler, handler, args})
     end
   end
 
   @doc """
   Sends an event notification to the event `manager`.
 
-  The event manager will call `handle_event/2` for each installed event handler.
+  The event manager will call `handle_event/2` for each
+  installed event handler.
 
-  `notify` is asynchronous and will return immediately after the notification is
-  sent. `notify` will not fail even if the specified event manager does not exist,
-  unless it is specified as `name` (atom).
+  `notify` is asynchronous and will return immediately after the
+  notification is sent. `notify` will not fail even if the specified
+  event manager does not exist.
   """
   @spec notify(manager, term) :: :ok
-  defdelegate notify(manager, event), to: :gen_event
+  def notify(manager, event) do
+    try do
+      do_notify(manager, {:notify, event})
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  defp do_notify({:global, name}, msg), do:
+    :global.send(name, msg)
+
+  defp do_notify({:via, mod, name}, msg), do:
+    mod.send(name, msg)
+
+  defp do_notify(other, msg), do:
+    send(other, msg)
 
   @doc """
   Sends a sync event notification to the event `manager`.
@@ -382,7 +401,9 @@ defmodule GenEvent do
   See `notify/2` for more info.
   """
   @spec sync_notify(manager, term) :: :ok
-  defdelegate sync_notify(manager, event), to: :gen_event
+  def sync_notify(manager, event) do
+    rpc(manager, {:sync_notify, event})
+  end
 
   @doc """
   Makes a synchronous call to the event `handler` installed in `manager`.
@@ -397,7 +418,14 @@ defmodule GenEvent do
   """
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
-    :gen_event.call(manager, handler, request, timeout)
+    try do
+      :gen.call(manager, self(), {:call, handler, request}, timeout)
+    catch
+      :exit, reason ->
+        exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
+    else
+      {:ok, res} -> res
+    end
   end
 
   @doc """
@@ -413,11 +441,12 @@ defmodule GenEvent do
   end
 
   def cancel_streams(%GenEvent.Stream{manager: manager, id: id}) do
-    handlers = :gen_event.which_handlers(manager)
+    IO.write :stderr, "warning: GenEvent.cancel_streams/1 is deprecated\n#{Exception.format_stacktrace}"
+    handlers = which_handlers(manager)
 
     _ = for {Enumerable.GenEvent.Stream, {handler_id, _}} = ref <- handlers,
         handler_id === id do
-      :gen_event.delete_handler(manager, ref, :remove_handler)
+      remove_handler(manager, ref, :remove_handler)
     end
 
     :ok
@@ -432,7 +461,7 @@ defmodule GenEvent do
   """
   @spec remove_handler(manager, handler, term) :: term | {:error, term}
   def remove_handler(manager, handler, args) do
-    :gen_event.delete_handler(manager, handler, args)
+    rpc(manager, {:delete_handler, handler, args})
   end
 
   @doc """
@@ -459,8 +488,8 @@ defmodule GenEvent do
   @spec swap_handler(manager, handler, term, handler, term, [link: boolean]) :: :ok | {:error, term}
   def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
     case Keyword.get(options, :link, false) do
-      true  -> :gen_event.swap_sup_handler(manager, {handler1, args1}, {handler2, args2})
-      false -> :gen_event.swap_handler(manager, {handler1, args1}, {handler2, args2})
+      true  -> rpc(manager, {:swap_sup_handler, handler1, args1, handler2, args2, self()})
+      false -> rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
     end
   end
 
@@ -468,7 +497,9 @@ defmodule GenEvent do
   Returns a list of all event handlers installed in the `manager`.
   """
   @spec which_handlers(manager) :: [handler]
-  defdelegate which_handlers(manager), to: :gen_event
+  def which_handlers(manager) do
+    rpc(manager, :which_handlers)
+  end
 
   @doc """
   Terminates the event `manager`.
@@ -477,7 +508,14 @@ defmodule GenEvent do
   for each installed event handler.
   """
   @spec stop(manager) :: :ok
-  defdelegate stop(manager), to: :gen_event
+  def stop(manager) do
+    rpc(manager, :stop)
+  end
+
+  defp rpc(module, cmd) do
+    {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
+    reply
+  end
 end
 
 defimpl Enumerable, for: GenEvent.Stream do
