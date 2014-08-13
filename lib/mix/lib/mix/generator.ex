@@ -9,11 +9,15 @@ defmodule Mix.Generator do
   @doc """
   Creates a file with the given contents.
   If the file already exists, asks for user confirmation.
+
+  ## Options
+
+    * `:force` - forces installation without a shell prompt.
   """
-  def create_file(path, contents) when is_binary(path) do
+  def create_file(path, contents, opts \\ []) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
 
-    if overwriting?(path) do
+    if opts[:force] || overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
     end
