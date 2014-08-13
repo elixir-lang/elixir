@@ -29,6 +29,18 @@ defmodule Mix.GeneratorTest do
     end
   end
 
+  test :force_create_file do
+    in_tmp "create_file", fn ->
+      File.write! "foo", "HELLO"
+
+      create_file "foo", "WORLD", force: true
+      assert File.read!("foo") == "WORLD"
+
+      refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      assert_received {:mix_shell, :info, ["* creating foo"]}
+    end
+  end
+
   test :create_with_conflict_returning_true do
     in_tmp "create_file", fn ->
       File.write! "foo", "HELLO"
