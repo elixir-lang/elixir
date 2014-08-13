@@ -108,7 +108,7 @@ defmodule Mix.CLI do
   end
 
   defp display_version() do
-    IO.puts "Elixir #{System.version}"
+    IO.puts "Mix #{System.version}"
   end
 
   # Check for --help or --version in the args
