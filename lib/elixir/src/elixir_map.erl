@@ -101,11 +101,11 @@ load_struct(Meta, Name, S) ->
     error:undef ->
       Inspected = elixir_aliases:inspect(Name),
 
-      case Context of
+      case Context andalso (S#elixir_scope.function == nil) of
         true ->
           compile_error(Meta, S#elixir_scope.file,
-            "cannot access struct ~ts in the same context that defines it as "
-            "the struct fields are not yet accessible", [Inspected]);
+            "cannot access struct ~ts, the struct was not yet defined or the struct is being "
+            "accessed in the same context that defines it", [Inspected]);
         false ->
           compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
             "cannot expand struct ~ts", [Inspected, Inspected])
