@@ -117,7 +117,7 @@ defmodule Mix.CLITest do
   test "--version smoke test" do
     in_fixture "no_mixfile", fn ->
       output = mix ~w[--version]
-      assert output =~ ~r/Elixir [0-9\.a-z]+/
+      assert output =~ ~r/Mix [0-9\.a-z]+/
     end
   end
 
