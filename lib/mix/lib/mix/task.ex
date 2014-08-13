@@ -60,11 +60,15 @@ defmodule Mix.Task do
   """
   @spec load_tasks([List.Chars.t]) :: [task_module]
   def load_tasks(dirs) do
-    for dir <- dirs,
+    # We may get duplicate modules because we look through the
+    # entire load path so make sure we only return unique modules.
+
+    for(dir <- dirs,
         {:ok, files} = :erl_prim_loader.list_dir(to_char_list(dir)),
         file <- files,
         mod = task_from_path(file),
-        do: mod
+        do: mod)
+    |> Enum.uniq
   end
 
   @prefix_size byte_size("Elixir.Mix.Tasks.")
