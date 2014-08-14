@@ -4,28 +4,12 @@ defmodule String do
   @moduledoc ~S"""
   A String in Elixir is a UTF-8 encoded binary.
 
-  ## String and binary operations
-
-  The functions in this module act according to the
-  Unicode Standard, version 6.3.0. For example,
-  `capitalize/1`, `downcase/1`, `strip/1` are provided by this
-  module.
-
-  In addition to this module, Elixir provides more low-level
-  operations that work directly with binaries. Some
-  of those can be found in the `Kernel` module, as:
-
-    * `Kernel.binary_part/3` - retrieves part of the binary
-    * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
-    * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
-    * Plus a number of functions for working with binaries (bytes)
-      [in the `:binary` module](http://erlang.org/doc/man/binary.html)
-
   ## Codepoints and graphemes
 
-  As per the Unicode Standard, a codepoint is an Unicode
-  Character, which may be represented by one or more bytes.
-  For example, the character "é" is represented with two
+  The functions in this module act according to the Unicode
+  Standard, version 6.3.0.As per the standard, a codepoint is
+  an Unicode Character, which may be represented by one or more
+  bytes. For example, the character "é" is represented with two
   bytes:
 
       iex> byte_size("é")
@@ -65,6 +49,82 @@ defmodule String do
   Standard Annex #29](http://www.unicode.org/reports/tr29/).
   This current Elixir version implements Extended Grapheme Cluster
   algorithm.
+
+  ## String and binary operations
+
+  To act accordingly to the Unicode Standard, many functions
+  in this module runs in linear time, as it needs to traverse
+  the whole string considering the proper Unicode codepoints.
+
+  For example, `String.length/1` is going to take longer as
+  the input grows. On the other hand, `byte_size/1` always runs
+  in constant time (i.e. regardless of the input size).
+
+  This means often there are performance costs in using the
+  functions in this module, compared to the more low-level
+  operations that work directly with binaries:
+
+    * `Kernel.binary_part/3` - retrieves part of the binary
+    * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
+    * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
+    * Plus a number of functions for working with binaries (bytes)
+      [in the `:binary` module](http://erlang.org/doc/man/binary.html)
+
+  There are many situations where using the `String` module can
+  be avoided in favor of binary functions or pattern matching.
+  For example, imagine you have a string `prefix` and you want to
+  remove this prefix from another string named `full`.
+  
+  One may be tempted to write:
+  
+      iex> take_prefix = fn full, prefix ->
+      ...>   base = String.length(prefix)
+      ...>   String.slice(full, base, String.length(full) - base)
+      ...> end
+      ...> take_prefix.("Mr. John", "Mr. ")
+      "John"
+  
+  Although the function above works, it performs poorly. To
+  calculate the length of the string, we need to traverse it
+  fully, so we traverse both `prefix` and `full` strings, then
+  slice the `full` one, traversing it again.
+  
+  A first attempting at improving it could be with ranges:
+
+      iex> take_prefix = fn full, prefix ->
+      ...>   base = String.length(prefix)
+      ...>   String.slice(full, base..-1)
+      ...> end
+      ...> take_prefix.("Mr. John", "Mr. ")
+      "John"
+
+  While this is much better (we don't traverse `full` twice),
+  it could still be improved. In this case, since we want to
+  extract a substring from a string, we can use `byte_size/1`
+  and `binary_part/3` as there is no chance we will slice in
+  the middle of a codepoint made of more than one byte:
+  
+      iex> take_prefix = fn full, prefix ->
+      ...>   base = byte_size(prefix)
+      ...>   binary_part(full, base, byte_size(full) - base)
+      ...> end
+      ...> take_prefix.("Mr. John", "Mr. ")
+      "John"
+
+  Or simply used pattern matching:
+  
+      iex> take_prefix = fn full, prefix ->
+      ...>   base = byte_size(prefix)
+      ...>   <<_ :: binary-size(base), rest :: binary>> = full
+      ...>   rest
+      ...> end
+      ...> take_prefix.("Mr. John", "Mr. ")
+      "John"
+
+  On the other hand, if you want to dynamically slice a string
+  based on an integer value, then using `String.slice/3` is the
+  best option as it guarantees we won't incorrectly split a valid
+  codepoint in multiple bytes.
 
   ## Integer codepoints
 
