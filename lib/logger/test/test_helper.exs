@@ -12,7 +12,7 @@ defmodule Logger.Case do
   end
 
   def msg(msg) do
-    ~r/^\d\d\:\d\d\:\d\d\.\d\d\d #{Regex.escape(msg)}$/
+    ~r/\d\d\:\d\d\:\d\d\.\d\d\d #{Regex.escape(msg)}/
   end
 
   def wait_for_handler(manager, handler) do
