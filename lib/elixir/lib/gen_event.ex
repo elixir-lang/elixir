@@ -128,6 +128,14 @@ defmodule GenEvent do
     * `terminate(reason, state)` - called when the event handler is removed or
       the event manager is terminating. It can return any term.
 
+      The reason is one of:
+
+      -  `:stop` - manager is terminating
+      -  `{:stop, reason}` - linked process terminated
+      -  `:remove_handler` - handler is being removed
+      _  `{:error, term}` - handler crashed or returned a bad value
+      -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
+
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
 
@@ -265,11 +273,11 @@ defmodule GenEvent do
   defp do_start(mode, options) do
     case Keyword.get(options, :name) do
       nil ->
-        :gen.start(:gen_event, mode, @no_callback, [], [])
+        :gen.start(GenEvent, mode, @no_callback, [], [])
       atom when is_atom(atom) ->
-        :gen.start(:gen_event, mode, {:local, atom}, @no_callback, [], [])
+        :gen.start(GenEvent, mode, {:local, atom}, @no_callback, [], [])
       other when is_tuple(other) ->
-        :gen.start(:gen_event, mode, other, @no_callback, [], [])
+        :gen.start(GenEvent, mode, other, @no_callback, [], [])
     end
   end
 
@@ -369,27 +377,32 @@ defmodule GenEvent do
   The event manager will call `handle_event/2` for each
   installed event handler.
 
-  `notify` is asynchronous and will return immediately after the
-  notification is sent. `notify` will not fail even if the specified
-  event manager does not exist.
+  `notify` is asynchronous and will return immediately after the notification is
+  sent. `notify` will not fail even if the specified event manager does not exist,
+  unless it is specified as an atom.
   """
   @spec notify(manager, term) :: :ok
-  def notify(manager, event) do
+  def notify(manager, event)
+
+  def notify({:global, name}, msg) do
     try do
-      do_notify(manager, {:notify, event})
+      :global.send(name, msg)
       :ok
     catch
       _, _ -> :ok
     end
   end
 
-  defp do_notify({:global, name}, msg), do:
-    :global.send(name, msg)
+  defp notify({:via, mod, name}, msg) do
+    try do
+      mod.send(name, msg)
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
 
-  defp do_notify({:via, mod, name}, msg), do:
-    mod.send(name, msg)
-
-  defp do_notify(other, msg), do:
+  def notify(other, msg), do:
     send(other, msg)
 
   @doc """
@@ -414,7 +427,7 @@ defmodule GenEvent do
 
   The return value `reply` is defined in the return value of `handle_call/2`.
   If the specified event handler is not installed, the function returns
-  `{:error, :bad_module}`.
+  `{:error, :module_not_found}`.
   """
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
@@ -469,21 +482,19 @@ defmodule GenEvent do
 
   First, the old event handler is deleted by calling `terminate/2` with
   the given `args1` and collects the return value. Then the new event handler
-  is added and initiated by calling `init({args2, term}), where term is the
+  is added and initiated by calling `init({args2, state}), where term is the
   return value of calling `terminate/2` in the old handler. This makes it
   possible to transfer information from one handler to another.
 
   The new handler will be added even if the specified old event handler
-  is not installed in which case `term = :error` or if the handler fails to
-  terminate with a given reason.
+  is not installed or if the handler fails to terminate with a given reason
+  in which case `state = {:error, term}`.
 
-  If there was a linked connection between handler1 and a process pid, there
-  will be a link connection between handler2 and pid instead. A new link in
-  between the caller process and the new handler can also be set with by
-  giving `link: true` as option. See `add_handler/4` for more information.
+  A `:link` option can also be set to specify if the new handler should
+  be linked or not. See `add_handler/4` for more information.
 
-  If `init/1` in the second handler returns a correct value, this function
-  returns `:ok`.
+  If `init/1` in the second handler returns a correct value, this
+  function returns `:ok`.
   """
   @spec swap_handler(manager, handler, term, handler, term, [link: boolean]) :: :ok | {:error, term}
   def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
@@ -513,8 +524,509 @@ defmodule GenEvent do
   end
 
   defp rpc(module, cmd) do
+    # TODO: Change the tag once patch is accepted by OTP
     {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
     reply
+  end
+
+  ## Init callbacks
+
+  require Record
+  Record.defrecordp :handler, [:module, :id, :state, :supervised]
+
+  @doc false
+  def init_it(starter, :self, name, mod, args, options) do
+    init_it(starter, self(), name, mod, args, options)
+  end
+
+  def init_it(starter, parent, name, _, _, options) do
+    # TODO: Remove this once we removed linked handlers
+    Process.flag(:trap_exit, true)
+    debug = :gen.debug_options(options)
+    :proc_lib.init_ack(starter, {:ok, self()})
+    loop(parent, name(name), [], debug, false)
+  end
+
+  @doc false
+  def init_hib(parent, name, handlers, debug) do
+    fetch_msg(parent, name, handlers, debug, true)
+  end
+
+  defp name({:local, name}),  do: name
+  defp name({:global, name}), do: name
+  defp name({:via, _, name}), do: name
+  defp name(pid) when is_pid(pid), do: pid
+
+  ## Loop
+
+  defp loop(parent, name, handlers, debug, true) do
+    :proc_lib.hibernate(__MODULE__, :init_hib, [parent, name, handlers, debug])
+  end
+
+  defp loop(parent, name, handlers, debug, false) do
+    fetch_msg(parent, name, handlers, debug, false)
+  end
+
+  defp fetch_msg(parent, name, handlers, debug, hib) do
+    receive do
+      {:system, from, req} ->
+        :sys.handle_system_msg(req, from, parent, __MODULE__,
+          debug, [name, handlers, hib], hib)
+      {:EXIT, ^parent, reason} ->
+        terminate_server(reason, parent, handlers, name)
+      msg when debug == [] ->
+        handle_msg(msg, parent, name, handlers, [])
+      msg ->
+        debug = :sys.handle_debug(debug, &print_event/3, name, {:in, msg})
+        handle_msg(msg, parent, name, handlers, debug)
+    end
+  end
+
+  defp handle_msg(msg, parent, name, handlers, debug) do
+    case msg do
+      {:notify, event} ->
+        {hib, handlers} = server_notify(event, :handle_event, handlers, name)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:sync_notify, event}} ->
+        {hib, handlers} = server_notify(event, :handle_event, handlers, name)
+        reply(tag, :ok)
+        loop(parent, name, handlers, debug, hib)
+      {:EXIT, from, reason} ->
+        # TODO: Rework this once we remove linked handlers
+        # TODO: There seems to be no apparent reason for ignoring hibernate
+        handlers = handle_exit(from, reason, handlers, name)
+        loop(parent, name, handlers, debug, false)
+      {_from, tag, {:call, handler, query}} ->
+        {hib, reply, handlers} = server_call(handler, query, handlers, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_handler, handler, args}} ->
+        {hib, reply, handlers} = server_add_handler(handler, args, handlers)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_sup_handler, handler, args, sup}} ->
+        {hib, reply, handlers} = server_add_sup_handler(handler, args, handlers, sup)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:delete_handler, handler, args}} ->
+        {reply, handlers} = server_remove_handler(handler, args, handlers, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, false)
+      {_from, tag, {:swap_handler, handler1, args1, handler2, args2}} ->
+        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, nil, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:swap_sup_handler, handler1, args1, handler2, args2, sup}} ->
+        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, sup, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, :stop} ->
+        try do
+          terminate_server(:normal, parent, handlers, name)
+        catch
+          _, _ -> :ok
+        end
+        reply(tag, :ok)
+      {_from, tag, :which_handlers} ->
+        reply(tag, server_which_handlers(handlers))
+        loop(parent, name, handlers, debug, false)
+      {_from, tag, :get_modules} ->
+        reply(tag, server_get_modules(handlers))
+        loop(parent, name, handlers, debug, false)
+      other ->
+        {hib, handlers} = server_notify(other, :handle_info, handlers, name)
+        loop(parent, name, handlers, debug, hib)
+    end
+  end
+
+  defp terminate_server(reason, parent, handlers, name) do
+    _ =
+      for handler <- handlers do
+        # TODO: Consider making it {:stop, :shutdown} for consistency
+        do_terminate(handler, :stop, :stop, name, :shutdown)
+      end
+    do_unlink(parent, handlers) # TODO: Rework this once we remove linked handlers
+    exit(reason)
+  end
+
+  defp reply({from, ref}, msg) do
+    send from, {ref, msg}
+  end
+
+  defp do_unlink(parent, handlers) do
+    _ =
+      for handler <- handlers do
+        case handler(handler, :supervised) do
+          ^parent -> true
+          nil     -> true
+          sup     -> Process.unlink(sup)
+        end
+      end
+
+    :ok
+  end
+
+  defp handle_exit(from, reason, handlers, name) do
+    # TODO: Respect hibernate here and convert this function to monitors
+    handlers = terminate_supervised(from, reason, handlers, name)
+    {_, handlers} = server_notify({:EXIT, from, reason}, :handle_info, handlers, name)
+    handlers
+  end
+
+  defp terminate_supervised(pid, reason, handlers, name) do
+    Enum.reject handlers, fn handler ->
+      if handler(handler, :supervised) == pid do
+        do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
+        true
+      end
+    end
+  end
+
+  ## System callbacks
+
+  @doc false
+  def system_continue(parent, debug, [name, handlers, hib]) do
+    loop(parent, name, handlers, debug, hib)
+  end
+
+  @doc false
+  def system_terminate(reason, parent, _debug, [name, handlers, _hib]) do
+    terminate_server(reason, parent, handlers, name)
+  end
+
+  @doc false
+  def system_code_change([name, handlers, hib], module , old_vsn, extra) do
+    handlers =
+      for handler <- handlers do
+        if handler(handler, :module) == module do
+          {:ok, state} = module.code_change(old_vsn, handler(handler, :state), extra)
+          handler(handler, state: state)
+        else
+          handler
+        end
+      end
+    {:ok, [name, handlers, hib]}
+  end
+
+  @doc false
+  def system_get_state([_name, handlers, _hib]) do
+    tuples = for handler(module: mod, id: id, state: state) <- handlers do
+      {mod, id, state}
+    end
+    {:ok, tuples}
+  end
+
+  @doc false
+  def system_replace_state(fun, [name, handlers, hib]) do
+    {handlers, states} =
+      List.unzip(for handler <- handlers do
+        handler(module: mod, id: id, state: state) = handler
+        cur = {mod, id, state}
+        try do
+          new = {^mod, ^id, new_state} = fun.(cur)
+          {handler(handler, state: new_state), new}
+        catch
+          _, _ ->
+            {handler, cur}
+        end
+      end)
+    {:ok, states, [name, handlers, hib]}
+  end
+
+  @doc false
+  def format_status(opt, status_data) do
+    [pdict, sys_state, parent, _debug, [name, handlers, _hib]] = status_data
+    header = :gen.format_status_header('Status for event handler', name)
+
+    formatted = for handler <- handlers do
+      handler(module: module, state: state) = handler
+      if function_exported?(module, :format_status, 2) do
+        try do
+          state = module.format_status(opt, [pdict, state])
+          handler(handler, state: state)
+        catch
+          _, _ -> handler
+        end
+      else
+        handler
+      end
+    end
+
+    [header: header,
+     data: [{"Status", sys_state}, {"Parent", parent}],
+     items: {"Installed handlers", formatted}]
+  end
+
+  ## Loop helpers
+
+  defp print_event(dev, {:in, msg}, name) do
+    case msg do
+      {:notify, event} ->
+        IO.puts dev, "*DBG* #{inspect name} got event #{inspect event}"
+      {_, _, {:call, handler, query}} ->
+        IO.puts dev, "*DBG* #{inspect name} (handler #{inspect handler}) got call #{inspect query}"
+      _ ->
+        IO.puts dev, "*DBG* #{inspect name} got #{inspect msg}"
+    end
+  end
+
+  defp print_event(dev, dbg, name) do
+    IO.puts dev, "*DBG* #{inspect name}: #{inspect dbg}"
+  end
+
+  defp server_add_handler({module, id}, args, handlers) do
+    handler = handler(module: module, id: {module, id})
+    server_add_handler(module, handler, args, handlers)
+  end
+
+  defp server_add_handler(module, args, handlers) do
+    handler = handler(module: module, id: module)
+    server_add_handler(module, handler, args, handlers)
+  end
+
+  defp server_add_handler(module, handler, arg, handlers) do
+    # TODO: Do not allow duplicated handlers
+    # TODO: Test ignore and bad return value logic
+    case do_handler(module, :init, [arg]) do
+      {:ok, res} ->
+        case res do
+          {:ok, state} ->
+            {false, :ok, [handler(handler, state: state)|handlers]}
+          {:ok, state, :hibernate} ->
+            {true, :ok, [handler(handler, state: state)|handlers]}
+          {:error, _} = error ->
+            {false, error, handlers}
+          other ->
+            {false, {:error, {:bad_return_value, other}}, handlers}
+        end
+      {:error, _} = error ->
+        {false, error, handlers}
+    end
+  end
+
+  defp server_add_sup_handler({module, id}, args, handlers, parent) do
+    Process.link(parent)
+    handler = handler(module: module, id: {module, id}, supervised: parent)
+    server_add_handler(module, handler, args, handlers)
+  end
+
+  defp server_add_sup_handler(module, args, handlers, parent) do
+    Process.link(parent)
+    handler = handler(module: module, id: module, supervised: parent)
+    server_add_handler(module, handler, args, handlers)
+  end
+
+  defp server_remove_handler(module, args, handlers, name) do
+    do_take_handler(module, args, handlers, name, :remove, :normal)
+  end
+
+  defp server_swap_handler(module1, args1, module2, args2, handlers, sup, name) do
+    {state, handlers} =
+      do_take_handler(module1, args1, handlers, name, :swapped, {:swapped, module2, sup})
+
+    if sup do
+      server_add_sup_handler(module2, {args2, state}, handlers, sup)
+    else
+      server_add_handler(module2, {args2, state}, handlers)
+    end
+  end
+
+  defp server_notify(event, fun, [handler|t], name) do
+    case server_update(handler, fun, event, name) do
+      {hib1, handler} ->
+        {hib2, t} = server_notify(event, fun, t, name)
+        {hib1 or hib2, [handler|t]}
+      :error ->
+        server_notify(event, fun, t, name)
+    end
+  end
+
+  defp server_notify(_, _, [], _) do
+    {false, []}
+  end
+
+  defp server_update(handler, fun, event, name) do
+    handler(module: module, state: state) = handler
+
+    case do_handler(module, fun, [event, state]) do
+      {:ok, res} ->
+        case res do
+          {:ok, state} ->
+            {false, handler(handler, state: state)}
+          {:ok, state, :hibernate} ->
+            {true, handler(handler, state: state)}
+          {:swap_handler, args1, state, handler2, args2} ->
+            do_swap(handler(handler, state: state), args1, handler2, args2, name)
+          :remove_handler ->
+            do_terminate(handler, :remove_handler, event, name, :normal)
+            :error
+          other ->
+            reason = {:bad_return_value, other}
+            do_terminate(handler, {:error, reason}, event, name, reason)
+            :error
+        end
+      {:error, reason} ->
+        do_terminate(handler, {:error, reason}, event, name, reason)
+        :error
+    end
+  end
+
+  defp server_call(module, query, handlers, name) do
+    case :lists.keyfind(module, handler(:id) + 1, handlers) do
+      false ->
+        {false, {:error, :module_not_found}, handlers}
+      handler ->
+        case server_call_update(handler, query, name) do
+          {{hib, handler}, reply} ->
+            {hib, reply, :lists.keyreplace(module, handler(:id) + 1, handlers, handler)}
+          {:error, reply} ->
+            {false, reply, :lists.keydelete(module, handler(:id) + 1, handlers)}
+        end
+    end
+  end
+
+  defp server_call_update(handler, query, name) do
+    handler(module: module, state: state) = handler
+    case do_handler(module, :handle_call, [query, state]) do
+      {:ok, res} ->
+        case res do
+          {:ok, reply, state} ->
+            {{false, handler(handler, state: state)}, reply}
+          {:ok, reply, state, :hibernate} ->
+            {{true, handler(handler, state: state)}, reply}
+          {:swap_handler, reply, args1, state, handler2, args2} ->
+            {do_swap(handler(handler, state: state), args1, handler2, args2, name), reply}
+          {:remove_handler, reply} ->
+            do_terminate(handler, :remove_handler, query, name, :normal)
+            {:error, reply}
+          other ->
+            reason = {:bad_return_value, other}
+            do_terminate(handler, {:error, reason}, query, name, reason)
+            {:error, {:error, reason}}
+        end
+      {:error, reason} ->
+        do_terminate(handler, {:error, reason}, query, name, reason)
+        {:error, {:error, reason}}
+    end
+  end
+
+  defp server_get_modules(handlers) do
+    (for handler(module: module) <- handlers, do: module)
+    |> :ordsets.from_list
+    |> :ordsets.to_list
+  end
+
+  defp server_which_handlers(handlers) do
+    for handler(id: id) <- handlers, do: id
+  end
+
+  defp do_swap(handler, args1, module2, args2, name) do
+    sup   = handler(handler, :supervised)
+    state = do_terminate(handler, args1, :swapped, name, {:swapped, module2, sup})
+
+    {hib, res, handlers} =
+      if sup do
+        server_add_sup_handler(module2, {args2, state}, [], sup)
+      else
+        server_add_handler(module2, {args2, state}, [])
+      end
+
+    case res do
+      :ok ->
+        {hib, hd(handlers)}
+      {:error, reason} ->
+        report_terminate(handler, reason, state, :swapped, name)
+    end
+  end
+
+  defp do_take_handler(module, args, handlers, name, last_in, reason) do
+    case :lists.keytake(module, handler(:id) + 1, handlers) do
+      {:value, handler, handlers} ->
+        {do_terminate(handler, args, last_in, name, reason), handlers}
+      false ->
+        {{:error, :module_not_found}, handlers}
+    end
+  end
+
+  # The value of this function is returned by remove_handler.
+  # TODO: arg can be a wide range set of values. It is worth
+  # discussing if we want to limit those down. We just need
+  # to look for all do_terminate calls.
+  # TODO: Update documentation for arg to say it is never
+  # {:error, {:EXIT, _}}.
+  defp do_terminate(handler, arg, last_in, name, reason) do
+    handler(module: module, state: state) = handler
+
+    res =
+      case do_handler(module, :terminate, [arg, state]) do
+        {:ok, res} -> res
+        {:error, _} = error -> error
+      end
+    report_terminate(handler, reason, state, last_in, name)
+    res
+  end
+
+  defp do_handler(mod, fun, args) do
+    try do
+      apply(mod, fun, args)
+    catch
+      :throw, val ->
+        {:error, {{:nocatch, val}, System.stacktrace}}
+      :error, val ->
+        {:error, {val, System.stacktrace}}
+      :exit, val ->
+        {:error, val}
+    else
+      res -> {:ok, res}
+    end
+  end
+
+  defp report_terminate(handler, reason, state, last_in, name) do
+    report_error(handler, reason, state, last_in, name)
+    if sup = handler(handler, :supervised) do
+      send sup, {:gen_event_EXIT, handler(handler, :id), reason}
+    end
+  end
+
+  defp report_error(_handler, :normal, _, _, _), do: :ok
+  defp report_error(_handler, :shutdown, _, _, _), do: :ok
+  defp report_error(_handler, {:swapped, _, _}, _, _, _), do: :ok
+  defp report_error(handler, reason, state, last_in, name) do
+    reason =
+      case reason do
+        {:undef, [{m,f,a,_}|_]=mfas} ->
+          cond do
+            :code.is_loaded(m) ->
+              {:"module could not be loaded", mfas}
+            function_exported?(m, f, length(a)) ->
+              reason
+            true ->
+              {:"function not exported", mfas}
+          end
+        _ ->
+          reason
+      end
+
+    formatted = report_status(handler, state)
+
+    :error_logger.error_msg(
+      '** gen_event handler ~p crashed.~n' ++
+      '** Was installed in ~p~n' ++
+      '** Last event was: ~p~n' ++
+      '** When handler state == ~p~n' ++
+      '** Reason == ~p~n', [handler(handler, :id), name, last_in, formatted, reason])
+  end
+
+  defp report_status(handler(module: module), state) do
+    if function_exported?(module, :format_status, 2) do
+      try do
+        module.format_status(:terminate, [Process.get(), state])
+      catch
+        _, _ -> state
+      end
+    else
+      state
+    end
   end
 end
 
@@ -645,8 +1157,8 @@ defimpl Enumerable, for: GenEvent.Stream do
       end
 
       cancel = cancel_ref(id, mon_ref)
-      :ok = :gen_event.add_sup_handler(manager, {__MODULE__, cancel},
-                                       {mode, self(), parent, mon_ref})
+      :ok = GenEvent.add_handler(manager, {__MODULE__, cancel},
+                                {mode, self(), parent, mon_ref}, link: true)
 
       receive do
         # This message is already in the mailbox if we got this far.

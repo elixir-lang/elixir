@@ -92,9 +92,9 @@ defmodule GenEventTest do
     {:ok, pid} = GenEvent.start_link()
     assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
     assert GenEvent.call(pid, UnknownHandler, :messages) ==
-             {:error, :bad_module}
+             {:error, :module_not_found}
     assert GenEvent.call(pid, LoggerHandler, :whatever) ==
-             {:error, {:EXIT, {:bad_call, :whatever}}}
+             {:error, {:bad_call, :whatever}}
     assert GenEvent.which_handlers(pid) == []
     assert GenEvent.stop(pid) == :ok
   after
