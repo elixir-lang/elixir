@@ -178,8 +178,7 @@ defmodule GenEvent.StreamTest do
 
       Process.flag(:trap_exit, true)
       GenEvent.stop(pid)
-      assert_receive {:EXIT, ^stream_pid,
-                       {:shutdown, {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
+      assert_receive {:EXIT, ^stream_pid, :normal}, @receive_timeout
     end
 
     test "#{mode} stream/2 with swap_handler" do
@@ -201,7 +200,7 @@ defmodule GenEvent.StreamTest do
       GenEvent.swap_handler(pid, handler, :swap_handler, LogHandler, [])
       assert_receive {:EXIT, ^stream_pid,
                        {{:swapped, LogHandler, _},
-                        {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
+                        {Enumerable.GenEvent.Stream, :stop, [_, _]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with duration" do
@@ -242,7 +241,7 @@ defmodule GenEvent.StreamTest do
       Process.exit(pid, :kill)
       assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
       assert_receive {:EXIT, ^stream_pid,
-                       {:killed, {Enumerable.GenEvent.Stream, :next, [_,_]}}}, @receive_timeout
+                       {:killed, {Enumerable.GenEvent.Stream, :stop, [_,_]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with manager not alive" do
