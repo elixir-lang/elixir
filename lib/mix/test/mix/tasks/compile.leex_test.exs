@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
       oops.
       """
 
-      assert_raise CompileError, fn ->
+      assert_raise Mix.Error, fn ->
         capture_io fn ->
           Mix.Tasks.Compile.Leex.run ["--force"]
         end
