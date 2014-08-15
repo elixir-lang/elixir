@@ -109,7 +109,7 @@ defmodule GenEvent.StreamTest do
     wait_for_handlers(pid, 1)
   end
 
-  Enum.each [:sync, :async], fn mode ->
+  Enum.each [:sync, :async, :ack], fn mode ->
     test "#{mode} stream/2 with parallel use (and first finishing first)" do
       {:ok, pid} = GenEvent.start_link()
       stream = GenEvent.stream(pid, duration: 200, mode: unquote(mode))

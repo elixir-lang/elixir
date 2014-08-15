@@ -386,24 +386,26 @@ defmodule GenEvent do
 
   def notify({:global, name}, msg) do
     try do
-      :global.send(name, msg)
+      :global.send(name, {:notify, msg})
       :ok
     catch
       _, _ -> :ok
     end
   end
 
-  defp notify({:via, mod, name}, msg) do
+  def notify({:via, mod, name}, msg) do
     try do
-      mod.send(name, msg)
+      mod.send(name, {:notify, msg})
       :ok
     catch
       _, _ -> :ok
     end
   end
 
-  def notify(other, msg), do:
-    send(other, msg)
+  def notify(other, msg) do
+    send(other, {:notify, msg})
+    :ok
+  end
 
   @doc """
   Sends a sync event notification to the event `manager`.
