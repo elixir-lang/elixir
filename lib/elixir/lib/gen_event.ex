@@ -133,7 +133,7 @@ defmodule GenEvent do
       -  `:stop` - manager is terminating
       -  `{:stop, reason}` - linked process terminated
       -  `:remove_handler` - handler is being removed
-      _  `{:error, term}` - handler crashed or returned a bad value
+      -  `{:error, term}` - handler crashed or returned a bad value
       -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
 
     * `code_change(old_vsn, state, extra)` - called when the application
@@ -335,8 +335,7 @@ defmodule GenEvent do
   If `init/1` returns a correct value indicating successful completion,
   the event manager adds the event handler and this function returns
   `:ok`. If the callback fails with `reason` or returns `{:error, reason}`,
-  the event handler is ignored and this function returns `{:EXIT, reason}`
-  or `{:error, reason}`, respectively.
+  the event handler is ignored and this function returns `{:error, reason}`.
 
   ## Linked handlers
 
@@ -363,7 +362,7 @@ defmodule GenEvent do
       depends on the error
 
   """
-  @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:EXIT, term} | {:error, term}
+  @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:error, term}
   def add_handler(manager, handler, args, options \\ []) do
     case Keyword.get(options, :link, false) do
       true  -> rpc(manager, {:add_sup_handler, handler, args, self()})
