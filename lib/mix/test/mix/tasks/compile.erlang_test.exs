@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       def zzz(), do: b
       """
 
-      assert_raise CompileError, fn ->
+      assert_raise Mix.Error, fn ->
         capture_io fn ->
           Mix.Tasks.Compile.Erlang.run []
         end
