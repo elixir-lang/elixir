@@ -396,10 +396,10 @@ defmodule GenServer do
   end
 
   def cast({name, node}, request) when is_atom(name) and is_atom(node),
-    do: send({name, node}, cast_msg(request))
+    do: do_send({name, node}, cast_msg(request))
 
   def cast(dest, request) when is_atom(dest) or is_pid(dest),
-    do: send(dest, cast_msg(request))
+    do: do_send(dest, cast_msg(request))
 
   @doc """
   Casts all servers locally registered as `name` at the specified nodes.
@@ -412,12 +412,17 @@ defmodule GenServer do
   @spec abcast([node], name :: atom, term) :: :abcast
   def abcast(nodes \\ nodes(), name, request) when is_list(nodes) and is_atom(name) do
     msg = cast_msg(request)
-    _   = for node <- nodes, do: send({name, node}, msg)
+    _   = for node <- nodes, do: do_send({name, node}, msg)
     :abcast
   end
 
   defp cast_msg(req) do
     {:"$gen_cast", req}
+  end
+
+  defp do_send(dest, msg) do
+    send(dest, msg)
+    :ok
   end
 
   @doc """
