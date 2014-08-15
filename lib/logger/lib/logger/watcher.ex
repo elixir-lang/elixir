@@ -53,18 +53,27 @@ defmodule Logger.Watcher do
   This is useful when there is a need to start a handler
   outside of the handler supervision tree.
   """
-  def watcher(mod, handler, args) do
-    GenServer.start_link(__MODULE__, {mod, handler, args})
+  def watcher(mod, handler, args, style \\ :monitor) do
+    GenServer.start_link(__MODULE__, {mod, handler, args, style})
   end
 
   ## Callbacks
 
-  def init({mod, handler, args}) do
-    case GenEvent.add_handler(mod, handler, args, link: true) do
+  def init({mod, handler, args, :monitor}) when is_atom(mod) do
+    Process.link(Process.whereis(mod))
+
+    case GenEvent.add_handler(mod, handler, args, monitor: true) do
       :ok               -> {:ok, {mod, handler}}
       {:error, :ignore} -> :ignore
       {:error, reason}  -> {:stop, reason}
-      {:EXIT, reason}   -> {:stop, reason}
+    end
+  end
+
+  def init({mod, handler, args, :link}) when is_atom(mod) do
+    case :gen_event.add_sup_handler(mod, handler, args) do
+      :ok               -> {:ok, {mod, handler}}
+      {:error, :ignore} -> :ignore
+      {:error, reason}  -> {:stop, reason}
     end
   end
 

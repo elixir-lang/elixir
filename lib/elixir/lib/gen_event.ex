@@ -6,19 +6,17 @@ defmodule GenEvent.Stream do
   contains the following fields:
 
     * `:manager`  - the manager reference given to `GenEvent.stream/2`
-    * `:id`       - the event stream id for cancellation
     * `:timeout`  - the timeout in between events, defaults to `:infinity`
     * `:duration` - the duration of the subscription, defaults to `:infinity`
     * `:mode`     - if the subscription mode is ack, sync or async, defaults to `:ack`
   """
-  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity, mode: :ack
+  defstruct manager: nil, timeout: :infinity, duration: :infinity, mode: :ack
 
   @typedoc "The stream mode"
   @type mode :: :ack | :sync | :async
 
   @type t :: %__MODULE__{
                manager: GenEvent.manager,
-               id: term,
                timeout: timeout,
                duration: timeout,
                mode: mode}
@@ -166,7 +164,7 @@ defmodule GenEvent do
   A stream may also be given an id, which allows all streams with the given
   id to be cancelled at any moment via `cancel_streams/1`.
 
-  ## Learn more
+  ## Learn more and compatibility
 
   If you wish to find out more about gen events, Elixir getting started
   guides provide a tutorial-like introduction. The documentation and links
@@ -175,6 +173,17 @@ defmodule GenEvent do
     * http://elixir-lang.org/getting_started/mix/1.html
     * http://www.erlang.org/doc/man/gen_event.html
     * http://learnyousomeerlang.com/event-handlers
+
+  Keep in mind though Elixir and Erlang gen events are not 100% compatible.
+  The `:gen_event.add_sup_handler/3` is not supported by Elixir's GenEvent,
+  which in turn supports `monitor: true` in `GenEvent.add_handler/4`.
+
+  The benefits of the monitoring approach are described in the "Don't drink
+  too much kool aid" section of the "Learn you some Erlang" link above.
+
+  Futhermore, Elixir's also normalizes the `{:error, _}` tuples returned
+  by many functions, in order to be more consistent with themselves and
+  the `GenServer` module.
   """
 
   @typedoc "Return values of `start*` functions"
@@ -289,9 +298,6 @@ defmodule GenEvent do
 
   ## Options
 
-    * `:id` - an id to identify all live stream instances; when an `:id` is
-      given, existing streams can be called with via `cancel_streams`.
-
     * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds.
 
     * `:duration` (Enumerable) - only consume events during the X milliseconds
@@ -320,7 +326,6 @@ defmodule GenEvent do
   def stream(manager, options \\ []) do
     %GenEvent.Stream{
       manager: manager,
-      id: Keyword.get(options, :id),
       timeout: Keyword.get(options, :timeout, :infinity),
       duration: Keyword.get(options, :duration, :infinity),
       mode: Keyword.get(options, :mode, :ack)}
@@ -337,10 +342,10 @@ defmodule GenEvent do
   `:ok`. If the callback fails with `reason` or returns `{:error, reason}`,
   the event handler is ignored and this function returns `{:error, reason}`.
 
-  ## Linked handlers
+  ## Monitored handlers
 
-  When adding a handler, a `:link` option with value `true` can be given.
-  This means the event handler and the calling process are now linked.
+  When adding a handler, a `:monitor` option with value `true` can be given.
+  This means the calling process will now be monitored by the GenEvent handler.
 
   If the calling process later terminates with `reason`, the event manager
   will delete the event handler by calling the `terminate/2` callback with
@@ -361,12 +366,18 @@ defmodule GenEvent do
     * a term - if the event handler is removed due to an error. Which term
       depends on the error
 
+  Notice this functionality only works with GenEvent started via this
+  module (it is not backwards compatible with Erlang's `:gen_event`).
   """
-  @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:error, term}
+  @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}
   def add_handler(manager, handler, args, options \\ []) do
-    case Keyword.get(options, :link, false) do
-      true  -> rpc(manager, {:add_sup_handler, handler, args, self()})
-      false -> rpc(manager, {:add_handler, handler, args})
+    cond do
+      Keyword.get(options, :link, false) ->
+        raise ArgumentError, message: "GenEvent.add_handler/4 with link is deprecated and no longer works"
+      Keyword.get(options, :monitor, false) ->
+        rpc(manager, {:add_mon_handler, handler, args, self()})
+      true ->
+        rpc(manager, {:add_handler, handler, args})
     end
   end
 
@@ -443,30 +454,6 @@ defmodule GenEvent do
   end
 
   @doc """
-  Cancels all streams currently running with the given `:id`.
-
-  In order for a stream to be cancelled, an `:id` must be passed
-  when the stream is created via `stream/2`. Passing a stream without
-  an id leads to an argument error.
-  """
-  @spec cancel_streams(GenEvent.Stream.t) :: :ok
-  def cancel_streams(%GenEvent.Stream{id: nil}) do
-    raise ArgumentError, "cannot cancel streams without an id"
-  end
-
-  def cancel_streams(%GenEvent.Stream{manager: manager, id: id}) do
-    IO.write :stderr, "warning: GenEvent.cancel_streams/1 is deprecated\n#{Exception.format_stacktrace}"
-    handlers = which_handlers(manager)
-
-    _ = for {Enumerable.GenEvent.Stream, {handler_id, _}} = ref <- handlers,
-        handler_id === id do
-      remove_handler(manager, ref, :remove_handler)
-    end
-
-    :ok
-  end
-
-  @doc """
   Removes an event handler from the event `manager`.
 
   The event manager will call `terminate/2` to terminate the event handler
@@ -491,17 +478,22 @@ defmodule GenEvent do
   is not installed or if the handler fails to terminate with a given reason
   in which case `state = {:error, term}`.
 
-  A `:link` option can also be set to specify if the new handler should
-  be linked or not. See `add_handler/4` for more information.
+  A `:monitor` option can also be set to specify if the new handler
+  should be monitored by the manager. See `add_handler/4` for more
+  information.
 
   If `init/1` in the second handler returns a correct value, this
   function returns `:ok`.
   """
-  @spec swap_handler(manager, handler, term, handler, term, [link: boolean]) :: :ok | {:error, term}
+  @spec swap_handler(manager, handler, term, handler, term, [monitor: boolean]) :: :ok | {:error, term}
   def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
-    case Keyword.get(options, :link, false) do
-      true  -> rpc(manager, {:swap_sup_handler, handler1, args1, handler2, args2, self()})
-      false -> rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
+    cond do
+      Keyword.get(options, :link, false) ->
+        raise ArgumentError, message: "GenEvent.swap_handler/6 with link is deprecated and no longer works"
+      Keyword.get(options, :monitor, false) ->
+        rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
+      true ->
+        rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
     end
   end
 
@@ -533,7 +525,7 @@ defmodule GenEvent do
   ## Init callbacks
 
   require Record
-  Record.defrecordp :handler, [:module, :id, :state, :supervised]
+  Record.defrecordp :handler, [:module, :id, :state, :pid, :ref]
 
   @doc false
   def init_it(starter, :self, name, mod, args, options) do
@@ -541,8 +533,6 @@ defmodule GenEvent do
   end
 
   def init_it(starter, parent, name, _, _, options) do
-    # TODO: Remove this once we removed linked handlers
-    Process.flag(:trap_exit, true)
     debug = :gen.debug_options(options)
     :proc_lib.init_ack(starter, {:ok, self()})
     loop(parent, name(name), [], debug, false)
@@ -574,7 +564,7 @@ defmodule GenEvent do
         :sys.handle_system_msg(req, from, parent, __MODULE__,
           debug, [name, handlers, hib], hib)
       {:EXIT, ^parent, reason} ->
-        terminate_server(reason, parent, handlers, name)
+        server_terminate(reason, parent, handlers, name)
       msg when debug == [] ->
         handle_msg(msg, parent, name, handlers, [])
       msg ->
@@ -592,11 +582,14 @@ defmodule GenEvent do
         {hib, handlers} = server_notify(event, :handle_event, handlers, name)
         reply(tag, :ok)
         loop(parent, name, handlers, debug, hib)
-      {:EXIT, from, reason} ->
-        # TODO: Rework this once we remove linked handlers
-        # TODO: There seems to be no apparent reason for ignoring hibernate
-        handlers = handle_exit(from, reason, handlers, name)
-        loop(parent, name, handlers, debug, false)
+      {:DOWN, ref, :process, _pid, reason} = other ->
+        case handle_down(ref, reason, handlers, name) do
+          {:ok, handlers} ->
+            loop(parent, name, handlers, debug, false)
+          :error ->
+            {hib, handlers} = server_notify(other, :handle_info, handlers, name)
+            loop(parent, name, handlers, debug, hib)
+        end
       {_from, tag, {:call, handler, query}} ->
         {hib, reply, handlers} = server_call(handler, query, handlers, name)
         reply(tag, reply)
@@ -605,8 +598,8 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_add_handler(handler, args, handlers)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_sup_handler, handler, args, sup}} ->
-        {hib, reply, handlers} = server_add_sup_handler(handler, args, handlers, sup)
+      {_from, tag, {:add_mon_handler, handler, args, mon}} ->
+        {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, mon)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -617,13 +610,13 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, nil, name)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:swap_sup_handler, handler1, args1, handler2, args2, sup}} ->
-        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, sup, name)
+      {_from, tag, {:swap_mon_handler, handler1, args1, handler2, args2, mon}} ->
+        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, mon, name)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, :stop} ->
         try do
-          terminate_server(:normal, parent, handlers, name)
+          server_terminate(:normal, parent, handlers, name)
         catch
           _, _ -> :ok
         end
@@ -640,49 +633,6 @@ defmodule GenEvent do
     end
   end
 
-  defp terminate_server(reason, parent, handlers, name) do
-    _ =
-      for handler <- handlers do
-        # TODO: Consider making it {:stop, :shutdown} for consistency
-        do_terminate(handler, :stop, :stop, name, :shutdown)
-      end
-    do_unlink(parent, handlers) # TODO: Rework this once we remove linked handlers
-    exit(reason)
-  end
-
-  defp reply({from, ref}, msg) do
-    send from, {ref, msg}
-  end
-
-  defp do_unlink(parent, handlers) do
-    _ =
-      for handler <- handlers do
-        case handler(handler, :supervised) do
-          ^parent -> true
-          nil     -> true
-          sup     -> Process.unlink(sup)
-        end
-      end
-
-    :ok
-  end
-
-  defp handle_exit(from, reason, handlers, name) do
-    # TODO: Respect hibernate here and convert this function to monitors
-    handlers = terminate_supervised(from, reason, handlers, name)
-    {_, handlers} = server_notify({:EXIT, from, reason}, :handle_info, handlers, name)
-    handlers
-  end
-
-  defp terminate_supervised(pid, reason, handlers, name) do
-    Enum.reject handlers, fn handler ->
-      if handler(handler, :supervised) == pid do
-        do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
-        true
-      end
-    end
-  end
-
   ## System callbacks
 
   @doc false
@@ -692,7 +642,7 @@ defmodule GenEvent do
 
   @doc false
   def system_terminate(reason, parent, _debug, [name, handlers, _hib]) do
-    terminate_server(reason, parent, handlers, name)
+    server_terminate(reason, parent, handlers, name)
   end
 
   @doc false
@@ -787,7 +737,6 @@ defmodule GenEvent do
 
   defp server_add_handler(module, handler, arg, handlers) do
     # TODO: Do not allow duplicated handlers
-    # TODO: Test ignore and bad return value logic
     case do_handler(module, :init, [arg]) do
       {:ok, res} ->
         case res do
@@ -805,15 +754,15 @@ defmodule GenEvent do
     end
   end
 
-  defp server_add_sup_handler({module, id}, args, handlers, parent) do
-    Process.link(parent)
-    handler = handler(module: module, id: {module, id}, supervised: parent)
+  defp server_add_mon_handler({module, id}, args, handlers, pid) do
+    ref = Process.monitor(pid)
+    handler = handler(module: module, id: {module, id}, pid: pid, ref: ref)
     server_add_handler(module, handler, args, handlers)
   end
 
-  defp server_add_sup_handler(module, args, handlers, parent) do
-    Process.link(parent)
-    handler = handler(module: module, id: module, supervised: parent)
+  defp server_add_mon_handler(module, args, handlers, pid) do
+    ref = Process.monitor(pid)
+    handler = handler(module: module, id: module, pid: pid, ref: ref)
     server_add_handler(module, handler, args, handlers)
   end
 
@@ -826,7 +775,7 @@ defmodule GenEvent do
       do_take_handler(module1, args1, handlers, name, :swapped, {:swapped, module2, sup})
 
     if sup do
-      server_add_sup_handler(module2, {args2, state}, handlers, sup)
+      server_add_mon_handler(module2, {args2, state}, handlers, sup)
     else
       server_add_handler(module2, {args2, state}, handlers)
     end
@@ -921,20 +870,40 @@ defmodule GenEvent do
     for handler(id: id) <- handlers, do: id
   end
 
+  defp server_terminate(reason, _parent, handlers, name) do
+    _ =
+      for handler <- handlers do
+        # TODO: Consider making it {:stop, :shutdown} or
+        # {:stop, reason} for consistency?
+        do_terminate(handler, :stop, :stop, name, :shutdown)
+      end
+    exit(reason)
+  end
+
+  defp reply({from, ref}, msg) do
+    send from, {ref, msg}
+  end
+
+  defp handle_down(ref, reason, handlers, name) do
+    case :lists.keyfind(ref, handler(:ref) + 1, handlers) do
+      false -> :error
+      handler ->
+        do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
+        {:ok, :lists.keydelete(ref, handler(:ref) + 1, handlers)}
+    end
+  end
+
   defp do_swap(handler, args1, module2, args2, name) do
-    sup   = handler(handler, :supervised)
-    state = do_terminate(handler, args1, :swapped, name, {:swapped, module2, sup})
+    pid   = handler(handler, :pid)
+    ref   = handler(handler, :ref)
+    state = do_terminate(handler, args1, :swapped, name, {:swapped, module2, pid})
 
     {hib, res, handlers} =
-      if sup do
-        server_add_sup_handler(module2, {args2, state}, [], sup)
-      else
-        server_add_handler(module2, {args2, state}, [])
-      end
+      server_add_handler(module2, {args2, state}, [])
 
     case res do
       :ok ->
-        {hib, hd(handlers)}
+        {hib, handler(hd(handlers), pid: pid, ref: ref)}
       {:error, reason} ->
         report_terminate(handler, reason, state, :swapped, name)
     end
@@ -971,12 +940,9 @@ defmodule GenEvent do
     try do
       apply(mod, fun, args)
     catch
-      :throw, val ->
-        {:error, {{:nocatch, val}, System.stacktrace}}
-      :error, val ->
-        {:error, {val, System.stacktrace}}
-      :exit, val ->
-        {:error, val}
+      :throw, val -> {:error, {{:nocatch, val}, System.stacktrace}}
+      :error, val -> {:error, {val, System.stacktrace}}
+      :exit, val  -> {:error, val}
     else
       res -> {:ok, res}
     end
@@ -984,8 +950,8 @@ defmodule GenEvent do
 
   defp report_terminate(handler, reason, state, last_in, name) do
     report_error(handler, reason, state, last_in, name)
-    if sup = handler(handler, :supervised) do
-      send sup, {:gen_event_EXIT, handler(handler, :id), reason}
+    if pid = handler(handler, :pid) do
+      send pid, {:gen_event_EXIT, handler(handler, :id), reason}
     end
   end
 
@@ -1035,16 +1001,15 @@ defimpl Enumerable, for: GenEvent.Stream do
   use GenEvent
 
   @doc false
-  def init({_mode, mon_pid, _pid, ref} = state) do
-    # Tell the mon_pid we are good to go, and send self() so that this handler
-    # can be removed later without using the managers name.
-    send(mon_pid, {:UP, ref, self()})
+  def init({_mode, _pid, _ref} = state) do
     {:ok, state}
   end
 
   @doc false
-  def handle_event(event, {mode, mon_pid, pid, ref} = state) when mode in [:sync, :ack] do
-    sync = Process.monitor(mon_pid)
+  def handle_event(event, {mode, pid, ref} = state) when mode in [:sync, :ack] do
+    # TODO: The process is already monitored by the GenEvent
+    # but we don't have access to the reference in here.
+    sync = Process.monitor(pid)
     send pid, {ref, sync, event}
     receive do
       {^sync, :done} ->
@@ -1058,7 +1023,7 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  def handle_event(event, {:async, _mon_pid, pid, ref} = state) do
+  def handle_event(event, {:async, pid, ref} = state) do
     send pid, {ref, nil, event}
     {:ok, state}
   end
@@ -1094,42 +1059,74 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  defp start(%{manager: manager, id: id, duration: duration, mode: mode} = stream) do
-    {mon_pid, mon_ref} = add_handler(mode, manager, id, duration)
-    send mon_pid, {:UP, mon_ref, self()}
+  defp start(%{manager: manager, duration: duration, mode: mode} = stream) do
+    pid = whereis(manager)
+    ref = Process.monitor(pid)
 
-    receive do
-      # The subscription process gave us a go.
-      {:UP, ^mon_ref, manager_pid} ->
-        {mon_ref, mon_pid, manager_pid}
-      # The subscription process died due to an abnormal reason.
-      {:DOWN, ^mon_ref, _, _, reason} ->
-        exit({reason, {__MODULE__, :start, [stream]}})
+    try do
+      :ok = GenEvent.add_handler(pid, {__MODULE__, ref},
+                                 {mode, self(), ref}, monitor: true)
+    catch
+      :exit, :noproc -> exit({:noproc, {__MODULE__, :start, [stream]}})
     end
+
+    timer = cond do
+      duration == :infinity -> nil
+      is_integer(duration)  -> :erlang.send_after(duration, self(), {ref, :timedout})
+    end
+
+    {pid, ref, timer}
   end
 
-  defp next(%{timeout: timeout} = stream, {mon_ref, mon_pid, manager_pid} = acc) do
-    # If :DOWN is received must resend it to self so that stop/2 can receive it
-    # and know that the handler has been removed.
+  defp whereis(pid) when is_pid(pid), do: pid
+  defp whereis(atom) when is_atom(atom), do: :erlang.whereis(atom)
+  defp whereis({:global, name}), do: :global.whereis_name(name)
+  defp whereis({:via, module, name}), do: module.whereis_name(name)
+  defp whereis({atom, node}), do: :rpc.call(node, :erlang, :whereis, [atom])
+
+  defp next(%{timeout: timeout} = stream, {pid, ref, _timer} = acc) do
     receive do
-      {:DOWN, ^mon_ref, _, _, :normal} ->
-        send(self(), {:DOWN, mon_ref, :process, mon_pid, :normal})
+      # The handler was removed. Stop iteration, resolve the event later.
+      # We need to demonitor now, otherwise it appears with
+      # higher priority in the shutdown process.
+      {:gen_event_EXIT, {__MODULE__, ^ref}, _reason} = event ->
+        Process.demonitor(ref, [:flush])
+        send(self(), event)
         nil
-      {:DOWN, ^mon_ref, _, _, reason} ->
-        send(self(), {:DOWN, mon_ref, :process, mon_pid, :normal})
-        exit({reason, {__MODULE__, :next, [stream, acc]}})
-      {^mon_ref, sync_ref, event} ->
-        {{stream.mode, sync_ref, manager_pid, event}, acc}
+
+      # The manager died. Stop iteration, resolve the event later.
+      {:DOWN, ^ref, _, _, _} = event ->
+        send(self(), event)
+        nil
+
+      # Duration timeout.
+      {^ref, :timedout} ->
+        nil
+
+      # Got an event!
+      {^ref, sync_ref, event} ->
+        {{stream.mode, sync_ref, pid, event}, acc}
     after
       timeout ->
         exit({:timeout, {__MODULE__, :next, [stream, acc]}})
     end
   end
 
-  defp stop(%{mode: mode} = stream, {mon_ref, mon_pid, manager_pid} = acc) do
-    case remove_handler(mon_ref, mon_pid, manager_pid) do
+  defp stop(%{mode: mode} = stream, {pid, ref, timer} = acc) do
+    remove_timer(timer)
+
+    # TODO: If we got an gen_event_EXIT or a DOWN, the handler was
+    # already removed but we can't pass this information based on
+    # unfold current implementation. So right now, we may send a
+    # remove_handler even after it was already removed. Removing
+    # this extra call would help with removing overhead.
+    spawn(fn ->
+      GenEvent.remove_handler(pid, {__MODULE__, ref}, :shutdown)
+    end)
+
+    case wait_for_handler_removal(pid, ref) do
       :ok when mode == :async ->
-        flush_events(mon_ref)
+        flush_events(ref)
       :ok ->
         :ok
       {:error, reason} ->
@@ -1137,108 +1134,37 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  defp add_handler(mode, manager, id, duration) do
-    parent = self()
-
-    # The subscription is managed by another process, that dies if
-    # the handler dies, and is killed when there is a need to remove
-    # the subscription.
-    spawn_monitor(fn ->
-      # It is possible that the handler could be removed, and then the GenEvent
-      # could exit before this process has exited normally. Because the removal
-      # does not cause an unlinking this process would exit with the same
-      # reason. Trapping exits ensures that no errors is raised in this case.
-      Process.flag(:trap_exit, true)
-      parent_ref = Process.monitor(parent)
-
-      # Receive the notification from the parent, unless it died.
-      mon_ref = receive do
-        {:UP, ref, ^parent} -> ref
-        {:DOWN, ^parent_ref, _, _, _} -> exit(:normal)
-      end
-
-      cancel = cancel_ref(id, mon_ref)
-      :ok = GenEvent.add_handler(manager, {__MODULE__, cancel},
-                                {mode, self(), parent, mon_ref}, link: true)
-
+  defp remove_timer(nil), do: :ok
+  defp remove_timer(ref) do
+    unless :erlang.cancel_timer(ref) do
       receive do
-        # This message is already in the mailbox if we got this far.
-        {:UP, ^mon_ref, manager_pid} ->
-          send(parent, {:UP, mon_ref, manager_pid})
-          receive do
-            # The stream has finished, remove the handler.
-            {:DONE, ^mon_ref} ->
-              exit_handler(manager_pid, parent_ref, cancel)
-
-            # If the parent died, we can exit normally.
-            {:DOWN, ^parent_ref, _, _, _} ->
-              exit(:normal)
-
-            # reason should be normal unless the handler is swapped.
-            {:gen_event_EXIT, {__MODULE__, ^cancel}, reason} ->
-              exit(reason)
-
-            # Exit if the manager dies, so the streamer is notified.
-            {:EXIT, ^manager_pid, :noconnection} ->
-              exit({:nodedown, node(manager_pid)})
-
-            {:EXIT, ^manager_pid, reason} ->
-              exit(reason)
-          after
-            # Our time is over, notify the parent.
-            duration -> exit(:normal)
-          end
+        {^ref, :timedout} -> :ok
+      after
+        0 -> :ok
       end
-    end)
-  end
-
-  defp cancel_ref(nil, mon_ref), do: mon_ref
-  defp cancel_ref(id, mon_ref),  do: {id, mon_ref}
-
-  defp exit_handler(manager_pid, parent_ref, cancel) do
-    # Send exit signal so manager removes handler.
-    Process.exit(manager_pid, :shutdown)
-    receive do
-      # If the parent died, we can exit normally.
-      {:DOWN, ^parent_ref, _, _, _} ->
-        exit(:normal)
-
-      # Probably the reason is :shutdown, which occurs when the manager receives
-      # an exit signal from a handler supervising process. However whatever the
-      # reason the handler has been removed so it is ok.
-      {:gen_event_EXIT, {__MODULE__, ^cancel}, _} ->
-        exit(:normal)
-
-      # The connection broke, perhaps the handler might try to forward events
-      # before it removes the handler, so must exit abnormally.
-      {:EXIT, ^manager_pid, :noconnection} ->
-        exit({:nodedown, node(manager_pid)})
-
-      # The manager has exited but don't exit abnormally as the handler has died
-      # with the manager and all expected events have been handled. This is ok.
-      {:EXIT, ^manager_pid, _} ->
-        exit(:normal)
     end
   end
 
-  defp remove_handler(mon_ref, mon_pid, manager_pid) do
-    send(mon_pid, {:DONE, mon_ref})
+  defp wait_for_handler_removal(pid, ref) do
     receive do
-      {^mon_ref, sync, _} when sync != nil ->
-        send(manager_pid, {sync, :done})
-        Process.demonitor(mon_ref, [:flush])
+      {^ref, sync, _} when sync != nil ->
+        send(pid, {sync, :done})
+        wait_for_handler_removal(pid, ref)
+      {:gen_event_EXIT, {__MODULE__, ^ref}, reason} when reason in [:normal, :shutdown] ->
+        Process.demonitor(ref, [:flush])
         :ok
-      {:DOWN, ^mon_ref, _, _, :normal} ->
-        :ok
-      {:DOWN, ^mon_ref, _, _, reason} ->
+      {:gen_event_EXIT, {__MODULE__, ^ref}, reason} ->
+        Process.demonitor(ref, [:flush])
+        {:error, reason}
+      {:DOWN, ^ref, _, _, reason} ->
         {:error, reason}
     end
   end
 
-  defp flush_events(mon_ref) do
+  defp flush_events(ref) do
     receive do
-      {^mon_ref, _, _} ->
-        flush_events(mon_ref)
+      {^ref, _, _} ->
+        flush_events(ref)
     after
       0 -> :ok
     end

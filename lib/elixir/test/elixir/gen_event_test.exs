@@ -54,32 +54,24 @@ defmodule GenEventTest do
     {:links, links} = Process.info(self, :links)
     refute pid in links
 
-    assert GenEvent.add_handler(pid, LoggerHandler, [], link: true) == :ok
-
-    {:links, links} = Process.info(self, :links)
-    assert pid in links
+    assert GenEvent.add_handler(pid, LoggerHandler, [], monitor: true) == :ok
 
     assert GenEvent.notify(pid, {:log, 1}) == :ok
     assert GenEvent.sync_notify(pid, {:log, 2}) == :ok
 
     assert GenEvent.call(pid, LoggerHandler, :messages) == [1, 2]
     assert GenEvent.stop(pid) == :ok
+
+    assert_received {:gen_event_EXIT, LoggerHandler, :shutdown}
   end
 
   test "start/2 with linked swap" do
     {:ok, pid} = GenEvent.start()
 
     assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
-
-    {:links, links} = Process.info(self, :links)
-    refute pid in links
-
-    assert GenEvent.swap_handler(pid, LoggerHandler, [], LoggerHandler, [], link: true) == :ok
-
-    {:links, links} = Process.info(self, :links)
-    assert pid in links
-
+    assert GenEvent.swap_handler(pid, LoggerHandler, [], LoggerHandler, [], monitor: true) == :ok
     assert GenEvent.stop(pid) == :ok
+    assert_received {:gen_event_EXIT, LoggerHandler, :shutdown}
   end
 
   test "start/2 with registered name" do
