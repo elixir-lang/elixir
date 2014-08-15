@@ -145,7 +145,7 @@ defmodule Logger do
     * `:enabled` - boolean value that allows for switching the
       coloring on and off. Defaults to: `IO.ANSI.enabled?`
 
-    * `:debug` - color for debug messages. Defaults to: `:magenta`
+    * `:debug` - color for debug messages. Defaults to: `:cyan`
 
     * `:info` - color for info messages. Defaults to: `:normal`
 
@@ -159,7 +159,7 @@ defmodule Logger do
   `config/config.exs` file:
 
       config :logger, :console,
-        format: "$date $time [$level] $metadata$message\n",
+        format: "\n$date $time [$level] $metadata$message",
         metadata: [:user_id]
 
   You can read more about formatting in `Logger.Formatter`.
