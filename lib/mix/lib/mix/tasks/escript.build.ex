@@ -56,6 +56,13 @@ defmodule Mix.Tasks.Escript.Build do
     * `:emu_args` - emulator arguments to embed in the escript file.
       Defaults to `""`.
 
+  There is one project-level option that affects how the escript is generated:
+
+    * `language: :elixir | :erlang` - set it to `:erlang` for Erlang projects
+      managed by mix. Doing so will ensure Elixir is not embedded by default.
+      Your app will still be started as part of escript loading, with the
+      config used during build.
+
   ## Example
 
       defmodule MyApp.Mixfile do
