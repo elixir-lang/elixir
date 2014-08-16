@@ -1090,12 +1090,12 @@ defimpl Enumerable, for: GenEvent.Stream do
       {:gen_event_EXIT, {__MODULE__, ^ref}, _reason} = event ->
         Process.demonitor(ref, [:flush])
         send(self(), event)
-        {:halt, acc}
+        {:halt, {:removed, acc}}
 
       # The manager died. Stop iteration, resolve the event later.
       {:DOWN, ^ref, _, _, _} = event ->
         send(self(), event)
-        {:halt, acc}
+        {:halt, {:removed, acc}}
 
       # Duration timeout.
       {^ref, :timedout} ->
@@ -1110,17 +1110,10 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  defp stop(%{mode: mode} = stream, {pid, ref, timer} = acc) do
+  # If we reach this branch, we know the handler was already
+  # removed, so we don't trigger a request for doing so.
+  defp stop(%{mode: mode} = stream, {:removed, {pid, ref, timer} = acc}) do
     remove_timer(timer)
-
-    # TODO: If we got an gen_event_EXIT or a DOWN, the handler was
-    # already removed but we can't pass this information based on
-    # resource current implementation. So right now, we may send a
-    # remove_handler even after it was already removed. Removing
-    # this extra call would help with removing overhead.
-    spawn(fn ->
-      GenEvent.remove_handler(pid, {__MODULE__, ref}, :shutdown)
-    end)
 
     case wait_for_handler_removal(pid, ref) do
       :ok when mode == :async ->
@@ -1130,6 +1123,15 @@ defimpl Enumerable, for: GenEvent.Stream do
       {:error, reason} ->
         exit({reason, {__MODULE__, :stop, [stream, acc]}})
     end
+  end
+
+  # If we reach this branch, the handler was not removed yet,
+  # so we trigger a request for doing so.
+  defp stop(stream, {pid, ref, _} = acc) do
+    spawn(fn ->
+      GenEvent.remove_handler(pid, {__MODULE__, ref}, :shutdown)
+    end)
+    stop(stream, {:removed, acc})
   end
 
   defp remove_timer(nil), do: :ok
