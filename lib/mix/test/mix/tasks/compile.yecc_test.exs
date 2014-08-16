@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
       oops.
       """
 
-      assert_raise CompileError, fn ->
+      assert_raise Mix.Error, fn ->
         capture_io fn ->
           Mix.Tasks.Compile.Yecc.run ["--force"]
         end

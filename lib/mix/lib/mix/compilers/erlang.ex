@@ -85,7 +85,9 @@ defmodule Mix.Compilers.Erlang do
       write_manifest(manifest, :lists.usort(entries))
 
       # Raise if any error, return :ok otherwise
-      if :error in results, do: raise CompileError
+      if :error in results do
+        Mix.raise "Encountered compilation errors."
+      end
       :ok
     end
   end
@@ -128,7 +130,7 @@ defmodule Mix.Compilers.Erlang do
   defp interpret_result(file, result) do
     case result do
       {:ok, _} -> Mix.shell.info "Compiled #{file}"
-      :error -> :error
+      :error -> nil
     end
     result
   end
