@@ -47,7 +47,7 @@ defmodule Mix.Tasks.CompileTest do
       """
       assert File.regular?("src/a.erl")
 
-      assert_raise CompileError, fn ->
+      assert_raise Mix.Error, fn ->
         capture_io fn -> Mix.Tasks.Compile.run ["--force"] end
       end
 
