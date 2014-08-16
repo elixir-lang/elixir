@@ -90,8 +90,9 @@ defmodule Mix.Tasks.Compile.App do
       end
 
       # Ensure we always prepend the standard application dependencies
+      core_apps = [:kernel, :stdlib] ++ language_app(config)
       properties = Keyword.update!(properties, :applications, fn apps ->
-        [:kernel, :stdlib, :elixir] ++ apps
+        core_apps ++ apps
       end)
 
       properties = ensure_correct_properties(app, config, properties)
@@ -127,6 +128,14 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_from(beams) do
     Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> String.to_atom)
+  end
+
+  defp language_app(config) do
+    case Keyword.fetch(config, :language) do
+      {:ok, :elixir} -> [:elixir]
+      {:ok, :erlang} -> []
+      :error -> [:elixir]
+    end
   end
 
   defp ensure_correct_properties(app, config, properties) do
