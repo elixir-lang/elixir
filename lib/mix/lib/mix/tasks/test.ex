@@ -109,6 +109,10 @@ defmodule Mix.Tasks.Test do
     * `:test_coverage` - a set of options to be passed down to the coverage
       mechanism.
 
+    * `:test_trace` - a Boolean value which, if present, specifies the default
+      behavior when neither `--trace` nor `--no-trace` have been passed on the
+      command line.
+
   ## Coverage
 
   The `:test_coverage` configuration accepts the following options:
@@ -171,6 +175,11 @@ defmodule Mix.Tasks.Test do
     end
 
     opts = ex_unit_opts(opts)
+
+    if project[:test_trace] != nil && opts[:trace] == nil do
+      opts = Keyword.put(opts, :trace, project[:test_trace])
+    end
+
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
