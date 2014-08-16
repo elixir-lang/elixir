@@ -270,7 +270,7 @@ defmodule StreamTest do
     stream = Stream.flat_map [1,2,3],
       fn i ->
         Stream.resource(fn -> i end,
-                        fn acc -> {acc, acc + 1} end,
+                        fn acc -> {[acc], acc + 1} end,
                         fn _ -> Process.put(:stream_flat_map, true) end)
       end
 
@@ -281,7 +281,7 @@ defmodule StreamTest do
 
   test "flat_map/2 does not leave outer stream suspended" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_flat_map, true) end)
     stream = Stream.flat_map(stream, fn i -> [i, i + 1, i + 2] end)
 
@@ -292,7 +292,7 @@ defmodule StreamTest do
 
   test "flat_map/2 closes on error" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_flat_map, true) end)
     stream = Stream.flat_map(stream, fn _ -> throw(:error) end)
 
@@ -375,7 +375,7 @@ defmodule StreamTest do
 
   test "transform/3 with halt" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_transform, true) end)
     stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: {[i], acc + 1}, else: {:halt, acc} end)
 
@@ -424,7 +424,7 @@ defmodule StreamTest do
 
   test "resource/3 closes on errors" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_resource, true) end)
 
     Process.put(:stream_resource, false)
@@ -435,8 +435,42 @@ defmodule StreamTest do
 
   test "resource/3 is zippable" do
     stream = Stream.resource(fn -> 1 end,
-                             fn 10 -> nil
-                                acc -> {acc, acc + 1}
+                             fn 10 -> {:halt, 10}
+                                acc -> {[acc], acc + 1}
+                             end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    list = Enum.to_list(stream)
+    Process.put(:stream_resource, false)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+    assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 halts with inner list" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> {[acc, acc+1, acc+2], acc + 1} end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    Process.put(:stream_resource, false)
+    assert Enum.take(stream, 5) == [1, 2, 3, 2, 3]
+    assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 closes on errors with inner list" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> {[acc, acc+1, acc+2], acc + 1} end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    Process.put(:stream_resource, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 is zippable with inner list" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn 10 -> {:halt, 10}
+                                acc -> {[acc, acc+1, acc+2], acc + 1}
                              end,
                              fn _ -> Process.put(:stream_resource, true) end)
 
@@ -570,7 +604,7 @@ defmodule StreamTest do
 
   test "zip/2 does not leave streams suspended" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_zip, true) end)
 
     Process.put(:stream_zip, false)
@@ -584,7 +618,7 @@ defmodule StreamTest do
 
   test "zip/2 does not leave streams suspended on halt" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {acc, acc + 1} end,
+                             fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_zip, :done) end)
 
     assert Stream.zip([:a, :b, :c, :d, :e], stream) |> Enum.take(3) ==

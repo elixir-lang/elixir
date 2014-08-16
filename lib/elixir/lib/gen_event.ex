@@ -129,7 +129,7 @@ defmodule GenEvent do
       The reason is one of:
 
       -  `:stop` - manager is terminating
-      -  `{:stop, reason}` - linked process terminated
+      -  `{:stop, reason}` - monitored process terminated (for monitored handlers)
       -  `:remove_handler` - handler is being removed
       -  `{:error, term}` - handler crashed or returned a bad value
       -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
@@ -922,8 +922,6 @@ defmodule GenEvent do
   # TODO: arg can be a wide range set of values. It is worth
   # discussing if we want to limit those down. We just need
   # to look for all do_terminate calls.
-  # TODO: Update documentation for arg to say it is never
-  # {:error, {:EXIT, _}}.
   defp do_terminate(handler, arg, last_in, name, reason) do
     handler(module: module, state: state) = handler
 
@@ -1092,20 +1090,20 @@ defimpl Enumerable, for: GenEvent.Stream do
       {:gen_event_EXIT, {__MODULE__, ^ref}, _reason} = event ->
         Process.demonitor(ref, [:flush])
         send(self(), event)
-        nil
+        {:halt, acc}
 
       # The manager died. Stop iteration, resolve the event later.
       {:DOWN, ^ref, _, _, _} = event ->
         send(self(), event)
-        nil
+        {:halt, acc}
 
       # Duration timeout.
       {^ref, :timedout} ->
-        nil
+        {:halt, acc}
 
       # Got an event!
       {^ref, sync_ref, event} ->
-        {{stream.mode, sync_ref, pid, event}, acc}
+        {[{stream.mode, sync_ref, pid, event}], acc}
     after
       timeout ->
         exit({:timeout, {__MODULE__, :next, [stream, acc]}})
@@ -1117,7 +1115,7 @@ defimpl Enumerable, for: GenEvent.Stream do
 
     # TODO: If we got an gen_event_EXIT or a DOWN, the handler was
     # already removed but we can't pass this information based on
-    # unfold current implementation. So right now, we may send a
+    # resource current implementation. So right now, we may send a
     # remove_handler even after it was already removed. Removing
     # this extra call would help with removing overhead.
     spawn(fn ->
