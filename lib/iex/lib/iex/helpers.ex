@@ -40,6 +40,11 @@ defmodule IEx.Helpers do
 
       h(Enum)
       h(Enum.reverse/1)
+      
+  To discover all available functions for a module, type the module name
+  follow by a dot, then press tab to trigger autocomplete. For example:
+  
+      Enum.
 
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
