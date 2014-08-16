@@ -381,8 +381,6 @@ defmodule DictTest.Common do
         dict = new_dict([{1}, {2}, {3}], fn {x} -> {<<x + 64>>, x} end)
         assert Dict.size(dict) == 3
         assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
-
-        assert Collectable.empty(new_dict) == new_dict([])
       end
 
       test "is zippable" do
