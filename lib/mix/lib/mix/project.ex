@@ -11,7 +11,7 @@ defmodule Mix.Project do
 
         def project do
           [app: :my_app,
-           vsn: "0.6.0"]
+           version: "0.6.0"]
         end
       end
 
@@ -24,6 +24,12 @@ defmodule Mix.Project do
   function in the project, the developer can call `Mix.Project.get!/0`
   which fails with `Mix.NoProjectError` in case a project is not
   defined.
+
+  ## Non-elixir projects
+
+  Mix can be used to manage Erlang projects that don't have any Elixir code. To
+  ensure mix tasks work correctly for an Erlang project, `language: :erlang`
+  has to be added to `project`.
   """
 
   @doc false
