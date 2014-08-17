@@ -937,7 +937,7 @@ defmodule Macro do
   be expanded.
 
   This function uses `expand_once/2` under the hood. Check
-  `expand_once/2` for more information and exmaples.
+  `expand_once/2` for more information and examples.
   """
   def expand(tree, env) do
     expand_until({tree, true}, env)
