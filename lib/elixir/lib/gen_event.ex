@@ -618,7 +618,7 @@ defmodule GenEvent do
         try do
           server_terminate(:normal, parent, handlers, name)
         catch
-          _, _ -> :ok
+          :exit, :normal -> :ok
         end
         reply(tag, :ok)
       {_from, tag, :which_handlers} ->
@@ -873,8 +873,6 @@ defmodule GenEvent do
   defp server_terminate(reason, _parent, handlers, name) do
     _ =
       for handler <- handlers do
-        # TODO: Consider making it {:stop, :shutdown} or
-        # {:stop, reason} for consistency?
         do_terminate(handler, :stop, :stop, name, :shutdown)
       end
     exit(reason)
@@ -918,10 +916,6 @@ defmodule GenEvent do
     end
   end
 
-  # The value of this function is returned by remove_handler.
-  # TODO: arg can be a wide range set of values. It is worth
-  # discussing if we want to limit those down. We just need
-  # to look for all do_terminate calls.
   defp do_terminate(handler, arg, last_in, name, reason) do
     handler(module: module, state: state) = handler
 
@@ -938,7 +932,7 @@ defmodule GenEvent do
     try do
       apply(mod, fun, args)
     catch
-      :throw, val -> {:error, {{:nocatch, val}, System.stacktrace}}
+      :throw, val -> {:ok, val}
       :error, val -> {:error, {val, System.stacktrace}}
       :exit, val  -> {:error, val}
     else
