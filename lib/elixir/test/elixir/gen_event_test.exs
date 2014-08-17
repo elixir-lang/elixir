@@ -10,6 +10,10 @@ defmodule GenEventTest do
       raise "oops"
     end
 
+    def init({:throw, process}) do
+      {:ok, process}
+    end
+
     def init({:swap, {:error, :module_not_found}}) do
       {:error, :module_not_found_on_swap}
     end
@@ -224,7 +228,7 @@ defmodule GenEventTest do
     assert {:error, {%RuntimeError{}, _}} =
            GenEvent.add_handler(pid, ReplyHandler, :raise)
 
-    assert GenEvent.add_handler(pid, ReplyHandler, {self(), false}) == :ok
+    assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == :ok
     assert GenEvent.which_handlers(pid) == [ReplyHandler]
     assert GenEvent.add_handler(pid, {ReplyHandler, self()}, {self(), false}) == :ok
     assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}, ReplyHandler]
