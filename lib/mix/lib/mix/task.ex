@@ -149,6 +149,18 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Checks if exists an alias with the given task name.
+  """
+  @spec alias?(task_name) :: boolean
+  def alias?(task) when is_binary(task) do
+    alias?(String.to_atom(task))
+  end
+
+  def alias?(task) when is_atom(task) do
+    Mix.Project.config[:aliases][task]
+  end
+
+  @doc """
   Receives a task name and returns `{:ok, module}` if a task is found.
 
   Otherwise returns `{:error, :invalid}` in case the module

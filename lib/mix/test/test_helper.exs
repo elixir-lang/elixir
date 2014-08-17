@@ -10,7 +10,8 @@ defmodule MixTest.Case do
   defmodule Sample do
     def project do
       [app: :sample,
-       version: "0.1.0"]
+       version: "0.1.0",
+       aliases: [sample: "compile"]]
     end
   end
 

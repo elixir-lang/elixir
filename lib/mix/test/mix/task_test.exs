@@ -53,6 +53,18 @@ defmodule Mix.TaskTest do
     end
   end
 
+  test "alias?/1" do
+    refute Mix.Task.alias?(:sample)
+    refute Mix.Task.alias?("sample")
+
+    Mix.Project.push MixTest.Case.Sample
+    assert Mix.Task.alias?(:sample)
+    assert Mix.Task.alias?("sample")
+    refute Mix.Task.alias?("another")
+  after
+    Mix.Project.pop
+  end
+
   test "all_modules/0" do
     Mix.Task.load_all
     modules = Mix.Task.all_modules
