@@ -1022,8 +1022,6 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   @doc false
   def handle_event(event, {mode, pid, ref} = state) when mode in [:sync, :ack] do
-    # TODO: The process is already monitored by the GenEvent
-    # but we don't have access to the reference in here.
     sync = Process.monitor(pid)
     send pid, {ref, sync, event}
     receive do
@@ -1075,15 +1073,16 @@ defimpl Enumerable, for: GenEvent.Stream do
   end
 
   defp start(%{manager: manager, duration: duration, mode: mode} = stream) do
-    pid = whereis(manager)
-    ref = Process.monitor(pid)
-
-    try do
-      :ok = GenEvent.add_handler(pid, {__MODULE__, ref},
-                                 {mode, self(), ref}, monitor: true)
-    catch
-      :exit, :noproc -> exit({:noproc, {__MODULE__, :start, [stream]}})
-    end
+    {pid, ref} =
+      try do
+        pid = whereis(manager)
+        ref = Process.monitor(pid)
+        :ok = GenEvent.add_handler(pid, {__MODULE__, ref},
+                                   {mode, self(), ref}, monitor: true)
+        {pid, ref}
+      catch
+        :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
+      end
 
     timer = cond do
       duration == :infinity -> nil
@@ -1094,10 +1093,16 @@ defimpl Enumerable, for: GenEvent.Stream do
   end
 
   defp whereis(pid) when is_pid(pid), do: pid
-  defp whereis(atom) when is_atom(atom), do: :erlang.whereis(atom)
+  defp whereis(atom) when is_atom(atom), do: Process.whereis(atom) || exit(:noproc)
   defp whereis({:global, name}), do: :global.whereis_name(name)
   defp whereis({:via, module, name}), do: module.whereis_name(name)
-  defp whereis({atom, node}), do: :rpc.call(node, :erlang, :whereis, [atom])
+  defp whereis({atom, node}) do
+    case :rpc.call(node, :erlang, :whereis, [atom]) do
+      :undefined -> exit(:noproc)
+      {:badrpc, :nodedown} -> exit({:nodedown, node})
+      pid when is_pid(pid) -> pid
+    end
+  end
 
   defp next(%{timeout: timeout} = stream, {pid, ref, _timer} = acc) do
     receive do
@@ -1145,9 +1150,7 @@ defimpl Enumerable, for: GenEvent.Stream do
   # If we reach this branch, the handler was not removed yet,
   # so we trigger a request for doing so.
   defp stop(stream, {pid, ref, _} = acc) do
-    spawn(fn ->
-      GenEvent.remove_handler(pid, {__MODULE__, ref}, :shutdown)
-    end)
+    spawn(fn -> GenEvent.remove_handler(pid, {__MODULE__, ref}, :shutdown) end)
     stop(stream, {:removed, acc})
   end
 
