@@ -369,7 +369,15 @@ defmodule GenEvent do
     * a term - if the event handler is removed due to an error. Which term
       depends on the error
 
-  Notice this functionality only works with GenEvent started via this
+  Keep in mind that the `{:gen_event_EXIT, handler, reason}` message is not
+  guaranteed to be delivered in case the manager crashes. If you want to
+  guarantee the message is delivered, you have three options:
+
+    * monitor the event manager
+    * link to the event manager
+    * set `Process.flag(:trap_exit, true)` in your handler callback
+
+  Finally, this functionality only works with GenEvent started via this
   module (it is not backwards compatible with Erlang's `:gen_event`).
   """
   @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}

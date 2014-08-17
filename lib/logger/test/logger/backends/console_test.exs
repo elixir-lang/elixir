@@ -13,7 +13,6 @@ defmodule Logger.Backends.ConsoleTest do
     Logger.remove_backend(:console)
     user = Process.whereis(:user)
 
-
     try do
       Process.unregister(:user)
       assert GenEvent.add_handler(Logger, Logger.Backends.Console, []) ==
