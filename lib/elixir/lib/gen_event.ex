@@ -342,6 +342,9 @@ defmodule GenEvent do
   `:ok`. If the callback fails with `reason` or returns `{:error, reason}`,
   the event handler is ignored and this function returns `{:error, reason}`.
 
+  If the given handler was previously installed at the manager, this
+  function returns `{:error, :already_added}`.
+
   ## Monitored handlers
 
   When adding a handler, a `:monitor` option with value `true` can be given.
@@ -736,21 +739,25 @@ defmodule GenEvent do
   end
 
   defp server_add_handler(module, handler, arg, handlers) do
-    # TODO: Do not allow duplicated handlers
-    case do_handler(module, :init, [arg]) do
-      {:ok, res} ->
-        case res do
-          {:ok, state} ->
-            {false, :ok, [handler(handler, state: state)|handlers]}
-          {:ok, state, :hibernate} ->
-            {true, :ok, [handler(handler, state: state)|handlers]}
+    case :lists.keyfind(handler(handler, :id), handler(:id) + 1, handlers) do
+      false ->
+        case do_handler(module, :init, [arg]) do
+          {:ok, res} ->
+            case res do
+              {:ok, state} ->
+                {false, :ok, [handler(handler, state: state)|handlers]}
+              {:ok, state, :hibernate} ->
+                {true, :ok, [handler(handler, state: state)|handlers]}
+              {:error, _} = error ->
+                {false, error, handlers}
+              other ->
+                {false, {:error, {:bad_return_value, other}}, handlers}
+            end
           {:error, _} = error ->
             {false, error, handlers}
-          other ->
-            {false, {:error, {:bad_return_value, other}}, handlers}
         end
-      {:error, _} = error ->
-        {false, error, handlers}
+      _ ->
+        {false, {:error, :already_added}, handlers}
     end
   end
 
@@ -781,21 +788,25 @@ defmodule GenEvent do
     end
   end
 
-  defp server_notify(event, fun, [handler|t], name) do
-    case server_update(handler, fun, event, name) do
+  defp server_notify(event, fun, handlers, name) do
+    server_notify(event, fun, handlers, name, handlers)
+  end
+
+  defp server_notify(event, fun, [handler|t], name, handlers) do
+    case server_update(handler, fun, event, name, handlers) do
       {hib1, handler} ->
-        {hib2, t} = server_notify(event, fun, t, name)
+        {hib2, t} = server_notify(event, fun, t, name, handlers)
         {hib1 or hib2, [handler|t]}
       :error ->
-        server_notify(event, fun, t, name)
+        server_notify(event, fun, t, name, handlers)
     end
   end
 
-  defp server_notify(_, _, [], _) do
+  defp server_notify(_, _, [], _, _) do
     {false, []}
   end
 
-  defp server_update(handler, fun, event, name) do
+  defp server_update(handler, fun, event, name, handlers) do
     handler(module: module, state: state) = handler
 
     case do_handler(module, fun, [event, state]) do
@@ -806,7 +817,7 @@ defmodule GenEvent do
           {:ok, state, :hibernate} ->
             {true, handler(handler, state: state)}
           {:swap_handler, args1, state, handler2, args2} ->
-            do_swap(handler(handler, state: state), args1, handler2, args2, name)
+            do_swap(handler(handler, state: state), args1, handler2, args2, name, handlers)
           :remove_handler ->
             do_terminate(handler, :remove_handler, event, name, :normal)
             :error
@@ -826,7 +837,7 @@ defmodule GenEvent do
       false ->
         {false, {:error, :module_not_found}, handlers}
       handler ->
-        case server_call_update(handler, query, name) do
+        case server_call_update(handler, query, name, handlers) do
           {{hib, handler}, reply} ->
             {hib, reply, :lists.keyreplace(module, handler(:id) + 1, handlers, handler)}
           {:error, reply} ->
@@ -835,7 +846,7 @@ defmodule GenEvent do
     end
   end
 
-  defp server_call_update(handler, query, name) do
+  defp server_call_update(handler, query, name, handlers) do
     handler(module: module, state: state) = handler
     case do_handler(module, :handle_call, [query, state]) do
       {:ok, res} ->
@@ -845,7 +856,7 @@ defmodule GenEvent do
           {:ok, reply, state, :hibernate} ->
             {{true, handler(handler, state: state)}, reply}
           {:swap_handler, reply, args1, state, handler2, args2} ->
-            {do_swap(handler(handler, state: state), args1, handler2, args2, name), reply}
+            {do_swap(handler(handler, state: state), args1, handler2, args2, name, handlers), reply}
           {:remove_handler, reply} ->
             do_terminate(handler, :remove_handler, query, name, :normal)
             {:error, reply}
@@ -891,19 +902,30 @@ defmodule GenEvent do
     end
   end
 
-  defp do_swap(handler, args1, module2, args2, name) do
+  defp do_swap(handler, args1, module2, args2, name, handlers) do
     pid   = handler(handler, :pid)
-    ref   = handler(handler, :ref)
-    state = do_terminate(handler, args1, :swapped, name, {:swapped, module2, pid})
+    state = do_terminate(handler,
+                         args1, :swapped, name, {:swapped, module2, pid})
 
     {hib, res, handlers} =
-      server_add_handler(module2, {args2, state}, [])
+      if handler(handler, :id) == module2 or
+         :lists.keyfind(module2, handler(:id) + 1, handlers) == false do
+
+        if pid do
+          server_add_mon_handler(module2, {args2, state}, [], pid)
+        else
+          server_add_handler(module2, {args2, state}, [])
+        end
+      else
+        {false, {:error, :already_added}, []}
+      end
 
     case res do
       :ok ->
-        {hib, handler(hd(handlers), pid: pid, ref: ref)}
+        {hib, hd(handlers)}
       {:error, reason} ->
         report_terminate(handler, reason, state, :swapped, name)
+        :error
     end
   end
 
@@ -942,8 +964,9 @@ defmodule GenEvent do
 
   defp report_terminate(handler, reason, state, last_in, name) do
     report_error(handler, reason, state, last_in, name)
-    if pid = handler(handler, :pid) do
-      send pid, {:gen_event_EXIT, handler(handler, :id), reason}
+    if ref = handler(handler, :ref) do
+      Process.demonitor(ref, [:flush])
+      send handler(handler, :pid), {:gen_event_EXIT, handler(handler, :id), reason}
     end
   end
 
