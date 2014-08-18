@@ -363,7 +363,8 @@ defmodule GenServer do
   Sends an asynchronous request to the `server`.
 
   This function returns `:ok` immediately, regardless of
-  whether the destination node or server does exists.
+  whether the destination node or server does exists, unless
+  the server is specified as an atom.
 
   `handle_cast/2` will be called on the server to handle
   the request. In case the server is a node which is not
@@ -420,12 +421,8 @@ defmodule GenServer do
   end
 
   defp do_send(dest, msg) do
-    try do
-      send(dest, msg)
-      :ok
-    catch
-      _, _ -> :ok
-    end
+    send(dest, msg)
+    :ok
   end
 
   @doc """

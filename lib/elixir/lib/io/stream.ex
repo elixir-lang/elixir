@@ -57,7 +57,7 @@ defmodule IO.Stream do
           true  -> &IO.each_binstream(&1, line_or_bytes)
           false -> &IO.each_stream(&1, line_or_bytes)
         end
-      Stream.unfold(device, next_fun).(acc, fun)
+      Stream.resource(fn -> device end, next_fun, &(&1)).(acc, fun)
     end
 
     def count(_stream) do

@@ -363,11 +363,6 @@ defmodule EnumTest.List do
     assert Enum.to_list(1 .. 3) == [1, 2, 3]
   end
 
-  test :traverse do
-    assert Enum.traverse([1, 2, 3], &(&1 * &1)) == [1, 4, 9]
-    assert Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v*2} end) == %{a: 2, b: 4}
-  end
-
   test :uniq do
     assert Enum.uniq([1, 2, 3, 2, 1]) == [1, 2, 3]
     assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
