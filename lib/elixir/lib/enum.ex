@@ -1798,25 +1798,13 @@ defmodule Enum do
     reverse(collection) |> :lists.reverse
   end
 
-
-  @doc """
-  Traverses the given enumerable keeping its shape.
-
-  It also expects the enumerable to implement the `Collectable` protocol.
-
-  ## Examples
-
-      iex> Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v * 2} end)
-      %{a: 2, b: 4}
-
-  """
-  @spec traverse(Enumerable.t, (term -> term)) :: Collectable.t
+  @doc false
   def traverse(collection, transform) when is_list(collection) do
     :lists.map(transform, collection)
   end
 
   def traverse(collection, transform) do
-    into(collection, Collectable.empty(collection), transform)
+    into(collection, apply(Collectable, :empty, [collection]), transform)
   end
 
   @doc """

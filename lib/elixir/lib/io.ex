@@ -394,11 +394,11 @@ defmodule IO do
   def each_stream(device, what) do
     case read(device, what) do
       :eof ->
-        nil
+        {:halt, device}
       {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        {data, device}
+        {[data], device}
     end
   end
 
@@ -406,11 +406,11 @@ defmodule IO do
   def each_binstream(device, what) do
     case binread(device, what) do
       :eof ->
-        nil
+        {:halt, device}
       {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        {data, device}
+        {[data], device}
     end
   end
 

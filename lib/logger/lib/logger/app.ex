@@ -18,7 +18,7 @@ defmodule Logger.App do
                 supervisor(Logger.Watcher, [Logger.Config, :handlers, []]),
                 worker(Logger.Watcher,
                   [:error_logger, Logger.ErrorHandler,
-                    {otp_reports?, sasl_reports?, threshold}],
+                    {otp_reports?, sasl_reports?, threshold}, :link],
                   [id: Logger.ErrorHandler, function: :watcher])]
 
     case Supervisor.start_link(children, options) do
