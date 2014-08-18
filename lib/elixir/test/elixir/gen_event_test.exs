@@ -368,6 +368,35 @@ defmodule GenEventTest do
     end
   end
 
+  test "ack_notify/2" do
+    {:ok, pid} = GenEvent.start()
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert GenEvent.ack_notify(pid, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    msg = {:custom, {:swap_handler, :swapped, self(), ReplyHandler, :swap}}
+    assert GenEvent.ack_notify(pid, msg) == :ok
+    assert_receive {:terminate, :swapped}
+    assert_receive :swapped
+
+    assert GenEvent.ack_notify(pid, {:custom, :remove_handler}) == :ok
+    assert_receive {:terminate, :remove_handler}
+    assert GenEvent.which_handlers(pid) == []
+
+    Logger.remove_backend(:console)
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.ack_notify(pid, {:custom, :oops}) == :ok
+    assert_receive {:terminate, {:error, {:bad_return_value, :oops}}}
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.ack_notify(pid, :raise) == :ok
+    assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+  after
+    Logger.add_backend(:console, flush: true)
+  end
+
   test "sync_notify/2" do
     {:ok, pid} = GenEvent.start()
     GenEvent.add_handler(pid, ReplyHandler, {self(), false})
