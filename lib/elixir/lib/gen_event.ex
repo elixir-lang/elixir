@@ -625,6 +625,9 @@ defmodule GenEvent do
       {:notify, event} ->
         {hib, handlers} = server_event(:async, event, handlers, name)
         loop(parent, name, handlers, debug, hib)
+      {_from, _tag, {:notify, event}} ->
+        {hib, handlers} = server_event(:async, event, handlers, name)
+        loop(parent, name, handlers, debug, hib)
       {_from, tag, {:ack_notify, event}} ->
         reply(tag, :ok)
         {hib, handlers} = server_event(:ack, event, handlers, name)
@@ -873,17 +876,13 @@ defmodule GenEvent do
     {handlers, streams}
   end
 
-  defp server_stream_notify(:async, event, handler(pid: pid)) do
-    send pid, {:notify, event}
+  defp server_stream_notify(mode, event, handler(pid: pid, ref: ref)) do
+    send pid, {self(), {self(), ref}, {mode_to_tag(mode), event}}
   end
 
-  defp server_stream_notify(:ack, event, handler(pid: pid, ref: ref)) do
-    send pid, {self(), {self(), ref}, {:ack_notify, event}}
-  end
-
-  defp server_stream_notify(:sync, event, handler(pid: pid, ref: ref)) do
-    send pid, {self(), {self(), ref}, {:sync_notify, event}}
-  end
+  defp mode_to_tag(:ack),   do: :ack_notify
+  defp mode_to_tag(:sync),  do: :sync_notify
+  defp mode_to_tag(:async), do: :notify
 
   defp server_notify(event, fun, [handler|t], name, handlers, acc, hib) do
     case server_update(handler, fun, event, name, handlers) do
@@ -1210,7 +1209,7 @@ defimpl Enumerable, for: GenEvent.Stream do
         {:halt, acc}
 
       # Got an async event.
-      {:notify, event} ->
+      {_from, {^pid, ^ref}, {:notify, event}} ->
         {[{:async, pid, ref, event}], acc}
 
       # Got a sync event.
@@ -1275,7 +1274,7 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp flush_events(ref) do
     receive do
-      {:notify, _event} ->
+      {_from, {_pid, ^ref}, {:notify, _event}} ->
         flush_events(ref)
     after
       0 -> :ok
