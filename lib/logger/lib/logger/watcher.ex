@@ -59,31 +59,38 @@ defmodule Logger.Watcher do
 
   ## Callbacks
 
-  def init({mod, handler, args, :monitor}) when is_atom(mod) do
-    Process.link(Process.whereis(mod))
+  @doc false
+  def init({mod, handler, args, :monitor}) do
+    ref = Process.monitor(mod)
 
     case GenEvent.add_handler(mod, handler, args, monitor: true) do
-      :ok               -> {:ok, {mod, handler}}
+      :ok               -> {:ok, {mod, handler, ref}}
       {:error, :ignore} -> :ignore
       {:error, reason}  -> {:stop, reason}
     end
   end
 
-  def init({mod, handler, args, :link}) when is_atom(mod) do
+  def init({mod, handler, args, :link}) do
     case :gen_event.add_sup_handler(mod, handler, args) do
-      :ok               -> {:ok, {mod, handler}}
+      :ok               -> {:ok, {mod, handler, nil}}
       {:error, :ignore} -> :ignore
       {:error, reason}  -> {:stop, reason}
     end
   end
 
   @doc false
-  def handle_info({:gen_event_EXIT, handler, reason}, {_, handler} = state)
+  def handle_info({:gen_event_EXIT, handler, reason}, {_, handler, _} = state)
       when reason in [:normal, :shutdown] do
     {:stop, reason, state}
   end
 
-  def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler} = state) do
+  def handle_info({:gen_event_EXIT, handler, reason}, {mod, handler, _} = state) do
+    Logger.error "GenEvent handler #{inspect handler} installed at #{inspect mod}\n" <>
+                 "** (exit) #{format_exit(reason)}"
+    {:stop, reason, state}
+  end
+
+  def handle_info({:DOWN, ref, _, _, reason}, {mod, handler, ref} = state) do
     Logger.error "GenEvent handler #{inspect handler} installed at #{inspect mod}\n" <>
                  "** (exit) #{format_exit(reason)}"
     {:stop, reason, state}
@@ -94,5 +101,5 @@ defmodule Logger.Watcher do
   end
 
   defp format_exit({:EXIT, reason}), do: Exception.format_exit(reason)
-  defp format_exit(other), do: inspect(other)
+  defp format_exit(reason), do: Exception.format_exit(reason)
 end
