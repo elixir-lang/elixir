@@ -3,10 +3,26 @@
 ## v0.15.2-dev
 
 * Enhancements
+  * [GenEvent] Add support for `GenEvent.ack_notify/2`
+  * [GenEvent] Add support for monitored handlers to `GenEvent.add_handler/4` that removes the drawbacks in the previous linked handlers
+  * [Mix] Add --force option to 'mix local.rebar'
+  * [Mix] Fix `--no-color`/`--color` option for `mix test`
 
 * Bug fixes
+  * [GenEvent] Do not allow a handler to be added more than once
+  * [GenServer] Do not treat bad arguments as exits in `GenServer.call/2`
+  * [GenServer] Do not deliver out of order messages on `GenServer.cast/2` on distributed mode
+  * [Mix] Do not pre-compile a Mix project if an alias was found
+  * [Mix] Properly handle compilation errors in the Erlang compiler
 
 * Deprecations
+  * [Collectable] Deprecate `Collectable.empty/1` and `Enum.traverse/2`
+  * [Stream] Returning `{item, acc} | nil` from `Stream.resource/2` is deprecated, instead return `{[item], acc} | {:halt, acc}` (similar to `Stream.transform/3`)
+
+* Backwards incompatible changes
+  * [GenEvent] `GenEvent.cancel_stream/1` no longer is
+  * [GenEvent] The `:mode` option is deprecated and no longer supported in `GenEvent.stream/2` (the mode is now a property of the sender)
+  * [GenEvent] The `:linked` option is deprecated and no longer supported in `GenEvent.add_handler/4` (check monitored handlers instead)
 
 ## v0.15.1 (2014-08-10)
 
