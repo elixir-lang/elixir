@@ -142,7 +142,7 @@ docs: compile ../ex_doc/bin/ex_doc
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md VERSION
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE Makefile README.md VERSION
 
 release_docs: docs
 	cd ../docs
