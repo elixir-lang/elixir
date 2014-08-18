@@ -524,7 +524,7 @@ deprecation_message(Warning, Message) ->
 
 deprecation('Elixir.Module', 'function', 3) ->
   "use :erlang.make_fun/3";
-deprecation('Elixir.Collectable', 'empty', 0) ->
+deprecation('Elixir.Collectable', 'empty', 1) ->
   true;
 deprecation('Elixir.Enum', 'traverse', 2) ->
   true;
