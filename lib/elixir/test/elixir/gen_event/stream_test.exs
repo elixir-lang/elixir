@@ -12,6 +12,10 @@ defmodule GenEvent.StreamTest do
     end
   end
 
+  defp notify(:async, manager, event), do: GenEvent.notify(manager, event)
+  defp notify(:sync, manager, event),  do: GenEvent.sync_notify(manager, event)
+  defp notify(:ack, manager, event),   do: GenEvent.ack_notify(manager, event)
+
   @receive_timeout 1000
 
   test "ack stream/2" do
@@ -19,33 +23,33 @@ defmodule GenEvent.StreamTest do
     parent = self()
 
     spawn_link fn ->
-      send parent, Enum.take(GenEvent.stream(pid, mode: :ack), 3)
+      send parent, Enum.take(GenEvent.stream(pid), 3)
     end
 
     wait_for_handlers(pid, 1)
 
     for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
+      GenEvent.ack_notify(pid, i)
     end
 
-    # Receive one of the results
     assert_receive [1, 2, 3], @receive_timeout
     wait_for_handlers(pid, 0)
 
     spawn_link fn ->
-      Enum.each(GenEvent.stream(pid, mode: :ack), fn _ ->
+      Enum.each GenEvent.stream(pid), fn _ ->
         :timer.sleep(:infinity)
-      end)
+      end
     end
 
     wait_for_handlers(pid, 1)
 
     for i <- 1..6 do
-      GenEvent.notify(pid, i)
+      spawn_link fn ->
+        GenEvent.ack_notify(pid, i)
+      end
     end
 
-    # The length is 4 instead of 5 because we wait for
-    # message acks and not consumptions acks.
+    # Note the length is 4 compared to 5 n the sync case.
     wait_for_queue_length(pid, 4)
   end
 
@@ -54,7 +58,7 @@ defmodule GenEvent.StreamTest do
     parent = self()
 
     spawn_link fn ->
-      send parent, Enum.take(GenEvent.stream(pid, mode: :sync), 3)
+      send parent, Enum.take(GenEvent.stream(pid), 3)
     end
 
     wait_for_handlers(pid, 1)
@@ -63,20 +67,21 @@ defmodule GenEvent.StreamTest do
       GenEvent.sync_notify(pid, i)
     end
 
-    # Receive one of the results
     assert_receive [1, 2, 3], @receive_timeout
     wait_for_handlers(pid, 0)
 
     spawn_link fn ->
-      Enum.each(GenEvent.stream(pid, mode: :sync), fn _ ->
+      Enum.each GenEvent.stream(pid), fn _ ->
         :timer.sleep(:infinity)
-      end)
+      end
     end
 
     wait_for_handlers(pid, 1)
 
     for i <- 1..6 do
-      GenEvent.notify(pid, i)
+      spawn_link fn ->
+        GenEvent.sync_notify(pid, i)
+      end
     end
 
     wait_for_queue_length(pid, 5)
@@ -87,32 +92,84 @@ defmodule GenEvent.StreamTest do
     parent = self()
 
     spawn_link fn ->
-      Enum.each(GenEvent.stream(pid, mode: :async), fn _ ->
+      Enum.each(GenEvent.stream(pid), fn _ ->
         :timer.sleep(:infinity)
       end)
     end
 
     spawn_link fn ->
-      send parent, Enum.take(GenEvent.stream(pid, mode: :async), 3)
+      send parent, Enum.take(GenEvent.stream(pid), 3)
     end
 
     wait_for_handlers(pid, 2)
 
     for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
+      GenEvent.notify(pid, i)
     end
 
-    # Receive one of the results
-    assert_receive  [1, 2, 3], @receive_timeout
-
-    # One of the subscriptions are gone
+    assert_receive [1, 2, 3], @receive_timeout
     wait_for_handlers(pid, 1)
   end
 
+  test "stream/2 with timeout" do
+    {:ok, pid} = GenEvent.start_link()
+    Process.flag(:trap_exit, true)
+
+    child = spawn_link fn ->
+      Enum.take(GenEvent.stream(pid, timeout: 50), 5)
+    end
+
+    assert_receive {:EXIT, ^child,
+                     {:timeout, {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
+  end
+
+  test "stream/2 with error/timeout on subscription" do
+    {:ok, pid} = GenEvent.start_link()
+
+    child = spawn fn -> Enum.to_list(GenEvent.stream(pid)) end
+    wait_for_handlers(pid, 1)
+
+    Process.exit(child, :kill)
+    wait_for_handlers(pid, 0)
+    GenEvent.stop(pid)
+  end
+
+  test "stream/2 with manager killed and trap_exit" do
+    {:ok, pid} = GenEvent.start_link()
+    stream = GenEvent.stream(pid)
+
+    parent = self()
+    child = spawn_link fn ->
+      send parent, Enum.to_list(stream)
+    end
+    wait_for_handlers(pid, 1)
+
+    Process.flag(:trap_exit, true)
+    Process.exit(pid, :kill)
+    assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
+    assert_receive {:EXIT, ^child,
+                     {:killed, {Enumerable.GenEvent.Stream, :stop, [_,_]}}}, @receive_timeout
+  end
+
+  test "stream/2 with manager not alive" do
+    stream = GenEvent.stream(:does_not_exit)
+
+    parent = self()
+    child = spawn_link fn ->
+      send parent, Enum.to_list(stream)
+    end
+
+    Process.flag(:trap_exit, true)
+    assert_receive {:EXIT, ^child,
+                     {:noproc, {Enumerable.GenEvent.Stream, :start, [_]}}}, @receive_timeout
+  end
+
   Enum.each [:sync, :async, :ack], fn mode ->
+    @mode mode
+
     test "#{mode} stream/2 with parallel use (and first finishing first)" do
       {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, duration: 200, mode: unquote(mode))
+      stream = GenEvent.stream(pid, duration: 200)
 
       parent = self()
       spawn_link fn -> send parent, {:take, Enum.take(stream, 3)} end
@@ -122,146 +179,80 @@ defmodule GenEvent.StreamTest do
 
       # Notify the events for both handlers
       for i <- 1..3 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
       assert_receive {:take, [1, 2, 3]}, @receive_timeout
 
       # Notify the events for to_list stream handler
       for i <- 4..5 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
 
       assert_receive {:to_list, [1, 2, 3, 4, 5]}, @receive_timeout
     end
 
-    test "#{mode} stream/2 with timeout" do
-      # Start a manager
-      {:ok, pid} = GenEvent.start_link()
-      Process.flag(:trap_exit, true)
-
-      pid = spawn_link fn ->
-        Enum.take(GenEvent.stream(pid, timeout: 50, mode: unquote(mode)), 5)
-      end
-
-      assert_receive {:EXIT, ^pid,
-                       {:timeout, {Enumerable.GenEvent.Stream, :next, [_, _]}}}, @receive_timeout
-    end
-
-    test "#{mode} stream/2 with error/timeout on subscription" do
-      # Start a manager
-      {:ok, pid} = GenEvent.start_link()
-
-      # Start a subscriber with timeout
-      child = spawn fn -> Enum.to_list(GenEvent.stream(pid, mode: unquote(mode))) end
-      wait_for_handlers(pid, 1)
-
-      # Kill and wait until we have 0 handlers
-      Process.exit(child, :kill)
-      wait_for_handlers(pid, 0)
-      GenEvent.stop(pid)
-    end
-
     test "#{mode} stream/2 with manager stop" do
-      # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link()
 
       parent = self()
-      stream_pid = spawn_link fn ->
-        send parent, Enum.take(GenEvent.stream(pid, mode: unquote(mode)), 5)
+      child = spawn_link fn ->
+        send parent, Enum.take(GenEvent.stream(pid), 5)
       end
       wait_for_handlers(pid, 1)
 
-      # Notify the events
       for i <- 1..3 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
 
       Process.flag(:trap_exit, true)
       GenEvent.stop(pid)
-      assert_receive {:EXIT, ^stream_pid, :normal}, @receive_timeout
+      assert_receive {:EXIT, ^child, :normal}, @receive_timeout
     end
 
     test "#{mode} stream/2 with swap_handler" do
-      # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, id: make_ref(), mode: unquote(mode))
+      stream = GenEvent.stream(pid, id: make_ref())
 
       parent = self()
-      stream_pid = spawn_link fn -> send parent, Enum.take(stream, 5) end
+      child = spawn_link fn -> send parent, Enum.take(stream, 5) end
       wait_for_handlers(pid, 1)
 
-      # Notify the events
       for i <- 1..3 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
 
       [handler] = GenEvent.which_handlers(pid)
       Process.flag(:trap_exit, true)
-      GenEvent.swap_handler(pid, handler, :swap_handler, LogHandler, [])
-      assert_receive {:EXIT, ^stream_pid,
-                       {{:swapped, LogHandler, _},
+      GenEvent.swap_handler(pid, handler, :swap_handler, UnknownHandler, [])
+      assert_receive {:EXIT, ^child,
+                       {{:swapped, UnknownHandler, _},
                         {Enumerable.GenEvent.Stream, :stop, [_, _]}}}, @receive_timeout
     end
 
     test "#{mode} stream/2 with duration" do
-      # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, duration: 200, mode: unquote(mode))
+      stream = GenEvent.stream(pid, duration: 200)
 
       parent = self()
-      spawn_link fn -> send parent, {:duration, Enum.take(stream, 10)} end
+      spawn_link fn -> send parent, {:duration, Enum.take(stream, 5)} end
       wait_for_handlers(pid, 1)
 
-      # Notify the events
-      for i <- 1..5 do
-        GenEvent.sync_notify(pid, i)
+      for i <- 1..3 do
+        notify(@mode, pid, i)
       end
 
       # Wait until the handler is gone
       wait_for_handlers(pid, 0)
 
       # The stream is not complete but terminated anyway due to duration
-      assert_receive {:duration, [1, 2, 3, 4, 5]}, @receive_timeout
+      assert_receive {:duration, [1, 2, 3]}, @receive_timeout
 
       GenEvent.stop(pid)
     end
 
-    test "#{mode} stream/2 with manager killed and trap_exit" do
-      # Start a manager and subscribers
-      {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, mode: unquote(mode))
-
-      parent = self()
-      stream_pid = spawn_link fn ->
-        send parent, Enum.to_list(stream)
-      end
-      wait_for_handlers(pid, 1)
-
-      Process.flag(:trap_exit, true)
-      Process.exit(pid, :kill)
-      assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
-      assert_receive {:EXIT, ^stream_pid,
-                       {:killed, {Enumerable.GenEvent.Stream, :stop, [_,_]}}}, @receive_timeout
-    end
-
-    test "#{mode} stream/2 with manager not alive" do
-      # Start a manager and subscribers
-      stream = GenEvent.stream(:does_not_exit, mode: unquote(mode))
-
-      parent = self()
-      stream_pid = spawn_link fn ->
-        send parent, Enum.to_list(stream)
-      end
-
-      Process.flag(:trap_exit, true)
-      assert_receive {:EXIT, ^stream_pid,
-                       {:noproc, {Enumerable.GenEvent.Stream, :start, [_]}}}, @receive_timeout
-    end
-
     test "#{mode} stream/2 with manager unregistered" do
-      # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link(name: :unreg)
-      stream = GenEvent.stream(:unreg, mode: unquote(mode))
+      stream = GenEvent.stream(:unreg)
 
       parent = self()
       spawn_link fn ->
@@ -271,7 +262,7 @@ defmodule GenEvent.StreamTest do
 
       # Notify the events
       for i <- 1..3 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
 
       # Unregister the process
@@ -279,7 +270,7 @@ defmodule GenEvent.StreamTest do
 
       # Notify the remaining events
       for i <- 4..5 do
-        GenEvent.sync_notify(pid, i)
+        notify(@mode, pid, i)
       end
 
       # We should have gotten the message and all handlers were removed
@@ -288,18 +279,17 @@ defmodule GenEvent.StreamTest do
     end
 
     test "#{mode} stream/2 flushes events on abort" do
-      # Start a manager and subscribers
       {:ok, pid} = GenEvent.start_link()
 
       spawn_link fn ->
         wait_for_handlers(pid, 2)
-        GenEvent.notify(pid, 1)
-        GenEvent.notify(pid, 2)
-        GenEvent.notify(pid, 3)
+        notify(@mode, pid, 1)
+        notify(@mode, pid, 2)
+        notify(@mode, pid, 3)
       end
 
       GenEvent.add_handler(pid, SlowHandler, [])
-      stream = GenEvent.stream(pid, mode: unquote(mode))
+      stream = GenEvent.stream(pid)
 
       try do
         Enum.each stream, fn _ -> throw :done end
