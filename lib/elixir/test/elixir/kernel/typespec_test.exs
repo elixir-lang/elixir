@@ -47,6 +47,14 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "unexpected expression in typespec" do
+    assert_raise CompileError, ~r"unexpected expression in typespec: \"foobar\"", fn ->
+      test_module do
+        @type mytype :: "foobar"
+      end
+    end
+  end
+
   test "invalid function specification" do
     assert_raise CompileError, ~r"invalid function type specification: myfun = 1", fn ->
       test_module do

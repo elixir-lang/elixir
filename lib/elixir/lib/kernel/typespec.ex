@@ -998,12 +998,16 @@ defmodule Kernel.Typespec do
     typespec({:list, [], [spec]}, vars, caller)
   end
 
-  defp typespec(list, vars, caller) do
+  defp typespec(list, vars, caller) when is_list(list) do
     [h|t] = :lists.reverse(list)
     union = :lists.foldl(fn(x, acc) ->
       {:|, [], [validate_kw(x, list, caller), acc]}
     end, validate_kw(h, list, caller), t)
     typespec({:list, [], [union]}, vars, caller)
+  end
+
+  defp typespec(other, _vars, caller) do
+    compile_error(caller, "unexpected expression in typespec: #{Macro.to_string other}")
   end
 
   ## Helpers
