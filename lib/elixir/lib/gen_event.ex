@@ -610,8 +610,8 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, mon)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_stream_handler, pid}} ->
-        {hib, reply, handlers} = server_add_stream_handler(pid, handlers)
+      {_from, tag, {:add_stream_handler, pid, notify}} ->
+        {hib, reply, handlers} = server_add_stream_handler(pid, notify, handlers)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -782,11 +782,13 @@ defmodule GenEvent do
     server_add_handler(module, handler, args, handlers)
   end
 
-  defp server_add_stream_handler(pid, handlers) do
+  defp server_add_stream_handler(pid, notify, handlers) do
     ref = Process.monitor(pid)
     {:ok, state} = GenEvent.Stream.init({pid, ref})
+    # Notice the pid is set only when notifications
+    # are explicitly required.
     handler = handler(module: GenEvent.Stream, id: {GenEvent.Stream, ref},
-                      pid: pid, ref: ref, state: state)
+                      pid: if(notify, do: pid), ref: ref, state: state)
     {false, ref, [handler|handlers]}
   end
 
@@ -830,7 +832,7 @@ defmodule GenEvent do
     {handlers, streams}
   end
 
-  defp server_stream_notify(mode, event, handler(pid: pid, ref: ref)) do
+  defp server_stream_notify(mode, event, handler(state: {pid, ref})) do
     send pid, {self(), {self(), ref}, {mode_to_tag(mode), event}}
   end
 
@@ -1034,7 +1036,9 @@ defmodule GenEvent do
     report_error(handler, reason, state, last_in, name)
     if ref = handler(handler, :ref) do
       Process.demonitor(ref, [:flush])
-      send handler(handler, :pid), {:gen_event_EXIT, handler(handler, :id), reason}
+    end
+    if pid = handler(handler, :pid) do
+      send pid, {:gen_event_EXIT, handler(handler, :id), reason}
     end
   end
 

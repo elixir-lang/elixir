@@ -85,7 +85,7 @@ defimpl Enumerable, for: GenEvent.Stream do
       try do
         pid = whereis(manager)
         ref = Process.monitor(pid)
-        {:ok, msg_ref} = :gen.call(pid, self(), {:add_stream_handler, self()}, :infinity)
+        {:ok, msg_ref} = :gen.call(pid, self(), {:add_stream_handler, self(), true}, :infinity)
         {pid, msg_ref, ref}
       catch
         :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
@@ -113,9 +113,9 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp next(%{timeout: timeout} = stream, {pid, ref, mon_ref, _timer} = acc) do
     receive do
-      # The handler was removed. Stop iteration, resolve the event later.
-      # We need to demonitor now, otherwise it appears with
-      # higher priority in the shutdown process.
+      # The handler was removed. Stop iteration, resolve the
+      # event later. We need to demonitor now, otherwise DOWN
+      # appears with higher priority in the shutdown process.
       {:gen_event_EXIT, {GenEvent.Stream, ^ref}, _reason} = event ->
         Process.demonitor(mon_ref, [:flush])
         send(self(), event)
