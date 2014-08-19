@@ -1,5 +1,4 @@
 -module(tokenizer_test).
--include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 tokenize(String) ->
