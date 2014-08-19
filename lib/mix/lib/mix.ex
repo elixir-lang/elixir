@@ -133,6 +133,10 @@ defmodule Mix do
   that prints hello, then fetches dependencies specific to the
   current environment and compiles it.
 
+  Arguments given to the alias will be appended to the arguments
+  of the last task in the list, if the last task is a function
+  they will be given as a list of strings to the function.
+
   Finally, aliases can also be use to augment existing tasks.
   Let's suppose you want to augment `mix clean` to clean another
   directory Mix does not know about:
