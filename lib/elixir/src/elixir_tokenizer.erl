@@ -467,6 +467,10 @@ tokenize([H|_] = String, Line, Scope, Tokens) when ?is_downcase(H); H == $_ ->
 
 tokenize([T|Rest], Line, Scope, Tokens) when ?is_horizontal_space(T) ->
   handle_space_sensitive_tokens(strip_horizontal_space(Rest), Line, Scope, Tokens);
+tokenize([T|Rest] = Original, Line, _Scope, Tokens) when ?is_invalid_space(T) ->
+  Message = io_lib:format("invalid space character U+~.16B before: ", [T]),
+  {error, {Line, lists:flatten(Message), until_eol(Rest)}, Original, Tokens};
+
 tokenize(T, Line, _Scope, Tokens) ->
   {error, {Line, "invalid token: ", until_eol(T)}, T, Tokens}.
 
