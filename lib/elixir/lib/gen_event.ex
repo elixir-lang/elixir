@@ -292,18 +292,15 @@ defmodule GenEvent do
 
   ## Options
 
-    * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds.
-
-    * `:duration` (Enumerable) - only consume events during the X milliseconds
-      from the streaming start.
+    * `:timeout` - raises if no event arrives in X milliseconds
+      (defaults to `:infinity`)
 
   """
   @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
   def stream(manager, options \\ []) do
     %GenEvent.Stream{
       manager: manager,
-      timeout: Keyword.get(options, :timeout, :infinity),
-      duration: Keyword.get(options, :duration, :infinity)}
+      timeout: Keyword.get(options, :timeout, :infinity)}
   end
 
   @doc """

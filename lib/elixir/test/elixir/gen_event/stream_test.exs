@@ -169,26 +169,26 @@ defmodule GenEvent.StreamTest do
 
     test "#{mode} stream/2 with parallel use (and first finishing first)" do
       {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, duration: 200)
+      stream = GenEvent.stream(pid)
 
       parent = self()
-      spawn_link fn -> send parent, {:take, Enum.take(stream, 3)} end
+      spawn_link fn -> send parent, {:take3, Enum.take(stream, 3)} end
       wait_for_handlers(pid, 1)
-      spawn_link fn -> send parent, {:to_list, Enum.to_list(stream)} end
+      spawn_link fn -> send parent, {:take5, Enum.take(stream, 5)} end
       wait_for_handlers(pid, 2)
 
       # Notify the events for both handlers
       for i <- 1..3 do
         notify(@mode, pid, i)
       end
-      assert_receive {:take, [1, 2, 3]}, @receive_timeout
+      assert_receive {:take3, [1, 2, 3]}, @receive_timeout
 
       # Notify the events for to_list stream handler
       for i <- 4..5 do
         notify(@mode, pid, i)
       end
 
-      assert_receive {:to_list, [1, 2, 3, 4, 5]}, @receive_timeout
+      assert_receive {:take5, [1, 2, 3, 4, 5]}, @receive_timeout
     end
 
     test "#{mode} stream/2 with manager stop" do
@@ -227,27 +227,6 @@ defmodule GenEvent.StreamTest do
       assert_receive {:EXIT, ^child,
                        {{:swapped, UnknownHandler, _},
                         {Enumerable.GenEvent.Stream, :stop, [_, _]}}}, @receive_timeout
-    end
-
-    test "#{mode} stream/2 with duration" do
-      {:ok, pid} = GenEvent.start_link()
-      stream = GenEvent.stream(pid, duration: 200)
-
-      parent = self()
-      spawn_link fn -> send parent, {:duration, Enum.take(stream, 5)} end
-      wait_for_handlers(pid, 1)
-
-      for i <- 1..3 do
-        notify(@mode, pid, i)
-      end
-
-      # Wait until the handler is gone
-      wait_for_handlers(pid, 0)
-
-      # The stream is not complete but terminated anyway due to duration
-      assert_receive {:duration, [1, 2, 3]}, @receive_timeout
-
-      GenEvent.stop(pid)
     end
 
     test "#{mode} stream/2 with manager unregistered" do

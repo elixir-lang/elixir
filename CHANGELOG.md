@@ -21,7 +21,7 @@
 
 * Backwards incompatible changes
   * [GenEvent] `GenEvent.cancel_stream/1` no longer is
-  * [GenEvent] The `:mode` option is deprecated and no longer supported in `GenEvent.stream/2` (the mode is now a property of the sender)
+  * [GenEvent] The `:mode` and `:duration` options are deprecated and no longer supported in `GenEvent.stream/2` (the mode is now a property of the sender)
   * [GenEvent] The `:linked` option is deprecated and no longer supported in `GenEvent.add_handler/4` (check monitored handlers instead)
 
 ## v0.15.1 (2014-08-10)
