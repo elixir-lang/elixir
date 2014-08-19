@@ -8,12 +8,6 @@ defprotocol Collectable do
       iex> Enum.into([a: 1, b: 2], %{})
       %{a: 1, b: 2}
 
-  If a collection implements both `Enumerable` and `Collectable`, both
-  operations can be combined with `Enum.traverse/2`:
-
-      iex> Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v * 2} end)
-      %{a: 2, b: 4}
-
   ## Why Collectable?
 
   The `Enumerable` protocol is useful to take values out of a collection.
@@ -32,10 +26,6 @@ defprotocol Collectable do
   `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
   `Enumerable` is about taking values out, `Collectable.into/1` is about
   collecting those values into a structure.
-
-  `empty/1` receives a collectable and returns an empty version of the
-  same collectable. By combining the enumerable functionality with `into/1`
-  and `empty/1`, one can, for example, implement a traversal mechanism.
   """
 
   @type command :: {:cont, term} | :done | :halt
