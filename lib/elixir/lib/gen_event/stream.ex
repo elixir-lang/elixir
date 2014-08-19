@@ -7,15 +7,13 @@ defmodule GenEvent.Stream do
 
     * `:manager`  - the manager reference given to `GenEvent.stream/2`
     * `:timeout`  - the timeout in between events, defaults to `:infinity`
-    * `:duration` - the duration of the subscription, defaults to `:infinity`
 
   """
-  defstruct manager: nil, timeout: :infinity, duration: :infinity
+  defstruct manager: nil, timeout: :infinity
 
   @type t :: %__MODULE__{
                manager: GenEvent.manager,
-               timeout: timeout,
-               duration: timeout}
+               timeout: timeout}
 
   @doc false
   def init({_pid, _ref} = state) do
@@ -80,7 +78,7 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  defp start(%{manager: manager, duration: duration} = stream) do
+  defp start(%{manager: manager} = stream) do
     {pid, ref, mon_ref} =
       try do
         pid = whereis(manager)
@@ -91,12 +89,7 @@ defimpl Enumerable, for: GenEvent.Stream do
         :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
       end
 
-    timer = cond do
-      duration == :infinity -> nil
-      is_integer(duration)  -> :erlang.send_after(duration, self(), {ref, :timedout})
-    end
-
-    {pid, ref, mon_ref, timer}
+    {pid, ref, mon_ref}
   end
 
   defp whereis(pid) when is_pid(pid), do: pid
@@ -111,7 +104,7 @@ defimpl Enumerable, for: GenEvent.Stream do
     end
   end
 
-  defp next(%{timeout: timeout} = stream, {pid, ref, mon_ref, _timer} = acc) do
+  defp next(%{timeout: timeout} = stream, {pid, ref, mon_ref} = acc) do
     receive do
       # The handler was removed. Stop iteration, resolve the
       # event later. We need to demonitor now, otherwise DOWN
@@ -125,10 +118,6 @@ defimpl Enumerable, for: GenEvent.Stream do
       {:DOWN, ^mon_ref, _, _, _} = event ->
         send(self(), event)
         {:halt, {:removed, acc}}
-
-      # Duration timeout.
-      {^ref, :timedout} ->
-        {:halt, acc}
 
       # Got an async event.
       {_from, {^pid, ^ref}, {:notify, event}} ->
@@ -149,9 +138,7 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   # If we reach this branch, we know the handler was already
   # removed, so we don't trigger a request for doing so.
-  defp stop(stream, {:removed, {pid, ref, mon_ref, timer} = acc}) do
-    remove_timer(timer)
-
+  defp stop(stream, {:removed, {pid, ref, mon_ref} = acc}) do
     case wait_for_handler_removal(pid, ref, mon_ref) do
       :ok ->
         flush_events(ref)
@@ -162,20 +149,9 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   # If we reach this branch, the handler was not removed yet,
   # so we trigger a request for doing so.
-  defp stop(stream, {pid, ref, _, _} = acc) do
+  defp stop(stream, {pid, ref, _} = acc) do
     spawn(fn -> GenEvent.remove_handler(pid, {GenEvent.Stream, ref}, :shutdown) end)
     stop(stream, {:removed, acc})
-  end
-
-  defp remove_timer(nil), do: :ok
-  defp remove_timer(ref) do
-    unless :erlang.cancel_timer(ref) do
-      receive do
-        {^ref, :timedout} -> :ok
-      after
-        0 -> :ok
-      end
-    end
   end
 
   defp wait_for_handler_removal(pid, ref, mon_ref) do
