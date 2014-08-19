@@ -83,7 +83,7 @@ defimpl Enumerable, for: GenEvent.Stream do
       try do
         pid = whereis(manager)
         ref = Process.monitor(pid)
-        {:ok, msg_ref} = :gen.call(pid, self(), {:add_stream_handler, self(), true}, :infinity)
+        {:ok, msg_ref} = :gen.call(pid, self(), {:add_process_handler, self(), true}, :infinity)
         {pid, msg_ref, ref}
       catch
         :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
