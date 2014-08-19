@@ -607,8 +607,8 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, mon)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_stream_handler, pid, notify}} ->
-        {hib, reply, handlers} = server_add_stream_handler(pid, notify, handlers)
+      {_from, tag, {:add_process_handler, pid, notify}} ->
+        {hib, reply, handlers} = server_add_process_handler(pid, notify, handlers)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -779,7 +779,7 @@ defmodule GenEvent do
     server_add_handler(module, handler, args, handlers)
   end
 
-  defp server_add_stream_handler(pid, notify, handlers) do
+  defp server_add_process_handler(pid, notify, handlers) do
     ref = Process.monitor(pid)
     {:ok, state} = GenEvent.Stream.init({pid, ref})
     # Notice the pid is set only when notifications
@@ -810,26 +810,26 @@ defmodule GenEvent do
   end
 
   defp server_event(mode, event, handlers, name) do
-    {handlers, streams} = server_split_stream_handlers(mode, event, handlers, [], [])
+    {handlers, streams} = server_split_process_handlers(mode, event, handlers, [], [])
     {hib, handlers} = server_notify(event, :handle_event, handlers, name, handlers, [], false)
-    {hib, server_collect_streams(mode, event, streams, handlers, name)}
+    {hib, server_collect_process_handlers(mode, event, streams, handlers, name)}
   end
 
-  defp server_split_stream_handlers(mode, event, [handler|t], handlers, streams) do
+  defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
     case handler(handler, :id) do
       {GenEvent.Stream, _ref} ->
-        server_stream_notify(mode, event, handler)
-        server_split_stream_handlers(mode, event, t, handlers, [handler|streams])
+        server_process_notify(mode, event, handler)
+        server_split_process_handlers(mode, event, t, handlers, [handler|streams])
       _ ->
-        server_split_stream_handlers(mode, event, t, [handler|handlers], streams)
+        server_split_process_handlers(mode, event, t, [handler|handlers], streams)
     end
   end
 
-  defp server_split_stream_handlers(_mode, _event, [], handlers, streams) do
+  defp server_split_process_handlers(_mode, _event, [], handlers, streams) do
     {handlers, streams}
   end
 
-  defp server_stream_notify(mode, event, handler(state: {pid, ref})) do
+  defp server_process_notify(mode, event, handler(state: {pid, ref})) do
     send pid, {self(), {self(), ref}, {mode_to_tag(mode), event}}
   end
 
@@ -876,26 +876,26 @@ defmodule GenEvent do
     end
   end
 
-  defp server_collect_streams(:async, event, [handler|t], handlers, name) do
-    server_collect_streams(:async, event, t, [handler|handlers], name)
+  defp server_collect_process_handlers(:async, event, [handler|t], handlers, name) do
+    server_collect_process_handlers(:async, event, t, [handler|handlers], name)
   end
 
-  defp server_collect_streams(mode, event, [handler|t], handlers, name) when mode in [:sync, :ack] do
+  defp server_collect_process_handlers(mode, event, [handler|t], handlers, name) when mode in [:sync, :ack] do
     handler(ref: ref) = handler
 
     receive do
       {^ref, :ok} ->
-        server_collect_streams(:sync, event, t, [handler|handlers], name)
+        server_collect_process_handlers(:sync, event, t, [handler|handlers], name)
       {^ref, :done} ->
         do_terminate(handler, :remove_handler, event, name, :normal)
-        server_collect_streams(:sync, event, t, handlers, name)
+        server_collect_process_handlers(:sync, event, t, handlers, name)
       {:DOWN, ^ref, _, _, reason} ->
         do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
-        server_collect_streams(:sync, event, t, handlers, name)
+        server_collect_process_handlers(:sync, event, t, handlers, name)
     end
   end
 
-  defp server_collect_streams(_mode, _event, [], handlers, _name) do
+  defp server_collect_process_handlers(_mode, _event, [], handlers, _name) do
     handlers
   end
 
