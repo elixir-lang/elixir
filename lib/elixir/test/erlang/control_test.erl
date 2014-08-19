@@ -1,5 +1,4 @@
 -module(control_test).
--include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->

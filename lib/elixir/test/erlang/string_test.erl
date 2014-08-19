@@ -1,5 +1,5 @@
 -module(string_test).
--include("elixir.hrl").
+-include("../../src/elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->

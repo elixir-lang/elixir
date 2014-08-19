@@ -1,6 +1,5 @@
 -module(atom_test).
 -export([kv/1]).
--include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
