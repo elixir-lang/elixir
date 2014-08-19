@@ -311,6 +311,12 @@ defmodule IEx.Introspection do
     Enum.map(specs, &{tag, &1})
   end
 
+  defp print_type({:opaque, type}) do
+    {:::, _, [ast, _]} = Kernel.Typespec.type_to_ast(type)
+    IO.puts IEx.color(:eval_info, "@opaque #{Macro.to_string(ast)}")
+    true
+  end
+
   defp print_type({kind, type}) do
     ast = Kernel.Typespec.type_to_ast(type)
     IO.puts IEx.color(:eval_info, "@#{kind} #{Macro.to_string(ast)}")
