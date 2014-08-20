@@ -226,7 +226,8 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception ArgumentError but got UndefinedFunctionError (undefined function: Not.Defined.function/3)" = error.message
+      "Expected exception ArgumentError but got UndefinedFunctionError " <>
+      "(undefined function: Not.Defined.function/3 (module Not.Defined is not available))" = error.message
   end
 
   test "assert raise with erlang error" do
