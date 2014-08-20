@@ -55,6 +55,18 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptConsolidated do
+    def project do
+      [ app: :escripttestconsolidated,
+        version: "0.0.1",
+        escript: [
+          main_module: Escripttest,
+          path: Path.join("ebin", "escripttestconsolidated"),
+        ],
+        deps: [{:depproto, path: fixture_path("dep_with_protocol")}] ]
+    end
+  end
+
   test "generate escript" do
     Mix.Project.push Escript
 
@@ -114,5 +126,18 @@ defmodule Mix.Tasks.EscriptTest do
     end
   after
     purge [Ok.Mixfile]
+  end
+
+  test "generate escript with consolidated protocols" do
+    Mix.Project.push EscriptConsolidated
+
+    in_fixture "escripttest_protocols", fn ->
+      Mix.Tasks.Escript.Build.run []
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestconsolidated with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["ebin/escripttestconsolidated", "Enumerable"]) == {"true\n", 0}
+      assert System.cmd("escript", ["ebin/escripttestconsolidated", "DepProto"]) == {"true\n", 0}
+    end
+  after
+    purge [DepProto.Mixfile]
   end
 end
