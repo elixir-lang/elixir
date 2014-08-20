@@ -10,7 +10,7 @@ Use the issues tracker for:
 * [bug reports](#bugs-reports)
 * [submitting pull requests](#pull-requests)
 
-Please **do not** use the issues tracker for personal support requests nor feature requests. Support requests should be send to:
+Please **do not** use the issue tracker for personal support requests nor feature requests. Support requests should be send to:
 
 * [the elixir-talk mailing list](http://groups.google.com/group/elixir-lang-talk)
 * [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir)
@@ -18,7 +18,7 @@ Please **do not** use the issues tracker for personal support requests nor featu
 
 Feature requests can be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core).
 
-We do our best to keep the issues tracker tidy and organized, making it useful
+We do our best to keep the issue tracker tidy and organized, making it useful
 for everyone. For example, we classify open issues per application and perceived
 difficulty of the issue, making it easier for developers to
 [contribute to Elixir](#contributing).
