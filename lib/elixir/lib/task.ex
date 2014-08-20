@@ -120,6 +120,30 @@ defmodule Task do
   end
 
   @doc """
+  Starts a task.
+
+  This is only used when the task is used for side-effects
+  (i.e. no interest in its return result) and it should not
+  be linked to the current process.
+  """
+  @spec start(fun) :: {:ok, pid}
+  def start(fun) do
+    start(:erlang, :apply, [fun, []])
+  end
+
+  @doc """
+  Starts a task.
+
+  This is only used when the task is used for side-effects
+  (i.e. no interest in its return result) and it should not
+  be linked to the current process.
+  """
+  @spec start(module, atom, [term]) :: {:ok, pid}
+  def start(mod, fun, args) do
+    Task.Supervised.start(get_info(self), {mod, fun, args})
+  end
+
+  @doc """
   Starts a task that can be awaited on.
 
   This function spawns a process that is linked to and monitored

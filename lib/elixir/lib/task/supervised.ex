@@ -1,6 +1,10 @@
 defmodule Task.Supervised do
   @moduledoc false
 
+  def start(info, fun) do
+    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [info, fun])}
+  end
+
   def start_link(info, fun) do
     {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
