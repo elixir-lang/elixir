@@ -150,7 +150,7 @@ defimpl Enumerable, for: GenEvent.Stream do
   # If we reach this branch, the handler was not removed yet,
   # so we trigger a request for doing so.
   defp stop(stream, {pid, ref, _} = acc) do
-    spawn(fn -> GenEvent.remove_handler(pid, {GenEvent.Stream, ref}, :shutdown) end)
+    Task.start(fn -> GenEvent.remove_handler(pid, {GenEvent.Stream, ref}, :shutdown) end)
     stop(stream, {:removed, acc})
   end
 
