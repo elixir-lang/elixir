@@ -345,8 +345,8 @@ defmodule Stream do
 
   ## Examples
 
-    iex> Stream.interval(10) |> Enum.take(10)
-    [0,1,2,3,4,5,6,7,8,9]
+      iex> Stream.interval(10) |> Enum.take(10)
+      [0,1,2,3,4,5,6,7,8,9]
 
   """
   @spec interval(non_neg_integer) :: Enumerable.t
@@ -589,8 +589,8 @@ defmodule Stream do
 
   ## Examples
 
-    iex> Stream.timer(10) |> Enum.to_list
-    [0]
+      iex> Stream.timer(10) |> Enum.to_list
+      [0]
 
   """
   @spec timer(non_neg_integer) :: Enumerable.t
