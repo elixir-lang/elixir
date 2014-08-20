@@ -613,12 +613,12 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [module: nil, function: nil, arity: nil]
+  defexception [module: nil, function: nil, arity: nil, self: false]
 
-  def message(%{function: function, module: module, arity: arity}) do
+  def message(%{function: function, module: module, arity: arity, self: self}) do
     if function do
       formatted = Exception.format_mfa module, function, arity
-      suffix = if nil?(module) || :code.is_loaded(module) do
+      suffix = if self or nil?(module) or :code.is_loaded(module) do
         ""
       else
         " (module #{inspect module} is not available)"
@@ -777,8 +777,9 @@ defmodule ErlangError do
   end
 
   def normalize(:undef, stacktrace) do
-    {mod, fun, arity} = from_stacktrace(stacktrace || :erlang.get_stacktrace)
-    %UndefinedFunctionError{module: mod, function: fun, arity: arity}
+    stacktrace = stacktrace || :erlang.get_stacktrace
+    {mod, fun, arity} = from_stacktrace(stacktrace)
+    %UndefinedFunctionError{module: mod, function: fun, arity: arity, self: from_self(stacktrace)}
   end
 
   def normalize(:function_clause, stacktrace) do
@@ -805,4 +806,7 @@ defmodule ErlangError do
   defp from_stacktrace(_) do
     {nil, nil, nil}
   end
+
+  defp from_self([{module, _, _, _}, {module, _, _, _}|_]), do: true
+  defp from_self(_), do: false
 end

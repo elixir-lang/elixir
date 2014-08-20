@@ -226,7 +226,7 @@ defmodule Kernel.RaiseTest do
       x in [UndefinedFunctionError] -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   test :function_clause_error do
@@ -352,7 +352,7 @@ defmodule Kernel.RaiseTest do
       x in [ErlangError] -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   defmacrop exceptions do
@@ -366,7 +366,7 @@ defmodule Kernel.RaiseTest do
       x in exceptions -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0"
+    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   defp zero(0), do: 0
