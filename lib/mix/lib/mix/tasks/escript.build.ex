@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Escript.Build do
     * `:embed_elixir` - if `true` embed elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application` function in `mix.exs`.
-      Defaults to `true`.
+      Defaults to `true` for Elixir projects.
 
     * `:shebang` - shebang interpreter directive used to execute the escript.
       Defaults to `"#! /usr/bin/env escript\n"`.
@@ -55,6 +55,13 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:emu_args` - emulator arguments to embed in the escript file.
       Defaults to `""`.
+
+  There is one project-level option that affects how the escript is generated:
+
+    * `language: :elixir | :erlang` - set it to `:erlang` for Erlang projects
+      managed by mix. Doing so will ensure Elixir is not embedded by default.
+      Your app will still be started as part of escript loading, with the
+      config used during build.
 
   ## Example
 
@@ -90,6 +97,7 @@ defmodule Mix.Tasks.Escript.Build do
     main         = escript_opts[:main_module]
     app          = Keyword.get(escript_opts, :app, project[:app])
     files        = project_files()
+    language     = Keyword.get(project, :language, :elixir)
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
@@ -103,8 +111,9 @@ defmodule Mix.Tasks.Escript.Build do
           "in your project configuration (under `:escript` option) to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
-        tuples = gen_main(escript_mod, main, app) ++
-                 to_tuples(files) ++ deps_tuples() ++ embed_tuples(escript_opts)
+        tuples = gen_main(escript_mod, main, app, language) ++
+                 to_tuples(files) ++ deps_tuples() ++
+                 embed_tuples(escript_opts, language)
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
@@ -156,8 +165,8 @@ defmodule Mix.Tasks.Escript.Build do
     Enum.flat_map(deps, fn dep -> get_tuples(dep.opts[:build]) end)
   end
 
-  defp embed_tuples(escript_opts) do
-    if Keyword.get(escript_opts, :embed_elixir, true) do
+  defp embed_tuples(escript_opts, language) do
+    if Keyword.get(escript_opts, :embed_elixir, language == :elixir) do
       Enum.flat_map [:elixir|extra_apps()], &app_tuples(&1)
     else
       []
@@ -190,7 +199,7 @@ defmodule Mix.Tasks.Escript.Build do
     "%%! -escript main #{escript_mod} #{user_args}\n"
   end
 
-  defp gen_main(name, module, app) do
+  defp gen_main(name, module, app, language) do
     config =
       if File.regular?("config/config.exs") do
         Mix.Config.read!("config/config.exs")
@@ -198,53 +207,72 @@ defmodule Mix.Tasks.Escript.Build do
         []
       end
 
-    {:module, ^name, binary, _} =
-      defmodule name do
-        @module module
-        @config config
-        @app app
+    module_body = quote do
+      @module unquote(module)
+      @config unquote(config)
+      @app unquote(app)
 
-        # We need to use Erlang modules at this point
-        # because we are not sure Elixir is available.
-        def main(args) do
-          case :application.ensure_all_started(:elixir) do
-            {:ok, _} ->
-              load_config(@config)
-              start_app(@app)
-              args = Enum.map(args, &List.to_string(&1))
-              Kernel.CLI.run fn _ -> @module.main(args) end, true
-            _ ->
-              :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
-              :erlang.halt(1)
-          end
-        end
+      def main(args) do
+        unquote(main_body_for(language))
+      end
 
-        defp load_config(config) do
-          for {app, kw} <- config, {k, v} <- kw do
+      defp load_config(config) do
+        :lists.foreach(fn {app, kw} ->
+          :lists.foreach(fn {k, v} ->
             :application.set_env(app, k, v, persistent: true)
-          end
-          :ok
-        end
+          end, kw)
+        end, config)
+        :ok
+      end
 
-        defp start_app(nil) do
-          :ok
-        end
+      defp start_app(nil) do
+        :ok
+      end
 
-        defp start_app(app) do
-          case :application.ensure_all_started(app) do
-            {:ok, _} -> :ok
-            {:error, {app, reason}} ->
-              io_error "Could not start application #{app}: " <>
-                Application.format_error(reason)
-              System.halt(1)
-          end
-        end
-
-        defp io_error(message) do
-          IO.puts :stderr, IO.ANSI.format([:red, :bright, message])
+      defp start_app(app) do
+        case :application.ensure_all_started(app) do
+          {:ok, _} -> :ok
+          {:error, {app, reason}} ->
+            formatted_error = case :code.ensure_loaded(Application) do
+              {:module, Application} -> Application.format_error(reason)
+              {:error, _} -> :io_lib.format('~p', [reason])
+            end
+            io_error ["Could not start application ",
+                      :erlang.atom_to_binary(app, :utf8),
+                      ": ", formatted_error, ?\n]
+            :erlang.halt(1)
         end
       end
 
+      defp io_error(message) do
+        :io.put_chars(:standard_error, message)
+      end
+    end
+
+    {:module, ^name, binary, _} = Module.create(name, module_body, Macro.Env.location(__ENV__))
     [{'#{name}.beam', binary}]
+  end
+
+  defp main_body_for(:elixir) do
+    quote do
+      case :application.ensure_all_started(:elixir) do
+        {:ok, _} ->
+          load_config(@config)
+          start_app(@app)
+          args = Enum.map(args, &List.to_string(&1))
+          Kernel.CLI.run fn _ -> @module.main(args) end, true
+        _ ->
+          :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
+          :erlang.halt(1)
+      end
+    end
+  end
+
+  defp main_body_for(:erlang) do
+    quote do
+      load_config(@config)
+      start_app(@app)
+      @module.main(args)
+    end
   end
 end

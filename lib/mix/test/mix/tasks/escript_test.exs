@@ -42,6 +42,19 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptErlangWithDeps do
+    def project do
+      [ app: :escripttesterlangwithdeps,
+        version: "0.0.1",
+        language: :erlang,
+        escript: [
+          main_module: :escripttest,
+          path: Path.join("ebin", "escripttesterlangwithdeps"),
+        ],
+        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
+    end
+  end
+
   test "generate escript" do
     Mix.Project.push Escript
 
@@ -86,6 +99,18 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps with MIX_ENV=dev"]}
       assert System.cmd("escript", ["ebin/escripttestwithdeps"]) == {"TEST\n", 0}
+    end
+  after
+    purge [Ok.Mixfile]
+  end
+
+  test "generate Erlang escript with config and deps" do
+    Mix.Project.push EscriptErlangWithDeps
+
+    in_fixture "escripttest", fn ->
+      Mix.Tasks.Escript.Build.run []
+      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttesterlangwithdeps with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["ebin/escripttesterlangwithdeps"]) == {"Erlang value", 0}
     end
   after
     purge [Ok.Mixfile]
