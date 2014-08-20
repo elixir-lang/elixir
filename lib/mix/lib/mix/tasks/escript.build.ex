@@ -212,63 +212,8 @@ defmodule Mix.Tasks.Escript.Build do
       @config unquote(config)
       @app unquote(app)
 
-      # We need to use Erlang modules at this point
-      # because we are not sure Elixir is available.
-      unquote(module_body_for(language))
-    end
-
-    {:module, ^name, binary, _} = Module.create(name, module_body, Macro.Env.location(__ENV__))
-    [{'#{name}.beam', binary}]
-  end
-
-  defp module_body_for(:elixir) do
-    quote do
       def main(args) do
-        case :application.ensure_all_started(:elixir) do
-          {:ok, _} ->
-            load_config(@config)
-            start_app(@app)
-            args = Enum.map(args, &List.to_string(&1))
-            Kernel.CLI.run fn _ -> @module.main(args) end, true
-          _ ->
-            :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
-            :erlang.halt(1)
-        end
-      end
-
-      defp load_config(config) do
-        for {app, kw} <- config, {k, v} <- kw do
-          :application.set_env(app, k, v, persistent: true)
-        end
-        :ok
-      end
-
-      defp start_app(nil) do
-        :ok
-      end
-
-      defp start_app(app) do
-        case :application.ensure_all_started(app) do
-          {:ok, _} -> :ok
-          {:error, {app, reason}} ->
-            io_error "Could not start application #{app}: " <>
-              Application.format_error(reason)
-            System.halt(1)
-        end
-      end
-
-      defp io_error(message) do
-        IO.puts :stderr, IO.ANSI.format([:red, :bright, message])
-      end
-    end
-  end
-
-  defp module_body_for(:erlang) do
-    quote do
-      def main(args) do
-        load_config(@config)
-        start_app(@app)
-        @module.main(args)
+        unquote(main_body_for(language))
       end
 
       defp load_config(config) do
@@ -288,8 +233,13 @@ defmodule Mix.Tasks.Escript.Build do
         case :application.ensure_all_started(app) do
           {:ok, _} -> :ok
           {:error, {app, reason}} ->
-            io_error ["Could not start application #{app}: ",
-                                              :io_lib.format('~p~n', [reason])]
+            formatted_error = case :code.ensure_loaded(Application) do
+              {:module, Application} -> Application.format_error(reason)
+              {:error, _} -> :io_lib.format('~p', [reason])
+            end
+            io_error ["Could not start application ",
+                      :erlang.atom_to_binary(app, :utf8),
+                      ": ", formatted_error, ?\n]
             :erlang.halt(1)
         end
       end
@@ -297,6 +247,32 @@ defmodule Mix.Tasks.Escript.Build do
       defp io_error(message) do
         :io.put_chars(:standard_error, message)
       end
+    end
+
+    {:module, ^name, binary, _} = Module.create(name, module_body, Macro.Env.location(__ENV__))
+    [{'#{name}.beam', binary}]
+  end
+
+  defp main_body_for(:elixir) do
+    quote do
+      case :application.ensure_all_started(:elixir) do
+        {:ok, _} ->
+          load_config(@config)
+          start_app(@app)
+          args = Enum.map(args, &List.to_string(&1))
+          Kernel.CLI.run fn _ -> @module.main(args) end, true
+        _ ->
+          :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
+          :erlang.halt(1)
+      end
+    end
+  end
+
+  defp main_body_for(:erlang) do
+    quote do
+      load_config(@config)
+      start_app(@app)
+      @module.main(args)
     end
   end
 end
