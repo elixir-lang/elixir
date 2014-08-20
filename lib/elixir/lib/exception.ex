@@ -615,10 +615,15 @@ end
 defmodule UndefinedFunctionError do
   defexception [module: nil, function: nil, arity: nil]
 
-  def message(exception) do
-    if exception.function do
-      formatted = Exception.format_mfa exception.module, exception.function, exception.arity
-      "undefined function: #{formatted}"
+  def message(%{function: function, module: module, arity: arity}) do
+    if function do
+      formatted = Exception.format_mfa module, function, arity
+      suffix = if nil?(module) || :code.is_loaded(module) do
+        ""
+      else
+        " (module #{inspect module} is not available)"
+      end
+      "undefined function: #{formatted}" <> suffix
     else
       "undefined function"
     end
