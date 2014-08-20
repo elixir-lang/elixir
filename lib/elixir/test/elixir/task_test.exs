@@ -61,6 +61,37 @@ defmodule TaskTest do
     assert_receive :done
   end
 
+  test "start/1" do
+    parent = self()
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.start(fun)
+
+    {:links, links} = Process.info(self, :links)
+    refute pid in links
+
+    receive do: (:ready -> :ok)
+
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
+
+    send pid, true
+    assert_receive :done
+  end
+
+  test "start/3" do
+    {:ok, pid} = Task.start(__MODULE__, :wait_and_send, [self(), :done])
+
+    {:links, links} = Process.info(self, :links)
+    refute pid in links
+
+    receive do: (:ready -> :ok)
+
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(pid)
+
+    send pid, true
+    assert_receive :done
+  end
+
   test "start_link/1" do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
