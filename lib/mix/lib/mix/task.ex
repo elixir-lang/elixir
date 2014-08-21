@@ -244,7 +244,13 @@ defmodule Mix.Task do
   end
 
   defp run_task(proj, task, args) do
-    module = get!(task)
+    module = get(task)
+
+    # If the task is not available, let's try to compile the project
+    unless module do
+      if proj, do: Mix.Task.run("compile")
+      module = get!(task)
+    end
 
     if recursive(module) and Mix.Project.umbrella? and Mix.ProjectStack.enable_recursion do
       res = recur(fn _ -> run(task, args) end)

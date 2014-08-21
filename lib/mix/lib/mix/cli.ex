@@ -52,19 +52,7 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       Mix.Task.run "loadconfig"
-
-      # If the task is not available, let's try to
-      # compile the repository and then run it again.
-      cond do
-        Mix.Task.get(name) || Mix.Task.alias?(name) ->
-          Mix.Task.run(name, args)
-        Mix.Project.get ->
-          Mix.Task.run("compile")
-          Mix.Task.run(name, args)
-        true ->
-          # Raise no task error
-          Mix.Task.get!(name)
-      end
+      Mix.Task.run name, args
     rescue
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face
