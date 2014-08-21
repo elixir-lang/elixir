@@ -3,6 +3,12 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.TaskTest do
   use MixTest.Case
 
+  defmodule SampleProject do
+    def project do
+      [app: :sample, version: "0.0.1"]
+    end
+  end
+
   test "run/1" do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
@@ -14,6 +20,17 @@ defmodule Mix.TaskTest do
     assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
       Mix.Task.run("invalid")
     end
+  end
+
+  test "try to compile if task is missing" do
+    Mix.Project.push(SampleProject, "sample")
+
+    assert_raise Mix.NoTaskError, fn ->
+      Mix.Task.run("unknown")
+    end
+
+    # Check if compile task have run
+    refute Mix.TasksServer.run({:task, "compile", Mix.Project.get})
   end
 
   test "clear/0" do

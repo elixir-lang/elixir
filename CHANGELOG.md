@@ -14,6 +14,7 @@
   * [GenServer] Do not deliver out of order messages on `GenServer.cast/2` on distributed mode
   * [Mix] Do not pre-compile a Mix project if an alias was found
   * [Mix] Properly handle compilation errors in the Erlang compiler
+  * [Mix] Always try to compile project if task cannot be found
 
 * Deprecations
   * [Collectable] Deprecate `Collectable.empty/1` and `Enum.traverse/2`
