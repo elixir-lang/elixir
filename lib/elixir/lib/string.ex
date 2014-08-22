@@ -1329,6 +1329,22 @@ defmodule String do
   end
 
   @doc """
+  Check if `string` is empty.
+
+  ## Examples
+
+    iex> String.empty? ""
+    true
+    iex> String.empty? "elixir"
+    false
+
+  """
+  @spec empty?(t) :: boolean
+
+  def empty?(""), do: true
+  def empty?(_), do: false
+
+  @doc """
   Converts a string into a char list.
 
   ## Examples

@@ -466,6 +466,17 @@ defmodule StringTest do
     assert String.contains? "abc", ["", ""]
   end
 
+  test :empty? do
+    ## Normal cases ##
+    assert String.empty? ""
+    refute String.empty? "testing"
+    refute String.empty? "エリクシア"
+    refute String.empty? " "
+    ## Edge cases ##
+    refute String.empty? "\t"
+    refute String.empty? "\n"
+  end
+
   test :to_char_list do
     assert String.to_char_list("æß")  == [?æ, ?ß]
     assert String.to_char_list("abc") == [?a, ?b, ?c]
