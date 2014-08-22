@@ -23,14 +23,16 @@ defmodule Mix.TaskTest do
   end
 
   test "try to compile if task is missing" do
-    Mix.Project.push(SampleProject, "sample")
+    in_fixture "no_mixfile", fn ->
+      Mix.Project.push(SampleProject, "sample")
 
-    assert_raise Mix.NoTaskError, fn ->
-      Mix.Task.run("unknown")
+      assert_raise Mix.NoTaskError, fn ->
+        Mix.Task.run("unknown")
+      end
+
+      # Check if compile task have run
+      refute Mix.TasksServer.run({:task, "compile", Mix.Project.get})
     end
-
-    # Check if compile task have run
-    refute Mix.TasksServer.run({:task, "compile", Mix.Project.get})
   end
 
   test "clear/0" do
