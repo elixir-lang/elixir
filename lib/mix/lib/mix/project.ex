@@ -296,7 +296,7 @@ defmodule Mix.Project do
   ## Examples
 
       Mix.Project.compile_path
-      #=> "/path/to/project/_build/shared/lib/app/priv"
+      #=> "/path/to/project/_build/shared/lib/app/ebin"
 
   """
   def compile_path(config \\ config()) do
