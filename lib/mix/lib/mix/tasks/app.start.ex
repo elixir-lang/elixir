@@ -28,7 +28,9 @@ defmodule Mix.Tasks.App.Start do
     # Stop the Logger after we have used it for compilation.
     # It is up to the application to decide if it should be
     # restarted or not.
-    Logger.App.stop()
+    # Mix should not depend directly on Logger so check that
+    # it's loaded.
+    if Code.ensure_loaded?(Logger), do: Logger.App.stop()
 
     unless "--no-start" in args do
       start(Mix.Project.config[:app])
