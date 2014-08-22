@@ -284,14 +284,23 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp main_body_for(:elixir) do
     quote do
+      erl_version = :erlang.system_info(:otp_release)
+      case :string.to_integer(erl_version) do
+        {num, _} when is_integer(num) and num >= 17 -> nil
+        _ ->
+          io_error ["Incompatible Erlang/OTP release: ", erl_version,
+                    ".\nThis escript requires at least Erlang/OTP 17.0.\n"]
+          :erlang.halt(1)
+      end
+
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
           load_config(@config)
           start_app(@app)
           args = Enum.map(args, &List.to_string(&1))
           Kernel.CLI.run fn _ -> @module.main(args) end, true
-        _ ->
-          :io.put_chars :standard_error, "Elixir is not available, aborting.\n"
+        error ->
+          io_error ["Failed to start Elixir.\n", :io_lib.format('error: ~p~n', [error])]
           :erlang.halt(1)
       end
     end
