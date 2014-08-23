@@ -45,6 +45,12 @@ defmodule Mix.Tasks.Escript.Build do
     * `:embed_elixir` - if `true` embed elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application` function in `mix.exs`.
+
+      Defaults to `true` for Elixir projects.
+
+    * `:consolidate_protocols` - if `true`, all protocols will be consolidated
+      before being embedded into the escript.
+
       Defaults to `true` for Elixir projects.
 
     * `:shebang` - shebang interpreter directive used to execute the escript.
@@ -86,10 +92,19 @@ defmodule Mix.Tasks.Escript.Build do
       Mix.Task.run :compile, args
     end
 
-    escriptize(Mix.Project.config, opts[:force])
+    project = Mix.Project.config
+    language = Keyword.get(project, :language, :elixir)
+    should_consolidate =
+      Keyword.get(project, :consolidate_protocols, language == :elixir)
+
+    if should_consolidate do
+      Mix.Task.run "compile.protocols", []
+    end
+
+    escriptize(project, language, opts[:force], should_consolidate)
   end
 
-  defp escriptize(project, force) do
+  defp escriptize(project, language, force, should_consolidate) do
     escript_opts = project[:escript] || []
 
     script_name  = to_string(escript_opts[:name] || project[:app])
@@ -97,7 +112,6 @@ defmodule Mix.Tasks.Escript.Build do
     main         = escript_opts[:main_module]
     app          = Keyword.get(escript_opts, :app, project[:app])
     files        = project_files()
-    language     = Keyword.get(project, :language, :elixir)
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
@@ -111,9 +125,19 @@ defmodule Mix.Tasks.Escript.Build do
           "in your project configuration (under `:escript` option) to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
+        beam_paths =
+          [files, deps_files(), core_files(escript_opts, language)]
+          |> Stream.concat
+          |> prepare_beam_paths
+
+        if should_consolidate do
+          beam_paths =
+            Path.wildcard(consolidated_path <> "/*")
+            |> prepare_beam_paths(beam_paths)
+        end
+
         tuples = gen_main(escript_mod, main, app, language) ++
-                 to_tuples(files) ++ deps_tuples() ++
-                 embed_tuples(escript_opts, language)
+                 read_beams(beam_paths)
 
         case :zip.create 'mem', tuples, [:memory] do
           {:ok, {'mem', zip}} ->
@@ -136,7 +160,7 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp project_files do
+  defp project_files() do
     get_files(Mix.Project.app_path)
   end
 
@@ -145,29 +169,19 @@ defmodule Mix.Tasks.Escript.Build do
       (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
   end
 
-  defp get_tuples(app) do
-    get_files(app) |> to_tuples
-  end
-
-  defp to_tuples(files) do
-    for f <- files do
-      {String.to_char_list(Path.basename(f)), File.read!(f)}
-    end
-  end
-
   defp set_perms(filename) do
     stat = File.stat!(filename)
     :ok  = File.chmod(filename, stat.mode ||| 0o111)
   end
 
-  defp deps_tuples do
+  defp deps_files() do
     deps = Mix.Dep.loaded(env: Mix.env) || []
-    Enum.flat_map(deps, fn dep -> get_tuples(dep.opts[:build]) end)
+    Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build]) end)
   end
 
-  defp embed_tuples(escript_opts, language) do
+  defp core_files(escript_opts, language) do
     if Keyword.get(escript_opts, :embed_elixir, language == :elixir) do
-      Enum.flat_map [:elixir|extra_apps()], &app_tuples(&1)
+      Enum.flat_map [:elixir|extra_apps()], &app_files/1
     else
       []
     end
@@ -184,12 +198,27 @@ defmodule Mix.Tasks.Escript.Build do
     Enum.filter(extra_apps || [], &(&1 in [:eex, :ex_unit, :mix, :iex, :logger]))
   end
 
-  defp app_tuples(app) do
+  defp app_files(app) do
     case :code.where_is_file('#{app}.app') do
       :non_existing -> Mix.raise "Could not find application #{app}"
-      file -> get_tuples(Path.dirname(Path.dirname(file)))
+      file -> get_files(Path.dirname(Path.dirname(file)))
     end
   end
+
+  defp prepare_beam_paths(paths, dict \\ HashDict.new) do
+    paths
+    |> Enum.map(&{Path.basename(&1), &1})
+    |> Enum.into(dict)
+  end
+
+  defp read_beams(items) do
+    items
+    |> Enum.map(fn {basename, beam_path} ->
+      {String.to_char_list(basename), File.read!(beam_path)}
+    end)
+  end
+
+  defp consolidated_path, do: Mix.Tasks.Compile.Protocols.default_path
 
   defp build_comment(user_comment) do
     "%% #{user_comment}\n"

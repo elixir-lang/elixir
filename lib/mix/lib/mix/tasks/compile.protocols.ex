@@ -35,10 +35,13 @@ defmodule Mix.Tasks.Compile.Protocols do
     paths = filter_otp(:code.get_path, :code.lib_dir)
     paths
     |> Protocol.extract_protocols
-    |> consolidate(paths, opts[:output] || Path.join(Mix.Project.build_path, "consolidated"))
+    |> consolidate(paths, opts[:output] || default_path())
 
     :ok
   end
+
+  @doc false
+  def default_path, do: Path.join(Mix.Project.build_path, "consolidated")
 
   defp filter_otp(paths, otp) do
     Enum.filter(paths, &(not :lists.prefix(&1, otp)))
