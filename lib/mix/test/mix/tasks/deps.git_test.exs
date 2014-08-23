@@ -103,6 +103,16 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Update.run ["deps_on_git_repo"]
       assert File.exists?("deps/deps_on_git_repo/.fetch")
       assert File.exists?("deps/git_repo/.fetch")
+
+      # Compile git repo but unload it so...
+      Mix.Tasks.Deps.Compile.run ["git_repo"]
+      assert File.exists?("_build/dev/lib/git_repo/ebin")
+      Code.delete_path("_build/dev/lib/git_repo/ebin")
+
+      # Deps on git repo loads it automatically on compile.
+      Mix.Task.reenable "deps.loadpaths"
+      Mix.Tasks.Deps.Compile.run ["deps_on_git_repo"]
+      assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
     end
   after
     purge [GitRepo, GitRepo.Mix]

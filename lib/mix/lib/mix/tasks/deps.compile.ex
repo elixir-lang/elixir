@@ -29,6 +29,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   def run(args) do
     Mix.Project.get!
+    Mix.Task.run "deps.loadpaths"
+
     case OptionParser.parse(args) do
       {_, [], _} ->
         compile(Enum.filter(loaded(env: Mix.env), &compilable?/1))

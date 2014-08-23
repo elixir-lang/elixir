@@ -203,6 +203,11 @@ unless File.dir?(target) do
   end
   """
 
+  File.write! Path.join(target, "lib/deps_on_git_repo.ex"), """
+  ## Auto-generated fixture
+  GitRepo.hello
+  """
+
   File.cd! target, fn ->
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[config user.email "mix@example.com"])
