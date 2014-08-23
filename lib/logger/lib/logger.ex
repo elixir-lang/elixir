@@ -221,6 +221,7 @@ defmodule Logger do
   """
 
   @type backend :: GenEvent.handler
+  @type message :: IO.chardata | String.Chars.t
   @type level :: :error | :info | :warn | :debug
   @levels [:error, :info, :warn, :debug]
 
@@ -367,7 +368,7 @@ defmodule Logger do
   Use this function only when there is a need to log dynamically
   or you want to explicitly avoid embedding metadata.
   """
-  @spec log(level, IO.chardata | (() -> IO.chardata), Keyword.t) ::
+  @spec log(level, message | (() -> message), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, :timeout} | {:error, term}
   def log(level, chardata, metadata \\ []) when level in @levels and is_list(metadata) do
     %{mode: mode, truncate: truncate, timeout: timeout,
@@ -458,6 +459,8 @@ defmodule Logger do
     do: Logger.Utils.truncate(data.(), n)
   defp truncate(data, n) when is_list(data) or is_binary(data),
     do: Logger.Utils.truncate(data, n)
+  defp truncate(data, n),
+    do: Logger.Utils.truncate(to_string(data), n)
 
   defp notify(:sync, msg, timeout),   do: GenEvent.sync_notify(Logger, msg, timeout)
   defp notify(:async, msg, _timeout), do: GenEvent.notify(Logger, msg)
