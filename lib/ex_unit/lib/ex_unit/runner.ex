@@ -159,6 +159,7 @@ defmodule ExUnit.Runner do
     {test_case, pending} =
       receive do
         {^case_pid, :case_finished, test_case, tests} ->
+          Process.demonitor(case_ref, [:flush])
           {test_case, tests}
         {:DOWN, ^case_ref, :process, ^case_pid, error} ->
           test_case = %{test_case | state: {:failed, {{:EXIT, case_pid}, error, []}}}
@@ -213,12 +214,14 @@ defmodule ExUnit.Runner do
     test =
       receive do
         {^test_pid, :test_finished, test} ->
+          Process.demonitor(test_ref, [:flush])
           test
         {:DOWN, ^test_ref, :process, ^test_pid, error} ->
           %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
       after
         timeout ->
           Process.exit(test_pid, :kill)
+          Process.demonitor(test_ref, [:flush])
           %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, []}}}
       end
 
