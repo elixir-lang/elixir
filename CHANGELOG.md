@@ -5,16 +5,22 @@
 * Enhancements
   * [GenEvent] Add support for `GenEvent.ack_notify/2`
   * [GenEvent] Add support for monitored handlers to `GenEvent.add_handler/4` that removes the drawbacks in the previous linked handlers
+  * [Logger] Allow any value that implements `String.Chars` to be logger
+  * [Logger] Allow `Logger.log/3` timeout to be configured
   * [Mix] Add --force option to 'mix local.rebar'
   * [Mix] Fix `--no-color`/`--color` option for `mix test`
+  * [Mix] Add a `:language` option to improve the usability of Erlang projects using Mix
 
 * Bug fixes
+  * [IEx] Do not print the underlying type for `@opaque` in the `t` helper
   * [GenEvent] Do not allow a handler to be added more than once
   * [GenServer] Do not treat bad arguments as exits in `GenServer.call/2`
   * [GenServer] Do not deliver out of order messages on `GenServer.cast/2` on distributed mode
   * [Mix] Do not pre-compile a Mix project if an alias was found
   * [Mix] Properly handle compilation errors in the Erlang compiler
   * [Mix] Always try to compile project if task cannot be found
+  * [Mix] Purge in memory modules before consolidating
+  * [Mix] Always compile a project if a task cannot be found
 
 * Deprecations
   * [Collectable] Deprecate `Collectable.empty/1` and `Enum.traverse/2`
