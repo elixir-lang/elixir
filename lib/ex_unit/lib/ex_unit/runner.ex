@@ -208,12 +208,18 @@ defmodule ExUnit.Runner do
         exit(:shutdown)
       end)
 
+    timeout = Map.get(test.tags, :timeout, 30_000)
+
     test =
       receive do
         {^test_pid, :test_finished, test} ->
           test
         {:DOWN, ^test_ref, :process, ^test_pid, error} ->
           %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
+      after
+        timeout ->
+          Process.exit(test_pid, :kill)
+          %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, []}}}
       end
 
     exec_on_exit(test, test_pid)

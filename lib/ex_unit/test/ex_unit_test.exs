@@ -40,6 +40,20 @@ defmodule ExUnitTest do
     end) =~ "1 tests, 1 failures"
   end
 
+  test "it supports timeouts" do
+    defmodule TimeoutTest do
+      use ExUnit.Case
+
+      @tag timeout: 10
+      test "ok" do
+        :timer.sleep(:infinity)
+      end
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~
+           "** (ExUnit.TimeoutError) test timed out after 10ms"
+  end
+
   test "filtering cases with tags" do
     defmodule ParityTest do
       use ExUnit.Case
