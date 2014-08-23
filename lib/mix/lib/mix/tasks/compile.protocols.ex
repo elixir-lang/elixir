@@ -62,12 +62,12 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp maybe_reload(module) do
     case :code.which(module) do
       atom when is_atom(atom) ->
-        module
-      file ->
-        unless Path.extname(file) == ".beam" do
-          :code.purge(module)
-          :code.delete(module)
-        end
+        # Module is likely in memory, we purge as an attempt to reload it
+        :code.purge(module)
+        :code.delete(module)
+        :ok
+      _file ->
+        :ok
     end
   end
 end
