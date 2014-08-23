@@ -2,8 +2,8 @@ defmodule Logger.ErrorHandlerTest do
   use Logger.Case
 
   test "survives after crashes" do
-    assert error_log(:info_msg, "~p~n", []) == ""
     assert capture_log(fn ->
+      :error_logger.info_msg("~p~n", [])
       wait_for_handler(:error_logger, Logger.ErrorHandler)
     end) =~ "[error] GenEvent handler Logger.ErrorHandler installed at :error_logger\n" <>
             "** (exit) an exception was raised:"
