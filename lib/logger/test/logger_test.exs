@@ -161,7 +161,7 @@ defmodule LoggerTest do
     Process.unregister(Logger)
 
     try do
-      assert Logger.log(:debug, "hello") == {:error, :not_available}
+      assert Logger.log(:debug, "hello") == {:error, :noproc}
     after
       Process.register(logger, Logger)
     end

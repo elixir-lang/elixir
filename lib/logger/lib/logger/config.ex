@@ -134,6 +134,7 @@ defmodule Logger.Config do
 
   defp compute_state(mode) do
     level       = Application.get_env(:logger, :level)
+    timeout     = Application.get_env(:logger, :timeout)
     utc_log     = Application.get_env(:logger, :utc_log)
     truncate    = Application.get_env(:logger, :truncate)
     translators = Application.get_env(:logger, :translators)
@@ -141,7 +142,7 @@ defmodule Logger.Config do
     sync_threshold  = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
 
-    persist %{level: level, mode: mode, truncate: truncate,
+    persist %{level: level, mode: mode, timeout: timeout, truncate: truncate,
               utc_log: utc_log, sync_threshold: sync_threshold,
               async_threshold: async_threshold, translators: translators}
   end
