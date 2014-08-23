@@ -58,8 +58,17 @@ defmodule Logger.Watcher do
   @doc false
   def init({mod, handler, args, :monitor}) do
     ref = Process.monitor(mod)
+    res = GenEvent.add_handler(mod, handler, args, monitor: true)
+    do_init(res, mod, handler, ref)
+  end
 
-    case GenEvent.add_handler(mod, handler, args, monitor: true) do
+  def init({mod, handler, args, :link}) do
+    res = :gen_event.add_sup_handler(mod, handler, args)
+    do_init(res, mod, handler, nil)
+  end
+
+  defp do_init(res, mod, handler, ref) do
+    case res do
       :ok ->
         {:ok, {mod, handler, ref}}
       {:error, :ignore} ->
@@ -69,18 +78,6 @@ defmodule Logger.Watcher do
         send(self(), {:gen_event_EXIT, handler, :normal})
         {:ok, {mod, handler, ref}}
       {:error, reason}  ->
-        {:stop, reason}
-    end
-  end
-
-  def init({mod, handler, args, :link}) do
-    case :gen_event.add_sup_handler(mod, handler, args) do
-      :ok ->
-        {:ok, {mod, handler, nil}}
-      {:error, :ignore} ->
-        send(self(), {:gen_event_EXIT, handler, :normal})
-        {:ok, {mod, handler, nil}}
-      {:error, reason} ->
         {:stop, reason}
     end
   end
