@@ -10,7 +10,7 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "does not start when there is no user" do
-    Logger.remove_backend(:console)
+    :ok = Logger.remove_backend(:console)
     user = Process.whereis(:user)
 
     try do
@@ -21,7 +21,7 @@ defmodule Logger.Backends.ConsoleTest do
       Process.register(user, :user)
     end
   after
-    Logger.add_backend(:console)
+    {:ok, _} = Logger.add_backend(:console)
   end
 
   test "can configure format" do
