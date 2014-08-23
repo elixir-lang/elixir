@@ -110,14 +110,13 @@ defmodule Mix.Config do
 
   Or to import files from children in umbrella projects:
 
-      import_config "../apps/child/config/config.exs"
+      import_config "../apps/*/config/config.exs"
 
   """
   defmacro import_config(file) do
     quote do
       var!(config, Mix.Config) =
-        Mix.Config.merge(var!(config, Mix.Config),
-                         Mix.Config.read!(Path.expand(unquote(file), __DIR__)))
+        Mix.Config.read_wildcard!(Path.expand(unquote(file), __DIR__), var!(config, Mix.Config))
     end
   end
 
@@ -138,6 +137,17 @@ defmodule Mix.Config do
       e in [LoadError] -> reraise(e, System.stacktrace)
       e -> raise LoadError, file: file, error: e
     end
+  end
+
+  @doc """
+  Reads many configuration files given by wildcard into a single config.
+  """
+  def read_wildcard!(path, config) do
+    paths = case Path.wildcard(path) do
+      [] -> [path]
+      o  -> o
+    end
+    Enum.reduce(paths, config, &merge(&2, read!(&1)))
   end
 
   @doc """

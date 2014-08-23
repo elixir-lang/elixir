@@ -314,13 +314,22 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :config_umbrella, ~S"""
+  # This file is responsible for configuring your application
+  # and its dependencies with the aid of the Mix.Config module.
+  use Mix.Config
 
-  # Finally, note that configuration defined in children projects
-  # inside apps/ are not automatically available to the umbrella parent.
-  # They can, however, be easily imported:
+  # The configuration defined here will only affect the dependencies
+  # in the apps directory when commands are executed from the umbrella
+  # project. For this reason, it is preferred to configure each child
+  # application directly and import its configuration, as done below.
+  import_config "../apps/*/config/config.exs"
+
+  # Sample configuration (overrides the imported configuration above):
   #
-  #     import_config "../apps/foo/config/config.exs"
-  #     import_config "../apps/bar/config/config.exs"
+  #     config :logger, :console,
+  #       level: :info,
+  #       format: "$date $time [$level] $metadata$message\n",
+  #       metadata: [:user_id]
   """
 
   embed_template :lib, """
