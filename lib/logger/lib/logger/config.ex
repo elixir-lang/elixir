@@ -44,7 +44,11 @@ defmodule Logger.Config do
   def translate_backend(other),    do: other
 
   def __data__() do
-    Application.get_env(:logger, @data)
+    if data = Application.get_env(:logger, @data) do
+      data
+    else
+      raise "Cannot use Logger, the :logger application is not running"
+    end
   end
 
   def clear_data() do
@@ -55,7 +59,7 @@ defmodule Logger.Config do
 
   def init(_) do
     # Use previous data if available in case this handler crashed.
-    state = __data__ || compute_state(:async)
+    state = Application.get_env(:logger, @data) || compute_state(:async)
     {:ok, state}
   end
 

@@ -13,7 +13,7 @@ defmodule Logger do
       to avoid clogging logger backends.
 
     * Alternates between sync and async modes to remain
-      performant when required but also apply back-pressure 
+      performant when required but also apply back-pressure
       when under stress.
 
     * Wraps OTP's `error_logger` to prevent it from
@@ -244,7 +244,6 @@ defmodule Logger do
   """
   @spec level() :: level
   def level() do
-    check_logger!
     %{level: level} = Logger.Config.__data__
     level
   end
@@ -365,19 +364,23 @@ defmodule Logger do
   Use this function only when there is a need to log dynamically
   or you want to explicitly avoid embedding metadata.
   """
-  @spec log(level, IO.chardata | (() -> IO.chardata), Keyword.t) :: :ok
+  @spec log(level, IO.chardata | (() -> IO.chardata), Keyword.t) :: :ok | {:error, :not_available}
   def log(level, chardata, metadata \\ []) when level in @levels and is_list(metadata) do
-    check_logger!
     %{mode: mode, truncate: truncate,
       level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
     if compare_levels(level, min_level) != :lt do
       tuple = {Logger, truncate(chardata, truncate), Logger.Utils.timestamp(utc_log?),
                [pid: self()] ++ metadata() ++ metadata}
-      notify(mode, {level, Process.group_leader(), tuple})
+      try do
+        notify(mode, {level, Process.group_leader(), tuple})
+        :ok
+      rescue
+        ArgumentError -> {:error, :not_available}
+      end
+    else
+      :ok
     end
-
-    :ok
   end
 
   @doc """
@@ -452,10 +455,4 @@ defmodule Logger do
 
   defp notify(:sync, msg),  do: GenEvent.sync_notify(Logger, msg)
   defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
-
-  defp check_logger! do
-    unless Process.whereis(Logger) do
-      raise "Cannot log messages, the :logger application is not running"
-    end
-  end
 end
