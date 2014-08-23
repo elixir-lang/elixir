@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Deps.Check do
       to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
-        # path may not be in code path
+        # Path may not be in code path
         _ = Code.delete_path(path)
         File.rm_rf!(path |> Path.dirname)
       end)

@@ -47,16 +47,12 @@ defmodule Mix.Tasks.Loadpaths do
     end
   end
 
-  defp load_deps(config, args) do
+  defp load_deps(_config, args) do
     unless "--no-deps-check" in args do
       Mix.Task.run "deps.check", args
     end
 
-    Mix.Project.build_path(config)
-    |> Path.join("lib/*/ebin")
-    |> Path.wildcard
-    |> List.delete(config[:app] && Mix.Project.compile_path(config))
-    |> Enum.each(&Code.prepend_path/1)
+    Mix.Task.run "deps.loadpaths"
   end
 
   defp load_project(config, _args) do
