@@ -38,6 +38,20 @@ defmodule Mix.ConfigTest do
     assert var!(config, Mix.Config) == [my_app: [key: :value]]
   end
 
+  test "import_config/1 with wildcards" do
+    use Mix.Config
+    import_config fixture_path("configs/good_*.exs")
+    assert var!(config, Mix.Config) == [my_app: [key: :value]]
+  end
+
+  test "import_config/1 with bad path" do
+    use Mix.Config
+
+    assert_raise Mix.Config.LoadError, ~r"could not load config", fn ->
+      import_config fixture_path("configs/unknown.exs")
+    end
+  end
+
   test "read!/1" do
     assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
            [my_app: [key: :value]]
