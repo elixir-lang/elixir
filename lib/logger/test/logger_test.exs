@@ -156,15 +156,12 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
   end
 
-  test "log/2 fails when the application is off" do
+  test "log/2 does not fails when the Logger is off" do
     logger = Process.whereis(Logger)
     Process.unregister(Logger)
 
     try do
-      assert_raise RuntimeError,
-                   "Cannot log messages, the :logger application is not running", fn ->
-        Logger.log(:debug, "hello")
-      end
+      assert Logger.log(:debug, "hello") == {:error, :not_available}
     after
       Process.register(logger, Logger)
     end
