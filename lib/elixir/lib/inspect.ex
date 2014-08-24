@@ -140,6 +140,14 @@ defimpl Inspect, for: Atom do
 end
 
 defimpl Inspect, for: BitString do
+  def inspect(thing, %Inspect.Opts{binaries: bins, base: :hex} = opts) when is_binary(thing) do
+    if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
+      <<?", escape(thing, ?") :: binary, ?">>
+    else
+      inspect_bitstring_hex(thing, opts)
+    end
+  end
+
   def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
       <<?", escape(thing, ?") :: binary, ?">>
@@ -266,6 +274,38 @@ defimpl Inspect, for: BitString do
     acc <> Integer.to_string(h) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
+  ## Bitstrings as base: :hex
+
+  defp inspect_bitstring_hex(bitstring, opts) do
+    each_bit_hex(bitstring, opts.limit, "<<") <> ">>"
+  end
+
+  defp each_bit_hex(_, 0, acc) do
+    acc <> "..."
+  end
+
+  defp each_bit_hex(<<h, t :: bitstring>>, counter, acc) when t != <<>> do
+    each_bit_hex(t, decrement(counter), acc <> integer_to_hex(h) <> ", ")
+  end
+
+  defp each_bit_hex(<<h :: size(8)>>, _counter, acc) do
+    acc <> integer_to_hex(h)
+  end
+
+  defp each_bit_hex(<<>>, _counter, acc) do
+    acc
+  end
+
+  defp each_bit_hex(bitstring, _counter, acc) do
+    size = bit_size(bitstring)
+    <<h :: size(size)>> = bitstring
+    acc <> integer_to_hex(h) <> "::size(" <> Integer.to_string(size) <> ")"
+  end
+
+  defp integer_to_hex(h) do
+    "0x" <> Integer.to_string(h, 16)
+  end
+  
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
 end
