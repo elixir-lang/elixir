@@ -1,5 +1,5 @@
 -module(elixir_compiler).
--export([get_opt/1, string/2, quoted/2, file/1, file_to_path/2]).
+-export([get_opt/1, string/2, quoted/2, file/1, file/2, file_to_path/2]).
 -export([core/0, module/4, eval_forms/3]).
 -include("elixir.hrl").
 
@@ -42,12 +42,15 @@ file(Relative) when is_binary(Relative) ->
 file(Relative, Dest) ->
   File = filename:absname(Relative),
   {ok, Bin} = file:read_file(File),
-  string(elixir_utils:characters_to_list(Bin), File, Dest).
+  string(elixir_utils:characters_to_list(Bin), File, case Dest of
+    nil -> Dest;
+    _   -> filename:absname(Dest)
+  end).
 
-file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
-  Dest = filename:absname(Path),
+file_to_path(File, Dest) when is_binary(File), is_binary(Dest) ->
   Comp = file(File, Dest),
-  _ = [binary_to_path(X, Dest) || X <- Comp],
+  Abs  = filename:absname(Dest),
+  _ = [binary_to_path(X, Abs) || X <- Comp],
   Comp.
 
 %% Evaluation
