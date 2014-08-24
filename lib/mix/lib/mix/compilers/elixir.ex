@@ -96,7 +96,8 @@ defmodule Mix.Compilers.Elixir do
     try do
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
         each_module: &each_module(pid, dest, cwd, &1, &2, &3),
-        each_file: &each_file(&1)
+        each_file: &each_file(&1),
+        dest: dest
       Agent.cast pid, fn entries ->
         write_manifest(manifest, entries)
         entries
