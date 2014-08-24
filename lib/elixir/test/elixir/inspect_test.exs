@@ -107,6 +107,10 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
     assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
+
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries, base: :hex) == "<<0x6A, 0x6F, 0x68, 0x6E, 0xC1, 0x64, 0x6F, 0x65>>"
+    assert inspect(<<"john">>, binaries: :as_binaries, base: :hex) == "<<0x6A, 0x6F, 0x68, 0x6E>>"
+    assert inspect(<<193>>, binaries: :as_binaries, base: :hex) == "<<0xC1>>"    
   end
 
   test :unprintable_with_opts do
