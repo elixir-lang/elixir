@@ -83,6 +83,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
+    flag = String.to_char_list(tmp_path)
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -95,7 +96,12 @@ defmodule MixTest.Case do
       File.cd! dest, function
     after
       :code.set_path(get_path)
-      for {mod, :in_memory} <- :code.all_loaded -- previous, do: purge [mod]
+
+      for {mod, file} <- :code.all_loaded -- previous,
+          file == :in_memory or
+          (is_list(file) and :lists.prefix(flag, file)) do
+        purge [mod]
+      end
     end
   end
 
