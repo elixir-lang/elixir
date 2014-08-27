@@ -618,7 +618,7 @@ defmodule UndefinedFunctionError do
   def message(%{function: function, module: module, arity: arity, self: self}) do
     if function do
       formatted = Exception.format_mfa module, function, arity
-      suffix = if self or nil?(module) or :code.is_loaded(module) do
+      suffix = if self or is_nil(module) or :code.is_loaded(module) do
         ""
       else
         " (module #{inspect module} is not available)"

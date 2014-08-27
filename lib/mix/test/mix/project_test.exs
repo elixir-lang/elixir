@@ -31,7 +31,7 @@ defmodule Mix.ProjectTest do
     Mix.Project.push nil
     assert is_map Mix.Project.pop
     assert is_map Mix.Project.pop
-    assert nil? Mix.Project.pop
+    assert is_nil Mix.Project.pop
   end
 
   test "retrieves configuration from projects" do
@@ -41,7 +41,7 @@ defmodule Mix.ProjectTest do
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert nil? Mix.Project.config[:app_path]
+    assert is_nil Mix.Project.config[:app_path]
   end
 
   test "retrieves configuration even when a project is not set" do

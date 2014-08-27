@@ -64,20 +64,20 @@ defmodule ProtocolTest do
   end
 
   test "protocol implementations without any" do
-    assert nil? Sample.impl_for(:foo)
-    assert nil? Sample.impl_for(fn(x) -> x end)
-    assert nil? Sample.impl_for(1)
-    assert nil? Sample.impl_for(1.1)
-    assert nil? Sample.impl_for([])
-    assert nil? Sample.impl_for([1, 2, 3])
-    assert nil? Sample.impl_for({})
-    assert nil? Sample.impl_for({1, 2, 3})
-    assert nil? Sample.impl_for("foo")
-    assert nil? Sample.impl_for(<<1>>)
-    assert nil? Sample.impl_for(%{})
-    assert nil? Sample.impl_for(self)
-    assert nil? Sample.impl_for(hd(:erlang.ports))
-    assert nil? Sample.impl_for(make_ref)
+    assert is_nil Sample.impl_for(:foo)
+    assert is_nil Sample.impl_for(fn(x) -> x end)
+    assert is_nil Sample.impl_for(1)
+    assert is_nil Sample.impl_for(1.1)
+    assert is_nil Sample.impl_for([])
+    assert is_nil Sample.impl_for([1, 2, 3])
+    assert is_nil Sample.impl_for({})
+    assert is_nil Sample.impl_for({1, 2, 3})
+    assert is_nil Sample.impl_for("foo")
+    assert is_nil Sample.impl_for(<<1>>)
+    assert is_nil Sample.impl_for(%{})
+    assert is_nil Sample.impl_for(self)
+    assert is_nil Sample.impl_for(hd(:erlang.ports))
+    assert is_nil Sample.impl_for(make_ref)
 
     assert Sample.impl_for(%ImplStruct{}) ==
            Sample.ProtocolTest.ImplStruct
@@ -302,20 +302,20 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidated implementations without any" do
-    assert nil? Sample.impl_for(:foo)
-    assert nil? Sample.impl_for(fn(x) -> x end)
-    assert nil? Sample.impl_for(1)
-    assert nil? Sample.impl_for(1.1)
-    assert nil? Sample.impl_for([])
-    assert nil? Sample.impl_for([1, 2, 3])
-    assert nil? Sample.impl_for({})
-    assert nil? Sample.impl_for({1, 2, 3})
-    assert nil? Sample.impl_for("foo")
-    assert nil? Sample.impl_for(<<1>>)
-    assert nil? Sample.impl_for(self)
-    assert nil? Sample.impl_for(%{})
-    assert nil? Sample.impl_for(hd(:erlang.ports))
-    assert nil? Sample.impl_for(make_ref)
+    assert is_nil Sample.impl_for(:foo)
+    assert is_nil Sample.impl_for(fn(x) -> x end)
+    assert is_nil Sample.impl_for(1)
+    assert is_nil Sample.impl_for(1.1)
+    assert is_nil Sample.impl_for([])
+    assert is_nil Sample.impl_for([1, 2, 3])
+    assert is_nil Sample.impl_for({})
+    assert is_nil Sample.impl_for({1, 2, 3})
+    assert is_nil Sample.impl_for("foo")
+    assert is_nil Sample.impl_for(<<1>>)
+    assert is_nil Sample.impl_for(self)
+    assert is_nil Sample.impl_for(%{})
+    assert is_nil Sample.impl_for(hd(:erlang.ports))
+    assert is_nil Sample.impl_for(make_ref)
 
     assert Sample.impl_for(%ImplStruct{}) ==
            Sample.Protocol.ConsolidationTest.ImplStruct

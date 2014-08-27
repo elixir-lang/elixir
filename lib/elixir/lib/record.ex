@@ -4,7 +4,7 @@ defmodule Record do
 
   Records are simply tuples where the first element is an atom:
 
-      iex> Record.record? {User, "john", 27}
+      iex> Record.is_record {User, "john", 27}
       true
 
   This module provides conveniences for working with records at
@@ -56,18 +56,7 @@ defmodule Record do
     Macro.escape Record.Extractor.extract(name, opts)
   end
 
-  @doc """
-  Checks if the given `data` is a record of `kind`.
-
-  This is implemented as a macro so it can be used in guard clauses.
-
-  ## Examples
-
-      iex> record = {User, "john", 27}
-      iex> Record.record?(record, User)
-      true
-
-  """
+  @doc false
   defmacro record?(data, kind) do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
@@ -85,6 +74,51 @@ defmodule Record do
   end
 
   @doc """
+  Checks if the given `data` is a record of `kind`.
+
+  This is implemented as a macro so it can be used in guard clauses.
+
+  ## Examples
+
+      iex> record = {User, "john", 27}
+      iex> Record.is_record(record, User)
+      true
+
+  """
+  defmacro is_record(data, kind) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
+            and :erlang.element(1, unquote(data)) == unquote(kind)
+        end
+      false ->
+        quote do
+          result = unquote(data)
+          is_tuple(result) and tuple_size(result) > 0
+            and :erlang.element(1, result) == unquote(kind)
+        end
+    end
+  end
+
+  @doc false
+  defmacro record?(data) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
+            and is_atom(:erlang.element(1, unquote(data)))
+        end
+      false ->
+        quote do
+          result = unquote(data)
+          is_tuple(result) and tuple_size(result) > 0
+            and is_atom(:erlang.element(1, result))
+        end
+    end
+  end
+
+  @doc """
   Checks if the given `data` is a record.
 
   This is implemented as a macro so it can be used in guard clauses.
@@ -92,14 +126,14 @@ defmodule Record do
   ## Examples
 
       iex> record = {User, "john", 27}
-      iex> Record.record?(record)
+      iex> Record.is_record(record)
       true
       iex> tuple = {}
-      iex> Record.record?(tuple)
+      iex> Record.is_record(tuple)
       false
 
   """
-  defmacro record?(data) do
+  defmacro is_record(data) do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -319,7 +353,7 @@ defmodule Record do
   # Returns a keyword list of the record
   @doc false
   def __keyword__(atom, fields, record) do
-    if record?(record, atom) do
+    if is_record(record, atom) do
       [_tag|values] = Tuple.to_list(record)
       join_keyword(fields, values, [])
     else

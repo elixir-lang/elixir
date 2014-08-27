@@ -5,23 +5,23 @@ defmodule IntegerTest do
   require Integer
 
   test :odd? do
-    assert Integer.odd?(0) == false
-    assert Integer.odd?(1) == true
-    assert Integer.odd?(2) == false
-    assert Integer.odd?(3) == true
-    assert Integer.odd?(-1) == true
-    assert Integer.odd?(-2) == false
-    assert Integer.odd?(-3) == true
+    assert Integer.is_odd(0) == false
+    assert Integer.is_odd(1) == true
+    assert Integer.is_odd(2) == false
+    assert Integer.is_odd(3) == true
+    assert Integer.is_odd(-1) == true
+    assert Integer.is_odd(-2) == false
+    assert Integer.is_odd(-3) == true
   end
 
   test :even? do
-    assert Integer.even?(0) == true
-    assert Integer.even?(1) == false
-    assert Integer.even?(2) == true
-    assert Integer.even?(3) == false
-    assert Integer.even?(-1) == false
-    assert Integer.even?(-2) == true
-    assert Integer.even?(-3) == false
+    assert Integer.is_even(0) == true
+    assert Integer.is_even(1) == false
+    assert Integer.is_even(2) == true
+    assert Integer.is_even(3) == false
+    assert Integer.is_even(-1) == false
+    assert Integer.is_even(-2) == true
+    assert Integer.is_even(-3) == false
   end
 
   test :parse do

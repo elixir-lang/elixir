@@ -150,7 +150,7 @@
         counter = Process.get(:iex_history_counter)
         Process.get({:iex_history, counter + n})
     end
-    if nil?(entry) do
+    if is_nil(entry) do
       raise "v(#{n}) is out of bounds"
     end
     entry

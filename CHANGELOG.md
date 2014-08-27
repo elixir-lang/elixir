@@ -27,7 +27,10 @@
 
 * Deprecations
   * [Collectable] Deprecate `Collectable.empty/1` and `Enum.traverse/2`
+  * [Integer] `odd?/1` and `even?/1` are deprecated in favor of `is_odd/1` and `is_even/1`
+  * [Kernel] `nil?/1` is deprecated in favor of `is_nil/1`
   * [Kernel] `x.Alias` is deprecated in favor of an explicit `Module.concat/2`
+  * [Record] `record?/1` and `record?/2` are deprecated in favor of `is_record/1` and `is_record/2`
   * [Stream] Returning `{item, acc} | nil` from `Stream.resource/2` is deprecated, instead return `{[item], acc} | {:halt, acc}` (similar to `Stream.transform/3`)
 
 * Backwards incompatible changes

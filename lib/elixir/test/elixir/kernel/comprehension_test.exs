@@ -133,7 +133,7 @@ defmodule Kernel.ComprehensionTest do
   test "for comprehension with into, generators and filters" do
     Process.put(:into_cont, [])
 
-    for x <- 1..3, Integer.odd?(x), << y <- "hello" >>, into: %PDict{} do
+    for x <- 1..3, Integer.is_odd(x), << y <- "hello" >>, into: %PDict{} do
       x + y
     end
 

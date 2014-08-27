@@ -30,10 +30,10 @@ defmodule RecordTest do
 
   # We need indirection to avoid warnings
   defp record?(data, kind) do
-    Record.record?(data, kind)
+    Record.is_record(data, kind)
   end
 
-  test "record?/2" do
+  test "is_record/2" do
     assert record?({User, "meg", 27}, User)
     refute record?({User, "meg", 27}, Author)
     refute record?(13, Author)
@@ -41,10 +41,10 @@ defmodule RecordTest do
 
   # We need indirection to avoid warnings
   defp record?(data) do
-    Record.record?(data)
+    Record.is_record(data)
   end
 
-  test "record?/1" do
+  test "is_record/1" do
     assert record?({User, "john", 27})
     refute record?({"john", 27})
     refute record?(13)

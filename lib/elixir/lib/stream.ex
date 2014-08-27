@@ -162,7 +162,7 @@ defmodule Stream do
   end
 
   defp do_chunk(acc(h, {buffer, count} = old, t) = acc, n, pad, f1) do
-    if nil?(pad) || count == 0 do
+    if is_nil(pad) || count == 0 do
       {:cont, acc}
     else
       buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)

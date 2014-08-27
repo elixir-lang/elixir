@@ -5,23 +5,35 @@ defmodule Integer do
 
   import Bitwise
 
+  @doc false
+  defmacro odd?(n) do
+    quote do: (unquote(n) &&& 1) == 1
+  end
+
   @doc """
   Determines if an integer is odd.
 
   Returns `true` if `n` is an odd number, otherwise `false`.
-  Implemented as a macro so it is allowed in guard clauses.
+
+  Allowed in guard clauses.
   """
-  defmacro odd?(n) do
+  defmacro is_odd(n) do
     quote do: (unquote(n) &&& 1) == 1
+  end
+
+  @doc false
+  defmacro even?(n) do
+    quote do: (unquote(n) &&& 1) == 0
   end
 
   @doc """
   Determines if an integer is even.
 
   Returns `true` if `n` is an even number, otherwise `false`.
-  Implemented as a macro so it is allowed in guard clauses.
+
+  Allowed in guard clauses.
   """
-  defmacro even?(n) do
+  defmacro is_even(n) do
     quote do: (unquote(n) &&& 1) == 0
   end
 

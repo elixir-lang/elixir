@@ -71,7 +71,7 @@ defmodule Kernel.FnTest do
 
   test "imported partial application" do
     import Record
-    assert (&record?(&1, :sample)).({:sample, 1})
+    assert (&is_record(&1, :sample)).({:sample, 1})
   end
 
   test "remote partial application" do

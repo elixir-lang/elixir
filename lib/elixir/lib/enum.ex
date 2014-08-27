@@ -341,7 +341,7 @@ defmodule Enum do
     {_, {acc, {buffer, i}}} =
       Enumerable.reduce(coll, {:cont, {[], {[], 0}}}, R.chunk(n, step, limit))
 
-    if nil?(pad) || i == 0 do
+    if is_nil(pad) || i == 0 do
       :lists.reverse(acc)
     else
       buffer = :lists.reverse(buffer) ++ take(pad, n - i)

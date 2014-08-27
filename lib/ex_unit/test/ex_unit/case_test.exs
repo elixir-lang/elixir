@@ -24,8 +24,8 @@ defmodule ExUnit.CaseTest do
   end
 
   test "reset tags", context do
-    assert nil?(context[:hello])
-    assert nil?(context[:world])
+    assert is_nil(context[:hello])
+    assert is_nil(context[:world])
   end
 
   test "module tags", context do

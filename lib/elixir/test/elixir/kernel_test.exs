@@ -41,12 +41,6 @@ defmodule KernelTest do
     assert binding() == [a: 0]
   end
 
-  test "nil?/1" do
-    assert nil?(nil) == true
-    assert nil?(0) == false
-    assert nil?(false) == false
-  end
-
   test "in/2" do
     assert 2 in [1, 2, 3]
     assert 2 in 1..3
@@ -96,7 +90,7 @@ defmodule KernelTest do
   end
 
   test "paren as nil" do
-    assert nil?(()) == true
+    assert is_nil(()) == true
     assert ((); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
