@@ -13,6 +13,13 @@ defmodule PathHelpers do
     Path.expand("fixtures", __DIR__)
   end
 
+  def tmp_fixture_path(extra) do
+    src = fixture_path(extra)
+    dest = tmp_path(extra)
+    File.cp_r(src,dest)
+    dest
+  end
+
   def tmp_path() do
     Path.expand("../../tmp", __DIR__)
   end

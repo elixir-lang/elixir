@@ -21,6 +21,280 @@ defmodule FileTest do
   use Elixir.FileCase
   import Regex, only: [escape: 1]
 
+
+  defmodule Mv do
+    use Elixir.FileCase
+
+    test :mv_with_src_file_and_dest_file do
+      src  = tmp_fixture_path("file.txt")
+      dest = tmp_path("sample.txt")
+      File.touch(dest)
+
+      try do
+        assert File.exists?(dest)
+        assert File.mv(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.exists?(dest)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_file_and_dest_dir do
+      src  = tmp_fixture_path("file.txt")
+      dest = tmp_path("tmp")
+
+      try do
+        File.mkdir(dest)
+        assert File.mv(src, dest) == :ok
+        refute File.exists?(src)
+        assert File.exists?(Path.join(dest, "file.txt"))
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_file_and_dest_unknown do
+      src   = tmp_fixture_path("file.txt")
+      dest  = tmp_path("tmp.file")
+
+      try do
+        refute File.exists?(dest)
+        assert File.mv(src, dest) == :ok
+        assert File.exists?(dest)
+        refute File.exists?(src)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_dir do
+      src   = tmp_fixture_path("cp_r")
+      dest  = tmp_path("tmp.file")
+      try do
+        File.touch(dest)
+        assert File.mv(src, dest) == {:error, :enotdir}
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_dest_dir do
+      src   = tmp_fixture_path("file.txt")
+      dest  = tmp_path("sub")
+      try do
+        File.mkdir_p(dest)
+        assert File.mv(src, dest) == :ok
+        assert File.exists?(tmp_path("sub/file.txt"))
+        refute File.exists?(src)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_conflict do
+      src   = tmp_fixture_path("file.txt")
+      dest  = tmp_path("tmp.file")
+
+      File.write!(dest, "hello")
+
+      try do
+        assert File.exists?(dest)
+        assert File.mv(src, dest) == :ok
+        assert File.read!(dest) == "FOO\n"
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_conflict_with_function do
+      src   = tmp_fixture_path("file.txt")
+      dest  = tmp_path("tmp.file")
+
+      File.write!(dest, "hello")
+
+      try do
+        assert File.exists?(dest)
+        assert File.mv(src, dest, fn(src_file, dest_file) ->
+          assert src_file  == src
+          assert dest_file == dest
+          false
+        end) == {:error, :eexist}
+        assert File.read!(dest) == "hello"
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_dir! do
+      src   = tmp_fixture_path("cp_r")
+      dest  = tmp_path("tmp.file")
+      try do
+        File.touch(dest)
+        assert_raise File.CopyError, "could not move from #{src} to #{dest}: " <>
+            "not a directory", fn ->
+          File.mv!(src, dest)
+        end
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_dir_and_dest_unknown do
+      src  = tmp_fixture_path("cp_r")
+      dest = tmp_path("tmp")
+
+      try do
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+        assert File.mv(src, dest) == :ok
+        {:ok, files} = File.ls(dest)
+        assert length(files) == 2
+        assert "a" in files
+
+        {:ok, files} = File.ls(tmp_path("tmp/a"))
+        assert length(files) == 2
+        assert "1.txt" in files
+
+        assert File.exists?(tmp_path("tmp/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+        refute File.exists?(src)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_dir_and_dest_dir do
+      src  = tmp_fixture_path("cp_r")
+      dest = tmp_path("tmp")
+
+      try do
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+        assert File.mv(src, dest) == :ok
+        {:ok, files} = File.ls(dest)
+        assert length(files) == 2
+        assert "a" in files
+
+        {:ok, files} = File.ls(tmp_path("tmp/a"))
+        assert length(files) == 2
+        assert "1.txt" in files
+
+        assert File.exists?(tmp_path("tmp/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+        refute File.exists?(src)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_dir_and_dest_file do
+      src  = tmp_fixture_path("cp_r")
+      dest = tmp_path("tmp.file")
+
+      try do
+        File.touch!(dest)
+        assert File.mv(src, dest) == {:error, :enotdir}
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_src_unknown do
+      src  = fixture_path("unknown")
+      dest = tmp_path("tmp")
+      try do
+        assert File.mv(src, dest) == {:error, :enoent}
+      after
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_with_dir_and_file_conflict do
+      src  = tmp_fixture_path("cp_r")
+      dest = tmp_path("tmp")
+
+      File.mkdir_p(tmp_path("tmp/x"))
+
+      try do
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+        assert File.mv(src, dest) == :ok
+        {:ok, files} = File.ls(dest)
+        assert length(files) == 2
+        assert "a" in files
+
+        {:ok, files} = File.ls(tmp_path("tmp/a"))
+        assert length(files) == 2
+        assert "1.txt" in files
+
+        assert File.exists?(tmp_path("tmp/a/1.txt"))
+        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+        assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+        refute File.exists?(tmp_path("tmp/x"))
+        refute File.exists?(src)
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_preserves_mode do
+     File.mkdir_p!(tmp_path("tmp"))
+     src  = tmp_fixture_path("cp_mode")
+     dest = tmp_path("tmp/cp_mode")
+
+     try do
+       %File.Stat{mode: src_mode} = File.stat! src
+       File.mv(src, dest)
+       %File.Stat{mode: dest_mode} = File.stat! dest
+       assert src_mode == dest_mode
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+    test :mv_preserves_mode_overwrite do
+     File.mkdir_p!(tmp_path("tmp"))
+     src  = tmp_fixture_path("cp_mode")
+     dest = tmp_path("tmp/cp_mode")
+
+     try do
+       %File.Stat{mode: src_mode} = File.stat! src
+       File.mv src, dest, fn(_, _) -> true end
+       %File.Stat{mode: dest_mode} = File.stat! dest
+       assert src_mode == dest_mode
+      after
+        File.rm_rf src
+        File.rm_rf dest
+      end
+    end
+
+  end
+
   defmodule Cp do
     use Elixir.FileCase
 
@@ -98,7 +372,7 @@ defmodule FileTest do
           assert src_file  == src
           assert dest_file == dest
           false
-        end) == :ok
+        end) == :ok # I think this should be {:error, :eexists}
         assert File.read!(dest) == "hello"
       after
         File.rm_rf dest
@@ -684,7 +958,7 @@ defmodule FileTest do
       assert File.rm(fixture) == :ok
       refute File.exists?(fixture)
     end
-    
+
     test :rm_read_only_file do
       fixture = tmp_path("tmp_test.txt")
       File.write(fixture, "test")

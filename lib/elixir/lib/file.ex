@@ -389,6 +389,42 @@ defmodule File do
   end
 
   @doc """
+  Moves the contents in `source` to `destination` preseving its mode.
+
+  If a file already exists in the destination, it invokes a
+  callback which should return `true` if the existing file
+  should be overwritten, `false` otherwise.  It defaults to return `true`.
+
+  It returns `:ok` in case of success, returns
+  `{:error, reason}` otherwise
+
+  Note: current implementation allows you to copy a file to a directory
+   (and it will keep the same basename from the original file).  This
+   differs from erlang's base implementation
+   http://www.erlang.org/doc/man/file.html#rename-2
+   This functionality might change, as this is my first pull request
+  """
+  @spec mv(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | {:error, posix}
+  def mv(source, destination, callback \\ fn(_, _) -> true end) do
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
+    do_mv_file(source, destination, callback)
+  end
+
+  @doc """
+  The same as `mv/3`, but raises `File.CopyError` if it fails.
+  Returns :ok otherwise
+  """
+  def mv!(source, destination, callback \\ fn(_,_) -> true end) do
+    case mv(source, destination, callback) do
+      :ok -> :ok
+      {:error, reason} ->
+        raise File.CopyError, reason: reason, action: "move",
+          source: source, destination: destination
+    end
+  end
+
+  @doc """
   Copies the contents in `source` to `destination` preserving its mode.
 
   If a file already exists in the destination, it invokes a
@@ -542,6 +578,28 @@ defmodule File do
 
   defp copy_file_mode!(src, dest) do
     write_stat!(dest, %{stat!(dest) | mode: stat!(src).mode})
+  end
+
+  # Most of the underlying move functionality delgated
+  # to elrang's rename function
+  # http://www.erlang.org/doc/man/file.html#rename-2
+  defp do_mv_file(src, dest, callback) do
+    if File.exists?(dest) && !callback.(src,dest) do
+      {:error, :eexist}
+    else
+      case F.rename(src, dest) do
+        {:error, :eisdir} ->
+          mv(src, Path.join(dest, Path.basename(src)), callback)
+        {:error, :eexist} ->
+          if callback.(src, dest) do
+            _ = rm_rf(dest)
+            mv(src, dest)
+          else
+            {:error, :eexist}
+          end
+        other -> other
+      end
+    end
   end
 
   # Both src and dest are files.
