@@ -343,27 +343,8 @@ defmodule Kernel.SpecialForms do
 
   Note that `Kernel."HELLO"` will be treated as a remote call and not an alias.
   This choice was done so every time single- or double-quotes are used, we have
-  a remote call irregardless of the quote contents. This decision is also reflected
+  a remote call regardless of the quote contents. This decision is also reflected
   in the quoted expressions discussed below.
-
-  ## Runtime (dynamic) behaviour
-
-  The result returned by `.` is always specified by the right-side:
-
-      iex> x = String
-      iex> x.downcase("FOO")
-      "foo"
-      iex> x.Sample
-      String.Sample
-
-  In case the right-side is also dynamic, `.`'s behaviour can be reproduced
-  at runtime via `apply/3` and `Module.concat/2`:
-
-      iex> apply(:erlang, :+, [1,2])
-      3
-
-      iex> Module.concat(Kernel, Sample)
-      Kernel.Sample
 
   ## Quoted expression
 
@@ -1327,21 +1308,12 @@ defmodule Kernel.SpecialForms do
 
   On the other hand, aliases holds some properties:
 
-    1. The head element of aliases can be any term.
+    1. The head element of aliases can be any term that must expand to
+       an atom at compilation time.
 
     2. The tail elements of aliases are guaranteed to always be atoms.
 
     3. When the head element of aliases is the atom `:Elixir`, no expansion happen.
-
-    4. When the head element of aliases is not an atom, it is expanded at runtime:
-
-           quote do: some_var.Foo
-           {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
-
-       Since `some_var` is not available at compilation time, the compiler
-       expands such expression to:
-
-           Module.concat [some_var, Foo]
 
   """
   defmacro __aliases__(args)

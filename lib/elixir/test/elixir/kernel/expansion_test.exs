@@ -55,11 +55,6 @@ defmodule Kernel.ExpansionTest do
     assert expand_env(quote(do: World), __ENV__) |> elem(0) == :"Elixir.Source"
   end
 
-  test "__aliases__: expands to elixir_aliases on runtime" do
-    assert expand(quote do: hello.World) ==
-           quote do: :elixir_aliases.concat([hello(), :World])
-  end
-
   ## =
 
   test "=: sets context to match" do
