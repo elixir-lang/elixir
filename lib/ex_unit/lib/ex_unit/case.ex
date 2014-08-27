@@ -109,7 +109,7 @@ defmodule ExUnit.Case do
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
 
-  ### Reserved tags
+  ### Known tags
 
   The following tags are set automatically by ExUnit and are
   therefore reserved:
@@ -118,6 +118,10 @@ defmodule ExUnit.Case do
     * `:test` - the test name
     * `:line` - the line on which the test was defined
     * `:file` - the file on which the test was defined
+
+  The following tags customize how tests behaves:
+
+    * `:timeout` - customizes the test timeout in miliseconds (defaults to 30000)
 
   ## Filters
 
