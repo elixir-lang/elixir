@@ -66,6 +66,8 @@ expand({'__aliases__', _, _} = Alias, E) ->
           elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
+          elixir_errors:warn(?m(E, line), ?m(E, file), io_lib:format("an alias must expand to an atom "
+            "at compilation time but got ~ts", ['Elixir.Macro':to_string(hd(EAliases))])),
           {{{'.', [], [elixir_aliases, concat]}, [], [EAliases]}, EA}
       end
   end;

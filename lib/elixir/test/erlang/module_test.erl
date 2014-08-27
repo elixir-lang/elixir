@@ -90,9 +90,6 @@ nesting_test() ->
 dot_alias_test() ->
   {'Elixir.Foo.Bar.Baz', _} = eval("Foo.Bar.Baz").
 
-dot_dyn_alias_test() ->
-  {'Elixir.Foo.Bar.Baz', _} = eval("a = Foo.Bar; a.Baz").
-
 single_ref_test() ->
   {'Elixir.Foo', _} = eval("Foo"),
   {'Elixir.Foo', _} = eval("Elixir.Foo").
