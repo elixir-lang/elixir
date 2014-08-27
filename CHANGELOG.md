@@ -3,13 +3,16 @@
 ## v0.15.2-dev
 
 * Enhancements
+  * [ExUnit] Add timeouts to tests (which is configurable via tags)
   * [GenEvent] Add support for `GenEvent.ack_notify/2`
   * [GenEvent] Add support for monitored handlers to `GenEvent.add_handler/4` that removes the drawbacks in the previous linked handlers
   * [Logger] Allow any value that implements `String.Chars` to be logger
   * [Logger] Allow `Logger.log/3` timeout to be configured
-  * [Mix] Add --force option to 'mix local.rebar'
+  * [Mix] Add `--force` option to `mix local.rebar`
   * [Mix] Fix `--no-color`/`--color` option for `mix test`
   * [Mix] Add a `:language` option to improve the usability of Erlang projects using Mix
+  * [Mix] Accept wildcards on `Mix.Config.import_config/1`
+  * [Mix] Support protocol consolidation on escripts
 
 * Bug fixes
   * [IEx] Do not print the underlying type for `@opaque` in the `t` helper
@@ -24,6 +27,7 @@
 
 * Deprecations
   * [Collectable] Deprecate `Collectable.empty/1` and `Enum.traverse/2`
+  * [Kernel] `x.Alias` is deprecated in favor of an explicit `Module.concat/2`
   * [Stream] Returning `{item, acc} | nil` from `Stream.resource/2` is deprecated, instead return `{[item], acc} | {:halt, acc}` (similar to `Stream.transform/3`)
 
 * Backwards incompatible changes
