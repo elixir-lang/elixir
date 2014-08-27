@@ -47,9 +47,9 @@ defmodule FileTest do
 
       try do
         File.mkdir(dest)
-        assert File.mv(src, dest) == :ok
-        refute File.exists?(src)
-        assert File.exists?(Path.join(dest, "file.txt"))
+        assert File.mv(src, dest) == {:error,:eisdir}
+        assert File.exists?(src)
+        refute File.exists?(Path.join(dest, "file.txt"))
       after
         File.rm_rf src
         File.rm_rf dest
@@ -88,9 +88,9 @@ defmodule FileTest do
       dest  = tmp_path("sub")
       try do
         File.mkdir_p(dest)
-        assert File.mv(src, dest) == :ok
-        assert File.exists?(tmp_path("sub/file.txt"))
-        refute File.exists?(src)
+        assert File.mv(src, dest) == {:error, :eisdir}
+        refute File.exists?(tmp_path("sub/file.txt"))
+        assert File.exists?(src)
       after
         File.rm_rf src
         File.rm_rf dest
@@ -126,6 +126,7 @@ defmodule FileTest do
           assert dest_file == dest
           false
         end) == {:error, :eexist}
+        assert File.exists?(src)
         assert File.read!(dest) == "hello"
       after
         File.rm_rf src
@@ -229,7 +230,8 @@ defmodule FileTest do
       end
     end
 
-    test :mv_with_dir_and_file_conflict do
+    # which case did we want?
+    test :mv_with_dir_and_file_conflict_FOLLOW_ERLANG_SEMANTICS do
       src  = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp")
 
@@ -239,27 +241,54 @@ defmodule FileTest do
         refute File.exists?(tmp_path("tmp/a/1.txt"))
         refute File.exists?(tmp_path("tmp/a/a/2.txt"))
         refute File.exists?(tmp_path("tmp/b/3.txt"))
+        assert File.exists?(tmp_path("tmp/x"))
+        assert File.exists?(src)
 
-        assert File.mv(src, dest) == :ok
-        {:ok, files} = File.ls(dest)
-        assert length(files) == 2
-        assert "a" in files
+        assert File.mv(src, dest) == {:error, :eexist}
 
-        {:ok, files} = File.ls(tmp_path("tmp/a"))
-        assert length(files) == 2
-        assert "1.txt" in files
-
-        assert File.exists?(tmp_path("tmp/a/1.txt"))
-        assert File.exists?(tmp_path("tmp/a/a/2.txt"))
-        assert File.exists?(tmp_path("tmp/b/3.txt"))
-
-        refute File.exists?(tmp_path("tmp/x"))
-        refute File.exists?(src)
+        refute File.exists?(tmp_path("tmp/a/1.txt"))
+        refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+        refute File.exists?(tmp_path("tmp/b/3.txt"))
+        assert File.exists?(tmp_path("tmp/x"))
+        assert File.exists?(src)
       after
         File.rm_rf src
         File.rm_rf dest
       end
     end
+
+    # which case did we want?
+    # test :mv_with_dir_and_file_conflict_IF_ALLOWED do
+    #   src  = tmp_fixture_path("cp_r")
+    #   dest = tmp_path("tmp")
+
+    #   File.mkdir_p(tmp_path("tmp/x"))
+
+    #   try do
+    #     refute File.exists?(tmp_path("tmp/a/1.txt"))
+    #     refute File.exists?(tmp_path("tmp/a/a/2.txt"))
+    #     refute File.exists?(tmp_path("tmp/b/3.txt"))
+
+    #     assert File.mv(src, dest) == :ok
+    #     {:ok, files} = File.ls(dest)
+    #     assert length(files) == 2
+    #     assert "a" in files
+
+    #     {:ok, files} = File.ls(tmp_path("tmp/a"))
+    #     assert length(files) == 2
+    #     assert "1.txt" in files
+
+    #     assert File.exists?(tmp_path("tmp/a/1.txt"))
+    #     assert File.exists?(tmp_path("tmp/a/a/2.txt"))
+    #     assert File.exists?(tmp_path("tmp/b/3.txt"))
+
+    #     refute File.exists?(tmp_path("tmp/x"))
+    #     refute File.exists?(src)
+    #   after
+    #     File.rm_rf src
+    #     File.rm_rf dest
+    #   end
+    # end
 
     test :mv_preserves_mode do
      File.mkdir_p!(tmp_path("tmp"))

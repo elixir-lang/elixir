@@ -398,11 +398,11 @@ defmodule File do
   It returns `:ok` in case of success, returns
   `{:error, reason}` otherwise
 
-  Note: current implementation allows you to copy a file to a directory
-   (and it will keep the same basename from the original file).  This
-   differs from erlang's base implementation
-   http://www.erlang.org/doc/man/file.html#rename-2
-   This functionality might change, as this is my first pull request
+  Note: we are following the erlang rename semantics and you are
+  unable to copy a file into directory, and instead must explicitly
+  set the destination file location.
+
+  http://www.erlang.org/doc/man/file.html#rename-2
   """
   @spec mv(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | {:error, posix}
   def mv(source, destination, callback \\ fn(_, _) -> true end) do
@@ -587,18 +587,17 @@ defmodule File do
     if File.exists?(dest) && !callback.(src,dest) do
       {:error, :eexist}
     else
-      case F.rename(src, dest) do
-        {:error, :eisdir} ->
-          mv(src, Path.join(dest, Path.basename(src)), callback)
-        {:error, :eexist} ->
-          if callback.(src, dest) do
-            _ = rm_rf(dest)
-            mv(src, dest)
-          else
-            {:error, :eexist}
-          end
-        other -> other
-      end
+      F.rename(src, dest)
+      # case F.rename(src, dest) do
+      #   {:error, :eexist} ->
+      #     if callback.(src, dest) do
+      #       _ = rm_rf(dest)
+      #       mv(src, dest)
+      #     else
+      #       {:error, :eexist}
+      #     end
+      #   other -> other
+      # end
     end
   end
 
