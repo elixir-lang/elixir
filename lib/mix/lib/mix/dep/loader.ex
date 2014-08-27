@@ -95,7 +95,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
-    unless is_binary(req) or Regex.regex?(req) or nil?(req) do
+    unless is_binary(req) or Regex.regex?(req) or is_nil(req) do
       invalid_dep_format(other)
     end
 

@@ -476,11 +476,6 @@ defmodule Module do
     :elixir_aliases.safe_concat([left, right])
   end
 
-  @doc false
-  def function(mod, fun, arity) do
-    :erlang.make_fun(mod, fun, arity)
-  end
-
   @doc """
   Attaches documentation to a given function or type. It expects
   the module the function/type belongs to, the line (a non negative
@@ -522,7 +517,7 @@ defmodule Module do
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
-          if(nil?(doc), do: old_doc, else: doc)
+          if(is_nil(doc), do: old_doc, else: doc)
        })
         :ok
     end
@@ -896,7 +891,7 @@ defmodule Module do
   end
 
   @doc false
-  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or nil?(warn)) do
+  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or is_nil(warn)) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 

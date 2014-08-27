@@ -1875,20 +1875,25 @@ defmodule Kernel do
     quote do: List.Chars.to_char_list(unquote(arg))
   end
 
+  @doc false
+  defmacro nil?(x) do
+    quote do: unquote(x) == nil
+  end
+
   @doc """
   Checks if the given argument is nil or not.
   Allowed in guard clauses.
 
   ## Examples
 
-      iex> nil?(1)
+      iex> is_nil(1)
       false
 
-      iex> nil?(nil)
+      iex> is_nil(nil)
       true
 
   """
-  defmacro nil?(x) do
+  defmacro is_nil(x) do
     quote do: unquote(x) == nil
   end
 

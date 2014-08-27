@@ -522,11 +522,19 @@ deprecation_message(Warning, Message) ->
     Message -> Warning ++ ", " ++ Message
   end.
 
-deprecation('Elixir.Module', 'function', 3) ->
-  "use :erlang.make_fun/3";
 deprecation('Elixir.Collectable', 'empty', 1) ->
   true;
 deprecation('Elixir.Enum', 'traverse', 2) ->
+  true;
+deprecation('Elixir.Kernel', 'nil?', 1) ->
+  true;
+deprecation('Elixir.Record', 'record?', 1) ->
+  true;
+deprecation('Elixir.Record', 'record?', 2) ->
+  true;
+deprecation('Elixir.Integer', 'even?', 1) ->
+  true;
+deprecation('Elixir.Integer', 'odd?', 1) ->
   true;
 deprecation(_, _, _) ->
   false.

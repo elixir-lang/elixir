@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Deps.Compile do
         check_unavailable!(app, status)
 
         compiled = cond do
-          not nil?(opts[:compile]) ->
+          not is_nil(opts[:compile]) ->
             do_compile dep
           mix?(dep) ->
             do_mix dep

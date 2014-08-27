@@ -6,9 +6,9 @@ defmodule SystemTest do
 
   test "build_info/0" do
     assert is_map System.build_info
-    assert not nil?(System.build_info[:version])
-    assert not nil?(System.build_info[:tag])
-    assert not nil?(System.build_info[:date])
+    assert not is_nil(System.build_info[:version])
+    assert not is_nil(System.build_info[:tag])
+    assert not is_nil(System.build_info[:date])
   end
 
   test "cwd/0" do

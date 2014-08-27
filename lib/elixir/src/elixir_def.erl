@@ -82,6 +82,7 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   LinifyBody   = elixir_quote:linify(Line, Key, Body),
 
   assert_no_aliases_name(Line, Name, Args, E),
+  assert_valid_name(Line, Kind, Name, Args, E),
   store_definition(Line, Kind, DoCheckClauses, Name,
                    LinifyArgs, LinifyGuards, LinifyBody, Location, E).
 
@@ -404,8 +405,12 @@ invalid_arg(_) ->
 
 assert_no_aliases_name(Line, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {no_alias, Atom});
+assert_no_aliases_name(_Line, _Aliases, _Args, _S) ->
+  ok.
 
-assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
+assert_valid_name(Line, Kind, is_record, [_, _], #{file := File}) when Kind == defp; Kind == def ->
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {is_record, Kind});
+assert_valid_name(_Line, _Kind, _Name, _Args, _S) ->
   ok.
 
 %% Format errors
@@ -446,6 +451,10 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
 
 format_error(invalid_args_for_bodyless_clause) ->
   "can use only variables and \\\\ as arguments of bodyless clause";
+
+format_error({is_record, Kind}) ->
+  io_lib:format("cannot define function named ~ts is_record/2 due to compability "
+                "issues with the Erlang compiler (it is a known bug)", [Kind]);
 
 format_error({missing_do, Kind}) ->
   io_lib:format("missing do keyword in ~ts", [Kind]).

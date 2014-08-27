@@ -76,7 +76,7 @@ defmodule Mix.DepTest do
 
     {_, true, _} =
       Mix.Dep.Converger.converge(false, [], nil, fn dep, acc, lock ->
-        assert nil?(dep.manager)
+        assert is_nil(dep.manager)
         {dep, acc or true, lock}
       end)
   end

@@ -105,9 +105,9 @@ defmodule Macro.Env do
   """
   def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
-      nil?(env.module) ->
+      is_nil(env.module) ->
         [{:elixir_compiler, :__FILE__, 1, relative_location(env)}]
-      nil?(env.function) ->
+      is_nil(env.function) ->
         [{env.module, :__MODULE__, 0, relative_location(env)}]
       true ->
         {name, arity} = env.function

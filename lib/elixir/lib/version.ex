@@ -324,7 +324,7 @@ defmodule Version do
         patch = nillify(patch)
         pre   = nillify(pre)
 
-        if nil?(minor) or (nil?(patch) and not approximate?) do
+        if is_nil(minor) or (is_nil(patch) and not approximate?) do
           :error
         else
           major = String.to_integer(major)

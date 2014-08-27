@@ -28,7 +28,7 @@ defmodule Mix.Dep.LockTest do
 
   test "stores version in manifest" do
     in_fixture "no_mixfile", fn ->
-      assert nil? Mix.Dep.Lock.elixir_vsn
+      assert is_nil Mix.Dep.Lock.elixir_vsn
       Mix.Dep.Lock.touch
       assert Mix.Dep.Lock.elixir_vsn == System.version
     end

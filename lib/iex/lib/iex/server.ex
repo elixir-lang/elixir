@@ -39,7 +39,7 @@ defmodule IEx.Server do
         :ok | {:error, :no_iex} | {:error, :refused}
   def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
     cond do
-      nil?(server) ->
+      is_nil(server) ->
         {:error, :no_iex}
       true ->
         ref = make_ref()

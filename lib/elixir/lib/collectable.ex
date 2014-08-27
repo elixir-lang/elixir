@@ -82,17 +82,6 @@ defimpl Collectable, for: BitString do
   end
 end
 
-defimpl Collectable, for: Function do
-  def empty(function) do
-    function
-  end
-
-  def into(function) do
-    IO.write :stderr, "warning: passing a function as Collectable is deprecated\n#{Exception.format_stacktrace}"
-    {function, function}
-  end
-end
-
 defimpl Collectable, for: Map do
   def empty(_map) do
     %{}

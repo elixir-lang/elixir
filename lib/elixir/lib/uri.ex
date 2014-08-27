@@ -309,7 +309,7 @@ defmodule URI do
 
     scheme = normalize_scheme(scheme)
 
-    if nil?(port) and not nil?(scheme) do
+    if is_nil(port) and not is_nil(scheme) do
       port = default_port(scheme)
     end
 

@@ -21,7 +21,7 @@ defmodule Logger.Backends.Console do
   end
 
   def handle_event({level, _gl, {Logger, msg, ts, md}}, %{level: min_level} = state) do
-    if nil?(min_level) or Logger.compare_levels(level, min_level) != :lt do
+    if is_nil(min_level) or Logger.compare_levels(level, min_level) != :lt do
       log_event(level, msg, ts, md, state)
     end
     {:ok, state}

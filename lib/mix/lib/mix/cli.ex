@@ -70,7 +70,7 @@ defmodule Mix.CLI do
   end
 
   defp change_env(task) do
-    if nil?(System.get_env("MIX_ENV")) &&
+    if is_nil(System.get_env("MIX_ENV")) &&
        (env = preferred_cli_env(task)) do
       Mix.env(env)
       if project = Mix.Project.pop do

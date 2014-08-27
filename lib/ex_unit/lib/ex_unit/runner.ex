@@ -181,7 +181,7 @@ defmodule ExUnit.Runner do
   defp run_test(config, test, context) do
     EM.test_started(config.manager, test)
 
-    if nil?(test.state) do
+    if is_nil(test.state) do
       test = spawn_test(config, test, Map.merge(test.tags, context))
     end
 

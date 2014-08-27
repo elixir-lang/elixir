@@ -47,7 +47,7 @@ defmodule IEx.Evaluator do
 
     path = Enum.find candidates, &File.regular?/1
 
-    if nil?(path) do
+    if is_nil(path) do
       config
     else
       eval_dot_iex(config, path)
