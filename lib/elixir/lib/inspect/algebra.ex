@@ -440,11 +440,11 @@ defmodule Inspect.Algebra do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
 
-  def do_surround_many(left, [], right, _, _opts, _fun, _) do
+  defp do_surround_many(left, [], right, _, _opts, _fun, _) do
     concat(left, right)
   end
 
-  def do_surround_many(left, docs, right, limit, _opts, fun, sep) do
+  defp do_surround_many(left, docs, right, limit, _opts, fun, sep) do
     surround(left, do_surround_many(docs, limit, _opts, fun, sep), right)
   end
 
