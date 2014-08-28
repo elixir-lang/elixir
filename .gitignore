@@ -11,3 +11,4 @@
 /rel/elixir
 erl_crash.dump
 .elixir.plt
+.*.swp
