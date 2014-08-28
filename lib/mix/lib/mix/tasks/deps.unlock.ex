@@ -6,28 +6,43 @@ defmodule Mix.Tasks.Deps.Unlock do
   @moduledoc """
   Unlock the given dependencies.
 
-  Since this is a destructive action, unlocking of all dependencies
-  can only happen by passing the `--all` command line option.
+  Since this is a destructive action, unlocking of dependencies
+  can only happen by passing arguments/options:
+
+    * `dep1, dep2` - the name of dependency to be unlocked
+    * `--all` - unlcks all dependencies
+    * `--unused` - unlocks only unused dependencies (no longer mentioned
+      in the `mix.exs` file)
+
   """
+
+  @switches [all: :boolean, unused: :boolean]
 
   def run(args) do
     Mix.Project.get!
-    {opts, args, _} = OptionParser.parse(args, switches: [all: :boolean])
+    {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
     cond do
       opts[:all] ->
         Mix.Dep.Lock.write([])
-      args != [] ->
-        lock =
-          Enum.reduce args, Mix.Dep.Lock.read, fn(arg, lock) ->
-            if is_binary(arg), do: arg = String.to_atom(arg)
-            Map.delete(lock, arg)
-          end
+      opts[:unused] ->
+        apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
+        Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
 
+      apps != [] ->
+        lock =
+          Enum.reduce apps, Mix.Dep.Lock.read, fn(app, lock) ->
+            Map.delete(lock, String.to_atom(app))
+          end
         Mix.Dep.Lock.write(lock)
+
       true ->
         Mix.raise "mix deps.unlock expects dependencies as arguments or " <>
-                                  "the --all option to unlock all dependencies"
+                  "the --all option to unlock all dependencies"
     end
+  end
+
+  defp unlock(apps) do
+
   end
 end
