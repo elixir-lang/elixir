@@ -6,52 +6,66 @@ defmodule Mix.Tasks.Deps.Clean do
   @moduledoc """
   Remove the given dependencies' files.
 
-  Since this is a destructive action, cleaning of all dependencies
-  can only happen by passing the `--all` command line option. It
-  also works accross all environments, unless `--only` is given.
+  Since this is a destructive action, cleaning of dependencies
+  can only happen by passing arguments/options:
 
-  Clean does not unlock the dependencies, unless `--unlock` is given.
-  The `--unused` flag removes unused the dependencies.
+    * `dep1, dep2` - the name of dependency to be removed
+    * `--all` - removes all dependencies
+    * `--unused` - removes only unused dependencies (no longer mentioned
+      in the `mix.exs` file)
+
+  By default this task works accross all environments, unless `--only`
+  is given.
   """
+
   @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean]
 
   def run(args) do
     Mix.Project.get!
-    {opts, args, _} = OptionParser.parse(args, switches: @switches)
+    {opts, apps, _} = OptionParser.parse(args, switches: @switches)
+
+    build = Mix.Project.build_path
+            |> Path.dirname
+            |> Path.join("#{opts[:only] || :*}/lib")
+    deps = Mix.Project.deps_path
 
     cond do
       opts[:all] ->
-        # Clean all deps by default unless --only is given
-        clean_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
-        apps = Mix.Dep.loaded(clean_opts) |> Enum.map(&(&1.app))
-        do_clean apps, opts
+        checked_deps(build, deps) |> do_clean(build, deps)
       opts[:unused] ->
-        Mix.Dep.loaded([]) |> Enum.map(&(&1.app)) |> unused_apps |> do_clean opts
-      args != [] ->
-        do_clean args, opts
+        checked_deps(build, deps) |> filter_loaded(opts) |> do_clean(build, deps)
+      apps != [] ->
+        do_clean(apps, build, deps)
       true ->
         Mix.raise "mix deps.clean expects dependencies as arguments or " <>
                   "a flag indicating which dependencies to clean " <>
                   "The --all option will clean all dependencies while"
                   "the --unused option cleans unused dependencies."
     end
-  end
 
-  defp unused_apps(loaded_apps) do
-    case File.ls(Mix.Project.deps_path) do
-      {:ok, deps} ->
-        Enum.reject deps,
-          fn(x) -> not File.dir?(x) and Enum.member?(loaded_apps, String.to_atom(x)) end
-      {_, _} -> []
+    if opts[:unlock] do
+      Mix.Task.run "deps.unlock", args
     end
   end
 
-  defp do_clean(apps, opts) do
+  defp checked_deps(build, deps) do
+    for root <- [deps, build],
+        path <- Path.wildcard(Path.join(root, "*")),
+        File.dir?(path) do
+      Path.basename(path)
+    end
+    |> Enum.uniq()
+    |> List.delete(to_string(Mix.Project.config[:app]))
+  end
+
+  defp filter_loaded(apps, opts) do
+    load_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
+    load_deps = Mix.Dep.loaded(load_opts) |> Enum.map(&Atom.to_string(&1.app))
+    Enum.reject(apps, &(&1 in load_deps))
+  end
+
+  defp do_clean(apps, build, deps) do
     shell = Mix.shell
-    build = Mix.Project.build_path
-            |> Path.dirname
-            |> Path.join("#{opts[:only] || :*}/lib")
-    deps  = Mix.Project.deps_path
 
     Enum.each apps, fn(app) ->
       shell.info "* Cleaning #{app}"
@@ -64,10 +78,6 @@ defmodule Mix.Tasks.Deps.Clean do
       deps
       |> Path.join(to_string(app))
       |> File.rm_rf!
-    end
-
-    if opts[:unlock] do
-      Mix.Task.run "deps.unlock", apps
     end
   end
 end

@@ -21,37 +21,30 @@ defmodule Mix.Tasks.CleanTest do
     :ok
   end
 
-  test "removes the build application" do
+  test "cleans the application build" do
     in_fixture "deps_status", fn ->
-      Mix.Tasks.Compile.run ["--no-deps"]
-      assert File.exists?("_build/dev/lib/sample")
+      File.mkdir_p! "_build/dev/lib/sample"
+      File.mkdir_p! "_build/test/lib/sample"
+      File.mkdir_p! "_build/dev/lib/ok"
 
       Mix.Tasks.Clean.run []
       refute File.exists?("_build/dev/lib/sample")
+      refute File.exists?("_build/test/lib/sample")
+      assert File.exists?("_build/dev/lib/ok")
     end
   end
 
-  test "cleans deps" do
+  test "cleans dependencies build" do
     in_fixture "deps_status", fn ->
-      assert File.exists?("_build/dev/lib/ok")
-      Mix.Tasks.Clean.run ["--all"]
+      File.mkdir_p! "_build/dev/lib/ok"
+      File.mkdir_p! "_build/test/lib/ok"
 
+      Mix.Tasks.Clean.run ["--deps", "--only", "dev"]
       refute File.exists?("_build/dev")
-      assert_received {:mix_shell, :info, ["* Cleaning ok"]}
+      assert File.exists?("_build/test")
 
-      # Assert we don't choke on unfetched deps
-      assert_received {:mix_shell, :info, ["* Cleaning unknown"]}
-    end
-  end
-
-  test "cleans all deps and builds" do
-    in_fixture "deps_status", fn ->
-      assert File.exists?("_build/dev/lib/ok")
-      Mix.Tasks.Clean.run ["--all"]
-
-      refute File.exists?("_build")
-      assert_received {:mix_shell, :info, ["* Cleaning ok"]}
-      assert_received {:mix_shell, :info, ["* Cleaning unknown"]}
+      Mix.Tasks.Clean.run ["--deps"]
+      refute File.exists?("_build/test")
     end
   end
 end

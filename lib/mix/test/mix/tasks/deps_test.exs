@@ -183,6 +183,16 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "unlocks unused deps" do
+    Mix.Project.push DepsApp
+    in_fixture "no_mixfile", fn ->
+      Mix.Dep.Lock.write %{whatever: "abcdef", ok: "abcdef"}
+      assert Mix.Dep.Lock.read == %{whatever: "abcdef", ok: "abcdef"}
+      Mix.Tasks.Deps.Unlock.run ["--unused"]
+      assert Mix.Dep.Lock.read == %{ok: "abcdef"}
+    end
+  end
+
   test "unlocks specific deps" do
     Mix.Project.push DepsApp
     in_fixture "no_mixfile", fn ->
@@ -531,12 +541,13 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "clean all deps" do
+  test "cleans dependencies" do
     Mix.Project.push CleanDepsApp
 
     in_fixture "deps_status", fn ->
-      File.mkdir_p!("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/raw_sample")
       File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("_build/test/lib/git_repo")
 
       message = "mix deps.clean expects dependencies as arguments or " <>
                 "a flag indicating which dependencies to clean " <>
@@ -547,16 +558,23 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Clean.run []
       end
 
+      Mix.Tasks.Deps.Clean.run ["--only", "dev", "--all"]
+      refute File.exists?("_build/dev/lib/git_repo")
+      assert File.exists?("_build/test/lib/git_repo")
+      assert File.exists?("_build/dev/lib/raw_sample")
+
       Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("_build/dev/lib/git_repo")
-      refute File.exists?("deps/git_repo")
+      refute File.exists?("_build/test/lib/git_repo")
+      assert File.exists?("_build/dev/lib/raw_sample")
     end
   end
 
-  test "clean unused" do
+  test "cleans unused dependencies" do
     Mix.Project.push CleanDepsApp
 
     in_fixture "deps_status", fn ->
+      File.mkdir_p!("_build/dev/lib/raw_sample")
       File.mkdir_p!("deps/git_repo")
       File.mkdir_p!("_build/dev/lib/git_repo")
       File.mkdir_p!("deps/git_repo_unused")
@@ -567,23 +585,7 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("_build/dev/lib/git_repo")
       refute File.exists?("deps/git_repo_unused")
       refute File.exists?("_build/dev/lib/git_repo_unused")
-    end
-  end
-
-  test "cleans dependencies" do
-    Mix.Project.push CleanDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.mkdir_p!("_build/dev/lib/git_repo")
-      File.mkdir_p!("_build/test/lib/git_repo")
-
-      Mix.Tasks.Deps.Clean.run ["--only", "dev", "--all"]
-      refute File.exists?("_build/dev/lib/git_repo")
-      assert File.exists?("_build/test/lib/git_repo")
-
-      Mix.Tasks.Deps.Clean.run ["--all"]
-      refute File.exists?("_build/dev/lib/git_repo")
-      refute File.exists?("_build/test/lib/git_repo")
+      assert File.exists?("_build/dev/lib/raw_sample")
     end
   end
 end

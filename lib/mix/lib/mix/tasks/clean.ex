@@ -7,37 +7,37 @@ defmodule Mix.Tasks.Clean do
   @moduledoc """
   Delete generated application files.
 
-  This command deletes all build artifacts for the current application
-  across all environments. Dependencies are only cleaned if the
-  `--all` option is given.
+  This command deletes all build artifacts for the current project
+  Dependencies' build files are cleaned if the `--deps` option is given.
 
-  ## Command line options
-
-    * `--all` - clean everything, including builds and dependencies
-
+  By default this task works accross all environments, unless `--only`
+  is given.
   """
+
+  @switches [deps: :boolean, only: :string]
 
   def run(args) do
     Mix.Project.get!
     loadpaths!
 
-    {opts, _, _} = OptionParser.parse(args)
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     _ = for compiler <- Mix.Tasks.Compile.compilers(),
             module = Mix.Task.get("compile.#{compiler}"),
             function_exported?(module, :clean, 0),
             do: module.clean
 
-    if opts[:all] do
-      Mix.Task.run("deps.clean", args)
-      Mix.Project.build_path
-      |> Path.dirname
-      |> File.rm_rf
+    build = Mix.Project.build_path
+            |> Path.dirname
+            |> Path.join("#{opts[:only] || :*}")
+
+    if opts[:deps] do
+      build
+      |> Path.wildcard
+      |> Enum.each(&File.rm_rf/1)
     else
-      config = Mix.Project.config
-      Mix.Project.build_path(config)
-      |> Path.dirname
-      |> Path.join("*/lib/#{config[:app]}")
+      build
+      |> Path.join("lib/#{Mix.Project.config[:app]}")
       |> Path.wildcard
       |> Enum.each(&File.rm_rf/1)
     end
