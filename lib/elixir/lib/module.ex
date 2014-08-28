@@ -85,6 +85,9 @@ defmodule Module do
       See http://www.erlang.org/doc/man/compile.html for the list of supported
       options.
 
+      Several uses of `@compile` will accumulate instead of overriding
+      previous ones.
+
       ### Example
 
             defmodule M do
