@@ -539,14 +539,34 @@ defmodule Mix.Tasks.DepsTest do
       File.mkdir_p!("_build/dev/lib/git_repo")
 
       message = "mix deps.clean expects dependencies as arguments or " <>
-                "the --all option to clean all dependencies"
+                "a flag indicating which dependencies to clean " <>
+                "The --all option will clean all dependencies while"
+                "the --unused option cleans unused dependencies."
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Deps.Clean.run []
       end
 
       Mix.Tasks.Deps.Clean.run ["--all"]
+      refute File.exists?("_build/dev/lib/git_repo")
       refute File.exists?("deps/git_repo")
+    end
+  end
+
+  test "clean unused" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.mkdir_p!("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("deps/git_repo_unused")
+      File.mkdir_p!("_build/dev/lib/git_repo_unused")
+
+      Mix.Tasks.Deps.Clean.run ["--unused"]
+      assert File.exists?("deps/git_repo")
+      assert File.exists?("_build/dev/lib/git_repo")
+      refute File.exists?("deps/git_repo_unused")
+      refute File.exists?("_build/dev/lib/git_repo_unused")
     end
   end
 

@@ -11,8 +11,9 @@ defmodule Mix.Tasks.Deps.Clean do
   also works accross all environments, unless `--only` is given.
 
   Clean does not unlock the dependencies, unless `--unlock` is given.
+  The `--unused` flag removes unused the dependencies.
   """
-  @switches [unlock: :boolean, all: :boolean, only: :string]
+  @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean]
 
   def run(args) do
     Mix.Project.get!
@@ -24,11 +25,24 @@ defmodule Mix.Tasks.Deps.Clean do
         clean_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
         apps = Mix.Dep.loaded(clean_opts) |> Enum.map(&(&1.app))
         do_clean apps, opts
+      opts[:unused] ->
+        Mix.Dep.loaded([]) |> Enum.map(&(&1.app)) |> unused_apps |> do_clean opts
       args != [] ->
         do_clean args, opts
       true ->
         Mix.raise "mix deps.clean expects dependencies as arguments or " <>
-                                  "the --all option to clean all dependencies"
+                  "a flag indicating which dependencies to clean " <>
+                  "The --all option will clean all dependencies while"
+                  "the --unused option cleans unused dependencies."
+    end
+  end
+
+  defp unused_apps(loaded_apps) do
+    case File.ls(Mix.Project.deps_path) do
+      {:ok, deps} ->
+        Enum.reject deps,
+          fn(x) -> not File.dir?(x) and Enum.member?(loaded_apps, String.to_atom(x)) end
+      {_, _} -> []
     end
   end
 
