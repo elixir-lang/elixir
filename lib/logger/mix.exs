@@ -11,7 +11,6 @@ defmodule Logger.Mixfile do
     [registered: [Logger, Logger.Supervisor, Logger.Watcher],
      mod: {Logger.App, []},
      env: [level: :debug,
-           timeout: 5000,
            utc_log: false,
            truncate: 8096,
            backends: [:console],
