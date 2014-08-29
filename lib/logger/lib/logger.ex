@@ -67,9 +67,6 @@ defmodule Logger do
       cause the message to be ignored. Keep in mind that each backend
       may have its specific level, too.
 
-    * `:timeout` - the timeout for sync requests in miliseconds, defaults
-      to 5000 miliseconds.
-
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e. it defaults to `false`).
 
@@ -369,16 +366,16 @@ defmodule Logger do
   or you want to explicitly avoid embedding metadata.
   """
   @spec log(level, message | (() -> message), Keyword.t) ::
-        :ok | {:error, :noproc} | {:error, :timeout} | {:error, term}
+        :ok | {:error, :noproc} | {:error, term}
   def log(level, chardata, metadata \\ []) when level in @levels and is_list(metadata) do
-    %{mode: mode, truncate: truncate, timeout: timeout,
+    %{mode: mode, truncate: truncate,
       level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
     if compare_levels(level, min_level) != :lt do
       tuple = {Logger, truncate(chardata, truncate), Logger.Utils.timestamp(utc_log?),
                [pid: self()] ++ metadata() ++ metadata}
       try do
-        notify(mode, {level, Process.group_leader(), tuple}, timeout)
+        notify(mode, {level, Process.group_leader(), tuple})
         :ok
       rescue
         ArgumentError -> {:error, :noproc}
@@ -462,6 +459,6 @@ defmodule Logger do
   defp truncate(data, n),
     do: Logger.Utils.truncate(to_string(data), n)
 
-  defp notify(:sync, msg, timeout),   do: GenEvent.sync_notify(Logger, msg, timeout)
-  defp notify(:async, msg, _timeout), do: GenEvent.notify(Logger, msg)
+  defp notify(:sync, msg),  do: GenEvent.sync_notify(Logger, msg)
+  defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
 end
