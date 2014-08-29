@@ -175,6 +175,13 @@ defmodule LoggerTest do
     end
   end
 
+  test "log/2 relies on sync_threshold" do
+    Logger.configure(sync_threshold: 0)
+    for _ <- 1..1000, do: Logger.log(:info, "some message")
+  after
+    Logger.configure(sync_threshold: 20)
+  end
+
   test "stop the application silently" do
     Application.put_env(:logger, :backends, [])
     Logger.App.stop()
