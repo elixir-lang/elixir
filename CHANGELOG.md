@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.0-rc2
+
+* Enhancements
+
+* Bug fixes
+
 ## v1.0.0-rc1 (2014-08-30)
 
 * Enhancements
