@@ -290,6 +290,23 @@ defmodule Kernel.ErrorsTest do
       'unquote 1'
   end
 
+  test :invalid_unquote_splicing_in_oneliners do
+    assert_compile_fail ArgumentError,
+      "unquote_splicing only works inside arguments and block contexts, " <>
+      "wrap it in parens if you want it to work with one-liners",
+      '''
+      defmodule Foo do
+        defmacro oneliner2 do
+          quote do: unquote_splicing 1
+        end
+
+        def callme do
+          oneliner2
+        end
+      end
+      '''
+  end
+
   test :invalid_quote_args do
     assert_compile_fail CompileError,
       "nofile:1: invalid arguments for quote",
