@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.15.2-dev
+## v1.0.0-rc1 (2014-08-30)
 
 * Enhancements
   * [ExUnit] Add timeouts to tests (which is configurable via tags)
