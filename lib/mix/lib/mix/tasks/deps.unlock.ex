@@ -41,8 +41,4 @@ defmodule Mix.Tasks.Deps.Unlock do
                   "the --all option to unlock all dependencies"
     end
   end
-
-  defp unlock(apps) do
-
-  end
 end
