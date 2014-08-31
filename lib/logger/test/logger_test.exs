@@ -164,7 +164,7 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
   end
 
-  test "log/2 does not fails when the Logger is off" do
+  test "log/2 does not fail when the Logger is off" do
     logger = Process.whereis(Logger)
     Process.unregister(Logger)
 
@@ -178,7 +178,11 @@ defmodule LoggerTest do
   test "log/2 relies on sync_threshold" do
     Logger.remove_backend(:console)
     Logger.configure(sync_threshold: 0)
-    for _ <- 1..1000, do: Logger.log(:info, "some message")
+    for _ <- 1..1000 do
+      capture_log(fn ->
+        Logger.log(:info, "some message")
+      end)
+    end
   after
     Logger.configure(sync_threshold: 20)
     Logger.add_backend(:console)

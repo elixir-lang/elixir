@@ -44,4 +44,20 @@ defmodule Logger.Case do
   after
     Logger.configure(level: :debug)
   end
+
+  def last_file_line do
+    Logger.flush()
+    File.read!("log/#{Mix.env}.log")
+      |> String.split("\n")
+      |> Enum.reverse
+      |> Enum.at(0)
+  end
+
+  def in_tmp(function) do
+    path = Path.expand("../tmp", __DIR__)
+    File.rm_rf! path
+    File.mkdir_p! path
+    File.cd! path, function
+    File.rm_rf! path
+  end
 end

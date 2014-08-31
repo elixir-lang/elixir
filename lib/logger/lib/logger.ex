@@ -116,6 +116,7 @@ defmodule Logger do
   The available backends by default are:
 
     * `:console` - Logs messages to the console (enabled by default)
+    * `:file`    - Logs messages to a specific file
 
   Developers may also implement their own backends, an option that
   is explored with detail below.
@@ -163,6 +164,24 @@ defmodule Logger do
         metadata: [:user_id]
 
   You can read more about formatting in `Logger.Formatter`.
+
+  ### File backend
+
+  The file backend accepts the following options:
+
+    * `:level` - the level to be logged by this backend.
+      Note that messages are first filtered by the general
+      `:level` configuration in `:logger`
+
+    * `:format` - the format message used to print logs.
+      Defaults to: `"$time $metadata[$level] $levelpad$message\n"`
+
+    * `:metadata` - the metadata to be printed by `$metadata`.
+      Defaults to an empty list (no metadata)
+
+    * `:log_file` - the location of the file in which to log
+      events.
+      Defaults to log/#{Mix.env}.log at the root of the project
 
   ### Custom backends
 

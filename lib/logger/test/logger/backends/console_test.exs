@@ -43,8 +43,8 @@ defmodule Logger.Backends.ConsoleTest do
     Logger.metadata(user_id: 13)
 
     assert capture_log(fn ->
-      Logger.debug("user_id=13 hello")
-    end) =~ "hello"
+      Logger.debug("hello")
+    end) =~ "user_id=13 hello"
   end
 
   test "can configure level" do
