@@ -151,7 +151,7 @@ escape(Expr, Unquote) ->
 
 %% Quotes an expression and return its quoted Elixir AST.
 
-quote({unquote_splicing, _, [_]}, Binding, #elixir_quote{unquote=true}, E) ->
+quote({unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
 
