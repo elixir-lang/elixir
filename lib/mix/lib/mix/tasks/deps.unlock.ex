@@ -31,8 +31,14 @@ defmodule Mix.Tasks.Deps.Unlock do
 
       apps != [] ->
         lock =
-          Enum.reduce apps, Mix.Dep.Lock.read, fn(app, lock) ->
-            Map.delete(lock, String.to_atom(app))
+          Enum.reduce apps, Mix.Dep.Lock.read, fn(app_str, lock) ->
+            app = String.to_atom(app_str)
+            if Map.has_key?(lock, app) do
+              Map.delete(lock, app)
+            else
+              Mix.shell.error "warning: #{app} dependency is not locked"
+              lock
+            end
           end
         Mix.Dep.Lock.write(lock)
 

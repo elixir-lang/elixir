@@ -199,6 +199,8 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Dep.Lock.write %{git_repo: "abcdef", another: "hash"}
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Dep.Lock.read == %{another: "hash"}
+      error = "warning: unknown dependency is not locked"
+      assert_received {:mix_shell, :error, [^error]}
     end
   end
 
