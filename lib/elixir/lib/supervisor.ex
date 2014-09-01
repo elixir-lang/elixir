@@ -132,7 +132,7 @@ defmodule Supervisor do
 
     * `:simple_one_for_one` - similar to `:one_for_one` but suits better
       when dynamically attaching children. This strategy requires the
-      supervisor specification to contain only one children. Many functions
+      supervisor specification to contain only one child. Many functions
       in this module behave slightly differently when this strategy is
       used.
 
