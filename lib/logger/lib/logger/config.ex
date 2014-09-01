@@ -71,19 +71,13 @@ defmodule Logger.Config do
     {:ok, state}
   end
 
-  def handle_event(_event, state) do
-    {:message_queue_len, len} = Process.info(self(), :message_queue_len)
-
-    cond do
-      len > state.sync_threshold and state.mode == :async ->
-        state = %{state | mode: :sync}
-        persist(state)
+  def handle_event(_event, %{mode: mode} = state) do
+    case compute_mode(state) do
+      ^mode ->
         {:ok, state}
-      len < state.async_threshold and state.mode == :sync ->
-        state = %{state | mode: :async}
+      new_mode ->
+        state = %{state | mode: new_mode}
         persist(state)
-        {:ok, state}
-      true ->
         {:ok, state}
     end
   end
@@ -121,6 +115,19 @@ defmodule Logger.Config do
 
   ## Helpers
 
+  defp compute_mode(state) do
+    {:message_queue_len, len} = Process.info(self(), :message_queue_len)
+
+    cond do
+      len > state.sync_threshold and state.mode == :async ->
+        :sync
+      len < state.async_threshold and state.mode == :sync ->
+        :async
+      true ->
+        state.mode
+    end
+  end
+
   defp update_backends(fun) do
     backends = fun.(Application.get_env(:logger, :backends, []))
     Application.put_env(:logger, :backends, backends)
@@ -141,9 +148,16 @@ defmodule Logger.Config do
     sync_threshold  = Application.get_env(:logger, :sync_threshold)
     async_threshold = trunc(sync_threshold * 0.75)
 
-    persist %{level: level, mode: mode, truncate: truncate,
+    state = %{level: level, mode: mode, truncate: truncate,
               utc_log: utc_log, sync_threshold: sync_threshold,
               async_threshold: async_threshold, translators: translators}
+
+    case compute_mode(state) do
+      ^mode ->
+        persist(state)
+      new_mode ->
+        persist(%{state | mode: new_mode})
+    end
   end
 
   defp persist(state) do

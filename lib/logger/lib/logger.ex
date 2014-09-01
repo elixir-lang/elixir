@@ -380,7 +380,7 @@ defmodule Logger do
       rescue
         ArgumentError -> {:error, :noproc}
       catch
-        :exit, {reason, _} -> {:error, reason}
+        :exit, reason -> {:error, reason}
       end
     else
       :ok
