@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   can only happen by passing arguments/options:
 
     * `dep1 dep2` - the name of dependency to be unlocked
-    * `--all` - unlcks all dependencies
+    * `--all` - unlocks all dependencies
     * `--unused` - unlocks only unused dependencies (no longer mentioned
       in the `mix.exs` file)
 
