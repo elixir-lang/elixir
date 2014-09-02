@@ -351,6 +351,7 @@ defmodule Logger.TranslatorTest do
       trap = Process.flag(:trap_exit, true)
       Supervisor.start_link([worker(__MODULE__, [], [function: :error])],
         [strategy: :one_for_one])
+      receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
@@ -364,6 +365,7 @@ defmodule Logger.TranslatorTest do
       trap = Process.flag(:trap_exit, true)
       Supervisor.start_link([worker(__MODULE__, [], [function: :undef])],
         [strategy: :one_for_one])
+      receive do: ({:EXIT, _, {:shutdown, {:failed_to_start_child, _, _}}} -> :ok)
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
