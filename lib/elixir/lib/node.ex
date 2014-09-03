@@ -30,7 +30,7 @@ defmodule Node do
   returns `{:error, :not_allowed}`. Returns `{:error, :not_found}` if the
   local node is not alive.
   """
-  @spec stop() :: :ok | {:error, term}
+  @spec stop() :: :ok | {:error, :not_allowed | :not_found}
   def stop() do
     :net_kernel.stop()
   end

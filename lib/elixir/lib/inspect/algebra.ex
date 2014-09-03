@@ -482,7 +482,7 @@ defmodule Inspect.Algebra do
   and returns an IO data representation of the best layout for the
   document to fit in the given width.
   """
-  @spec format(t, non_neg_integer | :infinity) :: binary
+  @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(d, w) do
     format(w, 0, [{0, default_mode(w), doc_group(d)}])
   end

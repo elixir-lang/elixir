@@ -408,7 +408,7 @@ defmodule Kernel.CLI do
   end
 
   defp wrapper(fun) do
-    fun.()
+    _ = fun.()
     :ok
   end
 

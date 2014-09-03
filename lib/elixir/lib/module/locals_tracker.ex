@@ -360,7 +360,7 @@ defmodule Module.LocalsTracker do
   end
 
   defp replace_edge!(d, from, to) do
-    unless :lists.member(to, :digraph.out_neighbours(d, from)) do
+    _ = unless :lists.member(to, :digraph.out_neighbours(d, from)) do
       [:"$e"|_] = :digraph.add_edge(d, from, to)
     end
     :ok
