@@ -145,12 +145,12 @@ defmodule Supervisor.Spec do
       in the `Supervisor` module docs.
 
     * `:max_restarts` - the maximum amount of restarts allowed in
-      a time frame. Defaults to 5.
+      a time frame. Defaults to 3.
 
     * `:max_seconds` - the time frame in which `:max_restarts` applies.
       Defaults to 5.
 
-  The `:strategy` option is required and by default maximum 5 restarts
+  The `:strategy` option is required and by default maximum 3 restarts
   are allowed within 5 seconds. Please check the `Supervisor` module for
   a complete description of the available strategies.
   """
@@ -162,7 +162,7 @@ defmodule Supervisor.Spec do
       raise ArgumentError, "expected :strategy option to be given"
     end
 
-    maxR = Keyword.get(options, :max_restarts, 5)
+    maxR = Keyword.get(options, :max_restarts, 3)
     maxS = Keyword.get(options, :max_seconds, 5)
 
     assert_unique_ids(Enum.map(children, &elem(&1, 0)))
