@@ -86,7 +86,7 @@ defmodule Logger.ErrorHandler do
       match?({^m, ^s, _}, last_time) ->
         state
       true ->
-        if dropped > 0 do
+        _ = if dropped > 0 do
           Logger.warn "Logger dropped #{dropped} OTP/SASL messages as it " <>
                       "exceeded the amount of #{threshold} messages/second"
         end

@@ -76,9 +76,7 @@ defmodule Logger.Config do
       ^mode ->
         {:ok, state}
       new_mode ->
-        state = %{state | mode: new_mode}
-        persist(state)
-        {:ok, state}
+        {:ok, persist(%{state | mode: new_mode})}
     end
   end
 
