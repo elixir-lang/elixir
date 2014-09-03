@@ -281,7 +281,7 @@ defmodule ExUnit.Assertions do
           unquote(expected) = received -> received
         after
           unquote(timeout) ->
-            flunk(unquote(message) <> mailbox(self))
+            flunk(unquote(message) <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
@@ -291,19 +291,21 @@ defmodule ExUnit.Assertions do
   @max_mailbox_length 10
 
   @doc false
-  def mailbox(pid) do
+  def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    mailbox = Enum.take(messages, @max_mailbox_length)
-      |> Enum.map_join("\n", &inspect/1)
-    ". Process mailbox (#{length}):" <> mailbox_message(length, mailbox)
+    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join("\n", &inspect/1)
+    mailbox_message(length, mailbox)
   end
 
-  defp mailbox_message(0, _mailbox), do: " []"
+  defp mailbox_message(0, _mailbox), do: ". The process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    "\n" <> mailbox <> "\nShowing only #{@max_mailbox_length} first messages."
+    ". Process mailbox:\n" <> mailbox
+      <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
-  defp mailbox_message(_length, mailbox), do: "\n" <> mailbox
+  defp mailbox_message(_length, mailbox) do
+    ". Process mailbox:\n" <> mailbox
+  end
 
   @doc """
   Asserts the `exception` is raised during `function` execution with

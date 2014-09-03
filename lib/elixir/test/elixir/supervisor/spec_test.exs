@@ -64,7 +64,7 @@ defmodule Supervisor.SpecTest do
 
   test "supervise/2" do
     assert supervise([], strategy: :one_for_one) == {
-      :ok, {{:one_for_one, 5, 5}, []}
+      :ok, {{:one_for_one, 3, 5}, []}
    }
 
     children = [worker(GenEvent, [])]
