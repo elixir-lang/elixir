@@ -40,8 +40,11 @@ defmodule Logger.Formatter do
   value.
   """
 
+  @type time :: {{1970..10000, 1..12, 1..31}, {0..23, 0..59, 0..59, 0..999}}
+  @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
+
 
   @doc ~S"""
   Compiles a format string into an array that the `format/5` can handle.
@@ -55,7 +58,7 @@ defmodule Logger.Formatter do
       iex> Logger.Formatter.compile("$time $metadata [$level] $message\n")
       [:time, " ", :metadata, " [", :level, "] ", :message, "\n"]
   """
-  @spec compile(binary | nil) :: list()
+  @spec compile(binary | nil) :: [pattern | binary]
   @spec compile({atom, atom}) :: {atom, atom}
 
   def compile(nil), do: compile(@default_pattern)
@@ -80,6 +83,8 @@ defmodule Logger.Formatter do
   metadata listdict and returns a properly formatted string.
   """
 
+  @spec format({atom, atom} | [pattern | binary], Logger.level, Logger.message, time, Keyword.t) ::
+    IO.chardata
   def format({mod, fun}, level, msg, ts, md) do
     apply(mod, fun, [level, msg, ts, md])
   end
