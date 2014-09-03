@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Deps.Check do
     * `--no-compile` - do not compile dependencies
 
   """
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     lock = Mix.Dep.Lock.read
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))

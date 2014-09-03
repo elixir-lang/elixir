@@ -10,6 +10,8 @@ defmodule Mix.Tasks.Loadpaths do
     * `--no-elixir-version-check` - do not check elixir version
 
   """
+
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     config = Mix.Project.config
 
@@ -30,6 +32,8 @@ defmodule Mix.Tasks.Loadpaths do
     unless "--no-readd" in args do
       Code.readd_paths()
     end
+
+    :ok
   end
 
   defp check_elixir_version(config, _) do

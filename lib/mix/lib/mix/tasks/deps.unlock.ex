@@ -18,13 +18,14 @@ defmodule Mix.Tasks.Deps.Unlock do
 
   @switches [all: :boolean, unused: :boolean]
 
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
     cond do
       opts[:all] ->
-        Mix.Dep.Lock.write([])
+        Mix.Dep.Lock.write(%{})
       opts[:unused] ->
         apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
         Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()

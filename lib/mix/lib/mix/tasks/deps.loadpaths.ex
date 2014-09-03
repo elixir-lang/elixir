@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   Loads the available dependencies paths.
   """
 
+  @spec run(OptionParser.argv) :: :ok
   def run(_) do
     config = Mix.Project.config
     Mix.Project.build_path(config)

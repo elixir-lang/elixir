@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Clean do
 
   @switches [deps: :boolean, only: :string]
 
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     loadpaths!
