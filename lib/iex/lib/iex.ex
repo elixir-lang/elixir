@@ -291,7 +291,7 @@ defmodule IEx do
   end
 
   defp configure(k, v) do
-    raise ArgumentError, "invalid value #{inspect v} for configuration #{inspect k}"
+    raise ArgumentError, "invalid configuration or value for pair #{inspect k} - #{inspect v}"
   end
 
   @doc """
