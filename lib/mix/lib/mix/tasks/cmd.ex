@@ -15,6 +15,7 @@ defmodule Mix.Tasks.Cmd do
   Aborts when the first command exits with status different
   than zero.
   """
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     case Mix.shell.cmd(Enum.join(args, " ")) do
       0 -> :ok

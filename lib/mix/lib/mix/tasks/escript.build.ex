@@ -84,6 +84,7 @@ defmodule Mix.Tasks.Escript.Build do
       end
 
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile: :boolean])

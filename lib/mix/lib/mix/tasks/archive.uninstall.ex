@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Archive.Uninstall do
       mix archive.uninstall archive.ez
 
   """
-
+  @spec run(OptionParser.argv) :: :ok
   def run(argv) do
     {_, argv, _} = OptionParser.parse(argv)
 

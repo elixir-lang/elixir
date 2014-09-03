@@ -31,6 +31,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   @doc """
   Runs this task.
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 

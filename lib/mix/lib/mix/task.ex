@@ -307,7 +307,7 @@ defmodule Mix.Task do
     Mix.TasksServer.delete_many([{:task, task, proj},
                                  {:alias, task, proj}])
 
-    if (module = get(task)) && recursive(module) && Mix.Project.umbrella? do
+   _ = if (module = get(task)) && recursive(module) && Mix.Project.umbrella? do
       recur fn proj ->
         Mix.TasksServer.delete_many([{:task, task, proj},
                                      {:alias, task, proj}])

@@ -42,6 +42,8 @@ defmodule Mix.Tasks.New do
       mix new hello_world --sup
 
   """
+
+  @spec run(OptionParser.argv) :: :ok
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 
