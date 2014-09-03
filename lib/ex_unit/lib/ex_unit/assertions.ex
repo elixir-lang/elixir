@@ -281,12 +281,29 @@ defmodule ExUnit.Assertions do
           unquote(expected) = received -> received
         after
           unquote(timeout) ->
-            flunk unquote(message)
+            flunk(unquote(message) <> mailbox(self))
         end
       end
 
     {:receive, [{:export_head, true}|meta], args}
   end
+
+  @max_mailbox_length 10
+
+  @doc false
+  def mailbox(pid) do
+    {:messages, messages} = Process.info(pid, :messages)
+    length = length(messages)
+    mailbox = Enum.take(messages, @max_mailbox_length)
+      |> Enum.map_join("\n", &inspect/1)
+    ". Process mailbox (#{length}):" <> mailbox_message(length, mailbox)
+  end
+
+  defp mailbox_message(0, _mailbox), do: " []"
+  defp mailbox_message(length, mailbox) when length > 10 do
+    "\n" <> mailbox <> "\nShowing only #{@max_mailbox_length} first messages."
+  end
+  defp mailbox_message(_length, mailbox), do: "\n" <> mailbox
 
   @doc """
   Asserts the `exception` is raised during `function` execution with

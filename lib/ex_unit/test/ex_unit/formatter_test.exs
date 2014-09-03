@@ -133,4 +133,15 @@ defmodule ExUnit.FormatterTest do
                 6]
     """
   end
+
+  test "formats assertions with message with multiple lines" do
+    message = "Some meaningful error:\nuseful info\nanother useful info"
+    failure = {:error, catch_assertion(assert(false, message)), []}
+    assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) =~ """
+      1) Hello: failure on setup_all callback, tests invalidated
+         Some meaningful error:
+         useful info
+         another useful info
+    """
+  end
 end

@@ -171,6 +171,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_banner(value, formatter) do
+    value = String.replace(value, "\n", "\n" <> @counter_padding)
     formatter.(:error_info, value)
   end
 
