@@ -4,7 +4,22 @@ defmodule Macro.Env do
 
   The current environment can be accessed at any time as
   `__ENV__`. Inside macros, the caller environment can be
-  accessed as `__CALLER__`. It contains the following fields:
+  accessed as `__CALLER__`.
+
+  An instance of `Macro.Env` must not be modified by hand. If you need to
+  create a custom environment to pass to `Code.eval_quoted/3`, use the
+  following trick:
+
+      def make_custom_env do
+        import SomeModule, only: [some_function: 2]
+        alias A.B.C
+        __ENV__
+      end
+
+  You may then call `make_custom_env()` to get a struct with the desired
+  imports and aliases included.
+
+  It contains the following fields:
 
     * `module` - the current module name
     * `file` - the current file name as a binary
