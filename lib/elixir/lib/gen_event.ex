@@ -678,7 +678,7 @@ defmodule GenEvent do
 
   @doc false
   def system_replace_state(fun, [name, handlers, hib]) do
-    {handlers, states} =
+    [handlers, states] =
       List.unzip(for handler <- handlers do
         handler(module: mod, id: id, state: state) = handler
         cur = {mod, id, state}
