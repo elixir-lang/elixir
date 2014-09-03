@@ -91,27 +91,30 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello. Process mailbox (0): []" = error.message
+        "No message matching :hello. The process mailbox is empty." = error.message
     end
   end
 
   test "assert received when different message" do
     send self, {:message, :not_expected, :at_all}
     try do
-      "This should never be tested" = assert_receive :hello, 5_000
+      "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello. Process mailbox (1):\n{:message, :not_expected, :at_all}" = error.message
+        "No message matching :hello. Process mailbox:\n{:message, :not_expected, :at_all}" = error.message
     end
   end
 
   test "assert received when different message having more than 10 on mailbox" do
     for i <- 1..11, do: send(self, {:message, i})
     try do
-      "This should never be tested" = assert_receive :hello, 5_000
+      "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello. Process mailbox (11):\n{:message, 1}\n{:message, 2}\n{:message, 3}\n{:message, 4}\n{:message, 5}\n{:message, 6}\n{:message, 7}\n{:message, 8}\n{:message, 9}\n{:message, 10}\nShowing only 10 first messages." = error.message
+        "No message matching :hello. Process mailbox:\n" <>
+        "{:message, 1}\n{:message, 2}\n{:message, 3}\n{:message, 4}\n" <>
+        "{:message, 5}\n{:message, 6}\n{:message, 7}\n{:message, 8}\n" <>
+        "{:message, 9}\n{:message, 10}\nShowing only 10 of 11 messages." = error.message
     end
   end
 

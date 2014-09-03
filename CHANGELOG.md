@@ -3,8 +3,16 @@
 ## v1.0.0-rc2
 
 * Enhancements
+  * [ExUnit] Print process mailbox on failing `assert_receive`
+  * [Mix] `mix deps.unlock` warns when given missing dependency
+  * [Kernel] Friendlier `unquote_splicing` error on inline quote
 
 * Bug fixes
+  * [Logger] Fix `Logger.log/2` not to raise on Logger exit
+  * [Logger] Recompute sync/async mode on Logger configuration
+
+* Backwards incompatible changes
+  * [Supervisor] Make `max_restarts` default to 3 (closer to upcoming Erlang defaults)
 
 ## v1.0.0-rc1 (2014-08-30)
 
