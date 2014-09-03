@@ -247,7 +247,7 @@ defmodule List do
       [a: 1, b: 2, c: 3]
 
   """
-  @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple]
+  @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple, ...]
   def keystore(list, key, position, new_tuple) do
     :lists.keystore(key, position + 1, list, new_tuple)
   end
@@ -532,7 +532,7 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(char_list, non_neg_integer) :: integer
+  @spec to_integer(char_list, 2..36) :: integer
   def to_integer(char_list, base) do
     :erlang.list_to_integer(char_list, base)
   end

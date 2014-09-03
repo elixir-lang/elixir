@@ -183,7 +183,7 @@ test_stdlib: compile
 
 #==> Dialyzer tasks
 
-DIALYZER_OPTS = --no_check_plt --fullpath -Werror_handling -Wunmatched_returns -Wrace_conditions -Wunderspecs
+DIALYZER_OPTS = --no_check_plt --fullpath -Werror_handling -Wunmatched_returns -Wunderspecs
 PLT = .elixir.plt
 
 $(PLT):

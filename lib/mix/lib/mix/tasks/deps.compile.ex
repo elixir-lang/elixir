@@ -26,7 +26,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
                          format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
-
+  
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     Mix.Task.run "deps.loadpaths"
@@ -67,7 +68,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled
       end)
 
-    if Enum.any?(compiled), do: Mix.Dep.Lock.touch
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
   end
 
   # All available dependencies can be compiled

@@ -13,6 +13,8 @@ defmodule Mix.Tasks.Loadconfig do
   can be called multiple times to load different
   configs.
   """
+
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     cond do
       file = Enum.at(args, 0) ->

@@ -6,12 +6,12 @@
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
--spec warn(non_neg_integer(), binary(), iolist()) -> ok.
+-spec warn(non_neg_integer(), binary(), unicode:chardata()) -> ok.
 
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
   warn(file_format(Line, File), Warning).
 
--spec warn(iolist(), iolist()) -> ok.
+-spec warn(unicode:chardata(), unicode:chardata()) -> ok.
 
 warn(Caller, Warning) ->
   do_warn([Caller, "warning: ", Warning, $\n]).
@@ -31,8 +31,8 @@ form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
 
 %% Compilation error.
 
--spec compile_error(list(), binary(), iolist()) -> no_return().
--spec compile_error(list(), binary(), iolist(), list()) -> no_return().
+-spec compile_error(list(), binary(), unicode:charlist()) -> no_return().
+-spec compile_error(list(), binary(), string(), list()) -> no_return().
 
 compile_error(Meta, File, Message) when is_list(Message) ->
   raise(Meta, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).

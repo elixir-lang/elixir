@@ -1423,7 +1423,7 @@ defmodule String do
       1023
 
   """
-  @spec to_integer(String.t, pos_integer) :: integer
+  @spec to_integer(String.t, 2..36) :: integer
   def to_integer(string, base) do
     :erlang.binary_to_integer(string, base)
   end

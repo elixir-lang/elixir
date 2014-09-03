@@ -22,9 +22,10 @@ defmodule Mix.Tasks.Compile do
     * `--force`         - force compilation
 
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(["--list"]) do
     loadpaths!
-    Mix.Task.load_all
+    _ = Mix.Task.load_all
 
     shell   = Mix.shell
     modules = Mix.Task.all_modules

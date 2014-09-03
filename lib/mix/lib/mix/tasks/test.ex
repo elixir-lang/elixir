@@ -134,6 +134,7 @@ defmodule Mix.Tasks.Test do
 
   @cover [output: "cover", tool: Cover]
 
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
@@ -182,7 +183,7 @@ defmodule Mix.Tasks.Test do
     test_pattern = project[:test_pattern] || "*_test.exs"
 
     test_files = Mix.Utils.extract_files(test_files, test_pattern)
-    Kernel.ParallelRequire.files(test_files)
+    _ = Kernel.ParallelRequire.files(test_files)
 
     # Run the test suite, coverage tools and register an exit hook
     %{failures: failures} = ExUnit.run
