@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Archive.Build do
       Only applies when `mix.exs` is available.
 
   """
-
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, aliases: [o: :output, i: :input],
                                       switches: [force: :boolean, compile: :boolean])

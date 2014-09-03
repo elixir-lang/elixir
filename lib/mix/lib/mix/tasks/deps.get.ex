@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Deps.Get do
     * `--quiet` - do not output verbose messages
     * `--only`  - only fetch dependencies for given environment
   """
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args, switches: [quiet: :boolean, only: :string])
@@ -23,6 +24,8 @@ defmodule Mix.Tasks.Deps.Get do
 
     if apps == [] && !opts[:quiet] do
       Mix.shell.info "All dependencies up to date"
+    else
+      :ok
     end
   end
 end

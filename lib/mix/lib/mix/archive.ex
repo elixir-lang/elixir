@@ -66,6 +66,7 @@ defmodule Mix.Archive do
     {:ok, _} = :zip.create(String.to_char_list(target_path),
                   files_to_add(source_path, dir),
                   uncompress: ['.beam', '.app'])
+    :ok
   end
 
   defp files_to_add(path, dir) do

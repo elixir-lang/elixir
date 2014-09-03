@@ -2384,7 +2384,7 @@ defmodule Kernel do
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
   """
-  @spec function_exported?(atom | tuple, atom, integer) :: boolean
+  @spec function_exported?(atom | tuple, atom, arity) :: boolean
   def function_exported?(module, function, arity) do
     :erlang.function_exported(module, function, arity)
   end

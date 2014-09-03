@@ -17,6 +17,7 @@ defmodule Mix.Tasks.App.Start do
     * `--no-start`      - do not start applications after compilation
 
   """
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
     Mix.Task.run "loadpaths", ["--no-readd"|args]

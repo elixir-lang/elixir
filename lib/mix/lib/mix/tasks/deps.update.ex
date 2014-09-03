@@ -16,6 +16,7 @@ defmodule Mix.Tasks.Deps.Update do
     * `--all`  - update all dependencies
     * `--only` - only fetch dependencies for given environment
   """
+  @spec run(OptionParser.argv) :: [atom]
   def run(args) do
     Mix.Project.get!
     {opts, rest, _} = OptionParser.parse(args, switches: [all: :boolean, only: :string])

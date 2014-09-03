@@ -45,6 +45,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @doc """
   Runs this task.
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 

@@ -345,7 +345,7 @@ defmodule Process do
 
   See http://www.erlang.org/doc/man/erlang.html#process_flag-3 for more info.
   """
-  @spec flag(pid, process_flag, term) :: term
+  @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
   def flag(pid, flag, value) do
     :erlang.process_flag(pid, flag, value)
   end

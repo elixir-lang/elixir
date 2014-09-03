@@ -50,7 +50,7 @@ defmodule Logger.App do
   def stop() do
     set = Application.get_env(:logger, :deleted_handlers)
     Application.put_env(:logger, :deleted_handlers, HashSet.new)
-    Application.stop(:logger)
+    _ = Application.stop(:logger)
     Enum.each(set, &:error_logger.add_report_handler/1)
   end
 

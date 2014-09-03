@@ -33,6 +33,8 @@ defmodule Mix.Tasks.Run do
     * `--no-start`      - do not start applications after compilation
 
   """
+
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     {opts, head, _} = OptionParser.parse_head(args,
       aliases: [r: :require, pr: :parallel_require, e: :eval, c: :config],
@@ -63,6 +65,7 @@ defmodule Mix.Tasks.Run do
     end
 
     unless Keyword.get(opts, :halt, true), do: :timer.sleep(:infinity)
+    :ok
   end
 
   defp process_config(opts) do

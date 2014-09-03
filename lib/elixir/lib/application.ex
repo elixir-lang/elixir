@@ -201,7 +201,7 @@ defmodule Application do
   `:applications` in the `.app` file in case they were not previously
   started.
   """
-  @spec ensure_all_started(app, start_type) :: {:ok, [app]} | {:error, term}
+  @spec ensure_all_started(app, start_type) :: {:ok, [app]} | {:error, {app, term}}
   def ensure_all_started(app, type \\ :temporary) when is_atom(app) do
     :application.ensure_all_started(app, type)
   end

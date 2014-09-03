@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Compile.Protocols do
       true
 
   """
-
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Task.run "compile", args
     {opts, _, _} = OptionParser.parse(args, switches: [output: :string], aliases: [o: :output])
