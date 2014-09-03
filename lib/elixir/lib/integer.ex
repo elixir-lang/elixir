@@ -111,7 +111,7 @@ defmodule Integer do
       "64"
 
   """
-  @spec to_string(integer, pos_integer) :: String.t
+  @spec to_string(integer, 2..36) :: String.t
   def to_string(some_integer, base) do
     :erlang.integer_to_binary(some_integer, base)
   end
@@ -144,7 +144,7 @@ defmodule Integer do
       '3FF'
 
   """
-  @spec to_char_list(integer, pos_integer) :: char_list
+  @spec to_char_list(integer, 2..36) :: char_list
   def to_char_list(number, base) do
     :erlang.integer_to_list(number, base)
   end

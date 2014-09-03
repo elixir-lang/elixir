@@ -75,6 +75,12 @@ defmodule File do
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
   @type stat_options :: [time: :local | :universal | :posix]
+  @type mode :: :append | :binary | :compressed | :delayed_write | :exclusive |
+    :raw | :read | :read_ahead | :sync | :write |
+    {:encoding , :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
+      {:utf16, :big | :little} | {:utf32, :big | :little}} |
+    {:read_ahead, pos_integer} |
+    {:delayed_write, non_neg_integer, non_neg_integer}
 
   @doc """
   Returns `true` if the path is a regular file.
@@ -612,7 +618,7 @@ defmodule File do
 
   Check `File.open/2` for other available options.
   """
-  @spec write(Path.t, iodata, list) :: :ok | {:error, posix}
+  @spec write(Path.t, iodata, [mode]) :: :ok | {:error, posix}
   def write(path, content, modes \\ []) do
     F.write_file(IO.chardata_to_string(path), content, modes)
   end
@@ -620,7 +626,7 @@ defmodule File do
   @doc """
   Same as `write/3` but raises an exception if it fails, returns `:ok` otherwise.
   """
-  @spec write!(Path.t, iodata, list) :: :ok | no_return
+  @spec write!(Path.t, iodata, [mode]) :: :ok | no_return
   def write!(path, content, modes \\ []) do
     path = IO.chardata_to_string(path)
     case F.write_file(path, content, modes) do
@@ -902,7 +908,8 @@ defmodule File do
       File.close(file)
 
   """
-  @spec open(Path.t, list) :: {:ok, io_device} | {:error, posix}
+  @spec open(Path.t, [mode | :ram]) :: {:ok, io_device} | {:error, posix}
+  @spec open(Path.t, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
   def open(path, modes \\ [])
 
   def open(path, modes) when is_list(modes) do
@@ -935,7 +942,7 @@ defmodule File do
       end)
 
   """
-  @spec open(Path.t, list, (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
+  @spec open(Path.t, [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
   def open(path, modes, function) do
     case open(path, modes) do
       {:ok, device} ->
@@ -953,7 +960,7 @@ defmodule File do
 
   Returns the `io_device` otherwise.
   """
-  @spec open!(Path.t, list) :: io_device | no_return
+  @spec open!(Path.t, [mode]) :: io_device | no_return
   def open!(path, modes \\ []) do
     path = IO.chardata_to_string(path)
     case open(path, modes) do
@@ -968,7 +975,7 @@ defmodule File do
 
   Returns the function result otherwise.
   """
-  @spec open!(Path.t, list, (io_device -> res)) :: res | no_return when res: var
+  @spec open!(Path.t, [mode | :ram], (io_device -> res)) :: res | no_return when res: var
   def open!(path, modes, function) do
     path = IO.chardata_to_string(path)
     case open(path, modes, function) do
@@ -1124,7 +1131,7 @@ defmodule File do
   Returns `:ok` on success, or `{:error, reason}`
   on failure.
   """
-  @spec chmod(Path.t, integer) :: :ok | {:error, posix}
+  @spec chmod(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chmod(path, mode) do
     F.change_mode(IO.chardata_to_string(path), mode)
   end
@@ -1132,7 +1139,7 @@ defmodule File do
   @doc """
   Same as `chmod/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chmod!(Path.t, integer) :: :ok | no_return
+  @spec chmod!(Path.t, non_neg_integer) :: :ok | no_return
   def chmod!(path, mode) do
     path = IO.chardata_to_string(path)
     case chmod(path, mode) do
@@ -1147,7 +1154,7 @@ defmodule File do
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
   """
-  @spec chgrp(Path.t, integer) :: :ok | {:error, posix}
+  @spec chgrp(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chgrp(path, gid) do
     F.change_group(IO.chardata_to_string(path), gid)
   end
@@ -1155,7 +1162,7 @@ defmodule File do
   @doc """
   Same as `chgrp/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chgrp!(Path.t, integer) :: :ok | no_return
+  @spec chgrp!(Path.t, non_neg_integer) :: :ok | no_return
   def chgrp!(path, gid) do
     path = IO.chardata_to_string(path)
     case chgrp(path, gid) do
@@ -1170,7 +1177,7 @@ defmodule File do
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
   """
-  @spec chown(Path.t, integer) :: :ok | {:error, posix}
+  @spec chown(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chown(path, uid) do
     F.change_owner(IO.chardata_to_string(path), uid)
   end
@@ -1178,7 +1185,7 @@ defmodule File do
   @doc """
   Same as `chown/2`, but raises an exception in case of failure. Otherwise `:ok`.
   """
-  @spec chown!(Path.t, integer) :: :ok | no_return
+  @spec chown!(Path.t, non_neg_integer) :: :ok | no_return
   def chown!(path, uid) do
     path = IO.chardata_to_string(path)
     case chown(path, uid) do

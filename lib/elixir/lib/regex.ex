@@ -133,6 +133,7 @@ defmodule Regex do
   Compiles the regular expression according to the given options.
   Fails with `Regex.CompileError` if the regex cannot be compiled.
   """
+  @spec compile(binary, binary | [term]) :: t
   def compile!(source, options \\ "") do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -152,6 +153,7 @@ defmodule Regex do
       false
 
   """
+  @spec match?(t, String.t) :: boolean
   def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
     :re.run(string, compiled, [{:capture, :none}]) == :match
   end
@@ -168,6 +170,8 @@ defmodule Regex do
       false
 
   """
+  @spec regex?(t) :: true
+  @spec regex?(any) :: false
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
@@ -193,6 +197,7 @@ defmodule Regex do
       [{2,2},{3,1}]
 
   """
+  @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
   def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
@@ -223,6 +228,7 @@ defmodule Regex do
       nil
 
   """
+  @spec named_captures(t, String.t, [term]) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -233,6 +239,7 @@ defmodule Regex do
   @doc """
   Returns the underlying `re_pattern` in the regular expression.
   """
+  @spec re_pattern(t) :: term
   def re_pattern(%Regex{re_pattern: compiled}) do
     compiled
   end
@@ -246,6 +253,7 @@ defmodule Regex do
       "foo"
 
   """
+  @spec source(t) :: String.t
   def source(%Regex{source: source}) do
     source
   end
@@ -259,6 +267,7 @@ defmodule Regex do
       "m"
 
   """
+  @spec opts(t) :: String.t
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -272,6 +281,7 @@ defmodule Regex do
       ["foo"]
 
   """
+  @spec names(t) :: [String.t]
   def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
@@ -301,6 +311,7 @@ defmodule Regex do
       []
 
   """
+  @spec scan(t, String.t, [term]) :: [[String.t]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
@@ -353,7 +364,7 @@ defmodule Regex do
       ["a", "c"]
 
   """
-
+  @spec split(t, String.t, [term]) :: [String.t]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", _opts), do: [""]
@@ -439,6 +450,7 @@ defmodule Regex do
       "[b][d]"
 
   """
+  @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
   def replace(regex, string, replacement, options \\ [])
 
   def replace(regex, string, replacement, options) when is_binary(replacement) do
