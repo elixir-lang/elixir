@@ -4,6 +4,7 @@
 
 * Enhancements
   * [ExUnit] Print process mailbox on failing `assert_receive`
+  * [ExUnit] Tag all doctests with the `:doctest` tag
   * [Mix] `mix deps.unlock` warns when given missing dependency
   * [Kernel] Friendlier `unquote_splicing` error on inline quote
 
