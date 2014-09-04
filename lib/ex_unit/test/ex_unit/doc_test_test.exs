@@ -264,6 +264,20 @@ defmodule ExUnit.DocTestTest do
     """
   end
 
+  test "tags tests as doctests" do
+    defmodule DoctestTag do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.NoImport
+
+      setup test do
+        assert test.doctest
+        :ok
+      end
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~ "1 tests, 0 failures"
+  end
+
   test "multiple exceptions in one test case is not supported" do
     assert_raise ExUnit.DocTest.Error, ~r"multiple exceptions in one doctest case are not supported", fn ->
       defmodule NeverCompiled do

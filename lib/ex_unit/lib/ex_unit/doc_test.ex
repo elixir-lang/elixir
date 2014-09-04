@@ -152,6 +152,7 @@ defmodule ExUnit.DocTest do
     tests = quote bind_quoted: binding do
       file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
       for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
+        @tag :doctest
         @file file
         test name, do: unquote(test)
       end
@@ -348,9 +349,9 @@ defmodule ExUnit.DocTest do
 
     moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
 
-    docs = for doc <- all_docs[:docs] do
-      extract_from_doc(doc)
-    end |> Enum.concat
+    docs = for doc <- all_docs[:docs],
+               doc <- extract_from_doc(doc),
+               do: doc
 
     moduledocs ++ docs
   end
