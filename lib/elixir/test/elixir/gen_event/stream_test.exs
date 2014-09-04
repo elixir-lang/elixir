@@ -214,7 +214,7 @@ defmodule GenEvent.StreamTest do
       stream = GenEvent.stream(pid, id: make_ref())
 
       parent = self()
-      child = spawn_link fn -> send parent, Enum.take(stream, 5) end
+      spawn_link(fn -> send parent, Enum.take(stream, 5) end)
       wait_for_handlers(pid, 1)
 
       for i <- 1..3 do
@@ -222,11 +222,8 @@ defmodule GenEvent.StreamTest do
       end
 
       [handler] = GenEvent.which_handlers(pid)
-      Process.flag(:trap_exit, true)
       GenEvent.swap_handler(pid, handler, :swap_handler, UnknownHandler, [])
-      assert_receive {:EXIT, ^child,
-                       {{:swapped, UnknownHandler, _},
-                        {Enumerable.GenEvent.Stream, :stop, [_, _]}}}, @receive_timeout
+      assert_receive [1, 2, 3], @receive_timeout
     end
 
     test "#{mode} stream/2 with manager unregistered" do

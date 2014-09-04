@@ -885,13 +885,13 @@ defmodule GenEvent do
 
     receive do
       {^ref, :ok} ->
-        server_collect_process_handlers(:sync, event, t, [handler|handlers], name)
+        server_collect_process_handlers(mode, event, t, [handler|handlers], name)
       {^ref, :done} ->
         do_terminate(handler, :remove_handler, event, name, :normal)
-        server_collect_process_handlers(:sync, event, t, handlers, name)
+        server_collect_process_handlers(mode, event, t, handlers, name)
       {:DOWN, ^ref, _, _, reason} ->
         do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
-        server_collect_process_handlers(:sync, event, t, handlers, name)
+        server_collect_process_handlers(mode, event, t, handlers, name)
     end
   end
 
