@@ -5,11 +5,6 @@ defmodule Integer do
 
   import Bitwise
 
-  @doc false
-  defmacro odd?(n) do
-    quote do: (unquote(n) &&& 1) == 1
-  end
-
   @doc """
   Determines if an integer is odd.
 
@@ -19,11 +14,6 @@ defmodule Integer do
   """
   defmacro is_odd(n) do
     quote do: (unquote(n) &&& 1) == 1
-  end
-
-  @doc false
-  defmacro even?(n) do
-    quote do: (unquote(n) &&& 1) == 0
   end
 
   @doc """

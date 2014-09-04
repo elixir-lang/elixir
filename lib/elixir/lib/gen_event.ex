@@ -355,8 +355,6 @@ defmodule GenEvent do
   @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}
   def add_handler(manager, handler, args, options \\ []) do
     cond do
-      Keyword.get(options, :link, false) ->
-        raise ArgumentError, message: "GenEvent.add_handler/4 with link is deprecated and no longer works"
       Keyword.get(options, :monitor, false) ->
         rpc(manager, {:add_mon_handler, handler, args, self()})
       true ->
@@ -486,8 +484,6 @@ defmodule GenEvent do
   @spec swap_handler(manager, handler, term, handler, term, [monitor: boolean]) :: :ok | {:error, term}
   def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
     cond do
-      Keyword.get(options, :link, false) ->
-        raise ArgumentError, message: "GenEvent.swap_handler/6 with link is deprecated and no longer works"
       Keyword.get(options, :monitor, false) ->
         rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
       true ->

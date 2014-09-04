@@ -480,6 +480,40 @@ defmodule StreamTest do
     assert Process.get(:stream_resource)
   end
 
+  test "resource/3 halts with inner enum" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> {acc..acc+2, acc + 1} end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    Process.put(:stream_resource, false)
+    assert Enum.take(stream, 5) == [1, 2, 3, 2, 3]
+    assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 closes on errors with inner enum" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn acc -> {acc..acc+2, acc + 1} end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    Process.put(:stream_resource, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 is zippable with inner enum" do
+    stream = Stream.resource(fn -> 1 end,
+                             fn 10 -> {:halt, 10}
+                                acc -> {acc..acc+2, acc + 1}
+                             end,
+                             fn _ -> Process.put(:stream_resource, true) end)
+
+    list = Enum.to_list(stream)
+    Process.put(:stream_resource, false)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+    assert Process.get(:stream_resource)
+  end
+
   test "scan/2" do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert is_lazy(stream)
