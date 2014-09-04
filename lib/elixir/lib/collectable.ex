@@ -21,20 +21,12 @@ defprotocol Collectable do
   shape where just the range limits are stored.
 
   The `Collectable` module was designed to fill the gap left by the
-  `Enumerable` protocol. It provides two functions: `into/1` and `empty/1`.
-
-  `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
-  `Enumerable` is about taking values out, `Collectable.into/1` is about
-  collecting those values into a structure.
+  `Enumerable` protocol. `into/1` can be seen as the opposite of
+  `Enumerable.reduce/3`. If `Enumerable` is about taking values out,
+  `Collectable.into/1` is about collecting those values into a structure.
   """
 
   @type command :: {:cont, term} | :done | :halt
-
-  @doc """
-  Receives a collectable structure and returns an empty one.
-  """
-  @spec empty(t) :: t
-  def empty(collectable)
 
   @doc """
   Returns a function that collects values alongside
@@ -55,10 +47,6 @@ defprotocol Collectable do
 end
 
 defimpl Collectable, for: List do
-  def empty(_list) do
-    []
-  end
-
   def into(original) do
     {[], fn
       list, {:cont, x} -> [x|list]
@@ -69,10 +57,6 @@ defimpl Collectable, for: List do
 end
 
 defimpl Collectable, for: BitString do
-  def empty(_bitstring) do
-    ""
-  end
-
   def into(original) do
     {original, fn
       acc, {:cont, x} when is_bitstring(x) -> [acc|x]
@@ -83,10 +67,6 @@ defimpl Collectable, for: BitString do
 end
 
 defimpl Collectable, for: Map do
-  def empty(_map) do
-    %{}
-  end
-
   def into(original) do
     {original, fn
       map, {:cont, {k, v}} -> :maps.put(k, v, map)

@@ -1798,15 +1798,6 @@ defmodule Enum do
     reverse(collection) |> :lists.reverse
   end
 
-  @doc false
-  def traverse(collection, transform) when is_list(collection) do
-    :lists.map(transform, collection)
-  end
-
-  def traverse(collection, transform) do
-    into(collection, apply(Collectable, :empty, [collection]), transform)
-  end
-
   @doc """
   Enumerates the collection, removing all duplicated items.
 

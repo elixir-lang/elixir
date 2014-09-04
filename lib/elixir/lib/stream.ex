@@ -1017,17 +1017,13 @@ defmodule Stream do
     {:halted, acc}
   end
 
-  # TODO: We should check this is a two-item tuple once
-  # we remove support for the deprecated nil
-  # TODO: Support non lists once the previous format
-  # is removed
   defp do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun) do
     try do
       # Optimize the most common cases
       case next_fun.(next_acc) do
         {[], next_acc}  -> {:opt, {:cont, acc}, next_acc}
         {[v], next_acc} -> {:opt, fun.(v, acc), next_acc}
-        other           -> other
+        {_, _} = other  -> other
       end
     catch
       kind, reason ->
@@ -1042,15 +1038,10 @@ defmodule Stream do
       {list, next_acc} when is_list(list) ->
         do_list_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
                          &Enumerable.List.reduce(list, &1, fun))
-      nil ->
-        IO.write :stderr, "warning: returning nil from Stream.resource/3 is deprecated, " <>
-                          "please return {:halt, acc} instead\n#{Exception.format_stacktrace}"
-        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
-      {v, next_acc} ->
-        IO.write :stderr, "warning: returning {next, acc} from Stream.resource/3 is deprecated, " <>
-                          "please return {[val], acc} instead\n#{Exception.format_stacktrace}"
-        do_list_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
-                         &Enumerable.List.reduce([v], &1, fun))
+      {enum, next_acc} ->
+        inner = &do_resource_each(&1, &2, fun)
+        do_enum_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun,
+                         &Enumerable.reduce(enum, &1, inner))
     end
   end
 
@@ -1069,6 +1060,33 @@ defmodule Stream do
         do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
       {:suspended, acc, c} ->
         {:suspended, acc, &do_list_resource(next_acc, next_fun, &1, fun, after_fun, c)}
+    end
+  end
+
+  defp do_enum_resource(next_acc, next_fun, {op, acc}, fun, after_fun, reduce) do
+    try do
+      reduce.({op, [:outer|acc]})
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        after_fun.(next_acc)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      {:halted, [:outer|acc]} ->
+        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+      {:halted, [:inner|acc]} ->
+        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+      {:done, [_|acc]} ->
+        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+      {:suspended, [_|acc], c} ->
+        {:suspended, acc, &do_enum_resource(next_acc, next_fun, &1, fun, after_fun, c)}
+    end
+  end
+
+  defp do_resource_each(x, [:outer|acc], f) do
+    case f.(x, acc) do
+      {:halt, res} -> {:halt, [:inner|res]}
+      {op, res}    -> {op, [:outer|res]}
     end
   end
 
