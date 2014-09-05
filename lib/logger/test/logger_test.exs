@@ -34,7 +34,7 @@ defmodule LoggerTest do
     assert :ok = Logger.remove_backend(:console)
     assert Application.get_env(:logger, :backends) == []
     assert Logger.remove_backend(:console) ==
-           {:error, :module_not_found}
+           {:error, :handler_not_found}
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
