@@ -79,44 +79,30 @@ defimpl Enumerable, for: GenEvent.Stream do
   end
 
   defp start(%{manager: manager} = stream) do
-    {pid, ref, mon_ref} =
-      try do
-        pid = whereis(manager)
-        ref = Process.monitor(pid)
-        {:ok, msg_ref} = :gen.call(pid, self(), {:add_process_handler, self(), true}, :infinity)
-        {pid, msg_ref, ref}
-      catch
-        :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
-      end
-
-    {pid, ref, mon_ref}
-  end
-
-  defp whereis(pid) when is_pid(pid), do: pid
-  defp whereis(atom) when is_atom(atom), do: Process.whereis(atom) || exit(:noproc)
-  defp whereis({:global, name}), do: :global.whereis_name(name)
-  defp whereis({:via, module, name}), do: module.whereis_name(name)
-  defp whereis({atom, node}) do
-    case :rpc.call(node, :erlang, :whereis, [atom]) do
-      :undefined -> exit(:noproc)
-      {:badrpc, :nodedown} -> exit({:nodedown, node})
-      pid when is_pid(pid) -> pid
+    try do
+      {:ok, {pid, ref}} = :gen.call(manager, self(), {:add_process_handler, self(), true}, :infinity)
+      mon_ref = Process.monitor(pid)
+      {pid, ref, mon_ref}
+    catch
+      :exit, reason -> exit({reason, {__MODULE__, :start, [stream]}})
     end
   end
 
   defp next(%{timeout: timeout} = stream, {pid, ref, mon_ref} = acc) do
+    self = self()
+
     receive do
       # The handler was removed. Stop iteration, resolve the
       # event later. We need to demonitor now, otherwise DOWN
       # appears with higher priority in the shutdown process.
-      {:gen_event_EXIT, {GenEvent.Stream, ^ref}, _reason} = event ->
+      {:gen_event_EXIT, {GenEvent.Stream, ^self}, _reason} = event ->
         Process.demonitor(mon_ref, [:flush])
-        send(self(), event)
+        send(self, event)
         {:halt, {:removed, acc}}
 
       # The manager died. Stop iteration, resolve the event later.
       {:DOWN, ^mon_ref, _, _, _} = event ->
-        send(self(), event)
+        send(self, event)
         {:halt, {:removed, acc}}
 
       # Got an async event.
@@ -149,23 +135,26 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   # If we reach this branch, the handler was not removed yet,
   # so we trigger a request for doing so.
-  defp stop(stream, {pid, ref, _} = acc) do
-    _ = Task.start(fn -> GenEvent.remove_handler(pid, {GenEvent.Stream, ref}, :shutdown) end)
+  defp stop(stream, {pid, _, _} = acc) do
+    parent = self()
+    _ = Task.start(fn -> GenEvent.remove_handler(pid, {GenEvent.Stream, parent}, :shutdown) end)
     stop(stream, {:removed, acc})
   end
 
   defp wait_for_handler_removal(pid, ref, mon_ref) do
+    self = self()
+
     receive do
       {_from, {^pid, ^ref}, {notify, _event}} when notify in [:ack_notify, :sync_notify] ->
         send pid, {ref, :done}
         wait_for_handler_removal(pid, ref, mon_ref)
-      {:gen_event_EXIT, {GenEvent.Stream, ^ref}, reason}
+      {:gen_event_EXIT, {GenEvent.Stream, ^self}, reason}
           when reason == :normal
           when reason == :shutdown
           when tuple_size(reason) == 3 and elem(reason, 0) == :swapped  ->
         Process.demonitor(mon_ref, [:flush])
         :ok
-      {:gen_event_EXIT, {GenEvent.Stream, ^ref}, reason} ->
+      {:gen_event_EXIT, {GenEvent.Stream, ^self}, reason} ->
         Process.demonitor(mon_ref, [:flush])
         {:error, reason}
       {:DOWN, ^mon_ref, _, _, reason} ->
