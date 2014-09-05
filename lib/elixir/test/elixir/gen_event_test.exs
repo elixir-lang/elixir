@@ -221,7 +221,7 @@ defmodule GenEventTest do
     GenEvent.stop(pid)
   end
 
-  test "add_handler/4" do
+  test "add_handler/3" do
     {:ok, pid} = GenEvent.start()
 
     assert GenEvent.add_handler(pid, ReplyHandler, {:custom, {:error, :my_error}}) ==
@@ -240,12 +240,12 @@ defmodule GenEventTest do
     assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}, ReplyHandler]
   end
 
-  test "add_handler/4 with monitor" do
+  test "add_mon_handler/3" do
     {:ok, pid} = GenEvent.start()
     parent = self()
 
     {mon_pid, mon_ref} = spawn_monitor(fn ->
-      assert GenEvent.add_handler(pid, ReplyHandler, {self(), false}, monitor: true) == :ok
+      assert GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false}) == :ok
       send parent, :ok
       receive after: (:infinity -> :ok)
     end)
@@ -265,20 +265,20 @@ defmodule GenEventTest do
     assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}]
   end
 
-  test "add_handler/4 with notifications" do
+  test "add_mon_handler/3 with notifications" do
     {:ok, pid} = GenEvent.start()
     self = self()
 
-    GenEvent.add_handler(pid, ReplyHandler, {self(), false}, monitor: true)
+    GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
     GenEvent.remove_handler(pid, ReplyHandler, :ok)
     assert_receive {:gen_event_EXIT, ReplyHandler, :normal}
 
-    GenEvent.add_handler(pid, ReplyHandler, {self(), false}, monitor: true)
-    GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
+    :ok = GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
+    :ok = GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
     assert_receive {:gen_event_EXIT, ReplyHandler, {:swapped, ReplyHandler, nil}}
 
-    GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap, monitor: true)
-    GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap, monitor: true)
+    :ok = GenEvent.swap_mon_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
+    :ok = GenEvent.swap_mon_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
     assert_receive {:gen_event_EXIT, ReplyHandler, {:swapped, ReplyHandler, ^self}}
 
     GenEvent.stop(pid)
@@ -288,7 +288,7 @@ defmodule GenEventTest do
   test "remove_handler/3" do
     {:ok, pid} = GenEvent.start()
 
-    GenEvent.add_handler(pid, ReplyHandler, {self(), false}, monitor: true)
+    GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
 
     assert GenEvent.remove_handler(pid, {ReplyHandler, self()}, :ok) ==
            {:error, :handler_not_found}
@@ -296,7 +296,7 @@ defmodule GenEventTest do
            {:terminate, :ok}
     assert_receive {:terminate, :ok}
 
-    GenEvent.add_handler(pid, {ReplyHandler, self()}, {self(), false}, monitor: true)
+    GenEvent.add_mon_handler(pid, {ReplyHandler, self()}, {self(), false})
 
     assert GenEvent.remove_handler(pid, ReplyHandler, :ok) ==
            {:error, :handler_not_found}
@@ -306,7 +306,7 @@ defmodule GenEventTest do
     assert GenEvent.which_handlers(pid) == []
   end
 
-  test "swap_handler/6" do
+  test "swap_handler/5" do
     {:ok, pid} = GenEvent.start()
 
     GenEvent.add_handler(pid, ReplyHandler, {self(), false})

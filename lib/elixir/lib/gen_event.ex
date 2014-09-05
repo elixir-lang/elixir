@@ -166,7 +166,7 @@ defmodule GenEvent do
 
   Keep in mind though Elixir and Erlang gen events are not 100% compatible.
   The `:gen_event.add_sup_handler/3` is not supported by Elixir's GenEvent,
-  which in turn supports `monitor: true` in `GenEvent.add_handler/4`.
+  which in turn supports `GenEvent.add_mon_handler/3`.
 
   The benefits of the monitoring approach are described in the "Don't drink
   too much kool aid" section of the "Learn you some Erlang" link above. Due
@@ -316,11 +316,28 @@ defmodule GenEvent do
 
   If the given handler was previously installed at the manager, this
   function returns `{:error, :already_present}`.
+  """
+  @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}
+  def add_handler(manager, handler, args, options \\ []) do
+    cond do
+      Keyword.get(options, :monitor, false) ->
+        IO.write :stderr, "warning: the :monitor option in GenEvent.add_handler/4 is deprecated, " <>
+                          "please use GenEvent.add_mon_handler/3 instead\n#{Exception.format_stacktrace}"
+        rpc(manager, {:add_mon_handler, handler, args, self()})
+      true ->
+        rpc(manager, {:add_handler, handler, args})
+    end
+  end
+
+  @doc """
+  Adds a monitored event handler to the event `manager`.
+
+  Expects the same input and returns the same values as `add_handler/3`.
 
   ## Monitored handlers
 
-  When adding a handler, a `:monitor` option with value `true` can be given.
-  This means the calling process will now be monitored by the GenEvent handler.
+  A monitored handler implies the calling process will now be monitored
+  by the GenEvent manager.
 
   If the calling process later terminates with `reason`, the event manager
   will delete the event handler by calling the `terminate/2` callback with
@@ -352,14 +369,9 @@ defmodule GenEvent do
   Finally, this functionality only works with GenEvent started via this
   module (it is not backwards compatible with Erlang's `:gen_event`).
   """
-  @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}
-  def add_handler(manager, handler, args, options \\ []) do
-    cond do
-      Keyword.get(options, :monitor, false) ->
-        rpc(manager, {:add_mon_handler, handler, args, self()})
-      true ->
-        rpc(manager, {:add_handler, handler, args})
-    end
+  @spec add_mon_handler(manager, handler, term) :: :ok | {:error, term}
+  def add_mon_handler(manager, handler, args) do
+    rpc(manager, {:add_mon_handler, handler, args, self()})
   end
 
   @doc """
@@ -474,10 +486,6 @@ defmodule GenEvent do
   is not installed or if the handler fails to terminate with a given reason
   in which case `state = {:error, term}`.
 
-  A `:monitor` option can also be set to specify if the new handler
-  should be monitored by the manager. See `add_handler/4` for more
-  information.
-
   If `init/1` in the second handler returns a correct value, this
   function returns `:ok`.
   """
@@ -485,10 +493,22 @@ defmodule GenEvent do
   def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
     cond do
       Keyword.get(options, :monitor, false) ->
+        IO.write :stderr, "warning: the :monitor option in GenEvent.swap_handler/6 is deprecated, " <>
+                          "please use GenEvent.swap_mon_handler/5 instead\n#{Exception.format_stacktrace}"
         rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
       true ->
         rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
     end
+  end
+
+  @doc """
+  Replaces an old event handler with a new monitored one in the event `manager`.
+
+  Read the docs for `add_mon_handler/3` and `swap_handler/5` for more information.
+  """
+  @spec swap_mon_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
+  def swap_mon_handler(manager, handler1, args1, handler2, args2) do
+    rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
   end
 
   @doc """
