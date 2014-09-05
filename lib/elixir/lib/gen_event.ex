@@ -547,6 +547,7 @@ defmodule GenEvent do
   end
 
   def init_it(starter, parent, name, _, _, options) do
+    Process.put(:"$initial_call", {__MODULE__, :init_it, 6})
     debug = :gen.debug_options(options)
     :proc_lib.init_ack(starter, {:ok, self()})
     loop(parent, name(name), [], debug, false)
@@ -729,8 +730,8 @@ defmodule GenEvent do
     end
 
     [header: header,
-     data: [{"Status", sys_state}, {"Parent", parent}],
-     items: {"Installed handlers", formatted}]
+     data: [{'Status', sys_state}, {'Parent', parent}],
+     items: {'Installed handlers', formatted}]
   end
 
   ## Loop helpers
