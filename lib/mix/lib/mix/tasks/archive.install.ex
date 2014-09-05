@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Archive.Install do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, shell: :boolean])
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)
@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Archive.Install do
       dest = Mix.Local.archives_path()
       File.mkdir_p!(dest)
       archive = Path.join(dest, basename(src))
-      create_file archive, Mix.Utils.read_path!(src)
+      create_file archive, Mix.Utils.read_path!(src, opts)
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
       false
