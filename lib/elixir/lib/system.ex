@@ -94,10 +94,19 @@ defmodule System do
   """
   def cwd do
     case :file.get_cwd do
-      {:ok, base} -> IO.chardata_to_string(base)
+      {:ok, base} -> IO.chardata_to_string(fix_drive_letter(base))
       _ -> nil
     end
   end
+
+  defp fix_drive_letter([l, ?:, ?/ | rest] = original) when l in ?A..?Z do
+    case :os.type() do
+      {:win32, _} -> [l+?a-?A, ?:, ?/ | rest]
+      _ -> original
+    end
+  end
+
+  defp fix_drive_letter(original), do: original
 
   @doc """
   Current working directory, exception on error.

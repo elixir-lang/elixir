@@ -996,18 +996,27 @@ defmodule File do
   @spec cwd() :: {:ok, binary} | {:error, posix}
   def cwd() do
     case F.get_cwd do
-      {:ok, base} -> {:ok, IO.chardata_to_string(base)}
+      {:ok, base} -> {:ok, IO.chardata_to_string(fix_drive_letter(base))}
       {:error, _} = error -> error
     end
   end
+
+  defp fix_drive_letter([l, ?:, ?/ | rest] = original) when l in ?A..?Z do
+    case :os.type() do
+      {:win32, _} -> [l+?a-?A, ?:, ?/ | rest]
+      _ -> original
+    end
+  end
+
+  defp fix_drive_letter(original), do: original
 
   @doc """
   The same as `cwd/0`, but raises an exception if it fails.
   """
   @spec cwd!() :: binary | no_return
   def cwd!() do
-    case F.get_cwd do
-      {:ok, cwd} -> IO.chardata_to_string(cwd)
+    case cwd() do
+      {:ok, cwd} -> cwd
       {:error, reason} ->
           raise File.Error, reason: reason, action: "get current working directory"
     end
