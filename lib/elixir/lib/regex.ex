@@ -78,7 +78,7 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: ""
 
-  @opaque t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
