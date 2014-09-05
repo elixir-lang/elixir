@@ -732,57 +732,33 @@ defmodule GenEvent do
 
   defp server_add_handler({module, id}, args, handlers) do
     handler = handler(module: module, id: {module, id})
-    server_add_handler(module, handler, args, handlers)
+    do_add_handler(module, handler, args, handlers, :ok)
   end
 
   defp server_add_handler(module, args, handlers) do
     handler = handler(module: module, id: module)
-    server_add_handler(module, handler, args, handlers)
-  end
-
-  defp server_add_handler(module, handler, arg, handlers) do
-    case :lists.keyfind(handler(handler, :id), handler(:id) + 1, handlers) do
-      false ->
-        case do_handler(module, :init, [arg]) do
-          {:ok, res} ->
-            case res do
-              {:ok, state} ->
-                {false, :ok, [handler(handler, state: state)|handlers]}
-              {:ok, state, :hibernate} ->
-                {true, :ok, [handler(handler, state: state)|handlers]}
-              {:error, _} = error ->
-                {false, error, handlers}
-              other ->
-                {false, {:error, {:bad_return_value, other}}, handlers}
-            end
-          {:error, _} = error ->
-            {false, error, handlers}
-        end
-      _ ->
-        {false, {:error, :already_added}, handlers}
-    end
+    do_add_handler(module, handler, args, handlers, :ok)
   end
 
   defp server_add_mon_handler({module, id}, args, handlers, pid) do
     ref = Process.monitor(pid)
     handler = handler(module: module, id: {module, id}, pid: pid, ref: ref)
-    server_add_handler(module, handler, args, handlers)
+    do_add_handler(module, handler, args, handlers, :ok)
   end
 
   defp server_add_mon_handler(module, args, handlers, pid) do
     ref = Process.monitor(pid)
     handler = handler(module: module, id: module, pid: pid, ref: ref)
-    server_add_handler(module, handler, args, handlers)
+    do_add_handler(module, handler, args, handlers, :ok)
   end
 
   defp server_add_process_handler(pid, notify, handlers) do
     ref = Process.monitor(pid)
-    {:ok, state} = GenEvent.Stream.init({pid, ref})
     # Notice the pid is set only when notifications
     # are explicitly required.
-    handler = handler(module: GenEvent.Stream, id: {GenEvent.Stream, ref},
-                      pid: if(notify, do: pid), ref: ref, state: state)
-    {false, ref, [handler|handlers]}
+    handler = handler(module: GenEvent.Stream, id: {GenEvent.Stream, pid},
+                      pid: if(notify, do: pid), ref: ref)
+    do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
   end
 
   defp server_remove_handler(module, args, handlers, name) do
@@ -813,7 +789,7 @@ defmodule GenEvent do
 
   defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
     case handler(handler, :id) do
-      {GenEvent.Stream, _ref} ->
+      {GenEvent.Stream, _pid} ->
         server_process_notify(mode, event, handler)
         server_split_process_handlers(mode, event, t, handlers, [handler|streams])
       _ ->
@@ -962,6 +938,29 @@ defmodule GenEvent do
       handler ->
         do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
         {:ok, :lists.keydelete(ref, handler(:ref) + 1, handlers)}
+    end
+  end
+
+  defp do_add_handler(module, handler, arg, handlers, succ) do
+    case :lists.keyfind(handler(handler, :id), handler(:id) + 1, handlers) do
+      false ->
+        case do_handler(module, :init, [arg]) do
+          {:ok, res} ->
+            case res do
+              {:ok, state} ->
+                {false, succ, [handler(handler, state: state)|handlers]}
+              {:ok, state, :hibernate} ->
+                {true, succ, [handler(handler, state: state)|handlers]}
+              {:error, _} = error ->
+                {false, error, handlers}
+              other ->
+                {false, {:error, {:bad_return_value, other}}, handlers}
+            end
+          {:error, _} = error ->
+            {false, error, handlers}
+        end
+      _ ->
+        {false, {:error, :already_added}, handlers}
     end
   end
 
