@@ -234,7 +234,7 @@ defmodule GenEventTest do
 
     assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == :ok
     assert GenEvent.which_handlers(pid) == [ReplyHandler]
-    assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == {:error, :already_added}
+    assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == {:error, :already_present}
 
     assert GenEvent.add_handler(pid, {ReplyHandler, self()}, {self(), false}) == :ok
     assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}, ReplyHandler]
@@ -317,7 +317,7 @@ defmodule GenEventTest do
 
     assert GenEvent.add_handler(pid, ReplyHandler, {self(), false}) == :ok
     assert GenEvent.swap_handler(pid, ReplyHandler, :swapped,
-                                 {ReplyHandler, self()}, :swap) == {:error, :already_added}
+                                 {ReplyHandler, self()}, :swap) == {:error, :already_present}
     assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}]
 
     assert GenEvent.remove_handler(pid, {ReplyHandler, self()}, :remove_handler) ==

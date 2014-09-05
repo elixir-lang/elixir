@@ -42,7 +42,7 @@ defmodule LoggerTest do
 
     assert {:ok, _pid} = Logger.add_backend(:console)
     assert Application.get_env(:logger, :backends) == [:console]
-    assert Logger.add_backend(:console) == {:error, :already_added}
+    assert Logger.add_backend(:console) == {:error, :already_present}
     assert Application.get_env(:logger, :backends) == [:console]
   end
 
@@ -56,7 +56,7 @@ defmodule LoggerTest do
     end
 
     assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
-    assert {:error, :already_added} = Logger.add_backend({MyBackend, :hello})
+    assert {:error, :already_present} = Logger.add_backend({MyBackend, :hello})
     assert :ok = Logger.remove_backend({MyBackend, :hello})
   end
 
@@ -195,7 +195,7 @@ defmodule LoggerTest do
 
     assert {:ok, pid} = Logger.add_backend(:console)
     assert Logger.add_backend(:console) ==
-           {:error, :already_added}
+           {:error, :already_present}
   after
     Application.put_env(:logger, :backends, [:console])
     Logger.App.stop()
