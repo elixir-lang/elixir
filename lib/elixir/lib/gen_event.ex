@@ -190,7 +190,7 @@ defmodule GenEvent do
   @type manager :: pid | name | {atom, node}
 
   @typedoc "Supported values for new handlers"
-  @type handler :: module | {module, term}
+  @type handler :: atom | {atom, term} | pid
 
   @doc false
   defmacro __using__(_) do
@@ -756,7 +756,7 @@ defmodule GenEvent do
     ref = Process.monitor(pid)
     # Notice the pid is set only when notifications
     # are explicitly required.
-    handler = handler(module: GenEvent.Stream, id: {GenEvent.Stream, pid},
+    handler = handler(module: GenEvent.Stream, id: pid,
                       pid: if(notify, do: pid), ref: ref)
     do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
   end
@@ -789,7 +789,7 @@ defmodule GenEvent do
 
   defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
     case handler(handler, :id) do
-      {GenEvent.Stream, _pid} ->
+      pid when is_pid(pid) ->
         server_process_notify(mode, event, handler)
         server_split_process_handlers(mode, event, t, handlers, [handler|streams])
       _ ->
