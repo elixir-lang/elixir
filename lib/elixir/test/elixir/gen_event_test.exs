@@ -18,8 +18,8 @@ defmodule GenEventTest do
       raise "oops"
     end
 
-    def init({:swap, {:error, :handler_not_found}}) do
-      {:error, :handler_not_found_on_swap}
+    def init({:swap, {:error, :not_found}}) do
+      {:error, :not_found_on_swap}
     end
 
     def init({:swap, parent}) when is_pid(parent) do
@@ -291,7 +291,7 @@ defmodule GenEventTest do
     GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
 
     assert GenEvent.remove_handler(pid, {ReplyHandler, self()}, :ok) ==
-           {:error, :handler_not_found}
+           {:error, :not_found}
     assert GenEvent.remove_handler(pid, ReplyHandler, :ok) ==
            {:terminate, :ok}
     assert_receive {:terminate, :ok}
@@ -299,7 +299,7 @@ defmodule GenEventTest do
     GenEvent.add_mon_handler(pid, {ReplyHandler, self()}, {self(), false})
 
     assert GenEvent.remove_handler(pid, ReplyHandler, :ok) ==
-           {:error, :handler_not_found}
+           {:error, :not_found}
     assert {:error, {%RuntimeError{}, _}} =
            GenEvent.remove_handler(pid, {ReplyHandler, self()}, :raise)
 
@@ -326,7 +326,7 @@ defmodule GenEventTest do
     # The handler is initialized even when the module does not exist
     # on swap. However, in this case, we are returning an error on init.
     assert GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap) ==
-           {:error, :handler_not_found_on_swap}
+           {:error, :not_found_on_swap}
   end
 
   test "notify/2" do
@@ -475,7 +475,7 @@ defmodule GenEventTest do
 
     assert GenEvent.add_handler(pid, DefaultHandler, []) == :ok
     assert GenEvent.call(pid, UnknownHandler, :messages) ==
-            {:error, :handler_not_found}
+            {:error, :not_found}
     assert GenEvent.call(pid, DefaultHandler, :whatever) ==
             {:error, {:bad_call, :whatever}}
     assert GenEvent.which_handlers(pid) == []
