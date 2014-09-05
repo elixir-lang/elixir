@@ -58,7 +58,7 @@ defmodule Logger.Watcher do
   @doc false
   def init({mod, handler, args, :monitor}) do
     ref = Process.monitor(mod)
-    res = GenEvent.add_handler(mod, handler, args, monitor: true)
+    res = GenEvent.add_mon_handler(mod, handler, args)
     do_init(res, mod, handler, ref)
   end
 
