@@ -182,27 +182,6 @@ defmodule GenEventTest do
     refute_received {:terminate, _}
   end
 
-  defp hibernating?(pid) do
-    Process.info(pid, :current_function) ==
-      {:current_function,{:erlang,:hibernate,3}}
-  end
-
-  defp wait_until(fun, counter \\ 0) do
-    cond do
-      counter > 100 ->
-        flunk "Waited for 1s, but #{inspect fun} never returned true"
-      fun.() ->
-        true
-      true ->
-        receive after: (10 -> wait_until(fun, counter + 1))
-    end
-  end
-
-  defp wake_up(pid) do
-    send pid, :wake
-    assert_receive {:info, :wake}
-  end
-
   test "hibernates" do
     {:ok, pid} = GenEvent.start()
     :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), :hibernate})
@@ -482,5 +461,69 @@ defmodule GenEventTest do
     assert GenEvent.stop(pid) == :ok
   after
     Logger.add_backend(:console, flush: true)
+  end
+
+  test ":sys.get_status/2" do
+    {:ok, pid} = GenEvent.start(name: :my_gen_event_name)
+    :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self(), true})
+
+    self = self()
+    status = :sys.get_status(pid)
+    GenEvent.stop(pid)
+
+    assert {:status, ^pid, {:module, GenEvent},
+             [pdict, _, ^pid, [], data]} = status
+    assert pdict[:"$ancestors"] == [self()]
+    assert pdict[:"$initial_call"] == {GenEvent, :init_it, 6}
+    assert {'Installed handlers', [
+            {:handler, ReplyHandler, {ReplyHandler, :ok}, ^self, nil, nil}]} = data[:items]
+  end
+
+  test ":sys.get_state/1 and :sys.replace_state/2" do
+    {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
+    self = self()
+
+    assert [] = :sys.get_state(pid)
+
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self, true})
+    assert [{ReplyHandler, ReplyHandler, ^self}] = :sys.get_state(pid)
+
+    replacer = fn {ReplyHandler, ReplyHandler, _} -> {ReplyHandler, ReplyHandler, :unknown} end
+    :sys.replace_state(pid, replacer)
+    assert [{ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    # Fail while replacing does not cause a crash
+    :sys.replace_state(pid, fn _ -> exit(:fail) end)
+    assert [{ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self, true})
+    assert [{ReplyHandler, {ReplyHandler, :ok}, ^self},
+            {ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    :ok = :sys.suspend(pid)
+    assert [{ReplyHandler, {ReplyHandler, :ok}, ^self},
+            {ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+    :ok = :sys.resume(pid)
+  end
+
+  defp hibernating?(pid) do
+    Process.info(pid, :current_function) ==
+      {:current_function,{:erlang,:hibernate,3}}
+  end
+
+  defp wait_until(fun, counter \\ 0) do
+    cond do
+      counter > 100 ->
+        flunk "Waited for 1s, but #{inspect fun} never returned true"
+      fun.() ->
+        true
+      true ->
+        receive after: (10 -> wait_until(fun, counter + 1))
+    end
+  end
+
+  defp wake_up(pid) do
+    send pid, :wake
+    assert_receive {:info, :wake}
   end
 end
