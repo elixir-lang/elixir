@@ -61,8 +61,8 @@ defmodule IEx.HelpersTest do
            = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
 
-    assert "@opaque t()\n" = capture_io(fn -> t Regex.t end)
-    assert capture_io(fn -> t Regex.t end) == capture_io(fn -> t Regex.t/0 end)
+    assert "@opaque t()\n" = capture_io(fn -> t HashDict.t end)
+    assert capture_io(fn -> t HashDict.t end) == capture_io(fn -> t HashDict.t/0 end)
   end
 
   test "s helper" do
