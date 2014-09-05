@@ -9,8 +9,15 @@
   * [Kernel] Friendlier `unquote_splicing` error on inline quote
 
 * Bug fixes
+  * [File] Ensure `File.cwd` generates lowercase drive letters on Windows
+  * [GenEvent] Ensure the event manager does not crash on `:sys.replace_state/3`
+  * [GenEvent] Do not consider swap handlers to be failures in a stream
   * [Logger] Fix `Logger.log/2` not to raise on Logger exit
   * [Logger] Recompute sync/async mode on Logger configuration
+  * [System] Ensure `System.cwd` generates lowercase drive letters on Windows
+
+* Deprecations
+  * [GenEvent] The `:monitor` option in `add_handler/4` and `swap_handler/6` is deprecated in favor of `add_mon_handler/3` and `swap_mon_handler/5`
 
 * Backwards incompatible changes
   * [Supervisor] Make `max_restarts` default to 3 (closer to upcoming Erlang defaults)
