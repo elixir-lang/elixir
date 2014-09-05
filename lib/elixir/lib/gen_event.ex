@@ -315,7 +315,7 @@ defmodule GenEvent do
   the event handler is ignored and this function returns `{:error, reason}`.
 
   If the given handler was previously installed at the manager, this
-  function returns `{:error, :already_added}`.
+  function returns `{:error, :already_present}`.
 
   ## Monitored handlers
 
@@ -960,7 +960,7 @@ defmodule GenEvent do
             {false, error, handlers}
         end
       _ ->
-        {false, {:error, :already_added}, handlers}
+        {false, {:error, :already_present}, handlers}
     end
   end
 
@@ -979,7 +979,7 @@ defmodule GenEvent do
           server_add_handler(module2, {args2, state}, [])
         end
       else
-        {false, {:error, :already_added}, []}
+        {false, {:error, :already_present}, []}
       end
 
     case res do
