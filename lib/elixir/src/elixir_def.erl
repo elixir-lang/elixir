@@ -176,7 +176,7 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
   Arity = length(Args),
 
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
-                                   Args, Guards, expr_from_body(Line, Body), E),
+                                Args, Guards, expr_from_body(Line, Body), E),
 
   Body == nil andalso check_args_for_bodyless_clause(Line, EArgs, E),
 
