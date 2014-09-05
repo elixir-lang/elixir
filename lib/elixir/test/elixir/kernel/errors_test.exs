@@ -150,6 +150,15 @@ defmodule Kernel.ErrorsTest do
         def hello(arg), do: arg
       end
       '''
+
+    assert_compile_fail CompileError,
+      "nofile:2: function foo/0 undefined",
+      ~C'''
+      defmodule ErrorsTest do
+        def hello(foo, bar \\ foo)
+        def hello(foo, bar), do: foo + bar
+      end
+      '''
   end
 
   test :invalid_match_pattern do
