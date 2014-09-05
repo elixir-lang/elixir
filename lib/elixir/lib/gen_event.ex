@@ -57,7 +57,7 @@ defmodule GenEvent do
   Notifications can be sent to the event manager which will then
   invoke `handle_event/2` for each registered handler.
 
-  We can add new handlers with `add_handler/4`. Calls can also
+  We can add new handlers with `add_handler/3`. Calls can also
   be made to specific handlers by using `call/3`.
 
   ## Callbacks
@@ -447,7 +447,7 @@ defmodule GenEvent do
 
   The return value `reply` is defined in the return value of `handle_call/2`.
   If the specified event handler is not installed, the function returns
-  `{:error, :handler_not_found}`.
+  `{:error, :not_found}`.
   """
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
@@ -466,7 +466,7 @@ defmodule GenEvent do
 
   The event manager will call `terminate/2` to terminate the event handler
   and return the callback value. If the specified event handler is not
-  installed, the function returns `{:error, :handler_not_found}`.
+  installed, the function returns `{:error, :not_found}`.
   """
   @spec remove_handler(manager, handler, term) :: term | {:error, term}
   def remove_handler(manager, handler, args) do
@@ -894,7 +894,7 @@ defmodule GenEvent do
   defp server_call(module, query, handlers, name) do
     case :lists.keyfind(module, handler(:id) + 1, handlers) do
       false ->
-        {false, {:error, :handler_not_found}, handlers}
+        {false, {:error, :not_found}, handlers}
       handler ->
         case server_call_update(handler, query, name, handlers) do
           {{hib, handler}, reply} ->
@@ -1016,7 +1016,7 @@ defmodule GenEvent do
       {:value, handler, handlers} ->
         {do_terminate(handler, args, last_in, name, reason), handlers}
       false ->
-        {{:error, :handler_not_found}, handlers}
+        {{:error, :not_found}, handlers}
     end
   end
 

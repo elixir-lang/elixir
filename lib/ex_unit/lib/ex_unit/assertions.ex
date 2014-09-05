@@ -273,19 +273,31 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
-    message = message || "No message matching #{binary}"
+
+    pattern =
+      case expected do
+        {:when, meta, [left, right]} ->
+          {:when, meta, [quote(do: unquote(left) = received), right]}
+        left ->
+          quote(do: unquote(left) = received)
+      end
 
     {:receive, meta, args} =
       quote do
         receive do
-          unquote(expected) = received -> received
+          unquote(pattern) ->
+            received
         after
-          unquote(timeout) ->
-            flunk(unquote(message) <> ExUnit.Assertions.__mailbox__(self()))
+          timeout ->
+            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms"
+            flunk(message <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
-    {:receive, [{:export_head, true}|meta], args}
+    quote do
+      timeout = unquote(timeout)
+      unquote({:receive, [{:export_head, true}|meta], args})
+    end
   end
 
   @max_mailbox_length 10
