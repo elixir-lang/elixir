@@ -1,8 +1,6 @@
 defmodule Mix.Tasks.Archive.Install do
   use Mix.Task
 
-  import Mix.Generator, only: [create_file: 2]
-
   @shortdoc "Install an archive locally"
 
   @moduledoc """
@@ -30,7 +28,7 @@ defmodule Mix.Tasks.Archive.Install do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, shell: :boolean])
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)
@@ -55,10 +53,15 @@ defmodule Mix.Tasks.Archive.Install do
 
     if opts[:force] || should_install?(src, previous) do
       remove_previous_versions(previous)
+
       dest = Mix.Local.archives_path()
-      File.mkdir_p!(dest)
       archive = Path.join(dest, basename(src))
-      create_file archive, Mix.Utils.read_path!(src)
+      check_file_exists(archive)
+
+      File.mkdir_p!(dest)
+      File.write!(archive, Mix.Utils.read_path!(src, opts))
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
+
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
       false
@@ -79,6 +82,18 @@ defmodule Mix.Tasks.Archive.Install do
 
     Mix.shell.yes?("Found existing archives: #{files}.\n" <>
                    "Are you sure you want to replace them?")
+  end
+
+  defp check_file_exists(path) do
+    # OTP keeps loaded archives open, this leads to unfortunate behaviour on
+    # Windows when trying overwrite loaded archives. remove_previous_versions
+    # completes successfully even though the file will be first removed after
+    # the BEAM process is dead. Because of this we ask the user rerun the
+    # command, which should complete successfully at that time
+
+    if File.exists?(path) and match?({:win32, _}, :os.type) do
+      Mix.raise "Unable to overwrite open archives on Windows. Run the command again"
+    end
   end
 
   defp previous_versions(src) do

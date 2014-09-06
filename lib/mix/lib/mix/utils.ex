@@ -359,14 +359,24 @@ defmodule Mix.Utils do
   Used by tasks like `archive.install` and `local.rebar` that support
   installation either from a URL or a local file.
 
-  Raises if the given path is not a url, nor a file or if the
-  file or url are invalid.
+  Raises if the given path is not a URL, nor a file or if the
+  file or URL are invalid.
+
+  ## Options
+
+    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
+      given path is a URL.
   """
-  def read_path!(path) do
+  def read_path!(path, opts \\ []) do
     cond do
-      url?(path)  -> read_url(path)
-      file?(path) -> read_file(path)
-      :else       -> Mix.raise "Expected #{path} to be a url or a local file path"
+      url?(path) && opts[:shell] ->
+        read_shell(path)
+      url?(path) ->
+        read_httpc(path)
+      file?(path) ->
+        read_file(path)
+      true ->
+        Mix.raise "Expected #{path} to be a url or a local file path"
     end
   end
 
@@ -374,7 +384,7 @@ defmodule Mix.Utils do
     File.read!(path)
   end
 
-  defp read_url(path) do
+  defp read_httpc(path) do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
@@ -418,6 +428,33 @@ defmodule Mix.Utils do
       "http" -> :proxy
       "https" -> :https_proxy
     end
+  end
+
+  defp read_shell(path) do
+    filename = URI.parse(path).path |> Path.basename
+    out_path = Path.join(System.tmp_dir!, filename)
+    File.rm(out_path)
+
+    cond do
+      System.find_executable("wget") ->
+        Mix.shell.cmd(~s(wget -O "#{out_path}" "#{path}"))
+      System.find_executable("curl") ->
+        Mix.shell.cmd(~s(curl -L -o "#{out_path}" "#{path}"))
+      windows? && System.find_executable("powershell") ->
+        command = ~s[$client = new-object System.Net.WebClient; ] <>
+                  ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
+        Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
+      true ->
+        Mix.raise "wget or curl not installed, download manually: #{path}"
+    end
+
+    data = File.read!(out_path)
+    File.rm!(out_path)
+    data
+  end
+
+  def windows? do
+    match?({:win32, _}, :os.type)
   end
 
   defp file?(path) do
