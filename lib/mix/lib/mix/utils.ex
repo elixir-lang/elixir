@@ -435,25 +435,34 @@ defmodule Mix.Utils do
     out_path = Path.join(System.tmp_dir!, filename)
     File.rm(out_path)
 
-    cond do
+    status = cond do
       System.find_executable("wget") ->
-        Mix.shell.cmd(~s(wget -O "#{out_path}" "#{path}"))
+        Mix.shell.cmd(~s(wget -nv -O "#{out_path}" "#{path}"))
       System.find_executable("curl") ->
-        Mix.shell.cmd(~s(curl -L -o "#{out_path}" "#{path}"))
+        Mix.shell.cmd(~s(curl -s -S -L -o "#{out_path}" "#{path}"))
       windows? && System.find_executable("powershell") ->
         command = ~s[$client = new-object System.Net.WebClient; ] <>
                   ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
         Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
       true ->
-        Mix.raise "wget or curl not installed, download manually: #{path}"
+        Mix.shell.error "wget or curl not installed"
+        1
     end
+
+    check_command!(status, path, out_path)
 
     data = File.read!(out_path)
     File.rm!(out_path)
     data
   end
 
-  def windows? do
+  defp check_command!(0, _path, _out_path), do: :ok
+  defp check_command!(_status, path, out_path) do
+    Mix.raise "Could not fetch data, please download manually from " <>
+              "#{inspect path} and copy it to #{inspect out_path}"
+  end
+
+  defp windows? do
     match?({:win32, _}, :os.type)
   end
 
