@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Local.Hex do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(args) do
-    Mix.Tasks.Archive.Install.run [@hex_url|args]
+    Mix.Tasks.Archive.Install.run [@hex_url, "--shell" | args]
   end
 
   @doc false
