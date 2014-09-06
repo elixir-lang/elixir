@@ -441,7 +441,8 @@ defmodule Mix.Utils do
       System.find_executable("curl") ->
         Mix.shell.cmd(~s(curl -s -S -L -o "#{out_path}" "#{path}"))
       windows? && System.find_executable("powershell") ->
-        command = ~s[$client = new-object System.Net.WebClient; ] <>
+        command = ~s[$ErrorActionPreference = 'Stop'; ] <>
+                  ~s[$client = new-object System.Net.WebClient; ] <>
                   ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
         Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
       true ->
