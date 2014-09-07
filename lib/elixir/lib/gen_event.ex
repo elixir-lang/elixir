@@ -317,16 +317,9 @@ defmodule GenEvent do
   If the given handler was previously installed at the manager, this
   function returns `{:error, :already_present}`.
   """
-  @spec add_handler(manager, handler, term, [monitor: boolean]) :: :ok | {:error, term}
-  def add_handler(manager, handler, args, options \\ []) do
-    cond do
-      Keyword.get(options, :monitor, false) ->
-        IO.write :stderr, "warning: the :monitor option in GenEvent.add_handler/4 is deprecated, " <>
-                          "please use GenEvent.add_mon_handler/3 instead\n#{Exception.format_stacktrace}"
-        rpc(manager, {:add_mon_handler, handler, args, self()})
-      true ->
-        rpc(manager, {:add_handler, handler, args})
-    end
+  @spec add_handler(manager, handler, term) :: :ok | {:error, term}
+  def add_handler(manager, handler, args) do
+    rpc(manager, {:add_handler, handler, args})
   end
 
   @doc """
@@ -489,16 +482,9 @@ defmodule GenEvent do
   If `init/1` in the second handler returns a correct value, this
   function returns `:ok`.
   """
-  @spec swap_handler(manager, handler, term, handler, term, [monitor: boolean]) :: :ok | {:error, term}
-  def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
-    cond do
-      Keyword.get(options, :monitor, false) ->
-        IO.write :stderr, "warning: the :monitor option in GenEvent.swap_handler/6 is deprecated, " <>
-                          "please use GenEvent.swap_mon_handler/5 instead\n#{Exception.format_stacktrace}"
-        rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
-      true ->
-        rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
-    end
+  @spec swap_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
+  def swap_handler(manager, handler1, args1, handler2, args2) do
+    rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
   end
 
   @doc """
