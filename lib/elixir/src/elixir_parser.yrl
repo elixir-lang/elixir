@@ -58,12 +58,12 @@ Left     130 or_op_eol.       %% ||, |||, or
 Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
-Left     170 arrow_op_eol.    %% < (op), (op) > (e.g |>, <<<, >>>)
+Left     170 arrow_op_eol.    %% < (op), (op) > (|>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>)
 Left     180 in_op_eol.       %% in
 Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% + (op), - (op)
 Left     220 mult_op_eol.     %% * (op), / (op)
-Left     250 hat_op_eol.      %% ^ (op) (e.g ^^^)
+Left     250 hat_op_eol.      %% ^ (op) (^^^)
 Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~
 Left     310 dot_call_op.
 Left     310 dot_op.          %% .
