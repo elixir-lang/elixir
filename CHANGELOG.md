@@ -1,12 +1,14 @@
 # Changelog
 
-## v1.0.0-rc2
+## v1.0.0-rc2 (2014-09-07)
 
 * Enhancements
   * [ExUnit] Print process mailbox on failing `assert_receive`
   * [ExUnit] Tag all doctests with the `:doctest` tag
-  * [Mix] `mix deps.unlock` warns when given missing dependency
   * [Kernel] Friendlier `unquote_splicing` error on inline quote
+  * [Kernel] Add `<~`, `~>`, `<<~`, `~>>`, `<~>`, `<|>` as operators
+  * [Mix] `mix deps.unlock` warns when given a missing dependency
+  * [Mix] Fetch hex using HTTPS
 
 * Bug fixes
   * [File] Ensure `File.cwd` generates lowercase drive letters on Windows
