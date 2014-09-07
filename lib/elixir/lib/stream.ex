@@ -612,7 +612,7 @@ defmodule Stream do
 
   ## Examples
 
-  `Stream.transform/3` is a useful as it can be used as basis to implement
+  `Stream.transform/3` is useful as it can be used as the basis to implement
   many of the functions defined in this module. For example, we can implement
   `Stream.take(enum, n)` as follows:
 
