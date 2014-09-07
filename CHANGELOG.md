@@ -1,5 +1,7 @@
 # Changelog
 
+## v1.0.0
+
 ## v1.0.0-rc2 (2014-09-07)
 
 * Enhancements
