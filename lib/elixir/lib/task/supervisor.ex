@@ -25,14 +25,23 @@ defmodule Task.Supervisor do
     described under the `Name Registration` section in the `GenServer` module
     docs;
 
+  * `:restart` - the restart strategy, may be `:temporary` (the default),
+    `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
+    Defaults to temporary as most tasks can't be effectively restarted after
+    a crash;
+
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
     or an integer indicating the timeout value, defaults to 5000 milliseconds;
+
+  * `:max_restarts` and `:max_seconds` - as specified in `Supervisor.Spec.supervise/2`;
+
   """
   @spec start_link(Supervisor.options) :: Supervisor.on_start
   def start_link(opts \\ []) do
     import Supervisor.Spec
+    {restart, opts}  = Keyword.pop(opts, :restart, :temporary)
     {shutdown, opts} = Keyword.pop(opts, :shutdown, 5000)
-    children = [worker(Task.Supervised, [], restart: :temporary, shutdown: shutdown)]
+    children = [worker(Task.Supervised, [], restart: restart, shutdown: shutdown)]
     Supervisor.start_link(children, [strategy: :simple_one_for_one] ++ opts)
   end
 
