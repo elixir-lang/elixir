@@ -315,11 +315,6 @@ defmodule GenEventTest do
     assert GenEvent.notify(pid, :hello) == :ok
     assert_receive {:event, :hello}
 
-    msg = {:custom, {:swap_handler, :swapped, self(), ReplyHandler, :swap}}
-    assert GenEvent.notify(pid, msg) == :ok
-    assert_receive {:terminate, :swapped}
-    assert_receive :swapped
-
     assert GenEvent.notify(pid, {:custom, :remove_handler}) == :ok
     assert_receive {:terminate, :remove_handler}
     assert GenEvent.which_handlers(pid) == []
@@ -354,11 +349,6 @@ defmodule GenEventTest do
     assert GenEvent.ack_notify(pid, :hello) == :ok
     assert_receive {:event, :hello}
 
-    msg = {:custom, {:swap_handler, :swapped, self(), ReplyHandler, :swap}}
-    assert GenEvent.ack_notify(pid, msg) == :ok
-    assert_receive {:terminate, :swapped}
-    assert_receive :swapped
-
     assert GenEvent.ack_notify(pid, {:custom, :remove_handler}) == :ok
     assert_receive {:terminate, :remove_handler}
     assert GenEvent.which_handlers(pid) == []
@@ -382,11 +372,6 @@ defmodule GenEventTest do
 
     assert GenEvent.sync_notify(pid, :hello) == :ok
     assert_received {:event, :hello}
-
-    msg = {:custom, {:swap_handler, :swapped, self(), ReplyHandler, :swap}}
-    assert GenEvent.sync_notify(pid, msg) == :ok
-    assert_received {:terminate, :swapped}
-    assert_received :swapped
 
     assert GenEvent.sync_notify(pid, {:custom, :remove_handler}) == :ok
     assert_received {:terminate, :remove_handler}
@@ -412,28 +397,12 @@ defmodule GenEventTest do
     assert GenEvent.call(pid, ReplyHandler, :hello) == :ok
     assert_receive {:call, :hello}
 
-    msg = {:custom, {:swap_handler, :ok, :swapped, self(), ReplyHandler, :swap}}
-    assert GenEvent.call(pid, ReplyHandler, msg) == :ok
-    assert_receive {:terminate, :swapped}
-    assert_receive :swapped
-
     assert GenEvent.call(pid, ReplyHandler, {:custom, {:remove_handler, :ok}}) == :ok
     assert_receive {:terminate, :remove_handler}
     assert GenEvent.which_handlers(pid) == []
 
-    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
-    msg = {:custom, {:swap_handler, :ok, :swapped, self(), ReplyHandler, :raise}}
-    assert GenEvent.call(pid, ReplyHandler, msg) == :ok
-    assert GenEvent.which_handlers(pid) == []
-
     Logger.remove_backend(:console)
-
     GenEvent.add_handler(pid, ReplyHandler, {self(), false})
-    GenEvent.add_handler(pid, {ReplyHandler, self}, {self(), false})
-
-    msg = {:custom, {:swap_handler, :ok, :swapped, self(), ReplyHandler, :raise}}
-    assert GenEvent.call(pid, {ReplyHandler, self()}, msg) == :ok
-    assert GenEvent.which_handlers(pid) == [ReplyHandler]
 
     assert {:error, {:bad_return_value, :oops}} =
            GenEvent.call(pid, ReplyHandler, {:custom, :oops})
