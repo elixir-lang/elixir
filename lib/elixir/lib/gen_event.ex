@@ -82,7 +82,6 @@ defmodule GenEvent do
 
       -  `{:ok, new_state}`
       -  `{:ok, new_state, :hibernate}`
-      -  `{:swap_handler, args1, new_state, handler2, args2}`
       -  `:remove_handler`
 
     * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific
@@ -92,7 +91,6 @@ defmodule GenEvent do
 
       -  `{:ok, reply, new_state}`
       -  `{:ok, reply, new_state, :hibernate}`
-      -  `{:swap_handler, reply, args1, new_state, handler2, args2}`
       -  `{:remove_handler, reply}`
 
     * `handle_info(msg, state)` - invoked to handle all other messages which
@@ -603,15 +601,19 @@ defmodule GenEvent do
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:add_handler, handler, args}} ->
-        {hib, reply, handlers} = server_add_handler(handler, args, handlers)
+        {hib, reply, handlers} = server_add_handler(handler, args, handlers, nil)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_mon_handler, handler, args, mon}} ->
-        {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, mon)
+      {_from, tag, {:add_handler, handler, args, notify}} ->
+        {hib, reply, handlers} = server_add_handler(handler, args, handlers, notify)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_mon_handler, handler, args, notify}} ->
+        {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, notify)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:add_process_handler, pid, notify}} ->
-        {hib, reply, handlers} = server_add_process_handler(pid, notify, handlers)
+        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -737,34 +739,32 @@ defmodule GenEvent do
     IO.puts dev, "*DBG* #{inspect name}: #{inspect dbg}"
   end
 
-  defp server_add_handler({module, id}, args, handlers) do
-    handler = handler(module: module, id: {module, id})
+  defp server_add_handler({module, id}, args, handlers, notify) do
+    handler = handler(module: module, id: {module, id}, pid: notify)
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_handler(module, args, handlers) do
-    handler = handler(module: module, id: module)
+  defp server_add_handler(module, args, handlers, notify) do
+    handler = handler(module: module, id: module, pid: notify)
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_mon_handler({module, id}, args, handlers, pid) do
+  defp server_add_mon_handler({module, id}, args, handlers, notify) do
+    ref = Process.monitor(notify)
+    handler = handler(module: module, id: {module, id}, pid: notify, ref: ref)
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_mon_handler(module, args, handlers, notify) do
+    ref = Process.monitor(notify)
+    handler = handler(module: module, id: module, pid: notify, ref: ref)
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_process_handler(pid, handlers, notify) do
     ref = Process.monitor(pid)
-    handler = handler(module: module, id: {module, id}, pid: pid, ref: ref)
-    do_add_handler(module, handler, args, handlers, :ok)
-  end
-
-  defp server_add_mon_handler(module, args, handlers, pid) do
-    ref = Process.monitor(pid)
-    handler = handler(module: module, id: module, pid: pid, ref: ref)
-    do_add_handler(module, handler, args, handlers, :ok)
-  end
-
-  defp server_add_process_handler(pid, notify, handlers) do
-    ref = Process.monitor(pid)
-    # Notice the pid is set only when notifications
-    # are explicitly required.
     handler = handler(module: GenEvent.Stream, id: pid,
-                      pid: if(notify, do: pid), ref: ref)
+                      pid: notify, ref: ref)
     do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
   end
 
@@ -779,7 +779,7 @@ defmodule GenEvent do
     if sup do
       server_add_mon_handler(module2, {args2, state}, handlers, sup)
     else
-      server_add_handler(module2, {args2, state}, handlers)
+      server_add_handler(module2, {args2, state}, handlers, nil)
     end
   end
 
@@ -829,7 +829,7 @@ defmodule GenEvent do
     {hib, acc}
   end
 
-  defp server_update(handler, fun, event, name, handlers) do
+  defp server_update(handler, fun, event, name, _handlers) do
     handler(module: module, state: state) = handler
 
     case do_handler(module, fun, [event, state]) do
@@ -839,8 +839,6 @@ defmodule GenEvent do
             {false, handler(handler, state: state)}
           {:ok, state, :hibernate} ->
             {true, handler(handler, state: state)}
-          {:swap_handler, args1, state, handler2, args2} ->
-            do_swap(handler(handler, state: state), args1, handler2, args2, name, handlers)
           :remove_handler ->
             do_terminate(handler, :remove_handler, event, name, :normal)
             :error
@@ -892,7 +890,7 @@ defmodule GenEvent do
     end
   end
 
-  defp server_call_update(handler, query, name, handlers) do
+  defp server_call_update(handler, query, name, _handlers) do
     handler(module: module, state: state) = handler
     case do_handler(module, :handle_call, [query, state]) do
       {:ok, res} ->
@@ -901,8 +899,6 @@ defmodule GenEvent do
             {{false, handler(handler, state: state)}, reply}
           {:ok, reply, state, :hibernate} ->
             {{true, handler(handler, state: state)}, reply}
-          {:swap_handler, reply, args1, state, handler2, args2} ->
-            {do_swap(handler(handler, state: state), args1, handler2, args2, name, handlers), reply}
           {:remove_handler, reply} ->
             do_terminate(handler, :remove_handler, query, name, :normal)
             {:error, reply}
@@ -968,33 +964,6 @@ defmodule GenEvent do
         end
       _ ->
         {false, {:error, :already_present}, handlers}
-    end
-  end
-
-  defp do_swap(handler, args1, module2, args2, name, handlers) do
-    pid   = handler(handler, :pid)
-    state = do_terminate(handler,
-                         args1, :swapped, name, {:swapped, module2, pid})
-
-    {hib, res, handlers} =
-      if handler(handler, :id) == module2 or
-         :lists.keyfind(module2, handler(:id) + 1, handlers) == false do
-
-        if pid do
-          server_add_mon_handler(module2, {args2, state}, [], pid)
-        else
-          server_add_handler(module2, {args2, state}, [])
-        end
-      else
-        {false, {:error, :already_present}, []}
-      end
-
-    case res do
-      :ok ->
-        {hib, hd(handlers)}
-      {:error, reason} ->
-        report_terminate(handler, reason, state, :swapped, name)
-        :error
     end
   end
 
