@@ -593,11 +593,11 @@ defmodule Enum do
 
   """
   @spec fetch(t, integer) :: {:ok, element} | :error
-  def fetch(collection, n) when is_list(collection) and n >= 0 do
+  def fetch(collection, n) when is_list(collection) and is_integer(n) and n >= 0 do
     do_fetch(collection, n)
   end
 
-  def fetch(collection, n) when n >= 0 do
+  def fetch(collection, n) when is_integer(n) and n >= 0 do
     res =
       Enumerable.reduce(collection, {:cont, 0}, fn(entry, acc) ->
         if acc == n do
@@ -613,7 +613,7 @@ defmodule Enum do
     end
   end
 
-  def fetch(collection, n) when n < 0 do
+  def fetch(collection, n) when is_integer(n) and n < 0 do
     do_fetch(reverse(collection), abs(n + 1))
   end
 
