@@ -147,6 +147,22 @@ defmodule TaskTest do
            catch_exit(Task.await(task))
   end
 
+  test "await/1 exits on task undef module error" do
+    Process.flag(:trap_exit, true)
+    task = Task.async(&:module_does_not_exist.undef/0)
+    assert {{:undef, [{:module_does_not_exist, :undef, _, _} | _]},
+            {Task, :await, [^task, 5000]}} =
+           catch_exit(Task.await(task))
+  end
+
+  test "await/1 exits on task undef function error" do
+    Process.flag(:trap_exit, true)
+    task = Task.async(&TaskTest.undef/0)
+    assert {{:undef, [{TaskTest, :undef, _, _} | _]},
+            {Task, :await, [^task, 5000]}} =
+           catch_exit(Task.await(task))
+  end
+
   test "await/1 exits on task exit" do
     Process.flag(:trap_exit, true)
     task = Task.async(fn -> exit :unknown end)

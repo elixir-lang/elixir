@@ -98,7 +98,7 @@ defmodule Task.Supervised do
       '** When function  == ~p~n' ++
       '**      arguments == ~p~n' ++
       '** Reason for termination == ~n' ++
-      '** ~p~n', [self, get_from(info), fun, args, reason])
+      '** ~p~n', [self, get_from(info), fun, args, get_reason(reason)])
 
     exit(reason)
   end
@@ -108,4 +108,22 @@ defmodule Task.Supervised do
 
   defp get_running({:erlang, :apply, [fun, []]}) when is_function(fun, 0), do: {fun, []}
   defp get_running({mod, fun, args}), do: {:erlang.make_fun(mod, fun, length(args)), args}
+
+  defp get_reason({:undef, [{mod, fun, args, _info} | _] = stacktrace} = reason)
+  when is_atom(mod) and is_atom(fun) do
+    cond do
+      :code.is_loaded(mod) === false ->
+        {:"module could not be loaded", stacktrace}
+      is_list(args) and not function_exported?(mod, fun, length(args)) ->
+        {:"function not exported", stacktrace}
+      is_integer(args) and not function_exported?(mod, fun, args) ->
+        {:"function not exported", stacktrace}
+      true ->
+        reason
+    end
+  end
+
+  defp get_reason(reason) do
+    reason
+  end
 end

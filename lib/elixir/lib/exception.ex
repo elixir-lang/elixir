@@ -613,20 +613,32 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
-  defexception [module: nil, function: nil, arity: nil, self: false]
+  defexception [module: nil, function: nil, arity: nil, reason: nil]
 
-  def message(%{function: function, module: module, arity: arity, self: self}) do
-    if function do
-      formatted = Exception.format_mfa module, function, arity
-      suffix = if self or is_nil(module) or :code.is_loaded(module) do
-        ""
-      else
-        " (module #{inspect module} is not available)"
-      end
-      "undefined function: #{formatted}" <> suffix
-    else
-      "undefined function"
+  def message(%{reason: nil, module: module, function: function, arity: arity} = e) do
+    cond do
+      is_nil(function) or is_nil(arity) ->
+        "undefined function"
+      not is_nil(module) and :code.is_loaded(module) === false ->
+        message(%{e | reason: :"module could not be loaded"})
+      true ->
+        message(%{e | reason: :"function not exported"})
     end
+  end
+
+  def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
+    "undefined function: " <> Exception.format_mfa(module, function, arity) <>
+      " (module #{inspect module} is not available)"
+  end
+
+  def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
+    "undefined function: " <> Exception.format_mfa(module, function, arity)
+  end
+
+  def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
+    "nil." <> fa = Exception.format_mfa(nil, function, arity)
+    "undefined function: " <> Exception.format_mfa(module, function, arity) <>
+      " (function #{fa} is not available from #{inspect module})"
   end
 end
 
@@ -779,7 +791,7 @@ defmodule ErlangError do
   def normalize(:undef, stacktrace) do
     stacktrace = stacktrace || :erlang.get_stacktrace
     {mod, fun, arity} = from_stacktrace(stacktrace)
-    %UndefinedFunctionError{module: mod, function: fun, arity: arity, self: from_self(stacktrace)}
+    %UndefinedFunctionError{module: mod, function: fun, arity: arity}
   end
 
   def normalize(:function_clause, stacktrace) do
@@ -806,7 +818,4 @@ defmodule ErlangError do
   defp from_stacktrace(_) do
     {nil, nil, nil}
   end
-
-  defp from_self([{module, _, _, _}, {module, _, _, _}|_]), do: true
-  defp from_self(_), do: false
 end
