@@ -65,25 +65,25 @@ defmodule LoggerTest do
   end
 
   test "enable/1 and disable/1" do
-    Logger.metadata([])
+    assert Logger.metadata([]) == :ok
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
     end) =~ msg("[debug] hello")
 
-    Logger.disable(self())
+    assert Logger.disable(self()) == :ok
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
     end) == ""
 
-    Logger.metadata([])
+    assert Logger.metadata([]) == :ok
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
     end) == ""
 
-    Logger.enable(self())
+    assert Logger.enable(self()) == :ok
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok

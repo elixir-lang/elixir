@@ -235,6 +235,7 @@ defmodule Logger do
   def metadata(dict) do
     {enabled, metadata} = __metadata__()
     Process.put(@metadata, {enabled, Keyword.merge(metadata, dict)})
+    :ok
   end
 
   @doc """
@@ -251,6 +252,7 @@ defmodule Logger do
   """
   def enable(pid) when pid == self() do
     Process.put(@metadata, {true, metadata()})
+    :ok
   end
 
   @doc """
@@ -260,6 +262,7 @@ defmodule Logger do
   """
   def disable(pid) when pid == self() do
     Process.put(@metadata, {false, metadata()})
+    :ok
   end
 
   @doc """
