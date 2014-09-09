@@ -223,19 +223,43 @@ defmodule Logger do
   @levels [:error, :info, :warn, :debug]
 
   @metadata :logger_metadata
+  @compile {:inline, __metadata__: 0}
+
+  defp __metadata__ do
+    Process.get(@metadata) || {true, []}
+  end
 
   @doc """
   Adds the given keyword list to the current process metadata.
   """
   def metadata(dict) do
-    Process.put(@metadata, Keyword.merge(metadata, dict))
+    {enabled, metadata} = __metadata__()
+    Process.put(@metadata, {enabled, Keyword.merge(metadata, dict)})
   end
 
   @doc """
   Reads the current process metadata.
   """
   def metadata() do
-    Process.get(@metadata) || []
+    __metadata__() |> elem(1)
+  end
+
+  @doc """
+  Enables logging for the current process.
+
+  Currently the only accepted process is self().
+  """
+  def enable(pid) when pid == self() do
+    Process.put(@metadata, {true, metadata()})
+  end
+
+  @doc """
+  Disables logging for the current process.
+
+  Currently the only accepted process is self().
+  """
+  def disable(pid) when pid == self() do
+    Process.put(@metadata, {false, metadata()})
   end
 
   @doc """
@@ -368,22 +392,27 @@ defmodule Logger do
   @spec log(level, message | (() -> message), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
   def log(level, chardata, metadata \\ []) when level in @levels and is_list(metadata) do
-    %{mode: mode, truncate: truncate,
-      level: min_level, utc_log: utc_log?} = Logger.Config.__data__
+    case __metadata__() do
+      {true, pdict} ->
+        %{mode: mode, truncate: truncate,
+          level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
-    if compare_levels(level, min_level) != :lt do
-      tuple = {Logger, truncate(chardata, truncate), Logger.Utils.timestamp(utc_log?),
-               [pid: self()] ++ metadata() ++ metadata}
-      try do
-        notify(mode, {level, Process.group_leader(), tuple})
+        if compare_levels(level, min_level) != :lt do
+          tuple = {Logger, truncate(chardata, truncate), Logger.Utils.timestamp(utc_log?),
+                   [pid: self()] ++ metadata ++ pdict}
+          try do
+            notify(mode, {level, Process.group_leader(), tuple})
+            :ok
+          rescue
+            ArgumentError -> {:error, :noproc}
+          catch
+            :exit, reason -> {:error, reason}
+          end
+        else
+          :ok
+        end
+      {false, _} ->
         :ok
-      rescue
-        ArgumentError -> {:error, :noproc}
-      catch
-        :exit, reason -> {:error, reason}
-      end
-    else
-      :ok
     end
   end
 
