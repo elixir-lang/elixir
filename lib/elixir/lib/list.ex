@@ -325,26 +325,6 @@ defmodule List do
   end
 
   @doc """
-  Unzips the given list of tuples into a list of lists.
-
-  The number of unzipped elements is equal to the size
-  of the smallest tuple in the list.
-
-  ## Examples
-
-      iex> List.unzip([{1, 2}, {3, 4}])
-      [[1, 3], [2, 4]]
-
-      iex> List.unzip([{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}])
-      [[1, 2, 3], [:a, :b, :c]]
-
-  """
-  @spec unzip([tuple]) :: [list]
-  def unzip(list) when is_list(list) do
-    :lists.map &Tuple.to_list/1, zip(list)
-  end
-
-  @doc """
   Returns a list with `value` inserted at the specified `index`.
   Note that `index` is capped at the list length. Negative indices
   indicate an offset from the end of the list.

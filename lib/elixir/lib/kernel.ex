@@ -1643,7 +1643,7 @@ defmodule Kernel do
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get_and_update, data, next ->
-      ...>   Enum.map(data, next) |> List.unzip() |> List.to_tuple()
+      ...>   Enum.map(data, next) |> :lists.unzip
       ...> end
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
