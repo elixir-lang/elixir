@@ -64,6 +64,32 @@ defmodule LoggerTest do
     assert Logger.level == :debug
   end
 
+  test "enable/1 and disable/1" do
+    Logger.metadata([])
+
+    assert capture_log(fn ->
+      assert Logger.debug("hello", []) == :ok
+    end) =~ msg("[debug] hello")
+
+    Logger.disable(self())
+
+    assert capture_log(fn ->
+      assert Logger.debug("hello", []) == :ok
+    end) == ""
+
+    Logger.metadata([])
+
+    assert capture_log(fn ->
+      assert Logger.debug("hello", []) == :ok
+    end) == ""
+
+    Logger.enable(self())
+
+    assert capture_log(fn ->
+      assert Logger.debug("hello", []) == :ok
+    end) =~ msg("[debug] hello")
+  end
+
   test "compare_levels/2" do
     assert Logger.compare_levels(:debug, :debug) == :eq
     assert Logger.compare_levels(:debug, :info)  == :lt
