@@ -2,6 +2,12 @@
 
 ## v1.0.0
 
+* Enhancements
+  * [Logger] Add `Logger.enable/1` and `Logger.disable/1`
+
+* Backwards incompatible changes
+  * [GenEvent] No longer support `{:swap_handler, ...}` as callback return value
+
 ## v1.0.0-rc2 (2014-09-07)
 
 * Enhancements
