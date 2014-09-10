@@ -1,12 +1,13 @@
 # Changelog
 
-## v1.0.0
+## v1.0.0 (2014-09-10)
 
 * Enhancements
   * [Logger] Add `Logger.enable/1` and `Logger.disable/1`
 
 * Backwards incompatible changes
   * [GenEvent] No longer support `{:swap_handler, ...}` as callback return value
+  * [List] `List.unzip/2` was removed
 
 ## v1.0.0-rc2 (2014-09-07)
 
