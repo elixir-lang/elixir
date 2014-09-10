@@ -30,6 +30,9 @@ defmodule Logger.Translator do
 
   def translate(min_level, :error, :format, message) do
     case message do
+      {'** Generic server ' ++ _,
+        [name, last, %Agent.Server{state: state, initial_call: initial_call}, reason]} ->
+        translate_agent(min_level, name, last, state, initial_call, reason)
       {'** Generic server ' ++ _, [name, last, state, reason]} ->
         msg = "GenServer #{inspect name} terminating\n"
         if min_level == :debug do
@@ -77,6 +80,61 @@ defmodule Logger.Translator do
 
   def translate(_min_level, _level, _kind, _message) do
     :none
+  end
+
+  defp translate_agent(min_level, name, last, state, initial_call, reason) do
+    {:ok,
+      ["Agent ", inspect(name), " terminating\n",
+        agent_info(min_level, last, state, initial_call),
+        "** (exit) " | Exception.format_exit(reason)]}
+  end
+
+  @agent_tag [:get, :get_and_update, :update]
+
+  defp agent_info(min_level, {tag, fun}, state, initial_call)
+  when is_function(fun, 1) and tag in @agent_tag do
+    agent_info(min_level, tag, fun, [state], initial_call)
+  end
+
+  defp agent_info(min_level, {:"$gen_cast", {:cast, fun}}, state, initial_call)
+  when is_function(fun, 1) do
+    agent_info(min_level, :cast, fun, [state], initial_call)
+  end
+
+  defp agent_info(min_level, {tag, {mod, fun, args}}, state, initial_call)
+  when is_atom(mod) and is_atom(fun) and length(args) < 255 and tag in @agent_tag do
+    arity = length(args) + 1
+    fun  = :erlang.make_fun(mod, fun, arity)
+    agent_info(min_level, tag, fun, [state | args], initial_call)
+  end
+
+  defp agent_info(min_level, {:"$gen_cast", {:cast, {mod, fun, args}}}, state, initial_call)
+  when is_atom(mod) and length(args) < 255 do
+    arity = length(args) + 1
+    fun  = :erlang.make_fun(mod, fun, arity)
+    agent_info(min_level, :cast, fun, [state | args], initial_call)
+  end
+
+  defp agent_info(:debug, message, state, {mod, fun, arity}) do
+    ["Last Message: ", inspect(message), ?\n,
+      "       State: ", inspect(state), ?\n,
+      "        Init: ", Exception.format_mfa(mod, fun, arity), ?\n]
+  end
+
+  defp agent_info(_min_level, _message, _state, _initial_call) do
+    []
+  end
+
+  defp agent_info(:debug, tag, fun, args, {mod, init_fun, arity}) do
+    ["Function: ", inspect(fun), ?\n,
+      "    Args: ", inspect(args), ?\n,
+      "  Action: ", inspect(tag), ?\n,
+      "    Init: ", Exception.format_mfa(mod, init_fun, arity), ?\n]
+  end
+
+  defp agent_info(_min_level, _tag, fun, args, _initial_call) do
+    ["Function: ", inspect(fun), ?\n,
+      "    Args: ", inspect(args), ?\n]
   end
 
   defp translate_supervisor(min_level,

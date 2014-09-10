@@ -3,7 +3,10 @@ defmodule Agent.Server do
 
   use GenServer
 
+  defstruct state: nil, initial_call: nil
+
   def init(fun) do
+    _ = initial_call(fun)
     {:ok, run(fun, [])}
   end
 
@@ -12,8 +15,10 @@ defmodule Agent.Server do
   end
 
   def handle_call({:get_and_update, fun}, _from, state) do
-    {reply, state} = run(fun, [state])
-    {:reply, reply, state}
+    case run(fun, [state]) do
+      {reply, state} -> {:reply, reply, state}
+      other          -> {:stop, {:bad_return_value, other}, state}
+    end
   end
 
   def handle_call({:update, fun}, _from, state) do
@@ -51,6 +56,45 @@ defmodule Agent.Server do
     :ok
   end
 
-  defp run({m, f, a}, extra), do: apply(m, f, extra ++ a)
-  defp run(fun, extra), do: apply(fun, extra)
+  def format_status(:normal, [_pdict, state]) do
+    [{:data, [{'State', state}]}]
+  end
+
+  def format_status(:terminate, [pdict, state]) do
+    %Agent.Server{state: state,
+      initial_call: :proc_lib.translate_initial_call([dictionary: pdict])}
+  end
+
+  defp run({m, f, a}, extra) do
+    try do
+      apply(m, f, extra ++ a)
+    catch
+      value ->
+        value
+    end
+  end
+
+  defp run(fun, extra) do
+    try do
+      apply(fun, extra)
+    catch
+      value ->
+        value
+    end
+  end
+
+  defp initial_call(mfa) do
+    Process.put(:"$initial_call", get_initial_call(mfa))
+  end
+
+  defp get_initial_call(fun) when is_function(fun, 0) do
+    {:module, module} = :erlang.fun_info(fun, :module)
+    {:name, name} = :erlang.fun_info(fun, :name)
+    {module, name, 0}
+  end
+
+  defp get_initial_call({mod, fun, args}) do
+    {mod, fun, length(args)}
+  end
+
 end
