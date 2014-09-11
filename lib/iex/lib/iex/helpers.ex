@@ -42,7 +42,7 @@ defmodule IEx.Helpers do
       h(Enum.reverse/1)
       
   To discover all available functions for a module, type the module name
-  follow by a dot, then press tab to trigger autocomplete. For example:
+  followed by a dot, then press tab to trigger autocomplete. For example:
   
       Enum.
 
