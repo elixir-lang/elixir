@@ -180,7 +180,7 @@ defmodule IO do
   Inspects and writes the given argument to the device.
 
   It enables pretty printing by default with width of
-  80 characters. Th width can be changed by explicitly
+  80 characters. The width can be changed by explicitly
   passing the `:width` option.
 
   ## Examples
