@@ -260,7 +260,7 @@ defmodule Code do
   Accepts `relative_to` as an argument to tell where the file is located.
 
   While `load_file` loads a file and returns the loaded modules and their
-  byte code, `eval_file` simply evalutes the file contents and returns the
+  byte code, `eval_file` simply evaluates the file contents and returns the
   evaluation result and its bindings.
   """
   def eval_file(file, relative_to \\ nil) do
