@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1-dev
+
+* Bug fixes
+  * [CLI] Fix Elixir CLI when running on Cygwin
+
 ## v1.0.0 (2014-09-10)
 
 * Enhancements
