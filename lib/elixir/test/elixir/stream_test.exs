@@ -67,6 +67,19 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "chunk/4 is haltable" do
+    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Enum.to_list ==
+           [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(3) |> Enum.to_list ==
+           [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(2) |> Enum.to_list ==
+           [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(1) |> Enum.to_list ==
+           [[1, 2, 3, 4]]
+    assert 1..6 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Enum.to_list ==
+           [[1, 2, 3, 4], [5, 6, 7, 8]]
+  end
+
   test "chunk_by/2" do
     stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
 

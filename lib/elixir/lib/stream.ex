@@ -156,18 +156,22 @@ defmodule Stream do
   @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
   def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
-    lazy enum, {[], 0},
-         fn(f1) -> R.chunk(n, step, limit, f1) end,
-         fn(f1) -> &do_chunk(&1, n, pad, f1) end
+    if is_nil(pad) do
+      lazy enum, {[], 0}, fn(f1) -> R.chunk(n, step, limit, f1) end
+    else
+      lazy enum, {[], 0},
+           fn(f1) -> R.chunk(n, step, limit, f1) end,
+           &do_chunk(&1, n, pad, &2)
+     end
   end
 
-  defp do_chunk(acc(h, {buffer, count} = old, t) = acc, n, pad, f1) do
-    if is_nil(pad) || count == 0 do
-      {:cont, acc}
-    else
-      buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)
-      cont_with_acc(f1, buffer, h, old, t)
-    end
+  defp do_chunk(acc(_, {_, 0}, _) = acc, _, _, _) do
+    {:cont, acc}
+  end
+
+  defp do_chunk(acc(h, {buffer, count} = old, t), n, pad, f1) do
+    buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)
+    cont_with_acc(f1, buffer, h, old, t)
   end
 
   @doc """
@@ -186,7 +190,7 @@ defmodule Stream do
   def chunk_by(enum, fun) do
     lazy enum, nil,
          fn(f1) -> R.chunk_by(fun, f1) end,
-         fn(f1) -> &do_chunk_by(&1, f1) end
+         &do_chunk_by(&1, &2)
   end
 
   defp do_chunk_by(acc(_, nil, _) = acc, _f1) do
@@ -1127,12 +1131,12 @@ defmodule Stream do
 
   @compile {:inline, lazy: 2, lazy: 3, lazy: 4}
 
-  defp lazy(%Stream{funs: funs} = lazy, fun),
+  defp lazy(%Stream{done: nil, funs: funs} = lazy, fun),
     do: %{lazy | funs: [fun|funs] }
   defp lazy(enum, fun),
     do: %Stream{enum: enum, funs: [fun]}
 
-  defp lazy(%Stream{funs: funs, accs: accs} = lazy, acc, fun),
+  defp lazy(%Stream{done: nil, funs: funs, accs: accs} = lazy, acc, fun),
     do: %{lazy | funs: [fun|funs], accs: [acc|accs] }
   defp lazy(enum, acc, fun),
     do: %Stream{enum: enum, funs: [fun], accs: [acc]}
@@ -1171,19 +1175,20 @@ defimpl Enumerable, for: Stream do
     case reduce.({command, [acc|accs]}) do
       {:suspended, [acc|accs], continuation} ->
         {:suspended, acc, &do_each(continuation, done, accs, &1)}
-      {:halted, [acc|_]} ->
-        {:halted, acc}
-      {:done, [acc|_] = accs} ->
-        case done do
-          nil ->
-            {:done, acc}
-          {done, fun} ->
-            case done.(fun).(accs) do
-              {:cont, [acc|_]}    -> {:done, acc}
-              {:halt, [acc|_]}    -> {:halted, acc}
-              {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
-            end
-        end
+      {:halted, accs} ->
+        do_done {:halted, accs}, done
+      {:done, accs} ->
+        do_done {:done, accs}, done
+    end
+  end
+
+  defp do_done({reason, [acc|_]}, nil), do: {reason, acc}
+  defp do_done({reason, [acc|t]}, {done, fun}) do
+    [h|_] = Enum.reverse(t)
+    case done.([acc, h], fun) do
+      {:cont, [acc|_]}    -> {reason, acc}
+      {:halt, [acc|_]}    -> {:halted, acc}
+      {:suspend, [acc|_]} -> {:suspended, acc, &({:done, elem(&1, 1)})}
     end
   end
 end
