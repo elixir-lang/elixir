@@ -57,7 +57,7 @@ defmodule String do
   the whole string considering the proper Unicode codepoints.
 
   For example, `String.length/1` is going to take longer as
-  the input grows. On the other hand, `byte_size/1` always runs
+  the input grows. On the other hand, `Kernel.byte_size/1` always runs
   in constant time (i.e. regardless of the input size).
 
   This means often there are performance costs in using the
