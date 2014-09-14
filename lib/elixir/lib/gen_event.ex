@@ -188,7 +188,7 @@ defmodule GenEvent do
   @type manager :: pid | name | {atom, node}
 
   @typedoc "Supported values for new handlers"
-  @type handler :: atom | {atom, term} | pid
+  @type handler :: atom | {atom, term} | {pid, reference}
 
   @doc false
   defmacro __using__(_) do
@@ -612,8 +612,8 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, notify)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_process_handler, pid, notify}} ->
-        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify)
+      {_from, tag, {:add_process_handler, pid, notify, ref}} ->
+        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify, ref)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -761,9 +761,9 @@ defmodule GenEvent do
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_process_handler(pid, handlers, notify) do
-    ref = Process.monitor(pid)
-    handler = handler(module: GenEvent.Stream, id: pid,
+  defp server_add_process_handler(pid, handlers, notify, ref) do
+    ref = ref || Process.monitor(pid)
+    handler = handler(module: GenEvent.Stream, id: {self(), ref},
                       pid: notify, ref: ref)
     do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
   end
@@ -796,7 +796,7 @@ defmodule GenEvent do
 
   defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
     case handler(handler, :id) do
-      pid when is_pid(pid) ->
+      {pid, _ref} when is_pid(pid) ->
         server_process_notify(mode, event, handler)
         server_split_process_handlers(mode, event, t, handlers, [handler|streams])
       _ ->
@@ -858,16 +858,17 @@ defmodule GenEvent do
   end
 
   defp server_collect_process_handlers(mode, event, [handler|t], handlers, name) when mode in [:sync, :ack] do
-    handler(ref: ref) = handler
+    handler(ref: ref, id: id) = handler
 
     receive do
       {^ref, :ok} ->
         server_collect_process_handlers(mode, event, t, [handler|handlers], name)
-      {^ref, :done} ->
-        do_terminate(handler, :remove_handler, event, name, :normal)
+      {_from, tag, {:delete_handler, ^id, args}} ->
+        do_terminate(handler, args, :remove, name, :normal)
+        reply(tag, :ok)
         server_collect_process_handlers(mode, event, t, handlers, name)
       {:DOWN, ^ref, _, _, reason} ->
-        do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
+        do_terminate(handler, {:stop, reason}, :DOWN, name, :shutdown)
         server_collect_process_handlers(mode, event, t, handlers, name)
     end
   end
@@ -939,7 +940,7 @@ defmodule GenEvent do
     case :lists.keyfind(ref, handler(:ref) + 1, handlers) do
       false -> :error
       handler ->
-        do_terminate(handler, {:stop, reason}, :remove, name, :shutdown)
+        do_terminate(handler, {:stop, reason}, :DOWN, name, :shutdown)
         {:ok, :lists.keydelete(ref, handler(:ref) + 1, handlers)}
     end
   end
