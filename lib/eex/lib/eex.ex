@@ -193,11 +193,11 @@ defmodule EEx do
 
   ## Examples
 
-      # sample.ex
+      # sample.eex
       foo <%= bar %>
 
       # iex
-      EEx.eval_file "sample.ex", [bar: "baz"] #=> "foo baz"
+      EEx.eval_file "sample.eex", [bar: "baz"] #=> "foo baz"
 
   """
   def eval_file(filename, bindings \\ [], options \\ []) do
