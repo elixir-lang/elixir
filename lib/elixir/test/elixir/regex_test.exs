@@ -200,6 +200,14 @@ defmodule RegexTest do
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end, global: false) == "acabc"
   end
 
+  test :ungreedy do
+    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
+    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
+    assert Regex.run(~r/[\d ]+/r, "1 2 3 4 5"), ["1"]
+    {:ok, regex} = Regex.compile("[\\d ]+", "U")
+    assert Regex.run(regex, "1 2 3 4 5"), ["1"]
+  end
+
   test :escape do
     assert matches_escaped?(".")
     refute matches_escaped?(".", "x")
