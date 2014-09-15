@@ -41,7 +41,8 @@ defmodule Regex do
     * `firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
 
-    * `ungreedy` (r) - inverts the "greediness" of the regexp
+    * `ungreedy` (U) - inverts the "greediness" of the regexp. `r` option is
+      deprecated in favor of `U`
 
   The options not available are:
 
@@ -618,6 +619,7 @@ defmodule Regex do
   defp translate_options(<<?x, t :: binary>>, acc), do: translate_options(t, [:extended|acc])
   defp translate_options(<<?f, t :: binary>>, acc), do: translate_options(t, [:firstline|acc])
   defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?U, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
   defp translate_options(<<?s, t :: binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
   defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
   defp translate_options(<<>>, acc), do: acc

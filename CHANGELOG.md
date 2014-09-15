@@ -10,5 +10,5 @@
 
 
 
-### Soft deprecations
-
+### Soft deprecations (no warnings emitted)
+  * [Regex] Ungreedy option `r` is deprecated in favor of `U`
