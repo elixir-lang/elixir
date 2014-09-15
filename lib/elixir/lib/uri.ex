@@ -15,6 +15,8 @@ defmodule URI do
     "ftp"   => 21,
     "http"  => 80,
     "https" => 443,
+    "ws"    => 80,
+    "wss"   => 443,
     "ldap"  => 389,
     "sftp"  => 22,
     "tftp"  => 69,
