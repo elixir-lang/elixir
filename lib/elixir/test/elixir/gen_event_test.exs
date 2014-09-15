@@ -432,6 +432,23 @@ defmodule GenEventTest do
     Logger.add_backend(:console, flush: true)
   end
 
+  test "add_process_handler/2 with GenEvent" do
+    {:ok, snd} = GenEvent.start_link()
+    GenEvent.add_handler(snd, ReplyHandler, {self(), false})
+
+    {:ok, fst} = GenEvent.start_link()
+    :gen.call(fst, self(), {:add_process_handler, snd, snd})
+
+    assert GenEvent.notify(fst, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.ack_notify(fst, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.sync_notify(fst, :hello) == :ok
+    assert_received {:event, :hello}
+  end
+
   test ":sys.get_status/2" do
     {:ok, pid} = GenEvent.start(name: :my_gen_event_name)
     :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self(), true})

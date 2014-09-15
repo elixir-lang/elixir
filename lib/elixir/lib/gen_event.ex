@@ -601,19 +601,15 @@ defmodule GenEvent do
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:add_handler, handler, args}} ->
-        {hib, reply, handlers} = server_add_handler(handler, args, handlers, nil)
-        reply(tag, reply)
-        loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_handler, handler, args, notify}} ->
-        {hib, reply, handlers} = server_add_handler(handler, args, handlers, notify)
+        {hib, reply, handlers} = server_add_handler(handler, args, handlers)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:add_mon_handler, handler, args, notify}} ->
         {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, notify)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, {:add_process_handler, pid, notify, ref}} ->
-        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify, ref)
+      {_from, tag, {:add_process_handler, pid, notify}} ->
+        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
       {_from, tag, {:delete_handler, handler, args}} ->
@@ -739,13 +735,13 @@ defmodule GenEvent do
     IO.puts dev, "*DBG* #{inspect name}: #{inspect dbg}"
   end
 
-  defp server_add_handler({module, id}, args, handlers, notify) do
-    handler = handler(module: module, id: {module, id}, pid: notify)
+  defp server_add_handler({module, id}, args, handlers) do
+    handler = handler(module: module, id: {module, id})
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_handler(module, args, handlers, notify) do
-    handler = handler(module: module, id: module, pid: notify)
+  defp server_add_handler(module, args, handlers) do
+    handler = handler(module: module, id: module)
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
@@ -761,8 +757,8 @@ defmodule GenEvent do
     do_add_handler(module, handler, args, handlers, :ok)
   end
 
-  defp server_add_process_handler(pid, handlers, notify, ref) do
-    ref = ref || Process.monitor(pid)
+  defp server_add_process_handler(pid, handlers, notify) do
+    ref = Process.monitor(pid)
     handler = handler(module: GenEvent.Stream, id: {self(), ref},
                       pid: notify, ref: ref)
     do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
@@ -779,7 +775,7 @@ defmodule GenEvent do
     if sup do
       server_add_mon_handler(module2, {args2, state}, handlers, sup)
     else
-      server_add_handler(module2, {args2, state}, handlers, nil)
+      server_add_handler(module2, {args2, state}, handlers)
     end
   end
 
