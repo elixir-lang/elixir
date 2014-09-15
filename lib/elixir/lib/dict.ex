@@ -56,7 +56,7 @@ defmodule Dict do
     * `size/1`
 
   All functions, except `reduce/3`, are required by the Dict behaviour.
-  `reduce/3` must be implemtented as per the Enumerable protocol.
+  `reduce/3` must be implemented as per the Enumerable protocol.
 
   Based on these functions, `Dict` generates default implementations
   for the following functions:
