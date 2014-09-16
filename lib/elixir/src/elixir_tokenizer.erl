@@ -635,7 +635,7 @@ unsafe_to_atom(List, _Line, #elixir_tokenizer{existing_atoms_only=true}) when is
 unsafe_to_atom(List, _Line, #elixir_tokenizer{}) when is_list(List) ->
   {ok, list_to_atom(List)}.
 
-collect_modifiers([H|T], Buffer) when ?is_downcase(H) ->
+collect_modifiers([H|T], Buffer) when ?is_downcase(H) or ?is_upcase(H) ->
   collect_modifiers(T, [H|Buffer]);
 
 collect_modifiers(Rest, Buffer) ->
