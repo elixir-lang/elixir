@@ -220,9 +220,17 @@ defmodule ExUnit.Runner do
           %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
       after
         timeout ->
+          stacktrace =
+            try do
+              Process.info(test_pid, :current_stacktrace)
+            catch
+              _, _ -> []
+            else
+              {:current_stacktrace, stacktrace} -> stacktrace
+            end
           Process.exit(test_pid, :kill)
           Process.demonitor(test_ref, [:flush])
-          %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, []}}}
+          %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace}}}
       end
 
     exec_on_exit(test, test_pid)
