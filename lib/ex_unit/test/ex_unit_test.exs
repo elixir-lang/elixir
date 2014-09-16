@@ -50,8 +50,9 @@ defmodule ExUnitTest do
       end
     end
 
-    assert capture_io(fn -> ExUnit.run end) =~
-           "** (ExUnit.TimeoutError) test timed out after 10ms"
+    output = capture_io(fn -> ExUnit.run end)
+    assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
+    assert output =~ ~r"\(stdlib\) timer\.erl:\d+: :timer\.sleep/1"
   end
 
   test "filtering cases with tags" do
