@@ -2,13 +2,14 @@
 
 ## v1.1.0-dev
 
-### Enhancements
+### 1 Enhancements
+
+  * [URI] Default ports were added for "ws" and "wss" schemas
+
+### 2. Bug fixes
 
 
 
-### Bug fixes
+### 3. Soft deprecations (no warnings emitted)
 
-
-
-### Soft deprecations (no warnings emitted)
   * [Regex] Ungreedy option `r` is deprecated in favor of `U`
