@@ -13,7 +13,7 @@ defmodule Mix.ConfigTest do
     assert var!(config, Mix.Config) == [lager: [key: :value]]
 
     config :lager, other: :value
-    assert var!(config, Mix.Config) == [lager: [other: :value, key: :value]]
+    assert var!(config, Mix.Config) == [lager: [key: :value, other: :value]]
 
     config :lager, key: :other
     assert var!(config, Mix.Config) == [lager: [key: :other, other: :value]]
@@ -26,10 +26,19 @@ defmodule Mix.ConfigTest do
     assert var!(config, Mix.Config) == [app: [{Repo, key: :value}]]
 
     config :app, Repo, other: :value
-    assert var!(config, Mix.Config) == [app: [{Repo, other: :value, key: :value}]]
+    assert var!(config, Mix.Config) == [app: [{Repo, key: :value, other: :value}]]
 
     config :app, Repo, key: :other
-    assert var!(config, Mix.Config) == [app: [{Repo, [key: :other, other: :value]}]]
+    assert var!(config, Mix.Config) == [app: [{Repo, key: :other, other: :value}]]
+
+    config :app, Repo, key: [nested: false]
+    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: false], other: :value}]]
+
+    config :app, Repo, key: [nested: true]
+    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: true], other: :value}]]
+
+    config :app, Repo, key: :other
+    assert var!(config, Mix.Config) == [app: [{Repo, key: :other, other: :value}]]
   end
 
   test "import_config/1" do
@@ -42,6 +51,14 @@ defmodule Mix.ConfigTest do
     use Mix.Config
     import_config fixture_path("configs/good_*.exs")
     assert var!(config, Mix.Config) == [my_app: [key: :value]]
+  end
+
+  test "import_config/1 with nested" do
+    use Mix.Config
+    config :app, Repo, key: [nested: false, other: true]
+
+    import_config fixture_path("configs/nested.exs")
+    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: true, other: true]}]]
   end
 
   test "import_config/1 with bad path" do
