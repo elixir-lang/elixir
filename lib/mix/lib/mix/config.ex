@@ -40,6 +40,8 @@ defmodule Mix.Config do
   @doc """
   Configures the given application.
 
+  Keyword lists are always deep merged.
+
   ## Examples
 
   The given `opts` are merged into the existing configuration
@@ -69,6 +71,8 @@ defmodule Mix.Config do
   @doc """
   Configures the given key for the given application.
 
+  Keyword lists are always deep merged.
+
   ## Examples
 
   The given `opts` are merged into the existing values for `key`
@@ -91,8 +95,7 @@ defmodule Mix.Config do
     quote do
       var!(config, Mix.Config) =
         Mix.Config.merge(var!(config, Mix.Config),
-                         [{unquote(app), [{unquote(key), unquote(opts)}]}],
-                         fn _app, _key, v1, v2 -> Keyword.merge(v1, v2) end)
+                         [{unquote(app), [{unquote(key), unquote(opts)}]}])
     end
   end
 
@@ -116,7 +119,7 @@ defmodule Mix.Config do
   defmacro import_config(file) do
     quote do
       var!(config, Mix.Config) =
-        Mix.Config.read_wildcard!(Path.expand(unquote(file), __DIR__), var!(config, Mix.Config))
+        Mix.Config.read_wildcard!(var!(config, Mix.Config), Path.expand(unquote(file), __DIR__))
     end
   end
 
@@ -142,7 +145,7 @@ defmodule Mix.Config do
   @doc """
   Reads many configuration files given by wildcard into a single config.
   """
-  def read_wildcard!(path, config) do
+  def read_wildcard!(config, path) do
     paths = case Path.wildcard(path) do
       [] -> [path]
       o  -> o
@@ -201,34 +204,15 @@ defmodule Mix.Config do
   """
   def merge(config1, config2) do
     Keyword.merge(config1, config2, fn _, app1, app2 ->
-      Keyword.merge(app1, app2)
+      Keyword.merge(app1, app2, &deep_merge/3)
     end)
   end
 
-  @doc """
-  Merges two configurations.
-
-  The configuration of each application is merged together
-  and a callback is invoked in case of conflicts receiving
-  the app, the conflicting key and both values. It must return
-  a value that will be used as part of the conflict resolution.
-
-  ## Examples
-
-      iex> Mix.Config.merge([app: [k: :v1]], [app: [k: :v2]],
-      ...>   fn app, k, v1, v2 -> {app, k, v1, v2} end)
-      [app: [k: {:app, :k, :v1, :v2}]]
-
-  """
-  def merge(config1, config2, callback) do
-    Keyword.merge(config1, config2, fn app, app1, app2 ->
-      Keyword.merge(app1, app2, fn k, v1, v2 ->
-        if v1 == v2 do
-          v1
-        else
-          callback.(app, k, v1, v2)
-        end
-      end)
-    end)
+  defp deep_merge(_key, value1, value2) do
+    if Keyword.keyword?(value1) and Keyword.keyword?(value2) do
+      Keyword.merge(value1, value2, &deep_merge/3)
+    else
+      value2
+    end
   end
 end
