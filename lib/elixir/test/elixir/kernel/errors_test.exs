@@ -756,8 +756,13 @@ defmodule Kernel.ErrorsTest do
       end
       '''
 
-    assert_compile_fail CompileError,
-      "nofile:2: spec for undefined function ErrorsTest.omg/0",
+    if :erlang.system_info(:otp_release) >= '18' do
+      message = "nofile:2: spec for undefined function omg/0"
+    else
+      message = "nofile:2: spec for undefined function ErrorsTest.omg/0"
+    end
+
+    assert_compile_fail CompileError, message,
       '''
       defmodule ErrorsTest do
         @spec omg :: atom
