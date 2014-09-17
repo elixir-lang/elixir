@@ -121,11 +121,19 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert get_callbacks(Sample, :ok, 1) ==
-      [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
+    if :erlang.system_info(:otp_release) >= '18' do
+      assert get_callbacks(Sample, :ok, 1) ==
+        [{:type, 9, :fun, [{:type, 9, :product, [{:user_type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
 
-    assert get_callbacks(WithAny, :ok, 1) ==
-      [{:type, 16, :fun, [{:type, 16, :product, [{:type, 16, :t, []}]}, {:type, 16, :term, []}]}]
+      assert get_callbacks(WithAny, :ok, 1) ==
+        [{:type, 16, :fun, [{:type, 16, :product, [{:user_type, 16, :t, []}]}, {:type, 16, :term, []}]}]
+    else
+      assert get_callbacks(Sample, :ok, 1) ==
+        [{:type, 9, :fun, [{:type, 9, :product, [{:type, 9, :t, []}]}, {:type, 9, :boolean, []}]}]
+
+      assert get_callbacks(WithAny, :ok, 1) ==
+        [{:type, 16, :fun, [{:type, 16, :product, [{:type, 16, :t, []}]}, {:type, 16, :term, []}]}]
+    end
   end
 
   test "protocol defines attributes" do
