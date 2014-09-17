@@ -644,6 +644,10 @@ defmodule Kernel.Typespec do
     []
   end
 
+  defp typespec_to_ast({:user_type, line, name, args}) do
+    typespec_to_ast({:type, line, name, args})
+  end
+
   defp typespec_to_ast({:type, line, :tuple, :any}) do
     {:tuple, [line: line], []}
   end
@@ -677,8 +681,13 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec_to_ast({:type, line, :map, fields}) do
-    fields = Enum.map fields, fn {:type, _, :map_field_assoc, k, v} ->
-      {typespec_to_ast(k), typespec_to_ast(v)}
+    fields = Enum.map fields, fn
+      # OTP 18
+      {:type, _, :map_field_assoc, [k, v]} ->
+        {typespec_to_ast(k), typespec_to_ast(v)}
+      # OTP 17
+      {:type, _, :map_field_assoc, k, v} ->
+        {typespec_to_ast(k), typespec_to_ast(v)}
     end
 
     {struct, fields} = Keyword.pop(fields, :__struct__)
@@ -821,9 +830,17 @@ defmodule Kernel.Typespec do
 
   ## Handle maps and structs
   defp typespec({:%{}, meta, fields}, vars, caller) do
-    fields = :lists.map(fn {k, v} ->
-      {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
-    end, fields)
+    fields =
+      if :erlang.system_info(:otp_release) >= '18' do
+        :lists.map(fn {k, v} ->
+          {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+        end, fields)
+      else
+        :lists.map(fn {k, v} ->
+          {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
+        end, fields)
+      end
+
     {:type, line(meta), :map, fields}
   end
 
@@ -884,7 +901,8 @@ defmodule Kernel.Typespec do
 
   # Handle ranges
   defp typespec({:.., meta, args}, vars, caller) do
-    typespec({:range, meta, args}, vars, caller)
+    args = for arg <- args, do: typespec(arg, vars, caller)
+    {:type, line(meta), :range, args}
   end
 
   # Handle special forms
@@ -968,9 +986,21 @@ defmodule Kernel.Typespec do
     typespec((quote do: :elixir.as_boolean(unquote(arg))), vars, caller)
   end
 
+  defp typespec({:fun, meta, args}, vars, caller) do
+    args = for arg <- args, do: typespec(arg, vars, caller)
+    {:type, line(meta), :fun, args}
+  end
+
   defp typespec({name, meta, arguments}, vars, caller) do
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-    {:type, line(meta), name, arguments}
+
+    if :erlang.system_info(:otp_release) >= '18' do
+      arity = length(arguments)
+      type = if :erl_internal.is_type(name, arity), do: :type, else: :user_type
+      {type, line(meta), name, arguments}
+    else
+      {:type, line(meta), name, arguments}
+    end
   end
 
   # Handle literals
