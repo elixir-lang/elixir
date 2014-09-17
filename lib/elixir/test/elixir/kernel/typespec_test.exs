@@ -154,15 +154,6 @@ defmodule Kernel.TypespecTest do
            types(module)
   end
 
-  test "@type with a range" do
-    module = test_module do
-      @type mytype :: range(1, 10)
-    end
-
-    assert [type: {:mytype, {:type, _, :range, [{:integer, _, 1}, {:integer, _, 10}]}, []}] =
-           types(module)
-  end
-
   test "@type with a range op" do
     module = test_module do
       @type mytype :: 1..10
@@ -177,11 +168,19 @@ defmodule Kernel.TypespecTest do
       @type mytype :: %{hello: :world}
     end
 
-    assert [type: {:mytype,
-             {:type, _, :map, [
-               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
-             ]},
-            []}] = types(module)
+    if :erlang.system_info(:otp_release) >= '18' do
+      assert [type: {:mytype,
+               {:type, _, :map, [
+                 {:type, _, :map_field_assoc, [{:atom, _, :hello}, {:atom, _, :world}]}
+               ]},
+              []}] = types(module)
+    else
+      assert [type: {:mytype,
+               {:type, _, :map, [
+                 {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}}
+               ]},
+              []}] = types(module)
+    end
   end
 
   test "@type with a struct" do
@@ -190,13 +189,23 @@ defmodule Kernel.TypespecTest do
       @type mytype :: %TestTypespec{hello: :world}
     end
 
-    assert [type: {:mytype,
-             {:type, _, :map, [
-               {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}},
-               {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}},
-               {:type, _, :map_field_assoc, {:atom, _, :other}, {:type, _, :term, []}}
-             ]},
-            []}] = types(module)
+    if :erlang.system_info(:otp_release) >= '18' do
+      assert [type: {:mytype,
+               {:type, _, :map, [
+                 {:type, _, :map_field_assoc, [{:atom, _, :__struct__}, {:atom, _, TestTypespec}]},
+                 {:type, _, :map_field_assoc, [{:atom, _, :hello}, {:atom, _, :world}]},
+                 {:type, _, :map_field_assoc, [{:atom, _, :other}, {:type, _, :term, []}]}
+               ]},
+              []}] = types(module)
+    else
+      assert [type: {:mytype,
+               {:type, _, :map, [
+                 {:type, _, :map_field_assoc, {:atom, _, :__struct__}, {:atom, _, TestTypespec}},
+                 {:type, _, :map_field_assoc, {:atom, _, :hello}, {:atom, _, :world}},
+                 {:type, _, :map_field_assoc, {:atom, _, :other}, {:type, _, :term, []}}
+               ]},
+              []}] = types(module)
+    end
   end
 
   test "@type with undefined struct" do
