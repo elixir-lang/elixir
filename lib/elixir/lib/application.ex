@@ -38,7 +38,7 @@ defmodule Application do
   can access the default value:
 
       Application.get_env(:APP_NAME, :hello)
-      #=> {:ok, :hello}
+      #=> :world
 
   It is also possible to put and delete values from the application value,
   including new values that are not defined in the environment file (although
