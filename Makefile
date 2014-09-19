@@ -146,8 +146,8 @@ release_zip: compile
 
 release_docs: docs
 	cd ../docs
-	rm -rf ../docs/master
-	mv docs ../docs/master
+	rm -rf ../docs/stable
+	mv docs ../docs/stable
 
 #==> Tests tasks
 
