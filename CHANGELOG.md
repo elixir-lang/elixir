@@ -4,6 +4,11 @@
 
 * Bug fixes
   * [CLI] Fix Elixir CLI when running on Cygwin
+  * [ExUnit] Include stacktraces in ExUnit timeouts
+  * [Mix] Load dependencies before `deps.check` compiles
+  * [Mix] Ensure `Mix.Config` is deep merged
+  * [Mix] Change version requirement in new apps to `~> MAJOR.MINOR`
+  * [Stream] Ensure `chunk/4` works correctly when halted
 
 ## v1.0.0 (2014-09-10)
 
