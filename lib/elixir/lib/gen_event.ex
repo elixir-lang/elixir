@@ -57,8 +57,8 @@ defmodule GenEvent do
   Notifications can be sent to the event manager which will then
   invoke `handle_event/2` for each registered handler.
 
-  We can add new handlers with `add_handler/3`. Calls can also
-  be made to specific handlers by using `call/3`.
+  We can add new handlers with `add_handler/3` and `add_mon_handler/3`.
+  Calls can also be made to specific handlers by using `call/3`.
 
   ## Callbacks
 
@@ -136,21 +136,18 @@ defmodule GenEvent do
 
   ## Streaming
 
-  `GenEvent`s can be streamed from and streamed with the help of `stream/2`.
+  `GenEvent` messages can be streamed with the help of `stream/2`.
   Here are some examples:
 
       stream = GenEvent.stream(pid)
 
-      # Take the next 10 events
-      Enum.take(stream, 10)
+      # Discard the next 10 events
+      _ = Enum.drop(stream, 10)
 
       # Print all remaining events
       for event <- stream do
         IO.inspect event
       end
-
-  A stream may also be given an id, which allows all streams with the given
-  id to be cancelled at any moment via `cancel_streams/1`.
 
   ## Learn more and compatibility
 
