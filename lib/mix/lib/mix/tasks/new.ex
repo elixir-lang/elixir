@@ -68,7 +68,8 @@ defmodule Mix.Tasks.New do
   end
 
   defp do_generate(app, mod, path, opts) do
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup])]
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup]),
+               version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -162,6 +163,15 @@ defmodule Mix.Tasks.New do
     end
   end
 
+  defp get_version(version) do
+    {:ok, version} = Version.parse(version)
+    "#{version.major}.#{version.minor}" <>
+      case version.pre do
+        [h|_] -> "-#{h}"
+        []    -> ""
+      end
+  end
+
   defp in_umbrella? do
     apps = Path.dirname(File.cwd!)
 
@@ -196,7 +206,7 @@ defmodule Mix.Tasks.New do
     def project do
       [app: :<%= @app %>,
        version: "0.0.1",
-       elixir: "~> <%= System.version %>",
+       elixir: "~> <%= @version %>",
        deps: deps]
     end
 
@@ -231,7 +241,7 @@ defmodule Mix.Tasks.New do
        version: "0.0.1",
        deps_path: "../../deps",
        lockfile: "../../mix.lock",
-       elixir: "~> <%= System.version %>",
+       elixir: "~> <%= @version %>",
        deps: deps]
     end
 
