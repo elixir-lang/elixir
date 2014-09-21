@@ -257,7 +257,10 @@ defmodule File do
   The accepted options are:
 
     * `:time` - `:local | :universal | :posix`; default: `:local`
-
+    
+  They affect the time values returned in the File.stat struct:
+    * `:local :universal` - return a {:date,:time} tuple in the respective timezone, 
+    * `:posix` - returns the integer seconds since the epoch.  
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
