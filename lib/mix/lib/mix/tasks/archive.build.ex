@@ -72,5 +72,8 @@ defmodule Mix.Tasks.Archive.Build do
     end
 
     Mix.Archive.create(source, target)
+
+    Mix.shell.info "Generated archive #{target} with MIX_ENV=#{Mix.env}"
+    :ok
   end
 end
