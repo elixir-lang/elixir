@@ -143,15 +143,9 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp wait_for_handler_removal(pid, ref, mon_ref) do
     receive do
-      {:gen_event_EXIT, {^pid, ^ref}, reason}
-          when reason == :normal
-          when reason == :shutdown
-          when tuple_size(reason) == 3 and elem(reason, 0) == :swapped  ->
-        Process.demonitor(mon_ref, [:flush])
-        :ok
       {:gen_event_EXIT, {^pid, ^ref}, reason} ->
         Process.demonitor(mon_ref, [:flush])
-        {:error, reason}
+        :ok
       {:DOWN, ^mon_ref, _, _, reason} ->
         {:error, reason}
     end
