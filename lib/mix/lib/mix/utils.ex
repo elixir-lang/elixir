@@ -366,25 +366,34 @@ defmodule Mix.Utils do
 
     * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
       given path is a URL.
+
+    * `:file` - Writes the output to a file specified by given path instead
+      of returning it as a binary.
   """
   def read_path!(path, opts \\ []) do
     cond do
       url?(path) && opts[:shell] ->
-        read_shell(path)
+        read_shell(path, opts)
       url?(path) ->
-        read_httpc(path)
+        read_httpc(path, opts)
       file?(path) ->
-        read_file(path)
+        read_file(path, opts)
       true ->
         Mix.raise "Expected #{path} to be a url or a local file path"
     end
   end
 
-  defp read_file(path) do
-    File.read!(path)
+  defp read_file(path, opts) do
+    if out_path = opts[:file] do
+      put_creating_file(out_path)
+      File.cp!(path, out_path)
+      :ok
+    else
+      File.read!(path)
+    end
   end
 
-  defp read_httpc(path) do
+  defp read_httpc(path, opts) do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
@@ -401,11 +410,21 @@ defmodule Mix.Utils do
     if http_proxy,  do: proxy(http_proxy)
     if https_proxy, do: proxy(https_proxy)
 
-    # We are using relaxed: true because some clients is returning a Location
+    if out_path = opts[:file] do
+      File.rm(out_path)
+      req_opts = [stream: String.to_char_list(out_path)]
+    else
+      req_opts = [body_format: :binary]
+    end
+
+    # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
     # cause the request to fail with {:error, :no_scheme} unless :relaxed
     # is given.
-    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary], :mix) do
+    case :httpc.request(:get, request, [relaxed: true], req_opts, :mix) do
+      {:ok, :saved_to_file} ->
+        put_creating_file(out_path)
+        :ok
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
       {:ok, {{_, status, _}, _, _}} ->
@@ -430,9 +449,10 @@ defmodule Mix.Utils do
     end
   end
 
-  defp read_shell(path) do
+  defp read_shell(path, opts) do
     filename = URI.parse(path).path |> Path.basename
-    out_path = Path.join(System.tmp_dir!, filename)
+    out_path = opts[:file] || Path.join(System.tmp_dir!, filename)
+
     File.rm(out_path)
 
     status = cond do
@@ -450,14 +470,23 @@ defmodule Mix.Utils do
         1
     end
 
-    check_command!(status, path, out_path)
+    check_command!(status, path, opts[:file])
 
-    data = File.read!(out_path)
-    File.rm!(out_path)
-    data
+    if opts[:file] do
+      put_creating_file(out_path)
+      :ok
+    else
+      data = File.read!(out_path)
+      File.rm!(out_path)
+      data
+    end
   end
 
   defp check_command!(0, _path, _out_path), do: :ok
+  defp check_command!(_status, path, nil) do
+    Mix.raise "Could not fetch data, please download manually from " <>
+              "#{inspect path}"
+  end
   defp check_command!(_status, path, out_path) do
     Mix.raise "Could not fetch data, please download manually from " <>
               "#{inspect path} and copy it to #{inspect out_path}"
@@ -465,6 +494,10 @@ defmodule Mix.Utils do
 
   defp windows? do
     match?({:win32, _}, :os.type)
+  end
+
+  defp put_creating_file(path) do
+    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
   end
 
   defp file?(path) do

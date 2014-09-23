@@ -59,8 +59,7 @@ defmodule Mix.Tasks.Archive.Install do
       check_file_exists(archive)
 
       File.mkdir_p!(dest)
-      File.write!(archive, Mix.Utils.read_path!(src, opts))
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
+      Mix.Utils.read_path!(src, opts ++ [file: archive])
 
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
@@ -80,7 +79,7 @@ defmodule Mix.Tasks.Archive.Install do
   defp should_install?(_src, previous_files) do
     files = Enum.map_join(previous_files, ", ", &Path.basename/1)
 
-    Mix.shell.yes?("Found existing archives: #{files}.\n" <>
+    Mix.shell.yes?("Found existing archive(s): #{files}.\n" <>
                    "Are you sure you want to replace them?")
   end
 
