@@ -69,10 +69,11 @@ defmodule SystemTest do
     with_tmp_dir(fn dir ->
       new_path = Path.join([dir, "echo2"])
       File.cp!(System.find_executable("echo"), new_path)
-      assert {"hello\n", 0} = System.cmd(new_path, ["hello"])
+      assert :enoent = catch_error(System.cmd(new_path, ["hello"]))
 
       File.cd!(dir)
-      assert {"hello\n", 0} = System.cmd("echo2", ["hello"])
+      assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
+      assert {"hello\n", 0} = System.cmd(Path.join([System.cwd, "echo2"]), ["hello"])
     end)
   end
 
