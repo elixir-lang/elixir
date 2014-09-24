@@ -17,7 +17,7 @@ defmodule Mix.Generator do
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
 
-    if opts[:force] || overwriting?(path) do
+    if opts[:force] || Mix.Utils.overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
     end
@@ -29,15 +29,6 @@ defmodule Mix.Generator do
   def create_directory(path) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
     File.mkdir_p! path
-  end
-
-  defp overwriting?(path) do
-    if File.exists?(path) do
-      full = Path.expand(path)
-      Mix.shell.yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
-    else
-      true
-    end
   end
 
   @doc false

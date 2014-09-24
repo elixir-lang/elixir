@@ -354,7 +354,33 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Opens and reads content from either a URL or a local filesystem path.
+  Opens and reads content from either a URL or a local filesystem path
+  and returns the contents as a binary.
+
+  Raises if the given path is not a URL, nor a file or if the
+  file or URL are invalid.
+
+  ## Options
+
+    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
+      given path is a URL.
+  """
+  def read_path!(path, opts \\ []) do
+    cond do
+      url?(path) && opts[:shell] ->
+        read_shell(path, [])
+      url?(path) ->
+        read_httpc(path, [])
+      file?(path) ->
+        read_file(path)
+      true ->
+        Mix.raise "Expected #{path} to be a url or a local file path"
+    end
+  end
+
+  @doc """
+  Copies content from either a URL or a local filesystem path to
+  target path.
 
   Used by tasks like `archive.install` and `local.rebar` that support
   installation either from a URL or a local file.
@@ -367,30 +393,46 @@ defmodule Mix.Utils do
     * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
       given path is a URL.
 
-    * `:file` - Writes the output to a file specified by given path instead
-      of returning it as a binary.
+    * `:force` - Forces overwriting target file without a shell prompt.
   """
-  def read_path!(path, opts \\ []) do
-    cond do
-      url?(path) && opts[:shell] ->
-        read_shell(path, opts)
-      url?(path) ->
-        read_httpc(path, opts)
-      file?(path) ->
-        read_file(path, opts)
-      true ->
-        Mix.raise "Expected #{path} to be a url or a local file path"
+  def copy_path!(source, target, opts \\ []) do
+    if opts[:force] || overwriting?(target) do
+      cond do
+        url?(source) && opts[:shell] ->
+          read_shell(source, file: target)
+        url?(source) ->
+          read_httpc(source, file: target)
+        file?(source) ->
+          copy_file(source, target)
+        true ->
+          Mix.raise "Expected #{source} to be a url or a local file path"
+      end
+
+      put_creating_file(target)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Prompts the user to overwrite the file if it exists. Returns
+  the user input.
+  """
+  def overwriting?(path) do
+    if File.exists?(path) do
+      full = Path.expand(path)
+      Mix.shell.yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
+    else
+      true
     end
   end
 
-  defp read_file(path, opts) do
-    if out_path = opts[:file] do
-      put_creating_file(out_path)
-      File.cp!(path, out_path)
-      :ok
-    else
-      File.read!(path)
-    end
+  defp read_file(path) do
+    File.read!(path)
+  end
+
+  defp copy_file(source, target) do
+    File.cp!(source, target)
   end
 
   defp read_httpc(path, opts) do
@@ -423,7 +465,6 @@ defmodule Mix.Utils do
     # is given.
     case :httpc.request(:get, request, [relaxed: true], req_opts, :mix) do
       {:ok, :saved_to_file} ->
-        put_creating_file(out_path)
         :ok
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
@@ -472,10 +513,7 @@ defmodule Mix.Utils do
 
     check_command!(status, path, opts[:file])
 
-    if opts[:file] do
-      put_creating_file(out_path)
-      :ok
-    else
+    unless opts[:file] do
       data = File.read!(out_path)
       File.rm!(out_path)
       data
