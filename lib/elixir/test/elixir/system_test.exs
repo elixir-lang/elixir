@@ -65,11 +65,33 @@ defmodule SystemTest do
     opts = [into: [], cd: System.cwd!, env: %{"foo" => "bar"},
             arg0: "hecho", stderr_to_stdout: true, parallelism: true]
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
+
+    with_tmp_dir(fn dir ->
+      new_path = Path.join([dir, "echo2"])
+      File.cp!(System.find_executable("echo"), new_path)
+      assert {"hello\n", 0} = System.cmd(new_path, ["hello"])
+
+      File.cd!(dir)
+      assert {"hello\n", 0} = System.cmd("echo2", ["hello"])
+    end)
   end
 
   test "find_executable/1" do
     assert System.find_executable("erl")
     assert is_binary System.find_executable("erl")
     assert !System.find_executable("does-not-really-exist-from-elixir")
+  end
+
+  defp with_tmp_dir(function) do
+    dir = tmp_dir_name()
+    tmp_dir = System.tmp_dir!
+    tmp_path = Path.join [tmp_dir, dir]
+    File.rm_rf! tmp_path
+    File.mkdir_p! tmp_path
+    File.cd! tmp_dir, fn -> function.(dir) end
+  end
+
+  defp tmp_dir_name do
+    :crypto.rand_bytes(4) |> Base.encode16
   end
 end
