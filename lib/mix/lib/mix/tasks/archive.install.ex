@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Archive.Install do
       check_file_exists(archive)
 
       File.mkdir_p!(dest)
-      Mix.Utils.read_path!(src, opts ++ [file: archive])
+      Mix.Utils.copy_path!(src, archive, opts)
 
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
