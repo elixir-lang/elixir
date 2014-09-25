@@ -113,8 +113,8 @@ defmodule Kernel.CLI do
     IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
   end
 
-  @elixir_internals [:elixir_compiler, :elixir_module, :elixir_translator, :elixir_expand,
-                     :elixir_lexical]
+  @elixir_internals [:elixir, :elixir_compiler, :elixir_module, :elixir_translator,
+                     :elixir_expand, :elixir_lexical]
 
   defp prune_stacktrace([{mod, _, _, _}|t]) when mod in @elixir_internals do
     prune_stacktrace(t)
