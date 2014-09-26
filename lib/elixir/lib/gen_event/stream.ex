@@ -143,7 +143,7 @@ defimpl Enumerable, for: GenEvent.Stream do
 
   defp wait_for_handler_removal(pid, ref, mon_ref) do
     receive do
-      {:gen_event_EXIT, {^pid, ^ref}, reason} ->
+      {:gen_event_EXIT, {^pid, ^ref}, _reason} ->
         Process.demonitor(mon_ref, [:flush])
         :ok
       {:DOWN, ^mon_ref, _, _, reason} ->
