@@ -368,9 +368,9 @@ defmodule Mix.Utils do
   def read_path!(path, opts \\ []) do
     cond do
       url?(path) && opts[:shell] ->
-        read_shell(path, [])
+        read_shell(path, nil)
       url?(path) ->
-        read_httpc(path, [])
+        read_httpc(path, nil)
       file?(path) ->
         read_file(path)
       true ->
@@ -395,23 +395,23 @@ defmodule Mix.Utils do
 
     * `:force` - Forces overwriting target file without a shell prompt.
   """
-  def copy_path!(source, target, opts \\ []) do
+  def copy_path!(source, target, opts \\ []) when is_binary(source) and is_binary(target) do
     if opts[:force] || overwriting?(target) do
       cond do
         url?(source) && opts[:shell] ->
-          read_shell(source, file: target)
+          read_shell(source, target)
         url?(source) ->
-          read_httpc(source, file: target)
+          read_httpc(source, target)
         file?(source) ->
           copy_file(source, target)
         true ->
           Mix.raise "Expected #{source} to be a url or a local file path"
       end
 
-      put_creating_file(target)
+      true
+    else
+      false
     end
-
-    :ok
   end
 
   @doc """
@@ -432,10 +432,11 @@ defmodule Mix.Utils do
   end
 
   defp copy_file(source, target) do
+    File.mkdir_p!(Path.dirname(target))
     File.cp!(source, target)
   end
 
-  defp read_httpc(path, opts) do
+  defp read_httpc(path, target) do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
@@ -452,9 +453,10 @@ defmodule Mix.Utils do
     if http_proxy,  do: proxy(http_proxy)
     if https_proxy, do: proxy(https_proxy)
 
-    if out_path = opts[:file] do
-      File.rm(out_path)
-      req_opts = [stream: String.to_char_list(out_path)]
+    if target do
+      File.mkdir_p!(Path.dirname(target))
+      File.rm(target)
+      req_opts = [stream: String.to_char_list(target)]
     else
       req_opts = [body_format: :binary]
     end
@@ -490,10 +492,11 @@ defmodule Mix.Utils do
     end
   end
 
-  defp read_shell(path, opts) do
+  defp read_shell(path, target) do
     filename = URI.parse(path).path |> Path.basename
-    out_path = opts[:file] || Path.join(System.tmp_dir!, filename)
+    out_path = target || Path.join(System.tmp_dir!, filename)
 
+    File.mkdir_p!(Path.dirname(out_path))
     File.rm(out_path)
 
     status = cond do
@@ -511,9 +514,9 @@ defmodule Mix.Utils do
         1
     end
 
-    check_command!(status, path, opts[:file])
+    check_command!(status, path, target)
 
-    unless opts[:file] do
+    unless target do
       data = File.read!(out_path)
       File.rm!(out_path)
       data
@@ -532,10 +535,6 @@ defmodule Mix.Utils do
 
   defp windows? do
     match?({:win32, _}, :os.type)
-  end
-
-  defp put_creating_file(path) do
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
   end
 
   defp file?(path) do

@@ -30,10 +30,12 @@ defmodule Mix.Tasks.Local.Rebar do
 
   defp do_install(path, opts) do
     local_rebar_path = Mix.Rebar.local_rebar_path
-    File.mkdir_p! Path.dirname(local_rebar_path)
 
-    Mix.Utils.copy_path!(path, local_rebar_path, opts)
-    :ok = :file.change_mode local_rebar_path, 0o755
+    if Mix.Utils.copy_path!(path, local_rebar_path, opts) do
+      :ok = :file.change_mode local_rebar_path, 0o755
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(local_rebar_path)]
+    end
+
     true
   end
 end
