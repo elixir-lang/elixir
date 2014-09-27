@@ -54,12 +54,12 @@ defmodule Mix.Tasks.Archive.Install do
     if opts[:force] || should_install?(src, previous) do
       remove_previous_versions(previous)
 
-      dest = Mix.Local.archives_path()
-      archive = Path.join(dest, basename(src))
+      archive = Path.join(Mix.Local.archives_path(), basename(src))
       check_file_exists(archive)
 
-      File.mkdir_p!(dest)
-      Mix.Utils.copy_path!(src, archive, opts)
+      if Mix.Utils.copy_path!(src, archive, opts) do
+        Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
+      end
 
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
