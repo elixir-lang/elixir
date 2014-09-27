@@ -431,18 +431,18 @@ defmodule System do
   @spec cmd(binary, [binary], Keyword.t) ::
         {Collectable.t, exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
-    command = String.to_char_list(command)
+    cmd = String.to_char_list(command)
 
-    command =
-      if Path.type(command) == :absolute do
-        command
+    cmd =
+      if Path.type(cmd) == :absolute do
+        cmd
       else
-        :os.find_executable(command)
+        :os.find_executable(cmd) || :erlang.error(:enoent, [command, args, opts])
       end
 
     {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
     {initial, fun} = Collectable.into(into)
-    do_cmd Port.open({:spawn_executable, command}, opts), initial, fun
+    do_cmd Port.open({:spawn_executable, cmd}, opts), initial, fun
   end
 
   defp do_cmd(port, acc, fun) do
