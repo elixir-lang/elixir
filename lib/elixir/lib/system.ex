@@ -437,7 +437,7 @@ defmodule System do
       if Path.type(command) == :absolute do
         command
       else
-        :os.find_executable(command) || command
+        :os.find_executable(command)
       end
 
     {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
