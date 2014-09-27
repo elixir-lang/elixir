@@ -1,8 +1,6 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  import Mix.Generator, only: [create_file: 3]
-
   @rebar_url "http://s3.hex.pm/rebar"
   @shortdoc  "Install rebar locally"
 
@@ -31,10 +29,10 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp do_install(path, opts) do
-    rebar = Mix.Utils.read_path!(path)
     local_rebar_path = Mix.Rebar.local_rebar_path
     File.mkdir_p! Path.dirname(local_rebar_path)
-    create_file local_rebar_path, rebar, opts
+
+    Mix.Utils.copy_path!(path, local_rebar_path, opts)
     :ok = :file.change_mode local_rebar_path, 0o755
     true
   end
