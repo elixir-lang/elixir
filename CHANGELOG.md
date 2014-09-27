@@ -2,13 +2,18 @@
 
 ## v1.0.1-dev
 
+* Enhancements
+  * [Mix] Add MIX_ENV output to archive.build (as on escript.build)
+
 * Bug fixes
   * [CLI] Fix Elixir CLI when running on Cygwin
   * [ExUnit] Include stacktraces in ExUnit timeouts
-  * [Mix] Load dependencies before `deps.check` compiles
+  * [Mix] Load dependencies before `deps.check` compiles dependencies
   * [Mix] Ensure `Mix.Config` is deep merged
   * [Mix] Change version requirement in new apps to `~> MAJOR.MINOR`
+  * [Mix] Report correct location if local.hex fails
   * [Stream] Ensure `chunk/4` works correctly when halted
+  * [System] Do not allow relative paths in `System.cmd` as documented
 
 ## v1.0.0 (2014-09-10)
 
