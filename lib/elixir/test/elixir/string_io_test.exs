@@ -19,6 +19,13 @@ defmodule StringIOTest do
     assert StringIO.contents(pid) == {"abc", "edf"}
   end
 
+  test "flush" do
+    {:ok, pid} = StringIO.open("")
+    IO.write(pid, "edf")
+    assert StringIO.flush(pid) == "edf"
+    assert StringIO.contents(pid) == {"", ""}
+  end
+
   ## IO module
 
   def start(string, opts \\ []) do

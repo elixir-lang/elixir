@@ -56,6 +56,24 @@ defmodule StringIO do
   end
 
   @doc """
+  Flushes output buffer.
+
+  ## Examples
+
+      iex> {:ok, pid} = StringIO.open("in")
+      iex> IO.write(pid, "out")
+      iex> StringIO.flush(pid)
+      "out"
+      iex> StringIO.contents(pid)
+      {"in", ""}
+
+  """
+  @spec flush(pid) :: binary
+  def flush(pid) when is_pid(pid) do
+    GenServer.call(pid, :flush)
+  end
+
+  @doc """
   Stops the IO device and returns remaining buffers.
 
   ## Examples
@@ -89,6 +107,10 @@ defmodule StringIO do
 
   def handle_call(:contents, _from, %{input: input, output: output} = s) do
     {:reply, {input, output}, s}
+  end
+
+  def handle_call(:flush, _from, %{output: output} = s) do
+    {:reply, output, %{s | output: ""}}
   end
 
   def handle_call(:close, _from, %{input: input, output: output} = s) do
