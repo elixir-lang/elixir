@@ -2971,6 +2971,8 @@ defmodule Kernel do
         defexception [:message]
       end
 
+      value = [:hello]
+
       raise MyAppError,
         message: "did not get what was expected, got: #{inspect value}"
 
