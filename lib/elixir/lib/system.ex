@@ -463,8 +463,11 @@ defmodule System do
   defp cmd_opts([{:arg0, bin}|t], opts, into) when is_binary(bin),
     do: cmd_opts(t, [{:arg0, bin}|opts], into)
 
-  defp cmd_opts([{:stderr_to_stdout, bool}|t], opts, into) when is_boolean(bool),
+  defp cmd_opts([{:stderr_to_stdout, true}|t], opts, into),
     do: cmd_opts(t, [:stderr_to_stdout|opts], into)
+
+  defp cmd_opts([{:stderr_to_stdout, false}|t], opts, into),
+    do: cmd_opts(t, opts, into)
 
   defp cmd_opts([{:parallelism, bool}|t], opts, into) when is_boolean(bool),
     do: cmd_opts(t, [{:parallelism, bool}|opts], into)
