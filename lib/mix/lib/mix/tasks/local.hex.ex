@@ -18,7 +18,8 @@ defmodule Mix.Tasks.Local.Hex do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(args) do
-    Mix.Tasks.Archive.Install.run [@hex_url, "--shell" | args]
+    url = @hex_url <> "?elixir=" <> System.version
+    Mix.Tasks.Archive.Install.run [url, "--shell" | args]
   end
 
   @doc false
