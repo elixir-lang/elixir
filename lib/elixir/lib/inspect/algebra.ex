@@ -435,7 +435,7 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary
       "[1! 2! 3! ...]"
   """
-  @spec surround_many(binary, [any], binary, integer | :infinity, (term -> t), binary) :: t
+  @spec surround_many(binary, [any], binary, Inspect.Opts.t, (term, Inspect.Opts.t -> t), binary) :: t
   def surround_many(left, docs, right, opts, fun, separator \\ @surround_separator) do
     do_surround_many(left, docs, right, opts.limit, opts, fun, separator)
   end
