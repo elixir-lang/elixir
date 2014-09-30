@@ -47,9 +47,9 @@ defmodule File do
       File.read!("invalid.txt")
       #=> raises File.Error
 
-  In general, a developer should use the former in case he wants
+  In general, a developer should use the former in case they want
   to react if the file does not exist. The latter should be used
-  when the developer expects his software to fail in case the
+  when the developer expects their software to fail in case the
   file cannot be read (i.e. it is literally an exception).
 
   ## Processes and raw files
