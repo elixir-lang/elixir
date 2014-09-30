@@ -55,8 +55,8 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Receives a message and asks the user if he wants to proceed.
-  He must press enter or type anything that matches the a "yes"
+  Receives a message and asks the user if they want to proceed.
+  The user must press enter or type anything that matches the "yes"
   regex `~r/^Y(es)?$/i`.
   """
   def yes?(message) do
