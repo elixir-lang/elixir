@@ -500,15 +500,17 @@ defmodule Mix.Utils do
     File.rm(out_path)
 
     status = cond do
-      System.find_executable("wget") ->
-        Mix.shell.cmd(~s(wget -nv -O "#{out_path}" "#{path}"))
-      System.find_executable("curl") ->
-        Mix.shell.cmd(~s(curl -s -S -L -o "#{out_path}" "#{path}"))
       windows? && System.find_executable("powershell") ->
         command = ~s[$ErrorActionPreference = 'Stop'; ] <>
                   ~s[$client = new-object System.Net.WebClient; ] <>
                   ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
         Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
+      System.find_executable("wget") ->
+        Mix.shell.cmd(~s(wget -nv -O "#{out_path}" "#{path}"))
+      System.find_executable("curl") ->
+        Mix.shell.cmd(~s(curl -s -S -L -o "#{out_path}" "#{path}"))
+      windows? ->
+        Mix.shell.error "powershell, wget or curl not installed"
       true ->
         Mix.shell.error "wget or curl not installed"
         1
