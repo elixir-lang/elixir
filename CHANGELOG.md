@@ -11,9 +11,10 @@
   * [Mix] Load dependencies before `deps.check` compiles dependencies
   * [Mix] Ensure `Mix.Config` is deep merged
   * [Mix] Change version requirement in new apps to `~> MAJOR.MINOR`
-  * [Mix] Report correct location if local.hex fails
+  * [Mix] Report correct location if local.hex fails and give higher priority to powershell install on Windows
   * [Stream] Ensure `chunk/4` works correctly when halted
-  * [System] Do not allow relative paths in `System.cmd` as documented
+  * [System] Do not allow relative paths in `System.cmd/3` as documented
+  * [System] Fix `:stderr_to_stdout` option in `System.cmd/3`
 
 ## v1.0.0 (2014-09-10)
 
