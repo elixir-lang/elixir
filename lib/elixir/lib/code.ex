@@ -325,7 +325,7 @@ defmodule Code do
   Check `compiler_options/1` for more information.
   """
   def compiler_options do
-    :elixir_code_server.call :compiler_options
+    :elixir_config.get :compiler_options
   end
 
   @doc """
@@ -364,7 +364,8 @@ defmodule Code do
       bad = bad |> Keyword.keys |> Enum.join(", ")
       raise ArgumentError, message: "unknown compiler options: #{bad}"
     end
-    :elixir_code_server.cast {:compiler_options, opts}
+    update = &:orddict.merge(fn(_, _, value) -> value end, &1, opts)
+    :elixir_config.update :compiler_options, update
   end
 
   @doc """

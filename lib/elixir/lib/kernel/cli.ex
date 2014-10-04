@@ -56,7 +56,7 @@ defmodule Kernel.CLI do
   ## Helpers
 
   defp at_exit(res) do
-    hooks = :elixir_code_server.call(:flush_at_exit)
+    hooks = :elixir_config.get_and_put(:at_exit, [])
     res = Enum.reduce(hooks, res, &exec_fun/2)
     if hooks == [], do: res, else: at_exit(res)
   end
