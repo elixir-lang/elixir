@@ -8,8 +8,9 @@ defmodule IEx.Mixfile do
   end
 
   def application do
-    [env: [
-       after_spawn: [],
+    [registered: [IEx.Supervisor, IEx.Config],
+     mod: {IEx.App, []},
+     env: [
        colors: [],
        inspect: [],
        history_size: 20,
