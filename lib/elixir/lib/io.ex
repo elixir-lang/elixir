@@ -2,7 +2,7 @@ defmodule IO do
   @moduledoc """
   Functions handling IO.
 
-  Many functions in this module expects an IO device as argument.
+  Many functions in this module expect an IO device as an argument.
   An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
@@ -12,7 +12,7 @@ defmodule IO do
   it will do a conversion to string via the `String.Chars` protocol
   (as shown in typespecs).
 
-  The functions starting with `bin*` expects iodata as argument,
+  The functions starting with `bin*` expect iodata as an argument,
   i.e. binaries or lists of bytes and binaries.
 
   ## IO devices
