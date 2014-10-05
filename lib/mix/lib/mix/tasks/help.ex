@@ -40,24 +40,11 @@ defmodule Mix.Tasks.Help do
   def run([]) do
     loadpaths!
 
-    shell   = Mix.shell
     modules = Mix.Task.load_all()
-
-    docs = for module <- modules,
-               doc = Mix.Task.shortdoc(module) do
-      {"mix " <> Mix.Task.task_name(module), doc}
-    end
-
-    max = Enum.reduce docs, 0, fn({task, _}, acc) ->
-      max(byte_size(task), acc)
-    end
+    {docs, max} = build_task_doc_list(modules)
 
     display_default_task_doc(max)
-
-    Enum.each Enum.sort(docs), fn({task, doc}) ->
-      shell.info format_task(task, max, doc)
-    end
-
+    display_task_doc_list(docs, max)
     display_iex_task_doc(max)
   end
 
@@ -81,20 +68,32 @@ defmodule Mix.Tasks.Help do
   def run([task]) do
     loadpaths!
 
-    module = Mix.Task.get!(task)
-    doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
-    opts   = Application.get_env(:mix, :colors)
+    case Mix.Task.get(task) do
+      nil ->
+        modules =
+          Mix.Task.load_all()
+          |> Enum.filter(&(String.starts_with?(Mix.Task.task_name(&1), task)))
+        case modules do
+          []      -> Mix.raise Mix.NoTaskError, task: task
+          modules ->
+            {docs, max} = build_task_doc_list(modules)
+            display_task_doc_list(docs, max)
+        end
+      module ->
+        doc    = Mix.Task.moduledoc(module) || "There is no documentation for this task"
+        opts   = Application.get_env(:mix, :colors)
 
-    if ansi_docs?(opts) do
-      opts = [width: width] ++ opts
-      IO.ANSI.Docs.print_heading("mix #{task}", opts)
-      IO.ANSI.Docs.print(doc, opts)
-    else
-      IO.puts "# mix #{task}\n"
-      IO.puts doc
+        if ansi_docs?(opts) do
+          opts = [width: width] ++ opts
+          IO.ANSI.Docs.print_heading("mix #{task}", opts)
+          IO.ANSI.Docs.print(doc, opts)
+        else
+          IO.puts "# mix #{task}\n"
+          IO.puts doc
+        end
+
+        IO.puts "Location: #{where_is_file(module)}"
     end
-
-    IO.puts "Location: #{where_is_file(module)}"
   end
 
   def run(_) do
@@ -146,5 +145,23 @@ defmodule Mix.Tasks.Help do
   defp display_iex_task_doc(max) do
     Mix.shell.info format_task("iex -S mix", max,
                     "Start IEx and run the default task")
+  end
+
+  defp display_task_doc_list(docs, max) do
+    Enum.each Enum.sort(docs), fn({task, doc}) ->
+      Mix.shell.info format_task(task, max, doc)
+    end
+  end
+
+  defp build_task_doc_list(modules) do
+    Enum.reduce modules, {[], 0}, fn module, {docs, max} ->
+      doc = Mix.Task.shortdoc(module)
+      if doc do
+        task = "mix " <> Mix.Task.task_name(module)
+        docs = [{task, doc} | docs]
+        max  = max(byte_size(task), max)
+      end
+      {docs, max}
+    end
   end
 end
