@@ -18,7 +18,7 @@ defmodule Mix.Compilers.Elixir do
     all_entries = read_manifest(manifest)
 
     removed =
-      for {_b, _m, source, _d, _f} <- all_entries, not(source in all), do: source
+      for {_b, _m, source, _d, _f, _bin} <- all_entries, not(source in all), do: source
 
     changed =
       if force do
@@ -32,10 +32,10 @@ defmodule Mix.Compilers.Elixir do
         # Otherwise let's start with the new ones
         # plus the ones that have changed
         for(source <- all,
-            not Enum.any?(all_entries, fn {_b, _m, s, _d, _f} -> s == source end),
+            not Enum.any?(all_entries, fn {_b, _m, s, _d, _f, _bin} -> s == source end),
             do: source)
           ++
-        for({_b, _m, source, _d, files} <- all_entries,
+        for({_b, _m, source, _d, files, _bin} <- all_entries,
             times = Enum.map([source|files], &HashDict.fetch!(all_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
@@ -46,9 +46,10 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        do_compile(manifest, entries, stale, dest, on_start)
+        compile_manifest(manifest, entries, stale, dest, on_start)
         :ok
       removed != [] ->
+        write_manifest(manifest, entries)
         :ok
       true ->
         :noop
@@ -56,7 +57,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes(entries) do
-    Enum.reduce(entries, HashDict.new, fn {_b, _m, source, _d, files}, dict ->
+    Enum.reduce(entries, HashDict.new, fn {_b, _m, source, _d, files, _bin}, dict ->
       Enum.reduce([source|files], dict, fn file, dict ->
         if HashDict.has_key?(dict, file) do
           dict
@@ -82,16 +83,14 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp do_compile(manifest, entries, stale, dest, on_start) do
+  defp compile_manifest(manifest, entries, stale, dest, on_start) do
     Mix.Project.build_structure
     on_start.()
     cwd = File.cwd!
 
     # Starts a server responsible for keeping track which files
     # were compiled and the dependencies in between them.
-    {:ok, pid} = Agent.start_link(fn ->
-      Enum.map(entries, &Tuple.insert_at(&1, 5, nil))
-    end)
+    {:ok, pid} = Agent.start_link(fn -> entries end)
 
     try do
       _ = Kernel.ParallelCompiler.files :lists.usort(stale),
@@ -155,7 +154,7 @@ defmodule Mix.Compilers.Elixir do
     remove_stale_entries(all, :lists.usort(changed), [], [])
   end
 
-  defp remove_stale_entries([{beam, module, source, _d, _f} = entry|t], changed, removed, acc) do
+  defp remove_stale_entries([{beam, module, source, _d, _f, _bin} = entry|t], changed, removed, acc) do
     if source in changed do
       atom = String.to_atom(module)
       _ = File.rm(beam)
@@ -170,7 +169,7 @@ defmodule Mix.Compilers.Elixir do
   defp remove_stale_entries([], changed, removed, acc) do
     # If any of the dependencies for the remaining entries
     # were removed, get its source so we can remove them.
-    next_changed = for {_b, _m, source, deps, _f} <- acc,
+    next_changed = for {_b, _m, source, deps, _f, _bin} <- acc,
                     Enum.any?(deps, &(&1 in removed)),
                     do: source
 
@@ -193,7 +192,7 @@ defmodule Mix.Compilers.Elixir do
                   {deps, ["Elixir"|files]} -> {deps, files}
                   {deps, _} -> {deps, []}
                 end
-              [{beam, module, source, deps, files}|acc]
+              [{beam, module, source, deps, files, nil}|acc]
             _ ->
               acc
           end
@@ -215,6 +214,11 @@ defmodule Mix.Compilers.Elixir do
         tail = deps ++ ["Elixir"] ++ files
         [beam, module, source | tail] |> Enum.join("\t")
     end)
+
+    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
+    # is a dependency itself, we need to touch the lock so the current
+    # Elixir version, used to compile the files above, is properly stored.
+    Mix.Dep.Lock.touch
 
     File.mkdir_p!(Path.dirname(manifest))
     File.write!(manifest, Enum.join(lines, "\n"))
