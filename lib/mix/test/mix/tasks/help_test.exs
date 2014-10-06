@@ -56,6 +56,14 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+  test "help list with task prefix" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Help.run ["comp"]
+      assert_received {:mix_shell, :info, ["mix compile" <> _]}
+      assert_received {:mix_shell, :info, ["mix compile.protocols" <> _]}
+    end
+  end
+
   test "bad arguments" do
     assert_raise Mix.Error, "Unexpected arguments, expected `mix help` or `mix help TASK`", fn ->
       Mix.Tasks.Help.run ["foo", "bar"]
