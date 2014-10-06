@@ -55,14 +55,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
-  test "removes old artifact files" do
+  test "removes, purges and deletes old artifacts" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      assert Code.ensure_loaded?(A)
 
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      refute Code.ensure_loaded?(A)
     end
   end
 
