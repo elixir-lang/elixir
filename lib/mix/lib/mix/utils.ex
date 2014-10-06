@@ -480,9 +480,12 @@ defmodule Mix.Utils do
   end
 
   defp proxy(proxy) do
-    uri = URI.parse(proxy)
-    :ok = :httpc.set_options([{proxy_scheme(uri.scheme),
-            {{String.to_char_list(uri.host), uri.port}, []}}], :mix)
+    uri  = URI.parse(proxy)
+
+    if uri.host && uri.port do
+      host = String.to_char_list(uri.host)
+      :httpc.set_options([{proxy_scheme(uri.scheme), {{host, uri.port}, []}}], :hex)
+    end
   end
 
   defp proxy_scheme(scheme) do
