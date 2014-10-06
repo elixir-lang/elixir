@@ -58,8 +58,8 @@ defmodule MixTest.Case do
 
   def purge(modules) do
     Enum.each modules, fn(m) ->
-      :code.delete(m)
       :code.purge(m)
+      :code.delete(m)
     end
   end
 
