@@ -1813,7 +1813,9 @@ defmodule Kernel do
   end
 
   defp unnest({{:., _, [expr, key]}, _, []}, acc, kind)
-      when is_tuple(expr) and elem(expr, 0) != :__aliases__ and elem(expr, 0) != :__MODULE__ do
+      when is_tuple(expr) and
+           :erlang.element(1, expr) != :__aliases__ and
+           :erlang.element(1, expr) != :__MODULE__ do
     unnest(expr, [{:map, key}|acc], kind)
   end
 
@@ -1834,8 +1836,8 @@ defmodule Kernel do
 
   defp proper_start?({{:., _, [expr, _]}, _, _args})
     when is_atom(expr)
-    when elem(expr, 0) == :__aliases__
-    when elem(expr, 0) == :__MODULE__, do: true
+    when :erlang.element(1, expr) == :__aliases__
+    when :erlang.element(1, expr) == :__MODULE__, do: true
 
   defp proper_start?({atom, _, _args})
     when is_atom(atom), do: true
@@ -2057,7 +2059,7 @@ defmodule Kernel do
   end
 
   defp warn_info([entry|_]) do
-    opts = elem(entry, tuple_size(entry) - 1)
+    opts = :erlang.element(tuple_size(entry), entry)
     Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
   end
 

@@ -474,7 +474,8 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
     true -> ok
   end,
   {EArgs, EA} = expand_args(Args, E),
-  {{{'.', DotMeta, [Receiver, Right]}, Meta, EArgs}, elixir_env:mergev(EL, EA)}.
+  {elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
+   elixir_env:mergev(EL, EA)}.
 
 %% Lexical helpers
 
