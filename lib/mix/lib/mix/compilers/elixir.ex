@@ -157,7 +157,10 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries([{beam, module, source, _d, _f} = entry|t], changed, removed, acc) do
     if source in changed do
+      atom = String.to_atom(module)
       _ = File.rm(beam)
+      _ = :code.purge(atom)
+      _ = :code.delete(atom)
       remove_stale_entries(t, changed, [module|removed], acc)
     else
       remove_stale_entries(t, changed, removed, [entry|acc])
