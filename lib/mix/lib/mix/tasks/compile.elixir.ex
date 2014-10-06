@@ -62,16 +62,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     force = opts[:force] || local_deps_changed?(manifest)
               || Mix.Utils.stale?(configs, [manifest])
 
-    result = Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, fn ->
+    Mix.Compilers.Elixir.compile(manifest, srcs, [:ex], dest, force, fn ->
       true = Code.prepend_path(dest)
       set_compiler_opts(project, opts, [])
     end)
-
-    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
-    # is a dependency itself, we need to touch the lock so the current
-    # Elixir version, used to compile the files above, is properly stored.
-    unless result == :noop, do: Mix.Dep.Lock.touch
-    result
   end
 
   @doc """

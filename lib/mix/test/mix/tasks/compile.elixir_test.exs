@@ -65,6 +65,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
+      refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir"),
+                              "Elixir.A.beam")
     end
   end
 
