@@ -19,10 +19,10 @@ defmodule ApplicationTest do
 
   test "application directory" do
     root = Path.expand("../../../..", __DIR__)
-    assert Application.app_dir(:elixir) ==
-           Path.join(root, "bin/../lib/elixir")
-    assert Application.app_dir(:elixir, "priv") ==
-           Path.join(root, "bin/../lib/elixir/priv")
+    assert String.downcase(Application.app_dir(:elixir)) ==
+           String.downcase(Path.join(root, "bin/../lib/elixir"))
+    assert String.downcase(Application.app_dir(:elixir, "priv")) ==
+           String.downcase(Path.join(root, "bin/../lib/elixir/priv"))
 
     assert_raise ArgumentError, fn ->
       Application.app_dir(:unknown)
