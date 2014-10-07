@@ -24,6 +24,8 @@ This document simply outlines the release process:
 
 10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
 
+11. Build and push standalone Mix with `make publish_mix` (requires AWS credentials)
+
 ## New vMAJOR.MINOR releases
 
 11. Create a new branch "vMAJOR.MINOR" release
