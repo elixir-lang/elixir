@@ -173,7 +173,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   defmodule SourcePathsProject do
     def project do
-      [app: :source_paths, elixirc_paths: ["unknown"]]
+      [app: :source_paths, elixirc_paths: ["web", "lib"]]
     end
   end
 
@@ -182,11 +182,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture "no_mixfile", fn ->
       # Nothing to compile with the custom source paths
-      assert Mix.Tasks.Compile.Elixir.run([])
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      # Compiling just web does not remove lib artifacts
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end
 end
