@@ -13,9 +13,9 @@ defmodule Mix.Compilers.Elixir do
   in between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, exts, dest, force, on_start) do
-    all = Mix.Utils.extract_files(srcs, exts)
-    all_entries = read_manifest(manifest)
+  def compile(manifest, srcs, skip, exts, dest, force, on_start) do
+    all = Mix.Utils.extract_files(srcs -- skip, exts)
+    {all_entries, skip_entries} = read_manifest(manifest, skip)
 
     removed =
       for {_b, _m, source, _d, _f, _bin} <- all_entries, not(source in all), do: source
@@ -41,15 +41,15 @@ defmodule Mix.Compilers.Elixir do
             do: source)
       end
 
-    {entries, changed} = remove_stale_entries(all_entries, removed ++ changed, [], [])
+    {entries, changed} = remove_stale_entries(all_entries, removed ++ changed)
     stale = changed -- removed
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, entries, stale, dest, on_start)
+        compile_manifest(manifest, entries ++ skip_entries, stale, dest, on_start)
         :ok
       removed != [] ->
-        write_manifest(manifest, entries)
+        write_manifest(manifest, entries ++ skip_entries)
         :ok
       true ->
         :noop
@@ -102,7 +102,7 @@ defmodule Mix.Compilers.Elixir do
         entries
       end
     after
-      Agent.stop pid
+      Agent.stop(pid, :infinity)
     end
 
     :ok
@@ -144,7 +144,7 @@ defmodule Mix.Compilers.Elixir do
 
   # This function receives the manifest entries and some source
   # files that have changed. It then, recursively, figures out
-  # all the files that changed (thanks to the dependencies) and
+  # all the files that changed (via the module dependencies) and
   # return their sources as the remaining entries.
   defp remove_stale_entries(all, []) do
     {all, []}
@@ -181,25 +181,38 @@ defmodule Mix.Compilers.Elixir do
 
   # Reads the manifest returning the results as tuples.
   # The beam files are read, removed and stored in memory.
-  defp read_manifest(manifest) do
+  defp read_manifest(manifest, skip_paths) do
+    initial = {[], []}
+
     case File.read(manifest) do
       {:ok, contents} ->
-        Enum.reduce String.split(contents, "\n"), [], fn x, acc ->
-          case String.split(x, "\t") do
-            [beam, module, source|deps] ->
-              {deps, files} =
-                case Enum.split_while(deps, &(&1 != "Elixir")) do
-                  {deps, ["Elixir"|files]} -> {deps, files}
-                  {deps, _} -> {deps, []}
-                end
-              [{beam, module, source, deps, files, nil}|acc]
-            _ ->
-              acc
-          end
+        skip_paths = Enum.map(skip_paths, &(&1 <> "/"))
+        Enum.reduce String.split(contents, "\n"), initial, fn x, acc ->
+          read_manifest_entry(String.split(x, "\t"), acc, skip_paths)
         end
       {:error, _} ->
-        []
+        initial
     end
+  end
+
+  defp read_manifest_entry([beam, module, source|deps], {keep, skip}, skip_paths) do
+    {deps, files} =
+      case Enum.split_while(deps, &(&1 != "Elixir")) do
+        {deps, ["Elixir"|files]} -> {deps, files}
+        {deps, _} -> {deps, []}
+      end
+
+    entry = {beam, module, source, deps, files, nil}
+
+    if String.starts_with?(source, skip_paths) do
+      {keep, [entry|skip]}
+    else
+      {[entry|keep], skip}
+    end
+  end
+
+  defp read_manifest_entry(_, acc, _skip_paths) do
+    acc
   end
 
   # Writes the manifest separating entries by tabs.
