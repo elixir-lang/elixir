@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.1-dev
+## v1.0.1 (2014-10-07)
 
 * Enhancements
   * [Mix] Add MIX_ENV output to archive.build (as on escript.build)
@@ -11,7 +11,11 @@
   * [Mix] Load dependencies before `deps.check` compiles dependencies
   * [Mix] Ensure `Mix.Config` is deep merged
   * [Mix] Change version requirement in new apps to `~> MAJOR.MINOR`
-  * [Mix] Report correct location if local.hex fails and give higher priority to powershell install on Windows
+  * [Mix] Report correct location if `local.hex` fails and give higher priority to powershell install on Windows
+  * [Mix] Ensure `--elixirc-paths` option for `compile.elixir` is a subset of the project `:elixirc_paths` configuration and it does not remove skipped entries from the manifest
+  * [Mix] Ensure `compile.elixir` writes to manifest when files are removed
+  * [Mix] Ensure `compile.elixir` purges and deletes modules before compiling
+  * [Mix] Do not crash on malformed proxy env var
   * [Stream] Ensure `chunk/4` works correctly when halted
   * [System] Do not allow relative paths in `System.cmd/3` as documented
   * [System] Fix `:stderr_to_stdout` option in `System.cmd/3`
