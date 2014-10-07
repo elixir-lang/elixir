@@ -74,21 +74,21 @@ defmodule String do
   be avoided in favor of binary functions or pattern matching.
   For example, imagine you have a string `prefix` and you want to
   remove this prefix from another string named `full`.
-  
+
   One may be tempted to write:
-  
+
       iex> take_prefix = fn full, prefix ->
       ...>   base = String.length(prefix)
       ...>   String.slice(full, base, String.length(full) - base)
       ...> end
       ...> take_prefix.("Mr. John", "Mr. ")
       "John"
-  
+
   Although the function above works, it performs poorly. To
   calculate the length of the string, we need to traverse it
   fully, so we traverse both `prefix` and `full` strings, then
   slice the `full` one, traversing it again.
-  
+
   A first attempting at improving it could be with ranges:
 
       iex> take_prefix = fn full, prefix ->
@@ -103,7 +103,7 @@ defmodule String do
   extract a substring from a string, we can use `byte_size/1`
   and `binary_part/3` as there is no chance we will slice in
   the middle of a codepoint made of more than one byte:
-  
+
       iex> take_prefix = fn full, prefix ->
       ...>   base = byte_size(prefix)
       ...>   binary_part(full, base, byte_size(full) - base)
@@ -112,7 +112,7 @@ defmodule String do
       "John"
 
   Or simply used pattern matching:
-  
+
       iex> take_prefix = fn full, prefix ->
       ...>   base = byte_size(prefix)
       ...>   <<_ :: binary-size(base), rest :: binary>> = full
@@ -672,8 +672,8 @@ defmodule String do
       "a[,,]b[,,]c"
 
   """
-  @spec replace(t, t, t) :: t
-  @spec replace(t, t, t, Keyword.t) :: t
+  @spec replace(t, t | Regex.t, t) :: t
+  @spec replace(t, t | Regex.t, t, Keyword.t) :: t
 
   def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
     if Regex.regex?(pattern) do
