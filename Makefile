@@ -150,6 +150,16 @@ release_docs: docs
 	rm -rf ../docs/master
 	mv docs ../docs/master
 
+# This task requires aws-cli to be installed and set up for access to s3.hex.pm
+# See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
+
+publish_mix: compile
+	cd lib/mix && MIX_ENV=prod mix escript.build
+	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/v$(VERSION)/mix --acl public-read
+	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/mix --acl public-read
+	rm lib/mix/mix
+	rm -rf lib/mix/_build
+
 #==> Tests tasks
 
 test: test_erlang test_elixir
