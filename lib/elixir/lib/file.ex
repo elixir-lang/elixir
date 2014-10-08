@@ -75,6 +75,7 @@ defmodule File do
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
   @type stat_options :: [time: :local | :universal | :posix]
+  @type location :: :file.location()
   @type mode :: :append | :binary | :compressed | :delayed_write | :exclusive |
     :raw | :read | :read_ahead | :sync | :write |
     {:encoding , :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
@@ -243,6 +244,30 @@ defmodule File do
         binary
       {:error, reason} ->
         raise File.Error, reason: reason, action: "read file", path: path
+    end
+  end
+
+  @doc """
+  Read some number of bytes from any location within a file.
+  Returns `{:ok, binary}`, where binary is the chunk read from the file, `{:error, reason}`
+  if an error occurs, or :eof if the starting read location is after the end of the file.
+
+  The location is given as:
+
+    * bytes - a shorthand for `{:bof, bytes}`
+    * `:bof` - beginning of file
+    * `{:bof, bytes} - beginning of the file plus some offset of bytes where the bytes offset is a positive integer
+    * `:eof` - end of file
+    * `{:eof, bytes} - end of file minus some offset of bytes where the bytes offset is a negative integer
+  """
+  @spec read_chunk(Path.t, location, integer) :: {:ok, binary} | {:error, posix} | :eof
+  def read_chunk(path, location, length) do
+    case F.open(path, [:read, :binary]) do
+      {:ok, file} ->
+        result = F.pread(file, location, length)
+        :ok = F.close(file)
+        result
+      error -> error
     end
   end
 

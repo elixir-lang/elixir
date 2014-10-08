@@ -418,6 +418,30 @@ defmodule FileTest do
       end
     end
 
+    test :read_chunk_bof do
+      assert {:ok, "FO"} = File.read_chunk(fixture_path("file.txt"), :bof, 2)
+      assert {:ok, "FOO\n"} = File.read_chunk(fixture_path("file.txt"), :bof, 999)
+      assert {:error, :enoent} = File.read_chunk(fixture_path("missing.txt"), :bof, 2)
+    end
+
+    test :read_chunk_eof do
+      assert {:ok, ""} = File.read_chunk(fixture_path("file.txt"), :eof, 0)
+      assert :eof = File.read_chunk(fixture_path("file.txt"), :eof, 1)
+      assert {:error, :enoent} = File.read_chunk(fixture_path("missing.txt"), :eof, 0)
+    end
+
+    test :read_chunk_bof_offset do
+      assert {:ok, "OO"} = File.read_chunk(fixture_path("file.txt"), {:bof, 1}, 2)
+      assert :eof = File.read_chunk(fixture_path("file.txt"), {:bof, 999}, 1)
+      assert {:error, :enoent} = File.read_chunk(fixture_path("missing.txt"), {:bof, 1}, 2)
+    end
+
+    test :read_chunk_eof_offset do
+      assert {:ok, "OO"} = File.read_chunk(fixture_path("file.txt"), {:eof, -3}, 2)
+      assert {:ok, "FOO\n"} = File.read_chunk(fixture_path("file.txt"), {:eof, -4}, 4)
+      assert {:error, :enoent} = File.read_chunk(fixture_path("missing.txt"), {:eof, -3}, 2)
+    end
+
     test :write_ascii_content do
       fixture = tmp_path("tmp_test.txt")
       try do
