@@ -70,7 +70,7 @@ defmodule Supervisor.Spec do
       child process is a `Supervisor` or `GenServer`; if the child
       process is a `GenEvent`, modules should be `:dynamic`
 
-  ### Restart values
+  ### Restart values (:restart)
 
   The following restart values are supported:
 
@@ -83,7 +83,7 @@ defmodule Supervisor.Spec do
       terminates abnormally, i.e. with another exit reason than
       `:normal`, `:shutdown` or `{:shutdown, term}`
 
-  ### Shutdown values
+  ### Shutdown values (:shutdown)
 
   The following shutdown values are supported:
 
