@@ -537,7 +537,7 @@ defmodule List do
   Converts a list of integers representing codepoints, lists or
   strings into a string.
 
-  Notice that this function expect a list of integer representing
+  Notice that this function expects a list of integers representing
   UTF-8 codepoints. If you have a list of bytes, you must instead use
   [the `:binary` module](http://erlang.org/doc/man/binary.html).
 
