@@ -906,8 +906,8 @@ defmodule String do
 
   ## Examples
 
-      iex> String.graphemes("Ā̀stute")
-      ["Ā̀","s","t","u","t","e"]
+      iex> String.graphemes("Ās̀tute") 
+      ["Ā", "s̀", "t", "u", "t", "e"]
 
   """
   @spec graphemes(t) :: [grapheme]
