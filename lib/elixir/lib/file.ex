@@ -281,7 +281,6 @@ defmodule File do
   """
   @spec stat!(Path.t, stat_options) :: File.Stat.t | no_return
   def stat!(path, opts \\ []) do
-    path = IO.chardata_to_string(path)
     case stat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
@@ -324,7 +323,6 @@ defmodule File do
   """
   @spec lstat!(Path.t, stat_options) :: File.Stat.t | no_return
   def lstat!(path, opts \\ []) do
-    path = IO.chardata_to_string(path)
     case lstat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
