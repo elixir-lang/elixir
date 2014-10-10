@@ -258,9 +258,6 @@ defmodule File do
 
     * `:time` - configures how the file timestamps are returned
 
-    * `:read_link` - if set, read info on symbolic link, 
-                     not the file it points to.
-
   The values for `:time` can be:
 
     * `:local` - returns a `{date, time}` tuple using the machine time
@@ -270,10 +267,7 @@ defmodule File do
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
-    if( Keyword.has_key?(opts,:read_link), 
-      do: read_info = F.read_link_info(IO.chardata_to_string(path), opts) , 
-      else: read_info = F.read_file_info(IO.chardata_to_string(path), opts) )
-    case read_info do
+    case F.read_file_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
       error ->
@@ -289,6 +283,49 @@ defmodule File do
   def stat!(path, opts \\ []) do
     path = IO.chardata_to_string(path)
     case stat(path, opts) do
+      {:ok, info}      -> info
+      {:error, reason} ->
+        raise File.Error, reason: reason, action: "read file stats", path: path
+    end
+  end
+
+  @doc """
+  Returns information about the `path`. If the file is a symlink sets 
+  the `type` to `:symlink` and returns `File.Stat` for the link. For any
+  other file, returns exactly the same values as `stat/2`. For more details
+  see http://www.erlang.org/doc/man/file.html#read_link_info-2 
+
+  ## Options
+
+  The accepted options are:
+
+    * `:time` - configures how the file timestamps are returned
+
+  The values for `:time` can be:
+
+    * `:local` - returns a `{date, time}` tuple using the machine time
+    * `:universal` - returns a `{date, time}` tuple in UTC
+    * `:posix` - returns the time as integer seconds since epoch
+
+  """
+  @spec lstat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
+  def lstat(path, opts \\ []) do
+    case F.read_link_info(IO.chardata_to_string(path), opts) do
+      {:ok, fileinfo} ->
+        {:ok, File.Stat.from_record(fileinfo)}
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Same as `lstat/2` but returns the `File.Stat` directly and
+  throws `File.Error` if an error is returned.
+  """
+  @spec lstat!(Path.t, stat_options) :: File.Stat.t | no_return
+  def lstat!(path, opts \\ []) do
+    path = IO.chardata_to_string(path)
+    case lstat(path, opts) do
       {:ok, info}      -> info
       {:error, reason} ->
         raise File.Error, reason: reason, action: "read file stats", path: path
