@@ -258,6 +258,9 @@ defmodule File do
 
     * `:time` - configures how the file timestamps are returned
 
+    * `:read_link` - if set, read info on symbolic link, 
+                     not the file it points to.
+
   The values for `:time` can be:
 
     * `:local` - returns a `{date, time}` tuple using the machine time
@@ -267,7 +270,10 @@ defmodule File do
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
-    case F.read_file_info(IO.chardata_to_string(path), opts) do
+    if( Keyword.has_key?(opts,:read_link), 
+      do: read_info = F.read_link_info(IO.chardata_to_string(path), opts) , 
+      else: read_info = F.read_file_info(IO.chardata_to_string(path), opts) )
+    case read_info do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
       error ->
