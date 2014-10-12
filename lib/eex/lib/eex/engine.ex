@@ -99,10 +99,7 @@ defmodule EEx.Engine do
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp = unquote(buffer)
-      tmp <> (case unquote(expr) do
-        bin when is_binary(bin) -> bin
-        oth -> String.Chars.to_string(oth)
-      end)
+      tmp <> String.Chars.to_string(unquote(expr))
     end
   end
 
