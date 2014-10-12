@@ -80,7 +80,7 @@ defmodule Application do
   `args` is second element of the tuple given to the `:mod` option.
 
   The `type` passed into `start/2` is usually `:normal` unless in a distributed
-  setup where applications takeover and failovers are configured. This particular
+  setup where applications takeovers and failovers are configured. This particular
   aspect of applications can be read with more detail in the OTP documentation:
 
     * http://www.erlang.org/doc/man/application.html
@@ -89,7 +89,7 @@ defmodule Application do
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the
   application state and can return any value. Notice that shutting down the
-  supervisor is automatically handled by the VM;
+  supervisor is automatically handled by the VM.
   """
 
   @doc false
