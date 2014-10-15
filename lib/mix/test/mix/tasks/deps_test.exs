@@ -552,8 +552,8 @@ defmodule Mix.Tasks.DepsTest do
       File.mkdir_p!("_build/test/lib/git_repo")
 
       message = "mix deps.clean expects dependencies as arguments or " <>
-                "a flag indicating which dependencies to clean " <>
-                "The --all option will clean all dependencies while"
+                "a flag indicating which dependencies to clean. " <>
+                "The --all option will clean all dependencies while " <>
                 "the --unused option cleans unused dependencies."
 
       assert_raise Mix.Error, message, fn ->
