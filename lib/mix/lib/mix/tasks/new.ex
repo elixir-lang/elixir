@@ -224,7 +224,7 @@ defmodule Mix.Tasks.New do
     # Or git/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-    #
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", branch: "master"}
     # Type `mix help deps` for more examples and options
     defp deps do
       []
@@ -259,6 +259,7 @@ defmodule Mix.Tasks.New do
     # Or git/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", branch: "master"}
     #
     # To depend on another app inside the umbrella:
     #
@@ -287,6 +288,7 @@ defmodule Mix.Tasks.New do
     # Or git/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", branch: "master"}
     #
     # Type `mix help deps` for more examples and options.
     #
