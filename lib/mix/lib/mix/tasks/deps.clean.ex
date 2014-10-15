@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Deps.Clean do
       true ->
         Mix.raise "mix deps.clean expects dependencies as arguments or " <>
                   "a flag indicating which dependencies to clean " <>
-                  "The --all option will clean all dependencies while"
+                  "The --all option will clean all dependencies while " <>
                   "the --unused option cleans unused dependencies."
     end
 
