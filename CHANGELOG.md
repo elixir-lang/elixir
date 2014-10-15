@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.2-dev
+
+* Bug fixes
+  * [EEx] Remove invalid warning when attempting to inline code in EEx
+  * [IEx] Set null prompt function in dumb term mode
+  * [String] Fix `String.replace/4` typespec
+
 ## v1.0.1 (2014-10-07)
 
 * Enhancements
