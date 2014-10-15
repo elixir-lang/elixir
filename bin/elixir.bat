@@ -95,12 +95,12 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 SETLOCAL disabledelayedexpansion
 :run
 IF NOT %runMode% == "iex" (
-  set beforeExtra=-s elixir start_cli %beforeExtra%
+  set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
 )
 IF %useWerl% EQU 1 (
   start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) ELSE (
-  erl.exe %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 :end
 endlocal
