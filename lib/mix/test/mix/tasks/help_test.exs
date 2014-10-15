@@ -56,6 +56,31 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
+  test "help --search PATTERN" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Help.run ["--search", "deps"]
+      assert_received {:mix_shell, :info, ["mix deps" <> _]}
+      assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
+    end
+  end
+
+  test "help --search without pattern" do
+    assert_raise Mix.Error, "Unexpected arguments, expected `mix help --search PATTERN`", fn ->
+      Mix.Tasks.Help.run ["--search"]
+    end
+  end
+
+  test "help --search without results" do
+    in_fixture "no_mixfile", fn ->
+      output =
+        capture_io fn ->
+          Mix.Tasks.Help.run ["--search", "foo"]
+        end
+
+      assert output == ""
+    end
+  end
+
   test "bad arguments" do
     assert_raise Mix.Error, "Unexpected arguments, expected `mix help` or `mix help TASK`", fn ->
       Mix.Tasks.Help.run ["foo", "bar"]
