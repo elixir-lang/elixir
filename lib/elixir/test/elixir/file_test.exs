@@ -879,31 +879,37 @@ defmodule FileTest do
   end
 
   test :lstat_with_invalid_file do
-    assert {:error, _} = File.lstat("./invalid_file")
+    invalid_file = tmp_path("invalid_file")
+    assert {:error, _} = File.lstat(invalid_file)
   end
 
   test :lstat_with_invalid_file! do
+    invalid_file = tmp_path("invalid_file")
     assert_raise File.Error, fn ->
-      File.lstat!("./invalid_file")
+      File.lstat!(invalid_file)
     end
   end
   
   test :lstat_with_dangling_symlink do
-    File.ln_s("./invalid_file","./dangling_symlink")
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file,dest)
     try do 
-      assert {:ok, info } = File.lstat("./dangling_symlink")
+      assert {:ok, info } = File.lstat(dest)
       assert info.type == :symlink 
     after
-      File.rm("./dangling_symlink")
+      File.rm(dest)
     end 
   end
 
   test :lstat_with_dangling_symlink! do
-    File.ln_s("./invalid_file","./dangling_symlink")
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file,dest)
     try do 
-     assert File.lstat!("./dangling_symlink").type == :symlink 
+     assert File.lstat!(dest).type == :symlink 
     after 
-     File.rm("./dangling_symlink")
+     File.rm(dest)
     end 
   end
 
