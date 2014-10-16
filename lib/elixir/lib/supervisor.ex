@@ -9,7 +9,7 @@ defmodule Supervisor do
 
   A supervisor implemented using this module will have a standard set
   of interface functions and include functionality for tracing and error
-  reporting. It will also fit into an supervision tree.
+  reporting. It will also fit into a supervision tree.
 
   ## Example
 

@@ -128,7 +128,7 @@ defmodule EExTest do
     end
   end
 
-  test "raises a syntax error when nested end expression is found without an start expression" do
+  test "raises a syntax error when nested end expression is found without a start expression" do
     assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1", fn ->
       EEx.compile_string "foo <% if true do %><% end %><% end %>"
     end
