@@ -8,7 +8,7 @@ defmodule GenEvent do
 
   An event manager implemented using this module will have a standard
   set of interface functions and include functionality for tracing and
-  error reporting. It will also fit into an supervision tree.
+  error reporting. It will also fit into a supervision tree.
 
   ## Example
 
