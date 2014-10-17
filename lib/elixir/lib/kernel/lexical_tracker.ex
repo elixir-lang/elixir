@@ -33,7 +33,7 @@ defmodule Kernel.LexicalTracker do
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{_, val}] = :ets.lookup(table, :__lexical_tracker)
+    [{_, val}] = :ets.lookup(table, {:elixir, :lexical_tracker})
     val
   end
 
