@@ -9,7 +9,7 @@
 -export([macro_for/3, local_for/3, local_for/4]).
 
 -include("elixir.hrl").
--define(attr, '__locals_tracker').
+-define(attr, {elixir, locals_tracker}).
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 macro_for(Module, Name, Arity) ->
@@ -75,7 +75,7 @@ setup(Module) ->
   case code:is_loaded(?tracker) of
     {file, _} ->
       {ok, Pid} = ?tracker:start_link(),
-      ets:insert(Module, {?attr, Pid}),
+      ets:insert(elixir_module:data_table(Module), {?attr, Pid}),
       ok;
     false ->
       ok
@@ -108,7 +108,7 @@ if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
 
 if_tracker(Module, Default, Callback) ->
-  try ets:lookup_element(Module, ?attr, 2) of
+  try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
     Pid -> Callback(Pid)
   catch
     error:badarg -> Default
@@ -118,7 +118,7 @@ if_tracker(Module, Default, Callback) ->
 
 cache_env(#{module := Module} = RE) ->
   E = RE#{line := nil,vars := []},
-  try ets:lookup_element(Module, ?attr, 2) of
+  try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
     Pid ->
       {Pid, ?tracker:cache_env(Pid, E)}
   catch

@@ -1,14 +1,18 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_def_overridable).
--export([store_pending/1, ensure_defined/4,
-  name/2, store/3, format_error/1]).
+-export([setup/1, overridable/1, overridable/2, name/2, super/2, store_pending/1,
+         ensure_defined/4, format_error/1]).
 -include("elixir.hrl").
+-define(attr, {elixir, overridable}).
+
+setup(Module) ->
+  overridable(Module, []).
 
 overridable(Module) ->
-  ets:lookup_element(elixir_module:data_table(Module), '__overridable', 2).
+  ets:lookup_element(elixir_module:data_table(Module), ?attr, 2).
 
 overridable(Module, Value) ->
-  ets:insert(elixir_module:data_table(Module), {'__overridable', Value}).
+  ets:insert(elixir_module:data_table(Module), {?attr, Value}).
 
 %% Check if an overridable function is defined.
 
@@ -51,11 +55,11 @@ store(Module, Function, GenerateName) ->
       end,
 
       Def = {function, Line, FinalName, Arity, Clauses},
-      elixir_def:store_each(false, FinalKind, File, Location,
-        elixir_def:table(Module), elixir_def:clauses_table(Module), Defaults, Def)
+      elixir_def:store_each(false, FinalKind, File, Location, Module, Defaults, Def)
   end.
 
-%% Store pending declarations that were not manually made concrete.
+super(Module, Function) ->
+  store(Module, Function, true).
 
 store_pending(Module) ->
   _ = [store(Module, X, false) || {X, {_, _, _, false}} <- overridable(Module),
@@ -73,4 +77,4 @@ format_error({no_super, Module, {Name, Arity}}) ->
 format_fa({Name, Arity}) ->
   A = atom_to_binary(Name, utf8),
   B = integer_to_binary(Arity),
-  << A/binary, $/, B/binary >>.
+  <<A/binary, $/, B/binary>>.
