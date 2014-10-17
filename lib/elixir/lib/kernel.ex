@@ -1878,8 +1878,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Checks if the given argument is nil or not.
-  Allowed in guard clauses.
+  Returns `true` if `term` is nil; otherwise returns `false`.
+
+  Allowed in guard clauses. Inlined by the compiler.
 
   ## Examples
 
@@ -1890,8 +1891,8 @@ defmodule Kernel do
       true
 
   """
-  defmacro is_nil(x) do
-    quote do: unquote(x) == nil
+  defmacro is_nil(term) do
+    quote do: unquote(term) == nil
   end
 
   @doc """
