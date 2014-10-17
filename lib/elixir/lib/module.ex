@@ -504,19 +504,19 @@ defmodule Module do
   def add_doc(module, line, kind, tuple, signature, doc) when
       kind in [:def, :defmacro, :type, :opaque] and (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
-    table = docs_table_for(module)
+    table = data_table_for(module)
 
     {signature, _} = :lists.mapfoldl fn(x, acc) ->
       {simplify_signature(x, acc), acc + 1}
     end, 1, signature
 
-    case :ets.lookup(table, tuple) do
+    case :ets.lookup(table, {:doc, tuple}) do
       [] ->
-        :ets.insert(table, {tuple, line, kind, signature, doc})
+        :ets.insert(table, {{:doc, tuple}, line, kind, signature, doc})
         :ok
-      [{tuple, line, _old_kind, old_sign, old_doc}] ->
+      [{doc_tuple, line, _old_kind, old_sign, old_doc}] ->
         :ets.insert(table, {
-          tuple,
+          doc_tuple,
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
@@ -612,7 +612,7 @@ defmodule Module do
   """
   def defines?(module, tuple) when is_tuple(tuple) do
     assert_not_compiled!(:defines?, module)
-    table = function_table_for(module)
+    table = defs_table_for(module)
     :ets.lookup(table, tuple) != []
   end
 
@@ -632,7 +632,7 @@ defmodule Module do
   """
   def defines?(module, tuple, kind) do
     assert_not_compiled!(:defines?, module)
-    table = function_table_for(module)
+    table = defs_table_for(module)
     case :ets.lookup(table, tuple) do
       [{_, ^kind, _, _, _, _, _}] -> true
       _ -> false
@@ -652,8 +652,8 @@ defmodule Module do
   """
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
-    table = function_table_for(module)
-    for {tuple, _, _, _, _, _, _} <- :ets.tab2list(table), do: tuple
+    table = defs_table_for(module)
+    :lists.concat :ets.match(table, {:'$1', :_, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -671,8 +671,8 @@ defmodule Module do
   """
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
-    table = function_table_for(module)
-    for {tuple, stored_kind, _, _, _, _, _} <- :ets.tab2list(table), stored_kind == kind, do: tuple
+    table = defs_table_for(module)
+    :lists.concat :ets.match(table, {:'$1', kind, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -698,12 +698,11 @@ defmodule Module do
             []
           end
 
-          old    = get_attribute(module, :__overridable)
+          old    = :elixir_def_overridable.overridable(module)
           merged = :orddict.update(tuple, fn({count, _, _, _}) ->
             {count + 1, clause, neighbours, false}
           end, {1, clause, neighbours, false}, old)
-
-          put_attribute(module, :__overridable, merged)
+          :elixir_def_overridable.overridable(module, merged)
       end
     end
   end
@@ -712,7 +711,7 @@ defmodule Module do
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
   def overridable?(module, tuple) do
-    !!List.keyfind(get_attribute(module, :__overridable), tuple, 0)
+    !!List.keyfind(:elixir_def_overridable.overridable(module), tuple, 0)
   end
 
   @doc """
@@ -731,7 +730,7 @@ defmodule Module do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = normalize_attribute(key, value)
-    acc   = :ets.lookup_element(table, :__acc_attributes, 2)
+    acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
     new =
       if :lists.member(key, acc) do
@@ -832,13 +831,13 @@ defmodule Module do
     table = data_table_for(module)
 
     if Keyword.get(opts, :persist) do
-      old = :ets.lookup_element(table, :__persisted_attributes, 2)
-      :ets.insert(table, {:__persisted_attributes,  [new|old]})
+      old = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
+      :ets.insert(table, {{:elixir, :persisted_attributes}, [new|old]})
     end
 
     if Keyword.get(opts, :accumulate) do
-      old = :ets.lookup_element(table, :__acc_attributes, 2)
-      :ets.insert(table, {:__acc_attributes,  [new|old]})
+      old = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
+      :ets.insert(table, {{:elixir, :acc_attributes}, [new|old]})
     end
   end
 
@@ -901,7 +900,7 @@ defmodule Module do
     case :ets.lookup(table, key) do
       [{^key, val}] -> val
       [] ->
-        acc = :ets.lookup_element(table, :__acc_attributes, 2)
+        acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
         cond do
           :lists.member(key, acc) ->
@@ -956,15 +955,11 @@ defmodule Module do
   end
 
   defp data_table_for(module) do
-    module
+    :elixir_module.data_table(module)
   end
 
-  defp function_table_for(module) do
-    :elixir_def.table(module)
-  end
-
-  defp docs_table_for(module) do
-    :elixir_module.docs_table(module)
+  defp defs_table_for(module) do
+    :elixir_module.defs_table(module)
   end
 
   defp assert_not_compiled!(fun, module) do
