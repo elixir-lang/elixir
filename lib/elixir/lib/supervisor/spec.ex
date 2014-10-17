@@ -40,7 +40,7 @@ defmodule Supervisor.Spec do
 
   Explicit supervisors as above are required when there is a need to:
 
-    1. Partialy change the supervision tree during hot-code swaps.
+    1. Partially change the supervision tree during hot-code swaps.
 
     2. Define supervisors inside other supervisors.
 
