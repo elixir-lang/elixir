@@ -85,7 +85,7 @@ defmodule List do
   end
 
   @doc """
-  Folds (reduces) the given list to the left with
+  Folds (reduces) the given list from the left with
   a function. Requires an accumulator.
 
   ## Examples
@@ -103,7 +103,7 @@ defmodule List do
   end
 
   @doc """
-  Folds (reduces) the given list to the right with
+  Folds (reduces) the given list from the right with
   a function. Requires an accumulator.
 
   ## Examples
