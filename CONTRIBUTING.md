@@ -14,7 +14,7 @@ Please **do not** use the issue tracker for personal support requests nor featur
 
 * [the elixir-talk mailing list](http://groups.google.com/group/elixir-lang-talk)
 * [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir)
-* [#elixir-lang](irc://chat.freenode.net/elixir-lang)
+* **[#elixir-lang](irc://chat.freenode.net/elixir-lang)** IRC channel on [chat.freenode.net](http://www.freenode.net/)
 
 Feature requests can be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core).
 
