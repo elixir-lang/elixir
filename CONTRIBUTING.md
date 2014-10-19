@@ -7,7 +7,7 @@ process easy and effective for everyone involved!
 
 Use the issues tracker for:
 
-* [bug reports](#bugs-reports)
+* [bug reports](#bug-reports)
 * [submitting pull requests](#pull-requests)
 
 Please **do not** use the issue tracker for personal support requests nor feature requests. Support requests should be sent to:
