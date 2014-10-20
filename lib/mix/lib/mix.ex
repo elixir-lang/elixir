@@ -50,7 +50,7 @@ defmodule Mix do
         end
       end
 
-  Now they can invoke it with `mix run hello`.
+  Now they can invoke it with `mix hello`.
 
   ## Dependencies
 
