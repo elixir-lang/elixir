@@ -18,7 +18,7 @@ This document simply outlines the release process:
 
 7. Push master and the new tag
 
-8. Release new docs with `make release_docs`, move docs to `docs/stable` and push them
+8. Release new docs with `make release_docs`, move docs to `docs/stable` if appropriate, and push
 
 9. Release new zip with `make release_zip`, push `Precompiled.zip` to GitHub Releases
 
@@ -28,15 +28,13 @@ This document simply outlines the release process:
 
 ## New vMAJOR.MINOR releases
 
-11. Create a new branch "vMAJOR.MINOR" release
+11. Create a new branch "vMAJOR.MINOR"
 
-12. Move stable docs to `docs/vOLD-MAJOR.OLD-MINOR`
+12. Move docs generation to `docs/vOLD-MAJOR.OLD-MINOR` and copy them to `docs/stable`
 
-13. Move master docs to `docs/stable`
+13. Bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
 
-14. Bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
-
-15. `make release_docs` and push it to `elixir-lang/docs`
+14. `make release_docs` and push it to `elixir-lang/docs`
 
 ## Places where version is mentioned
 
