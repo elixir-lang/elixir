@@ -21,6 +21,10 @@ defmodule Kernel.ErrorsTest do
       '"hello" "world"'
 
     assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: Foobar",
+      '1 Foobar'
+
+    assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: foo",
       'Foo.:foo'
 
