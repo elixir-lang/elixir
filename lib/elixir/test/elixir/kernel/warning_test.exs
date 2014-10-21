@@ -375,6 +375,20 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :badarg_warning do
+    assert capture_err(fn ->
+      assert_raise ArgumentError, fn ->
+        Code.eval_string """
+        defmodule Sample do
+          Atom.to_string "abc"
+        end
+        """
+      end
+    end) =~ "warning: this expression will fail with ArgumentError"
+  after
+    purge [Sample]
+  end
+
   test :undefined_function_for_behaviour do
     assert capture_err(fn ->
       Code.eval_string """
