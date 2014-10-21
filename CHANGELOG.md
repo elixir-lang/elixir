@@ -1,10 +1,15 @@
 # Changelog
 
-## v1.0.2-dev
+## v1.0.2 (2014-10-21)
 
 * Bug fixes
   * [EEx] Remove invalid warning when attempting to inline code in EEx
+  * [EEx] Unify syntax errors to always include `file:line:`
   * [IEx] Set null prompt function in dumb term mode
+  * [Kernel] Do not define an ets table with the same name as the module as it clashes with user code
+  * [Kernel] Fail compiling try expressions if they lack one of catch/after/rescue/else clauses
+  * [Kernel] Improve error messages when parsing fails on aliases
+  * [Kernel] Improve warnings coming from compile-time evaulation of arguments
   * [String] Fix `String.replace/4` typespec
 
 ## v1.0.1 (2014-10-07)
