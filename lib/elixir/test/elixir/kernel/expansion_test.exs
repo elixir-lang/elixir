@@ -392,11 +392,6 @@ defmodule Kernel.ExpansionTest do
 
   ## Try
 
-  test "try: expands do" do
-    assert expand(quote do: (try do x = y end; x)) ==
-           quote do: (try do x = y() end; x())
-  end
-
   test "try: expands catch" do
     assert expand(quote do: (try do x catch x, y -> z = :erlang.+(x, y) end; z)) ==
            quote do: (try do x() catch x, y -> z = :erlang.+(x, y) end; z())
@@ -415,6 +410,12 @@ defmodule Kernel.ExpansionTest do
   test "try: expands rescue" do
     assert expand(quote do: (try do x rescue x -> x; Error -> x end; x)) ==
            quote do: (try do x() rescue unquote(:in)(x, _) -> x; unquote(:in)(_, [:"Elixir.Error"]) -> x() end; x())
+  end
+
+  test "try: expects more than do" do
+    assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
+      expand(quote do: (try do x = y end; x))
+    end
   end
 
   ## Binaries
