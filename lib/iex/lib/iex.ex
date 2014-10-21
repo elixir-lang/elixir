@@ -245,7 +245,7 @@ defmodule IEx do
   ## Inspect
 
   A keyword list containing inspect options used by the shell
-  when printing results of expression evaluation. Defailt to
+  when printing results of expression evaluation. Default to
   pretty formatting with a limit of 50 entries.
 
   See `Inspect.Opts` for the full list of options.
