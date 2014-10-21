@@ -16,9 +16,9 @@ This document simply outlines the release process:
 
 6. Ensure minimum supported Hex works with new release (instructions upcoming)
 
-7. Push master and the new tag
+7. Push branch and the new tag
 
-8. Release new docs with `make release_docs`, move docs to `docs/stable` if appropriate, and push
+8. Release new docs with `make release_docs`, copy docs to `docs/stable` if appropriate, and push
 
 9. Release new zip with `make release_zip`, push `Precompiled.zip` to GitHub Releases
 
