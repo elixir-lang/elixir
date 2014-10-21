@@ -12,10 +12,14 @@ defmodule EEx.Compiler do
   def compile(source, opts) do
     file   = opts[:file] || "nofile"
     line   = opts[:line] || 1
-    tokens = EEx.Tokenizer.tokenize(source, line)
-    state  = %{engine: opts[:engine] || @default_engine,
-               file: file, line: line, quoted: [], start_line: nil}
-    generate_buffer(tokens, "", [], state)
+    case EEx.Tokenizer.tokenize(source, line) do
+      {:ok, tokens} ->
+        state = %{engine: opts[:engine] || @default_engine,
+                  file: file, line: line, quoted: [], start_line: nil}
+        generate_buffer(tokens, "", [], state)
+      {:error, line, message} ->
+        raise EEx.SyntaxError, line: line, file: file, message: message
+    end
   end
 
   # Generates the buffers by handling each expression from the tokenizer
@@ -51,16 +55,17 @@ defmodule EEx.Compiler do
     {buffer, t}
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars}|_], _buffer, [], _state) do
-    raise EEx.SyntaxError, message: "unexpected token: #{inspect chars} at line #{inspect line}"
+  defp generate_buffer([{:end_expr, line, _, chars}|_], _buffer, [], state) do
+    raise EEx.SyntaxError, message: "unexpected token #{inspect chars}", file: state.file, line: line
   end
 
   defp generate_buffer([], buffer, [], state) do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([], _buffer, _scope, _state) do
-    raise EEx.SyntaxError, message: "unexpected end of string. expecting a closing <% end %>."
+  defp generate_buffer([], _buffer, _scope, state) do
+    raise EEx.SyntaxError, message: "unexpected end of string, expected a closing '<% end %>'",
+                           file: state.file, line: state.line
   end
 
   # Creates a placeholder and wrap it inside the expression block

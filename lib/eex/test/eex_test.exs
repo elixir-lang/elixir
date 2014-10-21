@@ -111,25 +111,25 @@ defmodule EExTest do
   end
 
   test "raises a syntax error when the token is invalid" do
-    assert_raise EEx.SyntaxError, "missing token: %>", fn ->
+    assert_raise EEx.SyntaxError, "nofile:1: missing token '%>'", fn ->
       EEx.compile_string "foo <%= bar"
     end
   end
 
   test "raises a syntax error when end expression is found without a start expression" do
-    assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
+    assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '",  fn ->
       EEx.compile_string "foo <% end %>"
     end
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
-    assert_raise EEx.SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
-      EEx.compile_string "foo <% if true do %>"
+    assert_raise EEx.SyntaxError, "nofile:2: unexpected end of string, expected a closing '<% end %>'", fn ->
+      EEx.compile_string "foo\n<% if true do %>"
     end
   end
 
   test "raises a syntax error when nested end expression is found without a start expression" do
-    assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1", fn ->
+    assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '", fn ->
       EEx.compile_string "foo <% if true do %><% end %><% end %>"
     end
   end
