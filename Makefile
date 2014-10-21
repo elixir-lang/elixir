@@ -127,16 +127,16 @@ clean_exbeam:
 #==> Release tasks
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o docs/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o docs/$(2) -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc
 	$(Q) rm -rf docs
-	$(call DOCS,Elixir,elixir,Kernel)
-	$(call DOCS,EEx,eex,EEx)
-	$(call DOCS,Mix,mix,Mix)
-	$(call DOCS,IEx,iex,IEx)
-	$(call DOCS,ExUnit,ex_unit,ExUnit)
-	$(call DOCS,Logger,logger,Logger)
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel)
+	$(call COMPILE_DOCS,EEx,eex,EEx)
+	$(call COMPILE_DOCS,Mix,mix,Mix)
+	$(call COMPILE_DOCS,IEx,iex,IEx)
+	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit)
+	$(call COMPILE_DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
