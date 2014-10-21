@@ -55,7 +55,16 @@ parse_error(Line, File, Error, <<>>) ->
 parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
   do_raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
-%% Binaries are wrapped in [<<...>>], so we need to unwrap them
+%% Aliases are wrapped in ['']
+parse_error(Line, File, Error, <<"['", Token/binary>>) when is_binary(Error) ->
+  Rest =
+    case binary:split(Token, <<"'">>) of
+      [Part, _] -> Part;
+      _ -> <<>>
+    end,
+  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary>>);
+
+%% Binaries (and interpolation) are wrapped in [<<...>>]
 parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
   Rest =
     case binary:split(Full, <<"<<">>) of
