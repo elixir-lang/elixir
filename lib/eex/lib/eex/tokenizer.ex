@@ -3,7 +3,8 @@ defmodule EEx.Tokenizer do
 
   @doc """
   Tokenizes the given char list or binary.
-  It returns 4 different types of tokens as result:
+
+  It returns {:ok, list} with the following tokens:
 
     * `{:text, contents}`
     * `{:expr, line, marker, contents}`
@@ -11,33 +12,43 @@ defmodule EEx.Tokenizer do
     * `{:middle_expr, line, marker, contents}`
     * `{:end_expr, line, marker, contents}`
 
+  Or `{:error, line, error}` in case of errors.
   """
   def tokenize(bin, line) when is_binary(bin) do
     tokenize(String.to_char_list(bin), line)
   end
 
   def tokenize(list, line) do
-    Enum.reverse(tokenize(list, line, [], []))
+    tokenize(list, line, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, buffer, acc) do
-    {buffer, new_line, rest} = tokenize_expr t, line, [?%, ?<|buffer]
-    tokenize rest, new_line, [?>, ?%|buffer], acc
+    case expr(t, line, [?%, ?<|buffer]) do
+      {:error, _, _} = error -> error
+      {:ok, buffer, new_line, rest} ->
+        tokenize rest, new_line, [?>, ?%|buffer], acc
+    end
   end
 
   defp tokenize('<%#' ++ t, line, buffer, acc) do
-    {_, new_line, rest} = tokenize_expr t, line, []
-    tokenize rest, new_line, buffer, acc
+    case expr(t, line, []) do
+      {:error, _, _} = error -> error
+      {:ok, _, new_line, rest} ->
+        tokenize rest, new_line, buffer, acc
+    end
   end
 
   defp tokenize('<%' ++ t, line, buffer, acc) do
     {marker, t} = retrieve_marker(t)
-    {expr, new_line, rest} = tokenize_expr t, line, []
 
-    token = token_name(expr)
-    acc   = tokenize_text(buffer, acc)
-    final = {token, line, marker, Enum.reverse(expr)}
-    tokenize rest, new_line, [], [final | acc]
+    case expr(t, line, []) do
+      {:error, _, _} = error -> error
+      {:ok, expr, new_line, rest} ->
+        token = token_name(expr)
+        acc   = tokenize_text(buffer, acc)
+        final = {token, line, marker, Enum.reverse(expr)}
+        tokenize rest, new_line, [], [final | acc]
+    end
   end
 
   defp tokenize('\n' ++ t, line, buffer, acc) do
@@ -49,7 +60,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize([], _line, buffer, acc) do
-    tokenize_text(buffer, acc)
+    {:ok, Enum.reverse(tokenize_text(buffer, acc))}
   end
 
   # Retrieve marker for <%
@@ -64,20 +75,20 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp tokenize_expr([?%, ?>|t], line, buffer) do
-    {buffer, line, t}
+  defp expr([?%, ?>|t], line, buffer) do
+    {:ok, buffer, line, t}
   end
 
-  defp tokenize_expr('\n' ++ t, line, buffer) do
-    tokenize_expr t, line + 1, [?\n|buffer]
+  defp expr('\n' ++ t, line, buffer) do
+    expr t, line + 1, [?\n|buffer]
   end
 
-  defp tokenize_expr([h|t], line, buffer) do
-    tokenize_expr t, line, [h|buffer]
+  defp expr([h|t], line, buffer) do
+    expr t, line, [h|buffer]
   end
 
-  defp tokenize_expr([], _line, _buffer) do
-    raise EEx.SyntaxError, message: "missing token: %>"
+  defp expr([], line, _buffer) do
+    {:error, line, "missing token '%>'"}
   end
 
   # Receive an expression content and check
