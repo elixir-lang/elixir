@@ -1,4 +1,5 @@
 REBAR := rebar
+DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
@@ -147,8 +148,8 @@ release_zip: compile
 
 release_docs: docs
 	cd ../docs
-	rm -rf ../docs/master
-	mv docs ../docs/master
+	rm -rf ../docs/$(DOCS)
+	mv docs ../docs/$(DOCS)
 
 # This task requires aws-cli to be installed and set up for access to s3.hex.pm
 # See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
