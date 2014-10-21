@@ -9,7 +9,7 @@
   * [Kernel] Do not define an ets table with the same name as the module as it clashes with user code
   * [Kernel] Fail compiling try expressions if they lack one of catch/after/rescue/else clauses
   * [Kernel] Improve error messages when parsing fails on aliases
-  * [Kernel] Improve warnings coming from compile-time evaulation of arguments
+  * [Kernel] Improve warnings coming from compile-time evaluation of arguments
   * [String] Fix `String.replace/4` typespec
 
 ## v1.0.1 (2014-10-07)
