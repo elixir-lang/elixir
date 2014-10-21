@@ -140,6 +140,11 @@ handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
   Message = format_error(erl_lint, {unused_var, format_var(Var)}),
   warn(Line, File, Message);
 
+%% Handle literal eval failures
+handle_file_warning(_, File, {Line,sys_core_fold,{eval_failure, Error}}) ->
+  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
+  warn(Line, File, ["this expression will fail with ", elixir_aliases:inspect(Struct)]);
+
 %% Default behaviour
 handle_file_warning(_, File, {Line,Module,Desc}) ->
   Message = format_error(Module, Desc),
