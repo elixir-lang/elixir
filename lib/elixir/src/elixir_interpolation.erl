@@ -33,6 +33,9 @@ extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
 extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
   extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
 
+extract(Line, Scope, Interpol, [$\\, Last|Rest], Buffer, Output, Last) ->
+  extract(Line, Scope, Interpol, Rest, [Last|Buffer], Output, Last);
+
 extract(Line, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
   extract(Line, Scope, true, Rest, [${,$#|Buffer], Output, Last);
 
