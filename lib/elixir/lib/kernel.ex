@@ -2872,8 +2872,8 @@ defmodule Kernel do
       %User{}[:age]
       ** (Protocol.UndefinedError) protocol Access not implemented for %User{...}
 
-  However, `defstruct/2` allows implementation for protocols to
-  derived by defining a `@derive` attribute as a list before `defstruct/2`
+  However, `defstruct/1` allows implementation for protocols to
+  derived by defining a `@derive` attribute as a list before `defstruct/1`
   is invoked:
 
       defmodule User do
