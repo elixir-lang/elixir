@@ -159,7 +159,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and returns the first tuple
   where the item at `position` in the tuple matches the
-  given `item`.
+  given `key`.
 
   ## Examples
 
@@ -181,7 +181,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and returns `true` if there is
   a tuple where the item at `position` in the tuple matches
-  the given `item`.
+  the given `key`.
 
   ## Examples
 
@@ -255,7 +255,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and deletes the first tuple
   where the item at `position` matches the
-  given `item`. Returns the new list.
+  given `key`. Returns the new list.
 
   ## Examples
 
