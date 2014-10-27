@@ -66,33 +66,23 @@ defmodule SystemTest do
             arg0: "hecho", stderr_to_stdout: true, parallelism: true]
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
 
-    with_tmp_dir(fn dir ->
-      new_path = Path.join([dir, "echo2"])
-      File.cp!(System.find_executable("echo"), new_path)
-      assert :enoent = catch_error(System.cmd(new_path, ["hello"]))
+    echo2 = tmp_path("echo2")
+    File.cp! System.find_executable("echo"), echo2
 
-      File.cd!(dir)
+    relative = Path.relative_to_cwd(echo2)
+    assert :enoent = catch_error(System.cmd(relative, ["hello"]))
+
+    File.cd! Path.dirname(echo2), fn ->
       assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
-      assert {"hello\n", 0} = System.cmd(Path.join([System.cwd, "echo2"]), ["hello"])
-    end)
+      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd, "echo2"), ["hello"])
+    end
+  after
+    File.rm_rf(tmp_path("echo2"))
   end
 
   test "find_executable/1" do
     assert System.find_executable("erl")
     assert is_binary System.find_executable("erl")
     assert !System.find_executable("does-not-really-exist-from-elixir")
-  end
-
-  defp with_tmp_dir(function) do
-    dir = tmp_dir_name()
-    tmp_dir = System.tmp_dir!
-    tmp_path = Path.join [tmp_dir, dir]
-    File.rm_rf! tmp_path
-    File.mkdir_p! tmp_path
-    File.cd! tmp_dir, fn -> function.(dir) end
-  end
-
-  defp tmp_dir_name do
-    :crypto.rand_bytes(4) |> Base.encode16
   end
 end
