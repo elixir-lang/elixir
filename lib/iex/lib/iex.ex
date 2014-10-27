@@ -5,7 +5,7 @@ defmodule IEx do
   This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
 
-  Notice that some of the functionality described here will not be available
+  Notice that some of the functionalities described here will not be available
   depending on your terminal. In particular, if you get a message
   saying that the smart terminal could not be run, some of the
   features described here won't work.
