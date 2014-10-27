@@ -156,8 +156,11 @@ defmodule Mix.Utils do
   In general, `underscore` can be thought of as the reverse of
   `camelize`, however, in some cases formatting may be lost:
 
-      Mix.Utils.underscore "SAPExample"  #=> "sap_example"
-      Mix.Utils.camelize   "sap_example" #=> "SapExample"
+      iex> Mix.Utils.underscore "SAPExample"
+      "sap_example"
+
+      iex> Mix.Utils.camelize "sap_example"
+      "SapExample"
 
   """
   def underscore(atom) when is_atom(atom) do
