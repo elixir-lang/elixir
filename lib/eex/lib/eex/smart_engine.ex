@@ -28,7 +28,8 @@ defmodule EEx.SmartEngine do
       end
 
       # iex
-      Sample.sample(a: 1, b: 2) #=> "3"
+      iex> Sample.sample(a: 1, b: 2)
+      "3"
 
   """
 
