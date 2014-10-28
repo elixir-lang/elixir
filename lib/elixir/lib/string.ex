@@ -582,11 +582,7 @@ defmodule String do
   @spec rjust(t, non_neg_integer) :: t
   @spec rjust(t, non_neg_integer, char) :: t
 
-  def rjust(subject, len) do
-    rjust(subject, len, ?\s)
-  end
-
-  def rjust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
+  def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     do_justify(subject, len, pad, :right)
   end
 
@@ -607,11 +603,7 @@ defmodule String do
   @spec ljust(t, non_neg_integer) :: t
   @spec ljust(t, non_neg_integer, char) :: t
 
-  def ljust(subject, len) do
-    ljust(subject, len, ?\s)
-  end
-
-  def ljust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
+  def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
     do_justify(subject, len, pad, :left)
   end
 
