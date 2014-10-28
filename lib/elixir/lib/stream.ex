@@ -556,6 +556,8 @@ defmodule Stream do
 
   The first item is always included, unless `n` is 0.
 
+  `n` must be non-negative, or `FunctionClauseError` will be thrown.
+
   ## Examples
 
       iex> stream = Stream.take_every(1..10, 2)
