@@ -67,12 +67,15 @@ defmodule SystemTest do
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
 
     echo2 = tmp_path("echo2")
+    dir = Path.dirname(echo2)
+
+    File.mkdir_p! dir
     File.cp! System.find_executable("echo"), echo2
 
     relative = Path.relative_to_cwd(echo2)
     assert :enoent = catch_error(System.cmd(relative, ["hello"]))
 
-    File.cd! Path.dirname(echo2), fn ->
+    File.cd! dir, fn ->
       assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
       assert {"hello\n", 0} = System.cmd(Path.join(System.cwd, "echo2"), ["hello"])
     end
