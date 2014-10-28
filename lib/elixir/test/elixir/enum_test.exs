@@ -349,6 +349,9 @@ defmodule EnumTest.List do
     assert Enum.take_every([], 2) == []
     assert Enum.take_every([1, 2], 2) == [1]
     assert Enum.take_every([1, 2, 3], 0) == []
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_every([1, 2, 3], -1)
+    end
   end
 
   test :take_while do
@@ -865,6 +868,9 @@ defmodule EnumTest.Range do
     assert Enum.take_every(1..10, 2) == [1, 3, 5, 7, 9]
     assert Enum.take_every(1..2, 2) == [1]
     assert Enum.take_every(1..3, 0) == []
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_every(1..3, -1)
+    end
   end
 
   test :take_while do
