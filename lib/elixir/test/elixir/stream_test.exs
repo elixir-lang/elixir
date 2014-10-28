@@ -589,6 +589,10 @@ defmodule StreamTest do
            |> Stream.take_every(2)
            |> Stream.drop(1)
            |> Enum.to_list == [5, 7, 9]
+
+    assert_raise FunctionClauseError, fn ->
+      Stream.take_every(1..10, -1)
+    end
   end
 
   test "take_while/2" do
