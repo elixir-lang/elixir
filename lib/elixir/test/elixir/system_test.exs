@@ -66,18 +66,22 @@ defmodule SystemTest do
             arg0: "hecho", stderr_to_stdout: true, parallelism: true]
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
 
+    File.mkdir_p(tmp_path)
+    
     echo2 = tmp_path("echo2")
-    File.cp! System.find_executable("echo"), echo2
 
-    relative = Path.relative_to_cwd(echo2)
-    assert :enoent = catch_error(System.cmd(relative, ["hello"]))
+    File.cd! tmp_path, fn ->
+      File.cp! System.find_executable("echo"), echo2
+      relative = Path.relative_to_cwd(echo2)
+      assert :enoent = catch_error(System.cmd(relative, ["hello"]))
+    end
 
     File.cd! Path.dirname(echo2), fn ->
       assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
       assert {"hello\n", 0} = System.cmd(Path.join(System.cwd, "echo2"), ["hello"])
     end
   after
-    File.rm_rf(tmp_path("echo2"))
+    File.rm_rf(tmp_path)
   end
 
   test "find_executable/1" do
