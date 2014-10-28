@@ -143,7 +143,7 @@ Keep in mind that the first paragraph might show up in a summary somewhere, long
 texts in the first paragraph create very ugly summaries. As a rule of thumb
 anything longer than 80 characters is too long.
 
-Try to keep unneccesary details out of the first paragraph, it's only there to
+Try to keep unnecessary details out of the first paragraph, it's only there to
 give a user a quick idea of what the documented "thing" does/is. The rest of the
 documentation string can contain the details, for example when a value and when
 `nil` is returned.
