@@ -1747,15 +1747,17 @@ defmodule Enum do
   Returns a collection of every `nth` item in the collection,
   starting with the first element.
 
+  The second argument specifying every `nth` item must be non-negative.
+
   ## Examples
 
       iex> Enum.take_every(1..10, 2)
       [1, 3, 5, 7, 9]
 
   """
-  @spec take_every(t, integer) :: list
+  @spec take_every(t, non_neg_integer) :: list
   def take_every(_collection, 0), do: []
-  def take_every(collection, nth) do
+  def take_every(collection, nth) when nth > 0 do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], :first}}, R.take_every(nth))
     :lists.reverse(res)
