@@ -49,7 +49,7 @@ defmodule Inspect.Opts do
                structs: boolean,
                binaries: :infer | :as_binaries | :as_strings,
                char_lists: :infer | :as_lists | :as_char_lists,
-               limit: pos_integer,
+               limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
                pretty: boolean}
