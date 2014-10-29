@@ -1696,7 +1696,7 @@ defmodule Enum do
   @doc """
   Takes the first `count` items from the collection.
 
-  If a negative `count` is given, the last `count` values will
+  `count` must be an integer. If a negative `count` is given, the last `count` values will
   be taken. For such, the collection is fully enumerated keeping up
   to `2 * count` elements in memory. Once the end of the collection is
   reached, the last `count` elements are returned.
@@ -1718,15 +1718,14 @@ defmodule Enum do
   """
   @spec take(t, integer) :: list
 
-  def take(_collection, 0) do
-    []
-  end
+  def take(_collection, 0), do: []
+  def take([], _count), do: []
 
-  def take(collection, count) when is_list(collection) and count > 0 do
+  def take(collection, count) when is_list(collection) and is_integer(count) and count > 0 do
     do_take(collection, count)
   end
 
-  def take(collection, count) when count > 0 do
+  def take(collection, count) when is_integer(count) and count > 0 do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, count}) ->
         if count > 1 do
@@ -1738,7 +1737,7 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
-  def take(collection, count) when count < 0 do
+  def take(collection, count) when is_integer(count) and count < 0 do
     Stream.take(collection, count).({:cont, []}, &{:cont, [&1|&2]})
     |> elem(1) |> :lists.reverse
   end
@@ -1747,7 +1746,7 @@ defmodule Enum do
   Returns a collection of every `nth` item in the collection,
   starting with the first element.
 
-  The second argument specifying every `nth` item must be non-negative.
+  The second argument specifying every `nth` item must be a non-negative integer.
 
   ## Examples
 
@@ -1757,7 +1756,9 @@ defmodule Enum do
   """
   @spec take_every(t, non_neg_integer) :: list
   def take_every(_collection, 0), do: []
-  def take_every(collection, nth) when nth > 0 do
+  def take_every([], _nth), do: []
+  
+  def take_every(collection, nth) when is_integer(nth) and nth > 0 do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], :first}}, R.take_every(nth))
     :lists.reverse(res)
