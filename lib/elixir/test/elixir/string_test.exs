@@ -174,6 +174,10 @@ defmodule StringTest do
     assert String.rjust("猫", 5) == "    猫"
     assert String.rjust("abc", 5, ?-) == "--abc"
     assert String.rjust("abc", 5, ?猫) == "猫猫abc"
+    assert String.rjust("-", 0) == "-"
+    assert_raise FunctionClauseError, fn ->
+      String.rjust("-", -1)
+    end
   end
 
   test :ljust do
@@ -183,6 +187,10 @@ defmodule StringTest do
     assert String.ljust("猫", 5) == "猫    "
     assert String.ljust("abc", 5, ?-) == "abc--"
     assert String.ljust("abc", 5, ?猫) == "abc猫猫"
+    assert String.ljust("-", 0) == "-"
+    assert_raise FunctionClauseError, fn ->
+      String.ljust("-", -1)
+    end
   end
 
   test :reverse do
