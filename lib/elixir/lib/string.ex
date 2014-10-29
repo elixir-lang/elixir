@@ -579,15 +579,11 @@ defmodule String do
       "--abc"
 
   """
-  @spec rjust(t, pos_integer) :: t
-  @spec rjust(t, pos_integer, char) :: t
+  @spec rjust(t, non_neg_integer) :: t
+  @spec rjust(t, non_neg_integer, char) :: t
 
-  def rjust(subject, len) do
-    rjust(subject, len, ?\s)
-  end
-
-  def rjust(subject, len, padding) when is_integer(padding) do
-    do_justify(subject, len, padding, :right)
+  def rjust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+    justify(subject, len, pad, :right)
   end
 
   @doc ~S"""
@@ -604,22 +600,15 @@ defmodule String do
       "abc--"
 
   """
-  @spec ljust(t, pos_integer) :: t
-  @spec ljust(t, pos_integer, char) :: t
+  @spec ljust(t, non_neg_integer) :: t
+  @spec ljust(t, non_neg_integer, char) :: t
 
-  def ljust(subject, len) do
-    ljust(subject, len, ?\s)
+  def ljust(subject, len, pad \\ ?\s) when is_integer(pad) and is_integer(len) and len >= 0 do
+    justify(subject, len, pad, :left)
   end
 
-  def ljust(subject, len, padding) when is_integer(padding) do
-    do_justify(subject, len, padding, :left)
-  end
-
-  defp do_justify(subject, 0, _padding, _type) do
-    subject
-  end
-
-  defp do_justify(subject, len, padding, type) when is_integer(padding) do
+  defp justify(subject, 0, _pad, _type), do: subject
+  defp justify(subject, len, padding, type) do
     subject_len = length(subject)
 
     cond do
