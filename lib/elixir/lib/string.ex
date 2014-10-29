@@ -7,7 +7,7 @@ defmodule String do
   ## Codepoints and graphemes
 
   The functions in this module act according to the Unicode
-  Standard, version 6.3.0.As per the standard, a codepoint is
+  Standard, version 6.3.0. As per the standard, a codepoint is
   an Unicode Character, which may be represented by one or more
   bytes. For example, the character "é" is represented with two
   bytes:
@@ -42,8 +42,7 @@ defmodule String do
   module.
 
   In general, the functions in this module rely on the Unicode
-  Standard, but does not contain any of the locale specific
-  behaviour.
+  Standard, but do not contain any of the locale specific behaviour.
 
   More information about graphemes can be found in the [Unicode
   Standard Annex #29](http://www.unicode.org/reports/tr29/).
@@ -81,7 +80,7 @@ defmodule String do
       ...>   base = String.length(prefix)
       ...>   String.slice(full, base, String.length(full) - base)
       ...> end
-      ...> take_prefix.("Mr. John", "Mr. ")
+      iex> take_prefix.("Mr. John", "Mr. ")
       "John"
 
   Although the function above works, it performs poorly. To
@@ -95,7 +94,7 @@ defmodule String do
       ...>   base = String.length(prefix)
       ...>   String.slice(full, base..-1)
       ...> end
-      ...> take_prefix.("Mr. John", "Mr. ")
+      iex> take_prefix.("Mr. John", "Mr. ")
       "John"
 
   While this is much better (we don't traverse `full` twice),
@@ -108,17 +107,17 @@ defmodule String do
       ...>   base = byte_size(prefix)
       ...>   binary_part(full, base, byte_size(full) - base)
       ...> end
-      ...> take_prefix.("Mr. John", "Mr. ")
+      iex> take_prefix.("Mr. John", "Mr. ")
       "John"
 
-  Or simply used pattern matching:
+  Or simply use pattern matching:
 
       iex> take_prefix = fn full, prefix ->
       ...>   base = byte_size(prefix)
       ...>   <<_ :: binary-size(base), rest :: binary>> = full
       ...>   rest
       ...> end
-      ...> take_prefix.("Mr. John", "Mr. ")
+      iex> take_prefix.("Mr. John", "Mr. ")
       "John"
 
   On the other hand, if you want to dynamically slice a string
