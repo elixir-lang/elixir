@@ -515,14 +515,15 @@ defmodule Stream do
       [1,2,3,1,2]
 
   """
-  @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
+  @spec take(Enumerable.t, integer) :: Enumerable.t
   def take(_enum, 0), do: %Stream{enum: []}
+  def take([], _n), do: %Stream{enum: []}
 
-  def take(enum, n) when n > 0 do
+  def take(enum, n) when is_integer(n) and n > 0 do
     lazy enum, n, fn(f1) -> R.take(f1) end
   end
 
-  def take(enum, n) when n < 0 do
+  def take(enum, n) when is_integer(n) and n < 0 do
     &do_take(enum, abs(n), &1, &2)
   end
 
@@ -556,7 +557,7 @@ defmodule Stream do
 
   The first item is always included, unless `n` is 0.
 
-  `n` must be non-negative, or `FunctionClauseError` will be thrown.
+  `n` must be a non-negative integer, or `FunctionClauseError` will be thrown.
 
   ## Examples
 
@@ -566,7 +567,7 @@ defmodule Stream do
 
   """
   @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def take_every(enum, n) when n > 0 do
+  def take_every(enum, n) when is_integer(n) and n > 0 do
     lazy enum, n, fn(f1) -> R.take_every(n, f1) end
   end
 
