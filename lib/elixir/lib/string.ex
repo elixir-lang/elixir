@@ -723,7 +723,7 @@ defmodule String do
       "abcabc"
 
   """
-  @spec duplicate(t, pos_integer) :: t
+  @spec duplicate(t, non_neg_integer) :: t
   def duplicate(subject, n) when is_integer(n) and n >= 0 do
     :binary.copy(subject, n)
   end
