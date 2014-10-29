@@ -547,6 +547,7 @@ defmodule StreamTest do
     assert Enum.to_list(stream) == [1,2,3,4,5]
 
     assert Enum.to_list(Stream.take(1..1000, 0)) == []
+    assert Enum.to_list(Stream.take([], 5)) == []
     assert Enum.to_list(Stream.take(1..3, 5)) == [1,2,3]
 
     nats = Stream.iterate(1, &(&1 + 1))
@@ -590,8 +591,22 @@ defmodule StreamTest do
            |> Stream.drop(1)
            |> Enum.to_list == [5, 7, 9]
 
+    assert 1..10
+           |> Stream.take_every(0)
+           |> Enum.to_list == []
+
+    assert []
+           |> Stream.take_every(10)
+           |> Enum.to_list == []
+  end
+
+  test "take_every/2 without non-negative integer" do
     assert_raise FunctionClauseError, fn ->
       Stream.take_every(1..10, -1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Stream.take_every(1..10, 3.33)
     end
   end
 
