@@ -417,7 +417,7 @@ defmodule Dict do
   end
 
   @doc """
-  Puts the given `value` under `key` in `dict` unless `key` already exists.
+  Puts the given `value` under `key` in `dict` unless `key` already existed.
 
   ## Examples
 
@@ -456,8 +456,8 @@ defmodule Dict do
   @doc """
   Merges the dict `dict2` into dict `dict1`.
 
-  If one of the `dict2` entries already exists in `dict1`, the
-  functions in entries in `dict2` have higher precedence unless a
+  If one of the `dict2` entries already existed in `dict1`, the
+  conflicting entries in `dict2` have higher precedence unless a
   function is given to resolve conflicts.
 
   Notice this function is polymorphic as it merges dicts of any
@@ -498,6 +498,9 @@ defmodule Dict do
   @doc """
   Returns the value associated with `key` in `dict` as
   well as the `dict` without `key`.
+
+  If `key` is not present in `dict`, then the `dict` will
+  be returned unmodified.
 
   ## Examples
 
@@ -560,9 +563,9 @@ defmodule Dict do
   @doc """
   Returns a tuple of two dicts, where the first dict contains only
   entries from `dict` with keys in `keys`, and the second dict
-  contains only entries from `dict` with keys not in `keys`
+  contains only entries from `dict` with keys not in `keys`.
 
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
@@ -589,7 +592,7 @@ defmodule Dict do
 
   @doc """
   Returns a new dict where the given `keys` are removed from `dict`.
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
@@ -612,7 +615,7 @@ defmodule Dict do
   @doc """
   Returns a new dict where only the keys in `keys` from `dict` are included.
 
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
