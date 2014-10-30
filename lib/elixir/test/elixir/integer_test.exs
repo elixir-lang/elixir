@@ -36,4 +36,30 @@ defmodule IntegerTest do
     assert Integer.parse("+-1") === :error
     assert Integer.parse("three") === :error
   end
+
+  test ":to_string/1" do
+    assert Integer.to_string(100) == "100"
+    assert Integer.to_string(-100) == "-100"
+  end
+
+  test ":to_string/2" do
+    assert Integer.to_string(100, 2) == "1100100"
+    assert Integer.to_string(100, 3) == "10201"
+    assert Integer.to_string(100, 4) == "1210"
+    assert Integer.to_string(100, 16) == "64"
+    assert Integer.to_string(-100, 16) == "-64"
+  end
+
+  test ":to_char_list/1" do
+    assert Integer.to_char_list(100) == '100'
+    assert Integer.to_char_list(-100) == '-100'
+  end
+
+  test ":to_char_list/2" do
+    assert Integer.to_char_list(100, 2) == '1100100'
+    assert Integer.to_char_list(100, 3) == '10201'
+    assert Integer.to_char_list(100, 4) == '1210'
+    assert Integer.to_char_list(100, 16) == '64'
+    assert Integer.to_char_list(-100, 16) == '-64'
+  end
 end
