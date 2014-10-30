@@ -124,7 +124,7 @@ defmodule Integer do
 
   @doc """
   Returns a char list which corresponds to the text representation of the
-  given integer in the given case.
+  given integer in the given base.
 
   Inlined by the compiler.
 
