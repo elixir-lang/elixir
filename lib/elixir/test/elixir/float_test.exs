@@ -12,6 +12,8 @@ defmodule FloatTest do
     assert Float.parse("12.524235") === {12.524235, ""}
     assert Float.parse("-12.5") === {-12.5, ""}
     assert Float.parse("-12.524235") === {-12.524235, ""}
+    assert Float.parse("0.3534091") === {0.3534091, ""}
+    assert Float.parse("0.3534091elixir") === {0.3534091, "elixir"}
     assert Float.parse("7.5e3") === {7.5e3, ""}
     assert Float.parse("7.5e-3") === {7.5e-3, ""}
     assert Float.parse("12x") === {12.0, "x"}
