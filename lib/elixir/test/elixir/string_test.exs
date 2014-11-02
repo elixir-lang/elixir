@@ -83,6 +83,14 @@ defmodule StringTest do
     assert String.split_at("abc", -3) == {"", "abc"}
     assert String.split_at("abc", -4) == {"", "abc"}
     assert String.split_at("abc", -1000) == {"", "abc"}
+
+    assert_raise FunctionClauseError, fn ->
+      String.split_at("abc", 0.1)
+    end
+    
+    assert_raise FunctionClauseError, fn ->
+      String.split_at("abc", -0.1)
+    end
   end
 
   test :upcase do
