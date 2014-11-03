@@ -1010,11 +1010,11 @@ defmodule String do
   """
   @spec at(t, integer) :: grapheme | nil
 
-  def at(string, position) when position >= 0 do
+  def at(string, position) when is_integer(position) and position >= 0 do
     do_at(next_grapheme(string), position, 0)
   end
 
-  def at(string, position) when position < 0 do
+  def at(string, position) when is_integer(position) and position < 0 do
     real_pos = length(string) - abs(position)
     case real_pos >= 0 do
       true  -> do_at(next_grapheme(string), real_pos, 0)

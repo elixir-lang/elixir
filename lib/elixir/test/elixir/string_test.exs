@@ -317,6 +317,14 @@ defmodule StringTest do
     assert String.at("л", -3) == nil
     assert String.at("Ā̀stute", 1) == "s"
     assert String.at("elixir", 6) == nil
+
+    assert_raise FunctionClauseError, fn ->
+      String.at("elixir", 0.1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.at("elixir", -0.1)
+    end
   end
 
   test :slice do
