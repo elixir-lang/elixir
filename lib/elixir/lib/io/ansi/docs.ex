@@ -25,10 +25,10 @@ defmodule IO.ANSI.Docs do
     [enabled:           true,
      doc_bold:          [:bright],
      doc_code:          [:cyan, :bright],
-     doc_headings:      [:yellow, :bright],
+     doc_headings:      [:yellow],
      doc_inline_code:   [:cyan],
      doc_table_heading: [:reverse],
-     doc_title:         [:reverse, :yellow, :bright],
+     doc_title:         [:reverse, :yellow],
      doc_underline:     [:underline],
      width:             80]
   end
