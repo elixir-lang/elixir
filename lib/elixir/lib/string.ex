@@ -1432,9 +1432,6 @@ defmodule String do
       iex> String.to_float("3.0")
       3.0
 
-      iex> String.to_float("3")
-      ** (ArgumentError) argument error
-
   """
   @spec to_float(String.t) :: float
   def to_float(string) do
