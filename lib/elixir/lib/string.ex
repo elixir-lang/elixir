@@ -1420,7 +1420,9 @@ defmodule String do
   Returns a float whose text representation is `string`.
 
   `string` must be the string representation of a float.
-  If a string representation of an integer wants to be used, then `Float.parse/1` should be used instead, otherwise  an argument error will be raised.
+  If a string representation of an integer wants to be used,
+  then `Float.parse/1` should be used instead,
+  otherwise an argument error will be raised.
 
   Inlined by the compiler.
 
