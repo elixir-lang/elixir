@@ -25,7 +25,7 @@ defmodule SupervisorTest do
       {:stop, :normal, :ok, stack}
     end
 
-    def handle_cast({:push, h}, _from, t) do
+    def handle_cast({:push, h}, t) do
       {:noreply, [h|t]}
     end
   end
