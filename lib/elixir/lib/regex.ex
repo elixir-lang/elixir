@@ -530,7 +530,7 @@ defmodule Regex do
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
-  defp apply_list(whole, string, pos, replacement, [[{mpos, length} | _] = head | tail]) when mpos == pos do
+  defp apply_list(whole, string, pos, replacement, [[{pos, length} | _] = head | tail]) do
     <<_ :: size(length)-binary, rest :: binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]

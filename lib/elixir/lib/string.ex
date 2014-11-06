@@ -365,8 +365,7 @@ defmodule String do
   @spec split_at(t, integer) :: {t, t}
   def split_at(string, offset)
 
-  def split_at(binary, index) when index == 0, do:
-    {"", binary}
+  def split_at(binary, 0), do: {"", binary}
 
   def split_at(binary, index) when is_integer(index) and index > 0, do:
     do_split_at(next_grapheme(binary), 0, index, "")
