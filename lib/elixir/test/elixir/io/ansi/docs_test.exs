@@ -14,24 +14,24 @@ defmodule IO.ANSI.DocsTest do
 
   test "heading is formatted" do
     result = format_heading("wibble")
-    assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m\e[1m")
+    assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
     assert String.ends_with?(result, "\e[0m\n\e[0m")
     assert String.contains?(result, " wibble ")
   end
 
   test "first level heading is converted" do
     result = format("# wibble\n\ntext\n")
-    assert result == "\e[33m\e[1mWIBBLE\e[0m\n\e[0m\ntext\n\e[0m"
+    assert result == "\e[33mWIBBLE\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "second level heading is converted" do
     result = format("## wibble\n\ntext\n")
-    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext\n\e[0m"
+    assert result == "\e[33mwibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "third level heading is converted" do
     result = format("## wibble\n\ntext\n")
-    assert result == "\e[33m\e[1mwibble\e[0m\n\e[0m\ntext\n\e[0m"
+    assert result == "\e[33mwibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
   test "code block is converted" do
