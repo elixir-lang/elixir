@@ -1025,7 +1025,7 @@ defmodule String do
     do_at(next_grapheme(rest), desired_pos, current_pos + 1)
   end
 
-  defp do_at({char, _}, desired_pos, current_pos) when desired_pos == current_pos do
+  defp do_at({char, _}, desired_pos, desired_pos) do
     char
   end
 
