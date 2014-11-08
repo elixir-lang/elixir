@@ -19,10 +19,10 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    _ = Mix.Tasks.Local.Hex.ensure_updated?()
     load_dot_config()
     args = load_mixfile(args)
     {task, args} = get_task(args)
+    ensure_hex(task)
     change_env(task)
     run_task(task, args)
   end
@@ -68,6 +68,11 @@ defmodule Mix.CLI do
         end
     end
   end
+
+  defp ensure_hex("local.hex"),
+    do: :ok
+  defp ensure_hex(_task),
+    do: Mix.Tasks.Local.Hex.ensure_updated?()
 
   defp change_env(task) do
     if is_nil(System.get_env("MIX_ENV")) &&
