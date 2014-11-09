@@ -192,6 +192,7 @@ defmodule StringTest do
     assert String.reverse("Hello ∂og") == "go∂ olleH"
     assert String.reverse("Ā̀stute") == "etutsĀ̀"
     assert String.reverse(String.reverse("Hello World")) == "Hello World"
+    assert String.reverse(String.reverse("Hello \r\n World")) == "Hello \r\n World"
   end
 
   test :replace do
@@ -238,7 +239,7 @@ defmodule StringTest do
     # Extended
     assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]
     # CLRF
-    assert String.graphemes("\n\r\f") == ["\n\r", "\f"]
+    assert String.graphemes("\r\n\f") == ["\r\n", "\f"]
     # Regional indicator
     assert String.graphemes("\x{1F1E6}\x{1F1E7}\x{1F1E8}") == ["\x{1F1E6}\x{1F1E7}\x{1F1E8}"]
     # Hangul
