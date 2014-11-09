@@ -208,8 +208,8 @@ defmodule String.Graphemes do
   end
 
   # Don't break CRLF
-  def next_grapheme(<< ?\n, ?\r, rest :: binary >>) do
-    {"\n\r", rest}
+  def next_grapheme(<< ?\r, ?\n, rest :: binary >>) do
+    {"\r\n", rest}
   end
 
   # Break on control
