@@ -376,6 +376,7 @@ defmodule Mix.Tasks.New do
   embed_template :test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
+    doctest <%= @mod %>
 
     test "the truth" do
       assert 1 + 1 == 2
