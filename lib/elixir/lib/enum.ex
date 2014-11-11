@@ -1031,7 +1031,7 @@ defmodule Enum do
       {[2, 4, 6], 6}
 
   """
-  @spec map_reduce(t, any, (element, any -> any)) :: any
+  @spec map_reduce(t, any, (element, any -> {any, any})) :: {any, any}
   def map_reduce(collection, acc, fun) when is_list(collection) do
     :lists.mapfoldl(fun, acc, collection)
   end
