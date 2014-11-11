@@ -21,6 +21,8 @@ defmodule Mix.UtilsTest do
   test :command_to_module_name do
     assert Mix.Utils.command_to_module_name("foo")     == "Foo"
     assert Mix.Utils.command_to_module_name("foo.bar") == "Foo.Bar"
+    assert Mix.Utils.command_to_module_name("foo_bar.baz") == "FooBar.Baz"
+    assert Mix.Utils.command_to_module_name("foo_bar.baz_bing") == "FooBar.BazBing"
   end
 
   test :underscore do

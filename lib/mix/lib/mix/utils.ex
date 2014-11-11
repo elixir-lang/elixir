@@ -284,7 +284,7 @@ defmodule Mix.Utils do
   """
   def command_to_module_name(s) do
     Regex.split(~r/\./, to_string(s)) |>
-      Enum.map(&first_to_upper(&1)) |>
+      Enum.map(&camelize(&1)) |>
       Enum.join(".")
   end
 
