@@ -267,7 +267,7 @@ defmodule Mix.Utils do
 
   def module_name_to_command(module, nesting) do
     t = Regex.split(~r/\./, to_string(module))
-    t |> Enum.drop(nesting) |> Enum.map(&first_to_lower(&1)) |> Enum.join(".")
+    t |> Enum.drop(nesting) |> Enum.map(&underscore(&1)) |> Enum.join(".")
   end
 
   @doc """
@@ -281,15 +281,9 @@ defmodule Mix.Utils do
   """
   def command_to_module_name(s) do
     Regex.split(~r/\./, to_string(s)) |>
-      Enum.map(&first_to_upper(&1)) |>
+      Enum.map(&camelize(&1)) |>
       Enum.join(".")
   end
-
-  defp first_to_upper(<<s, t :: binary>>), do: <<to_upper_char(s)>> <> t
-  defp first_to_upper(<<>>), do: <<>>
-
-  defp first_to_lower(<<s, t :: binary>>), do: <<to_lower_char(s)>> <> t
-  defp first_to_lower(<<>>), do: <<>>
 
   defp to_upper_char(char) when char in ?a..?z, do: char - 32
   defp to_upper_char(char), do: char

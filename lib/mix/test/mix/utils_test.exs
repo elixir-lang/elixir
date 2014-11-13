@@ -16,11 +16,15 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.module_name_to_command(Mix.Tasks.Foo, 2)       == "foo"
     assert Mix.Utils.module_name_to_command("Mix.Tasks.Foo", 2)     == "foo"
     assert Mix.Utils.module_name_to_command("Mix.Tasks.Foo.Bar", 2) == "foo.bar"
+    assert Mix.Utils.module_name_to_command("Mix.Tasks.FooBar.Bing", 2) == "foo_bar.bing"
+    assert Mix.Utils.module_name_to_command("Mix.Tasks.FooBar.BingBang", 2) == "foo_bar.bing_bang"
   end
 
   test :command_to_module_name do
     assert Mix.Utils.command_to_module_name("foo")     == "Foo"
     assert Mix.Utils.command_to_module_name("foo.bar") == "Foo.Bar"
+    assert Mix.Utils.command_to_module_name("foo_bar.baz") == "FooBar.Baz"
+    assert Mix.Utils.command_to_module_name("foo_bar.baz_bing") == "FooBar.BazBing"
   end
 
   test :underscore do
