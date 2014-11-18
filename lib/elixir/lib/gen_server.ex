@@ -362,17 +362,24 @@ defmodule GenServer do
   @doc """
   Sends an asynchronous request to the `server`.
 
-  This function returns `:ok` immediately, regardless of
-  whether the destination node or server does exists, unless
-  the server is specified as an atom.
+  This function returns `:ok` without waiting for the
+  destination `server` to handle the message. Therefore it
+  is unknown whether the destination `server` successfully
+  handled the message. If the `server` is an atom without
+  an associated process an `ArgumentError` is raised. In
+  all other cases the function returns `:ok` regardless of
+  whether the destination `server` (or node) exists. Note
+  that `{name, node()}` can be used when an exception is
+  not desired if no process is locally associated with the
+  atom `name`.
 
   `handle_cast/2` will be called on the server to handle
-  the request. In case the server is a node which is not
-  yet connected to the caller one, the call is going to
+  the request. In case the `server` is on a node which is
+  not yet connected to the caller one, the call is going to
   block until a connection happens. This is different than
   the behaviour in OTP's `:gen_server` where the message
-  would be sent by another process, which could cause
-  messages to arrive out of order.
+  is sent by another process in this case, which could cause
+  messages to other nodes to arrive out of order.
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)
