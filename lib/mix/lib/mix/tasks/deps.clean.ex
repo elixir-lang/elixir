@@ -9,10 +9,11 @@ defmodule Mix.Tasks.Deps.Clean do
   Since this is a destructive action, cleaning of dependencies
   can only happen by passing arguments/options:
 
-    * `dep1, dep2` - the name of dependency to be removed
+    * `dep1, dep2` - the name of dependencies to be removed
     * `--all` - removes all dependencies
     * `--unused` - removes only unused dependencies (no longer mentioned
       in the `mix.exs` file)
+    * `--unlock` - also unlock the removed dependencies
 
   By default this task works accross all environments, unless `--only`
   is given.
