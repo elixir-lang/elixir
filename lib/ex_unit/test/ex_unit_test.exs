@@ -19,7 +19,7 @@ defmodule ExUnitTest do
     end
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 2, total: 2}
+      assert ExUnit.run == %{failures: 2, skipped: 0, total: 2}
     end) =~ "2 tests, 2 failures"
   end
 
@@ -36,7 +36,7 @@ defmodule ExUnitTest do
     end
 
     assert capture_io(fn ->
-      assert ExUnit.run == %{failures: 1, total: 1}
+      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
     end) =~ "1 tests, 1 failures"
   end
 
@@ -73,27 +73,32 @@ defmodule ExUnitTest do
 
     test_cases = ExUnit.Server.start_run
 
-    assert run_with_filter([], test_cases) ==
-           %{failures: 1, total: 4}
+    {result, output} = run_with_filter([], test_cases)
+    assert result == %{failures: 1, skipped: 0, total: 4}
+    assert output =~ "4 tests, 1 failures"
 
-    assert run_with_filter([exclude: [even: true]], test_cases) ==
-           %{failures: 0, total: 3}
+    {result, output} = run_with_filter([exclude: [even: true]], test_cases)
+    assert result == %{failures: 0, skipped: 1, total: 4}
+    assert output =~ "4 tests, 0 failures, 1 skipped"
 
-    assert run_with_filter([exclude: :even], test_cases) ==
-           %{failures: 0, total: 1}
+    {result, output} = run_with_filter([exclude: :even], test_cases)
+    assert result == %{failures: 0, skipped: 3, total: 4}
+    assert output =~ "4 tests, 0 failures, 3 skipped"
 
-    assert run_with_filter([exclude: :even, include: [even: true]], test_cases) ==
-           %{failures: 1, total: 2}
+    {result, output} = run_with_filter([exclude: :even, include: [even: true]], test_cases)
+    assert result == %{failures: 1, skipped: 2, total: 4}
+    assert output =~ "4 tests, 1 failures, 2 skipped"
 
-    assert run_with_filter([exclude: :test, include: [even: true]], test_cases) ==
-           %{failures: 1, total: 1}
+    {result, output} = run_with_filter([exclude: :test, include: [even: true]], test_cases)
+    assert result == %{failures: 1, skipped: 3, total: 4}
+    assert output =~ "4 tests, 1 failures, 3 skipped"
   end
 
   defp run_with_filter(filters, {async, sync, load_us}) do
     opts = Keyword.merge(ExUnit.configuration, filters)
-    capture_io fn ->
+    output = capture_io fn ->
       Process.put :capture_result, ExUnit.Runner.run(async, sync, opts, load_us)
     end
-    Process.get :capture_result
+    {Process.get(:capture_result), output}
   end
 end
