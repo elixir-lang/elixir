@@ -17,6 +17,7 @@ defmodule ExUnit.CLIFormatter do
       width: get_terminal_width(),
       tests_counter: 0,
       failures_counter: 0,
+      skipped_counter: 0,
       invalids_counter: 0
     }
     {:ok, config}
@@ -43,7 +44,8 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
-    {:ok, config}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     skipped_counter: config.skipped_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
@@ -131,6 +133,10 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     message = "#{config.tests_counter} tests, #{config.failures_counter} failures"
+
+    if config.skipped_counter > 0 do
+      message = message <> ", #{config.skipped_counter} skipped"
+    end
 
     if config.invalids_counter > 0 do
       message = message <>  ", #{config.invalids_counter} invalid"
