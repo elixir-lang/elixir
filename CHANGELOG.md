@@ -3,6 +3,7 @@
 ## v1.0.3-dev
 
 * Bug fixes
+  * [Elixir] Don't leave spurious processes and stale data when the parallel compiler fails
   * [IO] Make `IO.ANSI.Docs` readable on white background
   * [Mix] Don't show hex update message on mix `local.hex`
   * [Mix] Ensure tasks are properly underscored and camelized
