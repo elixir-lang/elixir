@@ -96,7 +96,7 @@ defmodule Kernel.ParallelCompiler do
           else
             :elixir_compiler.file(h, Keyword.get(options, :dest))
           end
-          {:compiled, h}
+          {:shutdown, h}
         catch
           kind, reason ->
             {:failure, kind, reason, System.stacktrace}
@@ -166,7 +166,7 @@ defmodule Kernel.ParallelCompiler do
 
         spawn_compilers(entries, original, output, options, waiting, queued, schedulers, result)
 
-      {:DOWN, _down_ref, :process, down_pid, {:compiled, file}} ->
+      {:DOWN, _down_ref, :process, down_pid, {:shutdown, file}} ->
         if callback = Keyword.get(options, :each_file) do
           callback.(file)
         end
@@ -187,9 +187,15 @@ defmodule Kernel.ParallelCompiler do
   defp handle_failure(ref, reason, entries, waiting, queued) do
     if file = find_failure(ref, queued) do
       print_failure(file, reason)
+
       if all_missing?(entries, waiting, queued) do
         collect_failures(queued, length(queued) - 1)
       end
+
+      Enum.each queued, fn {child, _, _} ->
+        Process.exit(child, :kill)
+      end
+
       exit({:shutdown, 1})
     end
   end
@@ -201,7 +207,7 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp print_failure(_file, {:compiled, _}) do
+  defp print_failure(_file, {:shutdown, _}) do
     :ok
   end
 

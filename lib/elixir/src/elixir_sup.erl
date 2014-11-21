@@ -28,5 +28,4 @@ init(ok) ->
    }
   ],
 
-  _ = ets:new(elixir_modules, [set, public, named_table, {read_concurrency, true}]),
   {ok, {{one_for_one, 3, 10}, Workers}}.
