@@ -51,7 +51,7 @@ do_compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   Docs = elixir_compiler:get_opt(docs),
-  {Data, Defs, Clas} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
+  {Data, Defs, Clas, Ref} = build(Line, File, Module, Docs, ?m(E, lexical_tracker)),
 
   try
     {Result, NE} = eval_form(Line, Module, Data, Block, Vars, E),
@@ -92,7 +92,7 @@ do_compile(Line, Module, Block, Vars, E) ->
     ets:delete(Data),
     ets:delete(Defs),
     ets:delete(Clas),
-    ets:delete(elixir_modules, Module)
+    elixir_code_server:call({undefmodule, Ref})
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -110,7 +110,8 @@ build(Line, File, Module, Docs, Lexical) ->
   Defs = ets:new(Module, [set, public]),
   Clas = ets:new(Module, [bag, public]),
 
-  ets:insert(elixir_modules, {Module, Data, Defs, Clas, Line, File}),
+  Ref = elixir_code_server:call({defmodule, self(),
+                                 {Module, Data, Defs, Clas, Line, File}}),
 
   ets:insert(Data, {before_compile, []}),
   ets:insert(Data, {after_compile, []}),
@@ -132,7 +133,7 @@ build(Line, File, Module, Docs, Lexical) ->
   elixir_locals:setup(Module),
   elixir_def_overridable:setup(Module),
 
-  {Data, Defs, Clas}.
+  {Data, Defs, Clas, Ref}.
 
 %% Receives the module representation and evaluates it.
 
