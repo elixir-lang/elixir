@@ -6,12 +6,13 @@
 
 -define(timeout, 30000).
 -record(elixir_code_server, {
-  compilation_status=[],
   argv=[],
   loaded=[],
   at_exit=[],
-  pool={[],0},
   paths={[],[]},
+  mod_pool={[],0},
+  mod_ets=dict:new(),
+  compilation_status=[],
   compiler_options=[{docs,true},{debug_info,true},{warnings_as_errors,false}],
   erl_compiler_options=nil
 }).
@@ -35,7 +36,18 @@ init(ok) ->
   _ = code:ensure_loaded('Elixir.Macro.Env'),
   _ = code:ensure_loaded('Elixir.Module.LocalsTracker'),
   _ = code:ensure_loaded('Elixir.Kernel.LexicalTracker'),
+
+  %% The table where we store module definitions
+  _ = ets:new(elixir_modules, [set, protected, named_table, {read_concurrency, true}]),
+
   {ok, #elixir_code_server{}}.
+
+handle_call({defmodule, Pid, Tuple}, _From, Config) ->
+  {Ref, New} = defmodule(Pid, Tuple, Config),
+  {reply, Ref, New};
+
+handle_call({undefmodule, Ref}, _From, Config) ->
+  {reply, ok, undefmodule(Ref, Config)};
 
 handle_call({acquire, Path}, From, Config) ->
   Current = Config#elixir_code_server.loaded,
@@ -73,11 +85,11 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
    Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
 
 handle_call(retrieve_module_name, _From, Config) ->
-  case Config#elixir_code_server.pool of
+  case Config#elixir_code_server.mod_pool of
     {[H|T], Counter} ->
-      {reply, module_tuple(H), Config#elixir_code_server{pool={T,Counter}}};
+      {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T,Counter}}};
     {[], Counter} ->
-      {reply, module_tuple(Counter), Config#elixir_code_server{pool={[],Counter+1}}}
+      {reply, module_tuple(Counter), Config#elixir_code_server{mod_pool={[],Counter+1}}}
   end;
 
 handle_call(erl_compiler_options, _From, Config) ->
@@ -137,8 +149,8 @@ handle_cast({unload_files, Files}, Config) ->
   Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
   {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
-handle_cast({return_module_name, H}, #elixir_code_server{pool={T,Counter}} = Config) ->
-  {noreply, Config#elixir_code_server{pool={[H|T],Counter}}};
+handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T,Counter}} = Config) ->
+  {noreply, Config#elixir_code_server{mod_pool={[H|T],Counter}}};
 
 handle_cast({paths, PA, PZ}, #elixir_code_server{} = Config) ->
   {noreply, Config#elixir_code_server{paths={PA,PZ}}};
@@ -146,7 +158,10 @@ handle_cast({paths, PA, PZ}, #elixir_code_server{} = Config) ->
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
 
-handle_info(_Request, Config) ->
+handle_info({'DOWN', Ref, process, _Pid, _Reason}, Config) ->
+  {noreply, undefmodule(Ref, Config)};
+
+handle_info(_Msg, Config) ->
   {noreply, Config}.
 
 terminate(_Reason, _Config) ->
@@ -157,6 +172,21 @@ code_change(_Old, Config, _Extra) ->
 
 module_tuple(I) ->
   {list_to_atom("elixir_compiler_" ++ integer_to_list(I)), I}.
+
+defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
+  ets:insert(elixir_modules, Tuple),
+  Ref = erlang:monitor(process, Pid),
+  Mod = erlang:element(1, Tuple),
+  {Ref, Config#elixir_code_server{mod_ets=dict:store(Ref, Mod, ModEts)}}.
+
+undefmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
+  case dict:find(Ref, ModEts) of
+    {ok, Mod} ->
+      ets:delete(elixir_modules, Mod),
+      Config#elixir_code_server{mod_ets=dict:erase(Ref, ModEts)};
+    error ->
+      Config
+  end.
 
 erl_compiler_options() ->
   Key = "ERL_COMPILER_OPTIONS",
