@@ -242,14 +242,18 @@ defmodule Kernel.SpecialForms do
   Here, `val` is interpreted as unsigned.
 
   The endianness of a segment can be big, little or native (the
-  latter meaning it will be resolved at VM load time). Many options
-  can be given by using `-` as separator:
+  latter meaning it will be resolved at VM load time).
+
+  Many options can be given by using `-` as separator, order is
+  arbitrary. The following are all the same:
 
       <<102 :: integer-native, rest :: binary>>
-
-  Or:
-
+      <<102 :: native-integer, rest :: binary>>  
       <<102 :: unsigned-big-integer, rest :: binary>>
+      <<102 :: unsigned-big-integer-size(8), rest :: binary>>
+      <<102 :: unsigned-big-integer-8, rest :: binary>>
+      <<102 :: 8-integer-big-unsigned, rest :: binary>>
+      <<102, rest :: binary>>
 
   And so on.
 
@@ -285,6 +289,11 @@ defmodule Kernel.SpecialForms do
   binaries, it is the size of the binary. Only the last binary
   in a binary match can use the default size (all others must
   have their size specified explicitly).
+
+      iex> <<3.14 :: float>>
+      <<64, 9, 30, 184, 81, 235, 133, 31>>
+      iex> <<3.14 :: float-32>>
+      <<64, 72, 245, 195>>
 
   Size and unit can also be specified using a syntax shortcut
   when passing integer values:
