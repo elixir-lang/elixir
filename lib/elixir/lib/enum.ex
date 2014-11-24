@@ -1223,7 +1223,7 @@ defmodule Enum do
   def minmax_by(collection, fun) do
     result =
       Enum.reduce(collection, :first, fn
-        entry, {{min_entry, fun_min} = acc_min, {max_entry, fun_max} = acc_max} ->
+        entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
           fun_entry = fun.(entry)
           if fun_entry < fun_min, do: acc_min = {entry, fun_entry}
           if fun_entry > fun_max, do: acc_max = {entry, fun_entry}
