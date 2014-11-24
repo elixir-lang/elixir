@@ -1184,6 +1184,64 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a tuple with the minimum and maximum values.
+  Raises `EmptyError` if the collection is empty.
+
+  ## Examples
+
+      iex> Enum.minmax([2, 3, 1])
+      {1, 3}
+
+  """
+  @spec minmax(t) :: element | no_return
+  def minmax(collection) do
+    result =
+      Enum.reduce(collection, :first, fn
+        entry, {min_value, max_value} ->
+          {Kernel.min(entry, min_value), Kernel.max(entry, max_value)}
+        entry, :first ->
+          {entry, entry}
+      end)
+
+    case result do
+      :first -> raise Enum.EmptyError
+      result -> result
+    end
+  end
+
+  @doc """
+  Returns a tuple with the minimum and maximum values as calculated by the given function.
+  Raises `EmptyError` if the collection is empty.
+
+  ## Examples
+
+      iex> Enum.minmax_by(["aaa", "bb", "c"], fn(x) -> String.length(x) end)
+      {"c", "aaa"}
+
+  """
+  @spec minmax_by(t, (element -> any)) :: element | no_return
+  def minmax_by(collection, fun) do
+    result =
+      Enum.reduce(collection, :first, fn
+        entry, {{min_entry, fun_min} = acc_min, {max_entry, fun_max} = acc_max} ->
+          fun_entry = fun.(entry)
+          if fun_entry < fun_min, do: acc_min = {entry, fun_entry}
+          if fun_entry > fun_max, do: acc_max = {entry, fun_entry}
+          {acc_min, acc_max}
+        entry, :first ->
+          fun_entry = fun.(entry)
+          {{entry, fun_entry}, {entry, fun_entry}}
+      end)
+
+    case result do
+      :first ->
+        raise Enum.EmptyError
+      {{min_entry, _}, {max_entry, _}} ->
+        {min_entry, max_entry}
+    end
+  end
+
+  @doc """
   Returns the sum of all values.
 
   Raises `ArithmeticError` if collection contains a non-numeric value.
