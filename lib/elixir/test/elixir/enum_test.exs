@@ -417,6 +417,22 @@ defmodule EnumTest.List do
     end
   end
 
+  test :minmax do
+    assert Enum.minmax([1]) == {1, 1}
+    assert Enum.minmax([2, 3, 1]) == {1, 3}
+    assert Enum.minmax([[], :a, {}]) == {:a, []}
+    assert_raise Enum.EmptyError, fn ->
+      Enum.minmax([])
+    end
+  end
+
+  test :minmax_by do
+    assert Enum.minmax_by(["aaa", "a", "aa"], fn(x) -> String.length(x) end) == {"a", "aaa"}
+    assert_raise Enum.EmptyError, fn ->
+      Enum.minmax_by([], fn(x) -> String.length(x) end)
+    end
+  end
+
   test :chunk do
     assert Enum.chunk([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4]]
     assert Enum.chunk([1, 2, 3, 4, 5], 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
