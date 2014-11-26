@@ -242,6 +242,7 @@ defmodule Mix.Tasks.Escript.Build do
       @config unquote(config)
       @app unquote(app)
 
+      @spec main(OptionParser.argv) :: any
       def main(args) do
         unquote(main_body_for(language))
       end
