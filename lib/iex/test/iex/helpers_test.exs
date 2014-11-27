@@ -327,6 +327,7 @@ defmodule IEx.HelpersTest do
   defp test_module_code do
     """
     defmodule Sample do
+      @spec run() :: :run
       def run do
         :run
       end
