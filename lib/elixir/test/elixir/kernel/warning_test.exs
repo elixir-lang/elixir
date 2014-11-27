@@ -89,6 +89,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
+        @spec test(any) :: any
         def test(x) do
           case x do
             {:file, fid} -> fid
@@ -106,6 +107,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample1 do
+        @spec a() :: list
         def a, do: b(1, 2, 3)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
@@ -115,6 +117,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample2 do
+        @spec a() :: list
         def a, do: b(1, 2)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
@@ -124,6 +127,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample3 do
+        @spec a() :: list
         def a, do: b(1)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
@@ -133,6 +137,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample4 do
+        @spec a() :: list
         def a, do: b(1)
         defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
       end
@@ -240,6 +245,7 @@ defmodule Kernel.WarningTest do
       defmodule Sample1 do
         import List, only: [flatten: 1]
 
+        @spec generate() :: list
         defmacro generate do
           List.duplicate(quote(do: flatten([1,2,3])), 100)
         end
@@ -300,6 +306,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
+        @spec hello() :: :ok
         def hello, do: world
         defp world, do: :ok
         defoverridable [hello: 0, world: 0]

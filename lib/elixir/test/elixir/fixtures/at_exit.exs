@@ -1,4 +1,5 @@
 defmodule AtExit do
+  @spec at_exit(String.t) :: :ok
   def at_exit(str) do
     System.at_exit fn(_) -> IO.write(str) end
   end
