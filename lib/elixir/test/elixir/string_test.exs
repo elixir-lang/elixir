@@ -60,6 +60,7 @@ defmodule StringTest do
 
   test :split_with_regex do
     assert String.split("", ~r{,}) == [""]
+    assert String.split("", ~r{,}, trim: true) == []
     assert String.split("a,b", ~r{,}) == ["a", "b"]
     assert String.split("a,b,c", ~r{,}) == ["a", "b", "c"]
     assert String.split("a,b,c", ~r{,}, parts: 2) == ["a", "b,c"]
