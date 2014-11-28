@@ -1949,7 +1949,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Read and write attributes of th current module.
+  Read and write attributes of the current module.
 
   The canonical example for attributes is annotating that a module
   implements the OTP behaviour called `gen_server`:
