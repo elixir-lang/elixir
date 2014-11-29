@@ -368,9 +368,13 @@ defmodule Regex do
   @spec split(t, String.t, [term]) :: [String.t]
   def split(regex, string, options \\ [])
 
-  def split(%Regex{}, "", trim: true), do: []
-
-  def split(%Regex{}, "", _opts), do: [""]
+  def split(%Regex{}, "", opts) do
+    if Keyword.get(opts, :trim, false) do
+      []
+    else
+      [""]
+    end
+  end
 
   def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) do
     on = Keyword.get(opts, :on, :first)
