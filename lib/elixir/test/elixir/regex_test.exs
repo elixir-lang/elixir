@@ -149,7 +149,8 @@ defmodule RegexTest do
 
   test :split do
     assert Regex.split(~r",", "") == [""]
-    assert Regex.split(~r",", "", trim: true) == [""]
+    assert Regex.split(~r",", "", trim: true) == []
+    assert Regex.split(~r",", "", trim: true, parts: 2) == []
 
     assert Regex.split(~r"=", "key=") == ["key", ""]
     assert Regex.split(~r"=", "=value") == ["", "value"]
