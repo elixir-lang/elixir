@@ -869,6 +869,51 @@ defmodule FileTest do
     end
   end
 
+   test :lstat do
+    {:ok, info} = File.lstat(__ENV__.file)
+    assert info.mtime
+  end
+
+  test :lstat! do
+    assert File.lstat!(__ENV__.file).mtime
+  end
+
+  test :lstat_with_invalid_file do
+    invalid_file = tmp_path("invalid_file")
+    assert {:error, _} = File.lstat(invalid_file)
+  end
+
+  test :lstat_with_invalid_file! do
+    invalid_file = tmp_path("invalid_file")
+    assert_raise File.Error, fn ->
+      File.lstat!(invalid_file)
+    end
+  end
+  
+  test :lstat_with_dangling_symlink do
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file,dest)
+    try do 
+      assert {:ok, info } = File.lstat(dest)
+      assert info.type == :symlink 
+    after
+      File.rm(dest)
+    end 
+  end
+
+  test :lstat_with_dangling_symlink! do
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file,dest)
+    try do 
+     assert File.lstat!(dest).type == :symlink 
+    after 
+     File.rm(dest)
+    end 
+  end
+
+
   test :io_stream_utf8 do
     src  = File.open! fixture_path("file.txt"), [:utf8]
     dest = tmp_path("tmp_test.txt")
