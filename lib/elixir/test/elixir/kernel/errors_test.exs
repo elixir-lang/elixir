@@ -589,6 +589,13 @@ defmodule Kernel.ErrorsTest do
       'alias :lists, as: Sample.Lists'
   end
 
+  test :invalid_alias_expansion do
+    assert_compile_fail CompileError,
+      "nofile:1: an alias must expand to an atom at compilation time, but did not in \"foo.Foo\". " <>
+      "Use Module.concat/2 if you want to dynamically generate aliases",
+      'foo = :foo; foo.Foo'
+  end
+
   test :invalid_import_option do
     assert_compile_fail CompileError,
       "nofile:1: unsupported option :ops given to import",
