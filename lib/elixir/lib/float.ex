@@ -31,87 +31,39 @@ defmodule Float do
   """
   @spec parse(binary) :: {float, binary} | :error
   def parse("-" <> binary) do
-    case parse_unsign(binary) do
+    case parse_unsigned(binary) do
       :error -> :error
       {number, remainder} -> {-number, remainder}
     end
   end
 
   def parse(binary) do
-    parse_unsign(binary)
+    parse_unsigned(binary)
   end
 
-  defp parse_unsign("-" <> _), do: :error
-  defp parse_unsign(binary) when is_binary(binary) do
-    case Integer.parse binary do
-      :error -> :error
-      {integer_part, after_integer} -> parse_unsign after_integer, integer_part
-    end
-  end
+  defp parse_unsigned(<<char, rest::binary>>) when char in ?0..?9, do:
+    parse_unsigned(rest, false, false, <<char>>)
 
-  # Dot followed by digit is required afterwards or we are done
-  defp parse_unsign(<< ?., char, rest :: binary >>, int) when char in ?0..?9 do
-    parse_unsign(rest, char - ?0, 1, int)
-  end
+  defp parse_unsigned(binary) when is_binary(binary), do:
+    :error
 
-  defp parse_unsign(rest, int) do
-    {:erlang.float(int), rest}
-  end
+  defp parse_unsigned(<<char, rest :: binary>>, dot?, e?, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, dot?, e?, <<acc::binary, char>>)
 
-  # Handle decimal points
-  defp parse_unsign(<< char, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
-    parse_unsign rest, 10 * float + (char - ?0), decimal + 1, int
-  end
+  defp parse_unsigned(<<?., char, rest :: binary>>, false, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, false, <<acc::binary, ?., char>>)
 
-  defp parse_unsign(<< ?e, after_e :: binary >>, float, decimal, int) do
-    case Integer.parse after_e do
-      :error ->
-        # Note we rebuild the binary here instead of breaking it apart at
-        # the function clause because the current approach copies a binary
-        # just on this branch. If we broke it apart in the function clause,
-        # the copy would happen when calling Integer.parse/1.
-        {floatify(int, float, decimal), << ?e, after_e :: binary >>}
-      {exponential, after_exponential} ->
-        {floatify(int, float, decimal, exponential), after_exponential}
-    end
-  end
+  defp parse_unsigned(<<?e, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, char>>)
 
-  defp parse_unsign(bitstring, float, decimal, int) do
-    {floatify(int, float, decimal), bitstring}
-  end
+  defp parse_unsigned(<<?e, ?-, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, ?-, char>>)
 
-  defp floatify(int, float, decimal, exponential \\ 0) do
-    multiplier = if int < 0, do: -1.0, else: 1.0
+  defp parse_unsigned(rest, dot?, _e?, acc), do:
+    {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
 
-    # Try to ensure the minimum amount of rounding errors
-    result = multiplier * (abs(int) * :math.pow(10, decimal) + float) * :math.pow(10, exponential - decimal)
-
-    # Try avoiding stuff like this:
-    # iex(1)> 0.0001 * 75
-    # 0.007500000000000001
-    # Due to IEEE 754 floating point standard
-    # http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
-
-    final_decimal_places = decimal - exponential
-    if final_decimal_places > 0 do
-      decimal_power_round = :math.pow(10,  final_decimal_places)
-      multiplied_result = result * decimal_power_round
-      epsilon = :math.pow(10, -final_decimal_places) * 5
-      closet_approximation = ceil_within_error_range(multiplied_result, epsilon)
-      trunc(closet_approximation) / decimal_power_round
-    else
-      result
-    end
-  end
-
-  defp ceil_within_error_range(result, epsilon) do
-    ceiled = ceil(result)
-    if ceiled - result <= epsilon do
-      ceiled
-    else
-      result
-    end
-  end
+  defp add_dot(acc, true),  do: acc
+  defp add_dot(acc, false), do: acc <> ".0"
 
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
