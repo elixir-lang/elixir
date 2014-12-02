@@ -1419,6 +1419,70 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a random element of a collection.
+
+  Notice that you need to explicitly call `:random.seed/1` and
+  set a seed value for the random algorithm. Otherwise, the
+  default seed will be set which will always return the same
+  result. For example, one could do the following to set a seed
+  dynamically:
+
+      :random.seed(:os.timestamp)
+
+  The implementation is based on the
+  [reservoir sampling](http://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
+  algorithm.
+  It assumes that the sample being returned can fit into memory;
+  the input collection doesn't have to - it is traversed just once.
+
+  ## Examples
+
+      iex> Enum.sample([1,2,3])
+      1
+      iex> Enum.sample([1,2,3])
+      2
+
+  """
+  @spec sample(t) :: element | nil
+  def sample(collection) do
+    sample(collection, 1) |> List.first
+  end
+
+  @doc """
+  Returns a random sublist of a collection.
+
+  See `sample/1` for notes on implementation and random seed.
+
+  ## Examples
+
+      iex> Enum.sample(1..10, 2)
+      [1, 5]
+      iex> Enum.sample(?a..?z, 5)
+      'tfesm'
+
+  """
+  @spec sample(t, integer) :: list
+  def sample(collection, count) when count > 0 do
+    sample = Tuple.duplicate(nil, count)
+
+    reducer = fn x, {i, sample} ->
+      j = random_index(i)
+      if i < count do
+        swapped = sample |> elem(j)
+        {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
+      else
+        if j < count, do: sample = sample |> put_elem(j, x)
+        {i + 1, sample}
+      end
+    end
+
+    {n, sample} = reduce(collection, {0, sample}, reducer)
+    sample |> Tuple.to_list |> Enum.take(Kernel.min(count, n))
+  end
+
+  def sample(_collection, 0), do: []
+
+  @doc """
   Applies the given function to each element in the collection,
   storing the result in a list and passing it as the accumulator
   for the next computation.
@@ -1940,6 +2004,10 @@ defmodule Enum do
 
   defp enum_to_string(entry) when is_binary(entry), do: entry
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
+
+  defp random_index(n) do
+    :random.uniform(n + 1) - 1
+  end
 
   ## Implementations
 
