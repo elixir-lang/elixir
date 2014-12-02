@@ -51,7 +51,7 @@ expand({'__block__', Meta, Args}, E) when is_list(Args) ->
 
 %% __aliases__
 
-expand({'__aliases__', _, _} = Alias, E) ->
+expand({'__aliases__', Meta, _} = Alias, E) ->
   case elixir_aliases:expand(Alias, ?m(E, aliases),
                              ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
     Receiver when is_atom(Receiver) ->
@@ -66,9 +66,9 @@ expand({'__aliases__', _, _} = Alias, E) ->
           elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          elixir_errors:warn(?m(E, line), ?m(E, file), io_lib:format("an alias must expand to an atom "
-            "at compilation time but got ~ts", ['Elixir.Macro':to_string(hd(EAliases))])),
-          {{{'.', [], [elixir_aliases, concat]}, [], [EAliases]}, EA}
+          compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
+            "at compilation time, but did not in \"~ts\". Use Module.concat/2 "
+            "if you want to dynamically generate aliases", ['Elixir.Macro':to_string(Alias)])
       end
   end;
 
