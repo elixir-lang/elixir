@@ -123,7 +123,7 @@ defmodule Macro do
   end
 
   @doc """
-  Genrates a AST node representing the variable given
+  Generates a AST node representing the variable given
   by the atoms `var` and `context`.
 
   ## Examples

@@ -18,7 +18,7 @@ defmodule Kernel.Typespec do
   [Erlang](http://www.erlang.org/doc/reference_manual/typespec.html).
 
   Most of the built-in types provided in Erlang (for example, `pid()`) are
-  expressed the same way: `pid()` or simply `pid`. Parametrized types are also
+  expressed the same way: `pid()` or simply `pid`. Parameterized types are also
   supported (`list(integer)`) and so are remote types (`Enum.t`).
 
   Integers and atom literals are allowed as types (ex. `1`, `:atom` or
@@ -168,7 +168,7 @@ defmodule Kernel.Typespec do
   `@opaque` is a type where the internal structure of the type will not be
   visible, but the type is still public.
 
-  Types can be parametrised by defining variables as parameters, these variables
+  Types can be parameterised by defining variables as parameters, these variables
   can then be used to define the type.
 
       @type dict(key, value) :: [{key, value}]

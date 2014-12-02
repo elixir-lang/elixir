@@ -113,7 +113,7 @@ defmodule Mix.Dep.Fetcher do
   defp mark_as_fetched(deps) do
     # If the dependency is fetchable, we are going to write a .fetch
     # file to it. Each build, regardless of the environment and location,
-    # will compared against this .fetch file to know if the depednency
+    # will compared against this .fetch file to know if the dependency
     # needs recompiling.
     _ = for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
       File.touch! Path.join opts[:dest], ".fetch"

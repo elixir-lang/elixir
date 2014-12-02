@@ -2550,7 +2550,7 @@ defmodule Kernel do
 
   @doc """
   When used inside quoting, marks that the alias should not
-  be hygienezed. This means the alias will be expanded when
+  be hygienized. This means the alias will be expanded when
   the macro is expanded.
 
   Check `Kernel.SpecialForms.quote/2` for more information.

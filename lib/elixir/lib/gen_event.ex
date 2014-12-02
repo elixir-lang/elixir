@@ -167,7 +167,7 @@ defmodule GenEvent do
   too much kool aid" section of the "Learn you some Erlang" link above. Due
   to those changes, Elixir's GenEvent does not trap exits by default.
 
-  Futhermore, Elixir's also normalizes the `{:error, _}` tuples returned
+  Furthermore, Elixir's also normalizes the `{:error, _}` tuples returned
   by many functions, in order to be more consistent with themselves and
   the `GenServer` module.
   """
