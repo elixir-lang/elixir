@@ -95,7 +95,19 @@ defmodule Float do
     final_decimal_places = decimal - exponential
     if final_decimal_places > 0 do
       decimal_power_round = :math.pow(10,  final_decimal_places)
-      trunc(result * decimal_power_round) / decimal_power_round
+      multiplied_result = result * decimal_power_round
+      epsilon = :math.pow(10, -final_decimal_places) * 5
+      closet_approximation = ceil_within_error_range(multiplied_result, epsilon)
+      trunc(closet_approximation) / decimal_power_round
+    else
+      result
+    end
+  end
+
+  defp ceil_within_error_range(result, epsilon) do
+    ceiled = ceil(result)
+    if ceiled - result <= epsilon do
+      ceiled
     else
       result
     end
