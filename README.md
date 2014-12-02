@@ -39,8 +39,9 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 ## Important links
 
-* \#elixir-lang on freenode IRC
-* [Website][1]
+* [Elixir Website][1]
+* [Elixir Documentation][7]
+* **[#elixir-lang][5]** on [Freenode][6] IRC
 * [Issue tracker][2]
 * [elixir-talk Mailing list (questions)][3]
 * [elixir-core Mailing list (development)][4]
@@ -49,6 +50,9 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: http://groups.google.com/group/elixir-lang-talk
   [4]: http://groups.google.com/group/elixir-lang-core
+  [5]: irc://chat.freenode.net/elixir-lang
+  [6]: http://www.freenode.net/
+  [7]: http://elixir-lang.org/docs.html
 
 ## License
 
