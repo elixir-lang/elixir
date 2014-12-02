@@ -25,7 +25,7 @@ defmodule Task.Supervised do
     :proc_lib.init_ack({:ok, self()})
 
     ref =
-      # There is a race condition on this operation when working accross
+      # There is a race condition on this operation when working across
       # node that manifests if a `Task.Supervisor.async/1` call is made
       # while the supervisor is busy spawning previous tasks.
       #

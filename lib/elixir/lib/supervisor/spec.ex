@@ -97,7 +97,7 @@ defmodule Supervisor.Spec do
     * Finally, it can also be any integer meaning that the supervisor tells
       the child process to terminate by calling `Process.exit(child, :shutdown)`
       and then waits for an exit signal back. If no exit signal is received
-      within the specified time (in miliseconds), the child process is
+      within the specified time (in milliseconds), the child process is
       unconditionally terminated using `Process.exit(child, :kill)`.
   """
 

@@ -114,7 +114,7 @@ defmodule ExUnit do
 
     def message(%{timeout: timeout}) do
       "test timed out after #{timeout}ms (you can change the test timeout " <>
-        "by setting \"@tag timeout: x\" where x is an integer in miliseconds)"
+        "by setting \"@tag timeout: x\" where x is an integer in milliseconds)"
     end
   end
 

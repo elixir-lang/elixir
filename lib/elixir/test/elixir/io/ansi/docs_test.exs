@@ -113,7 +113,7 @@ defmodule IO.ANSI.DocsTest do
     assert result == "\e[36mworld\e[0m\n\e[0m"
   end
 
-  test "star/underscore/backtick works accross words" do
+  test "star/underscore/backtick works across words" do
     result = format("*hello world*")
     assert result == "\e[1mhello world\e[0m\n\e[0m"
 

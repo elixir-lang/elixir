@@ -11,7 +11,7 @@ defmodule Float do
   If successful, returns a tuple of the form `{float, remainder_of_binary}`.
   Otherwise `:error`.
 
-  If a float formated string wants to be directly converted to float,
+  If a float formatted string wants to be directly converted to float,
   `String.to_float/1" can be used instead.
 
   ## Examples
