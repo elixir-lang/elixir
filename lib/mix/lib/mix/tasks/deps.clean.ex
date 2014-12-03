@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Deps.Clean do
       in the `mix.exs` file)
     * `--unlock` - also unlock the removed dependencies
 
-  By default this task works accross all environments, unless `--only`
+  By default this task works across all environments, unless `--only`
   is given.
   """
 

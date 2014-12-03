@@ -232,7 +232,7 @@ defmodule Logger.Utils do
   end
 
   @doc """
-  Returns a timestamp that includes miliseconds.
+  Returns a timestamp that includes milliseconds.
   """
   def timestamp(utc_log?) do
     {_, _, micro} = now = :os.timestamp()
