@@ -168,7 +168,7 @@ defmodule Kernel.Typespec do
   `@opaque` is a type where the internal structure of the type will not be
   visible, but the type is still public.
 
-  Types can be parameterised by defining variables as parameters, these variables
+  Types can be parameterized by defining variables as parameters, these variables
   can then be used to define the type.
 
       @type dict(key, value) :: [{key, value}]
