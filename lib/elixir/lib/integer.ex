@@ -28,6 +28,33 @@ defmodule Integer do
   end
 
   @doc """
+  Returns the ordered digits for the given non-negative integer.
+
+  An optional base value may be provided representing the radix for the returned
+  digits.
+
+  ## Examples
+
+      iex> Integer.digits(101)
+      [1, 0, 1]
+
+      iex> Integer.digits(58127, 2)
+      [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
+
+  """
+  @spec digits(non_neg_integer, non_neg_integer) :: [non_neg_integer]
+  def digits(n, base \\ 10) when is_integer(n)    and n >= 0
+                            and  is_integer(base) and base >= 2 do
+    do_digits(n, base, [])
+  end
+
+  defp do_digits(0, _base, []),  do: [0]
+  defp do_digits(0, _base, acc), do: acc
+  defp do_digits(n, base, acc)  do
+    do_digits div(n,base), base, [rem(n,base) | acc]
+  end
+
+  @doc """
   Converts a binary to an integer.
 
   If successful, returns a tuple of the form `{integer, remainder_of_binary}`.
