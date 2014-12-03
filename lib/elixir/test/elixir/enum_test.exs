@@ -256,6 +256,14 @@ defmodule EnumTest.List do
     assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 
+  test :reverse_slice do
+    assert Enum.reverse_slice([1, 2, 3], 0, 0) == [1, 2, 3]
+    assert Enum.reverse_slice([1, 2, 3], 0, 1) == [1, 2, 3]
+    assert Enum.reverse_slice([1, 2, 3], 0, 2) == [2, 1, 3]
+    assert Enum.reverse_slice([1, 2, 3], 0, 20000000) == [3, 2, 1]
+    assert Enum.reverse_slice([1, 2, 3], 100, 2) == [1, 2, 3]
+  end
+
   test :sample_1 do
     # corner cases, independent of the seed
     assert Enum.sample([]) == nil
@@ -825,6 +833,14 @@ defmodule EnumTest.Range do
     assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse([1, 2, 3], 4..6) == [3, 2, 1, 4, 5, 6]
     assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
+  end
+
+  test :reverse_slice do
+    assert Enum.reverse_slice(1..6, 2, 0) == [1, 2, 3, 4, 5, 6]
+    assert Enum.reverse_slice(1..6, 2, 2) == [1, 2, 4, 3, 5, 6]
+    assert Enum.reverse_slice(1..6, 2, 4) == [1, 2, 6, 5, 4, 3]
+    assert Enum.reverse_slice(1..6, 2, 10000000) == [1, 2, 6, 5, 4, 3]
+    assert Enum.reverse_slice(1..6, 10000000, 4) == [1, 2, 3, 4, 5, 6]
   end
 
   test :sample_1 do

@@ -1419,6 +1419,34 @@ defmodule Enum do
   end
 
   @doc """
+  Reverses the collection in the range from initial position `first` 
+  through `count` elements. If `count` is greater than the size of
+  the rest of the collection, then this function will reverse the rest
+  of the collection.
+
+  ## Examples
+
+      iex> Enum.reverse_slice([1, 2, 3, 4, 5, 6], 2, 4)
+      [1, 2, 6, 5, 4, 3]
+
+  """
+  def reverse_slice(coll, first, count) when first >= 0 and count >= 0 do
+    {_, _, acc1, acc2, acc3} = 
+      reduce(coll, {first, count, [], [], []}, fn(entry, {first, count, acc1, acc2, acc3}) ->
+        cond do
+          first > 0 ->
+            {first - 1, count, [entry|acc1], acc2, acc3}
+          first == 0 and count > 0 ->
+            {0, count - 1, acc1, [entry|acc2], acc3}
+          true ->
+            {0, 0, acc1, acc2, [entry|acc3]}
+        end
+      end)
+
+    :lists.reverse(acc1, acc2 ++ :lists.reverse(acc3))
+  end
+
+  @doc """
   Returns a random element of a collection.
 
   Notice that you need to explicitly call `:random.seed/1` and
