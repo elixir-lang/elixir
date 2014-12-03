@@ -140,7 +140,7 @@ defmodule Mix.Dep.Converger do
   #
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
-  # to be the authorative source.
+  # to be the authoritative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->

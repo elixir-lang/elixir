@@ -121,7 +121,7 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behaves:
 
-    * `:timeout` - customizes the test timeout in miliseconds (defaults to 30000)
+    * `:timeout` - customizes the test timeout in milliseconds (defaults to 30000)
 
   ## Filters
 
