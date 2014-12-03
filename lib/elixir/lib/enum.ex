@@ -924,11 +924,8 @@ defmodule Enum do
   end
 
   @doc """
-  Joins the given `collection` according to `joiner`.
-  `joiner` can be either a binary or a list and the
-  result will be of the same type as `joiner`. If
-  `joiner` is not passed at all, it defaults to an
-  empty binary.
+  Joins the given `collection` into a binary using `joiner` as a separator.
+  If `joiner` is not passed at all, it defaults to the empty binary.
 
   All items in the collection must be convertible
   to a binary, otherwise an error is raised.
