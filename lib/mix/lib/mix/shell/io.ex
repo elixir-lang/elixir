@@ -42,7 +42,7 @@ defmodule Mix.Shell.IO do
   """
   def error(message) do
     print_app
-    IO.puts :stderr, red(IO.ANSI.format(message))
+    IO.puts :stderr, IO.ANSI.format(red(message))
   end
 
   @doc """
@@ -72,6 +72,6 @@ defmodule Mix.Shell.IO do
   defp got_yes?(_), do: false
 
   defp red(message) do
-    [IO.ANSI.red, IO.ANSI.bright, message, IO.ANSI.reset]
+    [:red, :bright, message]
   end
 end
