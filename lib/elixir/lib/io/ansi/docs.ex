@@ -424,7 +424,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, limit, [?*, ?*|buffer], acc, options)
   end
 
-  # A escape is not valid inside `
+  # An escape is not valid inside `
   defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc, options)
       when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
     handle_inline(rest, limit, [mark|buffer], acc, options)
