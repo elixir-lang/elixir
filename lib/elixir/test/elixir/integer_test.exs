@@ -32,6 +32,19 @@ defmodule IntegerTest do
     assert Integer.digits(58127,2) == [1,1,1,0,0,0,1,1,0,0,0,0,1,1,1,1]
   end
 
+  test :undigits do
+    assert Integer.undigits([1, 0, 1]) == 101
+    assert Integer.undigits([1]) == 1
+    assert Integer.undigits([0]) == 0
+    assert Integer.undigits([]) == 0
+    assert Integer.undigits([1,4], 16) == 0x14
+    assert Integer.undigits([1,4], 8) == 0o14
+    assert Integer.undigits([1,1], 2) == 0b11
+    assert Integer.undigits([1, 2, 3, 4, 5]) == 12345
+    assert Integer.undigits([1, 0, -5]) == 95
+    assert Integer.undigits([-1, -1, -5]) == -115
+  end
+
   test :parse do
     assert Integer.parse("12") === {12, ""}
     assert Integer.parse("-12") === {-12, ""}
