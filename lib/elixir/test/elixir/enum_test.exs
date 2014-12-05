@@ -257,9 +257,14 @@ defmodule EnumTest.List do
   end
 
   test :sample_1 do
+    # corner cases, empty list
+    assert_raise FunctionClauseError, fn ->
+      Enum.sample([])
+    end
+
     # corner cases, independent of the seed
-    assert Enum.sample([]) == nil
     assert Enum.sample([1]) == 1
+    
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}

@@ -1443,8 +1443,8 @@ defmodule Enum do
       2
 
   """
-  @spec sample(t) :: element | nil
-  def sample(collection) do
+  @spec sample(t) :: element
+  def sample(collection) when collection != [] do
     sample(collection, 1) |> List.first
   end
 
