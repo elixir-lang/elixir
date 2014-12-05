@@ -55,6 +55,29 @@ defmodule Integer do
   end
 
   @doc """
+  Returns the integer represented by the ordered digits.
+
+  An optional base value may be provided representing the radix for the digits.
+
+   ## Examples
+
+       iex> Integer.undigits([1, 0, 1])
+       101
+
+       iex> Integer.undigits([1, 4], 16)
+       20
+  """
+  @spec undigits([integer], integer) :: integer
+  def undigits(digits, base \\ 10) when is_integer(base) do
+    do_undigits(:lists.reverse(digits), base, 1)
+  end
+
+  defp do_undigits([], _base, _acc), do: 0
+  defp do_undigits([digit | tail], base, acc) do
+    digit * acc + do_undigits(tail, base, acc * base)
+  end
+
+  @doc """
   Converts a binary to an integer.
 
   If successful, returns a tuple of the form `{integer, remainder_of_binary}`.
