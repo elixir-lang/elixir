@@ -163,6 +163,12 @@ defmodule IO.ANSI.DocsTest do
   test "star/underscore/backtick starts/ends within a word doesn't get interpreted" do
     result = format("foo_bar, foo_bar_baz!")
     assert result == "foo_bar, foo_bar_baz!\n\e[0m"
+
+    result = format("_foo_bar")
+    assert result == "_foo_bar\n\e[0m"
+
+    result = format("foo_bar_")
+    assert result == "foo_bar_\n\e[0m"
   end
 
   test "backtick preceeded by space gets interpreted" do

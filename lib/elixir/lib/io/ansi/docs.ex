@@ -465,12 +465,28 @@ defmodule IO.ANSI.Docs do
   end
 
   # Inline end
-  defp handle_inline(<<?*, ?*, rest :: binary>>, _line_starter, ?d, buffer, acc, options) do
-    handle_inline(rest, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  defp handle_inline(<<?*, ?*, delimiter, rest :: binary>>, _line_starter, ?d, buffer, acc, options)
+      when delimiter in @delimiters do
+    handle_inline(<<delimiter, rest :: binary>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, _line_starter, mark, buffer, acc, options) when mark in @single do
-    handle_inline(rest, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  defp handle_inline(<<mark, delimiter, rest :: binary>>, _line_starter, mark, buffer, acc, options)
+      when delimiter in @delimiters and mark in @single do
+    handle_inline(<<delimiter, rest :: binary>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  end
+  
+  defp handle_inline(<<?\s, ?`, rest :: binary>>, _line_starter, ?`, buffer, acc, options) do
+    handle_inline(rest, false, nil, [], [inline_buffer([?\s|buffer], options)|acc], options)
+  end
+
+  defp handle_inline(<<?*, ?*, rest:: binary>>, _line_starter, ?d, buffer, acc, options)
+      when rest in @delimiters or rest == "" do
+    handle_inline(<<>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  end
+
+  defp handle_inline(<<mark, rest :: binary>>, _line_starter, mark, buffer, acc, options)
+      when (rest in @delimiters or rest == "") and mark in @single do
+    handle_inline(<<>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
   defp handle_inline(<<char, rest :: binary>>, _line_starter, mark, buffer, acc, options) do
