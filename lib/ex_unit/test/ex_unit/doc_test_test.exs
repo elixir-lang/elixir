@@ -208,7 +208,7 @@ defmodule ExUnit.DocTestTest do
     output = capture_io(fn -> ExUnit.run end)
 
     assert output =~ """
-      1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
+      1) test #1 moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:112: syntax error before: '*'
          code: 1 + * 1
@@ -217,7 +217,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+      2) test #2 moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
@@ -227,7 +227,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
+      3) test #3 moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest failed
          code: inspect(:oops) === "#HashDict<[]>"
@@ -237,7 +237,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
+      4) test #4 moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
          code:  Hello.world
@@ -246,7 +246,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
+      5) test #5 moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
@@ -255,7 +255,7 @@ defmodule ExUnit.DocTestTest do
     """
 
     assert output =~ """
-      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
+      6) test #6 moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:204
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"

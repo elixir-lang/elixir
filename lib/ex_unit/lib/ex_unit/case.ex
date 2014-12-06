@@ -218,7 +218,7 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      test = :"test #{message}"
+      test = ExUnit.Case.test_name(__MODULE__, message)
       ExUnit.Case.__on_definition__(__ENV__, test)
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
@@ -243,6 +243,12 @@ defmodule ExUnit.Case do
       %ExUnit.Test{name: name, case: mod, tags: tags})
 
     Module.delete_attribute(mod, :tag)
+  end
+
+  @doc false
+  def test_name(mod, message) do
+    index = length(Module.get_attribute(mod, :ex_unit_tests)) + 1
+    String.to_atom("test ##{index} #{message}")
   end
 
   defp normalize_tags(tags) do

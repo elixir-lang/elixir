@@ -101,4 +101,22 @@ defmodule ExUnitTest do
     end
     {Process.get(:capture_result), output}
   end
+
+  test "it executes different tests having the same name" do
+    defmodule TestWithSameNames do
+      use ExUnit.Case, async: false
+
+      test "same name, different outcome" do
+        assert 1 == 1
+      end
+
+      test "same name, different outcome" do
+        assert 1 == 2
+      end
+    end
+
+    assert capture_io(fn ->
+      assert ExUnit.run == %{failures: 1, skipped: 0, total: 2}
+    end) =~ "2 tests, 1 failure"
+  end
 end
