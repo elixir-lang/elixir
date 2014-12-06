@@ -5,8 +5,10 @@
 * Bug fixes
   * [Elixir] Don't leave spurious processes and stale data when the parallel compiler fails
   * [IO] Make `IO.ANSI.Docs` readable on white background
+  * [IO] Fix `IO.ANSI.Docs` handling of `*`, `**`, `_` where they would be activated in the middle of words
   * [Mix] Don't show hex update message on mix `local.hex`
   * [Mix] Ensure tasks are properly underscored and camelized
+  * [Mix] Ensure Mix does not use ANSI escapes on Windows unless it ANSI is enabled
   * [String] Fix LFCR being treated as a grapheme instead of CRLF
 
 ## v1.0.2 (2014-10-21)
