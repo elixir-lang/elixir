@@ -138,6 +138,11 @@ defmodule IO.ANSI.DocsTest do
     assert result == "*unit *size\n\e[0m"
   end
 
+  test "star/underscore/backtick starts/ends within a word doesn't get interpreted" do
+    result = format("foo_bar, foo_bar_baz!")
+    assert result == "foo_bar, foo_bar_baz!\n\e[0m"
+  end
+
   test "backtick preceeded by space gets interpreted" do
     result = format("`unit `size")
     assert result == "\e[36munit \e[0msize\n\e[0m"
