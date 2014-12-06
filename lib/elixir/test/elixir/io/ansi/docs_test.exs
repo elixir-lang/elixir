@@ -127,6 +127,28 @@ defmodule IO.ANSI.DocsTest do
     assert result == "\e[36mhello world\e[0m\n\e[0m"
   end
 
+  test "multiple stars/underscores/backticks work" do
+    result = format("*hello world* *hello world*")
+    assert result == "\e[1mhello world\e[0m \e[1mhello world\e[0m\n\e[0m"
+
+    result = format("_hello world_ _hello world_")
+    assert result == "\e[4mhello world\e[0m \e[4mhello world\e[0m\n\e[0m"
+
+    result = format("`hello world` `hello world`")
+    assert result == "\e[36mhello world\e[0m \e[36mhello world\e[0m\n\e[0m"
+  end
+
+  test "multiple stars/underscores/backticks work when separated by other words" do
+    result = format("*hello world* unit test *hello world*")
+    assert result == "\e[1mhello world\e[0m unit test \e[1mhello world\e[0m\n\e[0m"
+
+    result = format("_hello world_ unit test _hello world_")
+    assert result == "\e[4mhello world\e[0m unit test \e[4mhello world\e[0m\n\e[0m"
+
+    result = format("`hello world` unit test `hello world`")
+    assert result == "\e[36mhello world\e[0m unit test \e[36mhello world\e[0m\n\e[0m"
+  end
+
   test "star/underscore preceeded by space doesn't get interpreted" do
     result = format("_unit _size")
     assert result == "_unit _size\n\e[0m"
@@ -136,6 +158,43 @@ defmodule IO.ANSI.DocsTest do
 
     result = format("*unit *size")
     assert result == "*unit *size\n\e[0m"
+  end
+
+  test "star/underscore/backtick preceeded by non-space delimiters gets interpreted" do
+    result = format("(`hello world`)")
+    assert result == "(\e[36mhello world\e[0m)\n\e[0m"
+    result = format("<`hello world`>")
+    assert result == "<\e[36mhello world\e[0m>\n\e[0m"
+
+    result = format("(*hello world*)")
+    assert result == "(\e[1mhello world\e[0m)\n\e[0m"
+    result = format("@*hello world*@")
+    assert result == "@\e[1mhello world\e[0m@\n\e[0m"
+
+    result = format("(_hello world_)")
+    assert result == "(\e[4mhello world\e[0m)\n\e[0m"
+    result = format("'_hello world_'")
+    assert result == "'\e[4mhello world\e[0m'\n\e[0m"
+  end
+
+  test "star/underscore/backtick starts/ends within a word doesn't get interpreted" do
+    result = format("foo_bar, foo_bar_baz!")
+    assert result == "foo_bar, foo_bar_baz!\n\e[0m"
+
+    result = format("_foo_bar")
+    assert result == "_foo_bar\n\e[0m"
+
+    result = format("foo_bar_")
+    assert result == "foo_bar_\n\e[0m"
+
+    result = format("foo*bar, foo*bar*baz!")
+    assert result == "foo*bar, foo*bar*baz!\n\e[0m"
+
+    result = format("*foo*bar")
+    assert result == "*foo*bar\n\e[0m"
+
+    result = format("foo*bar*")
+    assert result == "foo*bar*\n\e[0m"
   end
 
   test "backtick preceeded by space gets interpreted" do
@@ -198,11 +257,6 @@ defmodule IO.ANSI.DocsTest do
   test "backtick close to underscores gets interpreted as code" do
     result = format("`__world__`")
     assert result == "\e[36m__world__\e[0m\n\e[0m"
-  end
-
-  test "backtick works inside parenthesis" do
-    result = format("(`hello world`)")
-    assert result == "(\e[36mhello world\e[0m)\n\e[0m"
   end
 
   test "escaping of underlines within links" do

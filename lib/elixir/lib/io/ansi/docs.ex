@@ -194,7 +194,7 @@ defmodule IO.ANSI.Docs do
     lines
     |> Enum.join(" ")
     |> handle_links
-    |> handle_inline(nil, [], [], options)
+    |> handle_inline(true, nil, [], [], options)
     |> String.split(~r{\s})
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap)
 
@@ -262,7 +262,7 @@ defmodule IO.ANSI.Docs do
     col = col
           |> String.replace(~r/\\ \|/x, "|")
           |> handle_links
-          |> handle_inline(nil, [], [], options)
+          |> handle_inline(true, nil, [], [], options)
     {col, length_without_escape(col, 0)}
   end
 
@@ -398,61 +398,102 @@ defmodule IO.ANSI.Docs do
   # ` does not require space in between
   @spaced [?_, ?*]
 
+  # Characters that can mark the beginning or the end of a word.
+  # Only support the most common ones at this moment.
+  @delimiters [?\s, ?', ?", ?!, ?@, ?#, ?$, ?%, ?^, ?&, ?-, ?+, ?(, ?), ?[, ?], ?{, ?}, ?<, ?>]
+
   # Clauses for handling spaces
-  defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, nil, buffer, acc, options) do
-    handle_inline(rest, nil, [?\s, ?*, ?*|buffer], acc, options)
+  defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, _line_starter, nil, buffer, acc, options) do
+    handle_inline(rest, false, nil, [?\s, ?*, ?*|buffer], acc, options)
   end
 
-  defp handle_inline(<<mark, ?\s, rest :: binary>>, nil, buffer, acc, options) when mark in @spaced do
-    handle_inline(rest, nil, [?\s, mark|buffer], acc, options)
-  end
-
-  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, limit, buffer, acc, options) do
-    handle_inline(rest, limit, [?*, ?*, ?\s|buffer], acc, options)
-  end
-
-  defp handle_inline(<<?\s, mark, rest :: binary>>, limit, buffer, acc, options) when mark in @spaced do
-    handle_inline(rest, limit, [mark, ?\s|buffer], acc, options)
-  end
-
-  # Clauses for handling escape
-  defp handle_inline(<<?\\, ?\\, rest :: binary>>, limit, buffer, acc, options) do
-    handle_inline(rest, limit, [?\\|buffer], acc, options)
-  end
-
-  defp handle_inline(<<?\\, ?*, ?*, rest :: binary>>, limit, buffer, acc, options) do
-    handle_inline(rest, limit, [?*, ?*|buffer], acc, options)
-  end
-
-  # An escape is not valid inside `
-  defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc, options)
-      when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
-    handle_inline(rest, limit, [mark|buffer], acc, options)
+  defp handle_inline(<<mark, ?\s, rest :: binary>>, _line_starter, nil, buffer, acc, options) when mark in @spaced do
+    handle_inline(rest, false, nil, [?\s, mark|buffer], acc, options)
   end
 
   # Inline start
-  defp handle_inline(<<?*, ?*, rest :: binary>>, nil, buffer, acc, options) when rest != "" do
-    handle_inline(rest, ?d, ["**"], [Enum.reverse(buffer)|acc], options)
+  defp handle_inline(<<delimiter, ?*, ?*, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" and delimiter in @delimiters do
+    handle_inline(rest, false, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, nil, buffer, acc, options) when rest != "" and mark in @single do
-    handle_inline(rest, mark, [<<mark>>], [Enum.reverse(buffer)|acc], options)
+  defp handle_inline(<<delimiter, mark, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" and delimiter in @delimiters and mark in @single do
+    handle_inline(rest, false, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<?*, ?*, rest :: binary>>, true, nil, buffer, acc, options) do
+    handle_inline(rest, false, ?d, ["**"], [Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<mark, rest :: binary>>, true, nil, buffer, acc, options) when mark in @single do
+    handle_inline(rest, false, mark, [<<mark>>], [Enum.reverse(buffer)|acc], options)
+  end
+
+  # Clauses for handling spaces
+  defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, _line_starter, limit, buffer, acc, options) do
+    handle_inline(rest, false, limit, [?*, ?*, ?\s|buffer], acc, options)
+  end
+
+  defp handle_inline(<<?\s, mark, rest :: binary>>, _line_starter, limit, buffer, acc, options) when mark in @spaced do
+    handle_inline(rest, false, limit, [mark, ?\s|buffer], acc, options)
+  end
+
+  # Clauses for handling escape
+  defp handle_inline(<<?\\, ?\\, ?*, ?*, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" do
+    handle_inline(rest, false, ?d, ["**"], [?\\, Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<?\\, ?\\, mark, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" and mark in @single do
+    handle_inline(rest, false, mark, [<<mark>>], [?\\, Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<?\\, ?\\, rest :: binary>>, _line_starter, limit, buffer, acc, options) do
+    handle_inline(rest, false, limit, [?\\|buffer], acc, options)
+  end
+
+  defp handle_inline(<<?\\, ?*, ?*, rest :: binary>>, _line_starter, limit, buffer, acc, options) do
+    handle_inline(rest, false, limit, [?*, ?*|buffer], acc, options)
+  end
+
+  # An escape is not valid inside `
+  defp handle_inline(<<?\\, mark, rest :: binary>>, _line_starter, limit, buffer, acc, options)
+      when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
+    handle_inline(rest, false, limit, [mark|buffer], acc, options)
   end
 
   # Inline end
-  defp handle_inline(<<?*, ?*, rest :: binary>>, ?d, buffer, acc, options) do
-    handle_inline(rest, nil, [], [inline_buffer(buffer, options)|acc], options)
+  defp handle_inline(<<?*, ?*, delimiter, rest :: binary>>, _line_starter, ?d, buffer, acc, options)
+      when delimiter in @delimiters do
+    handle_inline(<<delimiter, rest :: binary>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, mark, buffer, acc, options) when mark in @single do
-    handle_inline(rest, nil, [], [inline_buffer(buffer, options)|acc], options)
+  defp handle_inline(<<mark, delimiter, rest :: binary>>, _line_starter, mark, buffer, acc, options)
+      when delimiter in @delimiters and mark in @single do
+    handle_inline(<<delimiter, rest :: binary>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  end
+  
+  defp handle_inline(<<?\s, ?`, rest :: binary>>, _line_starter, ?`, buffer, acc, options) do
+    handle_inline(rest, false, nil, [], [inline_buffer([?\s|buffer], options)|acc], options)
   end
 
-  defp handle_inline(<<char, rest :: binary>>, mark, buffer, acc, options) do
-    handle_inline(rest, mark, [char|buffer], acc, options)
+  defp handle_inline(<<?*, ?*, rest:: binary>>, _line_starter, ?d, buffer, acc, options)
+      when rest in @delimiters or rest == "" do
+    handle_inline(<<>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<>>, _mark, buffer, acc, _options) do
+  defp handle_inline(<<mark, rest :: binary>>, _line_starter, mark, buffer, acc, options)
+      when (rest in @delimiters or rest == "") and mark in @single do
+    handle_inline(<<>>, false, nil, [], [inline_buffer(buffer, options)|acc], options)
+  end
+
+  defp handle_inline(<<char, rest :: binary>>, _line_starter, mark, buffer, acc, options) do
+    handle_inline(rest, false, mark, [char|buffer], acc, options)
+  end
+
+  defp handle_inline(<<>>, _line_starter, _mark, buffer, acc, _options) do
     IO.iodata_to_binary Enum.reverse([Enum.reverse(buffer)|acc])
   end
 
