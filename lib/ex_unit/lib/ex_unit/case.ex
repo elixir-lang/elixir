@@ -168,7 +168,8 @@ defmodule ExUnit.Case do
           ExUnit.Server.add_sync_case(__MODULE__)
         end
 
-        Enum.each [:ex_unit_tests, :tag, :moduletag],
+        Module.put_attribute(__MODULE__, :ex_unit_tests, HashDict.new)
+        Enum.each [:tag, :moduletag],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
         @before_compile ExUnit.Case
@@ -218,7 +219,7 @@ defmodule ExUnit.Case do
     contents = Macro.escape(contents, unquote: true)
 
     quote bind_quoted: binding do
-      test = ExUnit.Case.test_name(__MODULE__, message)
+      test = :"test #{message}"
       ExUnit.Case.__on_definition__(__ENV__, test)
       def unquote(test)(unquote(var)), do: unquote(contents)
     end
@@ -228,7 +229,7 @@ defmodule ExUnit.Case do
   defmacro __before_compile__(_) do
     quote do
       def __ex_unit__(:case) do
-        %ExUnit.TestCase{name: __MODULE__, tests: @ex_unit_tests}
+        %ExUnit.TestCase{name: __MODULE__, tests: Dict.values(@ex_unit_tests)}
       end
     end
   end
@@ -239,16 +240,14 @@ defmodule ExUnit.Case do
     tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
     tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
-    Module.put_attribute(mod, :ex_unit_tests,
-      %ExUnit.Test{name: name, case: mod, tags: tags})
+    register_first_test_definition(mod, %ExUnit.Test{name: name, case: mod, tags: tags})
 
     Module.delete_attribute(mod, :tag)
   end
 
-  @doc false
-  def test_name(mod, message) do
-    index = length(Module.get_attribute(mod, :ex_unit_tests)) + 1
-    String.to_atom("test ##{index} #{message}")
+  defp register_first_test_definition(mod, test) do
+    tests = Module.get_attribute(mod, :ex_unit_tests) |> Dict.put_new(test.name, test)
+    Module.put_attribute(mod, :ex_unit_tests, tests)
   end
 
   defp normalize_tags(tags) do
