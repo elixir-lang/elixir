@@ -411,6 +411,26 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, false, nil, [?\s, mark|buffer], acc, options)
   end
 
+  # Inline start
+  defp handle_inline(<<delimiter, ?*, ?*, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" and delimiter in @delimiters do
+    handle_inline(rest, false, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<delimiter, mark, rest :: binary>>, _line_starter, nil, buffer, acc, options)
+      when rest != "" and delimiter in @delimiters and mark in @single do
+    handle_inline(rest, false, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<?*, ?*, rest :: binary>>, true, nil, buffer, acc, options) do
+    handle_inline(rest, false, ?d, ["**"], [Enum.reverse(buffer)|acc], options)
+  end
+
+  defp handle_inline(<<mark, rest :: binary>>, true, nil, buffer, acc, options) when mark in @single do
+    handle_inline(rest, false, mark, [<<mark>>], [Enum.reverse(buffer)|acc], options)
+  end
+
+  # Clauses for handling spaces
   defp handle_inline(<<?\s, ?*, ?*, rest :: binary>>, _line_starter, limit, buffer, acc, options) do
     handle_inline(rest, false, limit, [?*, ?*, ?\s|buffer], acc, options)
   end
@@ -442,25 +462,6 @@ defmodule IO.ANSI.Docs do
   defp handle_inline(<<?\\, mark, rest :: binary>>, _line_starter, limit, buffer, acc, options)
       when mark in [?_, ?*, ?`] and not(mark == limit and mark == ?`) do
     handle_inline(rest, false, limit, [mark|buffer], acc, options)
-  end
-
-  # Inline start
-  defp handle_inline(<<delimiter, ?*, ?*, rest :: binary>>, _line_starter, nil, buffer, acc, options)
-      when rest != "" and delimiter in @delimiters do
-    handle_inline(rest, false, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
-  end
-
-  defp handle_inline(<<delimiter, mark, rest :: binary>>, _line_starter, nil, buffer, acc, options)
-      when rest != "" and delimiter in @delimiters and mark in @single do
-    handle_inline(rest, false, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
-  end
-
-  defp handle_inline(<<?*, ?*, rest :: binary>>, true, nil, buffer, acc, options) do
-    handle_inline(rest, false, ?d, ["**"], [Enum.reverse(buffer)|acc], options)
-  end
-
-  defp handle_inline(<<mark, rest :: binary>>, true, nil, buffer, acc, options) when mark in @single do
-    handle_inline(rest, false, mark, [<<mark>>], [Enum.reverse(buffer)|acc], options)
   end
 
   # Inline end
