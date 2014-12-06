@@ -169,6 +169,15 @@ defmodule IO.ANSI.DocsTest do
 
     result = format("foo_bar_")
     assert result == "foo_bar_\n\e[0m"
+
+    result = format("foo*bar, foo*bar*baz!")
+    assert result == "foo*bar, foo*bar*baz!\n\e[0m"
+
+    result = format("*foo*bar")
+    assert result == "*foo*bar\n\e[0m"
+
+    result = format("foo*bar*")
+    assert result == "foo*bar*\n\e[0m"
   end
 
   test "backtick preceeded by space gets interpreted" do
