@@ -400,7 +400,7 @@ defmodule IO.ANSI.Docs do
 
   # Characters that can mark the beginning or the end of a word.
   # Only support the most common ones at this moment.
-  @delimiters [?\s, ?', ?", ?!, ?@, ?#, ?$, ?%, ?^, ?&, ?-, ?+, ?(, ?), ?[, ?], ?{, ?}]
+  @delimiters [?\s, ?', ?", ?!, ?@, ?#, ?$, ?%, ?^, ?&, ?-, ?+, ?(, ?), ?[, ?], ?{, ?}, ?<, ?>]
 
   # Clauses for handling spaces
   defp handle_inline(<<?*, ?*, ?\s, rest :: binary>>, _line_starter, nil, buffer, acc, options) do

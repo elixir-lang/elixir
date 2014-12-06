@@ -160,6 +160,23 @@ defmodule IO.ANSI.DocsTest do
     assert result == "*unit *size\n\e[0m"
   end
 
+  test "star/underscore/backtick preceeded by non-space delimiters gets interpreted" do
+    result = format("(`hello world`)")
+    assert result == "(\e[36mhello world\e[0m)\n\e[0m"
+    result = format("<`hello world`>")
+    assert result == "<\e[36mhello world\e[0m>\n\e[0m"
+
+    result = format("(*hello world*)")
+    assert result == "(\e[1mhello world\e[0m)\n\e[0m"
+    result = format("@*hello world*@")
+    assert result == "@\e[1mhello world\e[0m@\n\e[0m"
+
+    result = format("(_hello world_)")
+    assert result == "(\e[4mhello world\e[0m)\n\e[0m"
+    result = format("'_hello world_'")
+    assert result == "'\e[4mhello world\e[0m'\n\e[0m"
+  end
+
   test "star/underscore/backtick starts/ends within a word doesn't get interpreted" do
     result = format("foo_bar, foo_bar_baz!")
     assert result == "foo_bar, foo_bar_baz!\n\e[0m"
@@ -240,11 +257,6 @@ defmodule IO.ANSI.DocsTest do
   test "backtick close to underscores gets interpreted as code" do
     result = format("`__world__`")
     assert result == "\e[36m__world__\e[0m\n\e[0m"
-  end
-
-  test "backtick works inside parenthesis" do
-    result = format("(`hello world`)")
-    assert result == "(\e[36mhello world\e[0m)\n\e[0m"
   end
 
   test "escaping of underlines within links" do
