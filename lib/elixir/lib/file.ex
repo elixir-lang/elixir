@@ -734,7 +734,7 @@ defmodule File do
   end
 
   defp change_mode_windows(path, file_info) do
-    case File.chmod(path, (elem(file_info, 7) + 0o200)) do
+    case chmod(path, (elem(file_info, 7) + 0o200)) do
       :ok -> F.delete(path)
       {:error, _reason} = error -> error
     end
