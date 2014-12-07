@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Archive.Install do
       remove_previous_versions(previous)
 
       archive = Path.join(Mix.Local.archives_path(), basename(src))
-      check_file_exists(archive)
+      check_file_exists(src, archive)
 
       if Mix.Utils.copy_path!(src, archive, opts) do
         Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Archive.Install do
                    "Are you sure you want to replace them?")
   end
 
-  defp check_file_exists(path) do
+  defp check_file_exists(src, path) do
     # OTP keeps loaded archives open, this leads to unfortunate behaviour on
     # Windows when trying overwrite loaded archives. remove_previous_versions
     # completes successfully even though the file will be first removed after
@@ -91,7 +91,10 @@ defmodule Mix.Tasks.Archive.Install do
     # command, which should complete successfully at that time
 
     if File.exists?(path) and match?({:win32, _}, :os.type) do
-      Mix.raise "Unable to overwrite open archives on Windows. Run the command again"
+      Mix.raise "Unable to overwrite open archives on Windows. Please manually remove " <>
+                "the existing archive at #{inspect path} and run this command again. In " <>
+                "case re-running the command still does not work, please fetch the archive " <>
+                "at #{inspect src} and manually copy it to #{inspect path}."
     end
   end
 
