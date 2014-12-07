@@ -1502,7 +1502,7 @@ defmodule Enum do
     end
 
     {n, sample} = reduce(collection, {0, sample}, reducer)
-    sample |> Tuple.to_list |> Enum.take(Kernel.min(count, n))
+    sample |> Tuple.to_list |> take(Kernel.min(count, n))
   end
 
   def sample(_collection, 0), do: []
