@@ -419,8 +419,8 @@ defmodule Regex do
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
-  captures to be accessed via `\N`, where `N` is the capture. In
-  case `\0` is used, the whole match is inserted.
+  captures to be accessed via `\N` or `\g{N}`, where `N` is the
+  capture. In case `\0` is used, the whole match is inserted.
 
   When the replacement is a function, the function may have arity
   N where each argument maps to a capture, with the first argument
@@ -478,6 +478,11 @@ defmodule Regex do
 
   defp precompile_replacement(""),
     do: []
+
+  defp precompile_replacement(<<?\\, ?g, ?{, rest :: binary>>) when byte_size(rest) > 0 do
+    {ns, <<?}, rest :: binary>>} = pick_int(rest)
+    [List.to_integer(ns) | precompile_replacement(rest)]
+  end
 
   defp precompile_replacement(<<?\\, x, rest :: binary>>) when x < ?0 or x > ?9 do
     case precompile_replacement(rest) do
@@ -550,7 +555,7 @@ defmodule Regex do
       cond do
         is_binary(part) ->
           part
-        part > tuple_size(indexes) ->
+        part >= tuple_size(indexes) ->
           ""
         true ->
           get_index(string, elem(indexes, part))
