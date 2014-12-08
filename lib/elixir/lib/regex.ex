@@ -486,6 +486,11 @@ defmodule Regex do
   defp precompile_replacement(""),
     do: []
 
+  defp precompile_replacement(<<?\\, ?g, ?{, rest :: binary>>) when byte_size(rest) > 0 do
+    {ns, <<?}, rest :: binary>>} = pick_int(rest)
+    [List.to_integer(ns) | precompile_replacement(rest)]
+  end
+
   defp precompile_replacement(<<?\\, x, rest :: binary>>) when x < ?0 or x > ?9 do
     case precompile_replacement(rest) do
       [head | t] when is_binary(head) ->
