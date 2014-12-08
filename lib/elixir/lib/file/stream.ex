@@ -34,10 +34,6 @@ defmodule File.Stream do
   end
 
   defimpl Collectable do
-    def empty(stream) do
-      stream
-    end
-
     def into(%{path: path, modes: modes, raw: raw} = stream) do
       modes = for mode <- modes, not mode in [:read], do: mode
 
