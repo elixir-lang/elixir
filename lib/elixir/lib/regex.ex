@@ -557,7 +557,7 @@ defmodule Regex do
       cond do
         is_binary(part) ->
           part
-        part > tuple_size(indexes) ->
+        part >= tuple_size(indexes) ->
           ""
         true ->
           get_index(string, elem(indexes, part))
