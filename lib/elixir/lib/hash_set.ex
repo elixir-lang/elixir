@@ -253,10 +253,6 @@ defimpl Enumerable, for: HashSet do
 end
 
 defimpl Collectable, for: HashSet do
-  def empty(_dict) do
-    HashSet.new
-  end
-
   def into(original) do
     {original, fn
       set, {:cont, x} -> HashSet.put(set, x)

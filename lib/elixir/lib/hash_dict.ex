@@ -245,10 +245,6 @@ defimpl Access, for: HashDict do
 end
 
 defimpl Collectable, for: HashDict do
-  def empty(_dict) do
-    HashDict.new
-  end
-
   def into(original) do
     {original, fn
       dict, {:cont, {k, v}} -> Dict.put(dict, k, v)
