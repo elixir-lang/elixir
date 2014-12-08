@@ -94,9 +94,10 @@ defmodule IEx.AutocompleteTest do
   end
 
   test :completion_inside_expression do
-    assert expand('1+En') == {:yes, 'um', []}
+    assert expand('1 En') == {:yes, 'um', []}
     assert expand('Test(En') == {:yes, 'um', []}
     assert expand('Test :z') == {:yes, 'lib.', []}
     assert expand('[:z') == {:yes, 'lib.', []}
+    assert expand('{:z') == {:yes, 'lib.', []}
   end
 end

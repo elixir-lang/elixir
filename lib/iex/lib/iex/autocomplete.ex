@@ -10,12 +10,12 @@ defmodule IEx.Autocomplete do
       h === ?. and t != []->
         expand_dot(reduce(t))
       h === ?: ->
-        expand_erlang_modules
+        expand_erlang_modules()
       identifier?(h) ->
         expand_expr(reduce(expr))
       (h == ?/) and t != [] and identifier?(hd(t)) ->
         expand_expr(reduce(t))
-      h in '(+[' ->
+      h in '([{' ->
         expand('')
       true ->
         no()
@@ -40,32 +40,26 @@ defmodule IEx.Autocomplete do
   defp expand_expr(expr) do
     case Code.string_to_quoted expr do
       {:ok, atom} when is_atom(atom) ->
-        expand_erlang_modules Atom.to_string(atom)
+        expand_erlang_modules(Atom.to_string(atom))
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_import Atom.to_string(atom)
+        expand_import(Atom.to_string(atom))
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules [], Atom.to_string(root)
+        expand_elixir_modules([], Atom.to_string(root))
       {:ok, {:__aliases__, _, [h|_] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
-        expand_elixir_modules list, hint
+        expand_elixir_modules(list, hint)
       {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(fun) ->
-        expand_call mod, Atom.to_string(fun)
+        expand_call(mod, Atom.to_string(fun))
       _ ->
         no()
     end
   end
 
   defp reduce(expr) do
-    last_token(Enum.reverse(expr), [' ', '(', '[', '+', '-'])
-  end
-
-  defp last_token(s, []) do
-    s
-  end
-
-  defp last_token(s, [h|t]) do
-    last_token(List.last(:string.tokens(s, h)), t)
+    Enum.reverse Enum.reduce [' ', '(', '[', '{'], expr, fn token, acc ->
+      hd(:string.tokens(acc, token))
+    end
   end
 
   defp yes(hint, entries) do
@@ -100,35 +94,16 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  ## Root Modules
-
-  defp root_modules do
-    Enum.reduce :code.all_loaded, [], fn {m, _}, acc ->
-      mod = Atom.to_string(m)
-      case mod do
-        "Elixir" <> _ ->
-          tokens = String.split(mod, ".")
-          if length(tokens) == 2 do
-            [%{kind: :module, name: List.last(tokens), type: :elixir}|acc]
-          else
-            acc
-          end
-        _ ->
-          [%{kind: :module, name: mod, type: :erlang}|acc]
-      end
-    end
-  end
-
   ## Expand calls
 
   # :atom.fun
   defp expand_call(mod, hint) when is_atom(mod) do
-    expand_require mod, hint
+    expand_require(mod, hint)
   end
 
   # Elixir.fun
   defp expand_call({:__aliases__, _, list}, hint) do
-    expand_require Module.concat(list), hint
+    expand_require(Module.concat(list), hint)
   end
 
   defp expand_call(_, _) do
@@ -152,22 +127,23 @@ defmodule IEx.Autocomplete do
     format_expansion match_erlang_modules(hint), hint
   end
 
-  defp match_erlang_modules("") do
-    Enum.filter root_modules, fn m -> m.type === :erlang end
-  end
-
   defp match_erlang_modules(hint) do
-    Enum.filter root_modules, fn m -> String.starts_with?(m.name, hint) end
+    for {mod, _} <- :code.all_loaded,
+        mod = Atom.to_string(mod),
+        not match?("Elixir." <> _, mod),
+        String.starts_with?(mod, hint) do
+      %{kind: :module, name: mod, type: :erlang}
+    end
   end
 
   ## Elixir modules
 
   defp expand_elixir_modules(list, hint) do
     mod = Module.concat(list)
-    format_expansion elixir_submodules(mod, hint, list == []) ++ module_funs(mod, hint), hint
+    format_expansion elixir_aliases(mod, hint, list == []) ++ module_funs(mod, hint), hint
   end
 
-  defp elixir_submodules(mod, hint, root) do
+  defp elixir_aliases(mod, hint, root) do
     modname = Atom.to_string(mod)
     depth   = length(String.split(modname, ".")) + 1
     base    = modname <> "." <> hint
@@ -211,7 +187,7 @@ defmodule IEx.Autocomplete do
 
         for {fun, arities} <- list,
             name = Atom.to_string(fun),
-            hint == "" or String.starts_with?(name, hint) do
+            String.starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
         end
       _ ->
