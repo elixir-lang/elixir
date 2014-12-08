@@ -1445,6 +1445,7 @@ defmodule Enum do
 
   @doc """
   Returns a random element of a collection.
+  Raises `EmptyError` if the collection is empty.
 
   Notice that you need to explicitly call `:random.seed/1` and
   set a seed value for the random algorithm. Otherwise, the
@@ -1468,13 +1469,21 @@ defmodule Enum do
       2
 
   """
-  @spec sample(t) :: element | nil
+  @spec sample(t) :: element
   def sample(collection) do
-    sample(collection, 1) |> List.first
+    case sample(collection, 1) do
+      [] -> raise Enum.EmptyError
+      [e] -> e
+    end
   end
 
   @doc """
   Returns a random sublist of a collection.
+
+  Notice this function will traverse the whole collection to
+  get the random sublist of collection. If you want the random
+  number between two integers, the best option is to use the
+  :random module.
 
   See `sample/1` for notes on implementation and random seed.
 

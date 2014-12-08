@@ -266,8 +266,9 @@ defmodule EnumTest.List do
 
   test :sample_1 do
     # corner cases, independent of the seed
-    assert Enum.sample([]) == nil
+    assert_raise Enum.EmptyError, fn -> Enum.sample([]) end
     assert Enum.sample([1]) == 1
+    
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
@@ -846,6 +847,7 @@ defmodule EnumTest.Range do
   test :sample_1 do
     # corner cases, independent of the seed
     assert Enum.sample(1..1) == 1
+
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
@@ -876,6 +878,7 @@ defmodule EnumTest.Range do
     assert Enum.sample(1..1, 0) == []
     assert Enum.sample(1..1, 2) == [1]
     assert Enum.sample(1..2, 0) == []
+
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
