@@ -30,10 +30,6 @@ defmodule IO.Stream do
   end
 
   defimpl Collectable do
-    def empty(stream) do
-      stream
-    end
-
     def into(%{device: device, raw: raw} = stream) do
       {:ok, into(stream, device, raw)}
     end

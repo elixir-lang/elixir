@@ -7,10 +7,6 @@ defmodule StreamTest do
     defstruct []
 
     defimpl Collectable do
-      def empty(struct) do
-        struct
-      end
-
       def into(struct) do
         {struct,
          fn
