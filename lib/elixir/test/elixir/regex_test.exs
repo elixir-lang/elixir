@@ -190,6 +190,8 @@ defmodule RegexTest do
     assert Regex.replace(~r(b), "abc", "d") == "adc"
     assert Regex.replace(~r(b), "abc", "[\\0]") == "a[b]c"
     assert Regex.replace(~r[(b)], "abc", "[\\1]") == "a[b]c"
+    assert Regex.replace(~r[(b)], "abc", "[\\2]") == "a[]c"
+    assert Regex.replace(~r[(b)], "abc", "[\\3]") == "a[]c"
 
     assert Regex.replace(~r(b), "abcbe", "d") == "adcde"
     assert Regex.replace(~r(b), "abcbe", "d", global: false) == "adcbe"
