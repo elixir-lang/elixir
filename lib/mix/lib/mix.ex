@@ -5,11 +5,12 @@ defmodule Mix do
 
   ## Mix.Project
 
-  The foundation of Mix is a project. A project can be defined by
-  by using the `Mix.Project` in a module, usually place in a file
-  named `mix.exs`:
+  The foundation of Mix is a project. A project can be defined by using
+  `Mix.Project` in a module, usually placed in a file named `mix.exs`:
 
       defmodule MyApp.Mixfile do
+        use Mix.Project
+
         def project do
           [app: :my_app,
            version: "1.0.0"]
@@ -62,6 +63,8 @@ defmodule Mix do
   listing to its own functions:
 
       defmodule MyApp.Mixfile do
+        use Mix.Project
+
         def project do
           [app: :my_app,
            version: "1.0.0",
@@ -69,7 +72,7 @@ defmodule Mix do
         end
 
         defp deps do
-          [{:ecto, "~> 0.3.0"},
+          [{:ecto, "~> 0.2.5"},
            {:plug, github: "elixir-lang/plug"}]
         end
       end
@@ -81,7 +84,7 @@ defmodule Mix do
   Mix provides environments.
 
   Environments allow developers to prepare and organize their project
-  specific to different scenarios. By default, Mix provides three
+  specifically for different scenarios. By default, Mix provides three
   environments:
 
     * `:dev` - the default environment
@@ -95,7 +98,7 @@ defmodule Mix do
 
   ## Aliases
 
-  Aliases are shortcut or tasks specific to the current project.
+  Aliases are shortcuts or tasks specific to the current project.
 
   In the `Mix.Task` section, we have defined a task that would be
   available to everyone using our project as a dependency. What if
@@ -103,6 +106,8 @@ defmodule Mix do
   define an alias:
 
       defmodule MyApp.Mixfile do
+        use Mix.Project
+
         def project do
           [app: :my_app,
            version: "1.0.0",
@@ -124,7 +129,7 @@ defmodule Mix do
   `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
   we have defined in the `Mix.Task` section.
 
-  Aliases may also be a list, specifying multiple tasks to run
+  Aliases may also be lists, specifying multiple tasks to run
   at once:
 
       [all: [&hello/1, "deps.get --only #{Mix.env}", "compile"]]
