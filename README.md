@@ -30,7 +30,7 @@ Building the documentation requires [ex_doc](https://github.com/elixir-lang/ex_d
 
     # After cloning and compiling Elixir
     $ git clone git://github.com/elixir-lang/ex_doc.git
-    $ cd ex_doc && ../elixir/bin/mix compile
+    $ cd ex_doc && ../elixir/bin/mix do deps.get, compile
     $ cd ../elixir && make docs
 
 ## Contributing
