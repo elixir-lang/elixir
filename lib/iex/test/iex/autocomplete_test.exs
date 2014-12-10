@@ -34,6 +34,13 @@ defmodule IEx.AutocompleteTest do
     assert expand('Enumerable') == {:yes, '.', []}
   end
 
+  test :elixir_auto_completion_on_modules_from_load_path do
+    assert expand('Str') == {:yes, [], ['String', 'StringIO', 'Stream']}
+    assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MatchError']}
+    assert expand('Dic') == {:yes, 't.', []}
+    assert expand('Ex')  == {:yes, [], ['Exception', 'ExUnit']}
+  end
+
   test :elixir_no_completion do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
