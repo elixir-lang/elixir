@@ -164,15 +164,17 @@ defmodule IEx.Autocomplete do
   end
 
   defp modules_as_lists(true) do
-    modules = ["Elixir.Elixir"] ++ modules_as_lists(false)
-    modules = if :code.get_mode() === :interactive do
-                modules ++ loaded_applications_as_lists
-              end
-    Enum.uniq(modules)
+    ["Elixir.Elixir"] ++ modules_as_lists(false)
   end
 
   defp modules_as_lists(false) do
-    Enum.map(:code.all_loaded, fn({m, _}) -> Atom.to_string(m) end)
+    modules = Enum.map(:code.all_loaded, fn({m, _}) -> Atom.to_string(m) end)
+
+    if :code.get_mode() === :interactive do
+      Enum.uniq(modules ++ loaded_applications_as_lists())
+    else
+      modules
+    end
   end
 
   defp loaded_applications_as_lists do
