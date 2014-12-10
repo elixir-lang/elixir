@@ -2404,20 +2404,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Access the given element using the qualifier according
-  to the `Access` protocol. All calls in the form `foo[bar]`
-  are translated to `access(foo, bar)`.
-
-  The usage of this protocol is to access a raw value in a
-  keyword list.
-
-      iex> sample = [a: 1, b: 2, c: 3]
-      iex> sample[:b]
-      2
-
-  """
-
-  @doc """
   Checks if the element on the left side is member of the
   collection on the right side.
 
