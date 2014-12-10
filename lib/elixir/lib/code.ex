@@ -7,14 +7,14 @@ defmodule Code do
   """
 
   @doc """
-  List all loaded files.
+  Lists all loaded files.
   """
   def loaded_files do
     :elixir_code_server.call :loaded
   end
 
   @doc """
-  Remove files from the loaded files list.
+  Removes files from the loaded files list.
 
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
@@ -25,7 +25,7 @@ defmodule Code do
   end
 
   @doc """
-  Append a path to the Erlang VM code path.
+  Appends a path to the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being appended.
   """
@@ -34,7 +34,7 @@ defmodule Code do
   end
 
   @doc """
-  Prepend a path to the Erlang VM code path.
+  Prepends a path to the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being prepended.
   """
@@ -43,7 +43,7 @@ defmodule Code do
   end
 
   @doc """
-  Delete a path from the Erlang VM code path.
+  Deletes a path from the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being deleted.
   """
@@ -69,7 +69,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluate the contents given by `string`.
+  Evaluates the contents given by `string`.
 
   The `binding` argument is a keyword list of variable bindings.
   The `opts` argument is a keyword list of environment options.
@@ -142,7 +142,7 @@ defmodule Code do
   end
 
   @doc """
-  Evaluate the quoted contents.
+  Evaluates the quoted contents.
 
   See `eval_string/3` for a description of arguments and return values.
 
@@ -211,7 +211,7 @@ defmodule Code do
   end
 
   @doc """
-  Convert the given string to its quoted form.
+  Converts the given string to its quoted form.
 
   Returns `{:ok, quoted_form}`
   if it succeeds, `{:error, {line, error, token}}` otherwise.
@@ -239,7 +239,7 @@ defmodule Code do
   end
 
   @doc """
-  Convert the given string to its quoted form.
+  Converts the given string to its quoted form.
 
   It returns the ast if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
@@ -269,7 +269,7 @@ defmodule Code do
   end
 
   @doc """
-  Load the given file.
+  Loads the given file.
 
   Accepts `relative_to` as an argument to tell where the file is located.
   If the file was already required/loaded, loads it again.

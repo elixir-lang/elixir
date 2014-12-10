@@ -1401,7 +1401,7 @@ defmodule Kernel.SpecialForms do
   defmacro cond(clauses)
 
   @doc ~S"""
-  Evaluate the given expressions and handle any error, exit
+  Evaluates the given expressions and handle any error, exit
   or throw that may have happened.
 
   ## Examples
