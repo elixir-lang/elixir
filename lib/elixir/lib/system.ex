@@ -66,7 +66,7 @@ defmodule System do
   end
 
   @doc """
-  List command line arguments.
+  Lists command line arguments.
 
   Returns the list of command line arguments passed to the program.
   """
@@ -76,7 +76,7 @@ defmodule System do
   end
 
   @doc """
-  Modify command line arguments.
+  Modifies command line arguments.
 
   Changes the list of command line arguments. Use it with caution,
   as it destroys any previous argv information.
@@ -286,7 +286,7 @@ defmodule System do
   def get_pid, do: IO.iodata_to_binary(:os.getpid)
 
   @doc """
-  Set an environment variable value.
+  Sets an environment variable value.
 
   Sets a new `value` for the environment variable `varname`.
   """
@@ -297,7 +297,7 @@ defmodule System do
   end
 
   @doc """
-  Set multiple environment variables.
+  Sets multiple environment variables.
 
   Sets a new value for each environment variable corresponding
   to each key in `dict`.
@@ -332,7 +332,7 @@ defmodule System do
   end
 
   @doc """
-  Halt the Erlang runtime system.
+  Halts the Erlang runtime system.
 
   Halts the Erlang runtime system where the argument `status` must be a
   non-negative integer, the atom `:abort` or a binary.
