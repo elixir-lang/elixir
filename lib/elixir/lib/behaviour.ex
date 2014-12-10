@@ -44,14 +44,14 @@ defmodule Behaviour do
   """
 
   @doc """
-  Define a function callback according to the given type specification.
+  Defines a function callback according to the given type specification.
   """
   defmacro defcallback(spec) do
     do_defcallback(split_spec(spec, quote(do: term)), __CALLER__)
   end
 
   @doc """
-  Define a macro callback according to the given type specification.
+  Defines a macro callback according to the given type specification.
   """
   defmacro defmacrocallback(spec) do
     do_defmacrocallback(split_spec(spec, quote(do: Macro.t)), __CALLER__)

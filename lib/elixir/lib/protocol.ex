@@ -114,7 +114,7 @@ defmodule Protocol do
   end
 
   @doc """
-  Derive the `protocol` for `module` with the given options.
+  Derives the `protocol` for `module` with the given options.
   """
   defmacro derive(protocol, module, options \\ []) do
     quote do
@@ -126,7 +126,7 @@ defmodule Protocol do
   ## Consolidation
 
   @doc """
-  Extract all protocols from the given paths.
+  Extracts all protocols from the given paths.
 
   The paths can be either a char list or a string. Internally
   they are worked on as char lists, so passing them as lists
@@ -155,7 +155,7 @@ defmodule Protocol do
   end
 
   @doc """
-  Extract all types implemented for the given protocol from
+  Extracts all types implemented for the given protocol from
   the given paths.
 
   The paths can be either a char list or a string. Internally

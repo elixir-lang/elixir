@@ -526,7 +526,7 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new
+  Updates a value in `dict` by calling `fun` on the value to get a new
   value. An exception is generated if `key` is not present in the dict.
 
   ## Examples
@@ -543,7 +543,7 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new value. If
+  Updates a value in `dict` by calling `fun` on the value to get a new value. If
   `key` is not present in `dict` then `initial` will be stored as the first
   value.
 
@@ -640,7 +640,7 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal using `===`.
+  Checks if two dicts are equal using `===`.
 
   Notice this function is polymorphic as it compares dicts of any
   type. Each dict implementation also provides an `equal?` function,

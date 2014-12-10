@@ -785,7 +785,7 @@ defmodule File do
   end
 
   @doc """
-  Remove files and directories recursively at the given `path`.
+  Removes files and directories recursively at the given `path`.
   Symlinks are not followed but simply removed, non-existing
   files are simply ignored (i.e. doesn't make this function fail).
 

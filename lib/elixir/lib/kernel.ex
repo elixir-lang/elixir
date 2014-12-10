@@ -451,7 +451,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Return the biggest of the two given terms according to
+  Returns the biggest of the two given terms according to
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
 
@@ -469,7 +469,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Return the smallest of the two given terms according to
+  Returns the smallest of the two given terms according to
   Erlang's term ordering. If the terms compare equal, the
   first one is returned.
 
@@ -1068,7 +1068,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Get the element at the zero-based `index` in `tuple`.
+  Gets the element at the zero-based `index` in `tuple`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1396,7 +1396,7 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Inspect the given argument according to the `Inspect` protocol.
+  Inspects the given argument according to the `Inspect` protocol.
   The second argument is a keywords list with options to control
   inspection.
 
@@ -1865,7 +1865,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Convert the argument to a list according to the List.Chars protocol.
+  Converts the argument to a list according to the List.Chars protocol.
 
   ## Examples
 

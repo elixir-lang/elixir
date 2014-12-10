@@ -383,7 +383,7 @@ defmodule String do
     {acc, grapheme <> rest}
 
   @doc """
-  Convert all characters on the given string to uppercase.
+  Converts all characters on the given string to uppercase.
 
   ## Examples
 
@@ -401,7 +401,7 @@ defmodule String do
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Convert all characters on the given string to lowercase.
+  Converts all characters on the given string to lowercase.
 
   ## Examples
 
@@ -1265,7 +1265,7 @@ defmodule String do
   end
 
   @doc """
-  Check if `string` matches the given regular expression.
+  Checks if `string` matches the given regular expression.
 
   ## Examples
 
@@ -1282,7 +1282,7 @@ defmodule String do
   end
 
   @doc """
-  Check if `string` contains any of the given `contents`.
+  Checks if `string` contains any of the given `contents`.
 
   `matches` can be either a single string or a list of strings.
 

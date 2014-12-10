@@ -65,7 +65,7 @@ defmodule Module do
 
     * `@behaviour`   (notice the British spelling)
 
-      Specify an OTP or user-defined behaviour.
+      Specifies an OTP or user-defined behaviour.
 
       ### Example
 
@@ -77,7 +77,7 @@ defmodule Module do
 
     * `@compile`
 
-      Define options for module compilation that are passed to the Erlang
+      Defines options for module compilation that are passed to the Erlang
       compiler.
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
@@ -100,7 +100,7 @@ defmodule Module do
 
     * `@doc`
 
-      Provide documentation for the function or macro that follows the
+      Provides documentation for the function or macro that follows the
       attribute.
 
       Accepts a string (often a heredoc) or `false` where `@doc false` will
@@ -127,7 +127,7 @@ defmodule Module do
 
     * `@file`
 
-      Change the filename used in stacktraces for the function or macro that
+      Changes the filename used in stacktraces for the function or macro that
       follows the attribute.
 
       Accepts a string. Can be used more than once.
@@ -144,7 +144,7 @@ defmodule Module do
 
     * `@moduledoc`
 
-      Provide documentation for the current module.
+      Provides documentation for the current module.
 
       Accepts a string (which is often a heredoc) or `false` where
       `@moduledoc false` will make the module invisible to the
@@ -252,7 +252,7 @@ defmodule Module do
 
     * `@external_resource`
 
-      Specify an external resource to the current module.
+      Specifies an external resource to the current module.
 
       Many times a module embeds information from an external file. This
       attribute allows the module to annotate which external resources
@@ -308,7 +308,7 @@ defmodule Module do
   def __info__(kind)
 
   @doc """
-  Check if a module is open, i.e. it is currently being defined
+  Checks if a module is open, i.e. it is currently being defined
   and its attributes and functions can be modified.
   """
   def open?(module) do
@@ -640,7 +640,7 @@ defmodule Module do
   end
 
   @doc """
-  Return all functions defined in `module`.
+  Returns all functions defined in `module`.
 
   ## Examples
 
@@ -842,7 +842,7 @@ defmodule Module do
   end
 
   @doc """
-  Split the given module name into binary parts.
+  Splits the given module name into binary parts.
 
   ## Examples
 
