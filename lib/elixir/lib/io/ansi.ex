@@ -95,9 +95,8 @@ defmodule IO.ANSI do
   defsequence :blink_off, 25
 
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
-  colors = Enum.zip(0..(length(colors)-1), colors)
 
-  for {code, color} <- colors do
+  for {color, code} <- Enum.with_index(colors) do
     @doc "Sets foreground color to #{color}"
     defsequence color, code + 30
 
