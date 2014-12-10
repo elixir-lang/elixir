@@ -1416,7 +1416,7 @@ defmodule Enum do
   end
 
   @doc """
-  Reverses the collection in the range from initial position `first` 
+  Reverses the collection in the range from initial position `first`
   through `count` elements. If `count` is greater than the size of
   the rest of the collection, then this function will reverse the rest
   of the collection.
@@ -1428,7 +1428,7 @@ defmodule Enum do
 
   """
   def reverse_slice(coll, first, count) when first >= 0 and count >= 0 do
-    {_, _, acc1, acc2, acc3} = 
+    {_, _, acc1, acc2, acc3} =
       reduce(coll, {first, count, [], [], []}, fn(entry, {first, count, acc1, acc2, acc3}) ->
         cond do
           first > 0 ->
@@ -1582,7 +1582,7 @@ defmodule Enum do
   @doc """
   Returns a subset list of the given collection. Drops elements
   until element position `start`, then takes `count` elements.
-  
+
   If the count is greater than collection length, it returns as
   much as possible. If zero, then it returns `[]`.
 
@@ -1599,7 +1599,7 @@ defmodule Enum do
 
   """
   @spec slice(t, integer, non_neg_integer) :: list
-  
+
   def slice(_coll, _start, 0), do: []
 
   def slice(coll, start, count) when start < 0 do
@@ -1767,7 +1767,7 @@ defmodule Enum do
   """
   @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) :: list when mapped_element: element
   def sort_by(collection, mapper, sorter \\ &<=/2) do
-    collection 
+    collection
     |> map(&{&1, mapper.(&1)})
     |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
     |> map(&elem(&1, 0))
@@ -1913,7 +1913,7 @@ defmodule Enum do
   @spec take_every(t, non_neg_integer) :: list
   def take_every(_collection, 0), do: []
   def take_every([], _nth), do: []
-  
+
   def take_every(collection, nth) when is_integer(nth) and nth > 0 do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], :first}}, R.take_every(nth))
@@ -1981,6 +1981,32 @@ defmodule Enum do
     {_, {list, _}} =
       Enumerable.reduce(collection, {:cont, {[], []}}, R.uniq(fun))
     :lists.reverse(list)
+  end
+
+  @doc """
+  Opposite of `Enum.zip/2`; takes a list of two-element tuples and returns a
+  tuple with two lists, each of which is formed by the first and second element
+  of each tuple, respectively.
+
+  This function fails unless `coll` is or can be converted into a list of
+  tuples with *exactly* two elements in each tuple.
+
+  ## Examples
+
+      iex> Enum.unzip([{:a, 1}, {:b, 2}, {:c, 3}])
+      {[:a, :b, :c], [1, 2, 3]}
+
+      iex> Enum.unzip(%{a: 1, b: 2})
+      {[:a, :b], [1, 2]}
+
+  """
+  @spec unzip(t) :: {list(element), list(element)}
+  def unzip(coll) do
+    {list1, list2} = reduce(coll, {[], []}, fn({el1, el2}, {list1, list2}) ->
+      {[el1|list1], [el2|list2]}
+    end)
+
+    {:lists.reverse(list1), :lists.reverse(list2)}
   end
 
   @doc """
