@@ -16,6 +16,7 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   --cookie \"cookie\" Sets a cookie for this distributed node
   --hidden          Makes a hidden node
   --detached        Starts the Erlang VM detached from console
+  --werl            Uses Erlang's Windows shell GUI (Windows only)
   --no-halt         Does not halt the Erlang VM after execution
 
 ** Options marked with (*) can be given more than once
@@ -35,6 +36,7 @@ readlink_f () {
 }
 
 MODE="elixir"
+ERL_EXEC="erl"
 ERL=""
 I=1
 
@@ -71,6 +73,9 @@ while [ $I -le $# ]; do
         eval "VAL=\${$I}"
         ERL="$ERL "$VAL""
         ;;
+    --werl)
+        USE_WERL=true
+        ;;
     *)
         break
         ;;
@@ -89,11 +94,15 @@ if [ "$OS" != "Windows_NT" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
 fi
 
+if [ "$OS" = "Windows_NT" ] && [ $USE_WERL ]; then
+    ERL_EXEC="werl"
+fi
+
 if [ -z "$ERL_PATH" ]; then
   if [ -f "$SCRIPT_PATH/../releases/RELEASES" ] && [ -f "$SCRIPT_PATH/erl" ]; then
-    ERL_PATH="$SCRIPT_PATH"/erl
+    ERL_PATH="$SCRIPT_PATH"/"$ERL_EXEC"
   else
-    ERL_PATH=erl
+    ERL_PATH="$ERL_EXEC"
   fi
 fi
 
