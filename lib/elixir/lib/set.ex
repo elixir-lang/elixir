@@ -142,7 +142,7 @@ defmodule Set do
   end
 
   @doc """
-  Check if two sets are equal using `===`.
+  Checks if two sets are equal using `===`.
 
   Notice this function is polymorphic as it compares sets of
   any type. Each set implementation also provides an `equal?`

@@ -55,7 +55,7 @@ defprotocol Range.Iterator do
   def next(first, range)
 
   @doc """
-  Count how many items are in the range.
+  Counts how many items are in the range.
   """
   def count(first, range)
 end

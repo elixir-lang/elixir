@@ -184,7 +184,7 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escape a URI.
+  Percent-escapes a URI.
   Accepts `predicate` function as an argument to specify if char can be left as is.
 
   ## Example
@@ -198,7 +198,7 @@ defmodule URI do
   end
 
   @doc """
-  Encode a string as "x-www-urlencoded".
+  Encodes a string as "x-www-urlencoded".
 
   ## Example
 
@@ -227,7 +227,7 @@ defmodule URI do
   defp hex(n), do: <<n + ?A - 10>>
 
   @doc """
-  Percent-unescape a URI.
+  Percent-unescapes a URI.
 
   ## Examples
 
@@ -243,7 +243,7 @@ defmodule URI do
   end
 
   @doc """
-  Decode a string as "x-www-urlencoded".
+  Decodes a string as "x-www-urlencoded".
 
   ## Examples
 

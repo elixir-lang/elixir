@@ -89,7 +89,7 @@ defmodule Version do
   end
 
   @doc """
-  Check if the given version matches the specification.
+  Checks if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
   Raises a `Version.InvalidRequirementError` exception if `requirement` is not
@@ -165,7 +165,7 @@ defmodule Version do
   end
 
   @doc """
-  Parse a version string into a `Version`.
+  Parses a version string into a `Version`.
 
   ## Examples
 
@@ -190,7 +190,7 @@ defmodule Version do
   end
 
   @doc """
-  Parse a version requirement string into a `Version.Requirement`.
+  Parses a version requirement string into a `Version.Requirement`.
 
   ## Examples
 

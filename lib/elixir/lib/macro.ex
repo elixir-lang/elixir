@@ -370,7 +370,7 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Unescape the given chars according to the map given.
+  Unescapes the given chars according to the map given.
 
   Check `unescape_string/1` if you want to use the same map
   as Elixir single- and double-quoted strings.
@@ -414,7 +414,7 @@ defmodule Macro do
   end
 
   @doc """
-  Unescape the given tokens according to the default map.
+  Unescapes the given tokens according to the default map.
 
   Check `unescape_string/1` and `unescape_string/2` for more
   information about unescaping.
@@ -430,7 +430,7 @@ defmodule Macro do
   end
 
   @doc """
-  Unescape the given tokens according to the given map.
+  Unescapes the given tokens according to the given map.
 
   Check `unescape_tokens/1` and `unescape_string/2` for more information.
   """

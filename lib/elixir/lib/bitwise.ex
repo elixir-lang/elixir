@@ -21,7 +21,7 @@ defmodule Bitwise do
   """
 
   @doc """
-  Allow a developer to use this module in their programs with
+  Allows a developer to use this module in their programs with
   the following options:
 
     * `:only_operators` - include only operators

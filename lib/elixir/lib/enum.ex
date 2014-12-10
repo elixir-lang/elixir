@@ -372,7 +372,7 @@ defmodule Enum do
   end
 
   @doc """
-  Given an enumerable of enumerables, concatenate the enumerables into a single list.
+  Given an enumerable of enumerables, concatenates the enumerables into a single list.
 
   ## Examples
 
@@ -1940,7 +1940,7 @@ defmodule Enum do
   end
 
   @doc """
-  Convert `collection` to a list.
+  Converts `collection` to a list.
 
   ## Examples
 
