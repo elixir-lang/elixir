@@ -268,7 +268,7 @@ defmodule EnumTest.List do
     # corner cases, independent of the seed
     assert_raise Enum.EmptyError, fn -> Enum.sample([]) end
     assert Enum.sample([1]) == 1
-    
+
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
@@ -440,6 +440,17 @@ defmodule EnumTest.List do
     assert Enum.zip([], [1]) == []
     assert Enum.zip([1], []) == []
     assert Enum.zip([], [])  == []
+  end
+
+  test :unzip do
+    assert Enum.unzip([{:a, 1}, {:b, 2}, {:c, 3}]) == {[:a, :b, :c], [1, 2, 3]}
+    assert Enum.unzip([]) == {[], []}
+    assert Enum.unzip(%{a: 1, b: 2}) == {[:a, :b], [1, 2]}
+    assert Enum.unzip([foo: "a", bar: "b"]) == {[:foo, :bar], ["a", "b"]}
+
+    assert_raise FunctionClauseError, fn -> Enum.unzip([{:a, 1}, {:b, 2, "foo"}]) end
+    assert_raise FunctionClauseError, fn -> Enum.unzip([{1, 2, {3, {4, 5}}}]) end
+    assert_raise FunctionClauseError, fn -> Enum.unzip([1, 2, 3]) end
   end
 
   test :with_index do
