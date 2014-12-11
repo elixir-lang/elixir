@@ -1427,6 +1427,7 @@ defmodule Enum do
       [1, 2, 6, 5, 4, 3]
 
   """
+  @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
   def reverse_slice(coll, first, count) when first >= 0 and count >= 0 do
     {_, _, acc1, acc2, acc3} =
       reduce(coll, {first, count, [], [], []}, fn(entry, {first, count, acc1, acc2, acc3}) ->
