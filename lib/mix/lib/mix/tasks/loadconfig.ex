@@ -6,12 +6,14 @@ defmodule Mix.Tasks.Loadconfig do
   @moduledoc """
   Loads and persists the given configuration.
 
-  In case no configuration file is given, it
-  loads the project one at "config/config.exs".
+  In case no configuration file is given, it loads the project
+  one at "config/config.exs" if it exists. Keep in mind though
+  the "config/config.exs" file is always loaded by the CLI and
+  invoking it is only required in cases you are starting Mix
+  manually.
 
-  This task is automatically reenabled, so it
-  can be called multiple times to load different
-  configs.
+  This task is automatically reenabled, so it can be called
+  multiple times to load different configs.
   """
 
   @spec run(OptionParser.argv) :: :ok
