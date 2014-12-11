@@ -801,9 +801,8 @@ defmodule EnumTest.Range do
   end
 
   test :min do
-    assert Enum.min([1]) == 1
-    assert Enum.min([1, 2, 3]) == 1
-    assert Enum.min([[], :a, {}]) == :a
+    assert Enum.min(1..1) == 1
+    assert Enum.min(1..3) == 1
   end
 
   test :min_by do
