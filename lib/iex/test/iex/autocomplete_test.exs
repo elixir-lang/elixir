@@ -7,47 +7,54 @@ defmodule IEx.AutocompleteTest do
     IEx.Autocomplete.expand(Enum.reverse expr)
   end
 
-  test :erlang_module_simple_completion do
-    assert expand(':z') == {:yes, 'lib.', []}
+  test :erlang_module_completion do
+    assert expand(':zl') == {:yes, 'ib.', []}
   end
 
   test :erlang_module_no_completion do
-    assert expand(':x') == {:no, '', []}
-    assert expand('x.Foo') == {:no, '', []}
-  end
-
-  test :erlang_module_common_prefix_completion do
-    assert expand(':us') == {:yes, 'er', []}
+    assert expand(':unknown') == {:no, '', []}
   end
 
   test :erlang_module_multiple_values_completion do
     {:yes, '', list} = expand(':user')
-    assert length(list) > 1
+    assert 'user' in list
+    assert 'user_drv' in list
   end
 
-  test :elixir_simple_completion do
+  test :erlang_root_completion do
+    {:yes, '', list} = expand(':')
+    assert is_list(list)
+    assert 'lists' in list
+  end
+
+  test :elixir_proxy do
+    {:yes, '', list} = expand('E')
+    assert 'Elixir' in list
+  end
+
+  test :elixir_completion do
     assert expand('En') == {:yes, 'um', []}
     assert expand('Enumera') == {:yes, 'ble.', []}
   end
 
-  test :elixir_auto_completion_with_self do
+  test :elixir_completion_with_self do
     assert expand('Enumerable') == {:yes, '.', []}
   end
 
-  test :elixir_auto_completion_on_modules_from_load_path do
-    assert expand('Str') == {:yes, [], ['String', 'StringIO', 'Stream']}
+  test :elixir_completion_on_modules_from_load_path do
+    assert expand('Str') == {:yes, [], ['Stream', 'String', 'StringIO']}
     assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MatchError']}
     assert expand('Dic') == {:yes, 't.', []}
-    assert expand('Ex')  == {:yes, [], ['Exception', 'ExUnit']}
+    assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception']}
   end
 
   test :elixir_no_completion do
     assert expand('.')   == {:no, '', []}
     assert expand('Xyz') == {:no, '', []}
+    assert expand('x.Foo') == {:no, '', []}
   end
 
   test :elixir_root_submodule_completion do
-    _ = [foo: 1][:foo]
     assert expand('Elixir.Acce') == {:yes, 'ss.', []}
   end
 
@@ -59,52 +66,43 @@ defmodule IEx.AutocompleteTest do
     assert expand('IEx.Xyz') == {:no, '', []}
   end
 
-  test :elixir_function_completion do
+  test :function_completion do
     assert expand('System.ve') == {:yes, 'rsion', []}
     assert expand(':ets.fun2') == {:yes, 'ms', []}
   end
 
-  test :elixir_function_completion_with_arity do
+  test :function_completion_with_arity do
     assert expand('String.printable?')  == {:yes, '', ['printable?/1']}
     assert expand('String.printable?/') == {:yes, '', ['printable?/1']}
   end
 
-  test :elixir_macro_completion do
+  test :macro_completion do
     {:yes, '', list} = expand('Kernel.is_')
     assert is_list(list)
   end
 
-  test :elixir_root_completion do
+  test :imports_completion do
     {:yes, '', list} = expand('')
     assert is_list(list)
     assert 'h/1' in list
     assert 'unquote/1' in list
+    assert 'pwd/0' in list
   end
 
-  test :elixir_kernel_completion do
+  test :kernel_import_completion do
     assert expand('defstru') == {:yes, 'ct', []}
+    assert expand('put_') == {:yes, '', ['put_elem/3', 'put_in/2', 'put_in/3']}
   end
 
-  test :elixir_special_form_completion do
+  test :kernel_special_form_completion do
     assert expand('unquote_spl') == {:yes, 'icing', []}
-  end
-
-  test :elixir_proxy do
-    {:yes, '', list} = expand('E')
-    assert 'Elixir' in list
-  end
-
-  test :elixir_erlang_module_root_completion do
-    {:yes, '', list} = expand(':')
-    assert is_list(list)
-    assert 'lists' in list
   end
 
   test :completion_inside_expression do
     assert expand('1 En') == {:yes, 'um', []}
     assert expand('Test(En') == {:yes, 'um', []}
-    assert expand('Test :z') == {:yes, 'lib.', []}
-    assert expand('[:z') == {:yes, 'lib.', []}
-    assert expand('{:z') == {:yes, 'lib.', []}
+    assert expand('Test :zl') == {:yes, 'ib.', []}
+    assert expand('[:zl') == {:yes, 'ib.', []}
+    assert expand('{:zl') == {:yes, 'ib.', []}
   end
 end
