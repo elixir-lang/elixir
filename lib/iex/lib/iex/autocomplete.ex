@@ -87,8 +87,7 @@ defmodule IEx.Autocomplete do
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
     if prefix in [0, length] do
-      entries = Enum.reduce(entries, [], fn e, acc -> to_entries(e) ++ acc end)
-      yes("", entries)
+      yes("", Enum.flat_map(entries, &to_entries/1))
     else
       yes(:binary.part(first.name, prefix, length-prefix), [])
     end
@@ -111,13 +110,13 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_require(mod, hint) do
-    format_expansion module_funs(mod, hint), hint
+    format_expansion match_module_funs(mod, hint), hint
   end
 
   defp expand_import(hint) do
-    funs = module_funs(IEx.Helpers, hint) ++
-           module_funs(Kernel, hint) ++
-           module_funs(Kernel.SpecialForms, hint)
+    funs = match_module_funs(IEx.Helpers, hint) ++
+           match_module_funs(Kernel, hint) ++
+           match_module_funs(Kernel.SpecialForms, hint)
     format_expansion funs, hint
   end
 
@@ -128,10 +127,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_erlang_modules(hint) do
-    for {mod, _} <- :code.all_loaded,
-        mod = Atom.to_string(mod),
-        not match?("Elixir." <> _, mod),
-        String.starts_with?(mod, hint) do
+    for mod <- match_modules(hint, true) do
       %{kind: :module, name: mod, type: :erlang}
     end
   end
@@ -140,44 +136,47 @@ defmodule IEx.Autocomplete do
 
   defp expand_elixir_modules(list, hint) do
     mod = Module.concat(list)
-    format_expansion elixir_aliases(mod, hint, list == []) ++ module_funs(mod, hint), hint
+    format_expansion match_elixir_modules(mod, hint, list == []) ++
+                     match_module_funs(mod, hint), hint
   end
 
-  defp elixir_aliases(mod, hint, root) do
-    modname = Atom.to_string(mod)
-    depth   = length(String.split(modname, ".")) + 1
-    base    = modname <> "." <> hint
+  defp match_elixir_modules(module, hint, root) do
+    module = Atom.to_string(module)
+    depth  = length(String.split(module, ".")) + 1
+    base   = module <> "." <> hint
 
-    Enum.reduce modules_as_lists(root), [], fn(m, acc) ->
-      if String.starts_with?(m, base) do
-        tokens = String.split(m, ".")
-        if length(tokens) == depth do
-          name = List.last(tokens)
-          [%{kind: :module, type: :elixir, name: name}|acc]
-        else
-          acc
-        end
-      else
-        acc
-      end
+    for mod <- match_modules(base, root),
+        tokens = String.split(mod, "."),
+        length(tokens) == depth do
+      name = List.last(tokens)
+      %{kind: :module, type: :elixir, name: name}
     end
   end
 
-  defp modules_as_lists(true) do
-    ["Elixir.Elixir"] ++ modules_as_lists(false)
+  ## Helpers
+
+  defp match_modules(hint, root) do
+    get_modules(root)
+    |> :lists.usort()
+    |> Enum.drop_while(& not String.starts_with?(&1, hint))
+    |> Enum.take_while(& String.starts_with?(&1, hint))
   end
 
-  defp modules_as_lists(false) do
+  defp get_modules(true) do
+    ["Elixir.Elixir"] ++ get_modules(false)
+  end
+
+  defp get_modules(false) do
     modules = Enum.map(:code.all_loaded, fn({m, _}) -> Atom.to_string(m) end)
 
     if :code.get_mode() === :interactive do
-      Enum.uniq(modules ++ loaded_applications_as_lists())
+      modules ++ get_modules_from_applications()
     else
       modules
     end
   end
 
-  defp loaded_applications_as_lists do
+  defp get_modules_from_applications do
     for {app, _, _} <- :application.loaded_applications,
         {_, modules} = :application.get_key(app, :modules),
              module <- modules do
@@ -185,12 +184,10 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  ## Helpers
-
-  defp module_funs(mod, hint) do
+  defp match_module_funs(mod, hint) do
     case ensure_loaded(mod) do
       {:module, _} ->
-        falist = get_funs(mod)
+        falist = get_module_funs(mod)
 
         list = Enum.reduce falist, [], fn {f, a}, acc ->
           case :lists.keyfind(f, 1, acc) do
@@ -203,13 +200,13 @@ defmodule IEx.Autocomplete do
             name = Atom.to_string(fun),
             String.starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
-        end
+        end |> :lists.sort()
       _ ->
         []
     end
   end
 
-  defp get_funs(mod) do
+  defp get_module_funs(mod) do
     if function_exported?(mod, :__info__, 1) do
       if docs = Code.get_docs(mod, :docs) do
         for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
@@ -231,7 +228,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_entries(%{kind: :function, name: name, arities: arities}) do
-    for a <- arities, do: "#{name}/#{a}"
+    for a <- :lists.sort(arities), do: "#{name}/#{a}"
   end
 
   defp to_uniq_entries(%{kind: :module}) do
