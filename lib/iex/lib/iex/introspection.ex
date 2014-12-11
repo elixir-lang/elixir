@@ -27,6 +27,8 @@ defmodule IEx.Introspection do
             _ ->
               IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
           end
+          t(module)
+          s(module)
         else
           IO.puts IEx.color(:eval_error, "#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
         end
@@ -122,6 +124,7 @@ defmodule IEx.Introspection do
 
       if doc do
         print_doc(doc)
+        s(mod, fun, arity)
         :ok
       else
         :not_found
