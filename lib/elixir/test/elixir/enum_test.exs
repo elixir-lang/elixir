@@ -836,10 +836,6 @@ defmodule EnumTest.Range do
   end
 
   test :reverse do
-    assert Enum.reverse([]) == []
-    assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
-    assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
-
     assert Enum.reverse(0..0) == [0]
     assert Enum.reverse(1..3) == [3, 2, 1]
     assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
