@@ -1428,20 +1428,16 @@ defmodule Enum do
 
   """
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
-  def reverse_slice(coll, first, count) when first >= 0 and count >= 0 do
-    {_, _, acc1, acc2, acc3} =
-      reduce(coll, {first, count, [], [], []}, fn(entry, {first, count, acc1, acc2, acc3}) ->
-        cond do
-          first > 0 ->
-            {first - 1, count, [entry|acc1], acc2, acc3}
-          first == 0 and count > 0 ->
-            {0, count - 1, acc1, [entry|acc2], acc3}
-          true ->
-            {0, 0, acc1, acc2, [entry|acc3]}
-        end
-      end)
+  def reverse_slice(coll, start, count) when start >= 0 and count >= 0 do
+    list = reverse(coll)
+    length = length(list)
+    count = Kernel.min(count, length - start)
 
-    :lists.reverse(acc1, acc2 ++ :lists.reverse(acc3))
+    if count > 0 do
+      reverse_slice(list, length, start + count, count, [])
+    else
+      :lists.reverse(list)
+    end
   end
 
   @doc """
@@ -2285,6 +2281,24 @@ defmodule Enum do
 
   defp sort_merge_2(h1, t1, [], m, _fun, _bool), do:
     :lists.reverse(t1, [h1 | m])
+
+  ## reverse_slice
+
+  defp reverse_slice(rest, idx, idx, count, acc) do
+    {slice, rest} = head_slice(rest, count, [])
+
+    :lists.reverse(rest, :lists.reverse(slice, acc))
+  end
+
+  defp reverse_slice([elem | rest], idx, start, count, acc) do
+    reverse_slice(rest, idx - 1, start, count, [elem | acc])
+  end
+
+  defp head_slice(rest, 0, acc), do: {acc, rest}
+
+  defp head_slice([elem | rest], count, acc) do
+    head_slice(rest, count - 1, [elem | acc])
+  end
 
   ## split
 
