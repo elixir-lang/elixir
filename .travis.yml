@@ -9,10 +9,6 @@ sudo: false
 
 script: "make compile && rm -rf .git && make test"
 
-matrix:
-  allow_failures:
-    - otp_release: 17.3
-
 notifications:
   irc: "irc.freenode.org#elixir-lang"
   recipients:
