@@ -69,12 +69,12 @@ defmodule Integer do
   """
   @spec undigits([integer], integer) :: integer
   def undigits(digits, base \\ 10) when is_integer(base) do
-    do_undigits(:lists.reverse(digits), base, 1)
+    do_undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, _acc), do: 0
+  defp do_undigits([], _base, acc), do: acc
   defp do_undigits([digit | tail], base, acc) do
-    digit * acc + do_undigits(tail, base, acc * base)
+    do_undigits(tail, base, acc * base + digit)
   end
 
   @doc """
