@@ -4,11 +4,15 @@
 
 * Bug fixes
   * [Elixir] Don't leave spurious processes and stale data when the parallel compiler fails
+  * [IEx] Improve autocompletion for Erlang/Elixir based on loaded applications
   * [IO] Make `IO.ANSI.Docs` readable on white background
   * [IO] Fix `IO.ANSI.Docs` handling of `*`, `**`, `_` where they would be activated in the middle of words
   * [Mix] Don't show hex update message on mix `local.hex`
   * [Mix] Ensure tasks are properly underscored and camelized
   * [Mix] Ensure Mix does not use ANSI escapes on Windows unless it ANSI is enabled
+  * [Mix] Improve error message when updating archives on Windows
+  * [Mix] Only shutdown Logger if the Mix application is being actually started
+  * [Regex] Fix Regex.replace/4 failures when the number of substitutions in pattern is more than the number of matches and support `\g{...}` patterns
   * [String] Fix LFCR being treated as a grapheme instead of CRLF
 
 ## v1.0.2 (2014-10-21)
