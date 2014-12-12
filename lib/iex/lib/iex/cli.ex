@@ -53,12 +53,9 @@ defmodule IEx.CLI do
     if tty_works? do
       :user_drv.start([:"tty_sl -c -e", tty_args])
     else
-      :application.set_env(:stdlib, :shell_prompt_func, 
+      :application.set_env(:stdlib, :shell_prompt_func,
                            {__MODULE__, :prompt})
       :user.start()
-      unless match? {:win32, _}, :os.type do
-        IO.puts "Warning: could not run smart terminal, falling back to dumb one"
-      end
       local_start()
     end
   end
