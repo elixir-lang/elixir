@@ -490,8 +490,8 @@ validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
                   "unsupported option ~ts given to ~s", ['Elixir.Kernel':inspect(Key), Kind])
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
-validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
+validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
+  compile_error(Meta, ?m(E, file), "invalid options for ~s, expected a keyword list", [Kind]).
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of

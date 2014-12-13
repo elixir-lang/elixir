@@ -324,6 +324,13 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: invalid arguments for quote",
       'quote 1'
+    assert_compile_fail CompileError,
+      "nofile:1: invalid options for quote, expected a keyword list",
+      '''
+      quote :foo do
+        foo
+      end
+      '''
   end
 
   test :invalid_calls do
