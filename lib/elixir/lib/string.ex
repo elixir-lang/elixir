@@ -1038,7 +1038,7 @@ defmodule String do
 
   If the offset is greater than string length, then it returns `""`.
 
-  Remember this function works with unicode codepoints and consider
+  Remember this function works with unicode codepoints and considers
   the slices to represent codepoints offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
@@ -1106,11 +1106,11 @@ defmodule String do
   If the start of the range is not a valid offset for the given
   string or if the range is in reverse order, returns `""`.
 
-  If the start or end of the range are negative, the whole string
-  is traversed first in order to convert the negative indexes into
+  If the start or end of the range is negative, the whole string
+  is traversed first in order to convert the negative indices into
   positive ones.
 
-  Remember this function works with unicode codepoints and consider
+  Remember this function works with unicode codepoints and considers
   the slices to represent codepoints offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
@@ -1195,7 +1195,7 @@ defmodule String do
 
   @doc """
   Returns `true` if `string` starts with any of the prefixes given, otherwise
-  `false`. `prefixes` can be either a single prefix or a list of prefixes.
+  returns `false`. `prefixes` can be either a single prefix or a list of prefixes.
 
   ## Examples
 
@@ -1229,7 +1229,7 @@ defmodule String do
 
   @doc """
   Returns `true` if `string` ends with any of the suffixes given, otherwise
-  `false`. `suffixes` can be either a single suffix or a list of suffixes.
+  returns `false`. `suffixes` can be either a single suffix or a list of suffixes.
 
   ## Examples
 
@@ -1346,7 +1346,7 @@ defmodule String do
   Converts a string to an atom.
 
   Currently Elixir does not support conversions from strings
-  which contains Unicode codepoints greater than 0xFF.
+  which contain Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
 
@@ -1385,7 +1385,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a integer whose text representation is `string`.
+  Returns an integer whose text representation is `string`.
 
   Inlined by the compiler.
 
