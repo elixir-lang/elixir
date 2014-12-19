@@ -11,9 +11,9 @@ defmodule EEx.SmartEngine do
       "1"
 
   In the example above, we can access the value `foo` under
-  the binding `assigns` using `@foo`. This is useful when
-  a template, after compiled, may receive different assigns
-  and the developer don't want to recompile it for each
+  the binding `assigns` using `@foo`. This is useful because
+  a template, after being compiled, can receive different
+  assigns and would not require recompilation for each
   variable set.
 
   Assigns can also be used when compiled to a function:
