@@ -194,10 +194,10 @@ defmodule Mix.Tasks.New do
 
    embed_text :gitignore, """
    /_build
+   /cover
    /deps
    erl_crash.dump
    *.ez
-   /cover
    """
 
   embed_template :mixfile, """
