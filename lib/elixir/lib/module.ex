@@ -684,7 +684,7 @@ defmodule Module do
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    for tuple <- tuples do
+    :lists.foreach(fn tuple ->
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
           {name, arity} = tuple
@@ -692,10 +692,10 @@ defmodule Module do
         clause ->
           :elixir_def.delete_definition(module, tuple)
 
-          neighbours = if loaded?(Module.LocalsTracker) do
-            Module.LocalsTracker.yank(module, tuple)
-          else
+          neighbours = if :elixir_compiler.get_opt(:internal) do
             []
+          else
+            Module.LocalsTracker.yank(module, tuple)
           end
 
           old    = :elixir_def_overridable.overridable(module)
@@ -704,7 +704,7 @@ defmodule Module do
           end, {1, clause, neighbours, false}, old)
           :elixir_def_overridable.overridable(module, merged)
       end
-    end
+    end, tuples)
   end
 
   @doc """
@@ -967,6 +967,4 @@ defmodule Module do
       raise ArgumentError,
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
-
-  defp loaded?(module), do: is_tuple :code.is_loaded(module)
 end

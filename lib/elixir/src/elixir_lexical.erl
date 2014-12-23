@@ -10,8 +10,8 @@
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 run(File, Dest, Callback) ->
-  case code:is_loaded(?tracker) of
-    {file, _} ->
+  case elixir_compiler:get_opt(internal) of
+    false ->
       {ok, Pid} = ?tracker:start_link(Dest),
       try
         Callback(Pid)
@@ -20,7 +20,7 @@ run(File, Dest, Callback) ->
         warn_unused_imports(File, Pid),
         unlink(Pid), ?tracker:stop(Pid)
       end;
-    false ->
+    true ->
       Callback(nil)
   end.
 
