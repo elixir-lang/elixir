@@ -72,12 +72,12 @@ rewrite_clause(Else, _) -> Else.
 %% TRACKING
 
 setup(Module) ->
-  case code:is_loaded(?tracker) of
-    {file, _} ->
+  case elixir_compiler:get_opt(internal) of
+    false ->
       {ok, Pid} = ?tracker:start_link(),
       ets:insert(elixir_module:data_table(Module), {?attr, Pid}),
       ok;
-    false ->
+    true ->
       ok
   end.
 
