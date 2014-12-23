@@ -202,8 +202,8 @@ process_external_resource(Line, File, Value) ->
 %% Types
 
 types_form(Line, File, Data, Forms0) ->
-  case code:ensure_loaded('Elixir.Kernel.Typespec') of
-    {module, 'Elixir.Kernel.Typespec'} ->
+  case elixir_compiler:get_opt(internal) of
+    false ->
       Types0 = get_typespec(Data, type) ++ get_typespec(Data, typep)
                                         ++ get_typespec(Data, opaque),
 
@@ -215,7 +215,7 @@ types_form(Line, File, Data, Forms0) ->
       Forms2 = export_types_attributes(Types1, Forms1),
       typedocs_attributes(Types1, Forms2);
 
-    {error, _} ->
+    true ->
       Forms0
   end.
 
@@ -246,8 +246,8 @@ typedocs_attributes(Types, Forms) ->
 %% Specs
 
 specs_form(Data, Defmacro, Defmacrop, Forms) ->
-  case code:ensure_loaded('Elixir.Kernel.Typespec') of
-    {module, 'Elixir.Kernel.Typespec'} ->
+  case elixir_compiler:get_opt(internal) of
+    false ->
       Specs0 = get_typespec(Data, spec) ++ get_typespec(Data, callback),
       Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Specs0],
@@ -255,8 +255,7 @@ specs_form(Data, Defmacro, Defmacrop, Forms) ->
                                translate_macro_spec(Spec, Defmacro, Defmacrop)
                              end, Specs1),
       specs_attributes(Forms, Specs2);
-
-    {error, _} ->
+    true ->
       Forms
   end.
 

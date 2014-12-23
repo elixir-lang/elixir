@@ -19,11 +19,12 @@ defmodule Protocol do
   defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
     arity = length(args)
 
-    type_args = for _ <- :lists.seq(2, arity), do: quote(do: term)
+    type_args = :lists.map(fn _ -> quote(do: term) end,
+                           :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    call_args = for i <- :lists.seq(2, arity),
-                  do: {String.to_atom(<<?x, i + 64>>), [], __MODULE__}
+    call_args = :lists.map(fn i -> {String.to_atom(<<?x, i + 64>>), [], __MODULE__} end,
+                           :lists.seq(2, arity))
     call_args = [quote(do: t) | call_args]
 
     quote do
@@ -440,7 +441,7 @@ defmodule Protocol do
       end
 
       # Define the implementation for builtins.
-      for {guard, mod} <- builtin do
+      :lists.foreach(fn {guard, mod} ->
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
@@ -449,7 +450,7 @@ defmodule Protocol do
             false -> any_impl_for
           end
         end
-      end
+      end, builtin)
 
       @spec impl_for!(term) :: atom() | no_return()
       Kernel.def impl_for!(data) do
@@ -609,16 +610,17 @@ defmodule Protocol do
   @doc false
   def __spec__?(module, name, arity) do
     signature = {name, arity}
-    specs     = Module.get_attribute(module, :spec)
 
+    specs = Module.get_attribute(module, :spec)
     found =
-      for {:spec, expr, caller} <- specs,
-        Kernel.Typespec.spec_to_signature(expr) == signature do
-        Kernel.Typespec.define_spec(:callback, expr, caller)
-        true
-      end
+      :lists.map(fn {:spec, expr, caller} ->
+        if Kernel.Typespec.spec_to_signature(expr) == signature do
+          Kernel.Typespec.define_spec(:callback, expr, caller)
+          true
+        end
+      end, specs)
 
-    found != []
+    :lists.any(& &1 == true, found)
   end
 
   ## Helpers

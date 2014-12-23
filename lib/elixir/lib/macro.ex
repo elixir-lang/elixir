@@ -833,7 +833,7 @@ defmodule Macro do
         :elixir_lexical.record_remote(receiver, env.lexical_tracker)
         {receiver, true}
       aliases ->
-        aliases = for alias <- aliases, do: elem(do_expand_once(alias, env), 0)
+        aliases = :lists.map(&elem(do_expand_once(&1, env), 0), aliases)
 
         case :lists.all(&is_atom/1, aliases) do
           true ->

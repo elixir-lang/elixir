@@ -47,10 +47,10 @@ store(Module, Function, GenerateName) ->
         false -> {Kind, Name}
       end,
 
-      case code:is_loaded('Elixir.Module.LocalsTracker') of
-        {_, _} ->
+      case elixir_compiler:get_opt(internal) of
+        false ->
           'Elixir.Module.LocalsTracker':reattach(Module, Kind, {Name, Arity}, Neighbours);
-        _ ->
+        true ->
           ok
       end,
 

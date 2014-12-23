@@ -44,7 +44,7 @@ define({Line,E}, Kind, Call, Expr) ->
 unless_loaded(Fun, Args, Callback) ->
   case code:is_loaded(?kernel) of
     {_, _} -> apply(?kernel, Fun, Args);
-    false   -> Callback()
+    false  -> Callback()
   end.
 
 env() ->
