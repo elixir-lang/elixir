@@ -278,6 +278,10 @@ defmodule URI do
   @doc """
   Parses a URI into components.
 
+  This parsing is not strict and therefore does not validate the URI.
+  See the examples section below of how `URI.parse/1` can be used to
+  parse a wide range of relative URIs.
+
   URIs have portions that are handled specially for the particular
   scheme of the URI. For example, http and https have different
   default ports. Such values can be accessed and registered via
@@ -289,6 +293,18 @@ defmodule URI do
       %URI{scheme: "http", path: "/", query: nil, fragment: nil,
            authority: "elixir-lang.org", userinfo: nil,
            host: "elixir-lang.org", port: 80}
+
+      iex> URI.parse("//elixir-lang.org/")
+      %URI{authority: "elixir-lang.org", fragment: nil, host: "elixir-lang.org",
+           path: "/", port: nil, query: nil, scheme: nil, userinfo: nil}
+
+      iex> URI.parse("/foo/bar")
+      %URI{authority: nil, fragment: nil, host: nil, path: "/foo/bar",
+           port: nil, query: nil, scheme: nil, userinfo: nil}
+
+      iex> URI.parse("foo/bar")
+      %URI{authority: nil, fragment: nil, host: nil, path: "foo/bar",
+           port: nil, query: nil, scheme: nil, userinfo: nil}
 
   """
   def parse(%URI{} = uri), do: uri
