@@ -312,7 +312,7 @@ defmodule URI do
 
   def parse(s) when is_binary(s) do
     # From http://tools.ietf.org/html/rfc3986#appendix-B
-    regex = ~r/^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/
+    regex = ~r/^(([a-z][a-z0-9\+\-\.]*):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/i
     parts = nillify(Regex.run(regex, s))
 
     destructure [_, _, scheme, _, authority, path, _, query, _, fragment], parts

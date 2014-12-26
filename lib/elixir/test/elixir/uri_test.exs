@@ -149,10 +149,12 @@ defmodule URITest do
   end
 
   test :parse_bad_uris do
-    assert URI.parse("https:??@?F?@#>F//23/")
     assert URI.parse("")
-    assert URI.parse(":https")
-    assert URI.parse("https")
+    assert URI.parse("https:??@?F?@#>F//23/")
+
+    assert URI.parse(":https").path == ":https"
+    assert URI.parse("https").path == "https"
+    assert URI.parse("ht\0tps://foo.com").path == "ht\0tps://foo.com"
   end
 
   test :ipv6_addresses do
