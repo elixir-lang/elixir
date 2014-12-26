@@ -33,7 +33,7 @@ defmodule Mix.ShellTest do
     assert_received {:mix_shell, :yes?, ["hello?"]}
 
     assert Mix.shell.cmd("echo first") == 0
-    
+
     nl = os_newline
     assert_received {:mix_shell, :run, ["first" <> ^nl]}
   end
@@ -44,8 +44,13 @@ defmodule Mix.ShellTest do
     assert capture_io(fn -> Mix.shell.info "abc" end) ==
            "abc\n"
 
-    assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
-           "#{IO.ANSI.red}#{IO.ANSI.bright}def#{IO.ANSI.reset}\n"
+    if IO.ANSI.enabled? do
+      assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
+             "#{IO.ANSI.red}#{IO.ANSI.bright}def#{IO.ANSI.reset}\n"
+    else
+      assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
+             "def\n"
+    end
 
     assert capture_io("world", fn -> assert Mix.shell.prompt("hello?") == "world" end) ==
            "hello? "
