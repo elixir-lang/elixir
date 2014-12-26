@@ -274,16 +274,17 @@ defmodule URI do
   defp hex_to_dec(_n), do: throw(:malformed_uri)
 
   @doc """
-  Parses a URI into components.
+  Parses a well-formed URI reference into its components.
 
-  This parsing is not strict and therefore does not validate the URI.
-  See the examples section below of how `URI.parse/1` can be used to
-  parse a wide range of relative URIs.
+  Note this function expects a well-formed URI and does not perform
+  any validation. See the examples section below of how `URI.parse/1`
+  can be used to parse a wide range of relative URIs.
 
-  URIs have portions that are handled specially for the particular
-  scheme of the URI. For example, http and https have different
-  default ports. Such values can be accessed and registered via
-  `URI.default_port/1` and `URI.default_port/2`.
+  This function uses the parsing regular expression as defined
+  in the Appendix B of RFC3986.
+
+  When a URI is given without a port, the values registered via
+  `URI.default_port/1` and `URI.default_port/2` are used.
 
   ## Examples
 
