@@ -96,30 +96,97 @@ defmodule Integer do
 
   """
   @spec parse(binary) :: {integer, binary} | :error
-  def parse(<< ?-, bin :: binary >>) do
-    case do_parse(bin) do
+  def parse(binary) do
+    parse(binary, 10)
+  end
+
+  @doc """
+  Converts a binary from a text representation of an integer
+  in base `base` to the corresponding integer.
+
+  If succesfull, returns a tuple of the form `{integer, remainder_of_binary}`.
+  Otherwise `:error`.
+
+  Raises an error if `base` is less than 2 or more than 36.
+
+  ## Examples
+
+      iex > Integer.parse("34", 10)
+      {34, ""}
+
+      iex > Integer.parse("f4", 16)
+      {244, ""}
+
+      iex > Integer.parse("Awww++", 36)
+      {509216, "++"}
+
+      iex > Integer.parse("fab", 10)
+      :error
+
+      iex > Integer.parse("a2", 38)
+      ** (ArgumentError) invalid base 38
+
+  """
+  @spec parse(binary, integer) :: {integer, binary} | :error | no_return
+  def parse(binary, base) when base in 2..36 do
+    parse_in_base(binary, base)
+  end
+
+  def parse(_, base) do
+    raise ArgumentError, "invalid base #{base}"
+  end
+
+  defp parse_in_base(<< ?-, bin :: binary >>, base) do
+    case do_parse(bin, base) do
       :error -> :error
       {number, remainder} -> {-number, remainder}
     end
   end
 
-  def parse(<< ?+, bin :: binary >>) do
-    do_parse(bin)
+  defp parse_in_base(<< ?+, bin :: binary >>, base) do
+    do_parse(bin, base)
   end
 
-  def parse(bin) when is_binary(bin) do
-    do_parse(bin)
+  defp parse_in_base(bin, base) when is_binary(bin) do
+    do_parse(bin, base)
   end
 
-  defp do_parse(<< char, bin :: binary >>) when char in ?0..?9, do: do_parse(bin, char - ?0)
-  defp do_parse(_), do: :error
-
-  defp do_parse(<< char, rest :: binary >>, acc) when char in ?0..?9 do
-    do_parse rest, 10 * acc + (char - ?0)
+  defp do_parse(<< char, bin :: binary >>, base) do
+    if valid_digit_in_base?(char, base) do
+      do_parse(bin, base, parse_digit(char, base))
+    else
+      :error
+    end
   end
 
-  defp do_parse(bitstring, acc) do
+  defp do_parse(_, _), do: :error
+
+  defp do_parse(<< char, rest :: binary >>, base, acc) do
+    if valid_digit_in_base?(char, base) do
+      do_parse(rest, base, base * acc + parse_digit(char, base))
+    else
+      {acc, << char, rest :: binary >>}
+    end
+  end
+
+  defp do_parse(bitstring, _, acc) do
     {acc, bitstring}
+  end
+
+  defp parse_digit(char, _) do
+    cond do
+      char in ?0..?9 -> char - ?0
+      char in ?A..?Z -> char - ?A + 10
+      true           -> char - ?a + 10
+    end
+  end
+
+  defp valid_digit_in_base?(char, base) do
+    if base <= 10 do
+      char in ?0..(?0 + base - 1)
+    else
+      char in ?0..?9 or char in ?A..(?A + base - 11) or char in ?a..(?a + base - 11)
+    end
   end
 
   @doc """
