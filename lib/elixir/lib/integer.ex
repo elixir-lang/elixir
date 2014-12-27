@@ -128,12 +128,12 @@ defmodule Integer do
 
   """
   @spec parse(binary, integer) :: {integer, binary} | :error | no_return
-  def parse(binary, base) do
-    if base < 2 or base > 36 do
-      raise ArgumentError, "invalid base #{base}"
-    else
-      parse_in_base(binary, base)
-    end
+  def parse(binary, base) when base in 2..36 do
+    parse_in_base(binary, base)
+  end
+
+  def parse(_, base) do
+    raise ArgumentError, "invalid base #{base}"
   end
 
   defp parse_in_base(<< ?-, bin :: binary >>, base) do
