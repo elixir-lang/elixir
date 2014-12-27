@@ -56,5 +56,16 @@ defmodule IntegerTest do
     assert Integer.parse("--1") === :error
     assert Integer.parse("+-1") === :error
     assert Integer.parse("three") === :error
+
+    assert Integer.parse("12", 10) === {12, ""}
+    assert Integer.parse("-12", 12) === {-14, ""}
+    assert Integer.parse("12345678", 9) === {6053444, ""}
+    assert Integer.parse("3.14", 4) === {3, ".14"}
+    assert Integer.parse("64eb", 16) === {25835, ""}
+    assert Integer.parse("64eb", 10) === {64, "eb"}
+    assert Integer.parse("10", 2) === {2, ""}
+    assert Integer.parse("++4", 10) === :error
+    assert_raise ArgumentError, "invalid base 0", fn -> Integer.parse("2", 0) end
+    assert_raise ArgumentError, "invalid base 41", fn -> Integer.parse("2", 41) end
   end
 end
