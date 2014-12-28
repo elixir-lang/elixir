@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Archive.Uninstall do
         Mix.Task.run "archive"
       end
     else
-      Mix.raise "No archive was given to uninstall"
+      Mix.raise "No archive was given to archive.uninstall"
     end
   end
 end
