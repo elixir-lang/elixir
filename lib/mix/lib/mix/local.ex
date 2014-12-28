@@ -14,6 +14,15 @@ defmodule Mix.Local do
   end
 
   @doc """
+  The path for local escripts.
+
+  Check `mix escript` for info.
+  """
+  def escripts_path do
+    Path.join(Mix.Utils.mix_home, "escripts")
+  end
+
+  @doc """
   Appends archives paths into Erlang code path.
   """
   def append_archives do

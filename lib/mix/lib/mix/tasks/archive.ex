@@ -1,13 +1,13 @@
 defmodule Mix.Tasks.Archive do
   use Mix.Task
 
-  @shortdoc "Lists all archives"
+  @shortdoc "Lists installed archives"
 
   @moduledoc """
   Lists all installed archives.
 
   Archives are typically installed at `~/.mix/archives`
-  although the installation path can be customize by
+  although the installation path can be customized by
   setting the `MIX_ARCHIVES` environment variable.
 
   Since archives are specific to Elixir versions, it is
