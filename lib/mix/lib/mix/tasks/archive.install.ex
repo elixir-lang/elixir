@@ -6,8 +6,8 @@ defmodule Mix.Tasks.Archive.Install do
   @moduledoc """
   Installs an archive locally.
 
-  If no argument is supplied but there is an archive in the root
-  (created with `mix archive`), then the archive will be installed
+  If no argument is supplied but there is an archive in the project's root directory
+  (created with `mix archive.build`), then the archive will be installed
   locally. For example:
 
       mix do archive.build, archive.install
@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       mix archive.install http://example.com/foo.ez
 
-  After installed, the tasks in the archive are available locally:
+  After installation, the tasks in the archive are available locally:
 
       mix some_task
 
