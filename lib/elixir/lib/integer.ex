@@ -78,10 +78,15 @@ defmodule Integer do
   end
 
   @doc """
-  Converts a binary to an integer.
+  Converts a binary from a text representation of an integer
+  in an optional base `base` to the corresponding integer.
+
+  If the base `base` is not given, base 10 will be used.
 
   If successful, returns a tuple of the form `{integer, remainder_of_binary}`.
   Otherwise `:error`.
+
+  Raises an error if `base` is less than 2 or more than 36.
 
   ## Examples
 
@@ -94,40 +99,25 @@ defmodule Integer do
       iex> Integer.parse("three")
       :error
 
-  """
-  @spec parse(binary) :: {integer, binary} | :error
-  def parse(binary) do
-    parse(binary, 10)
-  end
-
-  @doc """
-  Converts a binary from a text representation of an integer
-  in base `base` to the corresponding integer.
-
-  If succesfull, returns a tuple of the form `{integer, remainder_of_binary}`.
-  Otherwise `:error`.
-
-  Raises an error if `base` is less than 2 or more than 36.
-
-  ## Examples
-
-      iex > Integer.parse("34", 10)
+      iex> Integer.parse("34", 10)
       {34, ""}
 
-      iex > Integer.parse("f4", 16)
+      iex> Integer.parse("f4", 16)
       {244, ""}
 
-      iex > Integer.parse("Awww++", 36)
+      iex> Integer.parse("Awww++", 36)
       {509216, "++"}
 
-      iex > Integer.parse("fab", 10)
+      iex> Integer.parse("fab", 10)
       :error
 
-      iex > Integer.parse("a2", 38)
+      iex> Integer.parse("a2", 38)
       ** (ArgumentError) invalid base 38
 
   """
   @spec parse(binary, integer) :: {integer, binary} | :error | no_return
+  def parse(binary, base \\ 10)
+  
   def parse(binary, base) when is_integer(base) and base in 2..36 do
     parse_in_base(binary, base)
   end
