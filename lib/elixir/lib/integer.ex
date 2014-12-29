@@ -128,7 +128,7 @@ defmodule Integer do
 
   """
   @spec parse(binary, integer) :: {integer, binary} | :error | no_return
-  def parse(binary, base) when base in 2..36 do
+  def parse(binary, base) when is_integer(base) and base in 2..36 do
     parse_in_base(binary, base)
   end
 
