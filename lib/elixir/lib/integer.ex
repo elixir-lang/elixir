@@ -99,19 +99,19 @@ defmodule Integer do
       iex> Integer.parse("three")
       :error
 
-      iex > Integer.parse("34", 10)
+      iex> Integer.parse("34", 10)
       {34, ""}
 
-      iex > Integer.parse("f4", 16)
+      iex> Integer.parse("f4", 16)
       {244, ""}
 
-      iex > Integer.parse("Awww++", 36)
+      iex> Integer.parse("Awww++", 36)
       {509216, "++"}
 
-      iex > Integer.parse("fab", 10)
+      iex> Integer.parse("fab", 10)
       :error
 
-      iex > Integer.parse("a2", 38)
+      iex> Integer.parse("a2", 38)
       ** (ArgumentError) invalid base 38
 
   """
