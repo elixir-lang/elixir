@@ -65,7 +65,12 @@ defmodule IntegerTest do
     assert Integer.parse("64eb", 10) === {64, "eb"}
     assert Integer.parse("10", 2) === {2, ""}
     assert Integer.parse("++4", 10) === :error
+
+    # Base should be in range 2..36
     assert_raise ArgumentError, "invalid base 0", fn -> Integer.parse("2", 0) end
     assert_raise ArgumentError, "invalid base 41", fn -> Integer.parse("2", 41) end
+
+    # Base should be an integer
+    assert_raise ArgumentError, "invalid base 10.2", fn -> Integer.parse("2", 10.2) end
   end
 end
