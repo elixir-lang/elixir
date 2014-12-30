@@ -59,6 +59,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       if Mix.Utils.copy_path!(src, archive, opts) do
         Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
+        Mix.Local.check_archive_elixir_version archive
       end
 
       true = Code.append_path(Mix.Archive.ebin(archive))
