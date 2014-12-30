@@ -42,7 +42,7 @@ defmodule Integer do
       [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
 
   """
-  @spec digits(non_neg_integer, non_neg_integer) :: [non_neg_integer]
+  @spec digits(non_neg_integer, pos_integer) :: [non_neg_integer]
   def digits(n, base \\ 10) when is_integer(n)    and n >= 0
                             and  is_integer(base) and base >= 2 do
     do_digits(n, base, [])
@@ -115,7 +115,7 @@ defmodule Integer do
       ** (ArgumentError) invalid base 38
 
   """
-  @spec parse(binary, integer) :: {integer, binary} | :error | no_return
+  @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
   
   def parse(binary, base) when is_integer(base) and base in 2..36 do
@@ -209,7 +209,7 @@ defmodule Integer do
 
   """
   @spec to_string(integer, 2..36) :: String.t
-  def to_string(some_integer, base) do
+  def to_string(some_integer, base) when is_integer(base) and base in 2..36 do
     :erlang.integer_to_binary(some_integer, base)
   end
 
@@ -242,7 +242,7 @@ defmodule Integer do
 
   """
   @spec to_char_list(integer, 2..36) :: char_list
-  def to_char_list(number, base) do
+  def to_char_list(number, base) when is_integer(base) and base in 2..36 do
     :erlang.integer_to_list(number, base)
   end
 end
