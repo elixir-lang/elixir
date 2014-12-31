@@ -247,6 +247,8 @@ do_warn(Warning) ->
 
 do_raise(none, File, Kind, Message) ->
   do_raise(0, File, Kind, Message);
+do_raise([Line, _, _], File, Kind, Message) when is_integer(Line) ->
+  do_raise(Line, File, Kind, Message);
 do_raise(Line, File, Kind, Message) when is_integer(Line), is_binary(File), is_binary(Message) ->
   try
     throw(ok)

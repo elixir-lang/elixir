@@ -542,7 +542,7 @@ map -> struct_op map_expr eol map_args : {'%', meta('$1'), ['$2', '$4']}.
 Erlang code.
 
 -define(id(Node), element(1, Node)).
--define(line(Node), element(2, Node)).
+-define(line(Node), hd(element(2, Node))).
 -define(exprs(Node), element(3, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
 
@@ -552,7 +552,8 @@ Erlang code.
 -import(lists, [reverse/1, reverse/2]).
 
 meta(Line, Counter) -> [{counter,Counter}|meta(Line)].
-meta(Line) when is_integer(Line) -> [{line,Line}];
+meta([Line, Column, EndColumn]) when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}];
+meta(Line) when is_integer(Line) -> [{line, Line}];
 meta(Node) -> meta(?line(Node)).
 
 %% Operators
@@ -726,8 +727,11 @@ to_block(Other) -> {'__block__', [], reverse(Other)}.
 
 %% Errors
 
+throw([Line, _, _], Error, Token) ->
+  throw({error, {Line, ?MODULE, [Error, Token]}});
 throw(Line, Error, Token) ->
   throw({error, {Line, ?MODULE, [Error, Token]}}).
+
 
 throw_no_parens_strict(Token) ->
   throw(?line(Token), "unexpected parenthesis. If you are making a "
