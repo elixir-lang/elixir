@@ -30,13 +30,16 @@ defmodule Mix.Tasks.ArchiveTest do
       Mix.Tasks.Archive.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
+      # Check that the version warning is printed after installation
+      version_error = "warning: the archive archive-0.1.0 requires Elixir \"~> 0.1.0\" but you are running on v#{System.version}"
+      assert_received {:mix_shell, :error, [^version_error]}
+
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
       assert to_char_list(archive) in :code.get_path
 
       # Load it!
       Mix.Local.append_archives
-      error = "warning: the archive archive-0.1.0 requires Elixir \"~> 0.1.0\" but you are running on v#{System.version}"
-      assert_received {:mix_shell, :error, [^error]}
+      assert_received {:mix_shell, :error, [^version_error]}
 
       # List it!
       Mix.Tasks.Local.run []
