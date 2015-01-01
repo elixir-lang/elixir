@@ -46,7 +46,12 @@ defmodule Mix.Tasks.Escript.Build do
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application` function in `mix.exs`.
 
-      Defaults to `true` for Elixir projects.
+      Defaults to `true` for Elixir projects, `false` for Erlang projects.
+
+      Note: if you set this to `false` for an Elixir project, you will have to add paths to Elixir's
+      `ebin` directories to `ERL_LIBS` environment variable when running the resulting escript, in
+      order for the code loader to be able to find `:elixir` application and its children
+      applications (if they are used).
 
     * `:consolidate_protocols` - if `true`, all protocols will be consolidated
       before being embedded into the escript.
