@@ -2890,11 +2890,9 @@ defmodule Kernel do
   type. When referring to another struct use `User.t`, not `%User{}`. Fields
   in the struct not included in the type defaults to `term`.
 
-  Private structs that are not used outside its module should use the private
-  type attribute `@typep`. Public structs whose internal structure is private
-  to the local module (you are not allowed to pattern match it or directly
-  access fields) should use the `@opaque` attribute. Structs whose internal
-  structure is public should use `@type`.
+  Structs whose internal structure is private to the local module (you are not
+  allowed to pattern match it or directly access fields) should use the `@opaque`
+  attribute. Structs whose internal structure is public should use `@type`.
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
