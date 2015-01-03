@@ -126,10 +126,10 @@ clean_exbeam:
 #==> Release tasks
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o docs/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc
-	$(Q) rm -rf docs
+	$(Q) rm -rf doc
 	$(call COMPILE_DOCS,Elixir,elixir,Kernel)
 	$(call COMPILE_DOCS,EEx,eex,EEx)
 	$(call COMPILE_DOCS,Mix,mix,Mix)
@@ -146,9 +146,8 @@ release_zip: compile
 	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE Makefile README.md VERSION
 
 release_docs: docs
-	cd ../docs
-	rm -rf ../docs/$(DOCS)
-	mv docs ../docs/$(DOCS)
+	rm -rf ../docs/$(DOCS)/*/
+	mv doc/* ../docs/$(DOCS)
 
 # This task requires aws-cli to be installed and set up for access to s3.hex.pm
 # See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html

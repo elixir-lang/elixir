@@ -1,6 +1,6 @@
 /.eunit
 /.release
-/docs
+/doc
 /ebin
 /lib/*/ebin/*
 /lib/*/tmp
