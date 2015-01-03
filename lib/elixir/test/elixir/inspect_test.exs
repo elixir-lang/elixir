@@ -299,6 +299,8 @@ defmodule Inspect.MapTest do
     assert_raise ArgumentError, msg, fn ->
       inspect(%Failing{})
     end
+
+    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _}|_] = System.stacktrace
   end
 
   test :exception do

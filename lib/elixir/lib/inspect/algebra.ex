@@ -185,6 +185,8 @@ defmodule Inspect.Algebra do
         Inspect.inspect(map, opts)
       rescue
         e ->
+          stacktrace = System.stacktrace
+
           # Because we try to raise a nice error message in case
           # we can't inspect a struct, there is a chance the error
           # message itself relies on the struct being printed, so
@@ -198,9 +200,10 @@ defmodule Inspect.Algebra do
               Process.put(:inspect_trap, true)
               res = Inspect.Map.inspect(map, opts)
               formatted = IO.iodata_to_binary(format(res, :infinity))
-              raise ArgumentError,
+              reraise ArgumentError,
                 "Got #{inspect e.__struct__} with message " <>
-                "\"#{Exception.message(e)}\" while inspecting #{formatted}"
+                "\"#{Exception.message(e)}\" while inspecting #{formatted}",
+                stacktrace
             after
               Process.delete(:inspect_trap)
             end
