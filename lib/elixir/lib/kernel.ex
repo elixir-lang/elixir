@@ -500,7 +500,7 @@ defmodule Kernel do
   @doc """
   Returns the node where the given argument is located.
   The argument can be a pid, a reference, or a port.
-  If the local node is not alive, `nonode@nohost` is returned.
+  If the local node is not alive, `:nonode@nohost` is returned.
 
   Allowed in guard tests. Inlined by the compiler.
   """
