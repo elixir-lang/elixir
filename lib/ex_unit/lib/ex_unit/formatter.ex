@@ -86,7 +86,7 @@ defmodule ExUnit.Formatter do
   end
 
   @doc """
-  Formats filters used to constain cases to be run.
+  Formats filters used to constrain cases to be run.
 
   ## Examples
 
