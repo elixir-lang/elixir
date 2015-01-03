@@ -216,7 +216,7 @@ defmodule Mix.Task do
   If the task or alias were already invoked, it does not
   run them again and simply aborts with `:noop`.
 
-  It may raise an exception if the an alias or a task can't
+  It may raise an exception if an alias or a task can't
   be found or the task is invalid. Check `get!/1` for more
   information.
   """
