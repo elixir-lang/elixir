@@ -10,7 +10,7 @@ defmodule Mix.Dep.Loader do
   are included as children.
 
   By default, it will filter all dependencies that does not match
-  current environment, behaviour can be overriden via options.
+  current environment, behaviour can be overridden via options.
 
   ## Options
 

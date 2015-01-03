@@ -24,7 +24,7 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert when value evalutes to false" do
+  test "assert when value evaluates to false" do
     try do
       "This should never be tested" = assert Value.falsy
     rescue
