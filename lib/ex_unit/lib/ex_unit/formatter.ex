@@ -97,8 +97,8 @@ defmodule ExUnit.Formatter do
   @spec format_filters(Keyword.t, atom) :: String.t
   def format_filters(filters, type) do
     case type do
-      :include -> "Including tags: #{inspect filters}"
-      :exclude -> "Excluding tags: #{inspect filters}"
+      :include -> "Including tags: #{safe_inspect filters}"
+      :exclude -> "Excluding tags: #{safe_inspect filters}"
     end
   end
 
@@ -107,7 +107,7 @@ defmodule ExUnit.Formatter do
   """
   def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
-    test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
+    test_info(with_counter(counter, "#{name} (#{safe_inspect case})"), formatter)
       <> test_location(with_location(tags), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
       <> format_stacktrace(stack, case, name, formatter)
@@ -118,7 +118,7 @@ defmodule ExUnit.Formatter do
   """
   def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
-    test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
+    test_case_info(with_counter(counter, "#{safe_inspect name}: "), formatter)
       <> format_kind_reason(kind, reason, width, formatter)
       <> format_stacktrace(stacktrace, name, nil, formatter)
   end
@@ -186,8 +186,16 @@ defmodule ExUnit.Formatter do
 
   defp inspect_multiline(expr, width) do
     expr
-    |> inspect(pretty: true, width: width)
+    |> safe_inspect(pretty: true, width: width)
     |> String.replace("\n", "\n" <> @inspect_padding)
+  end
+
+  defp safe_inspect(expr, opts \\ []) do
+    try do
+      inspect(expr, opts)
+    rescue
+      e -> "inspect failed: #{inspect e}"
+    end
   end
 
   defp make_into_lines(reasons, padding) do
