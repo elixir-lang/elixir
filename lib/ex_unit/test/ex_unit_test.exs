@@ -103,15 +103,17 @@ defmodule ExUnitTest do
   end
 
   test "it registers only the first test with any given name" do
-    defmodule TestWithSameNames do
-      use ExUnit.Case, async: false
+    capture_io :stderr, fn ->
+      defmodule TestWithSameNames do
+        use ExUnit.Case, async: false
 
-      test "same name, different outcome" do
-        assert 1 == 1
-      end
+        test "same name, different outcome" do
+          assert 1 == 1
+        end
 
-      test "same name, different outcome" do
-        assert 1 == 2
+        test "same name, different outcome" do
+          assert 1 == 2
+        end
       end
     end
 
