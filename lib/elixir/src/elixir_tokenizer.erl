@@ -115,12 +115,12 @@ tokenize(String, Line, Column, Opts) ->
  }).
 
 tokenize(String, Line, Opts) ->
-  tokenize(String, Line, 0, Opts).
+  tokenize(String, Line, 1, Opts).
 
 tokenize([], Line, Column, #elixir_tokenizer{terminators=[]}, Tokens) ->
   {ok, Line, Column, lists:reverse(Tokens)};
 
-tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, [StartLine, _, _]}|_]}, Tokens) ->
+tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, {StartLine, _, _}}|_]}, Tokens) ->
   End     = terminator(Start),
   Message = io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
   {error, {EndLine, Message, []}, [], Tokens};
@@ -129,15 +129,15 @@ tokenize([], EndLine, _Column, #elixir_tokenizer{terminators=[{Start, [StartLine
 
 tokenize([$0,$x,H|T], Line, Column, Scope, Tokens) when ?is_hex(H) ->
   {Rest, Number, Length} = tokenize_hex([H|T], []),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, [Line, Column, Column + 2 + Length], Number}|Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number}|Tokens]);
 
 tokenize([$0,$b,H|T], Line, Column, Scope, Tokens) when ?is_bin(H) ->
   {Rest, Number, Length} = tokenize_bin([H|T], []),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, [Line, Column, Column + 2 + Length], Number}|Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number}|Tokens]);
 
 tokenize([$0,$o,H|T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
   {Rest, Number, Length} = tokenize_octal([H|T], []),
-  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, [Line, Column, Column + 2 + Length], Number}|Tokens]);
+  tokenize(Rest, Line, Column + 2 + Length, Scope, [{number, {Line, Column, Column + 2 + Length}, Number}|Tokens]);
 
 % Comments
 
@@ -151,7 +151,7 @@ tokenize([$~,S,H,H,H|T] = Original, Line, Column, Scope, Tokens) when ?is_quote(
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, [Line, Column, NewColumn], S, Parts, Modifiers}|Tokens]);
+      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers}|Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -160,7 +160,7 @@ tokenize([$~,S,H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), 
   case elixir_interpolation:extract(Line, Column, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, [Line, Column, NewColumn], S, Parts, Modifiers}|Tokens]);
+      tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers}|Tokens]);
     {error, Reason} ->
       Sigil = [$~,S,H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
@@ -171,50 +171,50 @@ tokenize([$~,S,H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), 
 tokenize([$?,$\\,$x,${,A,B,C,D,E,F,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,E,F,$}]),
-  tokenize(T, Line, Column + 12, Scope, [{number, [Line, Column, Column + 12], Char}|Tokens]);
+  tokenize(T, Line, Column + 12, Scope, [{number, {Line, Column, Column + 12}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,D,E,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,E,$}]),
-  tokenize(T, Line, Column + 11, Scope, [{number, [Line, Column, Column + 11], Char}|Tokens]);
+  tokenize(T, Line, Column + 11, Scope, [{number, {Line, Column, Column + 11}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,D,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,$}]),
-  tokenize(T, Line, Column + 10, Scope, [{number, [Line, Column, Column + 10], Char}|Tokens]);
+  tokenize(T, Line, Column + 10, Scope, [{number, {Line, Column, Column + 10}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   Char = escape_char([$\\,$x,${,A,B,C,$}]),
-  tokenize(T, Line, Column + 9, Scope, [{number, [Line, Column, Column + 9], Char}|Tokens]);
+  tokenize(T, Line, Column + 9, Scope, [{number, {Line, Column, Column + 9}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,$x,${,A,B,$}]),
-  tokenize(T, Line, Column + 8, Scope, [{number, [Line, Column, Column + 8], Char}|Tokens]);
+  tokenize(T, Line, Column + 8, Scope, [{number, {Line, Column, Column + 8}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
   Char = escape_char([$\\,$x,${,A,$}]),
-  tokenize(T, Line, Column + 7, Scope, [{number, [Line, Column, Column + 7], Char}|Tokens]);
+  tokenize(T, Line, Column + 7, Scope, [{number, {Line, Column, Column + 7}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,A,B|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,$x,A,B]),
-  tokenize(T, Line, Column + 6, Scope, [{number, [Line, Column, Column + 6], Char}|Tokens]);
+  tokenize(T, Line, Column + 6, Scope, [{number, {Line, Column, Column + 6}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,A|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
   Char = escape_char([$\\,$x,A]),
-  tokenize(T, Line, Column + 5, Scope, [{number, [Line, Column, Column + 5], Char}|Tokens]);
+  tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
 
 tokenize([$?, $\\, $\\|T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map($\\),
-  tokenize(T, Line, Column + 5, Scope, [{number, [Line, Column, Column + 5], Char}|Tokens]);
+  tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
 
 tokenize([$?,$\\,H|T], Line, Column, Scope, Tokens) ->
-  Char = elixir_interpolation:unescape_map(H), % @ elixir_interpolation:unescape_map
-  tokenize(T, Line, Column + 4, Scope, [{number, [Line, Column, Column + 4], Char}|Tokens]);
+  Char = elixir_interpolation:unescape_map(H),
+  tokenize(T, Line, Column + 4, Scope, [{number, {Line, Column, Column + 4}, Char}|Tokens]);
 
 tokenize([$?,Char|T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
@@ -225,7 +225,7 @@ tokenize([$?,Char|T], Line, Column, Scope, Tokens) ->
     false ->
       ok
   end,
-  tokenize(T, Line, Column + 2, Scope, [{number, [Line, Column, Column + 2], Char}|Tokens]);
+  tokenize(T, Line, Column + 2, Scope, [{number, {Line, Column, Column + 2}, Char}|Tokens]);
 
 % Heredocs
 
@@ -245,14 +245,14 @@ tokenize([$'|T], Line, Column, Scope, Tokens) ->
 % Atoms
 
 tokenize([$:,H|T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of % @ elixir_interpolation:extract
+  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
       Unescaped = unescape_tokens(Parts),
       Key = case Scope#elixir_tokenizer.existing_atoms_only of
         true  -> atom_safe;
         false -> atom_unsafe
       end,
-      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, [Line, Column, NewColumn], Unescaped}|Tokens]);
+      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column, NewColumn}, Unescaped}|Tokens]);
     {error, Reason} ->
       interpolation_error(Reason, Original, Tokens, " (for atom starting at line ~B)", [Line])
   end;
@@ -261,7 +261,7 @@ tokenize([$:,T|String] = Original, Line, Column, Scope, Tokens) when ?is_atom_st
   {Rest, Part, Length} = tokenize_atom([T|String], []),
   case unsafe_to_atom(Part, Line, Scope) of
     {ok, Atom} ->
-      tokenize(Rest, Line, Column + 1 + Length, Scope, [{atom, [Line, Column, Column + 1 + Length], Atom}|Tokens]);
+      tokenize(Rest, Line, Column + 1 + Length, Scope, [{atom, {Line, Column, Column + 1 + Length}, Atom}|Tokens]);
     {error, Reason} ->
       {error, Reason, Original, Tokens}
   end;
@@ -269,53 +269,53 @@ tokenize([$:,T|String] = Original, Line, Column, Scope, Tokens) when ?is_atom_st
 % %% Special atom identifiers / operators
 
 tokenize(":..." ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, [Line, Column, Column + 4], '...'}|Tokens]);
+  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '...'}|Tokens]);
 tokenize(":<<>>" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 5, Scope, [{atom, [Line, Column, Column + 5], '<<>>'}|Tokens]);
+  tokenize(Rest, Line, Column + 5, Scope, [{atom, {Line, Column, Column + 5}, '<<>>'}|Tokens]);
 tokenize(":%{}" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, [Line, Column, Column + 4], '%{}'}|Tokens]);
+  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, '%{}'}|Tokens]);
 tokenize(":%" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 2, Scope, [{atom, [Line, Column, Column + 2], '%'}|Tokens]);
+  tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, Column + 2}, '%'}|Tokens]);
 tokenize(":{}" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 3, Scope, [{atom, [Line, Column, Column + 3], '{}'}|Tokens]);
+  tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, Column + 3}, '{}'}|Tokens]);
 
 tokenize("...:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, [Line, Column, Column + 4], '...'}|Tokens]);
+  tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, Column + 4}, '...'}|Tokens]);
 tokenize("<<>>:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, [Line, Column, Column + 5], '<<>>'}|Tokens]);
+  tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, {Line, Column, Column + 5}, '<<>>'}|Tokens]);
 tokenize("%{}:" ++ Rest, Column, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, [Line, Column, Column + 4], '%{}'}|Tokens]);
+  tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, Column + 4}, '%{}'}|Tokens]);
 tokenize("%:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, [Line, Column, Column + 2], '%'}|Tokens]);
+  tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, Column + 2}, '%'}|Tokens]);
 tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 3, Scope, [{kw_identifier, [Line, Column, Column + 3], '{}'}|Tokens]);
+  tokenize(Rest, Line, Column + 3, Scope, [{kw_identifier, {Line, Column, Column + 3}, '{}'}|Tokens]);
 
 % ## Three Token Operators
 tokenize([$:,T1,T2,T3|Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
     ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, [Line, Column, Column + 4], list_to_atom([T1,T2,T3])}|Tokens]);
+  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, list_to_atom([T1,T2,T3])}|Tokens]);
 
 % ## Two Token Operators
 tokenize([$:,T1,T2|Rest], Line, Column, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
     ?type_op(T1, T2) ->
-  tokenize(Rest, Line, Column + 3, Scope, [{atom, [Line, Column, Column + 3], list_to_atom([T1,T2])}|Tokens]);
+  tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, Column + 3}, list_to_atom([T1,T2])}|Tokens]);
 
 % ## Single Token Operators
 tokenize([$:,T|Rest], Line, Column, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
     ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $. ->
-  tokenize(Rest, Line, Column + 2, Scope, [{atom, [Line, Column, Column + 2], list_to_atom([T])}|Tokens]);
+  tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, Column + 2}, list_to_atom([T])}|Tokens]);
 
 % End of line
 
 tokenize(";" ++ Rest, Line, Column, Scope, []) ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', [Line, Column, Column + 1]}]);
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}}]);
 
 tokenize(";" ++ Rest, Line, Column, Scope, [Top|_] = Tokens) when element(1, Top) /= ';' ->
-  tokenize(Rest, Line, Column + 1, Scope, [{';', [Line, Column, Column + 1]}|Tokens]);
+  tokenize(Rest, Line, Column + 1, Scope, [{';', {Line, Column, Column + 1}}|Tokens]);
 
 tokenize("\\" = Original, Line, _Column, _Scope, Tokens) ->
   {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
@@ -327,16 +327,16 @@ tokenize("\\\r\n" = Original, Line, _Column, _Scope, Tokens) ->
   {error, {Line, "invalid escape \\ at end of file", []}, Original, Tokens};
 
 tokenize("\\\n" ++ Rest, Line, _Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 0, Scope, Tokens);
+  tokenize(Rest, Line + 1, 1, Scope, Tokens);
 
 tokenize("\\\r\n" ++ Rest, Line, _Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 0, Scope, Tokens);
+  tokenize(Rest, Line + 1, 1, Scope, Tokens);
 
 tokenize("\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 0, Scope, eol(Line, Column, Tokens));
+  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
 
 tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line + 1, 0, Scope, eol(Line, Column, Tokens));
+  tokenize(Rest, Line + 1, 1, Scope, eol(Line, Column, Tokens));
 
 % Stand-alone tokens
 
@@ -345,7 +345,7 @@ tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 3, Scope, [Token|Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 2, Scope, add_token_with_nl({assoc_op, [Line, Column, Column + 2], '=>'}, Tokens));
+  tokenize(Rest, Line, Column + 2, Scope, add_token_with_nl({assoc_op, {Line, Column, Column + 2}, '=>'}, Tokens));
 
 % ## Three token operators
 tokenize([T1,T2,T3|Rest], Line, Column, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
@@ -368,12 +368,12 @@ tokenize([T1,T2,T3|Rest], Line, Column, Scope, Tokens) when ?hat_op3(T1, T2, T3)
 
 % ## Containers + punctuation tokens
 tokenize([T,T|Rest], Line, Column, Scope, Tokens) when T == $<; T == $> ->
-  Token = {list_to_atom([T,T]), [Line, Column, Column + 2]},
+  Token = {list_to_atom([T,T]), {Line, Column, Column + 2}},
   handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when T == $(;
     T == ${; T == $}; T == $[; T == $]; T == $); T == $, ->
-  Token = {list_to_atom([T]), [Line, Column, Column + 1]},
+  Token = {list_to_atom([T]), {Line, Column, Column + 1}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
 % ## Two Token Operators
@@ -434,8 +434,8 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 tokenize([$%|T], Line, Column, Scope, Tokens) ->
   case strip_space(T, 0, Column + 1) of
-    {[${|_] = Rest, Counter, Offset} -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%{}', [Line, Column, Column + 1]}|Tokens]);
-    {Rest, Counter, Offset}          -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%', [Line, Column, Column + 1]}|Tokens])
+    {[${|_] = Rest, Counter, Offset} -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
+    {Rest, Counter, Offset}          -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%', {Line, Column, Column + 1}}|Tokens])
   end;
 
 tokenize([$.|T], Line, Column, Scope, Tokens) ->
@@ -446,7 +446,7 @@ tokenize([$.|T], Line, Column, Scope, Tokens) ->
 
 tokenize([H|_] = String, Line, Column, Scope, Tokens) when ?is_digit(H) ->
   {Rest, Number, Length} = tokenize_number(String, [], false),
-  tokenize(Rest, Line, Column + Length, Scope, [{number, [Line, Column, Column + Length], Number}|Tokens]);
+  tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number}|Tokens]);
 
 % Aliases
 
@@ -456,9 +456,9 @@ tokenize([H|_] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H) ->
     {ok, Atom} ->
       case Rest of
         [$:|T] when ?is_space(hd(T)) ->
-          tokenize(T, Line, Column + Length + 1, Scope, [{kw_identifier, [Line, Column, Column + Length + 1], Atom}|Tokens]);
+          tokenize(T, Line, Column + Length + 1, Scope, [{kw_identifier, {Line, Column, Column + Length + 1}, Atom}|Tokens]);
         _ ->
-          tokenize(Rest, Line, Column + Length, Scope, [{aliases, [Line, Column, Column + Length], [Atom]}|Tokens])
+          tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]}|Tokens])
       end;
     {error, Reason} ->
       {error, Reason, Original, Tokens}
@@ -468,11 +468,11 @@ tokenize([H|_] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H) ->
 
 tokenize([H|_] = String, Line, Column, Scope, Tokens) when ?is_downcase(H); H == $_ ->
   case tokenize_any_identifier(String, Line, Column, Scope, Tokens) of
-    {keyword, Rest, {_, [_, _, EndColumn]} = Check, T} ->
+    {keyword, Rest, {_, {_, _, EndColumn}} = Check, T} ->
       handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
-    {keyword, Rest, {_, [_, _, EndColumn], _} = Check, T} ->
+    {keyword, Rest, {_, {_, _, EndColumn}, _} = Check, T} ->
       handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
-    {identifier, Rest, {_, [_, _, EndColumn], _} = Token} ->
+    {identifier, Rest, {_, {_, _, EndColumn}, _} = Token} ->
       tokenize(Rest, Line, EndColumn, Scope, [Token|Tokens]);
     {error, _, _, _} = Error ->
       Error
@@ -503,8 +503,8 @@ strip_horizontal_space(T, Counter) ->
 
 strip_space(T, Counter, Column) ->
   case strip_horizontal_space(T) of
-    {"\r\n" ++ Rest, _} -> strip_space(Rest, Counter + 1, 0);
-    {"\n" ++ Rest, _}   -> strip_space(Rest, Counter + 1, 0);
+    {"\r\n" ++ Rest, _} -> strip_space(Rest, Counter + 1, 1);
+    {"\n" ++ Rest, _}   -> strip_space(Rest, Counter + 1, 1);
     {Rest, Length}      -> {Rest, Counter, Column + Length}
   end.
 
@@ -526,7 +526,7 @@ handle_char($\v) -> {"\\v", "vertical tab"};
 handle_char(_)  -> false.
 
 escape_char(List) ->
-  <<Char/utf8>> = elixir_interpolation:unescape_chars(list_to_binary(List)), % @ elixir_interpolation:unescape_chars
+  <<Char/utf8>> = elixir_interpolation:unescape_chars(list_to_binary(List)),
   Char.
 
 %% Handlers
@@ -534,7 +534,7 @@ escape_char(List) ->
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), [Line, Column, NewColumn], unescape_tokens(Parts)},
+      Token = {string_type(H), {Line, Column, NewColumn}, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token|Tokens]);
     {error, Reason} ->
       {error, Reason, [H, H, H] ++ T, Tokens}
@@ -550,28 +550,28 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         true  -> kw_identifier_safe;
         false -> kw_identifier_unsafe
       end,
-      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, [Line, Column, NewColumn], Unescaped}|Tokens]);
+      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column, NewColumn}, Unescaped}|Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), [Line, Column, NewColumn], unescape_tokens(Parts)},
+      Token = {string_type(H), {Line, Column, NewColumn}, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token|Tokens])
   end.
 
 handle_unary_op([$:|Rest], Line, Column, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, [Line, Column, Column + atom_length(Op)], Op}|Tokens]);
+  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
 
 handle_unary_op(Rest, Line, Column, Kind, Op, Scope, Tokens) ->
   case strip_horizontal_space(Rest) of
-    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, [Line, Column, Column + atom_length(Op)], Op}|Tokens]);
-    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{Kind, [Line, Column, Column + atom_length(Op)], Op}|Tokens])
+    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
+    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{Kind, {Line, Column, Column + atom_length(Op)}, Op}|Tokens])
   end.
 
 handle_op([$:|Rest], Line, Column, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, [Line, Column, Column + atom_length(Op)], Op}|Tokens]);
+  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
 
 handle_op(Rest, Line, Column, Kind, Op, Scope, Tokens) ->
   case strip_horizontal_space(Rest) of
-    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, [Line, Column, Column + atom_length(Op)], Op}|Tokens]);
-    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, add_token_with_nl({Kind, [Line, Column, Column + atom_length(Op)], Op}, Tokens))
+    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
+    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, add_token_with_nl({Kind, {Line, Column, Column + atom_length(Op)}, Op}, Tokens))
   end.
 
 % ## Three Token Operators
@@ -595,7 +595,7 @@ handle_dot([$.,T|Rest], Line, Column, DotColumn, Scope, Tokens) when
 
 % ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$.,$(|Rest], Line, Column, DotColumn, Scope, Tokens) ->
-  tokenize([$(|Rest], Line, Column + 2, Scope, add_token_with_nl({dot_call_op, [Line, DotColumn, DotColumn + 1], '.'}, Tokens));
+  tokenize([$(|Rest], Line, Column + 2, Scope, add_token_with_nl({dot_call_op, {Line, DotColumn, DotColumn + 1}, '.'}, Tokens));
 
 handle_dot([$.,H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
@@ -603,7 +603,7 @@ handle_dot([$.,H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?is
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
           Token = check_call_identifier(identifier, Line, Column, Atom, Rest),
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token|add_token_with_nl({'.', [Line, DotColumn, DotColumn + 1]}, Tokens)]);
+          tokenize(Rest, NewLine, NewColumn, Scope, [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}
       end;
@@ -612,11 +612,11 @@ handle_dot([$.,H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?is
   end;
 
 handle_dot([$.|Rest], Line, Column, DotColumn, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 1, Scope, add_token_with_nl({'.', [Line, DotColumn, DotColumn + 1]}, Tokens)).
+  tokenize(Rest, Line, Column + 1, Scope, add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)).
 
 handle_call_identifier(Rest, Line, Column, DotColumn, Op, Scope, Tokens) ->
-  {_, [_, _, NewColumn], _} = Token = check_call_identifier(identifier, Line, Column, Op, Rest),
-  tokenize(Rest, Line, NewColumn, Scope, [Token|add_token_with_nl({'.', [Line, DotColumn, DotColumn + 1]}, Tokens)]).
+  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(identifier, Line, Column, Op, Rest),
+  tokenize(Rest, Line, NewColumn, Scope, [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]).
 
 % ## Ambiguous unary/binary operators tokens
 handle_space_sensitive_tokens([Sign, NotMarker|T], Line, Column, Scope, [{Identifier, _, _} = H|Tokens]) when
@@ -626,7 +626,7 @@ handle_space_sensitive_tokens([Sign, NotMarker|T], Line, Column, Scope, [{Identi
     NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
     Identifier == identifier ->
   Rest = [NotMarker|T],
-  tokenize(Rest, Line, Column + 1, Scope, [{dual_op, [Line, Column, Column + 1], list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
+  tokenize(Rest, Line, Column + 1, Scope, [{dual_op, {Line, Column, Column + 1}, list_to_atom([Sign])}, setelement(1, H, op_identifier)|Tokens]);
 
 handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
   tokenize(String, Line, Column, Scope, Tokens).
@@ -636,7 +636,7 @@ handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
 eol(_Line, _Column, [{';',_}|_] = Tokens) -> Tokens;
 eol(_Line, _Column, [{',',_}|_] = Tokens) -> Tokens;
 eol(_Line, _Column, [{eol,_}|_] = Tokens) -> Tokens;
-eol(Line, Column, Tokens) -> [{eol,[Line, Column, Column + 1]}|Tokens].
+eol(Line, Column, Tokens) -> [{eol,{Line, Column, Column + 1}}|Tokens].
 
 unsafe_to_atom(Part, Line, #elixir_tokenizer{}) when
     is_binary(Part) andalso size(Part) > 255;
@@ -662,7 +662,7 @@ collect_modifiers(Rest, Buffer) ->
 extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
   case extract_heredoc(Line, Column, T, H) of
     {ok, NewLine, NewColumn, Body, Rest} ->
-      case elixir_interpolation:extract(Line + 1, 0, Scope, Interpol, Body, 0) of
+      case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, 0) of
         {error, Reason} ->
           {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line])};
         {_, _, Parts, []} ->
@@ -679,8 +679,8 @@ extract_heredoc(Line0, Column0, Rest0, Marker) ->
       %% spaces later. This new line is removed by calling `tl`
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n|Rest1], []) of
-        {ok, Line1, Column1, Body, Rest2, Spaces} ->
-          {ok, Line1, Column1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2};
+        {ok, Line1, Body, Rest2, Spaces} ->
+          {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2};
         {error, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
           Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
@@ -724,9 +724,9 @@ extract_heredoc_header(_) ->
 extract_heredoc_body(Line, _Column, Marker, Rest, Buffer) ->
   case extract_heredoc_line(Marker, Rest, Buffer, 0) of
     {ok, NewBuffer, NewRest} ->
-      extract_heredoc_body(Line + 1, 0, Marker, NewRest, NewBuffer);
+      extract_heredoc_body(Line + 1, 1, Marker, NewRest, NewBuffer);
     {ok, NewBuffer, NewRest, Spaces} ->
-      {ok, Line, length(NewBuffer), NewBuffer, NewRest, Spaces};
+      {ok, Line, NewBuffer, NewRest, Spaces};
     {error, eof} ->
       {error, Line}
   end.
@@ -843,7 +843,7 @@ tokenize_any_identifier(Original, Line, Column, Scope, Tokens) ->
   end.
 
 tokenize_kw_or_other([$:,H|T], _Kind, Line, Column, Atom, _Tokens) when ?is_space(H) ->
-  {identifier, [H|T], {kw_identifier, [Line, Column, Column + atom_length(Atom)], Atom}};
+  {identifier, [H|T], {kw_identifier, {Line, Column, Column + atom_length(Atom)}, Atom}};
 
 tokenize_kw_or_other([$:,H|T], _Kind, Line, _Column, Atom, Tokens) when ?is_atom_start(H); ?is_digit(H) ->
   Original = atom_to_list(Atom) ++ [$:],
@@ -863,11 +863,11 @@ tokenize_kw_or_other(Rest, Kind, Line, Column, Atom, Tokens) ->
 %% Check if it is a call identifier (paren | bracket | do)
 
 check_call_identifier(_Kind, Line, Column, Atom, [$(|_]) ->
-  {paren_identifier, [Line, Column, Column + atom_length(Atom)], Atom};
+  {paren_identifier, {Line, Column, Column + atom_length(Atom)}, Atom};
 check_call_identifier(_Kind, Line, Column, Atom, [$[|_]) ->
-  {bracket_identifier, [Line, Column, Column + atom_length(Atom)], Atom};
+  {bracket_identifier, {Line, Column, Column + atom_length(Atom)}, Atom};
 check_call_identifier(Kind, Line, Column, Atom, _Rest) ->
-  {Kind, [Line, Column, Column + atom_length(Atom)], Atom}.
+  {Kind, {Line, Column, Column + atom_length(Atom)}, Atom}.
 
 add_token_with_nl(Left, [{eol,_}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
@@ -920,7 +920,7 @@ check_terminator({E, _}, [{S, _}|Terminators]) when
     S == '<<', E == '>>' ->
   Terminators;
 
-check_terminator({E, [Line, _, _]}, [{Start, [StartLine, _, _]}|_]) when
+check_terminator({E, {Line, _, _}}, [{Start, {StartLine, _, _}}|_]) when
     E == 'end'; E == ')'; E == ']'; E == '}'; E == '>>' ->
   End = terminator(Start),
   Message = io_lib:format("\"~ts\" starting at line ~B is missing terminator \"~ts\". "
@@ -954,20 +954,20 @@ terminator('<<') -> '>>'.
 
 check_keyword(_Line, _Column, _Atom, [{'.', _}|_]) ->
   nomatch;
-check_keyword(DoLine, DoColumn, do, [{Identifier, [Line, Column, EndColumn], Atom}|T]) when Identifier == identifier ->
-  {ok, add_token_with_nl({do, [DoLine, DoColumn, DoColumn + 2]}, [{do_identifier, [Line, Column, EndColumn], Atom}|T])};
+check_keyword(DoLine, DoColumn, do, [{Identifier, {Line, Column, EndColumn}, Atom}|T]) when Identifier == identifier ->
+  {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}}, [{do_identifier, {Line, Column, EndColumn}, Atom}|T])};
 check_keyword(Line, Column, do, Tokens) ->
   case do_keyword_valid(Tokens) of
-    true  -> {ok, add_token_with_nl({do, [Line, Column, Column + 2]}, Tokens)};
+    true  -> {ok, add_token_with_nl({do, {Line, Column, Column + 2}}, Tokens)};
     false -> {error, "do"}
   end;
 check_keyword(Line, Column, Atom, Tokens) ->
   case keyword(Atom) of
     false    -> nomatch;
-    token    -> {ok, [{Atom, [Line, Column, Column + atom_length(Atom)]}|Tokens]};
-    block    -> {ok, [{block_identifier, [Line, Column, Column + atom_length(Atom)], Atom}|Tokens]};
-    unary_op -> {ok, [{unary_op, [Line, Column, Column + atom_length(Atom)], Atom}|Tokens]};
-    Kind     -> {ok, add_token_with_nl({Kind, [Line, Column, Column + atom_length(Atom)], Atom}, Tokens)}
+    token    -> {ok, [{Atom, {Line, Column, Column + atom_length(Atom)}}|Tokens]};
+    block    -> {ok, [{block_identifier, {Line, Column, Column + atom_length(Atom)}, Atom}|Tokens]};
+    unary_op -> {ok, [{unary_op, {Line, Column, Column + atom_length(Atom)}, Atom}|Tokens]};
+    Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + atom_length(Atom)}, Atom}, Tokens)}
   end.
 
 %% do is only valid after the end, true, false and nil keywords

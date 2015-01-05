@@ -7,7 +7,7 @@ eval(Content) ->
   {Value, Binding}.
 
 extract_interpolations(String) ->
-  case elixir_interpolation:extract(1, 0,
+  case elixir_interpolation:extract(1, 1,
     #elixir_tokenizer{file = <<"nofile">>}, true, String ++ [$"], $") of
     {error, Error} ->
       Error;
@@ -26,46 +26,46 @@ extract_interpolations_with_escaped_interpolation_test() ->
 
 extract_interpolations_with_interpolation_test() ->
   [<<"f">>,
-   {[1,1,6],[{atom,[1,3,5],o}]},
+   {{1,2,7},[{atom,{1,4,6},o}]},
    <<"o">>] = extract_interpolations("f#{:o}o").
 
 extract_interpolations_with_two_interpolations_test() ->
   [<<"f">>,
-   {[1,1,6],[{atom,[1,3,5],o}]},{[1,6,11],[{atom,[1,8,10],o}]},
+   {{1,2,7},[{atom,{1,4,6},o}]},{{1,7,12},[{atom,{1,9,11},o}]},
    <<"o">>] = extract_interpolations("f#{:o}#{:o}o").
 
 extract_interpolations_with_only_two_interpolations_test() ->
-  [{[1,0,5],[{atom,[1,2,4],o}]},
-   {[1,5,10],[{atom,[1,7,9],o}]}] = extract_interpolations("#{:o}#{:o}").
+  [{{1,1,6},[{atom,{1,3,5},o}]},
+   {{1,6,11},[{atom,{1,8,10},o}]}] = extract_interpolations("#{:o}#{:o}").
 
 extract_interpolations_with_tuple_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,7],[{'{',[1,3,4]},{number,[1,4,5],1},{'}',[1,5,6]}]},
+   {{1,2,8},[{'{',{1,4,5}},{number,{1,5,6},1},{'}',{1,6,7}}]},
    <<"o">>] = extract_interpolations("f#{{1}}o").
 
 extract_interpolations_with_many_expressions_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,2],[{number,[1,3,4],1},{eol,[1,4,5]},{number,[2,0,1],2}]},
+   {{1,2,3},[{number,{1,4,5},1},{eol,{1,5,6}},{number,{2,1,2},2}]},
     <<"o">>] = extract_interpolations("f#{1\n2}o").
 
 extract_interpolations_with_right_curly_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,9],[{bin_string,[1,3,8],[<<"f}o">>]}]},
+   {{1,2,10},[{bin_string,{1,4,9},[<<"f}o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f}o\"}o").
 
 extract_interpolations_with_left_curly_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,9],[{bin_string,[1,3,8],[<<"f{o">>]}]},
+   {{1,2,10},[{bin_string,{1,4,9},[<<"f{o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f{o\"}o").
 
 extract_interpolations_with_escaped_quote_inside_string_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,10],[{bin_string,[1,3,9],[<<"f\"o">>]}]},
+   {{1,2,11},[{bin_string,{1,4,10},[<<"f\"o">>]}]},
    <<"o">>] = extract_interpolations("f#{\"f\\\"o\"}o").
 
 extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
-   {[1,1,7],[{number,[1,3,4],1},{rel_op,[1,4,5],'<'},{number,[1,5,6],2}]},
+   {{1,2,8},[{number,{1,4,5},1},{rel_op,{1,5,6},'<'},{number,{1,6,7},2}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
