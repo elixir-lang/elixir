@@ -291,16 +291,25 @@ defmodule Inspect.MapTest do
     end
   end
 
-  test :bad_implementation do
-    msg = "Got KeyError with message \"key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
+  test :bad_implementation_unsafe do
+    msg = "got KeyError with message `key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
           "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert_raise ArgumentError, msg, fn ->
+    assert_raise Inspect.Error, msg, fn ->
       inspect(%Failing{})
     end
 
     assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _}|_] = System.stacktrace
+  end
+
+  test :bad_implementation_safe do
+    msg = "got KeyError with message `key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
+          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+
+    assert inspect(%Failing{}, safe: true) ==
+           "%Inspect.Error{message: \"#{msg}\"}"
   end
 
   test :exception do
