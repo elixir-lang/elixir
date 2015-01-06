@@ -191,11 +191,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp safe_inspect(expr, opts \\ []) do
-    try do
-      inspect(expr, opts)
-    rescue
-      e -> "inspect failed: #{inspect e}"
-    end
+    inspect(expr, Keyword.put(opts, :safe, true))
   end
 
   defp make_into_lines(reasons, padding) do

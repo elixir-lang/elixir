@@ -33,7 +33,7 @@ defmodule ExUnit.FormatterTest do
     end
 
     defimpl Inspect do
-      def inspect(struct, _) do
+      def inspect(struct, opts) when is_atom(opts) do
         struct.unknown
       end
     end
@@ -120,7 +120,7 @@ defmodule ExUnit.FormatterTest do
          Assertion with == failed
          code: :will_fail == %Failing{}
          lhs:  :will_fail
-         rhs:  inspect failed: %ArgumentError{message: \"Got KeyError with message \\\"key :unknown not found in: %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\\\" while inspecting %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\"}
+         rhs:  %Inspect.Error{message: \"got FunctionClauseError with message `no function clause matching in Inspect.ExUnit.FormatterTest.Failing.inspect/2` while inspecting %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\"}
     """
   end
 
