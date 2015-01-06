@@ -157,7 +157,7 @@ tokenize([$~,S,H,H,H|T] = Original, Line, Column, Scope, Tokens) when ?is_quote(
   end;
 
 tokenize([$~,S,H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case elixir_interpolation:extract(Line, Column, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
+  case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       tokenize(Final, NewLine, NewColumn, Scope, [{sigil, {Line, Column, NewColumn}, S, Parts, Modifiers}|Tokens]);
@@ -234,14 +234,14 @@ tokenize("'''" ++ T, Line, Column, Scope, Tokens) ->
 % Strings
 
 tokenize([$"|T], Line, Column, Scope, Tokens) ->
-  handle_strings(T, Line, Column, $", Scope, Tokens);
+  handle_strings(T, Line, Column + 1, $", Scope, Tokens);
 tokenize([$'|T], Line, Column, Scope, Tokens) ->
-  handle_strings(T, Line, Column, $', Scope, Tokens);
+  handle_strings(T, Line, Column + 1, $', Scope, Tokens);
 
 % Atoms
 
 tokenize([$:,H|T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
       Unescaped = unescape_tokens(Parts),
       Key = case Scope#elixir_tokenizer.existing_atoms_only of
@@ -546,9 +546,9 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         true  -> kw_identifier_safe;
         false -> kw_identifier_unsafe
       end,
-      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column, NewColumn}, Unescaped}|Tokens]);
+      tokenize(Rest, NewLine, NewColumn, Scope, [{Key, {Line, Column - 1, NewColumn}, Unescaped}|Tokens]);
     {NewLine, NewColumn, Parts, Rest} ->
-      Token = {string_type(H), {Line, Column, NewColumn}, unescape_tokens(Parts)},
+      Token = {string_type(H), {Line, Column - 1, NewColumn}, unescape_tokens(Parts)},
       tokenize(Rest, NewLine, NewColumn, Scope, [Token|Tokens])
   end.
 
@@ -594,11 +594,11 @@ handle_dot([$.,$(|Rest], Line, Column, DotColumn, Scope, Tokens) ->
   tokenize([$(|Rest], Line, Column + 2, Scope, add_token_with_nl({dot_call_op, {Line, DotColumn, DotColumn + 1}, '.'}, Tokens));
 
 handle_dot([$.,H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?is_quote(H) ->
-  case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
-          Token = check_call_identifier(identifier, Line, Column, Atom, Rest),
+          Token = check_call_identifier(identifier, Line, Column + 2, Atom, Rest),
           tokenize(Rest, NewLine, NewColumn, Scope, [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}

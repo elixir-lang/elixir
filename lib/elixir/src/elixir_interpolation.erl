@@ -25,19 +25,19 @@ extract(Line, Column, _Scope, _Interpol, [Last|Remaining], Buffer, Output, Last)
 %% Going through the string
 
 extract(Line, _Column, Scope, Interpol, [$\\, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, 0, Scope, Interpol, Rest, Buffer, Output, Last);
+  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
 
 extract(Line, _Column, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, 0, Scope, Interpol, Rest, Buffer, Output, Last);
+  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
 
 extract(Line, _Column, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, 0, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
+  extract(Line+1, 1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
 
 extract(Line, Column, Scope, Interpol, [$\\, Last|Rest], Buffer, Output, Last) ->
   extract(Line, Column+2, Scope, Interpol, Rest, [Last|Buffer], Output, Last);
 
 extract(Line, Column, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
-  extract(Line, Column+2, Scope, true, Rest, [${,$#|Buffer], Output, Last);
+  extract(Line, Column+1, Scope, true, Rest, [${,$#|Buffer], Output, Last);
 
 extract(Line, Column, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
@@ -52,7 +52,7 @@ extract(Line, Column, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   end;
 
 extract(Line, Column, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
-  extract(Line, Column+3, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
+  extract(Line, Column+2, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
 
 %% Catch all clause
 
@@ -151,7 +151,7 @@ finish_extraction(Line, Column, Buffer, Output, Remaining) ->
     Final -> []
   end,
 
-  {Line, Column + length(Final), lists:reverse(Final), Remaining}.
+  {Line, Column, lists:reverse(Final), Remaining}.
 
 build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) ->

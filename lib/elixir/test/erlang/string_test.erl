@@ -22,7 +22,9 @@ extract_interpolations_without_interpolation_test() ->
   [<<"foo">>] = extract_interpolations("foo").
 
 extract_interpolations_with_escaped_interpolation_test() ->
-  [<<"f#{o}o">>] = extract_interpolations("f\\#{o}o").
+  [<<"f#{o}o">>] = extract_interpolations("f\\#{o}o"),
+  {1, 8, [<<"f#{o}o">>], []} = elixir_interpolation:extract(1, 2,
+    #elixir_tokenizer{file = <<"nofile">>}, true, "f\\#{o}o\"", $").
 
 extract_interpolations_with_interpolation_test() ->
   [<<"f">>,
@@ -67,6 +69,11 @@ extract_interpolations_with_less_than_operation_inside_interpolation_test() ->
   [<<"f">>,
    {{1,2,8},[{number,{1,4,5},1},{rel_op,{1,5,6},'<'},{number,{1,6,7},2}]},
    <<"o">>] = extract_interpolations("f#{1<2}o").
+
+extract_interpolations_with_an_escaped_character_test() ->
+  [<<"f">>,
+   {{1,2,17},[{number,{1,4,7},7},{rel_op,{1,8,9},'>'},{number,{1,10,13},7}]}
+   ] = extract_interpolations("f#{?\\a > ?\\a   }").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
   {1,"invalid token: ",":1}o\""} = extract_interpolations("f#{:1}o").
