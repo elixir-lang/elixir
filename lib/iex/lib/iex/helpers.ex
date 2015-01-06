@@ -51,11 +51,15 @@ defmodule IEx.Helpers do
   import IEx, only: [dont_display_result: 0]
 
   @doc """
-  Expects a list of files to compile and a path
-  to write their object code to. It returns the name
-  of the compiled modules.
+  Compiles the given files.
 
-  When compiling one file, there is no need to wrap it in a list.
+  It expects a list of files to compile and an optional path to write
+  the compiled code to (defaults to the current directory). When compiling
+  one file, there is no need to wrap it in a list.
+
+  It returns the name of the compiled modules.
+
+  If you want to recompile an existing module, check `r/1` instead.
 
   ## Examples
 
@@ -173,10 +177,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  When given a module, prints specifications (or simply specs) for all the
-  types defined in it.
-
-  When given a particular type name, prints its spec.
+  Prints the types for the given module or for the given function/arity pair.
 
   ## Examples
 
@@ -203,11 +204,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Similar to `t/1`, only for specs.
-
-  When given a module, prints the list of all specs defined in the module.
-
-  When given a particular spec name (with optional arity), prints its spec.
+  Prints the specs for the given module or for the given function/arity pair.
 
   ## Examples
 
@@ -300,8 +297,12 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Load the given module's beam code (and ensures any previous
+  Loads the given module's beam code (and ensures any previous
   old version was properly purged before).
+
+  This function is useful when you know the bytecode for module
+  has been updated in the filesystem and you want to tell the VM
+  to load it.
   """
   def l(module) when is_atom(module) do
     :code.purge(module)
@@ -354,6 +355,7 @@ defmodule IEx.Helpers do
 
   @doc """
   Produces a simple list of a directory's contents.
+
   If `path` points to a file, prints its full path.
   """
   def ls(path \\ ".") when is_binary(path) do
@@ -417,8 +419,9 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Respawns the current shell by starting a new
-  process and a new scope. Returns true if it worked.
+  Respawns the current shell by starting a new shell process.
+
+  Returns true if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do
@@ -429,9 +432,9 @@ defmodule IEx.Helpers do
 
   @doc """
   Evaluates the contents of the file at `path` as if it were directly typed into
-  the shell. `path` has to be a literal binary.
+  the shell.
 
-  A leading `~` in `path` is automatically expanded.
+  `path` has to be a literal string. A leading `~` in `path` is automatically expanded.
 
   ## Examples
 
