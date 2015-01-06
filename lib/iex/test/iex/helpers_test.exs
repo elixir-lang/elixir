@@ -33,7 +33,7 @@ defmodule IEx.HelpersTest do
 
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
-    c_h   = "* def c(files, path \\\\ \".\")\n\nExpects a list of files to compile"
+    c_h   = "* def c(files, path \\\\ \".\")\n\nCompiles the given files."
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
