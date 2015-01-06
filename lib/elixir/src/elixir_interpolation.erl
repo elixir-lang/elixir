@@ -1,64 +1,63 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/5, unescape_chars/1, unescape_chars/2,
+-export([extract/6, unescape_chars/1, unescape_chars/2,
 unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
 -include("elixir.hrl").
 
 %% Extract string interpolations
 
-extract(Line, Raw, Interpol, String, Last) ->
+extract(Line, Column, Raw, Interpol, String, Last) ->
   %% Ignore whatever is in the scope and enable terminator checking.
   Scope = Raw#elixir_tokenizer{terminators=[], check_terminators=true},
-  extract(Line, Scope, Interpol, String, [], [], Last).
+  extract(Line, Column, Scope, Interpol, String, [], [], Last).
 
 %% Terminators
 
-extract(Line, _Scope, _Interpol, [], Buffer, Output, []) ->
-  finish_extraction(Line, Buffer, Output, []);
+extract(Line, Column, _Scope, _Interpol, [], Buffer, Output, []) ->
+  finish_extraction(Line, Column, Buffer, Output, []);
 
-extract(Line, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
+extract(Line, _Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
   {error, {string, Line, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
-extract(Line, _Scope, _Interpol, [Last|Remaining], Buffer, Output, Last) ->
-  finish_extraction(Line, Buffer, Output, Remaining);
+extract(Line, Column, _Scope, _Interpol, [Last|Remaining], Buffer, Output, Last) ->
+  finish_extraction(Line, Column + 1, Buffer, Output, Remaining);
 
 %% Going through the string
 
-extract(Line, Scope, Interpol, [$\\, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, Buffer, Output, Last);
+extract(Line, _Column, Scope, Interpol, [$\\, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
 
-extract(Line, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, Buffer, Output, Last);
+extract(Line, _Column, Scope, Interpol, [$\\, $\r, $\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, 1, Scope, Interpol, Rest, Buffer, Output, Last);
 
-extract(Line, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
-  extract(Line+1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
+extract(Line, _Column, Scope, Interpol, [$\n|Rest], Buffer, Output, Last) ->
+  extract(Line+1, 1, Scope, Interpol, Rest, [$\n|Buffer], Output, Last);
 
-extract(Line, Scope, Interpol, [$\\, Last|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Last|Buffer], Output, Last);
+extract(Line, Column, Scope, Interpol, [$\\, Last|Rest], Buffer, Output, Last) ->
+  extract(Line, Column+2, Scope, Interpol, Rest, [Last|Buffer], Output, Last);
 
-extract(Line, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, true, Rest, [${,$#|Buffer], Output, Last);
+extract(Line, Column, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
+  extract(Line, Column+1, Scope, true, Rest, [${,$#|Buffer], Output, Last);
 
-extract(Line, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
+extract(Line, Column, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
-
-  case elixir_tokenizer:tokenize(Rest, Line, Scope) of
-    {error, {EndLine, _, "}"}, [$}|NewRest], Tokens} ->
-      Output2 = build_interpol(Line, Tokens, Output1),
-      extract(EndLine, Scope, true, NewRest, [], Output2, Last);
+  case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope) of
+    {error, {{EndLine, _, EndColumn}, _, "}"}, [$}|NewRest], Tokens} ->
+      Output2 = build_interpol(Line, Column, EndColumn, Tokens, Output1),
+      extract(EndLine, EndColumn, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
-    {ok, _EndLine, _} ->
+    {ok, _EndLine, _EndColumn, _} ->
       {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
 
-extract(Line, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
+extract(Line, Column, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Column+2, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
 
 %% Catch all clause
 
-extract(Line, Scope, Interpol, [Char|Rest], Buffer, Output, Last) ->
-  extract(Line, Scope, Interpol, Rest, [Char|Buffer], Output, Last).
+extract(Line, Column, Scope, Interpol, [Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Column + 1, Scope, Interpol, Rest, [Char|Buffer], Output, Last).
 
 %% Unescape a series of tokens as returned by extract.
 
@@ -146,16 +145,17 @@ unescape_map(E)  -> E.
 
 % Extract Helpers
 
-finish_extraction(Line, Buffer, Output, Remaining) ->
+finish_extraction(Line, Column, Buffer, Output, Remaining) ->
   case build_string(Line, Buffer, Output) of
     []    -> Final = [<<>>];
     Final -> []
   end,
-  {Line, lists:reverse(Final), Remaining}.
+
+  {Line, Column, lists:reverse(Final), Remaining}.
 
 build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) ->
   [elixir_utils:characters_to_binary(lists:reverse(Buffer))|Output].
 
-build_interpol(Line, Buffer, Output) ->
-  [{Line, lists:reverse(Buffer)}|Output].
+build_interpol(Line, Column, EndColumn, Buffer, Output) ->
+  [{{Line, Column, EndColumn}, lists:reverse(Buffer)}|Output].
