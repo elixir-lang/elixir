@@ -69,6 +69,7 @@ defmodule GenServer do
 
       -  `{:ok, state}`
       -  `{:ok, state, timeout}`
+      -  `{:ok, state, :hibernate}`
       -  `:ignore`
       -  `{:stop, reason}`
 
