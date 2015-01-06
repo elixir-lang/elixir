@@ -171,50 +171,46 @@ tokenize([$~,S,H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), 
 tokenize([$?,$\\,$x,${,A,B,C,D,E,F,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,E,F,$}]),
-  tokenize(T, Line, Column + 12, Scope, [{number, {Line, Column, Column + 12}, Char}|Tokens]);
+  tokenize(T, Line, Column + 11, Scope, [{number, {Line, Column, Column + 11}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,D,E,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,E,$}]),
-  tokenize(T, Line, Column + 11, Scope, [{number, {Line, Column, Column + 11}, Char}|Tokens]);
+  tokenize(T, Line, Column + 10, Scope, [{number, {Line, Column, Column + 10}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,D,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
   Char = escape_char([$\\,$x,${,A,B,C,D,$}]),
-  tokenize(T, Line, Column + 10, Scope, [{number, {Line, Column, Column + 10}, Char}|Tokens]);
+  tokenize(T, Line, Column + 9, Scope, [{number, {Line, Column, Column + 9}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,C,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
   Char = escape_char([$\\,$x,${,A,B,C,$}]),
-  tokenize(T, Line, Column + 9, Scope, [{number, {Line, Column, Column + 9}, Char}|Tokens]);
+  tokenize(T, Line, Column + 8, Scope, [{number, {Line, Column, Column + 8}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,B,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,$x,${,A,B,$}]),
-  tokenize(T, Line, Column + 8, Scope, [{number, {Line, Column, Column + 8}, Char}|Tokens]);
+  tokenize(T, Line, Column + 7, Scope, [{number, {Line, Column, Column + 7}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,${,A,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
   Char = escape_char([$\\,$x,${,A,$}]),
-  tokenize(T, Line, Column + 7, Scope, [{number, {Line, Column, Column + 7}, Char}|Tokens]);
+  tokenize(T, Line, Column + 6, Scope, [{number, {Line, Column, Column + 6}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,A,B|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
   Char = escape_char([$\\,$x,A,B]),
-  tokenize(T, Line, Column + 6, Scope, [{number, {Line, Column, Column + 6}, Char}|Tokens]);
+  tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
 
 tokenize([$?,$\\,$x,A|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
   Char = escape_char([$\\,$x,A]),
-  tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
-
-tokenize([$?, $\\, $\\|T], Line, Column, Scope, Tokens) ->
-  Char = elixir_interpolation:unescape_map($\\),
-  tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
+  tokenize(T, Line, Column + 4, Scope, [{number, {Line, Column, Column + 4}, Char}|Tokens]);
 
 tokenize([$?,$\\,H|T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
-  tokenize(T, Line, Column + 4, Scope, [{number, {Line, Column, Column + 4}, Char}|Tokens]);
+  tokenize(T, Line, Column + 3, Scope, [{number, {Line, Column, Column + 3}, Char}|Tokens]);
 
 tokenize([$?,Char|T], Line, Column, Scope, Tokens) ->
   case handle_char(Char) of
