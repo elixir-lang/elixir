@@ -71,7 +71,6 @@ start_cli() ->
 
 env_for_eval(Opts) ->
   env_for_eval((elixir_env:new())#{
-    local := nil,
     requires := elixir_dispatch:default_requires(),
     functions := elixir_dispatch:default_functions(),
     macros := elixir_dispatch:default_macros()
@@ -86,11 +85,6 @@ env_for_eval(Env, Opts) ->
   File = case lists:keyfind(file, 1, Opts) of
     {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
     false -> ?m(Env, file)
-  end,
-
-  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    {delegate_locals_to, LocalOpt} when is_atom(LocalOpt) -> LocalOpt;
-    false -> ?m(Env, local)
   end,
 
   Aliases = case lists:keyfind(aliases, 1, Opts) of
@@ -119,7 +113,7 @@ env_for_eval(Env, Opts) ->
   end,
 
   Env#{
-    file := File, local := Local, module := Module,
+    file := File, module := Module,
     macros := Macros, functions := Functions,
     requires := Requires, aliases := Aliases, line := Line
   }.

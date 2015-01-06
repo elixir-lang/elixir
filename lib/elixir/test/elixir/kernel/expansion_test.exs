@@ -152,11 +152,6 @@ defmodule Kernel.ExpansionTest do
           expand(quote do: a =~ b)
   end
 
-  test "locals: expands to configured local" do
-    assert expand_env(quote(do: a), %{__ENV__ | local: Hello}) |> elem(0) ==
-           quote(do: :"Elixir.Hello".a())
-  end
-
   test "locals: in guards" do
     assert expand(quote(do: fn pid when :erlang.==(pid, self) -> pid end)) ==
            quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)

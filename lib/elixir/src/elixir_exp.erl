@@ -457,14 +457,12 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, #{local := nil, function := nil} = E) ->
+expand_local(Meta, Name, Args, #{function := nil} = E) ->
   compile_error(Meta, ?m(E, file), "undefined function ~ts/~B", [Name, length(Args)]);
-expand_local(Meta, Name, Args, #{local := nil, module := Module, function := Function} = E) ->
+expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
-  {{Name, Meta, EArgs}, EA};
-expand_local(Meta, Name, Args, E) ->
-  expand({{'.', Meta, [?m(E, local), Name]}, Meta, Args}, E).
+  {{Name, Meta, EArgs}, EA}.
 
 %% Remote
 

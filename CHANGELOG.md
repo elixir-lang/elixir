@@ -17,6 +17,7 @@
 
 ### 2. Bug fixes
 
+  * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces therefore it has been replaced by imports
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to true. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
 

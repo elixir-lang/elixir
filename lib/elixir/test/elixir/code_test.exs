@@ -4,7 +4,6 @@ defmodule CodeTest do
   use ExUnit.Case, async: true
   import PathHelpers
 
-  def one, do: 1
   def genmodule(name) do
     defmodule name do
       Kernel.LexicalTracker.remotes(__MODULE__)
@@ -41,10 +40,6 @@ defmodule CodeTest do
   test :eval_with_unnamed_scopes do
     assert {%RuntimeError{}, [a: %RuntimeError{}]} =
            Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
-  end
-
-  test :eval_with_scope do
-    assert Code.eval_string("one", [], delegate_locals_to: __MODULE__) == {1, []}
   end
 
   test :eval_options do

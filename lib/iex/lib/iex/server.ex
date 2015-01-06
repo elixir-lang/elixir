@@ -234,16 +234,14 @@ defmodule IEx.Server do
   ## Config
 
   defp run_config(opts) do
-    locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
-
     env =
       if env = opts[:env] do
-        :elixir.env_for_eval(env, delegate_locals_to: locals)
+        :elixir.env_for_eval(env, [])
       else
-        :elixir.env_for_eval(file: "iex", delegate_locals_to: locals)
+        :elixir.env_for_eval(file: "iex")
       end
 
-    {_, _, env, scope} = :elixir.eval('require IEx.Helpers', [], env)
+    {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")

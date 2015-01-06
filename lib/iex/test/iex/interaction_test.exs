@@ -76,12 +76,6 @@ defmodule IEx.InteractionTest do
     assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" starting at"
   end
 
-  test "undefined function" do
-    assert "** (RuntimeError) undefined function: format/0"   <> _ = capture_iex("format")
-    assert "** (RuntimeError) undefined function: with_one/1" <> _ = capture_iex("with_one(22)")
-    assert "** (RuntimeError) undefined function: many/3"     <> _ = capture_iex("many(:ok, 22, \"hi\")")
-  end
-
   test "module definition" do
     input = """
     defmodule Sample do
@@ -126,7 +120,7 @@ defmodule IEx.InteractionTest do
   ## .iex file loading
 
   test "no .iex" do
-    assert "** (RuntimeError) undefined function: my_variable/0" <> _ = capture_iex("my_variable")
+    assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
   end
 
   test ".iex" do
