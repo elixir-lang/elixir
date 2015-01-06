@@ -35,6 +35,11 @@ defmodule Inspect.Opts do
     * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
       to :decimal
 
+    * `:safe` - when true, failures while inspecting structs won't propagate,
+      instead they will be wrapped in the Inspect.Error exception. This is
+      useful when inspecting must not fail, like when generating error reports,
+      printing stacktraces and so on
+
   """
 
   defstruct structs: true,
@@ -43,7 +48,8 @@ defmodule Inspect.Opts do
             limit: 50,
             width: 80,
             base: :decimal,
-            pretty: false
+            pretty: false,
+            safe: false
 
   @type t :: %__MODULE__{
                structs: boolean,
@@ -52,7 +58,15 @@ defmodule Inspect.Opts do
                limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
-               pretty: boolean}
+               pretty: boolean,
+               safe: boolean}
+end
+
+defmodule Inspect.Error do
+  @moduledoc """
+  Raised when a struct cannot be inspected.
+  """
+  defexception [:message]
 end
 
 defmodule Inspect.Algebra do
@@ -198,12 +212,20 @@ defmodule Inspect.Algebra do
           else
             try do
               Process.put(:inspect_trap, true)
+
               res = Inspect.Map.inspect(map, opts)
-              formatted = IO.iodata_to_binary(format(res, :infinity))
-              reraise ArgumentError,
-                "Got #{inspect e.__struct__} with message " <>
-                "\"#{Exception.message(e)}\" while inspecting #{formatted}",
-                stacktrace
+              res = IO.iodata_to_binary(format(res, :infinity))
+
+              exception = Inspect.Error.exception(
+                message: "got #{inspect e.__struct__} with message " <>
+                         "`#{Exception.message(e)}` while inspecting #{res}"
+              )
+
+              if opts.safe do
+                Inspect.inspect(exception, opts)
+              else
+                reraise(exception, stacktrace)
+              end
             after
               Process.delete(:inspect_trap)
             end
