@@ -114,6 +114,7 @@ aliases_test() ->
 
 string_test() ->
   [{bin_string,{1,1,6},[<<"foo">>]}] = tokenize("\"foo\""),
+  [{bin_string,{1,1,6},[<<"f\"">>]}] = tokenize("\"f\\\"\""),
   [{list_string,{1,1,6},[<<"foo">>]}] = tokenize("'foo'").
 
 empty_string_test() ->
@@ -144,3 +145,9 @@ chars_test() ->
   [{number,{1,1,10},43981}]   = tokenize("?\\x{abcd}"),
   [{number,{1,1,11},703710}]  = tokenize("?\\x{abcde}"),
   [{number,{1,1,12},1092557}] = tokenize("?\\x{10abcd}").
+
+interpolation_test() ->
+  [{bin_string,{1,1,9}, [<<"f">>,
+    {{1,3,8},[{identifier,{1,5,7}, oo}]}]},
+   {two_op,{1,10,12}, '<>'}, {bin_string,{1,13,15},
+    [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
