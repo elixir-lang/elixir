@@ -144,4 +144,29 @@ defmodule ExUnit.FormatterTest do
          another useful info
     """
   end
+
+  defmodule Failing do
+    def __struct__ do
+      %{key: 0}
+    end
+
+    defimpl Inspect do
+      def inspect(struct, opts) when is_atom(opts) do
+        struct.unknown
+      end
+    end
+  end
+
+  test "inspect failure" do
+    failure = {:error, catch_assertion(assert :will_fail == %Failing{}), []}
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         Assertion with == failed
+         code: :will_fail == %Failing{}
+         lhs:  :will_fail
+         rhs:  %Inspect.Error{message: \"got FunctionClauseError with message `no function clause matching in Inspect.ExUnit.FormatterTest.Failing.inspect/2` while inspecting %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\"}
+    """
+  end
+
 end
