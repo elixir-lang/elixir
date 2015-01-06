@@ -11,12 +11,6 @@ defmodule IEx.ServerTest do
     end) =~ "pry(1)> "
   end
 
-  test "delegate_locals_to option" do
-    assert capture_io("sort([:foo, :bar])", fn ->
-      boot([delegate_locals_to: Enum])
-    end) =~ "[:bar, :foo]"
-  end
-
   test "env option" do
     assert capture_io("__ENV__.file", fn ->
       boot([env: __ENV__])

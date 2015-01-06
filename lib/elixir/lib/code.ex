@@ -76,10 +76,8 @@ defmodule Code do
 
   Those options can be:
 
-    * `:file`               - the file to be considered in the evaluation
-    * `:line`               - the line on which the script starts
-    * `:delegate_locals_to` - delegate local calls to the given module,
-                              the default is to not delegate
+    * `:file` - the file to be considered in the evaluation
+    * `:line` - the line on which the script starts
 
   Additionally, the following scope values can be configured:
 

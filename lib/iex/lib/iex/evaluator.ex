@@ -154,28 +154,9 @@ defmodule IEx.Evaluator do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    {reason, stacktrace} = normalize_exception(kind, reason, stacktrace)
-
     message = Exception.format_banner(kind, reason, stacktrace)
     io_error message
     io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
-  end
-
-  defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
-    {%RuntimeError{message: "undefined function: #{format_function(fun, arity)}"}, t}
-  end
-
-  defp normalize_exception(_kind, reason, stacktrace) do
-    {reason, stacktrace}
-  end
-
-  defp format_function(fun, arity) do
-    cond do
-      is_list(arity) ->
-        "#{fun}/#{length(arity)}"
-      true ->
-        "#{fun}/#{arity}"
-    end
   end
 
   defp prune_stacktrace(stacktrace) do

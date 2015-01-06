@@ -91,8 +91,7 @@ defmodule Macro.Env do
       context_modules: [],
       vars: [],
       export_vars: nil,
-      lexical_tracker: nil,
-      local: nil}
+      lexical_tracker: nil}
   end
 
   @doc """
