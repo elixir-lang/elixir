@@ -301,10 +301,10 @@ defmodule Enum do
   end
 
   @doc """
-  Shortcut to `chunk(coll, n, n)`.
+  Shortcut to `chunk(collection, n, n)`.
   """
   @spec chunk(t, non_neg_integer) :: [list]
-  def chunk(coll, n), do: chunk(coll, n, n, nil)
+  def chunk(collection, n), do: chunk(collection, n, n, nil)
 
   @doc """
   Returns a collection of lists containing `n` items each, where
@@ -335,11 +335,11 @@ defmodule Enum do
 
   """
   @spec chunk(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
-  def chunk(coll, n, step, pad \\ nil) when n > 0 and step > 0 do
+  def chunk(collection, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
     {_, {acc, {buffer, i}}} =
-      Enumerable.reduce(coll, {:cont, {[], {[], 0}}}, R.chunk(n, step, limit))
+      Enumerable.reduce(collection, {:cont, {[], {[], 0}}}, R.chunk(n, step, limit))
 
     if is_nil(pad) || i == 0 do
       :lists.reverse(acc)
@@ -350,7 +350,7 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `coll` on every element for which `fun` returns a new value.
+  Splits `collection` on every element for which `fun` returns a new value.
 
   ## Examples
 
@@ -359,9 +359,9 @@ defmodule Enum do
 
   """
   @spec chunk_by(t, (element -> any)) :: [list]
-  def chunk_by(coll, fun) do
+  def chunk_by(collection, fun) do
     {_, {acc, res}} =
-      Enumerable.reduce(coll, {:cont, {[], nil}}, R.chunk_by(fun))
+      Enumerable.reduce(collection, {:cont, {[], nil}}, R.chunk_by(fun))
 
     case res do
       {buffer, _} ->
@@ -1437,8 +1437,8 @@ defmodule Enum do
 
   """
   @spec reverse_slice(t, non_neg_integer, non_neg_integer) :: list
-  def reverse_slice(coll, start, count) when start >= 0 and count >= 0 do
-    list = reverse(coll)
+  def reverse_slice(collection, start, count) when start >= 0 and count >= 0 do
+    list = reverse(collection)
     length = length(list)
     count = Kernel.min(count, length - start)
 
@@ -1606,10 +1606,10 @@ defmodule Enum do
   """
   @spec slice(t, integer, non_neg_integer) :: list
 
-  def slice(_coll, _start, 0), do: []
+  def slice(_collection, _start, 0), do: []
 
-  def slice(coll, start, count) when start < 0 do
-    {list, new_start} = enumerate_and_count(coll, start)
+  def slice(collection, start, count) when start < 0 do
+    {list, new_start} = enumerate_and_count(collection, start)
     if new_start >= 0 do
       slice(list, new_start, count)
     else
@@ -1617,12 +1617,12 @@ defmodule Enum do
     end
   end
 
-  def slice(coll, start, count) when is_list(coll) and start >= 0 and count > 0 do
-    do_slice(coll, start, count)
+  def slice(collection, start, count) when is_list(collection) and start >= 0 and count > 0 do
+    do_slice(collection, start, count)
   end
 
-  def slice(coll, start, count) when start >= 0 and count > 0 do
-    {_, _, list} = Enumerable.reduce(coll, {:cont, {start, count, []}}, fn
+  def slice(collection, start, count) when start >= 0 and count > 0 do
+    {_, _, list} = Enumerable.reduce(collection, {:cont, {start, count, []}}, fn
       _entry, {start, count, _list} when start > 0 ->
         {:cont, {start-1, count, []}}
       entry, {start, count, list} when count > 1 ->
@@ -1665,17 +1665,17 @@ defmodule Enum do
 
   """
   @spec slice(t, Range.t) :: list
-  def slice(coll, first..last) when first >= 0 and last >= 0 do
+  def slice(collection, first..last) when first >= 0 and last >= 0 do
     # Simple case, which works on infinite collections
     if last - first >= 0 do
-      slice(coll, first, last - first + 1)
+      slice(collection, first, last - first + 1)
     else
       []
     end
   end
 
-  def slice(coll, first..last) do
-    {list, count} = enumerate_and_count(coll, 0)
+  def slice(collection, first..last) do
+    {list, count} = enumerate_and_count(collection, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
     length = corr_last - corr_first + 1
@@ -1994,7 +1994,7 @@ defmodule Enum do
   tuple with two lists, each of which is formed by the first and second element
   of each tuple, respectively.
 
-  This function fails unless `coll` is or can be converted into a list of
+  This function fails unless `collection` is or can be converted into a list of
   tuples with *exactly* two elements in each tuple.
 
   ## Examples
@@ -2007,8 +2007,8 @@ defmodule Enum do
 
   """
   @spec unzip(t) :: {list(element), list(element)}
-  def unzip(coll) do
-    {list1, list2} = reduce(coll, {[], []}, fn({el1, el2}, {list1, list2}) ->
+  def unzip(collection) do
+    {list1, list2} = reduce(collection, {[], []}, fn({el1, el2}, {list1, list2}) ->
       {[el1|list1], [el2|list2]}
     end)
 
@@ -2031,12 +2031,12 @@ defmodule Enum do
 
   """
   @spec zip(t, t) :: [{any, any}]
-  def zip(coll1, coll2) when is_list(coll1) and is_list(coll2) do
-    do_zip(coll1, coll2)
+  def zip(collection1, collection2) when is_list(collection1) and is_list(collection2) do
+    do_zip(collection1, collection2)
   end
 
-  def zip(coll1, coll2) do
-    Stream.zip(coll1, coll2).({:cont, []}, &{:cont, [&1|&2]}) |> elem(1) |> :lists.reverse
+  def zip(collection1, collection2) do
+    Stream.zip(collection1, collection2).({:cont, []}, &{:cont, [&1|&2]}) |> elem(1) |> :lists.reverse
   end
 
   @doc """
