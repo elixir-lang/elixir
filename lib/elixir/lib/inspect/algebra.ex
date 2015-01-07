@@ -35,10 +35,10 @@ defmodule Inspect.Opts do
     * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
       to :decimal
 
-    * `:safe` - when true, failures while inspecting structs won't propagate,
-      instead they will be wrapped in the Inspect.Error exception. This is
-      useful when inspecting must not fail, like when generating error reports,
-      printing stacktraces and so on
+    * `:safe` - when false, failures while inspecting structs will be raised
+      as errors instead of being wrapped in the Inspect.Error exception. This
+      is useful when debugging failures and crashes for custom inspect
+      implementations
 
   """
 
@@ -49,7 +49,7 @@ defmodule Inspect.Opts do
             width: 80,
             base: :decimal,
             pretty: false,
-            safe: false
+            safe: true
 
   @type t :: %__MODULE__{
                structs: boolean,

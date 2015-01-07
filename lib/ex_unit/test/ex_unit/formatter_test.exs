@@ -145,10 +145,8 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
-  defmodule Failing do
-    def __struct__ do
-      %{key: 0}
-    end
+  defmodule BadInspect do
+    defstruct key: 0
 
     defimpl Inspect do
       def inspect(struct, opts) when is_atom(opts) do
@@ -158,15 +156,38 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "inspect failure" do
-    failure = {:error, catch_assertion(assert :will_fail == %Failing{}), []}
+    failure = {:error, catch_assertion(assert :will_fail == %BadInspect{}), []}
+
+    message = "got FunctionClauseError with message `no function clause matching " <>
+              "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2` while inspecting " <>
+              "%{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}"
+
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          Assertion with == failed
-         code: :will_fail == %Failing{}
+         code: :will_fail == %BadInspect{}
          lhs:  :will_fail
-         rhs:  %Inspect.Error{message: \"got FunctionClauseError with message `no function clause matching in Inspect.ExUnit.FormatterTest.Failing.inspect/2` while inspecting %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\"}
+         rhs:  %Inspect.Error{message: \"#{message}\"}
     """
   end
 
+  defmodule BadMessage do
+    defexception key: 0
+
+    def message(_message) do
+      raise "oops"
+    end
+  end
+
+  test "message failure" do
+    failure = {:error, catch_error(raise BadMessage), []}
+    message = "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+              "for %ExUnit.FormatterTest.BadMessage{key: 0}"
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (ExUnit.FormatterTest.BadMessage) #{message}
+    """
+  end
 end

@@ -29,11 +29,9 @@ defmodule Kernel.ExceptionTest do
       end
     end
 
-    message = ~r/Got RuntimeError with message \"oops\" while retrieving message for/
-
-    assert_raise ArgumentError, message, fn ->
-      Exception.message(%{__struct__: BadException, __exception__: true})
-    end
+    assert Exception.message(%{__struct__: BadException, __exception__: true}) =~
+           "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+           "for %{__exception__: true, __struct__: Kernel.ExceptionTest.BadException}"
   end
 
   require Record

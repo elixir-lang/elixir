@@ -9,6 +9,7 @@
   * [ExUnit] Add number of skipped tests to `ExUnit` output
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
+  * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
   * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it just warned)
   * [Mix] `mix help` task now supports `mix help --search PATTERN` for filtering task names
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
@@ -19,6 +20,7 @@
 
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces therefore it has been replaced by imports
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
+  * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [Regex] Fix splitting of empty strings with regexes when trim is set to true. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
 
 ### 3. Soft deprecations (no warnings emitted)
