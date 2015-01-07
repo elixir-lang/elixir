@@ -27,6 +27,18 @@ defmodule ExUnit.FormatterTest do
     %ExUnit.Test{name: :world, case: Hello, tags: [file: __ENV__.file, line: 1]}
   end
 
+  defmodule Failing do
+    def __struct__ do
+      %{key: 0}
+    end
+
+    defimpl Inspect do
+      def inspect(struct, opts) when is_atom(opts) do
+        struct.unknown
+      end
+    end
+  end
+
   test "formats test case filters" do
     filters = [run: true, slow: false]
     assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
@@ -97,6 +109,18 @@ defmodule ExUnit.FormatterTest do
          test/ex_unit/formatter_test.exs:1
          Expected truthy, got false
          code: ExUnit.FormatterTest.falsy()
+    """
+  end
+
+  test "formats assertions with failing inspect" do
+    failure = {:error, catch_assertion(assert :will_fail == %Failing{}), []}
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         Assertion with == failed
+         code: :will_fail == %Failing{}
+         lhs:  :will_fail
+         rhs:  %Inspect.Error{message: \"got FunctionClauseError with message `no function clause matching in Inspect.ExUnit.FormatterTest.Failing.inspect/2` while inspecting %{__struct__: ExUnit.FormatterTest.Failing, key: 0}\"}
     """
   end
 
