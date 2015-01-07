@@ -45,9 +45,8 @@ defmodule Exception do
       module.message(exception)
     rescue
       e ->
-        raise ArgumentError,
-          "Got #{inspect e.__struct__} with message " <>
-          "\"#{message(e)}\" while retrieving message for #{inspect(exception)}"
+        "got #{inspect e.__struct__} with message `#{message(e)}` " <>
+        "while retrieving Exception.message/1 for #{inspect(exception)}"
     end
   end
 
