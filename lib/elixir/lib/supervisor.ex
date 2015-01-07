@@ -3,7 +3,7 @@ defmodule Supervisor do
   A behaviour module for implementing supervision functionality.
 
   A supervisor is a process which supervises other processes called
-  child processes. Supervisors are used to build an hierarchical process
+  child processes. Supervisors are used to build a hierarchical process
   structure called a supervision tree, a nice way to structure fault-tolerant
   applications.
 
@@ -180,7 +180,7 @@ defmodule Supervisor do
   as described in `Supervisor.Spec.supervise/2` docs.
 
   The options can also be used to register a supervisor name.
-  the supported values are described under the `Name Registration`
+  The supported values are described under the `Name Registration`
   section in the `GenServer` module docs.
 
   If the supervisor and its child processes are successfully created
@@ -258,7 +258,7 @@ defmodule Supervisor do
   the child specification and pid is added to the supervisor and the function returns
   the same value.
 
-  If the child process start function returns `:ignore, the child specification is
+  If the child process start function returns `:ignore`, the child specification is
   added to the supervisor, the pid is set to undefined and the function returns
   `{:ok, :undefined}`.
 
