@@ -14,8 +14,9 @@ defmodule Mix.Compilers.Elixir do
   have changed at runtime.
   """
   def compile(manifest, srcs, skip, exts, dest, force, on_start) do
-    all = Mix.Utils.extract_files(srcs -- skip, exts)
-    {all_entries, skip_entries} = read_manifest(manifest, dest, skip)
+    keep = srcs -- skip
+    all  = Mix.Utils.extract_files(keep, exts)
+    {all_entries, skip_entries} = read_manifest(manifest, dest, keep)
 
     removed =
       for {_b, _m, source, _d, _f, _bin} <- all_entries, not(source in all), do: source
@@ -181,21 +182,21 @@ defmodule Mix.Compilers.Elixir do
 
   # Reads the manifest returning the results as tuples.
   # The beam files are read, removed and stored in memory.
-  defp read_manifest(manifest, dest, skip_paths) do
+  defp read_manifest(manifest, dest, keep_paths) do
     initial = {[], []}
 
     case File.read(manifest) do
       {:ok, contents} ->
-        skip_paths = Enum.map(skip_paths, &(&1 <> "/"))
+        keep_paths = Enum.map(keep_paths, &(&1 <> "/"))
         Enum.reduce String.split(contents, "\n"), initial, fn x, acc ->
-          read_manifest_entry(String.split(x, "\t"), acc, dest, skip_paths)
+          read_manifest_entry(String.split(x, "\t"), acc, dest, keep_paths)
         end
       {:error, _} ->
         initial
     end
   end
 
-  defp read_manifest_entry([_beam, module, source|deps], {keep, skip}, dest, skip_paths) do
+  defp read_manifest_entry([_beam, module, source|deps], {keep, skip}, dest, keep_paths) do
     {deps, files} =
       case Enum.split_while(deps, &(&1 != "Elixir")) do
         {deps, ["Elixir"|files]} -> {deps, files}
@@ -208,10 +209,10 @@ defmodule Mix.Compilers.Elixir do
     entry = {Path.join(dest, module <> ".beam"), module, source,
              deps, files, nil}
 
-    if String.starts_with?(source, skip_paths) do
-      {keep, [entry|skip]}
-    else
+    if String.starts_with?(source, keep_paths) do
       {[entry|keep], skip}
+    else
+      {keep, [entry|skip]}
     end
   end
 
