@@ -17,7 +17,7 @@ defmodule Mix.Tasks.ArchiveTest do
 
   test "archive" do
     File.rm_rf! tmp_path("userhome")
-    System.put_env "MIX_HOME", tmp_path("userhome/.mix")
+    System.put_env "MIX_ARCHIVES", tmp_path("userhome/.mix/archives/")
     Mix.Project.push(ArchiveProject)
 
     in_fixture "archive", fn() ->
