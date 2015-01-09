@@ -12,12 +12,12 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
-      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "mod: {HelloWorld, []}"
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "Supervisor.start_link(children, opts)"
       end
 
-      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -61,12 +61,12 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "HELLO_WORLD/README.md", ~r/# HelloWorld/
+      assert_file "HELLO_WORLD/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "HELLO_WORLD/.gitignore"
 
       assert_file "HELLO_WORLD/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
-      assert_file "HELLO_WORLD/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "HELLO_WORLD/test/test_helper.exs", ~r/ExUnit.start()/
       assert_file "HELLO_WORLD/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -142,7 +142,7 @@ defmodule Mix.Tasks.NewTest do
   defp assert_file(file, match) do
     cond do
       Regex.regex?(match) ->
-        assert_file file, &(&1 =~ match)
+        assert_file file, &(assert &1 =~ match)
       is_function(match, 1) ->
         assert_file(file)
         match.(File.read!(file))
