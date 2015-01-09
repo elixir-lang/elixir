@@ -73,7 +73,7 @@ defmodule IEx.InteractionTest do
   end
 
   test "invalid input" do
-    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" starting at"
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: unexpected token: \")\". \"do\" starting at"
   end
 
   test "undefined function" do
