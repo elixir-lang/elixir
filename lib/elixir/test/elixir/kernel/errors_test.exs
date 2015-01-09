@@ -546,7 +546,7 @@ defmodule Kernel.ErrorsTest do
 
   test :interpolation_error do
     assert_compile_fail SyntaxError,
-      "nofile:1: \"do\" starting at line 1 is missing terminator \"end\". Unexpected token: )",
+      "nofile:1: unexpected token: \")\". \"do\" starting at line 1 is missing terminator \"end\"",
       '"foo\#{case 1 do )}bar"'
   end
 
