@@ -172,7 +172,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   defmodule SourcePathsProject do
     def project do
-      [app: :source_paths, elixirc_paths: ["web", "lib"]]
+      [app: :source_paths, elixirc_paths: ["web", "lib", "lib/foo"]]
     end
   end
 
@@ -180,15 +180,50 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Mix.Project.push SourcePathsProject
 
     in_fixture "no_mixfile", fn ->
+      File.mkdir_p! "web"
+      File.write! "web/ab.ex", """
+      defmodule AB, do: :ok
+      """
+
       # Nothing to compile with the custom source paths
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      assert_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
 
       # Compiling just web does not remove lib artifacts
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end
+  end
+
+  test "use custom source paths in subdirs" do
+    Mix.Project.push SourcePathsProject
+
+    in_fixture "no_mixfile", fn ->
+      File.mkdir_p! "lib/foo"
+      File.write! "lib/foo/ab.ex", """
+      defmodule AB, do: :ok
+      """
+
+      # Nested file (and nested file only) is compiled just once
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib/foo"])
+      assert_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+
+      # Compiling just lib/foo does not remove lib artifacts
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib/foo"])
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
