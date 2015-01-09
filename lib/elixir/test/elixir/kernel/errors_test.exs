@@ -371,6 +371,15 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test :match_attribute_in_module do
+    msg = "invalid write attribute syntax, you probably meant to use: @foo expression"
+    assert_raise ArgumentError, msg, fn ->
+      defmodule Foo do
+        @foo = 42
+      end
+    end
+  end
+
   test :invalid_fn_args do
     assert_compile_fail TokenMissingError,
       "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",
