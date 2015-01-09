@@ -240,7 +240,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the head of a list, raises `badarg` if the list is empty.
+  Returns the head of a list, raises `ArgumentError` if the list is empty.
 
   Inlined by the compiler.
   """
