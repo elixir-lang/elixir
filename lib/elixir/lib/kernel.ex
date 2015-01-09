@@ -2000,6 +2000,12 @@ defmodule Kernel do
         assert_module_scope(__CALLER__, :@, 1)
         function? = __CALLER__.function != nil
 
+        case not function? and __CALLER__.context == :match do
+          false -> nil
+          true  ->
+            raise ArgumentError, "invalid write attribute syntax, you probably meant to use: @#{name} expression"
+        end
+
         case is_list(args) and length(args) == 1 and typespec(name) do
           false ->
             do_at(args, name, function?, __CALLER__)
