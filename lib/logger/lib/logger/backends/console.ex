@@ -71,8 +71,11 @@ defmodule Logger.Backends.Console do
     Logger.Formatter.format(format, level, msg, ts, Dict.take(md, metadata))
   end
 
-  defp color_event(level, data, %{enabled: true} = colors), do:
+  defp color_event(level, data, %{enabled: true} = colors) do
     [IO.ANSI.format_fragment(Map.fetch!(colors, level), true), data|IO.ANSI.reset]
-  defp color_event(_level, data, %{enabled: false}), do:
+  end
+
+  defp color_event(_level, data, %{enabled: false}) do
     data
+  end
 end
