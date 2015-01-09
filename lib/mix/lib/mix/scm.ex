@@ -116,7 +116,7 @@ defmodule Mix.SCM do
   until a matching one is found.
   """
   def available do
-    {:ok, scm} = Application.fetch_env(:mix, :scm)
+    {:ok, scm} = Mix.State.fetch(:scm)
     scm
   end
 
@@ -124,15 +124,13 @@ defmodule Mix.SCM do
   Prepend the given SCM module to the list of available SCMs.
   """
   def prepend(mod) when is_atom(mod) do
-    available = Enum.reject(available(), &(&1 == mod))
-    Application.put_env(:mix, :scm, [mod|available])
+    Mix.State.prepend(:scm, mod)
   end
 
   @doc """
   Append the given SCM module to the list of available SCMs.
   """
   def append(mod) when is_atom(mod) do
-    available = Enum.reject(available(), &(&1 == mod))
-    Application.put_env(:mix, :scm, available ++ [mod])
+    Mix.State.append(:scm, mod)
   end
 end

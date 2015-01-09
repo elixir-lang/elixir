@@ -161,19 +161,29 @@ defmodule Mix do
   def start(_type, []) do
     import Supervisor.Spec
 
+    state = [shell: Mix.Shell.IO,
+             env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
+             scm: [Mix.SCM.Git, Mix.SCM.Path]]
+    tab = Mix.State.new(state)
     children = [
+      worker(Mix.State, [tab]),
       worker(Mix.TasksServer, []),
       worker(Mix.ProjectStack, [])
     ]
 
     opts = [strategy: :one_for_one, name: Mix.Supervisor]
-    stat = Supervisor.start_link(children, opts)
-
-    if env = System.get_env("MIX_ENV") do
-      env(String.to_atom env)
+    case Supervisor.start_link(children, opts) do
+      {:ok, pid} ->
+        {:ok, pid, tab}
+      {:error, _} = error ->
+        Mix.State.delete(tab)
+        error
     end
+  end
 
-    stat
+  @doc false
+  def stop(tab) do
+    Mix.State.delete(tab)
   end
 
   @doc """
@@ -181,7 +191,7 @@ defmodule Mix do
   """
   def env do
     # env is not available on bootstrapping, so set a :dev default
-    Application.get_env(:mix, :env, :dev)
+    Mix.State.get(:env, :dev)
   end
 
   @doc """
@@ -191,7 +201,7 @@ defmodule Mix do
   configuration won't be reloaded.
   """
   def env(env) when is_atom(env) do
-    Application.put_env(:mix, :env, env)
+    Mix.State.put(:env, env)
   end
 
   @doc """
@@ -218,14 +228,14 @@ defmodule Mix do
   messages to the current process.
   """
   def shell do
-    Application.get_env(:mix, :shell, Mix.Shell.IO)
+    Mix.State.get(:shell, Mix.Shell.IO)
   end
 
   @doc """
   Sets the current shell.
   """
   def shell(shell) do
-    Application.put_env(:mix, :shell, shell)
+    Mix.State.put(:shell, shell)
   end
 
   @doc """
