@@ -214,7 +214,10 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       end;
-    {error, {Line, Error, Token}, _Rest, _SoFar} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+    {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
+      {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
+    {error, {Line, Error, Token}, _Rest, _SoFar} ->
+      {error, {Line, to_binary(Error), to_binary(Token)}}
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->
