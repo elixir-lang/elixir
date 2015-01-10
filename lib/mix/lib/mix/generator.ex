@@ -12,10 +12,12 @@ defmodule Mix.Generator do
 
   ## Options
 
-    * `:force` - forces installation without a shell prompt.
+    * `:force`   - forces installation without a shell prompt.
+    * `:message` - prefix output text before `path`. (default: "* creating ")
   """
   def create_file(path, contents, opts \\ []) when is_binary(path) do
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
+    message = opts[:message] || "* creating "
+    Mix.shell.info [:green, message, :reset, Path.relative_to_cwd(path)]
 
     if opts[:force] || Mix.Utils.overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
@@ -25,9 +27,14 @@ defmodule Mix.Generator do
 
   @doc """
   Creates a directory if one does not exist yet.
+
+  ## Options
+
+    * `:message` - prefix output text before `path`. (default: "* creating ")
   """
-  def create_directory(path) when is_binary(path) do
-    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
+  def create_directory(path, opts \\ []) when is_binary(path) do
+    message = opts[:message] || "* creating "
+    Mix.shell.info [:green, message, :reset, Path.relative_to_cwd(path)]
     File.mkdir_p! path
   end
 

@@ -29,6 +29,14 @@ defmodule Mix.GeneratorTest do
     end
   end
 
+  test :create_file_with_different_prefix_message do
+    in_tmp "create_file", fn ->
+      create_file "foo", "HELLO", message: "    create "
+      assert File.read!("foo") == "HELLO"
+      assert_received {:mix_shell, :info, ["    create foo"]}
+    end
+  end
+
   test :force_create_file do
     in_tmp "create_file", fn ->
       File.write! "foo", "HELLO"
@@ -62,6 +70,22 @@ defmodule Mix.GeneratorTest do
       assert File.read!("foo") == "HELLO"
 
       assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+    end
+  end
+
+  test :create_directory do
+    in_tmp "create_directory", fn ->
+      create_directory "foo"
+      assert File.dir?("foo")
+      assert_received {:mix_shell, :info, ["* creating foo"]}
+    end
+  end
+
+  test :create_directory_with_different_prefix_message do
+    in_tmp "create_directory", fn ->
+      create_directory "foo", message: "    create "
+      assert File.dir?("foo")
+      assert_received {:mix_shell, :info, ["    create foo"]}
     end
   end
 end
