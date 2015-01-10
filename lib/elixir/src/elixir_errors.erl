@@ -42,7 +42,7 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 
 %% Tokenization parsing/errors.
 
--spec parse_error(non_neg_integer(), binary(), binary(), binary()) -> no_return().
+-spec parse_error(non_neg_integer(), binary() | {binary(), binary()}, binary(), binary()) -> no_return().
 
 parse_error(Line, File, Error, <<>>) ->
   Message = case Error of
@@ -78,10 +78,16 @@ parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) -
     end,
   do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
 
+%% Given a string prefix and suffix to insert the token inside the error message rather than append it
+parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
+  Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
+  do_raise(Line, File, 'Elixir.SyntaxError', Message);
+
 %% Everything else is fine as is
 parse_error(Line, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary >>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message).
+
 
 %% Handle warnings and errors from Erlang land (called during module compilation)
 
