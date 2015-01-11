@@ -466,7 +466,7 @@ defmodule GenEvent do
 
   First, the old event handler is deleted by calling `terminate/2` with
   the given `args1` and collects the return value. Then the new event handler
-  is added and initiated by calling `init({args2, state}), where term is the
+  is added and initiated by calling `init({args2, term})`, where `term` is the
   return value of calling `terminate/2` in the old handler. This makes it
   possible to transfer information from one handler to another.
 
