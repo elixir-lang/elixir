@@ -48,6 +48,7 @@ defmodule Mix.Tasks.Compile do
     end
 
     shell.info "\nEnabled compilers: #{Enum.join compilers(), ", "}"
+    :ok
   end
 
   def run(args) do
