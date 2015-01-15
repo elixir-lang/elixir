@@ -821,6 +821,10 @@ defmodule Enum do
         case fun.(entry, acc) do
           {:halt, acc} ->
             {:halt, {list, acc}}
+          {[], acc} ->
+            {:cont, {list, acc}}
+          {[entry], acc} ->
+            {:cont, {[entry|list], acc}}
           {entries, acc} ->
             {:cont, {reduce(entries, list, &[&1|&2]), acc}}
         end
