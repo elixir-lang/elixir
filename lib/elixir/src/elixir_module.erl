@@ -87,12 +87,37 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     Binary = load_form(Line, Data, Final, compile_opts(Module), NE),
     {module, Module, Binary, Result}
+  catch
+    error:undef ->
+      case erlang:get_stacktrace() of
+        [{Module, Fun, Args, _Info} | _] = Stack when is_list(Args) ->
+          compile_undef(Module, Fun, length(Args), Stack);
+        [{Module, Fun, Arity, _Info} | _] = Stack ->
+          compile_undef(Module, Fun, Arity, Stack);
+        Stack ->
+          erlang:raise(error, undef, Stack)
+      end
   after
     elixir_locals:cleanup(Module),
     ets:delete(Data),
     ets:delete(Defs),
     ets:delete(Clas),
     elixir_code_server:call({undefmodule, Ref})
+  end.
+
+%% An undef error for a function in the module being compiled might result in an
+%% exception message suggesting the current module is not loaded. This is
+%% misleading so use a custom reason.
+compile_undef(Module, Fun, Arity, Stack) ->
+  ExMod = 'Elixir.UndefinedFunctionError',
+  case code:is_loaded(ExMod) of
+    false ->
+      erlang:raise(error, undef, Stack);
+    _ ->
+      Opts = [{module, Module}, {function, Fun}, {arity, Arity},
+              {reason, 'function not available'}],
+      Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
+      erlang:raise(error, Exception, Stack)
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
