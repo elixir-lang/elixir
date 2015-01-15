@@ -36,7 +36,7 @@ defmodule Logger.Translator do
           msg = msg <> "Last message: #{inspect last}\n"
                     <> "State: #{inspect state}\n"
         end
-        {:ok, msg <> "** (exit) " <> Exception.format_exit(reason)}
+        {:ok, msg <> "** (exit) " <> format_otp_exit(reason)}
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
         msg = "GenEvent handler #{inspect name} installed in #{inspect manager} terminating\n"
@@ -44,13 +44,13 @@ defmodule Logger.Translator do
           msg = msg <> "Last message: #{inspect last}\n"
                     <> "State: #{inspect state}\n"
         end
-        {:ok, msg <> "** (exit) " <> Exception.format_exit(reason)}
+        {:ok, msg <> "** (exit) " <> format_otp_exit(reason)}
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = "Task #{inspect name} started from #{inspect starter} terminating\n" <>
               "Function: #{inspect function}\n" <>
               "    Args: #{inspect args}\n" <>
-              "** (exit) " <> Exception.format_exit(reason)
+              "** (exit) " <> format_otp_exit(reason)
         {:ok, msg}
 
       _ ->
@@ -295,4 +295,29 @@ defmodule Logger.Translator do
       crash_info(min_level, info, [prefix | prefix])]
   end
 
+
+  # OTP process rewrite the :undef error to these reasons when logging
+  @gen_undef [:"module could not be loaded", :"function not exported"]
+
+  defp format_otp_exit({undef, [{mod, fun, args, _info} | _ ]  = stacktrace} = reason)
+  when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
+    cond do
+      is_list(args) ->
+        format_undef(mod, fun, length(args), undef, stacktrace)
+      is_integer(args) ->
+        format_undef(mod, fun, args, undef, stacktrace)
+      true ->
+        Exception.format_exit(reason)
+    end
+  end
+
+  defp format_otp_exit(reason) do
+    Exception.format_exit(reason)
+  end
+
+  defp format_undef(mod, fun, arity, undef, stacktrace) do
+    opts = [module: mod, function: fun, arity: arity, reason: undef]
+    exception = UndefinedFunctionError.exception(opts)
+    Exception.format_exit({exception, stacktrace})
+  end
 end

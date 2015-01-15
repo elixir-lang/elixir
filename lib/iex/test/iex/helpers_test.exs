@@ -282,7 +282,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper elixir" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0 \(module Sample is not available\)", fn ->
       Sample.run
     end
 
