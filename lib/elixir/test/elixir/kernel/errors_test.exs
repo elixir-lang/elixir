@@ -420,7 +420,7 @@ defmodule Kernel.ErrorsTest do
 
   test :macro_with_undefined_local do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: ErrorsTest.unknown/1 (function unknown/1 is not available from ErrorsTest)",
+      "undefined function: ErrorsTest.unknown/1 (function unknown/1 is not available)",
       '''
       defmodule ErrorsTest do
         defmacrop bar, do: unknown(1)
@@ -431,7 +431,7 @@ defmodule Kernel.ErrorsTest do
 
   test :private_macro do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: ErrorsTest.foo/0 (function foo/0 is not available from ErrorsTest)",
+      "undefined function: ErrorsTest.foo/0 (function foo/0 is not available)",
       '''
       defmodule ErrorsTest do
         defmacrop foo, do: 1
