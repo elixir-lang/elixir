@@ -637,7 +637,7 @@ defmodule UndefinedFunctionError do
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
     "nil." <> fa = Exception.format_mfa(nil, function, arity)
     "undefined function: " <> Exception.format_mfa(module, function, arity) <>
-      " (function #{fa} is not available from #{inspect module})"
+      " (function #{fa} is not available)"
   end
 end
 
