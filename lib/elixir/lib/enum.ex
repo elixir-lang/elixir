@@ -880,11 +880,33 @@ defmodule Enum do
     list ++ to_list(collection)
   end
 
-  def into(collection, %{} = map) when is_list(collection) and map_size(map) == 0 do
-    :maps.from_list(collection)
+  def into(%{__struct__: _} = collection, collectable) do
+    do_into(collection, collectable)
+  end
+
+  def into(collection, %{__struct__: _} = collectable) do
+    do_into(collection, collectable)
+  end
+
+  def into(%{} = collection, %{} = collectable) do
+    Map.merge(collectable, collection)
+  end
+
+  def into(collection, %{} = collectable) when is_list(collection) do
+    Map.merge(collectable, :maps.from_list(collection))
+  end
+
+  def into(collection, %{} = collectable) do
+    reduce(collection, collectable, fn {k, v}, acc ->
+      Map.put(acc, k, v)
+    end)
   end
 
   def into(collection, collectable) do
+    do_into(collection, collectable)
+  end
+
+  defp do_into(collection, collectable) do
     {initial, fun} = Collectable.into(collectable)
     into(collection, initial, fun, fn x, acc ->
       fun.(acc, {:cont, x})
