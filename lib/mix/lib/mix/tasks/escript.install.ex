@@ -69,6 +69,7 @@ defmodule Mix.Tasks.Escript.Install do
       if Mix.Utils.copy_path!(src, dst, opts) do
         Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
         File.chmod!(dst, @escript_file_mode)
+        check_discoverability(dst)
       end
     end
   end
@@ -93,5 +94,17 @@ defmodule Mix.Tasks.Escript.Install do
   defp basename(path) do
     %URI{path: path} = URI.parse(path)
     Path.basename(path)
+  end
+
+  defp check_discoverability(path) do
+    executable = Path.basename(path)
+    sys_path = System.find_executable(executable)
+    if sys_path != path do
+      # FIXME: come up with a better error message? If the user already has a utility with the
+      # same name installed at a path that comes before escripts_path, the warning will seem
+      # confusing
+      Mix.shell.info "\nConsider adding #{Mix.Local.escripts_path} to your PATH\n"
+                  <> "to be able to invoke escripts by name."
+    end
   end
 end
