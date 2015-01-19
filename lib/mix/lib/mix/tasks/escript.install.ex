@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Escript.Install do
   defp install_escript(src, opts) do
     dst = Path.join([Mix.Local.escripts_path, basename(src)])
     if opts[:force] || should_install?(src, File.exists?(dst)) do
-      File.rm!(dst)
+      File.rm(dst)
       if Mix.Utils.copy_path!(src, dst, opts) do
         Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
         File.chmod!(dst, @escript_file_mode)
