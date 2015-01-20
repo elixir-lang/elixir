@@ -491,6 +491,33 @@ defmodule Stream do
   end
 
   @doc """
+  Chunks the `enum` each time `fun` returns `true` or at the beginning of
+  `enum`.
+
+  ## Examples
+
+      iex> stream = Stream.slice_before(1..8, &(rem(&1, 3) == 0))
+      iex> Enum.to_list(stream)
+      [[1,2], [3, 4, 5], [6, 7, 8]]
+
+  """
+  @spec slice_before(Enumerable.t, (element -> any)) :: Enumerable.t
+  def slice_before(enum, fun) do
+    lazy enum,
+         [],
+         fn(f1) -> R.slice_before(fun, f1) end,
+         &do_slice_before(&1, &2)
+  end
+
+  defp do_slice_before(acc(_, nil, _) = acc, _) do
+    {:cont, acc}
+  end
+
+  defp do_slice_before(acc(h, buffer, t), f1) do
+    cont_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+  end
+
+  @doc """
   Lazily takes the next `n` items from the enumerable and stops
   enumeration.
 

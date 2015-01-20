@@ -1856,6 +1856,27 @@ defmodule Enum do
   end
 
   @doc """
+  Chunks the `collection` each time `fun` returns `true` or at the beginning of
+  `collection`.
+
+  ## Examples
+
+  iex> Enum.slice_before([1, 2, 3, 6, 7, 9], fn(x) -> rem(x, 3) == 0 end)
+  [[1, 2], [3], [6, 7], [9]]
+
+  """
+  @spec slice_before(t, (element -> any)) :: [list]
+  def slice_before(collection, fun) do
+    {_, {acc, res}} =
+    Enumerable.reduce(collection, {:cont, {[], []}}, R.slice_before(fun))
+
+    case res do
+      []     -> []
+      buffer -> :lists.reverse([:lists.reverse(buffer) | acc])
+    end
+  end
+
+  @doc """
   Splits `collection` in two while `fun` returns `true`.
 
   ## Examples

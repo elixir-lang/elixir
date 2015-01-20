@@ -129,6 +129,21 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro slice_before(callback, f \\ nil) do
+    quote do
+      fn
+        entry, acc(h, [], t) ->
+          {:cont, acc(h, [entry], t)}
+        entry, acc(h, buffer, t) ->
+          if unquote(callback).(entry) do
+            cont_with_acc(unquote(f), :lists.reverse(buffer), h, [entry], t)
+          else
+            {:cont, acc(h, [entry|buffer], t)}
+          end
+      end
+    end
+  end
+
   defmacro take(f \\ nil) do
     quote do
       fn(entry, acc(h, n, t) = orig) ->
