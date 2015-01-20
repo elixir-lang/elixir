@@ -381,7 +381,20 @@ defmodule System do
   not happen unless `Path.wildcard/2` is used. On Windows though,
   wildcard expansion is up to the program.
 
-  A set of options are also supported and described below.
+  This function returns a tuple containing the collected result
+  and the command exit status.
+
+  ## Examples
+  
+      iex> System.cmd "echo", ["hello"]
+      {"hello\n", 0}
+
+      iex> System.cmd "echo", ["hello"], env: [{"MIX_ENV", "test"}]
+      {"hello\n", 0}
+      
+      iex> System.cmd "echo", ["hello"], into: IO.stream(:stdio, :line)
+      hello
+      {%IO.Stream{}, 0}
 
   ## Options
 
