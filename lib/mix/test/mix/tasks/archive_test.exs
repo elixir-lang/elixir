@@ -90,26 +90,39 @@ defmodule Mix.Tasks.ArchiveTest do
       end
 
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-
-      # We don't do the assertion below on Windows because
-      # the archive is open by Erlang code server and the archive
-      # is not effectively removed until the Erlang process exits.
-      unless match? {:win32, _}, :os.type do
-        refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
-      end
+      refute_file_exists tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
 
       # Load archive without warnings because there is no :elixir requirement in mix.exs
       Mix.Local.append_archives
       refute_received {:mix_shell, :error, [_]}
 
-      # Remove archive
+      # Check uninstall confirmation
+      send self, {:mix_shell_input, :yes?, false}
+      Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
+      assert_file_exists tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+
+      # Remove it!
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
+      refute_file_exists tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
+    end
+  end
 
-      # See reason for previous refutation.
-      unless match? {:win32, _}, :os.type do
-        refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-      end
+  defp assert_file_exists(path) do
+    # We don't do the assertion below on Windows because
+    # the archive is open by Erlang code server and the archive
+    # is not effectively removed until the Erlang process exits.
+    unless match? {:win32, _}, :os.type do
+      assert File.regular? path
+    end
+  end
+
+  defp refute_file_exists(path) do
+    # We don't do the assertion below on Windows because
+    # the archive is open by Erlang code server and the archive
+    # is not effectively removed until the Erlang process exits.
+    unless match? {:win32, _}, :os.type do
+      refute File.regular? path
     end
   end
 
