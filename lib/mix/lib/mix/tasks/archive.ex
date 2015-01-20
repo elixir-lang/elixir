@@ -21,15 +21,10 @@ defmodule Mix.Tasks.Archive do
       Mix.Local.archives_path
       |> Path.join("*.ez")
       |> Path.wildcard()
+      |> Enum.map(&Path.basename/1)
 
-    if archives == [] do
-      Mix.shell.info "No archives currently installed."
-    else
-      Enum.each archives, fn archive ->
-        Mix.shell.info "* #{Path.basename(archive)}"
-      end
-
-      Mix.shell.info "Archives installed at: #{Mix.Local.archives_path}"
-    end
+    Mix.Local.Utils.print_list(archives,
+      empty_message: "No archives currently installed.",
+      footnote: "Archives installed at: #{Mix.Local.archives_path}")
   end
 end

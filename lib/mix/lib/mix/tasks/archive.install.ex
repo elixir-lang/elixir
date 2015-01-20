@@ -34,11 +34,9 @@ defmodule Mix.Tasks.Archive.Install do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
     if src = List.first(argv) do
-      %URI{path: path} = URI.parse(src)
-
-      case Path.extname(path) do
+      case Path.extname(Mix.Local.Utils.basename(src)) do
         ".ez" -> install_archive(src, opts)
-        _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect path}"
+        _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect src}"
       end
     else
       src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
@@ -57,7 +55,7 @@ defmodule Mix.Tasks.Archive.Install do
 
     if opts[:force] || should_install?(src, previous) do
       dirname = Mix.Local.archives_path
-      archive = Path.join(dirname, basename(src))
+      archive = Path.join(dirname, Mix.Local.Utils.basename(src))
       check_file_exists!(src, archive)
 
       case Mix.Utils.read_path(src, opts) do
@@ -88,14 +86,6 @@ defmodule Mix.Tasks.Archive.Install do
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
       false
-    end
-  end
-
-  defp basename(path) do
-    if path = URI.parse(path).path do
-      Path.basename(path)
-    else
-      Mix.raise "Expected #{inspect path} to be a url or a local file path"
     end
   end
 
