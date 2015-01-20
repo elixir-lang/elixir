@@ -18,18 +18,12 @@ defmodule Mix.Tasks.Escript do
 
     escripts =
       escripts_path
-      |> list_dir
+      |> list_dir()
       |> Enum.filter(fn filename -> executable?(Path.join([escripts_path, filename])) end)
 
-    if escripts == [] do
-      Mix.shell.info "No escripts currently installed."
-    else
-      Enum.each escripts, fn filename ->
-        Mix.shell.info "* #{filename}"
-      end
-
-      Mix.shell.info "Escripts installed at: #{escripts_path}"
-    end
+    Mix.Local.Utils.print_list(escripts,
+      empty_message: "No escripts currently installed.",
+      footnote: "Escripts installed at: #{escripts_path}")
   end
 
   defp list_dir(path) do

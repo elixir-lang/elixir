@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Escript.Install do
   @escript_file_mode 0o555 # only read and execute permissions
 
   defp install_escript(src, opts) do
-    dst = Path.join([Mix.Local.escripts_path, basename(src)])
+    dst = Path.join([Mix.Local.escripts_path, Mix.Local.Utils.basename(src)])
     if opts[:force] || should_install?(src, File.exists?(dst)) do
       File.rm(dst)
       if Mix.Utils.copy_path!(src, dst, opts) do
@@ -87,13 +87,8 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp should_install?(src, true) do
-    Mix.shell.yes?("Found existing escript: #{basename(src)}.\n" <>
+    Mix.shell.yes?("Found existing escript: #{Mix.Local.Utils.basename(src)}.\n" <>
                    "Are you sure you want to replace it?")
-  end
-
-  defp basename(path) do
-    %URI{path: path} = URI.parse(path)
-    Path.basename(path)
   end
 
   defp check_discoverability(path) do

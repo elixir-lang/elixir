@@ -11,19 +11,8 @@ defmodule Mix.Tasks.Escript.Uninstall do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    {_, argv, _} = OptionParser.parse(argv)
-
-    if name = List.first(argv) do
-      path = Path.join(Mix.Local.escripts_path, name)
-      if File.regular?(path) do
-        File.rm!(path)
-      else
-        Mix.shell.error "Could not find a local escript named #{inspect name}. "<>
-                        "Existing escripts are:"
-        Mix.Task.run "escript"
-      end
-    else
-      Mix.raise "No escript was given to escript.uninstall"
-    end
+    Mix.Local.Utils.uninstall(argv, Mix.Local.escripts_path,
+      item_name: "escript",
+      item_plural: "escripts")
   end
 end
