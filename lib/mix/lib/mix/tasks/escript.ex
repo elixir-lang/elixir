@@ -43,6 +43,9 @@ defmodule Mix.Tasks.Escript do
     owner_exec_bit = 0o00100
     group_exec_bit = 0o00010
     other_exec_bit = 0o00001
-    (File.stat!(path).mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)) != 0
+    stat = File.stat!(path)
+
+    (stat.mode &&& (owner_exec_bit ||| group_exec_bit ||| other_exec_bit)) != 0
+    and stat.type == :regular
   end
 end
