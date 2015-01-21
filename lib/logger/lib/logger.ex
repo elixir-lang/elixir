@@ -474,8 +474,8 @@ defmodule Logger do
   defp macro_log(level, chardata, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
     if compare_levels(level, min_level) != :lt do
-      %{module: module, function: function, line: line} = caller
-      caller = [module: module, function: function, line: line]
+      %{module: module, function: fun, line: line} = caller
+      caller = [module: module, function: form_fa(fun), line: line]
       quote do
         Logger.log(unquote(level), unquote(chardata), unquote(caller) ++ unquote(metadata))
       end
@@ -490,6 +490,12 @@ defmodule Logger do
     do: Logger.Utils.truncate(data, n)
   defp truncate(data, n),
     do: Logger.Utils.truncate(to_string(data), n)
+
+  defp form_fa({name, arity}) do
+    Atom.to_string(name) <> "/" <> Integer.to_string(arity)
+  end
+
+  defp form_fa(nil), do: nil
 
   defp notify(:sync, msg),  do: GenEvent.sync_notify(Logger, msg)
   defp notify(:async, msg), do: GenEvent.notify(Logger, msg)
