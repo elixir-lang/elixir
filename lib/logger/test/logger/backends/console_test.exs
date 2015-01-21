@@ -43,8 +43,19 @@ defmodule Logger.Backends.ConsoleTest do
     Logger.metadata(user_id: 13)
 
     assert capture_log(fn ->
-      Logger.debug("user_id=13 hello")
-    end) =~ "hello"
+      Logger.debug("hello")
+    end) =~ "user_id=13 hello"
+  end
+
+  test "metadata defaults" do
+    Logger.configure_backend(:console,
+      format: "$metadata", metadata: [:module, :function, :line])
+
+    %{module: mod, function: {name, arity}, line: line} = __ENV__
+
+    assert capture_log(fn ->
+      Logger.debug("hello")
+    end) =~ "module=#{mod} function=#{name}/#{arity} line=#{line + 3}"
   end
 
   test "can configure level" do
