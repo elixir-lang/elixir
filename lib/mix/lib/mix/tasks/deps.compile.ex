@@ -72,10 +72,10 @@ defmodule Mix.Tasks.Deps.Compile do
     if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
   end
 
-  # All available dependencies can be compiled
-  # except for umbrella applications.
-  defp compilable?(%Mix.Dep{extra: extra} = dep) do
-    available?(dep) and !extra[:umbrella?]
+  # All available dependencies can be compiled except
+  # for children of umbrella that we can safely skip.
+  defp compilable?(%Mix.Dep{opts: opts} = dep) do
+    available?(dep) and !opts[:from_umbrella]
   end
 
   defp touch_fetchable(scm, path) do

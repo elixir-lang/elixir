@@ -190,25 +190,23 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      umbrella? = Mix.Project.umbrella?
-
-      if umbrella? do
+      if Mix.Project.umbrella? do
         opts = Keyword.put_new(opts, :app, false)
       end
 
       deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
-      {%{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}, deps}
+      {%{dep | manager: :mix, opts: opts}, deps}
     end)
   end
 
   # If we have a Mix dependency that came from a remote converger,
-  # we just use the dependencies given by the remote converger, we
-  # don't need to load the mixfile at all. We can only do this for
-  # now because umbrella projects are not supported.
+  # we just use the dependencies given by the remote converger,
+  # we don't need to load the mixfile at all. We can only do this
+  # because umbrella projects are not supported in remotes.
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
     deps = Enum.map(children, &to_dep(&1, from))
-    {%{dep | manager: :mix, extra: [umbrella: false]}, deps}
+    {%{dep | manager: :mix}, deps}
   end
 
   defp rebar_dep(%Mix.Dep{} = dep, children) do
