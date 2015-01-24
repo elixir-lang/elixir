@@ -273,54 +273,35 @@ defmodule IEx do
 
   """
   def configure(options) do
-    Enum.each options, fn {k, v} ->
-      Application.put_env(:iex, k, configure(k, v))
-    end
-  end
-
-  defp configure(k, v) when k in [:colors, :inspect] and is_list(v) do
-    Keyword.merge(Application.get_env(:iex, k), v)
-  end
-
-  defp configure(:history_size, v) when is_integer(v) do
-    v
-  end
-
-  defp configure(k, v) when k in [:default_prompt, :alive_prompt] and is_binary(v) do
-    v
-  end
-
-  defp configure(k, v) do
-    raise ArgumentError, "invalid configuration or value for pair #{inspect k} - #{inspect v}"
+    IEx.Config.configure(options)
   end
 
   @doc """
   Returns IEx configuration.
   """
   def configuration do
-    Application.get_all_env(:iex)
+    IEx.Config.configuration()
   end
 
   @doc """
   Registers a function to be invoked after the IEx process is spawned.
   """
   def after_spawn(fun) when is_function(fun) do
-    Application.put_env(:iex, :after_spawn, [fun|after_spawn])
+    IEx.Config.after_spawn(fun)
   end
 
   @doc """
   Returns registered `after_spawn` callbacks.
   """
   def after_spawn do
-    {:ok, list} = Application.fetch_env(:iex, :after_spawn)
-    list
+    IEx.Config.after_spawn()
   end
 
   @doc """
   Returns `true` if IEx was started.
   """
   def started? do
-    Application.get_env(:iex, :started, false)
+    IEx.Config.started?()
   end
 
   @doc """
@@ -329,18 +310,13 @@ defmodule IEx do
   ANSI escapes in `string` are not processed in any way.
   """
   def color(color, string) do
-    colors = Application.get_env(:iex, :colors)
-
-    if color_enabled?(colors[:enabled]) do
-      ansi = Keyword.get(colors, color, default_color(color))
-      IO.iodata_to_binary(IO.ANSI.format_fragment(ansi, true)) <> string <> IO.ANSI.reset
-    else
-      string
+    case IEx.Config.color(color) do
+      nil ->
+        string
+      ansi ->
+        IO.iodata_to_binary([IO.ANSI.format_fragment(ansi, true), string | IO.ANSI.reset])
     end
   end
-
-  defp color_enabled?(nil), do: IO.ANSI.enabled?
-  defp color_enabled?(bool) when is_boolean(bool), do: bool
 
   @doc """
   Gets the IEx width for printing.
@@ -348,18 +324,14 @@ defmodule IEx do
   Used by helpers and it has a maximum cap of 80 chars.
   """
   def width do
-    case :io.columns() do
-      {:ok, width} -> min(width, 80)
-      {:error, _}  -> 80
-    end
+    IEx.Config.width()
   end
 
   @doc """
   Gets the options used for inspecting.
   """
   def inspect_opts do
-    Application.get_env(:iex, :inspect) ++
-      [width: width(), pretty: true]
+    IEx.Config.inspect_opts()
   end
 
   @doc """
@@ -467,7 +439,6 @@ defmodule IEx do
   defp start_iex() do
     unless started? do
       {:ok, _} = Application.ensure_all_started(:iex)
-      Application.put_env(:iex, :started, true)
     end
 
     :ok
@@ -503,24 +474,4 @@ defmodule IEx do
     _ = for fun <- Enum.reverse(after_spawn), do: fun.()
     :ok
   end
-
-  # Used by default on evaluation cycle
-  defp default_color(:eval_interrupt), do: [:yellow]
-  defp default_color(:eval_result), do: [:yellow]
-  defp default_color(:eval_error), do: [:red]
-  defp default_color(:eval_info), do: [:normal]
-  defp default_color(:stack_app), do: [:red, :bright]
-  defp default_color(:stack_info), do: [:red]
-
-  # Used by ls
-  defp default_color(:ls_directory), do: [:blue]
-  defp default_color(:ls_device), do: [:green]
-
-  # Used by ansi docs
-  defp default_color(:doc_bold), do: [:bright]
-  defp default_color(:doc_code), do: [:cyan, :bright]
-  defp default_color(:doc_headings), do: [:yellow, :bright]
-  defp default_color(:doc_inline_code), do: [:cyan]
-  defp default_color(:doc_underline), do: [:underline]
-  defp default_color(:doc_title), do: [:reverse, :yellow, :bright]
 end

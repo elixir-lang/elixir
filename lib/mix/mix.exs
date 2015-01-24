@@ -9,11 +9,8 @@ defmodule Mix.Mixfile do
   end
 
   def application do
-    [registered: [Mix.TasksServer, Mix.ProjectStack],
+    [registered: [Mix.State, Mix.TasksServer, Mix.ProjectStack],
      mod: {Mix, []},
-     env: [shell: Mix.Shell.IO,
-           env: :dev,
-           scm: [Mix.SCM.Git, Mix.SCM.Path],
-           colors: []]]
+     env: [colors: []]]
   end
 end

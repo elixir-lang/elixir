@@ -4,8 +4,8 @@
  {modules, [
 	elixir
   ]},
- {registered, [elixir_code_server]},
+ {registered, [elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,crypto,compiler,syntax_tools]},
  {mod, {elixir,[]}},
- {env, [{uri, #{}},{ansi_enabled, false}]}
+ {env, [{ansi_enabled, false}]}
 ]}.

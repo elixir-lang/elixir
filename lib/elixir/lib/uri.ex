@@ -11,28 +11,6 @@ defmodule URI do
 
   import Bitwise
 
-  @ports %{
-    "ftp"   => 21,
-    "http"  => 80,
-    "https" => 443,
-    "ws"    => 80,
-    "wss"   => 443,
-    "ldap"  => 389,
-    "sftp"  => 22,
-    "tftp"  => 69,
-  }
-
-  Enum.each @ports, fn {scheme, port} ->
-    def normalize_scheme(unquote(scheme)), do: unquote(scheme)
-    def default_port(unquote(scheme)),     do: unquote(port)
-  end
-
-  @doc """
-  Normalizes the scheme according to the spec by downcasing it.
-  """
-  def normalize_scheme(nil),     do: nil
-  def normalize_scheme(scheme),  do: String.downcase(scheme)
-
   @doc """
   Returns the default port for a given scheme.
 
@@ -49,8 +27,7 @@ defmodule URI do
 
   """
   def default_port(scheme) when is_binary(scheme) do
-    {:ok, dict} = Application.fetch_env(:elixir, :uri)
-    Map.get(dict, scheme)
+    :elixir_config.get({:uri, scheme})
   end
 
   @doc """
@@ -61,8 +38,7 @@ defmodule URI do
   new URIs.
   """
   def default_port(scheme, port) when is_binary(scheme) and port > 0 do
-    {:ok, dict} = Application.fetch_env(:elixir, :uri)
-    Application.put_env(:elixir, :uri, Map.put(dict, scheme, port), persistent: true)
+    :elixir_config.put({:uri, scheme}, port)
   end
 
   @doc """
@@ -350,6 +326,9 @@ defmodule URI do
 
     {userinfo, host, port}
   end
+
+  defp normalize_scheme(nil),     do: nil
+  defp normalize_scheme(scheme),  do: String.downcase(scheme)
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.

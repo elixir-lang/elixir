@@ -6,7 +6,7 @@
 %% Public API
 
 get_opt(Key) ->
-  Dict = elixir_code_server:call(compiler_options),
+  Dict = elixir_config:get(compiler_options),
   case lists:keyfind(Key, 1, Dict) of
     false -> false;
     {Key, Value} -> Value
@@ -78,7 +78,7 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
 
   %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  AllOpts   = elixir_code_server:call(erl_compiler_options),
+  AllOpts   = options(),
   FinalOpts = AllOpts -- [native, warn_missing_spec],
   inner_module(Form, FinalOpts, true, E, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
@@ -91,6 +91,36 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
       end,
     dispatch_loaded(Module, Fun, Args, Purgeable, I, EE)
   end).
+
+options() ->
+  case elixir_config:get(erl_compiler_options) of
+    nil ->
+      elixir_config:update(erl_compiler_options, fun options/1);
+    Opts ->
+      Opts
+  end.
+
+options(nil) ->
+  Key = "ERL_COMPILER_OPTIONS",
+  case os:getenv(Key) of
+    false -> [];
+    Str when is_list(Str) ->
+      case erl_scan:string(Str) of
+        {ok,Tokens,_} ->
+          case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
+            {ok,List} when is_list(List) -> List;
+            {ok,Term} -> [Term];
+            {error,_Reason} ->
+              io:format("Ignoring bad term in ~ts\n", [Key]),
+              []
+          end;
+        {error, {_,_,_Reason}, _} ->
+          io:format("Ignoring bad term in ~ts\n", [Key]),
+          []
+      end
+  end;
+options(Opts) ->
+    Opts.
 
 dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
   Res = Module:Fun(Args),
@@ -142,8 +172,8 @@ module(Forms, Opts, E, Callback) ->
   Final =
     case (get_opt(debug_info) == true) orelse
          lists:member(debug_info, Opts) of
-      true  -> [debug_info] ++ elixir_code_server:call(erl_compiler_options);
-      false -> elixir_code_server:call(erl_compiler_options)
+      true  -> [debug_info] ++ options();
+      false -> options()
     end,
   inner_module(Forms, Final, false, E, Callback).
 
@@ -177,7 +207,10 @@ no_auto_import() ->
 
 core() ->
   {ok, _} = application:ensure_all_started(elixir),
-  elixir_code_server:cast({compiler_options, [{docs,false},{internal,true}]}),
+  New = orddict:from_list([{docs,false},{internal,true}]),
+  Merge = fun(_, _, Value) -> Value end,
+  Update = fun(Old) -> orddict:merge(Merge, Old, New) end,
+  _ = elixir_config:update(compiler_options, Update),
   [core_file(File) || File <- core_main()].
 
 core_file(File) ->

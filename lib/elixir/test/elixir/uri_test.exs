@@ -142,8 +142,14 @@ defmodule URITest do
 
   test :default_port do
     assert URI.default_port("http") == 80
-    assert URI.default_port("unknown") == nil
+    try do
+      URI.default_port("http", 8000)
+      assert URI.default_port("http") == 8000
+    after
+      URI.default_port("http", 80)
+    end
 
+    assert URI.default_port("unknown") == nil
     URI.default_port("unknown", 13)
     assert URI.default_port("unknown") == 13
   end
