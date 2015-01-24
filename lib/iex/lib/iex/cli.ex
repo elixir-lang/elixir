@@ -96,7 +96,7 @@ defmodule IEx.CLI do
   end
 
   def local_start do
-    IEx.start(config(), {:elixir, :start_cli, []})
+    IEx.start(options(), {:elixir, :start_cli, []})
   end
 
   def remote_start(parent, ref) do
@@ -110,7 +110,7 @@ defmodule IEx.CLI do
 
   defp remote_start_function do
     ref    = make_ref
-    config = config()
+    opts = options()
 
     parent = spawn_link fn ->
       receive do
@@ -121,11 +121,11 @@ defmodule IEx.CLI do
     end
 
     fn ->
-      IEx.start(config, {__MODULE__, :remote_start, [parent, ref]})
+      IEx.start(opts, {__MODULE__, :remote_start, [parent, ref]})
     end
   end
 
-  defp config do
+  defp options do
     [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
   end
 

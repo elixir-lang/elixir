@@ -8,6 +8,16 @@ start_link() ->
 init(ok) ->
   Workers = [
     {
+      elixir_config,
+      {elixir_config, start_link, []},
+
+      permanent,                    % Restart  = permanent | transient | temporary
+      2000,                         % Shutdown = brutal_kill | int() >= 0 | infinity
+      worker,                       % Type     = worker | supervisor
+      [elixir_config]               % Modules  = [Module] | dynamic
+   },
+
+    {
       elixir_code_server,
       {elixir_code_server, start_link, []},
 

@@ -5,7 +5,7 @@ defmodule Mix.SCMTest do
 
   setup do
     available = Mix.SCM.available
-    on_exit fn -> Application.put_env(:mix, :scm, available) end
+    on_exit fn -> Mix.State.put(:scm, available) end
     :ok
   end
 

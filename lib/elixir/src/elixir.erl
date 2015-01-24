@@ -42,10 +42,29 @@ start(_Type, _Args) ->
       ok
   end,
 
-  elixir_sup:start_link().
+  URIs = [{<<"ftp">>, 21},
+          {<<"sftp">>, 22},
+          {<<"tftp">>, 69},
+          {<<"http">>, 80},
+          {<<"https">>, 443},
+          {<<"ldap">>, 389}],
+  URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
+  CompilerOpts = [{docs,true},{debug_info,true},{warnings_as_errors,false}],
+  Config = [{at_exit, []},
+            {compiler_options, orddict:from_list(CompilerOpts)}
+            | URIConfig],
+  Tab = elixir_config:new(Config),
+  case elixir_sup:start_link() of
+    {ok, Sup} ->
+      {ok, Sup, Tab};
+    {error, _Reason} = Error ->
+      elixir_config:delete(Tab),
+      Error
+  end.
 
-stop(_S) ->
-  ok.
+stop(Tab) ->
+  elixir_config:delete(Tab).
+
 
 config_change(_Changed, _New, _Remove) ->
   ok.
