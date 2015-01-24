@@ -3,18 +3,22 @@
 ## v1.0.3-dev
 
 * Bug fixes
+  * [Elixir] Ensure all Elixir applications work with code upgrades
+  * [Elixir]  Do not show aliases and import warnings when code cannot compile
   * [Elixir] Don't leave spurious processes and stale data when the parallel compiler fails
   * [IEx] Improve autocompletion for Erlang/Elixir based on loaded applications
   * [Inspect] Keep original stacktrace on Inspect errors
   * [IO] Make `IO.ANSI.Docs` readable on white background
   * [IO] Fix `IO.ANSI.Docs` handling of `*`, `**`, `_` where they would be activated in the middle of words
+  * [Logger] Fix logging with `metadata[:function]`
   * [Mix] Don't show hex update message on mix `local.hex`
   * [Mix] Ensure tasks are properly underscored and camelized
   * [Mix] Ensure Mix does not use ANSI escapes on Windows unless ANSI is enabled
   * [Mix] Improve error message when updating archives on Windows
   * [Mix] Only shutdown Logger if the Mix application is being actually started
   * [Mix] Don't go through hex.pm API server to install Hex
-  * [Regex] Fix Regex.replace/4 failures when the number of substitutions in pattern is more than the number of matches and support `\g{...}` patterns
+  * [Regex] Fix `Regex.replace/4` failures when the number of substitutions in pattern is more than the number of matches and support `\g{...}` patterns
+  * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
   * [String] Fix LFCR being treated as a grapheme instead of CRLF
   * [URI] Do more strict matching on URI schema
 
