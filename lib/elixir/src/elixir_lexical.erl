@@ -13,12 +13,14 @@ run(File, Dest, Callback) ->
   case elixir_compiler:get_opt(internal) of
     false ->
       {ok, Pid} = ?tracker:start_link(Dest),
-      try
-        Callback(Pid)
+      try Callback(Pid) of
+        Res ->
+          warn_unused_aliases(File, Pid),
+          warn_unused_imports(File, Pid),
+          Res
       after
-        warn_unused_aliases(File, Pid),
-        warn_unused_imports(File, Pid),
-        unlink(Pid), ?tracker:stop(Pid)
+        unlink(Pid),
+        ?tracker:stop(Pid)
       end;
     true ->
       Callback(nil)
