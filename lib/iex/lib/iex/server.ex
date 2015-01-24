@@ -1,4 +1,4 @@
-defmodule IEx.Config do
+defmodule IEx.State do
   @moduledoc false
   defstruct binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
   @type t :: %__MODULE__{}
@@ -115,7 +115,7 @@ defmodule IEx.Server do
     self_leader = Process.group_leader
     evaluator   = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader) end)
     Process.put(:evaluator, evaluator)
-    loop(run_config(opts), evaluator, Process.monitor(evaluator))
+    loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
@@ -136,23 +136,23 @@ defmodule IEx.Server do
     :ok
   end
 
-  defp loop(config, evaluator, evaluator_ref) do
+  defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
-    counter  = config.counter
-    prefix   = if config.cache != [], do: "...", else: config.prefix
+    counter  = state.counter
+    prefix   = if state.cache != [], do: "...", else: state.prefix
 
     input = spawn(fn -> io_get(self_pid, prefix, counter) end)
-    wait_input(config, evaluator, evaluator_ref, input)
+    wait_input(state, evaluator, evaluator_ref, input)
   end
 
-  defp wait_input(config, evaluator, evaluator_ref, input) do
+  defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
       {:input, ^input, code} when is_binary(code) ->
-        send evaluator, {:eval, self, code, config}
+        send evaluator, {:eval, self, code, state}
         wait_eval(evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
-        loop(%{config | cache: ''}, evaluator, evaluator_ref)
+        loop(%{state | cache: ''}, evaluator, evaluator_ref)
       {:input, ^input, :eof} ->
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
@@ -160,15 +160,15 @@ defmodule IEx.Server do
 
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
-          wait_input(config, evaluator, evaluator_ref, input)
+          wait_input(state, evaluator, evaluator_ref, input)
         end)
     end
   end
 
   defp wait_eval(evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, config} ->
-        loop(config, evaluator, evaluator_ref)
+      {:evaled, ^evaluator, state} ->
+        loop(state, evaluator, evaluator_ref)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, nil,
                          fn -> wait_eval(evaluator, evaluator_ref) end)
@@ -231,9 +231,9 @@ defmodule IEx.Server do
     IO.gets(:stdio, message) =~ ~r/^(Y(es)?)?$/i
   end
 
-  ## Config
+  ## State
 
-  defp run_config(opts) do
+  defp run_state(opts) do
     locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
 
     env =
@@ -247,11 +247,11 @@ defmodule IEx.Server do
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
-    config  = %IEx.Config{binding: binding, scope: scope, prefix: prefix, env: env}
+    state  = %IEx.State{binding: binding, scope: scope, prefix: prefix, env: env}
 
     case opts[:dot_iex_path] do
-      ""   -> config
-      path -> IEx.Evaluator.load_dot_iex(config, path)
+      ""   -> state
+      path -> IEx.Evaluator.load_dot_iex(state, path)
     end
   end
 
@@ -265,12 +265,12 @@ defmodule IEx.Server do
   defp prompt(prefix, counter) do
     {mode, prefix} =
       if Node.alive? do
-        {:alive, prefix || remote_prefix}
+        {:alive_prompt, prefix || remote_prefix}
       else
-        {:default, prefix || "iex"}
+        {:default_prompt, prefix || "iex"}
       end
 
-    prompt = Application.get_env(:iex, :"#{mode}_prompt")
+    prompt = apply(IEx.Config, mode, [])
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
              |> String.replace("%node", to_string(node))

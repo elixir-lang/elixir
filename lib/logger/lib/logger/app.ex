@@ -21,49 +21,59 @@ defmodule Logger.App do
                     {otp_reports?, sasl_reports?, threshold}, :link],
                   [id: Logger.ErrorHandler, function: :watcher])]
 
+    config = Logger.Config.new()
+
     case Supervisor.start_link(children, options) do
-      {:ok, _} = ok ->
-        deleted = delete_error_logger_handler(otp_reports?, :error_logger_tty_h, [])
-        deleted = delete_error_logger_handler(sasl_reports?, :sasl_report_tty_h, deleted)
-        store_deleted_handlers(deleted)
-        ok
+      {:ok, sup} ->
+        handlers = [error_logger_tty_h: otp_reports?,
+                    sasl_logger_tty_h: sasl_reports?]
+        delete_handlers(handlers)
+        {:ok, sup, config}
       {:error, _} = error ->
+        Logger.Config.delete(config)
         error
     end
   end
 
   @doc false
-  def stop(_) do
-    Application.get_env(:logger, :deleted_handlers)
-    |> Enum.each(&:error_logger.add_report_handler/1)
+  def stop(config) do
+    Logger.Config.deleted_handlers()
+    |> add_handlers()
+    Logger.Config.delete(config)
+  end
 
-    # We need to do this in another process as the Application
-    # Controller is currently blocked shutting down this app.
-    spawn_link(fn -> Logger.Config.clear_data end)
-
-    :ok
+  @doc false
+  def config_change(_changed, _new, _removed) do
+    Logger.Config.configure([])
   end
 
   @doc """
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    set = Application.get_env(:logger, :deleted_handlers)
-    Application.put_env(:logger, :deleted_handlers, HashSet.new)
-    _ = Application.stop(:logger)
-    Enum.each(set, &:error_logger.add_report_handler/1)
-  end
-
-  defp store_deleted_handlers(list) do
-    Application.put_env(:logger, :deleted_handlers, Enum.into(list, HashSet.new))
-  end
-
-  defp delete_error_logger_handler(should_delete?, handler, deleted) do
-    if should_delete? and
-        :error_logger.delete_report_handler(handler) != {:error, :module_not_found} do
-      [handler|deleted]
+    try do
+      Logger.Config.deleted_handlers([])
+    catch
+      :exit, {:noproc, _} ->
+        {:error, {:not_started, :logger}}
     else
-      deleted
+      deleted_handlers ->
+        result = Application.stop(:logger)
+        add_handlers(deleted_handlers)
+        result
     end
+  end
+
+  defp delete_handlers(handlers) do
+    deleted? = fn({handler, delete?}) ->
+        delete? && :error_logger.delete_report_handler(handler) != {:error, :module_not_found}
+      end
+    [] = Enum.filter_map(handlers, deleted?, fn({handler, _}) -> handler end)
+        |> Logger.Config.deleted_handlers()
+    :ok
+  end
+
+  defp add_handlers(handlers) do
+    Enum.each(handlers, &:error_logger.add_report_handler/1)
   end
 end

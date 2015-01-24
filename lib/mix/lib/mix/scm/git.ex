@@ -163,12 +163,12 @@ defmodule Mix.SCM.Git do
   end
 
   defp assert_git do
-    case Application.fetch_env(:mix, :git_available) do
+    case Mix.State.fetch(:git_available) do
       {:ok, true} ->
         :ok
       :error ->
         if :os.find_executable('git') do
-          Application.put_env(:mix, :git_available, true)
+          Mix.State.put(:git_available, true)
         else
           Mix.raise "Error fetching/updating Git repository: the `git` "  <>
             "executable is not available in your PATH. Please install "   <>
@@ -179,7 +179,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp git_version do
-    case Application.fetch_env(:mix, :git_version) do
+    case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version
       :error ->
@@ -189,7 +189,7 @@ defmodule Mix.SCM.Git do
           |> String.strip
           |> parse_version
 
-        Application.put_env(:mix, :git_version, version)
+        Mix.State.put(:git_version, version)
         version
     end
   end

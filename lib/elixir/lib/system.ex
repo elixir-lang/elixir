@@ -72,7 +72,7 @@ defmodule System do
   """
   @spec argv() :: [String.t]
   def argv do
-    :elixir_code_server.call :argv
+    :elixir_config.get(:argv)
   end
 
   @doc """
@@ -83,7 +83,7 @@ defmodule System do
   """
   @spec argv([String.t]) :: :ok
   def argv(args) do
-    :elixir_code_server.cast({:argv, args})
+    :elixir_config.put(:argv, args)
   end
 
   @doc """
@@ -224,7 +224,7 @@ defmodule System do
   The function must receive the exit status code as an argument.
   """
   def at_exit(fun) when is_function(fun, 1) do
-    :elixir_code_server.cast {:at_exit, fun}
+    :elixir_config.update :at_exit, &[fun|&1]
   end
 
   @doc """

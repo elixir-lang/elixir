@@ -234,4 +234,15 @@ defmodule LoggerTest do
     wait_for_handler(Logger, Logger.Config)
     wait_for_handler(:error_logger, Logger.ErrorHandler)
   end
+
+  test "Logger.Config updates config on config_change/3" do
+    :ok = Logger.configure([level: :debug])
+    try do
+      Application.put_env(:logger, :level, :error)
+      assert Logger.App.config_change([level: :error], [], []) === :ok
+      assert Logger.level() === :error
+    after
+      Logger.configure([level: :debug])
+    end
+  end
 end

@@ -4,7 +4,9 @@ defmodule Logger.Config do
   use GenEvent
 
   @name __MODULE__
+  @table __MODULE__
   @data :__data__
+  @deleted_handlers :__deleted_handlers__
 
   def start_link do
     GenServer.start_link(__MODULE__, :ok, name: @name)
@@ -44,22 +46,46 @@ defmodule Logger.Config do
   def translate_backend(other),    do: other
 
   def __data__() do
-    if data = Application.get_env(:logger, @data) do
-      data
+    try do
+      :ets.lookup_element(@table, @data, 2)
+    rescue
+      ArgumentError ->
+        raise "Cannot use Logger, the :logger application is not running"
     else
-      raise "Cannot use Logger, the :logger application is not running"
+      nil ->
+        raise "Cannot use Logger, the :logger application is not running"
+      data ->
+        data
     end
   end
 
-  def clear_data() do
-    Application.delete_env(:logger, @data)
+  def deleted_handlers() do
+    try do
+      :ets.lookup_element(@table, @deleted_handlers, 2)
+    rescue
+      ArgumentError ->
+        []
+    end
   end
 
+  def deleted_handlers(handlers) do
+    GenEvent.call(Logger, @name, {:deleted_handlers, handlers})
+  end
+
+  def new() do
+    tab = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
+    true = :ets.insert_new(@table, [{@data, nil}, {@deleted_handlers, []}])
+    tab
+  end
+
+  def delete(@table) do
+    :ets.delete(@table)
+  end
   ## Callbacks
 
   def init(_) do
     # Use previous data if available in case this handler crashed.
-    state = Application.get_env(:logger, @data) || compute_state(:async)
+    state = :ets.lookup_element(@table, @data, 2) || compute_state(:async)
     {:ok, state}
   end
 
@@ -111,6 +137,12 @@ defmodule Logger.Config do
     {:ok, :ok, state}
   end
 
+  def handle_call({:deleted_handlers, new}, state) do
+    old = deleted_handlers()
+    true = :ets.update_element(@table, @deleted_handlers, {2, new})
+    {:ok, old, state}
+  end
+
   ## Helpers
 
   defp compute_mode(state) do
@@ -159,7 +191,7 @@ defmodule Logger.Config do
   end
 
   defp persist(state) do
-    Application.put_env(:logger, @data, state)
+    :ets.update_element(@table, @data, {2, state})
     state
   end
 end
