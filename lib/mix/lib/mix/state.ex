@@ -1,79 +1,34 @@
 defmodule Mix.State do
   @moduledoc false
+  @name __MODULE__
 
-  @table __MODULE__
-  @agent __MODULE__
-
-  def new(state) do
-    tab = :ets.new(@table, [:named_table, :public])
-    true = :ets.insert_new(@table, state)
-    tab
+  def start_link() do
+    Agent.start_link(__MODULE__, :init, [], [name: @name])
   end
 
-  def delete(@table = tab) do
-    :ets.delete(tab)
-  end
-
-  def start_link(tab) do
-    Agent.start_link(__MODULE__, :init, [tab], [name: @agent])
-  end
-
-  def init(@table = tab) do
-    case :ets.info(tab, :protection) do
-      :public ->
-        tab
-      :undefined ->
-        raise "#{tab} does not exist"
-      _ ->
-        raise "#{tab} is not public"
-    end
+  def init() do
+    %{shell: Mix.Shell.IO,
+      env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
+      scm: [Mix.SCM.Git, Mix.SCM.Path]}
   end
 
   def fetch(key) do
-    case :ets.lookup(@table, key) do
-      [{_, value}] ->
-        {:ok, value}
-      [] ->
-        :error
-    end
+    Agent.get(@name, Map, :fetch, [key])
   end
 
   def get(key, default \\ nil) do
-    case fetch(key) do
-      {:ok, value} -> value
-      :error       -> default
-    end
+    Agent.get(@name, Map, :get, [key, default])
   end
 
   def put(key, value) do
-    Agent.update(@agent, __MODULE__, :handle_put, [key, value])
-  end
-
-  def handle_put(tab, key, value) do
-    true = :ets.insert(tab, {key, value})
-    tab
+    Agent.update(@name, Map, :put, [key, value])
   end
 
   def prepend(key, value) do
-    Agent.update(@agent, __MODULE__, :handle_prepend, [key, value])
-  end
-
-  def handle_prepend(tab, key, value) do
-    true = :ets.insert(tab, {key, [value | reject(key, value)]})
-    tab
+    Agent.update(@name, Map, :update, [key, [value], &[value|List.delete(&1, value)]])
   end
 
   def append(key, value) do
-    Agent.update(@agent, __MODULE__, :handle_append, [key, value])
-  end
-
-  def handle_append(tab, key, value) do
-    true = :ets.insert(tab, {key, reject(key, value) ++ [value]})
-    tab
-  end
-
-  defp reject(key, value) do
-    {:ok, list} = fetch(key)
-    Enum.reject(list, &(&1 === value))
+    Agent.update(@name, Map, :update, [key, [value], &(List.delete(&1, value) ++ [value])])
   end
 end

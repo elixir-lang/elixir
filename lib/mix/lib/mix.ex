@@ -166,29 +166,14 @@ defmodule Mix do
   def start(_type, []) do
     import Supervisor.Spec
 
-    state = [shell: Mix.Shell.IO,
-             env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
-             scm: [Mix.SCM.Git, Mix.SCM.Path]]
-    tab = Mix.State.new(state)
     children = [
-      worker(Mix.State, [tab]),
+      worker(Mix.State, []),
       worker(Mix.TasksServer, []),
       worker(Mix.ProjectStack, [])
     ]
 
-    opts = [strategy: :one_for_one, name: Mix.Supervisor]
-    case Supervisor.start_link(children, opts) do
-      {:ok, pid} ->
-        {:ok, pid, tab}
-      {:error, _} = error ->
-        Mix.State.delete(tab)
-        error
-    end
-  end
-
-  @doc false
-  def stop(tab) do
-    Mix.State.delete(tab)
+    opts = [strategy: :one_for_one, name: Mix.Supervisor, max_restarts: 0]
+    Supervisor.start_link(children, opts)
   end
 
   @doc """
