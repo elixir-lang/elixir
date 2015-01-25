@@ -161,10 +161,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Receives a task name and returns `{:ok, module}` if a task is found.
+  Receives a task name and returns the task module if found.
 
-  Otherwise returns `{:error, :invalid}` in case the module
-  exists but it isn't a task or `{:error, :not_found}`.
+  Otherwise returns `nil` in case the module
+  exists but it isn't a task or cannot be found.
   """
   @spec get(task_name) :: task_module | nil
   def get(task) do
