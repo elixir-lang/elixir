@@ -417,9 +417,7 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
               {type, Line, union, [
                 {atom, Line, attributes},
                 {atom, Line, compile},
-                {atom, Line, exports},
                 {atom, Line, functions},
-                {atom, Line, imports},
                 {atom, Line, macros},
                 {atom, Line, module}
               ]}
@@ -441,7 +439,8 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
           functions_clause(Def),
           macros_clause(Defmacro),
           module_clause(Module),
-          else_clause()
+          info_clause(Module, attributes),
+          info_clause(Module, compile)
         ]},
 
       {Spec, Info}
@@ -456,9 +455,11 @@ macros_clause(Defmacro) ->
 module_clause(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
 
-else_clause() ->
-  Info = {call, 0, {atom, 0, module_info}, [{var, 0, atom}]},
-  {clause, 0, [{var, 0, atom}], [], [Info]}.
+info_clause(Module, Atom) ->
+  Info = {call, 0,
+            {remote, 0, {atom, 0, erlang}, {atom, 0, get_module_info}},
+            [{atom, 0, Module}, {atom, 0, Atom}]},
+  {clause, 0, [{atom, 0, Atom}], [], [Info]}.
 
 % HELPERS
 
