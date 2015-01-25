@@ -370,7 +370,7 @@ defmodule System do
     :erlang.halt(String.to_char_list(status))
   end
 
-  @doc """
+  @doc ~S"""
   Executes the given `command` with `args`.
 
   `command` is expected to be an executable available in PATH
