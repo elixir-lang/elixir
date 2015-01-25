@@ -727,6 +727,9 @@ defmodule Enum do
       iex> Enum.find_value([2, 3, 4], fn(x) -> rem(x, 2) == 1 end)
       true
 
+      iex> Enum.find_value([1, 2, 3], "no bools!", &is_boolean/1)
+      "no bools!"
+
   """
   @spec find_value(t, any, (element -> any)) :: any | :nil
   def find_value(collection, ifnone \\ nil, fun)
