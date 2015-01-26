@@ -52,8 +52,8 @@ defmodule Record do
        uid: :undefined, gid: :undefined]
 
   """
-  defmacro extract(name, opts) when is_atom(name) and is_list(opts) do
-    Macro.escape Record.Extractor.extract(name, opts)
+  def extract(name, opts) when is_atom(name) and is_list(opts) do
+    Record.Extractor.extract(name, opts)
   end
 
   @doc """
@@ -156,6 +156,25 @@ defmodule Record do
       require User
       User.user() #=> {User, nil}
 
+  ## Defining extracted records with anonymous functions
+
+  If a record defines an anonymous function, an ArgumentError
+  will occur if you attempt to create a record with it.
+  This can occur unintentionally when defining a record after extracting
+  it from an Erlang library that uses anonymous functions for defaults.
+
+      Record.defrecord :my_rec, Record.extract(...)
+      #=> ** (ArgumentError) invalid value for record field fun_field,
+      cannot escape #Function<12.90072148/2 in :erl_eval.expr/5>.
+
+  To work around this error, redefine the field with your own &M.f/a function,
+  like so:
+
+      defmodule MyRec do
+        require Record
+        Record.defrecord :my_rec, Record.extract(...) |> Keyword.merge(fun_field: &__MODULE__.foo/2)
+        def foo(bar, baz), do: IO.inspect({bar, baz})
+      end
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
