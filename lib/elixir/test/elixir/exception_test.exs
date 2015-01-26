@@ -24,14 +24,20 @@ defmodule Kernel.ExceptionTest do
 
   test "message" do
     defmodule BadException do
-      def message(_) do
-        raise "oops"
+      def message(exception) do
+        if exception.raise do
+          raise "oops"
+        end
       end
     end
 
-    assert Exception.message(%{__struct__: BadException, __exception__: true}) =~
+    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: true}) =~
            "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
-           "for %{__exception__: true, __struct__: Kernel.ExceptionTest.BadException}"
+           "for %{__exception__: true, __struct__: Kernel.ExceptionTest.BadException, raise: true}"
+
+    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: false}) =~
+           "got nil while retrieving Exception.message/1 " <>
+           "for %{__exception__: true, __struct__: Kernel.ExceptionTest.BadException, raise: false}"
   end
 
   require Record
