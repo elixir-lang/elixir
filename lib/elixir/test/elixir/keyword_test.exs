@@ -49,6 +49,18 @@ defmodule KeywordTest do
     assert Keyword.get(create_empty_keywords, :first_key, "default") == "default"
   end
 
+  test "get_and_update/3" do
+    {get, new_keywords} = Keyword.get_and_update(
+      create_keywords,
+      :first_key,
+      fn(current_val) -> {current_val, "foo"} end
+    )
+
+    assert get == 1
+    assert Keyword.get(new_keywords, :first_key) == "foo"
+    assert Keyword.get(new_keywords, :second_key) == 2
+  end
+
   test "fetch!/2" do
     assert Keyword.fetch!(create_keywords, :first_key) == 1
 
