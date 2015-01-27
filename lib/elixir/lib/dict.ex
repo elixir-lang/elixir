@@ -109,6 +109,7 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
   defcallback fetch(t, key) :: {:ok, value} | :error
   defcallback fetch!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
@@ -139,6 +140,12 @@ defmodule Dict do
           {:ok, value} -> value
           :error -> default
         end
+      end
+
+      def get_and_update(dict, key, fun) do
+        current_value = get(dict, key)
+        {get, new_value} = fun.(current_value)
+        {get, put(dict, key, new_value)}
       end
 
       def fetch!(dict, key) do
@@ -363,6 +370,34 @@ defmodule Dict do
   @spec get(t, key, value) :: value
   def get(dict, key, default \\ nil) do
     target(dict).get(dict, key, default)
+  end
+
+  @doc """
+  Gets a value from `dict` and updates the value at `key` in one pass.
+
+  This `fun` argument receives the value of `key` in `dict` (or `nil` if `key`
+  is not present) and must return a two-elements tuple: the "get" value (the
+  value retrieved from the dict which can be operated on before being returned)
+  and the new value to be stored under `key` in `dict`.
+
+  The returned value is a tuple with the "get" value returned by `fun` and a new
+  dict with the updated value under `key`.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> {get, new_dict} = Dict.get_and_update dict, :a, fn(current_value) ->
+      ...>   {current_value + 1, "foo"}
+      ...> end
+      iex> get
+      2
+      iex> Dict.get(new_dict, :a)
+      "foo"
+
+  """
+  @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  def get_and_update(dict, key, fun) do
+    target(dict).get_and_update(dict, key, fun)
   end
 
   @doc """
