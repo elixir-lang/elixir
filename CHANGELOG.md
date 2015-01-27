@@ -6,6 +6,7 @@
 
   * [CLI] Add support for `--werl` in Windows bash-like shells
   * [Enum] Add `Enum.sample/1`, `Enum.minmax/1`, `Enum.minmax_by/2` and `Enum.reverse_slice/3`
+  * [Enum] Inline common map usages in `Enum` functions
   * [ExUnit] Add number of skipped tests to `ExUnit` output
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
@@ -19,6 +20,7 @@
 ### 2. Bug fixes
 
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces therefore it has been replaced by imports
+  * [Exception] Do not fail when calculating an exception message, even if the message is invalid
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [Regex] Fix splitting of empty strings with regexes when trim is set to true. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
