@@ -64,7 +64,10 @@ defmodule Mix.Tasks.Deps.Compile do
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
         end
 
-        unless mix?(dep), do: build_structure(dep, config)
+        # Always build the structure even for Mix projects
+        # because if nothing was compiled, we need to re-copy
+        # priv/include when symlinks are not available.
+        build_structure(dep, config)
         touch_fetchable(scm, opts[:build])
         compiled
       end)
@@ -170,15 +173,15 @@ defmodule Mix.Tasks.Deps.Compile do
     build_path = Path.dirname(opts[:build])
     Enum.each Mix.Dep.source_paths(dep), fn source ->
       app = Path.join(build_path, Path.basename(source))
-      build_structure(source, app, config)
+      build_structure(dep, source, app, config)
       Code.prepend_path(Path.join(app, "ebin"))
     end
   end
 
-  defp build_structure(dest, build, config) do
+  defp build_structure(dep, dest, build, config) do
     File.cd! dest, fn ->
       config = Keyword.put(config, :app_path, build)
-      Mix.Project.build_structure(config, symlink_ebin: true)
+      Mix.Project.build_structure(config, symlink_ebin: not mix?(dep))
     end
   end
 

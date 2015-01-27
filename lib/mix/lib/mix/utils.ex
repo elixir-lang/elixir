@@ -300,33 +300,31 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      source_list = String.to_char_list(source)
+      # Relative symbolic links on windows are broken
+      link = case :os.type do
+        {:win32, _} -> source
+        _           -> make_relative_path(source, target)
+      end |> String.to_char_list
+
       case :file.read_link(target) do
-        {:ok, ^source_list} ->
+        {:ok, ^link} ->
           :ok
         {:ok, _} ->
           File.rm!(target)
-          do_symlink_or_copy(source, target)
+          do_symlink_or_copy(source, target, link)
         {:error, :enoent} ->
-          do_symlink_or_copy(source, target)
+          do_symlink_or_copy(source, target, link)
         {:error, _} ->
           _ = File.rm_rf!(target)
-          do_symlink_or_copy(source, target)
+          do_symlink_or_copy(source, target, link)
       end
     else
       {:error, :enoent}
     end
   end
 
-  defp do_symlink_or_copy(source, target) do
-
-    # relative symbolic links on windows are broken
-    source_path = case :os.type do
-      {:win32, _} -> source
-      _ -> make_relative_path(source, target)
-    end
-
-    case :file.make_symlink(source_path, target) do
+  defp do_symlink_or_copy(source, target, link) do
+    case :file.make_symlink(link, target) do
       :ok -> :ok
       {:error, _} -> {:ok, File.cp_r!(source, target)}
     end
