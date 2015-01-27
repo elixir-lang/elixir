@@ -231,6 +231,10 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: '{'",
       '%{:a, :b}{a: :b}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar().baz(), nil)",
+      'foo = 1; %{put_in(foo.bar.baz, nil), :bar}'
   end
 
   test :struct_fields_on_defstruct do

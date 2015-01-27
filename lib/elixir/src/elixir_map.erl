@@ -5,9 +5,11 @@
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], E) ->
   {[ELeft|ERight], EA} = elixir_exp:expand_args([Left|Right], E),
+  validate_kv(Meta, ERight, Right, E),
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EA};
 expand_map(Meta, Args, E) ->
   {EArgs, EA} = elixir_exp:expand_args(Args, E),
+  validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EA}.
 
 expand_struct(Meta, Left, Right, E) ->
@@ -34,6 +36,15 @@ expand_struct(Meta, Left, Right, E) ->
   end,
 
   {{'%', EMeta, [ELeft, ERight]}, EE}.
+
+validate_kv(Meta, KV, Original, E) ->
+  lists:foldl(fun
+    ({_K, _V}, Acc) -> Acc + 1;
+    (_, Acc) ->
+      compile_error(Meta, ?m(E, file),
+        "expected key-value pairs in a map, got: ~ts",
+        ['Elixir.Macro':to_string(lists:nth(Acc, Original))])
+  end, 1, KV).
 
 translate_map(Meta, Args, S) ->
   {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
@@ -139,14 +150,10 @@ translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
 
   Line = ?line(Meta),
 
-  {TArgs, SA} = lists:mapfoldl(fun
-    ({Key, Value}, Acc) ->
-      {TKey, Acc1}   = KeyFun(Key, Acc),
-      {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
-      {{Op, ?line(Meta), TKey, TValue}, Acc2};
-    (Other, _Acc) ->
-      compile_error(Meta, S#elixir_scope.file, "expected key-value pairs in map, got: ~ts",
-                     ['Elixir.Macro':to_string(Other)])
+  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
+    {TKey, Acc1}   = KeyFun(Key, Acc),
+    {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
+    {{Op, ?line(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
 
   build_map(Line, TUpdate, TArgs, SA).
