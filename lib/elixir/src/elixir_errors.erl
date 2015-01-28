@@ -136,8 +136,11 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
 handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
   ok;
 
-%% Ignore shadowed vars as we guarantee no conflicts ourselves
+%% Ignore shadowed and exported vars as we guarantee no conflicts ourselves
 handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
+  ok;
+
+handle_file_warning(_, _File, {_Line,erl_lint,{exported_var,_Var,_Where}}) ->
   ok;
 
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
