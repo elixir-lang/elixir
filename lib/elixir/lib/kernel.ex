@@ -2190,10 +2190,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Allows you to destructure two lists, assigning each term in the right to the
-  matching term in the left. Unlike pattern matching via `=`, if the sizes of
-  the left and right lists don't match, destructuring simply stops instead of
-  raising an error.
+  Destructures two lists, assigning each term in the
+  right to the matching term in the left.
+
+  Unlike pattern matching via `=`, if the sizes of the left
+  and right lists don't match, destructuring simply stops
+  instead of raising an error.
 
   ## Examples
 
@@ -2218,20 +2220,22 @@ defmodule Kernel do
 
   The example above will only work if x matches
   the first value from the right side. Otherwise,
-  it will raise a CaseClauseError.
+  it will raise a MatchError.
   """
   defmacro destructure(left, right) when is_list(left) do
     Enum.reduce left, right, fn item, acc ->
       {:case, meta, args} =
         quote do
           case unquote(acc) do
-            [unquote(item)|t] ->
+            [h|t] ->
+              unquote(item) = h
               t
             other when other == [] or other == nil ->
               unquote(item) = nil
+              []
           end
         end
-      {:case, [{:export_head,true}|meta], args}
+      {:case, meta, args}
     end
   end
 
