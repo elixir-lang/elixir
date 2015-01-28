@@ -470,7 +470,7 @@ defmodule KernelTest do
 
     test "invalid match" do
       a = List.first([3])
-      assert_raise CaseClauseError, fn ->
+      assert_raise MatchError, fn ->
         destructure [^a, _b, _c], a_list
       end
     end
