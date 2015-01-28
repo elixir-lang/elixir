@@ -290,10 +290,10 @@ defmodule File do
   end
 
   @doc """
-  Returns information about the `path`. If the file is a symlink sets 
+  Returns information about the `path`. If the file is a symlink sets
   the `type` to `:symlink` and returns `File.Stat` for the link. For any
   other file, returns exactly the same values as `stat/2`. For more details
-  see http://www.erlang.org/doc/man/file.html#read_link_info-2 
+  see http://www.erlang.org/doc/man/file.html#read_link_info-2
 
   ## Options
 
@@ -689,6 +689,7 @@ defmodule File do
   Tries to delete the file `path`.
 
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
+
   Note the file is deleted even if in read-only mode.
 
   Typical error reasons are:
@@ -702,10 +703,10 @@ defmodule File do
 
   ## Examples
 
-      File.rm('file.txt')
+      File.rm("file.txt")
       #=> :ok
 
-      File.rm('tmp_dir/')
+      File.rm("tmp_dir/")
       #=> {:error, :eperm}
 
   """
@@ -724,7 +725,7 @@ defmodule File do
 
   defp change_mode_windows(path) do
     if match? {:win32, _}, :os.type do
-      case F.read_file_info(IO.chardata_to_string(path)) do
+      case F.read_file_info(path) do
         {:ok, file_info} when elem(file_info, 3) in [:read, :none] ->
           change_mode_windows(path, file_info)
         _ ->
@@ -1185,9 +1186,28 @@ defmodule File do
   end
 
   @doc """
-  Changes the unix file `mode` for a given `file`.
-  Returns `:ok` on success, or `{:error, reason}`
-  on failure.
+  Changes the `mode` for a given `file`.
+
+  Returns `:ok` on success, or `{:error, reason}` on failure.
+
+  ## Permissions
+
+    * 0o400 - read permission: owner
+    * 0o200 - write permission: owner
+    * 0o100 - execute permission: owner
+
+    * 0o040 - read permission: group
+    * 0o020 - write permission: group
+    * 0o010 - execute permission: group
+
+    * 0o004 - read permission: other
+    * 0o002 - write permission: other
+    * 0o001 - execute permission: other
+
+  For example, setting the mode 0o755 gives it
+  write, read and execute permission to the owner
+  and both read and execute permission to group
+  and others.
   """
   @spec chmod(Path.t, non_neg_integer) :: :ok | {:error, posix}
   def chmod(path, mode) do
