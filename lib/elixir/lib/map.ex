@@ -38,6 +38,16 @@ defmodule Map do
     end, map1, map2
   end
 
+  def get_and_update(map, key, fun) do
+    current_value = case :maps.find(key, map) do
+      {:ok, value} -> value
+      :error -> nil
+    end
+
+    {get, update} = fun.(current_value)
+    {get, :maps.put(key, update, map)}
+  end
+
   @doc """
   Converts a struct to map.
 

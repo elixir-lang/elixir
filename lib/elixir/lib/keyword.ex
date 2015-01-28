@@ -142,10 +142,22 @@ defmodule Keyword do
 
   """
   @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
-  def get_and_update(keywords, key, fun) when is_list(keywords) and is_atom(key) do
-    current_value = get(keywords, key)
-    {get, new_value} = fun.(current_value)
-    {get, put(keywords, key, new_value)}
+  def get_and_update(keywords, key, fun)
+    when is_list(keywords) and is_atom(key),
+    do: get_and_update(keywords, [], key, fun)
+
+  defp get_and_update([{key, value}|t], acc, key, fun) do
+    {get, new_value} = fun.(value)
+    {get, :lists.reverse(acc, [{key, new_value}|t])}
+  end
+
+  defp get_and_upadte([h|t], acc, key, fun) do
+    get_and_update(t, [h|acc], key, fun)
+  end
+
+  defp get_and_update([], acc, key, fun) do
+    {get, update} = fun.(nil)
+    {get, [{key, update}|List.reverse(acc)]}
   end
 
   @doc """
