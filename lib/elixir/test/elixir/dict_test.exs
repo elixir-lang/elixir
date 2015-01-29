@@ -77,6 +77,29 @@ defmodule DictTest.Common do
         assert Dict.get(int_dict, 1.0) == nil
       end
 
+      test "get_and_update/3 when the key is present" do
+        dict = new_dict()
+        {get, dict} = Dict.get_and_update dict, "first_key", fn(current_val) ->
+          {[current_val: current_val], :new_value}
+        end
+
+        assert get == [current_val: 1]
+        assert Dict.get(dict, "first_key")  == :new_value
+        assert Dict.get(dict, "second_key") == 2
+      end
+
+      test "get_and_update/3 when the key is not present" do
+        dict = new_dict()
+        {get, dict} = Dict.get_and_update dict, "new_key", fn(current_val) ->
+          {[current_val: current_val], :new_value}
+        end
+
+        assert get == [current_val: nil]
+        assert Dict.get(dict, "first_key")  == 1
+        assert Dict.get(dict, "second_key") == 2
+        assert Dict.get(dict, "new_key")    == :new_value
+      end
+
       test "fetch/2" do
         dict = new_dict()
         assert Dict.fetch(dict, "first_key")  == {:ok, 1}

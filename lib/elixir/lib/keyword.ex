@@ -123,6 +123,44 @@ defmodule Keyword do
   end
 
   @doc """
+  Gets the value from `key` and updates it, all in one pass.
+
+  This `fun` argument receives the value of `key` (or `nil` if `key`
+  is not present) and must return a two-elements tuple: the "get" value (the
+  retrieved value, which can be operated on before being returned) and the new
+  value to be stored under `key`.
+
+  The returned value is a tuple with the "get" value returned by `fun` and a new
+  keyword list with the updated value under `key`.
+
+  ## Examples
+
+      iex> Keyword.get_and_update [a: 1], :a, fn(current_value) ->
+      ...>   {current_value, "new value!"}
+      ...> end
+      {1, [a: "new value!"]}
+
+  """
+  @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  def get_and_update(keywords, key, fun)
+    when is_list(keywords) and is_atom(key),
+    do: get_and_update(keywords, [], key, fun)
+
+  defp get_and_update([{key, value}|t], acc, key, fun) do
+    {get, new_value} = fun.(value)
+    {get, :lists.reverse(acc, [{key, new_value}|t])}
+  end
+
+  defp get_and_upadte([h|t], acc, key, fun) do
+    get_and_update(t, [h|acc], key, fun)
+  end
+
+  defp get_and_update([], acc, key, fun) do
+    {get, update} = fun.(nil)
+    {get, [{key, update}|List.reverse(acc)]}
+  end
+
+  @doc """
   Fetches the value for a specific `key` and returns it in a tuple.
 
   If the `key` does not exist, returns `:error`.
@@ -145,8 +183,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Fetches the value for specific `key`. 
-  
+  Fetches the value for specific `key`.
+
   If `key` does not exist, a `KeyError` is raised.
 
   ## Examples
@@ -186,8 +224,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns all keys from the keyword list. 
-  
+  Returns all keys from the keyword list.
+
   Duplicated keys appear duplicated in the final list of keys.
 
   ## Examples
@@ -325,8 +363,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Checks if two keywords are equal. 
-  
+  Checks if two keywords are equal.
+
   Two keywords are considered to be equal if they contain
   the same keys and those keys contain the same values.
 
@@ -342,8 +380,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keyword lists into one. 
-  
+  Merges two keyword lists into one.
+
   If they have duplicated keys, the one given in the second argument wins.
 
   ## Examples
@@ -359,8 +397,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Merges two keyword lists into one. 
-  
+  Merges two keyword lists into one.
+
   If they have duplicated keys, the given function is invoked to solve conflicts.
 
   ## Examples
@@ -402,8 +440,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the `key` with the given function. 
-  
+  Updates the `key` with the given function.
+
   If the `key` does not exist, raises `KeyError`.
 
   If there are duplicated keys, they are all removed and only the first one
@@ -436,8 +474,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the `key` with the given function. 
-  
+  Updates the `key` with the given function.
+
   If the `key` does not exist, inserts the given `initial` value.
 
   If there are duplicated keys, they are all removed and only the first one
@@ -467,8 +505,8 @@ defmodule Keyword do
 
   @doc """
   Takes all entries corresponding to the given keys and extracts them into a
-  separate keyword list. 
-  
+  separate keyword list.
+
   Returns a tuple with the new list and the old list with removed keys.
 
   Keys for which there are no entires in the keyword list are ignored.
