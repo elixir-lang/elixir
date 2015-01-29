@@ -32,7 +32,7 @@ defmodule Mix.Tasks.App.Start do
       # or not.
       #
       # Mix should not depend directly on Logger so check that it's loaded.
-      if Code.ensure_loaded?(Logger), do: Logger.App.stop()
+      if Process.whereis(Logger), do: Logger.App.stop()
       start(Mix.Project.config[:app])
     end
 
