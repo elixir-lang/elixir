@@ -269,7 +269,7 @@ defmodule Dict do
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
                      has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
-                     update: 4, update!: 3
+                     update: 4, update!: 3, get_and_update: 3
     end
   end
 
