@@ -177,7 +177,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules_from_applications do
-    for {app, _, _} <- :application.loaded_applications,
+    for {app, _, _} <- :application.info[:loaded],
         {_, modules} = :application.get_key(app, :modules),
              module <- modules do
       Atom.to_string(module)
