@@ -193,7 +193,7 @@ defmodule Mix.Tasks.Test do
     System.at_exit fn _ ->
       # Make sure all messages the tests might have sent to the
       # Logger are printed before we shut down the VM.
-      if pid = Process.whereis(Logger), do: Logger.flush()
+      if Process.whereis(Logger), do: Logger.flush()
       if failures > 0, do: exit({:shutdown, 1})
     end
   end
