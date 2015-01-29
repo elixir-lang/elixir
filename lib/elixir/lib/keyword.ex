@@ -151,7 +151,7 @@ defmodule Keyword do
     {get, :lists.reverse(acc, [{key, new_value}|t])}
   end
 
-  defp get_and_upadte([h|t], acc, key, fun) do
+  defp get_and_update([h|t], acc, key, fun) do
     get_and_update(t, [h|acc], key, fun)
   end
 
