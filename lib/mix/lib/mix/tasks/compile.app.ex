@@ -99,7 +99,9 @@ defmodule Mix.Tasks.Compile.App do
       properties = ensure_correct_properties(app, config, properties)
       contents   = {:application, app, properties}
 
-      Mix.Project.build_structure(config)
+      # There are no modules, we assume no structure was built.
+      # If it was built, it doesn't matter, we just rebuild it.
+      if mods == [], do: Mix.Project.build_structure(config)
       File.write!(target, :io_lib.format("~p.", [contents]))
 
       Mix.shell.info "Generated #{app}.app"
