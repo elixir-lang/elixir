@@ -64,10 +64,7 @@ defmodule Mix.Tasks.Deps.Compile do
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
         end
 
-        # Always build the structure even for Mix projects
-        # because if nothing was compiled, we need to re-copy
-        # priv/include when symlinks are not available.
-        build_structure(dep, config)
+        unless mix?(dep), do: build_structure(dep, config)
         touch_fetchable(scm, opts[:build])
         compiled
       end)
