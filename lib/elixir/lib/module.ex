@@ -332,7 +332,7 @@ defmodule Module do
 
       Foo.sum(1, 2) #=> 3
 
-  For convenience, you can my pass `__ENV__` as argument and
+  For convenience, you can pass `__ENV__` as an argument and
   all options will be automatically extracted from the environment:
 
       defmodule Foo do
