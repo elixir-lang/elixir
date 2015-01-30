@@ -156,7 +156,7 @@ defmodule Mix.Rebar do
   defp wrap_cmd(nil), do: nil
   defp wrap_cmd(rebar) do
     if match?({:win32, _}, :os.type) and not String.ends_with?(rebar,".cmd") do
-      "escript.exe #{rebar}"
+      "escript.exe \"#{rebar}\""
     else
       rebar
     end
