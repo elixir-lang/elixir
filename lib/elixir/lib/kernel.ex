@@ -3249,6 +3249,16 @@ defmodule Kernel do
         end
       end
 
+  `__using__/1` is just a regular macro that can be defined in any module:
+
+      defmodule MyModule do
+        defmacro __using__(opts) do
+          quote do
+            # code that will run in the module that will `use MyModule`
+          end
+        end
+      end
+
   """
   defmacro use(module, opts \\ []) do
     expanded = Macro.expand(module, __CALLER__)
