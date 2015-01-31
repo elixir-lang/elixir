@@ -120,32 +120,30 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Task undef module crash" do
-    {:ok, pid} = Task.start(:module_does_not_exist, :undef, [])
-
     assert capture_log(fn ->
+      {:ok, pid} = Task.start(:module_does_not_exist, :undef, [])
       ref = Process.monitor(pid)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Task #{inspect pid} started from #{inspect self} terminating
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     Function: &:module_does_not_exist.undef/0
-        Args: []
-    ** (exit) an exception was raised:
-        ** (UndefinedFunctionError) undefined function: :module_does_not_exist.undef/0 (module :module_does_not_exist is not available)
+        Args: \[\]
+    \*\* \(exit\) an exception was raised:
+        \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
     """
   end
 
   test "translates Task undef function crash" do
-    {:ok, pid} = Task.start(__MODULE__, :undef, [])
-
     assert capture_log(fn ->
+      {:ok, pid} = Task.start(__MODULE__, :undef, [])
       ref = Process.monitor(pid)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Task #{inspect pid} started from #{inspect self} terminating
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     Function: &Logger.TranslatorTest.undef/0
-        Args: []
-    ** (exit) an exception was raised:
-        ** (UndefinedFunctionError) undefined function: Logger.TranslatorTest.undef/0
+        Args: \[\]
+    \*\* \(exit\) an exception was raised:
+        \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
     """
   end
 
