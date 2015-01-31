@@ -177,10 +177,18 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules_from_applications do
-    for {app, _, _} <- :application.info[:loaded],
+    for {app, _, _} <- which_applications(),
         {_, modules} = :application.get_key(app, :modules),
-             module <- modules do
+        module <- modules do
       Atom.to_string(module)
+    end
+  end
+
+  defp which_applications() do
+    try do
+      :application.which_applications(5000)
+    catch
+      :exit, {:timeout, _} -> [:elixir, :iex]
     end
   end
 
