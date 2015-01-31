@@ -198,11 +198,6 @@ defmodule RegexTest do
     assert Regex.replace(~r(b), "abcbe", "d") == "adcde"
     assert Regex.replace(~r(b), "abcbe", "d", global: false) == "adcbe"
 
-    assert Regex.replace(~r/ /, "first third", "\\second\\") ==
-           "first\\second\\third"
-    assert Regex.replace(~r/ /, "first third", "\\\\second\\\\") ==
-           "first\\second\\third"
-
     assert Regex.replace(~r[a(b)c], "abcabc", fn -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end) == "acac"
