@@ -162,7 +162,7 @@ defmodule Mix.Dep do
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date"
+    do: "lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
     do: "lock outdated: the lock is outdated compared to the options in your mixfile"
