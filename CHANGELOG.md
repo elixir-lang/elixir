@@ -22,8 +22,8 @@
   * [Mix] Ensure Mix does not use ANSI escapes on Windows unless ANSI is enabled
   * [Mix] Only shutdown Logger if the Mix application is being actually started
   * [Mix] Ensure priv/include are copied on Windows even if source did not change
+  * [Mix] Ensure rebar dependencies work when user path has a space on Windows
   * [Regex] Fix `Regex.replace/4` failures when the number of substitutions in pattern is more than the number of matches and support `\g{...}` patterns
-  * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
   * [String] Fix LFCR being treated as a grapheme instead of CRLF
   * [URI] Do more strict matching on URI schema
 
