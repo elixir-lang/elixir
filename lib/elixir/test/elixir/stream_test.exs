@@ -41,8 +41,7 @@ defmodule StreamTest do
   end
 
   test "chunk/2, chunk/3 and chunk/4" do
-    assert Stream.chunk([1, 2, 3, 4, 5], 2) |> Enum.to_list ==
-           [[1, 2], [3, 4]]
+    assert Stream.chunk([1, 2, 3, 4, 5], 2) |> Enum.to_list == [[1, 2], [3, 4]]
     assert Stream.chunk([1, 2, 3, 4, 5], 2, 2, [6]) |> Enum.to_list ==
            [[1, 2], [3, 4], [5, 6]]
     assert Stream.chunk([1, 2, 3, 4, 5, 6], 3, 2) |> Enum.to_list ==
@@ -55,6 +54,7 @@ defmodule StreamTest do
            [[1, 2, 3], [4, 5, 6]]
     assert Stream.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) |> Enum.to_list ==
            [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert 1..10 |> Stream.chunk(2) |> Enum.take(2) == [[1, 2], [3, 4]]
   end
 
   test "chunk/4 is zippable" do
@@ -80,16 +80,21 @@ defmodule StreamTest do
     stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
 
     assert is_lazy(stream)
-    assert Enum.to_list(stream) ==
-           [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
-    assert stream |> Stream.take(3) |> Enum.to_list ==
-           [[1], [2, 2], [3]]
+    assert Enum.to_list(stream) == [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
+    assert stream |> Stream.take(3) |> Enum.to_list == [[1], [2, 2], [3]]
+    assert stream |> Enum.take(2) == [[1], [2, 2]]
   end
 
   test "chunk_by/2 is zippable" do
     stream = Stream.chunk_by([1, 2, 2, 3], &(rem(&1, 2) == 1))
     list   = Enum.to_list(stream)
+
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
+  test "chunk_by/4 is haltable" do
+    assert 1..10 |> Stream.take(6) |> Stream.chunk_by(&(rem(&1, 3) == 0))
+           |> Stream.take(2) |> Enum.to_list == [[1, 2], [3]]
   end
 
   test "concat/1" do
@@ -527,6 +532,7 @@ defmodule StreamTest do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1,3,6,10,15]
+    assert Enum.take(stream, 3) == [1,3,6]
     assert Stream.scan([], &(&1 + &2)) |> Enum.to_list == []
   end
 
@@ -650,11 +656,10 @@ defmodule StreamTest do
   end
 
   test "uniq/1" do
-    assert Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list ==
-           [1, 2, 3]
-
-    assert Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list ==
-           [{1,:x}, {2,:y}]
+    assert Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list == [1, 2, 3]
+    assert Stream.uniq([1, 2, 3, 2, 1]) |> Enum.take(2) == [1, 2]
+    assert Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
+           |> Enum.to_list == [{1,:x}, {2,:y}]
   end
 
   test "zip/2" do

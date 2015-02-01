@@ -197,6 +197,10 @@ defmodule Stream do
     {:cont, acc}
   end
 
+  defp do_chunk_by(acc({_, 1}, _, _) = acc, _f1) do
+    {:cont, acc}
+  end
+
   defp do_chunk_by(acc(h, {buffer, _}, t), f1) do
     cont_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
