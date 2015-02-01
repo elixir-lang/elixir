@@ -84,6 +84,8 @@ defmodule StreamTest do
            [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
     assert stream |> Stream.take(3) |> Enum.to_list ==
            [[1], [2, 2], [3]]
+    assert 1..10 |> Stream.chunk(2) |> Enum.take(2) ==
+           [[1, 2], [3, 4]]
   end
 
   test "chunk_by/2 is zippable" do
