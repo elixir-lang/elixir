@@ -1919,10 +1919,10 @@ defmodule Enum do
   def take(collection, count) when is_integer(count) and count > 0 do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, count}) ->
-        if count > 1 do
-          {:cont, {[entry|list], count - 1}}
-        else
-          {:halt, {[entry|list], count}}
+        case count do
+          0 -> {:halt, {list, count}}
+          1 -> {:halt, {[entry|list], count - 1}}
+          _ -> {:cont, {[entry|list], count - 1}}
         end
       end)
     :lists.reverse(res)
