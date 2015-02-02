@@ -1,0 +1,113 @@
+.Dd January 29, 2015
+.Dt IEX 1
+.Os
+.Sh NAME
+.Nm iex
+.Nd The Elixir shell
+.Sh SYNOPSIS
+.Nm
+.Op Ar OPTIONS
+.Sh DESCRIPTION
+The interactive shell allows testing the work of small pieces of code escaping the stage of saving the code in a file.
+.Sh OPTIONS
+Note that many of the options mentioned here were borrowed from the Erlang shell, therefore
+.Xr erl 1
+can be used as an additional source of information on the options.
+.Bl -tag -width Ds
+.It Fl e Ar expression
+Evaluates
+.Ar expression .
+.It Fl r Ar file
+Requires
+.Ar file .
+In other words, the specified file is checked for existence at the start of
+.Nm .
+.It Fl S Ar script
+Executes
+.Ar script .
+.It Fl pa Ar directory
+Adds
+.Ar directory
+to the beginning of the code path. If the specified directory already exists, it will be removed from its old position and put to the beginning.
+.Pp
+See also the function
+.Sy :code.add_patha/1 .
+.It Fl pr Ar file
+Does the same thing as
+.Fl r
+.Pq see above
+but in parallel.
+.It Fl pz Ar directory
+Adds
+.Ar directory
+to the end of the code path. If the specified directory already exists, it won't be neither removed from its old position nor put to the end.
+.Pp
+See also the function
+.Sy :code.add_pathz/1 .
+.It Fl -cookie Ar value
+Sets the magic cookie to
+.Ar value .
+If the value of the magic cookie isn't specified via the option
+.Fl -cookie
+when the node starts, it will be taken from the file
+.Pa ~/.erlang.cookie
+.Pq see the section Sy FILES .
+Distributed nodes can interact with each other only when their magic cookies are equal.
+.It Fl -dot-iex Ar file
+Loads
+.Ar file
+instead of
+.Pa .iex.exs
+.Pq see the section Sy FILES .
+.It Fl -detached
+Runs the Erlang runtime system detached from the controlling terminal.
+.It Fl -hidden
+Starts a hidden node.
+.Pp
+Connections between nodes are transitive. For example, if a node A is connected to a node B and the node B is connected to a node C, then the node A is connected to the node C. The option
+.Fl -hidden
+allows creating the node which can be connected to a specific node escaping redundant connections.
+.Pp
+The function
+.Sy :erlang.nodes/0
+allows getting the list of nodes connected to the target node, however the list won't include hidden nodes. Depending on the input parameter, the function
+.Sy :erlang.nodes/1
+allows getting the list which contains only hidden nodes
+.Pq the parameter Ar :hidden
+or both hidden and not hidden nodes
+.Pq the parameter Ar :connected .
+.It Fl -sname Ar name
+Gives a node a short name and starts it. Short names take the form of
+.Ar name Ns
+@host, where host is the name of the target host
+.Pq Xr hostname 1
+which runs the node. The nodes with short names can interact with each other only in the same local network.
+.It Fl -name Ar name
+Gives a node a long name and starts it. Long names take the form of
+.Ar name Ns
+@host, where host is the IP address of the host which runs the node. In contrast to the nodes with short names, the nodes with long names aren't limited by boundaries of a local network
+.Pq see above .
+.It Fl -remsh Ar node
+Connects to
+.Ar node
+which was started with the
+.Fl -sname
+or
+.Fl -name
+options
+.Pq see above .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.erlang.cookie
+Stores the value of the magic cookie which is used only when it wasn't specified via the option
+.Fl -cookie
+.Pq see above .
+If the file doesn't exist when a node starts, it will be created.
+.It Pa .iex.exs
+After
+.Nm
+starts, it seeks the file
+.Pa .iex.exs
+and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home direcory.
+.El

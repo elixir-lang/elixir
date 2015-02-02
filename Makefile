@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
+.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -109,6 +109,11 @@ install: compile
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
+
+install_man:
+	$(Q) mkdir -p $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1 $(PREFIX)/share/man/man1
+	$(Q) ln -s $(PREFIX)/share/man/man1/iex.1 $(PREFIX)/share/man/man1/elixir.1
 
 clean:
 	cd lib/elixir && ../../$(REBAR) clean
