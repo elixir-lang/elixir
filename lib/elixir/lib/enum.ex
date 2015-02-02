@@ -180,17 +180,21 @@ defmodule Enum do
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
 
-  defmacrop cont(_, entry, acc) do
-    quote do: {:cont, [unquote(entry)|unquote(acc)]}
+  defmacrop skip(acc) do
+    acc
+  end
+
+  defmacrop next(_, entry, acc) do
+    quote do: [unquote(entry)|unquote(acc)]
   end
 
   defmacrop acc(h, n, _) do
     quote do: {unquote(h), unquote(n)}
   end
 
-  defmacrop cont_with_acc(f, entry, h, n, _) do
+  defmacrop next_with_acc(f, entry, h, n, _) do
     quote do
-      {:cont, {[unquote(entry)|unquote(h)], unquote(n)}}
+      {[unquote(entry)|unquote(h)], unquote(n)}
     end
   end
 
@@ -338,8 +342,8 @@ defmodule Enum do
   def chunk(collection, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
-    {_, {acc, {buffer, i}}} =
-      Enumerable.reduce(collection, {:cont, {[], {[], 0}}}, R.chunk(n, step, limit))
+    {acc, {buffer, i}} =
+      reduce(collection, {[], {[], 0}}, R.chunk(n, step, limit))
 
     if is_nil(pad) || i == 0 do
       :lists.reverse(acc)
@@ -360,8 +364,7 @@ defmodule Enum do
   """
   @spec chunk_by(t, (element -> any)) :: [list]
   def chunk_by(collection, fun) do
-    {_, {acc, res}} =
-      Enumerable.reduce(collection, {:cont, {[], nil}}, R.chunk_by(fun))
+    {acc, res} = reduce(collection, {[], nil}, R.chunk_by(fun))
 
     case res do
       {buffer, _} ->
@@ -515,8 +518,7 @@ defmodule Enum do
   end
 
   def drop_while(collection, fun) do
-    {_, {res, _}} =
-      Enumerable.reduce(collection, {:cont, {[], true}}, R.drop_while(fun))
+    {res, _} = reduce(collection, {[], true}, R.drop_while(fun))
     :lists.reverse(res)
   end
 
@@ -663,8 +665,7 @@ defmodule Enum do
   end
 
   def filter(collection, fun) do
-    Enumerable.reduce(collection, {:cont, []}, R.filter(fun))
-    |> elem(1) |> :lists.reverse
+    reduce(collection, [], R.filter(fun)) |> :lists.reverse
   end
 
   @doc """
@@ -682,8 +683,7 @@ defmodule Enum do
   end
 
   def filter_map(collection, filter, mapper) do
-    Enumerable.reduce(collection, {:cont, []}, R.filter_map(filter, mapper))
-    |> elem(1) |> :lists.reverse
+    reduce(collection, [], R.filter_map(filter, mapper)) |> :lists.reverse
   end
 
   @doc """
@@ -1004,7 +1004,7 @@ defmodule Enum do
   end
 
   def map(collection, fun) do
-    Enumerable.reduce(collection, {:cont, []}, R.map(fun)) |> elem(1) |> :lists.reverse
+    reduce(collection, [], R.map(fun)) |> :lists.reverse
   end
 
   @doc """
@@ -1410,7 +1410,7 @@ defmodule Enum do
   end
 
   def reject(collection, fun) do
-    Enumerable.reduce(collection, {:cont, []}, R.reject(fun)) |> elem(1) |> :lists.reverse
+    reduce(collection, [], R.reject(fun)) |> :lists.reverse
   end
 
   @doc """
@@ -1564,8 +1564,7 @@ defmodule Enum do
   """
   @spec scan(t, (element, any -> any)) :: list
   def scan(enum, fun) do
-    {_, {res, _}} =
-      Enumerable.reduce(enum, {:cont, {[], :first}}, R.scan_2(fun))
+    {res, _} = reduce(enum, {[], :first}, R.scan_2(fun))
     :lists.reverse(res)
   end
 
@@ -1582,8 +1581,7 @@ defmodule Enum do
   """
   @spec scan(t, any, (element, any -> any)) :: list
   def scan(enum, acc, fun) do
-    {_, {res, _}} =
-      Enumerable.reduce(enum, {:cont, {[], acc}}, R.scan_3(fun))
+    {res, _} = reduce(enum, {[], acc}, R.scan_3(fun))
     :lists.reverse(res)
   end
 
@@ -1912,13 +1910,13 @@ defmodule Enum do
   def take(_collection, 0), do: []
   def take([], _count), do: []
 
-  def take(collection, count) when is_list(collection) and is_integer(count) and count > 0 do
-    do_take(collection, count)
+  def take(collection, n) when is_list(collection) and is_integer(n) and n > 0 do
+    do_take(collection, n)
   end
 
-  def take(collection, count) when is_integer(count) and count > 0 do
+  def take(collection, n) when is_integer(n) and n > 0 do
     {_, {res, _}} =
-      Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, count}) ->
+      Enumerable.reduce(collection, {:cont, {[], n}}, fn(entry, {list, count}) ->
         case count do
           0 -> {:halt, {list, count}}
           1 -> {:halt, {[entry|list], count - 1}}
@@ -1928,10 +1926,31 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
-  def take(collection, count) when is_integer(count) and count < 0 do
-    Stream.take(collection, count).({:cont, []}, &{:cont, [&1|&2]})
-    |> elem(1) |> :lists.reverse
+  def take(collection, n) when is_integer(n) and n < 0 do
+    n = abs(n)
+
+    {_count, buf1, buf2} =
+      reduce(collection, {0, [], []}, fn entry, {count, buf1, buf2} ->
+        buf1  = [entry|buf1]
+        count = count + 1
+        if count == n do
+          {0, [], buf1}
+        else
+          {count, buf1, buf2}
+        end
+      end)
+
+    do_take_last(buf1, buf2, n, [])
   end
+
+  defp do_take_last(_buf1, _buf2, 0, acc),
+    do: acc
+  defp do_take_last([], [], _, acc),
+    do: acc
+  defp do_take_last([], [h|t], n, acc),
+    do: do_take_last([], t, n-1, [h|acc])
+  defp do_take_last([h|t], buf2, n, acc),
+    do: do_take_last(t, buf2, n-1, [h|acc])
 
   @doc """
   Returns a collection of every `nth` item in the collection,
@@ -1950,8 +1969,7 @@ defmodule Enum do
   def take_every([], _nth), do: []
 
   def take_every(collection, nth) when is_integer(nth) and nth > 0 do
-    {_, {res, _}} =
-      Enumerable.reduce(collection, {:cont, {[], :first}}, R.take_every(nth))
+    {res, _} = reduce(collection, {[], :first}, R.take_every(nth))
     :lists.reverse(res)
   end
 
@@ -1970,8 +1988,16 @@ defmodule Enum do
   end
 
   def take_while(collection, fun) do
-    Enumerable.reduce(collection, {:cont, []}, R.take_while(fun))
-    |> elem(1) |> :lists.reverse
+    {_, res} =
+      Enumerable.reduce(collection, {:cont, []}, fn(entry, acc) ->
+        if fun.(entry) do
+          {:cont, [entry|acc]}
+        else
+          {:halt, acc}
+        end
+      end)
+
+    :lists.reverse(res)
   end
 
   @doc """
@@ -2008,13 +2034,13 @@ defmodule Enum do
   @spec uniq(t, (element -> term)) :: list
   def uniq(collection, fun \\ fn x -> x end)
 
+  # TODO: Use a HashSet
   def uniq(collection, fun) when is_list(collection) do
     do_uniq(collection, [], fun)
   end
 
   def uniq(collection, fun) do
-    {_, {list, _}} =
-      Enumerable.reduce(collection, {:cont, {[], []}}, R.uniq(fun))
+    {list, _} = reduce(collection, {[], []}, R.uniq(fun))
     :lists.reverse(list)
   end
 
