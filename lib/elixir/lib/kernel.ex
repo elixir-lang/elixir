@@ -80,7 +80,7 @@ defmodule Kernel do
   ## Examples
 
       iex> apply(Enum, :reverse, [[1, 2, 3]])
-      [3,2,1]
+      [3, 2, 1]
 
   """
   @spec apply(module, atom, [any]) :: any
@@ -92,7 +92,7 @@ defmodule Kernel do
   Extracts the part of the binary starting at `start` with length `length`.
   Binaries are zero-indexed.
 
-  If start or length references in any way outside the binary, an
+  If `start` or `length` reference in any way outside the binary, an
   `ArgumentError` exception is raised.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -101,11 +101,14 @@ defmodule Kernel do
 
       iex> binary_part("foo", 1, 2)
       "oo"
+      iex> binary_part("foo", 1, 5)
+      ** (ArgumentError) argument error
 
-  A negative length can be used to extract bytes at the end of a binary:
+  A negative `length` can be used to extract bytes that come *before* the byte
+  at `start`:
 
-      iex> binary_part("foo", 3, -1)
-      "o"
+      iex> binary_part("Hello", 5, -3)
+      "llo"
 
   """
   @spec binary_part(binary, pos_integer, integer) :: binary
@@ -135,8 +138,8 @@ defmodule Kernel do
   @doc """
   Returns the number of bytes needed to contain `bitstring`.
 
-  That is, if the number of bits in `bitstring` is not divisible by 8,
-  the resulting number of bytes will be rounded up. This operation
+  That is, if the number of bits in `bitstring` is not divisible by 8, the
+  resulting number of bytes will be rounded up (by excess). This operation
   happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -158,7 +161,8 @@ defmodule Kernel do
   @doc """
   Performs an integer division.
 
-  Raises an error if one of the arguments is not an integer.
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -184,7 +188,7 @@ defmodule Kernel do
   ## Examples
 
   When a process reaches its end, by default it exits with
-  reason `:normal`. You can also call it explicitly if you
+  reason `:normal`. You can also call `exit/1` explicitly if you
   want to terminate a process but not signal any failure:
 
       exit(:normal)
@@ -194,12 +198,12 @@ defmodule Kernel do
 
       exit(:seems_bad)
 
-  If the reason is not `:normal`, all linked process to the
-  exited process will crash (unless they are trapping exits).
+  If the exit reason is not `:normal`, all the processes linked to the process
+  that exited will crash (unless they are trapping exits).
 
   ## OTP exits
 
-  Exits are used by OTP to determine if a process exited abnormally
+  Exits are used by the OTP to determine if a process exited abnormally
   or not. The following exits are considered "normal":
 
     * `exit(:normal)`
@@ -441,6 +445,8 @@ defmodule Kernel do
   @doc """
   Returns the size of a map.
 
+  The size of a map is the number of key-value pairs that the map contains.
+
   This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -461,6 +467,8 @@ defmodule Kernel do
 
       iex> max(1, 2)
       2
+      iex> max(:a, :b)
+      :b
 
   """
   @spec max(term, term) :: term
@@ -479,6 +487,8 @@ defmodule Kernel do
 
       iex> min(1, 2)
       1
+      iex> min("foo", "bar")
+      "bar"
 
   """
   @spec min(term, term) :: term
@@ -504,15 +514,16 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
   """
-  @spec node(pid|reference|port) :: node
+  @spec node(pid | reference | port) :: node
   def node(arg) do
     :erlang.node(arg)
   end
 
   @doc """
-  Calculates the remainder of an integer division.
+  Computes the remainder of an integer division.
 
-  Raises an error if one of the arguments is not an integer.
+  Raises an `ArithmeticError` exception if one of the arguments is not an
+  integer.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -528,14 +539,18 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer by rounding the given number.
+  Rounds a number to the nearest integer.
 
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> round(5.5)
+      iex> round(5.6)
       6
+      iex> round(5.2)
+      5
+      iex> round(-9.9)
+      -10
 
   """
   @spec round(number) :: integer
@@ -576,15 +591,15 @@ defmodule Kernel do
   @doc """
   Spawns the given function and returns its pid.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
   ## Examples
 
-      current = Kernel.self
-      child   = spawn(fn -> send current, {Kernel.self, 1 + 2} end)
+      current = self()
+      child   = spawn(fn -> send current, {self(), 1 + 2} end)
 
       receive do
         {^child, 3} -> IO.puts "Received 3 back"
@@ -600,7 +615,7 @@ defmodule Kernel do
   Spawns the given module and function passing the given args
   and returns its pid.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
@@ -618,15 +633,15 @@ defmodule Kernel do
   @doc """
   Spawns the given function, links it to the current process and returns its pid.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
   ## Examples
 
-      current = Kernel.self
-      child   = spawn_link(fn -> send current, {Kernel.self, 1 + 2} end)
+      current = self()
+      child   = spawn_link(fn -> send current, {self(), 1 + 2} end)
 
       receive do
         {^child, 3} -> IO.puts "Received 3 back"
@@ -642,7 +657,7 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   links it to the current process and returns its pid.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
@@ -661,15 +676,15 @@ defmodule Kernel do
   Spawns the given function, monitors it and returns its pid
   and monitoring reference.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
 
   ## Examples
 
-      current = Kernel.self
-      spawn_monitor(fn -> send current, {Kernel.self, 1 + 2} end)
+      current = self()
+      spawn_monitor(fn -> send current, {self(), 1 + 2} end)
 
   """
   @spec spawn_monitor((() -> any)) :: {pid, reference}
@@ -681,7 +696,7 @@ defmodule Kernel do
   Spawns the given module and function passing the given args,
   monitors it and returns its pid and monitoring reference.
 
-  Check the modules `Process` and `Node` for other functions
+  Check the `Process` and `Node` modules for other functions
   to handle processes, including spawning functions in nodes.
 
   Inlined by the compiler.
@@ -717,13 +732,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns an integer by truncating the given number.
+  Returns the integer part of `number`.
 
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> trunc(5.5)
+      iex> trunc(5.4)
+      5
+      iex> trunc(5.99)
       5
 
   """
@@ -745,7 +762,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic plus.
+  Arithmetic addition.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -761,7 +778,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic minus.
+  Arithmetic subtraction.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -827,8 +844,8 @@ defmodule Kernel do
   @doc """
   Arithmetic division.
 
-  The result is always a float. Use `div` and `rem` if you want
-  a natural division or the remainder.
+  The result is always a float. Use `div/2` and `rem/2` if you want
+  an integer division or the remainder.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -854,7 +871,7 @@ defmodule Kernel do
   ## Examples
 
       iex> [1] ++ [2, 3]
-      [1,2,3]
+      [1, 2, 3]
 
       iex> 'foo' ++ 'bar'
       'foobar'
@@ -877,7 +894,7 @@ defmodule Kernel do
       [3]
 
       iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
-      [3,1]
+      [3, 1]
 
   """
   @spec (list -- list) :: list
@@ -886,7 +903,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean not. Argument must be a boolean.
+  Boolean not.
+
+  `arg` must be a boolean; if it's not, an `ArgumentError` exception is raised.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1085,7 +1104,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Puts the element in `tuple` at the zero-based `index` to the given `value`.
+  Inserts `value` at the given zero-based `index` in `tuple`.
 
   Inlined by the compiler.
 
