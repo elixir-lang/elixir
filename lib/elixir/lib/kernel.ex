@@ -244,9 +244,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the head of a list, raises `ArgumentError` if the list is empty.
+  Returns the head of a list; raises `ArgumentError` if the list is empty.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      iex> hd([1, 2, 3, 4])
+      1
+
   """
   @spec hd(list) :: term
   def hd(list) do
@@ -269,6 +275,14 @@ defmodule Kernel do
   A binary always contains a complete number of bytes.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_binary "foo"
+      true
+      iex> is_binary <<1::3>>
+      false
+
   """
   @spec is_binary(term) :: boolean
   def is_binary(term) do
@@ -279,6 +293,14 @@ defmodule Kernel do
   Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_bitstring "foo"
+      true
+      iex> is_bitstring <<1::3>>
+      true
+
   """
   @spec is_bitstring(term) :: boolean
   def is_bitstring(term) do
@@ -286,8 +308,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e. a boolean);
-  otherwise returns false.
+  Returns `true` if `term` is either the atom `true` or the atom `false` (i.e.,
+  a boolean); otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -321,6 +343,14 @@ defmodule Kernel do
   otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_function(fn(x) -> x * 2 end, 1)
+      true
+      iex> is_function(fn(x) -> x * 2 end, 2)
+      false
+
   """
   @spec is_function(term, non_neg_integer) :: boolean
   def is_function(term, arity) do
@@ -450,6 +480,12 @@ defmodule Kernel do
   This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> map_size(%{a: "foo", b: "bar"})
+      2
+
   """
   @spec map_size(map) :: non_neg_integer
   def map_size(map) do
@@ -725,6 +761,11 @@ defmodule Kernel do
   Returns the tail of a list. Raises `ArgumentError` if the list is empty.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> tl([1, 2, 3, :go])
+      [2, 3, :go]
   """
   @spec tl(maybe_improper_list) :: maybe_improper_list
   def tl(list) do
@@ -755,6 +796,12 @@ defmodule Kernel do
   This operation happens in constant time.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> tuple_size {:a, :b, :c}
+      3
+
   """
   @spec tuple_size(tuple) :: non_neg_integer
   def tuple_size(tuple) do
@@ -883,7 +930,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Removes the first occurrence of an item on the left
+  Removes the first occurrence of an item on the left list
   for each item on the right.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1091,7 +1138,7 @@ defmodule Kernel do
 
   Allowed in guard tests. Inlined by the compiler.
 
-  ## Example
+  ## Examples
 
       iex> tuple = {:foo, :bar, 3}
       iex> elem(tuple, 1)
@@ -1108,7 +1155,7 @@ defmodule Kernel do
 
   Inlined by the compiler.
 
-  ## Example
+  ## Examples
 
       iex> tuple = {:foo, :bar, 3}
       iex> put_elem(tuple, 0, :baz)
