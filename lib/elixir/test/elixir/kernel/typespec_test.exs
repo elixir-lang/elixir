@@ -240,7 +240,7 @@ defmodule Kernel.TypespecTest do
 
     assert [type: {:mytype,
              {:type, _, :tuple, [
-               {:atom, 0, :timestamp}, {:atom, 0, :foo}, {:type, 0, :term, []}
+               {:atom, 0, :timestamp}, {:type, 0, :term, []}, {:atom, 0, :foo}
              ]},
             []}] = types(module)
   end
@@ -254,7 +254,7 @@ defmodule Kernel.TypespecTest do
 
     assert [type: {:mytype,
              {:type, _, :tuple, [
-               {:atom, 0, :timestamp}, {:atom, 0, :foo}, {:type, 0, :term, []}
+               {:atom, 0, :timestamp}, {:type, 0, :term, []}, {:atom, 0, :foo}
              ]},
             []}] = types(module)
   end
