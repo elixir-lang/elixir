@@ -96,12 +96,16 @@ defmodule Stream do
   @type element :: any
   @type index   :: non_neg_integer
   @type default :: any
-  @type       t :: %__MODULE__{}
+  @type t       :: %__MODULE__{}
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
 
-  defmacrop cont(f, entry, acc) do
+  defmacrop skip(acc) do
+    {:cont, acc}
+  end
+
+  defmacrop next(f, entry, acc) do
     quote do: unquote(f).(unquote(entry), unquote(acc))
   end
 
@@ -109,7 +113,7 @@ defmodule Stream do
     quote do: [unquote(h),unquote(n)|unquote(t)]
   end
 
-  defmacrop cont_with_acc(f, entry, h, n, t) do
+  defmacrop next_with_acc(f, entry, h, n, t) do
     quote do
       {reason, [h|t]} = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
       {reason, [h,unquote(n)|t]}
@@ -171,7 +175,7 @@ defmodule Stream do
 
   defp do_chunk(acc(h, {buffer, count} = old, t), n, pad, f1) do
     buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)
-    cont_with_acc(f1, buffer, h, old, t)
+    next_with_acc(f1, buffer, h, old, t)
   end
 
   @doc """
@@ -198,7 +202,7 @@ defmodule Stream do
   end
 
   defp do_chunk_by(acc(h, {buffer, _}, t), f1) do
-    cont_with_acc(f1, :lists.reverse(buffer), h, nil, t)
+    next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
 
   @doc """
@@ -524,33 +528,8 @@ defmodule Stream do
   end
 
   def take(enum, n) when is_integer(n) and n < 0 do
-    &do_take(enum, abs(n), &1, &2)
+    &Enumerable.reduce(Enum.take(enum, n), &1, &2)
   end
-
-  defp do_take(enum, n, acc, f) do
-    {_, {_count, buf1, buf2}} =
-      Enumerable.reduce(enum, {:cont, {0, [], []}}, fn
-        entry, {count, buf1, buf2} ->
-          buf1  = [entry|buf1]
-          count = count + 1
-          if count == n do
-            {:cont, {0, [], buf1}}
-          else
-            {:cont, {count, buf1, buf2}}
-          end
-      end)
-
-    Enumerable.reduce(do_take_last(buf1, buf2, n, []), acc, f)
-  end
-
-  defp do_take_last(_buf1, _buf2, 0, acc),
-    do: acc
-  defp do_take_last([], [], _, acc),
-    do: acc
-  defp do_take_last([], [h|t], n, acc),
-    do: do_take_last([], t, n-1, [h|acc])
-  defp do_take_last([h|t], buf2, n, acc),
-    do: do_take_last(t, buf2, n-1, [h|acc])
 
   @doc """
   Creates a stream that takes every `n` item from the enumerable.
