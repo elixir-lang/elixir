@@ -73,7 +73,12 @@ defmodule SystemTest do
     File.cp! System.find_executable("echo"), echo2
 
     relative = Path.relative_to_cwd(echo2)
-    assert :enoent = catch_error(System.cmd(relative, ["hello"]))
+
+    if Path.absname(relative) == relative do
+      assert {"hello\n", 0} = System.cmd(relative, ["hello"])
+    else
+      assert :enoent = catch_error(System.cmd(relative, ["hello"]))
+    end
 
     File.cd! dir, fn ->
       assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
