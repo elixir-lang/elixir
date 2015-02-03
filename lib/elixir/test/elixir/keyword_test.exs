@@ -213,12 +213,12 @@ defmodule Keyword.DuplicatedTest do
   end
 
   test "merge/2" do
-    assert Keyword.merge(create_empty_keywords, create_keywords) == create_keywords
+    assert Keyword.merge(create_empty_keywords, create_keywords) == [first_key: 2, second_key: 2]
     assert Keyword.merge(create_keywords, create_empty_keywords) == create_keywords
-    assert Keyword.merge(create_keywords, create_keywords) == create_keywords
+    assert Keyword.merge(create_keywords, create_keywords) == [first_key: 2, second_key: 2]
     assert Keyword.merge(create_empty_keywords, create_empty_keywords) == []
     assert Keyword.merge(create_keywords, [first_key: 0]) == [first_key: 0, second_key: 2]
-    assert Keyword.merge(create_keywords, [first_key: 0, first_key: 3]) == [first_key: 0, first_key: 3, second_key: 2]
+    assert Keyword.merge(create_keywords, [first_key: 0, first_key: 3]) == [first_key: 3, second_key: 2]
   end
 
   test "merge/3" do

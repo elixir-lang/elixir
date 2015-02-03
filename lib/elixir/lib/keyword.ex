@@ -386,14 +386,13 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4]) |> Enum.sort
+      iex> Keyword.merge([a: 1, b: 2], [d: 4, a: 3])
       [a: 3, b: 2, d: 4]
 
   """
   @spec merge(t, t) :: t
   def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    fun = fn {k, _v} -> not has_key?(d2, k) end
-    d2 ++ :lists.filter(fun, d1)
+    merge(d1, d2, fn _k, _v1, v2 -> v2 end)
   end
 
   @doc """
