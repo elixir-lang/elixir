@@ -117,8 +117,9 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(%Mix.Dep{app: app} = dep, config) do
+    lib_path = Path.join(config[:build_path], "lib")
     do_command dep, rebar_cmd(app), false,
-               "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
+               "compile skip_deps=true deps_dir=#{inspect lib_path}"
   end
 
   defp rebar_cmd(app) do
