@@ -101,8 +101,6 @@ defmodule Kernel do
 
       iex> binary_part("foo", 1, 2)
       "oo"
-      iex> binary_part("foo", 1, 5)
-      ** (ArgumentError) argument error
 
   A negative `length` can be used to extract bytes that come *before* the byte
   at `start`:
