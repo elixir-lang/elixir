@@ -20,8 +20,10 @@ defmodule Keyword do
   a given key and `delete_first/2` deletes just one of the existing
   entries.
 
-  Since a keyword list is simply a list, all the operations defined
-  in `Enum` and `List` can be applied.
+  The functions in Keyword do not guarantee any property when
+  it comes to ordering. However, since a keyword list is simply a
+  list, all the operations defined in `Enum` and `List` can be
+  applied too, specially when ordering is required.
   """
 
   @compile :inline_list_funcs
@@ -386,8 +388,8 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4]) |> Enum.sort
-      [a: 3, b: 2, d: 4]
+      iex> Keyword.merge([a: 1, b: 2], [a: 3, d: 4])
+      [a: 3, d: 4, b: 2]
 
   """
   @spec merge(t, t) :: t
