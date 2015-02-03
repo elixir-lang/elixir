@@ -1168,8 +1168,14 @@ defmodule Kernel do
   ## Implemented in Elixir
 
   @doc """
-  Boolean or. Requires only the first argument to be a
-  boolean since it short-circuits.
+  Boolean or.
+
+  If the first argument is `true`, `true` is returned; otherwise, the second
+  argument is returned.
+
+  Requires only the first argument to be a boolean since it short-circuits.
+  If the first argument is not a boolean, an `ArgumentError` exception is
+  raised.
 
   Allowed in guard tests.
 
@@ -1177,6 +1183,8 @@ defmodule Kernel do
 
       iex> true or false
       true
+      iex> false or 42
+      42
 
   """
   defmacro left or right do
@@ -1184,8 +1192,13 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean and. Requires only the first argument to be a
-  boolean since it short-circuits.
+  Boolean and.
+
+  If the first argument is `false`, `false` is returned; otherwise, the second
+  argument is returned.
+
+  Requires only the first argument to be a boolean since it short-circuits. If
+  the first argument is not a boolean, an `ArgumentError` exception is raised.
 
   Allowed in guard tests.
 
@@ -1193,6 +1206,8 @@ defmodule Kernel do
 
       iex> true and false
       false
+      iex> true and "yay!"
+      "yay!"
 
   """
   defmacro left and right do
@@ -1200,9 +1215,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Receives any argument and returns `true` if it is `false`
-  or `nil`. Returns `false` otherwise. Not allowed in guard
-  clauses.
+  Boolean not.
+
+  Receives any argument (not just booleans) and returns `true` if the argument
+  is `false` or `nil`; returns `false` otherwise.
+
+  Not allowed in guard clauses.
 
   ## Examples
 
@@ -1241,17 +1259,19 @@ defmodule Kernel do
       iex> "foo" <> "bar"
       "foobar"
 
-  The `<>` operator can also be used in guard clauses as
+  The `<>` operator can also be used in pattern matching (and guard clauses) as
   long as the first part is a literal binary:
 
       iex> "foo" <> x = "foobar"
       iex> x
       "bar"
 
+  `x <> "bar" = "foobar"` would have resulted in a `CompileError` exception.
+
   """
   defmacro left <> right do
     concats = extract_concatenations({:<>, [], [left, right]})
-    quote do: << unquote_splicing(concats) >>
+    quote do: <<unquote_splicing(concats)>>
   end
 
   # Extracts concatenations in order to optimize many
@@ -1275,16 +1295,18 @@ defmodule Kernel do
   @doc """
   Raises an exception.
 
-  If the argument is a binary, it raises `RuntimeError`
+  If the argument `msg` is a binary, it raises a `RuntimeError` exception
   using the given argument as message.
 
-  If an atom, it will become a call to `raise(atom, [])`.
+  If `msg` is an atom, it just calls `raise/2` with the atom as the first
+  argument and `[]` as the second argument.
 
-  If anything else, it will just raise the given exception.
+  If `msg` is anything else, the given exception is raised.
 
   ## Examples
 
-      raise "Given values do not match"
+      iex> raise "Oops"
+      ** (RuntimeError) Oops
 
       try do
         1 + :foo
@@ -1333,12 +1355,13 @@ defmodule Kernel do
   @doc """
   Raises an exception.
 
-  Calls `.exception` on the given argument passing
-  the attributes in order to retrieve the appropriate exception
-  structure.
+  Calls the `exception/1` function on the given argument (which has to be a
+  module name like `ArgumentError` or `RuntimeError`) passing `attrs` as the
+  attributes in order to retrieve the exception struct.
 
-  Any module defined via `defexception/1` automatically
-  implements `exception(attrs)` callback expected by `raise/2`.
+  Any module that contains a call to the `defexception/1` macro automatically
+  implements the `exception/1` callback expected by `raise/2`. See the docs for
+  `defexception/1` for more information.
 
   ## Examples
 
@@ -1357,12 +1380,12 @@ defmodule Kernel do
 
   Works like `raise/1` but does not generate a new stacktrace.
 
-  Notice that `System.stacktrace` returns the stacktrace
+  Notice that `System.stacktrace/0` returns the stacktrace
   of the last exception. That said, it is common to assign
   the stacktrace as the first expression inside a `rescue`
   clause as any other exception potentially raised (and
   rescued) in between the rescue clause and the raise call
-  may change the `System.stacktrace` value.
+  may change the `System.stacktrace/0` value.
 
   ## Examples
 
@@ -1411,9 +1434,8 @@ defmodule Kernel do
   @doc """
   Raises an exception preserving a previous stacktrace.
 
-  Works like `raise/2` but does not generate a new stacktrace.
-
-  See `reraise/2` for more details.
+  `reraise/3` works like `reraise/2`, except it passes arguments to the
+  `exception/1` function like explained in `raise/2`.
 
   ## Examples
 
@@ -1433,7 +1455,7 @@ defmodule Kernel do
 
   @doc """
   Matches the term on the left against the regular expression or string on the
-  right. Returns true if `left` matches `right` (if it's a regular expression)
+  right. Returns `true` if `left` matches `right` (if it's a regular expression)
   or contains `right` (if it's a string).
 
   ## Examples
@@ -1461,7 +1483,7 @@ defmodule Kernel do
 
   @doc ~S"""
   Inspects the given argument according to the `Inspect` protocol.
-  The second argument is a keywords list with options to control
+  The second argument is a keyword list with options to control
   inspection.
 
   ## Options
@@ -1499,7 +1521,7 @@ defmodule Kernel do
       iex> inspect(100, base: :hex)
       "0x64"
 
-  Note that the inspect protocol does not necessarily return a valid
+  Note that the `Inspect` protocol does not necessarily return a valid
   representation of an Elixir term. In such cases, the inspected result
   must start with `#`. For example, inspecting a function will return:
 
@@ -1524,15 +1546,15 @@ defmodule Kernel do
 
   The struct argument may be an atom (which defines `defstruct`)
   or a struct itself. The second argument is any Enumerable that
-  emits two-item tuples (key-value) during enumeration.
+  emits two-item tuples (key-value pairs) during enumeration.
 
-  If one of the keys in the Enumerable does not exist in the struct,
-  they are automatically discarded.
+  Keys in the Enumerable that don't exist in the struct are automatically
+  discarded.
 
   This function is useful for dynamically creating and updating
   structs.
 
-  ## Example
+  ## Examples
 
       defmodule User do
         defstruct name: "john"
