@@ -34,13 +34,12 @@ defmodule Mix.Dep.Loader do
         not ok?(dep.status) ->
           {dep, []}
 
-        manager == :rebar ->
-          rebar_dep(dep, children)
-
         mix?(dest) ->
           mix_dep(dep, children)
 
-        rebar?(dest) ->
+        # If not an explicit rebar or mix dependency
+        # but came from rebar, assume to be a rebar dep.
+        rebar?(dest) or manager == :rebar ->
           rebar_dep(dep, children)
 
         make?(dest) ->

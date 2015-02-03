@@ -35,7 +35,7 @@ defmodule Mix.RebarTest do
   end
 
   test "load rebar config" do
-    path = MixTest.Case.tmp_path("rebar_dep")
+    path = MixTest.Case.fixture_path("rebar_dep")
     config = Mix.Rebar.load_config(path)
     assert config[:sub_dirs] == ['apps/*']
     assert config[:SCRIPT] == 'rebar.config.script'
@@ -81,7 +81,7 @@ defmodule Mix.RebarTest do
   end
 
   test "recurs over sub dirs" do
-    path = MixTest.Case.tmp_path("rebar_dep")
+    path = MixTest.Case.fixture_path("rebar_dep")
 
     File.cd! path, fn ->
      config = Mix.Rebar.load_config(path)
@@ -104,7 +104,7 @@ defmodule Mix.RebarTest do
     Mix.Project.push(RebarAsDep)
 
     in_tmp "get and compile dependencies for rebar", fn ->
-      Mix.Tasks.Deps.Get.run ["--no-compile"]
+      Mix.Tasks.Deps.Get.run []
       assert_received {:mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"]}
 
       Mix.Tasks.Deps.Compile.run []
@@ -128,5 +128,30 @@ defmodule Mix.RebarTest do
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
+  end
+
+  test "get and compile dependencies for rebar with mix" do
+    # Use rebar from project root
+    System.put_env("MIX_HOME", MixTest.Case.elixir_root)
+    Mix.Project.push(RebarAsDep)
+
+    in_tmp "get and compile dependencies for rebar with mix", fn ->
+      File.write! MixTest.Case.tmp_path("rebar_dep/mix.exs"), """
+      defmodule RebarDep.Mixfile do
+        use Mix.Project
+
+        def project do
+          [app: :rebar_dep,
+           version: "0.0.1"]
+        end
+      end
+      """
+
+      Mix.Tasks.Deps.Compile.run []
+      assert_received {:mix_shell, :info, ["==> rebar_dep"]}
+      assert_received {:mix_shell, :info, ["Generated rebar_dep.app"]}
+    end
+  after
+    File.rm MixTest.Case.tmp_path("rebar_dep/mix.exs")
   end
 end
