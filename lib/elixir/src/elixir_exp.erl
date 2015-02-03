@@ -88,7 +88,7 @@ expand({alias, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 expand({require, Meta, [Ref]}, E) ->
@@ -107,7 +107,7 @@ expand({require, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for require, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 expand({import, Meta, [Left]}, E) ->
@@ -127,7 +127,7 @@ expand({import, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for import, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 %% Pseudo vars
@@ -485,7 +485,7 @@ expand_opts(Meta, Kind, Allowed, Opts, E) ->
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
     compile_error(Meta, ?m(E, file),
-                  "unsupported option ~ts given to ~s", ['Elixir.Kernel':inspect(Key), Kind])
+                  "unsupported option ~ts given to ~s", ['Elixir.Macro':to_string(Key), Kind])
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
 validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
@@ -531,10 +531,10 @@ expand_as({as, false}, _Meta, _IncludeByDefault, Ref, _E) ->
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of
     1 -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected an alias, got atom: ~ts", [elixir_aliases:inspect(Atom)]);
+           "invalid value for keyword :as, expected an alias, got: ~ts", [elixir_aliases:inspect(Atom)]);
     2 -> Atom;
     _ -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected an alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
+           "invalid value for keyword :as, expected a simple alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
