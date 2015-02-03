@@ -605,8 +605,12 @@ defmodule Kernel.ErrorsTest do
 
   test :invalid_alias do
     assert_compile_fail CompileError,
-      "nofile:1: invalid value for keyword :as, expected an alias, got nested alias: Sample.Lists",
+      "nofile:1: invalid value for keyword :as, expected a simple alias, got nested alias: Sample.Lists",
       'alias :lists, as: Sample.Lists'
+
+    assert_compile_fail CompileError,
+      "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 1 + 2",
+      'alias 1 + 2'
   end
 
   test :invalid_alias_expansion do
