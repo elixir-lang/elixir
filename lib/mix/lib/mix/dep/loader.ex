@@ -49,7 +49,7 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    %{validate_path(validate_app(dep)) | deps: children}
+    %{validate_app(dep) | deps: children}
   end
 
   @doc """
@@ -246,15 +246,6 @@ defmodule Mix.Dep.Loader do
     Mix.Rebar.recur(root_config, fn config ->
       Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
     end) |> Enum.concat
-  end
-
-  defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
-    if scm == Mix.SCM.Path and not manager in [:mix, nil] do
-      Mix.raise ":path option can only be used with mix projects, " <>
-                                "invalid path dependency for #{inspect dep.app}"
-    else
-      dep
-    end
   end
 
   defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app, status: status} = dep) do
