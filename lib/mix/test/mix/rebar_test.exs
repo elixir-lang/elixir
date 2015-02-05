@@ -3,26 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.RebarTest do
   use MixTest.Case
 
-  # Have our own path implementation that bypasses some
-  # Path validation checks. We use this just for testing.
-  defmodule MyPath do
-    @behaviour Mix.SCM
-
-    for {name, arity} <- Mix.SCM.Path.__info__(:functions) do
-      args = tl Enum.map 0..arity, &{:"x#{&1}", [], nil}
-      def unquote(name)(unquote_splicing(args)) do
-        Mix.SCM.Path.unquote(name)(unquote_splicing(args))
-      end
-    end
-  end
-
-  setup do
-    available = Mix.SCM.available
-    Mix.State.put(:scm, [Mix.SCM.Git, MyPath])
-    on_exit fn -> Mix.State.put(:scm, available) end
-    :ok
-  end
-
   defmodule RebarAsDep do
     def project do
       [ app: :rebar_as_dep,
