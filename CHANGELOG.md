@@ -15,6 +15,8 @@
   * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it just warned)
   * [Mix] `mix help` task now supports `mix help --search PATTERN` for filtering task names
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
+  * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
+  * [Mix] Allow rebar dependencies to be specified via `:path`
   * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
   * [URI] Default ports were added for "ws" and "wss" schemas
 
