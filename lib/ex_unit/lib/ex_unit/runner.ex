@@ -5,6 +5,20 @@ defmodule ExUnit.Runner do
   @stop_timeout 30_000
 
   def run(async, sync, opts, load_us) do
+    {opts, config} = configure(opts)
+
+    {run_us, _} =
+      :timer.tc fn ->
+        EM.suite_started(config.manager, opts)
+        loop %{config | sync_cases: shuffle(config, sync),
+                        async_cases: shuffle(config, async)}
+      end
+
+    EM.suite_finished(config.manager, run_us, load_us)
+    EM.call(config.manager, ExUnit.RunnerStats, :stop, @stop_timeout)
+  end
+
+  def configure(opts) do
     opts = normalize_opts(opts)
 
     {:ok, pid} = EM.start_link
@@ -21,17 +35,9 @@ defmodule ExUnit.Runner do
       sync_cases: [],
       taken_cases: 0,
       timeout: opts[:timeout]
-    }
+     }
 
-    {run_us, _} =
-      :timer.tc fn ->
-        EM.suite_started(config.manager, opts)
-        loop %{config | sync_cases: shuffle(config, sync),
-                        async_cases: shuffle(config, async)}
-      end
-
-    EM.suite_finished(config.manager, run_us, load_us)
-    EM.call(config.manager, ExUnit.RunnerStats, :stop, @stop_timeout)
+    {opts, config}
   end
 
   defp normalize_opts(opts) do
