@@ -1955,7 +1955,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Converts the argument to a list according to the List.Chars protocol.
+  Converts the argument to a char list according to the `List.Chars` protocol.
 
   ## Examples
 
@@ -1968,7 +1968,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is nil; otherwise returns `false`.
+  Returns `true` if `term` is `nil`, `false` otherwise.
 
   Allowed in guard clauses.
 
@@ -1986,8 +1986,8 @@ defmodule Kernel do
   end
 
   @doc """
-  A convenience macro that checks if the right side (an expression)
-  matches the left side (a pattern).
+  A convenience macro that checks if the right side (an expression) matches the
+  left side (a pattern).
 
   ## Examples
 
@@ -2000,29 +2000,40 @@ defmodule Kernel do
       iex> match?({1, _}, {1, 2})
       true
 
-  Match can also be used to filter or find a value in an enumerable:
+      iex> map = %{a: 1, b: 2}
+      iex> match?(%{a: _}, map)
+      true
+
+      iex> a = 1
+      iex> match?(^a, 1)
+      true
+
+  `match?/2` is very useful when filtering of finding a value in an enumerable:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, &match?({:a, _}, &1)
+      #=> [{:a, 1}, {:a, 3}]
 
   Guard clauses can also be given to the match:
 
       list = [{:a, 1}, {:b, 2}, {:a, 3}]
       Enum.filter list, &match?({:a, x} when x < 2, &1)
+      #=> [{:a, 1}]
 
   However, variables assigned in the match will not be available
-  outside of the function call:
+  outside of the function call (unlike regular pattern matching with the `=`
+  operator):
 
       iex> match?(x, 1)
       true
-
-      iex> binding([:x]) == []
-      true
+      iex> binding()
+      []
 
   """
   defmacro match?(pattern, expr)
 
-  # Special case underscore since it always matches
+  # Special case where underscore, which always matches, is passed as the first
+  # argument.
   defmacro match?({:_, _, atom}, _right) when is_atom(atom) do
     true
   end
@@ -2039,7 +2050,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Read and write attributes of the current module.
+  Reads and writes attributes of the current module.
 
   The canonical example for attributes is annotating that a module
   implements the OTP behaviour called `gen_server`:
@@ -2049,18 +2060,18 @@ defmodule Kernel do
         # ... callbacks ...
       end
 
-  By default Elixir supports all Erlang module attributes, but any developer
-  can also add custom attributes:
+  By default Elixir supports all the module attributes supported by Erlang, but
+  custom attributes can be used as well:
 
       defmodule MyServer do
         @my_data 13
         IO.inspect @my_data #=> 13
       end
 
-  Unlike Erlang, such attributes are not stored in the module by
-  default since it is common in Elixir to use such attributes to store
-  temporary data. A developer can configure an attribute to behave closer
-  to Erlang by calling `Module.register_attribute/3`.
+  Unlike Erlang, such attributes are not stored in the module by default since
+  it is common in Elixir to use custom attributes to store temporary data that
+  will be available at compile-time. Custom attributes may be configured to
+  behave closer to Erlang by using `Module.register_attribute/3`.
 
   Finally, notice that attributes can also be read inside functions:
 
@@ -2076,7 +2087,7 @@ defmodule Kernel do
 
   It is important to note that reading an attribute takes a snapshot of
   its current value. In other words, the value is read at compilation
-  time and not at runtime. Check the module `Module` for other functions
+  time and not at runtime. Check the `Module` module for other functions
   to manipulate module attributes.
   """
   defmacro @(expr)
@@ -2174,7 +2185,11 @@ defmodule Kernel do
   @doc """
   Returns the binding for the given context as a keyword list.
 
-  The variable name is the key and the variable value is the value.
+  In the returned result, keys are variable names and values are the
+  corresponding variable values.
+
+  If the given `context` is `nil` (by default it is), the binding for the
+  current context is returned.
 
   ## Examples
 
@@ -2209,15 +2224,18 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides an `if` macro. This macro expects the first argument to
-  be a condition and the rest are keyword arguments.
+  Provides an `if` macro.
+
+  This macro expects the first argument to be a condition and the second
+  argument to be a keyword list.
 
   ## One-liner examples
 
       if(foo, do: bar)
 
   In the example above, `bar` will be returned if `foo` evaluates to
-  `true` (i.e. it is neither `false` nor `nil`). Otherwise, `nil` will be returned.
+  `true` (i.e., it is neither `false` nor `nil`). Otherwise, `nil` will be
+  returned.
 
   An `else` option can be given to specify the opposite:
 
@@ -2225,15 +2243,15 @@ defmodule Kernel do
 
   ## Blocks examples
 
-  Elixir also allows you to pass a block to the `if` macro. The first
+  It's also possible to pass a block to the `if` macro. The first
   example above would be translated to:
 
       if foo do
         bar
       end
 
-  Notice that `do/end` becomes delimiters. The second example would
-  then translate to:
+  Note that `do/end` become delimiters. The second example would
+  translate to:
 
       if foo do
         bar
@@ -2241,8 +2259,7 @@ defmodule Kernel do
         baz
       end
 
-  If you want to compare more than two clauses, you can use the `cond/1`
-  macro.
+  In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
     do_clause = Keyword.get(clauses, :do, nil)
@@ -2257,18 +2274,28 @@ defmodule Kernel do
   end
 
   @doc """
-  Evaluates and returns the do-block passed in as a second argument
-  unless clause evaluates to true.
-  Returns nil otherwise.
-  See also `if`.
+  Provides an `unless` macro.
+
+  This macro evaluates and returns the `do` block passed in as the second
+  argument unless `clause` evaluates to `true`. Otherwise, it returns the value
+  of the `else` block if present or `nil` if not.
+
+  See also `if/2`.
 
   ## Examples
 
       iex> unless(Enum.empty?([]), do: "Hello")
       nil
 
-      iex> unless(Enum.empty?([1,2,3]), do: "Hello")
+      iex> unless(Enum.empty?([1, 2, 3]), do: "Hello")
       "Hello"
+
+      iex> unless Enum.sum([2, 2]) == 5 do
+      ...>   "Math still works"
+      ...> else
+      ...>   "Math is broken"
+      ...> end
+      "Math still works"
 
   """
   defmacro unless(clause, options) do
@@ -2281,7 +2308,7 @@ defmodule Kernel do
 
   @doc """
   Destructures two lists, assigning each term in the
-  right to the matching term in the left.
+  right one to the matching term in the left one.
 
   Unlike pattern matching via `=`, if the sizes of the left
   and right lists don't match, destructuring simply stops
@@ -2293,24 +2320,23 @@ defmodule Kernel do
       iex> {x, y, z}
       {1, 2, 3}
 
-  Notice in the example above, even though the right
-  size has more entries than the left, destructuring works
-  fine. If the right size is smaller, the remaining items
-  are simply assigned to nil:
+  In the example above, even though the right list has more entries than the
+  left one, destructuring works fine. If the right list is smaller, the
+  remaining items are simply set to `nil`:
 
       iex> destructure([x, y, z], [1])
       iex> {x, y, z}
       {1, nil, nil}
 
-  The left side supports any expression you would use
-  on the left side of a match:
+  The left-hand side supports any expression you would use
+  on the left-hand side of a match:
 
       x = 1
       destructure([^x, y, z], [1, 2, 3])
 
-  The example above will only work if x matches
-  the first value from the right side. Otherwise,
-  it will raise a MatchError.
+  The example above will only work if `x` matches the first value in the right
+  list. Otherwise, it will raise a `MatchError` (like the `=` operator would
+  do).
   """
   defmacro destructure(left, right) when is_list(left) do
     Enum.reduce left, right, fn item, acc ->
@@ -2331,7 +2357,8 @@ defmodule Kernel do
 
   @doc """
   Returns a range with the specified start and end.
-  Includes both ends.
+
+  Both ends are included.
 
   ## Examples
 
@@ -2354,9 +2381,11 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns
-  the second expression only if the first one evaluates to true
-  (i.e. it is not nil nor false). Returns the first expression
+  the second expression only if the first one evaluates to `true`
+  (i.e., it is not `nil` nor `false`). Returns the first expression
   otherwise.
+
+  Not allowed in guard clauses.
 
   ## Examples
 
@@ -2372,9 +2401,10 @@ defmodule Kernel do
       iex> false && throw(:bad)
       false
 
-  Notice that, unlike Erlang's `and` operator,
-  this operator accepts any expression as an argument,
-  not only booleans, however it is not allowed in guards.
+
+  Note that, unlike Erlang's `and` operator,
+  this operator accepts any expression as the first argument,
+  not only booleans.
   """
   defmacro left && right do
     quote do
@@ -2389,8 +2419,10 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns the second
-  expression only if the first one does not evaluate to true (i.e. it
-  is either nil or false). Returns the first expression otherwise.
+  expression only if the first one does not evaluate to `true` (i.e., it
+  is either `nil` or `false`). Returns the first expression otherwise.
+
+  Not allowed in guard clauses.
 
   ## Examples
 
@@ -2406,9 +2438,9 @@ defmodule Kernel do
       iex> Enum.empty?([]) || throw(:bad)
       true
 
-  Notice that, unlike Erlang's `or` operator,
-  this operator accepts any expression as an argument,
-  not only booleans, however it is not allowed in guards.
+  Note that, unlike Erlang's `or` operator,
+  this operator accepts any expression as the first argument,
+  not only booleans.
   """
   defmacro left || right do
     quote do
@@ -2422,29 +2454,28 @@ defmodule Kernel do
   end
 
   @doc """
-  `|>` is the pipe operator.
+  Pipe operator.
 
-  This operator introduces the expression on the left as
-  the first argument to the function call on the right.
+  This operator introduces the expression on the left-hand side as
+  the first argument to the function call on the right-hand side.
 
   ## Examples
 
       iex> [1, [2], 3] |> List.flatten()
       [1, 2, 3]
 
-  The example above is the same as calling `List.flatten([1, [2], 3])`,
-  i.e. the argument on the left side of `|>` is introduced as the first
-  argument of the function call on the right side.
+  The example above is the same as calling `List.flatten([1, [2], 3])`.
 
-  This pattern is mostly useful when there is a desire to execute
-  a bunch of operations, resembling a pipeline:
+  The `|>` operator is mostly useful when there is a desire to execute a series
+  of operations resembling a pipeline:
 
       iex> [1, [2], 3] |> List.flatten |> Enum.map(fn x -> x * 2 end)
       [2, 4, 6]
 
-  The example above will pass the list to `List.flatten/1`, then get
-  the flattened list and pass to `Enum.map/2`, which will multiply
-  each entry in the list per two.
+  In the example above, the list `[1, [2], 3]` is passed as the first argument
+  to the `List.flatten/1` function, then the flattened list is passed as the
+  first argument to the `Enum.map/2` function which doubles each element of the
+  list.
 
   In other words, the expression above simply translates to:
 
@@ -2459,7 +2490,7 @@ defmodule Kernel do
 
       String.graphemes("Hello" |> Enum.reverse)
 
-  Which will result in an error as Enumerable protocol is not defined
+  which results in an error as the `Enumerable` protocol is not defined
   for binaries. Adding explicit parenthesis resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
