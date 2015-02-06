@@ -188,6 +188,8 @@ defmodule ExUnit do
       filter
 
     * `:seed` - an integer seed value to randomize the test suite
+
+    * `:timeout` - set the timeout for the tests
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
