@@ -56,6 +56,7 @@ defmodule Mix.Tasks.Test do
     * `--exclude`    - exclude tests that match the filter
     * `--only`       - run only tests that match the filter
     * `--seed`       - seeds the random number generator used to randomize tests order
+    * `--timeout`    - set the timeout for the tests
 
   ## Filters
 
@@ -131,7 +132,7 @@ defmodule Mix.Tasks.Test do
   @switches [force: :boolean, color: :boolean, cover: :boolean,
              trace: :boolean, max_cases: :integer, include: :keep,
              exclude: :keep, seed: :integer, only: :keep, compile: :boolean,
-             start: :boolean]
+             start: :boolean, timeout: :integer]
 
   @cover [output: "cover", tool: Cover]
 
@@ -206,7 +207,7 @@ defmodule Mix.Tasks.Test do
            |> filter_only_opts()
 
     default_opts(opts) ++
-      Dict.take(opts, [:trace, :max_cases, :include, :exclude, :seed])
+      Dict.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
   end
 
   defp default_opts(opts) do
