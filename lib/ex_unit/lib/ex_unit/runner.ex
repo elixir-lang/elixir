@@ -38,6 +38,7 @@ defmodule ExUnit.Runner do
     opts =
       if opts[:trace] do
         Keyword.put_new(opts, :max_cases, 1)
+        |> Keyword.put(:timeout, :infinity)
       else
         Keyword.put(opts, :trace, false)
       end
@@ -49,6 +50,7 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
     |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
     |> Keyword.put_new(:seed, :erlang.now |> elem(2))
+    |> Keyword.put_new(:timeout, 30_000)
   end
 
   defp loop(config) do
