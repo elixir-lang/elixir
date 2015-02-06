@@ -17,9 +17,10 @@ defmodule ExUnit.Mixfile do
 
        autorun: true,
        colors: [],
-       trace: false,
-       formatters: [ExUnit.CLIFormatter],
+       exclude: [],
        include: [],
-       exclude: []]]
+       formatters: [ExUnit.CLIFormatter],
+       timeout: 30_000,
+       trace: false]]
   end
 end

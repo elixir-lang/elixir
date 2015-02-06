@@ -12,14 +12,15 @@ defmodule ExUnit.Runner do
     Enum.each formatters, &(:ok = EM.add_handler(pid, &1, opts))
 
     config = %{
-      seed: opts[:seed],
-      max_cases: opts[:max_cases],
-      sync_cases: [],
       async_cases: [],
-      taken_cases: 0,
-      include: opts[:include],
       exclude: opts[:exclude],
-      manager: pid
+      include: opts[:include],
+      manager: pid,
+      max_cases: opts[:max_cases],
+      seed: opts[:seed],
+      sync_cases: [],
+      taken_cases: 0,
+      timeout: opts[:timeout]
     }
 
     {run_us, _} =
@@ -188,7 +189,7 @@ defmodule ExUnit.Runner do
     EM.test_finished(config.manager, test)
   end
 
-  defp spawn_test(_config, test, context) do
+  defp spawn_test(config, test, context) do
     parent = self()
 
     {test_pid, test_ref} =
@@ -209,7 +210,7 @@ defmodule ExUnit.Runner do
         exit(:shutdown)
       end)
 
-    timeout = Map.get(test.tags, :timeout, 30_000)
+    timeout = Map.get(test.tags, :timeout, config.timeout)
 
     test =
       receive do
