@@ -55,6 +55,23 @@ defmodule ExUnitTest do
     assert output =~ ~r"\(stdlib\) timer\.erl:\d+: :timer\.sleep/1"
   end
 
+  test "it supports configured timeout" do
+    defmodule ConfiguredTimeoutTest do
+      use ExUnit.Case
+
+      test "ok" do
+        :timer.sleep(:infinity)
+      end
+    end
+
+    ExUnit.configure(timeout: 5)
+    output = capture_io(fn -> ExUnit.run end)
+    assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
+
+  after
+    ExUnit.configure(timeout: 30_000)
+  end
+
   test "filtering cases with tags" do
     defmodule ParityTest do
       use ExUnit.Case
