@@ -278,7 +278,7 @@ defmodule ExUnit.DocTestTest do
       end
     end
 
-    assert capture_io(fn -> ExUnit.run end) =~ "1 tests, 0 failures"
+    assert capture_io(fn -> ExUnit.run end) =~ "1 test, 0 failures"
   end
 
   test "multiple exceptions in one test case is not supported" do

@@ -37,7 +37,7 @@ defmodule ExUnitTest do
 
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
-    end) =~ "1 tests, 1 failures"
+    end) =~ "1 test, 1 failure"
   end
 
   test "it supports timeouts" do
@@ -92,7 +92,7 @@ defmodule ExUnitTest do
 
     {result, output} = run_with_filter([], test_cases)
     assert result == %{failures: 1, skipped: 0, total: 4}
-    assert output =~ "4 tests, 1 failures"
+    assert output =~ "4 tests, 1 failure"
 
     {result, output} = run_with_filter([exclude: [even: true]], test_cases)
     assert result == %{failures: 0, skipped: 1, total: 4}
@@ -104,11 +104,11 @@ defmodule ExUnitTest do
 
     {result, output} = run_with_filter([exclude: :even, include: [even: true]], test_cases)
     assert result == %{failures: 1, skipped: 2, total: 4}
-    assert output =~ "4 tests, 1 failures, 2 skipped"
+    assert output =~ "4 tests, 1 failure, 2 skipped"
 
     {result, output} = run_with_filter([exclude: :test, include: [even: true]], test_cases)
     assert result == %{failures: 1, skipped: 3, total: 4}
-    assert output =~ "4 tests, 1 failures, 3 skipped"
+    assert output =~ "4 tests, 1 failure, 3 skipped"
   end
 
   defp run_with_filter(filters, {async, sync, load_us}) do
@@ -136,6 +136,6 @@ defmodule ExUnitTest do
 
     assert capture_io(fn ->
       assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
-    end) =~ "1 tests, 0 failure"
+    end) =~ "1 test, 0 failure"
   end
 end
