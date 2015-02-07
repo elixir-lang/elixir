@@ -132,7 +132,20 @@ defmodule ExUnit.CLIFormatter do
     IO.write "\n\n"
     IO.puts format_time(run_us, load_us)
 
-    message = "#{config.tests_counter} tests, #{config.failures_counter} failures"
+    # singular/plural
+    if config.tests_counter == 1 do
+      test_pl = "test"
+    else
+      test_pl = "tests"
+    end
+
+    if config.failures_counter == 1 do
+      failure_pl = "failure"
+    else
+      failure_pl = "failures"
+    end
+
+    message = "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
 
     if config.skipped_counter > 0 do
       message = message <> ", #{config.skipped_counter} skipped"
