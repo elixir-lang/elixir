@@ -262,6 +262,34 @@ defmodule ExUnit.AssertionsTest do
       "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
   end
 
+  test "assert link exit with no error" do
+    "This should never be tested" = assert_link_exit ArgumentError, fn ->
+      # nothing
+    end
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected exception ArgumentError but nothing was raised" = error.message
+  end
+
+  test "assert link exit with error" do
+    error = assert_link_exit ArgumentError, fn ->
+      spawn_link(fn -> raise ArgumentError, "test error" end)
+    end
+
+    "test error" = error.message
+  end
+
+  test "assert link exit with some other error" do
+    "This should never be tested" = assert_link_exit ArgumentError, fn ->
+      spawn_link(fn -> Not.Defined.function(1, 2, 3) end)
+    end
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected exception ArgumentError but got UndefinedFunctionError " <>
+      "(undefined function: Not.Defined.function/3 (module Not.Defined is not available))" = error.message
+  end
+
+
   test "assert greater than operator" do
     true = assert 2 > 1
   end

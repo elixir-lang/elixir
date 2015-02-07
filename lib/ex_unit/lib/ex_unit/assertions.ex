@@ -376,6 +376,44 @@ defmodule ExUnit.Assertions do
     end
   end
 
+ def assert_link_exit(exception, message, function) when is_function(function) do
+   error = assert_link_exit(exception, function)
+   is_match = cond do
+     is_binary(message) -> Exception.message(error) == message
+     Regex.regex?(message) -> Exception.message(error) =~ message
+   end
+   msg = "Wrong message for #{inspect exception}. " <>
+   "Expected #{inspect message}, got #{inspect Exception.message(error)}"
+   assert is_match, message: msg
+   error
+ end
+
+ def assert_link_exit(exception, function) when is_function(function) do
+   Process.flag(:trap_exit, true)
+   function.()
+   error = receive do
+     {:EXIT, _, {:function_clause, [{error, :exception, [message], _}|_]}} -> Map.put(error.__struct__, :message, message)
+     {:EXIT, _, {:undef, [{module, function, args, _}]}} -> %UndefinedFunctionError{module: module, function: function, arity: length(args)}
+     {:EXIT, _, {error, _}} -> error
+   after
+     1000 -> :nothing
+   end
+
+   if error == :nothing do
+     flunk "Expected exception #{inspect exception} but nothing was raised"
+   else
+     name = error.__struct__
+     cond do
+       name == exception ->
+         error
+       true ->
+         flunk "Expected exception #{inspect exception} but got #{inspect name} (#{error.__struct__.message(error)})"
+     end
+   end
+   error
+ end
+
+
   @doc """
   Asserts that `val1` and `val2` differ by no more than `delta`.
 
