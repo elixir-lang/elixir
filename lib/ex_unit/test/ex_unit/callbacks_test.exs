@@ -29,7 +29,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run end) =~
-           "1 tests, 0 failures"
+           "1 test, 0 failures"
   end
 
   test "doesn't choke on setup errors" do
@@ -139,7 +139,7 @@ defmodule ExUnit.CallbacksTest do
 
     output = capture_io(fn -> ExUnit.run end)
     assert output =~ "on_exit run"
-    assert output =~ "1 tests, 0 failures"
+    assert output =~ "1 test, 0 failures"
   end
 
   test "runs multiple on_exit exits and overrides by ref" do
