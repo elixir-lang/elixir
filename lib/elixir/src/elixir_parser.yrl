@@ -596,6 +596,9 @@ build_block(Exprs)                                      -> {'__block__', [], Exp
 build_dot_alias(Dot, {'__aliases__', _, Left}, {'aliases', _, Right}) ->
   {'__aliases__', meta(Dot), Left ++ Right};
 
+build_dot_alias(_Dot, Atom, {'aliases', {Line, _, _}, _}) when is_atom(Atom) ->
+  throw_bad_atom(Line);
+
 build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
   {'__aliases__', meta(Dot), [Other|Right]}.
 
@@ -744,3 +747,7 @@ throw_no_parens_many_strict(Token) ->
 
   throw(Line, "unexpected comma. Parentheses are required to solve ambiguity "
     "in nested calls. Syntax error before: ", "','").
+
+throw_bad_atom(Line) ->
+  throw(Line, "atom cannot be followed by an alias. If the '.' was meant to be "
+    "part of the atom's name, the name must be quoted. Syntax error before: ", "'.'").
