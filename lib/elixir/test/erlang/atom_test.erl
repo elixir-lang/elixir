@@ -40,3 +40,7 @@ atom_with_interpolation_test() ->
 
 quoted_atom_chars_are_escaped_test() ->
   {'"',[]} = eval(":\"\\\"\"").
+
+atom_dot_alias_test() ->
+  ?assertError(#{'__struct__' := 'Elixir.SyntaxError'}, eval(":foo.Bar")),
+  ?assertError(#{'__struct__' := 'Elixir.SyntaxError'}, eval(":\"foo\".Bar")).
