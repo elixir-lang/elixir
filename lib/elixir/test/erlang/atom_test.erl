@@ -28,7 +28,8 @@ kv_with_interpolation_test() ->
 
 quoted_atom_test() ->
   {foo,[]} = eval(":\"foo\""),
-  {foo,[]} = eval(":'foo'").
+  {foo,[]} = eval(":'foo'"),
+  {'foo.Bar',[]} = eval(":\"foo.Bar\"").
 
 atom_with_interpolation_test() ->
   {foo,[]} = eval(":\"f#{\"o\"}o\""),
