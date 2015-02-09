@@ -52,7 +52,10 @@ defmodule RecordTest do
 
   Record.defrecord  :timestamp, [:date, :time]
   Record.defrecord  :user, __MODULE__, name: "john", age: 25
-  Record.defrecordp :file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  Record.defrecordp :file_info,
+    Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  Record.defrecordp :certificate, :OTPCertificate,
+    Record.extract(:OTPCertificate, from_lib: "public_key/include/public_key.hrl")
 
   test "records generates macros that generates tuples" do
     record = user()
