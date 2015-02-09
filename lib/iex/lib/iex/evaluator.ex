@@ -158,6 +158,9 @@ defmodule IEx.Evaluator do
     io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
   end
 
+  @elixir_internals [:elixir_exp, :elixir_compiler, :elixir_module, :elixir_exp_clauses,
+                     :elixir_translator, :elixir_expand, :elixir_lexical]
+
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
     # For example, the user my call Code.eval_string/2 in IEx
@@ -169,6 +172,8 @@ defmodule IEx.Evaluator do
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
+    |> Enum.reject(fn {mod, _, _, _} when mod in @elixir_internals -> true
+                      _ -> false end)
   end
 
   @doc false
