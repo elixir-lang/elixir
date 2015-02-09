@@ -1,5 +1,9 @@
 # Changelog for Elixir v1.1
 
+Note: Erlang 17.1 contains a regression in its wildcard implementation that causes
+tools like rebar to fail. If you have a project with rebar dependencies and is using
+Erlang 17.1, remember to update to at least Erlang 17.3.
+
 ## v1.1.0-dev
 
 ### 1 Enhancements
@@ -9,6 +13,7 @@
   * [Enum] Add `Enum.sample/1`, `Enum.minmax/1`, `Enum.minmax_by/2` and `Enum.reverse_slice/3`
   * [Enum] Inline common map usages in `Enum` functions for performance
   * [ExUnit] Add number of skipped tests to `ExUnit` output
+  * [ExUnit] Make timeout configurable for the whole test suite via the `:timeout` configuration
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
   * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
@@ -17,12 +22,14 @@
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
   * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
   * [Mix] Allow rebar dependencies to be specified via `:path`
+  * [Record] Expand attributes and macros when extracting records
   * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
   * [URI] Default ports were added for "ws" and "wss" schemas
 
 ### 2. Bug fixes
 
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
+  * [Elixir] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
   * [Exception] Do not fail when calculating an exception message, even if the message is invalid
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
