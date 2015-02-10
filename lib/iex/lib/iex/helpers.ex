@@ -266,10 +266,21 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Recompiles and reloads the specified module's source file.
+  Recompiles and reloads the given `module`.
 
-  Please note that all the modules defined in the same file as `module`
-  are recompiled and reloaded.
+  Please note that all the modules defined in the same
+  file as `module` are recompiled and reloaded.
+
+  ## In-memory reloading
+
+  When we reload the module in IEx, we recompile the module source code,
+  updating its contents in memory. The original `.beam` file in disk,
+  probably the one where the first definition of the module came from,
+  does not change at all.
+
+  Since typespecs and docs are loaded from the .beam file (they are not
+  loaded in memory with the module because there is no need for them to
+  be in memory), they are not reloaded when you reload the module.
   """
   def r(module) when is_atom(module) do
     {:reloaded, module, do_r(module)}
