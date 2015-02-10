@@ -22,8 +22,8 @@ defmodule Exception do
 
   @type stacktrace :: [stacktrace_entry]
   @type stacktrace_entry ::
-        {module, function, arity_or_args, location} |
-        {function, arity_or_args, location}
+        {module, atom, arity_or_args, location} |
+        {(... -> any), arity_or_args, location}
 
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: Keyword.t
