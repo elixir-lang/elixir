@@ -245,14 +245,14 @@ defmodule Logger.Utils do
   end
 
   @doc """
-  Formats time to an iodata.
+  Formats time as chardata.
   """
   def format_time({hh, mi, ss, ms}) do
     [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
   end
 
   @doc """
-  Formats date to an iodata.
+  Formats date as chardata.
   """
   def format_date({yy, mm, dd}) do
     [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
