@@ -189,7 +189,7 @@ defmodule Logger do
   as previously described, the group leader is the group
   leader of the process who logged the message, followed by
   a tuple starting with the atom `Logger`, the message as
-  iodata, the timestamp and a keyword list of metadata.
+  chardata, the timestamp and a keyword list of metadata.
 
   It is recommended that handlers ignore messages where
   the group leader is in a different node than the one

@@ -20,7 +20,7 @@ defmodule Logger.Translator do
 
   The function must return:
 
-    * `{:ok, iodata}` - if the message was translated with its translation
+    * `{:ok, chardata}` - if the message was translated with its translation
     * `:skip` - if the message is not meant to be translated nor logged
     * `:none` - if there is no translation, which triggers the next translator
 

@@ -41,14 +41,14 @@ defmodule Logger.FormatterTest do
     assert format(compiled, :error, nil, nil, []) == [Atom.to_string(node())]
 
     compiled = compile("$metadata")
-    assert IO.iodata_to_binary(format(compiled, :error, nil, nil, [meta: :data])) ==
+    assert IO.chardata_to_string(format(compiled, :error, nil, nil, [meta: :data])) ==
            "meta=data "
-    assert IO.iodata_to_binary(format(compiled, :error, nil, nil, [])) ==
+    assert IO.chardata_to_string(format(compiled, :error, nil, nil, [])) ==
            ""
 
     timestamp = {{2014, 12, 30}, {12, 6, 30, 100}}
     compiled = compile("$date $time")
-    assert IO.iodata_to_binary(format(compiled, :error, nil, timestamp, [])) ==
+    assert IO.chardata_to_string(format(compiled, :error, nil, timestamp, [])) ==
            "2014-12-30 12:06:30.100"
   end
 
