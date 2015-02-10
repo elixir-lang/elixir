@@ -36,7 +36,7 @@ defmodule Logger.Translator do
           msg = msg <> "Last message: #{inspect last}\n"
                     <> "State: #{inspect state}\n"
         end
-        {:ok, msg <> "** (exit) " <> format_otp_exit(reason)}
+        {:ok, [msg | format_stop(reason)]}
 
       {'** gen_event handler ' ++ _, [name, manager, last, state, reason]} ->
         msg = "GenEvent handler #{inspect name} installed in #{inspect manager} terminating\n"
@@ -44,14 +44,13 @@ defmodule Logger.Translator do
           msg = msg <> "Last message: #{inspect last}\n"
                     <> "State: #{inspect state}\n"
         end
-        {:ok, msg <> "** (exit) " <> format_otp_exit(reason)}
+        {:ok, [msg | format_stop(reason)]}
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = "Task #{inspect name} started from #{inspect starter} terminating\n" <>
               "Function: #{inspect function}\n" <>
-              "    Args: #{inspect args}\n" <>
-              "** (exit) " <> format_otp_exit(reason)
-        {:ok, msg}
+              "    Args: #{inspect args}\n"
+        {:ok, [msg | format_stop(reason)]}
 
       _ ->
         :none
@@ -295,11 +294,33 @@ defmodule Logger.Translator do
       crash_info(min_level, info, [prefix | prefix])]
   end
 
+  defp format_stop({maybe_exception, [_ | _ ] = maybe_stacktrace} = reason) do
+    try do
+      for maybe_entry <- maybe_stacktrace do
+        [<<"\n    ">> | Exception.format_stacktrace_entry(maybe_entry)]
+      end
+    catch
+      :error, _ ->
+        format_stop_banner(reason)
+    else
+      formatted_stacktrace ->
+        [format_stop_banner(maybe_exception, maybe_stacktrace) |
+          formatted_stacktrace]
+    end
+  end
+
+  defp format_stop(reason) do
+    format_stop_banner(reason)
+  end
+
+  defp format_stop_banner(reason) do
+    ["** (stop) " | Exception.format_exit(reason)]
+  end
 
   # OTP process rewrite the :undef error to these reasons when logging
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
-  defp format_otp_exit({undef, [{mod, fun, args, _info} | _ ]  = stacktrace} = reason)
+  defp format_stop_banner(undef, [{mod, fun, args, _info} | _ ]  = stacktrace)
   when undef in @gen_undef and is_atom(mod) and is_atom(fun) do
     cond do
       is_list(args) ->
@@ -307,17 +328,26 @@ defmodule Logger.Translator do
       is_integer(args) ->
         format_undef(mod, fun, args, undef, stacktrace)
       true ->
-        Exception.format_exit(reason)
+        format_stop_banner(undef)
     end
   end
 
-  defp format_otp_exit(reason) do
-    Exception.format_exit(reason)
+  defp format_stop_banner(reason, stacktrace) do
+    if Exception.exception?(reason) do
+        Exception.format_banner(:error, reason, stacktrace)
+    else
+      case Exception.normalize(:error, reason, stacktrace) do
+        %ErlangError{} ->
+          format_stop_banner(reason)
+        exception ->
+          Exception.format_banner(:error, exception, stacktrace)
+      end
+    end
   end
 
   defp format_undef(mod, fun, arity, undef, stacktrace) do
     opts = [module: mod, function: fun, arity: arity, reason: undef]
     exception = UndefinedFunctionError.exception(opts)
-    Exception.format_exit({exception, stacktrace})
+    Exception.format_banner(:error, exception, stacktrace)
   end
 end
