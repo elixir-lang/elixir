@@ -114,7 +114,7 @@ defmodule Logger.ErrorHandler do
 
   defp translate([{mod, fun}|t], min_level, level, kind, data, truncate) do
     case apply(mod, fun, [min_level, level, kind, data]) do
-      {:ok, iodata} -> iodata
+      {:ok, chardata} -> chardata
       :skip -> nil
       :none -> translate(t, min_level, level, kind, data, truncate)
     end
