@@ -28,6 +28,13 @@ defmodule RecordTest do
            StructExtract.__struct__
   end
 
+  test "extract_all/1 extracts all records information from an Erlang file" do
+    all_extract = Record.extract_all(from_lib: "kernel/include/file.hrl")
+    assert length(all_extract) == 2 # has been stable over the very long time
+    assert all_extract[:file_info]
+    assert all_extract[:file_descriptor]
+  end
+
   # We need indirection to avoid warnings
   defp record?(data, kind) do
     Record.is_record(data, kind)
