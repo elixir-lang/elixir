@@ -402,7 +402,7 @@ defmodule GenEvent do
   Sends a sync event notification to the event `manager`.
 
   In other words, this function only returns `:ok` after the event manager
-  invokes the `handle_event/2` on each installed event handler.
+  invokes the `handle_event/2` callback on each installed event handler.
 
   See `notify/2` for more info.
   """
