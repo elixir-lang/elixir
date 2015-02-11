@@ -165,6 +165,14 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  test "import_file when the file is missing" do
+    assert "nil" == capture_iex("import_file \"nonexistent\", optional: true")
+
+    failing = capture_iex("import_file \"nonexistent\"")
+    assert "** (File.Error) could not read file" <> _ = failing
+    assert failing =~ "no such file or directory"
+  end
+
   test "c helper" do
     assert_raise UndefinedFunctionError, ~r"undefined function: Sample\.run/0", fn ->
       Sample.run
