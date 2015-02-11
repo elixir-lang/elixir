@@ -445,7 +445,24 @@ defmodule IEx.Helpers do
   Evaluates the contents of the file at `path` as if it were directly typed into
   the shell.
 
-  `path` has to be a literal string. A leading `~` in `path` is automatically expanded.
+  `path` has to be a literal string. `path` is automatically expanded via
+  `Path.expand/1`.
+
+  ## Non-existent files
+
+  By default, `import_file/1` fails when the given file does not exist. However,
+  since this macro is expanded at compile-time, it's not possible to
+  conditionally import a file since the macro is always expanded:
+
+      # This raises a File.Error if ~/.iex.exs doesn't exist.
+      if ("~/.iex.exs" |> Path.expand |> File.exists?) do
+        import_file "~/.iex.exs"
+      end
+
+  This is why an `:optional` option can be passed to `import_file/1`. The
+  default value of this option is `false`, meaning that an exception will be
+  raised if the given file is missing. If `:optional` is set to `true`, missing
+  files will be ignored and `import_file/1` will just compile to `nil`.
 
   ## Examples
 
@@ -457,9 +474,12 @@ defmodule IEx.Helpers do
       13
       iex(2)> value
       13
+      iex(3)> import_file "nonexisting.file.ex", optional: true
+      nil
 
   """
   defmacro import_file(path, opts \\ [])
+
   defmacro import_file(path, opts) when is_binary(path) do
     optional? = Keyword.get(opts, :optional, false)
     path = Path.expand(path)
