@@ -452,7 +452,7 @@ defmodule Dict do
   end
 
   @doc """
-  Puts the given `value` under `key` in `dict` unless `key` already existed.
+  Puts the given `value` under `key` in `dict` unless `key` is already present.
 
   ## Examples
 
@@ -491,7 +491,7 @@ defmodule Dict do
   @doc """
   Merges the dict `dict2` into dict `dict1`.
 
-  If one of the `dict2` entries already existed in `dict1`, the
+  If one of the `dict2` entries is found in `dict1`, the
   conflicting entries in `dict2` have higher precedence unless a
   function is given to resolve conflicts.
 
