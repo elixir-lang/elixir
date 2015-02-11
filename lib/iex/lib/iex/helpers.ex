@@ -457,13 +457,19 @@ defmodule IEx.Helpers do
       13
       iex(2)> value
       13
+
   """
-  defmacro import_file(path) when is_binary(path) do
+  defmacro import_file(path, opts \\ [])
+  defmacro import_file(path, opts) when is_binary(path) do
+    optional? = Keyword.get(opts, :optional, false)
     path = Path.expand(path)
-    Code.string_to_quoted! File.read!(path), file: path
+
+    if not optional? or File.exists?(path) do
+      path |> File.read! |> Code.string_to_quoted!(file: path)
+    end
   end
 
-  defmacro import_file(_) do
+  defmacro import_file(_path, _opts) do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
