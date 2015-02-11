@@ -4,27 +4,44 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def extract(name, from: file) when is_binary(file) do
-    file = String.to_char_list(file)
-
-    realfile =
-      case :code.where_is_file(file) do
-        :non_existing -> file
-        realfile -> realfile
-      end
-
-    extract_record(name, realfile)
+    extract_record(name, from_file(file))
   end
 
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
   def extract(name, from_lib: file) when is_binary(file) do
-    [app|path] = :filename.split(String.to_char_list(file))
+    extract_record(name, from_lib_file(file))
+  end
 
+  # Retrieve all records definitions from an Erlang file using
+  # the same lookup as the *include* attribute from Erlang modules.
+  def extract_all(from: file) when is_binary(file) do
+    extract_all_records(from_file(file))
+  end
+
+  # Retrieve all records definitions from an Erlang file using
+  # the same lookup as the *include_lib* attribute from Erlang modules.
+  def extract_all(from_lib: file) when is_binary(file) do
+    extract_all_records(from_lib_file(file))
+  end
+
+  # Find file using the same lookup as the *include* attribute from Erlang modules.
+  defp from_file(file) do
+    file = String.to_char_list(file)
+    case :code.where_is_file(file) do
+      :non_existing -> file
+      realfile -> realfile
+    end
+  end
+
+  # Find file using the same lookup as the *include_lib* attribute from Erlang modules.
+  defp from_lib_file(file) do
+    [app|path] = :filename.split(String.to_char_list(file))
     case :code.lib_dir(List.to_atom(app)) do
       {:error, _} ->
         raise ArgumentError, "lib file #{file} could not be found"
       libpath ->
-        extract_record name, :filename.join([libpath|path])
+        :filename.join([libpath|path])
     end
   end
 
@@ -37,6 +54,13 @@ defmodule Record.Extractor do
     else
       raise ArgumentError, "no record #{name} found at #{file}"
     end
+  end
+
+  # Retrieve all records from the given file
+  defp extract_all_records(file) do
+    form = read_file(file)
+    records = extract_records(form)
+    for rec = {name, _fields} <- records, do: {name, parse_record(rec, form)}
   end
 
   # Parse the given file and extract all existent records.

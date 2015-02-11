@@ -57,6 +57,19 @@ defmodule Record do
   end
 
   @doc """
+  Extracts all records information from an Erlang file.
+
+  Returns a keyword list containing extracted record names as keys, and
+  lists of tuples describing the fields as values. It expects a named
+  argument :from or :from_lib, which correspond to *include* or
+  *include_lib* attribute from Erlang modules, respectively.
+
+  """
+  def extract_all(opts) when is_list(opts) do
+    Record.Extractor.extract_all(opts)
+  end
+
+  @doc """
   Checks if the given `data` is a record of `kind`.
 
   This is implemented as a macro so it can be used in guard clauses.
