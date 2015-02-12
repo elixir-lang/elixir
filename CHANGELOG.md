@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.3-dev
+## v1.0.3 (2015-02-12)
 
 * Enhancements
   * [Elixir] Do not show exported vars warning
