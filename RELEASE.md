@@ -28,13 +28,13 @@ This document simply outlines the release process:
 
 ## New vMAJOR.MINOR releases
 
-11. Create a new branch "vMAJOR.MINOR"
+12. Create a new branch "vMAJOR.MINOR"
 
-12. Move docs generation to `docs/vOLD-MAJOR.OLD-MINOR` and copy them to `docs/stable`
+13. Move docs generation to `docs/vMAJOR.MINOR` and copy them from `docs/stable`
 
-13. Bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
+14. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
 
-14. `make release_docs` and push it to `elixir-lang/docs`
+15. `make release_docs` and push it to `elixir-lang/docs`
 
 ## Places where version is mentioned
 
