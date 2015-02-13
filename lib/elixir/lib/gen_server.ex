@@ -292,8 +292,8 @@ defmodule GenServer do
   ## Return values
 
   If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where pid is the pid of the server. If there already exists a
-  process with the specified server name, the function returns
+  `{:ok, pid}`, where pid is the pid of the server. If a process with the 
+  specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
   If the `init/1` callback fails with `reason`, the function returns

@@ -250,19 +250,19 @@ defmodule Supervisor do
   of terms is expected. The child process will then be started by appending
   the given list to the existing function arguments in the child specification.
 
-  If there already exists a child specification with the specified id,
+  If a child specification with the specified id already exists,
   `child_spec` is discarded and the function returns an error with `:already_started`
   or `:already_present` if the corresponding child process is running or not.
 
-  If the child process start function returns `{:ok, child}` or `{:ok, child, info}`,
+  If the child process starts, function returns `{:ok, child}` or `{:ok, child, info}`,
   the child specification and pid is added to the supervisor and the function returns
   the same value.
 
-  If the child process start function returns `:ignore`, the child specification is
+  If the child process starts, function returns `:ignore`, the child specification is
   added to the supervisor, the pid is set to undefined and the function returns
   `{:ok, :undefined}`.
 
-  If the child process start function returns an error tuple or an erroneous value,
+  If the child process starts, function returns an error tuple or an erroneous value,
   or if it fails, the child specification is discarded and the function returns
   `{:error, error}` where `error` is a term containing information about the error
   and child specification.
