@@ -491,7 +491,7 @@ defmodule Mix.Utils do
   end
 
   defp run_cmd(cmd,args) do
-    {_,status} = System.cmd(cmd,args, stderr_to_stdout: true )
+    {_, status} = System.cmd(cmd, args, stderr_to_stdout: true )
     status
   end 
 
