@@ -74,9 +74,11 @@ defmodule Mix.SCM.Git do
     location = opts[:git]
 
     _ = File.rm_rf!(path)
-    command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
+    cmd = "git"
+    args = ~w( clone --no-checkout --progress )
+    args = args ++ [location, path]
 
-    run_cmd_or_raise(command)
+    run_cmd_or_raise(cmd, args)
     File.cd! path, fn -> do_checkout(opts) end
   end
 
@@ -87,18 +89,19 @@ defmodule Mix.SCM.Git do
       # Ensures origin is set the lock repo
       location = opts[:git]
       update_origin(location)
+      cmd = "git"
 
-      command = "git --git-dir=.git fetch --force"
+      args = ["--git-dir=.git", "fetch" , "--force"]
 
       if {1, 7, 1} <= git_version() do
-        command = command <> " --progress"
+        args = args ++ ["--progress"]
       end
 
       if opts[:tag] do
-        command = command <> " --tags"
+        args = args ++ ["--tags"]
       end
 
-      run_cmd_or_raise(command)
+      run_cmd_or_raise(cmd, args)
       do_checkout(opts)
     end
   end
@@ -107,10 +110,10 @@ defmodule Mix.SCM.Git do
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
-    run_cmd_or_raise "git --git-dir=.git checkout --quiet #{ref}"
+    run_cmd_or_raise("git", ["--git-dir=.git", "checkout", "--quiet", ref])
 
     if opts[:submodules] do
-      run_cmd_or_raise "git --git-dir=.git submodule update --init --recursive"
+      run_cmd_or_raise("git", ["--git-dir=.git" , "submodule", "update", "--init", "--recursive"])
     end
 
     get_lock(opts)
@@ -143,21 +146,26 @@ defmodule Mix.SCM.Git do
   end
 
   defp get_rev_info do
-    destructure [origin, rev],
-      :os.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
-      |> IO.iodata_to_binary
-      |> String.split("\n", trim: true)
+    origin = run_system("git", ["--git-dir=.git" , "config" , "remote.origin.url"])
+    rev = run_system("git", ["--git-dir=.git" , "rev-parse" , "--verify", "--quiet", "HEAD"])
     [ origin: origin, rev: rev ]
   end
 
   defp update_origin(location) do
-    _ = :os.cmd('git --git-dir=.git config remote.origin.url #{location}')
+    _ = System.cmd("git", ["--git-dir=.git", "config" , "remote.origin.url", location])
     :ok
   end
 
-  defp run_cmd_or_raise(command) do
-    if Mix.shell.cmd(command) != 0 do
-      Mix.raise "Command `#{command}` failed"
+  defp run_system(cmd, args) do
+    System.cmd(cmd, args)
+    |> elem(0)
+    |> String.strip
+  end 
+
+  defp run_cmd_or_raise(cmd, args) do
+    {_,status} = System.cmd(cmd, args)
+    if status != 0 do
+      Mix.raise "Command `#{cmd} #{Enum.join(args, " ")}` failed"
     end
     true
   end
@@ -184,9 +192,7 @@ defmodule Mix.SCM.Git do
         version
       :error ->
         version = 
-          System.cmd("git",["--version"])
-          |> elem(0)
-          |> String.strip
+          run_system("git", ["--version"])
           |> parse_version
 
         Mix.State.put(:git_version, version)
