@@ -240,8 +240,8 @@ defmodule GenEvent do
   section in the `GenServer` module docs.
 
   If the event manager is successfully created and initialized, the function
-  returns `{:ok, pid}`, where pid is the pid of the server. If there already
-  exists a process with the specified server name, the function returns
+  returns `{:ok, pid}`, where pid is the pid of the server. If a process with 
+  the specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
   Note that a `GenEvent` started with `start_link/1` is linked to the
