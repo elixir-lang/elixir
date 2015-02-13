@@ -6,7 +6,7 @@ defmodule KernelTest do
   doctest Access
   doctest Atom
   doctest Base
-  doctest Bitwise
+  doctest Bitwise, import: true
   doctest Code
   doctest Collectable
   doctest Enum
