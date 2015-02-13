@@ -75,9 +75,8 @@ defmodule Mix.SCM.Git do
 
     _ = File.rm_rf!(path)
     cmd = "git"
-    args = ~w( clone --no-checkout --progress )
-    args = args ++ [location, path]
-
+    args = ["clone", "--no-checkout", "--progress", location, path]
+  
     run_cmd_or_raise(cmd, args)
     File.cd! path, fn -> do_checkout(opts) end
   end
@@ -163,7 +162,7 @@ defmodule Mix.SCM.Git do
   end 
 
   defp run_cmd_or_raise(cmd, args) do
-    {_,status} = System.cmd(cmd, args)
+    {_,status} = System.cmd(cmd, args, stderr_to_stdout: true )
     if status != 0 do
       Mix.raise "Command `#{cmd} #{Enum.join(args, " ")}` failed"
     end
