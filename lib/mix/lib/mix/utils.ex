@@ -479,7 +479,7 @@ defmodule Mix.Utils do
 
     if uri.host && uri.port do
       host = String.to_char_list(uri.host)
-      :httpc.set_options([{proxy_scheme(uri.scheme), {{host, uri.port}, []}}], :hex)
+      :httpc.set_options([{proxy_scheme(uri.scheme), {{host, uri.port}, []}}], :mix)
     end
   end
 
