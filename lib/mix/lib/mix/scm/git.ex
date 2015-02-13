@@ -183,9 +183,9 @@ defmodule Mix.SCM.Git do
       {:ok, version} ->
         version
       :error ->
-        version =
-          :os.cmd('git --version')
-          |> IO.iodata_to_binary
+        version = 
+          System.cmd("git",["--version"])
+          |> elem(0)
           |> String.strip
           |> parse_version
 
