@@ -124,23 +124,48 @@ clean:
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
-#==> Release tasks
+#==>  Create Documentation
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
 COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
 
-docs: compile ../ex_doc/bin/ex_doc
-	$(Q) rm -rf doc
+docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
+
+docs_elixir: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (elixir)"
+	$(Q) rm -rf doc/elixir
 	$(call COMPILE_DOCS,Elixir,elixir,Kernel)
+
+docs_eex: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (eex)"
+	$(Q) rm -rf doc/eex
 	$(call COMPILE_DOCS,EEx,eex,EEx)
+
+docs_mix: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (mix)"
+	$(Q) rm -rf doc/mix
 	$(call COMPILE_DOCS,Mix,mix,Mix)
+
+docs_iex: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (iex)"
+	$(Q) rm -rf doc/iex
 	$(call COMPILE_DOCS,IEx,iex,IEx)
+
+docs_ex_unit: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (ex_unit)"
+	$(Q) rm -rf doc/ex_unit
 	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit)
+
+docs_logger: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (logger)"
+	$(Q) rm -rf doc/logger
 	$(call COMPILE_DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
+
+#==> Release tasks
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
