@@ -545,7 +545,8 @@ defmodule Path do
   end
 
   @doc """
-  Traverses paths according to the given `glob` expression.
+  Traverses paths according to the given `glob` expression, and returns a
+  list of matches.
 
   The wildcard looks like an ordinary path, except that certain
   "wildcard characters" are interpreted in a special way. The
@@ -569,7 +570,7 @@ defmodule Path do
   that matching is case-sensitive; i.e. "a" will not match "A".
 
   By default, the patterns `*` and `?` do not match files starting
-  with a dot `.` unless `match_dot: true` is given.
+  with a dot `.` unless `match_dot: true` is given in `opts`.
 
   ## Examples
 
@@ -584,7 +585,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  @spec wildcard(t) :: [binary]
+  @spec wildcard(t, Keyword.t) :: [binary]
   def wildcard(glob, opts \\ []) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
     glob
