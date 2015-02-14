@@ -125,6 +125,14 @@ defmodule Kernel.ErrorsTest do
     assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
   end
 
+  test :syntax_error_on_atom_dot_alias do
+    msg = "nofile:1: atom cannot be followed by an alias. If the '.' was meant to be " <>
+          "part of the atom's name, the name must be quoted. Syntax error before: '.'"
+
+    assert_compile_fail SyntaxError, msg, ':foo.Bar'
+    assert_compile_fail SyntaxError, msg, ':"foo".Bar'
+  end
+
   test :syntax_error_with_no_token do
     assert_compile_fail TokenMissingError,
       "nofile:1: missing terminator: ) (for \"(\" starting at line 1)",
