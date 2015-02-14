@@ -50,6 +50,19 @@ defmodule Version do
   be expressed as:
 
       "~> 2.0.0"
+      
+  `~>` will never include pre-release versions of its upper bound.
+  It can also be used to set an upper bound on only the major
+  version part. See the table below for `~>` requirements and
+  their corresponding translation.
+      
+  `~>`           | Translation
+  :------------- | :---------------------
+  `~> 2.0.0`     | `>= 2.0.0 and < 2.1.0`
+  `~> 2.1.2`     | `>= 2.1.2 and < 2.2.0`
+  `~> 2.1.3-dev` | `>= 2.1.3-dev and < 2.2.0`
+  `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
+  `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
 
   """
 
