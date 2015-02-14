@@ -382,4 +382,11 @@ defmodule ExUnit.AssertionsTest do
     error in [ExUnit.AssertionError] ->
       "This should raise an error" = error.message
   end
+
+  test "flunk with wrong argument type" do
+    "This should never be tested" = flunk ["flunk takes a binary, not a list"]
+  rescue
+    error ->
+      "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
+  end
 end
