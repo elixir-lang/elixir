@@ -93,7 +93,7 @@ defmodule Behaviour do
   end
 
   defp do_callback(kind, name, args, docs_name, docs_arity, _docs_args, return, guards, caller) do
-    Enum.each args, fn
+    :lists.foreach fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
@@ -101,7 +101,7 @@ defmodule Behaviour do
       other ->
         ensure_not_default(other)
         other
-    end
+    end, args
 
     quote do
       @callback unquote(name)(unquote_splicing(args)) :: unquote(return) when unquote(guards)
@@ -134,8 +134,8 @@ defmodule Behaviour do
 
   @doc false
   defmacro __before_compile__(env) do
-    docs = if Code.compiler_options[:docs] do
-      Enum.reverse Module.get_attribute(env.module, :behaviour_docs)
+    docs = if Keyword.get(Code.compiler_options, :docs) do
+      :lists.reverse Module.get_attribute(env.module, :behaviour_docs)
     end
 
     quote do
