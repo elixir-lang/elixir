@@ -940,10 +940,12 @@ defmodule Module do
     file
   end
 
-  defp normalize_attribute(key, atom) when is_atom(atom) and
-      key in [:before_compile, :after_compile, :on_definition] do
-    {atom, :"__#{key}__"}
-  end
+  defp normalize_attribute(:before_compile, atom) when is_atom(atom),
+    do: {atom, :__before_compile__}
+  defp normalize_attribute(:after_compile, atom) when is_atom(atom),
+    do: {atom, :__after_compile__}
+  defp normalize_attribute(:on_definition, atom) when is_atom(atom),
+    do: {atom, :__on_definition__}
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
     raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
