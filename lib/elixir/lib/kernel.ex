@@ -2506,12 +2506,17 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the `module` is loaded and contains a
-  public `function` with the given `arity`, otherwise false.
+  Returns `true` if `module` is loaded and contains a
+  public `function` with the given `arity`, otherwise `false`.
 
-  Notice that this function does not load the module in case
+  Note that this function does not load the module in case
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
+
+  ## Examples
+
+      function_exported?(Enum, :member?, 2) #=> true
+
   """
   @spec function_exported?(atom | tuple, atom, arity) :: boolean
   def function_exported?(module, function, arity) do
@@ -2519,12 +2524,17 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if the `module` is loaded and contains a
-  public `macro` with the given `arity`, otherwise false.
+  Returns `true` if `module` is loaded and contains a
+  public `macro` with the given `arity`, otherwise `false`.
 
-  Notice that this function does not load the module in case
+  Note that this function does not load the module in case
   it is not loaded. Check `Code.ensure_loaded/1` for more
   information.
+
+  ## Examples
+
+      macro_exported?(Kernel, :use, 2) #=> true
+
   """
   @spec macro_exported?(atom, atom, integer) :: boolean
   def macro_exported?(module, macro, arity) do
@@ -2535,8 +2545,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Checks if the element on the left side is member of the
-  collection on the right side.
+  Checks if the element on the left-hand side is a member of the
+  collection on the right-hand side.
 
   ## Examples
 
@@ -2544,19 +2554,20 @@ defmodule Kernel do
       iex> x in [1, 2, 3]
       true
 
-  This macro simply translates the expression above to:
+  This operator (which is a macro) simply translates to a call to
+  `Enum.member?/2`. The example above would translate to:
 
-      Enum.member?([1,2,3], x)
+      Enum.member?([1, 2, 3], x)
 
   ## Guards
 
-  The `in` operator can be used on guard clauses as long as the
-  right side is a range or a list. Elixir will then expand the
+  The `in` operator can be used in guard clauses as long as the
+  right-hand side is a range or a list. In such cases, Elixir will expand the
   operator to a valid guard expression. For example:
 
-      when x in [1,2,3]
+      when x in [1, 2, 3]
 
-  Translates to:
+  translates to:
 
       when x === 1 or x === 2 or x === 3
 
@@ -2564,7 +2575,7 @@ defmodule Kernel do
 
       when x in 1..3
 
-  Translates to:
+  translates to:
 
       when x >= 1 and x <= 3
 
@@ -2636,9 +2647,11 @@ defmodule Kernel do
   end
 
   @doc """
-  When used inside quoting, marks that the variable should
-  not be hygienized. The argument can be either a variable
-  unquoted or in standard tuple form `{name, meta, context}`.
+  When used inside quoting, marks that the given variable should
+  not be hygienized.
+
+  The argument can be either a variable unquoted or in standard tuple form
+  `{name, meta, context}`.
 
   Check `Kernel.SpecialForms.quote/2` for more information.
   """
@@ -2666,7 +2679,7 @@ defmodule Kernel do
   end
 
   @doc """
-  When used inside quoting, marks that the alias should not
+  When used inside quoting, marks that the given alias should not
   be hygienized. This means the alias will be expanded when
   the macro is expanded.
 
