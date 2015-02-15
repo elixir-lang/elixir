@@ -56,8 +56,7 @@ defmodule Logger.TranslatorTest do
       catch_exit(GenServer.call(pid, :error))
     end) =~ """
     [error] GenServer #{inspect pid} terminating
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
+    ** (RuntimeError) oops
     """
   end
 
@@ -70,8 +69,7 @@ defmodule Logger.TranslatorTest do
     [error] GenServer #{inspect pid} terminating
     Last message: :error
     State: :ok
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
+    ** (RuntimeError) oops
     """
   end
 
@@ -83,8 +81,7 @@ defmodule Logger.TranslatorTest do
       GenEvent.call(pid, MyGenEvent, :error)
     end) =~ """
     [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
+    ** (RuntimeError) oops
     """
   end
 
@@ -98,8 +95,7 @@ defmodule Logger.TranslatorTest do
     [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
     Last message: :error
     State: :ok
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
+    ** (RuntimeError) oops
     """
   end
 
@@ -114,8 +110,7 @@ defmodule Logger.TranslatorTest do
     [error] Task #{inspect pid} started from #{inspect self} terminating
     Function: &Logger.TranslatorTest.task/1
         Args: [#{inspect self}]
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
+    ** (RuntimeError) oops
     """
   end
 
@@ -128,8 +123,7 @@ defmodule Logger.TranslatorTest do
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     Function: &:module_does_not_exist.undef/0
         Args: \[\]
-    \*\* \(exit\) an exception was raised:
-        \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
+    \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
     """
   end
 
@@ -142,8 +136,52 @@ defmodule Logger.TranslatorTest do
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
-    \*\* \(exit\) an exception was raised:
-        \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
+    \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
+    """
+  end
+
+  test "translates Task raising ErlangError" do
+    assert capture_log(fn ->
+      exception = try do
+          :erlang.error(:foo)
+        rescue
+         x ->
+           x
+        end
+      {:ok, pid} = Task.start(:erlang, :error, [exception])
+      ref = Process.monitor(pid)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    Function: &:erlang\.error/1
+        Args: \[%ErlangError{.*}\]
+    \*\* \(ErlangError\) erlang error: :foo
+    """
+  end
+
+  test "translates Task raising erlang badarg error" do
+    assert capture_log(fn ->
+      {:ok, pid} = Task.start(:erlang, :error, [:badarg])
+      ref = Process.monitor(pid)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    Function: &:erlang\.error/1
+        Args: \[:badarg\]
+    \*\* \(ArgumentError\) argument error
+    """
+  end
+
+  test "translates Task exiting abnormally" do
+    assert capture_log(fn ->
+      {:ok, pid} = Task.start(:erlang, :exit, [:abnormal])
+      ref = Process.monitor(pid)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    Function: &:erlang\.exit/1
+        Args: \[:abnormal\]
+    \*\* \(stop\) :abnormal
     """
   end
 
