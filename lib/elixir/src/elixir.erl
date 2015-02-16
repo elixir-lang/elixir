@@ -29,9 +29,12 @@ start(_Type, _Args) ->
     end,
 
   ok = io:setopts(standard_io, Opts),
-  %% Must use undocument {unicode, true} to set unicode on standard_error, more
-  %% info: http://erlang.org/pipermail/erlang-bugs/2014-April/004310.html
-  ok = io:setopts(standard_error, [{unicode,true}]),
+
+  ok = case io:setopts(standard_error, [{encoding,utf8}]) of
+    ok         -> ok;
+    {error, _} -> io:setopts(standard_error, [{unicode,true}]) %% R17.3 and earlier
+  end,
+
   case file:native_name_encoding() of
     latin1 ->
       io:format(standard_error,
