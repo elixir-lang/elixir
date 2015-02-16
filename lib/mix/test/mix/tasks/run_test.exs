@@ -46,8 +46,6 @@ defmodule Mix.Tasks.RunTest do
   end
 
   test "run errors on missing files" do
-    git_repo = fixture_path("git_repo/lib/git_repo.ex")
-
     in_fixture "no_mixfile", fn ->
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         Mix.Tasks.Run.run ["-r", "non-existent"]
