@@ -2702,8 +2702,13 @@ defmodule Kernel do
   @doc ~S"""
   Defines a module given by name with the given contents.
 
-  It returns the module name, the module binary and the
-  block contents result.
+  This macro defines a module with the given `alias` as its name and with the
+  given contents. It returns a tuple with four elements:
+
+    * `:module`
+    * the module name
+    * the binary contents of the module
+    * the result of evaluating the contents block
 
   ## Examples
 
@@ -2715,35 +2720,46 @@ defmodule Kernel do
 
   ## Nesting
 
-  Nesting a module inside another module affects its name:
+  Nesting a module inside another module affects the name of the nested module:
 
       defmodule Foo do
         defmodule Bar do
         end
       end
 
-  In the example above, two modules `Foo` and `Foo.Bar` are created.
-  When nesting, Elixir automatically creates an alias, allowing the
-  second module `Foo.Bar` to be accessed as `Bar` in the same lexical
-  scope.
+  In the example above, two modules - `Foo` and `Foo.Bar` - are created.
+  When nesting, Elixir automatically creates an alias to the inner module,
+  allowing the second module `Foo.Bar` to be accessed as `Bar` in the same
+  lexical scope where it's defined (the `Foo` module).
 
-  This means that, if the module `Bar` is moved to another file,
-  the references to `Bar` needs to be updated or an alias needs to
-  be explicitly set with the help of `Kernel.SpecialForms.alias/2`.
+  If the `Foo.Bar` module is moved somewhere else, the references to `Bar` in
+  the `Foo` module need to be updated to the fully-qualified name (`Foo.Bar`) or
+  an alias has to be explicitly set in the `Foo` module with the help of
+  `Kernel.SpecialForms.alias/2`.
+
+      defmodule Foo.Bar do
+        # code
+      end
+
+      defmodule Foo do
+        alias Foo.Bar
+        # code here can refer to `Foo.Bar` as just `Bar`
+      end
 
   ## Dynamic names
 
   Elixir module names can be dynamically generated. This is very
-  useful for macros. For instance, one could write:
+  useful when working with macros. For instance, one could write:
 
       defmodule String.to_atom("Foo#{1}") do
         # contents ...
       end
 
-  Elixir will accept any module name as long as the expression
-  returns an atom. Note that, when a dynamic name is used, Elixir
-  won't nest the name under the current module nor automatically
-  set up an alias.
+  Elixir will accept any module name as long as the expression passed as the
+  first argument to `defmodule/2` evaluates to an atom.
+  Note that, when a dynamic name is used, Elixir won't nest the name under the
+  current module nor automatically set up an alias.
+
   """
   defmacro defmodule(alias, do: block) do
     env   = __CALLER__
@@ -2861,7 +2877,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a function with the given name and contents.
+  Defines a function with the given name and body.
 
   ## Examples
 
@@ -2871,7 +2887,7 @@ defmodule Kernel do
 
       Foo.bar #=> :baz
 
-  A function that expects arguments can be defined as follow:
+  A function that expects arguments can be defined as follows:
 
       defmodule Foo do
         def sum(a, b) do
@@ -2879,8 +2895,8 @@ defmodule Kernel do
         end
       end
 
-  In the example above, we defined a function `sum` that receives
-  two arguments and sums them.
+  In the example above, a `sum/2` function is defined; this function receives
+  two arguments and returns their sum.
 
   """
   defmacro def(call, expr \\ nil) do
@@ -2888,10 +2904,13 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a function that is private. Private functions are
-  only accessible from within the module in which they are defined.
+  Defines a private function with the given name and body.
 
-  Check `def/2` for more information
+  Private functions are only accessible from within the module in which they are
+  defined. Trying to access a private function from outside the module it's
+  defined in results in an `UndefinedFunctionError` exception.
+
+  Check `def/2` for more information.
 
   ## Examples
 
@@ -2903,15 +2922,16 @@ defmodule Kernel do
         defp sum(a, b), do: a + b
       end
 
-  In the example above, `sum` is private and accessing it
-  through `Foo.sum` will raise an error.
+      Foo.bar #=> 3
+      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function: Foo.sum/2
+
   """
   defmacro defp(call, expr \\ nil) do
     define(:defp, call, expr, __CALLER__)
   end
 
   @doc """
-  Defines a macro with the given name and contents.
+  Defines a macro with the given name and body.
 
   ## Examples
 
@@ -2934,10 +2954,13 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a macro that is private. Private macros are
-  only accessible from the same module in which they are defined.
+  Defines a private macro with the given name and body.
 
-  Check `defmacro/2` for more information
+  Private macros are only accessible from the same module in which they are
+  defined.
+
+  Check `defmacro/2` for more information.
+
   """
   defmacro defmacrop(call, expr \\ nil) do
     define(:defmacrop, call, expr, __CALLER__)
@@ -2962,20 +2985,20 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a struct for the current module.
+  Defines a struct.
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
   dispatches and compile time assertions.
 
-  To define a struct, a developer needs to only define
-  a function named `__struct__/0` that returns a map with the
-  structs field. This macro is a convenience for defining such
-  function, with the addition of a type `t` and deriving
-  conveniences.
+  The only thing needed to define a struct is a `__struct__/0` function that
+  returns a map with the struct fields and their default values. `defstruct/1`
+  is a convenience macro which defines such a function (as well as a `t` type
+  and deriving conveniences).
 
-  For more information about structs, please check
-  `Kernel.SpecialForms.%/2`.
+  When using `defstruct/1`, a struct named like the enclosing module is defined.
+
+  For more information about structs, please check `Kernel.SpecialForms.%/2`.
 
   ## Examples
 
@@ -2983,9 +3006,9 @@ defmodule Kernel do
         defstruct name: nil, age: nil
       end
 
-  Struct fields are evaluated at definition time, which allows
-  them to be dynamic. In the example below, `10 + 11` will be
-  evaluated at compilation time and the age field will be stored
+  Struct fields are evaluated at compile-time, which allows
+  them to be dynamic. In the example below, `10 + 11` is
+  evaluated at compile-time and the age field is stored
   with value `21`:
 
       defmodule User do
@@ -2995,16 +3018,16 @@ defmodule Kernel do
   ## Deriving
 
   Although structs are maps, by default structs do not implement
-  any of the protocols implemented for maps. For example, if you
-  attempt to use the access protocol with the User struct, it
-  will lead to an error:
+  any of the protocols implemented for maps. For example, attempting to use the
+  `Access` protocol with the `User` struct leads to an error:
 
-      %User{}[:age]
+      john = %User{name: "John"}
+      john[:age]
       ** (Protocol.UndefinedError) protocol Access not implemented for %User{...}
 
-  However, `defstruct/1` allows implementation for protocols to
-  derived by defining a `@derive` attribute as a list before `defstruct/1`
-  is invoked:
+  `defstruct/1`, however, allows protocol implementations to be
+  *derived*. This can be done by defining a `@derive` attribute as a list before
+  invoking `defstruct/1`:
 
       defmodule User do
         @derive [Access]
@@ -3013,7 +3036,7 @@ defmodule Kernel do
 
       %User{}[:age] #=> 21
 
-  For each protocol given to `@derive`, Elixir will assert there is an
+  For each protocol in the `@derive` list, Elixir will assert there is an
   implementation of that protocol for maps and check if the map
   implementation defines a `__deriving__/3` callback. If so, the callback
   is invoked, otherwise an implementation that simply points to the map
@@ -3021,22 +3044,27 @@ defmodule Kernel do
 
   ## Types
 
-  It is recommended to define types for structs, by convention this type
-  is called `t`. To define a struct in a type the struct literal syntax
+  It is recommended to define types for structs. By convention such type
+  is called `t`. To define a struct inside a type, the struct literal syntax
   is used:
 
       defmodule User do
-        defstruct name: "john", age: 25
-        @type t :: %User{name: String.t, age: integer}
+        defstruct name: "John", age: 25
+        @type t :: %User{name: String.t, age: non_neg_integer}
       end
 
   It is recommended to only use the struct syntax when defining the struct's
-  type. When referring to another struct use `User.t`, not `%User{}`. Fields
-  in the struct not included in the type defaults to `term`.
+  type. When referring to another struct it's better to use `User.t`instead of
+  `%User{}`.
 
-  Structs whose internal structure is private to the local module (you are not
-  allowed to pattern match it or directly access fields) should use the `@opaque`
-  attribute. Structs whose internal structure is public should use `@type`.
+  The types of the struct fields that are not included in the struct's type
+  default to `term`.
+
+  Structs whose internal structure is private to the local module (pattern
+  matching them or directly accessing their fields should not be allowed) should
+  use the `@opaque` attribute. Structs whose internal structure is public should
+  use `@type`. See `Kernel.Typespec` for more information on opaque types.
+
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
@@ -3076,27 +3104,26 @@ defmodule Kernel do
   Defines an exception.
 
   Exceptions are structs backed by a module that implements
-  the Exception behaviour. The Exception behaviour requires
+  the `Exception` behaviour. The `Exception` behaviour requires
   two functions to be implemented:
 
-    * `exception/1` - that receives the arguments given to `raise/2`
+    * `exception/1` - receives the arguments given to `raise/2`
        and returns the exception struct. The default implementation
        accepts a set of keyword arguments that is merged into the
        struct.
 
     * `message/1` - receives the exception struct and must return its
       message. Most commonly exceptions have a message field which
-      by default is accessed by this function. However, if your exception
+      by default is accessed by this function. However, if an exception
       does not have a message field, this function must be explicitly
       implemented.
 
-  Since exceptions are structs, all the API supported by `defstruct/1`
+  Since exceptions are structs, the API supported by `defstruct/1`
   is also available in `defexception/1`.
 
   ## Raising exceptions
 
-  The most common way to raise an exception is via the `raise/2`
-  function:
+  The most common way to raise an exception is via `raise/2`:
 
       defmodule MyAppError do
         defexception [:message]
@@ -3108,7 +3135,7 @@ defmodule Kernel do
         message: "did not get what was expected, got: #{inspect value}"
 
   In many cases it is more convenient to pass the expected value to
-  `raise` and generate the message in the `exception/1` callback:
+  `raise/2` and generate the message in the `exception/1` callback:
 
       defmodule MyAppError do
         defexception [:message]
@@ -3121,8 +3148,9 @@ defmodule Kernel do
 
       raise MyAppError, value
 
-  The example above is the preferred mechanism for customizing
+  The example above shows the preferred strategy for customizing
   exception messages.
+
   """
   defmacro defexception(fields) do
     fields = case is_list(fields) do
@@ -3164,39 +3192,39 @@ defmodule Kernel do
   Everything else evaluates to true in `if` clauses. Depending
   on the application, it may be important to specify a `blank?`
   protocol that returns a boolean for other data types that should
-  be considered `blank?`. For instance, an empty list or an empty
-  binary could be considered blanks.
+  be considered "blank". For instance, an empty list or an empty
+  binary could be considered blank.
 
-  We could implement this protocol as follow:
+  Such protocol could be implemented as follows:
 
       defprotocol Blank do
-        @doc "Returns true if data is considered blank/empty"
+        @doc "Returns true if `data` is considered blank/empty"
         def blank?(data)
       end
 
-  Now that the protocol is defined, we can implement it. We need
-  to implement the protocol for each Elixir type. For example:
+  Now that the protocol is defined it can be implemented. It needs to be
+  implemented for each Elixir type; for example:
 
       # Integers are never blank
       defimpl Blank, for: Integer do
         def blank?(number), do: false
       end
 
-      # Just empty list is blank
+      # The only blank list is the empty one
       defimpl Blank, for: List do
         def blank?([]), do: true
         def blank?(_),  do: false
       end
 
-      # Just the atoms false and nil are blank
+      # The only blank atoms are `false` and `nil`
       defimpl Blank, for: Atom do
         def blank?(false), do: true
         def blank?(nil),   do: true
         def blank?(_),     do: false
       end
 
-  And we would have to define the implementation for all types.
-  The supported types available are:
+  The implementation of the `Blank` protocol would need to be defined for all
+  Elixir types. The available types are:
 
     * Structs (see below)
     * `Tuple`
@@ -3212,7 +3240,7 @@ defmodule Kernel do
     * `Reference`
     * `Any` (see below)
 
-  ## Protocols + Structs
+  ## Protocols and Structs
 
   The real benefit of protocols comes when mixed with structs.
   For instance, Elixir ships with many data types implemented as
@@ -3230,7 +3258,7 @@ defmodule Kernel do
 
   In some cases, it may be convenient to provide a default
   implementation for all types. This can be achieved by
-  setting `@fallback_to_any` to `true` in the protocol
+  setting the `@fallback_to_any` attribute to `true` in the protocol
   definition:
 
       defprotocol Blank do
@@ -3238,28 +3266,28 @@ defmodule Kernel do
         def blank?(data)
       end
 
-  Which can now be implemented as:
+  The `Blank` protocol can now be implemented for `Any`:
 
       defimpl Blank, for: Any do
         def blank?(_), do: true
       end
 
-  One may wonder why such fallback is not true by default.
+  One may wonder why such behaviour (fallback to any) is not the default one.
 
   It is two-fold: first, the majority of protocols cannot
-  implement an action in a generic way for all types. In fact,
+  implement an action in a generic way for all types; in fact,
   providing a default implementation may be harmful, because users
   may rely on the default implementation instead of providing a
   specialized one.
 
   Second, falling back to `Any` adds an extra lookup to all types,
-  which is unnecessary overhead unless an implementation for Any is
+  which is unnecessary overhead unless an implementation for `Any` is
   required.
 
   ## Types
 
   Defining a protocol automatically defines a type named `t`, which
-  can be used as:
+  can be used as follows:
 
       @spec present?(Blank.t) :: boolean
       def present?(blank) do
@@ -3273,15 +3301,24 @@ defmodule Kernel do
 
   Any protocol module contains three extra functions:
 
-
     * `__protocol__/1` - returns the protocol name when `:name` is given, and a
-      keyword list with the protocol functions when `:functions` is given
+      keyword list with the protocol functions and their arities when
+      `:functions` is given
 
     * `impl_for/1` - receives a structure and returns the module that
       implements the protocol for the structure, `nil` otherwise
 
     * `impl_for!/1` - same as above but raises an error if an implementation is
       not found
+
+      Enumerable.__protocol__(:functions)
+      #=> [count: 1, member?: 2, reduce: 3]
+
+      Enumerable.impl_for([])
+      #=> Enumerable.List
+
+      Enumerable.impl_for(42)
+      #=> nil
 
   ## Consolidation
 
@@ -3305,8 +3342,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines an implementation for the given protocol. See
-  `defprotocol/2` for examples.
+  Defines an implementation for the given protocol.
+
+  See `defprotocol/2` for more information and examples on protocols.
 
   Inside an implementation, the name of the protocol can be accessed
   via `@protocol` and the current target as `@for`.
@@ -3318,8 +3356,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Makes the given functions in the current module overridable. An overridable
-  function is lazily defined, allowing a developer to customize it.
+  Makes the given functions in the current module overridable.
+
+  An overridable function is lazily defined, allowing a developer to override
+  it.
 
   ## Example
 
@@ -3343,12 +3383,13 @@ defmodule Kernel do
         end
       end
 
-  As seen as in the example `super` can be used to call the default
+  As seen as in the example above, `super` can be used to call the default
   implementation.
+
   """
-  defmacro defoverridable(tuples) do
+  defmacro defoverridable(keywords) do
     quote do
-      Module.make_overridable(__MODULE__, unquote(tuples))
+      Module.make_overridable(__MODULE__, unquote(keywords))
     end
   end
 
@@ -3372,7 +3413,7 @@ defmodule Kernel do
   By calling `use`, a hook called `__using__` will be invoked in
   `ExUnit.Case` which will then do the proper setup.
 
-  Simply put, `use` is simply a translation to:
+  Simply put, `use` translates to to:
 
       defmodule AssertionTest do
         require ExUnit.Case
@@ -3388,7 +3429,7 @@ defmodule Kernel do
       defmodule MyModule do
         defmacro __using__(opts) do
           quote do
-            # code that will run in the module that will `use MyModule`
+            # code that will run in the module that uses MyModule
           end
         end
       end
@@ -3409,46 +3450,53 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines the given functions in the current module that will
-  delegate to the given `target`. Functions defined with
-  `defdelegate` are public and are allowed to be invoked
-  from external. If you find yourself wishing to define a
-  delegation as private, you should likely use import
-  instead.
+  Defines a set of functions in the current module that delegate to other
+  functions.
 
-  Delegation only works with functions, delegating to macros
-  is not supported.
+  This macro is used to define functions in a module that delegate to other
+  functions (for example, functions in other modules).
+
+  Functions defined with `defdelegate/2` are **public** and can be invoked from
+  outside the module they're defined in (like if they were defined using
+  `def/2`). When the desire is to delegate private functions, `import` is likely
+  the solution.
+
+  Delegation only works with functions; delegating macros is not supported.
 
   ## Options
 
     * `:to` - the expression to delegate to. Any expression
-      is allowed and its results will be calculated on runtime.
+      is allowed and its results will be evaluated at runtime. Usually
+      evaluates to the name of a module.
 
     * `:as` - the function to call on the target given in `:to`.
       This parameter is optional and defaults to the name being
-      delegated.
+      delegated (`funs`).
 
-    * `:append_first` - if true, when delegated, first argument
-      passed to the delegate will be relocated to the end of the
+    * `:append_first` - if `true`, when delegated, the first argument
+      passed to the delegated function will be relocated to the end of the
       arguments when dispatched to the target.
 
       The motivation behind this is because Elixir normalizes
-      the "handle" as a first argument and some Erlang modules
-      expect it as last argument.
+      the "handle" as the first argument while some Erlang modules
+      expect it as the last argument.
 
   ## Examples
 
       defmodule MyList do
         defdelegate reverse(list), to: :lists
-        defdelegate [reverse(list), map(callback, list)], to: :lists
         defdelegate other_reverse(list), to: :lists, as: :reverse
+        defdelegate [reverse(list), map(list, callback)], to: :lists, append_first: true
       end
 
       MyList.reverse([1, 2, 3])
-      #=> [3,2,1]
+      #=> [3, 2, 1]
 
       MyList.other_reverse([1, 2, 3])
-      #=> [3,2,1]
+      #=> [3, 2, 1]
+
+      MyList.map([1, 2, 3], &(&1 * 2))
+      #=> [2, 4, 6]
 
   """
   defmacro defdelegate(funs, opts) do
