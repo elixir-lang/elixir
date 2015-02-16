@@ -437,7 +437,7 @@ defmodule Mix.Utils do
 
     # Starting a http client profile allows us to scope
     # the effects of using a http proxy to this function
-    {:ok, pid} = :inets.start(:httpc, [{:profile, :mix}])
+    {:ok, _pid} = :inets.start(:httpc, [{:profile, :mix}])
 
     headers = [{'user-agent', 'Mix/#{System.version}'}]
     request = {:binary.bin_to_list(path), headers}
