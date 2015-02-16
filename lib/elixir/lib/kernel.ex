@@ -3534,8 +3534,10 @@ defmodule Kernel do
   ## Sigils
 
   @doc ~S"""
-  Handles the sigil ~S. It simply returns a string
-  without escaping characters and without interpolations.
+  Handles the sigil `~S`.
+
+  It simply returns a string without escaping characters and without
+  interpolations.
 
   ## Examples
 
@@ -3551,8 +3553,10 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~s. It returns a string as if it was double quoted
-  string, unescaping characters and replacing interpolations.
+  Handles the sigil `~s`.
+
+  It returns a string as if it was a double quoted string, unescaping characters
+  and replacing interpolations.
 
   ## Examples
 
@@ -3571,8 +3575,10 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~C. It simply returns a char list
-  without escaping characters and without interpolations.
+  Handles the sigil `~C`.
+
+  It simply returns a char list without escaping characters and without
+  interpolations.
 
   ## Examples
 
@@ -3588,8 +3594,10 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~c. It returns a char list as if it were a single
-  quoted string, unescaping characters and replacing interpolations.
+  Handles the sigil `~c`.
+
+  It returns a char list as if it were a single quoted string, unescaping
+  characters and replacing interpolations.
 
   ## Examples
 
@@ -3616,11 +3624,19 @@ defmodule Kernel do
   end
 
   @doc """
-  Handles the sigil ~r. It returns a Regex pattern.
+  Handles the sigil `~r`.
+
+  It returns a regular expression pattern, unescaping characters and replacing
+  interpolations.
+
+  More information on regexes can be found in the `Regex` module.
 
   ## Examples
 
       iex> Regex.match?(~r(foo), "foo")
+      true
+
+      iex> Regex.match?(~r/a#{:b}c/, "abc")
       true
 
   """
@@ -3636,8 +3652,12 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~R. It returns a Regex pattern without escaping
+  Handles the sigil `~R`.
+
+  It returns a regular expression pattern without escaping
   nor interpreting interpolations.
+
+  More information on regexes can be found in the `Regex` module.
 
   ## Examples
 
@@ -3651,13 +3671,16 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~w. It returns a list of "words" split by whitespace.
+  Handles the sigil `~w`.
+
+  It returns a list of "words" split by whitespace. Character unescaping and
+  interpolation happens for each word.
 
   ## Modifiers
 
-    * `s`: strings (default)
-    * `a`: atoms
-    * `c`: char lists
+    * `s`: words in the list are strings (default)
+    * `a`: words in the list are atoms
+    * `c`: words in the list are char lists
 
   ## Examples
 
@@ -3682,14 +3705,16 @@ defmodule Kernel do
   end
 
   @doc ~S"""
-  Handles the sigil ~W. It returns a list of "words" split by whitespace
-  without escaping nor interpreting interpolations.
+  Handles the sigil `~W`.
+
+  It returns a list of "words" split by whitespace without escaping nor
+  interpreting interpolations.
 
   ## Modifiers
 
-    * `s`: strings (default)
-    * `a`: atoms
-    * `c`: char lists
+    * `s`: words in the list are strings (default)
+    * `a`: words in the list are atoms
+    * `c`: words in the list are char lists
 
   ## Examples
 
