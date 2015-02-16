@@ -2515,7 +2515,8 @@ defmodule Kernel do
 
   ## Examples
 
-      function_exported?(Enum, :member?, 2) #=> true
+      iex> function_exported?(Enum, :member?, 2)
+      true
 
   """
   @spec function_exported?(atom | tuple, atom, arity) :: boolean
@@ -2533,7 +2534,8 @@ defmodule Kernel do
 
   ## Examples
 
-      macro_exported?(Kernel, :use, 2) #=> true
+      iex> macro_exported?(Kernel, :use, 2)
+      true
 
   """
   @spec macro_exported?(atom, atom, integer) :: boolean
