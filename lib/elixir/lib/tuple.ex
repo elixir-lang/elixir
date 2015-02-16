@@ -2,8 +2,8 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  See also 'Kernel.elem/2', 'Kernel.is_tuple/1', 'Kernel.put_elem/3', and 
-  'Kernel.tuple_size/1'.
+  See also `Kernel.elem/2`, `Kernel.is_tuple/1`, `Kernel.put_elem/3`, and
+  `Kernel.tuple_size/1`.
   """
 
   @doc """
@@ -29,7 +29,7 @@ defmodule Tuple do
   Inserts an element into a tuple.
 
   Inserts `value` into `tuple` at the given zero-based `index`.
-  Raises an `ArgumentError` if `index` is greater than the
+  Raises an `ArgumentError` if `index` is negative or greater than the
   length of `tuple`.
 
   Inlined by the compiler.
@@ -39,6 +39,8 @@ defmodule Tuple do
       iex> tuple = {:bar, :baz}
       iex> Tuple.insert_at(tuple, 0, :foo)
       {:foo, :bar, :baz}
+      iex> Tuple.insert_at(tuple, 2, :bong)
+      {:bar, :baz, :bong}
 
   """
   @spec insert_at(tuple, non_neg_integer, term) :: tuple
@@ -50,7 +52,7 @@ defmodule Tuple do
   Removes an element from a tuple.
 
   Deletes the element at the zero-based `index` from `tuple`.
-  Raises an `ArgumentError` if `index` is greater than
+  Raises an `ArgumentError` if `index` is negative or greater than
   or equal to the length of `tuple`.
 
   Inlined by the compiler.
@@ -71,6 +73,13 @@ defmodule Tuple do
   Converts a tuple to a list.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      iex> tuple = {:foo, :bar, :baz}
+      iex> Tuple.to_list(tuple)
+      [:foo, :bar, :baz]
+
   """
   @spec to_list(tuple) :: list
   def to_list(tuple) do
