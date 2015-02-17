@@ -74,22 +74,24 @@ defmodule Task.Supervised do
       apply(module, fun, args)
     catch
       :error, value ->
-        exit(info, mfa, {value, System.stacktrace()})
+        reason = {value, System.stacktrace()}
+        exit(info, mfa, reason, reason)
       :throw, value ->
-        exit(info, mfa, {{:nocatch, value}, System.stacktrace()})
+        reason = {{:nocatch, value}, System.stacktrace()}
+        exit(info, mfa, reason, reason)
       :exit, value ->
-        exit(info, mfa, value)
+        exit(info, mfa, {value, System.stacktrace()}, value)
     end
   end
 
-  defp exit(_info, _mfa, reason)
+  defp exit(_info, _mfa, _log_reason, reason)
       when reason == :normal
       when reason == :shutdown
       when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
     exit(reason)
   end
 
-  defp exit(info, mfa, reason) do
+  defp exit(info, mfa, log_reason, reason) do
     {fun, args} = get_running(mfa)
 
     :error_logger.format(
@@ -98,7 +100,7 @@ defmodule Task.Supervised do
       '** When function  == ~p~n' ++
       '**      arguments == ~p~n' ++
       '** Reason for termination == ~n' ++
-      '** ~p~n', [self, get_from(info), fun, args, get_reason(reason)])
+      '** ~p~n', [self, get_from(info), fun, args, get_reason(log_reason)])
 
     exit(reason)
   end
