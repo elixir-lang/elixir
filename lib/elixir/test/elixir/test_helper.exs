@@ -100,6 +100,6 @@ defmodule CompileAssertion do
       error -> {error.__struct__, Exception.message(error)}
     end
 
-    result || flunk(message: "Expected expression to fail")
+    result || flunk("Expected expression to fail")
   end
 end

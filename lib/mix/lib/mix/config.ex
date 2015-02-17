@@ -138,7 +138,7 @@ defmodule Mix.Config do
       config
     rescue
       e in [LoadError] -> reraise(e, System.stacktrace)
-      e -> raise LoadError, file: file, error: e
+      e -> reraise(LoadError, [file: file, error: e], System.stacktrace)
     end
   end
 
