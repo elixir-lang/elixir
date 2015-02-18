@@ -296,10 +296,9 @@ do_quote(Other, Q, _) ->
 %% Quote helpers
 
 bad_escape(Arg) ->
-  Msg = <<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
-          "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
-          "pids and remote functions in the format &Mod.fun/arity">>,
-  error('Elixir.ArgumentError':exception([{message,Msg}])).
+  argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
+                   "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
+                   "pids and remote functions in the format &Mod.fun/arity">>).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
   All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args,

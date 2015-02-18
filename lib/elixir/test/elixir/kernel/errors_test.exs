@@ -383,6 +383,15 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test :invalid_struct_field_value do
+    msg = ~r"invalid value for struct field baz, cannot escape "
+    assert_raise ArgumentError, msg, fn ->
+      defmodule Foo do
+        defstruct baz: fn -> end
+      end
+    end
+  end
+
   test :match_attribute_in_module do
     msg = "invalid write attribute syntax, you probably meant to use: @foo expression"
     assert_raise ArgumentError, msg, fn ->
