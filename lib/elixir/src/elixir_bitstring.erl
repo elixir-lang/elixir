@@ -191,7 +191,7 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
   case Expr of
     {bin, _, Elements} ->
       case (Size == default) andalso types_allow_splice(Types, Elements) of
-        true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements) ++ Acc);
+        true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
         false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?line(Meta), Expr, Size, Types}|Acc])
       end;
     _ ->
