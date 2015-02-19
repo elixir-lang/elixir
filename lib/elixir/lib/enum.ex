@@ -348,7 +348,7 @@ defmodule Enum do
     if is_nil(pad) || i == 0 do
       :lists.reverse(acc)
     else
-      buffer = :lists.reverse(buffer) ++ take(pad, n - i)
+      buffer = :lists.reverse(buffer, take(pad, n - i))
       :lists.reverse([buffer|acc])
     end
   end
