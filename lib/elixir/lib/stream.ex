@@ -174,7 +174,7 @@ defmodule Stream do
   end
 
   defp do_chunk(acc(h, {buffer, count} = old, t), n, pad, f1) do
-    buffer = :lists.reverse(buffer) ++ Enum.take(pad, n - count)
+    buffer = :lists.reverse(buffer, Enum.take(pad, n - count))
     next_with_acc(f1, buffer, h, old, t)
   end
 
@@ -834,7 +834,7 @@ defmodule Stream do
       {:suspended, [i|fun_acc], fun} ->
         do_zip(t, acc, callback, [i|list], [{fun, fun_acc}|buffer])
       {_, _} ->
-        do_zip_close(:lists.reverse(buffer) ++ t)
+        do_zip_close(:lists.reverse(buffer, t))
         {:done, acc}
     end
   end
