@@ -1,16 +1,23 @@
 defprotocol Access do
   @moduledoc """
-  The Access protocol is used to support Elixir's `foo[bar]` syntax.
-  It also empowers `Kernel`s nested update functions.
+  Dictionary-like access to data structures via the `foo[bar]` syntax.
 
-  `foo[bar]` translates directly to `Access.get(foo, bar)`.
-
+  This module also empowers `Kernel`s nested update functions
   `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3` and
-  `Kernel.get_and_update_in/3` are also all powered by the Access
-  protocol.
+  `Kernel.get_and_update_in/3`.
 
-  This protocol is implemented by default for keywords, mapsm
-  and dictionary-like types:
+  ## Deprecated
+
+  Currently, the Access protocol is deprecated as there are performance
+  concerns in the current implementation. In Elixir v1.2, instead of
+  using a protocol, `foo[bar]` will dispatch directly to the `Dict`
+  module. Therefore, while `foo[bar]` will continue to work, extension
+  of the syntax should be done via a custom `Dict` implementation.
+
+  ## Examples
+
+  Out of the box, Access works all built-in dictionaries: `Keyword`,
+  `Map` and `HashDict`:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -23,6 +30,12 @@ defprotocol Access do
       iex> star_ratings = %{1.0 => "★", 1.5 => "★☆", 2.0 => "★★"}
       iex> star_ratings[1.5]
       "★☆"
+
+  Furthermore, Access transparently ignores `nil` values:
+
+      iex> keywords = [a: 1, b: 2]
+      iex> keywords[:c][:unknown]
+      nil
 
   The key comparison must be implemented using the `===` operator.
   """
