@@ -2127,7 +2127,7 @@ defmodule Kernel do
       false ->
         case name do
           :behavior ->
-            :elixir_errors.warn warn_info(env_stacktrace(env)),
+            :elixir_errors.warn env.line, env.file,
                                 "@behavior attribute is not supported, please use @behaviour instead"
           _ ->
             :ok
@@ -2164,15 +2164,6 @@ defmodule Kernel do
   # All other cases
   defp do_at(args, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
-  end
-
-  defp warn_info([entry|_]) do
-    opts = :erlang.element(tuple_size(entry), entry)
-    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
-  end
-
-  defp warn_info([]) do
-    ""
   end
 
   defp typespec(:type),     do: :deftype
