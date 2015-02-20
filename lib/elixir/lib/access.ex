@@ -1,7 +1,7 @@
 defprotocol Access do
   @moduledoc """
-  The Access protocol is used by `foo[bar]` and also
-  empowers the nested update functions in Kernel.
+  The Access protocol is used to support Elixir's `foo[bar]` syntax.
+  It also empowers `Kernel`s nested update functions.
 
   `foo[bar]` translates directly to `Access.get(foo, bar)`.
 
@@ -9,7 +9,7 @@ defprotocol Access do
   `Kernel.get_and_update_in/3` are also all powered by the Access
   protocol.
 
-  This protocol is implemented by default for keywords, maps
+  This protocol is implemented by default for keywords, mapsm
   and dictionary-like types:
 
       iex> keywords = [a: 1, b: 2]
@@ -28,20 +28,21 @@ defprotocol Access do
   """
 
   @doc """
-  Gets the value of the given key in the container.
+  Gets the container's value for the given key.
   """
   @spec get(t, term) :: t
   def get(container, key)
 
   @doc """
-  Gets the value under `key` and updates it in one pass.
+  Gets and updates the container's value for the given key, in a single pass.
 
   The argument function `fun` must receive the value for the given `key` (or
-  `nil` if the key doesn't exist in `container`) and it must return a tuple
+  `nil` if the key doesn't exist in `container`). It must return a tuple
   containing the `get` value and the new value to be stored in the `container`.
 
-  This function returns a tuple containing the `get` value returned by `fun` and
-  the container updated with the other value returned by `fun`.
+  This function returns a two-element tuple.
+  The first element is the `get` value, as returned by `fun`.
+  The second element is the container, updated with the value returned by `fun`.
   """
   @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
