@@ -189,7 +189,7 @@ defmodule Mix.Tasks.New do
    <%= @mod %>
    <%= String.duplicate("=", String.length(@mod)) %>
 
-   ** TODO: Add description **
+   **TODO: Add description**
    """
 
    embed_text :gitignore, """
