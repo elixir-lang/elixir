@@ -13,7 +13,8 @@ Nonterminals
   bit_string open_bit close_bit
   map map_op map_close map_args map_expr struct_op
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
-  container_args_base container_args call_args_parens_base call_args_parens parens_call
+  container_args_base container_args
+  call_args_parens_expr call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
   call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_maybe_expr stab_parens_many
@@ -429,7 +430,7 @@ call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_par
 stab_parens_many -> open_paren call_args_no_parens_kw close_paren : ['$2'].
 stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
 
-% Containers and function calls with parentheses
+% Containers
 
 container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
@@ -442,8 +443,14 @@ container_args -> container_args_base : lists:reverse('$1').
 container_args -> container_args_base ',' : lists:reverse('$1').
 container_args -> container_args_base ',' kw : lists:reverse(['$3'|'$1']).
 
-call_args_parens_base -> container_expr : ['$1'].
-call_args_parens_base -> call_args_parens_base ',' container_expr : ['$3'|'$1'].
+% Function calls with parentheses
+
+call_args_parens_expr -> matched_expr : '$1'.
+call_args_parens_expr -> unmatched_expr : '$1'.
+call_args_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
+
+call_args_parens_base -> call_args_parens_expr : ['$1'].
+call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3'|'$1'].
 
 call_args_parens -> empty_paren : [].
 call_args_parens -> open_paren no_parens_expr close_paren : ['$2'].
