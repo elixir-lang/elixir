@@ -17,6 +17,10 @@ defmodule Mix.TaskTest do
       Mix.Task.run("unknown")
     end
 
+    assert_raise Mix.NoTaskError, "The task helli could not be found. Did you mean 'hello'?", fn ->
+      Mix.Task.run("helli")
+    end
+
     assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
       Mix.Task.run("invalid")
     end
