@@ -11,25 +11,25 @@ defmodule IEx.Evaluator do
 
   """
   def start(server, leader) do
-    IEx.History.init
+    {:ok, history_pid} = IEx.History.init
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server)
+      loop(server, history_pid)
     after
-      IEx.History.reset
+      IEx.History.reset(history_pid)
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server) do
+  defp loop(server, history_pid) do
     receive do
       {:eval, ^server, code, state} ->
-        send server, {:evaled, self, eval(code, state)}
-        loop(server)
+        send server, {:evaled, self, eval(code, state, history_pid)}
+        loop(server, history_pid)
       {:done, ^server} ->
-        IEx.History.reset
+        IEx.History.reset(history_pid)
         :ok
     end
   end
@@ -87,9 +87,9 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, state) do
+  defp eval(code, state, history_pid) do
     try do
-      do_eval(String.to_char_list(code), state)
+      do_eval(String.to_char_list(code), state, history_pid)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -97,46 +97,55 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp do_eval(@break_trigger, state=%IEx.State{cache: ''}) do
+  defp do_eval(@break_trigger, state=%IEx.State{cache: ''}, _) do
     state
   end
 
-  defp do_eval(@break_trigger, state) do
+  defp do_eval(@break_trigger, state, _) do
     :elixir_errors.parse_error(state.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, state) do
+  @history_key :"IEx History PID key"
+
+  defp do_eval(latest_input, state, history_pid) do
     code = state.cache ++ latest_input
     line = state.counter
-    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state)
-  end
-  
-  defp handle_eval({:ok, forms}, code, line, state) do
-    {result, new_binding, env, scope} =
-      :elixir.eval_forms(forms, state.binding, state.env, state.scope)
-    unless result == IEx.dont_display_result, do: io_inspect(result)
-    update_history(line, code, result)
-    %{state | env: env,
-              cache: '',
-              scope: scope,
-              binding: new_binding,
-              counter: state.counter + 1}
+
+    # Put the history_pid into process dictionary so that IEx.Helpers can
+    # access it
+    Process.put(@history_key, history_pid)
+
+    ret = case Code.string_to_quoted(code, [line: line, file: "iex"]) do
+      {:ok, forms} ->
+        {result, new_binding, env, scope} =
+          :elixir.eval_forms(forms, state.binding, state.env, state.scope)
+        unless result == IEx.dont_display_result, do: io_inspect result
+        update_history(line, code, result, history_pid)
+        %{state | env: env,
+                   cache: '',
+                   scope: scope,
+                   binding: new_binding,
+                   counter: state.counter + 1}
+      {:error, {line, error, token}} ->
+        if token == "" do
+          # Update state.cache so that IEx continues to add new input to
+          # the unfinished expression in `code`
+          %{state | cache: code}
+        else
+          # Encountered malformed expression
+          :elixir_errors.parse_error(line, "iex", error, token)
+        end
+    end
+
+    Process.delete(@history_key)
+    ret
   end
 
-  defp handle_eval({:error, {_, _, ""}}, code, _line, state) do
-    # Update state.cache so that IEx continues to add new input to
-    # the unfinished expression in `code`
-    %{state | cache: code}
+  defp update_history(counter, cache, result, history_pid) do
+    IEx.History.append(history_pid, {counter, cache, result}, counter,
+                       Application.get_env(:iex, :history_size))
   end
 
-  defp handle_eval({:error, {line, error, token}}, _code, _line, _state) do
-    # Encountered malformed expression
-    :elixir_errors.parse_error(line, "iex", error, token)
-  end
-
-  defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter, IEx.Config.history_size)
-  end
 
   defp io_inspect(result) do
     io_result inspect(result, IEx.inspect_opts)
