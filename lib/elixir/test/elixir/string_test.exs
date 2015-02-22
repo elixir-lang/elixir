@@ -88,7 +88,7 @@ defmodule StringTest do
     assert_raise FunctionClauseError, fn ->
       String.split_at("abc", 0.1)
     end
-    
+
     assert_raise FunctionClauseError, fn ->
       String.split_at("abc", -0.1)
     end
@@ -512,8 +512,44 @@ defmodule StringTest do
 
   test :to_float do
     assert String.to_float("3.0") == 3.0
-    
+
     three = fn -> "3" end
     assert_raise ArgumentError, fn -> String.to_float(three.()) end
+  end
+
+  test :levenshtein_distance do
+    # With empty strings
+    assert String.levenshtein_distance(   "",    "") == 0
+    assert String.levenshtein_distance(  "a",    "") == 1
+    assert String.levenshtein_distance(   "",   "a") == 1
+    assert String.levenshtein_distance("abc",    "") == 3
+    assert String.levenshtein_distance(   "", "abc") == 3
+    # With equal strings
+    assert String.levenshtein_distance(  "a",   "a") == 0
+    assert String.levenshtein_distance("abc", "abc") == 0
+    assert String.levenshtein_distance(   "",   "a") == 1
+    # Only with inserts
+    assert String.levenshtein_distance(  "a",  "ab") == 1
+    assert String.levenshtein_distance(  "b",  "ab") == 1
+    assert String.levenshtein_distance( "ac", "abc") == 1
+    assert String.levenshtein_distance("abcdefg", "xabxcdxxefxgx") == 6
+    # Only with deletions
+    assert String.levenshtein_distance(  "a",    "") == 1
+    assert String.levenshtein_distance( "ab",   "a") == 1
+    assert String.levenshtein_distance( "ab",   "b") == 1
+    assert String.levenshtein_distance("abc",  "ac") == 1
+    assert String.levenshtein_distance("xabxcdxxefxgx", "abcdefg") == 6
+    # Only with substitutions
+    assert String.levenshtein_distance(  "a",   "b") == 1
+    assert String.levenshtein_distance( "ab",  "ac") == 1
+    assert String.levenshtein_distance( "ac",  "bc") == 1
+    assert String.levenshtein_distance("abc", "axc") == 1
+    assert String.levenshtein_distance("xabxcdxxefxgx", "1ab2cd34ef5g6") == 6
+    # With different operations
+    assert String.levenshtein_distance("example", "samples") == 3
+    assert String.levenshtein_distance("sturgeon", "urgently") == 6
+    assert String.levenshtein_distance("levenshtein", "frankenstein") == 6
+    assert String.levenshtein_distance("distance", "difference") == 5
+    assert String.levenshtein_distance("erlang was neat", "elixir is great") == 9
   end
 end
