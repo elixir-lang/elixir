@@ -94,6 +94,20 @@ expr -> unmatched_expr : '$1'.
 %% In Elixir we have three main call syntaxes: with parentheses,
 %% without parentheses and with do blocks. They are represented
 %% in the AST as matched, no_parens and unmatched.
+%% 
+%% Calls without parentheses are further divided according to how
+%% problematic they are:
+%% (a) no_parens: a call with several arguments (e.g. `f a, b`)
+%% (b) no_parens_one_ambig: a call with one argument which is
+%%     itself a no_parens or no_parens_one_ambig (e.g. `f g a, b`
+%%     or `f g h a, b` and similar)
+%% (c) no_parens_one: a call with one unproblematic argument
+%%     (e.g. `f a` or `f g a` and similar)
+%%
+%% Note, in particular, that no_parens_one_ambig expressions are
+%% ambiguous and are interpreted such that the outer function has
+%% arity 1 (e.g. `f g a, b` is interpreted as `f(g(a, b))` rather
+%% than `f(g(a), b)`). Hence the name, no_parens_one_ambig.
 %%
 %% The distinction is required because we can't, for example, have
 %% a function call with a do block as argument inside another do
