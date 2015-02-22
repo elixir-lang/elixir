@@ -83,7 +83,6 @@ grammar -> '$empty' : nil.
 expr_list -> expr : ['$1'].
 expr_list -> expr_list eoe expr : ['$3'|'$1'].
 
-expr -> empty_paren : nil.
 expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
 expr -> unmatched_expr : '$1'.
@@ -104,7 +103,7 @@ expr -> unmatched_expr : '$1'.
 %%
 %%   foo a, bar b, c  #=> invalid
 %%   foo(a, bar b, c) #=> invalid
-%%   foo a, bar b     #=> valid
+%%   foo bar a, b     #=> valid
 %%   foo a, bar(b, c) #=> valid
 %%
 %% So the different grammar rules need to take into account
@@ -124,7 +123,6 @@ matched_expr -> access_expr : '$1'.
 no_parens_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 no_parens_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 
-unmatched_expr -> empty_paren op_expr : build_op(element(1, '$2'), nil, element(2, '$2')).
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
@@ -208,6 +206,7 @@ access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
+access_expr -> empty_paren : nil.
 access_expr -> number : ?exprs('$1').
 access_expr -> signed_number : {element(4, '$1'), meta('$1'), ?exprs('$1')}.
 access_expr -> list : element(1, '$1').
@@ -273,6 +272,8 @@ stab_eoe -> stab eoe : '$1'.
 
 stab_expr -> expr : '$1'.
 stab_expr -> stab_op_eol stab_maybe_expr : build_op('$1', [], '$2').
+stab_expr -> empty_paren stab_op_eol stab_maybe_expr :
+               build_op('$2', [], '$3').
 stab_expr -> call_args_no_parens_all stab_op_eol stab_maybe_expr :
                build_op('$2', unwrap_when(unwrap_splice('$1')), '$3').
 stab_expr -> stab_parens_many stab_op_eol stab_maybe_expr :
@@ -405,7 +406,6 @@ parens_call -> matched_expr dot_call_op : {'.', meta('$2'), ['$1']}. % Fun/local
 % Function calls with no parentheses
 
 call_args_no_parens_expr -> matched_expr : '$1'.
-call_args_no_parens_expr -> empty_paren : nil.
 call_args_no_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
@@ -423,17 +423,14 @@ call_args_no_parens_many -> call_args_no_parens_comma_expr : reverse('$1').
 call_args_no_parens_many -> call_args_no_parens_comma_expr ',' call_args_no_parens_kw : reverse(['$3'|'$1']).
 
 call_args_no_parens_many_strict -> call_args_no_parens_many : '$1'.
-call_args_no_parens_many_strict -> empty_paren : throw_no_parens_strict('$1').
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : throw_no_parens_strict('$1').
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_paren : throw_no_parens_strict('$1').
 
-stab_parens_many -> empty_paren : [].
 stab_parens_many -> open_paren call_args_no_parens_kw close_paren : ['$2'].
 stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
 
 % Containers and function calls with parentheses
 
-container_expr -> empty_paren : nil.
 container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
 container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
@@ -495,6 +492,7 @@ bit_string -> open_bit container_args close_bit : build_bit('$1', '$2').
 
 % Map and structs
 
+%% Allow unquote/@something/aliases inside maps and structs.
 map_expr -> max_expr : '$1'.
 map_expr -> dot_identifier : build_identifier('$1', nil).
 map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
@@ -502,12 +500,14 @@ map_expr -> at_op_eol map_expr : build_unary_op('$1', '$2').
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
-assoc_expr -> container_expr assoc_op_eol container_expr : {'$1', '$3'}.
+assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
+assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> map_expr : '$1'.
 
-assoc_update -> matched_expr pipe_op_eol matched_expr assoc_op_eol matched_expr : {'$2', '$1', [{'$3', '$5'}]}.
-assoc_update -> unmatched_expr pipe_op_eol expr assoc_op_eol expr : {'$2', '$1', [{'$3', '$5'}]}.
-assoc_update -> matched_expr pipe_op_eol map_expr : {'$2', '$1', ['$3']}.
+assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
+assoc_update -> unmatched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 
 assoc_update_kw -> matched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
 assoc_update_kw -> unmatched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
