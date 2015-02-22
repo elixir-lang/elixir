@@ -14,6 +14,14 @@ defmodule ExUnit.CaptureIO do
             IO.puts "a"
           end) == "a\n"
         end
+        
+        test "checking the return value and the IO output" do
+          fun = fn -> 
+            assert Enum.each(["some", "example"], &(IO.puts &1)) == :ok 
+          end
+          assert capture_io(fun) == "some\nexample\n"
+          # tip: or use only: `capture_io(fun)` to silence the IO output (so only assert the return value)
+        end
       end
 
   """
