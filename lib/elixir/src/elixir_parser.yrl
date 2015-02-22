@@ -445,6 +445,7 @@ stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
 
 container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
+container_expr -> no_parens_one_ambig_expr : throw_no_parens_many_strict('$1').
 container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
 container_args_base -> container_expr : ['$1'].

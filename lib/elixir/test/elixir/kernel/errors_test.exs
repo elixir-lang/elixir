@@ -112,9 +112,11 @@ defmodule Kernel.ErrorsTest do
           "nested calls. Syntax error before: ','"
 
     assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
+    assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
     assert_compile_fail SyntaxError, msg, '[do: foo 1, 2]'
     assert_compile_fail SyntaxError, msg, 'foo(do: bar 1, 2)'
     assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
+    assert_compile_fail SyntaxError, msg, '{foo bar 1, 2}'
     assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
