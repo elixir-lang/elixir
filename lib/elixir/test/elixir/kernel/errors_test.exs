@@ -105,8 +105,6 @@ defmodule Kernel.ErrorsTest do
           "Syntax error before: '('"
 
     assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
-    assert_compile_fail SyntaxError, msg, 'foo ()'
-    assert_compile_fail SyntaxError, msg, 'foo (), 1'
   end
 
   test :syntax_error_on_nested_no_parens_call do
