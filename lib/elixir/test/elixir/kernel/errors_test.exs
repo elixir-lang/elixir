@@ -123,6 +123,7 @@ defmodule Kernel.ErrorsTest do
     assert is_list List.flatten [1]
     assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
     assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
+    assert [List.flatten List.flatten [1]] == [[1]]
   end
 
   test :syntax_error_on_atom_dot_alias do
