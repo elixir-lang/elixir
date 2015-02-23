@@ -97,12 +97,15 @@ expr -> unmatched_expr : '$1'.
 %% 
 %% Calls without parentheses are further divided according to how
 %% problematic they are:
+%%
 %% (a) no_parens: a call with several arguments (e.g. `f a, b`)
-%% (b) no_parens_one_ambig: a call with one argument which is
+%%
+%% (b) no_parens_one: a call with one unproblematic argument
+%%     (e.g. `f a` or `f g a` and similar)
+%%
+%% (c) no_parens_one_ambig: a call with one argument which is
 %%     itself a no_parens or no_parens_one_ambig (e.g. `f g a, b`
 %%     or `f g h a, b` and similar)
-%% (c) no_parens_one: a call with one unproblematic argument
-%%     (e.g. `f a` or `f g a` and similar)
 %%
 %% Note, in particular, that no_parens_one_ambig expressions are
 %% ambiguous and are interpreted such that the outer function has
