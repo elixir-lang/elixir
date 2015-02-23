@@ -8,22 +8,22 @@ defmodule Float do
   @doc """
   Parses a binary into a float.
 
-  If successful, returns a tuple of the form `{float, remainder_of_binary}`.
-  Otherwise `:error`.
+  If successful, returns a tuple of the form `{float, remainder_of_binary}`;
+  otherwise, `:error`.
 
-  If a float formatted string wants to be directly converted to float,
+  If a float formatted string wants to be directly converted to a float,
   `String.to_float/1" can be used instead.
 
   ## Examples
 
       iex> Float.parse("34")
-      {34.0,""}
+      {34.0, ""}
 
       iex> Float.parse("34.25")
-      {34.25,""}
+      {34.25, ""}
 
       iex> Float.parse("56.5xyz")
-      {56.5,"xyz"}
+      {56.5, "xyz"}
 
       iex> Float.parse("pi")
       :error
@@ -68,10 +68,10 @@ defmodule Float do
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
 
-  Floor also accepts a precision to round a floating point value down
+  `floor/2` also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).
 
-  This function always returns floats. One may use `Kernel.trunc/1` to
+  This function always returns a float. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
 
   ## Examples
@@ -98,10 +98,10 @@ defmodule Float do
   @doc """
   Rounds a float to the largest integer greater than or equal to `num`.
 
-  Ceil also accepts a precision to round a floating point value down to
-  an arbitrary number of fractional digits (between 0 and 15).
+  `ceil/2` also accepts a precision to round a floating point value down
+  to an arbitrary number of fractional digits (between 0 and 15).
 
-  This function always returns floats. One may use `Kernel.trunc/1` to
+  This function always returns floats. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
 
   ## Examples
@@ -129,9 +129,9 @@ defmodule Float do
   Rounds a floating point value to an arbitrary number of fractional digits
   (between 0 and 15).
 
-  This function only accepts floats and returns floats. Use `Kernel.round/1`
-  if you want a function that accepts both floats and integers and always
-  returns an integer.
+  This function only accepts floats and always returns a float. Use
+  `Kernel.round/1` if you want a function that accepts both floats and integers
+  and always returns an integer.
 
   ## Examples
 
@@ -171,13 +171,13 @@ defmodule Float do
 
   """
   @spec to_char_list(float) :: char_list
-  def to_char_list(number) do
-    :erlang.float_to_list(number)
+  def to_char_list(float) do
+    :erlang.float_to_list(float)
   end
 
   @doc """
   Returns a list which corresponds to the text representation
-  of `float`.
+  of the given float.
 
   ## Options
 
@@ -199,7 +199,7 @@ defmodule Float do
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_float`.
+  of the given float.
 
   Inlined by the compiler.
 
@@ -210,8 +210,8 @@ defmodule Float do
 
   """
   @spec to_string(float) :: String.t
-  def to_string(some_float) do
-    :erlang.float_to_binary(some_float)
+  def to_string(float) do
+    :erlang.float_to_binary(float)
   end
 
   @doc """
@@ -220,10 +220,10 @@ defmodule Float do
 
   ## Options
 
-    * `:decimals`   — number of decimal points to show
+    * `:decimals` — number of decimal points to show
     * `:scientific` — number of decimal points to show, in scientific format
-    * `:compact`    — when true, use the most compact representation (ignored
-                      with the `scientific` option)
+    * `:compact` — when `true`, use the most compact representation (ignored
+      with the `scientific` option)
 
   ## Examples
 
