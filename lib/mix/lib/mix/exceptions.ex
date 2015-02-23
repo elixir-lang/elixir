@@ -9,8 +9,10 @@ defmodule Mix.NoTaskError do
   defp msg(task) do
     msg = "The task #{task} could not be found"
     case did_you_mean(task) do
-      nil -> msg
-      similar -> msg <> ". Did you mean '#{similar}'?"
+      {similar, score} when score > 0.8 ->
+        msg <> ". Did you mean '#{similar}'?"
+
+      _otherwise -> msg
     end
   end
 
@@ -18,11 +20,12 @@ defmodule Mix.NoTaskError do
     Mix.Task.load_all # Ensure all tasks are loaded
     Mix.Task.all_modules
     |> Enum.map(&Mix.Task.task_name/1)
-    |> Enum.find(&similar?(&1, task))
+    |> Enum.reduce({nil, 0}, &max_similar(&1, task, &2))
   end
 
-  defp similar?(source, target) do
-    String.jaro_distance(source, target) > 0.77
+  defp max_similar(source, target, {_, current} = best) do
+    score = String.jaro_distance(source, target)
+    if score < current, do: best, else: {source, score}
   end
 end
 
