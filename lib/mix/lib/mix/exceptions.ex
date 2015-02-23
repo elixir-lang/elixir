@@ -22,7 +22,7 @@ defmodule Mix.NoTaskError do
   end
 
   defp similar?(source, target) do
-    String.levenshtein_distance(source, target) < 2
+    String.jaro_distance(source, target) > 0.77
   end
 end
 
