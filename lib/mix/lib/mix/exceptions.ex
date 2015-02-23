@@ -3,7 +3,26 @@ defmodule Mix.NoTaskError do
 
   def exception(opts) do
     task = opts[:task]
-    %Mix.NoTaskError{task: task, message: "The task #{task} could not be found"}
+    %Mix.NoTaskError{task: task, message: msg(task)}
+  end
+
+  defp msg(task) do
+    msg = "The task #{task} could not be found"
+    case did_you_mean(task) do
+      nil -> msg
+      similar -> msg <> ". Did you mean '#{similar}'?"
+    end
+  end
+
+  defp did_you_mean(task) do
+    Mix.Task.load_all # Ensure all tasks are loaded
+    Mix.Task.all_modules
+    |> Enum.map(&Mix.Task.task_name/1)
+    |> Enum.find(&similar?(&1, task))
+  end
+
+  defp similar?(source, target) do
+    String.levenshtein_distance(source, target) < 2
   end
 end
 
