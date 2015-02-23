@@ -1441,50 +1441,95 @@ defmodule String do
   end
 
   @doc """
-  Returns an integer representing Levenshtein distance between
-  `source` and `target`.
+  Returns a float value between 0 (equates to no similarity) and 1 (is an exact match)
+  representing [Jaro](http://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  distance between `str1` and `str2`.
 
-  Levenshtein distance between two words is the minimum number of
-  single-character edits (i.e. insertions, deletions or substitutions)
-  required to change one word into the other.
-
-  The algorithm used is based on the [Wagner-Fisher iterative
-  implementation](http://en.wikipedia.org/wiki/Levenshtein_distance#Iterative_with_two_matrix_rows).
+  The Jaro distance metric is designed and best suited for short strings such as person names.
 
   ## Examples
 
-      iex> String.levenshtein_distance("kitten", "sitting")
-      3
+      iex> String.jaro_distance("dwayne", "duane")
+      0.8222222222222223
+      iex> String.jaro_distance("even", "odd")
+      0.0
+
   """
-  @spec levenshtein_distance(t, t) :: non_neg_integer
-  def levenshtein_distance(source, target)
 
-  def levenshtein_distance(source, source), do: 0
+  @spec jaro_distance(t, t) :: 0..1
 
-  def levenshtein_distance(source, <<>>), do: length(source)
+  def jaro_distance(str, str), do: 1.0
+  def jaro_distance(_str, ""), do: 0.0
+  def jaro_distance("", _str), do: 0.0
 
-  def levenshtein_distance(<<>>, target), do: length(target)
+  def jaro_distance(str1, str2) do
+    {chars1, len1} = decompose(str1)
+    {chars2, len2} = decompose(str2)
 
-  def levenshtein_distance(source, target) do
-    source = graphemes(source)
-    target = graphemes(target)
-    distlist = 0..Kernel.length(target) |> Enum.to_list
-    do_distance(source, target, distlist, 1)
+    case match(chars1, len1, chars2, len2) do
+      {0, _trans} -> 0.0
+      {comm, trans} ->
+        ((comm / len1) +
+         (comm / len2) +
+         ((comm - trans) / comm)) / 3
+    end
   end
 
-  defp do_distance([], _, distlist, _), do: List.last(distlist)
-
-  defp do_distance([src_hd | src_tl], target, distlist, step) do
-    distlist = distlist(target, distlist, src_hd, [step], step)
-    do_distance(src_tl, target, distlist, step + 1)
+  @compile {:inline, decompose: 1}
+  defp decompose(str) do
+    chars = graphemes(str)
+    {chars, Kernel.length(chars)}
   end
 
-  defp distlist([], _, _, new_distlist, _), do: Enum.reverse(new_distlist)
+  defp match(chars1, len1, chars2, len2) do
+    if len1 < len2 do
+      match(chars1, chars2, div(len2, 2) - 1)
+    else
+      match(chars2, chars1, div(len1, 2) - 1)
+    end
+  end
 
-  defp distlist([target_hd | target_tl], [distlist_hd | distlist_tl],
-                grapheme, new_distlist, last_dist) do
-    diff = if target_hd != grapheme, do: 1, else: 0
-    min = min(min(last_dist + 1, hd(distlist_tl) + 1), distlist_hd + diff)
-    distlist(target_tl, distlist_tl, grapheme, [min | new_distlist], min)
+  defp match(chars1, chars2, lim) do
+    match(chars1, chars2, {0, lim}, {0, 0, -1}, 0)
+  end
+
+  defp match([char | rest], chars, range, state, idx) do
+    {chars, state} = submatch(char, chars, range, state, idx)
+
+    case range do
+      {lim, lim} -> match(rest, tl(chars), range, state, idx + 1)
+      {pre, lim} -> match(rest, chars, {pre + 1, lim}, state, idx + 1)
+    end
+  end
+
+  defp match([], _, _, {comm, trans, _}, _), do: {comm, trans}
+
+  defp submatch(char, chars, {pre, _} = range, state, idx) do
+    case detect(char, chars, range) do
+      nil -> {chars, state}
+      {subidx, chars} ->
+        {chars, proceed(state, idx - pre + subidx)}
+    end
+  end
+
+  defp detect(char, chars, {pre, lim}) do
+    detect(char, chars, pre + 1 + lim, 0, [])
+  end
+
+  defp detect(_char, _chars, 0, _idx, _acc), do: nil
+  defp detect(_char, [], _lim, _idx, _acc),  do: nil
+
+  defp detect(char, [char | rest], _lim, idx, acc),
+    do: {idx, Enum.reverse(acc, [nil | rest])}
+
+  defp detect(char, [other | rest], lim, idx, acc),
+    do: detect(char, rest, lim - 1, idx + 1, [other | acc])
+
+  defp proceed({comm, trans, former}, current) do
+    if current < former do
+      {comm + 1, trans + 1, current}
+    else
+      {comm + 1, trans, current}
+    end
   end
 end
