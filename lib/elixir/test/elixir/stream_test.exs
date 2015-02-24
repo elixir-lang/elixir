@@ -245,6 +245,11 @@ defmodule StreamTest do
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [1, 2, 2, 4, 3, 6]
 
+    halted_stream = Stream.flat_map([1, 2, 3], fn(x) ->
+      if x > 2, do: :halt, else: [x, x * 2]
+    end)
+    assert Enum.to_list(halted_stream) == [1, 2, 2, 4]
+
     nats = Stream.iterate(1, &(&1 + 1))
     assert Stream.flat_map(nats, &[&1, &1 * 2]) |> Enum.take(6) == [1, 2, 2, 4, 3, 6]
   end

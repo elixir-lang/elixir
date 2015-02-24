@@ -777,9 +777,10 @@ defmodule Enum do
 
   @doc """
   Returns a new collection appending the result of invoking `fun`
-  on each corresponding item of `collection`.
+  on each corresponding item of `collection`. If `fun` returns `:halt`,
+  the enumeration stops.
 
-  The given function should return an enumerable.
+  The given function should return an enumerable (except if `:halt` is returned).
 
   ## Examples
 
@@ -789,11 +790,19 @@ defmodule Enum do
       iex> Enum.flat_map([{1,3}, {4,6}], fn({x,y}) -> x..y end)
       [1, 2, 3, 4, 5, 6]
 
+      iex> Enum.flat_map([1,2,3], fn(x) ->
+      ...>    if x > 2, do: :halt, else: [x, x]
+      ...> end)
+      [1, 1, 2, 2]
+
   """
   @spec flat_map(t, (element -> t)) :: list
   def flat_map(collection, fun) do
     reduce(collection, [], fn(entry, acc) ->
-      reduce(fun.(entry), acc, &[&1|&2])
+      case fun.(entry) do
+        :halt -> acc
+        result -> reduce(result, acc, &[&1|&2])
+      end
     end) |> :lists.reverse
   end
 

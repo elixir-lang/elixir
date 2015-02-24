@@ -298,13 +298,16 @@ defmodule Stream do
 
   @doc """
   Creates a stream that will apply the given function on enumeration and
-  flatten the result.
+  flatten the result. If the given function returns `:halt`, the enumeration
+  will stop.
 
   ## Examples
 
-      iex> stream = Stream.flat_map([1, 2, 3], fn(x) -> [x, x * 2] end)
+      iex> stream = Stream.flat_map([1, 2, 3], fn(x) ->
+      ...>    if x > 2, do: :halt, else: [x, x * 2]
+      ...> end)
       iex> Enum.to_list(stream)
-      [1, 2, 2, 4, 3, 6]
+      [1, 2, 2, 4]
 
   """
   @spec flat_map(Enumerable.t, (element -> Enumerable.t)) :: Enumerable.t
