@@ -65,6 +65,8 @@ defmodule Mix.Tasks.Compile.Erlang do
         opt
     end
 
+    compile_path = Path.relative_to(compile_path, File.cwd!)
+
     tuples = files
              |> scan_sources(include_path, source_paths)
              |> sort_dependencies
