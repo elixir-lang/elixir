@@ -8,6 +8,14 @@ defmodule Code do
 
   @doc """
   Lists all loaded files.
+
+  ##Examples
+
+    #Load eex
+    iex> Code.load_file("../eex/test/eex_test.exs")
+    iex> Code.loaded_files |> List.last |> Kernel.is_bitstring
+    true
+
   """
   def loaded_files do
     :elixir_code_server.call :loaded
@@ -19,6 +27,14 @@ defmodule Code do
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
   allowing them to be required again.
+  ##Examples
+
+    # Load Eex Test code, Unload file, Check for functions still available
+    iex> Code.require_file("../eex/test/eex_test.exs")
+    iex> Code.unload_files(Code.loaded_files) 
+    iex> Kernel.function_exported?(EExTest.Compiled, :before_compile, 0)
+    true
+
   """
   def unload_files(files) do
     :elixir_code_server.cast {:unload_files, files}
@@ -500,6 +516,14 @@ defmodule Code do
       attached to the module using the `@moduledoc` attribute
 
     * `:all` - a keyword list with both `:docs` and `:moduledoc`
+
+  ## Examples
+
+    # Get the documentation for the first function listed
+    iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
+    iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
+    iex> String.split(text, "\\n") |> Enum.at(0)
+    "Converts an atom to a char list."
 
   """
   def get_docs(module, kind) when is_atom(module) do
