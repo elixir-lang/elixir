@@ -3,18 +3,18 @@ defmodule Code do
   Utilities for managing code compilation, code evaluation and code loading.
 
   This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
-  to add behaviour which is specific to Elixir.
+  to add behaviour which is specific to Elixir. Almost all of the functions in this module
+  have global side effects on the behaviour of Elixir. 
   """
 
   @doc """
   Lists all loaded files.
 
-  ##Examples
+  ## Examples
 
-    #Load eex
-    iex> Code.load_file("../eex/test/eex_test.exs")
-    iex> Code.loaded_files |> List.last |> Kernel.is_bitstring
-    true
+      > Code.require_file("../eex/test/eex_test.exs")
+      > Code.loaded_files |> List.last |> Kernel.is_bitstring
+      true
 
   """
   def loaded_files do
@@ -27,13 +27,14 @@ defmodule Code do
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
   allowing them to be required again.
-  ##Examples
+ 
+  ## Examples
 
-    # Load Eex Test code, Unload file, Check for functions still available
-    iex> Code.require_file("../eex/test/eex_test.exs")
-    iex> Code.unload_files(Code.loaded_files) 
-    iex> Kernel.function_exported?(EExTest.Compiled, :before_compile, 0)
-    true
+      # Load Eex Test code, Unload file, Check for functions still available
+      > Code.require_file("../eex/test/eex_test.exs")
+      > Code.unload_files(Code.loaded_files) 
+      > Kernel.function_exported?(EExTest.Compiled, :before_compile, 0)
+      true
 
   """
   def unload_files(files) do
@@ -44,6 +45,13 @@ defmodule Code do
   Appends a path to the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being appended.
+
+  ## Examples
+
+      > Code.append_path(".")
+      > :code.get_path |> List.last |> Kernel.to_string == Path.expand(".")
+      true
+
   """
   def append_path(path) do
     :code.add_pathz(to_char_list(Path.expand path))
@@ -53,6 +61,13 @@ defmodule Code do
   Prepends a path to the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being prepended.
+
+  ## Examples
+
+      > Code.prepend_path(".")
+      > :code.get_path |> List.first |> Kernel.to_string == Path.expand(".")
+      true
+
   """
   def prepend_path(path) do
     :code.add_patha(to_char_list(Path.expand path))
@@ -62,6 +77,13 @@ defmodule Code do
   Deletes a path from the Erlang VM code path.
 
   The path is expanded with `Path.expand/1` before being deleted.
+
+  ## Examples
+    
+      > Code.prepend_path(".")
+      > Code.delete_path(".")
+      > :code.get_path |> List.first |> Kernel.to_string != Path.expand(".")
+    
   """
   def delete_path(path) do
     :code.del_path(to_char_list(Path.expand path))
@@ -75,6 +97,18 @@ defmodule Code do
   still want the paths given by the user to have higher priority.
   Calling this function guarantees the paths are re-added on
   top of the user given ones.
+
+  ## Examples
+
+      iex -pa "/tmp"
+      > :code.get_path |> List.first
+      '/tmp'
+      > Code.prepend_path(".")
+      > :code.get_path |> List.first |> Kernel.to_string != "/tmp"
+      > Code.readd_paths
+      > :code.get_path |> List.first
+      '/tmp'
+
   """
   @spec readd_paths() :: :ok
   def readd_paths() do
@@ -294,6 +328,11 @@ defmodule Code do
   Notice that if `load_file` is invoked by different processes concurrently,
   the target file will be loaded concurrently many times. Check `require_file/2`
   if you don't want a file to be loaded concurrently.
+
+  ## Examples
+
+      > Code.load_file("eex_test.exs","../eex/test")
+
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -317,6 +356,11 @@ defmodule Code do
   call `require_file` will get the list of loaded modules, others will get `nil`.
 
   Check `load_file/2` if you want a file to be loaded multiple times.
+
+  ## Examples
+
+      > Code.require_file("eex_test.exs","../eex/test")
+
   """
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -337,6 +381,12 @@ defmodule Code do
   Gets the compilation options from the code server.
 
   Check `compiler_options/1` for more information.
+
+  ## Examples
+
+      > Code.compiler_options 
+      [debug_info: true, docs: true, warnings_as_errors: false]
+
   """
   def compiler_options do
     :elixir_config.get :compiler_options
@@ -346,6 +396,12 @@ defmodule Code do
   Returns a list with the available compiler options.
 
   See `Code.compiler_options/1` for more info.
+
+  ## Examples
+
+      > Code.available_compiler_options
+      [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+
   """
   def available_compiler_options do
     [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
@@ -371,6 +427,10 @@ defmodule Code do
     * `:warnings_as_errors` - cause compilation to fail when warnings are
       generated
 
+  ## Examples
+
+      > Code.compiler_options( debug_info: true )
+    
   """
   def compiler_options(opts) do
     {opts, bad} = Keyword.split(opts, available_compiler_options)
@@ -426,7 +486,7 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## `Code.ensure_compiled/1`
+  ## Code.ensure_compiled/1
 
   Elixir also contains an `ensure_compiled/1` function that is a
   superset of `ensure_loaded/1`.
@@ -441,6 +501,12 @@ defmodule Code do
   In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
   must be used in rare cases, usually involving macros that need to
   invoke a module for callback information.
+
+  ## Examples
+
+      iex> Code.ensure_loaded(Atom)
+      {:module, Atom}
+
   """
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
@@ -452,6 +518,12 @@ defmodule Code do
   Similar to `ensure_loaded/1`, but returns `true` if the module
   is already loaded or was successfully loaded. Returns `false`
   otherwise.
+
+  ## Examples
+
+      iex> Code.ensure_loaded?(Atom)
+      true
+
   """
   def ensure_loaded?(module) do
     match?({:module, ^module}, ensure_loaded(module))
