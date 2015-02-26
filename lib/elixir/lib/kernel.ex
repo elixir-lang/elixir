@@ -1386,7 +1386,7 @@ defmodule Kernel do
   of the last exception. That said, it is common to assign
   the stacktrace as the first expression inside a `rescue`
   clause as any other exception potentially raised (and
-  rescued) in between the rescue clause and the raise call
+  rescued) between the rescue clause and the raise call
   may change the `System.stacktrace/0` value.
 
   ## Examples
@@ -2482,7 +2482,7 @@ defmodule Kernel do
       String.graphemes("Hello" |> Enum.reverse)
 
   which results in an error as the `Enumerable` protocol is not defined
-  for binaries. Adding explicit parenthesis resolves the ambiguity:
+  for binaries. Adding explicit parentheses resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
 

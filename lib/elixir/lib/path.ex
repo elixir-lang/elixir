@@ -267,7 +267,7 @@ defmodule Path do
   In other words, it tries to strip the `from` prefix from `path`.
 
   This function does not query the file system, so it assumes
-  no symlinks in between the paths.
+  no symlinks between the paths.
 
   In case a direct relative path cannot be found, it returns
   the original path.

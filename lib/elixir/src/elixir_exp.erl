@@ -446,7 +446,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
       case lists:member({Name, Kind}, ?m(E, vars)) of
         true ->
           compile_error(Meta, ?m(E, file), "\"~ts ~ts\" looks like a function call but "
-                        "there is a variable named \"~ts\", please use explicit parenthesis or even spaces",
+                        "there is a variable named \"~ts\", please use explicit parentheses or even spaces",
                         [Name, 'Elixir.Macro':to_string(Arg), Name]);
         false ->
           ok
