@@ -38,7 +38,7 @@ defmodule Task.Supervised do
       # 5. The spawned task waits forever for the monitor reference so it can begin
       #
       # We have solved this by specifying a timeout of 5000 seconds.
-      # Given no work is done in the client in between the task start and
+      # Given no work is done in the client between the task start and
       # sending the reference, 5000 should be enough to not raise false
       # negatives unless the nodes are indeed not available.
       receive do

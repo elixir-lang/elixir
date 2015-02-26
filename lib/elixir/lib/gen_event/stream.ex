@@ -6,7 +6,7 @@ defmodule GenEvent.Stream do
   contains the following fields:
 
     * `:manager`  - the manager reference given to `GenEvent.stream/2`
-    * `:timeout`  - the timeout in between events, defaults to `:infinity`
+    * `:timeout`  - the timeout between events, defaults to `:infinity`
 
   """
   defstruct manager: nil, timeout: :infinity

@@ -333,7 +333,7 @@ defmodule Mix.Utils do
     end
   end
 
-  # Make a relative path in between two paths.
+  # Make a relative path between the two given paths.
   # Expects both paths to be fully expanded.
   defp make_relative_path(source, target) do
     do_make_relative_path(Path.split(source), Path.split(target))
@@ -493,7 +493,7 @@ defmodule Mix.Utils do
   defp run_cmd(cmd, args) do
     {_, status} = System.cmd(cmd, args, stderr_to_stdout: true)
     status
-  end 
+  end
 
   defp read_shell(path, target) do
     filename = URI.parse(path).path |> Path.basename

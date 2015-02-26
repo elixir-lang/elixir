@@ -67,7 +67,7 @@ defmodule IEx do
       $ iex --sname foo
       iex(foo@HOST)1>
 
-  The string in between parenthesis in the prompt is the name
+  The string between the parentheses in the prompt is the name
   of your node. We can retrieve it by calling the `node()`
   function:
 
