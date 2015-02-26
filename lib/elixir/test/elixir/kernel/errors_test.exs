@@ -37,6 +37,23 @@ defmodule Kernel.ErrorsTest do
       'Foo.:"\#{:bar}"'
   end
 
+  test :invalid_identifier do
+    msg = fn char, name -> "nofile:1: invalid character '#{char}' in name: #{name}" end
+
+    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@'
+    assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@ '
+    assert_compile_fail SyntaxError, msg.(:@, "foo@bar"), 'foo@bar'
+    assert_compile_fail SyntaxError, msg.(:!, "Foo!"), 'Foo!'
+  end
+
+  test :kw_missing_space do
+    msg = "nofile:1: keyword argument must be followed by space after: foo:"
+
+    assert_compile_fail SyntaxError, msg, "foo:bar"
+    assert_compile_fail SyntaxError, msg, "foo:+"
+    assert_compile_fail SyntaxError, msg, "foo:+1"
+  end
+
   test :invalid_or_reserved_codepoint do
     assert_compile_fail ArgumentError,
       "invalid or reserved unicode codepoint 55296",
