@@ -91,7 +91,7 @@ defmodule Kernel.ErrorsTest do
 
   test :compile_error_on_op_ambiguity do
     msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
-          "please use explicit parenthesis or even spaces"
+          "please use explicit parentheses or even spaces"
     assert_compile_fail CompileError, msg, 'a = 1; a -1'
 
     max = 1
@@ -100,7 +100,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_on_parens_call do
-    msg = "nofile:1: unexpected parenthesis. If you are making a function call, do not " <>
+    msg = "nofile:1: unexpected parentheses. If you are making a function call, do not " <>
           "insert spaces between the function name and the opening parentheses. " <>
           "Syntax error before: '('"
 
