@@ -524,6 +524,9 @@ defmodule Code do
       iex> Code.ensure_loaded(Atom)
       {:module, Atom}
 
+      iex> Code.ensure_loaded(DoesNotExist)
+      {:error, :nofile}
+
   """
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
