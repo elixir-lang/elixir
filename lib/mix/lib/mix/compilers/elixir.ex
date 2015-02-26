@@ -10,7 +10,7 @@ defmodule Mix.Compilers.Elixir do
   once (and only if) compilation starts.
 
   The manifest is written down with information including dependencies
-  in between modules, which helps it recompile only the modules that
+  between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
   def compile(manifest, srcs, skip, exts, dest, force, on_start) do
@@ -103,7 +103,7 @@ defmodule Mix.Compilers.Elixir do
     cwd = File.cwd!
 
     # Starts a server responsible for keeping track which files
-    # were compiled and the dependencies in between them.
+    # were compiled and the dependencies between them.
     {:ok, pid} = Agent.start_link(fn -> entries end)
 
     try do

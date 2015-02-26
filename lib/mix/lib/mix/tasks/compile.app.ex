@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Compile.App do
     * `:registered` - the name of all registered processes in the
       application. If your application defines a local GenServer
       with name `MyServer`, it is recommended to add `MyServer`
-      to this list. It is mostly useful to detect conflicts in
+      to this list. It is mostly useful to detect conflicts
       between applications that register the same names.
 
     * `:mod` - specify a module to invoke when the application

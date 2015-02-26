@@ -101,7 +101,7 @@ defmodule Kernel.ErrorsTest do
 
   test :syntax_error_on_parens_call do
     msg = "nofile:1: unexpected parenthesis. If you are making a function call, do not " <>
-          "insert spaces in between the function name and the opening parentheses. " <>
+          "insert spaces between the function name and the opening parentheses. " <>
           "Syntax error before: '('"
 
     assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
