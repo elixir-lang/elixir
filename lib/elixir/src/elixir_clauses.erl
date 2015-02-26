@@ -180,7 +180,7 @@ has_match_tuple(H) when is_list(H) ->
   lists:any(fun has_match_tuple/1, H);
 has_match_tuple(_) -> false.
 
-% Normalize the given var in between clauses
+% Normalize the given var between clauses
 % by picking one value as reference and retriving
 % its previous value.
 

@@ -289,7 +289,7 @@ defmodule Kernel.ExpansionTest do
            quote do: fn x -> x; _ -> x() end
   end
 
-  test "fn: does not share lexical in between clauses" do
+  test "fn: does not share lexical scope between clauses" do
     assert expand(quote do: fn 1 -> import List; 2 -> flatten([1,2,3]) end) ==
            quote do: fn 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end
   end
@@ -311,7 +311,7 @@ defmodule Kernel.ExpansionTest do
            quote do: (cond do x = 1 -> x; _ -> x() end)
   end
 
-  test "cond: does not share lexical in between clauses" do
+  test "cond: does not share lexical scope between clauses" do
     assert expand_and_clean(quote do: (cond do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
            quote do: (cond do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
   end
@@ -333,7 +333,7 @@ defmodule Kernel.ExpansionTest do
            quote do: (case w() do x -> x; _ -> x() end)
   end
 
-  test "case: does not share lexical in between clauses" do
+  test "case: does not share lexical scope between clauses" do
     assert expand_and_clean(quote do: (case w do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
            quote do: (case w() do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
   end
@@ -360,7 +360,7 @@ defmodule Kernel.ExpansionTest do
            quote do: (receive do x -> x; _ -> x() end)
   end
 
-  test "receive: does not share lexical in between clauses" do
+  test "receive: does not share lexical scope between clauses" do
     assert expand_and_clean(quote do: (receive do 1 -> import List; 2 -> flatten([1,2,3]) end)) ==
            quote do: (receive do 1 -> import :"Elixir.List", []; 2 -> flatten([1,2,3]) end)
   end

@@ -6,7 +6,7 @@ defmodule File.Stat do
 
   In Erlang, this struct is represented by a `:file_info` record.
   Therefore this module also provides functions for converting
-  in between the Erlang record and the Elixir struct.
+  between the Erlang record and the Elixir struct.
 
   Its fields are:
 
