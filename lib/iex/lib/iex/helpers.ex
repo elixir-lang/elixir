@@ -247,7 +247,7 @@ defmodule IEx.Helpers do
   """
   def v do
     inspect_opts = IEx.inspect_opts
-    IEx.History.each(history_pid, &print_history_entry(&1, inspect_opts))
+    GenServer.call(history_pid, {:each, &print_history_entry(&1, inspect_opts)})
   end
 
   defp print_history_entry({counter, cache, result}, inspect_opts) do
@@ -262,7 +262,10 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) do
-    IEx.History.nth(history_pid, n) |> elem(2)
+    case GenServer.call(history_pid, {:nth, n}) do
+      :error  -> raise "v(#{n}) is out of bounds"
+      entry   -> entry |> elem(1)
+    end
   end
 
   @doc """

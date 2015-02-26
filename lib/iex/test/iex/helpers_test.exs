@@ -99,21 +99,8 @@ defmodule IEx.HelpersTest do
 
     assert "** (RuntimeError) v(0) is out of bounds" <> _
            = capture_iex("v(0)")
-    assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
+    assert capture_iex("1\n2\nv(2)") == "1\n2\n'2\\n'"
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
-
-    key = :"Very obscure key so that no one ever ever tries to use itt"
-    expr = "1\n2\nIEx.History.reset(Process.get(#{inspect key}))\nv"
-    assert capture_iex(expr)
-           == String.rstrip """
-           1
-           2
-           true
-           3: IEx.History.reset(Process.get(#{inspect key}))
-           #=> true
-
-           :ok
-           """
   end
 
   test "flush helper" do

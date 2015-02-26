@@ -11,14 +11,14 @@ defmodule IEx.Evaluator do
 
   """
   def start(server, leader) do
-    {:ok, history_pid} = IEx.History.init
+    {:ok, history_pid} = GenServer.start_link(IEx.History, [])
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
       loop(server, history_pid)
     after
-      IEx.History.reset(history_pid)
+      GenServer.call(history_pid, :reset)
       Process.group_leader(self, old_leader)
     end
   end
@@ -29,7 +29,7 @@ defmodule IEx.Evaluator do
         send server, {:evaled, self, eval(code, state, history_pid)}
         loop(server, history_pid)
       {:done, ^server} ->
-        IEx.History.reset(history_pid)
+        GenServer.call(history_pid, :reset)
         :ok
     end
   end
@@ -142,8 +142,8 @@ defmodule IEx.Evaluator do
   end
 
   defp update_history(counter, cache, result, history_pid) do
-    IEx.History.append(history_pid, {counter, cache, result}, counter,
-                       Application.get_env(:iex, :history_size))
+    GenServer.cast(history_pid, {:append, {counter, cache, result}, counter, 
+                       Application.get_env(:iex, :history_size)})
   end
 
 
