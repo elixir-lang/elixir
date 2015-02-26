@@ -2482,7 +2482,7 @@ defmodule Kernel do
       String.graphemes("Hello" |> Enum.reverse)
 
   which results in an error as the `Enumerable` protocol is not defined
-  for binaries. Adding explicit parenthesis resolves the ambiguity:
+  for binaries. Adding explicit parentheses resolves the ambiguity:
 
       String.graphemes("Hello") |> Enum.reverse
 

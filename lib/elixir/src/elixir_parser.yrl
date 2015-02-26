@@ -770,7 +770,7 @@ throw(Line, Error, Token) ->
 
 
 throw_no_parens_strict(Token) ->
-  throw(?line(Token), "unexpected parenthesis. If you are making a "
+  throw(?line(Token), "unexpected parentheses. If you are making a "
     "function call, do not insert spaces between the function name and the "
     "opening parentheses. Syntax error before: ", "'('").
 
