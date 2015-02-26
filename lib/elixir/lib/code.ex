@@ -12,9 +12,8 @@ defmodule Code do
 
   ## Examples
 
-      > Code.require_file("../eex/test/eex_test.exs")
-      > Code.loaded_files |> List.last |> Kernel.is_bitstring
-      true
+      Code.require_file("../eex/test/eex_test.exs")
+      List.First(Code.loaded_files) =~ "eex_test.exs" #=> true
 
   """
   def loaded_files do
@@ -31,10 +30,10 @@ defmodule Code do
   ## Examples
 
       # Load Eex Test code, Unload file, Check for functions still available
-      > Code.require_file("../eex/test/eex_test.exs")
-      > Code.unload_files(Code.loaded_files) 
-      > Kernel.function_exported?(EExTest.Compiled, :before_compile, 0)
-      true
+      Code.load_file("../eex/test/eex_test.exs")
+      Code.unload_files(Code.loaded_files) 
+      Kernel.function_exported?(EExTest.Compiled, :before_compile, 0) #=> true
+      
 
   """
   def unload_files(files) do
@@ -42,15 +41,17 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to the Erlang VM code path.
+  Appends a path to the end of the Erlang VM code path list. This is the list of
+  directories the Erlang VM uses for finding module code.
 
   The path is expanded with `Path.expand/1` before being appended.
+  If this path does not exist, an error is returned.
 
   ## Examples
 
-      > Code.append_path(".")
-      > :code.get_path |> List.last |> Kernel.to_string == Path.expand(".")
-      true
+      Code.append_path(".") #=> true
+
+      Code.append_path("/does_not_exist") #=> {:error, :bad_directory}
 
   """
   def append_path(path) do
@@ -58,32 +59,38 @@ defmodule Code do
   end
 
   @doc """
-  Prepends a path to the Erlang VM code path.
+  Prepends a path to the begining of the Erlang VM code path list. This is the list of
+  directories the Erlang VM uses for finding module code.
 
   The path is expanded with `Path.expand/1` before being prepended.
+  If this path does not exist, an error is returned.
+
 
   ## Examples
 
-      > Code.prepend_path(".")
-      > :code.get_path |> List.first |> Kernel.to_string == Path.expand(".")
-      true
+      Code.prepend_path(".") #=> true
 
+      Code.prepend_path("/does_not_exist") #=> {:error, :bad_directory}
+     
   """
   def prepend_path(path) do
     :code.add_patha(to_char_list(Path.expand path))
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path.
+  Deletes a path from the Erlang VM code path list. This is the list of
+  directories the Erlang VM uses for finding module code.
 
-  The path is expanded with `Path.expand/1` before being deleted.
+  The path is expanded with `Path.expand/1` before being deleted. If the
+  path does not exist it returns false.
 
   ## Examples
     
-      > Code.prepend_path(".")
-      > Code.delete_path(".")
-      > :code.get_path |> List.first |> Kernel.to_string != Path.expand(".")
-    
+      Code.prepend_path(".")
+      Code.delete_path(".") #=> true
+
+      Code.delete_path("/does_not_exist") #=> false
+       
   """
   def delete_path(path) do
     :code.del_path(to_char_list(Path.expand path))
@@ -331,7 +338,8 @@ defmodule Code do
 
   ## Examples
 
-      > Code.load_file("eex_test.exs","../eex/test")
+      Code.load_file("eex_test.exs","../eex/test") |> List.first 
+      #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
@@ -355,11 +363,17 @@ defmodule Code do
   N times with a given file, it will be loaded only once. The first process to
   call `require_file` will get the list of loaded modules, others will get `nil`.
 
-  Check `load_file/2` if you want a file to be loaded multiple times.
+  Check `load_file/2` if you want a file to be loaded multiple times. See also
+  `unload_files/1`
 
   ## Examples
+  
+  If the code is already loaded, it returns nil 
+      Code.require_file("eex_test.exs","../eex/test") #=> nil
 
-      > Code.require_file("eex_test.exs","../eex/test")
+  If the code is not already loaded, it returns the same as `load_file/2` 
+      Code.require_file("eex_test.exs","../eex/test") |> List.first 
+      #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
   def require_file(file, relative_to \\ nil) when is_binary(file) do
@@ -399,7 +413,7 @@ defmodule Code do
 
   ## Examples
 
-      > Code.available_compiler_options
+      iex> Code.available_compiler_options
       [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
 
   """
@@ -426,10 +440,13 @@ defmodule Code do
 
     * `:warnings_as_errors` - cause compilation to fail when warnings are
       generated
+  
+  It returns the new list of compiler options.
 
   ## Examples
 
-      > Code.compiler_options( debug_info: true )
+      Code.compiler_options(debug_info: true)
+      #=> [debug_info: true, docs: true, warnings_as_errors: false]
     
   """
   def compiler_options(opts) do
@@ -591,11 +608,11 @@ defmodule Code do
 
   ## Examples
 
-    # Get the documentation for the first function listed
-    iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
-    iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
-    iex> String.split(text, "\\n") |> Enum.at(0)
-    "Converts an atom to a char list."
+      # Get the documentation for the first function listed
+      iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
+      iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
+      iex> String.split(text, "\\n") |> Enum.at(0)
+      "Converts an atom to a char list."
 
   """
   def get_docs(module, kind) when is_atom(module) do
