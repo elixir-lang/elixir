@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   `lib/a.ex` is also recompiled.
 
   Note it is important to recompile a file dependencies because
-  often there are compilation time dependencies in between them.
+  often there are compilation time dependencies between them.
 
   ## Command line options
 
