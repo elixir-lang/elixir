@@ -374,6 +374,14 @@ defmodule EnumTest.List do
     assert Enum.split([1, 2, 3], -10) == {[], [1, 2, 3]}
   end
 
+  test :slice_before do
+    assert Enum.slice_before([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1)) == [[1, 2, 2], [3, 4, 4, 6], [7], [7]]
+    assert Enum.slice_before([1, 2, 3, 4], fn _ -> false end) == [[1, 2, 3, 4]]
+    assert Enum.slice_before([1, 2, 3, 4], fn _ -> true end) == [[1], [2], [3], [4]]
+    assert Enum.slice_before([], fn _ -> true end) == []
+    assert Enum.slice_before([1], fn _ -> true end) == [[1]]
+  end
+
   test :split_while do
     assert Enum.split_while([1, 2, 3], fn(_) -> false end) == {[], [1, 2, 3]}
     assert Enum.split_while([1, 2, 3], fn(_) -> true end) == {[1, 2, 3], []}
@@ -1004,6 +1012,12 @@ defmodule EnumTest.Range do
 
     range = 1..0
     assert Enum.split(range, 3) == {[1, 0], []}
+  end
+
+  test :slice_before do
+    assert Enum.slice_before(1..4, fn _ -> false end) == [[1, 2, 3, 4]]
+    assert Enum.slice_before(1..4, fn _ -> true end) == [[1], [2], [3], [4]]
+    assert Enum.slice_before(1..4, &(rem(&1, 2) == 1)) == [[1, 2], [3, 4]]
   end
 
   test :split_while do

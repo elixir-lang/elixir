@@ -539,6 +539,22 @@ defmodule StreamTest do
     assert Stream.scan([], 0, &(&1 + &2)) |> Enum.to_list == []
   end
 
+  test "slice_before/2" do
+    stream = Stream.slice_before([1, 2, 1, 1, 2, 3, 4, 1, 2, 3], &(&1 == 1))
+
+    assert is_lazy(stream)
+    assert Enum.to_list(stream) ==
+           [[1, 2], [1], [1, 2, 3, 4], [1, 2, 3]]
+    assert stream |> Stream.take(3) |> Enum.to_list ==
+           [[1, 2], [1], [1, 2, 3, 4]]
+  end
+
+  test "slice_before/2 is zippable" do
+    stream = Stream.slice_before([1, 2, 2, 3], &(&1 == 2))
+    list   = Enum.to_list(stream)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
   test "take/2" do
     stream = Stream.take(1..1000, 5)
     assert is_lazy(stream)
