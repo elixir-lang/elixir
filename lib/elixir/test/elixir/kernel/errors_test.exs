@@ -38,7 +38,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :invalid_identifier do
-    msg = fn char, name -> "nofile:1: invalid character '#{char}' in name: #{name}" end
+    msg = fn char, name -> "nofile:1: invalid character '#{char}' in identifier: #{name}" end
 
     assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@'
     assert_compile_fail SyntaxError, msg.(:@, "foo@"), 'foo@ '

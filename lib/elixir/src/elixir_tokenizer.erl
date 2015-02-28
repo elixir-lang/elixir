@@ -1017,4 +1017,4 @@ atom_length(Atom) ->
   length(atom_to_list(Atom)).
 
 invalid_character_error(Char) ->
-  "invalid character '" ++ [Char] ++ "' in name: ".
+  "invalid character '" ++ [Char] ++ "' in identifier: ".
