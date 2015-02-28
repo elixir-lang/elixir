@@ -55,7 +55,8 @@
 -define(is_atom_start(S), (?is_quote(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
 -define(is_atom(S), (?is_identifier(S) orelse (S == $@))).
 
--define(is_identifier(S), (?is_digit(S) orelse ?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
+-define(is_identifier_start(S), (?is_upcase(S) orelse ?is_downcase(S) orelse (S == $_))).
+-define(is_identifier(S), (?is_digit(S) orelse ?is_identifier_start(S))).
 -define(is_sigil(S), ((S == $/) orelse (S == $<) orelse (S == $") orelse (S == $') orelse
                       (S == $[) orelse (S == $() orelse (S == ${) orelse (S == $|))).
 
