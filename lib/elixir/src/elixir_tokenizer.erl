@@ -444,34 +444,28 @@ tokenize([H|_] = String, Line, Column, Scope, Tokens) when ?is_digit(H) ->
   {Rest, Number, Length} = tokenize_number(String, [], false),
   tokenize(Rest, Line, Column + Length, Scope, [{number, {Line, Column, Column + Length}, Number}|Tokens]);
 
-% Aliases
+% Identifiers (including aliases)
 
-tokenize([H|_] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H) ->
-  {Rest, Alias, Length} = tokenize_identifier(Original, []),
-  case unsafe_to_atom(Alias, Line, Scope) of
-    {ok, Atom} ->
+tokenize([H|_] = Original, Line, Column, Scope, Tokens) when ?is_identifier_start(H) ->
+  case tokenize_any_identifier(Original, Line, Scope) of
+    {ok, Rest, Atom, Length, HasAt, HasEnding} ->
       case Rest of
         [$:|T] when ?is_space(hd(T)) ->
           tokenize(T, Line, Column + Length + 1, Scope, [{kw_identifier, {Line, Column, Column + Length + 1}, Atom}|Tokens]);
+        [$:|T] when hd(T) /= $: ->
+          String = atom_to_list(Atom) ++ [$:],
+          Reason   = {Line, "keyword argument must be followed by space after: ", String},
+          {error, Reason, Original, Tokens};
+        _ when HasAt ->
+          Reason = {Line, invalid_character_error($@), atom_to_list(Atom)},
+          {error, Reason, Original, Tokens};
+        _ when ?is_upcase(H) ->
+          tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens);
         _ ->
-          tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]}|Tokens])
+          tokenize_other_identifier(Rest, Line, Column, Atom, Scope, Tokens)
       end;
     {error, Reason} ->
       {error, Reason, Original, Tokens}
-  end;
-
-% Identifier
-
-tokenize([H|_] = String, Line, Column, Scope, Tokens) when ?is_downcase(H); H == $_ ->
-  case tokenize_any_identifier(String, Line, Column, Scope, Tokens) of
-    {keyword, Rest, {_, {_, _, EndColumn}} = Check, T} ->
-      handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
-    {keyword, Rest, {_, {_, _, EndColumn}, _} = Check, T} ->
-      handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
-    {identifier, Rest, {_, {_, _, EndColumn}, _} = Token} ->
-      tokenize(Rest, Line, EndColumn, Scope, [Token|Tokens]);
-    {error, _, _, _} = Error ->
-      Error
   end;
 
 % Spaces
@@ -814,37 +808,55 @@ tokenize_atom(Rest, Acc, Length) ->
 %% Identifiers
 %% At this point, the validity of the first character was already verified.
 
-tokenize_identifier([H|T], Acc) when ?is_identifier(H) ->
-  tokenize_identifier(T, [H|Acc]);
+tokenize_any_base_identifier(Original) ->
+  tokenize_any_base_identifier(Original, [], false).
 
-tokenize_identifier(Rest, Acc) ->
-  {Rest, lists:reverse(Acc), length(Acc)}.
+tokenize_any_base_identifier([H|T], Acc, HasAt) when ?is_atom(H) ->
+  tokenize_any_base_identifier(T, [H|Acc], HasAt orelse H == $@);
+
+tokenize_any_base_identifier(Rest, Acc, HasAt) ->
+  {Rest, lists:reverse(Acc), length(Acc), HasAt}.
 
 %% Tokenize any identifier, handling kv, punctuated, paren, bracket and do identifiers.
 
-tokenize_any_identifier(Original, Line, Column, Scope, Tokens) ->
-  {Rest, Identifier, Length} = tokenize_identifier(Original, []),
+tokenize_any_identifier(Original, Line, Scope) ->
+  {Rest, Identifier, Length, HasAt} = tokenize_any_base_identifier(Original),
 
-  {AllIdentifier, AllRest, _AllLength} =
+  {AllIdentifier, AllRest, AllLength, HasEnding} =
     case Rest of
-      [H|T] when H == $?; H == $! -> {Identifier ++ [H], T, Length + 1};
-      _ -> {Identifier, Rest, Length}
+      [H|T] when H == $?; H == $! -> {Identifier ++ [H], T, Length + 1, true};
+      _ -> {Identifier, Rest, Length, false}
     end,
 
   case unsafe_to_atom(AllIdentifier, Line, Scope) of
     {ok, Atom} ->
-      tokenize_kw_or_other(AllRest, identifier, Line, Column, Atom, Tokens);
+      {ok, AllRest, Atom, AllLength, HasAt, HasEnding};
     {error, Reason} ->
-      {error, Reason, Original, Tokens}
+      {error, Reason}
   end.
 
-tokenize_kw_or_other([$:,H|T], _Kind, Line, Column, Atom, _Tokens) when ?is_space(H) ->
-  {identifier, [H|T], {kw_identifier, {Line, Column, Column + atom_length(Atom)}, Atom}};
+tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens) ->
+  case HasEnding of
+    true ->
+      AtomName = atom_to_list(Atom),
+      Ending = lists:last(AtomName),
+      Reason = {Line, invalid_character_error(Ending) , AtomName},
+      {error, Reason, AtomName, Tokens};
+    _ ->
+      tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]}|Tokens])
+  end.
 
-tokenize_kw_or_other([$:,H|T], _Kind, Line, _Column, Atom, Tokens) when ?is_atom_start(H); ?is_digit(H) ->
-  Original = atom_to_list(Atom) ++ [$:],
-  Reason   = {Line, "keyword argument must be followed by space after: ", Original},
-  {error, Reason, Original ++ [H|T], Tokens};
+tokenize_other_identifier(Rest, Line, Column, Atom, Scope, Tokens) ->
+  case tokenize_kw_or_other(Rest, identifier, Line, Column, Atom, Tokens) of
+    {keyword, Rest, {_, {_, _, EndColumn}} = Check, T} ->
+      handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
+    {keyword, Rest, {_, {_, _, EndColumn}, _} = Check, T} ->
+      handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
+    {identifier, Rest, {_, {_, _, EndColumn}, _} = Token} ->
+      tokenize(Rest, Line, EndColumn, Scope, [Token|Tokens]);
+    {error, _, _, _} = Error ->
+      Error
+  end.
 
 tokenize_kw_or_other(Rest, Kind, Line, Column, Atom, Tokens) ->
   case check_keyword(Line, Column, Atom, Tokens) of
@@ -1003,3 +1015,6 @@ keyword(_) -> false.
 
 atom_length(Atom) ->
   length(atom_to_list(Atom)).
+
+invalid_character_error(Char) ->
+  "invalid character '" ++ [Char] ++ "' in name: ".

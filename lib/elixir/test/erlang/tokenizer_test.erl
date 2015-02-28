@@ -51,7 +51,12 @@ op_atom_test() ->
   [{atom,{1,1,6},f0_1}] = tokenize(":f0_1").
 
 kw_test() ->
-  [{kw_identifier, {1,1,3}, do}] = tokenize("do: "),
+  [{kw_identifier, {1,1,4}, do}] = tokenize("do: "),
+  [{kw_identifier, {1,1,4}, a@}] = tokenize("a@: "),
+  [{kw_identifier, {1,1,4}, 'A@'}] = tokenize("A@: "),
+  [{kw_identifier, {1,1,5}, a@b}] = tokenize("a@b: "),
+  [{kw_identifier, {1,1,5}, 'A@!'}] = tokenize("A@!: "),
+  [{kw_identifier, {1,1,5}, 'a@!'}] = tokenize("a@!: "),
   [{kw_identifier_unsafe, {1, 1, 10}, [<<"foo bar">>]}] = tokenize("\"foo bar\": ").
 
 integer_test() ->
