@@ -91,7 +91,7 @@ defmodule Kernel.ErrorsTest do
 
   test :compile_error_on_op_ambiguity do
     msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
-          "please use explicit parenthesis or even spaces"
+          "please use explicit parentheses or even spaces"
     assert_compile_fail CompileError, msg, 'a = 1; a -1'
 
     max = 1
@@ -100,8 +100,8 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_on_parens_call do
-    msg = "nofile:1: unexpected parenthesis. If you are making a function call, do not " <>
-          "insert spaces in between the function name and the opening parentheses. " <>
+    msg = "nofile:1: unexpected parentheses. If you are making a function call, do not " <>
+          "insert spaces between the function name and the opening parentheses. " <>
           "Syntax error before: '('"
 
     assert_compile_fail SyntaxError, msg, 'foo (hello, world)'
@@ -112,15 +112,18 @@ defmodule Kernel.ErrorsTest do
           "nested calls. Syntax error before: ','"
 
     assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
+    assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
     assert_compile_fail SyntaxError, msg, '[do: foo 1, 2]'
     assert_compile_fail SyntaxError, msg, 'foo(do: bar 1, 2)'
     assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
+    assert_compile_fail SyntaxError, msg, '{foo bar 1, 2}'
     assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
     assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
     assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
+    assert [List.flatten List.flatten [1]] == [[1]]
   end
 
   test :syntax_error_on_atom_dot_alias do
