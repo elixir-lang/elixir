@@ -641,6 +641,32 @@ defmodule Kernel.SpecialForms do
   """
   defmacro ^(var)
 
+  @doc """
+  Matches the value on the right against the pattern on the left.
+  """
+  defmacro left = right
+
+  @doc """
+  Used by types and bitstrings to specify types.
+
+  This operator is used in two distinct occasions in Elixir.
+  It is used in typespecs to specify the type of a variable,
+  function or of a type itself:
+
+      @type number :: integer | float
+      @spec add(number, number) :: number
+
+  It may also be used in bit strings to specify the type
+  of a given bit segment:
+
+      <<int::integer-little, rest::bits>> = bits
+
+  Read the documentation for `Kernel.Typespec` and
+  `<<>>/1` for more information on typespecs and
+  bitstrings respectively.
+  """
+  defmacro left :: right
+
   @doc ~S"""
   Gets the representation of any expression.
 
