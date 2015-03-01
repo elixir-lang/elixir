@@ -100,7 +100,11 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/mix.exs")
       assert File.rm("deps/git_repo/.fetch") == :ok
 
-      Mix.Tasks.Deps.Update.run ["deps_on_git_repo"]
+      # Compile the dependencies
+      Mix.Tasks.Deps.Compile.run []
+
+      # Now update children and make sure it propagates
+      Mix.Tasks.Deps.Update.run ["git_repo"]
       assert File.exists?("deps/deps_on_git_repo/.fetch")
       assert File.exists?("deps/git_repo/.fetch")
 
@@ -109,7 +113,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("_build/dev/lib/git_repo/ebin")
       Code.delete_path("_build/dev/lib/git_repo/ebin")
 
-      # Deps on git repo loads it automatically on compile.
+      # Deps on git repo loads it automatically on compile
       Mix.Task.reenable "deps.loadpaths"
       Mix.Tasks.Deps.Compile.run ["deps_on_git_repo"]
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
