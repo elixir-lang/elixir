@@ -110,7 +110,7 @@ defmodule Supervisor do
       initialization, like setting up a ETS table.
 
     * You want to perform partial hot-code swapping of the
-      tree. For example, if you add or remove a children,
+      tree. For example, if you add or remove children,
       the module-based supervision will add and remove the
       new children directly, while the dynamic supervision
       requires the whole tree to be restarted in order to
