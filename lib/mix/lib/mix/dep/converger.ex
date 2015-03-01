@@ -204,7 +204,13 @@ defmodule Mix.Dep.Converger do
   end
 
   defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do
-    scm1 == scm2 and scm1.equal?(opts1, opts2)
+    scm1 == scm2 and mix_equal?(opts1, opts2) and scm1.equal?(opts1, opts2)
+  end
+
+  defp mix_equal?(opts1, opts2) do
+    Keyword.fetch(opts1, :app) == Keyword.fetch(opts2, :app) and
+      Keyword.fetch(opts1, :env) == Keyword.fetch(opts2, :env) and
+      Keyword.fetch(opts1, :compile) == Keyword.fetch(opts2, :compile)
   end
 
   defp reject_non_fullfilled_optional(children, upper_breadths) do
