@@ -133,7 +133,7 @@ defmodule Mix.Dep.Fetcher do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
 
     parents = Enum.filter all_deps, fn dep ->
-      Enum.any?(dep.deps, &(&1 in dep_names))
+      Enum.any?(dep.deps, &(&1.app in dep_names))
     end
 
     do_with_depending(parents, all_deps) ++ parents
