@@ -10,7 +10,7 @@
 
 translate({'=', Meta, [Left, Right]}, S) ->
   Return = case Left of
-    {'_', _, Atom} when is_atom(Atom) -> false;
+    {'_', _, Atom} when is_atom(Atom) -> S#elixir_scope.return;
     _ -> true
   end,
 
