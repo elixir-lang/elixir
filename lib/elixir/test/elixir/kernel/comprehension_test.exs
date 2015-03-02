@@ -151,6 +151,12 @@ defmodule Kernel.ComprehensionTest do
     assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
   end
 
+  test "list for comprehension matched to '_' on last line of block" do
+    assert (if true do
+      _ = for x <- [1, 2, 3], do: x * 2
+    end) == [2, 4, 6]
+  end
+
   test "list for comprehensions with filters" do
     assert for(x <- [1, 2, 3], x > 1, x < 3, do: x * 2) == [4]
   end
