@@ -66,6 +66,8 @@ defmodule Dict do
     * `fetch!/2`
     * `get/2`
     * `get/3`
+    * `get_lazy/3`
+    * `get_and_update/3`
     * `has_key?/2`
     * `keys/1`
     * `merge/2`
@@ -109,6 +111,7 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback get_lazy(t, key, (() -> value)) :: value
   defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
   defcallback fetch(t, key) :: {:ok, value} | :error
   defcallback fetch!(t, key) :: value | no_return
@@ -139,6 +142,13 @@ defmodule Dict do
         case fetch(dict, key) do
           {:ok, value} -> value
           :error -> default
+        end
+      end
+
+      def get_lazy(dict, key, fun) do
+        case fetch(dict, key) do
+          {:ok, value} -> value
+          :error -> fun.()
         end
       end
 
@@ -269,7 +279,7 @@ defmodule Dict do
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
                      has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
-                     update: 4, update!: 3, get_and_update: 3
+                     update: 4, update!: 3, get_and_update: 3, get_lazy: 3
     end
   end
 
@@ -370,6 +380,31 @@ defmodule Dict do
   @spec get(t, key, value) :: value
   def get(dict, key, default \\ nil) do
     target(dict).get(dict, key, default)
+  end
+
+  @doc """
+  Returns the value associated with `key` in `dict`. If `dict` does not
+  contain `key`, it lazily evaluates `fun` and returns its result.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Dict.get_lazy(dict, :a, fun)
+      1
+      iex> Dict.get_lazy(dict, :b, fun)
+      :result
+
+  """
+  @spec get_lazy(t, key, (() -> value)) :: value
+  def get_lazy(dict, key, fun) do
+    target(dict).get_lazy(dict, key, fun)
   end
 
   @doc """
