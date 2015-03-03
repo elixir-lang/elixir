@@ -317,7 +317,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -331,7 +331,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -343,7 +343,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
