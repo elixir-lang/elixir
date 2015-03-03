@@ -907,7 +907,7 @@ defmodule Module do
             []
           is_list(warn) ->
             :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
-              "please remove access to @#{key} or explicitly set it to nil before access"
+              "please remove access to @#{key} or explicitly set it before access"
             nil
           true ->
             nil
