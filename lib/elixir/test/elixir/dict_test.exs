@@ -288,6 +288,27 @@ defmodule DictTest.Common do
         assert actual == dict
       end
 
+      test "pop_lazy/3" do
+        dict = new_dict()
+        Process.put(:pop_lazy, 42)
+        fun = fn ->
+          Process.put(:pop_lazy, Process.get(:pop_lazy) + 1)
+          Process.get(:pop_lazy)
+        end
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 43
+        assert dict == actual
+
+        {v, actual} = Dict.pop_lazy(dict, "first_key", fun)
+        assert v == 1
+        assert actual == new_dict([{"second_key", 2}])
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 44
+        assert dict == actual
+      end
+
       test "split/2" do
         dict = new_dict()
 
