@@ -77,6 +77,20 @@ defmodule DictTest.Common do
         assert Dict.get(int_dict, 1.0) == nil
       end
 
+      test "get_lazy/3" do
+        dict = new_dict()
+        Process.put(:get_lazy, 42)
+        fun = fn ->
+          Process.put(:get_lazy, Process.get(:get_lazy) + 1)
+          Process.get(:get_lazy)
+        end
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "second_key", fun)   == 2
+        assert Dict.get_lazy(dict, "other_key", fun)    == 43
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "other_key", fun)    == 44
+      end
+
       test "get_and_update/3 when the key is present" do
         dict = new_dict()
         {get, dict} = Dict.get_and_update dict, "first_key", fn(current_val) ->
