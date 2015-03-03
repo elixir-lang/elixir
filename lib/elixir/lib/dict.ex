@@ -76,6 +76,7 @@ defmodule Dict do
     * `pop/3`
     * `pop_lazy/3`
     * `put_new/3`
+    * `put_new_lazy/3`
     * `split/2`
     * `take/2`
     * `to_list/1`
@@ -125,6 +126,7 @@ defmodule Dict do
   defcallback pop_lazy(t, key, (() -> value)) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
+  defcallback put_new_lazy(t, key, (() -> value)) :: t
   defcallback size(t) :: non_neg_integer()
   defcallback split(t, Enum.t) :: {t, t}
   defcallback take(t, Enum.t) :: t
@@ -175,6 +177,13 @@ defmodule Dict do
         case has_key?(dict, key) do
           true  -> dict
           false -> put(dict, key, value)
+        end
+      end
+
+      def put_new_lazy(dict, key, fun) do
+        case has_key?(dict, key) do
+          true  -> dict
+          false -> put(dict, key, fun.())
         end
       end
 
@@ -291,7 +300,7 @@ defmodule Dict do
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
                      has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
                      update: 4, update!: 3, get_and_update: 3, get_lazy: 3,
-                     pop_lazy: 3
+                     pop_lazy: 3, put_new_lazy: 3
     end
   end
 
@@ -512,6 +521,33 @@ defmodule Dict do
   @spec put_new(t, key, value) :: t
   def put_new(dict, key, val) do
     target(dict).put_new(dict, key, val)
+  end
+
+  @doc """
+  Evaluates `fun` and puts the result under `key` in `dict` unless `key`
+  is already present.
+
+  This is useful if the value is very expensive to calculate or generally
+  difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   3
+      ...> end
+      iex> dict = Dict.put_new_lazy(dict, :a, fun)
+      iex> Dict.get(dict, :a)
+      1
+      iex> dict = Dict.put_new_lazy(dict, :c, fun)
+      iex> Dict.get(dict, :c)
+      3
+
+  """
+  @spec put_new_lazy(t, key, (() -> value)) :: t
+  def put_new_lazy(dict, key, fun) do
+    target(dict).put_new_lazy(dict, key, fun)
   end
 
   @doc """

@@ -161,6 +161,17 @@ defmodule DictTest.Common do
         assert Dict.get(Dict.put_new(int_dict, 1.0, :other), 1.0) == :other
       end
 
+      test "put_new_lazy/3" do
+        Process.put(:put_new_lazy, 42)
+        fun = fn ->
+          Process.put(:put_new_lazy, Process.get(:put_new_lazy) + 1)
+          Process.get(:put_new_lazy)
+        end
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "other_key", fun), "other_key") == 43
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "first_key", fun), "first_key") == 1
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "another_key", fun), "another_key") == 44
+      end
+
       test "keys/1" do
         assert Enum.sort(Dict.keys(new_dict())) == ["first_key", "second_key"]
         assert Dict.keys(new_dict([])) == []
