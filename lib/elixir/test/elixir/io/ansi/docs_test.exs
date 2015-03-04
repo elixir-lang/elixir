@@ -103,6 +103,9 @@ defmodule IO.ANSI.DocsTest do
     result = format("*world*")
     assert result == "\e[1mworld\e[0m\n\e[0m"
 
+    result = format("*world*.")
+    assert result == "\e[1mworld\e[0m.\n\e[0m"
+
     result = format("**world**")
     assert result == "\e[1mworld\e[0m\n\e[0m"
 
