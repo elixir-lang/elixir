@@ -149,7 +149,7 @@ defmodule Dict do
         end
       end
 
-      def get_lazy(dict, key, fun) do
+      def get_lazy(dict, key, fun) when is_function(fun, 0) do
         case fetch(dict, key) do
           {:ok, value} -> value
           :error -> fun.()
@@ -180,7 +180,7 @@ defmodule Dict do
         end
       end
 
-      def put_new_lazy(dict, key, fun) do
+      def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
         case has_key?(dict, key) do
           true  -> dict
           false -> put(dict, key, fun.())
@@ -276,7 +276,7 @@ defmodule Dict do
         end
       end
 
-      def pop_lazy(dict, key, fun) do
+      def pop_lazy(dict, key, fun) when is_function(fun, 0) do
         case fetch(dict, key) do
           {:ok, value} ->
             {value, delete(dict, key)}
