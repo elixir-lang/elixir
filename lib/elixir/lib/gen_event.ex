@@ -137,17 +137,23 @@ defmodule GenEvent do
   ## Streaming
 
   `GenEvent` messages can be streamed with the help of `stream/2`.
-  Here are some examples:
+  You will need to start another process to consume the stream:
 
-      stream = GenEvent.stream(pid)
+      Task.start_link fn ->
+        stream = GenEvent.stream(pid)
 
-      # Discard the next 10 events
-      _ = Enum.drop(stream, 10)
+        # Discard the next 3 events
+        _ = Enum.drop(stream, 3)
 
-      # Print all remaining events
-      for event <- stream do
-        IO.inspect event
+        # Print all remaining events
+        for event <- stream do
+          IO.inspect event
+        end
       end
+
+  Now call `GenEvent.notify/2` multiple times. You will see the
+  first three events will be skipped while the rest will be
+  continuously printed.
 
   ## Learn more and compatibility
 
