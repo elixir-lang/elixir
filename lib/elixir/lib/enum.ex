@@ -200,7 +200,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns `false`
-  if at least one invocation returns `false`. Otherwise returns `true`.
+  if at least one invocation returns `false` or `nil`. Otherwise returns `true`.
 
   ## Examples
 
@@ -211,7 +211,7 @@ defmodule Enum do
       false
 
   If no function is given, it defaults to checking if
-  all items in the collection evaluate to `true`.
+  all items in the collection are truthy values.
 
       iex> Enum.all?([1, 2, 3])
       true
@@ -237,7 +237,7 @@ defmodule Enum do
 
   @doc """
   Invokes the given `fun` for each item in the `collection` and returns `true` if
-  at least one invocation returns `true`. Returns `false` otherwise.
+  at least one invocation returns a truthy value. Returns `false` otherwise.
 
   ## Examples
 
@@ -248,7 +248,7 @@ defmodule Enum do
       true
 
   If no function is given, it defaults to checking if
-  at least one item in the collection evaluates to `true`.
+  at least one item in the collection is a truthy value.
 
       iex> Enum.any?([false, false, false])
       false
@@ -446,7 +446,7 @@ defmodule Enum do
 
   @doc """
   Returns the count of items in the collection for which
-  `fun` returns `true`.
+  `fun` returns a truthy value.
 
   ## Examples
 
@@ -504,7 +504,7 @@ defmodule Enum do
   end
 
   @doc """
-  Drops items at the beginning of `collection` while `fun` returns `true`.
+  Drops items at the beginning of `collection` while `fun` returns a truthy value.
 
   ## Examples
 
@@ -651,7 +651,7 @@ defmodule Enum do
 
   @doc """
   Filters the collection, i.e. returns only those elements
-  for which `fun` returns `true`.
+  for which `fun` returns a truthy value.
 
   ## Examples
 
@@ -1396,7 +1396,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns elements of collection for which `fun` returns `false`.
+  Returns elements of collection for which `fun` returns `false` or `nil`.
 
   ## Examples
 
@@ -1737,7 +1737,7 @@ defmodule Enum do
   Sorts the collection by the given function.
 
   This function uses the merge sort algorithm. The given function
-  must return false if the first argument is less than right one.
+  must return `false` if the first argument is less than right one.
 
   ## Examples
 
@@ -1745,12 +1745,12 @@ defmodule Enum do
       [3, 2, 1]
 
   The sorting algorithm will be stable as long as the given function
-  returns true for values considered equal:
+  returns `true` for values considered equal:
 
       iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) <= byte_size(&2))
       ["of", "some", "kind", "monster"]
 
-  If the function does not return true, the sorting is not stable and
+  If the function does not return `true` for equal values, the sorting is not stable and
   the order of equal terms may be shuffled:
 
       iex> Enum.sort ["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2))
@@ -1857,7 +1857,8 @@ defmodule Enum do
   end
 
   @doc """
-  Splits `collection` in two while `fun` returns `true`.
+  Splits `collection` in two at the position of the element for which `fun` returns `false` for the
+  first time.
 
   ## Examples
 
@@ -1974,7 +1975,7 @@ defmodule Enum do
   end
 
   @doc """
-  Takes the items at the beginning of `collection` while `fun` returns `true`.
+  Takes the items from the beginning of `collection` while `fun` returns a truthy value.
 
   ## Examples
 
