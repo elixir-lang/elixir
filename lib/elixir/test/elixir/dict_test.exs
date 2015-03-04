@@ -77,6 +77,20 @@ defmodule DictTest.Common do
         assert Dict.get(int_dict, 1.0) == nil
       end
 
+      test "get_lazy/3" do
+        dict = new_dict()
+        Process.put(:get_lazy, 42)
+        fun = fn ->
+          Process.put(:get_lazy, Process.get(:get_lazy) + 1)
+          Process.get(:get_lazy)
+        end
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "second_key", fun)   == 2
+        assert Dict.get_lazy(dict, "other_key", fun)    == 43
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "other_key", fun)    == 44
+      end
+
       test "get_and_update/3 when the key is present" do
         dict = new_dict()
         {get, dict} = Dict.get_and_update dict, "first_key", fn(current_val) ->
@@ -145,6 +159,17 @@ defmodule DictTest.Common do
         assert Dict.get(Dict.put_new(int_dict, 1.0, :other), 1)   == 1
         assert Dict.get(Dict.put_new(int_dict, 1, :other), 1.0)   == nil
         assert Dict.get(Dict.put_new(int_dict, 1.0, :other), 1.0) == :other
+      end
+
+      test "put_new_lazy/3" do
+        Process.put(:put_new_lazy, 42)
+        fun = fn ->
+          Process.put(:put_new_lazy, Process.get(:put_new_lazy) + 1)
+          Process.get(:put_new_lazy)
+        end
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "other_key", fun), "other_key") == 43
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "first_key", fun), "first_key") == 1
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "another_key", fun), "another_key") == 44
       end
 
       test "keys/1" do
@@ -272,6 +297,27 @@ defmodule DictTest.Common do
         {v, actual} = Dict.pop(dict, 1.0)
         assert v == nil
         assert actual == dict
+      end
+
+      test "pop_lazy/3" do
+        dict = new_dict()
+        Process.put(:pop_lazy, 42)
+        fun = fn ->
+          Process.put(:pop_lazy, Process.get(:pop_lazy) + 1)
+          Process.get(:pop_lazy)
+        end
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 43
+        assert dict == actual
+
+        {v, actual} = Dict.pop_lazy(dict, "first_key", fun)
+        assert v == 1
+        assert actual == new_dict([{"second_key", 2}])
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 44
+        assert dict == actual
       end
 
       test "split/2" do
