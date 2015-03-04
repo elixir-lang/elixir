@@ -461,6 +461,44 @@ defmodule Enum do
     end) |> elem(1)
   end
 
+
+  @doc """
+  Enumerates the collection, returning a list where all consecutive
+  duplicated elements are collapsed to a single element.
+
+  ## Examples
+
+      iex> Enum.dedup([1, 2, 3, 3, 2, 1])
+      [1, 2, 3, 2, 1]
+
+  """
+  @spec dedup(t) :: list
+  def dedup(collection) do
+    dedup_by(collection, fn x -> x end)
+  end
+
+  @doc """
+  Enumerates the collection, returning a list where all consecutive
+  duplicated elements are collapsed to a single element.
+
+  The function `fun` maps every element to a term which is used to
+  determine if two elements are duplicates.
+
+  ## Examples
+
+      iex> Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
+      [{1,:x}, {2,:y}, {1, :x}]
+
+      iex> Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
+      [5, 1, 3, 2]
+
+  """
+  @spec dedup_by(t, (element -> term)) :: list
+  def dedup_by(collection, fun) when is_function(fun, 1) do
+    {list, _} = reduce(collection, {[], []}, R.dedup(fun))
+    :lists.reverse(list)
+  end
+
   @doc """
   Drops the first `count` items from `collection`.
 
@@ -2020,14 +2058,14 @@ defmodule Enum do
   end
 
   @doc """
-  Enumerates the collection, removing all duplicated items.
+  Enumerates the collection, removing all duplicated elements.
 
   ## Examples
 
-      iex> Enum.uniq([1, 2, 3, 2, 1])
+      iex> Enum.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
       [1, 2, 3]
 
-      iex> Enum.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
+      iex> Enum.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
       [{1,:x}, {2,:y}]
 
   """
@@ -2043,6 +2081,43 @@ defmodule Enum do
   def uniq(collection, fun) do
     {list, _} = reduce(collection, {[], []}, R.uniq(fun))
     :lists.reverse(list)
+  end
+
+  @doc """
+  Sorts the collection, eliminating duplicate elements (one element is kept
+  from each group of duplicates).
+
+  ## Examples
+
+      iex> Enum.usort([5, 1, 2, 3, 2, 1])
+      [1, 2, 3, 5]
+
+  """
+  @spec usort(t) :: list
+  def usort(collection) when is_list(collection) do
+    :lists.usort(collection)
+  end
+
+  def usort(collection) do
+    collection |> sort |> dedup
+  end
+
+  @doc """
+  Sorts the collection, eliminating duplicate elements (one element is kept
+  from each group of duplicates).
+
+  The function `fun` maps every element to a term which is used to
+  sort and dedup by.
+
+  ## Examples
+
+      iex> Enum.usort_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
+      [1, 5]
+
+  """
+  @spec usort_by(t, (element -> term)) :: list
+  def usort_by(collection, fun) do
+    collection |> sort_by(fun) |> dedup_by(fun)
   end
 
   @doc """
