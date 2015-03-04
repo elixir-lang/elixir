@@ -41,6 +41,18 @@ defmodule Stream.Reducers do
     end
   end
 
+  defmacro dedup(callback, f \\ nil) do
+    quote do
+      fn(entry, acc(h, prev, t) = acc) ->
+        value = unquote(callback).(entry)
+        case prev do
+          {:value, ^value}  -> skip(acc)
+          _ -> next_with_acc(unquote(f), entry, h, {:value, value}, t)
+        end
+      end
+    end
+  end
+
   defmacro drop(f \\ nil) do
     quote do
       fn
