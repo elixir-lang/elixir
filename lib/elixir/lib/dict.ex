@@ -66,13 +66,17 @@ defmodule Dict do
     * `fetch!/2`
     * `get/2`
     * `get/3`
+    * `get_lazy/3`
+    * `get_and_update/3`
     * `has_key?/2`
     * `keys/1`
     * `merge/2`
     * `merge/3`
     * `pop/2`
     * `pop/3`
+    * `pop_lazy/3`
     * `put_new/3`
+    * `put_new_lazy/3`
     * `split/2`
     * `take/2`
     * `to_list/1`
@@ -109,6 +113,7 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback get_lazy(t, key, (() -> value)) :: value
   defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
   defcallback fetch(t, key) :: {:ok, value} | :error
   defcallback fetch!(t, key) :: value | no_return
@@ -118,8 +123,10 @@ defmodule Dict do
   defcallback merge(t, t, (key, value, value -> value)) :: t
   defcallback pop(t, key) :: {value, t}
   defcallback pop(t, key, value) :: {value, t}
+  defcallback pop_lazy(t, key, (() -> value)) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
+  defcallback put_new_lazy(t, key, (() -> value)) :: t
   defcallback size(t) :: non_neg_integer()
   defcallback split(t, Enum.t) :: {t, t}
   defcallback take(t, Enum.t) :: t
@@ -139,6 +146,13 @@ defmodule Dict do
         case fetch(dict, key) do
           {:ok, value} -> value
           :error -> default
+        end
+      end
+
+      def get_lazy(dict, key, fun) when is_function(fun, 0) do
+        case fetch(dict, key) do
+          {:ok, value} -> value
+          :error -> fun.()
         end
       end
 
@@ -163,6 +177,13 @@ defmodule Dict do
         case has_key?(dict, key) do
           true  -> dict
           false -> put(dict, key, value)
+        end
+      end
+
+      def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
+        case has_key?(dict, key) do
+          true  -> dict
+          false -> put(dict, key, fun.())
         end
       end
 
@@ -255,6 +276,15 @@ defmodule Dict do
         end
       end
 
+      def pop_lazy(dict, key, fun) when is_function(fun, 0) do
+        case fetch(dict, key) do
+          {:ok, value} ->
+            {value, delete(dict, key)}
+          :error ->
+            {fun.(), dict}
+        end
+      end
+
       def split(dict, keys) do
         Enum.reduce(keys, {new, dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
@@ -269,7 +299,8 @@ defmodule Dict do
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
                      has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
-                     update: 4, update!: 3, get_and_update: 3
+                     update: 4, update!: 3, get_and_update: 3, get_lazy: 3,
+                     pop_lazy: 3, put_new_lazy: 3
     end
   end
 
@@ -373,6 +404,31 @@ defmodule Dict do
   end
 
   @doc """
+  Returns the value associated with `key` in `dict`. If `dict` does not
+  contain `key`, it lazily evaluates `fun` and returns its result.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Dict.get_lazy(dict, :a, fun)
+      1
+      iex> Dict.get_lazy(dict, :b, fun)
+      :result
+
+  """
+  @spec get_lazy(t, key, (() -> value)) :: value
+  def get_lazy(dict, key, fun) do
+    target(dict).get_lazy(dict, key, fun)
+  end
+
+  @doc """
   Gets a value from `dict` and updates the value at `key` in one pass.
 
   This `fun` argument receives the value of `key` in `dict` (or `nil` if `key`
@@ -468,6 +524,33 @@ defmodule Dict do
   end
 
   @doc """
+  Evaluates `fun` and puts the result under `key` in `dict` unless `key`
+  is already present.
+
+  This is useful if the value is very expensive to calculate or generally
+  difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   3
+      ...> end
+      iex> dict = Dict.put_new_lazy(dict, :a, fun)
+      iex> Dict.get(dict, :a)
+      1
+      iex> dict = Dict.put_new_lazy(dict, :c, fun)
+      iex> Dict.get(dict, :c)
+      3
+
+  """
+  @spec put_new_lazy(t, key, (() -> value)) :: t
+  def put_new_lazy(dict, key, fun) do
+    target(dict).put_new_lazy(dict, key, fun)
+  end
+
+  @doc """
   Removes the entry stored under the given `key` from `dict`.
   If `dict` does not contain `key`, returns the dictionary unchanged.
 
@@ -558,6 +641,43 @@ defmodule Dict do
   @spec pop(t, key, value) :: {value, t}
   def pop(dict, key, default \\ nil) do
     target(dict).pop(dict, key, default)
+  end
+
+  @doc """
+  Returns the value associated with `key` in `dict` as
+  well as the `dict` without `key`.
+
+  If `key` is not present in `dict`, then the `dict` will
+  be returned unmodified, and it will lazily evaluate `fun`
+  and return its result instead of the missing value.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> {v, dict} = Dict.pop_lazy dict, :a, fun
+      iex> {v, Enum.sort(dict)}
+      {1,[]}
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> {v, dict} = Dict.pop_lazy dict, :b, fun
+      iex> {v, Enum.sort(dict)}
+      {:result,[a: 1]}
+
+  """
+  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  def pop_lazy(dict, key, fun) do
+    target(dict).pop_lazy(dict, key, fun)
   end
 
   @doc """
