@@ -44,6 +44,9 @@ defmodule EnumTest.List do
     refute Enum.any?([false, false, false])
     assert Enum.any?([false, true, false])
 
+    assert Enum.any?([:foo, false, false])
+    refute Enum.any?([false, nil, false])
+
     refute Enum.any?([])
   end
 
@@ -615,6 +618,8 @@ defmodule EnumTest.Range do
     assert Enum.count(range) == 5
     range = 1..1
     assert Enum.count(range) == 1
+
+    assert Enum.count([1, true, false, nil]) == 4
   end
 
   test :count_fun do
@@ -622,6 +627,8 @@ defmodule EnumTest.Range do
     assert Enum.count(range, fn(x) -> rem(x, 2) == 0 end) == 2
     range = 1..1
     assert Enum.count(range, fn(x) -> rem(x, 2) == 0 end) == 0
+
+    assert Enum.count([1, true, false, nil], & &1) == 2
   end
 
   test :chunk do
@@ -662,7 +669,7 @@ defmodule EnumTest.Range do
     assert Enum.drop_while(range, fn(x) -> x <= 3 end) == []
 
     range = 1..0
-    assert Enum.drop_while(range, fn(_) -> false end) == [1, 0]
+    assert Enum.drop_while(range, fn(_) -> nil end) == [1, 0]
   end
 
   test :find do
@@ -718,6 +725,8 @@ defmodule EnumTest.Range do
 
     range = 1..6
     assert Enum.filter(range, fn(x) -> rem(x, 2) == 0 end) == [2, 4, 6]
+
+    assert Enum.filter([1, 2, false, 3, nil], & &1) == [1, 2, 3]
   end
 
   test :filter_with_match do
@@ -834,6 +843,8 @@ defmodule EnumTest.Range do
 
     range = 1..6
     assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3, 5]
+
+    assert Enum.reject([1, true, nil, false, 2], & &1) == [nil, false]
   end
 
   test :reverse do
@@ -1009,10 +1020,12 @@ defmodule EnumTest.Range do
   test :split_while do
     range = 1..3
     assert Enum.split_while(range, fn(_) -> false end) == {[], [1, 2, 3]}
+    assert Enum.split_while(range, fn(_) -> nil end) == {[], [1, 2, 3]}
     assert Enum.split_while(range, fn(_) -> true end) == {[1, 2, 3], []}
     assert Enum.split_while(range, fn(x) -> x > 2 end) == {[], [1, 2, 3]}
     assert Enum.split_while(range, fn(x) -> x > 3 end) == {[], [1, 2, 3]}
     assert Enum.split_while(range, fn(x) -> x < 3 end) == {[1, 2], [3]}
+    assert Enum.split_while(range, fn(x) -> x end) == {[1, 2, 3], []}
 
     range = 1..0
     assert Enum.split_while(range, fn(_) -> true end) == {[1, 0], []}
@@ -1052,6 +1065,8 @@ defmodule EnumTest.Range do
     assert Enum.take_while(range, fn(x) -> x > 3 end) == []
     assert Enum.take_while(range, fn(x) -> x <= 1 end) == [1]
     assert Enum.take_while(range, fn(x) -> x <= 3 end) == [1, 2, 3]
+    assert Enum.take_while(range, fn(x) -> x end) == [1, 2, 3]
+    assert Enum.take_while(range, fn(_) -> nil end) == []
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 
