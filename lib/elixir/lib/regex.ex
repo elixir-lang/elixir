@@ -456,6 +456,9 @@ defmodule Regex do
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
       "[b][d]"
 
+      iex> Regex.replace(~r/a/, "abcadc", "A", global: false)
+      "Abcadc"
+
   """
   @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
   def replace(regex, string, replacement, options \\ [])
