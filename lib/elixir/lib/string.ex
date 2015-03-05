@@ -235,10 +235,11 @@ defmodule String do
 
   The string is split into as many parts as possible by
   default, but can be controlled via the `parts: num` option.
-  If you pass `parts: :infinity`, it will return all possible parts.
+  If you pass `parts: :infinity`, it will return all possible parts
+  (being this one the default behaviour).
 
   Empty strings are only removed from the result if the
-  `trim` option is set to `true`.
+  `trim` option is set to `true` (default is `false`).
 
   ## Examples
 
