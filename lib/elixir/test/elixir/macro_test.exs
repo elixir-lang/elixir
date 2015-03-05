@@ -284,6 +284,9 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: ~r"123"u) == ~s/~r"123"u/
     assert Macro.to_string(quote do: ~r"\n123") == ~s/~r"\\\\n123"/
 
+    assert Macro.to_string(quote do: ~r"1#{two}3") == ~S/~r"1#{two}3"/
+    assert Macro.to_string(quote do: ~r"1#{two}3"u) == ~S/~r"1#{two}3"u/
+
     assert Macro.to_string(quote do: ~R"123") == ~s/~R"123"/
     assert Macro.to_string(quote do: ~R"123"u) == ~s/~R"123"u/
     assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
@@ -418,18 +421,22 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: a[1 + 2]) == "a[1 + 2]"
   end
 
-  test :kw_list do
+  test :kw_list_to_string do
     assert Macro.to_string(quote do: [a: a, b: b]) == "[a: a, b: b]"
     assert Macro.to_string(quote do: [a: 1, b: 1 + 2]) == "[a: 1, b: 1 + 2]"
     assert Macro.to_string(quote do: ["a.b": 1, c: 1 + 2]) == "[\"a.b\": 1, c: 1 + 2]"
   end
 
-  test :string_list do
+  test :interpolation_to_string do
+    assert Macro.to_string(quote do: "foo#{bar}baz") == ~S["foo#{bar}baz"]
+  end
+
+  test :charlist_to_string do
     assert Macro.to_string(quote do: []) == "[]"
     assert Macro.to_string(quote do: 'abc') == "'abc'"
   end
 
-  test :last_arg_kw_list do
+  test :last_arg_kw_list_to_string do
     assert Macro.to_string(quote do: foo([])) == "foo([])"
     assert Macro.to_string(quote do: foo(x: y)) == "foo(x: y)"
     assert Macro.to_string(quote do: foo(x: 1 + 2)) == "foo(x: 1 + 2)"

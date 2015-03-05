@@ -474,10 +474,14 @@ defmodule Macro do
 
   # Bits containers
   def to_string({:<<>>, _, args} = ast, fun) do
-    fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
-      "<" <> rest -> "<< <" <> rest  <> " >>"
-      rest -> "<<" <> rest <> ">>"
-    end)
+    if interpolated?(ast) do
+      fun.(ast, interpolate(ast, fun))
+    else
+      fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
+        "<" <> rest -> "<< <" <> rest  <> " >>"
+        rest -> "<<" <> rest <> ">>"
+      end)
+    end
   end
 
   # Tuple containers
@@ -602,15 +606,41 @@ defmodule Macro do
   end
   defp kw_blocks?(_), do: false
 
+  # Check if we have an interpolated string.
+  defp interpolated?({:<<>>, _, [_|_] = parts}) do
+    Enum.all?(parts, fn
+      {:::, _, [{{:., _, [Kernel, :to_string]}, _, [_]},
+                {:binary, _, _}]} -> true
+      binary when is_binary(binary) -> true
+      _ -> false
+    end)
+  end
+
+  defp interpolated?(_) do
+    false
+  end
+
+  def interpolate({:<<>>, _, parts}, fun) do
+    parts = Enum.map_join(parts, "", fn
+      {:::, _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
+        "\#{" <> to_string(arg, fun) <> "}"
+      binary when is_binary(binary) ->
+        binary = inspect(binary, [])
+        :binary.part(binary, 1, byte_size(binary) - 2)
+    end)
+
+    <<?", parts::binary, ?">>
+  end
+
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp sigil_call({func, _, [{:<<>>, _, [string]}, args]} = ast, fun) when is_list(args) do
+  defp sigil_call({func, _, [{:<<>>, _, _} = bin, args]} = ast, fun) when is_list(args) do
     sigil =
       case Atom.to_string(func) do
         <<"sigil_", name>> ->
           "~" <> <<name>> <>
-          fun.(string, inspect(string, [])) <>
+          interpolate(bin, fun) <>
           sigil_args(args, fun)
         _ ->
           nil
@@ -625,10 +655,14 @@ defmodule Macro do
   defp sigil_args([], _fun),   do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
 
-  defp call_to_string(atom, _fun) when is_atom(atom), do: Atom.to_string(atom)
-  defp call_to_string({:., _, [arg]}, fun),           do: module_to_string(arg, fun) <> "."
-  defp call_to_string({:., _, [left, right]}, fun),   do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
-  defp call_to_string(other, fun),                    do: to_string(other, fun)
+  defp call_to_string(atom, _fun) when is_atom(atom),
+    do: Atom.to_string(atom)
+  defp call_to_string({:., _, [arg]}, fun),
+    do: module_to_string(arg, fun) <> "."
+  defp call_to_string({:., _, [left, right]}, fun),
+    do: module_to_string(left, fun) <> "." <> call_to_string(right, fun)
+  defp call_to_string(other, fun),
+    do: to_string(other, fun)
 
   defp call_to_string_with_args(target, args, fun) do
     target = call_to_string(target, fun)
