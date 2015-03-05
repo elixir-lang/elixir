@@ -33,7 +33,7 @@ defmodule Mix.Compilers.Erlang do
 
     3. update the manifest with the newly compiled outputs
 
-    4. remove any output in the manifest that that does not
+    4. remove any output in the manifest that does not
        have an equivalent source
 
   The callback must return `{:ok, mod}` or `:error` in case
