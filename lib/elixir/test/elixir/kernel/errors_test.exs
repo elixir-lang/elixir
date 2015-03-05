@@ -89,6 +89,12 @@ defmodule Kernel.ErrorsTest do
       '+.foo'
   end
 
+  test :syntax_error_before_sigil do
+    assert_compile_fail SyntaxError,
+      "nofile:1: syntax error before: sigil ~s with content 'bar baz'",
+      '~s(foo) ~s(bar baz)'
+  end
+
   test :compile_error_on_op_ambiguity do
     msg = "nofile:1: \"a -1\" looks like a function call but there is a variable named \"a\", " <>
           "please use explicit parenthesis or even spaces"
