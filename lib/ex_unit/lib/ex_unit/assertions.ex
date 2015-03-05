@@ -25,10 +25,10 @@ defmodule ExUnit.Assertions do
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
 
-     Comparison (using ==) failed in:
-     code: some_fun() == 10
-     lhs:  13
-     rhs:  10
+      Comparison (using ==) failed in:
+      code: some_fun() == 10
+      lhs:  13
+      rhs:  10
 
   This module also provides other convenience functions
   like `assert_in_delta` and `assert_raise` to easily handle other
