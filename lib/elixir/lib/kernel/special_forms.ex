@@ -455,7 +455,7 @@ defmodule Kernel.SpecialForms do
   was not explicitly defined.
 
   Both warning behaviours could be changed by explicitly
-  setting the `:warn` option to true or false.
+  setting the `:warn` option to true or `false`.
   """
   defmacro alias(module, opts)
 
@@ -567,7 +567,7 @@ defmodule Kernel.SpecialForms do
   was not explicitly defined.
 
   Both warning behaviours could be changed by explicitly
-  setting the `:warn` option to true or false.
+  setting the `:warn` option to `true` or `false`.
 
   ## Ambiguous function/macro names
 
@@ -697,7 +697,7 @@ defmodule Kernel.SpecialForms do
 
   ## Options
 
-    * `:unquote` - when false, disables unquoting. Useful when you have a quote
+    * `:unquote` - when `false`, disables unquoting. Useful when you have a quote
       inside another quote and want to control what quote is able to unquote.
 
     * `:location` - when set to `:keep`, keeps the current line and file from
@@ -1402,7 +1402,7 @@ defmodule Kernel.SpecialForms do
   In the example above, value is going to be `7` or `13` depending on
   the value of `lucky?`. In case `value` has no previous value before
   case, clauses that do not explicitly bind a value have the variable
-  bound to nil.
+  bound to `nil`.
   """
   defmacro case(condition, clauses)
 
@@ -1410,7 +1410,7 @@ defmodule Kernel.SpecialForms do
   Evaluates the expression corresponding to the first clause that
   evaluates to truth value.
 
-  Raises an error if all conditions evaluate to to nil or false.
+  Raises an error if all conditions evaluate to `nil` or `false`.
 
   ## Examples
 

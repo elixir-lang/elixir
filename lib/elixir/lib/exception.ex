@@ -258,7 +258,7 @@ defmodule Exception do
 
   # :supervisor.start_link error reasons
 
-  # If value is a list will be be formatted by mfa exit in format_exit/1
+  # If value is a list will be formatted by mfa exit in format_exit/1
   defp format_exit_reason({:bad_return, {mod, :init, value}})
       when is_atom(mod) do
     format_mfa(mod, :init, 1) <> " returned a bad value: " <> inspect(value)
