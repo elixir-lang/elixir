@@ -55,6 +55,13 @@ parse_error(Line, File, Error, <<>>) ->
 parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
   do_raise(Line, File, 'Elixir.SyntaxError', <<"unexpected token: end">>);
 
+%% Produce a human-readable message for errors before a sigil
+parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
+  {ok, Tokens, _} = erl_scan:string(binary_to_list(Full)),
+  {ok, {sigil, _, Sigil, [Content], _}} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
+  Message = <<"syntax error before: sigil ~", Sigil," with content '", Content/binary, "'">>,
+  do_raise(Line, File, 'Elixir.SyntaxError', Message);
+
 %% Aliases are wrapped in ['']
 parse_error(Line, File, Error, <<"['", Token/binary>>) when is_binary(Error) ->
   Rest =
