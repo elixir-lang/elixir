@@ -298,7 +298,7 @@ defmodule Regex do
 
     * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
-                   to see the possible capture values.
+      to see the possible capture values.
 
   ## Examples
 
