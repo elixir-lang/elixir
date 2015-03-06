@@ -54,7 +54,7 @@ defmodule Logger.ErrorHandler do
   defp log_event(_, _state),
     do: :ok
 
-  defp log_event(level, kind, pid, data, state) do
+  defp log_event(level, kind, pid, {type, _} = data, state) do
     %{level: min_level, truncate: truncate,
       utc_log: utc_log?, translators: translators} = Logger.Config.__data__
 
@@ -63,13 +63,17 @@ defmodule Logger.ErrorHandler do
       message = Logger.Utils.truncate(message, truncate)
 
       # Mode is always async to avoid clogging the error_logger
+      meta = [pid: ensure_pid(pid), error_logger: ensure_type(type)]
       GenEvent.notify(state.logger,
         {level, Process.group_leader(),
-          {Logger, message, Logger.Utils.timestamp(utc_log?), [pid: ensure_pid(pid)]}})
+          {Logger, message, Logger.Utils.timestamp(utc_log?), meta}})
     end
 
     :ok
   end
+
+  defp ensure_type(type) when is_atom(type), do: type
+  defp ensure_type(_), do: :format
 
   defp ensure_pid(pid) when is_pid(pid), do: pid
   defp ensure_pid(_), do: self()
