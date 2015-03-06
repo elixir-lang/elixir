@@ -57,33 +57,23 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
-  {ok, Tokens, _} = erl_scan:string(binary_to_list(Full)),
-  {ok, {sigil, _, Sigil, [Content], _}} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
+  {sigil, _, Sigil, [Content], _} = parse_erl_term(Full),
   Message = <<"syntax error before: sigil ~", Sigil," with content '", Content/binary, "'">>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Aliases are wrapped in ['']
-parse_error(Line, File, Error, <<"['", Token/binary>>) when is_binary(Error) ->
-  Rest =
-    case binary:split(Token, <<"'">>) of
-      [Part, _] -> Part;
-      _ -> <<>>
-    end,
-  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary>>);
+parse_error(Line, File, Error, <<"['", _/binary>> = Full) when is_binary(Error) ->
+  [AliasAtom] = parse_erl_term(Full),
+  Alias = atom_to_binary(AliasAtom, utf8),
+  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Alias/binary>>);
 
 %% Binaries (and interpolation) are wrapped in [<<...>>]
 parse_error(Line, File, Error, <<"[", _/binary>> = Full) when is_binary(Error) ->
-  Rest =
-    case binary:split(Full, <<"<<">>) of
-      [Lead, Token] ->
-        case binary:split(Token, <<">>">>) of
-          [Part, _] when Lead == <<$[>> -> Part;
-          _ -> <<$">>
-        end;
-      [_] ->
-        <<$">>
-    end,
-  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Rest/binary >>);
+  Term = case parse_erl_term(Full) of
+    [H|_] when is_binary(H) -> <<$", H/binary, $">>;
+    _ -> <<$">>
+  end,
+  do_raise(Line, File, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
 
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
@@ -94,6 +84,12 @@ parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorP
 parse_error(Line, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary >>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message).
+
+%% Helper to parse terms which have been converted to binaries
+parse_erl_term(Term) ->
+  {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
+  {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
+  Parsed.
 
 
 %% Handle warnings and errors from Erlang land (called during module compilation)
