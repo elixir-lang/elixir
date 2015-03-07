@@ -169,10 +169,10 @@ defmodule Stream.Reducers do
     quote do
       fn(entry, acc(h, prev, t) = acc) ->
         value = unquote(callback).(entry)
-        if :lists.member(value, prev) do
+        if HashSet.member?(prev, value) do
           skip(acc)
         else
-          next_with_acc(unquote(f), entry, h, [value|prev], t)
+          next_with_acc(unquote(f), entry, h, HashSet.put(prev, value), t)
         end
       end
     end
