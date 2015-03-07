@@ -607,8 +607,6 @@ defmodule File do
         [dest|acc]
       {:error, :eexist} ->
         if callback.(src, dest) do
-          # If rm/1 fails, copy/2 will fail
-          _ = rm(dest)
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
@@ -629,8 +627,6 @@ defmodule File do
         [dest|acc]
       {:error, :eexist} ->
         if callback.(src, dest) do
-          # If rm/1 fails, iF.make_symlink/2 will fail
-          _ = rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
             {:error, reason} -> {:error, reason, src}
