@@ -2035,13 +2035,12 @@ defmodule Enum do
   @spec uniq(t, (element -> term)) :: list
   def uniq(collection, fun \\ fn x -> x end)
 
-  # TODO: Use a HashSet
   def uniq(collection, fun) when is_list(collection) do
-    do_uniq(collection, [], fun)
+    do_uniq(collection, HashSet.new, fun)
   end
 
   def uniq(collection, fun) do
-    {list, _} = reduce(collection, {[], []}, R.uniq(fun))
+    {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
     :lists.reverse(list)
   end
 
@@ -2437,9 +2436,10 @@ defmodule Enum do
 
   defp do_uniq([h|t], acc, fun) do
     fun_h = fun.(h)
-    case :lists.member(fun_h, acc) do
-      true  -> do_uniq(t, acc, fun)
-      false -> [h|do_uniq(t, [fun_h|acc], fun)]
+    if HashSet.member?(acc, fun_h) do
+      do_uniq(t, acc, fun)
+    else
+      [h|do_uniq(t, HashSet.put(acc, fun_h), fun)]
     end
   end
 
