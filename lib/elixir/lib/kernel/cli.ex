@@ -382,7 +382,10 @@ defmodule Kernel.CLI do
   end
 
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
+    pattern
+    |> Path.wildcard
+    |> :lists.usort
+    |> Enum.filter(&File.regular?/1)
   end
 
   defp filter_multiple_patterns(patterns) do
@@ -402,9 +405,9 @@ defmodule Kernel.CLI do
        &elem(&1, 1)
 
     if missing_patterns == [] do
-      {:ok, Enum.uniq(Enum.concat(files))}
+      {:ok, :lists.usort(Enum.concat(files))}
     else
-      {:missing,  Enum.uniq(missing_patterns)}
+      {:missing,  :lists.usort(missing_patterns)}
     end
   end
 
