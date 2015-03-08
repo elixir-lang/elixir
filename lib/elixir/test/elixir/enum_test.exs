@@ -94,6 +94,22 @@ defmodule EnumTest.List do
     end
   end
 
+  test :dedup do
+    assert Enum.dedup([1,1,2,1,1,2,1]) == [1,2,1,2,1]
+    assert Enum.dedup([2,1,1,2,1]) == [2,1,2,1]
+    assert Enum.dedup([1,2,3,4]) == [1,2,3,4]
+    assert Enum.dedup([]) == []
+    assert Enum.dedup([nil, nil, true, {:value, true}]) == [nil, true, {:value, true}]
+    assert Enum.dedup([nil]) == [nil]
+  end
+
+  test :dedup_by do
+    assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
+      == [{1,:x}, {2,:y}, {1, :x}]
+
+    assert Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [5, 1, 3, 2]
+  end
+
   test :drop do
     assert Enum.drop([1, 2, 3], 0) == [1, 2, 3]
     assert Enum.drop([1, 2, 3], 1) == [2, 3]
@@ -434,8 +450,16 @@ defmodule EnumTest.List do
   end
 
   test :uniq do
-    assert Enum.uniq([1, 2, 3, 2, 1]) == [1, 2, 3]
+    assert Enum.uniq([5, 1, 2, 3, 2, 1]) == [5, 1, 2, 3]
     assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
+  end
+
+  test :usort do
+    assert Enum.usort([5, 1, 2, 3, 2, 1]) == [1, 2, 3, 5]
+  end
+
+  test :usort_by do
+    assert Enum.usort_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [1, 5]
   end
 
   test :zip do
@@ -643,6 +667,14 @@ defmodule EnumTest.Range do
   test :chunk_by do
     assert Enum.chunk_by(1..4, fn _ -> true end) == [[1, 2, 3, 4]]
     assert Enum.chunk_by(1..4, &(rem(&1, 2) == 1)) == [[1], [2], [3], [4]]
+  end
+
+  test :dedup do
+    assert Enum.dedup(1..3) == [1,2,3]
+  end
+
+  test :dedup_by do
+    assert Enum.dedup_by(1..3, fn _ -> 1 end) == [1]
   end
 
   test :drop do
@@ -1073,6 +1105,16 @@ defmodule EnumTest.Range do
   test :uniq do
     assert Enum.uniq(1..3) == [1, 2, 3]
     assert Enum.uniq(1..3, fn x -> x end) == [1, 2, 3]
+  end
+
+  test :usort do
+    assert Enum.usort(1..3) == [1, 2, 3]
+    assert Stream.cycle(3..1) |> Stream.take(10) |> Enum.usort == [1, 2, 3]
+  end
+
+  test :usort_by do
+    assert Enum.usort_by(1..3, fn x -> x > 1 end) == [1, 2]
+    assert Stream.cycle(3..1) |> Stream.take(10) |> Enum.usort_by(fn x -> x > 1 end) == [1, 3]
   end
 
   test :zip do
