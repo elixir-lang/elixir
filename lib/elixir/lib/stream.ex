@@ -219,7 +219,7 @@ defmodule Stream do
   """
   @spec dedup(Enumerable.t) :: Enumerable.t
   def dedup(enum) do
-    lazy enum, nil, fn f1 -> R.dedup(fn x -> x end, f1) end
+    dedup_by(enum, fn x -> x end)
   end
 
   @doc """
