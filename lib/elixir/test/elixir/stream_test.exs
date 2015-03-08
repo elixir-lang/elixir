@@ -155,6 +155,25 @@ defmodule StreamTest do
            [1,2,1,2]
   end
 
+  test "dedup/1 is lazy" do
+    assert is_lazy Stream.dedup([1,2,3])
+  end
+
+  test "dedup/1" do
+    assert Stream.dedup([1,1,2,1,1,2,1]) |> Enum.to_list == [1,2,1,2,1]
+    assert Stream.dedup([2,1,1,2,1]) |> Enum.to_list  == [2,1,2,1]
+    assert Stream.dedup([1,2,3,4]) |> Enum.to_list  == [1,2,3,4]
+    assert Stream.dedup([]) |> Enum.to_list  == []
+    assert Stream.dedup([nil, nil, true, {:value, true}]) |> Enum.to_list
+      == [nil, true, {:value, true}]
+    assert Stream.dedup([nil]) |> Enum.to_list  == [nil]
+  end
+
+  test "dedup_by/2" do
+    assert Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
+      == [{1,:x}, {2,:y}, {1, :x}]
+  end
+
   test "drop/2" do
     stream = Stream.drop(1..10, 5)
     assert is_lazy(stream)

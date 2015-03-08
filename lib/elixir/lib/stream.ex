@@ -205,6 +205,38 @@ defmodule Stream do
     next_with_acc(f1, :lists.reverse(buffer), h, nil, t)
   end
 
+
+  @doc """
+  Creates a stream that only emits elements if they are different from the last emitted element.
+
+  This function only ever needs to store the last emitted element.
+
+  ## Examples
+
+      iex> Stream.dedup([1, 2, 3, 3, 2, 1]) |> Enum.to_list
+      [1, 2, 3, 2, 1]
+
+  """
+  @spec dedup(Enumerable.t) :: Enumerable.t
+  def dedup(enum) do
+    lazy enum, nil, fn f1 -> R.dedup(fn x -> x end, f1) end
+  end
+
+  @doc """
+  Creates a stream that only emits elements if the result of calling `fun` on the element is
+  different from the (stored) result of calling `fun` on the last emitted element.
+
+  ## Examples
+
+      iex> Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
+      [{1,:x}, {2,:y}, {1, :x}]
+
+  """
+  @spec dedup_by(Enumerable.t, (element -> term)) :: Enumerable.t
+  def dedup_by(enum, fun) when is_function(fun, 1) do
+    lazy enum, nil, fn f1 -> R.dedup(fun, f1) end
+  end
+
   @doc """
   Lazily drops the next `n` items from the enumerable.
 
@@ -714,10 +746,10 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.uniq([1, 2, 3, 2, 1]) |> Enum.to_list
+      iex> Stream.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
       [1, 2, 3]
 
-      iex> Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list
+      iex> Stream.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
       [{1,:x}, {2,:y}]
 
   """
