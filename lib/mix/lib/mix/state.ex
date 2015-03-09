@@ -9,7 +9,7 @@ defmodule Mix.State do
   def init() do
     %{shell: Mix.Shell.IO,
       env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
-      scm: [Mix.SCM.Git, Mix.SCM.Path]}
+      scm: [Mix.SCM.Git, Mix.SCM.Mercurial, Mix.SCM.Path]}
   end
 
   def fetch(key) do
