@@ -164,6 +164,12 @@ defmodule ModuleTest do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
     assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
+    assert_raise FunctionClauseError, fn ->
+      Module.split(:just_an_atom)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Module.split("Foo")
+    end
     assert Module.concat(Module.split(module)) == module
   end
 
