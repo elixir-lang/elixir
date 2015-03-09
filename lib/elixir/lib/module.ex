@@ -850,8 +850,12 @@ defmodule Module do
       #=> ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
-  def split(module) do
-    tl(String.split(String.Chars.to_string(module), "."))
+  def split(module) when is_atom(module) do
+    split(String.Chars.to_string(module))
+  end
+
+  def split("Elixir." <> name) do
+    String.split(name, ".")
   end
 
   @doc false
