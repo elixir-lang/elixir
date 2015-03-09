@@ -449,6 +449,10 @@ defmodule EnumTest.List do
     assert Enum.to_list(1 .. 3) == [1, 2, 3]
   end
 
+  test :uniq_by do
+    assert Enum.uniq_by([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
+  end
+
   test :uniq do
     assert Enum.uniq([5, 1, 2, 3, 2, 1]) == [5, 1, 2, 3]
     assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
