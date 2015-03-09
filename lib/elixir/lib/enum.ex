@@ -2060,28 +2060,22 @@ defmodule Enum do
   @doc """
   Enumerates the collection, removing all duplicated elements.
 
-  ## Enum.uniq/2 is deprecated in favor of Use Enum.uniq_by/2
-
   ## Examples
 
       iex> Enum.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
       [1, 2, 3]
 
-      iex> Enum.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
-      [{1,:x}, {2,:y}]
-
   """
   @spec uniq(t) :: list
-  @spec uniq(t, (element -> term)) :: list
-  def uniq(collection, fun \\ fn x -> x end)
-
-  def uniq(collection, fun) when is_list(collection) do
-    do_uniq(collection, HashSet.new, fun)
+  def uniq(collection) do
+    uniq_by(collection, fn x -> x end)
   end
 
+  # TODO: Deprecate by 1.2
+  # TODO: Remove by 2.0
+  @doc false
   def uniq(collection, fun) do
-    {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
-    :lists.reverse(list)
+    uniq_by(collection, fun)
   end
 
   @doc """

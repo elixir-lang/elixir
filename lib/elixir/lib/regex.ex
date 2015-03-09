@@ -632,7 +632,7 @@ defmodule Regex do
   defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
 
   # TODO: Deprecate by 1.2
-  # TODO: Remove by 1.3
+  # TODO: Remove by 2.0
   defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
 
   defp translate_options(<<>>, acc), do: acc
