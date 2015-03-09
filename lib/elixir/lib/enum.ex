@@ -2060,6 +2060,8 @@ defmodule Enum do
   @doc """
   Enumerates the collection, removing all duplicated elements.
 
+  ## Enum.uniq/2 is deprecated in favor of Use Enum.uniq_by/2
+
   ## Examples
 
       iex> Enum.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
@@ -2078,6 +2080,26 @@ defmodule Enum do
   end
 
   def uniq(collection, fun) do
+    {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
+    :lists.reverse(list)
+  end
+
+  @doc """
+  Enumerates the collection, removing all duplicated elements.
+
+  ## Example
+
+      iex> Enum.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
+      [{1,:x}, {2,:y}]
+
+  """
+  @spec uniq_by(t, (element -> term)) :: list
+
+  def uniq_by(collection, fun) when is_list(collection) do
+    do_uniq(collection, HashSet.new, fun)
+  end
+
+  def uniq_by(collection, fun) do
     {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
     :lists.reverse(list)
   end
@@ -2114,6 +2136,7 @@ defmodule Enum do
       [1, 5]
 
   """
+
   @spec usort_by(t, (element -> term)) :: list
   def usort_by(collection, fun) do
     collection |> sort_by(fun) |> dedup_by(fun)
