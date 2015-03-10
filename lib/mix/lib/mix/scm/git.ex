@@ -74,7 +74,7 @@ defmodule Mix.SCM.Git do
     location = opts[:git]
 
     _ = File.rm_rf!(path)
-    git!(["clone", "--no-checkout", "--progress", location, path])
+    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
 
     File.cd! path, fn -> do_checkout(opts) end
   end
@@ -86,17 +86,18 @@ defmodule Mix.SCM.Git do
       # Ensures origin is set the lock repo
       location = opts[:git]
       update_origin(location)
-      args = []
+
+      command = "--git-dir=.git fetch --force"
 
       if {1, 7, 1} <= git_version() do
-        args = ["--progress"|args]
+        command = command <> " --progress"
       end
 
       if opts[:tag] do
-        args = ["--tags"|args]
+        command = command <> " --tags"
       end
 
-      git!(["--git-dir=.git", "fetch" , "--force"|args])
+      git!(command)
       do_checkout(opts)
     end
   end
@@ -105,10 +106,10 @@ defmodule Mix.SCM.Git do
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
-    git!(["--git-dir=.git", "checkout", "--quiet", ref])
+    git!("--git-dir=.git checkout --quiet #{ref}")
 
     if opts[:submodules] do
-      git!(["--git-dir=.git" , "submodule", "update", "--init", "--recursive"])
+      git!("--git-dir=.git submodule update --init --recursive")
     end
 
     get_lock(opts)
@@ -149,16 +150,15 @@ defmodule Mix.SCM.Git do
   end
 
   defp update_origin(location) do
-    git!(["--git-dir=.git", "config" , "remote.origin.url", location])
+    git!(~s(--git-dir=.git config remote.origin.url "#{location}"))
     :ok
   end
 
-  defp git!(args) do
-    {output, status} = System.cmd("git", args, stderr_to_stdout: true)
-    if status != 0 do
-      Mix.raise "Command `git #{Enum.join(args, " ")}` failed. Output:\n#{output}"
+  defp git!(command) do
+    if Mix.shell.cmd("git " <> command) != 0 do
+      Mix.raise "Command `git #{command}` failed"
     end
-    true
+    :ok
   end
 
   defp assert_git do
