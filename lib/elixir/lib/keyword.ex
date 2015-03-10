@@ -377,6 +377,35 @@ defmodule Keyword do
   end
 
   @doc """
+  Evaluates `fun` and puts the result under `key`
+  in keyword list unless `key` is already present.
+
+  This is useful if the value is very expensive to calculate or generally
+  difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   3
+      ...> end
+      iex> Keyword.put_new_lazy(keyword, :a, fun)
+      [a: 1]
+      iex> Keyword.put_new_lazy(keyword, :b, fun)
+      [b: 3, a: 1]
+
+  """
+  @spec put_new_lazy(t, key, (() -> value)) :: t
+  def put_new_lazy(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, _} -> keywords
+      false -> [{key, fun.()}|keywords]
+    end
+  end
+
+  @doc """
   Puts the given `value` under `key` unless the entry `key`
   already exists.
 
