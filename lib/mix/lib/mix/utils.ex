@@ -490,11 +490,6 @@ defmodule Mix.Utils do
     end
   end
 
-  defp run_cmd(cmd, args) do
-    {_, status} = System.cmd(cmd, args, stderr_to_stdout: true)
-    status
-  end
-
   defp read_shell(path, target) do
     filename = URI.parse(path).path |> Path.basename
     out_path = target || Path.join(System.tmp_dir!, filename)
@@ -509,9 +504,9 @@ defmodule Mix.Utils do
                   ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
         Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
       System.find_executable("wget") ->
-        run_cmd("wget", ["-nv", "-O", out_path, path])
+        Mix.shell.cmd(~s[wget -nv -O "#{out_path}" "#{path}"])
       System.find_executable("curl") ->
-        run_cmd("curl", ["-s", "-S", "-L", "-o", out_path, path])
+        Mix.shell.cmd(~s[curl -s -S -L -o "#{out_path}" "#{path}"])
       windows? ->
         Mix.shell.error "powershell, wget or curl not installed"
       true ->
