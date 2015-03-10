@@ -667,6 +667,7 @@ defmodule Keyword do
       {1,[]}
 
   """
+  @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
     {get(keywords, key, default), delete(keywords, key)}
   end
@@ -724,6 +725,7 @@ defmodule Keyword do
       {1,[a: 2]}
 
   """
+  @spec pop_first(t, key, value) :: {value, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
     {get(keywords, key, default), delete_first(keywords, key)}
   end
