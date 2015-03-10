@@ -69,4 +69,12 @@ defmodule Mix.ShellTest do
       assert Mix.shell.cmd("echo first && echo second") == 0
     end) |> String.replace(" \n", "\n")) == "first\nsecond\n"
   end
+
+  test "shell cmd ignores output if desired" do
+    Mix.shell Mix.Shell.IO
+
+    assert capture_io(fn ->
+      assert Mix.shell.cmd("echo first && echo second", output: false) == 0
+    end) == ""
+  end
 end

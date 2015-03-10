@@ -36,7 +36,12 @@ defmodule Mix.Shell do
   ## Options
 
     * `:print_app` - when false, does not print the app name
-      when the command outputs something.
+      when the command outputs something
+
+    * `:output` - when false, ignore all output from the command
+
+    * `:stderr_to_stdout` - when false, does not redirect
+      stderr to stdout
 
   """
   defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
@@ -66,9 +71,24 @@ defmodule Mix.Shell do
   An implementation of the command callback that
   is shared across different shells.
   """
-  def cmd(command, callback) do
+  def cmd(command, options, callback) do
+    args =
+      if Keyword.get(options, :stderr_to_stdout, true) do
+        [:stderr_to_stdout]
+      else
+        []
+      end
+
+    callback =
+      if Keyword.get(options, :output, true) do
+        callback
+      else
+        fn x -> x end
+      end
+
     port = Port.open({:spawn, shell_command(command)},
-      [:stream, :binary, :exit_status, :hide, :use_stdio, :stderr_to_stdout])
+                     [:stream, :binary, :exit_status, :hide, :use_stdio|args])
+
     do_cmd(port, callback)
   end
 
