@@ -644,6 +644,34 @@ defmodule Keyword do
 
   @doc """
   Returns the first value associated with `key` in the keyword
+  list as well as the keyword list without `key`.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  All duplicated keys are removed. See `pop_first/3` for
+  removing only the first entry.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Keyword.pop_lazy(keyword, :a, fun)
+      {1,[]}
+      iex> Keyword.pop_lazy(keyword, :b, fun)
+      {:result,[a: 1]}
+
+  """
+  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  def pop_lazy(keywords, key, fun) when is_list(keywords) do
+    {get_lazy(keywords, key, fun), delete(keywords, key)}
+  end
+
+  @doc """
+  Returns the first value associated with `key` in the keyword
   list as well as the keyword list without that particular occurrence
   of `key`.
 
