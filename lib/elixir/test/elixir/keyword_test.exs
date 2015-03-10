@@ -129,6 +129,16 @@ defmodule KeywordTest do
     assert Keyword.put_new(create_keywords, :first_key, 3) == [first_key: 1, second_key: 2]
   end
 
+  test "put_new_lazy/3" do
+    Process.put(:put_new_lazy, 42)
+    fun = fn ->
+      Process.put(:put_new_lazy, Process.get(:put_new_lazy) + 1)
+      Process.get(:put_new_lazy)
+    end
+    assert Keyword.put_new_lazy(create_empty_keywords, :first_key, fun) == [first_key: 43]
+    assert Keyword.put_new_lazy(create_keywords, :first_key, fun) == [first_key: 1, second_key: 2]
+  end
+
   test "merge/2" do
     assert Keyword.merge(create_empty_keywords, create_keywords) == [first_key: 1, second_key: 2]
     assert Keyword.merge(create_keywords, create_empty_keywords) == [first_key: 1, second_key: 2]
