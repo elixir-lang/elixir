@@ -23,7 +23,7 @@ defmodule Mix.Shell.IO do
   """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
-    Mix.Shell.cmd(command, fn data ->
+    Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
       IO.write(data)
     end)
