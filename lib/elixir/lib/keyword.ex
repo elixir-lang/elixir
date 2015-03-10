@@ -125,6 +125,39 @@ defmodule Keyword do
   end
 
   @doc """
+  Gets the value for a specific `key`.
+
+  If `key` does not exist, lazily evaluates `fun` and returns its result.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  If duplicated entries exist, the first one is returned.
+  Use `get_values/2` to retrieve all entries.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Keyword.get_lazy(keyword, :a, fun)
+      1
+      iex> Keyword.get_lazy(keyword, :b, fun)
+      :result
+
+  """
+  @spec get_lazy(t, key, (() -> value)) :: value
+  def get_lazy(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> value
+      false -> fun.()
+    end
+  end
+
+  @doc """
   Gets the value from `key` and updates it, all in one pass.
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
