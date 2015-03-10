@@ -234,7 +234,11 @@ defmodule GenServer do
 
       @doc false
       def handle_call(msg, _from, state) do
-        {:stop, {:bad_call, msg}, state}
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_call, msg})
+          2 -> {:noreply, state}
+        end
       end
 
       @doc false
@@ -244,7 +248,11 @@ defmodule GenServer do
 
       @doc false
       def handle_cast(msg, state) do
-        {:stop, {:bad_cast, msg}, state}
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_cast, msg})
+          2 -> {:noreply, state}
+        end
       end
 
       @doc false

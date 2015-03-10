@@ -110,10 +110,6 @@ defmodule Kernel.LexicalTracker do
     {:reply, dest, {d, dest}}
   end
 
-  def handle_call(request, _from, {d, dest}) do
-    {:stop, {:bad_call, request}, {d, dest}}
-  end
-
   def handle_cast({:remote_dispatch, module}, {d, dest}) do
     add_module(d, module)
     {:noreply, {d, dest}}
@@ -141,10 +137,6 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast(:stop, {d, dest}) do
     {:stop, :normal, {d, dest}}
-  end
-
-  def handle_cast(msg, {d, dest}) do
-    {:stop, {:bad_cast, msg}, {d, dest}}
   end
 
   @doc false

@@ -267,10 +267,6 @@ defmodule Module.LocalsTracker do
     {:reply, d, state}
   end
 
-  def handle_call(request, _from, state) do
-    {:stop, {:bad_call, request}, state}
-  end
-
   @doc false
   def handle_info(_msg, state) do
     {:noreply, state}
@@ -315,10 +311,6 @@ defmodule Module.LocalsTracker do
 
   def handle_cast(:stop, state) do
     {:stop, :normal, state}
-  end
-
-  def handle_cast(msg, state) do
-    {:stop, {:bad_cast, msg}, state}
   end
 
   @doc false
