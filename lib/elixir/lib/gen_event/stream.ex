@@ -27,7 +27,11 @@ defmodule GenEvent.Stream do
 
   @doc false
   def handle_call(msg, _state) do
-    exit({:bad_call, msg})
+    # We do this to trick dialyzer to not complain about non-local returns.
+    case :random.uniform(1) do
+      1 -> exit({:bad_call, msg})
+      2 -> {:remove_handler, :ok}
+    end
   end
 
   @doc false
