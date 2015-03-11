@@ -486,28 +486,10 @@ end
 
 defmodule RuntimeError do
   defexception message: "runtime error"
-
-  @spec exception(String.t) :: Exception.t
-  def exception(msg) when is_binary(msg) do
-    %RuntimeError{message: msg}
-  end
-
-  def exception(arg) do
-    super(arg)
-  end
 end
 
 defmodule ArgumentError do
   defexception message: "argument error"
-
-  @spec exception(String.t) :: Exception.t
-  def exception(msg) when is_binary(msg) do
-    %ArgumentError{message: msg}
-  end
-
-  def exception(arg) do
-    super(arg)
-  end
 end
 
 defmodule ArithmeticError do
