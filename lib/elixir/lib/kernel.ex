@@ -3102,8 +3102,8 @@ defmodule Kernel do
 
     * `exception/1` - receives the arguments given to `raise/2`
        and returns the exception struct. The default implementation
-       accepts a set of keyword arguments that is merged into the
-       struct.
+       accepts either a set of keyword arguments that is merged into
+       the struct or a string to be used as the exception's message.
 
     * `message/1` - receives the exception struct and must return its
       message. Most commonly exceptions have a message field which
@@ -3154,6 +3154,11 @@ defmodule Kernel do
     quote do
       @behaviour Exception
       fields = defstruct unquote(fields)
+
+      @spec exception(String.t) :: Exception.t
+      def exception(msg) when is_binary(msg) do
+        exception(message: msg)
+      end
 
       @spec exception(Keyword.t) :: Exception.t
       def exception(args) when is_list(args) do
