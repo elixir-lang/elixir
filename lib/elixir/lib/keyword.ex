@@ -125,6 +125,39 @@ defmodule Keyword do
   end
 
   @doc """
+  Gets the value for a specific `key`.
+
+  If `key` does not exist, lazily evaluates `fun` and returns its result.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  If duplicated entries exist, the first one is returned.
+  Use `get_values/2` to retrieve all entries.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Keyword.get_lazy(keyword, :a, fun)
+      1
+      iex> Keyword.get_lazy(keyword, :b, fun)
+      :result
+
+  """
+  @spec get_lazy(t, key, (() -> value)) :: value
+  def get_lazy(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, value} -> value
+      false -> fun.()
+    end
+  end
+
+  @doc """
   Gets the value from `key` and updates it, all in one pass.
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
@@ -341,6 +374,35 @@ defmodule Keyword do
   @spec put(t, key, value) :: t
   def put(keywords, key, value) when is_list(keywords) and is_atom(key) do
     [{key, value}|delete(keywords, key)]
+  end
+
+  @doc """
+  Evaluates `fun` and puts the result under `key`
+  in keyword list unless `key` is already present.
+
+  This is useful if the value is very expensive to calculate or generally
+  difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   3
+      ...> end
+      iex> Keyword.put_new_lazy(keyword, :a, fun)
+      [a: 1]
+      iex> Keyword.put_new_lazy(keyword, :b, fun)
+      [b: 3, a: 1]
+
+  """
+  @spec put_new_lazy(t, key, (() -> value)) :: t
+  def put_new_lazy(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
+    case :lists.keyfind(key, 1, keywords) do
+      {^key, _} -> keywords
+      false -> [{key, fun.()}|keywords]
+    end
   end
 
   @doc """
@@ -605,8 +667,37 @@ defmodule Keyword do
       {1,[]}
 
   """
+  @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
     {get(keywords, key, default), delete(keywords, key)}
+  end
+
+  @doc """
+  Returns the first value associated with `key` in the keyword
+  list as well as the keyword list without `key`.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  All duplicated keys are removed. See `pop_first/3` for
+  removing only the first entry.
+
+  ## Examples
+
+      iex> keyword = [a: 1]
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Keyword.pop_lazy(keyword, :a, fun)
+      {1,[]}
+      iex> Keyword.pop_lazy(keyword, :b, fun)
+      {:result,[a: 1]}
+
+  """
+  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  def pop_lazy(keywords, key, fun) when is_list(keywords) do
+    {get_lazy(keywords, key, fun), delete(keywords, key)}
   end
 
   @doc """
@@ -634,6 +725,7 @@ defmodule Keyword do
       {1,[a: 2]}
 
   """
+  @spec pop_first(t, key, value) :: {value, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
     {get(keywords, key, default), delete_first(keywords, key)}
   end
