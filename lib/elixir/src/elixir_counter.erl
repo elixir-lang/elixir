@@ -3,8 +3,8 @@
   handle_info/2, terminate/2, code_change/3, next/0]).
 -behaviour(gen_server).
 
--define(timeout, 1000).     %% 1 second
--define(limit, 4294967296). %% 2^32
+-define(timeout, 30000).    %% 30 seconds
+-define(limit, 4294967295). %% 2^32 - 1
 
 next() ->
   gen_server:call(?MODULE, next, ?timeout).
