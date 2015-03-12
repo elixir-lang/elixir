@@ -72,9 +72,10 @@ defmodule Mix.SCM.Git do
 
     path     = opts[:dest]
     location = opts[:git]
+    quiet    = if Mix.State.get(:quiet), do: "--quiet ", else: ""
 
     _ = File.rm_rf!(path)
-    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
+    git!(~s(clone --no-checkout --progress #{quiet}"#{location}" "#{path}"))
 
     File.cd! path, fn -> do_checkout(opts) end
   end
