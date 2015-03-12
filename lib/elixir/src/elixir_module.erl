@@ -142,10 +142,12 @@ build(Line, File, Module, Docs, Lexical) ->
   ets:insert(Data, {after_compile, []}),
   ets:insert(Data, {moduledoc, nil}),
 
-  case Docs of
-    true -> ets:insert(Data, {on_definition, [{'Elixir.Module', compile_doc}]});
-    _    -> ets:insert(Data, {on_definition, []})
-  end,
+  OnDefinition =
+    case Docs of
+      true -> [{'Elixir.Module', compile_doc}];
+      _    -> []
+    end,
+  ets:insert(Data, {on_definition, OnDefinition}),
 
   Attributes = [behaviour, on_load, compile, external_resource],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
