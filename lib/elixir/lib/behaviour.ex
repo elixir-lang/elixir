@@ -127,26 +127,19 @@ defmodule Behaviour do
   defmacro __using__(_) do
     quote do
       Module.register_attribute(__MODULE__, :behaviour_docs, accumulate: true)
-      @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__)
-    end
-  end
 
-  @doc false
-  defmacro __before_compile__(env) do
-    docs = if Keyword.get(Code.compiler_options, :docs) do
-      :lists.reverse Module.get_attribute(env.module, :behaviour_docs)
-    end
-
-    quote do
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)
       end
 
+      # TODO: Deprecate by 1.2
+      # TODO: Remove by 2.0
       def __behaviour__(:docs) do
-        unquote(Macro.escape(docs))
+        Code.get_docs(__MODULE__, :behaviour_docs)
       end
+
+      import unquote(__MODULE__)
     end
   end
 end
