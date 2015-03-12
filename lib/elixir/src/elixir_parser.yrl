@@ -1,8 +1,9 @@
 Nonterminals
   grammar expr_list
-  expr container_expr block_expr no_parens_expr no_parens_one_expr access_expr
+  expr container_expr block_expr access_expr
+  no_parens_expr no_parens_one_expr no_parens_one_ambig_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
-  op_expr matched_op_expr no_parens_op_expr
+  op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   add_op_eol mult_op_eol hat_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
@@ -15,8 +16,9 @@ Nonterminals
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
   container_args_base container_args
   call_args_parens_expr call_args_parens_base call_args_parens parens_call
-  call_args_no_parens_one call_args_no_parens_expr call_args_no_parens_comma_expr
-  call_args_no_parens_all call_args_no_parens_many call_args_no_parens_many_strict
+  call_args_no_parens_one call_args_no_parens_ambig call_args_no_parens_expr
+  call_args_no_parens_comma_expr call_args_no_parens_all call_args_no_parens_many
+  call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_maybe_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
@@ -92,6 +94,23 @@ expr -> unmatched_expr : '$1'.
 %% without parentheses and with do blocks. They are represented
 %% in the AST as matched, no_parens and unmatched.
 %%
+%% Calls without parentheses are further divided according to how
+%% problematic they are:
+%%
+%% (a) no_parens_one: a call with one unproblematic argument
+%% (e.g. `f a` or `f g a` and similar)
+%%
+%% (b) no_parens_many: a call with several arguments (e.g. `f a, b`)
+%%
+%% (c) no_parens_one_ambig: a call with one argument which is
+%% itself a no_parens_many or no_parens_one_ambig (e.g. `f g a, b`
+%% or `f g h a, b` and similar)
+%%
+%% Note, in particular, that no_parens_one_ambig expressions are
+%% ambiguous and are interpreted such that the outer function has
+%% arity 1 (e.g. `f g a, b` is interpreted as `f(g(a, b))` rather
+%% than `f(g(a), b)`). Hence the name, no_parens_one_ambig.
+%%
 %% The distinction is required because we can't, for example, have
 %% a function call with a do block as argument inside another do
 %% block call, unless there are parentheses:
@@ -120,9 +139,6 @@ matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> access_expr : '$1'.
-
-no_parens_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
-no_parens_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 
 unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
@@ -186,6 +202,15 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
+
+no_parens_expr -> no_parens_one_ambig_expr : '$1'.
+no_parens_expr -> no_parens_many_expr : '$1'.
+
+no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
+no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
+
+no_parens_many_expr -> dot_op_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
+no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_identifier('$1', '$2').
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
@@ -407,17 +432,21 @@ parens_call -> matched_expr dot_call_op : {'.', meta('$2'), ['$1']}. % Fun/local
 % Function calls with no parentheses
 
 call_args_no_parens_expr -> matched_expr : '$1'.
-call_args_no_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
+call_args_no_parens_expr -> no_parens_one_ambig_expr : '$1'.
+call_args_no_parens_expr -> no_parens_many_expr : throw_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
+call_args_no_parens_comma_expr -> no_parens_one_ambig_expr ',' call_args_no_parens_expr : ['$3', '$1'].
 call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3'|'$1'].
 
 call_args_no_parens_all -> call_args_no_parens_one : '$1'.
+call_args_no_parens_all -> call_args_no_parens_ambig : '$1'.
 call_args_no_parens_all -> call_args_no_parens_many : '$1'.
 
 call_args_no_parens_one -> call_args_no_parens_kw : ['$1'].
 call_args_no_parens_one -> matched_expr : ['$1'].
-call_args_no_parens_one -> no_parens_expr : ['$1'].
+
+call_args_no_parens_ambig -> no_parens_expr : ['$1'].
 
 call_args_no_parens_many -> matched_expr ',' call_args_no_parens_kw : ['$1', '$3'].
 call_args_no_parens_many -> call_args_no_parens_comma_expr : reverse('$1').
