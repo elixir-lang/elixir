@@ -499,6 +499,9 @@ defmodule Code do
       which module definition starts and `doc` is the string
       attached to the module using the `@moduledoc` attribute
 
+    * `:behaviour_docs` - list of all docstrings attached to
+      behaviour callbacks using the `@doc` attribute
+
     * `:all` - a keyword list with both `:docs` and `:moduledoc`
 
   """
@@ -532,8 +535,10 @@ defmodule Code do
   # unsupported chunk version
   defp lookup_docs(_, _), do: nil
 
+  @doc_sections [:docs, :moduledoc, :behaviour_docs]
+
   defp do_lookup_docs(docs, :all), do: docs
-  defp do_lookup_docs(docs, kind) when kind in [:docs, :moduledoc],
+  defp do_lookup_docs(docs, kind) when kind in @doc_sections,
     do: Keyword.get(docs, kind)
 
   ## Helpers

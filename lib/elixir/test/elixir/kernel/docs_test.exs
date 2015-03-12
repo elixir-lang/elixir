@@ -7,10 +7,15 @@ defmodule Kernel.DocsTest do
     deftestmodule(SampleDocs)
     docs = Code.get_docs(SampleDocs, :all)
 
-    assert [{{:fun, 2}, _, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
+    assert [{{:__behaviour__, 1}, _, :def, [{:atom1, [], Elixir}], false},
+            {{:fun, 2}, _, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
             {{:nofun, 0}, _, :def, [], nil},
             {{:sneaky, 1}, _, :def, [{:bool1, [], Elixir}], false}] = docs[:docs]
     assert {_, "Hello, I am a module"} = docs[:moduledoc]
+    assert [{{:bar, 1}, _, :def, false}, {{:baz, 2}, _, :def, nil},
+            {{:first, 0}, _, :def, "I should be first."},
+            {{:foo, 1}, _, :def, "Foo"},
+            {{:last, 1}, _, :defmacro, "I should be last."}] = docs[:behaviour_docs]
   end
 
   test "compiled without docs" do
@@ -20,6 +25,7 @@ defmodule Kernel.DocsTest do
 
     assert Code.get_docs(SampleNoDocs, :docs) == nil
     assert Code.get_docs(SampleNoDocs, :moduledoc) == nil
+    assert Code.get_docs(SampleNoDocs, :behaviour_docs) == nil
   after
     Code.compiler_options(docs: true)
   end
@@ -34,6 +40,7 @@ defmodule Kernel.DocsTest do
 
     assert Code.get_docs(NoDocs, :docs) == nil
     assert Code.get_docs(NoDocs, :moduledoc) == nil
+    assert Code.get_docs(NoDocs, :behaviour_docs) == nil
   end
 
   defp deftestmodule(name) do
@@ -41,6 +48,22 @@ defmodule Kernel.DocsTest do
 
     write_beam(defmodule name do
       @moduledoc "Hello, I am a module"
+
+      use Behaviour
+
+      @doc "I should be first."
+      defcallback first :: term
+
+      @doc "Foo"
+      defcallback foo(any) :: any
+
+      @doc false
+      defcallback bar(true) :: false
+
+      defcallback baz(1, binary) :: binary
+
+      @doc "I should be last."
+      defmacrocallback last(integer) :: Macro.t
 
       @doc """
       This is fun!
