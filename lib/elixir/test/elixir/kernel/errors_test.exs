@@ -135,15 +135,23 @@ defmodule Kernel.ErrorsTest do
           "nested calls. Syntax error before: ','"
 
     assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
+    assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
     assert_compile_fail SyntaxError, msg, '[do: foo 1, 2]'
     assert_compile_fail SyntaxError, msg, 'foo(do: bar 1, 2)'
     assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
+    assert_compile_fail SyntaxError, msg, '{foo bar 1, 2}'
     assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
     assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
     assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
+    assert [List.flatten List.flatten [1]] == [[1]]
+
+    interpret = fn x -> Macro.to_string Code.string_to_quoted! x end
+    assert interpret.("f 1 + g h 2, 3") == "f(1 + g(h(2, 3)))"
+    assert interpret.("assert [] = TestRepo.all from p in Post, where: p.title in ^[]") ==
+           "assert([] = TestRepo.all(from(p in Post, where: p.title() in ^[])))"
   end
 
   test :syntax_error_on_atom_dot_alias do
