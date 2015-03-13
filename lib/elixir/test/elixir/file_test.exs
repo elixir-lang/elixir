@@ -684,7 +684,7 @@ defmodule FileTest do
       assert File.rm(fixture) == :ok
       refute File.exists?(fixture)
     end
-    
+
     test :rm_read_only_file do
       fixture = tmp_path("tmp_test.txt")
       File.write(fixture, "test")
@@ -771,7 +771,7 @@ defmodule FileTest do
       File.write!(Path.join(to, "hello"), "world")
       :file.make_symlink(to, from)
 
-      if File.exists?(from) or not is_win? do
+      if File.exists?(from) or not windows? do
         assert File.exists?(from)
 
         {:ok, files} = File.rm_rf(from)
@@ -889,28 +889,28 @@ defmodule FileTest do
       File.lstat!(invalid_file)
     end
   end
-  
+
   test :lstat_with_dangling_symlink do
     invalid_file = tmp_path("invalid_file")
     dest = tmp_path("dangling_symlink")
     File.ln_s(invalid_file,dest)
-    try do 
+    try do
       assert {:ok, info } = File.lstat(dest)
-      assert info.type == :symlink 
+      assert info.type == :symlink
     after
       File.rm(dest)
-    end 
+    end
   end
 
   test :lstat_with_dangling_symlink! do
     invalid_file = tmp_path("invalid_file")
     dest = tmp_path("dangling_symlink")
     File.ln_s(invalid_file,dest)
-    try do 
-     assert File.lstat!(dest).type == :symlink 
-    after 
+    try do
+     assert File.lstat!(dest).type == :symlink
+    after
      File.rm(dest)
-    end 
+    end
   end
 
 
@@ -1244,7 +1244,7 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0o100666
 
-      unless is_win? do
+      unless windows? do
         assert File.chmod(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0o100777
@@ -1263,7 +1263,7 @@ defmodule FileTest do
       stat = File.stat!(fixture)
       assert stat.mode == 0o100666
 
-      unless is_win? do
+      unless windows? do
         assert File.chmod!(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
         assert stat.mode == 0o100777
