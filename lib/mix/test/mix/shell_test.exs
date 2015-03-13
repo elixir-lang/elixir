@@ -74,7 +74,7 @@ defmodule Mix.ShellTest do
     Mix.shell Mix.Shell.IO
 
     assert capture_io(fn ->
-      assert Mix.shell.cmd("echo first && echo second", output: false) == 0
+      assert Mix.shell.cmd("echo first && echo second", quiet: true) == 0
     end) == ""
   end
 end

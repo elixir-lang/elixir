@@ -38,10 +38,10 @@ defmodule Mix.Shell do
     * `:print_app` - when false, does not print the app name
       when the command outputs something
 
-    * `:output` - when false, ignore all output from the command
-
     * `:stderr_to_stdout` - when false, does not redirect
       stderr to stdout
+
+    * `:quiet` - when true, do not print the command output
 
   """
   defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
@@ -80,10 +80,10 @@ defmodule Mix.Shell do
       end
 
     callback =
-      if Keyword.get(options, :output, true) do
-        callback
-      else
+      if Keyword.get(options, :quiet, false) do
         fn x -> x end
+      else
+        callback
       end
 
     port = Port.open({:spawn, shell_command(command)},
