@@ -141,11 +141,14 @@ build(Line, File, Module, Docs, Lexical) ->
   ets:insert(Data, {before_compile, []}),
   ets:insert(Data, {after_compile, []}),
   ets:insert(Data, {moduledoc, nil}),
+  ets:insert(Data, {behaviour_docs, []}),
 
-  case Docs of
-    true -> ets:insert(Data, {on_definition, [{'Elixir.Module', compile_doc}]});
-    _    -> ets:insert(Data, {on_definition, []})
-  end,
+  OnDefinition =
+    case Docs of
+      true -> [{'Elixir.Module', compile_doc}];
+      _    -> []
+    end,
+  ets:insert(Data, {on_definition, OnDefinition}),
 
   Attributes = [behaviour, on_load, compile, external_resource],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
@@ -351,7 +354,8 @@ load_form(Line, Data, Forms, Opts, E) ->
 add_docs_chunk(Bin, Data, Line, true) ->
   ChunkData = term_to_binary({elixir_docs_v1, [
     {docs, get_docs(Data)},
-    {moduledoc, get_moduledoc(Line, Data)}
+    {moduledoc, get_moduledoc(Line, Data)},
+    {behaviour_docs, get_behaviour_docs(Data)}
   ]}),
   add_beam_chunk(Bin, "ExDc", ChunkData);
 
@@ -366,6 +370,9 @@ get_docs(Data) ->
 
 get_moduledoc(Line, Data) ->
   {Line, ets:lookup_element(Data, moduledoc, 2)}.
+
+get_behaviour_docs(Data) ->
+  lists:usort(ets:lookup_element(Data, behaviour_docs, 2)).
 
 get_typespec(Data, Key) ->
   case ets:lookup(Data, Key) of
