@@ -57,11 +57,11 @@ defmodule PathHelpers do
   end
 
   if match? {:win32, _}, :os.type do
-    def is_win?, do: true
+    def windows?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"
   else
-    def is_win?, do: false
+    def windows?, do: false
     def executable_extension, do: ""
     def redirect_std_err_on_win, do: ""
   end
