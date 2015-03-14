@@ -70,7 +70,7 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  defp h_mod_fun(mod, fun) when is_atom(mod) and is_atom(fun) do
+  defp h_mod_fun(mod, fun) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
       result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
         h(mod, fun, arity)
@@ -111,7 +111,7 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
+  defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
       doc =
         cond do
