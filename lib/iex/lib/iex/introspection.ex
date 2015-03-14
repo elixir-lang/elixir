@@ -46,13 +46,11 @@ defmodule IEx.Introspection do
   """
   def h(modules, function) when is_list(modules) and is_atom(function) do
     result =
-      Enum.reduce modules, :not_found, fn
-        module, :not_found -> h_mod_fun(module, function)
-        _module, acc -> acc
+      Enum.find_value modules, false, fn module ->
+        h_mod_fun(module, function) == :ok
       end
 
-    unless result == :ok, do:
-      nodocs(function)
+    unless result, do: nodocs(function)
 
     dont_display_result
   end
@@ -87,13 +85,11 @@ defmodule IEx.Introspection do
   """
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
     result =
-      Enum.reduce modules, :not_found, fn
-        module, :not_found -> h_mod_fun_arity(module, function, arity)
-        _module, acc -> acc
+      Enum.find_value modules, false, fn module ->
+        h_mod_fun_arity(module, function, arity) == :ok
       end
 
-    unless result == :ok, do:
-      nodocs("#{function}/#{arity}")
+    unless result, do: nodocs("#{function}/#{arity}")
 
     dont_display_result
   end
