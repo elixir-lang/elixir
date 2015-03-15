@@ -658,9 +658,6 @@ defmodule Keyword do
       iex> Keyword.pop [a: 1], :b, 3
       {3,[a: 1]}
 
-      iex> Keyword.pop [a: 1], :b, 3
-      {3,[a: 1]}
-
       iex> Keyword.pop [a: 1, a: 2], :a
       {1,[]}
 
@@ -723,9 +720,6 @@ defmodule Keyword do
 
       iex> Keyword.pop_first [a: 1], :b
       {nil,[a: 1]}
-
-      iex> Keyword.pop_first [a: 1], :b, 3
-      {3,[a: 1]}
 
       iex> Keyword.pop_first [a: 1], :b, 3
       {3,[a: 1]}
