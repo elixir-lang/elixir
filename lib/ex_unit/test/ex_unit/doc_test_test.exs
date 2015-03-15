@@ -198,6 +198,15 @@ defmodule ExUnit.DocTestTest do
 
   import ExUnit.CaptureIO
 
+  test "multiple functions filtered with :only" do
+    defmodule MultipleOnly do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [test_fun: 0, test_fun1: 0], import: true
+    end
+
+    assert capture_io(fn -> ExUnit.run end) =~ "2 tests, 1 failure"
+  end
+
   test "doctest failures" do
     defmodule ActuallyCompiled do
       use ExUnit.Case
@@ -212,7 +221,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:112: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
@@ -221,7 +230,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
@@ -231,7 +240,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest failed
          code: inspect(:oops) === "#HashDict<[]>"
          lhs:  ":oops"
@@ -241,7 +250,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
@@ -250,7 +259,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
@@ -259,7 +268,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:204
+         test/ex_unit/doc_test_test.exs:213
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
