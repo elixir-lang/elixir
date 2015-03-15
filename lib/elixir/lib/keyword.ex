@@ -669,7 +669,12 @@ defmodule Keyword do
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    {get(keywords, key, default), delete(keywords, key)}
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {default, keywords}
+    end
   end
 
   @doc """
@@ -696,8 +701,14 @@ defmodule Keyword do
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
-  def pop_lazy(keywords, key, fun) when is_list(keywords) do
-    {get_lazy(keywords, key, fun), delete(keywords, key)}
+  def pop_lazy(keywords, key, fun)
+      when is_list(keywords) and is_function(fun, 0) do
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {fun.(), keywords}
+    end
   end
 
   @doc """
