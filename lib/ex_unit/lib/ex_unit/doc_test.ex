@@ -179,7 +179,7 @@ defmodule ExUnit.DocTest do
 
     Stream.filter(tests, fn(test) ->
       fa = test.fun_arity
-      Enum.all?(except, &(&1 != fa)) and Enum.all?(only, &(&1 == fa))
+      Enum.all?(except, &(&1 != fa)) and (Enum.empty?(only) or Enum.any?(only, &(&1 == fa)))
     end)
   end
 
