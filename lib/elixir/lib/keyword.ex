@@ -69,9 +69,7 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.reduce pairs, [], fn {k, v}, keywords ->
-      put(keywords, k, v)
-    end
+    Enum.uniq_by(Enum.reverse(pairs), fn {x, _} when is_atom(x) -> x end)
   end
 
   @doc """
