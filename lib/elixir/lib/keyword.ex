@@ -69,9 +69,7 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.reduce pairs, [], fn {k, v}, keywords ->
-      put(keywords, k, v)
-    end
+    Enum.uniq_by(Enum.reverse(pairs), fn {x, _} when is_atom(x) -> x end)
   end
 
   @doc """
@@ -660,16 +658,18 @@ defmodule Keyword do
       iex> Keyword.pop [a: 1], :b, 3
       {3,[a: 1]}
 
-      iex> Keyword.pop [a: 1], :b, 3
-      {3,[a: 1]}
-
       iex> Keyword.pop [a: 1, a: 2], :a
       {1,[]}
 
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    {get(keywords, key, default), delete(keywords, key)}
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {default, keywords}
+    end
   end
 
   @doc """
@@ -696,8 +696,14 @@ defmodule Keyword do
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
-  def pop_lazy(keywords, key, fun) when is_list(keywords) do
-    {get_lazy(keywords, key, fun), delete(keywords, key)}
+  def pop_lazy(keywords, key, fun)
+      when is_list(keywords) and is_function(fun, 0) do
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {fun.(), keywords}
+    end
   end
 
   @doc """
@@ -714,9 +720,6 @@ defmodule Keyword do
 
       iex> Keyword.pop_first [a: 1], :b
       {nil,[a: 1]}
-
-      iex> Keyword.pop_first [a: 1], :b, 3
-      {3,[a: 1]}
 
       iex> Keyword.pop_first [a: 1], :b, 3
       {3,[a: 1]}
