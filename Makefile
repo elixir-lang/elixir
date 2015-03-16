@@ -109,11 +109,13 @@ install: compile
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
+	$(MAKE) install_man
 
 install_man:
 	$(Q) mkdir -p $(PREFIX)/share/man/man1
+	cd man && $(MAKE) build
+	$(Q) $(INSTALL_DATA) man/elixir.1 $(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/iex.1 $(PREFIX)/share/man/man1
-	$(Q) ln -s $(PREFIX)/share/man/man1/iex.1 $(PREFIX)/share/man/man1/elixir.1
 
 clean:
 	cd lib/elixir && ../../$(REBAR) clean
@@ -125,6 +127,7 @@ clean:
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
 	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
+	cd man && $(MAKE) clean
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
