@@ -160,9 +160,8 @@ defmodule Dict do
       end
 
       def fetch!(dict, key) do
-        case fetch(dict, key) do
-          {:ok, value} -> value
-          :error -> raise KeyError, key: key, term: dict
+        get_lazy dict, key, fn ->
+          raise KeyError, key: key, term: dict
         end
       end
 

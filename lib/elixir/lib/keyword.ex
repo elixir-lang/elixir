@@ -228,9 +228,8 @@ defmodule Keyword do
   """
   @spec fetch!(t, key) :: value | no_return
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, value} -> value
-      false -> raise(KeyError, key: key, term: keywords)
+    get_lazy keywords, key, fn ->
+      raise KeyError, key: key, term: keywords
     end
   end
 
