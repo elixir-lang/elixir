@@ -8,7 +8,7 @@
 .Nm
 .Op Ar OPTIONS
 .Sh DESCRIPTION
-The interactive shell allows testing the work of small pieces of code escaping the stage of saving the code in a file.
+The interactive shell is used for evaluation, debugging and introspection of the Elixir runtime system. It is also possible to use the program for testing the work of small pieces of code escaping the stage of saving the code in a file.
 .Sh OPTIONS
 Note that many of the options mentioned here were borrowed from the Erlang shell, therefore
 .Xr erl 1
