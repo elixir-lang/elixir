@@ -25,19 +25,19 @@ defmodule IEx.Introspection do
             {_, _} ->
               nodocs(inspect module)
             _ ->
-              IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
+              puts_error("#{inspect module} was not compiled with docs")
           end
         else
-          IO.puts IEx.color(:eval_error, "#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
+          puts_error("#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
         end
       {:error, reason} ->
-        IO.puts IEx.color(:eval_error, "Could not load module #{inspect module}, got: #{reason}")
+        puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
     dont_display_result
   end
 
   def h(_) do
-    IO.puts IEx.color(:eval_error, "Invalid arguments for h helper")
+    puts_error("Invalid arguments for h helper")
     dont_display_result
   end
 
@@ -60,7 +60,7 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
+        puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
         nodocs("#{inspect module}.#{function}")
     end
@@ -99,7 +99,7 @@ defmodule IEx.Introspection do
       :ok ->
         :ok
       :no_docs ->
-        IO.puts IEx.color(:eval_error, "#{inspect module} was not compiled with docs")
+        puts_error("#{inspect module} was not compiled with docs")
       :not_found ->
         nodocs("#{inspect module}.#{function}/#{arity}")
     end
@@ -324,9 +324,9 @@ defmodule IEx.Introspection do
   defp nobeam(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        IO.puts IEx.color(:eval_error, "Beam code not available for #{inspect module} or debug info is missing, cannot load typespecs")
+        puts_error("Beam code not available for #{inspect module} or debug info is missing, cannot load typespecs")
       {:error, reason} ->
-        IO.puts IEx.color(:eval_error, "Could not load module #{inspect module}, got: #{reason}")
+        puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
   end
 
@@ -335,6 +335,10 @@ defmodule IEx.Introspection do
   defp nodocs(for),  do: no(for, "documentation")
 
   defp no(for, type) do
-    IO.puts IEx.color(:eval_error, "No #{type} for #{for} was found")
+    puts_error("No #{type} for #{for} was found")
+  end
+
+  defp puts_error(string) do
+    IO.puts IEx.color(:eval_error, string)
   end
 end
