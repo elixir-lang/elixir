@@ -730,7 +730,10 @@ defmodule Keyword do
   """
   @spec pop_first(t, key, value) :: {value, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
-    {get(keywords, key, default), delete_first(keywords, key)}
+    case :lists.keytake(key, 1, keywords) do
+      {:value, {^key, value}, rest} -> {value, rest}
+      false -> {default, keywords}
+    end
   end
 
   # Dict callbacks
