@@ -1,0 +1,39 @@
+.Dd March 16, 2015
+.Dt IEX 1
+.Os
+.Sh NAME
+.Nm elixir
+.Nd TODO: come up with some short description
+.Sh SYNOPSIS
+.Nm
+.Op Ar OPTIONS
+.Sh DESCRIPTION
+TODO: come up with some description.
+.Sh OPTIONS
+Note that many of the options mentioned here were borrowed from the Erlang shell, therefore
+.Xr erl 1
+can be used as an additional source of information on the options.
+.Bl -tag -width Ds
+{COMMON}
+.It Fl -no-halt
+Does not halt the Erlang VM after execution.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.erlang.cookie
+Stores the value of the magic cookie which is used only when it wasn't specified via the option
+.Fl -cookie
+.Pq see above .
+If the file doesn't exist when a node starts, it will be created.
+.It Pa .iex.exs
+After
+.Nm
+starts, it seeks the file
+.Pa .iex.exs
+and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home direcory.
+.El
+.Sh SEE ALSO
+.Xr elixirc 1 ,
+.Xr iex 1
+.Sh AUTHOR
+This manual page contributed by Evgeny Golyshev.
