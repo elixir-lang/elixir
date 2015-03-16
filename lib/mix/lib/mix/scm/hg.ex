@@ -26,8 +26,10 @@ defmodule Mix.SCM.Mercurial do
   
   def accepts_options(_app, opts) do
     cond do
-      gh = opts[:hghub] ->
-        opts |> Keyword.delete(:hghub) |> Keyword.put(:hg, "hg://hghub.com/#{gh}.hg")
+      repo = opts[:bitbucket] ->
+        opts |> Keyword.delete(:bitbucket) |> Keyword.put(:hg, "https://bitbucket.org/#{repo}")
+      repo = opts[:hg_github] ->
+        opts |> Keyword.delete(:hg_github) |> Keyword.put(:hg, "git://github.com/#{repo}.git")
       opts[:hg] ->
         opts
       true ->
@@ -85,14 +87,9 @@ defmodule Mix.SCM.Mercurial do
     File.cd! opts[:dest], fn ->
       # Ensures origin is set the lock repo
       location = opts[:hg]
-      # update_origin(location)
-      args = []
+      update_origin(location)
       
-      if opts[:tag] do
-        args = ["--tags"|args]
-      end
-      
-      hg!(["pull" , "-u"|args])
+      hg!(["pull", "--force"])
       do_checkout(opts)
     end
   end
@@ -126,7 +123,7 @@ defmodule Mix.SCM.Mercurial do
   
   defp get_opts_rev(opts) do
     if branch = opts[:branch] do
-      "origin/#{branch}"
+      branch
     else
       opts[:ref] || opts[:tag] || "default"
     end
@@ -134,19 +131,23 @@ defmodule Mix.SCM.Mercurial do
   
   defp get_rev_info do
     destructure [origin, rev],
-      :os.cmd('hg --hg-dir=.hg config remote.origin.url && hg --hg-dir=.hg rev-parse --verify --quiet HEAD')
+      :os.cmd('hg paths default && hg head -T "{node}\n"')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [origin: origin, rev: rev]
   end
   
-  # defp update_origin(location) do
-  #   hg!(["--hg-dir=.hg", "config" , "remote.origin.url", location])
-  #   :ok
-  # end
+  defp update_origin(location) do
+    hgrc_path = ".hg/hgrc"
+    
+    {:ok, str} = File.read(hgrc_path)
+    str = String.replace(str, ~r/(default\s*=\s*)(.*)$/, "\\1#{location}")
+    :ok = File.write(hgrc_path, str)
+  end
   
   defp hg!(args) do
     {output, status} = System.cmd("hg", args, stderr_to_stdout: true)
+    
     if status != 0 do
       Mix.raise "Command `hg #{Enum.join(args, " ")}` failed. Output:\n#{output}"
     end
@@ -167,10 +168,5 @@ defmodule Mix.SCM.Mercurial do
             "run a previously built application on a system without Mercurial."
         end
     end
-  end
-  
-  defp to_integer(string) do
-    {int, _} = Integer.parse(string)
-    int
   end
 end
