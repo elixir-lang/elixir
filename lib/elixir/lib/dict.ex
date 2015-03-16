@@ -143,10 +143,7 @@ defmodule Dict do
       @behaviour Dict
 
       def get(dict, key, default \\ nil) do
-        case fetch(dict, key) do
-          {:ok, value} -> value
-          :error -> default
-        end
+        get_lazy(dict, key, fn -> default end)
       end
 
       def get_lazy(dict, key, fun) when is_function(fun, 0) do
@@ -163,9 +160,8 @@ defmodule Dict do
       end
 
       def fetch!(dict, key) do
-        case fetch(dict, key) do
-          {:ok, value} -> value
-          :error -> raise KeyError, key: key, term: dict
+        get_lazy dict, key, fn ->
+          raise KeyError, key: key, term: dict
         end
       end
 
@@ -174,10 +170,7 @@ defmodule Dict do
       end
 
       def put_new(dict, key, value) do
-        case has_key?(dict, key) do
-          true  -> dict
-          false -> put(dict, key, value)
-        end
+        put_new_lazy(dict, key, fn -> value end)
       end
 
       def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
@@ -268,12 +261,7 @@ defmodule Dict do
       end
 
       def pop(dict, key, default \\ nil) do
-        case fetch(dict, key) do
-          {:ok, value} ->
-            {value, delete(dict, key)}
-          :error ->
-            {default, dict}
-        end
+        pop_lazy(dict, key, fn -> default end)
       end
 
       def pop_lazy(dict, key, fun) when is_function(fun, 0) do

@@ -116,10 +116,7 @@ defmodule Keyword do
   @spec get(t, key) :: value
   @spec get(t, key, value) :: value
   def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, value} -> value
-      false -> default
-    end
+    get_lazy(keywords, key, fn -> default end)
   end
 
   @doc """
@@ -231,9 +228,8 @@ defmodule Keyword do
   """
   @spec fetch!(t, key) :: value | no_return
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, value} -> value
-      false -> raise(KeyError, key: key, term: keywords)
+    get_lazy keywords, key, fn ->
+      raise KeyError, key: key, term: keywords
     end
   end
 
@@ -418,10 +414,7 @@ defmodule Keyword do
   """
   @spec put_new(t, key, value) :: t
   def put_new(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, _} -> keywords
-      false -> [{key, value}|keywords]
-    end
+    put_new_lazy(keywords, key, fn -> value end)
   end
 
   @doc """
@@ -664,12 +657,7 @@ defmodule Keyword do
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    case fetch(keywords, key) do
-      {:ok, value} ->
-        {value, delete(keywords, key)}
-      :error ->
-        {default, keywords}
-    end
+    pop_lazy(keywords, key, fn -> default end)
   end
 
   @doc """
