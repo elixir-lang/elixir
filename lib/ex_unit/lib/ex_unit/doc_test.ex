@@ -178,7 +178,7 @@ defmodule ExUnit.DocTest do
     except = opts[:except] || []
 
     Stream.filter(tests, fn(test) ->
-      fa = test.fun_arity
+      fa = test.fun_arity || :moduledoc # moduledoc's fun_arity is nil
       !Enum.member?(except, fa) and (Enum.empty?(only) or Enum.member?(only, fa))
     end)
   end
