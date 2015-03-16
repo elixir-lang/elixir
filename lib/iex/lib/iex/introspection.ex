@@ -149,7 +149,7 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
-    args    = Enum.map_join(args, ", ", &print_doc_arg(&1))
+    args    = Enum.map_join(args, ", ", &format_doc_arg(&1))
     heading = "#{kind} #{fun}(#{args})"
     doc     = doc || ""
 
@@ -162,11 +162,11 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_doc_arg({:\\, _, [left, right]}) do
-    print_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
+  defp format_doc_arg({:\\, _, [left, right]}) do
+    format_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
   end
 
-  defp print_doc_arg({var, _, _}) do
+  defp format_doc_arg({var, _, _}) do
     Atom.to_string(var)
   end
 
