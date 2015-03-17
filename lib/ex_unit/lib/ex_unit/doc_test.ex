@@ -125,10 +125,10 @@ defmodule ExUnit.DocTest do
   Options can also be supplied:
 
     * `:except` — generate tests for all functions except those listed
-      (list of `{function, arity}` tuples).
+      (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
     * `:only` — generate tests only for functions listed
-      (list of `{function, arity}` tuples).
+      (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
     * `:import` — when true, one can test a function defined in the module
       without referring to the module name. However, this is not feasible when
@@ -137,7 +137,7 @@ defmodule ExUnit.DocTest do
 
   ## Examples
 
-      doctest MyModule, except: [trick_fun: 1]
+      doctest MyModule, except: [:moduledoc, trick_fun: 1]
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
