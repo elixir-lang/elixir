@@ -109,12 +109,8 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
-      doc =
-        cond do
-          d = find_doc(docs, fun, arity)         -> d
-          d = find_default_doc(docs, fun, arity) -> d
-          true                                   -> nil
-        end
+      doc = find_doc(docs, fun, arity)
+            || find_default_doc(docs, fun, arity)
 
       if doc do
         print_doc(doc)
