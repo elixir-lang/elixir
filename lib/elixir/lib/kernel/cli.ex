@@ -407,7 +407,7 @@ defmodule Kernel.CLI do
     if missing_patterns == [] do
       {:ok, :lists.usort(Enum.concat(files))}
     else
-      {:missing,  :lists.usort(missing_patterns)}
+      {:missing, :lists.usort(missing_patterns)}
     end
   end
 
