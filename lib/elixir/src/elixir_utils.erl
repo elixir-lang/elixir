@@ -9,7 +9,7 @@
 -include_lib("kernel/include/file.hrl").
 
 macro_name(Macro) ->
-  list_to_atom(lists:concat(['MACRO-',Macro])).
+  list_to_atom(lists:concat(['MACRO-', Macro])).
 
 atom_concat(Atoms) ->
   list_to_atom(lists:concat(Atoms)).
@@ -155,12 +155,12 @@ returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
 
 returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun
-    ({'->',_,[_, Expr]}) -> returns_boolean(Expr)
+    ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
 
 returns_boolean({'cond', _, [[{do, Clauses}]]}) ->
   lists:all(fun
-    ({'->',_,[_, Expr]}) -> returns_boolean(Expr)
+    ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
 
 returns_boolean({'__block__', [], Exprs}) ->
@@ -184,8 +184,8 @@ do_convert_to_boolean(Line, Expr, Bool, S) ->
   Any = {var, Line, '_'},
   OrElse = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
 
-  FalseResult = {atom,Line,not Bool},
-  TrueResult  = {atom,Line,Bool},
+  FalseResult = {atom, Line, not Bool},
+  TrueResult  = {atom, Line, Bool},
 
   {{'case', Line, Expr, [
     {clause, Line, [Var], [[OrElse]], [FalseResult]},

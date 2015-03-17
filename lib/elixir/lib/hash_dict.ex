@@ -194,7 +194,7 @@ defmodule HashDict do
   end
 
   defp do_reduce_each([k|v], {:cont, acc}, fun, next) do
-    next.(fun.({k,v}, acc))
+    next.(fun.({k, v}, acc))
   end
 
   defp do_reduce_each({k, v, n}, {:cont, acc}, fun, next) do

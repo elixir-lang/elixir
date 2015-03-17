@@ -57,7 +57,7 @@ defmodule IO.ANSI.Docs do
   def print(doc, options \\ []) do
     options = Keyword.merge(default_options, options)
     doc
-    |> String.split(["\r\n","\n"], trim: false)
+    |> String.split(["\r\n", "\n"], trim: false)
     |> Enum.map(&String.rstrip/1)
     |> process([], "", options)
   end
@@ -270,7 +270,7 @@ defmodule IO.ANSI.Docs do
     do: cols ++ List.duplicate({"", 0}, col_count - length(cols))
 
   defp max_column_widths(cols, widths),
-    do: Enum.zip(cols, widths) |> Enum.map(fn {a,b} -> max(a,b) end)
+    do: Enum.zip(cols, widths) |> Enum.map(fn {a, b} -> max(a, b) end)
 
   # If second line is heading separator, use the heading style on the first
   defp render_table([first, second | rest], widths, options) do

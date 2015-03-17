@@ -37,7 +37,7 @@ extract(Line, Column, Scope, Interpol, [$\\, Last|Rest], Buffer, Output, Last) -
   extract(Line, Column+2, Scope, Interpol, Rest, [Last|Buffer], Output, Last);
 
 extract(Line, Column, Scope, true, [$\\, $#, ${|Rest], Buffer, Output, Last) ->
-  extract(Line, Column+1, Scope, true, Rest, [${,$#|Buffer], Output, Last);
+  extract(Line, Column+1, Scope, true, Rest, [${, $#|Buffer], Output, Last);
 
 extract(Line, Column, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
@@ -51,8 +51,8 @@ extract(Line, Column, Scope, true, [$#, ${|Rest], Buffer, Output, Last) ->
       {error, {string, Line, "missing interpolation terminator:}", []}}
   end;
 
-extract(Line, Column, Scope, Interpol, [$\\,Char|Rest], Buffer, Output, Last) ->
-  extract(Line, Column+2, Scope, Interpol, Rest, [Char,$\\|Buffer], Output, Last);
+extract(Line, Column, Scope, Interpol, [$\\, Char|Rest], Buffer, Output, Last) ->
+  extract(Line, Column+2, Scope, Interpol, Rest, [Char, $\\|Buffer], Output, Last);
 
 %% Catch all clause
 
@@ -78,35 +78,35 @@ unescape_chars(String) ->
 unescape_chars(String, Map) ->
   unescape_chars(String, Map, Map($x) == true, <<>>).
 
-unescape_chars(<<$\\,$x,A,B,Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B) ->
-  append_escaped(Rest, Map, [A,B], true, Acc, 16);
+unescape_chars(<<$\\, $x, A, B, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A, B], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,A,Rest/binary>>, Map, true, Acc) when ?is_hex(A) ->
+unescape_chars(<<$\\, $x, A, Rest/binary>>, Map, true, Acc) when ?is_hex(A) ->
   append_escaped(Rest, Map, [A], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A) ->
+unescape_chars(<<$\\, $x, ${,A,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A) ->
   append_escaped(Rest, Map, [A], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B) ->
-  append_escaped(Rest, Map, [A,B], true, Acc, 16);
+unescape_chars(<<$\\, $x, ${,A,B,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B) ->
+  append_escaped(Rest, Map, [A, B], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
-  append_escaped(Rest, Map, [A,B,C], true, Acc, 16);
+unescape_chars(<<$\\, $x, ${,A,B,C,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  append_escaped(Rest, Map, [A, B, C], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,D,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
-  append_escaped(Rest, Map, [A,B,C,D], true, Acc, 16);
+unescape_chars(<<$\\, $x, ${,A,B,C,D,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  append_escaped(Rest, Map, [A, B, C, D], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,D,E,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
-  append_escaped(Rest, Map, [A,B,C,D,E], true, Acc, 16);
+unescape_chars(<<$\\, $x, ${,A,B,C,D,E,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  append_escaped(Rest, Map, [A, B, C, D, E], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,${,A,B,C,D,E,F,$},Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
-  append_escaped(Rest, Map, [A,B,C,D,E,F], true, Acc, 16);
+unescape_chars(<<$\\, $x, ${,A,B,C,D,E,F,$}, Rest/binary>>, Map, true, Acc) when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  append_escaped(Rest, Map, [A, B, C, D, E, F], true, Acc, 16);
 
-unescape_chars(<<$\\,$x,_/binary>>, _Map, true, _Acc) ->
+unescape_chars(<<$\\, $x, _/binary>>, _Map, true, _Acc) ->
   Msg = <<"missing hex sequence after \\x">>,
-  error('Elixir.ArgumentError':exception([{message,Msg}]));
+  error('Elixir.ArgumentError':exception([{message, Msg}]));
 
-unescape_chars(<<$\\,Escaped,Rest/binary>>, Map, Hex, Acc) ->
+unescape_chars(<<$\\, Escaped, Rest/binary>>, Map, Hex, Acc) ->
   case Map(Escaped) of
     false -> unescape_chars(Rest, Map, Hex, <<Acc/binary, $\\, Escaped>>);
     Other -> unescape_chars(Rest, Map, Hex, <<Acc/binary, Other>>)
@@ -124,7 +124,7 @@ append_escaped(Rest, Map, List, Hex, Acc, Base) ->
   catch
     error:badarg ->
       Msg = <<"invalid or reserved unicode codepoint ", (integer_to_binary(Codepoint))/binary>>,
-      error('Elixir.ArgumentError':exception([{message,Msg}]))
+      error('Elixir.ArgumentError':exception([{message, Msg}]))
   end.
 
 % Unescape Helpers

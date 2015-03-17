@@ -24,15 +24,15 @@ start(_Type, _Args) ->
   %% has encoding set to latin1.
   Opts =
     case init:get_argument(noshell) of
-      {ok, _} -> [binary,{encoding,utf8}];
+      {ok, _} -> [binary, {encoding, utf8}];
       error   -> [binary]
     end,
 
   ok = io:setopts(standard_io, Opts),
 
-  ok = case io:setopts(standard_error, [{encoding,utf8}]) of
+  ok = case io:setopts(standard_error, [{encoding, utf8}]) of
     ok         -> ok;
-    {error, _} -> io:setopts(standard_error, [{unicode,true}]) %% R17.3 and earlier
+    {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% R17.3 and earlier
   end,
 
   case file:native_name_encoding() of
@@ -52,7 +52,7 @@ start(_Type, _Args) ->
           {<<"https">>, 443},
           {<<"ldap">>, 389}],
   URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
-  CompilerOpts = [{docs,true},{debug_info,true},{warnings_as_errors,false}],
+  CompilerOpts = [{docs, true}, {debug_info, true}, {warnings_as_errors, false}],
   Config = [{at_exit, []},
             {compiler_options, orddict:from_list(CompilerOpts)}
             | URIConfig],
@@ -169,7 +169,7 @@ eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
   {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := [K || {K,_} <- ParsedScope#elixir_scope.vars]},
+  ParsedEnv = Env#{vars := [K || {K, _} <- ParsedScope#elixir_scope.vars]},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of

@@ -269,7 +269,7 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 
 %% Blocks
 
-do_block -> do_eoe 'end' : [[{do,nil}]].
+do_block -> do_eoe 'end' : [[{do, nil}]].
 do_block -> do_eoe stab end_eoe : [[{do, build_stab(reverse('$2'))}]].
 do_block -> do_eoe block_list 'end' : [[{do, nil}|'$2']].
 do_block -> do_eoe stab_eoe block_list 'end' : [[{do, build_stab(reverse('$2'))}|'$3']].
@@ -502,7 +502,7 @@ kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'}|'$1'].
 kw -> kw_base : reverse('$1').
 kw -> kw_base ',' : reverse('$1').
 
-call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : {'$1','$2'}.
+call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : {'$1', '$2'}.
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
 
@@ -584,10 +584,10 @@ Erlang code.
 
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
--compile([{hipe,[{regalloc,linear_scan}]}]).
+-compile([{hipe, [{regalloc, linear_scan}]}]).
 -import(lists, [reverse/1, reverse/2]).
 
-meta(Line, Counter) -> [{counter,Counter}|meta(Line)].
+meta(Line, Counter) -> [{counter, Counter}|meta(Line)].
 meta({Line, Column, EndColumn}) when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}];
 meta(Node) -> meta(?line(Node)).
 
@@ -621,8 +621,8 @@ build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
 
 %% Blocks
 
-build_block([{Op,_,[_]}]=Exprs) when ?rearrange_uop(Op) -> {'__block__', [], Exprs};
-build_block([{unquote_splicing,_,Args}]=Exprs) when
+build_block([{Op, _, [_]}]=Exprs) when ?rearrange_uop(Op) -> {'__block__', [], Exprs};
+build_block([{unquote_splicing, _, Args}]=Exprs) when
                                       length(Args) =< 2 -> {'__block__', [], Exprs};
 build_block([Expr])                                     -> Expr;
 build_block(Exprs)                                      -> {'__block__', [], Exprs}.
@@ -664,7 +664,7 @@ build_identifier({Keyword, Line}, Args) when Keyword == fn ->
   {fn, meta(Line), Args};
 
 build_identifier({op_identifier, Line, Identifier}, [Arg]) ->
-  {Identifier, [{ambiguous_op,nil}|meta(Line)], [Arg]};
+  {Identifier, [{ambiguous_op, nil}|meta(Line)], [Arg]};
 
 build_identifier({_, Line, Identifier}, Args) ->
   {Identifier, meta(Line), Args}.
@@ -743,7 +743,7 @@ build_stab(Meta, [], Marker, Temp, Acc) ->
 %% Every time the parser sees a (unquote_splicing())
 %% it assumes that a block is being spliced, wrapping
 %% the splicing in a __block__. But in the stab clause,
-%% we can have (unquote_splicing(1,2,3)) -> :ok, in such
+%% we can have (unquote_splicing(1, 2, 3)) -> :ok, in such
 %% case, we don't actually want the block, since it is
 %% an arg style call. unwrap_splice unwraps the splice
 %% from such blocks.

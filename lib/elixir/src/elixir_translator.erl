@@ -226,7 +226,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   %% because erl_eval chokes on them. We can remove this
   %% once a fix is merged into Erlang, keeping only the
   %% list operators one (since it is required for inlining
-  %% [1,2,3] ++ Right in matches).
+  %% [1, 2, 3] ++ Right in matches).
   case (Left == erlang) andalso erl_op(Right, Arity) of
     true ->
       {list_to_tuple([op, Line, Right] ++ TArgs), mergev(SL, SA)};
@@ -309,7 +309,7 @@ erl_op(Op, Arity) ->
     erl_internal:arith_op(Op, Arity).
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
-  {[TLeft,TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
+  {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
   {build_list([TLeft|List], TRight), TAcc};
 translate_list([H|T], Fun, Acc, List) ->
   {TH, TAcc} = Fun(H, Acc),
@@ -408,11 +408,11 @@ build_truthy_clause(Meta, Condition, Body) ->
 
 %% Assertions
 
-assert_module_scope(Meta, Kind, #elixir_scope{module=nil,file=File}) ->
+assert_module_scope(Meta, Kind, #elixir_scope{module=nil, file=File}) ->
   compile_error(Meta, File, "cannot invoke ~ts outside module", [Kind]);
 assert_module_scope(_Meta, _Kind, #elixir_scope{module=Module}) -> Module.
 
-assert_function_scope(Meta, Kind, #elixir_scope{function=nil,file=File}) ->
+assert_function_scope(Meta, Kind, #elixir_scope{function=nil, file=File}) ->
   compile_error(Meta, File, "cannot invoke ~ts outside function", [Kind]);
 assert_function_scope(_Meta, _Kind, #elixir_scope{function=Function}) -> Function.
 

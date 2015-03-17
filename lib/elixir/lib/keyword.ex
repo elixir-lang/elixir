@@ -243,7 +243,7 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.get_values([a: 1, a: 2], :a)
-      [1,2]
+      [1, 2]
 
   """
   @spec get_values(t, key) :: [value]
@@ -264,10 +264,10 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.keys([a: 1, b: 2])
-      [:a,:b]
+      [:a, :b]
 
       iex> Keyword.keys([a: 1, b: 2, a: 3])
-      [:a,:b,:a]
+      [:a, :b, :a]
 
   """
   @spec keys(t) :: [key]
@@ -281,7 +281,7 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.values([a: 1, b: 2])
-      [1,2]
+      [1, 2]
 
   """
   @spec values(t) :: [value]
@@ -650,16 +650,16 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.pop [a: 1], :a
-      {1,[]}
+      {1, []}
 
       iex> Keyword.pop [a: 1], :b
-      {nil,[a: 1]}
+      {nil, [a: 1]}
 
       iex> Keyword.pop [a: 1], :b, 3
-      {3,[a: 1]}
+      {3, [a: 1]}
 
       iex> Keyword.pop [a: 1, a: 2], :a
-      {1,[]}
+      {1, []}
 
   """
   @spec pop(t, key, value) :: {value, t}
@@ -690,9 +690,9 @@ defmodule Keyword do
       ...>   :result
       ...> end
       iex> Keyword.pop_lazy(keyword, :a, fun)
-      {1,[]}
+      {1, []}
       iex> Keyword.pop_lazy(keyword, :b, fun)
-      {:result,[a: 1]}
+      {:result, [a: 1]}
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
@@ -716,16 +716,16 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.pop_first [a: 1], :a
-      {1,[]}
+      {1, []}
 
       iex> Keyword.pop_first [a: 1], :b
-      {nil,[a: 1]}
+      {nil, [a: 1]}
 
       iex> Keyword.pop_first [a: 1], :b, 3
-      {3,[a: 1]}
+      {3, [a: 1]}
 
       iex> Keyword.pop_first [a: 1, a: 2], :a
-      {1,[a: 2]}
+      {1, [a: 2]}
 
   """
   @spec pop_first(t, key, value) :: {value, t}

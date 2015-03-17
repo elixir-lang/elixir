@@ -9,7 +9,7 @@ defmodule Stream do
       iex> range = 1..5
       1..5
       iex> Enum.map range, &(&1 * 2)
-      [2,4,6,8,10]
+      [2, 4, 6, 8, 10]
 
   In the example above, as we mapped over the range, the elements being
   enumerated were created one by one, during enumeration. The `Stream`
@@ -18,7 +18,7 @@ defmodule Stream do
       iex> range = 1..3
       iex> stream = Stream.map(range, &(&1 * 2))
       iex> Enum.map(stream, &(&1 + 1))
-      [3,5,7]
+      [3, 5, 7]
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
@@ -43,7 +43,7 @@ defmodule Stream do
       2
       4
       6
-      #=> [2,4,6]
+      #=> [2, 4, 6]
 
   Notice that we first printed each item in the list, then multiplied each
   element by 2 and finally printed each new value. In this example, the list
@@ -60,7 +60,7 @@ defmodule Stream do
       4
       3
       6
-      #=> [2,4,6]
+      #=> [2, 4, 6]
 
   Although the end result is the same, the order in which the items were
   printed changed! With streams, we print the first item and then print
@@ -110,13 +110,13 @@ defmodule Stream do
   end
 
   defmacrop acc(h, n, t) do
-    quote do: [unquote(h),unquote(n)|unquote(t)]
+    quote do: [unquote(h), unquote(n)|unquote(t)]
   end
 
   defmacrop next_with_acc(f, entry, h, n, t) do
     quote do
       {reason, [h|t]} = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
-      {reason, [h,unquote(n)|t]}
+      {reason, [h, unquote(n)|t]}
     end
   end
 
@@ -229,7 +229,7 @@ defmodule Stream do
   ## Examples
 
       iex> Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
-      [{1,:x}, {2,:y}, {1, :x}]
+      [{1, :x}, {2, :y}, {1, :x}]
 
   """
   @spec dedup_by(Enumerable.t, (element -> term)) :: Enumerable.t
@@ -249,11 +249,11 @@ defmodule Stream do
 
       iex> stream = Stream.drop(1..10, 5)
       iex> Enum.to_list(stream)
-      [6,7,8,9,10]
+      [6, 7, 8, 9, 10]
 
       iex> stream = Stream.drop(1..10, -5)
       iex> Enum.to_list(stream)
-      [1,2,3,4,5]
+      [1, 2, 3, 4, 5]
 
   """
   @spec drop(Enumerable.t, non_neg_integer) :: Enumerable.t
@@ -293,7 +293,7 @@ defmodule Stream do
 
       iex> stream = Stream.drop_while(1..10, &(&1 <= 5))
       iex> Enum.to_list(stream)
-      [6,7,8,9,10]
+      [6, 7, 8, 9, 10]
 
   """
   @spec drop_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
@@ -370,7 +370,7 @@ defmodule Stream do
 
       iex> stream = Stream.filter_map(1..6, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
       iex> Enum.to_list(stream)
-      [4,8,12]
+      [4, 8, 12]
 
   """
   @spec filter_map(Enumerable.t, (element -> as_boolean(term)), (element -> any)) :: Enumerable.t
@@ -386,7 +386,7 @@ defmodule Stream do
   ## Examples
 
       iex> Stream.interval(10) |> Enum.take(10)
-      [0,1,2,3,4,5,6,7,8,9]
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
   """
   @spec interval(non_neg_integer) :: Enumerable.t
@@ -443,7 +443,7 @@ defmodule Stream do
 
       iex> stream = Stream.map([1, 2, 3], fn(x) -> x * 2 end)
       iex> Enum.to_list(stream)
-      [2,4,6]
+      [2, 4, 6]
 
   """
   @spec map(Enumerable.t, (element -> any)) :: Enumerable.t
@@ -459,7 +459,7 @@ defmodule Stream do
 
       iex> stream = Stream.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
       iex> Enum.to_list(stream)
-      [1,3]
+      [1, 3]
 
   """
   @spec reject(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
@@ -501,7 +501,7 @@ defmodule Stream do
 
       iex> stream = Stream.scan(1..5, &(&1 + &2))
       iex> Enum.to_list(stream)
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(Enumerable.t, (element, acc -> any)) :: Enumerable.t
@@ -518,7 +518,7 @@ defmodule Stream do
 
       iex> stream = Stream.scan(1..5, 0, &(&1 + &2))
       iex> Enum.to_list(stream)
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(Enumerable.t, acc, (element, acc -> any)) :: Enumerable.t
@@ -540,15 +540,15 @@ defmodule Stream do
 
       iex> stream = Stream.take(1..100, 5)
       iex> Enum.to_list(stream)
-      [1,2,3,4,5]
+      [1, 2, 3, 4, 5]
 
       iex> stream = Stream.take(1..100, -5)
       iex> Enum.to_list(stream)
-      [96,97,98,99,100]
+      [96, 97, 98, 99, 100]
 
       iex> stream = Stream.cycle([1, 2, 3]) |> Stream.take(5)
       iex> Enum.to_list(stream)
-      [1,2,3,1,2]
+      [1, 2, 3, 1, 2]
 
   """
   @spec take(Enumerable.t, integer) :: Enumerable.t
@@ -574,7 +574,7 @@ defmodule Stream do
 
       iex> stream = Stream.take_every(1..10, 2)
       iex> Enum.to_list(stream)
-      [1,3,5,7,9]
+      [1, 3, 5, 7, 9]
 
   """
   @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
@@ -592,7 +592,7 @@ defmodule Stream do
 
       iex> stream = Stream.take_while(1..100, &(&1 <= 5))
       iex> Enum.to_list(stream)
-      [1,2,3,4,5]
+      [1, 2, 3, 4, 5]
 
   """
   @spec take_while(Enumerable.t, (element -> as_boolean(term))) :: Enumerable.t
@@ -640,7 +640,7 @@ defmodule Stream do
       ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
       iex> Enum.to_list(stream)
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
@@ -750,7 +750,7 @@ defmodule Stream do
       [1, 2, 3]
 
       iex> Stream.uniq([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
-      [{1,:x}, {2,:y}]
+      [{1, :x}, {2, :y}]
 
   """
   @spec uniq(Enumerable.t) :: Enumerable.t
@@ -767,7 +767,7 @@ defmodule Stream do
 
       iex> stream = Stream.with_index([1, 2, 3])
       iex> Enum.to_list(stream)
-      [{1,0},{2,1},{3,2}]
+      [{1, 0}, {2, 1}, {3, 2}]
 
   """
   @spec with_index(Enumerable.t) :: Enumerable.t
@@ -784,7 +784,7 @@ defmodule Stream do
 
       iex> stream = Stream.concat([1..3, 4..6, 7..9])
       iex> Enum.to_list(stream)
-      [1,2,3,4,5,6,7,8,9]
+      [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
   """
   @spec concat(Enumerable.t) :: Enumerable.t
@@ -799,13 +799,13 @@ defmodule Stream do
 
       iex> stream = Stream.concat(1..3, 4..6)
       iex> Enum.to_list(stream)
-      [1,2,3,4,5,6]
+      [1, 2, 3, 4, 5, 6]
 
       iex> stream1 = Stream.cycle([1, 2, 3])
       iex> stream2 = Stream.cycle([4, 5, 6])
       iex> stream = Stream.concat(stream1, stream2)
       iex> Enum.take(stream, 6)
-      [1,2,3,1,2,3]
+      [1, 2, 3, 1, 2, 3]
 
   """
   @spec concat(Enumerable.t, Enumerable.t) :: Enumerable.t
@@ -823,7 +823,7 @@ defmodule Stream do
       iex> concat = Stream.concat(1..3, 4..6)
       iex> cycle  = Stream.cycle([:a, :b, :c])
       iex> Stream.zip(concat, cycle) |> Enum.to_list
-      [{1,:a},{2,:b},{3,:c},{4,:a},{5,:b},{6,:c}]
+      [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
 
   """
   @spec zip(Enumerable.t, Enumerable.t) :: Enumerable.t
@@ -894,9 +894,9 @@ defmodule Stream do
 
   ## Examples
 
-      iex> stream = Stream.cycle([1,2,3])
+      iex> stream = Stream.cycle([1, 2, 3])
       iex> Enum.take(stream, 5)
-      [1,2,3,1,2]
+      [1, 2, 3, 1, 2]
 
   """
   @spec cycle(Enumerable.t) :: Enumerable.t
@@ -953,7 +953,7 @@ defmodule Stream do
   ## Examples
 
       iex> Stream.iterate(0, &(&1+1)) |> Enum.take(5)
-      [0,1,2,3,4]
+      [0, 1, 2, 3, 4]
 
   """
   @spec iterate(element, (element -> element)) :: Enumerable.t

@@ -77,7 +77,7 @@ defmodule File do
   @type stat_options :: [time: :local | :universal | :posix]
   @type mode :: :append | :binary | :compressed | :delayed_write | :exclusive |
     :raw | :read | :read_ahead | :sync | :write |
-    {:encoding , :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
+    {:encoding, :latin1 | :unicode | :utf16 | :utf32 | :utf8 |
       {:utf16, :big | :little} | {:utf32, :big | :little}} |
     {:read_ahead, pos_integer} |
     {:delayed_write, non_neg_integer, non_neg_integer}

@@ -3,7 +3,7 @@
 
 %% Convenience variables
 
--define(hidden, [{line,-1}]).
+-define(hidden, [{line, -1}]).
 
 -define(atom, 'Elixir.Atom').
 -define(enum, 'Elixir.Enum').

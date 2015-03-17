@@ -94,7 +94,7 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  unless match?({:win32,_}, :os.type) do
+  unless match?({:win32, _}, :os.type) do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
@@ -105,7 +105,7 @@ defmodule IEx.InteractionTest do
 
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
-    assert capture_iex("<<45,46,47>>\n[45,46,47]\n%IO.Stream{}", opts) ==
+    assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
               "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 

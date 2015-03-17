@@ -27,7 +27,7 @@ defmodule MacroTest do
   test :escape_handle_tuples_with_size_different_than_two do
     assert {:{}, [], [:a]} == Macro.escape({:a})
     assert {:{}, [], [:a, :b, :c]} == Macro.escape({:a, :b, :c})
-    assert {:{}, [], [:a, {:{}, [], [1,2,3]}, :c]} == Macro.escape({:a, {1, 2, 3}, :c})
+    assert {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]} == Macro.escape({:a, {1, 2, 3}, :c})
   end
 
   test :escape_simply_returns_tuples_with_size_equal_to_two do
@@ -47,12 +47,12 @@ defmodule MacroTest do
   end
 
   test :escape_works_recursively do
-    assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, {:a, :b, :c}, 3])
+    assert [1, {:{}, [], [:a, :b, :c]}, 3] == Macro.escape([1, {:a, :b, :c}, 3])
   end
 
   test :escape_improper do
-    assert [{:|, [], [1,2]}] == Macro.escape([1|2])
-    assert [1,{:|, [], [2,3]}] == Macro.escape([1,2|3])
+    assert [{:|, [], [1, 2]}] == Macro.escape([1|2])
+    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2|3])
   end
 
   test :escape_with_unquote do
@@ -385,7 +385,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: %{})  == "%{}"
     assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
-    assert Macro.to_string(quote do: %{{1,2} => [1,2,3]})  == "%{{1, 2} => [1, 2, 3]}"
+    assert Macro.to_string(quote do: %{{1, 2} => [1, 2, 3]})  == "%{{1, 2} => [1, 2, 3]}"
     assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"

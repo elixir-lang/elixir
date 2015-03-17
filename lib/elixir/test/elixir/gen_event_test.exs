@@ -494,7 +494,7 @@ defmodule GenEventTest do
 
   defp hibernating?(pid) do
     Process.info(pid, :current_function) ==
-      {:current_function,{:erlang,:hibernate,3}}
+      {:current_function, {:erlang, :hibernate, 3}}
   end
 
   defp wait_until(fun, counter \\ 0) do

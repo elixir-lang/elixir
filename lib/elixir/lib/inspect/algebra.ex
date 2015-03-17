@@ -403,7 +403,7 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = ["A", "B"]
-      iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) ->
+      iex> doc = Inspect.Algebra.folddoc(doc, fn(x, y) ->
       ...>   Inspect.Algebra.concat [x, "!", y]
       ...> end)
       iex> Inspect.Algebra.format(doc, 80)

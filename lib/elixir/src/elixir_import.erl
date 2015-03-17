@@ -53,7 +53,7 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
   New = case keyfind(only, Opts) of
     {only, Only} when is_list(Only) ->
       case Only -- get_exports(Key) of
-        [{Name,Arity}|_] ->
+        [{Name, Arity}|_] ->
           Tuple = {invalid_import, {Key, Name, Arity}},
           elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
         _ ->
@@ -66,7 +66,7 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
         {except, Except} when is_list(Except) ->
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
-            {Key,OldImports} -> OldImports -- Except
+            {Key, OldImports} -> OldImports -- Except
           end
       end
   end,
@@ -120,7 +120,7 @@ get_optional_macros(Module)  ->
 
 %% VALIDATION HELPERS
 
-ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T]) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity}|T]) ->
   case special_form(Name, Arity) of
     true  ->
       Tuple = {special_form_conflict, {Key, Name, Arity}},
@@ -133,11 +133,11 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 %% ERROR HANDLING
 
-format_error({invalid_import,{Receiver, Name, Arity}}) ->
+format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
-format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
+format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 

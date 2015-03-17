@@ -75,7 +75,7 @@ expand({'__aliases__', Meta, _} = Alias, E) ->
 %% alias
 
 expand({alias, Meta, [Ref]}, E) ->
-  expand({alias, Meta, [Ref,[]]}, E);
+  expand({alias, Meta, [Ref, []]}, E);
 expand({alias, Meta, [Ref, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, alias, E),
   {ERef, ER} = expand(Ref, E),
@@ -156,7 +156,7 @@ expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_spli
 expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     {do, Do} ->
-      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do,Do}]]}, E);
+      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
       compile_error(Meta, ?m(E, file), "missing do keyword in quote")
   end;
@@ -355,7 +355,7 @@ expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
     ['Elixir.Macro':to_string(Invalid)]);
 
 expand({_, _, _} = Tuple, E) ->
-  compile_error([{line,0}], ?m(E, file), "invalid quoted expression: ~ts",
+  compile_error([{line, 0}], ?m(E, file), "invalid quoted expression: ~ts",
     ['Elixir.Kernel':inspect(Tuple, [])]);
 
 %% Literals
@@ -377,7 +377,7 @@ expand(Function, E) when is_function(Function) ->
     true ->
       {Function, E};
     false ->
-      compile_error([{line,0}], ?m(E, file),
+      compile_error([{line, 0}], ?m(E, file),
         "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Function)])
   end;
 
@@ -385,7 +385,7 @@ expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid
   {Other, E};
 
 expand(Other, E) ->
-  compile_error([{line,0}], ?m(E, file),
+  compile_error([{line, 0}], ?m(E, file),
     "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
@@ -499,7 +499,7 @@ no_alias_opts(KV) when is_list(KV) ->
 no_alias_opts(KV) -> KV.
 
 no_alias_expansion({'__aliases__', Meta, [H|T]}) when (H /= 'Elixir') and is_atom(H) ->
-  {'__aliases__', Meta, ['Elixir',H|T]};
+  {'__aliases__', Meta, ['Elixir', H|T]};
 no_alias_expansion(Other) ->
   Other.
 
@@ -546,9 +546,9 @@ expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
 
 %% Assertions
 
-rewrite_case_clauses([{do,[
+rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {'__op__', _,[
+    [{'when', _, [Var, {'__op__', _, [
       'orelse',
       {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
       {{'.', _, [erlang, '=:=']}, _, [Var, false]}

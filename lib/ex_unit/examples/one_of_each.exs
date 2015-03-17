@@ -11,8 +11,8 @@ defmodule TestOneOfEach do
   @one 1
   @two 2
 
-  @long_data_1  [ field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1,2,3,4]]
-  @long_data_2  [ field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1,2,3,4]]
+  @long_data_1  [ field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_2  [ field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
 
   test "1. assert with a match" do
     assert [@one] = [@two]

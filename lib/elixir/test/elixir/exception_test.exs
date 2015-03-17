@@ -82,7 +82,7 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_exit(:normal) == "normal"
     assert Exception.format_exit(:shutdown) == "shutdown"
     assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
-    assert Exception.format_exit({:badarg,[{:not_a_real_module, :function, 0, []}]}) ==
+    assert Exception.format_exit({:badarg, [{:not_a_real_module, :function, 0, []}]}) ==
            "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
     assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
     assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
