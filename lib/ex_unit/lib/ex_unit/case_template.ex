@@ -62,6 +62,15 @@ defmodule ExUnit.CaseTemplate do
   @doc """
   Allows a developer to customize the using block
   when the case template is used.
+
+  ## Example
+
+    using do
+      quote do
+        alias MyApp.FunModule
+      end
+    end
+    
   """
   defmacro using(var \\ quote(do: _), do: block) do
     quote location: :keep do
