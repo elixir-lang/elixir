@@ -51,7 +51,7 @@ defmodule Integer do
   defp do_digits(0, _base, []),  do: [0]
   defp do_digits(0, _base, acc), do: acc
   defp do_digits(n, base, acc)  do
-    do_digits div(n,base), base, [rem(n,base) | acc]
+    do_digits div(n, base), base, [rem(n, base) | acc]
   end
 
   @doc """
@@ -91,10 +91,10 @@ defmodule Integer do
   ## Examples
 
       iex> Integer.parse("34")
-      {34,""}
+      {34, ""}
 
       iex> Integer.parse("34.5")
-      {34,".5"}
+      {34, ".5"}
 
       iex> Integer.parse("three")
       :error

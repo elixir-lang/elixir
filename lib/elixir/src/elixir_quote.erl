@@ -116,7 +116,7 @@ validate_list(List) when not is_list(List) ->
                    ('Elixir.Kernel':inspect(List))/binary>>).
 
 argument_error(Message) ->
-  error('Elixir.ArgumentError':exception([{message,Message}])).
+  error('Elixir.ArgumentError':exception([{message, Message}])).
 
 %% Annotates the AST with context and other info.
 %%
@@ -169,7 +169,7 @@ quote(Expr, Binding, Q, E) ->
  } || {K, V} <- Binding],
 
   {TExprs, TQ} = do_quote(Expr, Q, E),
-  {{'{}',[], ['__block__',[], Vars ++ [TExprs] ]}, TQ}.
+  {{'{}', [], ['__block__', [], Vars ++ [TExprs] ]}, TQ}.
 
 %% Actual quoting and helpers
 
@@ -342,7 +342,7 @@ reverse_improper([H|T], Acc) -> {[H|Acc], T}.
 
 update_last([], _) -> [];
 update_last([H], F) -> [F(H)];
-update_last([H|T], F) -> [H|update_last(T,F)].
+update_last([H|T], F) -> [H|update_last(T, F)].
 
 keyfind(Key, Meta) ->
   lists:keyfind(Key, 1, Meta).

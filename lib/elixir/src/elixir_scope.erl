@@ -125,10 +125,10 @@ load_binding(Binding, Scope) ->
   {NewBinding, NewVars, NewCounter} = load_binding(Binding, [], [], 0),
   {NewBinding, Scope#elixir_scope{
     vars=NewVars,
-    counter=[{'_',NewCounter}]
+    counter=[{'_', NewCounter}]
  }}.
 
-load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
+load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
   Actual = case Key of
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
@@ -143,7 +143,7 @@ load_binding([], Binding, Vars, Counter) ->
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).
 
-dump_binding([{{Var, Kind} = Key, {InternalName,_}}|T], Binding, Acc) when is_atom(Kind) ->
+dump_binding([{{Var, Kind} = Key, {InternalName, _}}|T], Binding, Acc) when is_atom(Kind) ->
   Actual = case Kind of
     nil -> Var;
     _   -> Key

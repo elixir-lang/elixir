@@ -148,7 +148,7 @@ defmodule Enum do
   `Enumerable` protocol:
 
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
-      [2,4,6]
+      [2, 4, 6]
 
   Some particular types, like dictionaries, yield a specific format on
   enumeration. For dicts, the argument is always a `{key, value}` tuple:
@@ -166,7 +166,7 @@ defmodule Enum do
   be carefully used with such functions, as they can potentially run
   forever. For example:
 
-      Enum.each Stream.cycle([1,2,3]), &IO.puts(&1)
+      Enum.each Stream.cycle([1, 2, 3]), &IO.puts(&1)
 
   """
 
@@ -380,10 +380,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.concat([1..3, 4..6, 7..9])
-      [1,2,3,4,5,6,7,8,9]
+      [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
       iex> Enum.concat([[1, [2], 3], [4], [5, 6]])
-      [1,[2],3,4,5,6]
+      [1, [2], 3, 4, 5, 6]
 
   """
   @spec concat(t) :: t
@@ -399,10 +399,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.concat(1..3, 4..6)
-      [1,2,3,4,5,6]
+      [1, 2, 3, 4, 5, 6]
 
       iex> Enum.concat([1, 2, 3], [4, 5, 6])
-      [1,2,3,4,5,6]
+      [1, 2, 3, 4, 5, 6]
 
   """
   @spec concat(t, t) :: t
@@ -487,7 +487,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
-      [{1,:x}, {2,:y}, {1, :x}]
+      [{1, :x}, {2, :y}, {1, :x}]
 
       iex> Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
       [5, 1, 3, 2]
@@ -516,10 +516,10 @@ defmodule Enum do
       []
 
       iex> Enum.drop([1, 2, 3], 0)
-      [1,2,3]
+      [1, 2, 3]
 
       iex> Enum.drop([1, 2, 3], -1)
-      [1,2]
+      [1, 2]
 
   """
   @spec drop(t, integer) :: list
@@ -547,7 +547,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
-      [3,4,5]
+      [3, 4, 5]
 
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
@@ -824,7 +824,7 @@ defmodule Enum do
       iex> Enum.flat_map([:a, :b, :c], fn(x) -> [x, x] end)
       [:a, :a, :b, :b, :c, :c]
 
-      iex> Enum.flat_map([{1,3}, {4,6}], fn({x,y}) -> x..y end)
+      iex> Enum.flat_map([{1, 3}, {4, 6}], fn({x, y}) -> x..y end)
       [1, 2, 3, 4, 5, 6]
 
   """
@@ -850,7 +850,7 @@ defmodule Enum do
       iex> Enum.flat_map_reduce(enum, 0, fn i, acc ->
       ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
-      {[1,2,3], 3}
+      {[1, 2, 3], 3}
 
   """
   @spec flat_map_reduce(t, acc, fun) :: {[any], any} when
@@ -1329,7 +1329,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
-      {[2], [1,3]}
+      {[2], [1, 3]}
 
   """
   @spec partition(t, (element -> any)) :: {list, list}
@@ -1536,9 +1536,9 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sample([1,2,3])
+      iex> Enum.sample([1, 2, 3])
       1
-      iex> Enum.sample([1,2,3])
+      iex> Enum.sample([1, 2, 3])
       2
 
   """
@@ -1597,7 +1597,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.scan(1..5, &(&1 + &2))
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(t, (element, any -> any)) :: list
@@ -1614,7 +1614,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.scan(1..5, 0, &(&1 + &2))
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(t, any, (element, any -> any)) :: list
@@ -1857,19 +1857,19 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.split([1, 2, 3], 2)
-      {[1,2], [3]}
+      {[1, 2], [3]}
 
       iex> Enum.split([1, 2, 3], 10)
-      {[1,2,3], []}
+      {[1, 2, 3], []}
 
       iex> Enum.split([1, 2, 3], 0)
-      {[], [1,2,3]}
+      {[], [1, 2, 3]}
 
       iex> Enum.split([1, 2, 3], -1)
-      {[1,2], [3]}
+      {[1, 2], [3]}
 
       iex> Enum.split([1, 2, 3], -5)
-      {[], [1,2,3]}
+      {[], [1, 2, 3]}
 
   """
   @spec split(t, integer) :: {list, list}
@@ -1932,10 +1932,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.take([1, 2, 3], 2)
-      [1,2]
+      [1, 2]
 
       iex> Enum.take([1, 2, 3], 10)
-      [1,2,3]
+      [1, 2, 3]
 
       iex> Enum.take([1, 2, 3], 0)
       []
@@ -2084,7 +2084,7 @@ defmodule Enum do
   ## Example
 
       iex> Enum.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
-      [{1,:x}, {2,:y}]
+      [{1, :x}, {2, :y}]
 
   """
   @spec uniq_by(t, (element -> term)) :: list
@@ -2171,10 +2171,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.zip([1, 2, 3], [:a, :b, :c])
-      [{1,:a},{2,:b},{3,:c}]
+      [{1, :a}, {2, :b}, {3, :c}]
 
-      iex> Enum.zip([1,2,3,4,5], [:a, :b, :c])
-      [{1,:a},{2,:b},{3,:c}]
+      iex> Enum.zip([1, 2, 3, 4, 5], [:a, :b, :c])
+      [{1, :a}, {2, :b}, {3, :c}]
 
   """
   @spec zip(t, t) :: [{any, any}]
@@ -2192,8 +2192,8 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.with_index [1,2,3]
-      [{1,0},{2,1},{3,2}]
+      iex> Enum.with_index [1, 2, 3]
+      [{1, 0}, {2, 1}, {3, 2}]
 
   """
   @spec with_index(t) :: list({element, non_neg_integer})

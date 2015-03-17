@@ -61,19 +61,19 @@ defmodule EnumTest.List do
 
   test :concat_1 do
     assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
-    assert Enum.concat(1..3, []) == [1,2,3]
+    assert Enum.concat(1..3, []) == [1, 2, 3]
 
     assert Enum.concat([[], []]) == []
     assert Enum.concat([[]])     == []
     assert Enum.concat([])       == []
 
-    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1,2,3,4,5,1]
+    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1, 2, 3, 4, 5, 1]
   end
 
   test :concat_2 do
     assert Enum.concat([], [1]) == [1]
     assert Enum.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
-    assert Enum.concat(1..3, []) == [1,2,3]
+    assert Enum.concat(1..3, []) == [1, 2, 3]
 
     assert Enum.concat([], []) == []
 
@@ -95,9 +95,9 @@ defmodule EnumTest.List do
   end
 
   test :dedup do
-    assert Enum.dedup([1,1,2,1,1,2,1]) == [1,2,1,2,1]
-    assert Enum.dedup([2,1,1,2,1]) == [2,1,2,1]
-    assert Enum.dedup([1,2,3,4]) == [1,2,3,4]
+    assert Enum.dedup([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
+    assert Enum.dedup([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
+    assert Enum.dedup([1, 2, 3, 4]) == [1, 2, 3, 4]
     assert Enum.dedup([]) == []
     assert Enum.dedup([nil, nil, true, {:value, true}]) == [nil, true, {:value, true}]
     assert Enum.dedup([nil]) == [nil]
@@ -105,7 +105,7 @@ defmodule EnumTest.List do
 
   test :dedup_by do
     assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
-      == [{1,:x}, {2,:y}, {1, :x}]
+      == [{1, :x}, {2, :y}, {1, :x}]
 
     assert Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [5, 1, 3, 2]
   end
@@ -190,7 +190,7 @@ defmodule EnumTest.List do
 
     assert Enum.flat_map_reduce(1..100, 0, fn i, acc ->
       if acc < 3, do: {[i], acc + 1}, else: {:halt, acc}
-    end) == {[1,2,3], 3}
+    end) == {[1, 2, 3], 3}
   end
 
   test :group_by do
@@ -213,7 +213,7 @@ defmodule EnumTest.List do
   test :intersperse do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
-    assert Enum.intersperse([1,2,3], true) == [1, true, 2, true, 3]
+    assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
   end
 
   test :join do
@@ -308,7 +308,7 @@ defmodule EnumTest.List do
 
   test :sample_2 do
     # corner cases, independent of the seed
-    assert_raise FunctionClauseError, fn -> Enum.sample([1,2], -1) end
+    assert_raise FunctionClauseError, fn -> Enum.sample([1, 2], -1) end
     assert Enum.sample([], 0) == []
     assert Enum.sample([], 3) == []
     assert Enum.sample([1], 0) == []
@@ -340,10 +340,10 @@ defmodule EnumTest.List do
  end
 
   test :scan do
-    assert Enum.scan([1,2,3,4,5], &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan([1, 2, 3, 4, 5], &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan([], &(&1 + &2)) == []
 
-    assert Enum.scan([1,2,3,4,5], 0, &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan([1, 2, 3, 4, 5], 0, &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan([], 0, &(&1 + &2)) == []
   end
 
@@ -411,7 +411,7 @@ defmodule EnumTest.List do
       Enum.sum([{}])
     end
     assert_raise ArithmeticError, fn ->
-      Enum.sum([1,{}])
+      Enum.sum([1, {}])
     end
   end
 
@@ -488,7 +488,7 @@ defmodule EnumTest.List do
 
   test :with_index do
     assert Enum.with_index([]) == []
-    assert Enum.with_index([1,2,3]) == [{1,0},{2,1},{3,2}]
+    assert Enum.with_index([1, 2, 3]) == [{1, 0}, {2, 1}, {3, 2}]
   end
 
   test :max do
@@ -557,40 +557,40 @@ defmodule EnumTest.List do
   end
 
   test :slice do
-    assert Enum.slice([1,2,3,4,5], 0, 0) == []
-    assert Enum.slice([1,2,3,4,5], 0, 1) == [1]
-    assert Enum.slice([1,2,3,4,5], 0, 2) == [1, 2]
-    assert Enum.slice([1,2,3,4,5], 1, 2) == [2, 3]
-    assert Enum.slice([1,2,3,4,5], 1, 0) == []
-    assert Enum.slice([1,2,3,4,5], 2, 5) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 2, 6) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 5, 5) == []
-    assert Enum.slice([1,2,3,4,5], 6, 5) == []
-    assert Enum.slice([1,2,3,4,5], 6, 0) == []
-    assert Enum.slice([1,2,3,4,5], -6, 0) == []
-    assert Enum.slice([1,2,3,4,5], -6, 5) == []
-    assert Enum.slice([1,2,3,4,5], -2, 5) == [4, 5]
-    assert Enum.slice([1,2,3,4,5], -3, 1) == [3]
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 1) == [1]
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 2) == [1, 2]
+    assert Enum.slice([1, 2, 3, 4, 5], 1, 2) == [2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 2, 5) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 2, 6) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 5, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -2, 5) == [4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], -3, 1) == [3]
   end
 
   test :slice_range do
-    assert Enum.slice([1,2,3,4,5], 0..0) == [1]
-    assert Enum.slice([1,2,3,4,5], 0..1) == [1, 2]
-    assert Enum.slice([1,2,3,4,5], 0..2) == [1, 2, 3]
-    assert Enum.slice([1,2,3,4,5], 1..2) == [2, 3]
-    assert Enum.slice([1,2,3,4,5], 1..0) == []
-    assert Enum.slice([1,2,3,4,5], 2..5) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 2..6) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 4..4) == [5]
-    assert Enum.slice([1,2,3,4,5], 5..5) == []
-    assert Enum.slice([1,2,3,4,5], 6..5) == []
-    assert Enum.slice([1,2,3,4,5], 6..0) == []
-    assert Enum.slice([1,2,3,4,5], -6..0) == []
-    assert Enum.slice([1,2,3,4,5], -6..5) == []
-    assert Enum.slice([1,2,3,4,5], -5..-1) == [1, 2, 3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], -5..-3) == [1, 2, 3]
-    assert Enum.slice([1,2,3,4,5], -6..-1) == []
-    assert Enum.slice([1,2,3,4,5], -6..-3) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 0..0) == [1]
+    assert Enum.slice([1, 2, 3, 4, 5], 0..1) == [1, 2]
+    assert Enum.slice([1, 2, 3, 4, 5], 0..2) == [1, 2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1..2) == [2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 2..5) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 2..6) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 4..4) == [5]
+    assert Enum.slice([1, 2, 3, 4, 5], 5..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -5..-1) == [1, 2, 3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], -5..-3) == [1, 2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], -6..-1) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..-3) == []
   end
 end
 
@@ -674,7 +674,7 @@ defmodule EnumTest.Range do
   end
 
   test :dedup do
-    assert Enum.dedup(1..3) == [1,2,3]
+    assert Enum.dedup(1..3) == [1, 2, 3]
   end
 
   test :dedup_by do
@@ -980,8 +980,8 @@ defmodule EnumTest.Range do
   end
 
   test :scan do
-    assert Enum.scan(1..5, &(&1 + &2)) == [1,3,6,10,15]
-    assert Enum.scan(1..5, 0, &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan(1..5, &(&1 + &2)) == [1, 3, 6, 10, 15]
+    assert Enum.scan(1..5, 0, &(&1 + &2)) == [1, 3, 6, 10, 15]
   end
 
   test :shuffle do
@@ -1136,7 +1136,7 @@ defmodule EnumTest.Range do
   end
 
   test :with_index do
-    assert Enum.with_index(1..3) == [{1,0},{2,1},{3,2}]
+    assert Enum.with_index(1..3) == [{1, 0}, {2, 1}, {3, 2}]
   end
 end
 

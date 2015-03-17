@@ -202,7 +202,7 @@ defmodule Logger.Translator do
                          {:registered_name, name},
                          {:error_info, {kind, exception, stack}} | crashed],
                         linked]) do
-    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+    {:ok, ["Process ", crash_name(pid, name), " terminating\n",
             crash_info(min_level, [initial_call | crashed]),
             crash_linked(min_level, linked) |
             Exception.format(kind, exception, stack)]}
@@ -213,7 +213,7 @@ defmodule Logger.Translator do
                          {:registered_name, name},
                          {:error_info, {kind, exception, stack}} | crashed],
                         linked]) do
-    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+    {:ok, ["Process ", crash_name(pid, name), " terminating\n",
             crash_info(min_level, crashed),
             crash_linked(min_level, linked) |
             Exception.format(kind, exception, stack)]}

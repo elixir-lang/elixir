@@ -16,7 +16,7 @@ expand(Meta, Args, E) ->
 
 expand_bitstr(_Fun, [], Acc, E) ->
   {lists:reverse(Acc), E};
-expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
+expand_bitstr(Fun, [{'::', Meta, [Left, Right]}|T], Acc, E) ->
   {ELeft, EL} = Fun(Left, E),
 
   %% Variables defined outside the binary can be accounted
@@ -27,7 +27,7 @@ expand_bitstr(Fun, [{'::',Meta,[Left,Right]}|T], Acc, E) ->
   end,
 
   ERight = expand_bit_info(Meta, Right, ER),
-  expand_bitstr(Fun, T, [{'::',Meta,[ELeft,ERight]}|Acc], EL);
+  expand_bitstr(Fun, T, [{'::', Meta, [ELeft, ERight]}|Acc], EL);
 
 expand_bitstr(Fun, [H|T], Acc, E) ->
   {Expr, ES} = Fun(H, E),
@@ -152,7 +152,7 @@ build_bitstr(Fun, Exprs, Meta, S) ->
 build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
   {Acc, S};
 
-build_bitstr_each(Fun, [{'::',_,[H,V]}|T], Meta, S, Acc) ->
+build_bitstr_each(Fun, [{'::', _, [H, V]}|T], Meta, S, Acc) ->
   {Size, Types} = extract_bit_info(V, S#elixir_scope{context=nil}),
   build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types);
 
@@ -220,7 +220,7 @@ is_byte_size([], Size) ->
   Size rem 8 == 0.
 
 elem_size({bin_element, _, _, default, _})              -> {0, 0};
-elem_size({bin_element, _, _, {integer,_,Size}, Types}) -> {Size, unit_size(Types, 1)};
+elem_size({bin_element, _, _, {integer, _, Size}, Types}) -> {Size, unit_size(Types, 1)};
 elem_size({bin_element, _, _, _Size, Types})            -> {unknown, unit_size(Types, 1)}.
 
 unit_size([binary|T], _)       -> unit_size(T, 8);

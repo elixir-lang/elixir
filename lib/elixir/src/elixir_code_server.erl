@@ -7,8 +7,8 @@
 -define(timeout, 30000).
 -record(elixir_code_server, {
   loaded=[],
-  paths={[],[]},
-  mod_pool={[],0},
+  paths={[], []},
+  mod_pool={[], 0},
   mod_ets=dict:new(),
   compilation_status=[]
 }).
@@ -67,9 +67,9 @@ handle_call({compilation_status, CompilerPid}, _From, Config) ->
 handle_call(retrieve_module_name, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
     {[H|T], Counter} ->
-      {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T,Counter}}};
+      {reply, module_tuple(H), Config#elixir_code_server{mod_pool={T, Counter}}};
     {[], Counter} ->
-      {reply, module_tuple(Counter), Config#elixir_code_server{mod_pool={[],Counter+1}}}
+      {reply, module_tuple(Counter), Config#elixir_code_server{mod_pool={[], Counter+1}}}
   end;
 
 handle_call(paths, _From, Config) ->
@@ -111,11 +111,11 @@ handle_cast({unload_files, Files}, Config) ->
   Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
   {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
-handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T,Counter}} = Config) ->
-  {noreply, Config#elixir_code_server{mod_pool={[H|T],Counter}}};
+handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
+  {noreply, Config#elixir_code_server{mod_pool={[H|T], Counter}}};
 
 handle_cast({paths, PA, PZ}, #elixir_code_server{} = Config) ->
-  {noreply, Config#elixir_code_server{paths={PA,PZ}}};
+  {noreply, Config#elixir_code_server{paths={PA, PZ}}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.

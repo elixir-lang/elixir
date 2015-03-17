@@ -98,7 +98,7 @@ defmodule Kernel.CLI.CompileTest do
     output = elixirc('#{fixture} non_existing.ex -o #{tmp_path}')
     assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentionned"
     assert :string.str(output, 'compile_sample.ex') == 0, "expected compile_sample.ex to not be mentionned"
-    refute File.exists?(tmp_path("Elixir.CompileSample.beam")) , "expected the sample to not be compiled"
+    refute File.exists?(tmp_path("Elixir.CompileSample.beam")), "expected the sample to not be compiled"
   end
 end
 

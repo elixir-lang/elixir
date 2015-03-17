@@ -328,7 +328,7 @@ defmodule Dict do
 
       iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
       iex> Enum.sort(Dict.keys(dict))
-      [:a,:b]
+      [:a, :b]
 
   """
   @spec keys(t) :: [key]
@@ -344,7 +344,7 @@ defmodule Dict do
 
       iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
       iex> Enum.sort(Dict.values(dict))
-      [1,2]
+      [1, 2]
 
   """
   @spec values(t) :: [value]
@@ -625,17 +625,17 @@ defmodule Dict do
       iex> dict = Enum.into([a: 1], dict_impl.new)
       iex> {v, dict} = Dict.pop dict, :a
       iex> {v, Enum.sort(dict)}
-      {1,[]}
+      {1, []}
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
       iex> {v, dict} = Dict.pop dict, :b
       iex> {v, Enum.sort(dict)}
-      {nil,[a: 1]}
+      {nil, [a: 1]}
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
       iex> {v, dict} = Dict.pop dict, :b, 3
       iex> {v, Enum.sort(dict)}
-      {3,[a: 1]}
+      {3, [a: 1]}
 
   """
   @spec pop(t, key, value) :: {value, t}
@@ -663,7 +663,7 @@ defmodule Dict do
       ...> end
       iex> {v, dict} = Dict.pop_lazy dict, :a, fun
       iex> {v, Enum.sort(dict)}
-      {1,[]}
+      {1, []}
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
       iex> fun = fn ->
@@ -672,7 +672,7 @@ defmodule Dict do
       ...> end
       iex> {v, dict} = Dict.pop_lazy dict, :b, fun
       iex> {v, Enum.sort(dict)}
-      {:result,[a: 1]}
+      {:result, [a: 1]}
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}

@@ -35,7 +35,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "for comprehensions with matching" do
-    assert for({_,x} <- 1..3, do: x * 2) == []
+    assert for({_, x} <- 1..3, do: x * 2) == []
   end
 
   test "for comprehensions with filters" do
@@ -144,7 +144,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "list for comprehensions with matching" do
-    assert for({_,x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
+    assert for({_, x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
   end
 
   test "list for comprehension matched to '_' on last line of block" do
@@ -183,7 +183,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   test "list for comprehensions where value is not used" do
-    enum = [1,2,3]
+    enum = [1, 2, 3]
 
     assert capture_io(fn ->
       for(x <- enum, do: IO.puts x)
