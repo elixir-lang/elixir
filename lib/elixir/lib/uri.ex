@@ -234,7 +234,7 @@ defmodule URI do
 
   """
   def decode(uri) do
-    unpercent(uri)
+    unpercent(uri, "", false)
   catch
     :malformed_uri ->
       raise ArgumentError, "malformed URI #{inspect uri}"
@@ -250,23 +250,25 @@ defmodule URI do
 
   """
   def decode_www_form(str) do
-    String.split(str, "+") |> Enum.map_join(" ", &unpercent/1)
+    unpercent(str, "", true)
   catch
     :malformed_uri ->
       raise ArgumentError, "malformed URI #{inspect str}"
   end
 
-  defp unpercent(<<?%, hex_1, hex_2, tail :: binary>>) do
-    <<bsl(hex_to_dec(hex_1), 4) + hex_to_dec(hex_2)>> <> unpercent(tail)
-  end
-  defp unpercent(<<?%, _>>), do: throw(:malformed_uri)
-  defp unpercent(<<?%>>),    do: throw(:malformed_uri)
-
-  defp unpercent(<<head, tail :: binary>>) do
-    <<head>> <> unpercent(tail)
+  defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
+    unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
-  defp unpercent(<<>>), do: <<>>
+  defp unpercent(<<?%, hex_1, hex_2, tail::binary>>, acc, spaces) do
+    unpercent(tail, <<acc::binary, bsl(hex_to_dec(hex_1), 4) + hex_to_dec(hex_2)>>, spaces)
+  end
+  defp unpercent(<<?%, _::binary>>, _acc, _spaces), do: throw(:malformed_uri)
+
+  defp unpercent(<<head, tail::binary>>, acc, spaces) do
+    unpercent(tail, <<acc::binary, head>>, spaces)
+  end
+  defp unpercent(<<>>, acc, _spaces), do: acc
 
   defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
   defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
