@@ -25,10 +25,10 @@ defmodule BaseTest do
     assert {:ok, "foob"} == decode16("666F6F62")
     assert {:ok, "fooba"} == decode16("666F6F6261")
     assert {:ok, "foobar"} == decode16("666F6F626172")
-    assert {:ok, <<161, 178,  195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
 
-    assert {:ok, <<161, 178,  195, 212, 229, 246, 120, 145>>} == decode16("a1b2c3d4e5f67891", case: :lower)
-    assert {:ok, <<161, 178,  195, 212, 229, 246, 120, 145>>} == decode16("a1B2c3D4e5F67891", case: :mixed)
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1b2c3d4e5f67891", case: :lower)
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1B2c3D4e5F67891", case: :mixed)
   end
 
   test "decode16!" do
@@ -41,8 +41,8 @@ defmodule BaseTest do
     assert "foobar" == decode16!("666F6F626172")
     assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("A1B2C3D4E5F67891")
 
-    assert <<161, 178,  195, 212, 229, 246, 120, 145>> == decode16!("a1b2c3d4e5f67891", case: :lower)
-    assert  <<161, 178,  195, 212, 229, 246, 120, 145>> == decode16!("a1B2c3D4e5F67891", case: :mixed)
+    assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1b2c3d4e5f67891", case: :lower)
+    assert  <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1B2c3D4e5F67891", case: :mixed)
   end
 
   test "decode16 non-alphabet digit" do
