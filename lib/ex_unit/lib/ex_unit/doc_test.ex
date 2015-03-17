@@ -176,11 +176,9 @@ defmodule ExUnit.DocTest do
   defp filter_by_opts(tests, opts) do
     only   = opts[:only] || []
     except = opts[:except] || []
-
-    Stream.filter(tests, fn(test) ->
-      fa = test.fun_arity || :moduledoc # moduledoc's fun_arity is nil
-      !Enum.member?(except, fa) and (Enum.empty?(only) or Enum.member?(only, fa))
-    end)
+    tests
+    |> Stream.reject(&(&1.fun_arity in except))
+    |> Stream.filter(&(Enum.empty?(only) or &1.fun_arity in only))
   end
 
   ## Compilation of extracted tests
@@ -189,7 +187,7 @@ defmodule ExUnit.DocTest do
     {test_name(test, module, n), test_content(test, module, do_import)}
   end
 
-  defp test_name(%{fun_arity: nil}, m, n) do
+  defp test_name(%{fun_arity: :moduledoc}, m, n) do
     "moduledoc at #{inspect m} (#{n})"
   end
 
@@ -359,7 +357,9 @@ defmodule ExUnit.DocTest do
   defp extract_from_moduledoc({_, doc}) when doc in [false, nil], do: []
 
   defp extract_from_moduledoc({line, doc}) do
-    extract_tests(line, doc)
+    for test <- extract_tests(line, doc) do
+      %{test | fun_arity: :moduledoc}
+    end
   end
 
   defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []
