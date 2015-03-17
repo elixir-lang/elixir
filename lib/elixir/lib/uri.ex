@@ -95,7 +95,10 @@ defmodule URI do
 
   """
   def decode_query(q, dict \\ %{}) when is_binary(q) do
-    Enum.reduce query_decoder(q), dict, fn({k, v}, acc) -> Dict.put(acc, k, v) end
+    case do_decode_query(q) do
+      nil         -> dict
+      {{k, v}, q} -> decode_query(q, Dict.put(dict, k, v))
+    end
   end
 
   @doc """
@@ -104,19 +107,19 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.query_decoder("foo=1&bar=2") |> Enum.map &(&1)
+      iex> URI.query_decoder("foo=1&bar=2") |> Enum.map(&(&1))
       [{"foo", "1"}, {"bar", "2"}]
 
   """
   def query_decoder(q) when is_binary(q) do
-    Stream.unfold(q, &do_decoder/1)
+    Stream.unfold(q, &do_decode_query/1)
   end
 
-  defp do_decoder("") do
+  defp do_decode_query("") do
     nil
   end
 
-  defp do_decoder(q) do
+  defp do_decode_query(q) do
     {first, next} =
       case :binary.split(q, "&") do
         [first, rest] -> {first, rest}
