@@ -395,7 +395,7 @@ defmodule Kernel.TypespecTest do
     end
 
     assert [opaque: {:mytype1, _, []},
-            type: {:mytype, _, []},] =
+            type: {:mytype, _, []}, ] =
            types(module)
   end
 
@@ -525,7 +525,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
-      (quote do: @type ops() :: {+1,-1}),
+      (quote do: @type ops() :: {+1, -1}),
       (quote do: @type my_map() :: %{hello: :world}),
       (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
       (quote do: @type list1() :: list()),

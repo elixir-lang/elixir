@@ -25,11 +25,11 @@ defmodule IntegerTest do
   end
 
   test :digits do
-    assert Integer.digits(101) == [1,0,1]
+    assert Integer.digits(101) == [1, 0, 1]
     assert Integer.digits(1) == [1]
     assert Integer.digits(0) == [0]
-    assert Integer.digits(0,2) == [0]
-    assert Integer.digits(58127,2) == [1,1,1,0,0,0,1,1,0,0,0,0,1,1,1,1]
+    assert Integer.digits(0, 2) == [0]
+    assert Integer.digits(58127, 2) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
   end
 
   test :undigits do
@@ -37,9 +37,9 @@ defmodule IntegerTest do
     assert Integer.undigits([1]) == 1
     assert Integer.undigits([0]) == 0
     assert Integer.undigits([]) == 0
-    assert Integer.undigits([1,4], 16) == 0x14
-    assert Integer.undigits([1,4], 8) == 0o14
-    assert Integer.undigits([1,1], 2) == 0b11
+    assert Integer.undigits([1, 4], 16) == 0x14
+    assert Integer.undigits([1, 4], 8) == 0o14
+    assert Integer.undigits([1, 1], 2) == 0b11
     assert Integer.undigits([1, 2, 3, 4, 5]) == 12345
     assert Integer.undigits([1, 0, -5]) == 95
     assert Integer.undigits([-1, -1, -5]) == -115

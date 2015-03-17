@@ -52,7 +52,7 @@ defmodule KernelTest do
     refute 4 in list
   end
 
-  @at_list  [4,5]
+  @at_list  [4, 5]
   @at_range 6..8
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
@@ -76,7 +76,7 @@ defmodule KernelTest do
   end
 
   test "in/2 in case guard" do
-    assert case_in(1, [1,2,3]) == true
+    assert case_in(1, [1, 2, 3]) == true
     assert case_in(1, 1..3) == true
     assert case_in(2, 1..3) == true
     assert case_in(3, 1..3) == true

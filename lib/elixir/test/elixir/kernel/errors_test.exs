@@ -738,7 +738,7 @@ defmodule Kernel.ErrorsTest do
 
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: ';'",
-      'max(1,;2)'
+      'max(1, ;2)'
   end
 
   test :new_line_error do

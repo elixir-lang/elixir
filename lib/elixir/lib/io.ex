@@ -362,11 +362,11 @@ defmodule IO do
       iex> bin2 = <<4, 5>>
       iex> bin3 = <<6>>
       iex> IO.iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
-      <<1,2,3,1,2,3,4,5,4,6>>
+      <<1, 2, 3, 1, 2, 3, 4, 5, 4, 6>>
 
       iex> bin = <<1, 2, 3>>
       iex> IO.iodata_to_binary(bin)
-      <<1,2,3>>
+      <<1, 2, 3>>
 
   """
   @spec iodata_to_binary(iodata) :: binary

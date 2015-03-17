@@ -738,10 +738,10 @@ defmodule String do
       ["o", "l", "á"]
 
       iex> String.codepoints("оптими зации")
-      ["о","п","т","и","м","и"," ","з","а","ц","и","и"]
+      ["о", "п", "т", "и", "м", "и", " ", "з", "а", "ц", "и", "и"]
 
       iex> String.codepoints("ἅἪῼ")
-      ["ἅ","Ἢ","ῼ"]
+      ["ἅ", "Ἢ", "ῼ"]
 
   """
   @spec codepoints(t) :: [codepoint]
@@ -1023,7 +1023,7 @@ defmodule String do
     end
   end
 
-  defp do_at({_ , rest}, desired_pos, current_pos) when desired_pos > current_pos do
+  defp do_at({_, rest}, desired_pos, current_pos) when desired_pos > current_pos do
     do_at(next_grapheme(rest), desired_pos, current_pos + 1)
   end
 

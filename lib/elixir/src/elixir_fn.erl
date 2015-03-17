@@ -37,7 +37,7 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
 
 %% Capture
 
-capture(Meta, {'/', _, [{{'.', _, [_, F]} = Dot, RequireMeta , []}, A]}, E) when is_atom(F), is_integer(A) ->
+capture(Meta, {'/', _, [{{'.', _, [_, F]} = Dot, RequireMeta, []}, A]}, E) when is_atom(F), is_integer(A) ->
   Args = [{'&', [], [X]} || X <- lists:seq(1, A)],
   capture_require(Meta, {Dot, RequireMeta, Args}, E, true);
 
