@@ -82,7 +82,7 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
     S#elixir_scope.context == match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
     true ->
-      Keys = [K || {K,_} <- Assocs],
+      Keys = [K || {K, _} <- Assocs],
       {StructAssocs, _} = elixir_quote:escape(maps:to_list(maps:without(Keys, Struct)), false),
       translate_map(MapMeta, StructAssocs ++ Assocs ++ [{'__struct__', Name}], nil, US)
   end.

@@ -48,7 +48,7 @@ defmodule PathHelpers do
     res
   end
 
-  defp runcmd(executable,args) do
+  defp runcmd(executable, args) do
     :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win}")
   end
 

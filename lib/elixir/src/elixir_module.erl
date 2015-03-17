@@ -58,7 +58,7 @@ do_compile(Line, Module, Block, Vars, E) ->
 
     _ = case ets:lookup(Data, 'on_load') of
       [] -> ok;
-      [{on_load,OnLoad}] ->
+      [{on_load, OnLoad}] ->
         [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
@@ -176,7 +176,7 @@ eval_form(Line, Module, Data, Block, Vars, E) ->
 eval_callbacks(Line, Data, Name, Args, E) ->
   Callbacks = lists:reverse(ets:lookup_element(Data, Name, 2)),
 
-  lists:foldl(fun({M,F}, Acc) ->
+  lists:foldl(fun({M, F}, Acc) ->
     expand_callback(Line, M, F, Args, Acc#{vars := [], export_vars := nil},
                     fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
@@ -187,8 +187,8 @@ functions_form(Line, File, Module, Def, Defp, Defmacro, Defmacrop, Exports, Body
   All = Def ++ Defmacro ++ Defp ++ Defmacrop,
   {Spec, Info} = add_info_function(Line, File, Module, All, Def, Defmacro),
 
-  {[{'__info__',1}|All],
-   [{attribute, Line, export, lists:sort([{'__info__',1}|Exports])},
+  {[{'__info__', 1}|All],
+   [{attribute, Line, export, lists:sort([{'__info__', 1}|Exports])},
     Spec, Info | Body]}.
 
 %% Add attributes handling to the form
@@ -323,7 +323,7 @@ spec_for_macro(Else) -> Else.
 
 compile_opts(Module) ->
   case ets:lookup(data_table(Module), compile) of
-    [{compile,Opts}] when is_list(Opts) -> Opts;
+    [{compile, Opts}] when is_list(Opts) -> Opts;
     [] -> []
   end.
 
@@ -335,7 +335,7 @@ load_form(Line, Data, Forms, Opts, E) ->
 
     case get(elixir_compiled) of
       Current when is_list(Current) ->
-        put(elixir_compiled, [{Module,Binary}|Current]),
+        put(elixir_compiled, [{Module, Binary}|Current]),
 
         case get(elixir_compiler_pid) of
           undefined -> ok;
@@ -483,7 +483,7 @@ add_beam_chunk(Bin, Id, ChunkData)
 %% the callback can't be expanded, invokes the given
 %% fun passing a possibly expanded AM:AF(Args).
 expand_callback(Line, M, F, Args, E, Fun) ->
-  Meta = [{line,Line},{require,false}],
+  Meta = [{line, Line}, {require, false}],
 
   {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
     Fun(AM, AF, AA),

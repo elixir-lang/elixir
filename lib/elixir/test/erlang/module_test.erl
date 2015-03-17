@@ -25,18 +25,18 @@ function_test() ->
   test_helper:run_and_remove(F, ['Elixir.Foo.Bar.Baz']).
 
 quote_unquote_splicing_test() ->
-  {{'{}', [], [1,2,3,4,5]}, _} = eval("x = [2,3,4]\nquote do: {1, unquote_splicing(x), 5}").
+  {{'{}', [], [1, 2, 3, 4, 5]}, _} = eval("x = [2, 3, 4]\nquote do: {1, unquote_splicing(x), 5}").
 
 def_shortcut_test() ->
   F = fun() ->
-    {1,[]} = eval("defmodule Foo do\ndef version, do: 1\nend\nFoo.version")
+    {1, []} = eval("defmodule Foo do\ndef version, do: 1\nend\nFoo.version")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 macro_test() ->
   F = fun() ->
-    {'Elixir.Foo',[]} = eval("defmodule Foo do\ndef version, do: __MODULE__\nend\nFoo.version"),
-    {nil,[]} = eval("__MODULE__")
+    {'Elixir.Foo', []} = eval("defmodule Foo do\ndef version, do: __MODULE__\nend\nFoo.version"),
+    {nil, []} = eval("__MODULE__")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
@@ -66,24 +66,24 @@ def_left_default_test() ->
 def_with_guard_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef v(x) when x < 10, do: true\ndef v(x) when x >= 10, do: false\nend"),
-    {true,_} = eval("Foo.v(0)"),
-    {false,_} = eval("Foo.v(20)")
+    {true, _} = eval("Foo.v(0)"),
+    {false, _} = eval("Foo.v(20)")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo']).
 
 do_end_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef a, do: 1\ndefmodule Bar do\ndef b, do: 2\nend\ndef c, do: 3\nend"),
-    {1,_} = eval("Foo.a"),
-    {2,_} = eval("Foo.Bar.b"),
-    {3,_} = eval("Foo.c")
+    {1, _} = eval("Foo.a"),
+    {2, _} = eval("Foo.Bar.b"),
+    {3, _} = eval("Foo.c")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Foo.Bar']).
 
 nesting_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndefmodule Elixir.Bar do\ndef b, do: 2\nend\nend"),
-    {2,_} = eval("Bar.b")
+    {2, _} = eval("Bar.b")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Bar']).
 
@@ -103,7 +103,7 @@ module_with_elixir_as_a_name_test() ->
 dynamic_defmodule_test() ->
   F = fun() ->
     eval("defmodule Foo do\ndef a(name) do\ndefmodule name, do: (def x, do: 1)\nend\nend"),
-    {_,_} = eval("Foo.a(Bar)"),
-    {1,_} = eval("Bar.x")
+    {_, _} = eval("Foo.a(Bar)"),
+    {1, _} = eval("Bar.x")
   end,
   test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Bar']).

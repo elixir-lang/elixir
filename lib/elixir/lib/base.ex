@@ -276,7 +276,7 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.url_encode64(<<255,127,254,252>>)
+      iex> Base.url_encode64(<<255, 127, 254, 252>>)
       "_3_-_A=="
 
   """
@@ -292,7 +292,7 @@ defmodule Base do
   ## Examples
 
       iex> Base.url_decode64("_3_-_A==")
-      {:ok, <<255,127,254,252>>}
+      {:ok, <<255, 127, 254, 252>>}
 
   """
   @spec url_decode64(binary) :: {:ok, binary} | :error
@@ -312,7 +312,7 @@ defmodule Base do
   ## Examples
 
       iex> Base.url_decode64!("_3_-_A==")
-      <<255,127,254,252>>
+      <<255, 127, 254, 252>>
 
   """
   @spec url_decode64!(binary) :: binary

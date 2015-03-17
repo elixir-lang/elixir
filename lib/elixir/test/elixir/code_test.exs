@@ -24,7 +24,7 @@ defmodule CodeTest do
   end
 
   test :eval_string_with_other_context do
-    assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a,Sample},1}]}
+    assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
   end
 
   test :eval_binary_errors do
@@ -70,7 +70,7 @@ defmodule CodeTest do
 
   test :eval_quoted_with_env do
     alias :lists, as: MyList
-    assert Code.eval_quoted(quote(do: MyList.flatten [[1, 2, 3]]), [], __ENV__) == {[1, 2, 3],[]}
+    assert Code.eval_quoted(quote(do: MyList.flatten [[1, 2, 3]]), [], __ENV__) == {[1, 2, 3], []}
   end
 
   test :eval_file do

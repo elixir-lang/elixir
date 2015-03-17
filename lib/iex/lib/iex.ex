@@ -172,7 +172,7 @@ defmodule IEx do
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
-      [1,2,3,...]
+      [1, 2, 3, ...]
 
   ## Expressions in IEx
 
@@ -238,7 +238,7 @@ defmodule IEx do
     * `:doc_code`        — the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
-    * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
@@ -373,7 +373,7 @@ defmodule IEx do
   the shell will be reset and you gain access to all variables
   and the lexical scope from above:
 
-      pry(1)> map([a,b,c], &IO.inspect(&1))
+      pry(1)> map([a, b, c], &IO.inspect(&1))
       1
       2
       3

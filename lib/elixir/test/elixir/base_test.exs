@@ -160,8 +160,8 @@ defmodule BaseTest do
   end
 
   test "url_encode64 no URL unsafe characters" do
-    refute "/3/+/A==" == url_encode64(<<255,127,254,252>>)
-    assert "_3_-_A==" == url_encode64(<<255,127,254,252>>)
+    refute "/3/+/A==" == url_encode64(<<255, 127, 254, 252>>)
+    assert "_3_-_A==" == url_encode64(<<255, 127, 254, 252>>)
   end
 
   test "url_decode64 empty" do

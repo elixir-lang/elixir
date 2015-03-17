@@ -195,7 +195,7 @@ defmodule Regex do
       nil
 
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
-      [{2,2},{3,1}]
+      [{2, 2}, {3, 1}]
 
   """
   @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
@@ -347,10 +347,10 @@ defmodule Regex do
   ## Examples
 
       iex> Regex.split(~r/-/, "a-b-c")
-      ["a","b","c"]
+      ["a", "b", "c"]
 
       iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
-      ["a","b-c"]
+      ["a", "b-c"]
 
       iex> Regex.split(~r/-/, "abc")
       ["abc"]

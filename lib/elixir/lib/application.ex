@@ -114,7 +114,7 @@ defmodule Application do
   @doc """
   Returns all key-value pairs for `app`.
   """
-  @spec get_all_env(app) :: [{key,value}]
+  @spec get_all_env(app) :: [{key, value}]
   def get_all_env(app) do
     :application.get_all_env(app)
   end

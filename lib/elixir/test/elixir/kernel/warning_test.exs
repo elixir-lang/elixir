@@ -182,7 +182,7 @@ defmodule Kernel.WarningTest do
         import String, only: [downcase: 1]
 
         def world do
-          flatten([1,2,3])
+          flatten([1, 2, 3])
         end
       end
     end) =~ "warning: unused import String"
@@ -241,7 +241,7 @@ defmodule Kernel.WarningTest do
         import List, only: [flatten: 1]
 
         defmacro generate do
-          List.duplicate(quote(do: flatten([1,2,3])), 100)
+          List.duplicate(quote(do: flatten([1, 2, 3])), 100)
         end
       end
 
