@@ -115,6 +115,7 @@ install_man:
 	$(Q) mkdir -p $(PREFIX)/share/man/man1
 	cd man && $(MAKE) build
 	$(Q) $(INSTALL_DATA) man/elixir.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/iex.1 $(PREFIX)/share/man/man1
 
 clean:

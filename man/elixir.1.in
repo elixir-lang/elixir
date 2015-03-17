@@ -7,6 +7,7 @@
 .Sh SYNOPSIS
 .Nm
 .Op Ar OPTIONS
+.Ar
 .Sh DESCRIPTION
 The program starts the runtime system typically for the execution of one or more scripts. It is similar to
 .Xr iex 1 ,
