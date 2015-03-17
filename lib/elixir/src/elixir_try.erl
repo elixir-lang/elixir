@@ -18,7 +18,7 @@ each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
 
   Final = case Args of
     [X]   -> [throw, X, {'_', Meta, nil}];
-    [X,Y] -> [X, Y, {'_', Meta, nil}]
+    [X, Y] -> [X, Y, {'_', Meta, nil}]
   end,
 
   Condition = [{'{}', Meta, Final}],

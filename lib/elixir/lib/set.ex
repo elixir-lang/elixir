@@ -84,7 +84,7 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.difference(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
+      iex> Set.difference(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
       [1]
 
   """
@@ -183,10 +183,10 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
+      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
       [2]
 
-      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([3,4], set_impl.new)) |> Enum.sort
+      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new)) |> Enum.sort
       []
 
   """
@@ -286,7 +286,7 @@ defmodule Set do
   ## Examples
 
       iex> set_impl.to_list(Enum.into([1, 2, 3], set_impl.new)) |> Enum.sort
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec to_list(t) :: list
@@ -303,8 +303,8 @@ defmodule Set do
 
   ## Examples
 
-      iex> Set.union(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
-      [1,2,3,4]
+      iex> Set.union(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
+      [1, 2, 3, 4]
 
   """
   @spec union(t, t) :: t

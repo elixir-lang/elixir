@@ -228,8 +228,8 @@ defmodule PathTest do
   end
 
   if windows? do
-    defp strip_drive_letter_if_windows([_d,?:|rest]), do: rest
-    defp strip_drive_letter_if_windows(<<_d,?:,rest::binary>>), do: rest
+    defp strip_drive_letter_if_windows([_d, ?:|rest]), do: rest
+    defp strip_drive_letter_if_windows(<<_d, ?:, rest::binary>>), do: rest
   else
     defp strip_drive_letter_if_windows(path), do: path
   end

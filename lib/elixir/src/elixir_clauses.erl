@@ -60,7 +60,7 @@ extract_or_guards(Term) -> [Term].
 
 % Extract guards when multiple left side args are allowed.
 
-extract_splat_guards([{'when', _, [_,_|_] = Args}]) ->
+extract_splat_guards([{'when', _, [_, _|_] = Args}]) ->
   {Left, Right} = elixir_utils:split_last(Args),
   {Left, extract_or_guards(Right)};
 extract_splat_guards(Else) ->
@@ -119,15 +119,15 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
         true ->
           case Final of
             {match, _, {var, _, UserVarName} = UserVar, _} when UserVarName /= '_' ->
-              {[UserVar,MatchExpr,Final|RawClauseExprs], S};
+              {[UserVar, MatchExpr, Final|RawClauseExprs], S};
             _ ->
               {VarName, _, SS} = elixir_scope:build_var('_', S),
               StorageVar  = {var, Line, VarName},
               StorageExpr = {match, Line, StorageVar, Final},
-              {[StorageVar,MatchExpr,StorageExpr|RawClauseExprs], SS}
+              {[StorageVar, MatchExpr, StorageExpr|RawClauseExprs], SS}
           end;
         false ->
-          {[Final,MatchExpr|RawClauseExprs], S}
+          {[Final, MatchExpr|RawClauseExprs], S}
       end,
 
       FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
@@ -184,7 +184,7 @@ has_match_tuple(_) -> false.
 % by picking one value as reference and retriving
 % its previous value.
 
-normalize_vars(Key, Value, #elixir_scope{vars=Vars,export_vars=ClauseVars} = S) ->
+normalize_vars(Key, Value, #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
   VS = S#elixir_scope{
     vars=orddict:store(Key, Value, Vars),
     export_vars=orddict:store(Key, Value, ClauseVars)

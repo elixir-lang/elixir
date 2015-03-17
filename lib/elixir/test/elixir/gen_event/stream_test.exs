@@ -147,7 +147,7 @@ defmodule GenEvent.StreamTest do
     Process.flag(:trap_exit, true)
     Process.exit(pid, :kill)
     assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
-    assert_receive ({:EXIT, ^child, {stat, {Enumerable.GenEvent.Stream, :stop, [_,_]}}}
+    assert_receive ({:EXIT, ^child, {stat, {Enumerable.GenEvent.Stream, :stop, [_, _]}}}
                      when stat in [:killed, :noproc]), @receive_timeout
   end
 

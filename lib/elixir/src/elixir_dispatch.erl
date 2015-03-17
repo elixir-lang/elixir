@@ -145,7 +145,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
-      case expand_require([{require,false}|Meta], Receiver, Tuple, Args, E) of
+      case expand_require([{require, false}|Meta], Receiver, Tuple, Args, E) of
         {ok, _, _} = Response -> Response;
         error -> {ok, Receiver, Name, Args}
       end;

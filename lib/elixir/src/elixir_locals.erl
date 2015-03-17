@@ -34,7 +34,7 @@ local_for(Module, Name, Arity, Given) ->
       get_function(Line, Module, Clauses);
     _ ->
       [_|T] = erlang:get_stacktrace(),
-      erlang:raise(error, undef, [{Module,Name,Arity,[]}|T])
+      erlang:raise(error, undef, [{Module, Name, Arity, []}|T])
   end.
 
 get_function(Line, Module, Clauses) ->
@@ -117,7 +117,7 @@ if_tracker(Module, Default, Callback) ->
 %% CACHING
 
 cache_env(#{module := Module} = RE) ->
-  E = RE#{line := nil,vars := []},
+  E = RE#{line := nil, vars := []},
   try ets:lookup_element(elixir_module:data_table(Module), ?attr, 2) of
     Pid ->
       {Pid, ?tracker:cache_env(Pid, E)}
@@ -127,7 +127,7 @@ cache_env(#{module := Module} = RE) ->
       Escaped
   end.
 
-get_cached_env({Pid,Ref}) -> ?tracker:get_cached_env(Pid, Ref);
+get_cached_env({Pid, Ref}) -> ?tracker:get_cached_env(Pid, Ref);
 get_cached_env(Env) -> Env.
 
 %% ERROR HANDLING
@@ -157,21 +157,21 @@ warn_unused_local(File, Module, Private) ->
     Unreachable
   end).
 
-format_error({function_conflict,{Receivers, Name, Arity}}) ->
+format_error({function_conflict, {Receivers, Name, Arity}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
     [elixir_aliases:inspect(hd(Receivers)), Name, Arity]);
 
-format_error({unused_args,{Name, Arity}}) ->
+format_error({unused_args, {Name, Arity}}) ->
   io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);
 
-format_error({unused_args,{Name, Arity},1}) ->
+format_error({unused_args, {Name, Arity}, 1}) ->
   io_lib:format("the first default argument in ~ts/~B is never used", [Name, Arity]);
 
-format_error({unused_args,{Name, Arity},Count}) ->
+format_error({unused_args, {Name, Arity}, Count}) ->
   io_lib:format("the first ~B default arguments in ~ts/~B are never used", [Count, Name, Arity]);
 
-format_error({unused_def,{Name, Arity},defp}) ->
+format_error({unused_def, {Name, Arity}, defp}) ->
   io_lib:format("function ~ts/~B is unused", [Name, Arity]);
 
-format_error({unused_def,{Name, Arity},defmacrop}) ->
+format_error({unused_def, {Name, Arity}, defmacrop}) ->
   io_lib:format("macro ~ts/~B is unused", [Name, Arity]).

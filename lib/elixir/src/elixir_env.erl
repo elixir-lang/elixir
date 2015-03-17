@@ -29,7 +29,7 @@ env_to_scope(#{module := Module, file := File, function := Function, context := 
 env_to_scope_with_vars(Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
     vars=orddict:from_list(Vars),
-    counter=[{'_',length(Vars)}]
+    counter=[{'_', length(Vars)}]
  }.
 
 %% SCOPE MERGING

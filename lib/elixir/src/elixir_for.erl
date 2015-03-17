@@ -28,7 +28,7 @@ expand(Meta, Args, E) ->
   {EOpts, EO}  = elixir_exp:expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand/2, EO, Cases),
   {EExpr, _}   = elixir_exp:expand(Expr, EC),
-  {{for, Meta, ECases ++ [[{do,EExpr}|EOpts]]}, E}.
+  {{for, Meta, ECases ++ [[{do, EExpr}|EOpts]]}, E}.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = elixir_exp:expand(Right, E),
@@ -58,7 +58,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
   Acc  = {var, Line, AccName},
   Var  = {var, Line, VarName},
 
-  {Cases, [{do,Expr}|Opts]} = elixir_utils:split_last(Args),
+  {Cases, [{do, Expr}|Opts]} = elixir_utils:split_last(Args),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of

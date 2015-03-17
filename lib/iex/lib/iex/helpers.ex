@@ -64,7 +64,7 @@ defmodule IEx.Helpers do
   ## Examples
 
       c ["foo.ex", "bar.ex"], "ebin"
-      #=> [Foo,Bar]
+      #=> [Foo, Bar]
 
       c "baz.ex"
       #=> [Baz]

@@ -19,10 +19,10 @@ defmodule StreamTest do
   end
 
   test "streams as enumerables" do
-    stream = Stream.map([1,2,3], &(&1 * 2))
+    stream = Stream.map([1, 2, 3], &(&1 * 2))
 
     # Reduce
-    assert Enum.map(stream, &(&1 + 1)) == [3,5,7]
+    assert Enum.map(stream, &(&1 + 1)) == [3, 5, 7]
     # Member
     assert Enum.member?(stream, 4)
     refute Enum.member?(stream, 1)
@@ -31,13 +31,13 @@ defmodule StreamTest do
   end
 
   test "streams are composable" do
-    stream = Stream.map([1,2,3], &(&1 * 2))
+    stream = Stream.map([1, 2, 3], &(&1 * 2))
     assert is_lazy(stream)
 
     stream = Stream.map(stream, &(&1 + 1))
     assert is_lazy(stream)
 
-    assert Enum.to_list(stream) == [3,5,7]
+    assert Enum.to_list(stream) == [3, 5, 7]
   end
 
   test "chunk/2, chunk/3 and chunk/4" do
@@ -98,31 +98,31 @@ defmodule StreamTest do
     stream = Stream.concat([1..3, [], [4, 5, 6], [], 7..9])
     assert is_function(stream)
 
-    assert Enum.to_list(stream) == [1,2,3,4,5,6,7,8,9]
-    assert Enum.take(stream, 5) == [1,2,3,4,5]
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    assert Enum.take(stream, 5) == [1, 2, 3, 4, 5]
 
     stream = Stream.concat([1..3, [4, 5, 6], Stream.cycle(7..100)])
     assert is_function(stream)
 
-    assert Enum.take(stream, 13) == [1,2,3,4,5,6,7,8,9,10,11,12,13]
+    assert Enum.take(stream, 13) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
   end
 
   test "concat/2" do
     stream = Stream.concat(1..3, 4..6)
     assert is_function(stream)
-    assert Stream.cycle(stream) |> Enum.take(16) == [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4]
+    assert Stream.cycle(stream) |> Enum.take(16) == [1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4]
 
     stream = Stream.concat(1..3, [])
     assert is_function(stream)
-    assert Stream.cycle(stream) |> Enum.take(5) == [1,2,3,1,2]
+    assert Stream.cycle(stream) |> Enum.take(5) == [1, 2, 3, 1, 2]
 
     stream = Stream.concat(1..6, Stream.cycle(7..9))
     assert is_function(stream)
-    assert Stream.drop(stream, 3) |> Enum.take(13) == [4,5,6,7,8,9,7,8,9,7,8,9,7]
+    assert Stream.drop(stream, 3) |> Enum.take(13) == [4, 5, 6, 7, 8, 9, 7, 8, 9, 7, 8, 9, 7]
 
     stream = Stream.concat(Stream.cycle(1..3), Stream.cycle(4..6))
     assert is_function(stream)
-    assert Enum.take(stream, 13) == [1,2,3,1,2,3,1,2,3,1,2,3,1]
+    assert Enum.take(stream, 13) == [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
   end
 
   test "concat/2 does not intercept wrapped lazy enumeration" do
@@ -138,31 +138,31 @@ defmodule StreamTest do
   end
 
   test "cycle/1" do
-    stream = Stream.cycle([1,2,3])
+    stream = Stream.cycle([1, 2, 3])
     assert is_function(stream)
 
-    assert Stream.cycle([1,2,3]) |> Stream.take(5) |> Enum.to_list == [1,2,3,1,2]
-    assert Enum.take(stream, 5) == [1,2,3,1,2]
+    assert Stream.cycle([1, 2, 3]) |> Stream.take(5) |> Enum.to_list == [1, 2, 3, 1, 2]
+    assert Enum.take(stream, 5) == [1, 2, 3, 1, 2]
   end
 
   test "cycle/1 is zippable" do
-    stream = Stream.cycle([1,2,3])
-    assert Enum.zip(1..6, [1,2,3,1,2,3]) == Enum.zip(1..6, stream)
+    stream = Stream.cycle([1, 2, 3])
+    assert Enum.zip(1..6, [1, 2, 3, 1, 2, 3]) == Enum.zip(1..6, stream)
   end
 
   test "cycle/1 with inner stream" do
-    assert [1,2,3] |> Stream.take(2) |> Stream.cycle |> Enum.take(4) ==
-           [1,2,1,2]
+    assert [1, 2, 3] |> Stream.take(2) |> Stream.cycle |> Enum.take(4) ==
+           [1, 2, 1, 2]
   end
 
   test "dedup/1 is lazy" do
-    assert is_lazy Stream.dedup([1,2,3])
+    assert is_lazy Stream.dedup([1, 2, 3])
   end
 
   test "dedup/1" do
-    assert Stream.dedup([1,1,2,1,1,2,1]) |> Enum.to_list == [1,2,1,2,1]
-    assert Stream.dedup([2,1,1,2,1]) |> Enum.to_list  == [2,1,2,1]
-    assert Stream.dedup([1,2,3,4]) |> Enum.to_list  == [1,2,3,4]
+    assert Stream.dedup([1, 1, 2, 1, 1, 2, 1]) |> Enum.to_list == [1, 2, 1, 2, 1]
+    assert Stream.dedup([2, 1, 1, 2, 1]) |> Enum.to_list  == [2, 1, 2, 1]
+    assert Stream.dedup([1, 2, 3, 4]) |> Enum.to_list  == [1, 2, 3, 4]
     assert Stream.dedup([]) |> Enum.to_list  == []
     assert Stream.dedup([nil, nil, true, {:value, true}]) |> Enum.to_list
       == [nil, true, {:value, true}]
@@ -171,25 +171,25 @@ defmodule StreamTest do
 
   test "dedup_by/2" do
     assert Stream.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) |> Enum.to_list
-      == [{1,:x}, {2,:y}, {1, :x}]
+      == [{1, :x}, {2, :y}, {1, :x}]
   end
 
   test "drop/2" do
     stream = Stream.drop(1..10, 5)
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [6,7,8,9,10]
+    assert Enum.to_list(stream) == [6, 7, 8, 9, 10]
 
-    assert Enum.to_list(Stream.drop(1..5, 0)) == [1,2,3,4,5]
+    assert Enum.to_list(Stream.drop(1..5, 0)) == [1, 2, 3, 4, 5]
     assert Enum.to_list(Stream.drop(1..3, 5)) == []
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.drop(nats, 2) |> Enum.take(5) == [3,4,5,6,7]
+    assert Stream.drop(nats, 2) |> Enum.take(5) == [3, 4, 5, 6, 7]
   end
 
   test "drop/2 with negative count" do
     stream = Stream.drop(1..10, -5)
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,2,3,4,5]
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5]
 
     stream = Stream.drop(1..10, -5)
     list   = Enum.to_list(stream)
@@ -219,44 +219,44 @@ defmodule StreamTest do
   test "drop_while/2" do
     stream = Stream.drop_while(1..10, &(&1 <= 5))
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [6,7,8,9,10]
+    assert Enum.to_list(stream) == [6, 7, 8, 9, 10]
 
-    assert Enum.to_list(Stream.drop_while(1..5, &(&1 <= 0))) == [1,2,3,4,5]
+    assert Enum.to_list(Stream.drop_while(1..5, &(&1 <= 0))) == [1, 2, 3, 4, 5]
     assert Enum.to_list(Stream.drop_while(1..3, &(&1 <= 5))) == []
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.drop_while(nats, &(&1 <= 5)) |> Enum.take(5) == [6,7,8,9,10]
+    assert Stream.drop_while(nats, &(&1 <= 5)) |> Enum.take(5) == [6, 7, 8, 9, 10]
   end
 
   test "each/2" do
     Process.put(:stream_each, [])
 
-    stream = Stream.each([1,2,3], fn x ->
+    stream = Stream.each([1, 2, 3], fn x ->
       Process.put(:stream_each, [x|Process.get(:stream_each)])
     end)
 
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,2,3]
-    assert Process.get(:stream_each) == [3,2,1]
+    assert Enum.to_list(stream) == [1, 2, 3]
+    assert Process.get(:stream_each) == [3, 2, 1]
   end
 
   test "filter/2" do
-    stream = Stream.filter([1,2,3], fn(x) -> rem(x, 2) == 0 end)
+    stream = Stream.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [2]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.filter(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [2,4,6,8,10]
+    assert Stream.filter(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [2, 4, 6, 8, 10]
   end
 
   test "filter_map/3" do
-    stream = Stream.filter_map([1,2,3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
+    stream = Stream.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2))
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [4]
 
     nats = Stream.iterate(1, &(&1 + 1))
     assert Stream.filter_map(nats, &(rem(&1, 2) == 0), &(&1 * 2))
-           |> Enum.take(5) == [4,8,12,16,20]
+           |> Enum.take(5) == [4, 8, 12, 16, 20]
   end
 
   test "flat_map/2" do
@@ -297,7 +297,7 @@ defmodule StreamTest do
   end
 
   test "flat_map/2 does not leave inner stream suspended" do
-    stream = Stream.flat_map [1,2,3],
+    stream = Stream.flat_map [1, 2, 3],
       fn i ->
         Stream.resource(fn -> i end,
                         fn acc -> {[acc], acc + 1} end,
@@ -305,7 +305,7 @@ defmodule StreamTest do
       end
 
     Process.put(:stream_flat_map, false)
-    assert stream |> Enum.take(3) == [1,2,3]
+    assert stream |> Enum.take(3) == [1, 2, 3]
     assert Process.get(:stream_flat_map)
   end
 
@@ -316,7 +316,7 @@ defmodule StreamTest do
     stream = Stream.flat_map(stream, fn i -> [i, i + 1, i + 2] end)
 
     Process.put(:stream_flat_map, false)
-    assert stream |> Enum.take(3) == [1,2,3]
+    assert stream |> Enum.take(3) == [1, 2, 3]
     assert Process.get(:stream_flat_map)
   end
 
@@ -357,7 +357,7 @@ defmodule StreamTest do
 
     assert is_lazy(stream)
     assert Stream.run(stream) == :ok
-    assert Process.get(:stream_cont) == [3,2,1]
+    assert Process.get(:stream_cont) == [3, 2, 1]
     assert Process.get(:stream_done)
     refute Process.get(:stream_halt)
 
@@ -410,15 +410,15 @@ defmodule StreamTest do
     stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: {[i], acc + 1}, else: {:halt, acc} end)
 
     Process.put(:stream_transform, false)
-    assert Enum.to_list(stream) == [1,2,3]
+    assert Enum.to_list(stream) == [1, 2, 3]
     assert Process.get(:stream_transform)
   end
 
   test "iterate/2" do
     stream = Stream.iterate(0, &(&1+2))
-    assert Enum.take(stream, 5) == [0,2,4,6,8]
+    assert Enum.take(stream, 5) == [0, 2, 4, 6, 8]
     stream = Stream.iterate(5, &(&1+2))
-    assert Enum.take(stream, 5) == [5,7,9,11,13]
+    assert Enum.take(stream, 5) == [5, 7, 9, 11, 13]
 
     # Only calculate values if needed
     stream = Stream.iterate("HELLO", &raise/1)
@@ -426,29 +426,29 @@ defmodule StreamTest do
   end
 
   test "map/2" do
-    stream = Stream.map([1,2,3], &(&1 * 2))
+    stream = Stream.map([1, 2, 3], &(&1 * 2))
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [2,4,6]
+    assert Enum.to_list(stream) == [2, 4, 6]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.map(nats, &(&1 * 2)) |> Enum.take(5) == [2,4,6,8,10]
+    assert Stream.map(nats, &(&1 * 2)) |> Enum.take(5) == [2, 4, 6, 8, 10]
     assert Stream.map(nats, &(&1 - 2)) |> Stream.map(&(&1 * 2)) |> Enum.take(3) == [-2, 0, 2]
   end
 
   test "reject/2" do
-    stream = Stream.reject([1,2,3], fn(x) -> rem(x, 2) == 0 end)
+    stream = Stream.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,3]
+    assert Enum.to_list(stream) == [1, 3]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.reject(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [1,3,5,7,9]
+    assert Stream.reject(nats, &(rem(&1, 2) == 0)) |> Enum.take(5) == [1, 3, 5, 7, 9]
   end
 
   test "repeatedly/1" do
     stream = Stream.repeatedly(fn -> 1 end)
-    assert Enum.take(stream, 5) == [1,1,1,1,1]
+    assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
     stream = Stream.repeatedly(&:random.uniform/0)
-    [r1,r2] = Enum.take(stream, 2)
+    [r1, r2] = Enum.take(stream, 2)
     assert r1 != r2
   end
 
@@ -547,37 +547,37 @@ defmodule StreamTest do
   test "scan/2" do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,3,6,10,15]
+    assert Enum.to_list(stream) == [1, 3, 6, 10, 15]
     assert Stream.scan([], &(&1 + &2)) |> Enum.to_list == []
   end
 
   test "scan/3" do
     stream = Stream.scan(1..5, 0, &(&1 + &2))
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,3,6,10,15]
+    assert Enum.to_list(stream) == [1, 3, 6, 10, 15]
     assert Stream.scan([], 0, &(&1 + &2)) |> Enum.to_list == []
   end
 
   test "take/2" do
     stream = Stream.take(1..1000, 5)
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,2,3,4,5]
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5]
 
     assert Enum.to_list(Stream.take(1..1000, 0)) == []
     assert Enum.to_list(Stream.take([], 5)) == []
-    assert Enum.to_list(Stream.take(1..3, 5)) == [1,2,3]
+    assert Enum.to_list(Stream.take(1..3, 5)) == [1, 2, 3]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Enum.to_list(Stream.take(nats, 5)) == [1,2,3,4,5]
+    assert Enum.to_list(Stream.take(nats, 5)) == [1, 2, 3, 4, 5]
 
     stream = Stream.drop(1..100, 5)
-    assert Stream.take(stream, 5) |> Enum.to_list == [6,7,8,9,10]
+    assert Stream.take(stream, 5) |> Enum.to_list == [6, 7, 8, 9, 10]
 
     stream = 1..5 |> Stream.take(10) |> Stream.drop(15)
     assert {[], []} = Enum.split(stream, 5)
 
     stream = 1..20 |> Stream.take(10 + 5) |> Stream.drop(4)
-    assert Enum.to_list(stream) == [5,6,7,8,9,10,11,12,13,14,15]
+    assert Enum.to_list(stream) == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
   end
 
   test "take/2 with negative count" do
@@ -587,8 +587,8 @@ defmodule StreamTest do
     assert is_lazy(stream)
 
     stream = Stream.each(stream, &Process.put(:stream_each, [&1|Process.get(:stream_each)]))
-    assert Enum.to_list(stream) == [96,97,98,99,100]
-    assert Process.get(:stream_each) == [100,99,98,97,96]
+    assert Enum.to_list(stream) == [96, 97, 98, 99, 100]
+    assert Process.get(:stream_each) == [100, 99, 98, 97, 96]
   end
 
   test "take/2 is zippable" do
@@ -630,16 +630,16 @@ defmodule StreamTest do
   test "take_while/2" do
     stream = Stream.take_while(1..1000, &(&1 <= 5))
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [1,2,3,4,5]
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5]
 
     assert Enum.to_list(Stream.take_while(1..1000, &(&1 <= 0))) == []
-    assert Enum.to_list(Stream.take_while(1..3, &(&1 <= 5))) == [1,2,3]
+    assert Enum.to_list(Stream.take_while(1..3, &(&1 <= 5))) == [1, 2, 3]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Enum.to_list(Stream.take_while(nats, &(&1 <= 5))) == [1,2,3,4,5]
+    assert Enum.to_list(Stream.take_while(nats, &(&1 <= 5))) == [1, 2, 3, 4, 5]
 
     stream = Stream.drop(1..100, 5)
-    assert Stream.take_while(stream, &(&1 < 11)) |> Enum.to_list == [6,7,8,9,10]
+    assert Stream.take_while(stream, &(&1 < 11)) |> Enum.to_list == [6, 7, 8, 9, 10]
   end
 
   test "timer/1" do
@@ -675,14 +675,14 @@ defmodule StreamTest do
            [1, 2, 3]
 
     assert Stream.uniq([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end) |> Enum.to_list ==
-           [{1,:x}, {2,:y}]
+           [{1, :x}, {2, :y}]
   end
 
   test "zip/2" do
     concat = Stream.concat(1..3, 4..6)
     cycle  = Stream.cycle([:a, :b, :c])
     assert Stream.zip(concat, cycle) |> Enum.to_list ==
-           [{1,:a},{2,:b},{3,:c},{4,:a},{5,:b},{6,:c}]
+           [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
   end
 
   test "zip/2 does not leave streams suspended" do
@@ -730,12 +730,12 @@ defmodule StreamTest do
   end
 
   test "with_index/2" do
-    stream = Stream.with_index([1,2,3])
+    stream = Stream.with_index([1, 2, 3])
     assert is_lazy(stream)
-    assert Enum.to_list(stream) == [{1,0},{2,1},{3,2}]
+    assert Enum.to_list(stream) == [{1, 0}, {2, 1}, {3, 2}]
 
     nats = Stream.iterate(1, &(&1 + 1))
-    assert Stream.with_index(nats) |> Enum.take(3) == [{1,0},{2,1},{3,2}]
+    assert Stream.with_index(nats) |> Enum.take(3) == [{1, 0}, {2, 1}, {3, 2}]
   end
 
   defp is_lazy(stream) do

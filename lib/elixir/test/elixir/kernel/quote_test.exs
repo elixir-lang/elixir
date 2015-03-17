@@ -35,7 +35,7 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
     assert quote(do: foo.unquote(:bar)(1) do 2 + 3 end) == quote(do: foo.bar(1) do 2 + 3 end)
     assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar)
-    assert quote(do: foo.unquote({:bar, [], [1,2]})) == quote(do: foo.bar(1,2))
+    assert quote(do: foo.unquote({:bar, [], [1, 2]})) == quote(do: foo.bar(1, 2))
 
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == {Elixir.Foo.Bar, []}
     assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == {Elixir.Foo.Bar, []}
@@ -123,10 +123,10 @@ defmodule Kernel.QuoteTest do
   end
 
   test :when do
-    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: (1, 2, 3 when 4 -> 5))
-    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
+    assert [{:->, _, [[{:when, _, [1, 2, 3, 4]}], 5]}] = quote(do: (1, 2, 3 when 4 -> 5))
+    assert [{:->, _, [[{:when, _, [1, 2, 3, 4]}], 5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
 
-    assert [{:->,_,[[{:when,_,[1,2,3,{:when,_,[4,5]}]}],6]}] =
+    assert [{:->, _, [[{:when, _, [1, 2, 3, {:when, _, [4, 5]}]}], 6]}] =
              quote(do: ((1, 2, 3) when 4 when 5 -> 6))
   end
 

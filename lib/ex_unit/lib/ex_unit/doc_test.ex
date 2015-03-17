@@ -42,7 +42,7 @@ defmodule ExUnit.DocTest do
       iex> Enum.map [1, 2, 3], fn(x) ->
       ...>   x * 2
       ...> end
-      [2,4,6]
+      [2, 4, 6]
 
   Multiple results can be checked within the same test:
 
@@ -64,7 +64,7 @@ defmodule ExUnit.DocTest do
 
       iex(1)> [1+2,
       ...(1)>  3]
-      [3,3]
+      [3, 3]
 
   This is useful in two use cases:
 

@@ -37,7 +37,7 @@ defmodule Kernel.SpecialForms do
       {1, 2, 3}
 
       iex> quote do: {1, 2, 3}
-      {:{}, [], [1,2,3]}
+      {:{}, [], [1, 2, 3]}
 
   """
   defmacro unquote(:{})(args)
@@ -217,7 +217,7 @@ defmodule Kernel.SpecialForms do
   can also be applied to literal strings and char lists:
 
       iex> <<"foo" :: utf16>>
-      <<0,102,0,111,0,111>>
+      <<0, 102, 0, 111, 0, 111>>
 
   The bits type is an alias for bitstring. The bytes type is an
   alias for binary.
@@ -227,7 +227,7 @@ defmodule Kernel.SpecialForms do
   integers. If unspecified, it defaults to unsigned. Example:
 
       iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
-      <<156,102,111,111>>
+      <<156, 102, 111, 111>>
 
   This match would have failed if we did not specify that the
   value -100 is signed. If we're matching into a variable instead
@@ -338,13 +338,13 @@ defmodule Kernel.SpecialForms do
       iex> Kernel.Sample
       Kernel.Sample
 
-      iex> Kernel.length([1,2,3])
+      iex> Kernel.length([1, 2, 3])
       3
 
       iex> Kernel.+(1, 2)
       3
 
-      iex> Kernel."length"([1,2,3])
+      iex> Kernel."length"([1, 2, 3])
       3
 
       iex> Kernel.'+'(1, 2)
@@ -501,7 +501,7 @@ defmodule Kernel.SpecialForms do
 
       iex> import List
       iex> flatten([1, [2], 3])
-      [1,2,3]
+      [1, 2, 3]
 
   ## Selector
 
@@ -1200,7 +1200,7 @@ defmodule Kernel.SpecialForms do
 
       iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
       iex> for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
-      [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+      [{213, 45, 132}, {64, 76, 32}, {76, 0, 0}, {234, 32, 15}]
 
   Variable assignments inside the comprehension, be it in generators,
   filters or inside the block, are not reflected outside of the
