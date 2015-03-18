@@ -17,12 +17,15 @@ The compiler is intended for compilation one or more files containing the Elixir
 Places the output file in
 .Ar directory .
 If the directory is not specified, the current working directory will be used for the purpose.
+.It Fl -erl Ar parameters
+Acts like ELIXIR_ERL_OPTIONS
+.Pq see the section Sy ENVIRONMENT .
 .It Fl -ignore-module-conflict
 Disables warnings when a module was previously defined.
 .It Fl -no-debug-info
-Turns off producing debugging information.
+Disables producing debugging information.
 .It Fl -no-docs
-Turns off generating documentation.
+Disables generating documentation.
 .It Fl -warnings-as-errors
 Makes all warnings into errors.
 .It Fl -verbose
@@ -33,7 +36,7 @@ Separates the options passed to the compiler from the options passed to the exec
 .Sh ENVIRONMENT
 .Bl -tag -width Ds
 .It Ev ELIXIR_ERL_OPTIONS
-Allows passing parameters to the Elixir compiler.
+Allows passing parameters to the Erlang runtime.
 .It Ev ERL_COMPILER_OPTIONS
 Allows passing parameters to the Erlang compiler
 .Pq see Xr erlc 1 .

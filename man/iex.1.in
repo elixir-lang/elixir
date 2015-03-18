@@ -30,7 +30,13 @@ or
 .Fl -name
 options
 .Pq see above .
+.It Fl -
+Separates the options passed to the compiler from the options passed to the executed code.
 .El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev ELIXIR_ERL_OPTIONS
+Allows passing parameters to the Erlang runtime.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ~/.erlang.cookie
