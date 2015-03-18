@@ -22,6 +22,13 @@ can be used as an additional source of information on the options.
 {COMMON}
 .It Fl -no-halt
 Does not halt the Erlang VM after execution.
+.It Fl -
+Separates the options passed to the compiler from the options passed to the executed code.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev ELIXIR_ERL_OPTIONS
+Allows passing parameters to the Erlang runtime.
 .El
 .Sh FILES
 .Bl -tag -width Ds
@@ -30,12 +37,6 @@ Stores the value of the magic cookie which is used only when it wasn't specified
 .Fl -cookie
 .Pq see above .
 If the file doesn't exist when a node starts, it will be created.
-.It Pa .iex.exs
-After
-.Nm
-starts, it seeks the file
-.Pa .iex.exs
-and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home direcory.
 .El
 .Sh SEE ALSO
 .Xr elixirc 1 ,
