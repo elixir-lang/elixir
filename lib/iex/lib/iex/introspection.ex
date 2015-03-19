@@ -15,13 +15,7 @@ defmodule IEx.Introspection do
         if function_exported?(module, :__info__, 1) do
           case Code.get_docs(module, :moduledoc) do
             {_, binary} when is_binary(binary) ->
-              if opts = ansi_docs() do
-                IO.ANSI.Docs.print_heading(inspect(module), opts)
-                IO.ANSI.Docs.print(binary, opts)
-              else
-                IO.puts "* #{inspect(module)}\n"
-                IO.puts binary
-              end
+              print_doc(inspect(module), binary)
             {_, _} ->
               nodocs(inspect module)
             _ ->
@@ -145,11 +139,13 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
-    args    = Enum.map_join(args, ", ", &format_doc_arg(&1))
-    heading = "#{kind} #{fun}(#{args})"
-    doc     = doc || ""
+    args = Enum.map_join(args, ", ", &format_doc_arg(&1))
 
-    if opts = ansi_docs() do
+    print_doc("#{kind} #{fun}(#{args})", doc || "")
+  end
+
+  defp print_doc(heading, doc) do
+    if opts = IEx.Config.ansi_docs do
       IO.ANSI.Docs.print_heading(heading, opts)
       IO.ANSI.Docs.print(doc, opts)
     else
@@ -164,10 +160,6 @@ defmodule IEx.Introspection do
 
   defp format_doc_arg({var, _, _}) do
     Atom.to_string(var)
-  end
-
-  defp ansi_docs() do
-    IEx.Config.ansi_docs()
   end
 
   @doc """
