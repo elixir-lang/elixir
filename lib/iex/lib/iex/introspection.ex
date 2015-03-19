@@ -6,8 +6,7 @@ defmodule IEx.Introspection do
   import IEx, only: [dont_display_result: 0]
 
   @doc """
-  Documentation for modules.
-  It has a fallback clauses
+  Prints the documentation for the given module.
   """
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
@@ -36,7 +35,8 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Docs for the given function, with any arity, in any of the modules.
+  Prints the documentation for the given function
+  with any arity in the list of modules.
   """
   def h(modules, function) when is_list(modules) and is_atom(function) do
     result =
@@ -75,7 +75,8 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Documentation for the given function and arity in the list of modules.
+  Prints the documentation for the given function
+  and arity in the list of modules.
   """
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
     result =
@@ -231,7 +232,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print types in module.
+  Prints the types for the given module.
   """
   def t(module) when is_atom(module) do
     _ = case Kernel.Typespec.beam_types(module) do
@@ -244,7 +245,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print the given type in module with any arity.
+  Prints the given type in module with any arity.
   """
   def t(module, type) when is_atom(module) and is_atom(type) do
     case Kernel.Typespec.beam_types(module) do
@@ -265,7 +266,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print type in module with given arity.
+  Prints the type in module with given arity.
   """
   def t(module, type, arity) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case Kernel.Typespec.beam_types(module) do
@@ -286,7 +287,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print specs for given module.
+  Prints the specs for given module.
   """
   def s(module) when is_atom(module) do
     case beam_specs(module) do
@@ -305,7 +306,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print specs for given module and function.
+  Prints the specs for given module and function.
   """
   def s(module, function) when is_atom(module) and is_atom(function) do
     case beam_specs(module) do
@@ -326,7 +327,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Print spec in given module, with arity.
+  Prints the spec in given module, with arity.
   """
   def s(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     case beam_specs(module) do
