@@ -155,11 +155,11 @@ defmodule GenEvent.StreamTest do
     stream = GenEvent.stream(:does_not_exit)
 
     parent = self()
+    Process.flag(:trap_exit, true)
     child = spawn_link fn ->
       send parent, Enum.to_list(stream)
     end
 
-    Process.flag(:trap_exit, true)
     assert_receive {:EXIT, ^child,
                      {:noproc, {Enumerable.GenEvent.Stream, :start, [_]}}}, @receive_timeout
   end
