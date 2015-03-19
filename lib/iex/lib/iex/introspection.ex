@@ -103,7 +103,7 @@ defmodule IEx.Introspection do
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
     if docs = Code.get_docs(mod, :docs) do
-      doc = find_doc(docs, fun, arity)
+      doc = find_doc(docs, fun, arity, 4)
             || find_default_doc(docs, fun, arity)
 
       if doc do
@@ -117,9 +117,9 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp find_doc(docs, function, arity) do
+  defp find_doc(docs, function, arity, pos) do
     if doc = List.keyfind(docs, {function, arity}, 0) do
-      case elem(doc, 4) do
+      case elem(doc, pos) do
         false -> nil
         _ -> doc
       end
@@ -160,6 +160,74 @@ defmodule IEx.Introspection do
 
   defp format_doc_arg({var, _, _}) do
     Atom.to_string(var)
+  end
+
+  @doc """
+  Prints documentation for the given callback function with any arity.
+  """
+  def b(mod, fun) when is_atom(mod) and is_atom(fun) do
+    case print_behaviour_docs(mod, &match?({{^fun, _}, _}, &1)) do
+      :ok        -> :ok
+      :no_beam   -> nobeam(mod)
+      :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
+      :not_found -> nodocs("#{inspect mod}.#{fun}")
+    end
+
+    dont_display_result
+  end
+
+  @doc """
+  Prints documentation for the given callback function and arity.
+  """
+  def b(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
+    case print_behaviour_docs(mod, &match?({{^fun, ^arity}, _}, &1)) do
+      :ok        -> :ok
+      :no_beam   -> nobeam(mod)
+      :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
+      :not_found -> nodocs("#{inspect mod}.#{fun}/#{arity}")
+    end
+
+    dont_display_result
+  end
+
+  defp print_behaviour_docs(mod, filter) do
+    case get_behaviour_docs(mod) do
+      {callbacks, docs} ->
+        printed =
+          Enum.filter_map callbacks, filter, fn
+            {{fun, arity}, [spec | _]} ->
+              print_callback_doc(fun, arity, spec, docs)
+          end
+        if Enum.any?(printed), do: :ok, else: :not_found
+
+      other -> other
+    end
+  end
+
+  defp get_behaviour_docs(mod) do
+    callbacks = Kernel.Typespec.beam_callbacks(mod)
+    docs = Code.get_docs(mod, :behaviour_docs)
+    cond do
+      is_nil(callbacks) -> :no_beam
+      is_nil(docs) -> :no_docs
+      true ->
+        {callbacks, docs}
+    end
+  end
+
+  defp print_callback_doc(fun, arity, spec, docs) do
+    if doc = find_doc(docs, fun, arity, 3) do
+      print_callback_doc(doc, spec)
+      :ok
+    end
+  end
+
+  defp print_callback_doc({{fun, _}, _line, kind, doc}, spec) do
+    definition =
+      Kernel.Typespec.spec_to_ast(fun, spec)
+      |> Macro.to_string
+
+    print_doc("#{kind}callback #{definition}", doc || "")
   end
 
   @doc """
