@@ -177,6 +177,27 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the documentation for the given callback function.
+
+  ## Examples
+
+      b(Mix.Task.run/1)
+      b(Mix.Task.run)
+
+  """
+  defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
+    quote do
+      IEx.Introspection.b(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro b({{:., _, [mod, fun]}, _, []}) do
+    quote do
+      IEx.Introspection.b(unquote(mod), unquote(fun))
+    end
+  end
+
+  @doc """
   Prints the types for the given module or for the given function/arity pair.
 
   ## Examples

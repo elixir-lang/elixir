@@ -49,6 +49,13 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
+  test "b helper" do
+    assert capture_io(fn -> b Mix.Task.stop end) == "No documentation for Mix.Task.stop was found\n"
+    assert capture_io(fn -> b Mix.Task.run end) =~ "* defcallback run([binary()]) :: any()\n\nA task needs to implement `run`"
+    assert capture_io(fn -> b NoMix.run end) =~ "Could not load module NoMix, got: nofile\n"
+    assert capture_io(fn -> b Exception.message/1 end) == "* defcallback message(t()) :: String.t()\n\n\n"
+  end
+
   test "t helper" do
     assert capture_io(fn -> t IEx end) == "No type information for IEx was found\n"
 
