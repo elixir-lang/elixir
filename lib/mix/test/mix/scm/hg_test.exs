@@ -14,8 +14,8 @@ defmodule Mix.SCM.MercurialTest do
     assert Mix.SCM.Mercurial.equal?([hg: "foo"], [hg: "foo"])
     refute Mix.SCM.Mercurial.equal?([hg: "foo"], [hg: "bar"])
 
-    assert Mix.SCM.Mercurial.equal?([hg: "foo", branch: "master"], [hg: "foo", branch: "master"])
-    refute Mix.SCM.Mercurial.equal?([hg: "foo", branch: "master"], [hg: "foo", branch: "other"])
+    assert Mix.SCM.Mercurial.equal?([hg: "foo", branch: "default"], [hg: "foo", branch: "default"])
+    refute Mix.SCM.Mercurial.equal?([hg: "foo", branch: "default"], [hg: "foo", branch: "other"])
   end
 
   test "lock should not be taken into account when considering deps equal as the lock is shared" do

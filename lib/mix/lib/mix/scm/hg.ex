@@ -28,8 +28,6 @@ defmodule Mix.SCM.Mercurial do
     cond do
       repo = opts[:bitbucket] ->
         opts |> Keyword.delete(:bitbucket) |> Keyword.put(:hg, "https://bitbucket.org/#{repo}")
-      repo = opts[:hg_github] ->
-        opts |> Keyword.delete(:hg_github) |> Keyword.put(:hg, "git://github.com/#{repo}.git")
       opts[:hg] ->
         opts
       true ->
@@ -114,8 +112,8 @@ defmodule Mix.SCM.Mercurial do
   defp get_lock_opts(opts) do
     lock_opts = Enum.find_value [:branch, :ref, :tag], &List.keyfind(opts, &1, 0)
     lock_opts = List.wrap(lock_opts)
-    if opts[:submodules] do
-      lock_opts ++ [submodules: true]
+    if opts[:subrepos] do
+      lock_opts ++ [subrepos: true]
     else
       lock_opts
     end
