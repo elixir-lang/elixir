@@ -5,6 +5,8 @@ defmodule IEx.Introspection do
 
   import IEx, only: [dont_display_result: 0]
 
+  alias Kernel.Typespec
+
   @doc """
   Prints the documentation for the given module.
   """
@@ -206,7 +208,7 @@ defmodule IEx.Introspection do
   end
 
   defp get_behaviour_docs(mod) do
-    callbacks = Kernel.Typespec.beam_callbacks(mod)
+    callbacks = Typespec.beam_callbacks(mod)
     docs = Code.get_docs(mod, :behaviour_docs)
     cond do
       is_nil(callbacks) -> :no_beam
@@ -225,7 +227,7 @@ defmodule IEx.Introspection do
 
   defp print_callback_doc({{fun, _}, _line, kind, doc}, spec) do
     definition =
-      Kernel.Typespec.spec_to_ast(fun, spec)
+      Typespec.spec_to_ast(fun, spec)
       |> Macro.to_string
 
     print_doc("#{kind}callback #{definition}", doc || "")
@@ -235,7 +237,7 @@ defmodule IEx.Introspection do
   Prints the types for the given module.
   """
   def t(module) when is_atom(module) do
-    _ = case Kernel.Typespec.beam_types(module) do
+    _ = case Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
       types -> for type <- types, do: print_type(type)
@@ -248,7 +250,7 @@ defmodule IEx.Introspection do
   Prints the given type in module with any arity.
   """
   def t(module, type) when is_atom(module) and is_atom(type) do
-    case Kernel.Typespec.beam_types(module) do
+    case Typespec.beam_types(module) do
       nil   -> nobeam(module)
       types ->
         printed =
@@ -269,7 +271,7 @@ defmodule IEx.Introspection do
   Prints the type in module with given arity.
   """
   def t(module, type, arity) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case Kernel.Typespec.beam_types(module) do
+    case Typespec.beam_types(module) do
       nil   -> nobeam(module)
       types ->
         printed =
@@ -348,8 +350,8 @@ defmodule IEx.Introspection do
   end
 
   defp beam_specs(module) do
-    specs = beam_specs_tag(Kernel.Typespec.beam_specs(module), :spec)
-    callbacks = beam_specs_tag(Kernel.Typespec.beam_callbacks(module), :callback)
+    specs = beam_specs_tag(Typespec.beam_specs(module), :spec)
+    callbacks = beam_specs_tag(Typespec.beam_callbacks(module), :callback)
     specs && callbacks && Enum.concat(specs, callbacks)
   end
 
@@ -359,20 +361,20 @@ defmodule IEx.Introspection do
   end
 
   defp print_type({:opaque, type}) do
-    {:::, _, [ast, _]} = Kernel.Typespec.type_to_ast(type)
+    {:::, _, [ast, _]} = Typespec.type_to_ast(type)
     IO.puts IEx.color(:eval_info, "@opaque #{Macro.to_string(ast)}")
     true
   end
 
   defp print_type({kind, type}) do
-    ast = Kernel.Typespec.type_to_ast(type)
+    ast = Typespec.type_to_ast(type)
     IO.puts IEx.color(:eval_info, "@#{kind} #{Macro.to_string(ast)}")
     true
   end
 
   defp print_spec({kind, {{name, _arity}, specs}}) do
     Enum.each specs, fn(spec) ->
-      binary = Macro.to_string Kernel.Typespec.spec_to_ast(name, spec)
+      binary = Macro.to_string Typespec.spec_to_ast(name, spec)
       IO.puts IEx.color(:eval_info, "@#{kind} #{binary}")
     end
     true
