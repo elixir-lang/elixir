@@ -125,7 +125,7 @@ defmodule Mix.SCM.Mercurial do
   
   defp get_rev_info do
     destructure [origin, rev],
-      :os.cmd('hg paths default && hg parent -T "{node}\n"')
+      :os.cmd('hg paths default && hg parent --template "{node}\n"')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [origin: origin, rev: rev]

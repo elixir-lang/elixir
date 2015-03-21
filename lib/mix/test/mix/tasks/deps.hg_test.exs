@@ -315,7 +315,7 @@ defmodule Mix.Tasks.DepsHgTest do
 
   defp get_hg_repo_revs do
     File.cd! fixture_path("hg_repo"), fn ->
-      Regex.split ~r(\r?\n), System.cmd("hg", ["log", "-T", "{node}\n"]) |> elem(0) |> String.strip
+      Regex.split ~r(\r?\n), System.cmd("hg", ["log", "--template", "{node}\n"]) |> elem(0) |> String.strip
     end
   end
 end
