@@ -170,7 +170,7 @@ defmodule IEx.Introspection do
   Prints documentation for the given callback function with any arity.
   """
   def b(mod, fun) when is_atom(mod) and is_atom(fun) do
-    case print_behaviour_docs(mod, &match?({{^fun, _}, _}, &1)) do
+    case print_behaviour_docs(mod, &match?({^fun, _}, elem(&1, 0))) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -184,7 +184,7 @@ defmodule IEx.Introspection do
   Prints documentation for the given callback function and arity.
   """
   def b(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
-    case print_behaviour_docs(mod, &match?({{^fun, ^arity}, _}, &1)) do
+    case print_behaviour_docs(mod, &match?({^fun, ^arity}, elem(&1, 0))) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -198,9 +198,11 @@ defmodule IEx.Introspection do
     case get_behaviour_docs(mod) do
       {callbacks, docs} ->
         printed =
-          Enum.filter_map callbacks, filter, fn
-            {{fun, arity}, [spec | _]} ->
-              print_callback_doc(fun, arity, spec, docs)
+          Enum.filter_map docs, filter, fn
+            {{fun, arity}, _, :defmacro, doc} ->
+              print_callback_doc(fun, :defmacro, doc, :"MACRO-#{fun}", arity + 1, callbacks)
+            {{fun, arity}, _, kind, doc} ->
+              print_callback_doc(fun, kind, doc, fun, arity, callbacks)
           end
         if Enum.any?(printed), do: :ok, else: :not_found
 
@@ -219,20 +221,21 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_callback_doc(fun, arity, spec, docs) do
-    if doc = find_doc(docs, fun, arity, 3) do
-      print_callback_doc(doc, spec)
-      :ok
-    end
-  end
-
-  defp print_callback_doc({{fun, _}, _line, kind, doc}, spec) do
+  defp print_callback_doc(name, kind, doc, fun, arity, callbacks) do
+    {_, [spec | _]} = List.keyfind(callbacks, {fun, arity}, 0)
     definition =
-      Typespec.spec_to_ast(fun, spec)
+      Typespec.spec_to_ast(name, spec)
+      |> Macro.prewalk(&drop_macro_env/1)
       |> Macro.to_string
 
     print_doc("#{kind}callback #{definition}", doc)
   end
+
+  defp drop_macro_env({name, meta, [{:::, _, [{:env, _, _}, _ | _]} | args]}),
+    do: {name, meta, args}
+
+  defp drop_macro_env(other),
+    do: other
 
   @doc """
   Prints the types for the given module.
