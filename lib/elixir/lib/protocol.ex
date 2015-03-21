@@ -539,11 +539,12 @@ defmodule Protocol do
       for      = unquote(for)
       name     = Module.concat(protocol, for)
 
-      if protocol == Access and not for in [Map, List, Atom, HashDict]  do
-        :elixir_errors.warn __ENV__.line, __ENV__.file,
-          "implementation of the Access protocol is deprecated. For customization of " <>
-          "the dict[key] syntax, please implement the Dict behaviour instead"
-      end
+      # TODO: Emit warnings on 1.2
+      # if protocol == Access do
+      #   :elixir_errors.warn __ENV__.line, __ENV__.file,
+      #     "implementation of the Access protocol is deprecated. For customization of " <>
+      #     "the dict[key] syntax, please implement the Dict behaviour instead"
+      # end
 
       Protocol.assert_protocol!(protocol)
 
