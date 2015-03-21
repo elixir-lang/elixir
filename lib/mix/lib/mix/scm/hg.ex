@@ -73,8 +73,9 @@ defmodule Mix.SCM.Mercurial do
     path     = opts[:dest]
     location = opts[:hg]
     
-    _ = File.rm_rf!(path)
-    hg!(["clone", location, path])
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    hg!(["clone", "--noupdate", location, path])
     
     File.cd! path, fn -> do_checkout(opts) end
   end
@@ -97,6 +98,11 @@ defmodule Mix.SCM.Mercurial do
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
     hg!(["update", ref])
+    
+    if opts[:subrepos] do
+      # TODO: Update subrepos --------------------------------------------------
+      # hg!("--git-dir=.git submodule update --init --recursive")
+    end
     
     get_lock(opts)
   end
@@ -129,7 +135,7 @@ defmodule Mix.SCM.Mercurial do
   
   defp get_rev_info do
     destructure [origin, rev],
-      :os.cmd('hg paths default && hg head -T "{node}\n"')
+      :os.cmd('hg paths default && hg parent -T "{node}\n"')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
     [origin: origin, rev: rev]
