@@ -23,11 +23,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%%' ++ t, line, buffer, acc) do
-    case expr(t, line, [?%, ?<|buffer]) do
-      {:error, _, _} = error -> error
-      {:ok, buffer, new_line, rest} ->
-        tokenize rest, new_line, [?>, ?%|buffer], acc
-    end
+    tokenize t, line, [?%, ?<|buffer], acc
   end
 
   defp tokenize('<%#' ++ t, line, buffer, acc) do
