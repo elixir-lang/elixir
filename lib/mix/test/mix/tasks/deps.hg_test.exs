@@ -83,87 +83,85 @@ defmodule Mix.Tasks.DepsHgTest do
     end
   end
 
-  # TODO: Remove: Not required as per @josevalim PR #3185 ----------------------
-  # test "gets and updates many levels deep dependencies" do
-  #   Mix.Project.push DepsOnHgApp
+  test "gets and updates many levels deep dependencies" do
+    Mix.Project.push DepsOnHgApp
 
-  #   in_fixture "no_mixfile", fn ->
-  #     Mix.Tasks.Deps.Get.run []
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
 
-  #     message = "* Getting hg_repo (#{fixture_path("hg_repo")})"
-  #     assert_received {:mix_shell, :info, [^message]}
+      message = "* Getting hg_repo (#{fixture_path("hg_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
 
-  #     message = "* Getting deps_on_hg_repo (#{fixture_path("deps_on_hg_repo")})"
-  #     assert_received {:mix_shell, :info, [^message]}
+      message = "* Getting deps_on_hg_repo (#{fixture_path("deps_on_hg_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
 
-  #     assert File.exists?("deps/deps_on_hg_repo/mix.exs")
-  #     assert File.rm("deps/deps_on_hg_repo/.fetch") == :ok
-  #     assert File.exists?("deps/hg_repo/mix.exs")
-  #     assert File.rm("deps/hg_repo/.fetch") == :ok
+      assert File.exists?("deps/deps_on_hg_repo/mix.exs")
+      assert File.rm("deps/deps_on_hg_repo/.fetch") == :ok
+      assert File.exists?("deps/hg_repo/mix.exs")
+      assert File.rm("deps/hg_repo/.fetch") == :ok
 
-  #     # Compile the dependencies
-  #     Mix.Tasks.Deps.Compile.run []
+      # Compile the dependencies
+      Mix.Tasks.Deps.Compile.run []
 
-  #     # Now update children and make sure it propagates
-  #     Mix.Tasks.Deps.Update.run ["hg_repo"]
-  #     assert File.exists?("deps/deps_on_hg_repo/.fetch")
-  #     assert File.exists?("deps/hg_repo/.fetch")
+      # Now update children and make sure it propagates
+      Mix.Tasks.Deps.Update.run ["hg_repo"]
+      assert File.exists?("deps/deps_on_hg_repo/.fetch")
+      assert File.exists?("deps/hg_repo/.fetch")
 
-  #     # Compile hg repo but unload it so...
-  #     Mix.Tasks.Deps.Compile.run ["hg_repo"]
-  #     assert File.exists?("_build/dev/lib/hg_repo/ebin")
-  #     Code.delete_path("_build/dev/lib/hg_repo/ebin")
+      # Compile hg repo but unload it so...
+      Mix.Tasks.Deps.Compile.run ["hg_repo"]
+      assert File.exists?("_build/dev/lib/hg_repo/ebin")
+      Code.delete_path("_build/dev/lib/hg_repo/ebin")
 
-  #     # Deps on hg repo loads it automatically on compile
-  #     Mix.Task.reenable "deps.loadpaths"
-  #     Mix.Tasks.Deps.Compile.run ["deps_on_hg_repo"]
-  #     assert File.exists?("_build/dev/lib/deps_on_hg_repo/ebin")
-  #   end
-  # after
-  #   purge [HgRepo, HgRepo.Mix]
-  # end
+      # Deps on hg repo loads it automatically on compile
+      Mix.Task.reenable "deps.loadpaths"
+      Mix.Tasks.Deps.Compile.run ["deps_on_hg_repo"]
+      assert File.exists?("_build/dev/lib/deps_on_hg_repo/ebin")
+    end
+  after
+    purge [HgRepo, HgRepo.Mix]
+  end
 
-  # TODO: Remove: Not required as per @josevalim PR #3185 ----------------------
-  # test "recompiles the project when a dep is fetched" do
-  #   Mix.Project.push HgApp
+  test "recompiles the project when a dep is fetched" do
+    Mix.Project.push HgApp
 
-  #   in_fixture "no_mixfile", fn ->
-  #     Mix.Tasks.Deps.Get.run []
-  #     assert File.exists?("deps/hg_repo/.fetch")
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert File.exists?("deps/hg_repo/.fetch")
 
-  #     # We can compile just fine
-  #     Mix.Tasks.Compile.run []
-  #     assert_received {:mix_shell, :info, ["Compiled lib/hg_repo.ex"]}
-  #     assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      # We can compile just fine
+      Mix.Tasks.Compile.run []
+      assert_received {:mix_shell, :info, ["Compiled lib/hg_repo.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
-  #     # Clear up to prepare for the update
-  #     File.rm("_build/dev/lib/hg_repo/ebin/Elixir.HgRepo.beam")
-  #     File.rm("_build/dev/lib/hg_repo/.compile.elixir")
-  #     File.rm("deps/hg_repo/.fetch")
-  #     Mix.Task.clear
-  #     Mix.shell.flush
-  #     purge [A, B, C, HgRepo]
+      # Clear up to prepare for the update
+      File.rm("_build/dev/lib/hg_repo/ebin/Elixir.HgRepo.beam")
+      File.rm("_build/dev/lib/hg_repo/.compile.elixir")
+      File.rm("deps/hg_repo/.fetch")
+      Mix.Task.clear
+      Mix.shell.flush
+      purge [A, B, C, HgRepo]
 
-  #     # Update will mark the update required
-  #     Mix.Tasks.Deps.Update.run ["hg_repo"]
-  #     assert File.exists?("deps/hg_repo/.fetch")
-  #     ensure_touched("deps/hg_repo/.fetch") # Ensure timestamp differs
+      # Update will mark the update required
+      Mix.Tasks.Deps.Update.run ["hg_repo"]
+      assert File.exists?("deps/hg_repo/.fetch")
+      ensure_touched("deps/hg_repo/.fetch") # Ensure timestamp differs
 
-  #     # mix deps.compile is required...
-  #     Mix.Tasks.Deps.run []
-  #     msg = "  the dependency build is outdated, please run `mix deps.compile`"
-  #     assert_received {:mix_shell, :info, [^msg]}
+      # mix deps.compile is required...
+      Mix.Tasks.Deps.run []
+      msg = "  the dependency build is outdated, please run `mix deps.compile`"
+      assert_received {:mix_shell, :info, [^msg]}
 
-  #     # But also ran automatically
-  #     Mix.Tasks.Compile.run []
-  #     assert_received {:mix_shell, :info, ["Compiled lib/hg_repo.ex"]}
-  #     assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-  #     assert File.exists?("_build/dev/lib/hg_repo/.compile.fetch")
-  #     :ok
-  #   end
-  # after
-  #   purge [A, B, C, HgRepo, HgRepo.Mix]
-  # end
+      # But also ran automatically
+      Mix.Tasks.Compile.run []
+      assert_received {:mix_shell, :info, ["Compiled lib/hg_repo.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert File.exists?("_build/dev/lib/hg_repo/.compile.fetch")
+      :ok
+    end
+  after
+    purge [A, B, C, HgRepo, HgRepo.Mix]
+  end
 
   test "all up to date dependencies" do
     Mix.Project.push HgApp
@@ -276,51 +274,48 @@ defmodule Mix.Tasks.DepsHgTest do
     purge [HgRepo, HgRepo.Mix]
   end
 
-  # TODO: Remove: Not required as per @josevalim PR #3185 ----------------------
-  # test "does not attempt to compile projects that could not be retrieved" do
-  #   Mix.Project.push HgErrorApp
+  test "does not attempt to compile projects that could not be retrieved" do
+    Mix.Project.push HgErrorApp
 
-  #   in_fixture "no_mixfile", fn ->
-  #     exception = assert_raise Mix.Error, fn ->
-  #       Mix.Tasks.Deps.Get.run []
-  #     end
-  #     assert Exception.message(exception) =~ "Command `hg clone"
-  #   end
-  # end
+    in_fixture "no_mixfile", fn ->
+      exception = assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Get.run []
+      end
+      assert Exception.message(exception) =~ "Command `hg clone"
+    end
+  end
 
-  # TODO: Remove: Not required as per @josevalim PR #3185 ----------------------
-  # test "does not load bad mixfiles on get" do
-  #   Mix.Project.push HgApp
-  #   [last, _, bad|_] = get_hg_repo_revs
+  test "does not load bad mixfiles on get" do
+    Mix.Project.push HgApp
+    [last, _, bad|_] = get_hg_repo_revs
 
-  #   in_fixture "no_mixfile", fn ->
-  #     Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), bad, []}}
-  #     catch_error(Mix.Tasks.Deps.Get.run [])
+    in_fixture "no_mixfile", fn ->
+      Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), bad, []}}
+      catch_error(Mix.Tasks.Deps.Get.run [])
 
-  #     Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), last, []}}
-  #     Mix.Tasks.Deps.Get.run []
-  #     assert File.read!("mix.lock") =~ last
-  #   end
-  # after
-  #   purge [HgRepo, HgRepo.Mix]
-  # end
+      Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), last, []}}
+      Mix.Tasks.Deps.Get.run []
+      assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge [HgRepo, HgRepo.Mix]
+  end
 
-  # TODO: Remove: Not required as per @josevalim PR #3185 ----------------------
-  # test "does not load bad mixfiles on update" do
-  #   Mix.Project.push HgApp
-  #   [last, _, bad|_] = get_hg_repo_revs
+  test "does not load bad mixfiles on update" do
+    Mix.Project.push HgApp
+    [last, _, bad|_] = get_hg_repo_revs
 
-  #   in_fixture "no_mixfile", fn ->
-  #     Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), bad, []}}
-  #     catch_error(Mix.Tasks.Deps.Get.run [])
+    in_fixture "no_mixfile", fn ->
+      Mix.Dep.Lock.write %{hg_repo: {:hg, fixture_path("hg_repo"), bad, []}}
+      catch_error(Mix.Tasks.Deps.Get.run [])
 
-  #     Mix.Tasks.Deps.Update.run ["hg_repo"]
-  #     Mix.Tasks.Deps.Compile.run ["hg_repo"]
-  #     assert File.read!("mix.lock") =~ last
-  #   end
-  # after
-  #   purge [HgRepo, HgRepo.Mix]
-  # end
+      Mix.Tasks.Deps.Update.run ["hg_repo"]
+      Mix.Tasks.Deps.Compile.run ["hg_repo"]
+      assert File.read!("mix.lock") =~ last
+    end
+  after
+    purge [HgRepo, HgRepo.Mix]
+  end
 
   defp refresh(post_config) do
     %{name: name, file: file} = Mix.Project.pop

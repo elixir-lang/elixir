@@ -328,7 +328,7 @@ unless File.dir?(target) do
     def project do
       [ app: :deps_on_hg_repo,
         version: "0.2.0",
-        deps: [{:hg_repo, git: MixTest.Case.fixture_path("hg_repo")}] ]
+        deps: [{:hg_repo, hg: MixTest.Case.fixture_path("hg_repo")}] ]
     end
   end
   """
