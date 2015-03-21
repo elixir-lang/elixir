@@ -56,6 +56,20 @@ baz %>
     ]}
   end
 
+  test "quotation with interpolation" do
+    assert T.tokenize('a <%% b <%= c %> <%= d %> e %> f', 1) == {:ok, [
+      {:text, 'a <% b '},
+      {:expr, 1, "=", ' c '},
+      {:text, ' '},
+      {:expr, 1, "=", ' d '},
+      {:text, ' e %> f'}
+    ]}
+
+    assert T.tokenize('<%%% a <%%= b %> c %>', 1) == {:ok, [
+      {:text, '<%% a <%= b %> c %>'}
+    ]}
+  end
+
   test "comments" do
     assert T.tokenize('foo <%# true %>', 1) == {:ok, [
       {:text, 'foo '}
