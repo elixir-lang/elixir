@@ -144,10 +144,11 @@ defmodule IEx.Introspection do
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
     args = Enum.map_join(args, ", ", &format_doc_arg(&1))
 
-    print_doc("#{kind} #{fun}(#{args})", doc || "")
+    print_doc("#{kind} #{fun}(#{args})", doc)
   end
 
   defp print_doc(heading, doc) do
+    doc = doc || ""
     if opts = IEx.Config.ansi_docs do
       IO.ANSI.Docs.print_heading(heading, opts)
       IO.ANSI.Docs.print(doc, opts)
@@ -230,7 +231,7 @@ defmodule IEx.Introspection do
       Typespec.spec_to_ast(fun, spec)
       |> Macro.to_string
 
-    print_doc("#{kind}callback #{definition}", doc || "")
+    print_doc("#{kind}callback #{definition}", doc)
   end
 
   @doc """
