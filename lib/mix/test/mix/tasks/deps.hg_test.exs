@@ -23,16 +23,6 @@ defmodule Mix.Tasks.DepsHgTest do
     end
   end
 
-  defmodule HgSubreposApp do
-    def project do
-      [ app: :hg_app,
-        version: "0.1.0",
-        deps: [
-          {:hg_repo, "0.1.0", hg: MixTest.Case.fixture_path("hg_repo"), subrepos: true}
-        ] ]
-    end
-  end
-
   defmodule HgErrorApp do
     def project do
       [ deps: [

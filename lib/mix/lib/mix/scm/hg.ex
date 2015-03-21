@@ -99,11 +99,6 @@ defmodule Mix.SCM.Mercurial do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
     hg!(["update", ref])
     
-    if opts[:subrepos] do
-      # TODO: Update subrepos --------------------------------------------------
-      # hg!("--git-dir=.git submodule update --init --recursive")
-    end
-    
     get_lock(opts)
   end
   
@@ -118,11 +113,6 @@ defmodule Mix.SCM.Mercurial do
   defp get_lock_opts(opts) do
     lock_opts = Enum.find_value [:branch, :ref, :tag], &List.keyfind(opts, &1, 0)
     lock_opts = List.wrap(lock_opts)
-    if opts[:subrepos] do
-      lock_opts ++ [subrepos: true]
-    else
-      lock_opts
-    end
   end
   
   defp get_opts_rev(opts) do
