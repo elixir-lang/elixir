@@ -167,10 +167,32 @@ defmodule IEx.Introspection do
   end
 
   @doc """
+  Prints the list of behaviour callbacks for the given module.
+  """
+  def b(mod) when is_atom(mod) do
+    printer = &puts_callback_info/2
+    case print_behaviour_docs(mod, &match?(_, &1), printer) do
+      :ok        -> :ok
+      :no_beam   -> nobeam(mod)
+      :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
+      :not_found -> puts_error("No callbacks for #{inspect mod} were found")
+    end
+
+    dont_display_result
+  end
+
+  defp puts_callback_info("defc" <> _rest = heading, _doc),
+    do: puts_info("     " <> heading)
+
+  defp puts_callback_info(heading, _doc),
+    do: puts_info(heading)
+
+  @doc """
   Prints documentation for the given callback function with any arity.
   """
   def b(mod, fun) when is_atom(mod) and is_atom(fun) do
-    case print_behaviour_docs(mod, &match?({^fun, _}, elem(&1, 0))) do
+    filter = &match?({^fun, _}, elem(&1, 0))
+    case print_behaviour_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -184,7 +206,8 @@ defmodule IEx.Introspection do
   Prints documentation for the given callback function and arity.
   """
   def b(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
-    case print_behaviour_docs(mod, &match?({^fun, ^arity}, elem(&1, 0))) do
+    filter = &match?({^fun, ^arity}, elem(&1, 0))
+    case print_behaviour_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -194,15 +217,15 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  defp print_behaviour_docs(mod, filter) do
+  defp print_behaviour_docs(mod, filter, printer) do
     case get_behaviour_docs(mod) do
       {callbacks, docs} ->
         printed =
           Enum.filter_map docs, filter, fn
             {{fun, arity}, _, :defmacro, doc} ->
-              print_callback_doc(fun, :defmacro, doc, :"MACRO-#{fun}", arity + 1, callbacks)
+              print_callback_doc(fun, :defmacro, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
             {{fun, arity}, _, kind, doc} ->
-              print_callback_doc(fun, kind, doc, fun, arity, callbacks)
+              print_callback_doc(fun, kind, doc, {fun, arity}, callbacks, printer)
           end
         if Enum.any?(printed), do: :ok, else: :not_found
 
@@ -221,14 +244,14 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp print_callback_doc(name, kind, doc, fun, arity, callbacks) do
-    {_, [spec | _]} = List.keyfind(callbacks, {fun, arity}, 0)
+  defp print_callback_doc(name, kind, doc, key, callbacks, printer) do
+    {_, [spec | _]} = List.keyfind(callbacks, key, 0)
     definition =
       Typespec.spec_to_ast(name, spec)
       |> Macro.prewalk(&drop_macro_env/1)
       |> Macro.to_string
 
-    print_doc("#{kind}callback #{definition}", doc)
+    printer.("#{kind}callback #{definition}", doc)
   end
 
   defp drop_macro_env({name, meta, [{:::, _, [{:env, _, _}, _ | _]} | args]}),
