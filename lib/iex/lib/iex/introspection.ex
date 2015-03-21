@@ -366,20 +366,20 @@ defmodule IEx.Introspection do
 
   defp print_type({:opaque, type}) do
     {:::, _, [ast, _]} = Typespec.type_to_ast(type)
-    IO.puts IEx.color(:eval_info, "@opaque #{Macro.to_string(ast)}")
+    puts_info("@opaque #{Macro.to_string(ast)}")
     true
   end
 
   defp print_type({kind, type}) do
     ast = Typespec.type_to_ast(type)
-    IO.puts IEx.color(:eval_info, "@#{kind} #{Macro.to_string(ast)}")
+    puts_info("@#{kind} #{Macro.to_string(ast)}")
     true
   end
 
   defp print_spec({kind, {{name, _arity}, specs}}) do
     Enum.each specs, fn(spec) ->
       binary = Macro.to_string Typespec.spec_to_ast(name, spec)
-      IO.puts IEx.color(:eval_info, "@#{kind} #{binary}")
+      puts_info("@#{kind} #{binary}")
     end
     true
   end
@@ -399,6 +399,10 @@ defmodule IEx.Introspection do
 
   defp no(for, type) do
     puts_error("No #{type} for #{for} was found")
+  end
+
+  defp puts_info(string) do
+    IO.puts IEx.color(:eval_info, string)
   end
 
   defp puts_error(string) do
