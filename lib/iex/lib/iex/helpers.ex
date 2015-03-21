@@ -179,10 +179,14 @@ defmodule IEx.Helpers do
   @doc """
   Prints the documentation for the given callback function.
 
+  It also accepts single module argument to list
+  all available behaviour callbacks.
+
   ## Examples
 
       b(Mix.Task.run/1)
       b(Mix.Task.run)
+      b(Dict)
 
   """
   defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
@@ -194,6 +198,12 @@ defmodule IEx.Helpers do
   defmacro b({{:., _, [mod, fun]}, _, []}) do
     quote do
       IEx.Introspection.b(unquote(mod), unquote(fun))
+    end
+  end
+
+  defmacro b(module) do
+    quote do
+      IEx.Introspection.b(unquote(module))
     end
   end
 
