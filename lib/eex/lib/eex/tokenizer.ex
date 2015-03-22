@@ -62,11 +62,11 @@ defmodule EEx.Tokenizer do
   # Retrieve marker for <%
 
   defp retrieve_marker('=' ++ t) do
-    {"=", t}
+    {'=', t}
   end
 
   defp retrieve_marker(t) do
-    {"", t}
+    {'', t}
   end
 
   # Tokenize an expression until we find %>

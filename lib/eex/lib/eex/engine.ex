@@ -96,14 +96,14 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  def handle_expr(buffer, "=", expr) do
+  def handle_expr(buffer, '=', expr) do
     quote do
       tmp = unquote(buffer)
       tmp <> String.Chars.to_string(unquote(expr))
     end
   end
 
-  def handle_expr(buffer, "", expr) do
+  def handle_expr(buffer, '', expr) do
     quote do
       tmp = unquote(buffer)
       unquote(expr)
