@@ -222,7 +222,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:mydep, "~> 0.3.0"}
     #
-    # Or git/path repositories:
+    # Or git/hg/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
@@ -257,7 +257,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:mydep, "~> 0.3.0"}
     #
-    # Or git/path repositories:
+    # Or git/hg/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
@@ -285,7 +285,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:mydep, "~> 0.3.0"}
     #
-    # Or git/path repositories:
+    # Or git/hg/path repositories:
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
