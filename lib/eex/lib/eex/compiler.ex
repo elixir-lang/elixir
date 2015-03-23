@@ -12,7 +12,8 @@ defmodule EEx.Compiler do
   def compile(source, opts) do
     file   = opts[:file] || "nofile"
     line   = opts[:line] || 1
-    case EEx.Tokenizer.tokenize(source, line) do
+    trim   = opts[:trim] || false
+    case EEx.Tokenizer.tokenize(source, line, trim: trim) do
       {:ok, tokens} ->
         state = %{engine: opts[:engine] || @default_engine,
                   file: file, line: line, quoted: [], start_line: nil}
