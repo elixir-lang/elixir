@@ -122,8 +122,7 @@ defmodule IEx.Helpers do
   def i(processes), do: i(processes, length(processes))
 
   def i(processes, num) when num <= 100 do
-    iformat_ansi('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs', [:bright, :yellow])
-    iformat_ansi('Registered', 'Current Function', 'Stack', '', '', [:bright, :yellow])
+    i_header()
     {r,m,h,s} = List.foldl(processes, {0,0,0,0}, fn(pid, {r0,m0,h0,s0}) ->
                         {a,b,c,d} = display_info(pid)
                         {r0+a,m0+b,h0+c,s0+d}
@@ -132,9 +131,13 @@ defmodule IEx.Helpers do
     iformat('', '', w(s), '', '')
   end
   def i(processes, num) do
-    iformat('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs')
-    iformat('Registered', 'Current Function', 'Stack', '', '')
+    i_header()
     paged_i(processes, {0,0,0,0}, num, 50)
+  end
+
+  defp i_header() do
+    iformat_ansi('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs', [:bright, :yellow])
+    iformat_ansi('Registered', 'Current Function', 'Stack', '', '', [:bright, :yellow])
   end
 
   def paged_i([], {r,m,h,s}, _, _) do
@@ -179,7 +182,7 @@ defmodule IEx.Helpers do
 
   def get_line(p, default) do
     case line_string(:io.get_line(p)) do
-      "\n" -> default
+      '\n' -> default
       l    -> l
     end
   end
