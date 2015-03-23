@@ -124,10 +124,10 @@ defmodule IEx.Helpers do
   def i(processes, num) when num <= 100 do
     iformat('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs')
     iformat('Registered', 'Current Function', 'Stack', '', '')
-    {r,m,h,s} = :lists.foldl(fn(pid, {r0,m0,h0,s0}) ->
+    {r,m,h,s} = List.foldl(processes, {0,0,0,0}, fn(pid, {r0,m0,h0,s0}) ->
                         {a,b,c,d} = display_info(pid)
                         {r0+a,m0+b,h0+c,s0+d}
-                      end, {0,0,0,0}, processes)
+                      end)
     iformat('Total', '', w(h), w(r), w(m))
     iformat('', '', w(s), '', '')
   end
@@ -149,10 +149,10 @@ defmodule IEx.Helpers do
       else
         {processes, [], 0}
       end
-    new_acc = :lists.foldl(fn(pid, {r,m,h,s}) ->
+    new_acc = List.foldl(pids, acc, fn(pid, {r,m,h,s}) ->
          {a,b,c,d} = display_info(pid)
          {r+a,m+b,h+c,s+d}
-       end, acc, pids)
+       end)
     case rest do
       [_|_] ->
           choice(fn() -> paged_i(rest, new_acc, n1, page) end)
@@ -163,9 +163,11 @@ defmodule IEx.Helpers do
 
   def choice(f) do
     case get_line('(c)ontinue (q)uit -->', "c\n") do
-      "c\n" -> f.()
-      "q\n" -> :erlang.quit
-      _     -> choice(f)
+      'c\n' -> f.()
+      'q\n' -> :quit
+      other ->
+        IO.puts inspect other
+        choice(f)
     end
   end
 
