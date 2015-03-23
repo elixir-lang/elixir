@@ -71,7 +71,7 @@ defmodule Mix.Shell do
   An implementation of the command callback that
   is shared across different shells.
   """
-  def cmd(command, options, callback) do
+  def cmd(command, options \\ [], callback) do
     args =
       if Keyword.get(options, :stderr_to_stdout, true) do
         [:stderr_to_stdout]
