@@ -122,13 +122,13 @@ defmodule IEx.Helpers do
   def i(processes), do: i(processes, length(processes))
 
   def i(processes, num) when num <= 100 do
-    iformat('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs')
-    iformat('Registered', 'Current Function', 'Stack', '', '')
+    iformat_ansi('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs', [:bright, :yellow])
+    iformat_ansi('Registered', 'Current Function', 'Stack', '', '', [:bright, :yellow])
     {r,m,h,s} = List.foldl(processes, {0,0,0,0}, fn(pid, {r0,m0,h0,s0}) ->
                         {a,b,c,d} = display_info(pid)
                         {r0+a,m0+b,h0+c,s0+d}
                       end)
-    iformat('Total', '', w(h), w(r), w(m))
+    iformat_ansi('Total', '', w(h), w(r), w(m), [:bright, :yellow])
     iformat('', '', w(s), '', '')
   end
   def i(processes, num) do
@@ -166,7 +166,6 @@ defmodule IEx.Helpers do
       'c\n' -> f.()
       'q\n' -> :quit
       other ->
-        IO.puts inspect other
         choice(f)
     end
   end
@@ -252,6 +251,10 @@ defmodule IEx.Helpers do
 
   def iformat(a1, a2, a3, a4, a5) do
     :io.format('~-21s ~-33s ~-8s ~-4s ~-4s~n', [a1, a2, a3, a4, a5])
+  end
+  def iformat_ansi(a1, a2, a3, a4, a5, ansi_options) when is_list(ansi_options) do
+    formatted = :io_lib.format('~-21s ~-33s ~-8s ~-4s ~-4s~n', [a1, a2, a3, a4, a5])
+    IO.puts IO.ANSI.format(ansi_options ++ formatted)
   end
 
   def w(x), do: :io_lib.write(x)
