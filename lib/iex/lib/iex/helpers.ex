@@ -17,6 +17,7 @@ defmodule IEx.Helpers do
     * `flush/0`       — flushes all messages sent to the shell
     * `h/0`           — prints this help message
     * `h/1`           — prints help for the given module, function or macro
+    * `i/0`           — information about the system
     * `l/1`           — loads the given module's beam code
     * `ls/0`          — lists the contents of the current directory
     * `ls/1`          — lists the contents of the specified directory
@@ -112,6 +113,146 @@ defmodule IEx.Helpers do
     end
     dont_display_result
   end
+
+  @doc """
+  Prints information about the system.
+  """
+  def i(), do: i(:erlang.processes)
+
+  def i(processes), do: i(processes, length(processes))
+
+  def i(processes, num) when num <= 100 do
+    iformat('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs')
+    iformat('Registered', 'Current Function', 'Stack', '', '')
+    {r,m,h,s} = :lists.foldl(fn(pid, {r0,m0,h0,s0}) ->
+                        {a,b,c,d} = display_info(pid)
+                        {r0+a,m0+b,h0+c,s0+d}
+                      end, {0,0,0,0}, processes)
+    iformat('Total', '', w(h), w(r), w(m))
+    iformat('', '', w(s), '', '')
+  end
+  def i(processes, num) do
+    iformat('Pid', 'Initial Call', 'Heap', 'Reds', 'Msgs')
+    iformat('Registered', 'Current Function', 'Stack', '', '')
+    paged_i(processes, {0,0,0,0}, num, 50)
+  end
+
+  def paged_i([], {r,m,h,s}, _, _) do
+    iformat('Total', '', w(h), w(r), w(m))
+    iformat('', '', w(s), '', '')
+  end
+  def paged_i(processes, acc, num, page) do
+    {pids, rest, n1} =
+      if num > page do
+        {l1,l2} = :lists.split(page, processes)
+        {l1,l2,num-page}
+      else
+        {processes, [], 0}
+      end
+    new_acc = :lists.foldl(fn(pid, {r,m,h,s}) ->
+         {a,b,c,d} = display_info(pid)
+         {r+a,m+b,h+c,s+d}
+       end, acc, pids)
+    case rest do
+      [_|_] ->
+          choice(fn() -> paged_i(rest, new_acc, n1, page) end)
+      [] ->
+          paged_i([], new_acc, 0, page)
+    end
+  end
+
+  def choice(f) do
+    case get_line('(c)ontinue (q)uit -->', "c\n") do
+      "c\n" -> f.()
+      "q\n" -> :erlang.quit
+      _     -> choice(f)
+    end
+  end
+
+  def pinfo(pid) do
+    case :erlang.is_alive() do
+      true -> :rpc.call(node(pid), :erlang, :process_info, [pid])
+      false -> :erlang.process_info(pid)
+    end
+  end
+
+  def get_line(p, default) do
+    case line_string(:io.get_line(p)) do
+      "\n" -> default
+      l    -> l
+    end
+  end
+
+  # If the standard input is set to binary mode
+  # convert it to a list so we can properly match.
+  def line_string(binary) when is_binary(binary), do: :unicode.characters_to_list(binary)
+  def line_string(other), do: other
+
+  def mfa_string(fun) when is_function(fun) do
+    {:module,m} = :erlang.fun_info(fun, :module)
+    {:name,f} = :erlang.fun_info(fun, :name)
+    {:arity,a} = :erlang.fun_info(fun, :arity)
+    mfa_string({m,f,a})
+  end
+  def mfa_string({m,f,a}) do
+    :io_lib.format('~w:~w/~w', [m,f,a])
+  end
+  def mfa_string(x), do: w(x)
+
+  def display_info(pid) do
+    case pinfo(pid) do
+      :undefined -> {0,0,0,0}
+      info ->
+        call = initial_call(info)
+        curr = case fetch(:current_function, info) do
+                {mod,f,args} when is_list(args) ->
+                   {mod,f,length(args)}
+                 other -> other
+               end
+        reds = fetch(:reductions, info)
+        lm = length(fetch(:messages, info))
+        hs = fetch(:heap_size, info)
+        ss = fetch(:stack_size, info)
+        iformat(w(pid),
+          mfa_string(call),
+          w(hs),
+          w(reds),
+          w(lm))
+        iformat(case fetch(:registered_name, info) do
+                  0 -> ''
+                  x -> w(x)
+                end,
+                mfa_string(curr),
+                w(ss),
+                "",
+                "")
+        {reds, lm, hs, ss}
+    end
+  end
+
+  def fetch(key, info) do
+    case :lists.keyfind(key, 1, info) do
+      {_, val} -> val
+      false -> 0
+    end
+  end
+
+  # We have to do some assumptions about the initial call.
+  # If the initial call is proc_lib:init_p/3,5 we can find more information
+  # calling the function proc_lib:initial_call/1.
+  def initial_call(info) do
+    case fetch(:initial_call, info) do
+      {proc_lib, init_p, _} ->
+        :proc_lib.translate_initial_call(info)
+      icall -> icall
+    end
+  end
+
+  def iformat(a1, a2, a3, a4, a5) do
+    :io.format('~-21s ~-33s ~-8s ~-4s ~-4s~n', [a1, a2, a3, a4, a5])
+  end
+
+  def w(x), do: :io_lib.write(x)
 
   @doc """
   Prints the documentation for `IEx.Helpers`.
