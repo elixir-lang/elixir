@@ -114,6 +114,37 @@ baz %>
     ]}
   end
 
+  test "trim mode" do
+    assert T.tokenize('\n \t <%= 12 %>  \n 34 <% 56 %>', 1, trim: true) == {:ok, [
+      {:text, '\n'},
+      {:expr, 2, '=', ' 12 '},
+      {:text, ' 34 '},
+      {:expr, 3, '', ' 56 '}
+    ]}
+  end
+
+  test "trim mode with comment" do
+    assert T.tokenize('0\n  <%# comment %>  \n12', 1, trim: true) == {:ok, [
+      {:text, '0\n12'}
+    ]}
+  end
+
+  test "trim mode with CR/LF" do
+    assert T.tokenize('0\r\n  <%= 12 %>  \r\n34', 1, trim: true) == {:ok, [
+      {:text, '0\r\n'},
+      {:expr, 2, '=', ' 12 '},
+      {:text, '34'}
+    ]}
+  end
+
+  test "trim mode no false positives" do
+    assert T.tokenize('  01\n 34 <%= 56 %> 78 \n\n ', 1, trim: true) == {:ok, [
+      {:text, '  01\n 34 '},
+      {:expr, 2, '=', ' 56 '},
+      {:text, ' 78 \n\n '}
+    ]}
+  end
+
   test "raise syntax error when there is start mark and no end mark" do
     assert T.tokenize('foo <% :bar', 1) == {:error, 1, "missing token '%>'"}
   end
