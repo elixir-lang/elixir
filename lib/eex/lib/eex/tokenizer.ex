@@ -14,48 +14,54 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, line, error}` in case of errors.
   """
-  def tokenize(bin, line) when is_binary(bin) do
-    tokenize(String.to_char_list(bin), line)
+  def tokenize(bin, line, opts \\ [])
+
+  def tokenize(bin, line, opts) when is_binary(bin) do
+    tokenize(String.to_char_list(bin), line, opts)
   end
 
-  def tokenize(list, line) do
-    tokenize(list, line, [], [])
+  def tokenize(list, line, opts) do
+    tokenize(list, line, opts, [], [])
   end
 
-  defp tokenize('<%%' ++ t, line, buffer, acc) do
-    tokenize t, line, [?%, ?<|buffer], acc
+  defp tokenize('<%%' ++ t, line, opts, buffer, acc) do
+   tokenize t, line, opts, [?%, ?<|buffer], acc
   end
 
-  defp tokenize('<%#' ++ t, line, buffer, acc) do
+  defp tokenize('<%#' ++ t, line, opts, buffer, acc) do
     case expr(t, line, []) do
       {:error, _, _} = error -> error
       {:ok, _, new_line, rest} ->
-        tokenize rest, new_line, buffer, acc
+        buffer = trim_left_if_needed(buffer, opts)
+        {rest, new_line} = trim_right_if_needed(rest, new_line, opts)
+        tokenize rest, new_line, opts, buffer, acc
     end
   end
 
-  defp tokenize('<%' ++ t, line, buffer, acc) do
+  defp tokenize('<%' ++ t, line, opts, buffer, acc) do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, []) do
       {:error, _, _} = error -> error
       {:ok, expr, new_line, rest} ->
         token = token_name(expr)
+        buffer = trim_left_if_needed(buffer, opts)
+        {rest, new_line} = trim_right_if_needed(rest, new_line, opts)
         acc   = tokenize_text(buffer, acc)
         final = {token, line, marker, Enum.reverse(expr)}
-        tokenize rest, new_line, [], [final | acc]
+        tokenize rest, new_line, opts, [], [final | acc]
     end
   end
 
-  defp tokenize('\n' ++ t, line, buffer, acc) do
-    tokenize t, line + 1, [?\n|buffer], acc
+  defp tokenize('\n' ++ t, line, opts, buffer, acc) do
+    tokenize t, line + 1, opts, [?\n|buffer], acc
   end
 
-  defp tokenize([h|t], line, buffer, acc) do
-    tokenize t, line, [h|buffer], acc
+  defp tokenize([h|t], line, opts, buffer, acc) do
+    tokenize t, line, opts, [h|buffer], acc
   end
 
-  defp tokenize([], _line, buffer, acc) do
+  defp tokenize([], _line, _opts, buffer, acc) do
     {:ok, Enum.reverse(tokenize_text(buffer, acc))}
   end
 
@@ -164,5 +170,44 @@ defmodule EEx.Tokenizer do
 
   defp tokenize_text(buffer, acc) do
     [{:text, Enum.reverse(buffer)} | acc]
+  end
+
+  # If in trim mode, trim the buffer if the current line
+  # contains only whitespace. Does not remove the line
+  # break itself.
+
+  defp trim_left_if_needed(buffer, opts) do
+    if opts[:trim] do trim_left(buffer) else buffer end
+  end
+
+  defp trim_left(buffer) do
+    case trim_whitespace(buffer) do
+      [?\n|_] = trimmed -> trimmed
+      _ -> buffer
+    end
+  end
+
+  # If in trim mode, trim the remaining input if the current
+  # line contains only whitespace. Does remove the line
+  # break itself.
+
+  defp trim_right_if_needed(rest, line, opts) do
+    if opts[:trim] do trim_right(rest, line) else {rest, line} end
+  end
+
+  defp trim_right(rest, line) do
+    case trim_whitespace(rest) do
+      [?\r, ?\n|t] -> {t, line + 1}
+      [?\n|t] -> {t, line + 1}
+      _ -> {rest, line}
+      end
+  end
+
+  defp trim_whitespace([h|t]) when h == ?\s or h == ?\t do
+    trim_whitespace(t)
+  end
+
+  defp trim_whitespace(list) do
+    list
   end
 end
