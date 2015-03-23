@@ -260,6 +260,7 @@ defmodule IEx.Helpers do
     IO.puts IO.ANSI.format(ansi_options ++ formatted)
   end
 
+  def w(x) when is_pid(x), do: inspect(x)
   def w(x), do: :io_lib.write(x)
 
   @doc """
