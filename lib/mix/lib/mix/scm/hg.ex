@@ -112,7 +112,7 @@ defmodule Mix.SCM.Mercurial do
   
   defp get_lock_opts(opts) do
     lock_opts = Enum.find_value [:branch, :ref, :tag], &List.keyfind(opts, &1, 0)
-    lock_opts = List.wrap(lock_opts)
+    List.wrap(lock_opts)
   end
   
   defp get_opts_rev(opts) do
