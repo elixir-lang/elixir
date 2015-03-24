@@ -1386,7 +1386,14 @@ defmodule Kernel do
       iex> "abcd" =~ "ad"
       false
 
+      iex> "abcd" =~ ""
+      true
+
   """
+
+  @spec (String.t =~ (String.t | Regex.t)) :: boolean
+  def left =~ "" when is_binary(left), do: true
+
   def left =~ right when is_binary(left) and is_binary(right) do
     :binary.match(left, right) != :nomatch
   end
