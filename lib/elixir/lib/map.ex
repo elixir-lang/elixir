@@ -75,5 +75,6 @@ defmodule Map do
     :maps.remove(:__struct__, struct)
   end
 
+  def equal?(map1, map2)
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
 end

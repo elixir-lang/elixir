@@ -34,9 +34,13 @@ defmodule Exception do
   defcallback message(t) :: String.t
 
   @doc """
-  Returns true if the given argument is an exception.
+  Returns `true` if the given `term` is an exception.
   """
-  def exception?(%{__struct__: struct, __exception__: true}) when is_atom(struct), do: true
+  def exception?(term)
+
+  def exception?(%{__struct__: struct, __exception__: true}) when is_atom(struct),
+    do: true
+
   def exception?(_), do: false
 
   @doc """

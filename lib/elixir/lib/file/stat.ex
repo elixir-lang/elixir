@@ -69,6 +69,7 @@ defmodule File.Stat do
   @doc """
   Converts a `:file_info` record into a `File.Stat`.
   """
+  def from_record(file_info)
   def from_record({:file_info, unquote_splicing(vals)}) do
     %File.Stat{unquote_splicing(pairs)}
   end
