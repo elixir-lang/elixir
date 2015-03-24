@@ -121,7 +121,7 @@ defmodule IEx.Helpers do
 
   def i(processes), do: i(processes, length(processes))
 
-  def i(processes, num) when num <= 100 do
+  defp i(processes, num) when num <= 100 do
     i_header()
     {r,m,h,s} = List.foldl(processes, {0,0,0,0}, fn(pid, {r0,m0,h0,s0}) ->
                         {a,b,c,d} = display_info(pid)
@@ -130,7 +130,7 @@ defmodule IEx.Helpers do
     iformat_ansi('Total', '', w(h), w(r), w(m), [:bright, :yellow])
     iformat('', '', w(s), '', '')
   end
-  def i(processes, num) do
+  defp i(processes, num) do
     i_header()
     paged_i(processes, {0,0,0,0}, num, 50)
   end
@@ -140,11 +140,11 @@ defmodule IEx.Helpers do
     iformat_ansi('Registered', 'Current Function', 'Stack', '', '', [:bright, :yellow])
   end
 
-  def paged_i([], {r,m,h,s}, _, _) do
+  defp paged_i([], {r,m,h,s}, _, _) do
     iformat('Total', '', w(h), w(r), w(m))
     iformat('', '', w(s), '', '')
   end
-  def paged_i(processes, acc, num, page) do
+  defp paged_i(processes, acc, num, page) do
     {pids, rest, n1} =
       if num > page do
         {l1,l2} = :lists.split(page, processes)
@@ -164,7 +164,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  def choice(f) do
+  defp choice(f) do
     case get_line('(c)ontinue (q)uit -->', "c\n") do
       'c\n' -> f.()
       'q\n' -> :quit
@@ -173,14 +173,14 @@ defmodule IEx.Helpers do
     end
   end
 
-  def pinfo(pid) do
+  defp pinfo(pid) do
     case :erlang.is_alive() do
       true -> :rpc.call(node(pid), :erlang, :process_info, [pid])
       false -> :erlang.process_info(pid)
     end
   end
 
-  def get_line(p, default) do
+  defp get_line(p, default) do
     case line_string(:io.get_line(p)) do
       '\n' -> default
       l    -> l
@@ -189,21 +189,21 @@ defmodule IEx.Helpers do
 
   # If the standard input is set to binary mode
   # convert it to a list so we can properly match.
-  def line_string(binary) when is_binary(binary), do: :unicode.characters_to_list(binary)
-  def line_string(other), do: other
+  defp line_string(binary) when is_binary(binary), do: :unicode.characters_to_list(binary)
+  defp line_string(other), do: other
 
-  def mfa_string(fun) when is_function(fun) do
+  defp mfa_string(fun) when is_function(fun) do
     {:module,m} = :erlang.fun_info(fun, :module)
     {:name,f} = :erlang.fun_info(fun, :name)
     {:arity,a} = :erlang.fun_info(fun, :arity)
     mfa_string({m,f,a})
   end
-  def mfa_string({m,f,a}) do
+  defp mfa_string({m,f,a}) do
     :io_lib.format('~w:~w/~w', [m,f,a])
   end
-  def mfa_string(x), do: w(x)
+  defp mfa_string(x), do: w(x)
 
-  def display_info(pid) do
+  defp display_info(pid) do
     case pinfo(pid) do
       :undefined -> {0,0,0,0}
       info ->
@@ -234,7 +234,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  def fetch(key, info) do
+  defp fetch(key, info) do
     case :lists.keyfind(key, 1, info) do
       {_, val} -> val
       false -> 0
@@ -244,7 +244,7 @@ defmodule IEx.Helpers do
   # We have to do some assumptions about the initial call.
   # If the initial call is proc_lib:init_p/3,5 we can find more information
   # calling the function proc_lib:initial_call/1.
-  def initial_call(info) do
+  defp initial_call(info) do
     case fetch(:initial_call, info) do
       {proc_lib, init_p, _} ->
         :proc_lib.translate_initial_call(info)
@@ -252,16 +252,16 @@ defmodule IEx.Helpers do
     end
   end
 
-  def iformat(a1, a2, a3, a4, a5) do
+  defp iformat(a1, a2, a3, a4, a5) do
     :io.format('~-21s ~-33s ~-8s ~-4s ~-4s~n', [a1, a2, a3, a4, a5])
   end
-  def iformat_ansi(a1, a2, a3, a4, a5, ansi_options) when is_list(ansi_options) do
+  defp iformat_ansi(a1, a2, a3, a4, a5, ansi_options) when is_list(ansi_options) do
     formatted = :io_lib.format('~-21s ~-33s ~-8s ~-4s ~-4s~n', [a1, a2, a3, a4, a5])
     IO.puts IO.ANSI.format(ansi_options ++ formatted)
   end
 
-  def w(x) when is_pid(x), do: inspect(x)
-  def w(x), do: :io_lib.write(x)
+  defp w(x) when is_pid(x), do: inspect(x)
+  defp w(x), do: :io_lib.write(x)
 
   @doc """
   Prints the documentation for `IEx.Helpers`.
