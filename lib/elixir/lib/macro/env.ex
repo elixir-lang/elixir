@@ -98,6 +98,8 @@ defmodule Macro.Env do
   Returns a keyword list containing the file and line
   information as keys.
   """
+  @spec location(t) :: Keyword.t
+  def location(env)
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
     [file: file, line: line]
   end
@@ -106,17 +108,22 @@ defmodule Macro.Env do
   Returns whether the compilation environment is currently
   inside a guard.
   """
+  @spec in_guard?(t) :: boolean
+  def in_guard?(env)
   def in_guard?(%{__struct__: Macro.Env, context: context}), do: context == :guard
 
   @doc """
   Returns whether the compilation environment is currently
   inside a match clause.
   """
+  @spec in_match?(t) :: boolean
+  def in_match?(env)
   def in_match?(%{__struct__: Macro.Env, context: context}), do: context == :match
 
   @doc """
   Returns the environment stacktrace.
   """
+  @spec stacktrace(t) :: list
   def stacktrace(%{__struct__: Macro.Env} = env) do
     cond do
       is_nil(env.module) ->

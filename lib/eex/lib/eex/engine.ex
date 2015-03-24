@@ -44,8 +44,8 @@ defmodule EEx.Engine do
         EEx.Engine.handle_text(buffer, text)
       end
 
-      def handle_expr(buffer, mark, expr) do
-        EEx.Engine.handle_expr(buffer, mark, expr)
+      def handle_expr(buffer, marker, expr) do
+        EEx.Engine.handle_expr(buffer, marker, expr)
       end
 
       defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2]
@@ -96,6 +96,9 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
+  @spec handle_expr(Macro.t, '' | '=', Macro.t) :: Macro.t
+  def handle_expr(buffer, marker, expr)
+
   def handle_expr(buffer, '=', expr) do
     quote do
       tmp = unquote(buffer)

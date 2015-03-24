@@ -377,7 +377,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that `val1` and `val2` differ by no more than `delta`.
+  Asserts that `value1` and `value2` differ by no more than `delta`.
 
 
   ## Examples
@@ -386,11 +386,11 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def assert_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = message ||
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be less than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be less than #{inspect delta}"
     assert diff < delta, message
   end
 
@@ -523,7 +523,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `val1` and `val2` are not within `delta`.
+  Asserts `value1` and `value2` are not within `delta`.
 
   If you supply `message`, information about the values will
   automatically be appended to it.
@@ -534,14 +534,14 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def refute_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = if message do
-      message <> " (difference between #{inspect val1} " <>
-      "and #{inspect val2} is less than #{inspect delta})"
+      message <> " (difference between #{inspect value1} " <>
+      "and #{inspect value2} is less than #{inspect delta})"
     else
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be more than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be more than #{inspect delta}"
     end
     refute diff < delta, message
   end

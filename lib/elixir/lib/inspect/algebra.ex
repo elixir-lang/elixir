@@ -411,9 +411,10 @@ defmodule Inspect.Algebra do
 
   """
   @spec folddoc([t], ((t, t) -> t)) :: t
+  def folddoc(list, fun)
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
-  def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
+  def folddoc([d|ds], fun), do: fun.(d, folddoc(ds, fun))
 
   # Elixir conveniences
 

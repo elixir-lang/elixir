@@ -38,6 +38,8 @@ defmodule Mix.Tasks.Help do
   """
 
   @spec run(OptionParser.argv) :: :ok
+  def run(argv)
+
   def run([]) do
     loadpaths!
 
