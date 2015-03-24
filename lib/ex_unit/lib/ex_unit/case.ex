@@ -9,7 +9,7 @@ defmodule ExUnit.Case do
 
     * :async - configure Elixir to run that specific test case in parallel with
       others. Must be used for performance when your test cases do not change
-      any global state.
+      any global state. It defaults to `false`.
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module's documentation for more
