@@ -125,12 +125,12 @@ defmodule Version do
 
   """
   @spec match?(version, requirement) :: boolean
-  def match?(vsn, req) when is_binary(req) do
-    case parse_requirement(req) do
-      {:ok, req} ->
-        match?(vsn, req)
+  def match?(version, requirement) when is_binary(requirement) do
+    case parse_requirement(requirement) do
+      {:ok, requirement} ->
+        match?(version, requirement)
       :error ->
-        raise InvalidRequirementError, message: req
+        raise InvalidRequirementError, message: requirement
     end
   end
 
@@ -160,8 +160,8 @@ defmodule Version do
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
-  def compare(vsn1, vsn2) do
-    do_compare(to_matchable(vsn1), to_matchable(vsn2))
+  def compare(version1, version2) do
+    do_compare(to_matchable(version1), to_matchable(version2))
   end
 
   defp do_compare({major1, minor1, patch1, pre1}, {major2, minor2, patch2, pre2}) do
@@ -193,9 +193,9 @@ defmodule Version do
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
       {:ok, {major, minor, patch, pre}} ->
-        vsn = %Version{major: major, minor: minor, patch: patch,
+        version = %Version{major: major, minor: minor, patch: patch,
                        pre: pre, build: get_build(string)}
-        {:ok, vsn}
+        {:ok, version}
      :error ->
        :error
     end
@@ -230,7 +230,7 @@ defmodule Version do
 
   defp to_matchable(string) do
     case Version.Parser.parse_version(string) do
-      {:ok, vsn} -> vsn
+      {:ok, version} -> version
       :error -> raise InvalidVersionError, message: string
     end
   end

@@ -1730,6 +1730,8 @@ defmodule Enum do
 
   """
   @spec slice(t, Range.t) :: list
+  def slice(collection, range)
+
   def slice(collection, first..last) when first >= 0 and last >= 0 do
     # Simple case, which works on infinite collections
     if last - first >= 0 do
