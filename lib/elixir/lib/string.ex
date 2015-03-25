@@ -186,6 +186,7 @@ defmodule String do
 
   """
   @spec printable?(t) :: boolean
+  def printable?(string)
 
   def printable?(<< h :: utf8, t :: binary >>)
       when h in 0x20..0x7E
@@ -206,7 +207,7 @@ defmodule String do
   def printable?(<<?\a, t :: binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
-  def printable?(b) when is_binary(b), do: false
+  def printable?(binary) when is_binary(binary), do: false
 
   @doc """
   Divides a string into substrings at each Unicode whitespace
@@ -788,6 +789,7 @@ defmodule String do
 
   """
   @spec valid?(t) :: boolean
+  def valid?(string)
 
   noncharacters = Enum.to_list(?\x{FDD0}..?\x{FDEF}) ++
     [ ?\x{0FFFE}, ?\x{0FFFF}, ?\x{1FFFE}, ?\x{1FFFF}, ?\x{2FFFE}, ?\x{2FFFF},
@@ -804,7 +806,7 @@ defmodule String do
   def valid?(_), do: false
 
   @doc ~S"""
-  Checks whether `str` is a valid character.
+  Checks whether `string` is a valid character.
 
   All characters are codepoints, but some codepoints
   are not valid characters. They may be reserved, private,
@@ -1458,6 +1460,7 @@ defmodule String do
   """
 
   @spec jaro_distance(t, t) :: 0..1
+  def jaro_distance(str1, str2)
 
   def jaro_distance(str, str), do: 1.0
   def jaro_distance(_str, ""), do: 0.0

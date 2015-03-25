@@ -269,6 +269,8 @@ defmodule Macro do
 
   """
   @spec decompose_call(Macro.t) :: {atom, [Macro.t]} | {Macro.t, atom, [Macro.t]} | :error
+  def decompose_call(ast)
+
   def decompose_call({{:., _, [remote, function]}, _, args}) when is_tuple(remote) or is_atom(remote),
     do: {remote, function, args}
 
@@ -620,6 +622,7 @@ defmodule Macro do
     false
   end
 
+  def interpolate(expr, fun)
   def interpolate({:<<>>, _, parts}, fun) do
     parts = Enum.map_join(parts, "", fn
       {:::, _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->

@@ -112,6 +112,7 @@ defmodule ExUnit do
   defmodule TimeoutError do
     defexception [:timeout]
 
+    def message(timeout)
     def message(%{timeout: timeout}) do
       "test timed out after #{timeout}ms (you can change the test timeout " <>
         "by setting \"@tag timeout: x\" where x is an integer in milliseconds)"

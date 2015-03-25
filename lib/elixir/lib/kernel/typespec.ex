@@ -335,6 +335,7 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a spec clause back to Elixir AST.
   """
+  def spec_to_ast(name, spec)
   def spec_to_ast(name, {:type, line, :fun, [{:type, _, :product, args}, result]}) do
     meta = [line: line]
     body = {name, meta, Enum.map(args, &typespec_to_ast/1)}
@@ -382,6 +383,7 @@ defmodule Kernel.Typespec do
   @doc """
   Converts a type clause back to Elixir AST.
   """
+  def type_to_ast(type)
   def type_to_ast({{:record, record}, fields, args}) when is_atom(record) do
     fields = for field <- fields, do: typespec_to_ast(field)
     args = for arg <- args, do: typespec_to_ast(arg)

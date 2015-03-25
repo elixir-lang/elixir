@@ -3551,9 +3551,8 @@ defmodule Kernel do
       "f\#{o}o"
 
   """
-  defmacro sigil_S(string, []) do
-    string
-  end
+  defmacro sigil_S(term, modifiers)
+  defmacro sigil_S(string, []), do: string
 
   @doc ~S"""
   Handles the sigil `~s`.
@@ -3573,6 +3572,7 @@ defmodule Kernel do
       "f\#{:o}o"
 
   """
+  defmacro sigil_s(term, modifiers)
   defmacro sigil_s({:<<>>, line, pieces}, []) do
     {:<<>>, line, Macro.unescape_tokens(pieces)}
   end
@@ -3592,6 +3592,7 @@ defmodule Kernel do
       'f\#{o}o'
 
   """
+  defmacro sigil_C(term, modifiers)
   defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
     String.to_char_list(string)
   end
@@ -3614,6 +3615,7 @@ defmodule Kernel do
       'f\#{:o}o'
 
   """
+  defmacro sigil_c(term, modifiers)
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
@@ -3643,6 +3645,7 @@ defmodule Kernel do
       true
 
   """
+  defmacro sigil_r(term, modifiers)
   defmacro sigil_r({:<<>>, _line, [string]}, options) when is_binary(string) do
     binary = Macro.unescape_string(string, fn(x) -> Regex.unescape_map(x) end)
     regex  = Regex.compile!(binary, :binary.list_to_bin(options))
@@ -3668,6 +3671,7 @@ defmodule Kernel do
       true
 
   """
+  defmacro sigil_R(term, modifiers)
   defmacro sigil_R({:<<>>, _line, [string]}, options) when is_binary(string) do
     regex = Regex.compile!(string, :binary.list_to_bin(options))
     Macro.escape(regex)
@@ -3697,7 +3701,7 @@ defmodule Kernel do
       [:foo, :bar, :baz]
 
   """
-
+  defmacro sigil_w(term, modifiers)
   defmacro sigil_w({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
     split_words(Macro.unescape_string(string), modifiers)
   end
@@ -3725,6 +3729,7 @@ defmodule Kernel do
       ["foo", "\#{bar}", "baz"]
 
   """
+  defmacro sigil_W(term, modifiers)
   defmacro sigil_W({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
     split_words(string, modifiers)
   end
