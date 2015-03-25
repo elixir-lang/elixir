@@ -227,7 +227,7 @@ defmodule Protocol do
   end
 
   @doc """
-  Returns true if the protocol was consolidated.
+  Returns `true` if the protocol was consolidated.
   """
   @spec consolidated?(module) :: boolean
   def consolidated?(protocol) do
@@ -250,7 +250,7 @@ defmodule Protocol do
 
       Protocol.consolidated?(Enumerable)
 
-  If the first element of the tuple is true, it means
+  If the first element of the tuple is `true`, it means
   the protocol was consolidated.
 
   This function does not load the protocol at any point

@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Deps do
 
   ## Mix options
 
-    * `:app` - when set to false, does not read the app file for this
+    * `:app` - when set to `false`, does not read the app file for this
       dependency
 
     * `:env` - the environment to run the dependency on, defaults to :prod
@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Deps do
     * `:only` - the dependency will belong only to the given environments,
       useful when declaring dev- or test-only dependencies
 
-    * `:override` - if set to true the dependency will override any other
+    * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
 
   ## Git options (`:git`)
@@ -74,12 +74,12 @@ defmodule Mix.Tasks.Deps do
     * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
     * `:branch`     - the git branch to checkout
     * `:tag`        - the git tag to checkout
-    * `:submodules` - when true, initialize submodules for the repo
+    * `:submodules` - when ` true`, initialize submodules for the repo
 
   ## Path options (`:path`)
 
     * `:path`        - the path for the dependency
-    * `:in_umbrella` - when true, sets a path dependency pointing to
+    * `:in_umbrella` - when `true`, sets a path dependency pointing to
       "../#{app}", sharing the same environment as the current application
 
   ## mix deps task
