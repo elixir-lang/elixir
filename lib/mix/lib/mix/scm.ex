@@ -47,7 +47,7 @@ defmodule Mix.SCM do
   Each registered SCM will be asked if they consume this dependency,
   receiving `[github: "foo/bar"]` as argument. Since this option makes
   sense for the Git SCM, it will return an update list of options
-  while other SCMs would simply return nil.
+  while other SCMs would simply return `nil`.
   """
   defcallback accepts_options(app :: atom, opts) :: opts | nil
 
@@ -105,7 +105,7 @@ defmodule Mix.SCM do
   defcallback lock_status(opts) :: :mismatch | :outdated | :ok
 
   @doc """
-  Receives two options and must return true if they refer to the
+  Receives two options and must return `true` if they refer to the
   same repository. The options are guaranteed to belong to the
   same SCM.
   """

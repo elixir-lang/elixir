@@ -117,7 +117,7 @@ something like:
 
 ```elixir
 @doc """
-Returns only those elements for which `fun` is true.
+Returns only those elements for which `fun` is `true`.
 
 ...
 """
@@ -153,7 +153,7 @@ example:
 
 ```elixir
 @doc """
-Return only those elements for which `fun` is true.
+Return only those elements for which `fun` is `true`.
 
 ## Examples
 

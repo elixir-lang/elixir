@@ -1639,7 +1639,7 @@ defmodule Kernel do
       iex> get_in(users, [all, :age])
       [27, 23]
 
-  If the previous value before invoking the function is nil,
+  If the previous value before invoking the function is `nil`,
   the function *will* receive nil as a value and must handle it
   accordingly.
   """
@@ -1745,7 +1745,7 @@ defmodule Kernel do
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
 
-  If the previous value before invoking the function is nil,
+  If the previous value before invoking the function is `nil`,
   the function *will* receive `nil` as a value and must handle it
   accordingly (be it by failing or providing a sane default).
   """
@@ -1856,7 +1856,7 @@ defmodule Kernel do
   followed by one or more:
 
     * `foo[bar]` - access a field; in case an intermediate field is not
-      present or returns nil, an empty map is used
+      present or returns `nil`, an empty map is used
 
     * `foo.bar` - access a map/struct field; in case the field is not
       present, an error is raised
@@ -3194,7 +3194,7 @@ defmodule Kernel do
   ## Examples
 
   In Elixir, only `false` and `nil` are considered falsy values.
-  Everything else evaluates to true in `if` clauses. Depending
+  Everything else evaluates to `true` in `if` clauses. Depending
   on the application, it may be important to specify a `blank?`
   protocol that returns a boolean for other data types that should
   be considered "blank". For instance, an empty list or an empty
@@ -3203,7 +3203,7 @@ defmodule Kernel do
   Such protocol could be implemented as follows:
 
       defprotocol Blank do
-        @doc "Returns true if `data` is considered blank/empty"
+        @doc "Returns `true` if `data` is considered blank/empty"
         def blank?(data)
       end
 
@@ -3334,7 +3334,7 @@ defmodule Kernel do
   In order to speed up dispatching in production environments, where
   all implementations are known up-front, Elixir provides a feature
   called protocol consolidation. For this reason, all protocols are
-  compiled with `debug_info` set to true, regardless of the option
+  compiled with `debug_info` set to `true`, regardless of the option
   set by `elixirc` compiler. The debug info though may be removed
   after consolidation.
 

@@ -463,7 +463,7 @@ defmodule IEx.Helpers do
   @doc """
   Respawns the current shell by starting a new shell process.
 
-  Returns true if it worked.
+  Returns `true` if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do

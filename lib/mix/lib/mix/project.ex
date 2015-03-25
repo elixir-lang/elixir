@@ -228,7 +228,7 @@ defmodule Mix.Project do
       Mix.Project.build_path
       #=> "/path/to/project/_build/shared"
 
-  If :build_per_environment is set to true (the default), it
+  If :build_per_environment is set to `true` (the default), it
   will create a new build per environment:
 
       Mix.env
