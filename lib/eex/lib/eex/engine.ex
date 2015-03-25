@@ -29,7 +29,7 @@ defmodule EEx.Engine do
 
   defcallback handle_body(Macro.t) :: Macro.t
   defcallback handle_text(Macro.t, binary) :: Macro.t
-  defcallback handle_expr(Macro.t, binary, Macro.t) :: Macro.t
+  defcallback handle_expr(Macro.t, char_list, Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -96,7 +96,7 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  @spec handle_expr(Macro.t, '' | '=', Macro.t) :: Macro.t
+  @spec handle_expr(Macro.t, char_list, Macro.t) :: Macro.t
   def handle_expr(buffer, marker, expr)
 
   def handle_expr(buffer, '=', expr) do
