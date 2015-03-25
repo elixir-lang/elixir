@@ -4,8 +4,8 @@ defmodule Inspect.Opts do
 
   The following fields are available:
 
-    * `:structs` - when false, structs are not formatted by the inspect
-      protocol, they are instead printed as maps, defaults to true.
+    * `:structs` - when `false`, structs are not formatted by the inspect
+      protocol, they are instead printed as maps, defaults to `true`.
 
     * `:binaries` - when `:as_strings` all binaries will be printed as strings,
       non-printable bytes will be escaped.
@@ -27,15 +27,15 @@ defmodule Inspect.Opts do
       bitstrings, and lists, does not apply to strings nor char lists, defaults
       to 50.
 
-    * `:pretty` - if set to true enables pretty printing, defaults to false.
+    * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
-    * `:width` - defaults to the 80 characters, used when pretty is true or
+    * `:width` - defaults to the 80 characters, used when pretty is `true` or
       when printing to IO devices.
 
     * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
       to :decimal
 
-    * `:safe` - when false, failures while inspecting structs will be raised
+    * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the Inspect.Error exception. This
       is useful when debugging failures and crashes for custom inspect
       implementations

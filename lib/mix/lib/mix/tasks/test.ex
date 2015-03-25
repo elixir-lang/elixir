@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Test do
       mix test --include external:true
 
   The example above will run all tests that have the external flag set to
-  true. It is also possible to include all examples that have a given tag,
+  `true`. It is also possible to include all examples that have a given tag,
   regardless of its value:
 
       mix test --include external
@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Test do
   `CoverModule` can be any module that exports `start/2`, receiving the
   compilation path and the `test_coverage` options as arguments. It must
   return an anonymous function of zero arity that will be run after the
-  test suite is done or nil.
+  test suite is done or `nil`.
   """
 
   @switches [force: :boolean, color: :boolean, cover: :boolean,
