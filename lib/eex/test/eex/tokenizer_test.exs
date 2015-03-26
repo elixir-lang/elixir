@@ -115,21 +115,23 @@ baz %>
   end
 
   test "trim mode" do
-    assert T.tokenize('\n \t <%= 12 %>  \n 34 <% 56 %>', 1, trim: true) == {:ok, [
-      {:text, '\n'},
-      {:expr, 2, '=', ' 12 '},
-      {:text, ' 34 '},
-      {:expr, 3, '', ' 56 '}
+    template = '\t<%= if true do %> \n TRUE \n  <% else %>\n FALSE \n  <% end %>  '
+    assert T.tokenize(template, 1, trim: true) == {:ok, [
+      {:start_expr, 1, '=', ' if true do '},
+      {:text, ' TRUE \n'},
+      {:middle_expr, 3, '', ' else '},
+      {:text, ' FALSE \n'},
+      {:end_expr, 5, '', ' end '}
     ]}
   end
 
   test "trim mode with comment" do
-    assert T.tokenize('0\n  <%# comment %>  \n12', 1, trim: true) == {:ok, [
-      {:text, '0\n12'}
+    assert T.tokenize('  <%# comment %>  \n123', 1, trim: true) == {:ok, [
+      {:text, '123'}
     ]}
   end
 
-  test "trim mode with CR/LF" do
+  test "trim mode with CRLF" do
     assert T.tokenize('0\r\n  <%= 12 %>  \r\n34', 1, trim: true) == {:ok, [
       {:text, '0\r\n'},
       {:expr, 2, '=', ' 12 '},
@@ -137,12 +139,21 @@ baz %>
     ]}
   end
 
-  test "trim mode no false positives" do
-    assert T.tokenize('  01\n 34 <%= 56 %> 78 \n\n ', 1, trim: true) == {:ok, [
-      {:text, '  01\n 34 '},
-      {:expr, 2, '=', ' 56 '},
-      {:text, ' 78 \n\n '}
+  test "trim mode set to false" do
+    assert T.tokenize(' <%= 12 %> \n', 1, trim: false) == {:ok, [
+      {:text, ' '},
+      {:expr, 1, '=', ' 12 '},
+      {:text, ' \n'}
     ]}
+  end
+
+  test "trim mode no false positives" do
+    assert_not_trimmed = fn x -> assert T.tokenize(x, 1, trim: true) == T.tokenize(x, 1) end
+
+    assert_not_trimmed.('foo <%= "bar" %>  ')
+    assert_not_trimmed.('\n  <%= "foo" %>bar')
+    assert_not_trimmed.('  <%% hello %>  ')
+    assert_not_trimmed.('  <%= 01 %><%= 23 %>\n')
   end
 
   test "raise syntax error when there is start mark and no end mark" do
