@@ -324,7 +324,7 @@ defmodule Logger do
 
   ## Options
 
-    * `:flush` - when true, guarantees all messages currently sent
+    * `:flush` - when `true`, guarantees all messages currently sent
       to both Logger and Erlang's `error_logger` are processed before
       the backend is added
 
@@ -345,7 +345,7 @@ defmodule Logger do
 
   ## Options
 
-    * `:flush` - when true, guarantees all messages currently sent
+    * `:flush` - when `true`, guarantees all messages currently sent
       to both Logger and Erlang's `error_logger` are processed before
       the backend is removed
   """

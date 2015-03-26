@@ -238,7 +238,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns true if the dependency is ok.
+  Returns `true` if the dependency is ok.
   """
   def ok?(%Mix.Dep{status: {:ok, _}}), do: true
   def ok?(%Mix.Dep{}), do: false

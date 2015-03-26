@@ -27,7 +27,7 @@ defmodule OptionParser do
 
   By default, Elixir will try to automatically parse switches.
   Switches without an argument, like `--debug` will automatically
-  be set to true. Switches followed by a value will be assigned
+  be set to `true`. Switches followed by a value will be assigned
   to the value, always as strings.
 
   Note Elixir also converts the switches to underscore atoms, as
@@ -92,7 +92,7 @@ defmodule OptionParser do
   ## Negation switches
 
   In case a switch is declared as boolean, it may be passed as `--no-SWITCH`
-  which will set the option to false:
+  which will set the option to `false`:
 
       iex> OptionParser.parse(["--no-op", "path/to/file"], switches: [op: :boolean])
       {[op: false], ["path/to/file"], []}

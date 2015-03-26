@@ -29,7 +29,7 @@ defmodule Range do
   end
 
   @doc """
-  Returns true if the given argument is a range.
+  Returns `true` if the given argument is a range.
 
   ## Examples
 
