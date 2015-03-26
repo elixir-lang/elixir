@@ -134,7 +134,7 @@ defmodule ExUnit.Case do
       ExUnit.configure(exclude: [external: true])
 
   From now on, ExUnit will not run any test that has the `external` flag
-  set to true. This behaviour can be reversed with the `:include` option
+  set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 
       mix test --include external:true

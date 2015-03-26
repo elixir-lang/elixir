@@ -160,7 +160,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns true if the given argument is a regex.
+  Returns `true` if the given argument is a regex.
 
   ## Examples
 
@@ -337,7 +337,7 @@ defmodule Regex do
       split the string into the maximum number of parts possible based on the
       given pattern.
 
-    * `:trim` - when true, remove blank strings from the result.
+    * `:trim` - when `true`, remove blank strings from the result.
 
     * `:on` - specifies which captures and order to split the string
       on. Check the moduledoc for `Regex` to see the possible capture
@@ -437,7 +437,7 @@ defmodule Regex do
   ## Options
 
     * `:global` - when `false`, replaces only the first occurrence
-      (defaults to true)
+      (defaults to `true`)
 
   ## Examples
 

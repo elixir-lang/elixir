@@ -455,7 +455,7 @@ defmodule Kernel.SpecialForms do
   was not explicitly defined.
 
   Both warning behaviours could be changed by explicitly
-  setting the `:warn` option to true or `false`.
+  setting the `:warn` option to `true` or `false`.
   """
   defmacro alias(module, opts)
 
@@ -1613,7 +1613,7 @@ defmodule Kernel.SpecialForms do
   This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
-  is true for rescue and catch clauses.
+  is `true` for `rescue` and `catch` clauses.
 
   ## Variable handling
 

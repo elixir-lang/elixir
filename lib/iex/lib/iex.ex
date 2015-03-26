@@ -262,8 +262,8 @@ defmodule IEx do
 
   The value is a keyword list. Two prompt types:
 
-    * `:default_prompt` - used when `Node.alive?` returns false
-    * `:alive_prompt`   - used when `Node.alive?` returns true
+    * `:default_prompt` - used when `Node.alive?` returns `false`
+    * `:alive_prompt`   - used when `Node.alive?` returns `true`
 
   The part of the listed in the following of the prompt string is replaced.
 
@@ -340,7 +340,7 @@ defmodule IEx do
   This is useful for debugging a particular chunk of code
   and inspect the state of a particular process. The process
   is temporarily changed to trap exits (i.e. the process flag
-  `:trap_exit` is set to true) and has the `group_leader` changed
+  `:trap_exit` is set to `true`) and has the `group_leader` changed
   to support ANSI escape codes. Those values are reverted by
   calling `respawn`, which starts a new IEx shell, freeing up
   the pried one.

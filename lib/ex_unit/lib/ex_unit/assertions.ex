@@ -36,7 +36,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts its argument is true.
+  Asserts its argument is `true`.
 
   `assert` tries to be smart and provide good
   reporting whenever there is a failure. In particular, if
@@ -191,7 +191,7 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Asserts `value` is true, displaying the given `message` otherwise.
+  Asserts `value` is `true`, displaying the given `message` otherwise.
 
   ## Examples
 
@@ -208,7 +208,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `value` is true.
+  Asserts `value` is `true`.
   If it fails, it raises an expectation error
   using the given `left` and `right` values.
 
