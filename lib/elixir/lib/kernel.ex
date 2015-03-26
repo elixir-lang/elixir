@@ -3068,6 +3068,12 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
+      case fields do
+        fs when is_list(fs) -> :ok
+        other ->
+          raise ArgumentError, "struct fields definition must be list, got: #{inspect other}"
+      end
+
       fields = :lists.map(fn
         {key, val} when is_atom(key) ->
           try do
