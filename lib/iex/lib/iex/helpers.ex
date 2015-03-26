@@ -140,6 +140,7 @@ defmodule IEx.Helpers do
   """
   @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
 
+  defmacro h(term)
   defmacro h({:/, _, [call, arity]} = other) do
     args =
       case Macro.decompose_call(call) do
@@ -246,6 +247,7 @@ defmodule IEx.Helpers do
       s(is_atom/1)
 
   """
+  defmacro s(term)
   defmacro s({:/, _, [call, arity]} = other) do
     args =
       case Macro.decompose_call(call) do
