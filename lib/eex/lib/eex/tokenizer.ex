@@ -32,8 +32,7 @@ defmodule EEx.Tokenizer do
     case expr(t, line, []) do
       {:error, _, _} = error -> error
       {:ok, _, new_line, rest} ->
-        buffer = trim_left_if_needed(buffer, opts)
-        {rest, new_line} = trim_right_if_needed(rest, new_line, opts)
+        {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
         tokenize rest, new_line, opts, buffer, acc
     end
   end
@@ -45,8 +44,7 @@ defmodule EEx.Tokenizer do
       {:error, _, _} = error -> error
       {:ok, expr, new_line, rest} ->
         token = token_name(expr)
-        buffer = trim_left_if_needed(buffer, opts)
-        {rest, new_line} = trim_right_if_needed(rest, new_line, opts)
+        {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
         acc   = tokenize_text(buffer, acc)
         final = {token, line, marker, Enum.reverse(expr)}
         tokenize rest, new_line, opts, [], [final | acc]
@@ -172,35 +170,39 @@ defmodule EEx.Tokenizer do
     [{:text, Enum.reverse(buffer)} | acc]
   end
 
-  # If in trim mode, trim the buffer if the current line
-  # contains only whitespace. Does not remove the line
-  # break itself.
+  # If trim mode is enabled and the token is on a line with
+  # only itself and whitespace, trim the whitespace around it,
+  # including the line break following it if there is one.
 
-  defp trim_left_if_needed(buffer, opts) do
-    if opts[:trim] do trim_left(buffer) else buffer end
-  end
-
-  defp trim_left(buffer) do
-    case trim_whitespace(buffer) do
-      [?\n|_] = trimmed -> trimmed
-      _ -> buffer
+  defp trim_if_needed(rest, line, opts, buffer, acc) do
+    original = {rest, line, buffer}
+    if opts[:trim] do
+      case {trim_left(buffer, acc), trim_right(rest, line)} do
+        {{true, new_buffer}, {true, new_rest, new_line}} ->
+          {new_rest, new_line, new_buffer}
+        _ ->
+          original
+      end
+    else
+      original
     end
   end
 
-  # If in trim mode, trim the remaining input if the current
-  # line contains only whitespace. Does remove the line
-  # break itself.
-
-  defp trim_right_if_needed(rest, line, opts) do
-    if opts[:trim] do trim_right(rest, line) else {rest, line} end
+  defp trim_left(buffer, acc) do
+    case {trim_whitespace(buffer), acc} do
+      {[?\n|_] = trimmed_buffer, _} -> {true, trimmed_buffer}
+      {[], []} -> {true, []}
+      _ -> {false, buffer}
+    end
   end
 
   defp trim_right(rest, line) do
     case trim_whitespace(rest) do
-      [?\r, ?\n|t] -> {t, line + 1}
-      [?\n|t] -> {t, line + 1}
-      _ -> {rest, line}
-      end
+      [?\r, ?\n|trimmed_rest] -> {true, trimmed_rest, line + 1}
+      [?\n|trimmed_rest] -> {true, trimmed_rest, line + 1}
+      [] -> {true, [], line}
+      _ -> {false, rest, line}
+    end
   end
 
   defp trim_whitespace([h|t]) when h == ?\s or h == ?\t do
