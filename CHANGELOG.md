@@ -11,15 +11,18 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
   * [CLI] Add support for `--werl` in Windows bash-like shells
   * [Dict] Add `Dict.get_and_update/3` which behaves similar to the now deprecated Access protocol
   * [Dict] Add `Dict.get_lazy/3`, `Dict.pop_lazy/3` and `Dict.put_new_lazy/3`
-  * [Elixir] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
+  * [EEx] Add `:trim` option to EEx that automatically trims the left side of `<%` and right side `%>` if only spaces and new lines preceed/follow them
   * [Enum] Add `Enum.sample/1`, `Enum.minmax/1`, `Enum.minmax_by/2`, `Enum.reverse_slice/3`, `Enum.dedup/1`, `Enum.dedup_by/2`, `Enum.usort/1` and `Enum.usort_by/2`
   * [Enum] Inline common map usage in `Enum` functions for performance
   * [ExUnit] Add number of skipped tests to `ExUnit` output
   * [ExUnit] Make timeout configurable for the whole test suite via the `:timeout` configuration
+  * [ExUnit] Allow moduledoc to be filtered/skipped in doctests
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
+  * [IEx] Add `b/1` helper that shows documentation for behaviour modules and its callback functions
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
   * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
   * [Logger] Format and handle 17.4 onward stacktraces
+  * [Kernel] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
   * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it just warned)
   * [Kernel] `::/2` is now a special form
   * [Mix] `mix help` task now supports `mix help --search PATTERN` for filtering task names
@@ -35,12 +38,15 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
 ### 2. Bug fixes
 
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
-  * [Elixir] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
+  * [EEx] Allow EEx interpolation to also apply inside quotations `<%%= ... %>`
   * [Exception] Do not fail when calculating an exception message, even if the message is invalid
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [ExUnit] Ensure the Logger is flushed when running ExUnit via Mix
+  * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
+  * [Kernel] Fix a bug where `=~/2` returned false when matching on an empty string. The current behaviour was changed to match the behaviour of `String.contains?/2`
   * [Mix] Ensure changes in child dependencies for the parent one to recompile
+  * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
   * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
 
