@@ -28,8 +28,8 @@ defmodule EEx.Engine do
   use Behaviour
 
   defcallback handle_body(Macro.t) :: Macro.t
-  defcallback handle_text(Macro.t, binary) :: Macro.t
-  defcallback handle_expr(Macro.t, char_list, Macro.t) :: Macro.t
+  defcallback handle_text(Macro.t, String.t) :: Macro.t
+  defcallback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -96,17 +96,15 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
-  @spec handle_expr(Macro.t, char_list, Macro.t) :: Macro.t
-  def handle_expr(buffer, marker, expr)
-
-  def handle_expr(buffer, '=', expr) do
+  @spec handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
+  def handle_expr(buffer, "=", expr) do
     quote do
       tmp = unquote(buffer)
       tmp <> String.Chars.to_string(unquote(expr))
     end
   end
 
-  def handle_expr(buffer, '', expr) do
+  def handle_expr(buffer, "", expr) do
     quote do
       tmp = unquote(buffer)
       unquote(expr)

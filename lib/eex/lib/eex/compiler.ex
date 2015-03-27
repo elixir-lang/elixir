@@ -32,7 +32,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:expr, line, mark, chars}|t], buffer, scope, state) do
     expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
-    buffer = state.engine.handle_expr(buffer, mark, expr)
+    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(t, buffer, scope, state)
   end
 
@@ -40,7 +40,7 @@ defmodule EEx.Compiler do
     {contents, line, t} = look_ahead_text(t, start_line, chars)
     {contents, t} = generate_buffer(t, "", [contents|scope],
                                     %{state | quoted: [], line: line, start_line: start_line})
-    buffer = state.engine.handle_expr(buffer, mark, contents)
+    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(t, buffer, scope, state)
   end
 
