@@ -523,13 +523,14 @@ defmodule String do
   """
 
   @spec lstrip(t, char) :: t
+  def lstrip(string, char)
 
   def lstrip(<<char :: utf8, rest :: binary>>, char) when is_integer(char) do
     <<lstrip(rest, char) :: binary>>
   end
 
-  def lstrip(other, char) when is_integer(char) do
-    other
+  def lstrip(string, char) when is_integer(char) do
+    string
   end
 
   @doc """
