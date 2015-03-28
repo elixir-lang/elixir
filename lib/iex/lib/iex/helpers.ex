@@ -141,7 +141,7 @@ defmodule IEx.Helpers do
   @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
 
   defmacro h(term)
-  defmacro h({:/, _, [call, arity]} = other) do
+  defmacro h({:/, _, [call, arity]} = term) do
     args =
       case Macro.decompose_call(call) do
         {_mod, :__info__, []} when arity == 1 ->
@@ -151,7 +151,7 @@ defmodule IEx.Helpers do
         {fun, []} ->
           [@h_modules, fun, arity]
         _ ->
-          [other]
+          [term]
       end
 
     quote do
@@ -190,6 +190,7 @@ defmodule IEx.Helpers do
       b(Dict)
 
   """
+  defmacro b(term)
   defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
     quote do
       IEx.Introspection.b(unquote(mod), unquote(fun), unquote(arity))
@@ -217,6 +218,7 @@ defmodule IEx.Helpers do
       t(Enum.t/0)
       t(Enum.t)
   """
+  defmacro t(term)
   defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
     quote do
       IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
@@ -248,12 +250,12 @@ defmodule IEx.Helpers do
 
   """
   defmacro s(term)
-  defmacro s({:/, _, [call, arity]} = other) do
+  defmacro s({:/, _, [call, arity]} = term) do
     args =
       case Macro.decompose_call(call) do
         {mod, fun, []} -> [mod, fun, arity]
         {fun, []} -> [Kernel, fun, arity]
-        _ -> [other]
+        _ -> [term]
       end
 
     quote do
