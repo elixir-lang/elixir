@@ -88,7 +88,7 @@ defmodule String.Unicode do
   end
 
   # Strip
-  def lstring(string)
+  def lstrip(string)
 
   def lstrip(""), do: ""
 
