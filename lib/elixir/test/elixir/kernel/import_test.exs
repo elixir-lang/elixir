@@ -20,8 +20,10 @@ defmodule Kernel.ImportTest do
   end
 
   test "import except one" do
-    import :lists, except: [each: 2]
+    import :lists, except: [duplicate: 2]
     assert flatten([1, [2], 3]) == [1, 2, 3]
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
   end
 
   test "import only via macro" do
@@ -42,6 +44,22 @@ defmodule Kernel.ImportTest do
   test "import with double except" do
     import :lists, except: [duplicate: 2]
     import :lists, except: [each: 2]
+    assert append([1], [2, 3]) == [1, 2, 3]
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
+  test "import except none respects previous import with except" do
+    import :lists, except: [duplicate: 2]
+    import :lists, except: []
+    assert append([1], [2, 3]) == [1, 2, 3]
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
+  test "import except none respects previous import with only" do
+    import :lists, only: [append: 2]
+    import :lists, except: []
     assert append([1], [2, 3]) == [1, 2, 3]
     # Buggy local duplicate is untouched
     assert duplicate([1], 2) == [1]
