@@ -87,7 +87,7 @@ defmodule Keyword do
       [a: :a, b: :b]
 
   """
-  @spec new(Enum.t, ({key, value} -> {key, value})) :: t
+  @spec new(Enum.t, (term -> {key, value})) :: t
   def new(pairs, transform) do
     Enum.reduce pairs, [], fn i, keywords ->
       {k, v} = transform.(i)
