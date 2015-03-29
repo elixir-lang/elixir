@@ -68,7 +68,10 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.uniq_by(Enum.reverse(pairs), fn {x, _} when is_atom(x) -> x end)
+    fun = fn {k, v}, acc ->
+      put_new(acc, k, v)
+    end
+    :lists.foldr(fun, [], Enum.reverse(pairs))
   end
 
   @doc """
