@@ -62,7 +62,6 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
     _ ->
       case keyfind(except, Opts) of
         false -> remove_underscored(Existing());
-        {except, []} -> remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
