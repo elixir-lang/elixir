@@ -68,7 +68,7 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.uniq_by(Enum.reverse(pairs), fn {x, _} when is_atom(x) -> x end)
+    new(pairs, fn pair -> pair end)
   end
 
   @doc """
@@ -80,16 +80,17 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end) |> Enum.sort
-      [a: :a, b: :b]
+      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end)
+      [b: :b, a: :a]
 
   """
-  @spec new(Enum.t, ({key, value} -> {key, value})) :: t
-  def new(pairs, transform) do
-    Enum.reduce pairs, [], fn i, keywords ->
-      {k, v} = transform.(i)
-      put(keywords, k, v)
+  @spec new(Enum.t, (term -> {key, value})) :: t
+  def new(pairs, transform) when is_function(transform, 1) do
+    fun = fn el, acc ->
+      {k, v} = transform.(el)
+      put_new(acc, k, v)
     end
+    :lists.foldr(fun, [], Enum.reverse(pairs))
   end
 
   @doc """
