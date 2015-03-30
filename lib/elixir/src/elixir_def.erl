@@ -272,8 +272,8 @@ split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T], Unreachable,
   split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple|Defmacrop],
                    Exports, Functions);
 
-split_definition([], _Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
-  {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail}.
+split_definition([], Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
+  {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail, Unreachable}.
 
 %% Helpers
 

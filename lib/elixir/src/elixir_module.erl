@@ -62,12 +62,12 @@ do_compile(Line, Module, Block, Vars, E) ->
         [elixir_locals:record_local(Tuple, Module) || Tuple <- OnLoad]
     end,
 
-    {Def, Defp, Defmacro, Defmacrop, Exports, Functions} =
+    {Def, Defp, Defmacro, Defmacrop, Exports, Functions, Unreachable} =
       elixir_def:unwrap_definitions(File, Module),
 
     {All, Forms0} = functions_form(Line, File, Module, Def, Defp,
                                    Defmacro, Defmacrop, Exports, Functions),
-    Forms1 = specs_form(Data, Defmacro, Defmacrop, Forms0),
+    Forms1 = specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms0),
     Forms2 = types_form(Line, File, Data, Forms1),
     Forms3 = attributes_form(Line, File, Data, Forms2),
 
@@ -273,7 +273,7 @@ typedocs_attributes(Types, Forms) ->
 
 %% Specs
 
-specs_form(Data, Defmacro, Defmacrop, Forms) ->
+specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
   case elixir_compiler:get_opt(internal) of
     false ->
       Specs0 = get_typespec(Data, spec) ++ get_typespec(Data, callback),
@@ -282,7 +282,10 @@ specs_form(Data, Defmacro, Defmacrop, Forms) ->
       Specs2 = lists:flatmap(fun(Spec) ->
                                translate_macro_spec(Spec, Defmacro, Defmacrop)
                              end, Specs1),
-      specs_attributes(Forms, Specs2);
+      Specs3 = lists:filter(fun({{_Kind, NameArity, _Spec}, _Line}) ->
+                                not lists:member(NameArity, Unreachable)
+                            end, Specs2),
+      specs_attributes(Forms, Specs3);
     true ->
       Forms
   end.
