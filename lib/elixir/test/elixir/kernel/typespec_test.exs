@@ -442,6 +442,21 @@ defmodule Kernel.TypespecTest do
            specs(module)
   end
 
+  test "@spec(spec) for unreachable private function" do
+    # Run it inside capture_io/2 so that the "myfun/1 is unused"
+    # warning doesn't get printed among the ExUnit test results.
+    output = ExUnit.CaptureIO.capture_io :stderr, fn ->
+      module = test_module do
+        defp myfun(x), do: x
+        @spec myfun(integer) :: integer
+      end
+
+      assert [] == specs(module)
+    end
+
+    assert output =~ "warning: function myfun/1 is unused"
+  end
+
   test "@spec(spec) with guards" do
     module = test_module do
       def myfun1(x), do: x
