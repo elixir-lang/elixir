@@ -458,12 +458,24 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an existing atom.
+  Converts a char list to an existing atom. Raises an ArguementError
+  if the atom does not exist. 
 
   Currently Elixir does not support conversions from char lists
   which contains Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      iex> barney = :barney
+      iex> List.to_existing_atom('barney')
+      :barney
+
+      iex> List.to_existing_atom('fred')
+      ** (ArgumentError) argument error
+         :erlang.list_to_existing_atom('fred')
+
   """
   @spec to_existing_atom(char_list) :: atom
   def to_existing_atom(char_list) do
