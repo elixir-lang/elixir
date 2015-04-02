@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.0.4-dev
+
+* Enhancements
+  * [Elixir] Support Erlang 17.5 and 18.0
+  * [URI] Speed decoding operations
+
+* Bug fixes
+  * [Elixir] Produce clearer error messages for syntax errors before a sigil
+  * [Elixir] Return value when matching on `_` in the last line of a block
+  * [Elixir] Ensure changes in child deps forces the parent to recompile
+  * [Kernel] Fix a bug where `=~/2` returned false when matching on an empty string. The current behaviour was changed to match the behaviour of `String.contains?/2`
+  * [Mix] Store relative paths in erlang manifests
+  * [Mix] Fix httpc proxy option profile for downloading hex and other safe packges
+
 ## v1.0.3 (2015-02-12)
 
 * Enhancements
