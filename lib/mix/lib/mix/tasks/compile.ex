@@ -61,9 +61,11 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!
     Mix.Task.run "loadpaths", args
-    res = Mix.Task.run "compile.all", args
 
-    if consolidate_protocols?() do
+    res = Mix.Task.run "compile.all", args
+    res = if :ok in List.wrap(res), do: :ok, else: :noop
+
+    if res == :ok && consolidate_protocols?() do
       Mix.Task.run "compile.protocols", args
     end
 
