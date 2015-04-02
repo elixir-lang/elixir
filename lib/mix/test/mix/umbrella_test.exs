@@ -17,10 +17,10 @@ defmodule Mix.UmbrellaTest do
 
         assert_received {:mix_shell, :info, ["==> bar"]}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert_received {:mix_shell, :info, ["Generated bar.app"]}
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["==> foo"]}
         assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
-        assert_received {:mix_shell, :info, ["Generated foo.app"]}
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
 
         # Ensure foo was loaded and in the same env as Mix.env
         assert_received {:mix_shell, :info, [":foo env is dev"]}

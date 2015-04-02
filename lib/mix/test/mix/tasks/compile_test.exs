@@ -46,7 +46,7 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Generated sample.app"]}
+      assert_received {:mix_shell, :info, ["Generated sample app"]}
     end
   end
 
