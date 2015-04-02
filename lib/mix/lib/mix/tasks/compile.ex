@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Compile do
 
   defp consolidate_protocols? do
     config = Mix.Project.config
-    config[:build_embedded] || config[:consolidate_protocols]
+    Keyword.get(config, :consolidate_protocols, config[:build_embedded])
   end
 
   @doc """
