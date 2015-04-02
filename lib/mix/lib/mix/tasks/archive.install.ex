@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Archive.Install do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, shell: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, system: :boolean])
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)
