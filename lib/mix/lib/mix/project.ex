@@ -400,7 +400,8 @@ defmodule Mix.Project do
      erlc_include_path: "include",
      erlc_options: [:debug_info],
      lockfile: "mix.lock",
-     preferred_cli_env: []]
+     preferred_cli_env: [],
+     start_permanent: false]
   end
 
   defp get_project_config(nil),  do: []
