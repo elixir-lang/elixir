@@ -22,6 +22,9 @@ defmodule Mix.Tasks.Archive.Install do
 
   ## Command line options
 
+    * `--system` - uses one of the system tools (curl, wget or powershell
+      on Windows) to download the archive in case a URL is given
+
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
