@@ -83,6 +83,7 @@ defmodule Mix.Project do
     [build_embedded: config[:build_embedded],
      build_path: build_path(config),
      build_per_environment: config[:build_per_environment],
+     consolidate_protocols: false,
      deps_path: deps_path(config)]
   end
 
@@ -391,7 +392,6 @@ defmodule Mix.Project do
     [aliases: [],
      build_per_environment: true,
      build_embedded: false,
-     consolidate_protocols: false,
      default_task: "run",
      deps: [],
      deps_path: "deps",
