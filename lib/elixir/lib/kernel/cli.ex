@@ -12,7 +12,6 @@ defmodule Kernel.CLI do
     argv = for arg <- argv, do: IO.chardata_to_string(arg)
 
     {config, argv} = parse_argv(argv)
-    :elixir_code_server.cast({:paths, config.pa, config.pz})
     System.argv(argv)
 
     run fn _ ->
