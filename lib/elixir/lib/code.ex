@@ -51,14 +51,6 @@ defmodule Code do
     :code.del_path(to_char_list(Path.expand path))
   end
 
-  @doc false
-  def readd_paths() do
-    {pa, pz} = :elixir_code_server.call(:paths)
-    :code.add_pathsa(pa)
-    :code.add_pathsz(pz)
-    :ok
-  end
-
   @doc """
   Evaluates the contents given by `string`.
 
