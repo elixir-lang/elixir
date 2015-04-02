@@ -104,7 +104,7 @@ defmodule Mix.Tasks.Compile.App do
       if mods == [], do: Mix.Project.build_structure(config)
       File.write!(target, :io_lib.format("~p.", [contents]))
 
-      Mix.shell.info "Generated #{app}.app"
+      Mix.shell.info "Generated #{app} app"
       :ok
     else
       :noop
