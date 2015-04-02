@@ -29,10 +29,6 @@ defmodule Mix.Tasks.Loadpaths do
       load_project(config, args)
     end
 
-    unless "--no-readd" in args do
-      Code.readd_paths()
-    end
-
     :ok
   end
 

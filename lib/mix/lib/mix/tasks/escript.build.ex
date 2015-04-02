@@ -53,11 +53,6 @@ defmodule Mix.Tasks.Escript.Build do
       order for the code loader to be able to find `:elixir` application and its children
       applications (if they are used).
 
-    * `:consolidate_protocols` - if `true`, all protocols will be consolidated
-      before being embedded into the escript.
-
-      Defaults to `true` for Elixir projects.
-
     * `:shebang` - shebang interpreter directive used to execute the escript.
       Defaults to `"#! /usr/bin/env escript\n"`.
 
@@ -98,19 +93,13 @@ defmodule Mix.Tasks.Escript.Build do
       Mix.Task.run :compile, args
     end
 
-    project = Mix.Project.config
+    project  = Mix.Project.config
     language = Keyword.get(project, :language, :elixir)
-    should_consolidate =
-      Keyword.get(project, :consolidate_protocols, language == :elixir)
 
-    if should_consolidate do
-      Mix.Task.run "compile.protocols", []
-    end
-
-    escriptize(project, language, opts[:force], should_consolidate)
+    escriptize(project, language, opts[:force])
   end
 
-  defp escriptize(project, language, force, should_consolidate) do
+  defp escriptize(project, language, force) do
     escript_opts = project[:escript] || []
 
     script_name  = to_string(escript_opts[:name] || project[:app])
@@ -136,7 +125,7 @@ defmodule Mix.Tasks.Escript.Build do
           |> Stream.concat
           |> prepare_beam_paths
 
-        if should_consolidate do
+        if project[:build_embedded] || project[:consolidate_protocols] do
           beam_paths =
             Path.wildcard(consolidated_path <> "/*")
             |> prepare_beam_paths(beam_paths)
