@@ -4,6 +4,10 @@
 
 * Enhancements
   * [Elixir] Support Erlang 17.5 and 18.0
+  * [Mix] Support "--search PATTERN" in "mix help"
+  * [Mix] Support `:start_permanent` that starts the application as permanent
+  * [Mix] Support `:build_embedded` that compile protocols, avoid symlinks and ensure protocols are loaded on boot
+  * [Mix] Make "mix app.start" public and support "--permanent" and "--temporary" options
   * [URI] Speed decoding operations
 
 * Bug fixes
