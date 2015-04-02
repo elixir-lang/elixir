@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Escript.Build do
           |> Stream.concat
           |> prepare_beam_paths
 
-        if project[:build_embedded] || project[:consolidate_protocols] do
+        if Keyword.get(project, :consolidate_protocols, project[:build_embedded]) do
           beam_paths =
             Path.wildcard(consolidated_path <> "/*")
             |> prepare_beam_paths(beam_paths)
