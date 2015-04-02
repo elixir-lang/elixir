@@ -327,4 +327,20 @@ defmodule Kernel.ExceptionTest do
     assert %ErlangError{original: :sample} |> message ==
            "erlang error: :sample"
   end
+
+  test "format_stacktrace from file" do
+    assert_raise ArgumentError, fn ->
+      Code.eval_string("def foo do end", [], file: "myfile")
+    end
+
+    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (file)"
+  end
+
+  test "format_stacktrace from module" do
+    assert_raise ArgumentError, fn ->
+      Code.eval_string("defmodule Foo do raise ArgumentError, ~s(oops) end", [], file: "myfile")
+    end
+
+    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (module)"
+  end
 end
