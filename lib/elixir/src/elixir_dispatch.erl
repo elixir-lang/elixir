@@ -215,7 +215,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   end.
 
 caller(Line, #{module := nil} = E) ->
-  {elixir_compiler, '__FILE__', 2, location(Line, E)};
+  {elixir_compiler_0, '__FILE__', 1, location(Line, E)};
 caller(Line, #{module := Module, function := nil} = E) ->
   {Module, '__MODULE__', 0, location(Line, E)};
 caller(Line, #{module := Module, function := {Name, Arity}} = E) ->
