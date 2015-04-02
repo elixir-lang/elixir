@@ -44,7 +44,6 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [ExUnit] Ensure the Logger is flushed when running ExUnit via Mix
   * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
-  * [Kernel] Fix a bug where `=~/2` returned false when matching on an empty string. The current behaviour was changed to match the behaviour of `String.contains?/2`
   * [Mix] Ensure changes in child dependencies for the parent one to recompile
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
