@@ -130,6 +130,10 @@ defmodule IEx.HelpersTest do
            """
   end
 
+  test "p helper" do
+    assert capture_iex("1\n2\np") == capture_iex("1\n2\nv(-1)")
+  end
+
   test "flush helper" do
     assert capture_io(fn -> send self(), :hello; flush end) == ":hello\n"
   end

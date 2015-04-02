@@ -20,6 +20,7 @@ defmodule IEx.Helpers do
     * `l/1`           — loads the given module's beam code
     * `ls/0`          — lists the contents of the current directory
     * `ls/1`          — lists the contents of the specified directory
+    * `p/0`           — retrieves the last value from the history
     * `pwd/0`         — prints the current working directory
     * `r/1`           — recompiles and reloads the given module's source file
     * `respawn/0`     — respawns the current shell
@@ -299,6 +300,11 @@ defmodule IEx.Helpers do
   def v(n) do
     IEx.History.nth(n) |> elem(2)
   end
+
+  @doc """
+  Retrieves the last evaluated expression's value from the history.
+  """
+  def p, do: v(-1)
 
   @doc """
   Recompiles and reloads the given `module`.
