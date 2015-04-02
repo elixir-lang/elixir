@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Local.Hex do
     version = get_matching_version()
     url = String.replace(@hex_archive_url, "[VERSION]", version)
 
-    Mix.Tasks.Archive.Install.run [url, "--shell" | args]
+    Mix.Tasks.Archive.Install.run [url, "--system" | args]
   end
 
   @doc false
