@@ -129,7 +129,7 @@ defmodule Mix.RebarTest do
 
       Mix.Tasks.Deps.Compile.run []
       assert_received {:mix_shell, :info, ["==> rebar_dep"]}
-      assert_received {:mix_shell, :info, ["Generated rebar_dep.app"]}
+      assert_received {:mix_shell, :info, ["Generated rebar_dep app"]}
     end
   after
     File.rm MixTest.Case.tmp_path("rebar_dep/mix.exs")
