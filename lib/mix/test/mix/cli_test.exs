@@ -3,58 +3,12 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.CLITest do
   use MixTest.Case
 
-  test "env and path configs" do
-    in_fixture "no_mixfile", fn ->
-      File.write! "custom.exs", """
-      defmodule P do
-        use Mix.Project
-        def project, do: [app: :p, version: "0.1.0"]
-      end
-      """
-
-      System.put_env("MIX_ENV", "prod")
-      System.put_env("MIX_EXS", "custom.exs")
-
-      # Emulate protocol consolidation
-      File.mkdir_p!("_build/prod/consolidated")
-
-      {output, _status} =
-        System.cmd elixir_executable,
-                   ["-pa", "_build/prod/consolidated",
-                    mix_executable, "run",
-                    "-e", "IO.inspect {Mix.env, System.argv}",
-                    "-e", "IO.inspect hd(:code.get_path)",
-                    "--", "1", "2", "3"]
-
-      System.delete_env("MIX_ENV")
-      System.delete_env("MIX_EXS")
-
-      assert output =~ "Compiled lib/a.ex"
-      assert output =~ ~s({:prod, ["1", "2", "3"]})
-      assert output =~ ~s('#{Path.expand("_build/prod/consolidated")}')
-    end
-  end
-
   test "default task" do
     in_fixture "no_mixfile", fn ->
       File.write! "mix.exs", """
       defmodule P do
         use Mix.Project
         def project, do: [app: :p, version: "0.1.0"]
-      end
-      """
-      output = mix ~w[]
-      assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
-      assert output =~ "Compiled lib/a.ex"
-    end
-  end
-
-  test "custom mix.exs" do
-    in_fixture "no_mixfile", fn ->
-      File.write! "mix.exs", """
-      defmodule P do
-        use Mix.Project
-        def project, do: [app: :p]
       end
       """
       output = mix ~w[]
@@ -119,6 +73,29 @@ defmodule Mix.CLITest do
       output = mix ~w[--version]
       assert output =~ ~r/Mix [0-9\.a-z]+/
     end
+  end
+
+  test "env config" do
+    in_fixture "no_mixfile", fn ->
+      File.write! "custom.exs", """
+      defmodule P do
+        use Mix.Project
+        def project, do: [app: :p, version: "0.1.0"]
+      end
+      """
+
+      System.put_env("MIX_ENV", "prod")
+      System.put_env("MIX_EXS", "custom.exs")
+
+      output = mix ["run", "-e", "IO.inspect {Mix.env, System.argv}",
+                    "--", "1", "2", "3"]
+
+      assert output =~ "Compiled lib/a.ex"
+      assert output =~ ~s({:prod, ["1", "2", "3"]})
+    end
+  after
+    System.delete_env("MIX_ENV")
+    System.delete_env("MIX_EXS")
   end
 
   test "new with tests" do

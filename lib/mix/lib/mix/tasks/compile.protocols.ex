@@ -1,21 +1,26 @@
 defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task
 
-  @recursive true
-
-  @shortdoc "Consolidates all protocols in all paths"
-
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
 
-  This module consolidates all protocols in the code path
-  and output the new binary files to the given directory
-  (defaults to "consolidated").
+  This task is automatically invoked whenever the project
+  enables `:consolidate_protocols` or `:build_embedded` in
+  its configuration.
 
-  A new directory will be created with the consolidated
-  protocol versions in the build directory for the given
-  environment. Simply add it to your loadpath to make use
-  of it according to your MIX_ENV:
+  ## Consolidation
+
+  Protocol consolidation is useful in production when no
+  dynamic code loading will happen, effectively optimizing
+  protocol dispatches by not accounting for code loading.
+
+  This task consolidates all protocols in the code path
+  and output the new binary files to the given directory
+  (defaults to "_build/MIX_ENV/consolidated").
+
+  In case you are manually compiling protocols or building
+  releases, you need to take the generated protocols into
+  account. This can be done with:
 
       $ elixir -pa _build/MIX_ENV/consolidated -S mix run
 

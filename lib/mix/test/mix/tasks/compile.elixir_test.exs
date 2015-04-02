@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
-  test "compiles a project" do
+  test "compiles a project without per environment build" do
     Mix.Project.pop
     Mix.ProjectStack.post_config [build_per_environment: false]
     Mix.Project.push MixTest.Case.Sample
@@ -37,6 +37,24 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+    end
+  end
+
+  test "recompiles project if elixir version changed" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run []
+      purge [A, B, C]
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert System.version == Mix.Dep.Lock.elixir_vsn
+
+      Mix.Task.clear
+      File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
+      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Compile.run []
+      assert System.version == Mix.Dep.Lock.elixir_vsn
+      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end
 
