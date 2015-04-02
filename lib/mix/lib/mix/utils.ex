@@ -353,12 +353,12 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
-      given path is a URL.
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
   """
   def read_path!(path, opts \\ []) do
     cond do
-      url?(path) && opts[:shell] ->
+      url?(path) && opts[:system] ->
         read_shell(path, nil)
       url?(path) ->
         read_httpc(path, nil)
@@ -381,15 +381,15 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
-      given path is a URL.
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
 
     * `:force` - Forces overwriting target file without a shell prompt.
   """
   def copy_path!(source, target, opts \\ []) when is_binary(source) and is_binary(target) do
     if opts[:force] || overwriting?(target) do
       cond do
-        url?(source) && opts[:shell] ->
+        url?(source) && opts[:system] ->
           read_shell(source, target)
         url?(source) ->
           read_httpc(source, target)
