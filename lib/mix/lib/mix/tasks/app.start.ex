@@ -1,15 +1,23 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
+  @shortdoc "Start all registered apps"
   @recursive true
 
   @moduledoc """
-  Starts all registered apps. If no apps key exists,
-  it starts the current application.
+  Starts all registered apps.
+
+  The application is started by default as temporary. In case
+  `:start_permanent` is set to true in your prject configuration
+  or the `--permanent` flag is given, it is started as permanent,
+  which guarantee the node will shutdown in case the application
+  crashes permanently.
 
   ## Command line options
 
     * `--force` - force compilation regardless of compilation times
+    * `--temporary` - start the application as temporary
+    * `--permanent` - start the application as permanent
     * `--no-compile` - do not compile even if files require compilation
     * `--no-protocols` - do not load consolidated protocols
     * `--no-deps-check` - do not check dependencies
@@ -20,6 +28,8 @@ defmodule Mix.Tasks.App.Start do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
+
+    {opts, _, _} = OptionParser.parse args, switches: [permanent: :boolean, temporary: :boolean]
     Mix.Task.run "loadpaths", args
 
     unless "--no-compile" in args do
@@ -47,14 +57,14 @@ defmodule Mix.Tasks.App.Start do
       #
       # Mix should not depend directly on Logger so check that it's loaded.
       if Process.whereis(Logger), do: Logger.App.stop()
-      start(Mix.Project.config[:app])
+      start(Mix.Project.config, opts)
     end
   end
 
   @doc false
-  def start(app) do
-    if app do
-      case Application.ensure_all_started(app) do
+  def start(config, opts) do
+    if app = config[:app] do
+      case Application.ensure_all_started(app, type(config, opts)) do
         {:ok, _} -> :ok
         {:error, {app, reason}} ->
           Mix.raise "Could not start application #{app}: " <>
@@ -62,6 +72,16 @@ defmodule Mix.Tasks.App.Start do
       end
     else
       :error
+    end
+  end
+
+  @doc false
+  def type(config, opts) do
+    cond do
+      opts[:temporary] -> :temporary
+      opts[:permanent] -> :permanent
+      config[:start_permanent] -> :permanent
+      true -> :temporary
     end
   end
 end
