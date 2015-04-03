@@ -541,6 +541,5 @@ defmodule IEx.Helpers do
     end
   end
 
-  @history_key :"Very obscure key so that no one ever ever tries to use itt"
-  defp history_pid, do: Process.get(@history_key)
+  defp history_pid, do: Process.get(:iex_history_pid)
 end

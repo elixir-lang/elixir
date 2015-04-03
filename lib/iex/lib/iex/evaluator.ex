@@ -11,25 +11,26 @@ defmodule IEx.Evaluator do
 
   """
   def start(server, leader) do
-    {:ok, history_pid} = IEx.History.init
+    {:ok, history} = IEx.History.start_link
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
+    Process.put(:iex_history_pid, history)
 
     try do
-      loop(server, history_pid)
+      loop(server, history)
     after
-      IEx.History.reset(history_pid)
+      IEx.History.reset(history)
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server, history_pid) do
+  defp loop(server, history) do
     receive do
       {:eval, ^server, code, state} ->
-        send server, {:evaled, self, eval(code, state, history_pid)}
-        loop(server, history_pid)
+        send server, {:evaled, self, eval(code, state, history)}
+        loop(server, history)
       {:done, ^server} ->
-        IEx.History.reset(history_pid)
+        IEx.History.reset(history)
         :ok
     end
   end
@@ -87,9 +88,9 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, state, history_pid) do
+  defp eval(code, state, history) do
     try do
-      do_eval(String.to_char_list(code), state, history_pid)
+      do_eval(String.to_char_list(code), state, history)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
@@ -105,25 +106,17 @@ defmodule IEx.Evaluator do
     :elixir_errors.parse_error(state.counter, "iex", "incomplete expression", "")
   end
 
-  @history_key :"Very obscure key so that no one ever ever tries to use itt"
-
-  defp do_eval(latest_input, state, history_pid) do
+  defp do_eval(latest_input, state, history) do
     code = state.cache ++ latest_input
     line = state.counter
-
-    # Put the history_pid into process dictionary so that IEx.Helpers can
-    # access it
-    Process.put(@history_key, history_pid)
-    ret = handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history_pid)
-    Process.delete(@history_key)
-    ret
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history)
   end
 
-  defp handle_eval({:ok, forms}, code, line, state, history_pid) do
+  defp handle_eval({:ok, forms}, code, line, state, history) do
     {result, new_binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
     unless result == IEx.dont_display_result, do: io_inspect(result)
-    update_history(line, code, result, history_pid)
+    update_history(line, code, result, history)
     %{state | env: env,
               cache: '',
               scope: scope,
@@ -142,8 +135,8 @@ defmodule IEx.Evaluator do
     :elixir_errors.parse_error(line, "iex", error, token)
   end
 
-  defp update_history(counter, cache, result, history_pid) do
-    IEx.History.append(history_pid, {counter, cache, result}, counter, IEx.Config.history_size)
+  defp update_history(counter, cache, result, history) do
+    IEx.History.append(history, {counter, cache, result}, IEx.Config.history_size)
   end
 
   defp io_inspect(result) do
@@ -180,8 +173,7 @@ defmodule IEx.Evaluator do
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
-    |> Enum.reject(fn {mod, _, _, _} when mod in @elixir_internals -> true
-                      _ -> false end)
+    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
   end
 
   @doc false
@@ -212,6 +204,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({app, info}, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
+    IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end
