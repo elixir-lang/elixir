@@ -9,23 +9,23 @@ defmodule ExUnit.Formatter do
   The following events are possible:
 
     * `{:suite_started, opts}` -
-          the suite has started with the specified options to the runner.
+      the suite has started with the specified options to the runner.
 
     * `{:suite_finished, run_us, load_us}` -
-          the suite has finished. `run_us` and `load_us` are the run and load
-          times in microseconds respectively.
+      the suite has finished. `run_us` and `load_us` are the run and load
+      times in microseconds respectively.
 
     * `{:case_started, test_case}` -
-          a test case has started. See `ExUnit.TestCase` for details.
+      a test case has started. See `ExUnit.TestCase` for details.
 
     * `{:case_finished, test_case}` -
-          a test case has finished. See `ExUnit.TestCase` for details.
+      a test case has finished. See `ExUnit.TestCase` for details.
 
     * `{:test_started, test_case}` -
-          a test case has started. See `ExUnit.Test` for details.
+      a test case has started. See `ExUnit.Test` for details.
 
     * `{:test_finished, test_case}` -
-          a test case has finished. See `ExUnit.Test` for details.
+      a test case has finished. See `ExUnit.Test` for details.
 
   """
 
