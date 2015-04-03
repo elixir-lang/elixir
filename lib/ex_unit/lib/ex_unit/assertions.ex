@@ -207,26 +207,16 @@ defmodule ExUnit.Assertions do
     true
   end
 
-  @doc """
-  Asserts `value` is true.
-  If it fails, it raises an expectation error
-  using the given `left` and `right` values.
-
-  You probably don't need to use this—the regular `assert` function
-  handles this for you.
-
-  ## Examples
-
-      assert this > that, this, that, "more than"
-
-  """
+  @doc false
   def assert(value, left, right, message) when is_binary(message) do
     assert(value, left: left, right: right, message: message)
   end
 
   @doc """
-  Asserts a message was or is going to be received. Unlike
-  `assert_received`, it has a default timeout of 100 milliseconds.
+  Asserts a message was or is going to be received.
+
+  Unlike `assert_received`, it has a default timeout
+  of 100 milliseconds.
 
   The `expected` argument is a pattern.
 
@@ -460,8 +450,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-      refute_receive message, timeout \\ 100, message \\ nil
-
   Asserts `message` was not received (and won't be received) within
   the `timeout` period.
 
