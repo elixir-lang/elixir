@@ -65,7 +65,6 @@ defmodule Mix.Tasks.Compile.Elixir do
               || Mix.Utils.stale?(configs, [manifest])
 
     Mix.Compilers.Elixir.compile(manifest, srcs, skip, [:ex], dest, force, fn ->
-      true = Code.prepend_path(dest)
       set_compiler_opts(project, opts, [])
     end)
   end
