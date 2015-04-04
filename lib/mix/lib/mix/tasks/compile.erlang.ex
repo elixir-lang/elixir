@@ -167,6 +167,6 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename |> Path.rootname
+    artifact |> Path.basename |> Path.rootname |> String.to_atom
   end
 end
