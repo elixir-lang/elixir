@@ -57,8 +57,11 @@ defmodule Kernel.ParallelCompiler do
     # In case --warning-as-errors is enabled and there was a warning,
     # compilation status will be set to error and we fail with CompileError
     case :elixir_code_server.call({:compilation_status, compiler_pid}) do
-      :ok    -> result
-      :error -> exit({:shutdown, 1})
+      :ok    ->
+        result
+      :error ->
+        IO.puts :stderr, "Compilation failed due to warnings while using the --warnings-as-errors option"
+        exit({:shutdown, 1})
     end
   end
 
