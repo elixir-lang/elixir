@@ -154,9 +154,11 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     try do
       Code.compiler_options(warnings_as_errors: true)
 
-      capture_io :stderr, fn ->
+      msg = capture_io :stderr, fn ->
         assert catch_exit(Kernel.ParallelCompiler.files fixtures) == {:shutdown, 1}
       end
+
+      assert msg =~ "Compilation failed due to warnings while using the --warnings-as-errors option\n"
     after
       Code.compiler_options(warnings_as_errors: warnings_as_errors)
     end
