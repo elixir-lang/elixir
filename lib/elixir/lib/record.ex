@@ -70,34 +70,6 @@ defmodule Record do
   end
 
   @doc """
-  Checks if the given `data` is a record of `kind`.
-
-  This is implemented as a macro so it can be used in guard clauses.
-
-  ## Examples
-
-      iex> record = {User, "john", 27}
-      iex> Record.is_record(record, User)
-      true
-
-  """
-  defmacro is_record(data, kind) do
-    case Macro.Env.in_guard?(__CALLER__) do
-      true ->
-        quote do
-          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
-            and :erlang.element(1, unquote(data)) == unquote(kind)
-        end
-      false ->
-        quote do
-          result = unquote(data)
-          is_tuple(result) and tuple_size(result) > 0
-            and :erlang.element(1, result) == unquote(kind)
-        end
-    end
-  end
-
-  @doc """
   Checks if the given `data` is a record.
 
   This is implemented as a macro so it can be used in guard clauses.
@@ -124,6 +96,34 @@ defmodule Record do
           result = unquote(data)
           is_tuple(result) and tuple_size(result) > 0
             and is_atom(:erlang.element(1, result))
+        end
+    end
+  end
+
+  @doc """
+  Checks if the given `data` is a record of `kind`.
+
+  This is implemented as a macro so it can be used in guard clauses.
+
+  ## Examples
+
+      iex> record = {User, "john", 27}
+      iex> Record.is_record(record, User)
+      true
+
+  """
+  defmacro is_record(data, kind) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          is_tuple(unquote(data)) and tuple_size(unquote(data)) > 0
+            and :erlang.element(1, unquote(data)) == unquote(kind)
+        end
+      false ->
+        quote do
+          result = unquote(data)
+          is_tuple(result) and tuple_size(result) > 0
+            and :erlang.element(1, result) == unquote(kind)
         end
     end
   end
