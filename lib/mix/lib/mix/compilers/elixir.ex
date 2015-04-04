@@ -99,6 +99,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compile_manifest(manifest, entries, stale, dest, on_start) do
     Mix.Project.build_structure
+    true = Code.prepend_path(dest)
+
     on_start.()
     cwd = File.cwd!
 

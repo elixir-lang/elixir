@@ -72,6 +72,11 @@ defmodule Mix.Compilers.Erlang do
       # Build the project structure so we can write down compiled files.
       Mix.Project.build_structure
 
+      # Let's prepend the newly created path so compiled files
+      # can be accessed still during compilation (for behaviours
+      # and what not).
+      Code.prepend_path(Mix.Project.compile_path)
+
       # Remove manifest entries with no source
       Enum.each(removed, &File.rm/1)
 
