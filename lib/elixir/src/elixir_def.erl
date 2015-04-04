@@ -79,7 +79,8 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(KeepLocation, Module),
-  {Function, Defaults, Super} = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
+  {Function, Defaults, Super} = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, expr_from_body(Line, Body), E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
@@ -154,7 +155,7 @@ compile_super(_Module, _, _E) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_integer(Line) ->
+translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Line) ->
   Arity = length(Args),
 
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
@@ -166,7 +167,6 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
   {Clauses, Super} = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
 
-  run_on_definition_callbacks(Kind, Line, Module, Name, EArgs, EGuards, EBody, E),
   Function = {function, Line, Name, Arity, Clauses},
   {Function, Defaults, Super}.
 
