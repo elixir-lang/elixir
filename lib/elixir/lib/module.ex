@@ -170,11 +170,11 @@ defmodule Module do
         - the module environment
         - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
         - function/macro name
-        - list of expanded arguments
-        - list of expanded guards
-        - expanded function body
+        - list of quoted arguments
+        - list of quoted guards
+        - quoted function body
 
-      Note the hook receives the expanded arguments and it is invoked before
+      Note the hook receives the quoted arguments and it is invoked before
       the function is stored in the module. So `Module.defines?/2` will return
       `false` for the first clause of every function.
 
@@ -867,6 +867,13 @@ defmodule Module do
     arity  = length(args)
     pair   = {name, arity}
     doc    = get_attribute(module, :doc)
+
+    # Arguments are not expanded for the docs, but we make
+    # an exception for module attributes.
+    args = Macro.prewalk args, fn
+      {:@,  _, _} = attr -> Macro.expand_once(attr, env)
+      x -> x
+    end
 
     case add_doc(module, line, kind, pair, args, doc) do
       :ok ->
