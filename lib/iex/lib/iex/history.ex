@@ -1,21 +1,22 @@
 defmodule IEx.History.State do
   @moduledoc false
 
-  def new(), do: {:queue.new, 0, 1}
+  defstruct queue: :queue.new, size: 0, start: 1
 
-  def append({q, size, start}, item),
-    do: {:queue.in(item, q), size + 1, start}
+  def append(%{queue: q, size: size} = state, item) do
+    %{state | queue: :queue.in(item, q), size: size + 1}
+  end
 
-  def to_list({q, _, _}),
+  def to_list(%{queue: q}),
     do: :queue.to_list(q)
 
   # Traverses the queue front-to-back if the index is positive.
-  def nth({q, size, start}, n)
+  def nth(%{queue: q, size: size, start: start}, n)
     when n - start >= 0 and n - start < size,
     do: get_nth(q, n - start)
 
   # Traverses the queue back-to-front if the index is negative.
-  def nth({q, size, start}, n)
+  def nth(%{queue: q, size: size, start: start}, n)
     when n < 0 and size + n >= start - 1,
     do: get_nth(:queue.reverse(q), abs(n) - 1)
 
@@ -30,22 +31,22 @@ defmodule IEx.History.State do
   #
   # The `start` value contains the index of the expression at the head
   # of the queue.
-  def prune({_, _, start} = state, limit),
+  def prune(%{start: start} = state, limit),
     do: prune(state, start, limit, false)
 
   defp prune(state, _, limit, _) when limit < 0,
     do: {false, state}
 
-  defp prune({q, size, _}, counter, limit, collect?)
+  defp prune(%{size: size} = state, counter, limit, collect?)
     when size - counter < limit,
-    do: {collect?, {q, size, counter}}
+    do: {collect?, %{state | start: counter}}
 
-  defp prune({q, size, start}, counter, limit, collect?) do
+  defp prune(%{queue: q} = state, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
     unless collect? do
       collect? = has_binary(entry)
     end
-    prune({q, size, start}, counter + 1, limit, collect?)
+    prune(%{state | queue: q}, counter + 1, limit, collect?)
   end
 
   # Checks val and each of its elements (if it is a list or a tuple)
@@ -85,38 +86,28 @@ defmodule IEx.History do
   alias IEx.History.State
 
   @doc """
-  Starts IEx process which stores all history information.
+  Initializes IEx history state.
   """
-  def start_link() do
-    Agent.start_link(fn -> State.new end)
-  end
+  def init(), do: %State{}
 
   @doc """
   Appends one entry to the history.
   """
-  def append(pid, entry, limit) do
-    should_collect = Agent.get_and_update(pid, fn entries ->
-      State.append(entries, entry) |> State.prune(limit)
-    end)
-    if should_collect do
-      collect_garbage(pid)
-    end
-  end
+  def append(%State{} = state, entry, limit) do
+    {collect?, state} =
+      State.append(state, entry)
+      |> State.prune(limit)
 
-  @doc """
-  Removes all entries from the history and forces a garbage collection cycle.
-  """
-  def reset(pid) do
-    Agent.update(pid, fn _ -> State.new end)
-    collect_garbage(pid)
+    if collect?, do: collect_garbage()
+    state
   end
 
   @doc """
   Enumerates over all items in the history starting from the oldest one and
   applies `fun` to each one in turn.
   """
-  def each(pid, fun) do
-    Agent.get(pid, &State.to_list/1)
+  def each(%State{} = state, fun) do
+    State.to_list(state)
     |> Enum.each(fun)
   end
 
@@ -125,17 +116,15 @@ defmodule IEx.History do
 
   If `n` < 0, the count starts from the most recent item and goes back in time.
   """
-  def nth(pid, n) do
-    entry = Agent.get(pid, &State.nth(&1, n))
-    if is_nil(entry) do
-      raise "v(#{n}) is out of bounds"
+  def nth(%State{} = state, n) do
+    case State.nth(state, n) do
+      nil -> raise "v(#{n}) is out of bounds"
+      entry -> entry
     end
-    entry
   end
 
   # Based on https://github.com/erlang/otp/blob/7dcccee4371477e983f026db9e243cb66900b1ef/lib/stdlib/src/shell.erl#L1401
-  defp collect_garbage(pid) do
-    :erlang.garbage_collect(pid)
+  defp collect_garbage() do
     collect_proc_garbage Process.whereis(:user)
     collect_proc_garbage Process.group_leader()
     :erlang.garbage_collect()
