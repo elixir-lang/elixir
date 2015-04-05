@@ -282,7 +282,7 @@ defmodule IEx.Helpers do
   """
   def v do
     inspect_opts = IEx.inspect_opts
-    IEx.History.each(history_pid, &print_history_entry(&1, inspect_opts))
+    IEx.History.each(history, &print_history_entry(&1, inspect_opts))
   end
 
   defp print_history_entry({counter, cache, result}, inspect_opts) do
@@ -297,7 +297,7 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) do
-    IEx.History.nth(history_pid, n) |> elem(2)
+    IEx.History.nth(history, n) |> elem(2)
   end
 
   @doc """
@@ -541,5 +541,5 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp history_pid, do: Process.get(:iex_history_pid)
+  defp history, do: Process.get(:iex_history)
 end
