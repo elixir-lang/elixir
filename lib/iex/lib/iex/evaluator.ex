@@ -11,25 +11,23 @@ defmodule IEx.Evaluator do
 
   """
   def start(server, leader) do
-    IEx.History.init
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server)
+      loop(server, IEx.History.init)
     after
-      IEx.History.reset
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server) do
+  defp loop(server, history) do
     receive do
       {:eval, ^server, code, state} ->
-        send server, {:evaled, self, eval(code, state)}
-        loop(server)
+        {result, history} = eval(code, state, history)
+        send server, {:evaled, self, result}
+        loop(server, history)
       {:done, ^server} ->
-        IEx.History.reset
         :ok
     end
   end
@@ -87,55 +85,57 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, state) do
+  defp eval(code, state, history) do
     try do
-      do_eval(String.to_char_list(code), state)
+      do_eval(String.to_char_list(code), state, history)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
-        %{state | cache: ''}
+        {%{state | cache: ''}, history}
     end
   end
 
-  defp do_eval(@break_trigger, state=%IEx.State{cache: ''}) do
-    state
+  defp do_eval(@break_trigger, %IEx.State{cache: ''} = state, history) do
+    {state, history}
   end
 
-  defp do_eval(@break_trigger, state) do
+  defp do_eval(@break_trigger, state, _history) do
     :elixir_errors.parse_error(state.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, state) do
+  defp do_eval(latest_input, state, history) do
     code = state.cache ++ latest_input
     line = state.counter
-    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state)
+    Process.put(:iex_history, history)
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history)
+  after
+    Process.delete(:iex_history)
   end
-  
-  defp handle_eval({:ok, forms}, code, line, state) do
-    {result, new_binding, env, scope} =
+
+  defp handle_eval({:ok, forms}, code, line, state, history) do
+    {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
     unless result == IEx.dont_display_result, do: io_inspect(result)
-    update_history(line, code, result)
-    %{state | env: env,
-              cache: '',
-              scope: scope,
-              binding: new_binding,
-              counter: state.counter + 1}
+    state =
+      %{state | env: env, cache: '',
+                scope: scope, binding: binding,
+                counter: state.counter + 1}
+    {state, update_history(history, line, code, result)}
   end
 
-  defp handle_eval({:error, {_, _, ""}}, code, _line, state) do
+  defp handle_eval({:error, {_, _, ""}}, code, _line, state, history) do
     # Update state.cache so that IEx continues to add new input to
     # the unfinished expression in `code`
-    %{state | cache: code}
+    {%{state | cache: code}, history}
   end
 
-  defp handle_eval({:error, {line, error, token}}, _code, _line, _state) do
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _state, _) do
     # Encountered malformed expression
     :elixir_errors.parse_error(line, "iex", error, token)
   end
 
-  defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter, IEx.Config.history_size)
+  defp update_history(history, counter, cache, result) do
+    IEx.History.append(history, {counter, cache, result}, IEx.Config.history_size)
   end
 
   defp io_inspect(result) do
@@ -172,8 +172,7 @@ defmodule IEx.Evaluator do
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
-    |> Enum.reject(fn {mod, _, _, _} when mod in @elixir_internals -> true
-                      _ -> false end)
+    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
   end
 
   @doc false
@@ -204,6 +203,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({app, info}, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
+    IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end
