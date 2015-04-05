@@ -28,6 +28,8 @@ defmodule Logger.Translator do
   and the default messages translated by Logger.
   """
 
+  # TODO: Remove name_or_id checks once we support only OTP >18.0
+
   def translate(min_level, level, kind, message)
 
   def translate(min_level, :error, :format, message) do
