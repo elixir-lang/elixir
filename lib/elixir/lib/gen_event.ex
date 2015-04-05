@@ -518,7 +518,7 @@ defmodule GenEvent do
   end
 
   defp rpc(module, cmd) do
-    # TODO: Change the tag once patch is accepted by OTP
+    # TODO: Change the tag on OTP 18
     {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
     reply
   end

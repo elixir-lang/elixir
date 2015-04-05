@@ -9,7 +9,7 @@ defprotocol Access do
   ## Deprecated
 
   Currently, the Access protocol is deprecated as there are performance
-  concerns in the current implementation. In Elixir v1.2, instead of
+  concerns in the current implementation. Since Elixir v1.1, instead of
   using a protocol, `foo[bar]` will dispatch directly to the `Dict`
   module. Therefore, while `foo[bar]` will continue to work, extension
   of the syntax should be done via a custom `Dict` implementation.
