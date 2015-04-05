@@ -55,7 +55,7 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
     |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
-    |> Keyword.put_new(:seed, :erlang.now |> elem(2))
+    |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
     |> Keyword.put_new(:timeout, 30_000)
   end
 
