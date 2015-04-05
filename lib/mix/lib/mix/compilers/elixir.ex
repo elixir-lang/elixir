@@ -219,7 +219,7 @@ defmodule Mix.Compilers.Elixir do
       end
 
     # TODO: Notice we do not use beam from the file.
-    # Once Elixir v1.1 is out, we can start writing "1"
+    # From Elixir v1.2 onwards, we can start writing "1"
     # instead of the beam file in write_manifest/2.
     entry = {Path.join(dest, module <> ".beam"), module, source,
              deps, files, nil}

@@ -30,9 +30,10 @@ start(_Type, _Args) ->
 
   ok = io:setopts(standard_io, Opts),
 
+  %% TODO: Remove this once we support only OTP >18
   ok = case io:setopts(standard_error, [{encoding, utf8}]) of
     ok         -> ok;
-    {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% R17.3 and earlier
+    {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% OTP 17.3 and earlier
   end,
 
   case file:native_name_encoding() of

@@ -833,6 +833,7 @@ defmodule Kernel.Typespec do
   ## Handle maps and structs
   defp typespec({:%{}, meta, fields}, vars, caller) do
     fields =
+      # TODO: Remove else once we support only OTP >18
       if :erlang.system_info(:otp_release) >= '18' do
         :lists.map(fn {k, v} ->
           {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
