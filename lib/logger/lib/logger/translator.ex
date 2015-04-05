@@ -82,8 +82,8 @@ defmodule Logger.Translator do
   defp translate_supervisor(min_level,
                            [supervisor: sup, errorContext: context,
                              reason: reason,
-                             offender: [{:pid, pid}, {:name, name} | offender]])
-                           when is_pid(pid) and context !== :shutdown do
+                             offender: [{:pid, pid}, {name_or_id, name} | offender]])
+                           when is_pid(pid) and context !== :shutdown and name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             "Pid: ", inspect(pid), ?\n,
@@ -95,7 +95,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:pid, _pid},
-                                        {:name, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             child_info(min_level, offender), ?\n,
@@ -117,7 +117,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:nb_children, n},
-                                        {:name, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Children ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             "Number: ", inspect(n), ?\n,
@@ -134,7 +134,7 @@ defmodule Logger.Translator do
 
   defp translate_progress(min_level,
                           [supervisor: sup,
-                            started: [{:pid, pid}, {:name, name} | started]]) do
+                            started: [{:pid, pid}, {name_or_id, name} | started]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), " started\n",
             "Pid: ", inspect(pid), ?\n |
