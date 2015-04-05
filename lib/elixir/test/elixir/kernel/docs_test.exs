@@ -10,7 +10,12 @@ defmodule Kernel.DocsTest do
     assert [{{:__behaviour__, 1}, _, :def, [{:atom1, [], Elixir}], false},
             {{:fun, 2}, _, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
             {{:nofun, 0}, _, :def, [], nil},
-            {{:sneaky, 1}, _, :def, [{:bool1, [], Elixir}], false}] = docs[:docs]
+            {{:sneaky, 1}, _, :def, [{:bool1, [], Elixir}], false},
+            {{:with_defaults, 4}, _, :def,
+             [{:int1, [], Elixir},
+              {:\\, [], [{:x, [], nil}, 0]},
+              {:\\, [], [{:y, [], nil}, 2015]},
+              {:\\, [], [{:f, [], nil}, {:&, _, [{:/, _, [{:>=, _, _}, 2]}]}]}], nil}] = docs[:docs]
     assert {_, "Hello, I am a module"} = docs[:moduledoc]
     assert [{{:bar, 1}, _, :def, false}, {{:baz, 2}, _, :def, nil},
             {{:first, 0}, _, :def, "I should be first."},
@@ -77,6 +82,11 @@ defmodule Kernel.DocsTest do
 
       def nofun() do
         'not fun at all'
+      end
+
+      @year 2015
+      def with_defaults(@year, x \\ 0, y \\ @year, f \\ &>=/2) do
+        {f, x + y}
       end
     end)
   end
