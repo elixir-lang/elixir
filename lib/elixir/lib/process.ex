@@ -48,6 +48,15 @@ defmodule Process do
   end
 
   @doc """
+  Returns all keys
+  """
+
+  @spec get_keys() :: [term]
+  def get_keys do
+    :erlang.get_keys()
+  end
+
+  @doc """
   Returns all keys that have the given `value`.
   """
   @spec get_keys(term) :: [term]
