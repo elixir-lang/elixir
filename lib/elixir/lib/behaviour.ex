@@ -128,13 +128,13 @@ defmodule Behaviour do
     quote do
       Module.register_attribute(__MODULE__, :behaviour_docs, accumulate: true)
 
+      # TODO: Deprecate by 1.2
+      # TODO: Remove by 2.0
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)
       end
 
-      # TODO: Deprecate by 1.2
-      # TODO: Remove by 2.0
       def __behaviour__(:docs) do
         Code.get_docs(__MODULE__, :behaviour_docs)
       end
