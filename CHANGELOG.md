@@ -17,6 +17,7 @@
   * [Kernel] Fix a bug where `=~/2` returned false when matching on an empty string. The current behaviour was changed to match the behaviour of `String.contains?/2`
   * [Mix] Store relative paths in erlang manifests
   * [Mix] Fix httpc proxy option profile for downloading hex and other safe packges
+  * [Mix] Fix missing behaviour warning when compiling Erlang modules
 
 ## v1.0.3 (2015-02-12)
 
