@@ -4,7 +4,7 @@ defmodule Code do
 
   This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
   to add behaviour which is specific to Elixir. Almost all of the functions in this module
-  have global side effects on the behaviour of Elixir. 
+  have global side effects on the behaviour of Elixir.
   """
 
   @doc """
@@ -13,7 +13,7 @@ defmodule Code do
   ## Examples
 
       Code.require_file("../eex/test/eex_test.exs")
-      List.First(Code.loaded_files) =~ "eex_test.exs" #=> true
+      List.first(Code.loaded_files) =~ "eex_test.exs" #=> true
 
   """
   def loaded_files do
@@ -26,14 +26,13 @@ defmodule Code do
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
   allowing them to be required again.
- 
+
   ## Examples
 
-      # Load Eex Test code, Unload file, Check for functions still available
+      # Load EEx test code, unload file, check for functions still available
       Code.load_file("../eex/test/eex_test.exs")
-      Code.unload_files(Code.loaded_files) 
-      Kernel.function_exported?(EExTest.Compiled, :before_compile, 0) #=> true
-      
+      Code.unload_files(Code.loaded_files)
+      function_exported?(EExTest.Compiled, :before_compile, 0) #=> true
 
   """
   def unload_files(files) do
@@ -41,8 +40,10 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to the end of the Erlang VM code path list. This is the list of
-  directories the Erlang VM uses for finding module code.
+  Appends a path to the end of the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for
+  finding module code.
 
   The path is expanded with `Path.expand/1` before being appended.
   If this path does not exist, an error is returned.
@@ -59,19 +60,20 @@ defmodule Code do
   end
 
   @doc """
-  Prepends a path to the begining of the Erlang VM code path list. This is the list of
-  directories the Erlang VM uses for finding module code.
+  Prepends a path to the begining of the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for finding
+  module code.
 
   The path is expanded with `Path.expand/1` before being prepended.
   If this path does not exist, an error is returned.
-
 
   ## Examples
 
       Code.prepend_path(".") #=> true
 
       Code.prepend_path("/does_not_exist") #=> {:error, :bad_directory}
-     
+
   """
   def prepend_path(path) do
     :code.add_patha(to_char_list(Path.expand path))
@@ -85,12 +87,12 @@ defmodule Code do
   path does not exist it returns false.
 
   ## Examples
-    
+
       Code.prepend_path(".")
       Code.delete_path(".") #=> true
 
       Code.delete_path("/does_not_exist") #=> false
-       
+
   """
   def delete_path(path) do
     :code.del_path(to_char_list(Path.expand path))
@@ -309,7 +311,7 @@ defmodule Code do
 
   ## Examples
 
-      Code.load_file("eex_test.exs","../eex/test") |> List.first 
+      Code.load_file("eex_test.exs","../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
@@ -338,12 +340,14 @@ defmodule Code do
   `unload_files/1`
 
   ## Examples
-  
-  If the code is already loaded, it returns nil 
+
+  If the code is already loaded, it returns nil:
+
       Code.require_file("eex_test.exs","../eex/test") #=> nil
 
-  If the code is not already loaded, it returns the same as `load_file/2` 
-      Code.require_file("eex_test.exs","../eex/test") |> List.first 
+  If the code is not already loaded, it returns the same as `load_file/2`:
+
+      Code.require_file("eex_test.exs","../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
 
   """
@@ -369,8 +373,8 @@ defmodule Code do
 
   ## Examples
 
-      > Code.compiler_options 
-      [debug_info: true, docs: true, warnings_as_errors: false]
+      Code.compiler_options
+      #=> [debug_info: true, docs: true, warnings_as_errors: false]
 
   """
   def compiler_options do
@@ -384,8 +388,8 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.available_compiler_options
-      [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+      Code.available_compiler_options
+      #=> [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
 
   """
   def available_compiler_options do
@@ -411,14 +415,14 @@ defmodule Code do
 
     * `:warnings_as_errors` - cause compilation to fail when warnings are
       generated
-  
+
   It returns the new list of compiler options.
 
   ## Examples
 
       Code.compiler_options(debug_info: true)
       #=> [debug_info: true, docs: true, warnings_as_errors: false]
-    
+
   """
   def compiler_options(opts) do
     {opts, bad} = Keyword.split(opts, available_compiler_options)
@@ -561,7 +565,7 @@ defmodule Code do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
-  @doc """
+  @doc ~S"""
   Returns the docs for the given module.
 
   When given a module name, it finds its BEAM code and reads the docs from it.
@@ -588,7 +592,7 @@ defmodule Code do
       # Get the documentation for the first function listed
       iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
       iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
-      iex> String.split(text, "\\n") |> Enum.at(0)
+      iex> String.split(text, "\n") |> Enum.at(0)
       "Converts an atom to a char list."
 
   """
