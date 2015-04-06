@@ -3271,6 +3271,17 @@ defmodule Kernel do
         def blank?(enum_like), do: Enum.empty?(enum_like)
       end
 
+  When implementing a protocol for a struct, the `:for` option can be omitted if
+  the `defimpl` call is inside the module that defines the struct:
+
+      defmodule User do
+        defstruct [:email, :name]
+
+        defimpl Blank do
+          def blank?(%User{}), do: false
+        end
+      end
+
   If a protocol is not found for a given type, it will fallback to
   `Any`.
 
