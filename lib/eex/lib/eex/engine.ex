@@ -74,8 +74,7 @@ defmodule EEx.Engine do
   end
 
   @doc """
-  The default implementation implementation simply returns the
-  given expression.
+  The default implementation simply returns the given expression.
   """
   def handle_body(quoted) do
     quoted
