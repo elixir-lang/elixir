@@ -200,8 +200,6 @@ defmodule Integer do
   Returns a binary which corresponds to the text representation
   of `some_integer` in base `base`.
 
-  Inlined by the compiler.
-
   ## Examples
 
       iex> Integer.to_string(100, 16)
@@ -232,8 +230,6 @@ defmodule Integer do
   @doc """
   Returns a char list which corresponds to the text representation of the
   given integer in the given base.
-
-  Inlined by the compiler.
 
   ## Examples
 
