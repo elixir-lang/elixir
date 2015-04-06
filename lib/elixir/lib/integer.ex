@@ -209,7 +209,7 @@ defmodule Integer do
 
   """
   @spec to_string(integer, 2..36) :: String.t
-  def to_string(some_integer, base) when is_integer(base) and base in 2..36 do
+  def to_string(some_integer, base) do
     :erlang.integer_to_binary(some_integer, base)
   end
 
@@ -242,7 +242,7 @@ defmodule Integer do
 
   """
   @spec to_char_list(integer, 2..36) :: char_list
-  def to_char_list(number, base) when is_integer(base) and base in 2..36 do
+  def to_char_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
 end
