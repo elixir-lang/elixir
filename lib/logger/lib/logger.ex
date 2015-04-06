@@ -306,20 +306,6 @@ defmodule Logger do
   end
 
   @doc """
-  Flushes the Logger.
-
-  This basically guarantees all messages sent to the
-  Logger prior to this call will be processed. This is useful
-  for testing and it should not be called in production code.
-  """
-  @spec flush :: :ok
-  def flush do
-    _ = GenEvent.which_handlers(:error_logger)
-    _ = GenEvent.which_handlers(Logger)
-    :ok
-  end
-
-  @doc """
   Adds a new backend.
 
   ## Options

@@ -112,6 +112,20 @@ defmodule Kernel.CLI do
     IO.puts :stderr, Exception.format(kind, reason, prune_stacktrace(trace))
   end
 
+  @doc """
+  Flushes the Logger.
+
+  This basically guarantees all messages sent to the
+  Logger prior to this call will be processed. This is useful
+  for testing and it should not be called in production code.
+  """
+  @spec flush :: :ok
+  def flush do
+    _ = GenEvent.which_handlers(:error_logger)
+    _ = GenEvent.which_handlers(Logger)
+    :ok
+  end
+
   @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,
                      :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses]
 

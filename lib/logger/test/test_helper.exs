@@ -39,7 +39,7 @@ defmodule Logger.Case do
     Logger.configure(level: level)
     capture_io(:user, fn ->
       fun.()
-      Logger.flush()
+      Kernel.CLI.flush()
     end)
   after
     Logger.configure(level: :debug)
