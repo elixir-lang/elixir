@@ -3015,6 +3015,15 @@ defmodule Kernel do
         defstruct name: nil, age: 10 + 11
       end
 
+  The `fields` argument is usually a keyword list with fields as keys and
+  default values as corresponding values. `defstruct/1` also supports a list of
+  atoms as its argument: in that case, the atoms in the list will be used as
+  the struct's fields and they will all default to `nil`.
+
+      defmodule Post do
+        defstruct [:title, :content, :author]
+      end
+
   ## Deriving
 
   Although structs are maps, by default structs do not implement
