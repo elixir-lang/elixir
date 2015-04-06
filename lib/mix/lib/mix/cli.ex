@@ -11,7 +11,7 @@ defmodule Mix.CLI do
     # Make sure all messages the tests might have sent to the
     # Logger are printed before we shut down the VM.
     System.at_exit fn _ ->
-      if Process.whereis(Logger), do: Logger.flush()
+      if Process.whereis(Logger), do: Kernel.CLI.flush()
     end
 
     case check_for_shortcuts(args) do
