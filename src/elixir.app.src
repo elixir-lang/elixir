@@ -1,9 +1,7 @@
 {application, elixir,
 [{description, "elixir"},
- {vsn, "1.0.3"},
- {modules, [
-	elixir
-  ]},
+ {vsn, "1.0.4"},
+ {modules, [elixir]},
  {registered, [elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,crypto,compiler,syntax_tools]},
  {mod, {elixir,[]}},

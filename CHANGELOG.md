@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.4-dev
+## v1.0.4
 
 * Enhancements
   * [Elixir] Support Erlang 17.5 and 18.0
