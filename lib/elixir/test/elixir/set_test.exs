@@ -186,3 +186,11 @@ defmodule Set.HashSetTest do
   doctest Set
   def set_impl, do: HashSet
 end
+
+defmodule Set.MapSetTest do
+  use ExUnit.Case, async: true
+  use SetTest.Common
+
+  doctest Set
+  def set_impl, do: MapSet
+end
