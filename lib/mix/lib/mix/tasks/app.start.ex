@@ -2,7 +2,6 @@ defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
   @shortdoc "Start all registered apps"
-  @recursive true
 
   @moduledoc """
   Starts all registered apps.
@@ -63,15 +62,26 @@ defmodule Mix.Tasks.App.Start do
 
   @doc false
   def start(config, opts) do
-    if app = config[:app] do
-      case Application.ensure_all_started(app, type(config, opts)) do
-        {:ok, _} -> :ok
-        {:error, {app, reason}} ->
-          Mix.raise "Could not start application #{app}: " <>
-            Application.format_error(reason)
+    apps =
+      cond do
+        Mix.Project.umbrella?(config) ->
+          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
+        app = config[:app] ->
+          [app]
+        true ->
+          []
       end
-    else
-      :error
+
+    type = type(config, opts)
+    Enum.each apps, &ensure_all_started(&1, type)
+  end
+
+  defp ensure_all_started(app, type) do
+    case Application.ensure_all_started(app, type) do
+      {:ok, _} -> :ok
+      {:error, {app, reason}} ->
+        Mix.raise "Could not start application #{app}: " <>
+          Application.format_error(reason)
     end
   end
 
