@@ -25,7 +25,6 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
   * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it just warned)
   * [Kernel] `::/2` is now a special form
-  * [Mix] `mix help` task now supports `mix help --search PATTERN` for filtering task names
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
   * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
   * [Mix] Allow rebar dependencies to be specified via `:path`
@@ -44,7 +43,7 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [ExUnit] Ensure the Logger is flushed when running ExUnit via Mix
   * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
-  * [Mix] Ensure changes in child dependencies for the parent one to recompile
+  * [Mix] Ensure automatic protocol consolidation via `:consolidate_protocols` is triggered in umbrella apps
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
   * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
