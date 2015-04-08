@@ -58,6 +58,8 @@ defmodule Mix.Tasks.App.Start do
       if Process.whereis(Logger), do: Logger.App.stop()
       start(Mix.Project.config, opts)
     end
+
+    :ok
   end
 
   @doc false

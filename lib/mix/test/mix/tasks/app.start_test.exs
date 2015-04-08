@@ -89,7 +89,7 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   test "start does nothing if app is nil" do
-    assert Mix.Tasks.App.Start.start([app: nil], []) == []
+    assert Mix.Tasks.App.Start.start([app: nil], []) == :ok
   end
 
   test "allows type to be configured" do
