@@ -368,6 +368,10 @@ defmodule Inspect.OthersTest do
     assert "#HashSet<" <> _ = inspect(HashSet.new)
   end
 
+  test :map_set do
+    assert "#MapSet<" <> _ = inspect(MapSet.new)
+  end
+
   test :pids do
     assert "#PID<" <> _ = inspect(self)
   end
