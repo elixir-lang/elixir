@@ -1088,7 +1088,7 @@ defmodule File do
   @spec cd!(Path.t) :: :ok | no_return
   def cd!(path) do
     path = IO.chardata_to_string(path)
-    case F.set_cwd(path) do
+    case cd(path) do
       :ok -> :ok
       {:error, reason} ->
           raise File.Error, reason: reason, action: "set current working directory to", path: path
