@@ -56,7 +56,7 @@ defmodule EEx.Engine do
   Handles assigns in quoted expressions.
 
   This can be added to any custom engine by invoking
-  `handle_assign/3` with `Macro.prewalk/1`:
+  `handle_assign/1` with `Macro.prewalk/2`:
 
       def handle_expr(buffer, token, expr) do
         expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
