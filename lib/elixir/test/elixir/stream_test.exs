@@ -343,9 +343,9 @@ defmodule StreamTest do
 
   test "interval/1" do
     stream = Stream.interval(10)
-    now = :erlang.now
+    now = :os.timestamp
     assert Enum.take(stream, 5) == [0, 1, 2, 3, 4]
-    assert :timer.now_diff(:erlang.now, now) > 50000
+    assert :timer.now_diff(:os.timestamp, now) > 50000
   end
 
   test "into/2 and run/1" do
@@ -644,9 +644,9 @@ defmodule StreamTest do
 
   test "timer/1" do
     stream = Stream.timer(10)
-    now = :erlang.now
+    now = :os.timestamp
     assert Enum.to_list(stream) == [0]
-    assert :timer.now_diff(:erlang.now, now) > 10000
+    assert :timer.now_diff(:os.timestamp, now) > 10000
   end
 
   test "unfold/2" do
