@@ -33,6 +33,7 @@ Separates the options passed to the compiler from the options passed to the exec
 .Bl -tag -width Ds
 .It Ev ELIXIR_ERL_OPTIONS
 Allows passing parameters to the Erlang runtime.
+.El
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ~/.erlang.cookie
@@ -49,7 +50,7 @@ and, in a case of success, executes the code from the file in the context of the
 .El
 .Sh SEE ALSO
 .Xr elixir 1 ,
-.Xr elixirc 1
+.Xr elixirc 1 ,
 .Xr mix 1
 .Sh AUTHOR
 This manual page contributed by Evgeny Golyshev.

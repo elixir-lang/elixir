@@ -40,7 +40,7 @@ If the file doesn't exist when a node starts, it will be created.
 .El
 .Sh SEE ALSO
 .Xr elixirc 1 ,
-.Xr iex 1
+.Xr iex 1 ,
 .Xr mix 1
 .Sh AUTHOR
 This manual page contributed by Evgeny Golyshev.
