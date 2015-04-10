@@ -1,4 +1,4 @@
-.Dd March 17, 2015
+.Dd April 10, 2015
 .Dt ELIXIRC 1
 .Os
 .Sh NAME
@@ -14,12 +14,10 @@ The compiler is intended for compilation one or more files containing the Elixir
 .Sh OPTIONS
 .Bl -tag -width Ds
 .It Fl o Ar directory
-Places the output file in
-.Ar directory .
-If the directory is not specified, the current working directory will be used for the purpose.
+Places the output file in the specified directory. If the directory is not specified via the option, the current working directory will be used for the purpose.
 .It Fl -erl Ar parameters
-Acts like ELIXIR_ERL_OPTIONS
-.Pq see the section Sy ENVIRONMENT .
+Serves the same purpose as ELIXIR_ERL_OPTIONS
+.Pq see the Sy ENVIRONMENT No section .
 .It Fl -ignore-module-conflict
 Disables warnings when a module was previously defined.
 .It Fl -no-debug-info
@@ -44,5 +42,13 @@ Allows passing parameters to the Erlang compiler
 .Sh SEE ALSO
 .Xr elixir 1 ,
 .Xr iex 1
+.Xr mix 1
 .Sh AUTHOR
 This manual page contributed by Evgeny Golyshev.
+.Sh INTERNET RESOURCES
+.Bl -tag -width Ds
+.It Main website: http://elixir-lang.org
+.It Documentation: http://elixir-lang.org/docs.html
+.It General Mailing List: http://groups.google.com/group/elixir-lang-talk
+.It Development Mailing List: http://groups.google.com/group/elixir-lang-core
+.El

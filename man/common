@@ -1,18 +1,12 @@
 .It Fl e Ar expression
-Evaluates
-.Ar expression .
+Evaluates the specified expression.
 .It Fl r Ar file
-Requires
-.Ar file .
-In other words, the specified file is checked for existence at the start of
+Requires the specified file. In other words, the file is checked for existence at the start of
 .Nm .
 .It Fl S Ar script
-Executes
-.Ar script .
+Runs the specified script.
 .It Fl pa Ar directory
-Adds
-.Ar directory
-to the beginning of the code path. If the specified directory already exists, it will be removed from its old position and put to the beginning.
+Adds the specified directory to the beginning of the code path. If the directory already exists, it will be removed from its old position and put to the beginning.
 .Pp
 See also the function
 .Sy Code.prepend_path/1 .
@@ -22,27 +16,19 @@ Does the same thing as
 .Pq see above
 but in parallel.
 .It Fl pz Ar directory
-Adds
-.Ar directory
-to the end of the code path. If the specified directory already exists, it won't be neither removed from its old position nor put to the end.
+Adds the specified directory to the end of the code path. If the directory already exists, it won't be neither removed from its old position nor put to the end.
 .Pp
 See also the function
 .Sy Code.append_path/1 .
 .It Fl -app Ar application
-Starts
-.Ar application
-and all its dependencies.
+Starts the specified application and all its dependencies.
 .It Fl -erl Ar parameters
-Acts like ELIXIR_ERL_OPTIONS
-.Pq see the section Sy ENVIRONMENT
+Serves the same purpose as ELIXIR_ERL_OPTIONS
+.Pq see the Sy ENVIRONMENT No section
 .It Fl -cookie Ar value
-Sets the magic cookie to
-.Ar value .
-If the value of the magic cookie isn't specified via the option
-.Fl -cookie
-when the node starts, it will be taken from the file
+Allows specifying the magic cookie value. If the value isn't specified via the option when the node starts, it will be taken from the file
 .Pa ~/.erlang.cookie
-.Pq see the section Sy FILES .
+.Pq see the Sy FILES No section .
 Distributed nodes can interact with each other only when their magic cookies are equal.
 .Pp
 See also the function

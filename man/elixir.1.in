@@ -1,4 +1,4 @@
-.Dd March 16, 2015
+.Dd April 10, 2015
 .Dt IEX 1
 .Os
 .Sh NAME
@@ -33,7 +33,7 @@ Allows passing parameters to the Erlang runtime.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ~/.erlang.cookie
-Stores the value of the magic cookie which is used only when it wasn't specified via the option
+Stores the magic cookie value which is used only when it wasn't specified via the option
 .Fl -cookie
 .Pq see above .
 If the file doesn't exist when a node starts, it will be created.
@@ -41,5 +41,13 @@ If the file doesn't exist when a node starts, it will be created.
 .Sh SEE ALSO
 .Xr elixirc 1 ,
 .Xr iex 1
+.Xr mix 1
 .Sh AUTHOR
 This manual page contributed by Evgeny Golyshev.
+.Sh INTERNET RESOURCES
+.Bl -tag -width Ds
+.It Main website: http://elixir-lang.org
+.It Documentation: http://elixir-lang.org/docs.html
+.It General Mailing List: http://groups.google.com/group/elixir-lang-talk
+.It Development Mailing List: http://groups.google.com/group/elixir-lang-core
+.El

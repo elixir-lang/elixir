@@ -1,4 +1,4 @@
-.Dd March 16, 2015
+.Dd April 10, 2015
 .Dt IEX 1
 .Os
 .Sh NAME
@@ -16,15 +16,11 @@ can be used as an additional source of information on the options.
 .Bl -tag -width Ds
 {COMMON}
 .It Fl -dot-iex Ar file
-Loads
-.Ar file
-instead of
+Loads the specified file instead of
 .Pa .iex.exs
-.Pq see the section Sy FILES .
+.Pq see the Sy FILES No section .
 .It Fl -remsh Ar node
-Connects to
-.Ar node
-which was started with the
+Connects to the specified node which was started with the
 .Fl -sname
 or
 .Fl -name
@@ -40,7 +36,7 @@ Allows passing parameters to the Erlang runtime.
 .Sh FILES
 .Bl -tag -width Ds
 .It Pa ~/.erlang.cookie
-Stores the value of the magic cookie which is used only when it wasn't specified via the option
+Stores the magic cookie value which is used only when it wasn't specified via the option
 .Fl -cookie
 .Pq see above .
 If the file doesn't exist when a node starts, it will be created.
@@ -54,5 +50,13 @@ and, in a case of success, executes the code from the file in the context of the
 .Sh SEE ALSO
 .Xr elixir 1 ,
 .Xr elixirc 1
+.Xr mix 1
 .Sh AUTHOR
 This manual page contributed by Evgeny Golyshev.
+.Sh INTERNET RESOURCES
+.Bl -tag -width Ds
+.It Main website: http://elixir-lang.org
+.It Documentation: http://elixir-lang.org/docs.html
+.It General Mailing List: http://groups.google.com/group/elixir-lang-talk
+.It Development Mailing List: http://groups.google.com/group/elixir-lang-core
+.El
