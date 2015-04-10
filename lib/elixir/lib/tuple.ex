@@ -44,8 +44,8 @@ defmodule Tuple do
 
   """
   @spec insert_at(tuple, non_neg_integer, term) :: tuple
-  def insert_at(tuple, index, term) do
-    :erlang.insert_element(index + 1, tuple, term)
+  def insert_at(tuple, index, value) do
+    :erlang.insert_element(index + 1, tuple, value)
   end
 
   @doc """
