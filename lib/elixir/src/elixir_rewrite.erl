@@ -142,6 +142,7 @@ inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
 inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
+inline(?tuple, append, 2) -> {erlang, append_element};
 
 inline(_, _, _) -> false.
 
