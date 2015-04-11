@@ -98,6 +98,10 @@ defmodule EExTest do
     assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else %>baz<% end %><% end %>"
   end
 
+  test "evaluates with parentheses after end in end token" do
+    assert_eval " 101  102  103 ", "<%= Enum.map([1,2,3], (fn x -> %> <%= 100 + x %> <% end) ) %>"
+  end
+
   test "evaluates with defined variable" do
     assert_eval "foo 1", "foo <% bar = 1 %><%= bar %>"
   end
