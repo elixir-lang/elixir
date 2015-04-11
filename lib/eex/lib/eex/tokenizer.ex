@@ -96,9 +96,9 @@ defmodule EEx.Tokenizer do
   #
   # Start tokens finish with `do` and `fn ->`
   # Middle tokens are marked with `->` or keywords
-  # End tokens contain only the end word
+  # End tokens contain only the end word and optionally `)`
 
-  defp token_name([h|t]) when h in [?\s, ?\t] do
+  defp token_name([h|t]) when h in [?\s, ?\t, ?)] do
     token_name(t)
   end
 
