@@ -43,7 +43,7 @@ defmodule IEx.AutocompleteTest do
 
   test :elixir_completion_on_modules_from_load_path do
     assert expand('Str') == {:yes, [], ['Stream', 'String', 'StringIO']}
-    assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MatchError']}
+    assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MapSet', 'MatchError']}
     assert expand('Dic') == {:yes, 't.', []}
     assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception']}
   end
