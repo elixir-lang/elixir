@@ -1,9 +1,9 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule HashSetTest do
+defmodule MapSetTest do
   use ExUnit.Case, async: true
 
-  alias HashSet, as: S
+  alias MapSet, as: S
 
   test "put" do
     assert S.equal?(S.put(S.new, 1), make([1]))
