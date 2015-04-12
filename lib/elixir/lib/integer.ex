@@ -59,13 +59,13 @@ defmodule Integer do
 
   An optional base value may be provided representing the radix for the digits.
 
-   ## Examples
+  ## Examples
 
-       iex> Integer.undigits([1, 0, 1])
-       101
+      iex> Integer.undigits([1, 0, 1])
+      101
 
-       iex> Integer.undigits([1, 4], 16)
-       20
+      iex> Integer.undigits([1, 4], 16)
+      20
   """
   @spec undigits([integer], integer) :: integer
   def undigits(digits, base \\ 10) when is_integer(base) do
@@ -117,7 +117,7 @@ defmodule Integer do
   """
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
-  
+
   def parse(binary, base) when is_integer(base) and base in 2..36 do
     parse_in_base(binary, base)
   end
