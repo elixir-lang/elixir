@@ -1555,15 +1555,17 @@ defmodule Kernel do
   @doc """
   Creates and updates structs.
 
-  The struct argument may be an atom (which defines `defstruct`)
-  or a struct itself. The second argument is any Enumerable that
+  The `struct` argument may be an atom (which defines `defstruct`)
+  or a `struct` itself. The second argument is any `Enumerable` that
   emits two-item tuples (key-value pairs) during enumeration.
 
-  Keys in the Enumerable that don't exist in the struct are automatically
+  Keys in the `Enumerable` that don't exist in the struct are automatically
   discarded.
 
   This function is useful for dynamically creating and updating
-  structs.
+  structs, as well as for converting maps to structs; in the latter case, just
+  inserting the appropriate `:__struct__` field into the map may not be enough
+  and `struct/2` should be used instead.
 
   ## Examples
 
@@ -1579,6 +1581,9 @@ defmodule Kernel do
       #=> %User{name: "meg"}
 
       struct(user, unknown: "value")
+      #=> %User{name: "meg"}
+
+      struct(User, %{name: "meg"})
       #=> %User{name: "meg"}
 
   """
