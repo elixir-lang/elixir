@@ -221,7 +221,7 @@ defmodule Mix.Tasks.Escript.Build do
   defp gen_main(name, module, app, language) do
     config =
       if File.regular?("config/config.exs") do
-        Mix.Config.read!("config/config.exs")
+        Macro.escape Mix.Config.read!("config/config.exs")
       else
         []
       end
@@ -275,6 +275,7 @@ defmodule Mix.Tasks.Escript.Build do
   defp main_body_for(:elixir) do
     quote do
       erl_version = :erlang.system_info(:otp_release)
+
       case :string.to_integer(erl_version) do
         {num, _} when num >= 17 -> nil
         _ ->

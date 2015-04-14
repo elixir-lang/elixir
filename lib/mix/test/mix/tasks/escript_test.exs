@@ -77,7 +77,7 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escripttest", fn ->
       File.mkdir_p! "config"
       File.write! "config/config.exs", """
-      [foobar: [value: "FROM CONFIG"]]
+      [foobar: [value: "FROM CONFIG", other: %{}]]
       """
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
