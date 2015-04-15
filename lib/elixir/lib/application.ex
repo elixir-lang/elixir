@@ -127,10 +127,7 @@ defmodule Application do
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
-    case :application.get_env(app, key) do
-      {:ok, value} -> value
-      :undefined -> default
-    end
+    :application.get_env(app, key, default)
   end
 
   @doc """
