@@ -2586,15 +2586,15 @@ defmodule Kernel do
 
   """
   defmacro left in right do
-    cache = (__CALLER__.context == nil)
+    in_module? = (__CALLER__.context == nil)
 
-    right = case bootstraped?(Macro) do
+    right = case bootstraped?(Macro) and not in_module? do
       true  -> Macro.expand(right, __CALLER__)
       false -> right
     end
 
     case right do
-      _ when cache ->
+      _ when in_module? ->
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [] ->
         false
