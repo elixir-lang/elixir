@@ -125,6 +125,13 @@ defmodule KernelTest do
     assert case_in(-3, -1..-3) == true
   end
 
+  test "in/2 in module body" do
+    defmodule In do
+      @foo [:a, :b]
+      true = :a in @foo
+    end
+  end
+
   @bitstring <<"foo", 16::4>>
 
   test "bitstring attribute" do
