@@ -7,9 +7,13 @@ defmodule ApplicationTest do
     assert Application.get_env(:elixir, :unknown) == nil
     assert Application.get_env(:elixir, :unknown, :default) == :default
     assert Application.fetch_env(:elixir, :unknown) == :error
+    assert_raise ArgumentError, fn ->
+      Application.fetch_env!(:elixir, :unknown)
+    end
 
     assert Application.put_env(:elixir, :unknown, :known) == :ok
     assert Application.fetch_env(:elixir, :unknown) == {:ok, :known}
+    assert Application.fetch_env!(:elixir, :unknown) == :known
     assert Application.get_env(:elixir, :unknown, :default) == :known
     assert {:unknown, :known} in Application.get_all_env(:elixir)
 

@@ -145,6 +145,23 @@ defmodule Application do
   end
 
   @doc """
+  Returns the value for `key` in `app`'s environment.
+
+  If the specified application is not loaded, or the configuration parameter
+  does not exist, raises `ArgumentError`.
+  """
+  @spec fetch_env!(app, key) :: value | no_return
+  def fetch_env!(app, key) do
+    case fetch_env(app, key) do
+      {:ok, value} -> value
+      :error ->
+        raise ArgumentError,
+          "application #{inspect app} is not loaded, " <>
+          "or the configuration parameter #{inspect key} is not set"
+    end
+  end
+
+  @doc """
   Puts the `value` in `key` for the given `app`.
 
   ## Options
