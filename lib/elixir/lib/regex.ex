@@ -155,7 +155,7 @@ defmodule Regex do
 
   """
   @spec match?(t, String.t) :: boolean
-  def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
+  def match?(%Regex{re_pattern: compiled} = _regex, string) when is_binary(string) do
     :re.run(string, compiled, [{:capture, :none}]) == :match
   end
 
@@ -173,6 +173,8 @@ defmodule Regex do
   """
   @spec regex?(t) :: true
   @spec regex?(any) :: false
+  def regex?(regex)
+
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
@@ -241,7 +243,7 @@ defmodule Regex do
   Returns the underlying `re_pattern` in the regular expression.
   """
   @spec re_pattern(t) :: term
-  def re_pattern(%Regex{re_pattern: compiled}) do
+  def re_pattern(%Regex{re_pattern: compiled} = _regex) do
     compiled
   end
 
@@ -255,7 +257,7 @@ defmodule Regex do
 
   """
   @spec source(t) :: String.t
-  def source(%Regex{source: source}) do
+  def source(%Regex{source: source} = _regex) do
     source
   end
 
@@ -269,7 +271,7 @@ defmodule Regex do
 
   """
   @spec opts(t) :: String.t
-  def opts(%Regex{opts: opts}) do
+  def opts(%Regex{opts: opts} = _regex) do
     opts
   end
 
@@ -283,7 +285,7 @@ defmodule Regex do
 
   """
   @spec names(t) :: [String.t]
-  def names(%Regex{re_pattern: re_pattern}) do
+  def names(%Regex{re_pattern: re_pattern} = _regex) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
