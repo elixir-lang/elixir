@@ -128,6 +128,24 @@ defmodule Mix.Tasks.NewTest do
       end
     end
 
+    in_tmp "new with an already taken application name", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already in use", fn ->
+        Mix.Tasks.New.run ["mix"]
+      end
+    end
+
+    in_tmp "new with an already taken application name from the app option", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already in use", fn ->
+        Mix.Tasks.New.run ["valid", "--app", "mix"]
+      end
+    end
+
+    in_tmp "new with an already taken module name from the module options", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already in use", fn ->
+        Mix.Tasks.New.run ["valid", "--module", "Mix"]
+      end
+    end
+
     in_tmp "new without a specified path", fn ->
       assert_raise Mix.Error, "Expected PATH to be given, please use `mix new PATH`", fn ->
         Mix.Tasks.New.run []
