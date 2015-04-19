@@ -167,7 +167,7 @@ defmodule Mix.Tasks.New do
   defp check_mod_name_availability!(name) do
     name = Module.concat(Elixir, name)
     if Code.ensure_loaded?(name) do
-      Mix.raise "Module name #{inspect name} is already in use"
+      Mix.raise "Module name #{inspect name} is already taken, please choose another name"
     end
   end
 
