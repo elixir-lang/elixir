@@ -519,9 +519,20 @@ end
 
 defimpl String.Chars, for: Version do
   def to_string(version) do
-    pre = unless Enum.empty?(pre = version.pre), do: "-#{pre}"
+    pre = pre(version.pre)
     build = if build = version.build, do: "+#{build}"
     "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
+  end
+
+  defp pre([]) do
+    ""
+  end
+
+  defp pre(pre) do
+    Enum.map(["-"] ++ pre, fn
+      int when is_integer(int) -> Integer.to_string(int)
+      string when is_binary(string) -> string
+    end)
   end
 end
 
