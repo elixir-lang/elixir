@@ -50,12 +50,12 @@ defmodule Version do
   be expressed as:
 
       "~> 2.0.0"
-      
+
   `~>` will never include pre-release versions of its upper bound.
   It can also be used to set an upper bound on only the major
   version part. See the table below for `~>` requirements and
   their corresponding translation.
-      
+
   `~>`           | Translation
   :------------- | :---------------------
   `~> 2.0.0`     | `>= 2.0.0 and < 2.1.0`
@@ -74,7 +74,7 @@ defmodule Version do
   @type major       :: String.t | non_neg_integer
   @type minor       :: non_neg_integer | nil
   @type patch       :: non_neg_integer | nil
-  @type pre         :: [String.t]
+  @type pre         :: [String.t | non_neg_integer]
   @type build       :: String.t | nil
   @type matchable   :: {major :: major,
                         minor :: minor,
