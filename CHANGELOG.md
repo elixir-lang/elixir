@@ -47,6 +47,7 @@ Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
   * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
+  * [Version] Fix `to_string` for `Version` with numeric pre-release
 
 ### 3. Soft deprecations (no warnings emitted)
 
