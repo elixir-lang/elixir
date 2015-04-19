@@ -54,7 +54,8 @@ defmodule Mix.Tasks.New do
         app = opts[:app] || Path.basename(Path.expand(path))
         check_application_name!(app, !!opts[:app])
         mod = opts[:module] || camelize(app)
-        check_mod_name!(mod)
+        check_mod_name_validity!(mod)
+        check_mod_name_availability!(mod)
         File.mkdir_p!(path)
 
         File.cd! path, fn ->
@@ -157,9 +158,16 @@ defmodule Mix.Tasks.New do
     end
   end
 
-  defp check_mod_name!(name) do
+  defp check_mod_name_validity!(name) do
     unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
       Mix.raise "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect name}"
+    end
+  end
+
+  defp check_mod_name_availability!(name) do
+    name = Module.concat(Elixir, name)
+    if Code.ensure_loaded?(name) do
+      Mix.raise "Module name #{inspect name} is already in use"
     end
   end
 
