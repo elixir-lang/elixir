@@ -1536,15 +1536,15 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sample([1, 2, 3])
+      iex> Enum.random([1, 2, 3])
       1
-      iex> Enum.sample([1, 2, 3])
+      iex> Enum.random([1, 2, 3])
       2
 
   """
-  @spec sample(t) :: element
-  def sample(collection) do
-    case sample(collection, 1) do
+  @spec random(t) :: element
+  def random(collection) do
+    case random(collection, 1) do
       [] -> raise Enum.EmptyError
       [e] -> e
     end
@@ -1558,18 +1558,18 @@ defmodule Enum do
   number between two integers, the best option is to use the
   :random module.
 
-  See `sample/1` for notes on implementation and random seed.
+  See `random/1` for notes on implementation and random seed.
 
   ## Examples
 
-      iex> Enum.sample(1..10, 2)
+      iex> Enum.random(1..10, 2)
       [1, 5]
-      iex> Enum.sample(?a..?z, 5)
+      iex> Enum.random(?a..?z, 5)
       'tfesm'
 
   """
-  @spec sample(t, integer) :: list
-  def sample(collection, count) when count > 0 do
+  @spec random(t, integer) :: list
+  def random(collection, count) when count > 0 do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn x, {i, sample} ->
@@ -1587,7 +1587,7 @@ defmodule Enum do
     sample |> Tuple.to_list |> take(Kernel.min(count, n))
   end
 
-  def sample(_collection, 0), do: []
+  def random(_collection, 0), do: []
 
   @doc """
   Applies the given function to each element in the collection,
