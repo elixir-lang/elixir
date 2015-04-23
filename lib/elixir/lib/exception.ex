@@ -446,6 +446,10 @@ defmodule Exception do
     "/" <> Integer.to_string(arity)
   end
 
+  defp format_arity(:undefined) do
+    "/?"
+  end
+
   @doc """
   Formats the given file and line as shown in stacktraces.
   If any of the values are `nil`, they are omitted.
