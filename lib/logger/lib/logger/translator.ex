@@ -165,12 +165,12 @@ defmodule Logger.Translator do
   defp sup_context(:shutdown_error), do: "shutdown abnormally"
 
   defp child_info(min_level, [{:mfargs, {mod, fun, args}} | debug]) do
-    ["Start Call: ", Exception.format_mfa(mod, fun, args) |
+    ["Start Call: ", format_mfa(mod, fun, args) |
       child_debug(min_level, debug)]
   end
 
   defp child_info(min_level, [{:mfa, {mod, fun, args}} | debug]) do
-    ["Start Call: ", Exception.format_mfa(mod, fun, args) |
+    ["Start Call: ", format_mfa(mod, fun, args) |
       child_debug(min_level, debug)]
   end
 
@@ -251,11 +251,11 @@ defmodule Logger.Translator do
   end
 
   defp crash_call(mod, fun, arity) when is_integer(arity) do
-    Exception.format_mfa(mod, fun, arity)
+    format_mfa(mod, fun, arity)
   end
 
   defp crash_call(mod, fun, args) do
-    Exception.format_mfa(mod, fun, length(args))
+    format_mfa(mod, fun, length(args))
   end
 
   defp crash_debug(:debug,
@@ -354,4 +354,7 @@ defmodule Logger.Translator do
     exception = UndefinedFunctionError.exception(opts)
     Exception.format_banner(:error, exception, stacktrace)
   end
+
+  defp format_mfa(mod, fun, :undefined), do: [inspect(mod), ?., to_string(fun) | "/?"]
+  defp format_mfa(mod, fun, args), do: Exception.format_mfa(mod, fun, args)
 end
