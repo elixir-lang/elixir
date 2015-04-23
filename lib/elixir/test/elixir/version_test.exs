@@ -73,6 +73,7 @@ defmodule VersionTest do
     assert V.parse("1.0.0+lol") |> elem(1) |> to_string == "1.0.0+lol"
     assert V.parse("1.0.0-dev+lol") |> elem(1) |> to_string == "1.0.0-dev+lol"
     assert V.parse("1.0.0-0") |> elem(1) |> to_string == "1.0.0-0"
+    assert V.parse("1.0.0-rc.0") |> elem(1) |> to_string == "1.0.0-rc.0"
   end
 
   test "invalid match" do
