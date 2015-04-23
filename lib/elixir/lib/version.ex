@@ -529,10 +529,11 @@ defimpl String.Chars, for: Version do
   end
 
   defp pre(pre) do
-    Enum.map(["-"] ++ pre, fn
-      int when is_integer(int) -> Integer.to_string(int)
-      string when is_binary(string) -> string
-    end)
+    "-" <>
+      Enum.map_join(pre, ".", fn
+        int when is_integer(int) -> Integer.to_string(int)
+        string when is_binary(string) -> string
+      end)
   end
 end
 
