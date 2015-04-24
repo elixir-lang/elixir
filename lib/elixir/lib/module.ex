@@ -549,6 +549,10 @@ defmodule Module do
     end
   end
 
+  defp simplify_signature({:%{}, _, _}, i) do
+    {:"map#{i}", [], Elixir}
+  end
+
   defp simplify_signature(other, i) when is_integer(other), do: {:"int#{i}", [], Elixir}
   defp simplify_signature(other, i) when is_boolean(other), do: {:"bool#{i}", [], Elixir}
   defp simplify_signature(other, i) when is_atom(other),    do: {:"atom#{i}", [], Elixir}
