@@ -53,6 +53,12 @@ defmodule Mix.ConfigTest do
     assert var!(config, Mix.Config) == [my_app: [key: :value]]
   end
 
+  test "import_config/1 with wildcard with no matches" do
+    use Mix.Config
+    import_config fixture_path("configs/nonexistent_*.exs")
+    assert var!(config, Mix.Config) == []
+  end
+
   test "import_config/1 with nested" do
     use Mix.Config
     config :app, Repo, key: [nested: false, other: true]
