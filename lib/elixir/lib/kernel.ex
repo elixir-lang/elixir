@@ -3791,6 +3791,40 @@ defmodule Kernel do
     end
   end
 
+  @doc """
+  Exports a module's functions and macros to be usable as if the current module
+  had defined them itself.
+
+  This allows for an easy separation of concerns by allowing code to be placed in multiple
+  modules and then grouped together in a single module for public consumption.
+
+  For example:
+
+      defmodule Concerns do
+        def some_concern do
+          # implementation here
+        end
+      end
+
+      # Then in our module intended for public consumption
+      defmodule MyApplication do
+        export Concerns
+      end
+
+      # This makes the following code work:
+      MyApplication.some_concern
+  """
+  defmacro export({:__aliases__, _, [module]}) do
+    IO.inspect module
+    full_module = Module.concat(module, nil)
+    Code.ensure_compiled(full_module)
+    {:ok, ast} = full_module.module_info[:compile][:source]
+      |> File.read!
+      |> Code.string_to_quoted
+    {:defmodule, _, [{:__aliases__, _, [module]}, definition]} = ast
+    definition
+  end
+
   ## Shared functions
 
   defp optimize_boolean({:case, meta, args}) do
