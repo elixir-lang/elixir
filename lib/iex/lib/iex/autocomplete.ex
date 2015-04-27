@@ -57,8 +57,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp reduce(expr) do
-    Enum.reverse Enum.reduce [' ', '(', '[', '{'], expr, fn token, acc ->
-      hd(:string.tokens(acc, token))
+    Enum.reverse Enum.reduce ' ([{', expr, fn token, acc ->
+      hd(:string.tokens(acc, [token]))
     end
   end
 
@@ -77,9 +77,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp format_expansion([uniq], hint) do
-    hint = to_hint(uniq, hint)
-    uniq = if hint == "", do: to_uniq_entries(uniq), else: []
-    yes(hint, uniq)
+    case to_hint(uniq, hint) do
+      ""   -> yes("", to_uniq_entries(uniq))
+      hint -> yes(hint, [])
+    end
   end
 
   defp format_expansion([first|_]=entries, hint) do
@@ -259,7 +260,7 @@ defmodule IEx.Autocomplete do
       if docs = Code.get_docs(mod, :docs) do
         for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
       else
-        (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
+        mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
       end
     else
       mod.module_info(:exports)
@@ -289,10 +290,15 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_hint(%{kind: :module, name: name}, hint) do
-    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint)) <> "."
+    format_hint(name, hint) <> "."
   end
 
   defp to_hint(%{kind: :function, name: name}, hint) do
-    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint))
+    format_hint(name, hint)
+  end
+
+  defp format_hint(name, hint) do
+    hint_size = byte_size(hint)
+    :binary.part(name, hint_size, byte_size(name) - hint_size)
   end
 end
