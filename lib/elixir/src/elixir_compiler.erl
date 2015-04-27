@@ -257,8 +257,10 @@ core_main() ->
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
-  ok = file:write_file(Path, Binary),
-  Path.
+  case file:write_file(Path, Binary) of
+    ok -> Path;
+    {error, Reason} -> error('Elixir.File.Error':exception([{action, "write to"}, {path, Path}, {reason, Reason}]))
+  end.
 
 %% ERROR HANDLING
 
