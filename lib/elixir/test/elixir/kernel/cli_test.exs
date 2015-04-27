@@ -100,6 +100,24 @@ defmodule Kernel.CLI.CompileTest do
     assert :string.str(output, 'compile_sample.ex') == 0, "expected compile_sample.ex to not be mentionned"
     refute File.exists?(tmp_path("Elixir.CompileSample.beam")), "expected the sample to not be compiled"
   end
+
+  test "fails on missing write access to .beam file" do
+    fixture = fixture_path("compile_sample.ex")
+    compilation_args = '#{fixture} -o #{tmp_path}'
+    beam_path = tmp_path("Elixir.CompileSample.beam")
+
+    assert elixirc(compilation_args) == ''
+    assert File.regular?(beam_path)
+
+    # Set the .beam file to read-only
+    File.chmod!(beam_path, 4)
+
+    output = elixirc(compilation_args)
+    expected = '(File.Error) could not write to ' ++ String.to_char_list(beam_path) ++ ': permission denied'
+    assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
+  after
+    File.rm(tmp_path "Elixir.CompileSample.beam")
+  end
 end
 
 defmodule Kernel.CLI.ParallelCompilerTest do
