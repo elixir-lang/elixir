@@ -532,10 +532,9 @@ defmodule Module do
     {:\\, [], [simplify_signature(left, i), right]}
   end
 
-  defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
-    last = List.last(String.split(Atom.to_string(left), "."))
-    atom = String.to_atom(downcase(last))
-    {atom, [], nil}
+  defp simplify_signature({:%, _, [left, _]}, i) when is_atom(left) do
+    struct_name = camelcase_to_underscore(List.last(split(left)))
+    {:"#{struct_name}#{i}", [], nil}
   end
 
   defp simplify_signature({:=, _, [_, right]}, i) do
@@ -549,6 +548,10 @@ defmodule Module do
     end
   end
 
+  defp simplify_signature({:%{}, _, _}, i) do
+    {:"map#{i}", [], Elixir}
+  end
+
   defp simplify_signature(other, i) when is_integer(other), do: {:"int#{i}", [], Elixir}
   defp simplify_signature(other, i) when is_boolean(other), do: {:"bool#{i}", [], Elixir}
   defp simplify_signature(other, i) when is_atom(other),    do: {:"atom#{i}", [], Elixir}
@@ -557,17 +560,14 @@ defmodule Module do
   defp simplify_signature(other, i) when is_binary(other),  do: {:"binary#{i}", [], Elixir}
   defp simplify_signature(_, i), do: {:"arg#{i}", [], Elixir}
 
-  defp downcase(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z do
-    <<c + 32 :: utf8, downcase(rest) :: binary>>
-  end
-
-  defp downcase(<<c, rest :: binary>>) do
-    <<c, downcase(rest) :: binary>>
-  end
-
-  defp downcase(<<>>) do
-    <<>>
-  end
+  defp camelcase_to_underscore(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<c + 32 :: utf8>>)
+  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<acc :: binary, ?_, c + 32 :: utf8>>)
+  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc),
+    do: do_camelcase_to_underscore(rest, <<acc :: binary, c>>)
+  defp do_camelcase_to_underscore(<<>>, acc),
+    do: acc
 
   # Merge
 
@@ -868,11 +868,15 @@ defmodule Module do
     pair   = {name, arity}
     doc    = get_attribute(module, :doc)
 
-    # Arguments are not expanded for the docs, but we make
-    # an exception for module attributes.
+    # Arguments are not expanded for the docs, but we make an exception for
+    # module attributes and for structs (aliases to be precise).
     args = Macro.prewalk args, fn
-      {:@,  _, _} = attr -> Macro.expand_once(attr, env)
-      x -> x
+      {:@,  _, _} = attr ->
+        Macro.expand_once(attr, env)
+      {:%, meta, [aliases, fields]} ->
+        {:%, meta, [Macro.expand_once(aliases, env), fields]}
+      x ->
+        x
     end
 
     case add_doc(module, line, kind, pair, args, doc) do
