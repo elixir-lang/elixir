@@ -233,6 +233,7 @@ core_main() ->
    <<"lib/elixir/lib/macro.ex">>,
    <<"lib/elixir/lib/code.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
+   <<"lib/elixir/lib/kernel/def.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
    <<"lib/elixir/lib/behaviour.ex">>,
    <<"lib/elixir/lib/exception.ex">>,

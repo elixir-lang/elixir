@@ -199,7 +199,7 @@ defmodule KernelTest do
   end
 
   defmodule User do
-    defstruct name: "john"
+    assert is_map defstruct name: "john"
   end
 
   defmodule UserTuple do
