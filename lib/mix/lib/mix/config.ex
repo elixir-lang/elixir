@@ -144,11 +144,14 @@ defmodule Mix.Config do
 
   @doc """
   Reads many configuration files given by wildcard into a single config.
+  Raises an error if `path` is a concrete filename (with no wildcards)
+  but the corresponding file does not exist.
   """
   def read_wildcard!(config, path) do
-    paths = case Path.wildcard(path) do
-      [] -> [path]
-      o  -> o
+    paths = if String.contains?(path, ~w(* ? [ {))do
+      Path.wildcard(path)
+    else
+      [path]
     end
     Enum.reduce(paths, config, &merge(&2, read!(&1)))
   end
