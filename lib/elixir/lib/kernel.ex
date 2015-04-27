@@ -3082,36 +3082,14 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
-      case fields do
-        fs when is_list(fs) -> :ok
-        other ->
-          raise ArgumentError, "struct fields definition must be list, got: #{inspect other}"
-      end
-
-      fields = :lists.map(fn
-        {key, val} when is_atom(key) ->
-          try do
-            Macro.escape(val)
-          rescue
-            e in [ArgumentError] ->
-              raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
-          else
-            _ -> {key, val}
-          end
-        key when is_atom(key) ->
-          {key, nil}
-        other ->
-          raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
-      end, fields)
-
-      @struct :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
+      fields = Kernel.Def.struct(__MODULE__, fields)
+      @struct fields
 
       case Module.get_attribute(__MODULE__, :derive) do
         [] -> :ok
         derive -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
-      @spec __struct__() :: %__MODULE__{}
       def __struct__() do
         @struct
       end
@@ -3194,7 +3172,7 @@ defmodule Kernel do
 
       defoverridable exception: 1
 
-      if Keyword.has_key?(fields, :message) do
+      if Map.has_key?(fields, :message) do
         @spec message(Exception.t) :: String.t
         def message(exception) do
           exception.message
@@ -3486,16 +3464,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a set of functions in the current module that delegate to other
-  functions.
+  Define a function that delegates to another module.
 
-  This macro is used to define functions in a module that delegate to other
-  functions (for example, functions in other modules).
-
-  Functions defined with `defdelegate/2` are **public** and can be invoked from
+  Functions defined with `defdelegate/2` are public and can be invoked from
   outside the module they're defined in (like if they were defined using
-  `def/2`). When the desire is to delegate private functions, `import` is likely
-  the solution.
+  `def/2`). When the desire is to delegate as private functions, `import` should
+  be used.
 
   Delegation only works with functions; delegating macros is not supported.
 
@@ -3539,27 +3513,12 @@ defmodule Kernel do
     funs = Macro.escape(funs, unquote: true)
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
-        raise ArgumentError, "Expected to: to be given as argument"
-
-      append_first = Keyword.get(opts, :append_first, false)
+        raise ArgumentError, "expected to: to be given as argument"
 
       for fun <- List.wrap(funs) do
-        {name, args} =
-          case Macro.decompose_call(fun) do
-            {_, _} = pair -> pair
-            _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
-          end
-
-        actual_args =
-          case append_first and args != [] do
-            true  -> tl(args) ++ [hd(args)]
-            false -> args
-          end
-
-        fun = Keyword.get(opts, :as, name)
-
+        {name, args, as, as_args} = Kernel.Def.delegate(fun, opts)
         def unquote(name)(unquote_splicing(args)) do
-          unquote(target).unquote(fun)(unquote_splicing(actual_args))
+          unquote(target).unquote(as)(unquote_splicing(as_args))
         end
       end
     end
