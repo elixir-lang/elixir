@@ -157,7 +157,9 @@ defmodule IEx.Server do
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
-
+      {:peek_env, receiver} ->
+        send receiver, {:peek, state.env}
+        wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
           wait_input(state, evaluator, evaluator_ref, input)

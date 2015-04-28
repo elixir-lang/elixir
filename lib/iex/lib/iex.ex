@@ -453,10 +453,7 @@ defmodule IEx do
   ## Helpers
 
   defp start_iex() do
-    unless started? do
-      {:ok, _} = Application.ensure_all_started(:iex)
-    end
-
+    {:ok, _} = Application.ensure_all_started(:iex)
     :ok
   end
 
