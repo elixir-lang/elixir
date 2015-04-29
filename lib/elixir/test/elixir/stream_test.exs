@@ -163,6 +163,7 @@ defmodule StreamTest do
     assert Stream.dedup([1, 1, 2, 1, 1, 2, 1]) |> Enum.to_list == [1, 2, 1, 2, 1]
     assert Stream.dedup([2, 1, 1, 2, 1]) |> Enum.to_list  == [2, 1, 2, 1]
     assert Stream.dedup([1, 2, 3, 4]) |> Enum.to_list  == [1, 2, 3, 4]
+    assert Stream.dedup([1, 1.0, 2.0, 2]) |> Enum.to_list  == [1, 1.0, 2.0, 2]
     assert Stream.dedup([]) |> Enum.to_list  == []
     assert Stream.dedup([nil, nil, true, {:value, true}]) |> Enum.to_list
       == [nil, true, {:value, true}]
