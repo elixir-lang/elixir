@@ -7,12 +7,18 @@ defmodule Kernel.DocsTest do
     deftestmodule(SampleDocs)
     docs = Code.get_docs(SampleDocs, :all)
 
-    assert [{{:__behaviour__, 1}, _, :def, [{:atom1, [], Elixir}], false},
+    assert [{{:__behaviour__, 1}, _, :def, [{:atom, [], Elixir}], false},
+            {{:argnames, 5}, _, :def, [
+              {:list1, [], Elixir},
+              {:list2, [], Elixir},
+              {:map1, [], Elixir},
+              {:list3, [], Elixir},
+              {:map2, [], Elixir}], nil},
             {{:fun, 2}, _, :def, [{:x, [], nil}, {:y, [], nil}], "This is fun!\n"},
             {{:nofun, 0}, _, :def, [], nil},
-            {{:sneaky, 1}, _, :def, [{:bool1, [], Elixir}], false},
+            {{:sneaky, 1}, _, :def, [{:bool, [], Elixir}], false},
             {{:with_defaults, 4}, _, :def,
-             [{:int1, [], Elixir},
+             [{:int, [], Elixir},
               {:\\, [], [{:x, [], nil}, 0]},
               {:\\, [], [{:y, [], nil}, 2015]},
               {:\\, [], [{:f, [], nil}, {:&, _, [{:/, _, [{:>=, _, _}, 2]}]}]}], nil}] = docs[:docs]
@@ -83,6 +89,8 @@ defmodule Kernel.DocsTest do
       def nofun() do
         'not fun at all'
       end
+
+      def argnames([], [], %{}, [], %{}), do: false
 
       @year 2015
       def with_defaults(@year, x \\ 0, y \\ @year, f \\ &>=/2) do
