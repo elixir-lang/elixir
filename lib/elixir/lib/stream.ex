@@ -211,6 +211,8 @@ defmodule Stream do
 
   This function only ever needs to store the last emitted element.
 
+  Elements are compared using `===`.
+
   ## Examples
 
       iex> Stream.dedup([1, 2, 3, 3, 2, 1]) |> Enum.to_list
