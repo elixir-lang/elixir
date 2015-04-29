@@ -76,29 +76,51 @@ end
 defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case, async: true
 
-  test "compiles code" do
+  setup context do
+    # Set up a per-test temporary directory, so we can run these with async: true.
+    # We use the test's line number as the directory name, so they won't conflict.
+    tmp_dir_path = tmp_path("beams/#{context[:line]}")
+    beam_file_path = Path.join([tmp_dir_path, "Elixir.CompileSample.beam"])
     fixture = fixture_path "compile_sample.ex"
-    assert elixirc('#{fixture} -o #{tmp_path}') == ''
-    assert File.regular?(tmp_path "Elixir.CompileSample.beam")
-  after
-    File.rm(tmp_path("Elixir.CompileSample.beam"))
+    File.mkdir_p!(tmp_dir_path)
+    {:ok, [tmp_dir_path: tmp_dir_path, beam_file_path: beam_file_path, fixture: fixture]}
   end
 
-  test "compiles code with verbose mode" do
-    fixture = fixture_path "compile_sample.ex"
-    assert elixirc('#{fixture} -o #{tmp_path} --verbose') ==
-      'Compiled #{fixture}\n'
-    assert File.regular?(tmp_path "Elixir.CompileSample.beam")
+  test "compiles code", context do
+    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]}') == ''
+    assert File.regular?(context[:beam_file_path])
+    # Assert that the module is loaded into memory with the proper destination for the BEAM file.
+    Code.append_path context[:tmp_dir_path]
+    assert :code.which(CompileSample) |> List.to_string == Path.expand(context[:beam_file_path])
   after
-    File.rm(tmp_path("Elixir.CompileSample.beam"))
+    Code.delete_path context[:tmp_dir_path]
   end
 
-  test "fails on missing patterns" do
-    fixture = fixture_path "compile_sample.ex"
-    output = elixirc('#{fixture} non_existing.ex -o #{tmp_path}')
-    assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentionned"
-    assert :string.str(output, 'compile_sample.ex') == 0, "expected compile_sample.ex to not be mentionned"
-    refute File.exists?(tmp_path("Elixir.CompileSample.beam")), "expected the sample to not be compiled"
+  test "compiles code with verbose mode", context do
+    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]} --verbose') ==
+      'Compiled #{context[:fixture]}\n'
+    assert File.regular?(context[:beam_file_path])
+  end
+
+  test "fails on missing patterns", context do
+    output = elixirc('#{context[:fixture]} non_existing.ex -o #{context[:tmp_dir_path]}')
+    assert :string.str(output, 'non_existing.ex') > 0, "expected non_existing.ex to be mentioned"
+    assert :string.str(output, 'compile_sample.ex') == 0, "expected compile_sample.ex to not be mentioned"
+    refute File.exists?(context[:beam_file_path]), "expected the sample to not be compiled"
+  end
+
+  test "fails on missing write access to .beam file", context do
+    compilation_args = '#{context[:fixture]} -o #{context[:tmp_dir_path]}'
+
+    assert elixirc(compilation_args) == ''
+    assert File.regular?(context[:beam_file_path])
+
+    # Set the .beam file to read-only
+    File.chmod!(context[:beam_file_path], 4)
+
+    output = elixirc(compilation_args)
+    expected = '(File.Error) could not write to ' ++ String.to_char_list(context[:beam_file_path]) ++ ': permission denied'
+    assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
   end
 end
 
