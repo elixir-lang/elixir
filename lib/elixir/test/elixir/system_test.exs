@@ -59,30 +59,24 @@ defmodule SystemTest do
     assert System.get_env(@test_var) == "OTHER_SAMPLE"
   end
 
-  test "cmd/1" do
+  test "cmd/2" do
     assert {"hello\n", 0} = System.cmd "echo", ["hello"]
+  end
 
-    opts = [into: [], cd: System.cwd!, env: %{"foo" => "bar"},
-            arg0: "hecho", stderr_to_stdout: true, parallelism: true]
-    assert {["hello\n"], 0} = System.cmd "echo", ["hello"], opts
+  test "cmd/3 (with options)" do
+    assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
+                                into: [], cd: System.cwd!, env: %{"foo" => "bar"},
+                                arg0: "hecho", stderr_to_stdout: true, parallelism: true
+  end
 
+  test "cmd/2 with absolute and relative paths" do
     echo2 = tmp_path("echo2")
-    dir = Path.dirname(echo2)
-
-    File.mkdir_p! dir
+    File.mkdir_p! Path.dirname(echo2)
     File.cp! System.find_executable("echo"), echo2
 
-    relative = Path.relative_to_cwd(echo2)
-
-    if Path.absname(relative) == relative do
-      assert {"hello\n", 0} = System.cmd(relative, ["hello"])
-    else
-      assert :enoent = catch_error(System.cmd(relative, ["hello"]))
-    end
-
-    File.cd! dir, fn ->
+    File.cd! Path.dirname(echo2), fn ->
       assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
-      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd, "echo2"), ["hello"])
+      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, "echo2"), ["hello"])
     end
   after
     File.rm_rf(tmp_path("echo2"))
