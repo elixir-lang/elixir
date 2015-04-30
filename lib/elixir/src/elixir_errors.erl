@@ -224,7 +224,7 @@ is_protocol(Module) ->
   case code:ensure_loaded(Module) of
     {module, _} ->
       erlang:function_exported(Module, '__protocol__', 1) andalso
-        Module:'__protocol__'(name) == Module;
+        Module:'__protocol__'(module) == Module;
     {error, _} ->
       false
   end.

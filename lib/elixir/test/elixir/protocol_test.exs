@@ -136,9 +136,16 @@ defmodule ProtocolTest do
     end
   end
 
-  test "protocol defines attributes" do
-    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false, consolidated: false]
-    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true, consolidated: false]
+  test "protocol defines functions and attributes" do
+    assert Sample.__protocol__(:module) == Sample
+    assert Sample.__protocol__(:functions) == [ok: 1]
+    refute Sample.__protocol__(:consolidated?)
+    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false]
+
+    assert WithAny.__protocol__(:module) == WithAny
+    assert WithAny.__protocol__(:functions) == [ok: 1]
+    refute WithAny.__protocol__(:consolidated?)
+    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true]
   end
 
   test "defimpl" do
@@ -357,8 +364,8 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation updates attributes" do
-    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false, consolidated: true]
-    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true, consolidated: true]
+    assert Sample.__protocol__(:consolidated?)
+    assert WithAny.__protocol__(:consolidated?)
   end
 
   test "consolidation extracts protocols" do

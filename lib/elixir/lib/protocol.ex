@@ -70,7 +70,7 @@ defmodule Protocol do
     end
 
     try do
-      module.__protocol__(:name)
+      module.__protocol__(:module)
     rescue
       UndefinedFunctionError ->
         raise ArgumentError, "#{inspect module} is not a protocol" <> extra
@@ -149,7 +149,7 @@ defmodule Protocol do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
         case attributes[:protocol] do
-          [fallback_to_any: _, consolidated: _] -> module
+          [fallback_to_any: _] -> module
           _ -> nil
         end
       end
@@ -231,7 +231,7 @@ defmodule Protocol do
   """
   @spec consolidated?(module) :: boolean
   def consolidated?(protocol) do
-    protocol.__info__(:attributes)[:protocol][:consolidated]
+    protocol.__protocol__(:consolidated?)
   end
 
   @doc """
@@ -278,7 +278,7 @@ defmodule Protocol do
                          {:attributes, attributes},
                          {@docs_chunk, docs}]}} ->
         case attributes[:protocol] do
-          [fallback_to_any: any, consolidated: _] ->
+          [fallback_to_any: any] ->
             {:ok, {protocol, any, abstract_code, docs}}
           _ ->
             {:error, :not_a_protocol}
@@ -307,10 +307,16 @@ defmodule Protocol do
     end
   end
 
-  defp change_impl_for([{:attribute, line, :protocol, opts}|t], protocol, types, structs, _, acc) do
-    opts = [fallback_to_any: opts[:fallback_to_any], consolidated: true]
+  defp change_impl_for([{:function, line, :__protocol__, 1, clauses}|t], protocol, types, structs, _, acc) do
+    clauses = :lists.map(fn
+      {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
+        {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
+      {:clause, _, _, _, _} = c ->
+        c
+    end, clauses)
+
     change_impl_for(t, protocol, types, structs, true,
-                    [{:attribute, line, :protocol, opts}|acc])
+                    [{:function, line, :__protocol__, 1, clauses}|acc])
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
@@ -489,13 +495,15 @@ defmodule Protocol do
       # Store information as an attribute so it
       # can be read without loading the module.
       Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
+      @protocol [fallback_to_any: !!@fallback_to_any]
 
       @doc false
-      @spec __protocol__(:name) :: __MODULE__
+      @spec __protocol__(:module) :: __MODULE__
       @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
-      Kernel.def __protocol__(:name), do: __MODULE__
+      @spec __protocol__(:consolidated?) :: boolean
+      Kernel.def __protocol__(:module), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
+      Kernel.def __protocol__(:consolidated?), do: false
     end
   end
 
@@ -534,7 +542,7 @@ defmodule Protocol do
       for      = unquote(for)
       name     = Module.concat(protocol, for)
 
-      # TODO: Emit warnings on 1.2
+      # TODO: Emit warnings once we reimplement Access before 1.1
       # if protocol == Access do
       #   :elixir_errors.warn __ENV__.line, __ENV__.file,
       #     "implementation of the Access protocol is deprecated. For customization of " <>
