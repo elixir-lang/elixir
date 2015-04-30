@@ -459,12 +459,7 @@ defmodule Protocol do
 
       # Internal handler for Any
       if @fallback_to_any do
-        Kernel.defp any_impl_for do
-          case impl_for?(__MODULE__.Any) do
-            true  -> __MODULE__.Any.__impl__(:target)
-            false -> nil
-          end
-        end
+        Kernel.defp any_impl_for, do: __MODULE__.Any.__impl__(:target)
       else
         Kernel.defp any_impl_for, do: nil
       end
