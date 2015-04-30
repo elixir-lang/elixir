@@ -3032,29 +3032,29 @@ defmodule Kernel do
   ## Deriving
 
   Although structs are maps, by default structs do not implement
-  any of the protocols implemented for maps. For example, attempting to use the
-  `Access` protocol with the `User` struct leads to an error:
+  any of the protocols implemented for maps. For example, attempting
+  to use a protocol with the `User` struct leads to an error:
 
       john = %User{name: "John"}
-      john[:age]
-      ** (Protocol.UndefinedError) protocol Access not implemented for %User{...}
+      MyProtocol.call(john)
+      ** (Protocol.UndefinedError) protocol MyProtocol not implemented for %User{...}
 
   `defstruct/1`, however, allows protocol implementations to be
-  *derived*. This can be done by defining a `@derive` attribute as a list before
-  invoking `defstruct/1`:
+  *derived*. This can be done by defining a `@derive` attribute as a
+  list before invoking `defstruct/1`:
 
       defmodule User do
-        @derive [Access]
+        @derive [MyProtocol]
         defstruct name: nil, age: 10 + 11
       end
 
-      %User{}[:age] #=> 21
+      MyProtocol.call(john) #=> works
 
   For each protocol in the `@derive` list, Elixir will assert there is an
-  implementation of that protocol for maps and check if the map
-  implementation defines a `__deriving__/3` callback. If so, the callback
-  is invoked, otherwise an implementation that simply points to the map
-  one is automatically derived.
+  implementation of that protocol for any (regardless if fallback to any
+  is true) and check if the any implementation defines a `__deriving__/3`
+  callback. If so, the callback is invoked, otherwise an implementation
+  that simply points to the any implementation is automatically derived.
 
   ## Types
 

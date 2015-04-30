@@ -589,12 +589,12 @@ defmodule Protocol do
   defp derive(protocol, for, struct, opts, env) do
     extra = ", cannot derive #{inspect protocol} for #{inspect for}"
     assert_protocol!(protocol, extra)
-    assert_impl!(protocol, Map, extra)
+    assert_impl!(protocol, Any, extra)
 
     # Clean up variables from eval context
     env  = %{env | vars: [], export_vars: nil}
     args = [for, struct, opts]
-    impl = Module.concat(protocol, Map)
+    impl = Module.concat(protocol, Any)
 
     :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
       mod, fun, args ->

@@ -20,7 +20,7 @@ defmodule ProtocolTest do
     def ok(a)
   end
 
-  defimpl Derivable, for: Map do
+  defimpl Derivable, for: Any do
     defmacro __deriving__(module, struct, options) do
       quote do
         defimpl Derivable, for: unquote(module) do
@@ -87,7 +87,7 @@ defmodule ProtocolTest do
 
   test "protocol implementation with any and structs fallback" do
     assert WithAny.impl_for(%NoImplStruct{})      == WithAny.Any
-    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Map # Derived
+    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Any # Derived
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{})                  == WithAny.Map
     assert WithAny.impl_for(self)                 == WithAny.Any
@@ -149,21 +149,30 @@ defmodule ProtocolTest do
   end
 
   test "defimpl" do
-    defprotocol Attribute do
-      def test(thing)
-    end
+    module = Module.concat(Sample, ImplStruct)
+    assert module.__impl__(:for) == ImplStruct
+    assert module.__impl__(:target) == module
+    assert module.__impl__(:protocol) == Sample
+    assert module.__info__(:attributes)[:impl] ==
+           [protocol: Sample, for: ImplStruct]
+  end
 
-    defimpl Attribute, for: ImplStruct do
-      def test(_) do
-        {@protocol, @for}
-      end
-    end
+  test "defimpl with implicit derive" do
+    module = Module.concat(WithAny, ImplStruct)
+    assert module.__impl__(:for) == ImplStruct
+    assert module.__impl__(:target) == WithAny.Any
+    assert module.__impl__(:protocol) == WithAny
+    assert module.__info__(:attributes)[:impl] ==
+           [protocol: WithAny, for: ImplStruct]
+  end
 
-    assert Attribute.test(%ImplStruct{}) == {Attribute, ImplStruct}
-    assert Attribute.ProtocolTest.ImplStruct.__impl__(:protocol) == Attribute
-    assert Attribute.ProtocolTest.ImplStruct.__impl__(:for) == ImplStruct
-    assert Attribute.ProtocolTest.ImplStruct.__info__(:attributes)[:impl] ==
-           [protocol: Attribute, for: ImplStruct]
+  test "defimpl with explicit derive" do
+    module = Module.concat(Derivable, ImplStruct)
+    assert module.__impl__(:for) == ImplStruct
+    assert module.__impl__(:target) == module
+    assert module.__impl__(:protocol) == Derivable
+    assert module.__info__(:attributes)[:impl] ==
+           [protocol: Derivable, for: ImplStruct]
   end
 
   test "defimpl with multiple for" do
@@ -184,17 +193,12 @@ defmodule ProtocolTest do
     List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
   end
 
-  test "derives protocol" do
+  test "derives protocol implicitly" do
     struct = %ImplStruct{a: 1, b: 1}
     assert WithAny.ok(struct) == {:ok, struct}
   end
 
-  test "derived protocol keeps local file/line info" do
-    assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
-           String.to_char_list(__ENV__.file)
-  end
-
-  test "custom derive implementation" do
+  test "derives protocol explicitly" do
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
@@ -207,7 +211,7 @@ defmodule ProtocolTest do
     end
   end
 
-  test "custom derive implementation with options" do
+  test "derives protocol explicitly with options" do
     defmodule AnotherStruct do
       @derive [{Derivable, :ok}]
       @derive [WithAny]
@@ -219,7 +223,7 @@ defmodule ProtocolTest do
            {:ok, struct, struct(AnotherStruct), :ok}
   end
 
-  test "custom derive implementation via API" do
+  test "derive protocol explicitly via API" do
     defmodule InlineStruct do
       defstruct a: 0, b: 0
     end
@@ -232,9 +236,14 @@ defmodule ProtocolTest do
            {:ok, struct, struct(InlineStruct), :oops}
   end
 
-  test "cannot derive without a map implementation" do
+  test "derived implementation keeps local file/line info" do
+    assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
+           String.to_char_list(__ENV__.file)
+  end
+
+  test "cannot derive without any implementation" do
     assert_raise ArgumentError,
-        ~r"#{inspect Sample.Map} is not available, cannot derive #{inspect Sample}", fn ->
+        ~r"#{inspect Sample.Any} is not available, cannot derive #{inspect Sample}", fn ->
       defmodule NotCompiled do
         @derive [Sample]
         defstruct hello: :world
@@ -340,7 +349,7 @@ defmodule Protocol.ConsolidationTest do
 
   test "consolidated implementations with any and tuple fallback" do
     assert WithAny.impl_for(%NoImplStruct{})      == WithAny.Any
-    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Map # Derived
+    assert WithAny.impl_for(%ImplStruct{})        == WithAny.Any # Derived
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{})                  == WithAny.Map
     assert WithAny.impl_for(self)                 == WithAny.Any
