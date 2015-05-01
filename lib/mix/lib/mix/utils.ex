@@ -182,16 +182,6 @@ defmodule Mix.Utils do
     <<?_, to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<?-, t :: binary>>, _) do
-    <<?_>> <> do_underscore(t, ?-)
-  end
-
-  defp do_underscore(<< "..", t :: binary>>, _) do
-    <<"..">> <> underscore(t)
-  end
-
-  defp do_underscore(<<?.>>, _), do: <<?.>>
-
   defp do_underscore(<<?., t :: binary>>, _) do
     <<?/>> <> underscore(t)
   end
