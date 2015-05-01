@@ -1164,10 +1164,23 @@ defmodule File do
   device cannot be shared and as such it is convenient to open the file
   in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
-  is specified.
+  is specified. This means any data streamed into the file must be
+  converted to `iodata` type. If you pass `[:utf8]` in the modes parameter,
+  the underlying stream will use `IO.write/2` and the `String.Chars` protocol
+  to convert the data. See `IO.binwrite/2` and `IO.write/2` . 
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
+
+  ## Examples
+      
+      # Read in 2048 byte chunks rather than lines
+      File.stream!("./test/test.data", [], 2048)
+      #=>  %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
+      #=> path: "./test/test.data", raw: true}
+
+  See `Stream.run/1` for an example of streaming into a file. 
+
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)
