@@ -33,7 +33,8 @@ defmodule Mix.Config do
   defmacro __using__(_) do
     quote do
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
-      var!(config, Mix.Config) = []
+      {:ok, agent} = Mix.Config.Agent.start_link
+      var!(config_agent, Mix.Config) = agent
     end
   end
 
@@ -63,8 +64,7 @@ defmodule Mix.Config do
   """
   defmacro config(app, opts) do
     quote do
-      var!(config, Mix.Config) =
-        Mix.Config.merge(var!(config, Mix.Config), [{unquote(app), unquote(opts)}])
+      Mix.Config.Agent.merge var!(config_agent, Mix.Config), [{unquote(app), unquote(opts)}]
     end
   end
 
@@ -93,9 +93,8 @@ defmodule Mix.Config do
   """
   defmacro config(app, key, opts) do
     quote do
-      var!(config, Mix.Config) =
-        Mix.Config.merge(var!(config, Mix.Config),
-                         [{unquote(app), [{unquote(key), unquote(opts)}]}])
+      Mix.Config.Agent.merge var!(config_agent, Mix.Config),
+        [{unquote(app), [{unquote(key), unquote(opts)}]}]
     end
   end
 
@@ -118,8 +117,10 @@ defmodule Mix.Config do
   """
   defmacro import_config(file) do
     quote do
-      var!(config, Mix.Config) =
-        Mix.Config.read_wildcard!(var!(config, Mix.Config), Path.expand(unquote(file), __DIR__))
+      Mix.Config.Agent.merge(
+        var!(config_agent, Mix.Config),
+         Mix.Config.read_wildcard!(Path.expand(unquote(file), __DIR__))
+      )
     end
   end
 
@@ -129,11 +130,12 @@ defmodule Mix.Config do
   def read!(file) do
     try do
       {config, binding} = Code.eval_file(file)
-      config =
-        case List.keyfind(binding, {:config, Mix.Config}, 0) do
-          {_, value} -> value
-          nil -> config
-        end
+
+      config = case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
+        {_, agent} -> get_config_and_stop_agent(agent)
+        nil        -> config
+      end
+
       validate!(config)
       config
     rescue
@@ -142,18 +144,24 @@ defmodule Mix.Config do
     end
   end
 
+  defp get_config_and_stop_agent(agent) do
+    config = Mix.Config.Agent.get(agent)
+    Mix.Config.Agent.stop(agent)
+    config
+  end
+
   @doc """
   Reads many configuration files given by wildcard into a single config.
   Raises an error if `path` is a concrete filename (with no wildcards)
   but the corresponding file does not exist.
   """
-  def read_wildcard!(config, path) do
+  def read_wildcard!(path) do
     paths = if String.contains?(path, ~w(* ? [ {))do
       Path.wildcard(path)
     else
       [path]
     end
-    Enum.reduce(paths, config, &merge(&2, read!(&1)))
+    Enum.reduce(paths, [], &merge(&2, read!(&1)))
   end
 
   @doc """
