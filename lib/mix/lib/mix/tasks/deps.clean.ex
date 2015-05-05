@@ -4,7 +4,8 @@ defmodule Mix.Tasks.Deps.Clean do
   @shortdoc "Remove the given dependencies' files"
 
   @moduledoc """
-  Remove the given dependencies' files.
+  Remove the given dependencies' files, including build artifacts and fetched
+  sources.
 
   Since this is a destructive action, cleaning of dependencies
   can only happen by passing arguments/options:
