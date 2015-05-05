@@ -187,7 +187,12 @@ publish_mix: compile
 
 #==> Tests tasks
 
-test: test_erlang test_elixir
+test:
+	$(RM) -r .home
+	mkdir .home
+	HOME=$(CURDIR)/.home $(MAKE) test_erlang
+	HOME=$(CURDIR)/.home $(MAKE) test_elixir
+	$(RM) -r .home
 
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
