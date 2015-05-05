@@ -204,10 +204,6 @@ defmodule GenServer do
     * http://learnyousomeerlang.com/clients-and-servers
   """
 
-  # TODO: We should change GenServer.init/1 to return {:error, reason}
-  # instead of {:stop, reason} in order to mimic the return value. Of
-  # course, we should still support {:stop, reason} for Erlang compat.
-
   @typedoc "Return values of `start*` functions"
   @type on_start :: {:ok, pid} | :ignore | {:error, {:already_started, pid} | term}
 
