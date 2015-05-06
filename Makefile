@@ -1,11 +1,11 @@
 REBAR ?= $(CURDIR)/rebar
+PREFIX ?= /usr/local
 DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
-PREFIX ?= /usr/local
 LIBDIR := lib
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d

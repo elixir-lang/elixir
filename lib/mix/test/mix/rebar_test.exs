@@ -79,8 +79,6 @@ defmodule Mix.RebarTest do
   end
 
   test "get and compile dependencies for rebar" do
-    # Use rebar from project root
-    System.put_env("MIX_HOME", MixTest.Case.elixir_root)
     Mix.Project.push(RebarAsDep)
 
     in_tmp "get and compile dependencies for rebar", fn ->
@@ -111,8 +109,6 @@ defmodule Mix.RebarTest do
   end
 
   test "get and compile dependencies for rebar with mix" do
-    # Use rebar from project root
-    System.put_env("MIX_HOME", MixTest.Case.elixir_root)
     Mix.Project.push(RebarAsDep)
 
     in_tmp "get and compile dependencies for rebar with mix", fn ->
