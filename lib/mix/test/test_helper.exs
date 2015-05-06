@@ -1,7 +1,6 @@
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, [enabled: false])
-
 ExUnit.start [trace: "--trace" in System.argv]
 
 defmodule MixTest.Case do
@@ -29,15 +28,10 @@ defmodule MixTest.Case do
       Mix.Shell.Process.flush
       Mix.ProjectStack.clear_cache
       Mix.ProjectStack.clear_stack
-      System.put_env("MIX_HOME", tmp_path(".mix"))
       delete_tmp_paths
     end
 
     :ok
-  end
-
-  def elixir_root do
-    Path.expand("../../..", __DIR__)
   end
 
   def fixture_path do
@@ -130,6 +124,13 @@ defmodule MixTest.Case do
         do: :code.del_path(path)
   end
 end
+
+## Set up mix home with rebar
+
+home = MixTest.Case.tmp_path(".mix")
+File.mkdir_p!(home)
+File.cp!(Path.expand("../../../rebar", __DIR__), Path.join(home, "rebar"))
+System.put_env("MIX_HOME", home)
 
 ## Copy fixtures to tmp
 
