@@ -109,18 +109,20 @@ defmodule Kernel.CLI.CompileTest do
     refute File.exists?(context[:beam_file_path]), "expected the sample to not be compiled"
   end
 
-  test "fails on missing write access to .beam file", context do
-    compilation_args = '#{context[:fixture]} -o #{context[:tmp_dir_path]}'
+  if !System.get_env("FAKEROOTKEY") do
+    test "fails on missing write access to .beam file", context do
+      compilation_args = '#{context[:fixture]} -o #{context[:tmp_dir_path]}'
 
-    assert elixirc(compilation_args) == ''
-    assert File.regular?(context[:beam_file_path])
+      assert elixirc(compilation_args) == ''
+      assert File.regular?(context[:beam_file_path])
 
-    # Set the .beam file to read-only
-    File.chmod!(context[:beam_file_path], 4)
+      # Set the .beam file to read-only
+      File.chmod!(context[:beam_file_path], 4)
 
-    output = elixirc(compilation_args)
-    expected = '(File.Error) could not write to ' ++ String.to_char_list(context[:beam_file_path]) ++ ': permission denied'
-    assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
+      output = elixirc(compilation_args)
+      expected = '(File.Error) could not write to ' ++ String.to_char_list(context[:beam_file_path]) ++ ': permission denied'
+      assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
+    end
   end
 end
 
