@@ -1,11 +1,11 @@
-REBAR := rebar
+REBAR ?= $(CURDIR)/rebar
 DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
-PREFIX := /usr/local
+PREFIX ?= /usr/local
 LIBDIR := lib
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
@@ -64,7 +64,7 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) cat src/elixir.app.src >>lib/elixir/src/elixir.app.src
 
 erlang:
-	$(Q) cd lib/elixir && ../../$(REBAR) compile
+	$(Q) cd lib/elixir && $(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
@@ -82,7 +82,7 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
 	$(Q) $(MAKE) unicode
 	$(Q) rm -rf lib/elixir/ebin/elixir.app
-	$(Q) cd lib/elixir && ../../$(REBAR) compile
+	$(Q) cd lib/elixir && $(REBAR) compile
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
@@ -111,7 +111,7 @@ install: compile
 	done
 
 clean:
-	cd lib/elixir && ../../$(REBAR) clean
+	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/elixir/test/ebin
@@ -187,7 +187,12 @@ publish_mix: compile
 
 #==> Tests tasks
 
-test: test_erlang test_elixir
+test:
+	$(RM) -r .home
+	mkdir .home
+	HOME=$(CURDIR)/.home $(MAKE) test_erlang
+	HOME=$(CURDIR)/.home $(MAKE) test_elixir
+	$(RM) -r .home
 
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
