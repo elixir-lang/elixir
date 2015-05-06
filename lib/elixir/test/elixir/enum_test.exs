@@ -61,19 +61,19 @@ defmodule EnumTest.List do
 
   test :concat_1 do
     assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
-    assert Enum.concat(1..3, []) == [1,2,3]
+    assert Enum.concat(1..3, []) == [1, 2, 3]
 
     assert Enum.concat([[], []]) == []
     assert Enum.concat([[]])     == []
     assert Enum.concat([])       == []
 
-    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1,2,3,4,5,1]
+    assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1, 2, 3, 4, 5, 1]
   end
 
   test :concat_2 do
     assert Enum.concat([], [1]) == [1]
     assert Enum.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
-    assert Enum.concat(1..3, []) == [1,2,3]
+    assert Enum.concat(1..3, []) == [1, 2, 3]
 
     assert Enum.concat([], []) == []
 
@@ -95,9 +95,10 @@ defmodule EnumTest.List do
   end
 
   test :dedup do
-    assert Enum.dedup([1,1,2,1,1,2,1]) == [1,2,1,2,1]
-    assert Enum.dedup([2,1,1,2,1]) == [2,1,2,1]
-    assert Enum.dedup([1,2,3,4]) == [1,2,3,4]
+    assert Enum.dedup([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
+    assert Enum.dedup([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
+    assert Enum.dedup([1, 2, 3, 4]) == [1, 2, 3, 4]
+    assert Enum.dedup([1, 1.0, 2.0, 2]) == [1, 1.0, 2.0, 2]
     assert Enum.dedup([]) == []
     assert Enum.dedup([nil, nil, true, {:value, true}]) == [nil, true, {:value, true}]
     assert Enum.dedup([nil]) == [nil]
@@ -105,7 +106,7 @@ defmodule EnumTest.List do
 
   test :dedup_by do
     assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
-      == [{1,:x}, {2,:y}, {1, :x}]
+      == [{1, :x}, {2, :y}, {1, :x}]
 
     assert Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [5, 1, 3, 2]
   end
@@ -190,7 +191,7 @@ defmodule EnumTest.List do
 
     assert Enum.flat_map_reduce(1..100, 0, fn i, acc ->
       if acc < 3, do: {[i], acc + 1}, else: {:halt, acc}
-    end) == {[1,2,3], 3}
+    end) == {[1, 2, 3], 3}
   end
 
   test :group_by do
@@ -213,7 +214,7 @@ defmodule EnumTest.List do
   test :intersperse do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
-    assert Enum.intersperse([1,2,3], true) == [1, true, 2, true, 3]
+    assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
   end
 
   test :join do
@@ -285,65 +286,65 @@ defmodule EnumTest.List do
     assert Enum.reverse_slice([1, 2, 3], 10, 10) == [1, 2, 3]
   end
 
-  test :sample_1 do
+  test :random_1 do
     # corner cases, independent of the seed
-    assert_raise Enum.EmptyError, fn -> Enum.sample([]) end
-    assert Enum.sample([1]) == 1
+    assert_raise Enum.EmptyError, fn -> Enum.random([]) end
+    assert Enum.random([1]) == 1
 
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
     :random.seed(seed1)
-    assert Enum.sample([1, 2]) == 2
-    assert Enum.sample([1, 2, 3]) == 2
-    assert Enum.sample([1, 2, 3, 4]) == 4
-    assert Enum.sample([1, 2, 3, 4, 5]) == 1
+    assert Enum.random([1, 2]) == 2
+    assert Enum.random([1, 2, 3]) == 2
+    assert Enum.random([1, 2, 3, 4]) == 4
+    assert Enum.random([1, 2, 3, 4, 5]) == 1
     :random.seed(seed2)
-    assert Enum.sample([1, 2]) == 1
-    assert Enum.sample([1, 2, 3]) == 3
-    assert Enum.sample([1, 2, 3, 4]) == 1
-    assert Enum.sample([1, 2, 3, 4, 5]) == 5
+    assert Enum.random([1, 2]) == 1
+    assert Enum.random([1, 2, 3]) == 3
+    assert Enum.random([1, 2, 3, 4]) == 1
+    assert Enum.random([1, 2, 3, 4, 5]) == 5
   end
 
-  test :sample_2 do
+  test :random_2 do
     # corner cases, independent of the seed
-    assert_raise FunctionClauseError, fn -> Enum.sample([1,2], -1) end
-    assert Enum.sample([], 0) == []
-    assert Enum.sample([], 3) == []
-    assert Enum.sample([1], 0) == []
-    assert Enum.sample([1], 2) == [1]
-    assert Enum.sample([1, 2], 0) == []
+    assert_raise FunctionClauseError, fn -> Enum.random([1, 2], -1) end
+    assert Enum.random([], 0) == []
+    assert Enum.random([], 3) == []
+    assert Enum.random([1], 0) == []
+    assert Enum.random([1], 2) == [1]
+    assert Enum.random([1, 2], 0) == []
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
     :random.seed(seed1)
-    assert Enum.sample([1, 2, 3, 4, 5], 1) == [2]
-    assert Enum.sample([1, 2, 3, 4, 5], 2) == [4, 1]
-    assert Enum.sample([1, 2, 3, 4, 5], 3) == [1, 3, 5]
-    assert Enum.sample([1, 2, 3, 4, 5], 4) == [3, 5, 1, 2]
-    assert Enum.sample([1, 2, 3, 4, 5], 5) == [1, 2, 5, 4, 3]
-    assert Enum.sample([1, 2, 3, 4, 5], 6) == [2, 4, 5, 3, 1]
+    assert Enum.random([1, 2, 3, 4, 5], 1) == [2]
+    assert Enum.random([1, 2, 3, 4, 5], 2) == [4, 1]
+    assert Enum.random([1, 2, 3, 4, 5], 3) == [1, 3, 5]
+    assert Enum.random([1, 2, 3, 4, 5], 4) == [3, 5, 1, 2]
+    assert Enum.random([1, 2, 3, 4, 5], 5) == [1, 2, 5, 4, 3]
+    assert Enum.random([1, 2, 3, 4, 5], 6) == [2, 4, 5, 3, 1]
     :random.seed(seed2)
-    assert Enum.sample([1, 2, 3, 4, 5], 1) == [1]
-    assert Enum.sample([1, 2, 3, 4, 5], 2) == [1, 5]
-    assert Enum.sample([1, 2, 3, 4, 5], 3) == [5, 1, 3]
-    assert Enum.sample([1, 2, 3, 4, 5], 4) == [4, 5, 2, 1]
-    assert Enum.sample([1, 2, 3, 4, 5], 5) == [4, 3, 1, 5, 2]
-    assert Enum.sample([1, 2, 3, 4, 5], 6) == [5, 2, 1, 4, 3]
+    assert Enum.random([1, 2, 3, 4, 5], 1) == [1]
+    assert Enum.random([1, 2, 3, 4, 5], 2) == [1, 5]
+    assert Enum.random([1, 2, 3, 4, 5], 3) == [5, 1, 3]
+    assert Enum.random([1, 2, 3, 4, 5], 4) == [4, 5, 2, 1]
+    assert Enum.random([1, 2, 3, 4, 5], 5) == [4, 3, 1, 5, 2]
+    assert Enum.random([1, 2, 3, 4, 5], 6) == [5, 2, 1, 4, 3]
     # assert that every item in the sample comes from the input list
     list = for _<-1..100, do: make_ref
-    for x <- Enum.sample(list, 50) do
+    for x <- Enum.random(list, 50) do
       assert Enum.find(list, &(&1 == x))
     end
  end
 
   test :scan do
-    assert Enum.scan([1,2,3,4,5], &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan([1, 2, 3, 4, 5], &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan([], &(&1 + &2)) == []
 
-    assert Enum.scan([1,2,3,4,5], 0, &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan([1, 2, 3, 4, 5], 0, &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan([], 0, &(&1 + &2)) == []
   end
 
@@ -411,7 +412,7 @@ defmodule EnumTest.List do
       Enum.sum([{}])
     end
     assert_raise ArithmeticError, fn ->
-      Enum.sum([1,{}])
+      Enum.sum([1, {}])
     end
   end
 
@@ -458,14 +459,6 @@ defmodule EnumTest.List do
     assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
   end
 
-  test :usort do
-    assert Enum.usort([5, 1, 2, 3, 2, 1]) == [1, 2, 3, 5]
-  end
-
-  test :usort_by do
-    assert Enum.usort_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [1, 5]
-  end
-
   test :zip do
     assert Enum.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
@@ -488,7 +481,7 @@ defmodule EnumTest.List do
 
   test :with_index do
     assert Enum.with_index([]) == []
-    assert Enum.with_index([1,2,3]) == [{1,0},{2,1},{3,2}]
+    assert Enum.with_index([1, 2, 3]) == [{1, 0}, {2, 1}, {3, 2}]
   end
 
   test :max do
@@ -557,40 +550,40 @@ defmodule EnumTest.List do
   end
 
   test :slice do
-    assert Enum.slice([1,2,3,4,5], 0, 0) == []
-    assert Enum.slice([1,2,3,4,5], 0, 1) == [1]
-    assert Enum.slice([1,2,3,4,5], 0, 2) == [1, 2]
-    assert Enum.slice([1,2,3,4,5], 1, 2) == [2, 3]
-    assert Enum.slice([1,2,3,4,5], 1, 0) == []
-    assert Enum.slice([1,2,3,4,5], 2, 5) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 2, 6) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 5, 5) == []
-    assert Enum.slice([1,2,3,4,5], 6, 5) == []
-    assert Enum.slice([1,2,3,4,5], 6, 0) == []
-    assert Enum.slice([1,2,3,4,5], -6, 0) == []
-    assert Enum.slice([1,2,3,4,5], -6, 5) == []
-    assert Enum.slice([1,2,3,4,5], -2, 5) == [4, 5]
-    assert Enum.slice([1,2,3,4,5], -3, 1) == [3]
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 1) == [1]
+    assert Enum.slice([1, 2, 3, 4, 5], 0, 2) == [1, 2]
+    assert Enum.slice([1, 2, 3, 4, 5], 1, 2) == [2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 2, 5) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 2, 6) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 5, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6, 0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6, 5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -2, 5) == [4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], -3, 1) == [3]
   end
 
   test :slice_range do
-    assert Enum.slice([1,2,3,4,5], 0..0) == [1]
-    assert Enum.slice([1,2,3,4,5], 0..1) == [1, 2]
-    assert Enum.slice([1,2,3,4,5], 0..2) == [1, 2, 3]
-    assert Enum.slice([1,2,3,4,5], 1..2) == [2, 3]
-    assert Enum.slice([1,2,3,4,5], 1..0) == []
-    assert Enum.slice([1,2,3,4,5], 2..5) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 2..6) == [3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], 4..4) == [5]
-    assert Enum.slice([1,2,3,4,5], 5..5) == []
-    assert Enum.slice([1,2,3,4,5], 6..5) == []
-    assert Enum.slice([1,2,3,4,5], 6..0) == []
-    assert Enum.slice([1,2,3,4,5], -6..0) == []
-    assert Enum.slice([1,2,3,4,5], -6..5) == []
-    assert Enum.slice([1,2,3,4,5], -5..-1) == [1, 2, 3, 4, 5]
-    assert Enum.slice([1,2,3,4,5], -5..-3) == [1, 2, 3]
-    assert Enum.slice([1,2,3,4,5], -6..-1) == []
-    assert Enum.slice([1,2,3,4,5], -6..-3) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 0..0) == [1]
+    assert Enum.slice([1, 2, 3, 4, 5], 0..1) == [1, 2]
+    assert Enum.slice([1, 2, 3, 4, 5], 0..2) == [1, 2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1..2) == [2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], 1..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 2..5) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 2..6) == [3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], 4..4) == [5]
+    assert Enum.slice([1, 2, 3, 4, 5], 5..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], 6..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..0) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..5) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -5..-1) == [1, 2, 3, 4, 5]
+    assert Enum.slice([1, 2, 3, 4, 5], -5..-3) == [1, 2, 3]
+    assert Enum.slice([1, 2, 3, 4, 5], -6..-1) == []
+    assert Enum.slice([1, 2, 3, 4, 5], -6..-3) == []
   end
 end
 
@@ -674,7 +667,7 @@ defmodule EnumTest.Range do
   end
 
   test :dedup do
-    assert Enum.dedup(1..3) == [1,2,3]
+    assert Enum.dedup(1..3) == [1, 2, 3]
   end
 
   test :dedup_by do
@@ -900,88 +893,88 @@ defmodule EnumTest.Range do
     assert Enum.reverse_slice(1..6, 50, 50) == [1, 2, 3, 4, 5, 6]
   end
 
-  test :sample_1 do
+  test :random_1 do
     # corner cases, independent of the seed
-    assert Enum.sample(1..1) == 1
+    assert Enum.random(1..1) == 1
 
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
     :random.seed(seed1)
-    assert Enum.sample(1..2) == 2
-    assert Enum.sample(1..3) == 2
-    assert Enum.sample(1..4) == 4
-    assert Enum.sample(1..5) == 1
+    assert Enum.random(1..2) == 2
+    assert Enum.random(1..3) == 2
+    assert Enum.random(1..4) == 4
+    assert Enum.random(1..5) == 1
     :random.seed(seed1)
-    assert Enum.sample(?a..?z) == ?i
+    assert Enum.random(?a..?z) == ?i
     :random.seed(seed1)
-    assert Enum.sample(?0..?9) == ?8
+    assert Enum.random(?0..?9) == ?8
     :random.seed(seed2)
-    assert Enum.sample(1..2) == 1
-    assert Enum.sample(1..3) == 3
-    assert Enum.sample(1..4) == 1
-    assert Enum.sample(1..5) == 5
+    assert Enum.random(1..2) == 1
+    assert Enum.random(1..3) == 3
+    assert Enum.random(1..4) == 1
+    assert Enum.random(1..5) == 5
     :random.seed(seed2)
-    assert Enum.sample(?a..?z) == ?a
+    assert Enum.random(?a..?z) == ?a
     :random.seed(seed2)
-    assert Enum.sample(?0..?9) == ?0
+    assert Enum.random(?0..?9) == ?0
   end
 
-  test :sample_2 do
+  test :random_2 do
     # corner cases, independent of the seed
-    assert_raise FunctionClauseError, fn -> Enum.sample(1..2, -1) end
-    assert Enum.sample(1..1, 0) == []
-    assert Enum.sample(1..1, 2) == [1]
-    assert Enum.sample(1..2, 0) == []
+    assert_raise FunctionClauseError, fn -> Enum.random(1..2, -1) end
+    assert Enum.random(1..1, 0) == []
+    assert Enum.random(1..1, 2) == [1]
+    assert Enum.random(1..2, 0) == []
 
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
     :random.seed(seed1)
-    assert Enum.sample(1..5, 1) == [2]
-    assert Enum.sample(1..5, 2) == [4, 1]
-    assert Enum.sample(1..5, 3) == [1, 3, 5]
-    assert Enum.sample(1..5, 4) == [3, 5, 1, 2]
-    assert Enum.sample(1..5, 5) == [1, 2, 5, 4, 3]
-    assert Enum.sample(1..5, 6) == [2, 4, 5, 3, 1]
+    assert Enum.random(1..5, 1) == [2]
+    assert Enum.random(1..5, 2) == [4, 1]
+    assert Enum.random(1..5, 3) == [1, 3, 5]
+    assert Enum.random(1..5, 4) == [3, 5, 1, 2]
+    assert Enum.random(1..5, 5) == [1, 2, 5, 4, 3]
+    assert Enum.random(1..5, 6) == [2, 4, 5, 3, 1]
     :random.seed(seed2)
-    assert Enum.sample(1..5, 1) == [1]
-    assert Enum.sample(1..5, 2) == [1, 5]
-    assert Enum.sample(1..5, 3) == [5, 1, 3]
-    assert Enum.sample(1..5, 4) == [4, 5, 2, 1]
-    assert Enum.sample(1..5, 5) == [4, 3, 1, 5, 2]
-    assert Enum.sample(1..5, 6) == [5, 2, 1, 4, 3]
+    assert Enum.random(1..5, 1) == [1]
+    assert Enum.random(1..5, 2) == [1, 5]
+    assert Enum.random(1..5, 3) == [5, 1, 3]
+    assert Enum.random(1..5, 4) == [4, 5, 2, 1]
+    assert Enum.random(1..5, 5) == [4, 3, 1, 5, 2]
+    assert Enum.random(1..5, 6) == [5, 2, 1, 4, 3]
     :random.seed(seed1)
-    assert Enum.sample(?a..?z, 1) == 'i'
-    assert Enum.sample(?a..?z, 2) == 'cm'
-    assert Enum.sample(?a..?z, 3) == 'alp'
-    assert Enum.sample(?a..?z, 4) == 'tzmd'
-    assert Enum.sample(?a..?z, 5) == 'cuxvb'
+    assert Enum.random(?a..?z, 1) == 'i'
+    assert Enum.random(?a..?z, 2) == 'cm'
+    assert Enum.random(?a..?z, 3) == 'alp'
+    assert Enum.random(?a..?z, 4) == 'tzmd'
+    assert Enum.random(?a..?z, 5) == 'cuxvb'
     :random.seed(seed2)
-    assert Enum.sample(?a..?z, 1) == 'a'
-    assert Enum.sample(?a..?z, 2) == 'wk'
-    assert Enum.sample(?a..?z, 3) == 'ayj'
-    assert Enum.sample(?a..?z, 4) == 'rbcm'
-    assert Enum.sample(?a..?z, 5) == 'rhzju'
+    assert Enum.random(?a..?z, 1) == 'a'
+    assert Enum.random(?a..?z, 2) == 'wk'
+    assert Enum.random(?a..?z, 3) == 'ayj'
+    assert Enum.random(?a..?z, 4) == 'rbcm'
+    assert Enum.random(?a..?z, 5) == 'rhzju'
     :random.seed(seed1)
-    assert Enum.sample(?0..?9, 1) == '8'
-    assert Enum.sample(?0..?9, 2) == '07'
-    assert Enum.sample(?0..?9, 3) == '018'
-    assert Enum.sample(?0..?9, 4) == '0856'
-    assert Enum.sample(?0..?9, 5) == '03698'
+    assert Enum.random(?0..?9, 1) == '8'
+    assert Enum.random(?0..?9, 2) == '07'
+    assert Enum.random(?0..?9, 3) == '018'
+    assert Enum.random(?0..?9, 4) == '0856'
+    assert Enum.random(?0..?9, 5) == '03698'
     :random.seed(seed2)
-    assert Enum.sample(?0..?9, 1) == '0'
-    assert Enum.sample(?0..?9, 2) == '48'
-    assert Enum.sample(?0..?9, 3) == '590'
-    assert Enum.sample(?0..?9, 4) == '4805'
-    assert Enum.sample(?0..?9, 5) == '81945'
+    assert Enum.random(?0..?9, 1) == '0'
+    assert Enum.random(?0..?9, 2) == '48'
+    assert Enum.random(?0..?9, 3) == '590'
+    assert Enum.random(?0..?9, 4) == '4805'
+    assert Enum.random(?0..?9, 5) == '81945'
   end
 
   test :scan do
-    assert Enum.scan(1..5, &(&1 + &2)) == [1,3,6,10,15]
-    assert Enum.scan(1..5, 0, &(&1 + &2)) == [1,3,6,10,15]
+    assert Enum.scan(1..5, &(&1 + &2)) == [1, 3, 6, 10, 15]
+    assert Enum.scan(1..5, 0, &(&1 + &2)) == [1, 3, 6, 10, 15]
   end
 
   test :shuffle do
@@ -1111,16 +1104,6 @@ defmodule EnumTest.Range do
     assert Enum.uniq(1..3, fn x -> x end) == [1, 2, 3]
   end
 
-  test :usort do
-    assert Enum.usort(1..3) == [1, 2, 3]
-    assert Stream.cycle(3..1) |> Stream.take(10) |> Enum.usort == [1, 2, 3]
-  end
-
-  test :usort_by do
-    assert Enum.usort_by(1..3, fn x -> x > 1 end) == [1, 2]
-    assert Stream.cycle(3..1) |> Stream.take(10) |> Enum.usort_by(fn x -> x > 1 end) == [1, 3]
-  end
-
   test :zip do
     assert Enum.zip([:a, :b], 1..2) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], 1..4) == [{:a, 1}, {:b, 2}]
@@ -1136,7 +1119,7 @@ defmodule EnumTest.Range do
   end
 
   test :with_index do
-    assert Enum.with_index(1..3) == [{1,0},{2,1},{3,2}]
+    assert Enum.with_index(1..3) == [{1, 0}, {2, 1}, {3, 2}]
   end
 end
 

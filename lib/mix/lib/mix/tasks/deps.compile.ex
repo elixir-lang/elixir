@@ -33,7 +33,10 @@ defmodule Mix.Tasks.Deps.Compile do
 
     case OptionParser.parse(args) do
       {_, [], _} ->
-        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1))
+        # Because this command is invoked explicitly with
+        # deps.compile, we simply try to compile any available
+        # dependency.
+        compile(Enum.filter(loaded(env: Mix.env), &available?/1))
       {_, tail, _} ->
         compile(loaded_by_name(tail, env: Mix.env))
     end
@@ -72,12 +75,6 @@ defmodule Mix.Tasks.Deps.Compile do
     if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
   end
 
-  # All available dependencies can be compiled except
-  # for children of umbrella that we can safely skip.
-  defp compilable?(%Mix.Dep{opts: opts} = dep) do
-    available?(dep) and !opts[:from_umbrella]
-  end
-
   defp touch_fetchable(scm, path) do
     if scm.fetchable? do
       File.mkdir_p!(path)
@@ -102,7 +99,7 @@ defmodule Mix.Tasks.Deps.Compile do
       end
 
       try do
-        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check", "--no-readd"])
+        res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
         :ok in List.wrap(res)
       catch
         kind, reason ->

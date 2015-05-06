@@ -35,13 +35,13 @@ defmodule Mix.Shell do
 
   ## Options
 
-    * `:print_app` - when false, does not print the app name
+    * `:print_app` - when `false`, does not print the app name
       when the command outputs something
 
-    * `:stderr_to_stdout` - when false, does not redirect
+    * `:stderr_to_stdout` - when `false`, does not redirect
       stderr to stdout
 
-    * `:quiet` - when true, do not print the command output
+    * `:quiet` - when `true`, do not print the command output
 
   """
   defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
@@ -59,7 +59,7 @@ defmodule Mix.Shell do
   but only if the application name should be printed.
 
   Calling this function automatically toggles its value
-  to false until the current project is re-entered. The
+  to `false` until the current project is re-entered. The
   goal is to exactly avoid printing the application name
   multiple times.
   """
@@ -71,7 +71,7 @@ defmodule Mix.Shell do
   An implementation of the command callback that
   is shared across different shells.
   """
-  def cmd(command, options, callback) do
+  def cmd(command, options \\ [], callback) do
     args =
       if Keyword.get(options, :stderr_to_stdout, true) do
         [:stderr_to_stdout]

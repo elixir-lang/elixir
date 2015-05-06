@@ -17,10 +17,10 @@ defmodule Mix.UmbrellaTest do
 
         assert_received {:mix_shell, :info, ["==> bar"]}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert_received {:mix_shell, :info, ["Generated bar.app"]}
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["==> foo"]}
         assert_received {:mix_shell, :info, ["Compiled lib/foo.ex"]}
-        assert_received {:mix_shell, :info, ["Generated foo.app"]}
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
 
         # Ensure foo was loaded and in the same env as Mix.env
         assert_received {:mix_shell, :info, [":foo env is dev"]}
@@ -30,6 +30,24 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run "app.start", ["--no-compile"]
       end)
     end
+  end
+
+  test "compiles umbrella with protocol consolidation" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", [consolidate_protocols: true], fn _ ->
+        Mix.Task.run "compile"
+
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Consolidated Enumerable"]}
+        assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
+
+        assert Mix.Task.run "app.start"
+        assert Protocol.consolidated?(Enumerable)
+      end)
+    end
+  after
+    purge [Enumerable]
   end
 
   defmodule UmbrellaDeps do
@@ -141,7 +159,7 @@ defmodule Mix.UmbrellaTest do
           def project do
             [app: :bar,
              version: "0.1.0",
-             aliases: [compile: fn _ -> Mix.shell.info "no compile bar" end]]
+             aliases: ["compile.all": fn _ -> Mix.shell.info "no compile bar" end]]
           end
         end
         """

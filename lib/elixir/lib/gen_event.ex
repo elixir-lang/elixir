@@ -518,7 +518,7 @@ defmodule GenEvent do
   end
 
   defp rpc(module, cmd) do
-    # TODO: Change the tag once patch is accepted by OTP
+    # TODO: Change the tag on OTP 18
     {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
     reply
   end
@@ -659,7 +659,7 @@ defmodule GenEvent do
   end
 
   @doc false
-  def system_code_change([name, handlers, hib], module , old_vsn, extra) do
+  def system_code_change([name, handlers, hib], module, old_vsn, extra) do
     handlers =
       for handler <- handlers do
         if handler(handler, :module) == module do
@@ -1016,7 +1016,7 @@ defmodule GenEvent do
   defp report_error(handler, reason, state, last_in, name) do
     reason =
       case reason do
-        {:undef, [{m,f,a,_}|_]=mfas} ->
+        {:undef, [{m, f, a, _}|_]=mfas} ->
           cond do
             :code.is_loaded(m) ->
               {:"module could not be loaded", mfas}

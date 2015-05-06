@@ -173,7 +173,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:3: def hello/1 has default values and multiple clauses, " <>
       "define a function head with the defaults",
       ~C'''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults1 do
         def hello(arg \\ 0), do: nil
         def hello(arg \\ 1), do: nil
       end
@@ -183,7 +183,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:6: def hello/1 has default values and multiple clauses, " <>
       "define a function head with the defaults",
       ~C'''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults2 do
         def bye(arg \\ 0)
         def bye(arg), do: arg
 
@@ -195,7 +195,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: function foo/0 undefined",
       ~C'''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
         def hello(foo, bar \\ foo)
         def hello(foo, bar), do: foo + bar
       end
@@ -216,7 +216,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: def hello/3 defaults conflicts with def hello/2",
       ~C'''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
         def hello(a, b \\ nil), do: a + b
         def hello(a, b \\ nil, c \\ nil), do: a + b + c
       end
@@ -225,7 +225,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: def hello/2 conflicts with defaults from def hello/3",
       ~C'''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
         def hello(a, b \\ nil, c \\ nil), do: a + b + c
         def hello(a, b \\ nil), do: a + b
       end
@@ -236,7 +236,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: function bar/0 undefined",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.BadForm do
         def foo, do: bar
       end
       '''
@@ -278,7 +278,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail ArgumentError,
       "struct field names must be atoms, got: 1",
       '''
-      defmodule TZ do
+      defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
         defstruct [1, 2, 3]
       end
       '''
@@ -286,12 +286,13 @@ defmodule Kernel.ErrorsTest do
 
   test :struct_access_on_body do
     assert_compile_fail CompileError,
-      "nofile:3: cannot access struct TZ, the struct was not yet defined or the struct " <>
+      "nofile:3: cannot access struct Kernel.ErrorsTest.StructAccessOnBody, " <>
+      "the struct was not yet defined or the struct " <>
       "is being accessed in the same context that defines it",
       '''
-      defmodule TZ do
+      defmodule Kernel.ErrorsTest.StructAccessOnBody do
         defstruct %{name: "Brasilia"}
-        %TZ{}
+        %Kernel.ErrorsTest.StructAccessOnBody{}
       end
       '''
   end
@@ -349,7 +350,7 @@ defmodule Kernel.ErrorsTest do
       "unquote_splicing only works inside arguments and block contexts, " <>
       "wrap it in parens if you want it to work with one-liners",
       '''
-      defmodule Foo do
+      defmodule Kernel.ErrorsTest.InvalidUnquoteSplicingInOneliners do
         defmacro oneliner2 do
           quote do: unquote_splicing 1
         end
@@ -388,7 +389,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: unhandled operator ->",
       '''
-      defmodule Mod do
+      defmodule Kernel.ErrorsTest.UnhandledStab do
         def fun do
           casea foo, do: (bar -> baz)
         end
@@ -405,7 +406,7 @@ defmodule Kernel.ErrorsTest do
   test :invalid_attribute do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
     assert_raise ArgumentError, msg, fn ->
-      defmodule Foo do
+      defmodule InvalidAttribute do
         @foo fn -> end
         def bar, do: @foo
       end
@@ -415,7 +416,7 @@ defmodule Kernel.ErrorsTest do
   test :invalid_struct_field_value do
     msg = ~r"invalid value for struct field baz, cannot escape "
     assert_raise ArgumentError, msg, fn ->
-      defmodule Foo do
+      defmodule InvaliadStructFieldValue do
         defstruct baz: fn -> end
       end
     end
@@ -424,7 +425,7 @@ defmodule Kernel.ErrorsTest do
   test :match_attribute_in_module do
     msg = "invalid write attribute syntax, you probably meant to use: @foo expression"
     assert_raise ArgumentError, msg, fn ->
-      defmodule Foo do
+      defmodule MatchAttributeInModule do
         @foo = 42
       end
     end
@@ -446,7 +447,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: imported Kernel.&&/2 conflicts with local function",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.FunctionLocalConflict do
         def other, do: 1 && 2
         def _ && _, do: :error
       end
@@ -458,7 +459,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:6: call to local macro &&/2 conflicts with imported Kernel.&&/2, " <>
       "please rename the local macro or remove the conflicting import",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacroLocalConflict do
         def hello, do: 1 || 2
         defmacro _ || _, do: :ok
 
@@ -470,9 +471,10 @@ defmodule Kernel.ErrorsTest do
 
   test :macro_with_undefined_local do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: ErrorsTest.unknown/1 (function unknown/1 is not available)",
+      "undefined function: Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
+      "(function unknown/1 is not available)",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
         defmacrop bar, do: unknown(1)
         def baz, do: bar()
       end
@@ -481,9 +483,9 @@ defmodule Kernel.ErrorsTest do
 
   test :private_macro do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: ErrorsTest.foo/0 (function foo/0 is not available)",
+      "undefined function: Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
         defmacro bar, do: __MODULE__.foo
         defmacro baz, do: bar
@@ -495,7 +497,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: function names should start with lowercase characters or underscore, invalid name Bar",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.FunctionDefinitionWithAlias do
         def Bar do
           :baz
         end
@@ -507,7 +509,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: function exit/1 imported from both :erlang and Kernel, call is ambiguous",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.FunctionImportConflict do
         import :erlang, warn: false
         def foo, do: exit(:test)
       end
@@ -525,7 +527,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: you must require Kernel.ErrorsTest.UnproperMacro before invoking " <>
       "the macro Kernel.ErrorsTest.UnproperMacro.unproper/1 "
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.UnrequiredMacro do
         Kernel.ErrorsTest.UnproperMacro.unproper([])
       end
       '''
@@ -535,7 +537,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: defmacro foo/1 already defined as def",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         def foo(1), do: 1
         defmacro foo(x), do: x
       end
@@ -546,7 +548,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:1: function __info__/1 is internal and should not be overridden",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.InternalFunctionOverridden do
         def __info__(_), do: []
       end
       '''
@@ -556,7 +558,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: could not load macros from module :lists",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.NoMacros do
         import :lists, only: :macros
       end
       '''
@@ -566,7 +568,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile: invalid quoted expression: {:foo, :bar, :baz, :bat}",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.InvalidMacro do
         defmacrop oops do
           {:foo, :bar, :baz, :bat}
         end
@@ -584,14 +586,14 @@ defmodule Kernel.ErrorsTest do
 
   test :scheduled_module do
     assert_compile_fail CompileError,
-      "nofile:4: module ErrorsTest.Hygiene is not loaded but was defined. " <>
+      "nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined. " <>
       "This happens because you are trying to use a module in the same context it is defined. " <>
       "Try defining the module outside the context that requires it.",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.ScheduledModule do
         defmodule Hygiene do
         end
-        import ErrorsTest.Hygiene
+        import Kernel.ErrorsTest.ScheduledModule.Hygiene
       end
       '''
   end
@@ -611,14 +613,19 @@ defmodule Kernel.ErrorsTest do
 
   test :in_definition_module do
     assert_compile_fail CompileError,
-      "nofile:1: cannot define module ErrorsTest because it is currently being defined in nofile:1",
-      'defmodule ErrorsTest, do: (defmodule Elixir.ErrorsTest, do: true)'
+      "nofile:2: cannot define module Kernel.ErrorsTest.InDefinitionModule " <>
+      "because it is currently being defined in nofile:1",
+      '''
+      defmodule Kernel.ErrorsTest.InDefinitionModule do
+        defmodule Elixir.Kernel.ErrorsTest.InDefinitionModule, do: true
+      end
+      '''
   end
 
   test :invalid_definition do
     assert_compile_fail CompileError,
       "nofile:1: invalid syntax in def 1.(hello)",
-      'defmodule ErrorsTest, do: (def 1.(hello), do: true)'
+      'defmodule Kernel.ErrorsTest.InvalidDefinition, do: (def 1.(hello), do: true)'
   end
 
   test :duplicated_bitstring_size do
@@ -738,7 +745,7 @@ defmodule Kernel.ErrorsTest do
 
     assert_compile_fail SyntaxError,
       "nofile:1: syntax error before: ';'",
-      'max(1,;2)'
+      'max(1, ;2)'
   end
 
   test :new_line_error do
@@ -752,7 +759,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:4: unknown variable something_that_does_not_exist or " <>
       "cannot invoke local something_that_does_not_exist/0 inside guard",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.InvalidVarOrFunctionOnGuard do
         def bar do
           case [] do
             [] when something_that_does_not_exist == [] -> :ok
@@ -766,7 +773,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: missing do keyword in def",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
         def foo(n) when is_number(n)
       end
       '''
@@ -776,7 +783,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: can use only variables and \\\\ as arguments of bodyless clause",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(arg // nil)
         def foo(_), do: :ok
       end
@@ -787,7 +794,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:3: cannot invoke local something_that_does_not_exist/0 inside match",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.InvalidFunctionOnMatch do
         def fun do
           case [] do; something_that_does_not_exist() -> :ok; end
         end
@@ -811,7 +818,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile:2: type foo() undefined",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.TypespecErrors1 do
         @type omg :: foo
       end
       '''
@@ -819,12 +826,12 @@ defmodule Kernel.ErrorsTest do
     if :erlang.system_info(:otp_release) >= '18' do
       message = "nofile:2: spec for undefined function omg/0"
     else
-      message = "nofile:2: spec for undefined function ErrorsTest.omg/0"
+      message = "nofile:2: spec for undefined function Kernel.ErrorsTest.TypespecErrors2.omg/0"
     end
 
     assert_compile_fail CompileError, message,
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.TypespecErrors2 do
         @spec omg :: atom
       end
       '''
@@ -834,16 +841,17 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail CompileError,
       "nofile: invalid quoted expression: {:foo, 0, 1}",
       '''
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.BadUnquoting do
         def range(unquote({:foo, 0, 1})), do: :ok
       end
       '''
   end
 
   test :macros_error_stacktrace do
-    assert [{:erlang, :+, [1, :foo], _}, {ErrorsTest, :sample, 1, _}|_] =
+    assert [{:erlang, :+, [1, :foo], _},
+            {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _}|_] =
       rescue_stacktrace("""
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacrosErrorStacktrace do
         defmacro sample(num), do: num + :foo
         def other, do: sample(1)
       end
@@ -853,7 +861,7 @@ defmodule Kernel.ErrorsTest do
   test :macros_function_clause_stacktrace do
     assert [{__MODULE__, :sample, 1, _}|_] =
       rescue_stacktrace("""
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacrosFunctionClauseStacktrace do
         import Kernel.ErrorsTest
         sample(1)
       end
@@ -861,9 +869,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_interpreted_function_clause_stacktrace do
-    assert [{ErrorsTest, :sample, 1, _}|_] =
+    assert [{Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace, :sample, 1, _}|_] =
       rescue_stacktrace("""
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacrosInterpretedFunctionClauseStacktrace do
         defmacro sample(0), do: 0
         def other, do: sample(1)
       end
@@ -871,9 +879,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :macros_compiled_callback do
-    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: ErrorsTest}], _}|_] =
+    assert [{Kernel.ErrorsTest, :__before_compile__, [%Macro.Env{module: Kernel.ErrorsTest.MacrosCompiledCallback}], _}|_] =
       rescue_stacktrace("""
-      defmodule ErrorsTest do
+      defmodule Kernel.ErrorsTest.MacrosCompiledCallback do
         Module.put_attribute(__MODULE__, :before_compile, Kernel.ErrorsTest)
       end
       """)

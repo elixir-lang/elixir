@@ -160,7 +160,7 @@ defmodule Regex do
   end
 
   @doc """
-  Returns true if the given argument is a regex.
+  Returns `true` if the given argument is a regex.
 
   ## Examples
 
@@ -195,7 +195,7 @@ defmodule Regex do
       nil
 
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
-      [{2,2},{3,1}]
+      [{2, 2}, {3, 1}]
 
   """
   @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
@@ -290,9 +290,10 @@ defmodule Regex do
 
   @doc """
   Same as `run/3`, but scans the target several times collecting all
-  matches of the regular expression. A list of lists is returned,
-  where each entry in the primary list represents a match and each
-  entry in the secondary list represents the captured contents.
+  matches of the regular expression.
+
+  A list of lists is returned, where each entry in the primary list represents a
+  match and each entry in the secondary list represents the captured contents.
 
   ## Options
 
@@ -328,7 +329,8 @@ defmodule Regex do
   end
 
   @doc """
-  Splits the given target into the number of parts specified.
+  Splits the given target based on the given pattern and in the given number of
+  parts.
 
   ## Options
 
@@ -337,20 +339,19 @@ defmodule Regex do
       split the string into the maximum number of parts possible based on the
       given pattern.
 
-    * `:trim` - when true, remove blank strings from the result.
+    * `:trim` - when `true`, removes empty strings (`""`) from the result.
 
-    * `:on` - specifies which captures and order to split the string
-      on. Check the moduledoc for `Regex` to see the possible capture
-      values. Defaults to `:first` which means captures inside the
-      Regex does not affect the split result.
+    * `:on` - specifies which captures to split the string on, and in what
+      order. Defaults to `:first` which means captures inside the regex do not
+      affect the splitting process.
 
   ## Examples
 
       iex> Regex.split(~r/-/, "a-b-c")
-      ["a","b","c"]
+      ["a", "b", "c"]
 
       iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
-      ["a","b-c"]
+      ["a", "b-c"]
 
       iex> Regex.split(~r/-/, "abc")
       ["abc"]
@@ -437,7 +438,7 @@ defmodule Regex do
   ## Options
 
     * `:global` - when `false`, replaces only the first occurrence
-      (defaults to true)
+      (defaults to `true`)
 
   ## Examples
 

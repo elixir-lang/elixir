@@ -145,7 +145,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
-      case expand_require([{require,false}|Meta], Receiver, Tuple, Args, E) of
+      case expand_require([{require, false}|Meta], Receiver, Tuple, Args, E) of
         {ok, _, _} = Response -> Response;
         error -> {ok, Receiver, Name, Args}
       end;
@@ -215,7 +215,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
   end.
 
 caller(Line, #{module := nil} = E) ->
-  {elixir_compiler, '__FILE__', 2, location(Line, E)};
+  {elixir_compiler_0, '__FILE__', 1, location(Line, E)};
 caller(Line, #{module := Module, function := nil} = E) ->
   {Module, '__MODULE__', 0, location(Line, E)};
 caller(Line, #{module := Module, function := {Name, Arity}} = E) ->

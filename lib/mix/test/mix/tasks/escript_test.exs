@@ -34,10 +34,7 @@ defmodule Mix.Tasks.EscriptTest do
     def project do
       [ app: :escripttestwithdeps,
         version: "0.0.1",
-        escript: [
-          main_module: Escripttest,
-          path: Path.join("ebin", "escripttestwithdeps"),
-        ],
+        escript: [main_module: Escripttest],
         deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
     end
   end
@@ -47,10 +44,7 @@ defmodule Mix.Tasks.EscriptTest do
       [ app: :escripttesterlangwithdeps,
         version: "0.0.1",
         language: :erlang,
-        escript: [
-          main_module: :escripttest,
-          path: Path.join("ebin", "escripttesterlangwithdeps"),
-        ],
+        escript: [main_module: :escripttest],
         deps: [{:ok, path: fixture_path("deps_status/deps/ok")}] ]
     end
   end
@@ -58,12 +52,9 @@ defmodule Mix.Tasks.EscriptTest do
   defmodule EscriptConsolidated do
     def project do
       [ app: :escripttestconsolidated,
+        build_embedded: true,
         version: "0.0.1",
-        escript: [
-          main_module: Escripttest,
-          path: Path.join("ebin", "escripttestconsolidated"),
-        ],
-        deps: [{:depproto, path: fixture_path("dep_with_protocol")}] ]
+        escript: [main_module: Escripttest] ]
     end
   end
 
@@ -86,7 +77,7 @@ defmodule Mix.Tasks.EscriptTest do
     in_fixture "escripttest", fn ->
       File.mkdir_p! "config"
       File.write! "config/config.exs", """
-      [foobar: [value: "FROM CONFIG"]]
+      [foobar: [value: "FROM CONFIG", other: %{}]]
       """
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escriptest with MIX_ENV=dev"]}
@@ -109,20 +100,20 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestwithdeps with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["ebin/escripttestwithdeps"]) == {"TEST\n", 0}
+      assert_received {:mix_shell, :info, ["Generated escript escripttestwithdeps with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escripttestwithdeps"]) == {"TEST\n", 0}
     end
   after
     purge [Ok.Mixfile]
   end
 
-  test "generate Erlang escript with config and deps" do
+  test "generate escript with erlang and deps" do
     Mix.Project.push EscriptErlangWithDeps
 
     in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttesterlangwithdeps with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["ebin/escripttesterlangwithdeps"]) == {"Erlang value", 0}
+      assert_received {:mix_shell, :info, ["Generated escript escripttesterlangwithdeps with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escripttesterlangwithdeps"]) == {"Erlang value", 0}
     end
   after
     purge [Ok.Mixfile]
@@ -133,11 +124,8 @@ defmodule Mix.Tasks.EscriptTest do
 
     in_fixture "escripttest_protocols", fn ->
       Mix.Tasks.Escript.Build.run []
-      assert_received {:mix_shell, :info, ["Generated escript ebin/escripttestconsolidated with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["ebin/escripttestconsolidated", "Enumerable"]) == {"true\n", 0}
-      assert System.cmd("escript", ["ebin/escripttestconsolidated", "DepProto"]) == {"true\n", 0}
+      assert_received {:mix_shell, :info, ["Generated escript escripttestconsolidated with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escripttestconsolidated", "Enumerable"]) == {"true\n", 0}
     end
-  after
-    purge [DepProto.Mixfile]
   end
 end

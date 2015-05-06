@@ -80,8 +80,10 @@ defmodule Mix.Project do
   # The configuration that is pushed down to dependencies.
   @doc false
   def deps_config(config \\ config()) do
-    [build_path: build_path(config),
+    [build_embedded: config[:build_embedded],
+     build_path: build_path(config),
      build_per_environment: config[:build_per_environment],
+     consolidate_protocols: false,
      deps_path: deps_path(config)]
   end
 
@@ -228,7 +230,7 @@ defmodule Mix.Project do
       Mix.Project.build_path
       #=> "/path/to/project/_build/shared"
 
-  If :build_per_environment is set to true (the default), it
+  If :build_per_environment is set to `true` (the default), it
   will create a new build per environment:
 
       Mix.env
@@ -320,7 +322,7 @@ defmodule Mix.Project do
 
     _ = cond do
       opts[:symlink_ebin] ->
-        _ = Mix.Utils.symlink_or_copy(source, target)
+        _ = symlink_or_copy(config, source, target)
       match?({:ok, _}, :file.read_link(target)) ->
         _ = File.rm_rf!(target)
         File.mkdir_p!(target)
@@ -328,9 +330,20 @@ defmodule Mix.Project do
         File.mkdir_p!(target)
     end
 
-    _ = Mix.Utils.symlink_or_copy(Path.expand("include"), Path.join(app, "include"))
-    _ = Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.join(app, "priv"))
+    _ = symlink_or_copy(config, Path.expand("include"), Path.join(app, "include"))
+    _ = symlink_or_copy(config, Path.expand("priv"), Path.join(app, "priv"))
     :ok
+  end
+
+  defp symlink_or_copy(config, source, target) do
+    if config[:build_embedded] do
+      if File.exists?(source) do
+        File.rm_rf!(target)
+        File.cp_r!(source, target)
+      end
+    else
+      Mix.Utils.symlink_or_copy(source, target)
+    end
   end
 
   @doc """
@@ -378,6 +391,7 @@ defmodule Mix.Project do
   defp default_config do
     [aliases: [],
      build_per_environment: true,
+     build_embedded: false,
      default_task: "run",
      deps: [],
      deps_path: "deps",
@@ -386,7 +400,8 @@ defmodule Mix.Project do
      erlc_include_path: "include",
      erlc_options: [:debug_info],
      lockfile: "mix.lock",
-     preferred_cli_env: []]
+     preferred_cli_env: [],
+     start_permanent: false]
   end
 
   defp get_project_config(nil),  do: []

@@ -244,11 +244,11 @@ defmodule Module.LocalsTracker do
   @doc false
   def handle_call({:cache_env, env}, _from, {d, cache}) do
     case cache do
-      [{i,^env}|_] ->
+      [{i, ^env}|_] ->
         {:reply, i, {d, cache}}
       t ->
         i = length(t)
-        {:reply, i, {d, [{i,env}|t]}}
+        {:reply, i, {d, [{i, env}|t]}}
     end
   end
 

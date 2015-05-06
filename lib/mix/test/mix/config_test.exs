@@ -5,52 +5,73 @@ defmodule Mix.ConfigTest do
 
   doctest Mix.Config
 
+  defmacrop config do
+    quote do
+      Mix.Config.Agent.get(var!(config_agent, Mix.Config))
+    end
+  end
+
   test "config/2" do
     use Mix.Config
-    assert var!(config, Mix.Config) == []
+    assert config() == []
 
     config :lager, key: :value
-    assert var!(config, Mix.Config) == [lager: [key: :value]]
+    assert config() == [lager: [key: :value]]
 
     config :lager, other: :value
-    assert var!(config, Mix.Config) == [lager: [key: :value, other: :value]]
+    assert config() == [lager: [key: :value, other: :value]]
 
     config :lager, key: :other
-    assert var!(config, Mix.Config) == [lager: [key: :other, other: :value]]
+    assert config() == [lager: [key: :other, other: :value]]
+
+    # Works inside functions too...
+    f = fn -> config(:lager, key: :fn) end
+    f.()
+    assert config() == [lager: [key: :fn, other: :value]]
+
+    # ...and in for comprehensions.
+    for _ <- 0..0, do: config(:lager, key: :for)
+    assert config() == [lager: [key: :for, other: :value]]
   end
 
   test "config/3" do
     use Mix.Config
 
     config :app, Repo, key: :value
-    assert var!(config, Mix.Config) == [app: [{Repo, key: :value}]]
+    assert config() == [app: [{Repo, key: :value}]]
 
     config :app, Repo, other: :value
-    assert var!(config, Mix.Config) == [app: [{Repo, key: :value, other: :value}]]
+    assert config() == [app: [{Repo, key: :value, other: :value}]]
 
     config :app, Repo, key: :other
-    assert var!(config, Mix.Config) == [app: [{Repo, key: :other, other: :value}]]
+    assert config() == [app: [{Repo, key: :other, other: :value}]]
 
     config :app, Repo, key: [nested: false]
-    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: false], other: :value}]]
+    assert config() == [app: [{Repo, key: [nested: false], other: :value}]]
 
     config :app, Repo, key: [nested: true]
-    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: true], other: :value}]]
+    assert config() == [app: [{Repo, key: [nested: true], other: :value}]]
 
     config :app, Repo, key: :other
-    assert var!(config, Mix.Config) == [app: [{Repo, key: :other, other: :value}]]
+    assert config() == [app: [{Repo, key: :other, other: :value}]]
   end
 
   test "import_config/1" do
     use Mix.Config
     import_config fixture_path("configs/good_config.exs")
-    assert var!(config, Mix.Config) == [my_app: [key: :value]]
+    assert config() == [my_app: [key: :value]]
   end
 
   test "import_config/1 with wildcards" do
     use Mix.Config
     import_config fixture_path("configs/good_*.exs")
-    assert var!(config, Mix.Config) == [my_app: [key: :value]]
+    assert config() == [my_app: [key: :value]]
+  end
+
+  test "import_config/1 with wildcard with no matches" do
+    use Mix.Config
+    import_config fixture_path("configs/nonexistent_*.exs")
+    assert config() == []
   end
 
   test "import_config/1 with nested" do
@@ -58,7 +79,7 @@ defmodule Mix.ConfigTest do
     config :app, Repo, key: [nested: false, other: true]
 
     import_config fixture_path("configs/nested.exs")
-    assert var!(config, Mix.Config) == [app: [{Repo, key: [nested: true, other: true]}]]
+    assert config() == [app: [{Repo, key: [nested: true, other: true]}]]
   end
 
   test "import_config/1 with bad path" do

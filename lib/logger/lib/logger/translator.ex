@@ -14,7 +14,7 @@ defmodule Logger.Translator do
     * `min_level` - the current Logger level
     * `level` - the level of the message being translator
     * `kind` - if the message is a report or a format
-    * `data` - the data to format. If it is a report, it is a tuple
+    * `message` - the message to format. If it is a report, it is a tuple
       with `{report_type, report_data}`, if it is a format, it is a
       tuple with `{format_message, format_args}`
 
@@ -27,6 +27,10 @@ defmodule Logger.Translator do
   See the function `translate/4` in this module for an example implementation
   and the default messages translated by Logger.
   """
+
+  # TODO: Remove name_or_id checks once we support only OTP >18.0
+
+  def translate(min_level, level, kind, message)
 
   def translate(min_level, :error, :format, message) do
     case message do
@@ -81,8 +85,8 @@ defmodule Logger.Translator do
   defp translate_supervisor(min_level,
                            [supervisor: sup, errorContext: context,
                              reason: reason,
-                             offender: [{:pid, pid}, {:name, name} | offender]])
-                           when is_pid(pid) and context !== :shutdown do
+                             offender: [{:pid, pid}, {name_or_id, name} | offender]])
+                           when is_pid(pid) and context !== :shutdown and name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             "Pid: ", inspect(pid), ?\n,
@@ -94,7 +98,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:pid, _pid},
-                                        {:name, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             child_info(min_level, offender), ?\n,
@@ -116,7 +120,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:nb_children, n},
-                                        {:name, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Children ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context), ?\n,
             "Number: ", inspect(n), ?\n,
@@ -133,7 +137,7 @@ defmodule Logger.Translator do
 
   defp translate_progress(min_level,
                           [supervisor: sup,
-                            started: [{:pid, pid}, {:name, name} | started]]) do
+                            started: [{:pid, pid}, {name_or_id, name} | started]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), " started\n",
             "Pid: ", inspect(pid), ?\n |
@@ -202,7 +206,7 @@ defmodule Logger.Translator do
                          {:registered_name, name},
                          {:error_info, {kind, exception, stack}} | crashed],
                         linked]) do
-    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+    {:ok, ["Process ", crash_name(pid, name), " terminating\n",
             crash_info(min_level, [initial_call | crashed]),
             crash_linked(min_level, linked) |
             Exception.format(kind, exception, stack)]}
@@ -213,7 +217,7 @@ defmodule Logger.Translator do
                          {:registered_name, name},
                          {:error_info, {kind, exception, stack}} | crashed],
                         linked]) do
-    {:ok, ["Process ", crash_name(pid, name) , " terminating\n",
+    {:ok, ["Process ", crash_name(pid, name), " terminating\n",
             crash_info(min_level, crashed),
             crash_linked(min_level, linked) |
             Exception.format(kind, exception, stack)]}

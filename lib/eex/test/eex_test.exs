@@ -98,6 +98,10 @@ defmodule EExTest do
     assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else %>baz<% end %><% end %>"
   end
 
+  test "evaluates with parentheses after end in end token" do
+    assert_eval " 101  102  103 ", "<%= Enum.map([1,2,3], (fn x -> %> <%= 100 + x %> <% end) ) %>"
+  end
+
   test "evaluates with defined variable" do
     assert_eval "foo 1", "foo <% bar = 1 %><%= bar %>"
   end
@@ -305,6 +309,12 @@ foo
     assert result == "  • • •\n  Jößé Vâlìm Jößé Vâlìm\n"
   end
 
+  test "trim mode" do
+    string = "<%= 123 %> \n456\n  <%= 789 %>"
+    expected = "123456\n789"
+    assert_eval expected, string, [], trim: true
+  end
+
   test "evaluates the source from a given file" do
     filename = Path.join(__DIR__, "fixtures/eex_template.eex")
     result = EEx.eval_file(filename)
@@ -387,8 +397,9 @@ foo
     assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
   end
 
-  defp assert_eval(expected, actual, binding \\ []) do
-    result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.Engine)
+  defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
+    opts = Enum.into [file: __ENV__.file, engine: EEx.Engine], opts
+    result = EEx.eval_string(actual, binding, opts)
     assert result == expected
   end
 end

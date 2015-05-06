@@ -40,7 +40,8 @@ defmodule Mix.Tasks.Deps.Check do
 
   defp partition_deps([dep|deps], not_ok, compile) do
     cond do
-      compile?(dep)            -> partition_deps(deps, not_ok, [dep|compile])
+      from_umbrella?(dep)      -> partition_deps(deps, not_ok, compile)
+      compilable?(dep)         -> partition_deps(deps, not_ok, [dep|compile])
       ok?(dep) and local?(dep) -> partition_deps(deps, not_ok, [dep|compile])
       ok?(dep)                 -> partition_deps(deps, not_ok, compile)
       true                     -> partition_deps(deps, [dep|not_ok], compile)
@@ -51,19 +52,22 @@ defmodule Mix.Tasks.Deps.Check do
     {Enum.reverse(not_ok), Enum.reverse(compile)}
   end
 
-  defp local?(dep) do
-    # Every local dependency (i.e. that are not fetchable) are
-    # automatically recompiled if they are ok. However, note
-    # we skip dependencies from umbrella, because they are
-    # recompiled anyway by the umbrella project whenever there
-    # is a need.
-    not dep.scm.fetchable? and dep.opts[:from_umbrella] != true
+  # Those are compiled by umbrella.
+  defp from_umbrella?(dep) do
+    dep.opts[:from_umbrella]
   end
 
-  defp compile?(%Mix.Dep{status: {:elixirlock, _}}), do: true
-  defp compile?(%Mix.Dep{status: {:noappfile, _}}), do: true
-  defp compile?(%Mix.Dep{status: :compile}), do: true
-  defp compile?(%Mix.Dep{}), do: false
+  # Every local dependency (i.e. that are not fetchable)
+  # are automatically recompiled if they are ok.
+  defp local?(dep) do
+    not dep.scm.fetchable?
+  end
+
+  # Can the dependency be compiled automatically without user intervention?
+  defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
+  defp compilable?(%Mix.Dep{status: :compile}), do: true
+  defp compilable?(%Mix.Dep{}), do: false
 
   # If the build is per environment, we should be able to look
   # at all dependencies and remove the builds that no longer
@@ -84,7 +88,7 @@ defmodule Mix.Tasks.Deps.Check do
       to_prune = Enum.reduce(all, paths, &(&2 -- Mix.Dep.load_paths(&1)))
 
       Enum.map(to_prune, fn path ->
-        # Path may not be in code path
+        # Path cannot be in code path when deleting
         _ = Code.delete_path(path)
         File.rm_rf!(path |> Path.dirname)
       end)

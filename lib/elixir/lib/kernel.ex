@@ -1476,7 +1476,14 @@ defmodule Kernel do
       iex> "abcd" =~ "ad"
       false
 
+      iex> "abcd" =~ ""
+      true
+
   """
+
+  @spec (String.t =~ (String.t | Regex.t)) :: boolean
+  def left =~ "" when is_binary(left), do: true
+
   def left =~ right when is_binary(left) and is_binary(right) do
     :binary.match(left, right) != :nomatch
   end
@@ -1548,15 +1555,17 @@ defmodule Kernel do
   @doc """
   Creates and updates structs.
 
-  The struct argument may be an atom (which defines `defstruct`)
-  or a struct itself. The second argument is any Enumerable that
+  The `struct` argument may be an atom (which defines `defstruct`)
+  or a `struct` itself. The second argument is any `Enumerable` that
   emits two-item tuples (key-value pairs) during enumeration.
 
-  Keys in the Enumerable that don't exist in the struct are automatically
+  Keys in the `Enumerable` that don't exist in the struct are automatically
   discarded.
 
   This function is useful for dynamically creating and updating
-  structs.
+  structs, as well as for converting maps to structs; in the latter case, just
+  inserting the appropriate `:__struct__` field into the map may not be enough
+  and `struct/2` should be used instead.
 
   ## Examples
 
@@ -1572,6 +1581,9 @@ defmodule Kernel do
       #=> %User{name: "meg"}
 
       struct(user, unknown: "value")
+      #=> %User{name: "meg"}
+
+      struct(User, %{name: "meg"})
       #=> %User{name: "meg"}
 
   """
@@ -1632,7 +1644,7 @@ defmodule Kernel do
       iex> get_in(users, [all, :age])
       [27, 23]
 
-  If the previous value before invoking the function is nil,
+  If the previous value before invoking the function is `nil`,
   the function *will* receive nil as a value and must handle it
   accordingly.
   """
@@ -1738,7 +1750,7 @@ defmodule Kernel do
       iex> get_and_update_in(users, [all, :age], &{&1, &1 + 1})
       {[27, 23], [%{name: "john", age: 28}, %{name: "meg", age: 24}]}
 
-  If the previous value before invoking the function is nil,
+  If the previous value before invoking the function is `nil`,
   the function *will* receive `nil` as a value and must handle it
   accordingly (be it by failing or providing a sane default).
   """
@@ -1849,7 +1861,7 @@ defmodule Kernel do
   followed by one or more:
 
     * `foo[bar]` - access a field; in case an intermediate field is not
-      present or returns nil, an empty map is used
+      present or returns `nil`, an empty map is used
 
     * `foo.bar` - access a map/struct field; in case the field is not
       present, an error is raised
@@ -2574,15 +2586,15 @@ defmodule Kernel do
 
   """
   defmacro left in right do
-    cache = (__CALLER__.context == nil)
+    in_module? = (__CALLER__.context == nil)
 
-    right = case bootstraped?(Macro) do
+    right = case bootstraped?(Macro) and not in_module? do
       true  -> Macro.expand(right, __CALLER__)
       false -> right
     end
 
     case right do
-      _ when cache ->
+      _ when in_module? ->
         quote do: Elixir.Enum.member?(unquote(right), unquote(left))
       [] ->
         false
@@ -3008,32 +3020,41 @@ defmodule Kernel do
         defstruct name: nil, age: 10 + 11
       end
 
+  The `fields` argument is usually a keyword list with fields as keys and
+  default values as corresponding values. `defstruct/1` also supports a list of
+  atoms as its argument: in that case, the atoms in the list will be used as
+  the struct's fields and they will all default to `nil`.
+
+      defmodule Post do
+        defstruct [:title, :content, :author]
+      end
+
   ## Deriving
 
   Although structs are maps, by default structs do not implement
-  any of the protocols implemented for maps. For example, attempting to use the
-  `Access` protocol with the `User` struct leads to an error:
+  any of the protocols implemented for maps. For example, attempting
+  to use a protocol with the `User` struct leads to an error:
 
       john = %User{name: "John"}
-      john[:age]
-      ** (Protocol.UndefinedError) protocol Access not implemented for %User{...}
+      MyProtocol.call(john)
+      ** (Protocol.UndefinedError) protocol MyProtocol not implemented for %User{...}
 
   `defstruct/1`, however, allows protocol implementations to be
-  *derived*. This can be done by defining a `@derive` attribute as a list before
-  invoking `defstruct/1`:
+  *derived*. This can be done by defining a `@derive` attribute as a
+  list before invoking `defstruct/1`:
 
       defmodule User do
-        @derive [Access]
+        @derive [MyProtocol]
         defstruct name: nil, age: 10 + 11
       end
 
-      %User{}[:age] #=> 21
+      MyProtocol.call(john) #=> works
 
   For each protocol in the `@derive` list, Elixir will assert there is an
-  implementation of that protocol for maps and check if the map
-  implementation defines a `__deriving__/3` callback. If so, the callback
-  is invoked, otherwise an implementation that simply points to the map
-  one is automatically derived.
+  implementation of that protocol for any (regardless if fallback to any
+  is true) and check if the any implementation defines a `__deriving__/3`
+  callback. If so, the callback is invoked, otherwise an implementation
+  that simply points to the any implementation is automatically derived.
 
   ## Types
 
@@ -3061,30 +3082,14 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
-      fields = :lists.map(fn
-        {key, val} when is_atom(key) ->
-          try do
-            Macro.escape(val)
-          rescue
-            e in [ArgumentError] ->
-              raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
-          else
-            _ -> {key, val}
-          end
-        key when is_atom(key) ->
-          {key, nil}
-        other ->
-          raise ArgumentError, "struct field names must be atoms, got: #{inspect other}"
-      end, fields)
-
-      @struct :maps.put(:__struct__, __MODULE__, :maps.from_list(fields))
+      fields = Kernel.Def.struct(__MODULE__, fields)
+      @struct fields
 
       case Module.get_attribute(__MODULE__, :derive) do
         [] -> :ok
         derive -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
-      @spec __struct__() :: %__MODULE__{}
       def __struct__() do
         @struct
       end
@@ -3167,7 +3172,7 @@ defmodule Kernel do
 
       defoverridable exception: 1
 
-      if Keyword.has_key?(fields, :message) do
+      if Map.has_key?(fields, :message) do
         @spec message(Exception.t) :: String.t
         def message(exception) do
           exception.message
@@ -3187,7 +3192,7 @@ defmodule Kernel do
   ## Examples
 
   In Elixir, only `false` and `nil` are considered falsy values.
-  Everything else evaluates to true in `if` clauses. Depending
+  Everything else evaluates to `true` in `if` clauses. Depending
   on the application, it may be important to specify a `blank?`
   protocol that returns a boolean for other data types that should
   be considered "blank". For instance, an empty list or an empty
@@ -3196,7 +3201,7 @@ defmodule Kernel do
   Such protocol could be implemented as follows:
 
       defprotocol Blank do
-        @doc "Returns true if `data` is considered blank/empty"
+        @doc "Returns `true` if `data` is considered blank/empty"
         def blank?(data)
       end
 
@@ -3247,6 +3252,17 @@ defmodule Kernel do
 
       defimpl Blank, for: [HashDict, HashSet] do
         def blank?(enum_like), do: Enum.empty?(enum_like)
+      end
+
+  When implementing a protocol for a struct, the `:for` option can be omitted if
+  the `defimpl` call is inside the module that defines the struct:
+
+      defmodule User do
+        defstruct [:email, :name]
+
+        defimpl Blank do
+          def blank?(%User{}), do: false
+        end
       end
 
   If a protocol is not found for a given type, it will fallback to
@@ -3327,7 +3343,7 @@ defmodule Kernel do
   In order to speed up dispatching in production environments, where
   all implementations are known up-front, Elixir provides a feature
   called protocol consolidation. For this reason, all protocols are
-  compiled with `debug_info` set to true, regardless of the option
+  compiled with `debug_info` set to `true`, regardless of the option
   set by `elixirc` compiler. The debug info though may be removed
   after consolidation.
 
@@ -3448,16 +3464,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a set of functions in the current module that delegate to other
-  functions.
+  Define a function that delegates to another module.
 
-  This macro is used to define functions in a module that delegate to other
-  functions (for example, functions in other modules).
-
-  Functions defined with `defdelegate/2` are **public** and can be invoked from
+  Functions defined with `defdelegate/2` are public and can be invoked from
   outside the module they're defined in (like if they were defined using
-  `def/2`). When the desire is to delegate private functions, `import` is likely
-  the solution.
+  `def/2`). When the desire is to delegate as private functions, `import` should
+  be used.
 
   Delegation only works with functions; delegating macros is not supported.
 
@@ -3501,27 +3513,12 @@ defmodule Kernel do
     funs = Macro.escape(funs, unquote: true)
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Keyword.get(opts, :to) ||
-        raise ArgumentError, "Expected to: to be given as argument"
-
-      append_first = Keyword.get(opts, :append_first, false)
+        raise ArgumentError, "expected to: to be given as argument"
 
       for fun <- List.wrap(funs) do
-        {name, args} =
-          case Macro.decompose_call(fun) do
-            {_, _} = pair -> pair
-            _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
-          end
-
-        actual_args =
-          case append_first and args != [] do
-            true  -> tl(args) ++ [hd(args)]
-            false -> args
-          end
-
-        fun = Keyword.get(opts, :as, name)
-
+        {name, args, as, as_args} = Kernel.Def.delegate(fun, opts)
         def unquote(name)(unquote_splicing(args)) do
-          unquote(target).unquote(fun)(unquote_splicing(actual_args))
+          unquote(target).unquote(as)(unquote_splicing(as_args))
         end
       end
     end
@@ -3544,9 +3541,8 @@ defmodule Kernel do
       "f\#{o}o"
 
   """
-  defmacro sigil_S(string, []) do
-    string
-  end
+  defmacro sigil_S(term, modifiers)
+  defmacro sigil_S(string, []), do: string
 
   @doc ~S"""
   Handles the sigil `~s`.
@@ -3566,6 +3562,7 @@ defmodule Kernel do
       "f\#{:o}o"
 
   """
+  defmacro sigil_s(term, modifiers)
   defmacro sigil_s({:<<>>, line, pieces}, []) do
     {:<<>>, line, Macro.unescape_tokens(pieces)}
   end
@@ -3585,6 +3582,7 @@ defmodule Kernel do
       'f\#{o}o'
 
   """
+  defmacro sigil_C(term, modifiers)
   defmacro sigil_C({:<<>>, _line, [string]}, []) when is_binary(string) do
     String.to_char_list(string)
   end
@@ -3607,6 +3605,7 @@ defmodule Kernel do
       'f\#{:o}o'
 
   """
+  defmacro sigil_c(term, modifiers)
 
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
@@ -3636,6 +3635,7 @@ defmodule Kernel do
       true
 
   """
+  defmacro sigil_r(term, modifiers)
   defmacro sigil_r({:<<>>, _line, [string]}, options) when is_binary(string) do
     binary = Macro.unescape_string(string, fn(x) -> Regex.unescape_map(x) end)
     regex  = Regex.compile!(binary, :binary.list_to_bin(options))
@@ -3661,6 +3661,7 @@ defmodule Kernel do
       true
 
   """
+  defmacro sigil_R(term, modifiers)
   defmacro sigil_R({:<<>>, _line, [string]}, options) when is_binary(string) do
     regex = Regex.compile!(string, :binary.list_to_bin(options))
     Macro.escape(regex)
@@ -3690,7 +3691,7 @@ defmodule Kernel do
       [:foo, :bar, :baz]
 
   """
-
+  defmacro sigil_w(term, modifiers)
   defmacro sigil_w({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
     split_words(Macro.unescape_string(string), modifiers)
   end
@@ -3718,6 +3719,7 @@ defmodule Kernel do
       ["foo", "\#{bar}", "baz"]
 
   """
+  defmacro sigil_W(term, modifiers)
   defmacro sigil_W({:<<>>, _line, [string]}, modifiers) when is_binary(string) do
     split_words(string, modifiers)
   end

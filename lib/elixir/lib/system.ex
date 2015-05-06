@@ -402,9 +402,9 @@ defmodule System do
     * `:cd` - the directory to run the command in
     * `:env` - an enumerable of tuples containing environment key-value as binary
     * `:arg0` - set the command arg0
-    * `:stderr_to_stdout` - redirects stderr to stdout when true
-    * `:parallelism` - when true, the VM will schedule port tasks to improve
-      parallelism in the system. If set to false, the VM will try to perform
+    * `:stderr_to_stdout` - redirects stderr to stdout when `true`
+    * `:parallelism` - when `true`, the VM will schedule port tasks to improve
+      parallelism in the system. If set to `false`, the VM will try to perform
       commands immediately, improving latency at the expense of parallelism.
       The default can be set on system startup by passing the "+spp" argument
       to `--erl`.

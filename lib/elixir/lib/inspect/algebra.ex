@@ -4,8 +4,8 @@ defmodule Inspect.Opts do
 
   The following fields are available:
 
-    * `:structs` - when false, structs are not formatted by the inspect
-      protocol, they are instead printed as maps, defaults to true.
+    * `:structs` - when `false`, structs are not formatted by the inspect
+      protocol, they are instead printed as maps, defaults to `true`.
 
     * `:binaries` - when `:as_strings` all binaries will be printed as strings,
       non-printable bytes will be escaped.
@@ -27,15 +27,15 @@ defmodule Inspect.Opts do
       bitstrings, and lists, does not apply to strings nor char lists, defaults
       to 50.
 
-    * `:pretty` - if set to true enables pretty printing, defaults to false.
+    * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
-    * `:width` - defaults to the 80 characters, used when pretty is true or
+    * `:width` - defaults to the 80 characters, used when pretty is `true` or
       when printing to IO devices.
 
     * `:base` - print integers as :binary, :octal, :decimal, or :hex, defaults
       to :decimal
 
-    * `:safe` - when false, failures while inspecting structs will be raised
+    * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the Inspect.Error exception. This
       is useful when debugging failures and crashes for custom inspect
       implementations
@@ -403,7 +403,7 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = ["A", "B"]
-      iex> doc = Inspect.Algebra.folddoc(doc, fn(x,y) ->
+      iex> doc = Inspect.Algebra.folddoc(doc, fn(x, y) ->
       ...>   Inspect.Algebra.concat [x, "!", y]
       ...> end)
       iex> Inspect.Algebra.format(doc, 80)
@@ -411,9 +411,10 @@ defmodule Inspect.Algebra do
 
   """
   @spec folddoc([t], ((t, t) -> t)) :: t
+  def folddoc(list, fun)
   def folddoc([], _), do: empty
   def folddoc([doc], _), do: doc
-  def folddoc([d|ds], f), do: f.(d, folddoc(ds, f))
+  def folddoc([d|ds], fun), do: fun.(d, folddoc(ds, fun))
 
   # Elixir conveniences
 

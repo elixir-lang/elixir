@@ -29,7 +29,7 @@ quoted(Forms, File, Dest) ->
     put(elixir_compiled, []),
     elixir_lexical:run(File, Dest, fun
       (Pid) ->
-        Env = elixir:env_for_eval([{line,1},{file,File}]),
+        Env = elixir:env_for_eval([{line, 1}, {file, File}]),
         eval_forms(Forms, [], Env#{lexical_tracker := Pid})
     end),
     lists:reverse(get(elixir_compiled))
@@ -106,15 +106,15 @@ options(nil) ->
     false -> [];
     Str when is_list(Str) ->
       case erl_scan:string(Str) of
-        {ok,Tokens,_} ->
+        {ok, Tokens, _} ->
           case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
-            {ok,List} when is_list(List) -> List;
-            {ok,Term} -> [Term];
-            {error,_Reason} ->
+            {ok, List} when is_list(List) -> List;
+            {ok, Term} -> [Term];
+            {error, _Reason} ->
               io:format("Ignoring bad term in ~ts\n", [Key]),
               []
           end;
-        {error, {_,_,_Reason}, _} ->
+        {error, {_, _, _Reason}, _} ->
           io:format("Ignoring bad term in ~ts\n", [Key]),
           []
       end
@@ -160,7 +160,7 @@ return_module_name(I) ->
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
-allows_fast_compilation({defmodule,_,_}) -> true;
+allows_fast_compilation({defmodule, _, _}) -> true;
 allows_fast_compilation(_) -> false.
 
 %% INTERNAL API
@@ -181,7 +181,7 @@ inner_module(Forms, Options, Bootstrap, #{file := File} = E, Callback) when
     is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
   Source = elixir_utils:characters_to_list(File),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Source}|Options]) of
+  case compile:noenv_forms([no_auto_import()|Forms], [return, {source, Source}|Options]) of
     {ok, Module, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       {module, Module} = code:load_binary(Module, beam_location(E), Binary),
@@ -207,7 +207,7 @@ no_auto_import() ->
 
 core() ->
   {ok, _} = application:ensure_all_started(elixir),
-  New = orddict:from_list([{docs,false},{internal,true}]),
+  New = orddict:from_list([{docs, false}, {internal, true}]),
   Merge = fun(_, _, Value) -> Value end,
   Update = fun(Old) -> orddict:merge(Merge, Old, New) end,
   _ = elixir_config:update(compiler_options, Update),
@@ -233,6 +233,7 @@ core_main() ->
    <<"lib/elixir/lib/macro.ex">>,
    <<"lib/elixir/lib/code.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
+   <<"lib/elixir/lib/kernel/def.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
    <<"lib/elixir/lib/behaviour.ex">>,
    <<"lib/elixir/lib/exception.ex">>,
@@ -256,8 +257,10 @@ core_main() ->
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
-  ok = file:write_file(Path, Binary),
-  Path.
+  case file:write_file(Path, Binary) of
+    ok -> Path;
+    {error, Reason} -> error('Elixir.File.Error':exception([{action, "write to"}, {path, Path}, {reason, Reason}]))
+  end.
 
 %% ERROR HANDLING
 

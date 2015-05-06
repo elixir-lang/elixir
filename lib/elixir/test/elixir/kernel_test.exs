@@ -6,10 +6,24 @@ defmodule KernelTest do
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
     assert ("abcd" =~ ~r/e/) == false
+    assert ("abcd" =~ ~R/c(d)/) == true
+    assert ("abcd" =~ ~R/e/) == false
 
     string = "^ab+cd*$"
     assert (string =~ "ab+") == true
     assert (string =~ "bb") == false
+
+    assert ("abcd" =~ ~r//) == true
+    assert ("abcd" =~ ~R//) == true
+    assert ("abcd" =~ "") == true
+
+    assert ("" =~ ~r//) == true
+    assert ("" =~ ~R//) == true
+    assert ("" =~ "") == true
+
+    assert ("" =~ "abcd") == false
+    assert ("" =~ ~r/abcd/) == false
+    assert ("" =~ ~R/abcd/) == false
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ "hello"
@@ -17,6 +31,34 @@ defmodule KernelTest do
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ ~r"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      1234 =~ ~R"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      ~r"hello" =~ "hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      ~r"hello" =~ ~r"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      :abcd =~ ~r//
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      :abcd =~ ""
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+      "abcd" =~ nil
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+      "abcd" =~ :abcd
     end
   end
 
@@ -52,7 +94,7 @@ defmodule KernelTest do
     refute 4 in list
   end
 
-  @at_list  [4,5]
+  @at_list  [4, 5]
   @at_range 6..8
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
@@ -76,11 +118,18 @@ defmodule KernelTest do
   end
 
   test "in/2 in case guard" do
-    assert case_in(1, [1,2,3]) == true
+    assert case_in(1, [1, 2, 3]) == true
     assert case_in(1, 1..3) == true
     assert case_in(2, 1..3) == true
     assert case_in(3, 1..3) == true
     assert case_in(-3, -1..-3) == true
+  end
+
+  test "in/2 in module body" do
+    defmodule In do
+      @foo [:a, :b]
+      true = :a in @foo
+    end
   end
 
   @bitstring <<"foo", 16::4>>
@@ -150,7 +199,7 @@ defmodule KernelTest do
   end
 
   defmodule User do
-    defstruct name: "john"
+    assert is_map defstruct name: "john"
   end
 
   defmodule UserTuple do

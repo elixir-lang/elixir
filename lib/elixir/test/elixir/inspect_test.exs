@@ -186,7 +186,7 @@ defmodule Inspect.ListTest do
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == ~s(["123": 1])
 
-    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) ==
+    assert inspect([foo: [1, 2, 3, :bar], bazzz: :bat], [pretty: true, width: 30]) ==
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
@@ -215,11 +215,11 @@ defmodule Inspect.ListTest do
   test :improper do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
-    assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+    assert inspect([1, 2, 3, 4, 5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
   end
 
   test :nested do
-    assert inspect(Enum.reduce(1..100, [0], &[&2 , Integer.to_string(&1)]), [limit: 5]) ==
+    assert inspect(Enum.reduce(1..100, [0], &[&2, Integer.to_string(&1)]), [limit: 5]) ==
            "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
     assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), [limit: 5]) ==
            "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
@@ -366,6 +366,10 @@ defmodule Inspect.OthersTest do
   test :hash_dict_set do
     assert "#HashDict<" <> _ = inspect(HashDict.new)
     assert "#HashSet<" <> _ = inspect(HashSet.new)
+  end
+
+  test :map_set do
+    assert "#MapSet<" <> _ = inspect(MapSet.new)
   end
 
   test :pids do

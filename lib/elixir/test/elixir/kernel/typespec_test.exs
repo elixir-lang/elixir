@@ -395,7 +395,7 @@ defmodule Kernel.TypespecTest do
     end
 
     assert [opaque: {:mytype1, _, []},
-            type: {:mytype, _, []},] =
+            type: {:mytype, _, []}, ] =
            types(module)
   end
 
@@ -440,6 +440,21 @@ defmodule Kernel.TypespecTest do
             {{:myfun3, 2}, [{:type, _, :fun, [{:type, _, :product, [{:type, _, :integer, []}, {:type, _, :integer, []}]}, {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]}]}]},
             {{:myfun4, 1}, [{:type, _, :fun, [{:type, _, :product, [{:ann_type, _, [{:var, _, :x}, {:type, _, :integer, []}]}]}, {:type, _, :integer, []}]}]}] =
            specs(module)
+  end
+
+  test "@spec(spec) for unreachable private function" do
+    # Run it inside capture_io/2 so that the "myfun/1 is unused"
+    # warning doesn't get printed among the ExUnit test results.
+    output = ExUnit.CaptureIO.capture_io :stderr, fn ->
+      module = test_module do
+        defp myfun(x), do: x
+        @spec myfun(integer) :: integer
+      end
+
+      assert [] == specs(module)
+    end
+
+    assert output =~ "warning: function myfun/1 is unused"
   end
 
   test "@spec(spec) with guards" do
@@ -525,7 +540,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
-      (quote do: @type ops() :: {+1,-1}),
+      (quote do: @type ops() :: {+1, -1}),
       (quote do: @type my_map() :: %{hello: :world}),
       (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
       (quote do: @type list1() :: list()),

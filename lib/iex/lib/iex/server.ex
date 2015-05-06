@@ -98,10 +98,10 @@ defmodule IEx.Server do
           start_loop(opts, pid, ref)
         end
 
-      {:DOWN, ^ref, :process, ^pid,  :normal} ->
+      {:DOWN, ^ref, :process, ^pid, :normal} ->
         run(opts)
 
-      {:DOWN, ^ref, :process, ^pid,  _reason} ->
+      {:DOWN, ^ref, :process, ^pid, _reason} ->
         :ok
     end
   end
@@ -157,7 +157,9 @@ defmodule IEx.Server do
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
-
+      {:peek_env, receiver} ->
+        send receiver, {:peek, state.env}
+        wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
           wait_input(state, evaluator, evaluator_ref, input)
@@ -207,7 +209,7 @@ defmodule IEx.Server do
     reset_loop([], evaluator, evaluator_ref)
   end
 
-  defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator,  reason},
+  defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator, reason},
                         evaluator, evaluator_ref, input, _callback) do
     try do
       io_error Exception.format_banner({:EXIT, evaluator}, reason)

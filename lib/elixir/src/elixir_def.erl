@@ -79,7 +79,8 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
   elixir_locals:record_definition(Tuple, Kind, Module),
 
   Location = retrieve_location(KeepLocation, Module),
-  {Function, Defaults, Super} = translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E),
+  {Function, Defaults, Super} = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
+  run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, expr_from_body(Line, Body), E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
@@ -154,7 +155,7 @@ compile_super(_Module, _, _E) -> ok.
 %% Translate the given call and expression given
 %% and then store it in memory.
 
-translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_integer(Line) ->
+translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Line) ->
   Arity = length(Args),
 
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
@@ -166,7 +167,6 @@ translate_definition(Kind, Line, Module, Name, Args, Guards, Body, E) when is_in
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
   {Clauses, Super} = translate_clause(Body, Line, Kind, Unpacked, EGuards, EBody, S),
 
-  run_on_definition_callbacks(Kind, Line, Module, Name, EArgs, EGuards, EBody, E),
   Function = {function, Line, Name, Arity, Clauses},
   {Function, Defaults, Super}.
 
@@ -201,7 +201,7 @@ translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
 
 expr_from_body(_Line, nil)          -> nil;
 expr_from_body(_Line, [{do, Expr}]) -> Expr;
-expr_from_body(Line, Else)          -> {'try', [{line,Line}], [Else]}.
+expr_from_body(Line, Else)          -> {'try', [{line, Line}], [Else]}.
 
 is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
@@ -272,8 +272,8 @@ split_definition([{Tuple, defmacrop, _Line, _Location, _Body}|T], Unreachable,
   split_definition(T, Unreachable, Def, Defp, Defmacro, [Tuple|Defmacrop],
                    Exports, Functions);
 
-split_definition([], _Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
-  {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail}.
+split_definition([], Unreachable, Def, Defp, Defmacro, Defmacrop, Exports, {Head, Tail}) ->
+  {Def, Defp, Defmacro, Defmacrop, Exports, Head ++ Tail, Unreachable}.
 
 %% Helpers
 
@@ -282,7 +282,7 @@ export(Kind, {Name, Arity}) when Kind == defmacro; Kind == defmacrop ->
 export(Kind, {Name, Arity}) when Kind == def; Kind == defp ->
   {Name, Arity}.
 
-function_for_stored_definition(Line, {Name,Arity}, Clauses) ->
+function_for_stored_definition(Line, {Name, Arity}, Clauses) ->
   {function, Line, Name, Arity, Clauses}.
 
 add_definition(_Line, nil, Body, {Head, Tail}) ->
@@ -345,7 +345,7 @@ check_valid_kind(Line, File, Name, Arity, Kind, StoredKind) ->
 
 check_valid_clause(Line, File, Name, Arity, Kind, Data, StoredLine, StoredFile) ->
   case ets:lookup_element(Data, ?last_def, 2) of
-    {Name,Arity} -> [];
+    {Name, Arity} -> [];
     [] -> [];
     _ ->
       Relative = elixir_utils:relative_to_cwd(elixir_utils:relative_to_cwd(StoredFile)),
@@ -406,7 +406,7 @@ assert_valid_name(_Line, _Kind, _Name, _Args, _S) ->
 format_error({bodyless_fun, Kind, {Name, Arity}}) ->
   io_lib:format("bodyless clause provided for nonexistent ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({no_module,{Kind,Name,Arity}}) ->
+format_error({no_module, {Kind, Name, Arity}}) ->
   io_lib:format("cannot define function outside module, invalid scope for ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity > A ->
@@ -417,18 +417,18 @@ format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A -
   io_lib:format("~ts ~ts/~B conflicts with defaults from ~ts ~ts/~B",
     [Kind, Name, Arity, K, Name, A]);
 
-format_error({clauses_with_defaults,{Kind,Name,Arity}}) ->
+format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
   io_lib:format("~ts ~ts/~B has default values and multiple clauses, "
     "define a function head with the defaults", [Kind, Name, Arity]);
 
-format_error({out_of_order_defaults,{Kind,Name,Arity}}) ->
+format_error({out_of_order_defaults, {Kind, Name, Arity}}) ->
   io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
 
-format_error({ungrouped_clause,{Kind,Name,Arity,OrigLine,OrigFile}}) ->
+format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",
     [Kind, Kind, Name, Arity, OrigFile, OrigLine]);
 
-format_error({changed_kind,{Name,Arity,Previous,Current}}) ->
+format_error({changed_kind, {Name, Arity, Previous, Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]);
 
 format_error({no_alias, Atom}) ->

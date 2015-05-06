@@ -64,7 +64,7 @@ defmodule IEx.Helpers do
   ## Examples
 
       c ["foo.ex", "bar.ex"], "ebin"
-      #=> [Foo,Bar]
+      #=> [Foo, Bar]
 
       c "baz.ex"
       #=> [Baz]
@@ -140,7 +140,8 @@ defmodule IEx.Helpers do
   """
   @h_modules [__MODULE__, Kernel, Kernel.SpecialForms]
 
-  defmacro h({:/, _, [call, arity]} = other) do
+  defmacro h(term)
+  defmacro h({:/, _, [call, arity]} = term) do
     args =
       case Macro.decompose_call(call) do
         {_mod, :__info__, []} when arity == 1 ->
@@ -150,7 +151,7 @@ defmodule IEx.Helpers do
         {fun, []} ->
           [@h_modules, fun, arity]
         _ ->
-          [other]
+          [term]
       end
 
     quote do
@@ -177,6 +178,38 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints the documentation for the given callback function.
+
+  It also accepts single module argument to list
+  all available behaviour callbacks.
+
+  ## Examples
+
+      b(Mix.Task.run/1)
+      b(Mix.Task.run)
+      b(Dict)
+
+  """
+  defmacro b(term)
+  defmacro b({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
+    quote do
+      IEx.Introspection.b(unquote(mod), unquote(fun), unquote(arity))
+    end
+  end
+
+  defmacro b({{:., _, [mod, fun]}, _, []}) do
+    quote do
+      IEx.Introspection.b(unquote(mod), unquote(fun))
+    end
+  end
+
+  defmacro b(module) do
+    quote do
+      IEx.Introspection.b(unquote(module))
+    end
+  end
+
+  @doc """
   Prints the types for the given module or for the given function/arity pair.
 
   ## Examples
@@ -185,6 +218,7 @@ defmodule IEx.Helpers do
       t(Enum.t/0)
       t(Enum.t)
   """
+  defmacro t(term)
   defmacro t({:/, _, [{{:., _, [mod, fun]}, _, []}, arity]}) do
     quote do
       IEx.Introspection.t(unquote(mod), unquote(fun), unquote(arity))
@@ -215,12 +249,13 @@ defmodule IEx.Helpers do
       s(is_atom/1)
 
   """
-  defmacro s({:/, _, [call, arity]} = other) do
+  defmacro s(term)
+  defmacro s({:/, _, [call, arity]} = term) do
     args =
       case Macro.decompose_call(call) do
         {mod, fun, []} -> [mod, fun, arity]
         {fun, []} -> [Kernel, fun, arity]
-        _ -> [other]
+        _ -> [term]
       end
 
     quote do
@@ -247,7 +282,7 @@ defmodule IEx.Helpers do
   """
   def v do
     inspect_opts = IEx.inspect_opts
-    IEx.History.each(&print_history_entry(&1, inspect_opts))
+    IEx.History.each(history, &print_history_entry(&1, inspect_opts))
   end
 
   defp print_history_entry({counter, cache, result}, inspect_opts) do
@@ -262,7 +297,7 @@ defmodule IEx.Helpers do
   For instance, v(-1) returns the result of the last evaluated expression.
   """
   def v(n) do
-    IEx.History.nth(n) |> elem(2)
+    IEx.History.nth(history, n) |> elem(2)
   end
 
   @doc """
@@ -432,7 +467,7 @@ defmodule IEx.Helpers do
   @doc """
   Respawns the current shell by starting a new shell process.
 
-  Returns true if it worked.
+  Returns `true` if it worked.
   """
   def respawn do
     if whereis = IEx.Server.whereis do
@@ -505,4 +540,6 @@ defmodule IEx.Helpers do
         raise CompileError
     end
   end
+
+  defp history, do: Process.get(:iex_history)
 end

@@ -51,7 +51,7 @@ defmodule Integer do
   defp do_digits(0, _base, []),  do: [0]
   defp do_digits(0, _base, acc), do: acc
   defp do_digits(n, base, acc)  do
-    do_digits div(n,base), base, [rem(n,base) | acc]
+    do_digits div(n, base), base, [rem(n, base) | acc]
   end
 
   @doc """
@@ -59,13 +59,13 @@ defmodule Integer do
 
   An optional base value may be provided representing the radix for the digits.
 
-   ## Examples
+  ## Examples
 
-       iex> Integer.undigits([1, 0, 1])
-       101
+      iex> Integer.undigits([1, 0, 1])
+      101
 
-       iex> Integer.undigits([1, 4], 16)
-       20
+      iex> Integer.undigits([1, 4], 16)
+      20
   """
   @spec undigits([integer], integer) :: integer
   def undigits(digits, base \\ 10) when is_integer(base) do
@@ -91,10 +91,10 @@ defmodule Integer do
   ## Examples
 
       iex> Integer.parse("34")
-      {34,""}
+      {34, ""}
 
       iex> Integer.parse("34.5")
-      {34,".5"}
+      {34, ".5"}
 
       iex> Integer.parse("three")
       :error
@@ -117,7 +117,7 @@ defmodule Integer do
   """
   @spec parse(binary, 2..36) :: {integer, binary} | :error | no_return
   def parse(binary, base \\ 10)
-  
+
   def parse(binary, base) when is_integer(base) and base in 2..36 do
     parse_in_base(binary, base)
   end
@@ -209,7 +209,7 @@ defmodule Integer do
 
   """
   @spec to_string(integer, 2..36) :: String.t
-  def to_string(some_integer, base) when is_integer(base) and base in 2..36 do
+  def to_string(some_integer, base) do
     :erlang.integer_to_binary(some_integer, base)
   end
 
@@ -242,7 +242,7 @@ defmodule Integer do
 
   """
   @spec to_char_list(integer, 2..36) :: char_list
-  def to_char_list(number, base) when is_integer(base) and base in 2..36 do
+  def to_char_list(number, base) do
     :erlang.integer_to_list(number, base)
   end
 end

@@ -148,7 +148,7 @@ defmodule Enum do
   `Enumerable` protocol:
 
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
-      [2,4,6]
+      [2, 4, 6]
 
   Some particular types, like dictionaries, yield a specific format on
   enumeration. For dicts, the argument is always a `{key, value}` tuple:
@@ -166,7 +166,7 @@ defmodule Enum do
   be carefully used with such functions, as they can potentially run
   forever. For example:
 
-      Enum.each Stream.cycle([1,2,3]), &IO.puts(&1)
+      Enum.each Stream.cycle([1, 2, 3]), &IO.puts(&1)
 
   """
 
@@ -380,10 +380,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.concat([1..3, 4..6, 7..9])
-      [1,2,3,4,5,6,7,8,9]
+      [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
       iex> Enum.concat([[1, [2], 3], [4], [5, 6]])
-      [1,[2],3,4,5,6]
+      [1, [2], 3, 4, 5, 6]
 
   """
   @spec concat(t) :: t
@@ -399,10 +399,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.concat(1..3, 4..6)
-      [1,2,3,4,5,6]
+      [1, 2, 3, 4, 5, 6]
 
       iex> Enum.concat([1, 2, 3], [4, 5, 6])
-      [1,2,3,4,5,6]
+      [1, 2, 3, 4, 5, 6]
 
   """
   @spec concat(t, t) :: t
@@ -466,6 +466,8 @@ defmodule Enum do
   Enumerates the collection, returning a list where all consecutive
   duplicated elements are collapsed to a single element.
 
+  Elements are compared using `===`.
+
   ## Examples
 
       iex> Enum.dedup([1, 2, 3, 3, 2, 1])
@@ -487,7 +489,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
-      [{1,:x}, {2,:y}, {1, :x}]
+      [{1, :x}, {2, :y}, {1, :x}]
 
       iex> Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
       [5, 1, 3, 2]
@@ -516,10 +518,10 @@ defmodule Enum do
       []
 
       iex> Enum.drop([1, 2, 3], 0)
-      [1,2,3]
+      [1, 2, 3]
 
       iex> Enum.drop([1, 2, 3], -1)
-      [1,2]
+      [1, 2]
 
   """
   @spec drop(t, integer) :: list
@@ -547,7 +549,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.drop_while([1, 2, 3, 4, 5], fn(x) -> x < 3 end)
-      [3,4,5]
+      [3, 4, 5]
 
   """
   @spec drop_while(t, (element -> as_boolean(term))) :: list
@@ -824,7 +826,7 @@ defmodule Enum do
       iex> Enum.flat_map([:a, :b, :c], fn(x) -> [x, x] end)
       [:a, :a, :b, :b, :c, :c]
 
-      iex> Enum.flat_map([{1,3}, {4,6}], fn({x,y}) -> x..y end)
+      iex> Enum.flat_map([{1, 3}, {4, 6}], fn({x, y}) -> x..y end)
       [1, 2, 3, 4, 5, 6]
 
   """
@@ -850,7 +852,7 @@ defmodule Enum do
       iex> Enum.flat_map_reduce(enum, 0, fn i, acc ->
       ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
-      {[1,2,3], 3}
+      {[1, 2, 3], 3}
 
   """
   @spec flat_map_reduce(t, acc, fun) :: {[any], any} when
@@ -1329,7 +1331,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
-      {[2], [1,3]}
+      {[2], [1, 3]}
 
   """
   @spec partition(t, (element -> any)) :: {list, list}
@@ -1536,15 +1538,15 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sample([1,2,3])
+      iex> Enum.random([1, 2, 3])
       1
-      iex> Enum.sample([1,2,3])
+      iex> Enum.random([1, 2, 3])
       2
 
   """
-  @spec sample(t) :: element
-  def sample(collection) do
-    case sample(collection, 1) do
+  @spec random(t) :: element
+  def random(collection) do
+    case random(collection, 1) do
       [] -> raise Enum.EmptyError
       [e] -> e
     end
@@ -1558,18 +1560,18 @@ defmodule Enum do
   number between two integers, the best option is to use the
   :random module.
 
-  See `sample/1` for notes on implementation and random seed.
+  See `random/1` for notes on implementation and random seed.
 
   ## Examples
 
-      iex> Enum.sample(1..10, 2)
+      iex> Enum.random(1..10, 2)
       [1, 5]
-      iex> Enum.sample(?a..?z, 5)
+      iex> Enum.random(?a..?z, 5)
       'tfesm'
 
   """
-  @spec sample(t, integer) :: list
-  def sample(collection, count) when count > 0 do
+  @spec random(t, integer) :: list
+  def random(collection, count) when count > 0 do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn x, {i, sample} ->
@@ -1587,7 +1589,7 @@ defmodule Enum do
     sample |> Tuple.to_list |> take(Kernel.min(count, n))
   end
 
-  def sample(_collection, 0), do: []
+  def random(_collection, 0), do: []
 
   @doc """
   Applies the given function to each element in the collection,
@@ -1597,7 +1599,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.scan(1..5, &(&1 + &2))
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(t, (element, any -> any)) :: list
@@ -1614,7 +1616,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.scan(1..5, 0, &(&1 + &2))
-      [1,3,6,10,15]
+      [1, 3, 6, 10, 15]
 
   """
   @spec scan(t, any, (element, any -> any)) :: list
@@ -1730,6 +1732,8 @@ defmodule Enum do
 
   """
   @spec slice(t, Range.t) :: list
+  def slice(collection, range)
+
   def slice(collection, first..last) when first >= 0 and last >= 0 do
     # Simple case, which works on infinite collections
     if last - first >= 0 do
@@ -1857,19 +1861,19 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.split([1, 2, 3], 2)
-      {[1,2], [3]}
+      {[1, 2], [3]}
 
       iex> Enum.split([1, 2, 3], 10)
-      {[1,2,3], []}
+      {[1, 2, 3], []}
 
       iex> Enum.split([1, 2, 3], 0)
-      {[], [1,2,3]}
+      {[], [1, 2, 3]}
 
       iex> Enum.split([1, 2, 3], -1)
-      {[1,2], [3]}
+      {[1, 2], [3]}
 
       iex> Enum.split([1, 2, 3], -5)
-      {[], [1,2,3]}
+      {[], [1, 2, 3]}
 
   """
   @spec split(t, integer) :: {list, list}
@@ -1932,10 +1936,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.take([1, 2, 3], 2)
-      [1,2]
+      [1, 2]
 
       iex> Enum.take([1, 2, 3], 10)
-      [1,2,3]
+      [1, 2, 3]
 
       iex> Enum.take([1, 2, 3], 0)
       []
@@ -2084,7 +2088,7 @@ defmodule Enum do
   ## Example
 
       iex> Enum.uniq_by([{1, :x}, {2, :y}, {1, :z}], fn {x, _} -> x end)
-      [{1,:x}, {2,:y}]
+      [{1, :x}, {2, :y}]
 
   """
   @spec uniq_by(t, (element -> term)) :: list
@@ -2096,44 +2100,6 @@ defmodule Enum do
   def uniq_by(collection, fun) do
     {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
     :lists.reverse(list)
-  end
-
-  @doc """
-  Sorts the collection, eliminating duplicate elements (one element is kept
-  from each group of duplicates).
-
-  ## Examples
-
-      iex> Enum.usort([5, 1, 2, 3, 2, 1])
-      [1, 2, 3, 5]
-
-  """
-  @spec usort(t) :: list
-  def usort(collection) when is_list(collection) do
-    :lists.usort(collection)
-  end
-
-  def usort(collection) do
-    collection |> sort |> dedup
-  end
-
-  @doc """
-  Sorts the collection, eliminating duplicate elements (one element is kept
-  from each group of duplicates).
-
-  The function `fun` maps every element to a term which is used to
-  sort and dedup by.
-
-  ## Examples
-
-      iex> Enum.usort_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
-      [1, 5]
-
-  """
-
-  @spec usort_by(t, (element -> term)) :: list
-  def usort_by(collection, fun) do
-    collection |> sort_by(fun) |> dedup_by(fun)
   end
 
   @doc """
@@ -2171,10 +2137,10 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.zip([1, 2, 3], [:a, :b, :c])
-      [{1,:a},{2,:b},{3,:c}]
+      [{1, :a}, {2, :b}, {3, :c}]
 
-      iex> Enum.zip([1,2,3,4,5], [:a, :b, :c])
-      [{1,:a},{2,:b},{3,:c}]
+      iex> Enum.zip([1, 2, 3, 4, 5], [:a, :b, :c])
+      [{1, :a}, {2, :b}, {3, :c}]
 
   """
   @spec zip(t, t) :: [{any, any}]
@@ -2192,8 +2158,8 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.with_index [1,2,3]
-      [{1,0},{2,1},{3,2}]
+      iex> Enum.with_index [1, 2, 3]
+      [{1, 0}, {2, 1}, {3, 2}]
 
   """
   @spec with_index(t) :: list({element, non_neg_integer})

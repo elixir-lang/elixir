@@ -182,16 +182,6 @@ defmodule Mix.Utils do
     <<?_, to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<?-, t :: binary>>, _) do
-    <<?_>> <> do_underscore(t, ?-)
-  end
-
-  defp do_underscore(<< "..", t :: binary>>, _) do
-    <<"..">> <> underscore(t)
-  end
-
-  defp do_underscore(<<?.>>, _), do: <<?.>>
-
   defp do_underscore(<<?., t :: binary>>, _) do
     <<?/>> <> underscore(t)
   end
@@ -213,39 +203,35 @@ defmodule Mix.Utils do
       "FooBar"
 
   """
-  def camelize(""), do: ""
+  @spec camelize(String.t) :: String.t
+  def camelize(string)
 
-  def camelize(<<?_, t :: binary>>) do
-    camelize(t)
-  end
+  def camelize(""),
+    do: ""
 
-  def camelize(<<h, t :: binary>>) do
-    <<to_upper_char(h)>> <> do_camelize(t)
-  end
+  def camelize(<<?_, t :: binary>>),
+    do: camelize(t)
 
-  defp do_camelize(<<?_, ?_, t :: binary>>) do
-    do_camelize(<< ?_, t :: binary >>)
-  end
+  def camelize(<<h, t :: binary>>),
+    do: <<to_upper_char(h)>> <> do_camelize(t)
 
-  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z do
-    <<to_upper_char(h)>> <> do_camelize(t)
-  end
+  defp do_camelize(<<?_, ?_, t :: binary>>),
+    do: do_camelize(<< ?_, t :: binary >>)
 
-  defp do_camelize(<<?_>>) do
-    <<>>
-  end
+  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z,
+    do: <<to_upper_char(h)>> <> do_camelize(t)
 
-  defp do_camelize(<<?/, t :: binary>>) do
-    <<?.>> <> camelize(t)
-  end
+  defp do_camelize(<<?_>>),
+    do: <<>>
 
-  defp do_camelize(<<h, t :: binary>>) do
-    <<h>> <> do_camelize(t)
-  end
+  defp do_camelize(<<?/, t :: binary>>),
+    do: <<?.>> <> camelize(t)
 
-  defp do_camelize(<<>>) do
-    <<>>
-  end
+  defp do_camelize(<<h, t :: binary>>),
+    do: <<h>> <> do_camelize(t)
+
+  defp do_camelize(<<>>),
+    do: <<>>
 
   @doc """
   Takes a module and converts it to a command.
@@ -357,12 +343,12 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
-      given path is a URL.
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
   """
   def read_path!(path, opts \\ []) do
     cond do
-      url?(path) && opts[:shell] ->
+      url?(path) && opts[:system] ->
         read_shell(path, nil)
       url?(path) ->
         read_httpc(path, nil)
@@ -385,15 +371,15 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:shell` - Forces the use of `wget` or `curl` to fetch the file if the
-      given path is a URL.
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
 
     * `:force` - Forces overwriting target file without a shell prompt.
   """
   def copy_path!(source, target, opts \\ []) when is_binary(source) and is_binary(target) do
     if opts[:force] || overwriting?(target) do
       cond do
-        url?(source) && opts[:shell] ->
+        url?(source) && opts[:system] ->
           read_shell(source, target)
         url?(source) ->
           read_httpc(source, target)

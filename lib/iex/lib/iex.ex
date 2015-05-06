@@ -172,7 +172,7 @@ defmodule IEx do
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
-      [1,2,3,...]
+      [1, 2, 3, ...]
 
   ## Expressions in IEx
 
@@ -238,7 +238,7 @@ defmodule IEx do
     * `:doc_code`        — the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
-    * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
+    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
@@ -262,8 +262,8 @@ defmodule IEx do
 
   The value is a keyword list. Two prompt types:
 
-    * `:default_prompt` - used when `Node.alive?` returns false
-    * `:alive_prompt`   - used when `Node.alive?` returns true
+    * `:default_prompt` - used when `Node.alive?` returns `false`
+    * `:alive_prompt`   - used when `Node.alive?` returns `true`
 
   The part of the listed in the following of the prompt string is replaced.
 
@@ -340,7 +340,7 @@ defmodule IEx do
   This is useful for debugging a particular chunk of code
   and inspect the state of a particular process. The process
   is temporarily changed to trap exits (i.e. the process flag
-  `:trap_exit` is set to true) and has the `group_leader` changed
+  `:trap_exit` is set to `true`) and has the `group_leader` changed
   to support ANSI escape codes. Those values are reverted by
   calling `respawn`, which starts a new IEx shell, freeing up
   the pried one.
@@ -373,7 +373,7 @@ defmodule IEx do
   the shell will be reset and you gain access to all variables
   and the lexical scope from above:
 
-      pry(1)> map([a,b,c], &IO.inspect(&1))
+      pry(1)> map([a, b, c], &IO.inspect(&1))
       1
       2
       3
@@ -391,25 +391,41 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller the environment (hence it is called `pry`).
   """
-  defmacro pry(timeout \\ 1000) do
+  defmacro pry(timeout \\ 5000) do
     quote do
-      env  = __ENV__
-      meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
-      opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-      res  = IEx.Server.take_over("Request to pry #{meta}", opts, unquote(timeout))
-
-      # We cannot use colors because IEx may be off.
-      case res do
-        {:error, :self} = err ->
-          IO.puts :stdio, "IEx cannot pry itself."
-        {:error, :no_iex} = err ->
-          IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
-        _ ->
-          :ok
-      end
-
-      res
+      IEx.pry(binding, __ENV__, unquote(timeout))
     end
+  end
+
+  @doc """
+  Callback for `IEx.pry/1`.
+
+  You can invoke this function directly when you are not able to invoke
+  `IEx.pry/1` as a macro. This function expects the binding (from
+  `Kernel.binding/0`), the environment (from `__ENV__`) and the timeout
+  (a sensible default is 5000).
+  """
+  def pry(binding, env, timeout) do
+    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+    res  = IEx.Server.take_over("Request to pry #{meta}", opts, timeout)
+
+    # We cannot use colors because IEx may be off.
+    case res do
+      {:error, :self} ->
+        IO.puts :stdio, "IEx cannot pry the shell itself."
+      {:error, :no_iex} ->
+        extra =
+          case :os.type do
+            {:win32, _} -> " If you are Windows, you may need to start IEx with the --werl flag."
+            _           -> ""
+          end
+        IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?" <> extra
+      _ ->
+        :ok
+    end
+
+    res
   end
 
   ## Callbacks
@@ -437,10 +453,7 @@ defmodule IEx do
   ## Helpers
 
   defp start_iex() do
-    unless started? do
-      {:ok, _} = Application.ensure_all_started(:iex)
-    end
-
+    {:ok, _} = Application.ensure_all_started(:iex)
     :ok
   end
 

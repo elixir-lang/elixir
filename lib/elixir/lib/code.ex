@@ -3,11 +3,18 @@ defmodule Code do
   Utilities for managing code compilation, code evaluation and code loading.
 
   This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
-  to add behaviour which is specific to Elixir.
+  to add behaviour which is specific to Elixir. Almost all of the functions in this module
+  have global side effects on the behaviour of Elixir.
   """
 
   @doc """
   Lists all loaded files.
+
+  ## Examples
+
+      Code.require_file("../eex/test/eex_test.exs")
+      List.first(Code.loaded_files) =~ "eex_test.exs" #=> true
+
   """
   def loaded_files do
     :elixir_code_server.call :loaded
@@ -19,53 +26,76 @@ defmodule Code do
   The modules defined in the file are not removed;
   calling this function only removes them from the list,
   allowing them to be required again.
+
+  ## Examples
+
+      # Load EEx test code, unload file, check for functions still available
+      Code.load_file("../eex/test/eex_test.exs")
+      Code.unload_files(Code.loaded_files)
+      function_exported?(EExTest.Compiled, :before_compile, 0) #=> true
+
   """
   def unload_files(files) do
     :elixir_code_server.cast {:unload_files, files}
   end
 
   @doc """
-  Appends a path to the Erlang VM code path.
+  Appends a path to the end of the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for
+  finding module code.
 
   The path is expanded with `Path.expand/1` before being appended.
+  If this path does not exist, an error is returned.
+
+  ## Examples
+
+      Code.append_path(".") #=> true
+
+      Code.append_path("/does_not_exist") #=> {:error, :bad_directory}
+
   """
   def append_path(path) do
     :code.add_pathz(to_char_list(Path.expand path))
   end
 
   @doc """
-  Prepends a path to the Erlang VM code path.
+  Prepends a path to the begining of the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for finding
+  module code.
 
   The path is expanded with `Path.expand/1` before being prepended.
+  If this path does not exist, an error is returned.
+
+  ## Examples
+
+      Code.prepend_path(".") #=> true
+
+      Code.prepend_path("/does_not_exist") #=> {:error, :bad_directory}
+
   """
   def prepend_path(path) do
     :code.add_patha(to_char_list(Path.expand path))
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path.
+  Deletes a path from the Erlang VM code path list. This is the list of
+  directories the Erlang VM uses for finding module code.
 
-  The path is expanded with `Path.expand/1` before being deleted.
+  The path is expanded with `Path.expand/1` before being deleted. If the
+  path does not exist it returns false.
+
+  ## Examples
+
+      Code.prepend_path(".")
+      Code.delete_path(".") #=> true
+
+      Code.delete_path("/does_not_exist") #=> false
+
   """
   def delete_path(path) do
     :code.del_path(to_char_list(Path.expand path))
-  end
-
-  @doc """
-  Re-add paths given to the command line to keep their position
-  on the overall code path.
-
-  Some tools may change the code path by prepending new items but
-  still want the paths given by the user to have higher priority.
-  Calling this function guarantees the paths are re-added on
-  top of the user given ones.
-  """
-  @spec readd_paths() :: :ok
-  def readd_paths() do
-    {pa, pz} = :elixir_code_server.call(:paths)
-    :code.add_pathsa(pa)
-    :code.add_pathsz(pz)
-    :ok
   end
 
   @doc """
@@ -278,6 +308,12 @@ defmodule Code do
   Notice that if `load_file` is invoked by different processes concurrently,
   the target file will be loaded concurrently many times. Check `require_file/2`
   if you don't want a file to be loaded concurrently.
+
+  ## Examples
+
+      Code.load_file("eex_test.exs","../eex/test") |> List.first
+      #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
+
   """
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -300,7 +336,20 @@ defmodule Code do
   N times with a given file, it will be loaded only once. The first process to
   call `require_file` will get the list of loaded modules, others will get `nil`.
 
-  Check `load_file/2` if you want a file to be loaded multiple times.
+  Check `load_file/2` if you want a file to be loaded multiple times. See also
+  `unload_files/1`
+
+  ## Examples
+
+  If the code is already loaded, it returns nil:
+
+      Code.require_file("eex_test.exs","../eex/test") #=> nil
+
+  If the code is not already loaded, it returns the same as `load_file/2`:
+
+      Code.require_file("eex_test.exs","../eex/test") |> List.first
+      #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
+
   """
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
@@ -321,6 +370,12 @@ defmodule Code do
   Gets the compilation options from the code server.
 
   Check `compiler_options/1` for more information.
+
+  ## Examples
+
+      Code.compiler_options
+      #=> [debug_info: true, docs: true, warnings_as_errors: false]
+
   """
   def compiler_options do
     :elixir_config.get :compiler_options
@@ -330,6 +385,12 @@ defmodule Code do
   Returns a list with the available compiler options.
 
   See `Code.compiler_options/1` for more info.
+
+  ## Examples
+
+      Code.available_compiler_options
+      #=> [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
+
   """
   def available_compiler_options do
     [:docs, :debug_info, :ignore_module_conflict, :warnings_as_errors]
@@ -354,6 +415,13 @@ defmodule Code do
 
     * `:warnings_as_errors` - cause compilation to fail when warnings are
       generated
+
+  It returns the new list of compiler options.
+
+  ## Examples
+
+      Code.compiler_options(debug_info: true)
+      #=> [debug_info: true, docs: true, warnings_as_errors: false]
 
   """
   def compiler_options(opts) do
@@ -410,7 +478,7 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## `Code.ensure_compiled/1`
+  ## Code.ensure_compiled/1
 
   Elixir also contains an `ensure_compiled/1` function that is a
   superset of `ensure_loaded/1`.
@@ -425,6 +493,15 @@ defmodule Code do
   In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
   must be used in rare cases, usually involving macros that need to
   invoke a module for callback information.
+
+  ## Examples
+
+      iex> Code.ensure_loaded(Atom)
+      {:module, Atom}
+
+      iex> Code.ensure_loaded(DoesNotExist)
+      {:error, :nofile}
+
   """
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
@@ -436,6 +513,12 @@ defmodule Code do
   Similar to `ensure_loaded/1`, but returns `true` if the module
   is already loaded or was successfully loaded. Returns `false`
   otherwise.
+
+  ## Examples
+
+      iex> Code.ensure_loaded?(Atom)
+      true
+
   """
   def ensure_loaded?(module) do
     match?({:module, ^module}, ensure_loaded(module))
@@ -482,7 +565,7 @@ defmodule Code do
     match?({:module, ^module}, ensure_compiled(module))
   end
 
-  @doc """
+  @doc ~S"""
   Returns the docs for the given module.
 
   When given a module name, it finds its BEAM code and reads the docs from it.
@@ -503,6 +586,14 @@ defmodule Code do
       behaviour callbacks using the `@doc` attribute
 
     * `:all` - a keyword list with both `:docs` and `:moduledoc`
+
+  ## Examples
+
+      # Get the documentation for the first function listed
+      iex> [fun|_] = Code.get_docs(Atom, :docs) |> Enum.sort()
+      iex> {{_function, _arity}, _line, _kind, _signature, text} = fun
+      iex> String.split(text, "\n") |> Enum.at(0)
+      "Converts an atom to a char list."
 
   """
   def get_docs(module, kind) when is_atom(module) do

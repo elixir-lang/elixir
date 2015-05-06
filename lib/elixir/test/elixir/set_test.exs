@@ -61,13 +61,13 @@ defmodule SetTest.Common do
       end
 
       test "disjoint?/2" do
-        assert Set.disjoint?(new_set([1, 2, 3]), new_set([4, 5 ,6]))
-        refute Set.disjoint?(new_set([1, 2, 3]), new_set([3, 4 ,5]))
+        assert Set.disjoint?(new_set([1, 2, 3]), new_set([4, 5, 6]))
+        refute Set.disjoint?(new_set([1, 2, 3]), new_set([3, 4, 5]))
       end
 
       test "disjoint/2 with other set" do
-        assert Set.disjoint?(new_set([1, 2, 3]), TestSet.new([4, 5 ,6]))
-        refute Set.disjoint?(new_set([1, 2, 3]), TestSet.new([3, 4 ,5]))
+        assert Set.disjoint?(new_set([1, 2, 3]), TestSet.new([4, 5, 6]))
+        refute Set.disjoint?(new_set([1, 2, 3]), TestSet.new([3, 4, 5]))
       end
 
       test "equal?/2" do
@@ -152,7 +152,7 @@ defmodule SetTest.Common do
       test "is enumerable" do
         assert Enum.member?(int_set, 1)
         refute Enum.member?(int_set, 1.0)
-        assert Enum.sort(int_set) == [1,2,3]
+        assert Enum.sort(int_set) == [1, 2, 3]
       end
 
       test "is collectable" do
@@ -185,4 +185,12 @@ defmodule Set.HashSetTest do
 
   doctest Set
   def set_impl, do: HashSet
+end
+
+defmodule Set.MapSetTest do
+  use ExUnit.Case, async: true
+  use SetTest.Common
+
+  doctest Set
+  def set_impl, do: MapSet
 end

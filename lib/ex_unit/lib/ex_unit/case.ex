@@ -9,7 +9,7 @@ defmodule ExUnit.Case do
 
     * :async - configure Elixir to run that specific test case in parallel with
       others. Must be used for performance when your test cases do not change
-      any global state.
+      any global state. It defaults to `false`.
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module's documentation for more
@@ -134,7 +134,7 @@ defmodule ExUnit.Case do
       ExUnit.configure(exclude: [external: true])
 
   From now on, ExUnit will not run any test that has the `external` flag
-  set to true. This behaviour can be reversed with the `:include` option
+  set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 
       mix test --include external:true
@@ -162,14 +162,16 @@ defmodule ExUnit.Case do
 
     quote do
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        if unquote(async) do
-          ExUnit.Server.add_async_case(__MODULE__)
-        else
-          ExUnit.Server.add_sync_case(__MODULE__)
-        end
-
         Enum.each [:ex_unit_tests, :tag, :moduletag],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
+
+        if unquote(async) do
+          @moduletag async: true
+          ExUnit.Server.add_async_case(__MODULE__)
+        else
+          @moduletag async: false
+          ExUnit.Server.add_sync_case(__MODULE__)
+        end
 
         @before_compile ExUnit.Case
         @ex_unit_test_names HashSet.new

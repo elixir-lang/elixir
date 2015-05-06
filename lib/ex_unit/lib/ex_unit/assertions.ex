@@ -36,7 +36,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts its argument is true.
+  Asserts its argument is `true`.
 
   `assert` tries to be smart and provide good
   reporting whenever there is a failure. In particular, if
@@ -191,7 +191,7 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Asserts `value` is true, displaying the given `message` otherwise.
+  Asserts `value` is `true`, displaying the given `message` otherwise.
 
   ## Examples
 
@@ -208,25 +208,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `value` is true.
-  If it fails, it raises an expectation error
-  using the given `left` and `right` values.
+  Asserts a message was or is going to be received.
 
-  You probably don't need to use this—the regular `assert` function
-  handles this for you.
-
-  ## Examples
-
-      assert this > that, this, that, "more than"
-
-  """
-  def assert(value, left, right, message) when is_binary(message) do
-    assert(value, left: left, right: right, message: message)
-  end
-
-  @doc """
-  Asserts a message was or is going to be received. Unlike
-  `assert_received`, it has a default timeout of 100 milliseconds.
+  Unlike `assert_received`, it has a default timeout
+  of 100 milliseconds.
 
   The `expected` argument is a pattern.
 
@@ -377,7 +362,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that `val1` and `val2` differ by no more than `delta`.
+  Asserts that `value1` and `value2` differ by no more than `delta`.
 
 
   ## Examples
@@ -386,11 +371,11 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def assert_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = message ||
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be less than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be less than #{inspect delta}"
     assert diff < delta, message
   end
 
@@ -460,8 +445,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-      refute_receive message, timeout \\ 100, message \\ nil
-
   Asserts `message` was not received (and won't be received) within
   the `timeout` period.
 
@@ -523,7 +506,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `val1` and `val2` are not within `delta`.
+  Asserts `value1` and `value2` are not within `delta`.
 
   If you supply `message`, information about the values will
   automatically be appended to it.
@@ -534,14 +517,14 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def refute_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = if message do
-      message <> " (difference between #{inspect val1} " <>
-      "and #{inspect val2} is less than #{inspect delta})"
+      message <> " (difference between #{inspect value1} " <>
+      "and #{inspect value2} is less than #{inspect delta})"
     else
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be more than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be more than #{inspect delta}"
     end
     refute diff < delta, message
   end

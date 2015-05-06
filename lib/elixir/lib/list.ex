@@ -26,7 +26,7 @@ defmodule List do
   ## Examples
 
       iex> List.delete([1, 2, 3], 1)
-      [2,3]
+      [2, 3]
 
       iex> List.delete([1, 2, 2, 3], 2)
       [1, 2, 3]
@@ -43,10 +43,11 @@ defmodule List do
   ## Examples
 
       iex> List.duplicate("hello", 3)
-      ["hello","hello","hello"]
+      ["hello", "hello", "hello"]
 
       iex> List.duplicate([1, 2], 2)
-      [[1,2],[1,2]]
+      [[1, 2], [1, 2]]
+
 
   """
   @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
@@ -60,7 +61,7 @@ defmodule List do
   ## Examples
 
       iex> List.flatten([1, [[2], 3]])
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec flatten(deep_list) :: list when deep_list: [any | deep_list]
@@ -76,7 +77,7 @@ defmodule List do
   ## Examples
 
       iex> List.flatten([1, [[2], 3]], [4, 5])
-      [1,2,3,4,5]
+      [1, 2, 3, 4, 5]
 
   """
   @spec flatten(deep_list, [elem]) :: [elem] when elem: var, deep_list: [elem | deep_list]
@@ -285,7 +286,7 @@ defmodule List do
       ["hello"]
 
       iex> List.wrap([1, 2, 3])
-      [1,2,3]
+      [1, 2, 3]
 
       iex> List.wrap(nil)
       []
@@ -457,12 +458,24 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an existing atom.
+  Converts a char list to an existing atom. Raises an ArguementError
+  if the atom does not exist. 
 
   Currently Elixir does not support conversions from char lists
   which contains Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      iex> barney = :barney
+      iex> List.to_existing_atom('barney')
+      :barney
+
+      iex> List.to_existing_atom('fred')
+      ** (ArgumentError) argument error
+         :erlang.list_to_existing_atom('fred')
+
   """
   @spec to_existing_atom(char_list) :: atom
   def to_existing_atom(char_list) do

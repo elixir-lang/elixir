@@ -4,7 +4,7 @@ defmodule Mix.Compilers.Erlang do
   @doc """
   Compiles the files in `src_dirs` with given extensions into
   the destination, automatically invoking the callback for each
-  stale input and output pair (or for all if `force` is true) and
+  stale input and output pair (or for all if `force` is `true`) and
   removing files that no longer have a source, while keeping the
   manifest up to date.
 
@@ -27,7 +27,7 @@ defmodule Mix.Compilers.Erlang do
     1. look for files ending with the `lfe` extension in `src`
        and their `beam` counterpart in `ebin`
 
-    2. for each stale file (or for all if `force` is true),
+    2. for each stale file (or for all if `force` is `true`),
        invoke the callback passing the calculated input
        and output
 
@@ -51,7 +51,7 @@ defmodule Mix.Compilers.Erlang do
   Compiles the given src/dest tuples.
 
   A manifest file and a callback to be invoked for each src/dest pair
-  must be given. A src/dest pair where destination is nil is considered
+  must be given. A src/dest pair where destination is `nil` is considered
   to be up to date and won't be (re-)compiled.
   """
   def compile(manifest, tuples, callback) do
@@ -71,6 +71,11 @@ defmodule Mix.Compilers.Erlang do
     else
       # Build the project structure so we can write down compiled files.
       Mix.Project.build_structure
+
+      # Let's prepend the newly created path so compiled files
+      # can be accessed still during compilation (for behaviours
+      # and what not).
+      Code.prepend_path(Mix.Project.compile_path)
 
       # Remove manifest entries with no source
       Enum.each(removed, &File.rm/1)

@@ -57,8 +57,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp reduce(expr) do
-    Enum.reverse Enum.reduce [' ', '(', '[', '{'], expr, fn token, acc ->
-      hd(:string.tokens(acc, token))
+    Enum.reverse Enum.reduce ' ([{', expr, fn token, acc ->
+      hd(:string.tokens(acc, [token]))
     end
   end
 
@@ -77,9 +77,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp format_expansion([uniq], hint) do
-    hint = to_hint(uniq, hint)
-    uniq = if hint == "", do: to_uniq_entries(uniq), else: []
-    yes(hint, uniq)
+    case to_hint(uniq, hint) do
+      ""   -> yes("", to_uniq_entries(uniq))
+      hint -> yes(hint, [])
+    end
   end
 
   defp format_expansion([first|_]=entries, hint) do
@@ -102,7 +103,9 @@ defmodule IEx.Autocomplete do
 
   # Elixir.fun
   defp expand_call({:__aliases__, _, list}, hint) do
-    expand_require(Module.concat(list), hint)
+    expand_alias(list)
+    |> Module.concat()
+    |> expand_require(hint)
   end
 
   defp expand_call(_, _) do
@@ -134,22 +137,62 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  defp expand_elixir_modules(list, hint) do
-    mod = Module.concat(list)
-    format_expansion match_elixir_modules(mod, hint, list == []) ++
-                     match_module_funs(mod, hint), hint
+  defp expand_elixir_modules([], hint) do
+    expand_elixir_modules(Elixir, hint, match_aliases(hint))
   end
 
-  defp match_elixir_modules(module, hint, root) do
-    module = Atom.to_string(module)
-    depth  = length(String.split(module, ".")) + 1
-    base   = module <> "." <> hint
+  defp expand_elixir_modules(list, hint) do
+    expand_alias(list)
+    |> Module.concat()
+    |> expand_elixir_modules(hint, [])
+  end
 
-    for mod <- match_modules(base, root),
-        tokens = String.split(mod, "."),
-        length(tokens) == depth do
-      name = List.last(tokens)
-      %{kind: :module, type: :elixir, name: name}
+  defp expand_elixir_modules(mod, hint, aliases) do
+    aliases
+    |> Kernel.++(match_elixir_modules(mod, hint))
+    |> Kernel.++(match_module_funs(mod, hint))
+    |> format_expansion(hint)
+  end
+
+  defp expand_alias([name | rest] = list) do
+    module = Module.concat(Elixir, name)
+    Enum.find_value env_aliases(), list, fn {alias, mod} ->
+      if alias === module do
+        Module.split(mod) ++ rest
+      end
+    end
+  end
+
+  defp env_aliases() do
+    case IEx.Server.whereis() do
+      nil -> []
+      server ->
+        send(server, {:peek_env, self()})
+        receive do
+          {:peek, %Macro.Env{} = env} -> env.aliases
+        after
+          5000 -> []
+        end
+    end
+  end
+
+  defp match_aliases(hint) do
+    for {alias, _mod} <- env_aliases(),
+        [name] = Module.split(alias),
+        String.starts_with?(name, hint) do
+      %{kind: :module, type: :alias, name: name}
+    end
+  end
+
+  defp match_elixir_modules(module, hint) do
+    name  = Atom.to_string(module)
+    depth = length(String.split(name, ".")) + 1
+    base  = name <> "." <> hint
+
+    for mod <- match_modules(base, module === Elixir),
+        parts = String.split(mod, "."),
+        depth == length(parts) do
+      %{kind: :module, type: :elixir, name: List.last(parts)}
     end
   end
 
@@ -167,18 +210,16 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules(false) do
-    modules = Enum.map(:code.all_loaded, fn({m, _}) -> Atom.to_string(m) end)
-
-    if :code.get_mode() === :interactive do
-      modules ++ get_modules_from_applications()
-    else
-      modules
+    modules = Enum.map(:code.all_loaded(), &Atom.to_string(elem(&1, 0)))
+    case :code.get_mode() do
+      :interactive -> modules ++ get_modules_from_applications()
+      _otherwise -> modules
     end
   end
 
   defp get_modules_from_applications do
-    for {app, _, _} <- which_applications(),
-        {_, modules} = :application.get_key(app, :modules),
+    for app <- which_applications(),
+        {:ok, modules} = :application.get_key(elem(app, 0), :modules),
         module <- modules do
       Atom.to_string(module)
     end
@@ -188,7 +229,7 @@ defmodule IEx.Autocomplete do
     try do
       :application.which_applications(5000)
     catch
-      :exit, {:timeout, _} -> [:elixir, :iex]
+      :exit, {:timeout, _} -> [{:elixir}, {:iex}]
     end
   end
 
@@ -209,8 +250,8 @@ defmodule IEx.Autocomplete do
             String.starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
         end |> :lists.sort()
-      _ ->
-        []
+
+      _otherwise -> []
     end
   end
 
@@ -219,7 +260,7 @@ defmodule IEx.Autocomplete do
       if docs = Code.get_docs(mod, :docs) do
         for {tuple, _line, _kind, _sign, doc} <- docs, doc != false, do: tuple
       else
-        (mod.__info__(:functions) -- [__info__: 1]) ++ mod.__info__(:macros)
+        mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
       end
     else
       mod.module_info(:exports)
@@ -227,7 +268,8 @@ defmodule IEx.Autocomplete do
   end
 
   defp ensure_loaded(Elixir), do: {:error, :nofile}
-  defp ensure_loaded(mod),    do: Code.ensure_compiled(mod)
+  defp ensure_loaded(mod),
+    do: Code.ensure_compiled(mod)
 
   ## Ad-hoc conversions
 
@@ -248,10 +290,15 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_hint(%{kind: :module, name: name}, hint) do
-    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint)) <> "."
+    format_hint(name, hint) <> "."
   end
 
   defp to_hint(%{kind: :function, name: name}, hint) do
-    :binary.part(name, byte_size(hint), byte_size(name) - byte_size(hint))
+    format_hint(name, hint)
+  end
+
+  defp format_hint(name, hint) do
+    hint_size = byte_size(hint)
+    :binary.part(name, hint_size, byte_size(name) - hint_size)
   end
 end

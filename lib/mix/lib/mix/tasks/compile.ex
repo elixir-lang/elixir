@@ -2,7 +2,6 @@ defmodule Mix.Tasks.Compile do
   use Mix.Task
 
   @shortdoc "Compile source files"
-  @recursive true
 
   @moduledoc """
   A meta task that compiles source files.
@@ -14,6 +13,12 @@ defmodule Mix.Tasks.Compile do
 
     * `:compilers` - compilers to run, defaults to:
       `[:leex, :yeec, :erlang, :elixir, :app]`
+
+    * `:consolidate_protocols` - when true, runs protocol
+      consolidation via the `compile.protocols` task
+
+    * `:build_embedded` - when true, activates protocol
+      consolidation and does not generate symlinks in builds
 
   ## Command line options
 
@@ -47,28 +52,34 @@ defmodule Mix.Tasks.Compile do
       shell.info format('mix ~-#{max}s # ~ts', [task, doc])
     end
 
-    shell.info "\nEnabled compilers: #{Enum.join compilers(), ", "}"
+    compilers = compilers() ++ if(consolidate_protocols?(), do: [:protocols], else: [])
+    shell.info "\nEnabled compilers: #{Enum.join compilers, ", "}"
     :ok
   end
 
   def run(args) do
     Mix.Project.get!
-    Mix.Task.run "loadpaths", ["--no-readd"|args]
+    Mix.Task.run "loadpaths", args
 
-    res =
-      Enum.map(compilers(), fn(compiler) ->
-        List.wrap Mix.Task.run("compile.#{compiler}", args)
-      end)
+    res = Mix.Task.run "compile.all", args
+    res = if :ok in List.wrap(res), do: :ok, else: :noop
 
-    true = Code.prepend_path(Mix.Project.compile_path)
-    unless "--no-readd" in args, do: Code.readd_paths()
-    if Enum.any?(res, &(:ok in &1)), do: :ok, else: :noop
+    if res == :ok && consolidate_protocols?() do
+      Mix.Task.run "compile.protocols", args
+    end
+
+    res
   end
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
     Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
     Mix.Task.reenable "loadpaths"
+  end
+
+  defp consolidate_protocols? do
+    config = Mix.Project.config
+    Keyword.get(config, :consolidate_protocols, config[:build_embedded])
   end
 
   @doc """

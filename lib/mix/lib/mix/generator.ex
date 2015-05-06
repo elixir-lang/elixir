@@ -31,13 +31,6 @@ defmodule Mix.Generator do
     File.mkdir_p! path
   end
 
-  @doc false
-  defmacro from_file(path) do
-    quote do
-      File.read! Path.expand(unquote(path), __ENV__.file)
-    end
-  end
-
   @doc """
   Embed a template given by `contents` into the current module.
 

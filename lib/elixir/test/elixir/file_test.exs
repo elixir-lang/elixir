@@ -893,7 +893,7 @@ defmodule FileTest do
   test :lstat_with_dangling_symlink do
     invalid_file = tmp_path("invalid_file")
     dest = tmp_path("dangling_symlink")
-    File.ln_s(invalid_file,dest)
+    File.ln_s(invalid_file, dest)
     try do
       assert {:ok, info } = File.lstat(dest)
       assert info.type == :symlink
@@ -905,7 +905,7 @@ defmodule FileTest do
   test :lstat_with_dangling_symlink! do
     invalid_file = tmp_path("invalid_file")
     dest = tmp_path("dangling_symlink")
-    File.ln_s(invalid_file,dest)
+    File.ln_s(invalid_file, dest)
     try do
      assert File.lstat!(dest).type == :symlink
     after
@@ -1277,7 +1277,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chmod(fixture, 0o100777) == {:error,:enoent}
+    assert File.chmod(fixture, 0o100777) == {:error, :enoent}
   end
 
   test :chmod_with_failure! do
@@ -1294,7 +1294,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chgrp(fixture, 1) == {:error,:enoent}
+    assert File.chgrp(fixture, 1) == {:error, :enoent}
   end
 
   test :chgrp_with_failure! do
@@ -1311,7 +1311,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chown(fixture, 1) == {:error,:enoent}
+    assert File.chown(fixture, 1) == {:error, :enoent}
   end
 
   test :chown_with_failure! do

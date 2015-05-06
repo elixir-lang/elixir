@@ -44,8 +44,27 @@ defmodule Tuple do
 
   """
   @spec insert_at(tuple, non_neg_integer, term) :: tuple
-  def insert_at(tuple, index, term) do
-    :erlang.insert_element(index + 1, tuple, term)
+  def insert_at(tuple, index, value) do
+    :erlang.insert_element(index + 1, tuple, value)
+  end
+
+  @doc """
+  Inserts an element into the end of a tuple.
+
+  Returns a new tuple which has one element more than `tuple`, and contains
+  the elements in `tuple` followed by `value` as the last element.
+
+  Inlined by the compiler.
+
+  ## Examples
+      iex> tuple = {:foo, :bar}
+      iex> Tuple.append(tuple, :baz)
+      {:foo, :bar, :baz}
+
+  """
+  @spec append(tuple, term) :: tuple
+  def append(tuple, value) do
+    :erlang.append_element(tuple, value)
   end
 
   @doc """

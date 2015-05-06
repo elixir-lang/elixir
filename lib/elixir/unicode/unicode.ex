@@ -88,6 +88,7 @@ defmodule String.Unicode do
   end
 
   # Strip
+  def lstrip(string)
 
   def lstrip(""), do: ""
 
@@ -97,7 +98,7 @@ defmodule String.Unicode do
     end
   end
 
-  def lstrip(other) when is_binary(other), do: other
+  def lstrip(string) when is_binary(string), do: string
 
   def rstrip(string) when is_binary(string) do
     do_rstrip(string, [], [])

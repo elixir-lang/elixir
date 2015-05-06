@@ -36,12 +36,13 @@ defmodule Keyword do
   @type t(value) :: [{key, value}]
 
   @doc """
-  Checks if the given argument is a keyword list or not.
+  Returns `true` if `term` is a keyword list; otherwise returns `false`.
   """
   @spec keyword?(term) :: boolean
-  def keyword?([{key, _value} | rest]) when is_atom(key) do
-    keyword?(rest)
-  end
+  def keyword?(term)
+
+  def keyword?([{key, _value} | rest]) when is_atom(key),
+    do: keyword?(rest)
 
   def keyword?([]),     do: true
   def keyword?(_other), do: false
@@ -50,9 +51,7 @@ defmodule Keyword do
   Returns an empty keyword list, i.e. an empty list.
   """
   @spec new :: t
-  def new do
-    []
-  end
+  def new, do: []
 
   @doc """
   Creates a keyword from an enumerable.
@@ -69,9 +68,7 @@ defmodule Keyword do
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
-    Enum.reduce pairs, [], fn {k, v}, keywords ->
-      put(keywords, k, v)
-    end
+    new(pairs, fn pair -> pair end)
   end
 
   @doc """
@@ -83,16 +80,17 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end) |> Enum.sort
-      [a: :a, b: :b]
+      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end)
+      [b: :b, a: :a]
 
   """
-  @spec new(Enum.t, ({key, value} -> {key, value})) :: t
-  def new(pairs, transform) do
-    Enum.reduce pairs, [], fn i, keywords ->
-      {k, v} = transform.(i)
-      put(keywords, k, v)
+  @spec new(Enum.t, (term -> {key, value})) :: t
+  def new(pairs, transform) when is_function(transform, 1) do
+    fun = fn el, acc ->
+      {k, v} = transform.(el)
+      put_new(acc, k, v)
     end
+    :lists.foldr(fun, [], Enum.reverse(pairs))
   end
 
   @doc """
@@ -186,9 +184,8 @@ defmodule Keyword do
     {get, :lists.reverse(acc, [{key, new_value}|t])}
   end
 
-  defp get_and_update([h|t], acc, key, fun) do
-    get_and_update(t, [h|acc], key, fun)
-  end
+  defp get_and_update([h|t], acc, key, fun),
+    do: get_and_update(t, [h|acc], key, fun)
 
   defp get_and_update([], acc, key, fun) do
     {get, update} = fun.(nil)
@@ -245,7 +242,7 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.get_values([a: 1, a: 2], :a)
-      [1,2]
+      [1, 2]
 
   """
   @spec get_values(t, key) :: [value]
@@ -266,10 +263,10 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.keys([a: 1, b: 2])
-      [:a,:b]
+      [:a, :b]
 
       iex> Keyword.keys([a: 1, b: 2, a: 3])
-      [:a,:b,:a]
+      [:a, :b, :a]
 
   """
   @spec keys(t) :: [key]
@@ -283,7 +280,7 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.values([a: 1, b: 2])
-      [1,2]
+      [1, 2]
 
   """
   @spec values(t) :: [value]
@@ -455,9 +452,9 @@ defmodule Keyword do
 
   """
   @spec merge(t, t) :: t
-  def merge(d1, d2) when is_list(d1) and is_list(d2) do
-    fun = fn {k, _v} -> not has_key?(d2, k) end
-    d2 ++ :lists.filter(fun, d1)
+  def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
+    fun = fn {k, _v} -> not has_key?(keywords2, k) end
+    keywords2 ++ :lists.filter(fun, keywords1)
   end
 
   @doc """
@@ -474,8 +471,8 @@ defmodule Keyword do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(d1, d2, fun) when is_list(d1) and is_list(d2) do
-    do_merge(d2, d1, fun)
+  def merge(keywords1, keywords2, fun) when is_list(keywords1) and is_list(keywords2) do
+    do_merge(keywords2, keywords1, fun)
   end
 
   defp do_merge([{k, v2}|t], acc, fun) do
@@ -538,7 +535,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Updates the `key` with the given function.
+  Updates the `key` in `keywords` with the given function.
 
   If the `key` does not exist, inserts the given `initial` value.
 
@@ -555,6 +552,8 @@ defmodule Keyword do
 
   """
   @spec update(t, key, value, (value -> value)) :: t
+  def update(keywords, key, initial, fun)
+
   def update([{key, value}|keywords], key, _initial, fun) do
     [{key, fun.(value)}|delete(keywords, key)]
   end
@@ -652,24 +651,26 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.pop [a: 1], :a
-      {1,[]}
+      {1, []}
 
       iex> Keyword.pop [a: 1], :b
-      {nil,[a: 1]}
+      {nil, [a: 1]}
 
       iex> Keyword.pop [a: 1], :b, 3
-      {3,[a: 1]}
-
-      iex> Keyword.pop [a: 1], :b, 3
-      {3,[a: 1]}
+      {3, [a: 1]}
 
       iex> Keyword.pop [a: 1, a: 2], :a
-      {1,[]}
+      {1, []}
 
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    {get(keywords, key, default), delete(keywords, key)}
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {default, keywords}
+    end
   end
 
   @doc """
@@ -690,14 +691,20 @@ defmodule Keyword do
       ...>   :result
       ...> end
       iex> Keyword.pop_lazy(keyword, :a, fun)
-      {1,[]}
+      {1, []}
       iex> Keyword.pop_lazy(keyword, :b, fun)
-      {:result,[a: 1]}
+      {:result, [a: 1]}
 
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
-  def pop_lazy(keywords, key, fun) when is_list(keywords) do
-    {get_lazy(keywords, key, fun), delete(keywords, key)}
+  def pop_lazy(keywords, key, fun)
+      when is_list(keywords) and is_function(fun, 0) do
+    case fetch(keywords, key) do
+      {:ok, value} ->
+        {value, delete(keywords, key)}
+      :error ->
+        {fun.(), keywords}
+    end
   end
 
   @doc """
@@ -710,24 +717,24 @@ defmodule Keyword do
   ## Examples
 
       iex> Keyword.pop_first [a: 1], :a
-      {1,[]}
+      {1, []}
 
       iex> Keyword.pop_first [a: 1], :b
-      {nil,[a: 1]}
+      {nil, [a: 1]}
 
       iex> Keyword.pop_first [a: 1], :b, 3
-      {3,[a: 1]}
-
-      iex> Keyword.pop_first [a: 1], :b, 3
-      {3,[a: 1]}
+      {3, [a: 1]}
 
       iex> Keyword.pop_first [a: 1, a: 2], :a
-      {1,[a: 2]}
+      {1, [a: 2]}
 
   """
   @spec pop_first(t, key, value) :: {value, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
-    {get(keywords, key, default), delete_first(keywords, key)}
+    case :lists.keytake(key, 1, keywords) do
+      {:value, {^key, value}, rest} -> {value, rest}
+      false -> {default, keywords}
+    end
   end
 
   # Dict callbacks

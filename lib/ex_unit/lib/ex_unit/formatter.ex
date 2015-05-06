@@ -9,23 +9,23 @@ defmodule ExUnit.Formatter do
   The following events are possible:
 
     * `{:suite_started, opts}` -
-          the suite has started with the specified options to the runner.
+      the suite has started with the specified options to the runner.
 
     * `{:suite_finished, run_us, load_us}` -
-          the suite has finished. `run_us` and `load_us` are the run and load
-          times in microseconds respectively.
+      the suite has finished. `run_us` and `load_us` are the run and load
+      times in microseconds respectively.
 
     * `{:case_started, test_case}` -
-          a test case has started. See `ExUnit.TestCase` for details.
+      a test case has started. See `ExUnit.TestCase` for details.
 
     * `{:case_finished, test_case}` -
-          a test case has finished. See `ExUnit.TestCase` for details.
+      a test case has finished. See `ExUnit.TestCase` for details.
 
     * `{:test_started, test_case}` -
-          a test case has started. See `ExUnit.Test` for details.
+      a test case has started. See `ExUnit.Test` for details.
 
     * `{:test_finished, test_case}` -
-          a test case has finished. See `ExUnit.Test` for details.
+      a test case has finished. See `ExUnit.Test` for details.
 
   """
 
@@ -105,6 +105,7 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
+  def format_test_failure(test, failure, counter, width, formatter)
   def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
@@ -116,6 +117,7 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test case and formats its failure.
   """
+  def format_test_case_failure(test_case, failure, counter, width, formatter)
   def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)

@@ -28,8 +28,8 @@ defmodule EEx.Engine do
   use Behaviour
 
   defcallback handle_body(Macro.t) :: Macro.t
-  defcallback handle_text(Macro.t, binary) :: Macro.t
-  defcallback handle_expr(Macro.t, binary, Macro.t) :: Macro.t
+  defcallback handle_text(Macro.t, String.t) :: Macro.t
+  defcallback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do
@@ -44,8 +44,8 @@ defmodule EEx.Engine do
         EEx.Engine.handle_text(buffer, text)
       end
 
-      def handle_expr(buffer, mark, expr) do
-        EEx.Engine.handle_expr(buffer, mark, expr)
+      def handle_expr(buffer, marker, expr) do
+        EEx.Engine.handle_expr(buffer, marker, expr)
       end
 
       defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2]
@@ -56,7 +56,7 @@ defmodule EEx.Engine do
   Handles assigns in quoted expressions.
 
   This can be added to any custom engine by invoking
-  `handle_assign/3` with `Macro.prewalk/1`:
+  `handle_assign/1` with `Macro.prewalk/2`:
 
       def handle_expr(buffer, token, expr) do
         expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
@@ -74,8 +74,7 @@ defmodule EEx.Engine do
   end
 
   @doc """
-  The default implementation implementation simply returns the
-  given expression.
+  The default implementation simply returns the given expression.
   """
   def handle_body(quoted) do
     quoted
@@ -96,6 +95,7 @@ defmodule EEx.Engine do
 
   All other markers are not implemented by this engine.
   """
+  @spec handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
   def handle_expr(buffer, "=", expr) do
     quote do
       tmp = unquote(buffer)

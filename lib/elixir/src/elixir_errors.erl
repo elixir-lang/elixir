@@ -113,15 +113,15 @@ handle_file_warning(_, File, {Line, sys_core_fold, {no_effect, {erlang, F, A}}})
     true -> {"use of operator ~ts has no effect", [translate_comp_op(F)]};
     false ->
       case erl_internal:bif(F, A) of
-        false -> {"the call to :erlang.~ts/~B has no effect", [F,A]};
-        true ->  {"the call to ~ts/~B has no effect", [F,A]}
+        false -> {"the call to :erlang.~ts/~B has no effect", [F, A]};
+        true ->  {"the call to ~ts/~B has no effect", [F, A]}
       end
   end,
   Message = io_lib:format(Fmt, Args),
   warn(Line, File, Message);
 
 %% Rewrite undefined behaviour to check for protocols
-handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity},Module}}) ->
+handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour_func, {Fun, Arity}, Module}}) ->
   {DefKind, Def, DefArity} =
     case atom_to_list(Fun) of
       "MACRO-" ++ Rest -> {macro, list_to_atom(Rest), Arity - 1};
@@ -133,7 +133,7 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour_func,{Fun,Arity
   Message = io_lib:format(Raw, [Kind, DefKind, Def, DefArity, Kind, elixir_aliases:inspect(Module)]),
   warn(Line, File, Message);
 
-handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
+handle_file_warning(_, File, {Line, erl_lint, {undefined_behaviour, Module}}) ->
   case elixir_compiler:get_opt(internal) of
     true  -> ok;
     false ->
@@ -142,14 +142,14 @@ handle_file_warning(_, File, {Line,erl_lint,{undefined_behaviour,Module}}) ->
   end;
 
 %% Ignore unused vars at "weird" lines (<= 0)
-handle_file_warning(_, _File, {Line,erl_lint,{unused_var,_Var}}) when Line =< 0 ->
+handle_file_warning(_, _File, {Line, erl_lint, {unused_var, _Var}}) when Line =< 0 ->
   ok;
 
 %% Ignore shadowed and exported vars as we guarantee no conflicts ourselves
-handle_file_warning(_, _File, {_Line,erl_lint,{shadowed_var,_Var,_Where}}) ->
+handle_file_warning(_, _File, {_Line, erl_lint, {shadowed_var, _Var, _Where}}) ->
   ok;
 
-handle_file_warning(_, _File, {_Line,erl_lint,{exported_var,_Var,_Where}}) ->
+handle_file_warning(_, _File, {_Line, erl_lint, {exported_var, _Var, _Where}}) ->
   ok;
 
 %% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc
@@ -157,17 +157,17 @@ handle_file_warning(_, File, {Line, sys_core_fold, nomatch_guard}) ->
   warn(Line, File, "this check/guard will always yield the same result");
 
 %% Properly format other unused vars
-handle_file_warning(_, File, {Line,erl_lint,{unused_var,Var}}) ->
+handle_file_warning(_, File, {Line, erl_lint, {unused_var, Var}}) ->
   Message = format_error(erl_lint, {unused_var, format_var(Var)}),
   warn(Line, File, Message);
 
 %% Handle literal eval failures
-handle_file_warning(_, File, {Line,sys_core_fold,{eval_failure, Error}}) ->
+handle_file_warning(_, File, {Line, sys_core_fold, {eval_failure, Error}}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   warn(Line, File, ["this expression will fail with ", elixir_aliases:inspect(Struct)]);
 
 %% Default behaviour
-handle_file_warning(_, File, {Line,Module,Desc}) ->
+handle_file_warning(_, File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
   warn(Line, File, Message).
 
@@ -176,7 +176,7 @@ handle_file_warning(File, Desc) ->
 
 -spec handle_file_error(file:filename_all(), {non_neg_integer(), module(), any()}) -> no_return().
 
-handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
+handle_file_error(File, {Line, erl_lint, {unsafe_var, Var, {In, _Where}}}) ->
   Translated = case In of
     'orelse'  -> 'or';
     'andalso' -> 'and';
@@ -185,11 +185,11 @@ handle_file_error(File, {Line,erl_lint,{unsafe_var,Var,{In,_Where}}}) ->
   Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
-handle_file_error(File, {Line,erl_lint,{spec_fun_undefined,{M,F,A}}}) ->
+handle_file_error(File, {Line, erl_lint, {spec_fun_undefined, {M, F, A}}}) ->
   Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
-handle_file_error(File, {Line,Module,Desc}) ->
+handle_file_error(File, {Line, Module, Desc}) ->
   Message = format_error(Module, Desc),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
 
@@ -224,7 +224,7 @@ is_protocol(Module) ->
   case code:ensure_loaded(Module) of
     {module, _} ->
       erlang:function_exported(Module, '__protocol__', 1) andalso
-        Module:'__protocol__'(name) == Module;
+        Module:'__protocol__'(module) == Module;
     {error, _} ->
       false
   end.

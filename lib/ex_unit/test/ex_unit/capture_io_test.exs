@@ -224,7 +224,7 @@ defmodule ExUnit.CaptureIOTest do
 
     capture_io(":erl. mof*,,l", fn ->
       assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
-      assert :io.scan_erl_form('>') == {:ok, [{:atom, 1, :mof}, {:*, 1}, {:"," , 1}, {:",", 1}, {:atom, 1, :l}], 1}
+      assert :io.scan_erl_form('>') == {:ok, [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}], 1}
       assert :io.scan_erl_form('>') == {:eof, 1}
     end)
 

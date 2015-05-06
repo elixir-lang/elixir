@@ -22,13 +22,16 @@ defmodule Mix.Tasks.Archive.Install do
 
   ## Command line options
 
+    * `--system` - uses one of the system tools (curl, wget or powershell
+      on Windows) to download the archive in case a URL is given
+
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
   """
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, shell: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, system: :boolean])
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)

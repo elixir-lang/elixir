@@ -96,9 +96,9 @@ defmodule ModuleTest do
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{:foo, _, _}, {:bar, _ , _}] = args
+    assert [{:foo, _, _}, {:bar, _, _}] = args
     assert [] = guards
-    assert {{:., _, [:erlang, :+]}, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
+    assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
 
   test :overridable_inside_before_compile do

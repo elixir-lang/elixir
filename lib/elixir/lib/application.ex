@@ -114,7 +114,7 @@ defmodule Application do
   @doc """
   Returns all key-value pairs for `app`.
   """
-  @spec get_all_env(app) :: [{key,value}]
+  @spec get_all_env(app) :: [{key, value}]
   def get_all_env(app) do
     :application.get_all_env(app)
   end
@@ -127,10 +127,7 @@ defmodule Application do
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
-    case :application.get_env(app, key) do
-      {:ok, value} -> value
-      :undefined -> default
-    end
+    :application.get_env(app, key, default)
   end
 
   @doc """
@@ -148,6 +145,23 @@ defmodule Application do
   end
 
   @doc """
+  Returns the value for `key` in `app`'s environment.
+
+  If the specified application is not loaded, or the configuration parameter
+  does not exist, raises `ArgumentError`.
+  """
+  @spec fetch_env!(app, key) :: value | no_return
+  def fetch_env!(app, key) do
+    case fetch_env(app, key) do
+      {:ok, value} -> value
+      :error ->
+        raise ArgumentError,
+          "application #{inspect app} is not loaded, " <>
+          "or the configuration parameter #{inspect key} is not set"
+    end
+  end
+
+  @doc """
   Puts the `value` in `key` for the given `app`.
 
   ## Options
@@ -159,7 +173,7 @@ defmodule Application do
   environment values specified in the `.app` file will override the ones
   previously set.
 
-  The persistent option can be set to true when there is a need to guarantee
+  The persistent option can be set to `true` when there is a need to guarantee
   parameters set with this function will not be overridden by the ones defined
   in the application resource file on load. This means persistent values will
   stick after the application is loaded and also on application reload.
