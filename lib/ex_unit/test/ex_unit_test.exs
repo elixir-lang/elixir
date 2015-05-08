@@ -69,7 +69,7 @@ defmodule ExUnitTest do
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
 
   after
-    ExUnit.configure(timeout: 30_000)
+    ExUnit.configure(timeout: 60_000)
   end
 
   test "filtering cases with tags" do
