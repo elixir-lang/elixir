@@ -93,7 +93,7 @@ defimpl Access, for: List do
   end
 end
 
-defimpl Access, for: Map do
+defimpl Access, for: [Map, Any] do
   def get(map, key) do
     case :maps.find(key, map) do
       {:ok, value} -> value
