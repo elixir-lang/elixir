@@ -114,8 +114,9 @@ defmodule ExUnit do
 
     def message(timeout)
     def message(%{timeout: timeout}) do
-      "test timed out after #{timeout}ms (you can change the test timeout " <>
-        "by setting \"@tag timeout: x\" where x is an integer in milliseconds)"
+      "test timed out after #{timeout}ms. You can change the timeout globally " <>
+        "via ExUnit.start/1 or per test by setting \"@tag timeout: x\" where x " <>
+        "is an integer in milliseconds)"
     end
   end
 
@@ -190,7 +191,7 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite
 
-    * `:timeout` - set the timeout for the tests
+    * `:timeout` - set the timeout for the tests (default 60_000 ms)
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->

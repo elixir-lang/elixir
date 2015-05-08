@@ -14,13 +14,13 @@ defmodule ExUnit.Mixfile do
        # Calculated on demand
        # max_cases: :erlang.system_info(:schedulers_online),
        # seed: rand(),
-       # timeout: 30_000
 
        autorun: true,
        colors: [],
        exclude: [],
        include: [],
        formatters: [ExUnit.CLIFormatter],
+       timeout: 60_000,
        trace: false]]
   end
 end

@@ -2,7 +2,6 @@ defmodule ExUnit.Runner do
   @moduledoc false
 
   alias ExUnit.EventManager, as: EM
-  @stop_timeout 30_000
 
   def run(async, sync, opts, load_us) do
     {opts, config} = configure(opts)
@@ -15,7 +14,7 @@ defmodule ExUnit.Runner do
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
-    EM.call(config.manager, ExUnit.RunnerStats, :stop, @stop_timeout)
+    EM.call(config.manager, ExUnit.RunnerStats, :stop, config.timeout)
   end
 
   def configure(opts) do
@@ -56,7 +55,6 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
     |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
     |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
-    |> Keyword.put_new(:timeout, 30_000)
   end
 
   defp loop(config) do
