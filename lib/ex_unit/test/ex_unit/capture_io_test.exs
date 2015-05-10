@@ -294,11 +294,11 @@ defmodule ExUnit.CaptureIOTest do
 
     try do
       capture_io(fn ->
-        assert false
+        raise "message"
       end)
     rescue
-      error in [ExUnit.AssertionError] ->
-        "Expected truthy, got false" = error.message
+      error in [RuntimeError] ->
+        "message" = error.message
     end
 
     # Ensure no leakage on failures

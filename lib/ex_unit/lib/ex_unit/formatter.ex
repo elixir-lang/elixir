@@ -105,24 +105,28 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test, failure, counter, width, formatter)
-  def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
+  def format_test_failure(test, failures, counter, width, formatter)
+  def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
       <> test_location(with_location(tags), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stack, case, name, formatter)
+      <> Enum.map_join(failures, "\n", fn {kind, reason, stack} ->
+           format_kind_reason(kind, reason, width, formatter)
+             <> format_stacktrace(stack, case, name, formatter)
+         end)
   end
 
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, failure, counter, width, formatter)
-  def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
+  def format_test_case_failure(test_case, failures, counter, width, formatter)
+  def format_test_case_failure(test_case, failures, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stacktrace, name, nil, formatter)
+      <> Enum.map_join(failures, "\n", fn {kind, reason, stack} ->
+           format_kind_reason(kind, reason, width, formatter)
+             <> format_stacktrace(stack, name, nil, formatter)
+         end)
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do

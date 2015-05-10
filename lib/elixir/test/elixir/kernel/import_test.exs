@@ -149,7 +149,7 @@ defmodule Kernel.ImportTest do
     try do
       import :lists
       flatten([1, [2], 3])
-      flunk
+      raise "go to catch clause"
     catch
       _, _ ->
         # Buggy local duplicate is untouched

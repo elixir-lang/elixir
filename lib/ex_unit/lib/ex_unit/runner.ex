@@ -171,7 +171,7 @@ defmodule ExUnit.Runner do
           end
           {test_case, tests}
         {:DOWN, ^case_ref, :process, ^case_pid, error} ->
-          test_case = %{test_case | state: {:failed, {{:EXIT, case_pid}, error, []}}}
+          test_case = add_failure(test_case, {{:EXIT, case_pid}, error, []})
           {test_case, []}
       end
 
@@ -183,8 +183,8 @@ defmodule ExUnit.Runner do
     {:ok, test_case, context}
   catch
     kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
-      {:error, %{test_case | state: failed}}
+      test_case = add_failure(test_case, {kind, Exception.normalize(kind, error), pruned_stacktrace})
+      {:error, test_case}
   end
 
   defp run_test(config, test, context) do
@@ -226,9 +226,10 @@ defmodule ExUnit.Runner do
           receive do
             {:DOWN, ^test_ref, :process, ^test_pid, _} -> :ok
           end
-          test
+          failures = ExUnit.FailureCollector.get_failures(test_pid)
+          add_failure(test, failures)
         {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-          %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
+          add_failure(test, {{:EXIT, test_pid}, error, []})
       after
         timeout ->
           stacktrace =
@@ -241,7 +242,7 @@ defmodule ExUnit.Runner do
             end
           Process.exit(test_pid, :kill)
           Process.demonitor(test_ref, [:flush])
-          %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace}}}
+          add_failure(test, {:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace})
       end
 
     exec_on_exit(test, test_pid)
@@ -252,8 +253,8 @@ defmodule ExUnit.Runner do
     {:ok, test, context}
   catch
     kind2, error2 ->
-      failed = {:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace()}}
-      {:error, %{test | state: failed}}
+      test = add_failure(test, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace()})
+      {:error, test}
   end
 
   defp exec_test(%ExUnit.Test{case: case, name: name} = test, context) do
@@ -261,8 +262,7 @@ defmodule ExUnit.Runner do
     test
   catch
     kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
-      %{test | state: failed}
+      add_failure(test, {kind, Exception.normalize(kind, error), pruned_stacktrace()})
   end
 
   defp exec_on_exit(test_or_case, pid) do
@@ -270,12 +270,18 @@ defmodule ExUnit.Runner do
       :ok ->
         test_or_case
       {kind, reason, stack} ->
-        state = test_or_case.state || {:failed, {kind, reason, prune_stacktrace(stack)}}
-        %{test_or_case | state: state}
+        add_failure(test_or_case, {kind, reason, prune_stacktrace(stack)})
     end
   end
 
   ## Helpers
+
+  defp add_failure(test, []),
+    do: test
+  defp add_failure(%{state: {:failed, failures}} = test, failure),
+    do: %{test | state: {:failed, List.wrap(failure) ++ failures}}
+  defp add_failure(test, failure),
+    do: %{test | state: {:failed, List.wrap(failure)}}
 
   defp shuffle(%{seed: 0}, list) do
     Enum.reverse(list)

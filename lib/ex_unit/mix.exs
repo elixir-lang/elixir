@@ -8,7 +8,10 @@ defmodule ExUnit.Mixfile do
   end
 
   def application do
-    [registered: [ExUnit.Server],
+    [registered: [
+      ExUnit.Server,
+      ExUnit.OnExitHandler,
+      ExUnit.FailureCollector],
      mod: {ExUnit, []},
      env: [
        # Calculated on demand

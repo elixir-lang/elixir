@@ -58,8 +58,8 @@ defmodule ExUnit do
   """
 
   @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
-  @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
-  @type failed :: {Exception.kind, reason :: term, stacktrace :: [tuple]}
+  @type state  :: nil | {:failed, failures} | {:skip, binary} | {:invalid, module}
+  @type failures :: [{Exception.kind, reason :: term, stacktrace :: [tuple]}]
 
   defmodule Test do
     @moduledoc """
@@ -128,7 +128,8 @@ defmodule ExUnit do
 
     children = [
       worker(ExUnit.Server, []),
-      worker(ExUnit.OnExitHandler, [])
+      worker(ExUnit.OnExitHandler, []),
+      worker(ExUnit.FailureCollector, [])
     ]
 
     opts = [strategy: :one_for_one, name: ExUnit.Supervisor]

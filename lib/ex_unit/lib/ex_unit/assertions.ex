@@ -35,6 +35,19 @@ defmodule ExUnit.Assertions do
   common cases such as checking a floating point number or handling exceptions.
   """
 
+  @doc false
+  defmacro raise_assert(opts) do
+    quote do
+      try do
+        raise ExUnit.AssertionError, unquote(opts)
+      catch
+        :error, %ExUnit.AssertionError{} = error ->
+          stacktrace = System.stacktrace
+          ExUnit.FailureCollector.add_failure(self, {:error, error, stacktrace})
+      end
+    end
+  end
+
   @doc """
   Asserts its argument is `true`.
 
@@ -71,10 +84,10 @@ defmodule ExUnit.Assertions do
           unquote(left) ->
             right
           _ ->
-            raise ExUnit.AssertionError,
+            raise_assert(
               right: right,
               expr: unquote(code),
-              message: "match (=) failed"
+              message: "match (=) failed")
         end
       end
 
@@ -91,9 +104,9 @@ defmodule ExUnit.Assertions do
           value = unquote(assertion)
 
           unless value do
-            raise ExUnit.AssertionError,
+            raise_assert(
               expr: unquote(Macro.escape(assertion)),
-              message: "Expected truthy, got #{inspect value}"
+              message: "Expected truthy, got #{inspect value}")
           end
 
           value
@@ -119,10 +132,10 @@ defmodule ExUnit.Assertions do
       quote do
         case right do
           unquote(left) ->
-            raise ExUnit.AssertionError,
+            raise_assert(
               right: right,
               expr: unquote(code),
-              message: "match (=) succeeded, but should have failed"
+              message: "match (=) succeeded, but should have failed")
           _ ->
             right
         end
@@ -141,9 +154,9 @@ defmodule ExUnit.Assertions do
           value = unquote(assertion)
 
           if value do
-            raise ExUnit.AssertionError,
+            raise_assert(
               expr: unquote(Macro.escape(assertion)),
-              message: "Expected false or nil, got #{inspect value}"
+              message: "Expected false or nil, got #{inspect value}")
           end
 
           value
@@ -203,7 +216,7 @@ defmodule ExUnit.Assertions do
   end
 
   def assert(value, opts) when is_list(opts) do
-    unless value, do: raise(ExUnit.AssertionError, opts)
+    unless value, do: raise_assert(opts)
     true
   end
 
@@ -345,14 +358,11 @@ defmodule ExUnit.Assertions do
       function.()
     rescue
       error ->
-        stacktrace = System.stacktrace
         name = error.__struct__
 
         cond do
           name == exception ->
             error
-          name == ExUnit.AssertionError ->
-            reraise(error, stacktrace)
           true ->
             flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
         end
@@ -423,9 +433,6 @@ defmodule ExUnit.Assertions do
       try do
         unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
-      rescue
-        e in [ExUnit.AssertionError] ->
-          reraise(e, System.stacktrace)
       catch
         unquote(kind), we_got -> we_got
       end
