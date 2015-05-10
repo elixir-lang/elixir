@@ -129,7 +129,8 @@ end
 
 home = MixTest.Case.tmp_path(".mix")
 File.mkdir_p!(home)
-File.cp!(Path.expand("../../../rebar", __DIR__), Path.join(home, "rebar"))
+rebar = System.get_env("REBAR") || Path.expand("../../../rebar", __DIR__)
+File.cp!(rebar, Path.join(home, "rebar"))
 System.put_env("MIX_HOME", home)
 
 ## Copy fixtures to tmp
