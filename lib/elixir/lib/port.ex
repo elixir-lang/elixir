@@ -58,21 +58,33 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_info-1.
+  Returns information about the `port`
+  or `nil` if the port is closed.
 
-  Inlined by the compiler.
+  See http://www.erlang.org/doc/man/erlang.html#port_info-1.
   """
   def info(port) do
-    :erlang.port_info(port)
+    nillify :erlang.port_info(port)
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_info-2.
+  Returns information about the `port`
+  or `nil` if the port is closed.
 
-  Inlined by the compiler.
+  See http://www.erlang.org/doc/man/erlang.html#port_info-2.
   """
+  @spec info(port, atom) :: {atom, term} | nil
+  def info(port, spec)
+
+  def info(port, :registered_name) do
+    case :erlang.port_info(port, :registered_name) do
+      [] -> {:registered_name, []}
+      other -> nillify(other)
+    end
+  end
+
   def info(port, item) do
-    :erlang.port_info(port, item)
+    nillify :erlang.port_info(port, item)
   end
 
   @doc """
@@ -83,4 +95,8 @@ defmodule Port do
   def list do
     :erlang.ports
   end
+
+  @compile {:inline, nillify: 1}
+  defp nillify(:undefined), do: nil
+  defp nillify(other),      do: other
 end
