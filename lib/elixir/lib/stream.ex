@@ -997,6 +997,11 @@ defmodule Stream do
 
   @doc """
   Returns an infinite stream of xs.
+
+  ## Examples
+
+      iex> Stream.repeat(:hello) |> Enum.take(5)
+      [:hello, :hello, :hello, :hello, :hello]
   """
   @spec repeat(element) :: Enumerable.t
   def repeat(x) do
@@ -1005,6 +1010,11 @@ defmodule Stream do
 
   @doc """
   Returns a stream of length n of xs.
+
+  ## Examples
+
+      iex> Enum.flat_map([a: 1, b: 2, c: 3], fn {x, n} -> Stream.repeat(x, n) end)
+      [:a, :b, :b, :c, :c, :c]
   """
   @spec repeat(element, integer) :: Enumerable.t
   def repeat(x, n) when n >= 0 do
