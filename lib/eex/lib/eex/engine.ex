@@ -98,16 +98,16 @@ defmodule EEx.Engine do
   @spec handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
   def handle_expr(buffer, "=", expr) do
     quote do
-      tmp = unquote(buffer)
-      tmp <> String.Chars.to_string(unquote(expr))
+      tmp1 = unquote(buffer)
+      tmp1 <> String.Chars.to_string(unquote(expr))
     end
   end
 
   def handle_expr(buffer, "", expr) do
     quote do
-      tmp = unquote(buffer)
+      tmp2 = unquote(buffer)
       unquote(expr)
-      tmp
+      tmp2
     end
   end
 end

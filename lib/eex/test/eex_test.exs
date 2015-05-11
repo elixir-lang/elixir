@@ -256,7 +256,7 @@ Number <%= x %>
     assert_eval expected, string
   end
 
-  test "do not consider already finished functions" do
+  test "properly handle functions on the left side of clauses" do
     expected = """
 foo
 
@@ -289,6 +289,18 @@ foo
     """
 
     assert_eval "\n\n  Good\n \n", string
+  end
+
+  test "evaluates expressions with buffers" do
+    string = """
+    <%= 123 %>
+    <% if true do %>
+      <%= 456 %>
+    <% end %>
+    <%= 789 %>
+    """
+
+    assert_eval "123\n\n789\n", string
   end
 
   test "for comprehensions" do
