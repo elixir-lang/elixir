@@ -453,6 +453,24 @@ defmodule StreamTest do
     assert r1 != r2
   end
 
+  test "repeat/1" do
+    stream = Stream.repeat(1)
+    assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
+    stream = Stream.repeat(:a)
+    assert Enum.take(stream, 10) == [:a, :a, :a, :a, :a, :a, :a, :a, :a, :a]
+  end
+
+  test "repeat/2" do
+    stream = Stream.repeat(:hello, 0)
+    assert Enum.take(stream, 5) == []
+    stream = Stream.repeat("Hi!", 2)
+    assert Enum.take(stream, 5) == ["Hi!", "Hi!"]
+    assert Enum.take(stream, 42) == ["Hi!", "Hi!"]
+
+    assert_raise FunctionClauseError, fn -> Stream.repeat(:boom!, -1) end
+  end
+
+
   test "resource/3 closes on errors" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
