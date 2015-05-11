@@ -996,6 +996,22 @@ defmodule Stream do
   end
 
   @doc """
+  Returns an infinite stream of xs.
+  """
+  @spec repeat(element) :: Enumerable.t
+  def repeat(x) do
+    Stream.repeatedly fn -> x end
+  end
+
+  @doc """
+  Returns a stream of length n of xs.
+  """
+  @spec repeat(element, integer) :: Enumerable.t
+  def repeat(x, n) when n >= 0 do
+    Stream.take(repeat(x), n)
+  end
+
+  @doc """
   Emits a sequence of values for the given resource.
 
   Similar to `transform/2` but the initial accumulated value is
