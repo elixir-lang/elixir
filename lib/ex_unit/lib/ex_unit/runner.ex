@@ -14,7 +14,7 @@ defmodule ExUnit.Runner do
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
-    EM.call(config.manager, ExUnit.RunnerStats, :stop, config.timeout)
+    EM.call(config.manager, ExUnit.RunnerStats, :stop, min(config.timeout, 30_000))
   end
 
   def configure(opts) do

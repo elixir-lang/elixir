@@ -1,7 +1,7 @@
 defmodule ExUnit.Server do
   @moduledoc false
 
-  @timeout 60_000
+  @timeout 30_000
   use GenServer
 
   def start_link() do
