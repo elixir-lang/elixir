@@ -74,8 +74,9 @@ defmodule SystemTest do
     File.mkdir_p! Path.dirname(echo2)
     File.cp! System.find_executable("echo"), echo2
 
+    assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
+
     File.cd! Path.dirname(echo2), fn ->
-      assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
       assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, "echo2"), ["hello"])
     end
   after
