@@ -60,15 +60,17 @@ defmodule KeywordTest do
   end
 
   test "get_and_update/3" do
-    {get, new_keywords} = Keyword.get_and_update(
-      create_keywords,
-      :first_key,
-      fn(current_val) -> {current_val, "foo"} end
-    )
+    {get, new_keywords} =
+      Keyword.get_and_update(create_keywords, :first_key, &{&1, "foo"})
 
     assert get == 1
-    assert Keyword.get(new_keywords, :first_key) == "foo"
-    assert Keyword.get(new_keywords, :second_key) == 2
+    assert new_keywords == [first_key: "foo", second_key: 2]
+
+    {get, new_keywords} =
+      Keyword.get_and_update(create_keywords, :non_key, &{&1, "foo"})
+
+    assert get = nil
+    assert new_keywords == [non_key: "foo", first_key: 1, second_key: 2]
   end
 
   test "fetch!/2" do
