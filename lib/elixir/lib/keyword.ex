@@ -189,7 +189,7 @@ defmodule Keyword do
 
   defp get_and_update([], acc, key, fun) do
     {get, update} = fun.(nil)
-    {get, [{key, update}|List.reverse(acc)]}
+    {get, [{key, update}|:lists.reverse(acc)]}
   end
 
   @doc """
