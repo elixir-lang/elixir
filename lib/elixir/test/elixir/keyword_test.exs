@@ -69,7 +69,7 @@ defmodule KeywordTest do
     {get, new_keywords} =
       Keyword.get_and_update(create_keywords, :non_key, &{&1, "foo"})
 
-    assert get = nil
+    assert get == nil
     assert new_keywords == [non_key: "foo", first_key: 1, second_key: 2]
   end
 
