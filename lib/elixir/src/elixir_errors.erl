@@ -57,8 +57,12 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"'end'">>) ->
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
-  {sigil, _, Sigil, [Content], _} = parse_erl_term(Full),
-  Message = <<"syntax error before: sigil ~", Sigil," with content '", Content/binary, "'">>,
+  {sigil, _, Sigil, [Content|_], _} = parse_erl_term(Full),
+  Content2 = case is_binary(Content) of
+    true -> Content;
+    false -> <<>>
+  end,
+  Message = <<"syntax error before: sigil ~", Sigil," starting with content '", Content2/binary, "'">>,
   do_raise(Line, File, 'Elixir.SyntaxError', Message);
 
 %% Aliases are wrapped in ['']
