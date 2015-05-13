@@ -107,9 +107,12 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_before_sigil do
-    assert_compile_fail SyntaxError,
-      "nofile:1: syntax error before: sigil ~s with content 'bar baz'",
-      '~s(foo) ~s(bar baz)'
+    msg = fn x -> "nofile:1: syntax error before: sigil ~s starting with content '#{x}'" end
+
+    assert_compile_fail SyntaxError, msg.("bar baz"), '~s(foo) ~s(bar baz)'
+    assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s()'
+    assert_compile_fail SyntaxError, msg.("bar "), '~s(foo) ~s(bar \#{:baz})'
+    assert_compile_fail SyntaxError, msg.(""), '~s(foo) ~s(\#{:bar} baz)'
   end
 
   test :compile_error_on_op_ambiguity do
