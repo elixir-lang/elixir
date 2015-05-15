@@ -14,7 +14,7 @@ defmodule ExUnit.Runner do
       end
 
     EM.suite_finished(config.manager, run_us, load_us)
-    EM.call(config.manager, ExUnit.RunnerStats, :stop, min(config.timeout, 30_000))
+    EM.call(config.manager, ExUnit.RunnerStats, :stop, :infinity)
   end
 
   def configure(opts) do
@@ -33,28 +33,29 @@ defmodule ExUnit.Runner do
       seed: opts[:seed],
       sync_cases: [],
       taken_cases: 0,
-      timeout: opts[:timeout]
+      timeout: opts[:timeout],
+      trace: opts[:trace]
      }
 
     {opts, config}
   end
 
   defp normalize_opts(opts) do
-    opts =
-      if opts[:trace] do
-        Keyword.put_new(opts, :max_cases, 1)
-        |> Keyword.put(:timeout, :infinity)
-      else
-        Keyword.put(opts, :trace, false)
-      end
-
     {include, exclude} = ExUnit.Filters.normalize(opts[:include], opts[:exclude])
 
     opts
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
-    |> Keyword.put_new(:max_cases, :erlang.system_info(:schedulers_online))
+    |> Keyword.put(:max_cases, max_cases(opts))
     |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
+  end
+
+  defp max_cases(opts) do
+    cond do
+      opts[:trace]           -> 1
+      max = opts[:max_cases] -> max
+      true                   -> :erlang.system_info(:schedulers_online)
+    end
   end
 
   defp loop(config) do
@@ -218,7 +219,7 @@ defmodule ExUnit.Runner do
         exit(:shutdown)
       end)
 
-    timeout = Map.get(test.tags, :timeout, config.timeout)
+    timeout = get_timeout(test.tags, config)
 
     test =
       receive do
@@ -276,6 +277,14 @@ defmodule ExUnit.Runner do
   end
 
   ## Helpers
+
+  defp get_timeout(tags, config) do
+    if config.trace do
+      :infinity
+    else
+      Map.get(tags, :timeout, config.timeout)
+    end
+  end
 
   defp shuffle(%{seed: 0}, list) do
     Enum.reverse(list)
