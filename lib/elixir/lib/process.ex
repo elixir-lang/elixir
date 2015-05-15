@@ -384,6 +384,21 @@ defmodule Process do
     nillify :erlang.process_info(pid, spec)
   end
 
+  @doc """
+  Puts the calling process into a wait state
+  where its memory allocation has been reduced as much as possible,
+  which is useful if the process does not expect to receive any messages
+  in the near future.
+
+  See http://www.erlang.org/doc/man/erlang.html#hibernate-3 for more info.
+
+  Inlined by the compiler.
+  """
+  @spec hibernate(module, atom, list) :: no_return
+  def hibernate(mod, fun, args) do
+    :erlang.hibernate(mod, fun, args)
+  end
+
   @compile {:inline, nillify: 1}
   defp nillify(:undefined), do: nil
   defp nillify(other),      do: other

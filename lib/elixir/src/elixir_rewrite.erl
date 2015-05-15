@@ -125,6 +125,7 @@ inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, link, 1) -> {erlang, link};
 inline(?process, unlink, 1) -> {erlang, unlink};
+inline(?process, hibernate, 3) -> {erlang, hibernate};
 
 inline(?port, open, 2) -> {erlang, open_port};
 inline(?port, call, 3) -> {erlang, port_call};
