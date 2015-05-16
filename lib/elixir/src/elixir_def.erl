@@ -52,16 +52,11 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
   %% we need to linify taking into account keep line numbers.
-  {Location, Key} = case lists:keyfind(file, 1, Meta) of
-    {file, KeepFile} when is_binary(KeepFile) ->
-      case lists:keyfind(keep, 1, Meta) of
-        {keep, KeepLine} when is_integer(KeepLine) -> KeepLine;
-        _ -> KeepLine = 0
-      end,
-      {{KeepFile, KeepLine}, keep};
-    _ ->
-      {nil, line}
-  end,
+  {Location, Key} =
+    case elixir_utils:meta_location(Meta) of
+      {_, _} = KeepLocation -> {KeepLocation, keep};
+      nil -> {nil, line}
+    end,
 
   LinifyArgs   = elixir_quote:linify(Line, Key, Args),
   LinifyGuards = elixir_quote:linify(Line, Key, Guards),

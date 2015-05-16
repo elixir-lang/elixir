@@ -1,7 +1,7 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([elixir_to_erl/1, get_line/1, split_last/1,
+-export([elixir_to_erl/1, get_line/1, split_last/1, meta_location/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1, erl_call/4]).
@@ -63,6 +63,27 @@ characters_to_binary(Data) ->
   case elixir_compiler:get_opt(internal) of
     true  -> unicode:characters_to_binary(Data);
     false -> 'Elixir.List':to_string(Data)
+  end.
+
+%% Meta location.
+%%
+%% Macros add a file+keep pair on location keep
+%% which we should take into account for report
+%% reporting.
+%%
+%% Returns {binary, integer} on location keep or
+%% nil.
+
+meta_location(Meta) ->
+  case lists:keyfind(file, 1, Meta) of
+    {file, MetaFile} when is_binary(MetaFile) ->
+      case lists:keyfind(keep, 1, Meta) of
+        {keep, MetaLine} when is_integer(MetaLine) -> ok;
+        _ -> MetaLine = 0
+      end,
+      {MetaFile, MetaLine};
+    _ ->
+      nil
   end.
 
 %% elixir to erl. Handles only valid quoted expressions,
