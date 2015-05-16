@@ -69,17 +69,25 @@ defmodule SystemTest do
                                 arg0: "hecho", stderr_to_stdout: true, parallelism: true
   end
 
-  test "cmd/2 with absolute and relative paths" do
-    echo2 = tmp_path("echo2")
-    File.mkdir_p! Path.dirname(echo2)
-    File.cp! System.find_executable("echo"), echo2
+  @echo "echo-elixir-test"
 
-    File.cd! Path.dirname(echo2), fn ->
-      assert :enoent = catch_error(System.cmd("echo2", ["hello"]))
-      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, "echo2"), ["hello"])
+  test "cmd/2 with absolute and relative paths" do
+    echo = tmp_path(@echo)
+    File.mkdir_p! Path.dirname(echo)
+    File.cp! System.find_executable("echo"), echo
+
+    File.cd! Path.dirname(echo), fn ->
+      # There is a bug in OTP where find_executable is finding
+      # entries on the current directory. If this is the case,
+      # we should avoid the assertion below.
+      unless System.find_executable(@echo) do
+        assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
+      end
+
+      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"])
     end
   after
-    File.rm_rf(tmp_path("echo2"))
+    File.rm_rf! tmp_path(@echo)
   end
 
   test "find_executable/1" do
