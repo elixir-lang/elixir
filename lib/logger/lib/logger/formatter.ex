@@ -104,7 +104,7 @@ defmodule Logger.Formatter do
   defp output(:metadata, _, _, _, []),        do: ""
   defp output(:metadata, _, _, _, meta) do
     Enum.map(meta, fn {key, val} ->
-      [to_string(key), ?=, to_string(val), ?\s]
+      [to_string(key), ?=, metadata(val), ?\s]
     end)
   end
 
@@ -118,4 +118,13 @@ defmodule Logger.Formatter do
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
   defp levelpad(:error), do: ""
+
+  defp metadata(pid) when is_pid(pid) do
+    :erlang.pid_to_list(pid)
+  end
+  defp metadata(pid) when is_reference(pid) do
+    '#Ref' ++ rest = :erlang.ref_to_list(pid)
+    rest
+  end
+  defp metadata(other), do: to_string(other)
 end
