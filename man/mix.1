@@ -1,312 +1,99 @@
-.Dd April 10, 2015
+.Dd May 18, 2015
 .Dt MIX 1
 .Os
 .Sh NAME
 .Nm mix
-.Nd The Elixir build tool
+.Nd The software project management tool
 .Sh SYNOPSIS
 .Nm
 .Op Ar TASK
 .Op Ar project_name
 .Sh DESCRIPTION
-While
 .Nm
-is most often represented as a build tool, its functionality goes far beyond it. It also acts as a software project management tool which is used to organize code into projects and then maintain them. All the
+is intended for both organizing code into projects and their maintenance. For the latter the tool offers some advanced features like dependency management, packaging, preparing documentation, testing and so on.
+.Sh DIFINITIONS
+All the
 .Nm
-functionality represented as the following built-in tasks.
-.Sh TASKS
-The
-.Sy run
-task will be executed by default if none of the following tasks have been specified.
-.Bl -tag -width Ds
-.It Sy archive
-Shows a list of the installed archives. An archive, in terms of Erlang, is the ZIP file with the
-.Em .ez
-extension which contains a precompiled Erlang application with all its dependencies.
-.It Xo Sy archive.build Op Ar directory
-.Op options
-.Xc
-Allows building an archive from the specified directory which contains either a Mix project or an Erlang application.
-.Bl -tag -width Ds
-.It Fl i Ar directory
-Allows specifying the target directory. If the working directory contains a Mix project, it's used for the purpose by default.
-.It Fl o Ar name
-Allows specifying the archive name. If the target directory contains a Mix project, the archive name will take the form of
-.Em app-version.ez
-by default, where
-.Em app
-and
-.Em version
-are the name and version of the project taken from the
-.Sy mix.exs
-file.
-.It Fl -no-compile
-TODO: provide some info
-.El
-.It Xo Sy archive.install Op Ar archive
-.Op options
-.Xc
-Installs the specified archive into MIX_ARCHIVE
-.Pq see the Sy ENVIRONMENT No section .
-The archive created by invoking the
-.Sy archive.build
-task
-.Pq see above
-will be installed by default if none other has been specified. The tasks that ship with the archive will be available locally after installation
-.Pq see Sy local .
-.Bl -tag -width Ds
-.It Fl -force
-Runs the installation process non-interactively answering
-.Qq yes
-to the prompt.
-.El
-.It Sy archive.uninstall Ar archive
-Uninstalls the specified archive.
-.It Sy clean
-Removes the project build directory containing the files generated during the build process.
-.Bl -tag -width Ds
-.It Fl -deps
-Removes also the build files related to the project dependencies
-.Pq see Sy deps.clean --all .
-.It Fl -only Ar environment
-TODO: provide some info
-.El
-.It Sy cmd Ar command
-Executes the specified command.
-.It Sy compile Op options
-Compiles the project source code.
-.Bl -tag -width Ds
-.It Fl -force
-TODO: provide some info
-.It Fl -list
-Shows a list of the enabled compilers.
-.It Fl -no-deps-check
-TODO: provide some info
-.El
-.It Sy compile.protocols
-TODO: provide some info
-.It Sy deps Op Fl -all
-Shows all the project dependencies including their statuses and versions. The output will include only those dependencies that belong to the current environment.
-.Bl -tag -width Ds
-.It Fl -all
-Shows all the project dependencies regardless of the current environment.
-.El
-.It Xo Sy deps.clean Op Ar dependencies_list
-.Op options
-.Xc
-Removes the build directories related to either all the project dependencies or only those that have been specified. Note that the task executes destructive actions, therefore you have to specify the
-.Fl -all
-option
-.Pq see below
-explicitly in order to apply the task to all the project dependencies.
-.Bl -tag -width Ds
-.It Fl -all
-Removes the build directories related to all the project dependencies
-.Pq see Sy clean --deps .
-.It Fl -only Ar environment
-Removes the build directories related to those dependencies that belong to the specified environment. By default the task is not tied to a particular environment.
-.It Fl -unlock
-Unlocks the removed dependencies.
-.It Fl -unused
-Removes the build directories related to those dependencies that are no longer mentioned in the
-.Sy mix.exs
-file.
-.El
-.It Sy deps.compile Op Ar dependencies_list
-Compiles either all the project dependencies or only those that have been specified. Note that before invoking the task you have to download dependencies
-.Pq see Sy deps.get .
-.It Sy deps.get Op options
-Downloads all the project dependencies and puts them into the
-.Em deps
-directory at the top of the project source tree. When the task finishes, the downloaded dependencies can be compiled
-.Pq see Sy deps.compile .
-.Bl -tag -width Ds
-.It Fl -only Ar environment
-Downloads only those dependencies that belong to the specified environment.
-.It Fl -quiet
-Activates silent mode (only warnings and errors are shown).
-.El
-.It Xo Sy deps.unlock Op Ar dependencies_list
-.Op options
-.Xc
-Unlocks either all the project dependencies or only those that have been specified. Note that the task executes destructive actions, therefore you have to specify the
-.Fl -all
-option
-.Pq see below
-explicitly in order to apply the task to all the project dependencies.
-.Bl -tag -width Ds
-.It Fl -all
-Unlocks all the project dependencies.
-.It Fl -unused
-Unlocks only those dependencies that are no longer mentioned in the
-.Sy mix.exs
-file.
-.El
-.It Xo Sy deps.update Op Ar dependencies_list
-.Op options
-.Xc
-Updates either all the project dependencies or only those that have been specified. Note that the task executes destructive actions, therefore you have to specify the
-.Fl -all
-option
-.Pq see below
-explicitly in order to apply the task to all the project dependencies.
-.Bl -tag -width Ds
-.It Fl -all
-Updates all the project dependencies.
-.It Fl -only
-Updates only those dependencies that belong to the specified environment.
-.El
-.It Sy do Ar tasks
-Executes the specified tasks separated by commas.
-.It Sy escript.build Op options
-TODO: provide some info
-.Bl -tag -width Ds
-.It Fl -force
-TODO: provide some info
-.It Fl -no-compile
-TODO: provide some info
-.El
-.It Sy help Op Ar task | No options
-TODO: provide some info
-.Bl -tag -width Ds
-.It Fl -search Ar pattern
-TODO: provide some info
-.It Fl -names
-TODO: provide some info
-.El
-.It Sy loadconfig Op Ar file
-Loads the specified configuration file. The
-.Em config/config.exs
-configuration file will be loaded if none other has been specified.
-.It Sy local
-Shows a list of the local tasks.
-.Pp
-There are two types of tasks: those that are available after installation this or that archive
+functionality is represented by a set of tasks. A
+.Em task
+is a piece of code written in Elixir and intended for solving a particular problem. Like programs, many tasks accept input parameters and/or support options which slightly modify their behaviour, but others do not. There are two types of tasks: those that are available after installation this or that archive
 .Pq local tasks
 and those that are offered by
 .Nm
 .Pq built-in tasks .
-.It Sy local.hex Op Fl -force
-Installs the archive of the Hex package manager locally.
-.Bl -tag -width Ds
-.It Fl -force
-Runs the installation process non-interactively answering
-.Qq yes
-to the prompt.
-.El
-.It Xo Sy local.rebar Op Ar path | url
-.Op Fl -force
-.Xc
-Installs the rebar build tool locally into MIX_HOME
-.Pq see the Sy ENVIRONMENT No section
-from the specified path or URL. If none of those parameters have been specified, a copy of rebar will be fetched from http://s3.hex.pm/rebar.
-.Bl -tag -width Ds
-.It Fl -force
-Runs the installation process non-interactively answering
-.Qq yes
-to the prompt.
-.El
-.It Sy new Ar project_name Op options
-Creates a new Mix project. Note that a project name must start with a lowercase letter and the remaining characters of the name must be lowercase letters, numbers or underscores.
-.Bl -tag -width Ds
-.It Fl -app Ar application_name
-Allows specifying the desired application name. The project name is used for this purpose by default.
-.It Fl -module Ar module_name
-Allows specifying the desired module name. The project name turned to upper camel case notation (also known as Pascal case) is used for this purpose by default.
-.It Fl -sup
-Generates an OTP application skeleton.
-.It Fl -umbrella
-Generates an umbrella project.
-.El
-.It Xo Sy run Op Ar script
-.Op options
-.Xc
-Runs the specified script or evaluates the specified expression. Note that expressions are passed to the task using the
-.Fl e
-or
-.Fl -eval
-options
-.Pq see below .
-The main goal of the task is to provide a subset of the functionality existent in
-.Xr elixir 1 .
-.Bl -tag -width Ds
-.It Fl c , Fl -config Ar file
-Loads the specified configuration file.
+The
+.Sy run
+task will be executed by default if none other has been specified.
 .Pp
-See the function
-.Sy Mix.Config.import_config/1 .
-.It Fl e , Fl -eval Ar expression
-Evaluates the specified expression.
-.It Fl r , Fl -require Ar file
-Requires the specified file.
-In other words, the specified file is checked for existence at the start of the task.
-.It Fl pr , Fl -parallel-require Ar file
-Does the same thing as
-.Fl r
-.Pq see above
-but in parallel.
-.It Fl -no-compile
-TODO: provide some info
-.It Fl -no-deps-check
-TODO: provide some info
-.It Fl -no-halt
-TODO: provide some info
-.It Fl -no-start
-TODO: provide some info
-.El
-.It Xo Sy test Op Ar files_list
-.Op options
-.Xc
-TODO: provide some info
-.Bl -tag -width Ds
-.It Fl -color
-TODO: provide some info
-.It Fl -cover
-TODO: provide some info
-.It Fl -exclude Ar filter
-TODO: provide some info
-.It Fl -force
-TODO: provide some info
-.It Fl -include Ar filter
-TODO: provide some info
-.It Fl -max-cases
-TODO: provide some info
-.It Fl -no-color
-TODO: provide some info
-.It Fl -no-compile
-TODO: provide some info
-.It Fl -no-start
-TODO: provide some info
-.It Fl -only Ar filter
-TODO: provide some info
-.It Fl -seed
-TODO: provide some info
-.It Fl -timeout
-TODO: provide some info
-.It Fl -trace
-TODO: provide some info
-.El
+In spite of the fact that the greater part of
+.Nm
+is tasks, the man page doesn't contain the help information related to each of them because
+.Nm
+is self-descriptive. Thus, using the
+.Sy help
+task, you can get both the full list of local/built-in tasks and the information related to a particular task.
+.Pp
+An
+.Em archive ,
+in terms of Erlang, is the ZIP file with the
+.Em .ez
+extension which contains a precompiled Erlang application with all its dependencies[1].
+.Pp
+An
+.Em application
+is an entity that helps to combine sets of components into a single unit to simplify their reusing in other systems[2].
 .El
 .Sh ENVIRONMENT
 .Bl -tag -width Ds
 .It Ev MIX_ARCHIVE
-Allows specifying the directory into which archives should be installed. The
+Allows specifying the directory into which the archives should be installed
+.Pq see Sy mix help archive.install .
+The
 .Em ~/.mix/archives
 directory is used for this purpose by default.
 .It Ev MIX_ENV
 Allows specifying which environment should be used. The
 .Em dev
-environment is used by default if no other environment has been specified.
+environment is used by default if none other has been specified.
 .Pp
 Sometimes you have to use a particular set of configuration parameter values or perform particular steps when you compile or run a project
 .Pq or in some other cases .
-For example, the connection parameters to a database server used on a development machine can vary from those used on a production machine. The
+The
 .Nm
-environments allow grouping values of configuration parameters and steps and switch between them specifying the necessary environment via MIX_ENV.
+environments allow grouping values of configuration parameters and steps to switch between them by specifying the necessary environment via MIX_ENV.
+.It Ev MIX_EXS
+Allows changing the full path to the
+.Em mix.exs
+file
+.Pq see Sy FILES No section .
+The most obvious use case is to have more than one copy of
+.Em mix.exs
+in a project, but it's worth noting that MIX_EXS should be used only if the
+.Nm
+environments
+.Pq see above
+are not enough to solve the problem.
 .It Ev MIX_HOME
 TODO: provide some info
 .It Ev MIX_PATH
 TODO: provide some info
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It mix.exs
+Contains the most significant information related to the project, such as its name, version, list of dependencies and so on. As a rule, the file is named
+.Em mix.exs
+and located at the top of the project's source tree, but you can change the full path to it using the MIX_EXS environment variable
+.Pq see the Sy ENVIRONMENT No section .
+.It mix.lock
+Allows locking down the project dependencies with a proper version range before performing any updates. It is useful when you know that your project is incompatible with newer versions of certain dependencies. The file is located at the top of the project's source tree as well as
+.Em mix.exs
+.Pq see above .
+.El
+.Sh REFERENCES
+.Bl -tag -width Ds
+.It [1] http://erlang.org/doc/man/code.html#id103620
+.It [2] http://erlang.org/doc/design_principles/applications.html
 .El
 .Sh SEE ALSO
 .Xr elixir 1 ,
