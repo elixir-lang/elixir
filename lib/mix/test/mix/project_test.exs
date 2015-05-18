@@ -117,16 +117,19 @@ defmodule Mix.ProjectTest do
     Mix.Project.push(SampleProject)
 
     in_fixture "no_mixfile", fn ->
-      File.mkdir_p!("config")
+      File.mkdir_p!("config/sub")
       File.write! "config/config.exs", "[]"
       File.write! "config/dev.exs", "[]"
       File.write! "config/.exs", "[]"
+      File.write! "config/sub/init.exs", "[]"
 
       files = Mix.Project.config_files
+
       assert __ENV__.file in files
       assert "config/config.exs" in files
       assert "config/dev.exs" in files
       refute "config/.exs" in files
+      assert "config/sub/init.exs" in files
     end
   end
 
