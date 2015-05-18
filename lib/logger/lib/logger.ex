@@ -428,8 +428,8 @@ defmodule Logger do
       Logger.warn fn -> "expensive to calculate warning" end
 
   """
-  defmacro warn(chardata, metadata \\ []) do
-    macro_log(:warn, chardata, metadata, __CALLER__)
+  defmacro warn(chardata_or_fn, metadata \\ []) do
+    macro_log(:warn, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -441,8 +441,8 @@ defmodule Logger do
       Logger.info fn -> "expensive to calculate info" end
 
   """
-  defmacro info(chardata, metadata \\ []) do
-    macro_log(:info, chardata, metadata, __CALLER__)
+  defmacro info(chardata_or_fn, metadata \\ []) do
+    macro_log(:info, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -454,8 +454,8 @@ defmodule Logger do
       Logger.error fn -> "expensive to calculate error" end
 
   """
-  defmacro error(chardata, metadata \\ []) do
-    macro_log(:error, chardata, metadata, __CALLER__)
+  defmacro error(chardata_or_fn, metadata \\ []) do
+    macro_log(:error, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -467,8 +467,8 @@ defmodule Logger do
       Logger.debug fn -> "expensive to calculate debug" end
 
   """
-  defmacro debug(chardata, metadata \\ []) do
-    macro_log(:debug, chardata, metadata, __CALLER__)
+  defmacro debug(chardata_or_fn, metadata \\ []) do
+    macro_log(:debug, chardata_or_fn, metadata, __CALLER__)
   end
 
   defp macro_log(level, chardata, metadata, caller) do
