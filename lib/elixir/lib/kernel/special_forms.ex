@@ -311,11 +311,6 @@ defmodule Kernel.SpecialForms do
   This syntax reflects the fact the effective size is given by
   multiplying the size by the unit.
 
-  However, if you specify the unit without specifying the size, you'll get
-  an `CompileError` message:
-
-      << x :: _ * 4 >> == << x :: unit(4) >>
-
   For floats, `size * unit` must result in 32 or 64, corresponding
   to binary32 and binary64, respectively.
   """
