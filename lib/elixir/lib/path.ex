@@ -494,14 +494,14 @@ defmodule Path do
 
   ## Examples
 
-       iex> Path.split("")
-       []
+      iex> Path.split("")
+      []
 
-       iex> Path.split("foo")
-       ["foo"]
+      iex> Path.split("foo")
+      ["foo"]
 
-       iex> Path.split("/foo/bar")
-       ["/", "foo", "bar"]
+      iex> Path.split("/foo/bar")
+      ["/", "foo", "bar"]
 
   """
   @spec split(t) :: [binary]
