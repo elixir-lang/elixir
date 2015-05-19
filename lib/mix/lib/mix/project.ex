@@ -155,7 +155,7 @@ defmodule Mix.Project do
           configs =
             (config[:config_path] || "config/config.exs")
             |> Path.dirname
-            |> Path.join("*.*")
+            |> Path.join("**/*.*")
             |> Path.wildcard
             |> Enum.reject(&String.starts_with?(Path.basename(&1), "."))
           [file|configs]
