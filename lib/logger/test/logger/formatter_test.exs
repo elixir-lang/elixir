@@ -43,6 +43,15 @@ defmodule Logger.FormatterTest do
     compiled = compile("$metadata")
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, [meta: :data])) ==
            "meta=data "
+    assert IO.chardata_to_string(format(compiled, :error, nil, nil,
+           [meta: :data, pid: :erlang.list_to_pid('<0.123.4>')])) == "meta=data pid=<0.123.4> "
+
+    # Hack to get the same predictable reference for every test run.
+    ref = <<131, 114, 0, 3, 100, 0, 13, 110, 111, 110, 111, 100, 101, 64, 110, 111, 104, 111, 115, 116, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0>> |> :erlang.binary_to_term
+    assert "#Reference<0.0.0.80>" == inspect(ref) # ensure the deserialization worked correctly
+    assert IO.chardata_to_string(format(compiled, :error, nil, nil,
+           [meta: :data, ref: ref])) == "meta=data ref=<0.0.0.80> "
+
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, [])) ==
            ""
 
