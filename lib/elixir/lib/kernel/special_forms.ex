@@ -201,12 +201,16 @@ defmodule Kernel.SpecialForms do
 
   We can solve this by explicitly tagging it as a binary:
 
-      <<102, rest :: binary>>
+      iex> rest = "oo"
+      iex> <<102, rest :: binary>>
+      "foo"
 
   The type can be integer, float, bitstring/bits, binary/bytes,
   utf8, utf16 or utf32, e.g.:
 
-      <<102 :: float, rest :: binary>>
+      iex> rest = "oo"
+      iex> <<102 :: float, rest :: binary>>
+      <<64, 89, 128, 0, 0, 0, 0, 0, 111, 111>>
 
   An integer can be any arbitrary precision integer. A float is an
   IEEE 754 binary32 or binary64 floating point number. A bitstring
@@ -298,12 +302,19 @@ defmodule Kernel.SpecialForms do
   Size and unit can also be specified using a syntax shortcut
   when passing integer values:
 
-      << x :: 8 >> == << x :: size(8) >>
-      << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
-      << x :: _ * 4 >> == << x :: unit(4) >>
+      iex> x = 1
+      iex> << x :: 8 >> == << x :: size(8) >>
+      true
+      iex> << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
+      true
 
   This syntax reflects the fact the effective size is given by
   multiplying the size by the unit.
+
+  However, if you specify the unit without specifying the size, you'll get
+  an `CompileError` message:
+
+      << x :: _ * 4 >> == << x :: unit(4) >>
 
   For floats, `size * unit` must result in 32 or 64, corresponding
   to binary32 and binary64, respectively.
