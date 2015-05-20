@@ -480,14 +480,14 @@ defmodule File do
 
   @doc """
   The same as `cp/3`, but raises `File.CopyError` if it fails.
-  Returns the list of copied files otherwise.
+  Returns `:ok` otherwise.
   """
   @spec cp!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
   def cp!(source, destination, callback \\ fn(_, _) -> true end) do
     case cp(source, destination, callback) do
       :ok -> :ok
       {:error, reason} ->
-        raise File.CopyError, reason: reason, action: "copy recursively",
+        raise File.CopyError, reason: reason, action: "copy",
           source: IO.chardata_to_string(source), destination: IO.chardata_to_string(destination)
     end
   end
