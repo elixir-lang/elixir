@@ -169,11 +169,34 @@ defmodule String do
   when retrieving data from the external source. For example, a
   driver that reads strings from a database will be the one
   responsible to check the validity of the encoding.
+
+  ## Patterns
+
+  Many functions in this module work with patterns. For example,
+  String.split/2 can split a string into multiple patterns given
+  a pattern. This pattern can be a string, a list of strings or
+  a compiled pattern:
+
+      iex> String.split("foo bar", " ")
+      ["foo", "bar"]
+
+      iex> String.split("foo bar!", [" ", "!"])
+      ["foo", "bar", ""]
+
+      iex> pattern = :binary.compile_pattern([" ", "!"])
+      iex> String.split("foo bar!", pattern)
+      ["foo", "bar", ""]
+
+  The compiled pattern is useful when the same match will
+  be done over and oever again. Note though the compiled
+  pattern cannot be stored in a module attribute as the pattern
+  is generated at runtime and does not survive compile term.
   """
 
   @type t :: binary
   @type codepoint :: t
   @type grapheme :: t
+  @type pattern :: t | [t] | :binary.cp
 
   @doc """
   Checks if a string is printable considering it is encoded
@@ -285,66 +308,100 @@ defmodule String do
       iex> String.split("abc", "", parts: 2)
       ["a", "bc"]
 
+  A precompiled pattern can also be given:
+
+      iex> pattern = :binary.compile_pattern([" ", ","])
+      iex> String.split("1,2 3,4", pattern)
+      ["1", "2", "3", "4"]
+
   """
-  @spec split(t, t | [t] | Regex.t) :: [t]
-  @spec split(t, t | [t] | Regex.t, Keyword.t) :: [t]
+  @spec split(t, pattern | Regex.t) :: [t]
+  @spec split(t, pattern | Regex.t, Keyword.t) :: [t]
   def split(string, pattern, options \\ [])
 
-  def split(string, "", options) do
-    parts = Keyword.get(options, :parts, :infinity)
-    split_codepoints(string, parts_to_index(parts), Keyword.get(options, :trim, false))
+  def split(string, %Regex{} = pattern, options) do
+    Regex.split(pattern, string, options)
+  end
+
+  def split(string, pattern, []) when pattern != "" do
+    :binary.split(string, pattern, [:global])
   end
 
   def split(string, pattern, options) do
-    if Regex.regex?(pattern) do
-      Regex.split(pattern, string, options)
-    else
-      parts = Keyword.get(options, :parts, :infinity)
-      trim  = Keyword.get(options, :trim, false)
-      if parts == :infinity and trim == false do
-        :binary.split(string, pattern, [:global])
-      else
-        split_parts(string, pattern, parts_to_index(parts), trim)
-      end
-    end
+    parts   = Keyword.get(options, :parts, :infinity)
+    trim    = Keyword.get(options, :trim, false)
+    pattern = maybe_compile_pattern(pattern)
+    split_each(string, pattern, trim, parts_to_index(parts))
   end
 
   defp parts_to_index(:infinity),                      do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
-  defp split_codepoints(binary, 1, _trim), do: [binary]
-  defp split_codepoints(<<h :: utf8, t :: binary>>, count, trim),
-    do: [<<h :: utf8>>|split_codepoints(t, count - 1, trim)]
-  defp split_codepoints(<<h, t :: binary>>, count, trim),
-    do: [<<h>>|split_codepoints(t, count - 1, trim)]
-  defp split_codepoints(<<>>, _, true), do: []
-  defp split_codepoints(<<>>, _, false), do: [""]
-
-  defp split_parts("", _pattern, _num, true),   do: []
-  defp split_parts("", _pattern, _num, _trim),  do: [""]
-  defp split_parts(string, _pattern, 1, _trim), do: [string]
-  defp split_parts(string, pattern, num, trim) do
-    case :binary.split(string, pattern) do
-      [""] when trim ->
-        []
-      [head] ->
-        [head]
-      [head, tail] ->
-        if trim and head == "" do
-          split_parts(tail, pattern, num, trim)
-        else
-          [head|split_parts(tail, pattern, num-1, trim)]
-        end
+  defp split_each(string, _pattern, _trim, 1), do: [string]
+  defp split_each(string, pattern, trim, count) do
+    case do_splitter(string, pattern, trim) do
+      {h, t} -> [h|split_each(t, pattern, trim, count - 1)]
+      nil    -> []
     end
   end
+
+  @doc """
+  Splits a string on demand.
+
+  Returns an enumerable that splits the string on
+  demand, instead of splitting all data upfront.
+
+  Note splitter does not support regular expressions
+  (as it is often more efficient to have the regular
+  expressions traverse the string at once then in
+  multiple passes).
+
+  ## Options
+
+    * :trim - when true, does not emit empty patterns
+  """
+  @spec splitter(t, pattern, Keyword.t) :: Enumerable.t
+  def splitter(string, pattern, options \\ []) do
+    pattern = maybe_compile_pattern(pattern)
+    trim    = Keyword.get(options, :trim, false)
+    Stream.unfold(string, &do_splitter(&1, pattern, trim))
+  end
+
+  defp do_splitter(:nomatch, _pattern, _), do: nil
+  defp do_splitter("", _pattern, true),    do: nil
+  defp do_splitter("", _pattern, false),   do: {"", :nomatch}
+
+  defp do_splitter(bin, "", _trim) do
+    next_grapheme(bin)
+  end
+
+  defp do_splitter(bin, pattern, trim) do
+    case :binary.match(bin, pattern) do
+      {0, length} when trim ->
+        do_splitter(:binary.part(bin, length, byte_size(bin) - length), pattern, trim)
+      {pos, length} ->
+        final = pos + length
+        {:binary.part(bin, 0, pos),
+         :binary.part(bin, final, byte_size(bin) - final)}
+      :nomatch ->
+        {bin, :nomatch}
+    end
+  end
+
+  defp maybe_compile_pattern(""), do: ""
+  defp maybe_compile_pattern(pattern), do: :binary.compile_pattern(pattern)
 
   @doc """
   Splits a string into two at the specified offset. When the offset given is
   negative, location is counted from the end of the string.
 
-  The offset is capped to the length of the string.
+  The offset is capped to the length of the string. Returns a tuple with
+  two elements.
 
-  Returns a tuple with two elements.
+  Note: keep in mind this function splits on graphemes and for such it
+  has to linearly traverse the string. If you want to split a string or
+  a binary based on the number of bytes, use `Kernel.binary_part/3`
+  instead.
 
   ## Examples
 
@@ -663,9 +720,7 @@ defmodule String do
       "a[,,]b[,,]c"
 
   """
-  @spec replace(t, t | Regex.t, t) :: t
-  @spec replace(t, t | Regex.t, t, Keyword.t) :: t
-
+  @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
   def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
@@ -871,7 +926,6 @@ defmodule String do
     pred_fn = make_chunk_pred(trait)
     do_chunk(str, pred_fn.(cp), pred_fn)
   end
-
 
   defp do_chunk(str, flag, pred_fn), do: do_chunk(str, [], <<>>, flag, pred_fn)
 
@@ -1215,19 +1269,13 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
-  def starts_with?(string, prefixes) when is_list(prefixes) do
-    Enum.any?(prefixes, &do_starts_with(string, &1))
-  end
-
-  def starts_with?(string, prefix) do
-    do_starts_with(string, prefix)
-  end
-
-  defp do_starts_with(string, "") when is_binary(string) do
+  def starts_with?(_string, "") do
+    IO.puts :stderr, "[deprecation] Calling String.starts_with?/2 with an empty string is deprecated and " <>
+                     "will fail in the future\n" <> Exception.format_stacktrace()
     true
   end
 
-  defp do_starts_with(string, prefix) when is_binary(prefix) do
+  def starts_with?(string, prefix) when is_list(prefix) or is_binary(prefix) do
     Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
@@ -1249,16 +1297,18 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
+  def ends_with?(_string, "") do
+    IO.puts :stderr, "[deprecation] Calling String.ends_with?/2 with an empty string is deprecated and " <>
+                     "will fail in the future\n" <> Exception.format_stacktrace()
+    true
+  end
+
   def ends_with?(string, suffixes) when is_list(suffixes) do
     Enum.any?(suffixes, &do_ends_with(string, &1))
   end
 
   def ends_with?(string, suffix) do
     do_ends_with(string, suffix)
-  end
-
-  defp do_ends_with(string, "") when is_binary(string) do
-    true
   end
 
   defp do_ends_with(string, suffix) when is_binary(suffix) do
@@ -1301,23 +1351,23 @@ defmodule String do
       iex> String.contains? "elixir of life", ["death", "mercury"]
       false
 
+  The argument can also be a precompiled pattern:
+
+      iex> pattern = :binary.compile_pattern(["life", "death"])
+      iex> String.contains? "elixir of life", pattern
+      true
+
   """
-  @spec contains?(t, t | [t]) :: boolean
+  @spec contains?(t, pattern) :: boolean
 
-  def contains?(string, contents) when is_list(contents) do
-    Enum.any?(contents, &do_contains(string, &1))
-  end
-
-  def contains?(string, content) do
-    do_contains(string, content)
-  end
-
-  defp do_contains(string, "") when is_binary(string) do
+  def contains?(_string, "") do
+    IO.puts :stderr, "[deprecation] Calling String.contains?/2 with an empty string is deprecated and " <>
+                     "will fail in the future\n" <> Exception.format_stacktrace()
     true
   end
 
-  defp do_contains(string, match) when is_binary(match) do
-    :nomatch != :binary.match(string, match)
+  def contains?(string, contents) do
+    :binary.match(string, contents) != :nomatch
   end
 
   @doc """

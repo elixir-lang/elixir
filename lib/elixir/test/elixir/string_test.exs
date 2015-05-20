@@ -56,6 +56,8 @@ defmodule StringTest do
     assert String.split("abé", "", trim: true) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: :infinity) == ["a", "b", "é"]
     assert String.split("abé", "", trim: true, parts: 2) == ["a", "bé"]
+
+    assert String.split("noël", "") == ["n", "o", "ë", "l", ""]
   end
 
   test :split_with_regex do
@@ -67,6 +69,18 @@ defmodule StringTest do
     assert String.split("a,b.c ", ~r{\W}) == ["a", "b", "c", ""]
     assert String.split("a,b.c ", ~r{\W}, trim: false) == ["a", "b", "c", ""]
     assert String.split("a,b", ~r{\.}) == ["a,b"]
+  end
+
+  test :splitter do
+    assert String.splitter("a,b,c", ",") |> Enum.to_list == ["a", "b", "c"]
+    assert String.splitter("a,b", ".") |> Enum.to_list == ["a,b"]
+    assert String.splitter("1,2 3,4", [" ", ","]) |> Enum.to_list == ["1", "2", "3", "4"]
+    assert String.splitter("", ",") |> Enum.to_list == [""]
+
+    assert String.splitter("", ",", trim: true) |> Enum.to_list == []
+    assert String.splitter(" a b c ", " ", trim: true) |> Enum.to_list == ["a", "b", "c"]
+    assert String.splitter(" a b c ", " ", trim: true) |> Enum.take(1) == ["a"]
+    assert String.splitter(" a b c ", " ", trim: true) |> Enum.take(2) == ["a", "b"]
   end
 
   test :split_at do
@@ -419,7 +433,6 @@ defmodule StringTest do
   end
 
   test :starts_with? do
-    ## Normal cases ##
     assert String.starts_with? "hello", "he"
     assert String.starts_with? "hello", "hello"
     assert String.starts_with? "hello", ["hellö", "hell"]
@@ -428,25 +441,9 @@ defmodule StringTest do
     refute String.starts_with? "hello", "hellö"
     refute String.starts_with? "hello", ["hellö", "goodbye"]
     refute String.starts_with? "エリクシア", "仙丹"
-
-    ## Edge cases ##
-    assert String.starts_with? "", ""
-    assert String.starts_with? "", ["", "a"]
-    assert String.starts_with? "b", ["", "a"]
-
-    assert String.starts_with? "abc", ""
-    assert String.starts_with? "abc", [""]
-
-    refute String.starts_with? "", "abc"
-    refute String.starts_with? "", [" "]
-
-    ## Sanity checks ##
-    assert String.starts_with? "", ["", ""]
-    assert String.starts_with? "abc", ["", ""]
   end
 
   test :ends_with? do
-    ## Normal cases ##
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
     assert String.ends_with? "hello", ["hell", "lo", "xx"]
@@ -456,43 +453,15 @@ defmodule StringTest do
     refute String.ends_with? "hello", "hellö"
     refute String.ends_with? "hello", ["hel", "goodbye"]
     refute String.ends_with? "エリクシア", "仙丹"
-
-    ## Edge cases ##
-    assert String.ends_with? "", ""
-    assert String.ends_with? "", ["", "a"]
-    refute String.ends_with? "", ["a", "b"]
-
-    assert String.ends_with? "abc", ""
-    assert String.ends_with? "abc", ["", "x"]
-
-    refute String.ends_with? "", "abc"
-    refute String.ends_with? "", [" "]
-
-    ## Sanity checks ##
-    assert String.ends_with? "", ["", ""]
-    assert String.ends_with? "abc", ["", ""]
   end
 
   test :contains? do
-    ## Normal cases ##
     assert String.contains? "elixir of life", "of"
     assert String.contains? "エリクシア", "シ"
     assert String.contains? "elixir of life", ["mercury", "life"]
     refute String.contains? "elixir of life", "death"
     refute String.contains? "エリクシア", "仙"
     refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
-
-    ## Edge cases ##
-    assert String.contains? "", ""
-    assert String.contains? "abc", ""
-    assert String.contains? "abc", ["", "x"]
-
-    refute String.contains? "", " "
-    refute String.contains? "", "a"
-
-    ## Sanity checks ##
-    assert String.contains? "", ["", ""]
-    assert String.contains? "abc", ["", ""]
   end
 
   test :to_char_list do
