@@ -129,6 +129,20 @@ defmodule FileTest do
       end
     end
 
+    test :copy_file_to_itself do
+      src = dest = tmp_path("tmp.file")
+
+      File.write!(src, "here")
+
+      try do
+        assert File.cp(src, dest) == :ok
+        assert File.read!(dest) == "here"
+        assert File.cp_r(src, dest) == {:ok, []}
+      after
+        File.rm(dest)
+      end
+    end
+
     test :cp_r_with_src_file_and_dest_file do
       src  = fixture_path("file.txt")
       dest = tmp_path("sample.txt")
