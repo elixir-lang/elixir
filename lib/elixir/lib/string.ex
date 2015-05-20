@@ -1275,6 +1275,10 @@ defmodule String do
     true
   end
 
+  def starts_with?(_string, []) do
+    false
+  end
+
   def starts_with?(string, prefix) when is_list(prefix) or is_binary(prefix) do
     Kernel.match?({0, _}, :binary.match(string, prefix))
   end
@@ -1364,6 +1368,10 @@ defmodule String do
     IO.puts :stderr, "[deprecation] Calling String.contains?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
     true
+  end
+
+  def contains?(_string, []) do
+    false
   end
 
   def contains?(string, contents) do
