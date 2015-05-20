@@ -179,7 +179,7 @@ defmodule IEx.Autocomplete do
   defp match_aliases(hint) do
     for {alias, _mod} <- env_aliases(),
         [name] = Module.split(alias),
-        String.starts_with?(name, hint) do
+        starts_with?(name, hint) do
       %{kind: :module, type: :alias, name: name}
     end
   end
@@ -201,8 +201,8 @@ defmodule IEx.Autocomplete do
   defp match_modules(hint, root) do
     get_modules(root)
     |> :lists.usort()
-    |> Enum.drop_while(& not String.starts_with?(&1, hint))
-    |> Enum.take_while(& String.starts_with?(&1, hint))
+    |> Enum.drop_while(& not starts_with?(&1, hint))
+    |> Enum.take_while(& starts_with?(&1, hint))
   end
 
   defp get_modules(true) do
@@ -247,7 +247,7 @@ defmodule IEx.Autocomplete do
 
         for {fun, arities} <- list,
             name = Atom.to_string(fun),
-            String.starts_with?(name, hint) do
+            starts_with?(name, hint) do
           %{kind: :function, name: name, arities: arities}
         end |> :lists.sort()
 
@@ -270,6 +270,9 @@ defmodule IEx.Autocomplete do
   defp ensure_loaded(Elixir), do: {:error, :nofile}
   defp ensure_loaded(mod),
     do: Code.ensure_compiled(mod)
+
+  defp starts_with?(_string, ""),  do: true
+  defp starts_with?(string, hint), do: String.starts_with?(string, hint)
 
   ## Ad-hoc conversions
 
