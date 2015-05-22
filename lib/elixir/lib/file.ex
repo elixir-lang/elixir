@@ -471,16 +471,23 @@ defmodule File do
     end
   end
 
+  defp path_differs?(path, path),
+    do: false
+
+  defp path_differs?(p1, p2) do
+    Path.expand(p1) !== Path.expand(p2)
+  end
+
   @doc """
   The same as `cp/3`, but raises `File.CopyError` if it fails.
-  Returns the list of copied files otherwise.
+  Returns `:ok` otherwise.
   """
   @spec cp!(Path.t, Path.t, (Path.t, Path.t -> boolean)) :: :ok | no_return
   def cp!(source, destination, callback \\ fn(_, _) -> true end) do
     case cp(source, destination, callback) do
       :ok -> :ok
       {:error, reason} ->
-        raise File.CopyError, reason: reason, action: "copy recursively",
+        raise File.CopyError, reason: reason, action: "copy",
           source: IO.chardata_to_string(source), destination: IO.chardata_to_string(destination)
     end
   end
@@ -598,9 +605,7 @@ defmodule File do
         copy_file_mode!(src, dest)
         [dest|acc]
       {:error, :eexist} ->
-        if callback.(src, dest) do
-          # If rm/1 fails, copy/2 will fail
-          _ = rm(dest)
+        if path_differs?(src, dest) and callback.(src, dest) do
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
@@ -620,8 +625,8 @@ defmodule File do
       :ok ->
         [dest|acc]
       {:error, :eexist} ->
-        if callback.(src, dest) do
-          # If rm/1 fails, iF.make_symlink/2 will fail
+        if path_differs?(src, dest) and callback.(src, dest) do
+          # If rm/1 fails, F.make_symlink/2 will fail
           _ = rm(dest)
           case F.make_symlink(link, dest) do
             :ok -> [dest|acc]
