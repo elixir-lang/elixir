@@ -123,9 +123,23 @@ defmodule FileTest do
     test :cp_with_src_dir! do
       src   = fixture_path("cp_r")
       dest  = tmp_path("tmp.file")
-      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: " <>
+      assert_raise File.CopyError, "could not copy from #{src} to #{dest}: " <>
           "illegal operation on a directory", fn ->
         File.cp!(src, dest)
+      end
+    end
+
+    test :copy_file_to_itself do
+      src = dest = tmp_path("tmp.file")
+
+      File.write!(src, "here")
+
+      try do
+        assert File.cp(src, dest) == :ok
+        assert File.read!(dest) == "here"
+        assert File.cp_r(src, dest) == {:ok, []}
+      after
+        File.rm(dest)
       end
     end
 
@@ -869,7 +883,7 @@ defmodule FileTest do
     end
   end
 
-   test :lstat do
+  test :lstat do
     {:ok, info} = File.lstat(__ENV__.file)
     assert info.mtime
   end
