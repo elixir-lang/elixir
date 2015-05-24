@@ -211,7 +211,7 @@ defmodule ExUnit.Assertions do
   Asserts a message was or is going to be received.
 
   Unlike `assert_received`, it has a default timeout
-  of 100 milliseconds.
+  of 500 milliseconds.
 
   The `expected` argument is a pattern.
 
@@ -231,7 +231,7 @@ defmodule ExUnit.Assertions do
       assert_receive {:count, ^x}
 
   """
-  defmacro assert_receive(expected, timeout \\ 100, message \\ nil) do
+  defmacro assert_receive(expected, timeout \\ 500, message \\ nil) do
     do_assert_receive(expected, timeout, message)
   end
 
