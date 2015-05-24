@@ -188,7 +188,7 @@ defmodule String do
       ["foo", "bar", ""]
 
   The compiled pattern is useful when the same match will
-  be done over and oever again. Note though the compiled
+  be done over and over again. Note though the compiled
   pattern cannot be stored in a module attribute as the pattern
   is generated at runtime and does not survive compile term.
   """
@@ -353,7 +353,7 @@ defmodule String do
 
   Note splitter does not support regular expressions
   (as it is often more efficient to have the regular
-  expressions traverse the string at once then in
+  expressions traverse the string at once than in
   multiple passes).
 
   ## Options
@@ -808,7 +808,7 @@ defmodule String do
   Returns the next codepoint in a String.
 
   The result is a tuple with the codepoint and the
-  remaining of the string or `nil` in case
+  remainder of the string or `nil` in case
   the string reached its end.
 
   As with other functions in the String module, this
@@ -963,7 +963,7 @@ defmodule String do
   Returns the next grapheme in a String.
 
   The result is a tuple with the grapheme and the
-  remaining of the string or `nil` in case
+  remainder of the string or `nil` in case
   the String reached its end.
 
   ## Examples
@@ -978,7 +978,7 @@ defmodule String do
 
   @doc """
   Returns the first grapheme from an utf8 string,
-  nil if the string is empty.
+  `nil` if the string is empty.
 
   ## Examples
 
