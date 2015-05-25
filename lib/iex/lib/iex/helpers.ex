@@ -20,6 +20,7 @@ defmodule IEx.Helpers do
     * `l/1`           — loads the given module's beam code
     * `ls/0`          — lists the contents of the current directory
     * `ls/1`          — lists the contents of the specified directory
+    * `o/0`          —  start the Erlang/OTP observer application
     * `pwd/0`         — prints the current working directory
     * `r/1`           — recompiles and reloads the given module's source file
     * `respawn/0`     — respawns the current shell
@@ -380,6 +381,11 @@ defmodule IEx.Helpers do
       source -> List.to_string(source)
     end
   end
+
+  @doc """
+  Start the Erlang/OTP observer application.
+  """
+  def o, do: :observer.start()
 
   @doc """
   Prints the current working directory.
