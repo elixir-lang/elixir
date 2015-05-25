@@ -1,10 +1,11 @@
 defmodule Dict do
   @moduledoc ~S"""
   This module specifies the Dict API expected to be
-  implemented by different dictionaries. It also provides
-  functions that redirect to the underlying Dict, allowing
-  a developer to work with different Dict implementations
-  using one API.
+  implemented by different dictionaries.
+
+  It also provides functions that redirect to the underlying
+  Dict, allowing a developer to work with different Dict
+  implementations using one API.
 
   To create a new dict, use the `new` functions defined
   by each dict type:
@@ -13,6 +14,13 @@ defmodule Dict do
 
   In the examples below, `dict_impl` means a specific
   `Dict` implementation, for example `HashDict` or `Map`.
+
+  ## Warning
+
+  Do not use this module if you expect a certain `Dict`
+  implementation. For example, if you are working with
+  maps and you don't need polymorphism, it is preferrable
+  to use the `Map` module instead of the `Dict` one.
 
   ## Protocols
 
@@ -304,7 +312,6 @@ defmodule Dict do
     end
   end
 
-
   defmacrop target(dict) do
     quote do
       case unquote(dict) do
@@ -575,8 +582,7 @@ defmodule Dict do
   Merges the dict `dict2` into dict `dict1`.
 
   If one of the `dict2` entries is found in `dict1`, the
-  conflicting entries in `dict2` have higher precedence unless a
-  function is given to resolve conflicts.
+  conflicting entries in `dict2` have higher precedence.
 
   Notice this function is polymorphic as it merges dicts of any
   type. Each dict implementation also provides a `merge` function,
@@ -590,6 +596,31 @@ defmodule Dict do
       iex> [a: Dict.get(dict, :a), b: Dict.get(dict, :b), d: Dict.get(dict, :d)]
       [a: 3, b: 2, d: 4]
 
+  """
+  @spec merge(t, t) :: t
+  def merge(dict1, dict2) do
+    target1 = target(dict1)
+    target2 = target(dict2)
+
+    if target1 == target2 do
+      target1.merge(dict1, dict2)
+    else
+      do_merge(target1, dict1, dict2, fn(_k, _v1, v2) -> v2 end)
+    end
+  end
+
+  @doc """
+  Merges the dict `dict2` into dict `dict1`.
+
+  If one of the `dict2` entries is found in `dict1`, the function
+  will be invoked to resolve the conflict.
+
+  Notice this function is polymorphic as it merges dicts of any
+  type. Each dict implementation also provides a `merge` function,
+  but they can only merge dicts of the same type.
+
+  ## Examples
+
       iex> dict1 = Enum.into([a: 1, b: 2], dict_impl.new)
       iex> dict2 = Enum.into([a: 3, d: 4], dict_impl.new)
       iex> dict = Dict.merge(dict1, dict2, fn(_k, v1, v2) ->
@@ -600,17 +631,21 @@ defmodule Dict do
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
+  def merge(dict1, dict2, fun) do
     target1 = target(dict1)
     target2 = target(dict2)
 
     if target1 == target2 do
       target1.merge(dict1, dict2, fun)
     else
-      Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
-        {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
-      end) |> elem(1)
+      do_merge(target1, dict1, dict2, fun)
     end
+  end
+
+  defp do_merge(target1, dict1, dict2, fun) do
+    Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
+      {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
+    end) |> elem(1)
   end
 
   @doc """
