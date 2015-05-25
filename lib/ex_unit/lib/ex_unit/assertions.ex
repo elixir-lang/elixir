@@ -231,7 +231,9 @@ defmodule ExUnit.Assertions do
       assert_receive {:count, ^x}
 
   """
-  defmacro assert_receive(expected, timeout \\ 100, message \\ nil) do
+  defmacro assert_receive(expected,
+                          timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
+                          message \\ nil) do
     do_assert_receive(expected, timeout, message)
   end
 
@@ -459,7 +461,9 @@ defmodule ExUnit.Assertions do
       refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(not_expected, timeout \\ 100, message \\ nil) do
+  defmacro refute_receive(not_expected,
+                          timeout \\ Application.fetch_env!(:ex_unit, :refute_receive_timeout),
+                          message \\ nil) do
     do_refute_receive(not_expected, timeout, message)
   end
 
