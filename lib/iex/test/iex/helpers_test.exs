@@ -123,6 +123,15 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> send self(), :hello; flush end) == ":hello\n"
   end
 
+  test "observer helper" do
+    # this is the actual test case
+    assert capture_iex("o") == ":ok"
+    # needed to prevent a wx error
+    :timer.sleep(5000)
+    # needed to prevent a segfault during "make test"
+    assert :observer.stop() == :ok
+  end
+
   test "pwd helper" do
     File.cd! iex_path, fn ->
       assert capture_io(fn -> pwd end) =~ ~r"lib[\\/]iex\n$"
