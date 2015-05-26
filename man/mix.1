@@ -1,4 +1,4 @@
-.Dd May 23, 2015
+.Dd May 27, 2015
 .Dt MIX 1
 .Os
 .Sh NAME
@@ -8,9 +8,24 @@
 .Nm
 .Op Ar TASK
 .Op Ar project_name
+.Nm elixir
+.Op Ar OPTIONS
+.Fl S Nm
+.Op Ar TASK
+.Op Ar project_name
 .Sh DESCRIPTION
 .Nm
 is intended for both organizing code into projects and their maintenance. For the latter the tool offers some advanced features like dependency management, packaging, preparing documentation, testing and so on.
+.Pp
+Have a look at the
+.Sy SYNOPSIS
+section and the second way of running
+.Nm
+it offers. The point is that the tool is none other than the Elixir script, therefore it can be invoked via
+.Xr elixir 1
+in the same way as any other script. It's useful when you want to run
+.Nm
+with particular options.
 .Sh DIFINITIONS
 All the
 .Nm
