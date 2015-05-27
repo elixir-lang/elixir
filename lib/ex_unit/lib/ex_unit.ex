@@ -173,7 +173,7 @@ defmodule ExUnit do
       calls. Defaults to 100ms.
 
     * `:colors` - a keyword list of colors to be used by some formatters.
-      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/1`
+      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
     * `:formatters` - the formatters that will print results;
       defaults to `[ExUnit.CLIFormatter]`
