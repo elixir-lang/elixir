@@ -72,7 +72,7 @@ defmodule Mix.Archive do
   defp files_to_add(path, dir) do
     File.cd! path, fn ->
       evsn = Path.wildcard(".elixir")
-      ebin = Path.wildcard("ebin/*.{beam, app}")
+      ebin = Path.wildcard("ebin/*.{beam,app}")
       priv = Path.wildcard("priv/**/*")
 
       Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
