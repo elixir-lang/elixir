@@ -125,4 +125,22 @@ defmodule Inspect.AlgebraTest do
 
     assert render(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end
+
+  test "formatting surround_many with empty" do
+    sm = &surround_many("[", &1, "]", %Inspect.Opts{}, fn(d, _) -> d end, ",")
+
+    assert sm.([])                |> render(80) == "[]"
+    assert sm.([empty])           |> render(80) == "[]"
+    assert sm.([empty, empty])    |> render(80) == "[]"
+    assert sm.(["a"])             |> render(80) == "[a]"
+    assert sm.(["a", empty])      |> render(80) == "[a]"
+    assert sm.([empty, "a"])      |> render(80) == "[a]"
+    assert sm.(["a", empty, "b"]) |> render(80) == "[a, b]"
+    assert sm.([empty, "a", "b"]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b", empty]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b" | "c"])  |> render(80) == "[a, b | c]"
+    assert sm.(["a" | "b"])       |> render(80) == "[a | b]"
+    assert sm.(["a" | empty])     |> render(80) == "[a]"
+    assert sm.([empty | "b"])     |> render(80) == "[b]"
+  end
 end
