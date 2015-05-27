@@ -39,6 +39,15 @@ defmodule IO.ANSI.DocsTest do
     assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
   end
 
+  test "fenced code block is converted" do
+    result = format("line\n```\ncode\ncode2\n```\nline2\n")
+    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
+    result = format("line\n```elixir\ncode\ncode2\n```\nline2\n")
+    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ code2\e[0m\n\e[0m\nline2\n\e[0m"
+    result = format("line\n~~~elixir\ncode\n```\n~~~\nline2\n")
+    assert result == "line\n\e[0m\n\e[36m\e[1m┃ code\n┃ ```\e[0m\n\e[0m\nline2\n\e[0m"
+  end
+
   test "* list is converted" do
     result = format("* one\n* two\n* three\n")
     assert result == "  • one\n  • two\n  • three\n\e[0m"
