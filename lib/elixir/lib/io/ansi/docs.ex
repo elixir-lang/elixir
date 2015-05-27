@@ -94,6 +94,14 @@ defmodule IO.ANSI.Docs do
     process_code(rest, [line], indent, options)
   end
 
+  defp process(["```" <> _line | rest], text, indent, options) do
+    process_fenced_code_block(rest, text, indent, options, _delimiter = "```")
+  end
+
+  defp process(["~~~" <> _line | rest], text, indent, options) do
+    process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
+  end
+
   defp process(all=[line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
     if is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) do
@@ -219,6 +227,23 @@ defmodule IO.ANSI.Docs do
   defp process_code(rest, code, indent, options) do
     write_code(code, indent, options)
     process(rest, [], indent, options)
+  end
+
+  defp process_fenced_code_block(rest, text, indent, options, delimiter) do
+    write_text(text, indent, options)
+    process_fenced_code(rest, [], indent, options, delimiter)
+  end
+
+  defp process_fenced_code([], code, indent, options, _delimiter) do
+    write_code(code, indent, options)
+  end
+
+  defp process_fenced_code([line | rest], code, indent, options, delimiter) do
+    if line === delimiter do
+      process_code(rest, code, indent, options)
+    else
+      process_fenced_code(rest, [line|code], indent, options, delimiter)
+    end
   end
 
   defp write_code(code, indent, options) do
