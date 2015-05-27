@@ -478,25 +478,32 @@ defmodule Inspect.Algebra do
     "..."
   end
 
-  defp do_surround_many([h], limit, opts, fun, _sep) do
+  defp do_surround_many([], _limit, _opts, _fun, _sep) do
+    :doc_nil
+  end
+
+  defp do_surround_many([h], limit, opts, fun, sep) do
     fun.(h, %{opts | limit: limit})
   end
 
   defp do_surround_many([h|t], limit, opts, fun, sep) when is_list(t) do
     limit = decrement(limit)
-    glue(
-      concat(fun.(h, %{opts | limit: limit}), sep),
-      do_surround_many(t, limit, opts, fun, sep)
-    )
+    h = fun.(h, %{opts | limit: limit})
+    t = do_surround_many(t, limit, opts, fun, sep)
+    do_join(h, t, sep)
   end
 
-  defp do_surround_many([h|t], limit, opts, fun, _sep) do
+  defp do_surround_many([h|t], limit, opts, fun, sep) do
     limit = decrement(limit)
-    glue(
-      concat(fun.(h, %{opts | limit: limit}), @tail_separator),
-      fun.(t, %{opts | limit: limit})
-    )
+    h = fun.(h, %{opts | limit: limit})
+    t = fun.(t, %{opts | limit: limit})
+    do_join(h, t, @tail_separator)
   end
+
+  defp do_join(:doc_nil, :doc_nil, _), do: :doc_nil
+  defp do_join(h, :doc_nil, _),        do: h
+  defp do_join(:doc_nil, t, _),        do: t
+  defp do_join(h, t, sep),             do: glue(concat(h, sep), t)
 
   defp decrement(:infinity), do: :infinity
   defp decrement(counter),   do: counter - 1
