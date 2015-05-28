@@ -123,8 +123,9 @@ defmodule IO do
     end
   end
 
+  @read_all_size 4096
   defp do_binread_all(mapped_dev, acc) do
-    case :file.read_line(mapped_dev) do
+    case :file.read(mapped_dev, @read_all_size) do
       {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
       :eof -> acc
       other -> other
