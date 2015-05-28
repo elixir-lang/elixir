@@ -105,4 +105,11 @@ defmodule IEx.AutocompleteTest do
     assert expand('[:zl') == {:yes, 'ib.', []}
     assert expand('{:zl') == {:yes, 'ib.', []}
   end
+
+  defmodule SublevelTest.LevelA.LevelB do
+  end
+
+  test :elixir_completion_sublevel do
+    assert expand('IEx.AutocompleteTest.SublevelTest.') == {:yes, 'LevelA.', []}
+  end
 end
