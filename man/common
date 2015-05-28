@@ -16,7 +16,7 @@ Does the same thing as
 .Pq see above
 but in parallel.
 .It Fl pz Ar directory
-Adds the specified directory to the end of the code path. If the directory already exists, it won't be neither removed from its old position nor put to the end.
+Adds the specified directory to the end of the code path. If the directory already exists, it will be neither removed from its old position nor put to the end.
 .Pp
 See also the function
 .Sy Code.append_path/1 .
@@ -38,9 +38,9 @@ Runs the Erlang runtime system detached from the controlling terminal.
 .It Fl -hidden
 Starts a hidden node.
 .Pp
-Connections between nodes are transitive. For example, if a node A is connected to a node B and the node B is connected to a node C, then the node A is connected to the node C. The option
+Connections between nodes are transitive. For example, if node A is connected to node B, and node B is connected to node C, then node A is connected to node C. The option
 .Fl -hidden
-allows creating the node which can be connected to a specific node escaping redundant connections.
+allows creating a node which can be connected to another node, escaping redundant connections.
 .Pp
 The function
 .Sy Node.list/0
