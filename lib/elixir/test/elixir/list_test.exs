@@ -157,4 +157,11 @@ defmodule ListTest do
       List.to_string([0xDFFF])
     end
   end
+
+  test :include? do
+    assert List.include?([1, 2, 3, 4, 5], 3) == true
+    assert List.include?([1, 2, 3, 4, 5], 0) == false
+    assert List.include?([foo: "bar", fu: "baz"], {:foo, "bar"}) == true
+    assert List.include?([foo: "bar", fu: "baz"], {:qux, "norf"}) == false
+  end
 end
