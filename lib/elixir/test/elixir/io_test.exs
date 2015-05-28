@@ -22,6 +22,12 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
+  test :binread_all do
+    {:ok, file} = File.open(Path.expand('fixtures/file.bin', __DIR__))
+    assert "LF\nCR\rCRLF\r\nLFCR\n\r" == IO.binread(file, :all)
+    assert File.close(file) == :ok
+  end
+
   test :getn do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "F" == IO.getn(file, "")
