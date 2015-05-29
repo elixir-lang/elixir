@@ -191,9 +191,10 @@ defmodule IEx.Autocomplete do
 
     for mod <- match_modules(base, module === Elixir),
         parts = String.split(mod, "."),
-        depth == length(parts) do
-      %{kind: :module, type: :elixir, name: List.last(parts)}
+        depth <= length(parts) do
+      %{kind: :module, type: :elixir, name: Enum.at(parts, depth-1)}
     end
+    |> Enum.uniq
   end
 
   ## Helpers
