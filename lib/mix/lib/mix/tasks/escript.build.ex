@@ -16,6 +16,9 @@ defmodule Mix.Tasks.Escript.Build do
   This task guarantees the project and its dependencies are
   compiled and packages them inside an escript.
 
+  > Note: escripts do not support projects and dependencies
+  > that need to store or read artifacts from the priv directory.
+
   ## Command line options
 
     * `--force`      - forces compilation regardless of modification times
