@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Profile.Fprof do
 
     Enum.each(
       Stream.unfold(analysis_output, &next_term/1),
-      &print_analysis_result(&1)
+      &print_analysis_result/1
     )
   end
 
