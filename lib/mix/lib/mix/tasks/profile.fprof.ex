@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   ## Profile output
 
   The example output looks as following:
-                                               CNT    ACC (ms)    OWN (ms)
+      #                                        CNT    ACC (ms)    OWN (ms)
       Total                                 200279    1972.188    1964.579
       :fprof.apply_start_stop/4                  0    1972.188       0.012
       anonymous fn/0 in :elixir_compiler_2       1    1972.167       0.001
