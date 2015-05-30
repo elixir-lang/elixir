@@ -4,29 +4,29 @@ defmodule Application do
 
   In Elixir (actually, in Erlang/OTP), an application is a component
   implementing some specific functionality, that can be started and stopped
-  as a unit, and which can be re-used in other systems as well.
+  as a unit, and which can be re-used in other systems.
 
   Applications are defined with an application file named `APP.app` where
-  `APP` is the APP name, usually in `underscore_case` convention. The
-  application file must reside in the same `ebin` directory as the
-  application's modules bytecode.
+  `APP` is the application name, usually in `underscore_case`. The application
+  file must reside in the same `ebin` directory as the compiled modules of the
+  application.
 
   In Elixir, Mix is responsible for compiling your source code and
   generating your application `.app` file. Furthermore, Mix is also
   responsible for configuring, starting and stopping your application
   and its dependencies. For this reason, this documentation will focus
-  on the remaining aspects of your application: the application environment,
+  on the remaining aspects of your application: the application environment
   and the application callback module.
 
-  You can learn more about Mix compilation of `.app` files by typing
+  You can learn more about Mix generation of `.app` files by typing
   `mix help compile.app`.
 
   ## Application environment
 
   Once an application is started, OTP provides an application environment
-  that can be used to configure applications.
+  that can be used to configure the application.
 
-  Assuming you are inside a Mix project, you can edit your application
+  Assuming you are inside a Mix project, you can edit the `application`
   function in the `mix.exs` file to the following:
 
       def application do
@@ -42,14 +42,14 @@ defmodule Application do
 
   It is also possible to put and delete values from the application value,
   including new values that are not defined in the environment file (although
-  those should be avoided).
+  this should be avoided).
 
-  In the future, we plan to support configuration files which allows
+  In the future, we plan to support configuration files which allow
   developers to configure the environment of their dependencies.
 
   Keep in mind that each application is responsible for its environment.
-  Do not use the functions in this module for directly access or modify
-  the environment of other application (as it may lead to inconsistent
+  Do not use the functions in this module for directly accessing or modifying
+  the environment of other applications (as it may lead to inconsistent
   data in the application environment).
 
   ## Application module callback
@@ -64,8 +64,8 @@ defmodule Application do
       end
 
   Our application now requires the `MyApp` module to provide an application
-  callback. This can be done by invoking `use Application` in that module
-  and defining a `start/2` callback, for example:
+  callback. This can be done by invoking `use Application` in that module and
+  defining a `start/2` callback, for example:
 
       defmodule MyApp do
         use Application
@@ -75,20 +75,21 @@ defmodule Application do
         end
       end
 
-  `start/2` most commonly returns `{:ok, pid}` or `{:ok, pid, state}` where
-  `pid` identifies the supervision tree and the state is the application state.
-  `args` is second element of the tuple given to the `:mod` option.
+  `start/2` typically returns `{:ok, pid}` or `{:ok, pid, state}` where
+  `pid` identifies the supervision tree and `state` is the application state.
+  `args` is the second element of the tuple given to the `:mod` option.
 
-  The `type` passed into `start/2` is usually `:normal` unless in a distributed
-  setup where applications takeovers and failovers are configured. This particular
-  aspect of applications can be read with more detail in the OTP documentation:
+  The `type` argument passed to `start/2` is usually `:normal` unless in a
+  distributed setup where application takeovers and failovers are configured.
+  This particular aspect of applications is explained in more detail in the
+  OTP documentation:
 
     * http://www.erlang.org/doc/man/application.html
     * http://www.erlang.org/doc/design_principles/applications.html
 
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the
-  application state and can return any value. Notice that shutting down the
+  application state and can return any value. Note that shutting down the
   supervisor is automatically handled by the VM.
   """
 
