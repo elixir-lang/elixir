@@ -206,7 +206,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp formatter(:error_info, msg, config),    do: colorize([:red], msg, config)
   defp formatter(:extra_info, msg, config),    do: colorize([:cyan], msg, config)
-  defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
+  defp formatter(:location_info, msg, config), do: colorize([:magenta], msg, config)
   defp formatter(_,  msg, _config),            do: msg
 
   defp get_terminal_width do
