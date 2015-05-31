@@ -205,9 +205,6 @@ defmodule ProtocolTest do
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
-    struct = %ImplStruct{a: 1, b: 1}
-    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
-
     assert_raise Protocol.UndefinedError, fn ->
       struct = %NoImplStruct{a: 1, b: 1}
       Derivable.ok(struct)
