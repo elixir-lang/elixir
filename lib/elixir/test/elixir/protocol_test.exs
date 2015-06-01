@@ -196,12 +196,12 @@ defmodule ProtocolTest do
   test "derives protocol implicitly" do
     struct = %ImplStruct{a: 1, b: 1}
     assert WithAny.ok(struct) == {:ok, struct}
+
+    struct = %NoImplStruct{a: 1, b: 1}
+    assert WithAny.ok(struct) == {:ok, struct}
   end
 
   test "derives protocol explicitly" do
-    struct = %ImplStruct{a: 1, b: 1}
-    assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
-
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
