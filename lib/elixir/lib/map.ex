@@ -77,4 +77,30 @@ defmodule Map do
 
   def equal?(map1, map2)
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
+
+  @doc """
+  Converts all map keys to atoms.
+
+  ## Example
+
+      map = %{"foo" => "bar", "fu" => "baz"}
+
+      Map.atomize_keys(map)
+      #=> %{foo: "bar", fu: "baz"}
+
+      map_mixed = %{"foo" => "bar", fu: "baz"}
+
+      Map.atomize_keys(map_mixed)
+      # => %{foo: "bar", fu: "baz"}
+  """
+
+  def atomize_keys(map) do
+    :maps.fold fn k, v, acc ->
+      if is_binary(k) do
+        put(acc, String.to_atom(k), v)
+      else
+        put(acc, k, v)
+      end
+    end, %{}, map
+  end
 end

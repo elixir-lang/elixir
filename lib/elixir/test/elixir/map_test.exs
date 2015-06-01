@@ -160,4 +160,11 @@ defmodule MapTest do
   test "nil user" do
     assert %NilUser{} == %{__struct__: NilUser, name: nil, contents: %{}}
   end
+
+  test "atomizes map keys" do
+    map = %{"foo" => "baz", "fu" => "baz"}
+    map_atomized_keys = Map.atomize_keys(map)
+
+    assert map_atomized_keys == %{foo: "baz", fu: "baz"}
+  end
 end
