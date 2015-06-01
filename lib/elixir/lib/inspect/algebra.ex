@@ -482,7 +482,7 @@ defmodule Inspect.Algebra do
     :doc_nil
   end
 
-  defp do_surround_many([h], limit, opts, fun, sep) do
+  defp do_surround_many([h], limit, opts, fun, _sep) do
     fun.(h, %{opts | limit: limit})
   end
 
@@ -493,7 +493,7 @@ defmodule Inspect.Algebra do
     do_join(h, t, sep)
   end
 
-  defp do_surround_many([h|t], limit, opts, fun, sep) do
+  defp do_surround_many([h|t], limit, opts, fun, _sep) do
     limit = decrement(limit)
     h = fun.(h, %{opts | limit: limit})
     t = fun.(t, %{opts | limit: limit})
