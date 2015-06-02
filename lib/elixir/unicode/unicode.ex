@@ -88,6 +88,7 @@ defmodule String.Unicode do
   end
 
   # Strip
+
   def lstrip(string)
 
   def lstrip(""), do: ""
@@ -102,35 +103,41 @@ defmodule String.Unicode do
 
   @whitespace_max_size 3
   for codepoint <- whitespace do
-    # We need to increment @whitespace_max_size
-    # if we add a new entry here.
+    # We need to increment @whitespace_max_size as well
+    # as the small table (_s) if we add a new entry here.
     case byte_size(codepoint) do
       3 ->
-        defp do_rstrip(unquote(codepoint)), do: -3
+        defp do_rstrip_l(unquote(codepoint)), do: -3
       2 ->
-        defp do_rstrip(<<_, unquote(codepoint)>>), do: -2
+        defp do_rstrip_l(<<_, unquote(codepoint)>>), do: -2
+
+        defp do_rstrip_s(unquote(codepoint)), do: <<>>
       1 ->
-        defp do_rstrip(<<unquote(codepoint), unquote(codepoint), unquote(codepoint)>>), do: -3
-        defp do_rstrip(<<_, unquote(codepoint), unquote(codepoint)>>), do: -2
-        defp do_rstrip(<<_, _, unquote(codepoint)>>), do: -1
+        defp do_rstrip_l(<<unquote(codepoint), unquote(codepoint), unquote(codepoint)>>), do: -3
+        defp do_rstrip_l(<<_, unquote(codepoint), unquote(codepoint)>>), do: -2
+        defp do_rstrip_l(<<_, _, unquote(codepoint)>>), do: -1
+
+        defp do_rstrip_s(<<x, unquote(codepoint)>>), do: do_rstrip_s(<<x>>)
+        defp do_rstrip_s(unquote(codepoint)), do: <<>>
     end
   end
 
-  defp do_rstrip(_), do: 0
+  defp do_rstrip_l(_), do: 0
+  defp do_rstrip_s(o), do: o
 
   def rstrip(string) when is_binary(string) do
-    size = byte_size(string)
+    rstrip(string, byte_size(string))
+  end
 
-    trail =
-      if size < @whitespace_max_size do
-        string
-      else
-        binary_part(string, size, -@whitespace_max_size)
-      end
+  defp rstrip(string, size) when size < @whitespace_max_size do
+    do_rstrip_s(string)
+  end
 
-    case do_rstrip(trail) do
+  defp rstrip(string, size) do
+    trail = binary_part(string, size, -@whitespace_max_size)
+    case do_rstrip_l(trail) do
       0 -> string
-      x -> rstrip(binary_part(string, 0, size + x))
+      x -> rstrip(binary_part(string, 0, size + x), size + x)
     end
   end
 
