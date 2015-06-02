@@ -135,6 +135,8 @@ defmodule StringTest do
 
   test :rstrip do
     assert String.rstrip("") == ""
+    assert String.rstrip("1\n") == "1"
+    assert String.rstrip("\r\n") == ""
     assert String.rstrip("   abc  ") == "   abc"
     assert String.rstrip("   abc a") == "   abc a"
     assert String.rstrip("a  abc  a\n\n") == "a  abc  a"
