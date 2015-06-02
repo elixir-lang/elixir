@@ -99,27 +99,39 @@ defmodule String.Unicode do
 
   def lstrip(other) when is_binary(other), do: other
 
-  def rstrip(string) when is_binary(string) do
-    do_rstrip(string, [], [])
-  end
-
+  @whitespace_max_size 3
   for codepoint <- whitespace do
-    c = :binary.bin_to_list(codepoint) |> :lists.reverse
-
-    defp do_rstrip(unquote(codepoint) <> rest, acc1, acc2) do
-      do_rstrip(rest, unquote(c) ++ (acc1 || acc2), acc2)
+    # We need to increment @whitespace_max_size
+    # if we add a new entry here.
+    case byte_size(codepoint) do
+      3 ->
+        defp do_rstrip(unquote(codepoint)), do: -3
+      2 ->
+        defp do_rstrip(<<_, unquote(codepoint)>>), do: -2
+      1 ->
+        defp do_rstrip(<<unquote(codepoint), unquote(codepoint), unquote(codepoint)>>), do: -3
+        defp do_rstrip(<<_, unquote(codepoint), unquote(codepoint)>>), do: -2
+        defp do_rstrip(<<_, _, unquote(codepoint)>>), do: -1
     end
   end
 
-  defp do_rstrip(<< char, rest :: binary >>, nil, acc2) do
-    do_rstrip(rest, nil, [char|acc2])
-  end
+  defp do_rstrip(_), do: 0
 
-  defp do_rstrip(<< char, rest :: binary >>, acc1, _acc2) do
-    do_rstrip(rest, nil, [char|acc1])
-  end
+  def rstrip(string) when is_binary(string) do
+    size = byte_size(string)
 
-  defp do_rstrip(<<>>, _acc1, acc2), do: acc2 |> :lists.reverse |> IO.iodata_to_binary
+    trail =
+      if size < @whitespace_max_size do
+        string
+      else
+        binary_part(string, size, -@whitespace_max_size)
+      end
+
+    case do_rstrip(trail) do
+      0 -> string
+      x -> rstrip(binary_part(string, 0, size + x))
+    end
+  end
 
   # Split
 
