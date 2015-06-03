@@ -3,15 +3,16 @@ defmodule Logger.Backends.Capture do
 
   use GenEvent
 
-  def init(proxy, opts \\ []) do
-    {:ok, configure([], proxy, opts)}
+  def init({device, opts}) do
+    {:ok, configure([], device, opts)}
   end
 
   def handle_call({:configure, options}, state) do
-    {:ok, :ok, configure(state.events, state.proxy, options)}
+    {:ok, :ok, configure(state.events, state.device, options)}
   end
 
-  def handle_event({_level, gl, _event}, %{proxy: proxy} = state) when gl != proxy do
+  def handle_event({_level, gl, _event}, %{device: device} = state)
+  when gl != device and device != nil do
     {:ok, state}
   end
 
@@ -39,7 +40,7 @@ defmodule Logger.Backends.Capture do
 
   ## Helpers
 
-  defp configure(events, proxy, options) do
+  defp configure(events, device, options) do
     config =
       Application.get_env(:logger, :capture, [])
       |> configure_merge(options)
@@ -52,7 +53,7 @@ defmodule Logger.Backends.Capture do
     colors   = configure_colors(config)
     %{format: format, metadata: metadata,
       level: level, colors: colors,
-      events: events, proxy: proxy}
+      events: events, device: device}
   end
 
   defp configure_merge(env, options) do
