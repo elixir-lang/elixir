@@ -62,26 +62,26 @@ end
 
 defimpl Enumerable, for: Range do
   def reduce(first .. last = range, acc, fun) do
-    reduce(first, last, acc, fun, Range.Iterator.next(first, range), last >= first)
+    reduce(first, last, acc, fun, Range.Iterator.next(first, range), false)
   end
 
-  defp reduce(_x, _y, {:halt, acc}, _fun, _next, _up) do
+  defp reduce(_current, _last, {:halt, acc}, _fun, _next, _done) do
     {:halted, acc}
   end
 
-  defp reduce(x, y, {:suspend, acc}, fun, next, up) do
-    {:suspended, acc, &reduce(x, y, &1, fun, next, up)}
+  defp reduce(current, last, {:suspend, acc}, fun, next, done) do
+    {:suspended, acc, &reduce(current, last, &1, fun, next, done)}
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, next, true) when x <= y do
-    reduce(next.(x), y, fun.(x, acc), fun, next, true)
+  defp reduce(last, last, {:cont, acc}, fun, next, false) do
+    reduce(last, last, fun.(last, acc), fun, next, true)
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, next, false) when x >= y do
-    reduce(next.(x), y, fun.(x, acc), fun, next, false)
+  defp reduce(current, last, {:cont, acc}, fun, next, false) do
+    reduce(next.(current), last, fun.(current, acc), fun, next, false)
   end
 
-  defp reduce(_, _, {:cont, acc}, _fun, _next, _up) do
+  defp reduce(_, _, {:cont, acc}, _fun, _next, true) do
     {:done, acc}
   end
 
