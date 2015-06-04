@@ -36,7 +36,8 @@ start(_Type, _Args) ->
     {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% OTP 17.3 and earlier
   end,
 
-  case file:native_name_encoding() of
+  Encoding = file:native_name_encoding(),
+  case Encoding of
     latin1 ->
       io:format(standard_error,
         "warning: the VM is running with native name encoding of latin1 which may cause "
@@ -54,7 +55,9 @@ start(_Type, _Args) ->
           {<<"ldap">>, 389}],
   URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
   CompilerOpts = [{docs, true}, {debug_info, true}, {warnings_as_errors, false}],
+  {ok, [[Home] | _]} = init:get_argument(home),
   Config = [{at_exit, []},
+            {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
             {compiler_options, orddict:from_list(CompilerOpts)}
             | URIConfig],
   Tab = elixir_config:new(Config),
