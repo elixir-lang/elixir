@@ -191,15 +191,15 @@ defmodule Supervisor do
   There are three options:
 
     * `:normal` - on such cases, the exit won't be logged, there is no restart
-      on transient mode and linked processes are not broken
+      on transient mode and linked processes do not exit
 
     * `:shutdown` or `{:shutdown, term}` - on such cases, the exit won't be
-      logged, there is no restart on transient mode and linked processes are
-      broken (with the same exit reason)
+      logged, there is no restart on transient mode and linked processes exit
+      with the same reason unless trapping exits
 
     * any other term - on such cases, the exit will be logged, there are
-      restarts on transient mode and linked processes are broken (with the
-      same exit reason)
+      restarts on transient mode and linked processes exit with the same reason
+      unless trapping exits
 
   ## Name Registration
 
