@@ -165,7 +165,8 @@ defmodule Supervisor do
       means that, if the child process exits due to a `:normal`, `:shutdown`
       or `{:shutdown, term}` reason, it won't be restarted. This is useful
       as it allows our workers to politely shutdown and be removed from the
-      simple one for one supervisor, without being restarted
+      simple one for one supervisor, without being restarted. You can find
+      more information about restart strategies on `Supervisor.Spec`
 
   With the supervisor defined, let's dynamically start stacks:
 
@@ -179,6 +180,26 @@ defmodule Supervisor do
 
       Supervisor.count_children(sup_pid)
       #=> %{active: 2, specs: 1, supervisors: 0, workers: 2}
+
+  ## Exit reasons
+
+  From the example above, you may have noticed that the transient restart
+  strategy for the worker does not restart the child in case it crashes with
+  reason `:normal`, `:shutdown` or `{:shutdown, term}`.
+
+  So one may ask: which exit reason should I choose when existing my worker?
+  There are three options:
+
+    * `:normal` - on such cases, the exit won't be logged, there is no restart
+      on transient mode and linked processes are not broken
+
+    * `:shutdown` or `{:shutdown, term}` - on such cases, the exit won't be
+      logged, there is no restart on transient mode and linked processes are
+      broken (with the same exit reason)
+
+    * any other term - on such cases, the exit will be logged, there are
+      restarts on transient mode and linked processes are broken (with the
+      same exit reason)
 
   ## Name Registration
 
