@@ -122,13 +122,9 @@ defmodule System do
   User home directory.
 
   Returns the user home directory (platform independent).
-  Returns `nil` if no user home is set.
   """
   def user_home do
-    case :os.type() do
-      {:win32, _} -> get_windows_home
-      _             -> get_unix_home
-    end
+    :elixir_config.get(:home)
   end
 
   @doc """
@@ -140,20 +136,6 @@ defmodule System do
   def user_home! do
     user_home ||
       raise RuntimeError, message: "could not find the user home, please set the HOME environment variable"
-  end
-
-  defp get_unix_home do
-    get_env("HOME")
-  end
-
-  defp get_windows_home do
-    :filename.absname(
-      get_env("USERPROFILE") || (
-        hd = get_env("HOMEDRIVE")
-        hp = get_env("HOMEPATH")
-        hd && hp && hd <> hp
-      )
-    )
   end
 
   @doc ~S"""
