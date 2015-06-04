@@ -20,8 +20,8 @@ defmodule Supervisor do
       defmodule Stack do
         use GenServer
 
-        def start_link(state) do
-          GenServer.start_link(__MODULE__, state, [name: :sup_stack])
+        def start_link(state, opts) do
+          GenServer.start_link(__MODULE__, state, opts)
         end
 
         def handle_call(:pop, _from, [h|t]) do
@@ -38,16 +38,17 @@ defmodule Supervisor do
       # Import helpers for defining supervisors
       import Supervisor.Spec
 
-      # We are going to supervise the Stack server which will
-      # be started with a single argument [:hello]
+      # We are going to supervise the Stack server which
+      # will be started with a single argument [:hello]
+      # and the default name of :sup_stack.
       children = [
-        worker(Stack, [[:hello]])
+        worker(Stack, [[:hello], [name: :sup_stack]])
       ]
 
       # Start the supervisor with our one child
       {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
-  Notice that when starting the GenServer, we have registered it
+  Notice that when starting the GenServer, we are registering it
   with name `:sup_stack`, which allows us to call it directly and
   get what is on the stack:
 
@@ -65,7 +66,7 @@ defmodule Supervisor do
   Let's try it:
 
       GenServer.call(:sup_stack, :pop)
-      =ERROR REPORT====
+      ** (exit) exited in: GenServer.call(:sup_stack, :pop, 5000)
 
   Luckily, since the server is being supervised by a supervisor, the
   supervisor will automatically start a new one, with the default stack
@@ -135,6 +136,49 @@ defmodule Supervisor do
       supervisor specification to contain only one child. Many functions
       in this module behave slightly differently when this strategy is
       used.
+
+  ## Simple one for one
+
+  The simple one for one supervisor is useful when you want to dynamically
+  start and stop supervisor children. For example, imagine you want to
+  dynamically create multiple stacks. We can do so by defining a simple one
+  for one supervisor:
+
+      # Import helpers for defining supervisors
+      import Supervisor.Spec
+
+      # This time, we don't pass any argument because
+      # the argument will be given when we start the child
+      children = [
+        worker(Stack, [], restart: :transient)
+      ]
+
+      # Start the supervisor with our one child
+      {:ok, sup_pid} = Supervisor.start_link(children, strategy: :simple_one_for_one)
+
+  There are a couple differences here:
+
+    * The simple one for one specification can define only one child which
+      works as a template for when we call `start_child/2`
+
+    * We have define the child to have restart strategy of transient. This
+      means that, if the child process exits due to a `:normal`, `:shutdown`
+      or `{:shutdown, term}` reason, it won't be restarted. This is useful
+      as it allows our workers to politely shutdown and be removed from the
+      simple one for one supervisor, without being restarted
+
+  With the supervisor defined, let's dynamically start stacks:
+
+      {:ok, pid} = Supervisor.start_child(sup_pid, [[:hello, :world], []])
+      GenServer.call(pid, :pop) #=> :hello
+      GenServer.call(pid, :pop) #=> :world
+
+      {:ok, pid} = Supervisor.start_child(sup_pid, [[:something, :else], []])
+      GenServer.call(pid, :pop) #=> :something
+      GenServer.call(pid, :pop) #=> :else
+
+      Supervisor.count_children(sup_pid)
+      #=> %{active: 2, specs: 1, supervisors: 0, workers: 2}
 
   ## Name Registration
 
