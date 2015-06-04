@@ -7,7 +7,7 @@ defmodule Mix.Tasks.App.Start do
   Starts all registered apps.
 
   The application is started by default as temporary. In case
-  `:start_permanent` is set to true in your prject configuration
+  `:start_permanent` is set to true in your project configuration
   or the `--permanent` flag is given, it is started as permanent,
   which guarantee the node will shutdown in case the application
   crashes permanently.
