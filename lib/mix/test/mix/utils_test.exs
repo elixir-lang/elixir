@@ -37,6 +37,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.underscore("FoBaZa") == "fo_ba_za"
     assert Mix.Utils.underscore("Foo.Bar") == "foo/bar"
     assert Mix.Utils.underscore(Foo.Bar) == "foo/bar"
+    assert Mix.Utils.underscore("API.V1.User") == "api/v1/user"
     assert Mix.Utils.underscore("") == ""
   end
 

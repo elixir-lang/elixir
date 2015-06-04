@@ -174,7 +174,7 @@ defmodule Mix.Utils do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not t in ?A..?Z do
+  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not (t in ?A..?Z or t == ?.) do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
 
