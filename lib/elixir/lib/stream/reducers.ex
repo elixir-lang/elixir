@@ -144,10 +144,11 @@ defmodule Stream.Reducers do
   defmacro take(f \\ nil) do
     quote do
       fn(entry, acc(h, n, t) = orig) ->
-        if n >= 1 do
+        if n > 1 do
           next_with_acc(unquote(f), entry, h, n-1, t)
         else
-          {:halt, orig}
+          {_reason, acc} = next_with_acc(unquote(f), entry, h, n-1, t)
+          {:halt, acc}
         end
       end
     end
