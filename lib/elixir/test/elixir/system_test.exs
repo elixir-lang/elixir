@@ -66,7 +66,7 @@ defmodule SystemTest do
   test "cmd/3 (with options)" do
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
                                 into: [], cd: System.cwd!, env: %{"foo" => "bar"},
-                                arg0: "hecho", stderr_to_stdout: true, parallelism: true
+                                arg0: "echo", stderr_to_stdout: true, parallelism: true
   end
 
   @echo "echo-elixir-test"
@@ -84,7 +84,7 @@ defmodule SystemTest do
         assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
       end
 
-      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"])
+      assert {"hello\n", 0} = System.cmd(Path.join(System.cwd!, @echo), ["hello"], [{:arg0, "echo"}])
     end
   after
     File.rm_rf! tmp_path(@echo)
