@@ -699,9 +699,11 @@ defmodule Stream do
         next.({:halt, next_acc})
         :erlang.raise(kind, reason, stacktrace)
     else
-      {:halted, [:outer|acc]} ->
+      # Only take into account outer halts when the op is not halt itself.
+      # Otherwise, we were the ones wishing to halt, so we should just stop.
+      {:halted, [:outer|acc]} when op != :halt ->
         do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
-      {:halted, [:inner|acc]} ->
+      {:halted, [_|acc]} ->
         next.({:halt, next_acc})
         {:halted, acc}
       {:done, [_|acc]} ->

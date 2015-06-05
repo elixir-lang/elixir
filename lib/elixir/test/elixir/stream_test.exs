@@ -326,6 +326,18 @@ defmodule StreamTest do
     assert Enum.take(stream, 5) == [1, 2, 3, 4, 3]
   end
 
+  test "flat_map/2 properly halts both inner and outer stream when inner stream is halted" do
+    # Fixes a bug that, when the inner stream was done,
+    # sending it a halt would cause it to return the
+    # inner stream was halted, forcing flat_map to get
+    # the next value from the outer stream, evaluate it,
+    # get annother inner stream, just to halt it.
+    assert [1, 2] # 2 should never be used
+           |> Stream.flat_map(fn 1 -> Stream.repeatedly(fn -> 1 end) end)
+           |> Stream.flat_map(fn 1 -> Stream.repeatedly(fn -> 1 end) end)
+           |> Enum.take(1) == [1]
+  end
+
   test "interval/1" do
     stream = Stream.interval(10)
     now = :erlang.now
