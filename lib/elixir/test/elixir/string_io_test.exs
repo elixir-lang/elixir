@@ -3,17 +3,12 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringIOTest do
   use ExUnit.Case, async: true
 
-  test "start and stop" do
+  test "open and close" do
     {:ok, pid} = StringIO.open("")
     assert StringIO.close(pid) == {:ok, {"", ""}}
   end
 
-  test "start_link and stop" do
-    {:ok, pid} = StringIO.open("")
-    assert StringIO.close(pid) == {:ok, {"", ""}}
-  end
-
-  test "peek" do
+  test "contents" do
     {:ok, pid} = StringIO.open("abc")
     IO.write(pid, "edf")
     assert StringIO.contents(pid) == {"abc", "edf"}

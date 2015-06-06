@@ -28,6 +28,25 @@ defmodule ExUnit.CaptureIOTest do
   import ExUnit.CaptureIO
   doctest ExUnit.CaptureIO, import: true
 
+  test "no leakage on failures" do
+    group_leader = Process.group_leader()
+
+    test = self()
+    assert_raise ArgumentError, fn ->
+      capture_io(fn ->
+        send(test, {:string_io, Process.group_leader()})
+        raise ArgumentError
+      end)
+    end
+
+    receive do
+      {:string_io, pid} ->
+        ref = Process.monitor(pid)
+        assert_receive {:DOWN, ^ref, _, _, _}
+    end
+    assert Process.group_leader() == group_leader
+  end
+
   test "with no output" do
     assert capture_io(fn ->
     end) == ""
@@ -290,19 +309,14 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with assert inside" do
-    group_leader = :erlang.group_leader
-
     try do
       capture_io(fn ->
         assert false
       end)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected truthy, got false" = error.message
+        assert error.message == "Expected truthy, got false"
     end
-
-    # Ensure no leakage on failures
-    assert group_leader == :erlang.group_leader
   end
 
   test "capture :stderr by two processes" do
