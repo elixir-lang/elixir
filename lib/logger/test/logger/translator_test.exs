@@ -31,12 +31,6 @@ defmodule Logger.TranslatorTest do
     end
   end
 
-  defmodule MyTemporaryWorker do
-    use GenServer
-    def start_link, do: GenServer.start_link(__MODULE__, [], [])
-    def init([]), do: 1 / 0
-  end
-
   setup_all do
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
     Application.put_env(:logger, :handle_sasl_reports, true)
@@ -483,12 +477,13 @@ defmodule Logger.TranslatorTest do
   end
 
   test "handles :undefined MFA properly" do
-    children = [Supervisor.Spec.worker(MyTemporaryWorker, [], restart: :temporary)]
+    children = [Supervisor.Spec.worker(GenServer, [], restart: :temporary)]
     opts = [strategy: :simple_one_for_one]
     {:ok, sup} = Supervisor.start_link(children, opts)
     assert capture_log(:info, fn ->
-      {:error, {:badarith, _}} = Supervisor.start_child(sup, [])
-    end) =~ "Start Call: Logger.TranslatorTest.MyTemporaryWorker.start_link/?"
+      {:ok, pid} = Supervisor.start_child(sup, [MyGenServer, []])
+      catch_exit(GenServer.call(pid, :error))
+    end) =~ "Start Call: GenServer.start_link/?"
   end
 
   def task(parent, fun \\ (fn() -> raise "oops" end)) do
