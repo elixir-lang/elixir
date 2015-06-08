@@ -1,6 +1,26 @@
 # Changelog
 
-## v1.0.4
+## v1.0.5
+
+* Enhancements
+  * [Record] Expand attributes and macros in record extractor
+  * [String] `Optimize String.rstrip/1`
+  * [String] `Optimize String.downcase/1`
+  * [String] `Optimize String.upcase/1`
+
+* Bug fixes
+  * [EEx] Ensure blocks do not clobber EEx buffers
+  * [Enum] Ensure `Enum.take/2` does not consume one extra item when halting on the last emittable item
+  * [ExUnit] Fix `StringIO` processes leakage in the `ExUnit.CaptureIO` when there are errors inside the `capture_io` block
+  * [GenEvent] Fix `GenEvent` detection of modules that aren't loaded
+  * [IO] Read 4K blocks instead of lines in `IO.binread/2`. This fixes a bug where CRLF were being ignored and is also going to improve performance
+  * [Logger] Handle `:undefined` arity in Logger.Translator (we get :undefined when a temporary worker of a `simple_one_for_one` supervisor crashes)
+  * [Mix] Ensure config is escaped before being injected into escripts. This fixes a bug where escripts failed to be built when containing values like maps in config files
+  * [Mix] Ensure we properly underscore acronyms followed by paths, for example, `HTTP.Foo`
+  * [Stream] Ensure `Stream.flat_map/2` does not consume more items than necessary when piped to another `Stream.flat_map/2` that halts in the inner stream
+  * [Version] Fix `to_string` for versions with numeric pre releases
+
+## v1.0.4 (2015-04-07)
 
 * Enhancements
   * [Elixir] Support Erlang 17.5 and 18.0

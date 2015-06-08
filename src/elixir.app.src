@@ -1,6 +1,6 @@
 {application, elixir,
 [{description, "elixir"},
- {vsn, "1.0.4"},
+ {vsn, "1.0.5"},
  {modules, [elixir]},
  {registered, [elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,crypto,compiler,syntax_tools]},
