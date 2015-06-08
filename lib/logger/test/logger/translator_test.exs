@@ -549,6 +549,7 @@ defmodule Logger.TranslatorTest do
     assert capture_log(:info, fn ->
       {:ok, pid} = Supervisor.start_child(sup, [MyGenServer, []])
       catch_exit(GenServer.call(pid, :error))
+      [] = Supervisor.which_children(sup)
     end) =~ "Start Call: GenServer.start_link/?"
   end
 
