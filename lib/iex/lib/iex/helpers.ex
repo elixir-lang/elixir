@@ -25,7 +25,7 @@ defmodule IEx.Helpers do
     * `respawn/0`     — respawns the current shell
     * `s/1`           — prints spec information
     * `t/1`           — prints type information
-    * `v/0`           — prints the history of commands evaluated in the session
+    * `v/0`           — retrieves the last value from the history
     * `v/1`           — retrieves the nth value from the history
     * `import_file/1` — evaluates the given file in the shell's context
 
@@ -277,26 +277,12 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints the history of expressions evaluated during the session along with
-  their results.
-  """
-  def v do
-    inspect_opts = IEx.inspect_opts
-    IEx.History.each(history, &print_history_entry(&1, inspect_opts))
-  end
-
-  defp print_history_entry({counter, cache, result}, inspect_opts) do
-    IO.write IEx.color(:eval_info, "#{counter}: #{cache}#=> ")
-    IO.puts  IEx.color(:eval_result, "#{inspect result, inspect_opts}\n")
-  end
-
-  @doc """
   Retrieves the nth expression's value from the history.
 
   Use negative values to lookup expression values relative to the current one.
   For instance, v(-1) returns the result of the last evaluated expression.
   """
-  def v(n) do
+  def v(n \\ -1) do
     IEx.History.nth(history, n) |> elem(2)
   end
 
