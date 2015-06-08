@@ -177,11 +177,15 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_modules_from_applications do
-    for {app, _, _} <- :application.loaded_applications(),
+    for [app] <- loaded_applications(),
         {_, modules} = :application.get_key(app, :modules),
         module <- modules do
       Atom.to_string(module)
     end
+  end
+
+  defp loaded_applications do
+    :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 
   defp match_module_funs(mod, hint) do
