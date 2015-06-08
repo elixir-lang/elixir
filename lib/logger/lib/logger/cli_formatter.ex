@@ -1,8 +1,19 @@
 defmodule Logger.CLIFormatter do
-  @moduledoc false
+  @moduledoc """
+  An ExUnit CLI Formatter. Captures logs per test and prints as batch
+  on failure.
+
+  ## Options
+
+  Logger.CLIFormatter supports the follow options:
+
+    * `capture_log_blacklist` - list of backends to remove during tests
+
+  """
 
   use GenEvent
 
+  @doc false
   def init(opts) do
     colors = Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?)
     captured =
@@ -11,6 +22,7 @@ defmodule Logger.CLIFormatter do
     {:ok, {captured, colors: colors}}
   end
 
+  @doc false
   def terminate(_reason, {captured, opts}) do
     :ok = add_capture(%{group_leader: nil}, opts)
 
@@ -28,6 +40,7 @@ defmodule Logger.CLIFormatter do
     :ok
   end
 
+  @doc false
   def handle_event({:test_started, %ExUnit.Test{} = test}, {_, opts} = state) do
     :ok = add_capture(test, opts)
     {:ok, state}
