@@ -1,11 +1,11 @@
 # Changelog for Elixir v1.1
 
-v1.1 brings many enhancements, bug fixes, performance improvements
-and more into Elixir.
+v1.1 brings enhancements, bug fixes, performance improvements and more
+into Elixir.
 
 Elixir v1.1 supports both Erlang 17 and Erlang 18 and, for this reason,
 it does not introduce any feature that is specific to Erlang 18. Such
-will be tackled on the follow up Elixir v1.2 branch.
+will be tackled on the follow up Elixir v1.2 release.
 
 On the enhancements side, the most notable changes are the new functions
 added to `Enum` and `Dict` modules, and a new datatype called `MapSet`.
@@ -15,7 +15,7 @@ however, will be able to rely on `MapSet` from dozens of keys up to
 millions, with better performance than `HashSet`.
 
 On the deprecation side, this release includes one major deprecation and
-two soft deprecations.
+some soft deprecations.
 
 The major deprecation relates to the Access protocol. Due to performance
 issues, the access syntax `opts[key]` will no longer be powered by the
@@ -25,7 +25,7 @@ Note the `Access` module and the `opts[key]` syntax are not affected and
 they are not deprecated, only the underlying protocol dispatch.
 
 The soft deprecations are minor and they won't emit warnings. It simply
-means the documentation has been updated to point to the new best
+means the documentation has been updated to mention the new best
 practices. Warnings will be emitted in the future though (when they are
 promoted to deprecations).
 
@@ -49,20 +49,26 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Allow moduledoc to be filtered/skipped in doctests
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [IEx] Add `b/1` helper that shows documentation for behaviour modules and its callback functions
-  * [IEx] Provide tab completion for aliases
+  * [IEx] Provide tab completion for aliases and allow aliases like `Foo.Bar.Baz` to autocomplete even if `Foo.Bar` is not defined
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
   * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
+  * [IO] Support fenced code blocks on `IO.ANSI.Docs`
   * [Kernel] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
   * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it just warned)
   * [Kernel] Improve generation of argument names for function signatures
   * [Kernel] `::/2` is now a special form
+  * [Logger] Support printing pids and refs in Logger metadata
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
   * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
   * [Mix] Allow rebar dependencies to be specified via `:path`
+  * [Mix] Also consider subdirectories in `config` directory for `Mix.Project.config_files/0`
+  * [Mix] Allow dynamic configuration in Mix projects by storing config in an agent
+  * [Module] Improve name inference for function signatures in documentation metadata
   * [Record] Expand attributes and macros when extracting records
   * [Set] Introduce `MapSet` data type. This new data type uses maps behind the scenes and is useful for storing a dozens of items in Erlang 17. In future versions when maps efficiently support large collections, it is meant to be the main Set abstraction in Elixir
   * [Stream] Add `Stream.dedup/1` and `Stream.dedup_by/2`
   * [String] Support calculation of the jaro distance between strings (usually names) via `String.jaro_distance/2`. This is used by Mix to support "Did you mean?" feature when a task does not exist
+  * [String] Add `String.splitter/3` that splits strings as a stream
   * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
   * [URI] Default ports were added for "ws" and "wss" schemas
 
@@ -80,9 +86,9 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Mix] Ensure automatic protocol consolidation via `:consolidate_protocols` is triggered in umbrella apps
   * [Mix] Do not raise if wildcard given to `import_config` does not match any file
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
+  * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
   * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
-  * [Version] Fix `to_string` for `Version` with numeric pre-release
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -92,3 +98,4 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 ### 4. Deprecations
 
   * [Access] Implementing the Access protocol is deprecated. The Access protocol relies on the code server in development and test mode (when protocol consolidation is not applied) and it generated a bottleneck when working with multiple processes and the Access protocol was invoked hundreds of times (which is not uncommon). Note the `Access` module and the `opts[key]` syntax are not affected and they are not deprecated, only the underlying protocol dispatch
+  * [String] Passing an empty string to `starts_with?` and `ends_with?` had dubious behaviour and have been deprecated to help developers identify possible bugs in their source code
