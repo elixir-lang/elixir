@@ -45,10 +45,10 @@ defmodule ExUnit.EventManager do
   end
 
   def test_started(ref, test) do
-    :gen_event.notify(ref, {:test_started, test})
+    :gen_event.sync_notify(ref, {:test_started, test})
   end
 
   def test_finished(ref, test) do
-    :gen_event.notify(ref, {:test_finished, test})
+    :gen_event.sync_notify(ref, {:test_finished, test})
   end
 end

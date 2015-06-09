@@ -189,13 +189,23 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(config, test, context) do
-    EM.test_started(config.manager, test)
+    old_gl = Process.group_leader()
+    {:ok, proxy} = ProxyIO.open()
+    try do
+      Process.group_leader(self(), proxy)
+      test = %{test | group_leader: proxy}
 
-    if is_nil(test.state) do
-      test = spawn_test(config, test, Map.merge(test.tags, context))
+      EM.test_started(config.manager, test)
+
+      if is_nil(test.state) do
+        test = spawn_test(config, test, Map.merge(test.tags, context))
+      end
+
+      EM.test_finished(config.manager, test)
+    after
+      Process.group_leader(self(), old_gl)
+      ProxyIO.close(proxy)
     end
-
-    EM.test_finished(config.manager, test)
   end
 
   defp spawn_test(config, test, context) do
