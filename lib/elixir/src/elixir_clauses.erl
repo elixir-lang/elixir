@@ -181,7 +181,7 @@ has_match_tuple(H) when is_list(H) ->
 has_match_tuple(_) -> false.
 
 % Normalize the given var between clauses
-% by picking one value as reference and retriving
+% by picking one value as reference and retrieving
 % its previous value.
 
 normalize_vars(Key, Value, #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
