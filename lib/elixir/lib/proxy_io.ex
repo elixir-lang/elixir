@@ -64,6 +64,10 @@ defmodule ProxyIO do
     {:noreply, state}
   end
 
+  def handle_info(_msg, state) do
+    {:noreply, state}
+  end
+
   @doc false
   def handle_call(:close, _from, state) do
     {:stop, :normal, :ok, state}
@@ -76,6 +80,7 @@ defmodule ProxyIO do
     send(device, {:io_request, self(), ref, req})
     receive do
       {:io_reply, ^ref, reply} ->
+        Process.demonitor(ref, [:flush])
         reply
       {:DOWN, ^ref, _, _, reason} ->
         exit({reason, {__MODULE__, :request, [device, req]}})
