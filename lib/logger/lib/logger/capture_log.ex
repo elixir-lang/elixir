@@ -89,15 +89,16 @@ defmodule Logger.CaptureLog do
     do_capture_log(map_dev(device), options, fun)
   end
 
-  defp map_dev(:stdio), do: :standard_io
-  defp map_dev(nil), do: nil
+
+  defp map_dev(:standard_io), do: :standard_io
+  defp map_dev(:stdio),       do: :standard_io
+  defp map_dev(nil),          do: nil
   defp map_dev(device) when is_pid(device), do: device
   defp map_dev(device) when is_atom(device) do
     case Process.whereis(device) do
       nil ->
         raise "could not find IO device registered at #{inspect device}"
-      device ->
-        device
+      pid -> pid
     end
   end
 
