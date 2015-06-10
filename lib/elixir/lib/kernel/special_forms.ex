@@ -172,10 +172,22 @@ defmodule Kernel.SpecialForms do
       iex> << 1, 2, 3 >>
       << 1, 2, 3 >>
 
-  ## Bitstring types
+  ## Types
 
-  A bitstring is made of many segments. Each segment has a
-  type, which defaults to integer:
+  A bitstring is made of many segments and each segment has a
+  type. There are 9 types used in bitstrings:
+
+  - `integer`
+  - `float`
+  - `bits` (alias for bitstring)
+  - `bitstring`
+  - `binary`
+  - `bytes` (alias for binary)
+  - `utf8`
+  - `utf16`
+  - `utf32`
+
+  When no type is specified, the default is `integer`:
 
       iex> <<1, 2, 3>>
       <<1, 2, 3>>
@@ -186,14 +198,7 @@ defmodule Kernel.SpecialForms do
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
 
-  Any other type needs to be explicitly tagged. For example,
-  in order to store a float type in the binary, one has to do:
-
-      iex> <<3.14 :: float>>
-      <<64, 9, 30, 184, 81, 235, 133, 31>>
-
-  This also means that variables need to be explicitly tagged,
-  otherwise Elixir defaults to integer:
+  Variables or any other type need to be explicitly tagged:
 
       iex> rest = "oo"
       iex> <<102, rest>>
@@ -205,99 +210,59 @@ defmodule Kernel.SpecialForms do
       iex> <<102, rest :: binary>>
       "foo"
 
-  The type can be integer, float, bitstring/bits, binary/bytes,
-  utf8, utf16 or utf32, e.g.:
-
-      iex> rest = "oo"
-      iex> <<102 :: float, rest :: binary>>
-      <<64, 89, 128, 0, 0, 0, 0, 0, 111, 111>>
-
-  An integer can be any arbitrary precision integer. A float is an
-  IEEE 754 binary32 or binary64 floating point number. A bitstring
-  is an arbitrary series of bits. A binary is a special case of
-  bitstring that has a total size divisible by 8.
-
   The utf8, utf16, and utf32 types are for unicode codepoints. They
   can also be applied to literal strings and char lists:
 
       iex> <<"foo" :: utf16>>
       <<0, 102, 0, 111, 0, 111>>
+      iex> <<"foo" :: utf32>>
+      <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
-  The bits type is an alias for bitstring. The bytes type is an
-  alias for binary.
 
-  The signedness can also be given as signed or unsigned. The
-  signedness only matters for matching and relevant only for
-  integers. If unspecified, it defaults to unsigned. Example:
+  ## Options
 
-      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
-      <<156, 102, 111, 111>>
-
-  This match would have failed if we did not specify that the
-  value -100 is signed. If we're matching into a variable instead
-  of a value, the signedness won't be checked; rather, the number
-  will simply be interpreted as having the given (or implied)
-  signedness, e.g.:
-
-      iex> <<val, _rest :: binary>> = <<-100, "foo">>
-      iex> val
-      156
-
-  Here, `val` is interpreted as unsigned.
-
-  The endianness of a segment can be big, little or native (the
-  latter meaning it will be resolved at VM load time).
-
-  Many options can be given by using `-` as separator, order is
-  arbitrary. The following are all the same:
+  Many options can be given by using `-` as separator. Order is
+  arbitrary, so the following are all equivalent:
 
       <<102 :: integer-native, rest :: binary>>
-      <<102 :: native-integer, rest :: binary>>  
+      <<102 :: native-integer, rest :: binary>>
       <<102 :: unsigned-big-integer, rest :: binary>>
       <<102 :: unsigned-big-integer-size(8), rest :: binary>>
       <<102 :: unsigned-big-integer-8, rest :: binary>>
       <<102 :: 8-integer-big-unsigned, rest :: binary>>
       <<102, rest :: binary>>
 
-  And so on.
+  ### Unit and Size
 
-  Endianness only makes sense for integers and some UTF code
-  point types (utf16 and utf32).
+  The length of the match is equal to the `unit` (a number of bits) times the
+  `size` (the number of repeated segnments of length `unit`).
 
-  Finally, we can also specify size and unit for each segment. The
-  unit is multiplied by the size to give the effective size of
-  the segment in bits. The default unit for integers, floats,
-  and bitstrings is 1. For binaries, it is 8.
+  Type      | Default Unit
+  --------- | ------------
+  `integer` | 1 bit
+  `float`   | 1 bit
+  `binary`  | 8 bits
 
-  Since integers are default, the default unit is 1. The example below
-  matches because the string "foo" takes 24 bits and we match it
-  against a segment of 24 bits, 8 of which are taken by the integer
-  102 and the remaining 16 bits are specified on the rest.
+  Sizes for types are a bit more nuanced. The default size for integers is 8.
 
-      iex> <<102, _rest :: size(16)>> = "foo"
-      "foo"
+  For floats, it is 64. For floats, `size * unit` must result in 32 or 64,
+  corresponding to [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)
+  binary32 and binary64, respectively.
 
-  We can also match by specifying size and unit explicitly:
+  For binaries, the default is the size of the binary. Only the last binary in a
+  binary match can use the default size. All others must have their size
+  specified explicitly, even if the match is unambiguous.
 
-      iex> <<102, _rest :: size(2)-unit(8)>> = "foo"
-      "foo"
+  For example:
 
-  However, if we expect a size of 32, it won't match:
+      iex> <<name::binary, " the ", species::binary>>= <<"Frank the Walrus">>
+      ** (CompileError): a binary field without size is only allowed at the end of a binary pattern
+      iex> <<name::binary-size(5), " the ", species::binary>>= <<"Frank the Walrus">>
+      "Frank the Walrus"
+      iex> {name, species}
+      {"Frank", "Walrus"}
 
-      iex> <<102, _rest :: size(32)>> = "foo"
-      ** (MatchError) no match of right hand side value: "foo"
-
-  Size and unit are not applicable to utf8, utf16, and utf32.
-
-  The default size for integers is 8. For floats, it is 64. For
-  binaries, it is the size of the binary. Only the last binary
-  in a binary match can use the default size (all others must
-  have their size specified explicitly).
-
-      iex> <<3.14 :: float>>
-      <<64, 9, 30, 184, 81, 235, 133, 31>>
-      iex> <<3.14 :: float-32>>
-      <<64, 72, 245, 195>>
+  #### Shortcut Syntax
 
   Size and unit can also be specified using a syntax shortcut
   when passing integer values:
@@ -311,8 +276,93 @@ defmodule Kernel.SpecialForms do
   This syntax reflects the fact the effective size is given by
   multiplying the size by the unit.
 
-  For floats, `size * unit` must result in 32 or 64, corresponding
-  to binary32 and binary64, respectively.
+  ### Modifiers
+
+  Some types have associated modifiers to clear up ambiguity in byte
+  representation.
+
+  Modifier             | Relevant Type(s)
+  -------------------- | ----------------
+  `signed`             | `integer`
+  `unsigned` (default) | `integer`
+  `little`             | `integer`, `utf16`, `utf32`
+  `big` (default)      | `integer`, `utf16`, `utf32`
+  `native`             | `integer`, `utf16`, `utf32`
+
+  ### Sign
+
+  Integers can be `signed` or `unsigned`, defaulting to `unsigned`.
+
+      iex> <<int::integer>> =  <<-100>>
+      <<156>>
+      iex> int
+      156
+      iex> <<int::integer-signed>> =  <<-100>>
+      <<156>>
+      iex> int
+      -100
+
+  `signed` and `unsigned` are only used for matching binaries (see below) and
+  are only used for integers.
+
+      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
+      <<156, 102, 111, 111>>
+
+  ### Endianness
+
+  Elixir has three options for endianness: `big`, `little`, and `native`.
+  The default is `big`. `native` is determined by the VM at startup.
+
+      iex> <<number::little-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      256
+      iex> <<number::big-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      1
+      iex> <<number::native-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      256
+
+  ## Binary/Bitstring Matching
+
+  Binary matching is a powerful feature in Elixir that is useful for extracting
+  information from binaries as well as pattern matching.
+
+  Binary matching can be used by itself to extract information from binaries:
+
+      iex> <<"Hello, ", place::binary>> = "Hello, World"
+      "Hello, World"
+      iex> place
+      "World"
+
+  Or as a part of function definitions to pattern match:
+
+      defmodule ImageTyper
+        @png_signature <<137::size(8), 80::size(8), 78::size(8), 71::size(8),
+                      13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
+        @jpg_signature <<255::size(8), 216::size(8)>>
+
+        def type(<<@png_signature, rest::binary>>), do: :png
+        def type(<<@jpg_signature, rest::binary>>), do: :jpg
+        def type(_), do :unknown
+      end
+
+  ### Performance & Optimizations
+
+  The Erlang compiler can provide a number of optimizations on binary creation
+  and matching. To see optimization output, set the `bin_opt_info` compiler
+  option:
+
+      `ERL_COMPILER_OPTIONS=bin_opt_info mix compile`
+
+  To learn more about specific optimizations and performance considerations,
+  check out
+  [Erlang's Efficiency Guide on handling binaries](http://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
+
+
   """
   defmacro unquote(:<<>>)(args)
 
