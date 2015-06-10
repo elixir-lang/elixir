@@ -218,7 +218,6 @@ defmodule Kernel.SpecialForms do
       iex> <<"foo" :: utf32>>
       <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
-
   ## Options
 
   Many options can be given by using `-` as separator. Order is
@@ -250,17 +249,18 @@ defmodule Kernel.SpecialForms do
   binary32 and binary64, respectively.
 
   For binaries, the default is the size of the binary. Only the last binary in a
-  binary match can use the default size. All others must have their size
-  specified explicitly, even if the match is unambiguous.
+  match can use the default size. All others must have their size specified
+  explicitly, even if the match is unambiguous. For example:
 
-  For example:
-
-      iex> <<name::binary, " the ", species::binary>>= <<"Frank the Walrus">>
-      ** (CompileError): a binary field without size is only allowed at the end of a binary pattern
-      iex> <<name::binary-size(5), " the ", species::binary>>= <<"Frank the Walrus">>
+      iex> <<name::binary-size(5), " the ", species::binary>> = <<"Frank the Walrus">>
       "Frank the Walrus"
       iex> {name, species}
       {"Frank", "Walrus"}
+
+  Failing to specify the size for the non-last causes compilation to fail:
+  
+      <<name::binary, " the ", species::binary>> = <<"Frank the Walrus">>
+      ** (CompileError): a binary field without size is only allowed at the end of a binary pattern
 
   #### Shortcut Syntax
 
@@ -356,13 +356,11 @@ defmodule Kernel.SpecialForms do
   and matching. To see optimization output, set the `bin_opt_info` compiler
   option:
 
-      `ERL_COMPILER_OPTIONS=bin_opt_info mix compile`
+      ERL_COMPILER_OPTIONS=bin_opt_info mix compile
 
   To learn more about specific optimizations and performance considerations,
   check out
   [Erlang's Efficiency Guide on handling binaries](http://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
-
-
   """
   defmacro unquote(:<<>>)(args)
 
