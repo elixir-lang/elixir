@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
+.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -109,6 +109,15 @@ install: compile
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
+	$(MAKE) install_man
+
+install_man:
+	$(Q) mkdir -p $(PREFIX)/share/man/man1
+	cd man && $(MAKE) build
+	$(Q) $(INSTALL_DATA) man/elixir.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/mix.1 $(PREFIX)/share/man/man1
 
 clean:
 	cd lib/elixir && $(REBAR) clean
@@ -120,6 +129,7 @@ clean:
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
 	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
+	cd man && $(MAKE) clean
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
