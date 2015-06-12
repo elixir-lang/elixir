@@ -13,7 +13,7 @@ defmodule Logger do
       to avoid clogging logger backends.
 
     * Alternates between sync and async modes to remain
-      performant when required but also apply back-pressure
+      performant when required but also apply backpressure
       when under stress.
 
     * Wraps OTP's `error_logger` to prevent it from
@@ -76,7 +76,7 @@ defmodule Logger do
 
     * `:sync_threshold` - if the logger manager has more than
       `sync_threshold` messages in its queue, Logger will change
-      to sync mode, to apply back-pressure to the clients.
+      to sync mode, to apply backpressure to the clients.
       Logger will return to async mode once the number of messages
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
