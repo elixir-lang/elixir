@@ -190,7 +190,7 @@ defmodule ExUnit.Runner do
 
   defp run_test(config, test, context) do
     old_gl = Process.group_leader()
-    {:ok, proxy} = ProxyIO.open()
+    {:ok, proxy} = ExUnit.ProxyIO.open(:stdio)
     try do
       Process.group_leader(self(), proxy)
       test = %{test | group_leader: proxy}
@@ -204,7 +204,7 @@ defmodule ExUnit.Runner do
       EM.test_finished(config.manager, test)
     after
       Process.group_leader(self(), old_gl)
-      ProxyIO.close(proxy)
+      ExUnit.ProxyIO.close(proxy)
     end
   end
 
