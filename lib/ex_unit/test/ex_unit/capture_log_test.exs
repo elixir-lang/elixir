@@ -1,11 +1,11 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule Logger.CaptureLogTest do
+defmodule ExUnit.CaptureLogTest do
   use ExUnit.Case
 
   require Logger
 
-  import Logger.CaptureLog
+  import ExUnit.CaptureLog
 
   setup_all do
     :ok = Logger.remove_backend(:console)

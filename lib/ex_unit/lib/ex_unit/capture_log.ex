@@ -1,4 +1,4 @@
-defmodule Logger.CaptureLog do
+defmodule ExUnit.CaptureLog do
   @moduledoc ~S"""
   Functionality to capture logs for testing.
 
@@ -7,7 +7,7 @@ defmodule Logger.CaptureLog do
       defmodule AssertionTest do
         use ExUnit.Case
 
-        import Logger.CaptureLog
+        import ExUnit.CaptureLog
 
         test :example do
           assert capture_log(fn ->
@@ -38,7 +38,7 @@ defmodule Logger.CaptureLog do
   processes wth the replacement `group leader`. However, the
   capturing of log messages with a `group_leader` of any other
   device is also possible by giving the device explicitly as an
-  argument. It is also possible to capture all log messages by
+  argument. It is possible to capture all log messages by
   giving `nil` for the device.
 
   Note that when capturing something other than `:stdio`, log
@@ -47,9 +47,6 @@ defmodule Logger.CaptureLog do
   captures (and other backends) can handle log messages at the same
   time. For example the `:console` backend will still log messages
   to the console.
-
-  It is possible to capture all log messages by giving `nil` for
-  the device.
 
   It is possible to configure the level to capture with `:level`,
   which will change the current Logger level for the duration of the
