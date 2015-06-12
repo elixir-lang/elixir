@@ -104,13 +104,13 @@ defmodule Logger.CaptureLog do
 
   defp do_capture_log(:standard_io, opts, fun) do
     old_gl = Process.group_leader()
-    {:ok, gl} = ProxyIO.open()
+    {:ok, gl} = ExUnit.ProxyIO.open(:standard_io)
     try do
       Process.group_leader(self(), gl)
       do_capture_log(gl, opts, fun)
     after
       Process.group_leader(self(), old_gl)
-      ProxyIO.close(gl)
+      ExUnit.ProxyIO.close(gl)
     end
   end
   defp do_capture_log(device, opts, fun) do
