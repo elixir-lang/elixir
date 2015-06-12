@@ -1,4 +1,4 @@
-defmodule ProxyIO do
+defmodule ExUnit.ProxyIO do
   @moduledoc """
   This module provides an IO device that forwards IO requests to
   another IO device.
@@ -6,7 +6,7 @@ defmodule ProxyIO do
   ## Examples
 
       iex> {:ok, device} = StringIO.open("foo")
-      iex> {:ok, proxy} = ProxyIO.open(device)
+      iex> {:ok, proxy} = ExUnit.ProxyIO.open(device)
       iex> IO.read(proxy, 2)
       "fo"
 
@@ -22,7 +22,7 @@ defmodule ProxyIO do
   ## Examples
 
       iex> {:ok, device} = StringIO.open("foo")
-      iex> {:ok, proxy} = ProxyIO.open(device)
+      iex> {:ok, proxy} = ExUnit.ProxyIO.open(device)
       iex> IO.gets(proxy, ">")
       "foo"
       iex> IO.puts(proxy, "bar")
@@ -31,7 +31,7 @@ defmodule ProxyIO do
 
   """
   @spec open(IO.device) :: {:ok, pid} | {:error, :noproc}
-  def open(device \\ :stdio) do
+  def open(device) do
     GenServer.start_link(__MODULE__, device)
   end
 

@@ -1,10 +1,12 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
-defmodule ProxyIOTest do
+defmodule ExUnit.ProxyIOTest do
   use ExUnit.Case, async: true
 
+  alias ExUnit.ProxyIO
+
   test "open and close" do
-    {:ok, pid} = ProxyIO.open()
+    {:ok, pid} = ProxyIO.open(:stdio)
     assert ProxyIO.close(pid) == :ok
   end
 
