@@ -125,7 +125,7 @@ defmodule GenEvent do
   GenEvent stream supports three different notifications.
 
   On `GenEvent.ack_notify/2`, the manager acknowledges each event,
-  providing back pressure, but processing of the message happens
+  providing backpressure, but processing of the message happens
   asynchronously.
 
   On `GenEvent.sync_notify/2`, the manager acknowledges an event
