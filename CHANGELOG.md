@@ -3,6 +3,7 @@
 ## v1.0.5
 
 * Enhancements
+  * [IEx] Rely only on loaded applications for autocompletion on IEx
   * [Record] Expand attributes and macros in record extractor
   * [String] `Optimize String.rstrip/1`
   * [String] `Optimize String.downcase/1`
@@ -12,6 +13,7 @@
   * [EEx] Ensure blocks do not clobber EEx buffers
   * [Enum] Ensure `Enum.take/2` does not consume one extra item when halting on the last emittable item
   * [ExUnit] Fix `StringIO` processes leakage in the `ExUnit.CaptureIO` when there are errors inside the `capture_io` block
+  * [Float] Avoid rounding errors on `Float.parse/1`
   * [GenEvent] Fix `GenEvent` detection of modules that aren't loaded
   * [IO] Read 4K blocks instead of lines in `IO.binread/2`. This fixes a bug where CRLF were being ignored and is also going to improve performance
   * [Logger] Handle `:undefined` arity in Logger.Translator (we get :undefined when a temporary worker of a `simple_one_for_one` supervisor crashes)
