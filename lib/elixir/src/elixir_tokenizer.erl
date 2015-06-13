@@ -775,15 +775,15 @@ tokenize_number(Rest, Acc, false) ->
   {Rest, list_to_integer(lists:reverse(Acc)), length(Acc)}.
 
 tokenize_hex([H|T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H|Acc]);
-tokenize_hex([$_|T], Acc) -> tokenize_hex(T, Acc);
+tokenize_hex([$_, H|T], Acc) when ?is_hex(H) -> tokenize_hex(T, [H|Acc]);
 tokenize_hex(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 16), length(Acc)}.
 
 tokenize_octal([H|T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H|Acc]);
-tokenize_octal([$_|T], Acc) -> tokenize_octal(T, Acc);
+tokenize_octal([$_, H|T], Acc) when ?is_octal(H) -> tokenize_octal(T, [H|Acc]);
 tokenize_octal(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 8), length(Acc)}.
 
 tokenize_bin([H|T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H|Acc]);
-tokenize_bin([$_|T], Acc) -> tokenize_bin(T, Acc);
+tokenize_bin([$_, H|T], Acc) when ?is_bin(H) -> tokenize_bin(T, [H|Acc]);
 tokenize_bin(Rest, Acc) -> {Rest, list_to_integer(lists:reverse(Acc), 2), length(Acc)}.
 
 %% Comments
