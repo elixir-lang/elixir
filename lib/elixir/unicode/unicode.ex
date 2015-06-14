@@ -170,27 +170,39 @@ defmodule String.Unicode do
 
   # Codepoints
 
-  def next_codepoint(<< cp :: utf8, rest :: binary >>) do
+
+
+  def next_codepoint(bin, encoding\\:utf8)
+  def next_codepoint(<< cp :: utf8, rest :: binary >>, :utf8) do
     {<<cp :: utf8>>, rest}
   end
 
-  def next_codepoint(<< cp, rest :: binary >>) do
+  def next_codepoint(<< cp :: utf16, rest :: binary >>, :utf16) do
+    {<<cp :: utf16>>, rest}
+  end
+
+  def next_codepoint(<< cp :: utf32, rest :: binary >>, :utf32) do
+    {<<cp :: utf32>>, rest}
+  end
+
+  def next_codepoint(<< cp, rest :: binary >>, _encoding) do
     {<<cp>>, rest}
   end
 
-  def next_codepoint(<<>>) do
+  def next_codepoint(<<>>, _encoding) do
     nil
   end
 
-  def codepoints(binary) when is_binary(binary) do
-    do_codepoints(next_codepoint(binary))
+  def codepoints(binary, encoding\\:utf8)
+  def codepoints(binary, encoding) when is_binary(binary) do
+    do_codepoints(next_codepoint(binary, encoding), encoding)
   end
 
-  defp do_codepoints({c, rest}) do
-    [c|do_codepoints(next_codepoint(rest))]
+  defp do_codepoints({c, rest}, encoding) do
+    [c|do_codepoints(next_codepoint(rest, encoding), encoding)]
   end
 
-  defp do_codepoints(nil) do
+  defp do_codepoints(nil, _encoding) do
     []
   end
 end

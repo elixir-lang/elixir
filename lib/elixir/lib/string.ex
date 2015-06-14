@@ -197,6 +197,7 @@ defmodule String do
   @type codepoint :: t
   @type grapheme :: t
   @type pattern :: t | [t] | :binary.cp
+  @type encoding :: :utf8 | :utf16 |:utf32
 
   @doc """
   Checks if a string is printable considering it is encoded
@@ -787,7 +788,8 @@ defmodule String do
   end
 
   @doc """
-  Returns all codepoints in the string.
+  Returns all codepoints in the string. Optional second argument specifies the
+  encoding (utf8, utf16, utf32), defaulting to `:utf8`.
 
   ## Examples
 
@@ -800,12 +802,22 @@ defmodule String do
       iex> String.codepoints("ἅἪῼ")
       ["ἅ", "Ἢ", "ῼ"]
 
+      iex> String.codepoints(<<"olá"::utf16>>, :utf16)
+      [<<0, 111>>, <<0, 108>>, <<0, 225>>]
+
+      iex> String.codepoints(<<"olá"::utf32>>, :utf32)
+      [<<0, 0, 0, 111>>, <<0, 0, 0, 108>>, <<0, 0, 0, 225>>]
+
   """
   @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
 
+  @spec codepoints(t, encoding) :: [codepoint]
+  defdelegate codepoints(string, encoding), to: String.Unicode
+
   @doc """
-  Returns the next codepoint in a String.
+  Returns the next codepoint in a String. Optional second argument specifies the
+  encoding (utf8, utf16, utf32), defaulting to `:utf8`
 
   The result is a tuple with the codepoint and the
   remainder of the string or `nil` in case
@@ -821,10 +833,19 @@ defmodule String do
       iex> String.next_codepoint("olá")
       {"o", "lá"}
 
+      iex> String.next_codepoint(<<"olá"::utf16>>, :utf16)
+      {<<0, 111>>, <<0, 108, 0, 225>>}
+
+      iex> String.next_codepoint(<<"olá"::utf32>>, :utf32)
+      {<<0, 0, 0, 111>>, <<0, 0, 0, 108, 0, 0, 0, 225>>}
+
   """
-  @compile {:inline, next_codepoint: 1}
+  @compile {:inline, next_codepoint: 1, next_codepoint: 2}
   @spec next_codepoint(t) :: {codepoint, t} | nil
   defdelegate next_codepoint(string), to: String.Unicode
+
+  @spec next_codepoint(t, encoding) :: {codepoint, t} | nil
+  defdelegate next_codepoint(string, encoding), to: String.Unicode
 
   @doc ~S"""
   Checks whether `str` contains only valid characters.
