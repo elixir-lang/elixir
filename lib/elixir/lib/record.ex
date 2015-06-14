@@ -158,6 +158,14 @@ defmodule Record do
       # Convert a record to a keyword list
       user(record) #=> [name: "meg", age: 26]
 
+  The generated macros can also be used in order to pattern match on records and
+  to bind variables during the match:
+
+      record = user() #=> {:user, "meg", 25}
+
+      user(name: name) = record
+      name #=> "meg"
+
   By default, Elixir uses the record name as the first element of
   the tuple (the tag). But it can be changed to something else:
 
