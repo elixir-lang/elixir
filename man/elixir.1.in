@@ -1,5 +1,5 @@
 .Dd April 10, 2015
-.Dt IEX 1
+.Dt ELIXIR 1
 .Os
 .Sh NAME
 .Nm elixir
