@@ -188,24 +188,43 @@ defmodule ExUnit.Runner do
       {:error, %{test_case | state: failed}}
   end
 
-  defp run_test(config, test, context) do
-    old_gl = Process.group_leader()
-    {:ok, proxy} = ExUnit.ProxyIO.open(:stdio)
+  defp run_test(true, config, test, context) do
+    run_test(nil, config, test, context)
+  end
+
+  defp run_test(false, config, test, context) do
+    spawn_test(config, test, context)
+  end
+
+  defp run_test(device, config, test, context) do
+    ref = make_ref()
     try do
-      Process.group_leader(self(), proxy)
-      test = %{test | group_leader: proxy}
-
-      EM.test_started(config.manager, test)
-
-      if is_nil(test.state) do
-        test = spawn_test(config, test, Map.merge(test.tags, context))
-      end
-
-      EM.test_finished(config.manager, test)
-    after
-      Process.group_leader(self(), old_gl)
-      ExUnit.ProxyIO.close(proxy)
+      ExUnit.CaptureLog.capture_log(device, fn ->
+        send self(), {ref, spawn_test(config, test, context)}
+      end)
+    catch
+      :exit, :noproc ->
+        message =
+          "could not run test, it uses @tag :capture_log" <>
+          " but the :logger application is not running"
+        %{test | state: {:failed, {:error, RuntimeError.exception(message), []}}}
+    else
+      logged ->
+        receive do
+          {^ref, test} -> %{test | logs: logged}
+        end
     end
+  end
+
+  defp run_test(config, %{tags: tags} = test, context) do
+    EM.test_started(config.manager, test)
+
+    if is_nil(test.state) do
+      capture_log? = Map.get(tags, :capture_log, false)
+      test = run_test(capture_log?, config, test, Map.merge(tags, context))
+    end
+
+    EM.test_finished(config.manager, test)
   end
 
   defp spawn_test(config, test, context) do

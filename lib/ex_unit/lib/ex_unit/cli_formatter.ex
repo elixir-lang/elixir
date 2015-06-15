@@ -67,6 +67,7 @@ defmodule ExUnit.CLIFormatter do
     formatted = format_test_failure(test, failed, config.failures_counter + 1,
                                     config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
+    print_logs(test.logs)
 
     {:ok, %{config | tests_counter: config.tests_counter + 1,
                      failures_counter: config.failures_counter + 1}}
@@ -214,5 +215,11 @@ defmodule ExUnit.CLIFormatter do
       {:ok, width} -> max(40, width)
       _ -> 80
     end
+  end
+
+  defp print_logs(""), do: nil
+
+  defp print_logs(output) do
+    IO.puts(["The following output was logged:\n" | output])
   end
 end
