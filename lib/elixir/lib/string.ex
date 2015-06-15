@@ -1385,10 +1385,6 @@ defmodule String do
 
       iex> String.to_char_list("æß")
       'æß'
-
-  Notice that this function expects a list of integers representing
-  UTF-8 codepoints. If you have a raw binary, you must instead use
-  [the `:binary` module](http://erlang.org/doc/man/binary.html).
   """
   @spec to_char_list(t) :: char_list
   def to_char_list(string) when is_binary(string) do
