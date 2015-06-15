@@ -26,7 +26,7 @@ Starts the specified application and all its dependencies.
 Serves the same purpose as ELIXIR_ERL_OPTIONS
 .Pq see the Sy ENVIRONMENT No section
 .It Fl -cookie Ar value
-Allows specifying the magic cookie value. If the value isn't specified via the option when the node starts, it will be taken from the file
+Specifies the magic cookie value. If the value isn't specified via the option when the node starts, it will be taken from the file
 .Pa ~/.erlang.cookie
 .Pq see the Sy FILES No section .
 Distributed nodes can interact with each other only when their magic cookies are equal.
