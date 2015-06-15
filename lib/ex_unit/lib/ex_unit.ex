@@ -67,18 +67,16 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:name`         - the test name
-      * `:case`         - the test case
-      * `:group_leader` - the group leader of the test process
-      * `:state`        - the test state (see ExUnit.state)
-      * `:time`         - the time to run the test
-      * `:tags`         - the test tags
+      * `:name`  - the test name
+      * `:case`  - the test case
+      * `:state` - the test state (see ExUnit.state)
+      * `:time`  - the time to run the test
+      * `:tags`  - the test tags
+      * `:logs`  - the captured logs
 
     """
-    defstruct [
-      :name, :case, :group_leader,
-      :state, time: 0, tags: %{}
-    ]
+    defstruct [:name, :case, :state,
+               time: 0, tags: %{}, logs: ""]
 
     @type t :: %__MODULE__{
                  name: atom,
