@@ -1381,14 +1381,17 @@ defmodule String do
   @doc """
   Converts a string into a char list.
 
+  Specifically, this functions takes a UTF-8 encoded binary and returns a list of its integer
+  codepoints. It is similar to `codepoints/1` except that the latter returns a list of codepoints as
+  strings.
+
+  In case you need to work with bytes, take a look at the
+  [`:binary` module](http://erlang.org/doc/man/binary.html).
+
   ## Examples
 
       iex> String.to_char_list("æß")
       'æß'
-
-  Notice that this function expects a list of integers representing
-  UTF-8 codepoints. If you have a raw binary, you must instead use
-  [the `:binary` module](http://erlang.org/doc/man/binary.html).
   """
   @spec to_char_list(t) :: char_list
   def to_char_list(string) when is_binary(string) do
