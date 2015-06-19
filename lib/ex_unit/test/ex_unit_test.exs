@@ -134,7 +134,7 @@ defmodule ExUnitTest do
         assert 1 == 2
       end
 
-      @tag capture_log: :user
+      @tag capture_log: []
       test "three" do
         Logger.debug("three")
         assert 1 == 2
@@ -149,7 +149,7 @@ defmodule ExUnitTest do
     output = capture_io(&ExUnit.run/0)
     assert output =~ "[debug] two"
     refute output =~ "[debug] one"
-    refute output =~ "[debug] three"
+    assert output =~ "[debug] three"
     refute output =~ "[debug] four"
   end
 

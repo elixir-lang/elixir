@@ -33,12 +33,12 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   test "log tracking" do
-    captured =
+    logged =
       assert capture_log(fn ->
         Logger.info "one"
 
-        captured = capture_log(fn -> Logger.error "one" end)
-        send(test = self(), {:nested, captured})
+        logged = capture_log(fn -> Logger.error "one" end)
+        send(test = self(), {:nested, logged})
 
         Logger.warn "two"
 
@@ -49,14 +49,15 @@ defmodule ExUnit.CaptureLogTest do
         receive do: (:done -> :ok)
       end)
 
-    assert captured =~ "[info]  one\n\e[0m"
-    assert captured =~ "[warn]  two\n\e[0m"
-    assert captured =~ "[debug] three\n\e[0m"
-    refute captured =~ "[error] one\n\e[0m"
+    assert logged =~ "[info]  one\n\e[0m"
+    assert logged =~ "[warn]  two\n\e[0m"
+    assert logged =~ "[debug] three\n\e[0m"
+    assert logged =~ "[error] one\n\e[0m"
 
     receive do
-      {:nested, captured} ->
-        assert captured =~ "[error] one\n\e[0m"
+      {:nested, logged} ->
+        assert logged =~ "[error] one\n\e[0m"
+        refute logged =~ "[warn]  two\n\e[0m"
     end
   end
 end

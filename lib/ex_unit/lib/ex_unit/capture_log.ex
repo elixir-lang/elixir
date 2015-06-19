@@ -68,63 +68,29 @@ defmodule ExUnit.CaptureLog do
         metadata: [:user_id],
         colors: [enabled: false]
   """
-  @spec capture_log((() -> any)) :: String.t
-  def capture_log(fun) do
-    capture_log(:standard_io, [], fun)
-  end
-
-  @spec capture_log(IO.device() | nil | Keyword.t, (() -> any)) :: String.t
-  def capture_log(device, fun) when is_atom(device) or is_pid(device) do
-    capture_log(device, [], fun)
-  end
-  def capture_log(options, fun) when is_list(options) do
-    capture_log(:standard_io, options, fun)
-  end
-
-  @spec capture_log(IO.device() | nil, Keyword.t, (() -> any)) :: String.t
-  def capture_log(device, options, fun) do
-    do_capture_log(map_dev(device), options, fun)
-  end
-
-
-  defp map_dev(:standard_io), do: :standard_io
-  defp map_dev(:stdio),       do: :standard_io
-  defp map_dev(nil),          do: nil
-  defp map_dev(device) when is_pid(device), do: device
-  defp map_dev(device) when is_atom(device) do
-    case Process.whereis(device) do
-      nil ->
-        raise "could not find IO device registered at #{inspect device}"
-      pid -> pid
-    end
-  end
-
-  defp do_capture_log(:standard_io, opts, fun) do
-    old_gl = Process.group_leader()
-    {:ok, gl} = ExUnit.ProxyIO.open(:standard_io)
+  @spec capture_log(Keyword.t, (() -> any)) :: String.t
+  def capture_log(opts \\ [], fun) do
+    {:ok, string_io} = StringIO.open("")
+    handler = {Logger.Backends.Console, make_ref()}
     try do
-      Process.group_leader(self(), gl)
-      do_capture_log(gl, opts, fun)
-    after
-      Process.group_leader(self(), old_gl)
-      ExUnit.ProxyIO.close(gl)
-    end
-  end
-  defp do_capture_log(device, opts, fun) do
-    handler = {Logger.Backends.Capture, make_ref()}
-    try do
-      :ok = GenEvent.add_handler(Logger, handler, {device, opts})
+      :ok = GenEvent.add_handler(Logger, handler, {string_io, opts})
       _ = fun.()
       :ok
     catch
       kind, reason ->
         stack = System.stacktrace()
-        _ = GenEvent.remove_handler(Logger, handler, nil)
+        remove_backend(handler, string_io)
         :erlang.raise(kind, reason, stack)
     else
       :ok ->
-        {:ok, output} = GenEvent.remove_handler(Logger, handler, :get)
-        IO.chardata_to_string(output)
+        :ok = Logger.flush()
+        {:ok, content} = remove_backend(handler, string_io)
+        elem(content, 1)
     end
+  end
+
+  defp remove_backend(handler, string_io) do
+    GenEvent.remove_handler(Logger, handler, nil)
+    StringIO.close(string_io)
   end
 end
