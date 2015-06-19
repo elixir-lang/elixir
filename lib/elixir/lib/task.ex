@@ -189,6 +189,10 @@ defmodule Task do
   A timeout, in milliseconds, can be given with default value
   of `5000`. In case the task process dies, this function will
   exit with the same reason as the task.
+  
+  If the timeout is exceeded, `await` will exit, however, 
+  the task will continue to run.  Use `Process.kill/2` to
+  terminate it.
   """
   @spec await(t, timeout) :: term | no_return
   def await(%Task{ref: ref}=task, timeout \\ 5000) do
