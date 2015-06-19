@@ -189,17 +189,17 @@ defmodule ExUnit.Runner do
   end
 
   defp run_test(true, config, test, context) do
-    run_test(nil, config, test, context)
+    run_test([], config, test, context)
   end
 
   defp run_test(false, config, test, context) do
     spawn_test(config, test, context)
   end
 
-  defp run_test(device, config, test, context) do
+  defp run_test(opts, config, test, context) do
     ref = make_ref()
     try do
-      ExUnit.CaptureLog.capture_log(device, fn ->
+      ExUnit.CaptureLog.capture_log(opts, fn ->
         send self(), {ref, spawn_test(config, test, context)}
       end)
     catch
