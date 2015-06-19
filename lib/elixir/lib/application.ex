@@ -123,8 +123,8 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s environment.
 
-  If the specified application is not loaded, or the configuration parameter
-  does not exist, the function returns the `default` value.
+  If the configuration parameter does not exist, the function returns the
+  `default` value.
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
@@ -134,8 +134,7 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s environment in a tuple.
 
-  If the specified application is not loaded, or the configuration parameter
-  does not exist, the function returns `:error`.
+  If the configuration parameter does not exist, the function returns `:error`.
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
   def fetch_env(app, key) do
@@ -148,8 +147,7 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s environment.
 
-  If the specified application is not loaded, or the configuration parameter
-  does not exist, raises `ArgumentError`.
+  If the configuration parameter does not exist, raises `ArgumentError`.
   """
   @spec fetch_env!(app, key) :: value | no_return
   def fetch_env!(app, key) do
