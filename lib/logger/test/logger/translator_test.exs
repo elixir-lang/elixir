@@ -65,12 +65,13 @@ defmodule Logger.TranslatorTest do
 
     assert capture_log(:debug, fn ->
       catch_exit(GenServer.call(pid, :error))
-    end) =~ """
-    [error] GenServer #{inspect pid} terminating
+    end) =~ ~r"""
+    \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*
     Last message: :error
     State: :ok
-    ** (RuntimeError) oops
-    """
+    """s
   end
 
   test "translates GenEvent crashes" do
@@ -91,12 +92,13 @@ defmodule Logger.TranslatorTest do
 
     assert capture_log(:debug, fn ->
       GenEvent.call(pid, MyGenEvent, :error)
-    end) =~ """
-    [error] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #{inspect pid} terminating
+    end) =~ ~r"""
+    \[error\] GenEvent handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*
     Last message: :error
     State: :ok
-    ** (RuntimeError) oops
-    """
+    """s
   end
 
   test "translates Task crashes" do
@@ -106,12 +108,13 @@ defmodule Logger.TranslatorTest do
       ref = Process.monitor(pid)
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Task #{inspect pid} started from #{inspect self} terminating
-    Function: &Logger.TranslatorTest.task/1
-        Args: [#{inspect self}]
-    ** (RuntimeError) oops
-    """
+    end) =~ ~r"""
+    \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(RuntimeError\) oops
+    .*
+    Function: &Logger.TranslatorTest.task\/1
+        Args: \[#PID<\d+\.\d+\.\d+>\]
+    """s
   end
 
   test "translates Task undef module crash" do
@@ -121,10 +124,11 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
+    .*
     Function: &:module_does_not_exist.undef/0
         Args: \[\]
-    \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
-    """
+    """s
   end
 
   test "translates Task undef function crash" do
@@ -134,10 +138,11 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
+    .*
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
-    \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
-    """
+    """s
   end
 
   test "translates Task raising ErlangError" do
@@ -153,10 +158,11 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(ErlangError\) erlang error: :foo
+    .*
     Function: &:erlang\.error/1
         Args: \[%ErlangError{.*}\]
-    \*\* \(ErlangError\) erlang error: :foo
-    """
+    """s
   end
 
   test "translates Task raising erlang badarg error" do
@@ -166,10 +172,11 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(ArgumentError\) argument error
+    .*
     Function: &:erlang\.error/1
         Args: \[:badarg\]
-    \*\* \(ArgumentError\) argument error
-    """
+    """s
   end
 
   test "translates Task exiting abnormally" do
@@ -179,10 +186,11 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(stop\) :abnormal
+    .*
     Function: &:erlang\.exit/1
         Args: \[:abnormal\]
-    \*\* \(stop\) :abnormal
-    """
+    """s
   end
 
   test "translates application stop" do
@@ -211,13 +219,14 @@ defmodule Logger.TranslatorTest do
       send(pid, :message)
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Process #{inspect pid} terminating
+    end) =~ ~r"""
+    \[error\] Process #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(exit\) an exception was raised:
+        \*\* \(RuntimeError\) oops
+    .*
     Initial Call: Logger.TranslatorTest.task/1
-    Ancestors: #{inspect [self]}
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
-    """
+    Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+    """s
   end
 
   test "translates :proc_lib crashes with name" do
@@ -232,13 +241,14 @@ defmodule Logger.TranslatorTest do
       send(pid, :message)
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Process Logger.TranslatorTest (#{inspect pid}) terminating
+    end) =~ ~r"""
+    \[error\] Process Logger.TranslatorTest \(#PID<\d+\.\d+\.\d+>\) terminating
+    \*\* \(exit\) an exception was raised:
+        \*\* \(RuntimeError\) oops
+    .*
     Initial Call: Logger.TranslatorTest.task/2
-    Ancestors: #{inspect [self]}
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
-    """
+    Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+    """s
   end
 
   test "translates :proc_lib crashes without initial call" do
@@ -253,14 +263,14 @@ defmodule Logger.TranslatorTest do
       send(pid, :message)
       send(pid, :go)
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-    end) =~ """
-    [error] Process #{inspect pid} terminating
-    Ancestors: #{inspect [self]}
-    ** (exit) an exception was raised:
-        ** (RuntimeError) oops
-    """
+    end) =~ ~r"""
+    \[error\] Process #PID<\d+\.\d+\.\d+> terminating
+    \*\* \(exit\) an exception was raised:
+        \*\* \(RuntimeError\) oops
+    .*
+    Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+    """s
   end
-
 
   test "translates :proc_lib crashes with neighbour" do
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task, [self()])
@@ -277,9 +287,9 @@ defmodule Logger.TranslatorTest do
             Initial Call: :timer.sleep/1
             Current Call: :timer.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
-    \*\* \(exit\).*
     """
   end
+  M
 
   test "translates :proc_lib crashes with neighbour with name" do
     {:ok, pid} = Task.start_link(__MODULE__, :sub_task,
@@ -300,7 +310,6 @@ defmodule Logger.TranslatorTest do
             Initial Call: :timer.sleep/1
             Current Call: :timer.sleep/1
             Ancestors: \[#PID<\d+\.\d+\.\d+>, #PID<\d+\.\d+\.\d+>\]
-    \*\* \(exit\).*
     """
   end
 
@@ -322,7 +331,6 @@ defmodule Logger.TranslatorTest do
     Heap Size: \d+
     Stack Size: \d+
     Reductions: \d+
-    \*\* \(exit\).*
     """
   end
 
@@ -344,7 +352,6 @@ defmodule Logger.TranslatorTest do
             Heap Size: \d+
             Stack Size: \d+
             Reductions: \d+
-    \*\* \(exit\).*
     """
   end
 
@@ -421,8 +428,8 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
-    Start Call: Logger.TranslatorTest.error\(\)
     \*\* \(exit\) :stop
+    Start Call: Logger.TranslatorTest.error\(\)
     """
   end
 
@@ -435,10 +442,11 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
-    Start Call: Logger.TranslatorTest.undef\(\)
     \*\* \(exit\) an exception was raised:
         \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
-    """
+        .*
+    Start Call: Logger.TranslatorTest.undef\(\)
+    """s
   end
 
   test "translates Supervisor reports terminated" do
@@ -450,9 +458,9 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) terminated
+    \*\* \(exit\) :stop
     Pid: #PID<\d+\.\d+\.\d+>
     Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
-    \*\* \(exit\) :stop
     """
   end
 
@@ -465,8 +473,8 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) caused shutdown
-    Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
     \*\* \(exit\) :reached_max_restart_intensity
+    Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
     """
   end
 
@@ -477,9 +485,9 @@ defmodule Logger.TranslatorTest do
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+    \*\* \(exit\) :stop
     Pid: #PID<\d+\.\d+\.\d+>
     Start Call: Logger.TranslatorTest.abnormal\(\)
-    \*\* \(exit\) :stop
     """
   end
 
@@ -490,11 +498,12 @@ defmodule Logger.TranslatorTest do
         [strategy: :one_for_one])
       :ok = Supervisor.terminate_child(pid, __MODULE__)
     end) =~ ~r"""
+    \*\* \(exit\) :stop
+    Pid: #PID<\d+\.\d+\.\d+>
     Start Call: Logger.TranslatorTest.abnormal\(\)
     Restart: :permanent
     Shutdown: 5000
     Type: :worker
-    \*\* \(exit\) :stop
     """
   end
 
@@ -509,9 +518,9 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Children Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shutdown abnormally
+    \*\* \(exit\) :stop
     Number: 1
     Start Call: Logger.TranslatorTest.abnormal\(\)
-    \*\* \(exit\) :stop
     """
   end
 
@@ -536,9 +545,9 @@ defmodule Logger.TranslatorTest do
       Process.flag(:trap_exit, trap)
     end) =~ ~r"""
     \[error\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) terminated
+    \*\* \(exit\) :stop
     Pid: #PID<\d+\.\d+\.\d+>
     Start Module: Logger.TranslatorTest.MyBridge
-    \*\* \(exit\) :stop
     """
   end
 
