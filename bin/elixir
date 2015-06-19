@@ -2,7 +2,7 @@
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -v                Prints version and exit
+  -v                  Prints version and exit
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
   -S \"script\"       Finds and executes the given script
@@ -14,10 +14,10 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --cookie \"cookie\" Sets a cookie for this distributed node
-  --hidden          Makes a hidden node
-  --detached        Starts the Erlang VM detached from console
-  --werl            Uses Erlang's Windows shell GUI (Windows only)
-  --no-halt         Does not halt the Erlang VM after execution
+  --hidden            Makes a hidden node
+  --detached          Starts the Erlang VM detached from console
+  --werl              Uses Erlang's Windows shell GUI (Windows only)
+  --no-halt           Does not halt the Erlang VM after execution
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code
