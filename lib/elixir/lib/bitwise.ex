@@ -1,8 +1,8 @@
 defmodule Bitwise do
   @moduledoc """
   This module provides macro-based operators that perform calculations
-  on (sets of) bits. These macros can be used in guards. In general,
-  you should `use` the Bitwise module as a whole:
+  on (sets of) bits. In general, you should `use` the Bitwise module
+  as a whole:
 
       iex> use Bitwise
       iex> bnot 1
@@ -15,6 +15,13 @@ defmodule Bitwise do
       iex> use Bitwise, only_operators: true
       iex> 1 &&& 1
       1
+
+  These macros can be used in guards:
+
+      iex> use Bitwise
+      iex> odd? = fn(int) when band(int, 1) == 1 -> true; (_) -> false end
+      iex> odd?.(1)
+      true
 
   """
 
