@@ -1445,9 +1445,9 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.reduce_while(1..100, 0, fn i, acc ->
-      ...>   if i <= 3, do: {:cont, acc + i}, else: {:halt, acc}
+      ...>   if i < 3, do: {:cont, acc + i}, else: {:halt, acc}
       ...> end)
-      6
+      3
 
   """
   def reduce_while(collection, acc, fun) do

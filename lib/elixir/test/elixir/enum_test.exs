@@ -269,6 +269,10 @@ defmodule EnumTest.List do
     assert Enum.reduce_while(1..100, 0, fn i, acc ->
       if i <= 3, do: {:cont, acc + i}, else: {:halt, acc}
     end) == 6
+
+    assert Enum.reduce_while([1, 2, 3], 1, fn i, acc -> {:cont, acc + i} end) == 7
+    assert Enum.reduce_while([1, 2, 3], 1, fn i, acc -> {:halt, acc} end) == 1
+    assert Enum.reduce_while([], 0, fn i, acc -> {:cont, acc} end) == 0
   end
 
   test :reject do
