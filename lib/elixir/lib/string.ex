@@ -442,7 +442,7 @@ defmodule String do
     {acc, grapheme <> rest}
 
   @doc """
-  Converts all characters on the given string to uppercase.
+  Converts all characters in the given string to uppercase.
 
   ## Examples
 
@@ -460,7 +460,7 @@ defmodule String do
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Converts all characters on the given string to lowercase.
+  Converts all characters in the given string to lowercase.
 
   ## Examples
 
@@ -977,7 +977,7 @@ defmodule String do
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
-  Returns the first grapheme from an utf8 string,
+  Returns the first grapheme from a utf8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -998,7 +998,7 @@ defmodule String do
   end
 
   @doc """
-  Returns the last grapheme from an utf8 string,
+  Returns the last grapheme from a utf8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -1342,7 +1342,7 @@ defmodule String do
   @doc """
   Checks if `string` contains any of the given `contents`.
 
-  `matches` can be either a single string or a list of strings.
+  `contents` can be either a single string or a list of strings.
 
   ## Examples
 
