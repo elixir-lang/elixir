@@ -187,7 +187,7 @@ defmodule File do
         {:error, :einval}
       else
         _ = do_mkdir_p(parent)
-        case :file.make_dir(path) do
+        case F.make_dir(path) do
           {:error, :eexist} = error ->
             if dir?(path), do: :ok, else: error
           other ->
