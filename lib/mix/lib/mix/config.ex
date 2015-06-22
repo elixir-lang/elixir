@@ -18,6 +18,16 @@ defmodule Mix.Config do
   Furthermore, this module provides functions like `read!/1`,
   `merge/2` and friends which help manipulate configurations
   in general.
+
+  Configuration set using `Mix.Config` will set the application env, so
+  that `Application.get_env/3` and other `Application` functions can be used
+  at run or compile time to retrieve or change the configuration.
+
+  For example, the `:key1` value from application `:plug` (see above) can be
+  retrieved with:
+
+      "value1" = Application.fetch!(:plug, :key1)
+
   """
 
   defmodule LoadError do
@@ -61,6 +71,11 @@ defmodule Mix.Config do
 
       [log_level: :info, mode: :truncate, threshold: 1024]
 
+
+  This final configuration can be retrieved at run or compile time:
+
+      Application.get_all_env(:lager)
+
   """
   defmacro config(app, opts) do
     quote do
@@ -89,6 +104,10 @@ defmodule Mix.Config do
   Will have a final value for `Repo` of:
 
       [log_level: :info, pool_size: 10]
+
+  This final value can be retrieved at run or compile time:
+
+      Application.get_env(:ecto, Repo)
 
   """
   defmacro config(app, key, opts) do
