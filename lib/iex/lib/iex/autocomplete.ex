@@ -104,7 +104,7 @@ defmodule IEx.Autocomplete do
   # Elixir.fun
   defp expand_call({:__aliases__, _, list}, hint) do
     expand_alias(list)
-    |> Module.concat()
+    |> normalize_module
     |> expand_require(hint)
   end
 
@@ -143,7 +143,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_elixir_modules(list, hint) do
     expand_alias(list)
-    |> Module.concat()
+    |> normalize_module
     |> expand_elixir_modules(hint, [])
   end
 
@@ -158,7 +158,12 @@ defmodule IEx.Autocomplete do
     module = Module.concat(Elixir, name)
     Enum.find_value env_aliases(), list, fn {alias, mod} ->
       if alias === module do
-        Module.split(mod) ++ rest
+        case Atom.to_string(mod) do
+          "Elixir." <> mod ->
+            Module.concat [mod|rest]
+          _ ->
+            mod
+        end
       end
     end
   end
@@ -189,6 +194,14 @@ defmodule IEx.Autocomplete do
   end
 
   ## Helpers
+
+  defp normalize_module(mod) do
+    if is_list(mod) do
+      Module.concat(mod)
+    else
+      mod
+    end
+  end
 
   defp match_modules(hint, root) do
     get_modules(root)
