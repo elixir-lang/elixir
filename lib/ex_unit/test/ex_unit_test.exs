@@ -138,4 +138,19 @@ defmodule ExUnitTest do
       assert ExUnit.run == %{failures: 0, skipped: 0, total: 1}
     end) =~ "1 test, 0 failure"
   end
+
+  test "it produces error on not implemented tests" do
+    defmodule TestNotImplemented do
+      use ExUnit.Case, async: false
+
+      test "this is not implemented yet"
+    end
+
+    output = capture_io(fn ->
+      assert ExUnit.run == %{failures: 1, skipped: 0, total: 1}
+    end)
+
+    assert output =~ "Not yet implemented"
+    assert output =~ "1 test, 1 failure"
+  end
 end

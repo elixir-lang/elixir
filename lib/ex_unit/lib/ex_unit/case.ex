@@ -227,6 +227,27 @@ defmodule ExUnit.Case do
     end
   end
 
+  @doc """
+  Define a not implemented test with a string.
+
+  Provides a convenient macro that allows a test to be
+  defined with a string, but not yet implemented. The
+  resulting test will always fail and print "Not yet
+  implemented" error message.
+
+  ## Examples
+
+      test "this will be a test in future"
+
+  """
+  defmacro test(message) do
+    quote bind_quoted: binding do
+      test = :"test #{message}"
+      ExUnit.Case.__on_definition__(__ENV__, test)
+      def unquote(test)(_), do: flunk("Not yet implemented")
+    end
+  end
+
   @doc false
   defmacro __before_compile__(_) do
     quote do
