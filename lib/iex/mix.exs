@@ -11,10 +11,11 @@ defmodule IEx.Mixfile do
     [registered: [IEx.Supervisor, IEx.Config],
      mod: {IEx.App, []},
      env: [
-       colors: [],
-       inspect: [],
-       history_size: 20,
-       default_prompt: "%prefix(%counter)>",
-       alive_prompt: "%prefix(%node)%counter>"]]
+      autocomplete_server: IEx.Server,
+      colors: [],
+      inspect: [],
+      history_size: 20,
+      default_prompt: "%prefix(%counter)>",
+      alive_prompt: "%prefix(%node)%counter>"]]
   end
 end

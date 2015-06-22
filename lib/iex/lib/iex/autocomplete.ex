@@ -164,7 +164,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp env_aliases do
-    IEx.Server.current_env.aliases
+    Application.get_env(:iex, :autocomplete_server).current_env.aliases
   end
 
   defp match_aliases(hint) do
