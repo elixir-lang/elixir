@@ -52,19 +52,6 @@ defmodule Mix.Compilers.Elixir do
       removed != [] ->
         write_manifest(manifest, entries ++ skip_entries)
         :ok
-      File.exists?(Mix.Project.app_path) ->
-        # If we have an app path but a noop result, we rebuild
-        # the structure because priv/include needs to be recopied when
-        # symlink is not available. We do this in the Elixir compiler
-        # instead of the main compiler one because other compilers may
-        # return :ok, saying they did some work, but they may have not
-        # built a structure at all.
-        #
-        # This implies the Elixir compiler is somewhat required, even
-        # for Erlang projects, which is an ok assumption to make (we
-        # ship with both Elixir and Erlang compilers by default).
-        Mix.Project.build_structure()
-        :noop
       true ->
         :noop
     end
@@ -98,7 +85,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp compile_manifest(manifest, entries, stale, dest, on_start) do
-    Mix.Project.build_structure
+    Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
 
     on_start.()

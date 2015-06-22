@@ -85,6 +85,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Improve error message when we can't compile because the target directory is not writeable
   * [Mix] Ensure automatic protocol consolidation via `:consolidate_protocols` is triggered in umbrella apps
   * [Mix] Do not raise if wildcard given to `import_config` does not match any file
+  * [Mix] Applications with build_embedded set to true require explicit compilation step
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled

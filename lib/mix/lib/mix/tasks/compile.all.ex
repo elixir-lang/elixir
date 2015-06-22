@@ -11,6 +11,9 @@ defmodule Mix.Tasks.Compile.All do
   def run(args) do
     Mix.Project.get!
 
+    # Build the project structure so we can write down compiled files.
+    Mix.Project.build_structure
+
     res =
       Enum.map(Mix.Tasks.Compile.compilers(), fn(compiler) ->
         Mix.Task.run("compile.#{compiler}", args)

@@ -13,15 +13,15 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  defmodule WrongElixirProject do
+  defmodule AppEmbeddedSample do
     def project do
-      [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
+      [app: :app_embedded_sample, version: "0.1.0", build_embedded: true]
     end
   end
 
-  defmodule InvalidElixirRequirement do
+  defmodule WrongElixirProject do
     def project do
-      [app: :error, version: "0.1.0", elixir: "~> ~> 0.8.1"]
+      [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
     end
   end
 
@@ -60,7 +60,31 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  test "validates the Elixir version requirement" do
+  test "compiles and starts a project with build_embedded" do
+    Mix.Project.push AppEmbeddedSample
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise  Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
+        Mix.Tasks.App.Start.run []
+      end
+
+      Mix.Tasks.Compile.run([])
+      Mix.Tasks.App.Start.run([])
+    end
+  end
+
+  test "validates Elixir version requirement" do
+    Mix.ProjectStack.post_config elixir: "~> ~> 0.8.1"
+    Mix.Project.push WrongElixirProject
+
+    in_fixture "no_mixfile", fn ->
+      assert_raise  Mix.Error, ~r"Invalid Elixir version requirement", fn ->
+        Mix.Tasks.App.Start.run ["--no-start"]
+      end
+    end
+  end
+
+  test "validates the Elixir version with requirement" do
     Mix.Project.push WrongElixirProject
 
     in_fixture "no_mixfile", fn ->
@@ -70,17 +94,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  test "validates invalid Elixir version requirement" do
-    Mix.Project.push InvalidElixirRequirement
-
-    in_fixture "no_mixfile", fn ->
-      assert_raise  Mix.Error, ~r"Invalid Elixir version requirement", fn ->
-        Mix.Tasks.App.Start.run ["--no-start"]
-      end
-    end
-  end
-
-  test "does not validate the Elixir version requirement when disabled" do
+  test "does not validate the Elixir version with requirement when disabled" do
     Mix.Project.push WrongElixirProject
 
     in_fixture "no_mixfile", fn ->
