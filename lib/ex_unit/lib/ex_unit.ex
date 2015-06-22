@@ -198,6 +198,8 @@ defmodule ExUnit do
     * `:seed` - an integer seed value to randomize the test suite
 
     * `:timeout` - set the timeout for the tests (default 60_000 ms)
+
+    * `:diff` - additional command-line options for the git-diff(1) program
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->

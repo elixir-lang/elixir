@@ -27,6 +27,10 @@ defmodule ExUnit.FormatterTest do
     %ExUnit.Test{name: :world, case: Hello, tags: [file: __ENV__.file, line: 1]}
   end
 
+  defp diff_insert(fragment), do: "\e[32;7m#{fragment}\e[m"
+  defp diff_delete(fragment), do: "\e[31;7m#{fragment}\e[m"
+  defp diff_change(from, to), do: diff_delete(from) <> diff_insert(to)
+
   test "formats test case filters" do
     filters = [run: true, slow: false]
     assert format_filters(filters, :include) =~ "Including tags: [run: true, slow: false]"
@@ -116,6 +120,7 @@ defmodule ExUnit.FormatterTest do
          code: [1, 2, 3] == [4, 5, 6]
          lhs:  [1, 2, 3]
          rhs:  [4, 5, 6]
+         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}].
     """
   end
 
@@ -131,6 +136,7 @@ defmodule ExUnit.FormatterTest do
          rhs:  [4,
                 5,
                 6]
+         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}].
     """
   end
 
@@ -142,6 +148,35 @@ defmodule ExUnit.FormatterTest do
          Some meaningful error:
          useful info
          another useful info
+    """
+  end
+
+  test "annotates assertions with highlighted differences" do
+    failure = {:error, catch_assertion(assert [1, 2, 3] == [4, 2, 6]), []}
+    assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) == """
+      1) Hello: failure on setup_all callback, tests invalidated
+         Assertion with == failed
+         code: [1, 2, 3] == [4, 2, 6]
+         lhs:  [1, 2, 3]
+         rhs:  [4, 2, 6]
+         diff: [#{diff_change(1, 4)},2,#{diff_change(3, 6)}].
+    """
+  end
+
+  test "annotates assertions with highlighted differences only when different" do
+    # this failure is a lie, constructed to make git-diff(1) exit with status 0
+    failure = {:error, %ExUnit.AssertionError{
+      message: "Assertion with == failed",
+      expr: {:==, [line: 167], [[1, 2, 3], [1, 2, 3]]},
+      left: [1, 2, 3],
+      right: [1, 2, 3]
+    }, []}
+    assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) == """
+      1) Hello: failure on setup_all callback, tests invalidated
+         Assertion with == failed
+         code: [1, 2, 3] == [1, 2, 3]
+         lhs:  [1, 2, 3]
+         rhs:  [1, 2, 3]
     """
   end
 
