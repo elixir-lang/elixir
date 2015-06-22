@@ -470,8 +470,8 @@ defmodule Inspect.Algebra do
     concat(left, right)
   end
 
-  defp do_surround_many(left, docs, right, limit, _opts, fun, sep) do
-    surround(left, do_surround_many(docs, limit, _opts, fun, sep), right)
+  defp do_surround_many(left, docs, right, limit, opts, fun, sep) do
+    surround(left, do_surround_many(docs, limit, opts, fun, sep), right)
   end
 
   defp do_surround_many(_, 0, _opts, _fun, _sep) do

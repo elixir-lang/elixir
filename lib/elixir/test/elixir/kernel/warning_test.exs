@@ -28,6 +28,20 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
   end
 
+  test :underscored_variable_on_assign do
+    assert capture_err(fn ->
+      Code.eval_string """
+       defmodule Sample do
+        def fun(_var) do
+          _var + 1
+        end
+      end
+      """
+    end) =~ "warning: the underscored variable \"_var\" is used in the body of the function"
+  after
+    purge Sample
+  end
+
   test :unused_function do
     assert capture_err(fn ->
       Code.eval_string """
