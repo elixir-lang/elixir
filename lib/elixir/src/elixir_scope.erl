@@ -26,7 +26,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
       case Exists andalso ordsets:is_element(Tuple, MatchVars) of
         true ->
-          warn_underscored_var(Line, S#elixir_scope.file, Name, Kind),
+          warn_underscored_var_repeat(Line, S#elixir_scope.file, Name, Kind),
           {{var, Line, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
@@ -54,6 +54,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
           {{var, Line, NewVar}, FS}
       end;
     _  when Exists ->
+      warn_underscored_var_access(Line, S#elixir_scope.file, Name),
       {{var, Line, Current}, S}
   end.
 
@@ -65,12 +66,22 @@ build_var(Key, S) ->
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
 
-warn_underscored_var(Line, File, Name, Kind) ->
+warn_underscored_var_repeat(Line, File, Name, Kind) ->
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ ->
       elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
+    _ ->
+      ok
+  end.
+
+warn_underscored_var_access(Line, File, Name) ->
+  case atom_to_list(Name) of
+    "_@" ++ _ ->
+      ok; %% Automatically generated variables
+    "_" ++ _ ->
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {underscore_var_access, Name});
     _ ->
       ok
   end.
@@ -161,4 +172,10 @@ format_error({unused_match, Name, Kind}) ->
                 "match. This means the pattern will only match if all \"~ts\" bind "
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
-                "give the variables different names", [Name, context_info(Kind), Name]).
+                "give the variables different names", [Name, context_info(Kind), Name]);
+
+format_error({underscore_var_access, Name}) ->
+  io_lib:format("the underscored variable \"~ts\" is used in the body of the "
+                "function. A leading underscore indicates that the value of "
+                "the variable should be ignored. If this is intended please "
+                "rename the variable to remove the underscore", [Name]).
