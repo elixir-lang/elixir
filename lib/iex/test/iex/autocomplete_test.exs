@@ -112,4 +112,27 @@ defmodule IEx.AutocompleteTest do
   test :elixir_completion_sublevel do
     assert expand('IEx.AutocompleteTest.SublevelTest.') == {:yes, 'LevelA.', []}
   end
+
+  defmodule MyServer do
+    def current_env do
+      %Macro.Env{aliases: [{MyList, List}, {EList, :lists}]}
+    end
+  end
+
+  test :complete_aliases_of_elixir_modules do
+    Application.put_env(:iex, :autocomplete_server, MyServer)
+
+    assert expand('MyL') == {:yes, 'ist.', []}
+    assert expand('MyList') == {:yes, '.', []}
+    assert expand('MyList.to_integer') == {:yes, [], ['to_integer/1', 'to_integer/2']}
+  end
+
+  test :complete_aliases_of_erlang_modules do
+    Application.put_env(:iex, :autocomplete_server, MyServer)
+
+    assert expand('EL') == {:yes, 'ist.', []}
+    assert expand('EList') == {:yes, '.', []}
+    assert expand('EList.map') == {:yes, [], ['map/2', 'mapfoldl/3', 'mapfoldr/3']}
+  end
+
 end
