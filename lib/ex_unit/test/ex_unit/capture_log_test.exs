@@ -32,6 +32,12 @@ defmodule ExUnit.CaptureLogTest do
     assert group_leader == Process.group_leader()
   end
 
+  test "level aware" do
+    assert capture_log([level: :warn], fn ->
+      Logger.info "here"
+    end) == ""
+  end
+
   test "log tracking" do
     logged =
       assert capture_log(fn ->
