@@ -163,17 +163,8 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp env_aliases() do
-    case IEx.Server.whereis() do
-      nil -> []
-      server ->
-        send(server, {:peek_env, self()})
-        receive do
-          {:peek, %Macro.Env{} = env} -> env.aliases
-        after
-          5000 -> []
-        end
-    end
+  defp env_aliases do
+    IEx.Server.current_env.aliases
   end
 
   defp match_aliases(hint) do
