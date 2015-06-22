@@ -442,7 +442,7 @@ defmodule String do
     {acc, grapheme <> rest}
 
   @doc """
-  Converts all characters on the given string to uppercase.
+  Converts all characters in the given string to uppercase.
 
   ## Examples
 
@@ -460,7 +460,7 @@ defmodule String do
   defdelegate upcase(binary), to: String.Unicode
 
   @doc """
-  Converts all characters on the given string to lowercase.
+  Converts all characters in the given string to lowercase.
 
   ## Examples
 
@@ -479,7 +479,7 @@ defmodule String do
 
   @doc """
   Converts the first character in the given string to
-  uppercase and the remaining to lowercase.
+  uppercase and the remainder to lowercase.
 
   This relies on the titlecase information provided
   by the Unicode Standard. Note this function makes
@@ -591,7 +591,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading/trailing Unicode whitespace
+  Returns a string where leading and trailing Unicode whitespace
   has been removed.
 
   ## Examples
@@ -607,7 +607,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading/trailing `char` have been
+  Returns a string where leading and trailing `char` have been
   removed.
 
   ## Examples
@@ -683,11 +683,13 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns a new binary based on `subject` by replacing the parts
-  matching `pattern` by `replacement`. By default, it replaces
-  all entries, except if the `global` option is set to `false`.
+  Returns a new binary created by replacing occurences of `pattern` in
+  `subject` with `replacement`.
 
-  A `pattern` may be a string or a regex.
+  By default, it replaces all occurences, except if the `global` option is
+  set to `false`.
+
+  A `pattern` may be a string or a regular expression.
 
   ## Examples
 
@@ -697,7 +699,7 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
 
-  The pattern can also be a regex. In those cases, one can give `\N` or
+  The pattern can also be a regular expression. In those cases, one can give `\N` or
   `\g{N}` in the `replacement` string to access a specific capture in the
   regex:
 
@@ -946,7 +948,7 @@ defmodule String do
   defp make_chunk_pred(:printable), do: &printable?/1
 
   @doc """
-  Returns unicode graphemes in the string as per Extended Grapheme
+  Returns Unicode graphemes in the string as per Extended Grapheme
   Cluster algorithm outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 
@@ -977,7 +979,7 @@ defmodule String do
   defdelegate next_grapheme(string), to: String.Graphemes
 
   @doc """
-  Returns the first grapheme from an utf8 string,
+  Returns the first grapheme from a utf8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -998,7 +1000,7 @@ defmodule String do
   end
 
   @doc """
-  Returns the last grapheme from an utf8 string,
+  Returns the last grapheme from a utf8 string,
   `nil` if the string is empty.
 
   ## Examples
@@ -1022,7 +1024,7 @@ defmodule String do
   defp do_last(nil, last_char), do: last_char
 
   @doc """
-  Returns the number of unicode graphemes in an utf8 string.
+  Returns the number of Unicode graphemes in a utf8 string.
 
   ## Examples
 
@@ -1091,13 +1093,13 @@ defmodule String do
   defp do_at(nil, _, _), do: nil
 
   @doc """
-  Returns a substring starting at the offset given by the first, and
-  a length given by the second.
+  Returns a substring starting at the offset `start`, and of
+  length `len`.
 
   If the offset is greater than string length, then it returns `""`.
 
-  Remember this function works with unicode codepoints and considers
-  the slices to represent codepoints offsets. If you want to split
+  Remember this function works with Unicode codepoints and considers
+  the slices to represent codepoint offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
@@ -1168,7 +1170,7 @@ defmodule String do
   is traversed first in order to convert the negative indices into
   positive ones.
 
-  Remember this function works with unicode codepoints and considers
+  Remember this function works with Unicode codepoints and considers
   the slices to represent codepoints offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
@@ -1342,7 +1344,7 @@ defmodule String do
   @doc """
   Checks if `string` contains any of the given `contents`.
 
-  `matches` can be either a single string or a list of strings.
+  `contents` can be either a single string or a list of strings.
 
   ## Examples
 
@@ -1410,8 +1412,8 @@ defmodule String do
   @doc """
   Converts a string to an atom.
 
-  Currently Elixir does not support conversions from strings
-  which contain Unicode codepoints greater than 0xFF.
+  Currently Elixir does not support the conversion of strings
+  that contain Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
 
@@ -1429,8 +1431,8 @@ defmodule String do
   @doc """
   Converts a string to an existing atom.
 
-  Currently Elixir does not support conversions from strings
-  which contains Unicode codepoints greater than 0xFF.
+  Currently Elixir does not support the conversion of strings
+  that contain Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
 
