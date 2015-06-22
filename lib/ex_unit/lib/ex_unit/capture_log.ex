@@ -9,7 +9,7 @@ defmodule ExUnit.CaptureLog do
 
         import ExUnit.CaptureLog
 
-        test :example do
+        test "example" do
           assert capture_log(fn ->
             Logger.error "log msg"
           end) =~ "log msg"
@@ -22,6 +22,7 @@ defmodule ExUnit.CaptureLog do
             end
             Logger.debug "testing"
           end
+          assert capture_log(fun) =~ "hello"
           assert capture_log(fun) =~ "testing"
         end
       end
@@ -33,64 +34,52 @@ defmodule ExUnit.CaptureLog do
 
   Returns the binary which is the captured output.
 
-  By default, `capture_log` replaces the `group_leader` (`:stdio`)
-  for the current process and captures any log messages sent by
-  processes wth the replacement `group leader`. However, the
-  capturing of log messages with a `group_leader` of any other
-  device is also possible by giving the device explicitly as an
-  argument. It is possible to capture all log messages by
-  giving `nil` for the device.
+  This function mutes the `:console` backend
+  and captures any log messages sent to Logger.
 
-  Note that when capturing something other than `:stdio`, log
-  messages from other tests or processes might be captured. However
-  it is safe to use async true if this can be handled. Multiple
-  captures (and other backends) can handle log messages at the same
-  time. For example the `:console` backend will still log messages
-  to the console.
+  Note that when the `async` is set to `true`,
+  the messages from another test might be captured.
 
   It is possible to configure the level to capture with `:level`,
-  which will change the current Logger level for the duration of the
-  capture. If the log level is changed while capturing, for example
-  by another `capture_log/3`, the behaviour is undetermined.
-  Therefore tests should be async false when setting a capturing
-  level. The default level is `nil`, which will capture all messages
-  at the current Logger level. It is safe to use with async true when
-  the level is `nil` because it does not change the current Logger
-  level.
+  which will set the capturing level for the duration of the
+  capture, for instance, if the log level is set to :error
+  any message with the lower level will be ignored.
+  The default level is `nil`, which will capture all messages.
+  The behaviour is undetermined if async tests change Logger level.
 
   The format, metadata and colors can be configured with `:format`,
-  `:metadata` and `:colors` respectively. Defaults for these three
-  options can be configured using the `:logger` application config
-  with key `:capture`. For example, in a `config/config.exs` file:
-
-      config :logger, :capture,
-        format: "\n$date $time [$level] $metadata$message",
-        metadata: [:user_id],
-        colors: [enabled: false]
+  `:metadata` and `:colors` respectively. These three options
+  defaults to the `:console` backend configuration parameters.
   """
   @spec capture_log(Keyword.t, (() -> any)) :: String.t
   def capture_log(opts \\ [], fun) do
+    opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
-    handler = {Logger.Backends.Console, make_ref()}
     try do
-      :ok = GenEvent.add_handler(Logger, handler, {string_io, opts})
-      _ = fun.()
+      case ExUnit.Server.log_capture_on(self(), {string_io, opts}) do
+        {:ok, ref} ->
+          try do
+            _ = fun.()
+          after
+            :ok = Logger.flush()
+            case ExUnit.Server.log_capture_off(ref) do
+              {:error, reason} ->
+                exit({reason, {ExUnit.Server, :log_capture_off, [ref]}})
+              :ok -> :ok
+            end
+          end
+        {:error, :no_logger} -> exit(:noproc)
+      end
       :ok
     catch
       kind, reason ->
         stack = System.stacktrace()
-        remove_backend(handler, string_io)
+        _ = StringIO.close(string_io)
         :erlang.raise(kind, reason, stack)
     else
       :ok ->
-        :ok = Logger.flush()
-        {:ok, content} = remove_backend(handler, string_io)
+        {:ok, content} = StringIO.close(string_io)
         elem(content, 1)
     end
-  end
-
-  defp remove_backend(handler, string_io) do
-    GenEvent.remove_handler(Logger, handler, nil)
-    StringIO.close(string_io)
   end
 end
