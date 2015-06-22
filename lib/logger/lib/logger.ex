@@ -57,8 +57,8 @@ defmodule Logger do
       no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug`, `Logger.info`, etc style of calls.
 
-  For example, to set the backends to `[:console]` and purge Logger calls
-  below `info` (i.e. all `debug` calls) at compile time:
+  For example, to configure the `:backends` and `compile_time_purge_level`
+  in a `config/config.exs` file:
 
       config :logger,
         backends: [:console],
@@ -88,7 +88,8 @@ defmodule Logger do
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
-  For example, to set the level to `:warn` and decrease the truncation size:
+  For example, to configure the `:level` and `:truncate` in a
+  `config/config.exs` file:
 
       config :logger,
         level: :warn,
@@ -116,7 +117,8 @@ defmodule Logger do
       threshold, the `error_logger` enters discard mode for the
       remainder of that second. Defaults to 500 messages.
 
-  For example, to redirect all `error_logger` messages:
+  For example, to configure Logger to redirect all `error_logger` messages
+  using a `config/config.exs` file:
 
       config :logger,
         handle_otp_reports: true,
