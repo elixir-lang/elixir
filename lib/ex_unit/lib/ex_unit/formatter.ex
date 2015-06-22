@@ -135,7 +135,7 @@ defmodule ExUnit.Formatter do
        rhs:  if_value(struct.right, &inspect_multiline(&1, width)),
        diff: if_value(struct.left, fn left ->
                if_value(struct.right, fn right ->
-                 highlight_differences(left, right)
+                 format_diff(left, right)
                end)
              end)]
 
@@ -149,40 +149,24 @@ defmodule ExUnit.Formatter do
     error_info Exception.format_banner(kind, reason), formatter
   end
 
-  defp highlight_differences(left, right) do
-    temporary_diff_input_file(left, fn left_file ->
-      temporary_diff_input_file(right, fn right_file ->
-        System.cmd("git", List.flatten(["diff", "--no-index", "--exit-code",
-          "--color-words=\\w+|\\S", Application.get_env(:ex_unit, :diff, []),
-          "--", left_file, right_file]), stderr_to_stdout: true)
-        |> format_diff_output
-      end)
-    end)
+  defp format_diff(from, to) do
+    do_format_diff(format_diff_input(from), format_diff_input(to))
   end
 
-  defp temporary_diff_input_file(input, fun) do
-    temp_file = :test_server.temp_name('.ex_unit_diff') |> to_string
-    try do
-      File.write! temp_file, format_diff_input(input)
-      fun.(temp_file)
-    after
-      File.rm! temp_file
-    end
+  defp do_format_diff(same, same), do: ExUnit.AssertionError.no_value
+  defp do_format_diff(from, to) do
+    :tdiff.diff(from, to)
+    |> Stream.map(&format_diff_output/1)
+    |> Enum.join
   end
 
-  defp format_diff_input(term) do
-    :io_lib.format("~p.~n", [term])
+  defp format_diff_input(value) do
+    :io_lib.format("~p", [value]) |> List.flatten
   end
 
-  defp format_diff_output({_stdout, 0}) do # git-diff(1) found no differences
-    ExUnit.AssertionError.no_value
-  end
-  defp format_diff_output({stdout, 1}) do # git-diff(1) found some differences
-    stdout
-    |> String.replace(~r/\A(?:.*\n){5}/, "") # drop diff and first hunk header
-    |> String.replace(~r/\e\[3\d(?=m)/, "\\0;7", global: true) # reverse video
-    |> String.rstrip(?\n) # chomp the trailing newline from git-diff(1) output
-  end
+  defp format_diff_output({:eq,  fragment}), do: fragment
+  defp format_diff_output({:del, fragment}), do: "\e[31;7m#{fragment}\e[m"
+  defp format_diff_output({:ins, fragment}), do: "\e[32;7m#{fragment}\e[m"
 
   defp filter_interesting_fields(fields) do
     Enum.filter(fields, fn {_, value} ->

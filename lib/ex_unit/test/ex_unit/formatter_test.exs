@@ -120,7 +120,7 @@ defmodule ExUnit.FormatterTest do
          code: [1, 2, 3] == [4, 5, 6]
          lhs:  [1, 2, 3]
          rhs:  [4, 5, 6]
-         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}].
+         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}]
     """
   end
 
@@ -136,7 +136,7 @@ defmodule ExUnit.FormatterTest do
          rhs:  [4,
                 5,
                 6]
-         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}].
+         diff: [#{diff_change(1, 4)},#{diff_change(2, 5)},#{diff_change(3, 6)}]
     """
   end
 
@@ -159,12 +159,12 @@ defmodule ExUnit.FormatterTest do
          code: [1, 2, 3] == [4, 2, 6]
          lhs:  [1, 2, 3]
          rhs:  [4, 2, 6]
-         diff: [#{diff_change(1, 4)},2,#{diff_change(3, 6)}].
+         diff: [#{diff_change(1, 4)},2,#{diff_change(3, 6)}]
     """
   end
 
-  test "annotates assertions with highlighted differences only when different" do
-    # this failure is a lie, constructed to make git-diff(1) exit with status 0
+  test "annotates assertions with highlighted differences when LHS != RHS" do
+    # this is a lie, blatantly constructed to give diff the same LHS and RHS
     failure = {:error, %ExUnit.AssertionError{
       message: "Assertion with == failed",
       expr: {:==, [line: 167], [[1, 2, 3], [1, 2, 3]]},
@@ -178,6 +178,7 @@ defmodule ExUnit.FormatterTest do
          lhs:  [1, 2, 3]
          rhs:  [1, 2, 3]
     """
+    # notice that there is no `diff:` section in the message above
   end
 
   defmodule BadInspect do
