@@ -148,6 +148,8 @@ defmodule GenEventTest do
     assert {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
     assert GenEvent.start_link(name: :my_gen_event_name) ==
            {:error, {:already_started, pid}}
+
+    assert GenEvent.stop(pid) == :ok
   end
 
   test "handles exit signals" do
@@ -450,7 +452,7 @@ defmodule GenEventTest do
   end
 
   test ":sys.get_status/2" do
-    {:ok, pid} = GenEvent.start(name: :my_gen_event_name)
+    {:ok, pid} = GenEvent.start()
     :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self(), true})
 
     self = self()
@@ -466,7 +468,7 @@ defmodule GenEventTest do
   end
 
   test ":sys.get_state/1 and :sys.replace_state/2" do
-    {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
+    {:ok, pid} = GenEvent.start_link()
     self = self()
 
     assert [] = :sys.get_state(pid)
