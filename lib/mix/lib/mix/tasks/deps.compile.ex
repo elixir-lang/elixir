@@ -168,15 +168,15 @@ defmodule Mix.Tasks.Deps.Compile do
     build_path = Path.dirname(opts[:build])
     Enum.each Mix.Dep.source_paths(dep), fn source ->
       app = Path.join(build_path, Path.basename(source))
-      build_structure(dep, source, app, config)
+      build_structure(source, app, config)
       Code.prepend_path(Path.join(app, "ebin"))
     end
   end
 
-  defp build_structure(dep, dest, build, config) do
+  defp build_structure(dest, build, config) do
     File.cd! dest, fn ->
       config = Keyword.put(config, :app_path, build)
-      Mix.Project.build_structure(config, symlink_ebin: not mix?(dep))
+      Mix.Project.build_structure(config, symlink_ebin: true)
     end
   end
 

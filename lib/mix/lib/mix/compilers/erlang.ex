@@ -69,8 +69,7 @@ defmodule Mix.Compilers.Erlang do
     if stale == [] && removed == [] do
       :noop
     else
-      # Build the project structure so we can write down compiled files.
-      Mix.Project.build_structure
+      Mix.Project.ensure_structure()
 
       # Let's prepend the newly created path so compiled files
       # can be accessed still during compilation (for behaviours

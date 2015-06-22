@@ -306,6 +306,27 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Compiles the given project.
+
+  It will run the compile task unless the project
+  is in build embedded mode, which may fail as a
+  explicit command to "mix compile" is required.
+  """
+  def compile(args, config \\ config()) do
+    if config[:build_embedded] do
+      if not File.exists?(app_path(config)) do
+        Mix.raise "Cannot execute task because the project was not yet compiled. " <>
+                  "When build_embedded is set to true, which is the default " <>
+                  "for production, `mix compile` must be explicitly executed"
+      end
+
+      :ok
+    else
+      Mix.Task.run "compile", args
+    end
+  end
+
+  @doc """
   Builds the project structure for the current application.
 
   ## Options
@@ -343,6 +364,19 @@ defmodule Mix.Project do
       end
     else
       Mix.Utils.symlink_or_copy(source, target)
+    end
+  end
+
+  @doc """
+  Ensures the project structure exists.
+
+  In case it does, it is a no-op, otherwise, it is built.
+  """
+  def ensure_structure(config \\ config(), opts \\ []) do
+    if File.exists?(app_path(config)) do
+      :ok
+    else
+      build_structure(config, opts)
     end
   end
 

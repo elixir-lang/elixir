@@ -99,11 +99,8 @@ defmodule Mix.Tasks.Compile.App do
       properties = ensure_correct_properties(app, config, properties)
       contents   = {:application, app, properties}
 
-      # There are no modules, we assume no structure was built.
-      # If it was built, it doesn't matter, we just rebuild it.
-      if mods == [], do: Mix.Project.build_structure(config)
+      Mix.Project.ensure_structure()
       File.write!(target, :io_lib.format("~p.", [contents]))
-
       Mix.shell.info "Generated #{app} app"
       :ok
     else
@@ -121,11 +118,11 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp validate_app(app) when is_atom(app), do: :ok
-  defp validate_app(_), do: raise(Mix.Error, message: "Expected :app to be an atom")
+  defp validate_app(_), do: Mix.raise("Expected :app to be an atom")
 
   defp validate_version(version) do
     unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
-      raise(Mix.Error, message: "Expected :version to be a SemVer version")
+      Mix.raise("Expected :version to be a SemVer version")
     end
   end
 

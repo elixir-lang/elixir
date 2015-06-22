@@ -32,7 +32,7 @@ defmodule Mix.Tasks.App.Start do
     Mix.Task.run "loadpaths", args
 
     unless "--no-compile" in args do
-      Mix.Task.run "compile", args
+      Mix.Project.compile(args)
     end
 
     unless "--no-protocols" in args do

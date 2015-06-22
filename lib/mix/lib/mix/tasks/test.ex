@@ -148,7 +148,7 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run "loadpaths", args
 
     if Keyword.get(opts, :compile, true) do
-      Mix.Task.run "compile", args
+      Mix.Project.compile(args)
     end
 
     project = Mix.Project.config

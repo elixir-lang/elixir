@@ -248,7 +248,7 @@ defmodule Mix.Task do
 
     # If the task is not available, let's try to compile the project
     unless module do
-      if proj, do: Mix.Task.run("compile")
+      if proj, do: Mix.Project.compile([])
       module = get!(task)
     end
 

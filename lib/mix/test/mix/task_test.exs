@@ -39,6 +39,17 @@ defmodule Mix.TaskTest do
     end
   end
 
+  test "does not try to compile if task is missing in build embedded" do
+    in_fixture "no_mixfile", fn ->
+      Mix.ProjectStack.post_config(build_embedded: true)
+      Mix.Project.push(SampleProject, "sample")
+
+      assert_raise Mix.Error, ~r/Cannot execute task because the project was not yet compiled/, fn ->
+        Mix.Task.run("unknown")
+      end
+    end
+  end
+
   test "clear/0" do
     assert Mix.Task.run("hello") == "Hello, World!"
     Mix.Task.clear
