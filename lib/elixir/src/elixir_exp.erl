@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_args/2, expand_arg/2]).
+-export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -305,6 +305,7 @@ expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E)
 expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_atom(Kind) ->
   case lists:member({Name, var_kind(Meta, Kind)}, Vars) of
     true ->
+      warn_underscore_var_access(?line(Meta), ?m(E, file), Name),
       {Var, E};
     false ->
       VarMeta = lists:keyfind(var, 1, Meta),
@@ -543,6 +544,22 @@ expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   compile_error(Meta, ?m(E, file),
     "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
+
+warn_underscore_var_access(Line, File, Name) ->
+  case atom_to_list(Name) of
+    "_" ++ _ ->
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {underscore_var_access, Name});
+    _ ->
+      ok
+  end.
+
+%% Errors
+
+format_error({underscore_var_access, Name}) ->
+  io_lib:format("the underscored variable \"~ts\" is used in the body of the "
+                "function. A leading underscore indicates that the value of "
+                "the variable should be ignored. If this is intended please "
+                "rename the variable remove the underscore", [Name]).
 
 %% Assertions
 
