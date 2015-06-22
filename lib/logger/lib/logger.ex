@@ -57,6 +57,13 @@ defmodule Logger do
       no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug`, `Logger.info`, etc style of calls.
 
+  For example, to set the backends to `[:console]` and purge Logger calls
+  below `info` (i.e. all `debug` calls) at compile time:
+
+      config :logger,
+        backends: [:console],
+        compile_time_purge_level: :info
+
   ### Runtime Configuration
 
   All configuration below can be set via config files but also
@@ -81,6 +88,12 @@ defmodule Logger do
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
+  For example, to set the level to `:warn` and decrease the truncation size:
+
+      config :logger,
+        level: :warn,
+        truncate: 4096
+
   ### Error logger configuration
 
   The following configuration applies to the Logger wrapper around
@@ -89,12 +102,12 @@ defmodule Logger do
 
     * `:handle_otp_reports` - redirects OTP reports to Logger so
       they are formatted in Elixir terms. This uninstalls Erlang's
-      logger that prints terms to terminal.
+      logger that prints terms to terminal. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
       progress reports to Logger so they are formatted in Elixir
       terms. This uninstalls `sasl`'s logger that prints these
-      reports to the terminal.
+      reports to the terminal. Defaults to `false`.
 
     * `:discard_threshold_for_error_logger` - a value that, when
       reached, triggers the error logger to discard messages. This
@@ -102,6 +115,12 @@ defmodule Logger do
       number of messages accepted per second. Once above this
       threshold, the `error_logger` enters discard mode for the
       remainder of that second. Defaults to 500 messages.
+
+  For example, to redirect all `error_logger` messages:
+
+      config :logger,
+        handle_otp_reports: true,
+        handle_sasl_reports: true
 
   Furthermore, Logger allows messages sent by Erlang's `error_logger`
   to be translated into an Elixir format via translators. Translators
