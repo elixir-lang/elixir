@@ -684,8 +684,10 @@ defmodule String do
 
   @doc ~S"""
   Returns a new binary created by replacing occurences of `pattern` in
-  `subject` with `replacement`. By default, it replaces all occurences,
-  except if the `global` option is set to `false`.
+  `subject` with `replacement`.
+
+  By default, it replaces all occurences, except if the `global` option is
+  set to `false`.
 
   A `pattern` may be a string or a regular expression.
 
