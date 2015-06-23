@@ -143,6 +143,11 @@ defmodule ExUnitTest do
     defmodule TestNotImplemented do
       use ExUnit.Case, async: false
 
+      setup context do
+        assert context[:not_implemented]
+        :ok
+      end
+
       test "this is not implemented yet"
     end
 
