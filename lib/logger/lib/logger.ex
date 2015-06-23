@@ -206,7 +206,7 @@ defmodule Logger do
       {level, group_leader,
         {Logger, message, timestamp, metadata}}
 
-  The level is one of `:error`, `:info`, `:warn` or `:error`,
+  The level is one of `:debug`, `:info`, `:warn` or `:error`,
   as previously described, the group leader is the group
   leader of the process who logged the message, followed by
   a tuple starting with the atom `Logger`, the message as
