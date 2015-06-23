@@ -233,7 +233,8 @@ defmodule ExUnit.Case do
   Provides a convenient macro that allows a test to be
   defined with a string, but not yet implemented. The
   resulting test will always fail and print "Not yet
-  implemented" error message.
+  implemented" error message. The resulting test case is
+  also tagged with :not_implemented.
 
   ## Examples
 
@@ -243,7 +244,7 @@ defmodule ExUnit.Case do
   defmacro test(message) do
     quote bind_quoted: binding do
       test = :"test #{message}"
-      ExUnit.Case.__on_definition__(__ENV__, test)
+      ExUnit.Case.__on_definition__(__ENV__, test, [:not_implemented])
       def unquote(test)(_), do: flunk("Not yet implemented")
     end
   end
@@ -258,9 +259,9 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  def __on_definition__(env, name) do
+  def __on_definition__(env, name, tags \\ []) do
     mod  = env.module
-    tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+    tags = tags ++ Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
     tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
