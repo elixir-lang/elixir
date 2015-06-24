@@ -279,7 +279,7 @@ tokenize("...:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) -
   tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, Column + 4}, '...'}|Tokens]);
 tokenize("<<>>:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, {Line, Column, Column + 5}, '<<>>'}|Tokens]);
-tokenize("%{}:" ++ Rest, Column, Line, Scope, Tokens) when ?is_space(hd(Rest)) ->
+tokenize("%{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, Column + 4}, '%{}'}|Tokens]);
 tokenize("%:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, Column + 2}, '%'}|Tokens]);
