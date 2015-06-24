@@ -104,7 +104,7 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not locked"]}
 
-      Mix.Dep.Lock.write %{ok: {:git, "https://github.com/elixir-lang/ok.git", "abcdefghi", []}}
+      Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
