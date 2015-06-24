@@ -436,7 +436,7 @@ tokenize([$%|T], Line, Column, Scope, Tokens) ->
 
 tokenize([$.|T], Line, Column, Scope, Tokens) ->
   {Rest, Counter, Offset} = strip_space(T, 0, Column + 1),
-  handle_dot([$.|Rest], Line + Counter, Offset, Column, Scope, Tokens);
+  handle_dot([$.|Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
 
 % Integers and floats
 
