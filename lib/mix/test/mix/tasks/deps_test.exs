@@ -44,7 +44,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
@@ -101,20 +101,20 @@ defmodule Mix.Tasks.DepsTest do
       File.cd!("deps/ok", fn -> System.cmd("git", ["init"]) end)
 
       Mix.Tasks.Deps.run []
-      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not locked"]}
 
       Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  locked at abcdefg"]}
       assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"]}
 
-      Mix.Dep.Lock.write %{ok: {:git, "https://github.com/elixir-lang/another.git", "abcdefghi", []}}
+      Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/another.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"]}
     end
   end
@@ -135,7 +135,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received {:mix_shell, :error, ["* ok (https://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :error, ["* ok (git://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
