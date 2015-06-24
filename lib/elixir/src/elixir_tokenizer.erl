@@ -337,7 +337,7 @@ tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
 % Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
-  Token = check_call_identifier(identifier, Line, Column, '...', Rest),
+  Token = check_call_identifier(identifier, Line, Column, 3, '...', Rest),
   tokenize(Rest, Line, Column + 3, Scope, [Token|Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
@@ -345,22 +345,22 @@ tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
 
 % ## Three token operators
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
-  handle_unary_op(Rest, Line, Column + 3, unary_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_unary_op(Rest, Line, Column, unary_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?comp_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, comp_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_op(Rest, Line, Column, comp_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?and_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, and_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_op(Rest, Line, Column, and_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, or_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, arrow_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?hat_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, hat_op, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_op(Rest, Line, Column, hat_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
 tokenize([T, T|Rest], Line, Column, Scope, Tokens) when T == $<; T == $> ->
@@ -374,57 +374,57 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when T == $(;
 
 % ## Two Token Operators
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?two_op(T1, T2) ->
-  handle_op(Rest, Line, Column, two_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, two_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?arrow_op(T1, T2) ->
-  handle_op(Rest, Line, Column, arrow_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, arrow_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?comp_op2(T1, T2) ->
-  handle_op(Rest, Line, Column, comp_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, comp_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?rel_op2(T1, T2) ->
-  handle_op(Rest, Line, Column, rel_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, rel_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?and_op(T1, T2) ->
-  handle_op(Rest, Line, Column, and_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, and_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?or_op(T1, T2) ->
-  handle_op(Rest, Line, Column, or_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, or_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?in_match_op(T1, T2) ->
-  handle_op(Rest, Line, Column, in_match_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, in_match_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?type_op(T1, T2) ->
-  handle_op(Rest, Line, Column, type_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, type_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2|Rest], Line, Column, Scope, Tokens) when ?stab_op(T1, T2) ->
-  handle_op(Rest, Line, Column, stab_op, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_op(Rest, Line, Column, stab_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?at_op(T) ->
-  handle_unary_op(Rest, Line, Column, at_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, Column, at_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?capture_op(T) ->
-  handle_unary_op(Rest, Line, Column, capture_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, Column, capture_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?unary_op(T) ->
-  handle_unary_op(Rest, Line, Column, unary_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, Column, unary_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?rel_op(T) ->
-  handle_op(Rest, Line, Column, rel_op, list_to_atom([T]), Scope, Tokens);
+  handle_op(Rest, Line, Column, rel_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?dual_op(T) ->
-  handle_unary_op(Rest, Line, Column, dual_op, list_to_atom([T]), Scope, Tokens);
+  handle_unary_op(Rest, Line, Column, dual_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?mult_op(T) ->
-  handle_op(Rest, Line, Column, mult_op, list_to_atom([T]), Scope, Tokens);
+  handle_op(Rest, Line, Column, mult_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?match_op(T) ->
-  handle_op(Rest, Line, Column, match_op, list_to_atom([T]), Scope, Tokens);
+  handle_op(Rest, Line, Column, match_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T|Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
-  handle_op(Rest, Line, Column, pipe_op, list_to_atom([T]), Scope, Tokens);
+  handle_op(Rest, Line, Column, pipe_op, 1, list_to_atom([T]), Scope, Tokens);
 
 % Others
 
@@ -436,7 +436,7 @@ tokenize([$%|T], Line, Column, Scope, Tokens) ->
 
 tokenize([$.|T], Line, Column, Scope, Tokens) ->
   {Rest, Counter, Offset} = strip_space(T, 0, Column + 1),
-  handle_dot([$.|Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
+  handle_dot([$.|Rest], Line + Counter, Offset, Column, Scope, Tokens);
 
 % Integers and floats
 
@@ -462,7 +462,7 @@ tokenize([H|_] = Original, Line, Column, Scope, Tokens) when ?is_identifier_star
         _ when ?is_upcase(H) ->
           tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens);
         _ ->
-          tokenize_other_identifier(Rest, Line, Column, Atom, Scope, Tokens)
+          tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens)
       end;
     {error, Reason} ->
       {error, Reason, Original, Tokens}
@@ -546,42 +546,51 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       tokenize(Rest, NewLine, NewColumn, Scope, [Token|Tokens])
   end.
 
-handle_unary_op([$:|Rest], Line, Column, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
+handle_unary_op([$:|Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Column + Length + 1, Scope, [{kw_identifier, {Line, Column, Column + Length}, Op}|Tokens]);
 
-handle_unary_op(Rest, Line, Column, Kind, Op, Scope, Tokens) ->
+handle_unary_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
   case strip_horizontal_space(Rest) of
-    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
-    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{Kind, {Line, Column, Column + atom_length(Op)}, Op}|Tokens])
+    {[$/|_] = Remaining, Extra} ->
+      tokenize(Remaining, Line, Column + Length + Extra, Scope,
+               [{identifier, {Line, Column, Column + Length}, Op}|Tokens]);
+    {Remaining, Extra} ->
+      tokenize(Remaining, Line, Column + Length + Extra, Scope,
+               [{Kind, {Line, Column, Column + Length}, Op}|Tokens])
   end.
 
-handle_op([$:|Rest], Line, Column, _Kind, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + atom_length(Op) + 1, Scope, [{kw_identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
+handle_op([$:|Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Column + Length + 1, Scope,
+           [{kw_identifier, {Line, Column, Column + Length}, Op}|Tokens]);
 
-handle_op(Rest, Line, Column, Kind, Op, Scope, Tokens) ->
+handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
   case strip_horizontal_space(Rest) of
-    {[$/|_] = Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, [{identifier, {Line, Column, Column + atom_length(Op)}, Op}|Tokens]);
-    {Remaining, Length} -> tokenize(Remaining, Line, Column + atom_length(Op) + Length, Scope, add_token_with_nl({Kind, {Line, Column, Column + atom_length(Op)}, Op}, Tokens))
+    {[$/|_] = Remaining, Extra} ->
+      tokenize(Remaining, Line, Column + Length + Extra, Scope,
+               [{identifier, {Line, Column, Column + Length}, Op}|Tokens]);
+    {Remaining, Extra} ->
+      tokenize(Remaining, Line, Column + Length + Extra, Scope,
+               add_token_with_nl({Kind, {Line, Column, Column + Length}, Op}, Tokens))
   end.
 
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3|Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
     ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
 handle_dot([$., T1, T2|Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?two_op(T1, T2); ?stab_op(T1, T2);
     ?type_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators
 handle_dot([$., T|Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
     ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $% ->
-  handle_call_identifier(Rest, Line, Column + 1, DotColumn, list_to_atom([T]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column + 1, DotColumn, 1, list_to_atom([T]), Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$., $(|Rest], Line, Column, DotColumn, Scope, Tokens) ->
@@ -592,8 +601,10 @@ handle_dot([$., H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?i
     {NewLine, NewColumn, [Part], Rest} when is_binary(Part) ->
       case unsafe_to_atom(Part, Line, Scope) of
         {ok, Atom} ->
-          Token = check_call_identifier(identifier, Line, Column + 2, Atom, Rest),
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
+          Token = check_call_identifier(identifier, Line, Column,
+                                        max(NewColumn - Column, 0), Atom, Rest),
+          tokenize(Rest, NewLine, NewColumn, Scope,
+                   [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]);
         {error, Reason} ->
           {error, Reason, Original, Tokens}
       end;
@@ -604,9 +615,10 @@ handle_dot([$., H|T] = Original, Line, Column, DotColumn, Scope, Tokens) when ?i
 handle_dot([$.|Rest], Line, Column, DotColumn, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 1, Scope, add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)).
 
-handle_call_identifier(Rest, Line, Column, DotColumn, Op, Scope, Tokens) ->
-  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(identifier, Line, Column, Op, Rest),
-  tokenize(Rest, Line, NewColumn, Scope, [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]).
+handle_call_identifier(Rest, Line, Column, DotColumn, Length, Op, Scope, Tokens) ->
+  {_, {_, _, NewColumn}, _} = Token = check_call_identifier(identifier, Line, Column, Length, Op, Rest),
+  tokenize(Rest, Line, NewColumn, Scope,
+           [Token|add_token_with_nl({'.', {Line, DotColumn, DotColumn + 1}}, Tokens)]).
 
 % ## Ambiguous unary/binary operators tokens
 handle_space_sensitive_tokens([Sign, NotMarker|T], Line, Column, Scope, [{Identifier, _, _} = H|Tokens]) when
@@ -849,8 +861,8 @@ tokenize_alias(Rest, Line, Column, Atom, Length, HasEnding, Scope, Tokens) ->
       tokenize(Rest, Line, Column + Length, Scope, [{aliases, {Line, Column, Column + Length}, [Atom]}|Tokens])
   end.
 
-tokenize_other_identifier(Rest, Line, Column, Atom, Scope, Tokens) ->
-  case tokenize_kw_or_other(Rest, identifier, Line, Column, Atom, Tokens) of
+tokenize_other_identifier(Rest, Line, Column, Length, Atom, Scope, Tokens) ->
+  case tokenize_kw_or_other(Rest, identifier, Line, Column, Length, Atom, Tokens) of
     {keyword, Rest, {_, {_, _, EndColumn}} = Check, T} ->
       handle_terminator(Rest, Line, EndColumn, Scope, Check, T);
     {keyword, Rest, {_, {_, _, EndColumn}, _} = Check, T} ->
@@ -861,10 +873,10 @@ tokenize_other_identifier(Rest, Line, Column, Atom, Scope, Tokens) ->
       Error
   end.
 
-tokenize_kw_or_other(Rest, Kind, Line, Column, Atom, Tokens) ->
-  case check_keyword(Line, Column, Atom, Tokens) of
+tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
+  case check_keyword(Line, Column, Length, Atom, Tokens) of
     nomatch ->
-      {identifier, Rest, check_call_identifier(Kind, Line, Column, Atom, Rest)};
+      {identifier, Rest, check_call_identifier(Kind, Line, Column, Length, Atom, Rest)};
     {ok, [Check|T]} ->
       {keyword, Rest, Check, T};
     {error, Token} ->
@@ -873,12 +885,12 @@ tokenize_kw_or_other(Rest, Kind, Line, Column, Atom, Tokens) ->
 
 %% Check if it is a call identifier (paren | bracket | do)
 
-check_call_identifier(_Kind, Line, Column, Atom, [$(|_]) ->
-  {paren_identifier, {Line, Column, Column + atom_length(Atom)}, Atom};
-check_call_identifier(_Kind, Line, Column, Atom, [$[|_]) ->
-  {bracket_identifier, {Line, Column, Column + atom_length(Atom)}, Atom};
-check_call_identifier(Kind, Line, Column, Atom, _Rest) ->
-  {Kind, {Line, Column, Column + atom_length(Atom)}, Atom}.
+check_call_identifier(_Kind, Line, Column, Length, Atom, [$(|_]) ->
+  {paren_identifier, {Line, Column, Column + Length}, Atom};
+check_call_identifier(_Kind, Line, Column, Length, Atom, [$[|_]) ->
+  {bracket_identifier, {Line, Column, Column + Length}, Atom};
+check_call_identifier(Kind, Line, Column, Length, Atom, _Rest) ->
+  {Kind, {Line, Column, Column + Length}, Atom}.
 
 add_token_with_nl(Left, [{eol, _}|T]) -> [Left|T];
 add_token_with_nl(Left, T) -> [Left|T].
@@ -964,22 +976,23 @@ terminator('<<') -> '>>'.
 
 %% Keywords checking
 
-check_keyword(_Line, _Column, _Atom, [{'.', _}|_]) ->
+check_keyword(_Line, _Column, _Length, _Atom, [{'.', _}|_]) ->
   nomatch;
-check_keyword(DoLine, DoColumn, do, [{Identifier, {Line, Column, EndColumn}, Atom}|T]) when Identifier == identifier ->
-  {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}}, [{do_identifier, {Line, Column, EndColumn}, Atom}|T])};
-check_keyword(Line, Column, do, Tokens) ->
+check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndColumn}, Atom}|T]) when Identifier == identifier ->
+  {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}},
+       [{do_identifier, {Line, Column, EndColumn}, Atom}|T])};
+check_keyword(Line, Column, _Length, do, Tokens) ->
   case do_keyword_valid(Tokens) of
     true  -> {ok, add_token_with_nl({do, {Line, Column, Column + 2}}, Tokens)};
     false -> {error, "do"}
   end;
-check_keyword(Line, Column, Atom, Tokens) ->
+check_keyword(Line, Column, Length, Atom, Tokens) ->
   case keyword(Atom) of
     false    -> nomatch;
-    token    -> {ok, [{Atom, {Line, Column, Column + atom_length(Atom)}}|Tokens]};
-    block    -> {ok, [{block_identifier, {Line, Column, Column + atom_length(Atom)}, Atom}|Tokens]};
-    unary_op -> {ok, [{unary_op, {Line, Column, Column + atom_length(Atom)}, Atom}|Tokens]};
-    Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + atom_length(Atom)}, Atom}, Tokens)}
+    token    -> {ok, [{Atom, {Line, Column, Column + Length}}|Tokens]};
+    block    -> {ok, [{block_identifier, {Line, Column, Column + Length}, Atom}|Tokens]};
+    unary_op -> {ok, [{unary_op, {Line, Column, Column + Length}, Atom}|Tokens]};
+    Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + Length}, Atom}, Tokens)}
   end.
 
 %% do is only valid after the end, true, false and nil keywords
@@ -1015,9 +1028,6 @@ keyword('rescue') -> block;
 keyword('catch')  -> block;
 
 keyword(_) -> false.
-
-atom_length(Atom) ->
-  length(atom_to_list(Atom)).
 
 invalid_character_error(Char) ->
   "invalid character '" ++ [Char] ++ "' in identifier: ".
