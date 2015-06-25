@@ -123,7 +123,7 @@ defmodule String.Unicode do
   end
 
   defp do_rstrip_l(_), do: 0
-  defp do_rstrip_s(o), do: o
+  defp do_rstrip_s(other), do: other
 
   def rstrip(string) when is_binary(string) do
     rstrip(string, byte_size(string))

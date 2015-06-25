@@ -326,8 +326,8 @@ defmodule Version do
       to_matchspec(lexed)
     end
 
-    defp nillify(""), do: nil
-    defp nillify(o),  do: o
+    defp nillify(""),    do: nil
+    defp nillify(other), do: other
 
     @spec parse_version(String.t) :: {:ok, Version.matchable} | :error
     def parse_version(string, approximate? \\ false) when is_binary(string) do

@@ -3738,14 +3738,14 @@ defmodule Kernel do
       true ->
         case mod do
           ?s -> String.split(string)
-          ?a -> for p <- String.split(string), do: String.to_atom(p)
-          ?c -> for p <- String.split(string), do: String.to_char_list(p)
+          ?a -> for substring <- String.split(string), do: String.to_atom(substring)
+          ?c -> for substring <- String.split(string), do: String.to_char_list(substring)
         end
       false ->
         case mod do
           ?s -> quote do: String.split(unquote(string))
-          ?a -> quote do: for(p <- String.split(unquote(string)), do: String.to_atom(p))
-          ?c -> quote do: for(p <- String.split(unquote(string)), do: String.to_char_list(p))
+          ?a -> quote do: for(substring <- String.split(unquote(string)), do: String.to_atom(substring))
+          ?c -> quote do: for(substring <- String.split(unquote(string)), do: String.to_char_list(substring))
         end
     end
   end

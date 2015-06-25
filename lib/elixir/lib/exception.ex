@@ -54,9 +54,11 @@ defmodule Exception do
         "got #{inspect e.__struct__} with message `#{message(e)}` " <>
         "while retrieving Exception.message/1 for #{inspect(exception)}"
     else
-      x when is_binary(x) -> x
-      x -> "got #{inspect(x)} while retrieving Exception.message/1 for #{inspect(exception)} " <>
-           "(expected a string)"
+      other when is_binary(other) ->
+        other
+      other ->
+        "got #{inspect(other)} while retrieving Exception.message/1 for #{inspect(exception)} " <>
+        "(expected a string)"
     end
   end
 

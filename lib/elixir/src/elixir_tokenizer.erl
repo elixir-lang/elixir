@@ -965,7 +965,7 @@ sigil_terminator($() -> $);
 sigil_terminator($[) -> $];
 sigil_terminator(${) -> $};
 sigil_terminator($<) -> $>;
-sigil_terminator(O) -> O.
+sigil_terminator(Other) -> Other.
 
 terminator('fn') -> 'end';
 terminator('do') -> 'end';

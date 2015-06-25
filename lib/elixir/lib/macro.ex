@@ -29,25 +29,25 @@ defmodule Macro do
   defmacro unary_ops, do: @unary_ops
 
   @spec binary_op_props(atom) :: {:left | :right, precedence :: integer}
-  defp binary_op_props(o) do
-    case o do
-      o when o in [:<-, :\\]                  -> {:left,  40}
-      :when                                   -> {:right, 50}
-      :::                                     -> {:right, 60}
-      :|                                      -> {:right, 70}
-      :=                                      -> {:right, 90}
-      o when o in [:||, :|||, :or]            -> {:left, 130}
-      o when o in [:&&, :&&&, :and]           -> {:left, 140}
-      o when o in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
-      o when o in [:<, :<=, :>=, :>]          -> {:left, 160}
-      o when o in [:|>, :<<<, :>>>, :<~, :~>,
-                   :<<~, :~>>, :<~>, :<|>]    -> {:left, 170}
-      :in                                     -> {:left, 180}
-      o when o in [:++, :--, :.., :<>]        -> {:right, 200}
-      o when o in [:+, :-]                    -> {:left, 210}
-      o when o in [:*, :/]                    -> {:left, 220}
-      :^^^                                    -> {:left, 250}
-      :.                                      -> {:left, 310}
+  defp binary_op_props(other) do
+    case other do
+      other when other in [:<-, :\\]                  -> {:left,  40}
+      :when                                           -> {:right, 50}
+      :::                                             -> {:right, 60}
+      :|                                              -> {:right, 70}
+      :=                                              -> {:right, 90}
+      other when other in [:||, :|||, :or]            -> {:left, 130}
+      other when other in [:&&, :&&&, :and]           -> {:left, 140}
+      other when other in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
+      other when other in [:<, :<=, :>=, :>]          -> {:left, 160}
+      other when other in [:|>, :<<<, :>>>, :<~, :~>,
+                           :<<~, :~>>, :<~>, :<|>]    -> {:left, 170}
+      :in                                             -> {:left, 180}
+      other when other in [:++, :--, :.., :<>]        -> {:right, 200}
+      other when other in [:+, :-]                    -> {:left, 210}
+      other when other in [:*, :/]                    -> {:left, 220}
+      :^^^                                            -> {:left, 250}
+      :.                                              -> {:left, 310}
     end
   end
 
@@ -383,19 +383,19 @@ defmodule Macro do
   representing the codepoint of the character it wants to unescape.
   Here is the default mapping function implemented by Elixir:
 
-      def unescape_map(?0), do: ?0
-      def unescape_map(?a), do: ?\a
-      def unescape_map(?b), do: ?\b
-      def unescape_map(?d), do: ?\d
-      def unescape_map(?e), do: ?\e
-      def unescape_map(?f), do: ?\f
-      def unescape_map(?n), do: ?\n
-      def unescape_map(?r), do: ?\r
-      def unescape_map(?s), do: ?\s
-      def unescape_map(?t), do: ?\t
-      def unescape_map(?v), do: ?\v
-      def unescape_map(?x), do: true
-      def unescape_map(e),  do: e
+      def unescape_map(?0),     do: ?0
+      def unescape_map(?a),     do: ?\a
+      def unescape_map(?b),     do: ?\b
+      def unescape_map(?d),     do: ?\d
+      def unescape_map(?e),     do: ?\e
+      def unescape_map(?f),     do: ?\f
+      def unescape_map(?n),     do: ?\n
+      def unescape_map(?r),     do: ?\r
+      def unescape_map(?s),     do: ?\s
+      def unescape_map(?t),     do: ?\t
+      def unescape_map(?v),     do: ?\v
+      def unescape_map(?x),     do: true
+      def unescape_map(other),  do: other
 
   If the `unescape_map` function returns `false`. The char is
   not escaped and `\` is kept in the char list.
