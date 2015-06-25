@@ -59,6 +59,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       archive = Path.join(Mix.Local.archives_path(), basename(src))
       check_file_exists(src, archive)
+      opts = [force: true] ++ opts
 
       if Mix.Utils.copy_path!(src, archive, opts) do
         Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
