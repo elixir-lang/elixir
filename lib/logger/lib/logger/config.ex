@@ -50,10 +50,10 @@ defmodule Logger.Config do
       :ets.lookup_element(@table, @data, 2)
     rescue
       ArgumentError ->
-        raise "Cannot use Logger, the :logger application is not running"
+        raise "cannot use Logger, the :logger application is not running"
     else
       nil ->
-        raise "Cannot use Logger, the :logger application is not running"
+        raise "cannot use Logger, the :logger application is not running"
       data ->
         data
     end
