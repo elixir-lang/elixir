@@ -723,7 +723,7 @@ defmodule Module do
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
           {name, arity} = tuple
-          raise "Cannot make function #{name}/#{arity} overridable because it was not defined"
+          raise "cannot make function #{name}/#{arity} overridable because it was not defined"
         clause ->
           :elixir_def.delete_definition(module, tuple)
 
