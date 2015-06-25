@@ -150,7 +150,7 @@ build(Line, File, Module, Docs, Lexical) ->
     end,
   ets:insert(Data, {on_definition, OnDefinition}),
 
-  Attributes = [behaviour, on_load, compile, external_resource],
+  Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
                                 spec, type, typep, opaque, callback|Attributes]}),
   ets:insert(Data, {?persisted_attr, [vsn|Attributes]}),
