@@ -219,7 +219,7 @@ defmodule LoggerTest do
       assert Logger.debug("hello", []) == :ok
     end) == ""
 
-    assert {:ok, pid} = Logger.add_backend(:console)
+    assert {:ok, _} = Logger.add_backend(:console)
     assert Logger.add_backend(:console) ==
            {:error, :already_present}
   after
