@@ -84,9 +84,17 @@ defmodule MapTest do
 
   test "update maps" do
     assert %{two_items_map | a: 3} == %{a: 3, b: 2}
-
-    assert_raise ArgumentError, fn ->
-      %{two_items_map | c: 3}
+    
+    # TODO: proper handling of API changes in different Erlang/OTP releases
+    case :erlang.system_info(:otp_release) do
+      '17' ->
+        assert_raise ArgumentError, fn ->
+          %{two_items_map | c: 3}
+        end
+      _ ->
+        assert_raise KeyError, fn ->
+          %{two_items_map | c: 3}
+        end
     end
   end
 
