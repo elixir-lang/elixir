@@ -2,16 +2,16 @@ defmodule Kernel.Def do
   @moduledoc false
 
   @doc """
-  Callback invoked at compile time for defdelegate.
+  Callback invoked at compile time for `defdelegate`.
   """
   def delegate(fun, opts) do
     append_first = Keyword.get(opts, :append_first, false)
 
     {name, args} =
-          case Macro.decompose_call(fun) do
-            {_, _} = pair -> pair
-            _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
-          end
+      case Macro.decompose_call(fun) do
+        {_, _} = pair -> pair
+        _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+      end
 
     as_args =
       case append_first and args != [] do
@@ -24,7 +24,7 @@ defmodule Kernel.Def do
   end
 
   @doc """
-  Callback invoked at compile time for defstruct.
+  Callback invoked at compile time for `defstruct`.
   """
   def struct(module, fields) do
     case fields do
