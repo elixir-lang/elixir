@@ -54,8 +54,8 @@ defmodule Logger.Translator do
         {:ok, msg}
 
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->
-        msg = ["Process ", inspect(pid), " raised an exception" |
-               format(:error, reason, stack)]
+        msg = ["Process ", inspect(pid), " raised an exception\n" |
+               Exception.format(:error, reason, stack)]
         {:ok, msg}
 
       _ ->
