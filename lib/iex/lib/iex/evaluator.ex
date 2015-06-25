@@ -4,41 +4,39 @@ defmodule IEx.Evaluator do
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
-  * loading of .iex files
-  * evaluating code
-  * trapping exceptions in the code being evaluated
-  * keeping expression history
+    * loading of .iex files
+    * evaluating code
+    * trapping exceptions in the code being evaluated
+    * keeping expression history
 
   """
   def start(server, leader) do
-    IEx.History.init
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server)
+      loop(server, IEx.History.init)
     after
-      IEx.History.reset
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server) do
+  defp loop(server, history) do
     receive do
-      {:eval, ^server, code, config} ->
-        send server, {:evaled, self, eval(code, config)}
-        loop(server)
+      {:eval, ^server, code, state} ->
+        {result, history} = eval(code, state, history)
+        send server, {:evaled, self, result}
+        loop(server, history)
       {:done, ^server} ->
-        IEx.History.reset
         :ok
     end
   end
 
   @doc """
   Locates and loads an .iex.exs file from one of predefined locations.
-  Returns the new config.
+  Returns the new state.
   """
-  def load_dot_iex(config, path \\ nil) do
+  def load_dot_iex(state, path \\ nil) do
     candidates = if path do
       [path]
     else
@@ -47,25 +45,26 @@ defmodule IEx.Evaluator do
 
     path = Enum.find candidates, &File.regular?/1
 
-    if nil?(path) do
-      config
+    if is_nil(path) do
+      state
     else
-      eval_dot_iex(config, path)
+      eval_dot_iex(state, path)
     end
   end
 
-  defp eval_dot_iex(config, path) do
+  defp eval_dot_iex(state, path) do
     try do
       code = File.read!(path)
-      env  = :elixir.env_for_eval(config.env, file: path)
+      env  = :elixir.env_for_eval(state.env, file: path, line: 1)
 
       # Evaluate the contents in the same environment server_loop will run in
       {_result, binding, env, _scope} =
-        :elixir.eval(String.to_char_list(code), config.binding, env)
+        :elixir.eval(String.to_char_list(code), state.binding, env)
 
-      %{config | binding: binding, env: :elixir.env_for_eval(env, file: "iex")}
+      %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
+        io_result "Error while evaluating: #{path}"
         print_error(kind, error, System.stacktrace)
         System.halt(1)
     end
@@ -79,101 +78,88 @@ defmodule IEx.Evaluator do
   # line in IEx). In case of any other error, we let :elixir_translator
   # to re-raise it.
   #
-  # Returns updated config.
+  # Returns updated state.
   #
   # The first two clauses provide support for the break-trigger allowing to
   # break out from a pending incomplete expression. See
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, config) do
+  defp eval(code, state, history) do
     try do
-      do_eval(String.to_char_list(code), config)
+      do_eval(String.to_char_list(code), state, history)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
-        %{config | cache: ''}
+        {%{state | cache: ''}, history}
     end
   end
 
-  defp do_eval(@break_trigger, config=%IEx.Config{cache: ''}) do
-    config
+  defp do_eval(@break_trigger, %IEx.State{cache: ''} = state, history) do
+    {state, history}
   end
 
-  defp do_eval(@break_trigger, config) do
-    :elixir_errors.parse_error(config.counter, "iex", "incomplete expression", "")
+  defp do_eval(@break_trigger, state, _history) do
+    :elixir_errors.parse_error(state.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, config) do
-    code = config.cache ++ latest_input
-    line = config.counter
-
-    case Code.string_to_quoted(code, [line: line, file: "iex"]) do
-      {:ok, forms} ->
-        {result, new_binding, env, scope} =
-          :elixir.eval_forms(forms, config.binding, config.env, config.scope)
-        unless result == IEx.dont_display_result, do: io_put result
-        update_history(line, code, result)
-        %{config | env: env,
-                   cache: '',
-                   scope: scope,
-                   binding: new_binding,
-                   counter: config.counter + 1}
-      {:error, {line, error, token}} ->
-        if token == "" do
-          # Update config.cache so that IEx continues to add new input to
-          # the unfinished expression in `code`
-          %{config | cache: code}
-        else
-          # Encountered malformed expression
-          :elixir_errors.parse_error(line, "iex", error, token)
-        end
-    end
+  defp do_eval(latest_input, state, history) do
+    code = state.cache ++ latest_input
+    line = state.counter
+    Process.put(:iex_history, history)
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history)
+  after
+    Process.delete(:iex_history)
   end
 
-  defp update_history(counter, cache, result) do
-    IEx.History.append({counter, cache, result}, counter,
-                       Application.get_env(:iex, :history_size))
+  defp handle_eval({:ok, forms}, code, line, state, history) do
+    {result, binding, env, scope} =
+      :elixir.eval_forms(forms, state.binding, state.env, state.scope)
+    unless result == IEx.dont_display_result, do: io_inspect(result)
+    state =
+      %{state | env: env, cache: '',
+                scope: scope, binding: binding,
+                counter: state.counter + 1}
+    {state, update_history(history, line, code, result)}
   end
 
-  defp io_put(result) do
-    IO.puts :stdio, IEx.color(:eval_result, inspect(result, inspect_opts))
+  defp handle_eval({:error, {_, _, ""}}, code, _line, state, history) do
+    # Update state.cache so that IEx continues to add new input to
+    # the unfinished expression in `code`
+    {%{state | cache: code}, history}
+  end
+
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _state, _) do
+    # Encountered malformed expression
+    :elixir_errors.parse_error(line, "iex", error, token)
+  end
+
+  defp update_history(history, counter, cache, result) do
+    IEx.History.append(history, {counter, cache, result}, IEx.Config.history_size)
+  end
+
+  defp io_inspect(result) do
+    io_result inspect(result, IEx.inspect_opts)
+  end
+
+  defp io_result(result) do
+    IO.puts :stdio, IEx.color(:eval_result, result)
   end
 
   defp io_error(result) do
     IO.puts :stdio, IEx.color(:eval_error, result)
   end
 
-  defp inspect_opts do
-    [width: IEx.width] ++ Application.get_env(:iex, :inspect)
-  end
-
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    {reason, stacktrace} = normalize_exception(kind, reason, stacktrace)
-
     message = Exception.format_banner(kind, reason, stacktrace)
     io_error message
     io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
   end
 
-  defp normalize_exception(:error, :undef, [{IEx.Helpers, fun, arity, _}|t]) do
-    {%RuntimeError{message: "undefined function: #{format_function(fun, arity)}"}, t}
-  end
-
-  defp normalize_exception(_kind, reason, stacktrace) do
-    {reason, stacktrace}
-  end
-
-  defp format_function(fun, arity) do
-    cond do
-      is_list(arity) ->
-        "#{fun}/#{length(arity)}"
-      true ->
-        "#{fun}/#{arity}"
-    end
-  end
+  @elixir_internals [:elixir_exp, :elixir_compiler, :elixir_module, :elixir_exp_clauses,
+                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_clauses]
 
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
@@ -186,6 +172,7 @@ defmodule IEx.Evaluator do
     |> Enum.drop_while(&(elem(&1, 0) == :elixir))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
+    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
   end
 
   @doc false
@@ -216,6 +203,6 @@ defmodule IEx.Evaluator do
 
   defp format_entry({app, info}, width) do
     app = String.rjust(app, width)
-    "#{IEx.color(:stack_app, app)}#{IEx.color(:stack_info, info)}"
+    IEx.color(:stack_app, app) <> IEx.color(:stack_info, info)
   end
 end

@@ -1,15 +1,15 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([elixir_to_erl/1, get_line/1, split_last/1,
+-export([elixir_to_erl/1, get_line/1, split_last/1, meta_location/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
-  file_type/1, file_type/2, relative_to_cwd/1, erl_call/4]).
+  read_file_type/1, read_link_type/1, relative_to_cwd/1, erl_call/4]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
 macro_name(Macro) ->
-  list_to_atom(lists:concat(['MACRO-',Macro])).
+  list_to_atom(lists:concat(['MACRO-', Macro])).
 
 atom_concat(Atoms) ->
   list_to_atom(lists:concat(Atoms)).
@@ -31,11 +31,14 @@ split_last(List)       -> split_last(List, []).
 split_last([H], Acc)   -> {lists:reverse(Acc), H};
 split_last([H|T], Acc) -> split_last(T, [H|Acc]).
 
-file_type(File) ->
-  file_type(File, read_link_info).
+read_file_type(File) ->
+  case file:read_file_info(File) of
+    {ok, #file_info{type=Type}} -> {ok, Type};
+    {error, _} = Error -> Error
+  end.
 
-file_type(File, Op) ->
-  case file:Op(File) of
+read_link_type(File) ->
+  case file:read_link_info(File) of
     {ok, #file_info{type=Type}} -> {ok, Type};
     {error, _} = Error -> Error
   end.
@@ -43,7 +46,7 @@ file_type(File, Op) ->
 relative_to_cwd(Path) ->
   case elixir_compiler:get_opt(internal) of
     true  -> Path;
-    false -> 'Elixir.String':to_char_list('Elixir.Path':relative_to_cwd(Path))
+    false -> 'Elixir.Path':relative_to_cwd(Path)
   end.
 
 characters_to_list(Data) when is_list(Data) ->
@@ -60,6 +63,27 @@ characters_to_binary(Data) ->
   case elixir_compiler:get_opt(internal) of
     true  -> unicode:characters_to_binary(Data);
     false -> 'Elixir.List':to_string(Data)
+  end.
+
+%% Meta location.
+%%
+%% Macros add a file+keep pair on location keep
+%% which we should take into account for report
+%% reporting.
+%%
+%% Returns {binary, integer} on location keep or
+%% nil.
+
+meta_location(Meta) ->
+  case lists:keyfind(file, 1, Meta) of
+    {file, MetaFile} when is_binary(MetaFile) ->
+      case lists:keyfind(keep, 1, Meta) of
+        {keep, MetaLine} when is_integer(MetaLine) -> ok;
+        _ -> MetaLine = 0
+      end,
+      {MetaFile, MetaLine};
+    _ ->
+      nil
   end.
 
 %% elixir to erl. Handles only valid quoted expressions,
@@ -126,35 +150,42 @@ elixir_to_erl_cons_2([], Acc) ->
 
 %% Boolean checks
 
-returns_boolean({op, _, Op, _}) when Op == 'not' -> true;
+returns_boolean(Bool) when is_boolean(Bool) -> true;
 
-returns_boolean({op, _, Op, _, _}) when
+returns_boolean({{'.', _, [erlang, Op]}, _, [_]}) when Op == 'not' -> true;
+
+returns_boolean({{'.', _, [erlang, Op]}, _, [_, _]}) when
   Op == 'and'; Op == 'or'; Op == 'xor';
   Op == '==';  Op == '/='; Op == '=<';  Op == '>=';
   Op == '<';   Op == '>';  Op == '=:='; Op == '=/=' -> true;
 
-returns_boolean({op, _, Op, _, Right}) when Op == 'andalso'; Op == 'orelse' ->
+returns_boolean({'__op__', _, [Op, _, Right]}) when Op == 'andalso'; Op == 'orelse' ->
   returns_boolean(Right);
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_]}) when
   Fun == is_atom;   Fun == is_binary;   Fun == is_bitstring; Fun == is_boolean;
   Fun == is_float;  Fun == is_function; Fun == is_integer;   Fun == is_list;
   Fun == is_number; Fun == is_pid;      Fun == is_port;      Fun == is_reference;
   Fun == is_tuple -> true;
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_,_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
   Fun == is_function -> true;
 
-returns_boolean({call, _, {remote, _, {atom, _, erlang}, {atom, _, Fun}}, [_,_,_]}) when
+returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
   Fun == function_exported -> true;
 
-returns_boolean({atom, _, Bool}) when is_boolean(Bool) -> true;
-
-returns_boolean({'case', _, _, Clauses}) ->
+returns_boolean({'case', _, [_, [{do, Clauses}]]}) ->
   lists:all(fun
-    ({clause,_,_,_,[Expr]}) -> returns_boolean(Expr);
-    (_) -> false
+    ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
   end, Clauses);
+
+returns_boolean({'cond', _, [[{do, Clauses}]]}) ->
+  lists:all(fun
+    ({'->', _, [_, Expr]}) -> returns_boolean(Expr)
+  end, Clauses);
+
+returns_boolean({'__block__', [], Exprs}) ->
+  returns_boolean(lists:last(Exprs));
 
 returns_boolean(_) -> false.
 
@@ -174,8 +205,8 @@ do_convert_to_boolean(Line, Expr, Bool, S) ->
   Any = {var, Line, '_'},
   OrElse = do_guarded_convert_to_boolean(Line, Var, 'orelse', '=='),
 
-  FalseResult = {atom,Line,not Bool},
-  TrueResult  = {atom,Line,Bool},
+  FalseResult = {atom, Line, not Bool},
+  TrueResult  = {atom, Line, Bool},
 
   {{'case', Line, Expr, [
     {clause, Line, [Var], [[OrElse]], [FalseResult]},

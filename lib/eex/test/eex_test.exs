@@ -2,7 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 require EEx
 
-defmodule EExText.Compiled do
+defmodule EExTest.Compiled do
   def before_compile do
     fill_in_stacktrace
     {__ENV__.line, hd(tl(System.stacktrace))}
@@ -12,6 +12,10 @@ defmodule EExText.Compiled do
 
   filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
   EEx.function_from_file :defp, :private_file_sample, filename, [:bar]
+
+  filename = Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")
+  EEx.function_from_file :def, :public_file_sample, filename, [:bar]
+
   def file_sample(arg), do: private_file_sample(arg)
 
   def after_compile do
@@ -46,7 +50,8 @@ defmodule EExTest do
   use ExUnit.Case, async: true
 
   doctest EEx
-  doctest EEx.AssignsEngine
+  doctest EEx.Engine
+  doctest EEx.SmartEngine
 
   test "evaluates simple string" do
     assert_eval "foo bar", "foo bar"
@@ -93,6 +98,10 @@ defmodule EExTest do
     assert_eval "foo baz", "foo <%= if true do %><%= if false do %>bar<% else %>baz<% end %><% end %>"
   end
 
+  test "evaluates with parentheses after end in end token" do
+    assert_eval " 101  102  103 ", "<%= Enum.map([1,2,3], (fn x -> %> <%= 100 + x %> <% end) ) %>"
+  end
+
   test "evaluates with defined variable" do
     assert_eval "foo 1", "foo <% bar = 1 %><%= bar %>"
   end
@@ -106,25 +115,25 @@ defmodule EExTest do
   end
 
   test "raises a syntax error when the token is invalid" do
-    assert_raise EEx.SyntaxError, "missing token: %>", fn ->
+    assert_raise EEx.SyntaxError, "nofile:1: missing token '%>'", fn ->
       EEx.compile_string "foo <%= bar"
     end
   end
 
   test "raises a syntax error when end expression is found without a start expression" do
-    assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1",  fn ->
+    assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '",  fn ->
       EEx.compile_string "foo <% end %>"
     end
   end
 
   test "raises a syntax error when start expression is found without an end expression" do
-    assert_raise EEx.SyntaxError, "unexpected end of string. expecting a closing <% end %>.", fn ->
-      EEx.compile_string "foo <% if true do %>"
+    assert_raise EEx.SyntaxError, "nofile:2: unexpected end of string, expected a closing '<% end %>'", fn ->
+      EEx.compile_string "foo\n<% if true do %>"
     end
   end
 
-  test "raises a syntax error when nested end expression is found without an start expression" do
-    assert_raise EEx.SyntaxError, "unexpected token: ' end ' at line 1", fn ->
+  test "raises a syntax error when nested end expression is found without a start expression" do
+    assert_raise EEx.SyntaxError, "nofile:1: unexpected token ' end '", fn ->
       EEx.compile_string "foo <% if true do %><% end %><% end %>"
     end
   end
@@ -247,7 +256,7 @@ Number <%= x %>
     assert_eval expected, string
   end
 
-  test "do not consider already finished functions" do
+  test "properly handle functions on the left side of clauses" do
     expected = """
 foo
 
@@ -282,6 +291,18 @@ foo
     assert_eval "\n\n  Good\n \n", string
   end
 
+  test "evaluates expressions with buffers" do
+    string = """
+    <%= 123 %>
+    <% if true do %>
+      <%= 456 %>
+    <% end %>
+    <%= 789 %>
+    """
+
+    assert_eval "123\n\n789\n", string
+  end
+
   test "for comprehensions" do
     string = """
     <%= for _name <- packages || [] do %>
@@ -298,6 +319,12 @@ foo
     """
     result = EEx.eval_string(template)
     assert result == "  • • •\n  Jößé Vâlìm Jößé Vâlìm\n"
+  end
+
+  test "trim mode" do
+    string = "<%= 123 %> \n456\n  <%= 789 %>"
+    expected = "123456\n789"
+    assert_eval expected, string, [], trim: true
   end
 
   test "evaluates the source from a given file" do
@@ -319,39 +346,45 @@ foo
     end
   end
 
+  test "sets external resource attribute" do
+    assert EExTest.Compiled.__info__(:attributes)[:external_resource] ==
+           [Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")]
+  end
+
   test "defined from string" do
-    assert EExText.Compiled.string_sample(1, 2) == "3"
+    assert EExTest.Compiled.string_sample(1, 2) == "3"
   end
 
   test "defined from file" do
-    assert EExText.Compiled.file_sample(1) == "foo 1\n"
+    assert EExTest.Compiled.file_sample(1) == "foo 1\n"
+    assert EExTest.Compiled.public_file_sample(1) == "foo 1\n"
   end
 
   test "defined from file do not affect backtrace" do
-    assert EExText.Compiled.before_compile ==
+    assert EExTest.Compiled.before_compile ==
       {8,
-        {EExText.Compiled,
+        {EExTest.Compiled,
           :before_compile,
           0,
           [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 7]
        }
      }
 
-    assert EExText.Compiled.after_compile ==
-      {19,
-        {EExText.Compiled,
+    assert EExTest.Compiled.after_compile ==
+      {23,
+        {EExTest.Compiled,
           :after_compile,
           0,
-          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 18]
+          [file: to_char_list(Path.relative_to_cwd(__ENV__.file)), line: 22]
        }
      }
 
-    assert EExText.Compiled.unknown ==
-      {25,
-        {EExText.Compiled,
+    assert EExTest.Compiled.unknown ==
+      {29,
+        {EExTest.Compiled,
           :unknown,
           0,
-          [file: 'unknown', line: 24]
+          [file: 'unknown', line: 28]
        }
      }
   end
@@ -376,8 +409,9 @@ foo
     assert {:wrapped, "foo"} = EEx.eval_string("foo", [], engine: TestEngine)
   end
 
-  defp assert_eval(expected, actual, binding \\ []) do
-    result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.Engine)
+  defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
+    opts = Enum.into [file: __ENV__.file, engine: EEx.Engine], opts
+    result = EEx.eval_string(actual, binding, opts)
     assert result == expected
   end
 end

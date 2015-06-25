@@ -3,13 +3,13 @@ defmodule Supervisor do
   A behaviour module for implementing supervision functionality.
 
   A supervisor is a process which supervises other processes called
-  child processes. Supervisors are used to build an hierarchical process
+  child processes. Supervisors are used to build a hierarchical process
   structure called a supervision tree, a nice way to structure fault-tolerant
   applications.
 
   A supervisor implemented using this module will have a standard set
   of interface functions and include functionality for tracing and error
-  reporting. It will also fit into an supervision tree.
+  reporting. It will also fit into a supervision tree.
 
   ## Example
 
@@ -20,15 +20,15 @@ defmodule Supervisor do
       defmodule Stack do
         use GenServer
 
-        def start_link(state) do
-          GenServer.start_link(__MODULE__, state, [name: :sup_stack])
+        def start_link(state, opts) do
+          GenServer.start_link(__MODULE__, state, opts)
         end
 
         def handle_call(:pop, _from, [h|t]) do
           {:reply, h, t}
         end
 
-        def handle_cast({:push, h}, _from, t) do
+        def handle_cast({:push, h}, t) do
           {:noreply, [h|t]}
         end
       end
@@ -38,16 +38,17 @@ defmodule Supervisor do
       # Import helpers for defining supervisors
       import Supervisor.Spec
 
-      # We are going to supervise the Stack server which will
-      # be started with a single argument [:hello]
+      # We are going to supervise the Stack server which
+      # will be started with a single argument [:hello]
+      # and the default name of :sup_stack.
       children = [
-        worker(Stack, [[:hello]])
+        worker(Stack, [[:hello], [name: :sup_stack]])
       ]
 
       # Start the supervisor with our one child
       {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
 
-  Notice that when starting the GenServer, we have registered it
+  Notice that when starting the GenServer, we are registering it
   with name `:sup_stack`, which allows us to call it directly and
   get what is on the stack:
 
@@ -65,7 +66,7 @@ defmodule Supervisor do
   Let's try it:
 
       GenServer.call(:sup_stack, :pop)
-      =ERROR REPORT====
+      ** (exit) exited in: GenServer.call(:sup_stack, :pop, 5000)
 
   Luckily, since the server is being supervised by a supervisor, the
   supervisor will automatically start a new one, with the default stack
@@ -106,35 +107,99 @@ defmodule Supervisor do
 
   You may want to use a module-based supervisor if:
 
-  * You need to do some particular action on supervisor
-    initialization, like setting up a ETS table;
+    * You need to do some particular action on supervisor
+      initialization, like setting up a ETS table.
 
-  * You want to perform partial hot-code swapping of the
-    tree. For example, if you add or remove a children,
-    the module-based supervision will add and remove the
-    new children directly, while the dynamic supervision
-    requires the whole tree to be restarted in order to
-    perform such swaps;
+    * You want to perform partial hot-code swapping of the
+      tree. For example, if you add or remove children,
+      the module-based supervision will add and remove the
+      new children directly, while the dynamic supervision
+      requires the whole tree to be restarted in order to
+      perform such swaps.
 
   ## Strategies
 
-  * `:one_for_one` - If a child process terminates, only that
-    process is restarted;
+    * `:one_for_one` - if a child process terminates, only that
+      process is restarted.
 
-  * `:one_for_all` - If a child process terminates, all other child
-    processes are terminated and then all child processes (including
-    the terminated one) are restarted;
+    * `:one_for_all` - if a child process terminates, all other child
+      processes are terminated and then all child processes (including
+      the terminated one) are restarted.
 
-  * `:rest_for_one` - If a child process terminates, the "rest" of
-    the child processes, i.e. the child processes after the terminated
-    one in start order, are terminated. Then the terminated child
-    process and the rest of the child processes are restarted;
+    * `:rest_for_one` - if a child process terminates, the "rest" of
+      the child processes, i.e. the child processes after the terminated
+      one in start order, are terminated. Then the terminated child
+      process and the rest of the child processes are restarted.
 
-  * `:simple_one_for_one` - Similar to `:one_for_one` but suits better
-    when dynamically attaching children. This strategy requires the
-    supervisor specification to contain only one children. Many functions
-    in this module behave slightly differently when this strategy is
-    used;
+    * `:simple_one_for_one` - similar to `:one_for_one` but suits better
+      when dynamically attaching children. This strategy requires the
+      supervisor specification to contain only one child. Many functions
+      in this module behave slightly differently when this strategy is
+      used.
+
+  ## Simple one for one
+
+  The simple one for one supervisor is useful when you want to dynamically
+  start and stop supervisor children. For example, imagine you want to
+  dynamically create multiple stacks. We can do so by defining a simple one
+  for one supervisor:
+
+      # Import helpers for defining supervisors
+      import Supervisor.Spec
+
+      # This time, we don't pass any argument because
+      # the argument will be given when we start the child
+      children = [
+        worker(Stack, [], restart: :transient)
+      ]
+
+      # Start the supervisor with our one child
+      {:ok, sup_pid} = Supervisor.start_link(children, strategy: :simple_one_for_one)
+
+  There are a couple differences here:
+
+    * The simple one for one specification can define only one child which
+      works as a template for when we call `start_child/2`
+
+    * We have define the child to have restart strategy of transient. This
+      means that, if the child process exits due to a `:normal`, `:shutdown`
+      or `{:shutdown, term}` reason, it won't be restarted. This is useful
+      as it allows our workers to politely shutdown and be removed from the
+      simple one for one supervisor, without being restarted. You can find
+      more information about restart strategies on `Supervisor.Spec`
+
+  With the supervisor defined, let's dynamically start stacks:
+
+      {:ok, pid} = Supervisor.start_child(sup_pid, [[:hello, :world], []])
+      GenServer.call(pid, :pop) #=> :hello
+      GenServer.call(pid, :pop) #=> :world
+
+      {:ok, pid} = Supervisor.start_child(sup_pid, [[:something, :else], []])
+      GenServer.call(pid, :pop) #=> :something
+      GenServer.call(pid, :pop) #=> :else
+
+      Supervisor.count_children(sup_pid)
+      #=> %{active: 2, specs: 1, supervisors: 0, workers: 2}
+
+  ## Exit reasons
+
+  From the example above, you may have noticed that the transient restart
+  strategy for the worker does not restart the child in case it crashes with
+  reason `:normal`, `:shutdown` or `{:shutdown, term}`.
+
+  So one may ask: which exit reason should I choose when existing my worker?
+  There are three options:
+
+    * `:normal` - on such cases, the exit won't be logged, there is no restart
+      on transient mode and linked processes do not exit
+
+    * `:shutdown` or `{:shutdown, term}` - on such cases, the exit won't be
+      logged, there is no restart on transient mode and linked processes exit
+      with the same reason unless trapping exits
+
+    * any other term - on such cases, the exit will be logged, there are
+      restarts on transient mode and linked processes exit with the same reason
+      unless trapping exits
 
   ## Name Registration
 
@@ -180,7 +245,7 @@ defmodule Supervisor do
   as described in `Supervisor.Spec.supervise/2` docs.
 
   The options can also be used to register a supervisor name.
-  the supported values are described under the `Name Registration`
+  The supported values are described under the `Name Registration`
   section in the `GenServer` module docs.
 
   If the supervisor and its child processes are successfully created
@@ -195,6 +260,10 @@ defmodule Supervisor do
   an erroneous value, the supervisor will first terminate all already
   started child processes with reason `:shutdown` and then terminate
   itself and return `{:error, {:shutdown, reason}}`.
+
+  Note that the `Supervisor` is linked to the parent process
+  and will exit not only on crashes but also if the parent process
+  exits with `:normal` reason.
   """
   @spec start_link([tuple], options) :: on_start
   def start_link(children, options) when is_list(children) do
@@ -246,25 +315,27 @@ defmodule Supervisor do
   of terms is expected. The child process will then be started by appending
   the given list to the existing function arguments in the child specification.
 
-  If there already exists a child specification with the specified id,
+  If a child specification with the specified id already exists,
   `child_spec` is discarded and the function returns an error with `:already_started`
   or `:already_present` if the corresponding child process is running or not.
 
-  If the child process start function returns `{:ok, child}` or `{:ok, child, info}`,
+  If the child process starts, function returns `{:ok, child}` or `{:ok, child, info}`,
   the child specification and pid is added to the supervisor and the function returns
   the same value.
 
-  If the child process start function returns `:ignore, the child specification is
+  If the child process starts, function returns `:ignore`, the child specification is
   added to the supervisor, the pid is set to undefined and the function returns
   `{:ok, :undefined}`.
 
-  If the child process start function returns an error tuple or an erroneous value,
+  If the child process starts, function returns an error tuple or an erroneous value,
   or if it fails, the child specification is discarded and the function returns
   `{:error, error}` where `error` is a term containing information about the error
   and child specification.
   """
   @spec start_child(supervisor, Supervisor.Spec.spec | [term]) :: on_start_child
-  defdelegate start_child(supervisor, child_spec_or_args), to: :supervisor
+  def start_child(supervisor, child_spec_or_args) do
+    call(supervisor, {:start_child, child_spec_or_args})
+  end
 
   @doc """
   Terminates the given pid or child id.
@@ -286,7 +357,9 @@ defmodule Supervisor do
   """
   @spec terminate_child(supervisor, pid | Supervisor.Spec.child_id) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one
-  defdelegate terminate_child(supervisor, pid_or_child_id), to: :supervisor
+  def terminate_child(supervisor, pid_or_child_id) do
+    call(supervisor, {:terminate_child, pid_or_child_id})
+  end
 
   @doc """
   Deletes the child specification identified by `child_id`.
@@ -302,7 +375,9 @@ defmodule Supervisor do
   """
   @spec delete_child(supervisor, Supervisor.Spec.child_id) :: :ok | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting
-  defdelegate delete_child(supervisor, child_id), to: :supervisor
+  def delete_child(supervisor, child_id) do
+    call(supervisor, {:delete_child, child_id})
+  end
 
   @doc """
   Restarts a child process identified by `child_id`.
@@ -331,7 +406,9 @@ defmodule Supervisor do
   @spec restart_child(supervisor, Supervisor.Spec.child_id) ::
         {:ok, child} | {:ok, child, term} | {:error, error}
         when error: :not_found | :simple_one_for_one | :running | :restarting | term
-  defdelegate restart_child(supervisor, child_id), to: :supervisor
+  def restart_child(supervisor, child_id) do
+    call(supervisor, {:restart_child, child_id})
+  end
 
   @doc """
   Returns a list with information about all children.
@@ -341,44 +418,53 @@ defmodule Supervisor do
 
   This function returns a list of tuples containing:
 
-  * `id` - as defined in the child specification or `:undefined` in the case
-    of a `simple_one_for_one` supervisor;
+    * `id` - as defined in the child specification or `:undefined` in the case
+      of a `simple_one_for_one` supervisor
 
-  * `child` - the pid of the corresponding child process, the atom `:restarting`
-    if the process is about to be restarted, or `:undefined` if there is no such process;
+    * `child` - the pid of the corresponding child process, the atom
+      `:restarting` if the process is about to be restarted, or `:undefined` if
+      there is no such process
 
-  * `type` - `:worker` or `:supervisor` as defined in the child specification;
+    * `type` - `:worker` or `:supervisor` as defined in the child specification
 
-  * `modules` – as defined in the child specification;
+    * `modules` – as defined in the child specification
   """
   @spec which_children(supervisor) ::
         [{Supervisor.Spec.child_id | :undefined,
            child | :restarting,
            Supervisor.Spec.worker,
            Supervisor.Spec.modules}]
-  defdelegate which_children(supervisor), to: :supervisor
+  def which_children(supervisor) do
+    call(supervisor, :which_children)
+  end
 
   @doc """
   Returns a map containing count values for the supervisor.
 
   The map contains the following keys:
 
-  * `:specs` - the total count of children, dead or alive;
+    * `:specs` - the total count of children, dead or alive
 
-  * `:active` - the count of all actively running child processes managed by
-    this supervisor;
+    * `:active` - the count of all actively running child processes managed by
+      this supervisor
 
-  * `:supervisors` - the count of all supervisors whether or not the child
-    process is still alive;
+    * `:supervisors` - the count of all supervisors whether or not the child
+      process is still alive
 
-  * `:workers` - the count of all workers, whether or not the child process is
-    still alive;
+    * `:workers` - the count of all workers, whether or not the child process
+      is still alive
 
   """
   @spec count_children(supervisor) ::
-        [specs: non_neg_integer, active: non_neg_integer,
-         supervisors: non_neg_integer, workers: non_neg_integer]
+        %{specs: non_neg_integer, active: non_neg_integer,
+          supervisors: non_neg_integer, workers: non_neg_integer}
   def count_children(supervisor) do
-    :supervisor.count_children(supervisor) |> :maps.from_list
+    call(supervisor, :count_children) |> :maps.from_list
+  end
+
+  @compile {:inline, call: 2}
+
+  defp call(supervisor, req) do
+    GenServer.call(supervisor, req, :infinity)
   end
 end

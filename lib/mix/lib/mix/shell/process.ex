@@ -40,12 +40,23 @@ defmodule Mix.Shell.Process do
   end
 
   @doc """
+  Prints the currently running application if it
+  was not printed yet.
+  """
+  def print_app do
+    if name = Mix.Shell.printable_app_name do
+      send self, {:mix_shell, :info, ["==> #{name}"]}
+    end
+  end
+
+  @doc """
   Executes the given command and forwards its messages to
   the current process.
   """
-  def cmd(command) do
-    put_app
-    Mix.Shell.cmd(command, fn(data) ->
+  def cmd(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
+    Mix.Shell.cmd(command, opts, fn(data) ->
+      if print_app?, do: print_app()
       send self, {:mix_shell, :run, [data]}
     end)
   end
@@ -54,16 +65,20 @@ defmodule Mix.Shell.Process do
   Forwards the message to the current process.
   """
   def info(message) do
-    put_app
-    send self, {:mix_shell, :info, [IO.ANSI.escape(message, false)]}
+    print_app
+    send self, {:mix_shell, :info, [format(message)]}
   end
 
   @doc """
   Forwards the message to the current process.
   """
   def error(message) do
-    put_app
-    send self, {:mix_shell, :error, [IO.ANSI.escape(message, false)]}
+    print_app
+    send self, {:mix_shell, :error, [format(message)]}
+  end
+
+  defp format(message) do
+    message |> IO.ANSI.format(false) |> IO.iodata_to_binary
   end
 
   @doc """
@@ -76,13 +91,13 @@ defmodule Mix.Shell.Process do
   process inputs given. Value must be a string.
   """
   def prompt(message) do
-    put_app
-    send self, {:mix_shell, :prompt, [IO.ANSI.escape(message, false)]}
+    print_app
+    send self, {:mix_shell, :prompt, [message]}
 
     receive do
       {:mix_shell_input, :prompt, response} -> response
     after
-      0 -> raise Mix.Error, message: "No shell process input given for prompt/1"
+      0 -> raise "No shell process input given for prompt/1"
     end
   end
 
@@ -96,19 +111,13 @@ defmodule Mix.Shell.Process do
   process inputs given. Value must be `true` or `false`.
   """
   def yes?(message) do
-    put_app
-    send self, {:mix_shell, :yes?, [IO.ANSI.escape(message, false)]}
+    print_app
+    send self, {:mix_shell, :yes?, [message]}
 
     receive do
       {:mix_shell_input, :yes?, response} -> response
     after
-      0 -> raise Mix.Error, message: "No shell process input given for yes?/1"
-    end
-  end
-
-  defp put_app do
-    if Mix.Shell.output_app? do
-      send self, {:mix_shell, :info, ["==> #{Mix.Project.config[:app]}"]}
+      0 -> raise "No shell process input given for yes?/1"
     end
   end
 end

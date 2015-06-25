@@ -26,7 +26,7 @@ defmodule Mix.Dep.Converger do
           Enum.find(deps, fn(%Mix.Dep{app: other_app}) -> app == other_app end)
         end)
       else
-        raise Mix.Error, message: "Could not sort dependencies. There are cycles in the dependency graph."
+        Mix.raise "Could not sort dependencies. There are cycles in the dependency graph."
       end
     after
       :digraph.delete(graph)
@@ -140,7 +140,7 @@ defmodule Mix.Dep.Converger do
   #
   # Now, since `d` was specified in a parent project, no
   # exception is going to be raised since d is considered
-  # to be the authorative source.
+  # to be the authoritative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, cache) do
     cond do
       new_acc = diverged_deps(acc, upper_breadths, dep) ->
@@ -156,8 +156,7 @@ defmodule Mix.Dep.Converger do
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
               # and children information.
-              dep = Mix.Dep.Loader.load(dep)
-              %{dep | deps: Enum.filter(dep.deps, &(!children || &1.app in children))}
+              Mix.Dep.Loader.load(dep, children)
           end
 
         dep = %{dep | deps: reject_non_fullfilled_optional(dep.deps, current_breadths)}
@@ -205,7 +204,13 @@ defmodule Mix.Dep.Converger do
   end
 
   defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do
-    scm1 == scm2 and scm1.equal?(opts1, opts2)
+    scm1 == scm2 and mix_equal?(opts1, opts2) and scm1.equal?(opts1, opts2)
+  end
+
+  defp mix_equal?(opts1, opts2) do
+    Keyword.fetch(opts1, :app) == Keyword.fetch(opts2, :app) and
+      Keyword.fetch(opts1, :env) == Keyword.fetch(opts2, :env) and
+      Keyword.fetch(opts1, :compile) == Keyword.fetch(opts2, :compile)
   end
 
   defp reject_non_fullfilled_optional(children, upper_breadths) do
@@ -216,7 +221,7 @@ defmodule Mix.Dep.Converger do
 
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
-      {:ok, vsn} when not nil?(vsn) ->
+      {:ok, vsn} when not is_nil(vsn) ->
         if Mix.Dep.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
           other
         else

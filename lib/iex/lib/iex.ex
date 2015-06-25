@@ -5,7 +5,7 @@ defmodule IEx do
   This module is the main entry point for Interactive Elixir and
   in this documentation we will talk a bit about how IEx works.
 
-  Notice that some of the functionality described here will not be available
+  Notice that some of the functionalities described here will not be available
   depending on your terminal. In particular, if you get a message
   saying that the smart terminal could not be run, some of the
   features described here won't work.
@@ -67,7 +67,7 @@ defmodule IEx do
       $ iex --sname foo
       iex(foo@HOST)1>
 
-  The string in between parenthesis in the prompt is the name
+  The string between the parentheses in the prompt is the name
   of your node. We can retrieve it by calling the `node()`
   function:
 
@@ -113,9 +113,9 @@ defmodule IEx do
 
   Where "remsh" means "remote shell". In general, Elixir supports:
 
-  * remsh from an elixir node to an elixir node
-  * remsh from a plain erlang node to an elixir node (through the ^G menu)
-  * remsh from an elixir node to a plain erlang node (and get an erl shell there)
+    * remsh from an elixir node to an elixir node
+    * remsh from a plain erlang node to an elixir node (through the ^G menu)
+    * remsh from an elixir node to a plain erlang node (and get an erl shell there)
 
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
@@ -124,14 +124,14 @@ defmodule IEx do
 
   When starting IEx, it will look for a local `.iex.exs` file (located in the current
   working directory), then a global one (located at `~/.iex.exs`) and will load the
-  first one it finds (if any). The code in the chosen .iex file will be
+  first one it finds (if any). The code in the chosen .iex.exs file will be
   evaluated in the shell's context. So, for instance, any modules that are
-  loaded or variables that are bound in the .iex file will be available in the
+  loaded or variables that are bound in the .iex.exs file will be available in the
   shell after it has booted.
 
-  Sample contents of a local .iex file:
+  Sample contents of a local .iex.exs file:
 
-      # source another `.iex` file
+      # source another `.iex.exs` file
       import_file "~/.iex.exs"
 
       # print something before the shell starts
@@ -140,7 +140,7 @@ defmodule IEx do
       # bind a variable that'll be accessible in the shell
       value = 13
 
-  Running the shell in the directory where the above .iex file is located
+  Running the shell in the directory where the above .iex.exs file is located
   results in:
 
       $ iex
@@ -162,7 +162,7 @@ defmodule IEx do
   Those options can be configured in your project configuration file or globally
   by calling `IEx.configure/1` from your `~/.iex.exs` file like this:
 
-      # .iex
+      # .iex.exs
       IEx.configure(inspect: [limit: 3])
 
       ### now run the shell ###
@@ -172,7 +172,7 @@ defmodule IEx do
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
-      [1,2,3,...]
+      [1, 2, 3, ...]
 
   ## Expressions in IEx
 
@@ -223,29 +223,29 @@ defmodule IEx do
 
   The value is a keyword list. List of supported keys:
 
-  * `:enabled`      - boolean value that allows for switching the coloring on and off
-  * `:eval_result`  - color for an expression's resulting value
-  * `:eval_info`    - … various informational messages
-  * `:eval_error`   - … error messages
-  * `:stack_app`    - … the app in stack traces
-  * `:stack_info`   - … the remaining info in stacktraces
-  * `:ls_directory` - … for directory entries (ls helper)
-  * `:ls_device`    - … device entries (ls helper)
+    * `:enabled`      - boolean value that allows for switching the coloring on and off
+    * `:eval_result`  - color for an expression's resulting value
+    * `:eval_info`    - … various informational messages
+    * `:eval_error`   - … error messages
+    * `:stack_app`    - … the app in stack traces
+    * `:stack_info`   - … the remaining info in stacktraces
+    * `:ls_directory` - … for directory entries (ls helper)
+    * `:ls_device`    - … device entries (ls helper)
 
   When printing documentation, IEx will convert the markdown
   documentation to ANSI as well. Those can be configured via:
 
-  * `:doc_code`        — the attributes for code blocks (cyan, bright)
-  * `:doc_inline_code` - inline code (cyan)
-  * `:doc_headings`    - h1 and h2 (yellow, bright)
-  * `:doc_title`       — the overall heading for the output (reverse,yellow,bright)
-  * `:doc_bold`        - (bright)
-  * `:doc_underline`   - (underline)
+    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_inline_code` - inline code (cyan)
+    * `:doc_headings`    - h1 and h2 (yellow, bright)
+    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
+    * `:doc_bold`        - (bright)
+    * `:doc_underline`   - (underline)
 
   ## Inspect
 
   A keyword list containing inspect options used by the shell
-  when printing results of expression evaluation. Defailt to
+  when printing results of expression evaluation. Default to
   pretty formatting with a limit of 50 entries.
 
   See `Inspect.Opts` for the full list of options.
@@ -262,86 +262,76 @@ defmodule IEx do
 
   The value is a keyword list. Two prompt types:
 
-  * `:default_prompt` - used when `Node.alive?` returns false
-  * `:alive_prompt`   - used when `Node.alive?` returns true
+    * `:default_prompt` - used when `Node.alive?` returns `false`
+    * `:alive_prompt`   - used when `Node.alive?` returns `true`
 
   The part of the listed in the following of the prompt string is replaced.
 
-  * `%counter` - the index of the history
-  * `%prefix`  - a prefix given by `IEx.Server`
-  * `%node`    - the name of the local node
+    * `%counter` - the index of the history
+    * `%prefix`  - a prefix given by `IEx.Server`
+    * `%node`    - the name of the local node
 
   """
   def configure(options) do
-    Enum.each options, fn {k, v} ->
-      Application.put_env(:iex, k, configure(k, v))
-    end
-  end
-
-  defp configure(k, v) when k in [:colors, :inspect] and is_list(v) do
-    Keyword.merge(Application.get_env(:iex, k), v)
-  end
-
-  defp configure(:history_size, v) when is_integer(v) do
-    v
-  end
-
-  defp configure(k, v) when k in [:default_prompt, :alive_prompt] and is_binary(v) do
-    v
-  end
-
-  defp configure(k, v) do
-    raise ArgumentError, "invalid value #{inspect v} for configuration #{inspect k}"
+    IEx.Config.configure(options)
   end
 
   @doc """
   Returns IEx configuration.
   """
   def configuration do
-    Application.get_all_env(:iex)
+    IEx.Config.configuration()
   end
 
   @doc """
   Registers a function to be invoked after the IEx process is spawned.
   """
   def after_spawn(fun) when is_function(fun) do
-    Application.put_env(:iex, :after_spawn, [fun|after_spawn])
+    IEx.Config.after_spawn(fun)
   end
 
   @doc """
   Returns registered `after_spawn` callbacks.
   """
   def after_spawn do
-    {:ok, list} = Application.fetch_env(:iex, :after_spawn)
-    list
+    IEx.Config.after_spawn()
   end
 
   @doc """
-  Returns `true` if IEx was properly started.
+  Returns `true` if IEx was started.
   """
   def started? do
-    Application.get_env(:iex, :started, false)
+    IEx.Config.started?()
   end
 
   @doc """
-  Returns `string` escaped using the specified color.
+  Returns `string` escaped using the specified `color`.
+
   ANSI escapes in `string` are not processed in any way.
   """
-  def color(color_name, string) do
-    colors = Application.get_env(:iex, :colors)
-    enabled = colors[:enabled]
-    IO.ANSI.escape_fragment("%{#{colors[color_name]}}", enabled)
-      <> string <> IO.ANSI.escape_fragment("%{reset}", enabled)
+  def color(color, string) do
+    case IEx.Config.color(color) do
+      nil ->
+        string
+      ansi ->
+        IO.iodata_to_binary([IO.ANSI.format_fragment(ansi, true), string | IO.ANSI.reset])
+    end
   end
 
   @doc """
-  Get the width to be used on helpers with a maximum (and default) of 80 chars.
+  Gets the IEx width for printing.
+
+  Used by helpers and it has a maximum cap of 80 chars.
   """
   def width do
-    case :io.columns(:standard_input) do
-      {:ok, width} -> min(width, 80)
-      {:error, _}  -> 80
-    end
+    IEx.Config.width()
+  end
+
+  @doc """
+  Gets the options used for inspecting.
+  """
+  def inspect_opts do
+    IEx.Config.inspect_opts()
   end
 
   @doc """
@@ -350,7 +340,7 @@ defmodule IEx do
   This is useful for debugging a particular chunk of code
   and inspect the state of a particular process. The process
   is temporarily changed to trap exits (i.e. the process flag
-  `:trap_exit` is set to true) and has the `group_leader` changed
+  `:trap_exit` is set to `true`) and has the `group_leader` changed
   to support ANSI escape codes. Those values are reverted by
   calling `respawn`, which starts a new IEx shell, freeing up
   the pried one.
@@ -359,8 +349,6 @@ defmodule IEx do
   such, it is evaluated and cannot access private functions
   of the module being pried. Module functions still need to be
   accessed via `Mod.fun(args)`.
-
-  Status: This feature is experimental.
 
   ## Examples
 
@@ -371,18 +359,21 @@ defmodule IEx do
   the process information. Let's see an example:
 
       import Enum, only: [map: 2]
+      require IEx
 
-      def add(a, b) do
-        c = a + b
-        IEx.pry
+      defmodule Adder do
+        def add(a, b) do
+          c = a + b
+          IEx.pry
+        end
       end
 
-  When invoking `add(1, 2)`, you will receive a message in
+  When invoking `Adder.add(1, 2)`, you will receive a message in
   your shell to pry the given environment. By allowing it,
   the shell will be reset and you gain access to all variables
   and the lexical scope from above:
 
-      iex(1)> map([a,b,c], &IO.inspect(&1))
+      pry(1)> map([a, b, c], &IO.inspect(&1))
       1
       2
       3
@@ -392,7 +383,7 @@ defmodule IEx do
   process can be freed by calling `respawn`, which starts a
   new IEx evaluation cycle, letting this one go:
 
-      iex(2)> respawn
+      pry(2)> respawn
       true
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -400,25 +391,41 @@ defmodule IEx do
   Setting variables or importing modules in IEx does not
   affect the caller the environment (hence it is called `pry`).
   """
-  defmacro pry(timeout \\ 1000) do
+  defmacro pry(timeout \\ 5000) do
     quote do
-      env  = __ENV__
-      meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
-      opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-      res  = IEx.Server.take_over("Request to pry #{meta}", opts, unquote(timeout))
-
-      # We cannot use colors because IEx may be off.
-      case res do
-        {:error, :self} = err ->
-          IO.puts :stdio, "IEx cannot pry itself."
-        {:error, :no_iex} = err ->
-          IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?"
-        _ ->
-          :ok
-      end
-
-      res
+      IEx.pry(binding, __ENV__, unquote(timeout))
     end
+  end
+
+  @doc """
+  Callback for `IEx.pry/1`.
+
+  You can invoke this function directly when you are not able to invoke
+  `IEx.pry/1` as a macro. This function expects the binding (from
+  `Kernel.binding/0`), the environment (from `__ENV__`) and the timeout
+  (a sensible default is 5000).
+  """
+  def pry(binding, env, timeout) do
+    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+    res  = IEx.Server.take_over("Request to pry #{meta}", opts, timeout)
+
+    # We cannot use colors because IEx may be off.
+    case res do
+      {:error, :self} ->
+        IO.puts :stdio, "IEx cannot pry the shell itself."
+      {:error, :no_iex} ->
+        extra =
+          case :os.type do
+            {:win32, _} -> " If you are Windows, you may need to start IEx with the --werl flag."
+            _           -> ""
+          end
+        IO.puts :stdio, "Cannot pry #{meta}. Is an IEx shell running?" <> extra
+      _ ->
+        :ok
+    end
+
+    res
   end
 
   ## Callbacks
@@ -426,96 +433,47 @@ defmodule IEx do
   # This is a callback invoked by Erlang shell utilities
   # when someone press Ctrl+G and adds 's Elixir.IEx'.
   @doc false
-  def start(opts \\ [], callback \\ fn -> end) do
+  def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
     spawn fn ->
       case :init.notify_when_started(self()) do
         :started -> :ok
         _        -> :init.wait_until_started()
       end
 
-      callback = start_iex(callback)
-      set_expand_fun()
-      run_after_spawn()
-      IEx.Server.start(opts, callback)
+      :ok = start_iex()
+      :ok = set_expand_fun()
+      :ok = run_after_spawn()
+      IEx.Server.start(opts, mfa)
     end
   end
 
   @doc false
   def dont_display_result, do: :"do not show this result in output"
 
-  @doc false
-  def default_colors do
-    [# Enabled should be commented as it is calculated if missing
-     # enabled: true,
-
-     # Used by default on evaluation cycle
-     eval_interrupt: "yellow",
-     eval_result:    "yellow",
-     eval_error:     "red",
-     eval_info:      "normal",
-     stack_app:      "red,bright",
-     stack_info:     "red",
-
-     # Used by ls
-     ls_directory: "blue",
-     ls_device: "green",
-
-     # Used by ansi docs
-     doc_bold: "bright",
-     doc_code: "cyan,bright",
-     doc_headings: "yellow,bright",
-     doc_inline_code: "cyan",
-     doc_underline: "underline",
-     doc_title: "reverse,yellow,bright"]
-  end
-
-  @doc false
-  def default_inspect do
-    [structs: true, binaries: :infer,
-     char_lists: :infer, limit: 50, pretty: true]
-  end
-
   ## Helpers
 
-  defp start_iex(callback) do
-    if started? do
-      callback
-    else
-      Application.start(:elixir)
-      Application.start(:iex)
-      Application.put_env(:iex, :started, true)
-
-      fn ->
-        # The callback may actually configure IEx (for example,
-        # if it is a Mix project), so we wrap the original callback
-        # so we can normalize options afterwards.
-        callback.()
-
-        colors = default_colors
-                 |> Keyword.merge(Application.get_env(:iex, :colors))
-                 |> Keyword.put_new(:enabled, IO.ANSI.terminal?)
-
-        inspect = default_inspect
-                  |> Keyword.merge(Application.get_env(:iex, :inspect))
-
-        Application.put_env(:iex, :colors, colors)
-        Application.put_env(:iex, :inspect, inspect)
-      end
-    end
+  defp start_iex() do
+    {:ok, _} = Application.ensure_all_started(:iex)
+    :ok
   end
 
   defp set_expand_fun do
     gl = Process.group_leader
     glnode = node gl
 
-    if glnode != node do
-      ensure_module_exists glnode, IEx.Remsh
-      expand_fun = IEx.Remsh.expand node
-    else
-      expand_fun = &IEx.Autocomplete.expand(&1)
-    end
+    expand_fun =
+      if glnode != node do
+        _ = ensure_module_exists glnode, IEx.Remsh
+        IEx.Remsh.expand node
+      else
+        &IEx.Autocomplete.expand(&1)
+      end
 
-    :io.setopts gl, [expand_fun: expand_fun, binary: true, encoding: :unicode]
+    # expand_fun is not supported by a shell variant
+    # on Windows, so we do two io calls, not caring
+    # about the result of the expand_fun one.
+    _ = :io.setopts(gl, expand_fun: expand_fun)
+    :io.setopts(gl, binary: true, encoding: :unicode)
   end
 
   defp ensure_module_exists(node, mod) do
@@ -526,6 +484,7 @@ defmodule IEx do
   end
 
   defp run_after_spawn do
-    for fun <- Enum.reverse(after_spawn), do: fun.()
+    _ = for fun <- Enum.reverse(after_spawn), do: fun.()
+    :ok
   end
 end

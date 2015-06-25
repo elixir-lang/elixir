@@ -1,16 +1,28 @@
-defmodule IEx.Config do
+defmodule IEx.State do
   @moduledoc false
   defstruct binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
+  @type t :: %__MODULE__{}
 end
 
 defmodule IEx.Server do
   @moduledoc false
 
   @doc """
-  Finds where the current IEx server is located.
+  Finds the IEx server, on this or another node.
   """
   @spec whereis :: pid | nil
   def whereis() do
+    Enum.find_value([node()|Node.list], fn node ->
+      server = :rpc.call(node, IEx.Server, :local, [])
+      if is_pid(server), do: server
+    end)
+  end
+
+  @doc """
+  Returns the pid of the IEx server on the local node if exists.
+  """
+  @spec local :: pid | nil
+  def local() do
     # Locate top group leader, always registered as user
     # can be implemented by group (normally) or user
     # (if oldshell or noshell)
@@ -31,6 +43,23 @@ defmodule IEx.Server do
   end
 
   @doc """
+  Returns the current session environment if a session exists.
+  """
+  @spec current_env :: Macro.Env.t
+  def current_env() do
+    case IEx.Server.whereis() do
+      nil -> %Macro.Env{}
+      server ->
+        send(server, {:peek_env, self()})
+        receive do
+          {:peek, %Macro.Env{} = env} -> env
+        after
+          5000 -> %Macro.Env{}
+        end
+    end
+  end
+
+  @doc """
   Requests to take over the given shell from the
   current process.
   """
@@ -38,7 +67,7 @@ defmodule IEx.Server do
         :ok | {:error, :no_iex} | {:error, :refused}
   def take_over(identifier, opts, timeout \\ 1000, server \\ whereis()) do
     cond do
-      nil?(server) ->
+      is_nil(server) ->
         {:error, :no_iex}
       true ->
         ref = make_ref()
@@ -68,17 +97,17 @@ defmodule IEx.Server do
 
   The server responsibilities include:
 
-  * reading input
-  * sending messages to the evaluator
-  * handling takeover process of the evaluator
+    * reading input
+    * sending messages to the evaluator
+    * handling takeover process of the evaluator
 
   If there is any takeover during the callback execution
   we spawn a new server for it without waiting for its
   conclusion.
   """
-  @spec start(list, fun) :: :ok
-  def start(opts, callback) do
-    {pid, ref} = spawn_monitor(callback)
+  @spec start(list, {module, atom, [any]}) :: :ok
+  def start(opts, {m, f, a}) do
+    {pid, ref} = spawn_monitor(m, f, a)
     start_loop(opts, pid, ref)
   end
 
@@ -97,10 +126,10 @@ defmodule IEx.Server do
           start_loop(opts, pid, ref)
         end
 
-      {:DOWN, ^ref, :process, ^pid,  :normal} ->
+      {:DOWN, ^ref, :process, ^pid, :normal} ->
         run(opts)
 
-      {:DOWN, ^ref, :process, ^pid,  _reason} ->
+      {:DOWN, ^ref, :process, ^pid, _reason} ->
         :ok
     end
   end
@@ -114,7 +143,7 @@ defmodule IEx.Server do
     self_leader = Process.group_leader
     evaluator   = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader) end)
     Process.put(:evaluator, evaluator)
-    loop(run_config(opts), evaluator, Process.monitor(evaluator))
+    loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
 
   defp reset_loop(opts, evaluator, evaluator_ref) do
@@ -128,46 +157,48 @@ defmodule IEx.Server do
 
   defp exit_loop(evaluator, evaluator_ref, done? \\ true) do
     Process.delete(:evaluator)
-    Process.demonitor(evaluator_ref)
+    Process.demonitor(evaluator_ref, [:flush])
     if done? do
       send(evaluator, {:done, self})
     end
     :ok
   end
 
-  defp loop(config, evaluator, evaluator_ref) do
+  defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
-    counter  = config.counter
-    prefix   = if config.cache != [], do: "...", else: config.prefix
+    counter  = state.counter
+    prefix   = if state.cache != [], do: "...", else: state.prefix
 
     input = spawn(fn -> io_get(self_pid, prefix, counter) end)
-    wait_input(config, evaluator, evaluator_ref, input)
+    wait_input(state, evaluator, evaluator_ref, input)
   end
 
-  defp wait_input(config, evaluator, evaluator_ref, input) do
+  defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
       {:input, ^input, code} when is_binary(code) ->
-        send evaluator, {:eval, self, code, config}
+        send evaluator, {:eval, self, code, state}
         wait_eval(evaluator, evaluator_ref)
       {:input, ^input, {:error, :interrupted}} ->
         io_error "** (EXIT) interrupted"
-        loop(%{config | cache: ''}, evaluator, evaluator_ref)
+        loop(%{state | cache: ''}, evaluator, evaluator_ref)
       {:input, ^input, :eof} ->
         exit_loop(evaluator, evaluator_ref)
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
-
+      {:peek_env, receiver} ->
+        send receiver, {:peek, state.env}
+        wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
-          wait_input(config, evaluator, evaluator_ref, input)
+          wait_input(state, evaluator, evaluator_ref, input)
         end)
     end
   end
 
   defp wait_eval(evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, config} ->
-        loop(config, evaluator, evaluator_ref)
+      {:evaled, ^evaluator, state} ->
+        loop(state, evaluator, evaluator_ref)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, nil,
                          fn -> wait_eval(evaluator, evaluator_ref) end)
@@ -206,7 +237,7 @@ defmodule IEx.Server do
     reset_loop([], evaluator, evaluator_ref)
   end
 
-  defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator,  reason},
+  defp handle_take_over({:DOWN, evaluator_ref, :process, evaluator, reason},
                         evaluator, evaluator_ref, input, _callback) do
     try do
       io_error Exception.format_banner({:EXIT, evaluator}, reason)
@@ -230,27 +261,25 @@ defmodule IEx.Server do
     IO.gets(:stdio, message) =~ ~r/^(Y(es)?)?$/i
   end
 
-  ## Config
+  ## State
 
-  defp run_config(opts) do
-    locals = Keyword.get(opts, :delegate_locals_to, IEx.Helpers)
-
+  defp run_state(opts) do
     env =
       if env = opts[:env] do
-        :elixir.env_for_eval(env, delegate_locals_to: locals)
+        :elixir.env_for_eval(env, [])
       else
-        :elixir.env_for_eval(file: "iex", delegate_locals_to: locals)
+        :elixir.env_for_eval(file: "iex")
       end
 
-    {_, _, env, scope} = :elixir.eval('require IEx.Helpers', [], env)
+    {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
 
     binding = Keyword.get(opts, :binding, [])
     prefix  = Keyword.get(opts, :prefix, "iex")
-    config  = %IEx.Config{binding: binding, scope: scope, prefix: prefix, env: env}
+    state  = %IEx.State{binding: binding, scope: scope, prefix: prefix, env: env}
 
     case opts[:dot_iex_path] do
-      ""   -> config
-      path -> IEx.Evaluator.load_dot_iex(config, path)
+      ""   -> state
+      path -> IEx.Evaluator.load_dot_iex(state, path)
     end
   end
 
@@ -264,12 +293,12 @@ defmodule IEx.Server do
   defp prompt(prefix, counter) do
     {mode, prefix} =
       if Node.alive? do
-        {:alive, prefix || remote_prefix}
+        {:alive_prompt, prefix || remote_prefix}
       else
-        {:default, prefix || "iex"}
+        {:default_prompt, prefix || "iex"}
       end
 
-    prompt = Application.get_env(:iex, :"#{mode}_prompt")
+    prompt = apply(IEx.Config, mode, [])
              |> String.replace("%counter", to_string(counter))
              |> String.replace("%prefix", to_string(prefix))
              |> String.replace("%node", to_string(node))

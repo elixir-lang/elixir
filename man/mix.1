@@ -1,0 +1,145 @@
+.Dd May 27, 2015
+.Dt MIX 1
+.Os
+.Sh NAME
+.Nm mix
+.Nd The software project management tool
+.Sh SYNOPSIS
+.Nm
+.Op Ar TASK
+.Op Ar project_name
+.Nm elixir
+.Op Ar OPTIONS
+.Fl S Nm
+.Op Ar TASK
+.Op Ar project_name
+.Sh DESCRIPTION
+.Nm
+is intended for both organizing code into projects and their maintenance. For the latter the tool offers some advanced features like dependency management, packaging, preparing documentation, testing and so on.
+.Pp
+Have a look at the
+.Sy SYNOPSIS
+section and the second way of running
+.Nm
+it offers. The point is that the tool is none other than the Elixir script, therefore it can be invoked via
+.Xr elixir 1
+in the same way as any other script. It's useful when you want to run
+.Nm
+with particular options.
+.Sh DIFINITIONS
+All the
+.Nm
+functionality is represented by a set of tasks. A
+.Em task
+is a piece of code written in Elixir and intended for solving a particular problem. Like programs, many tasks accept input parameters and/or support options which slightly modify their behaviour, but others do not. There are two types of tasks: those that are available after installation this or that archive
+.Pq local tasks
+and those that are offered by
+.Nm
+.Pq built-in tasks .
+The
+.Sy run
+task will be executed by default if none other has been specified.
+.Pp
+In spite of the fact that the greater part of
+.Nm
+is tasks, the man page doesn't contain the help information related to each of them because
+.Nm
+is self-descriptive. Thus, using the
+.Sy help
+task, you can get both the full list of local/built-in tasks and the information related to a particular task.
+.Pp
+An
+.Em archive ,
+in terms of Erlang, is the ZIP file with the
+.Em .ez
+extension which contains a precompiled Erlang application with all its dependencies[1].
+.Pp
+An
+.Em application
+is an entity that helps to combine sets of components into a single unit to simplify their reusing in other systems[2].
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev MIX_ARCHIVE
+Allows specifying the directory into which the archives should be installed
+.Pq see Sy mix help archive.install .
+The
+.Em ~/.mix/archives
+directory is used for this purpose by default.
+.It Ev MIX_ENV
+Allows specifying which environment should be used. The
+.Em dev
+environment is used by default if none other has been specified.
+.Pp
+Sometimes you have to use a particular set of configuration parameter values or perform particular steps when you compile or run a project
+.Pq or in some other cases .
+The
+.Nm
+environments allow grouping values of configuration parameters and steps to switch between them by specifying the necessary environment via MIX_ENV.
+.It Ev MIX_EXS
+Allows changing the full path to the
+.Em mix.exs
+file
+.Pq see Sy FILES No section .
+The most obvious use case is to have more than one copy of
+.Em mix.exs
+in a project, but it's worth noting that MIX_EXS should be used only if the
+.Nm
+environments
+.Pq see above
+are not enough to solve the problem.
+.It Ev MIX_HOME
+Stores configuration files and scripts shared by multiple
+.Nm
+implementations.
+.Pp
+See the
+.Sy Mix.Utils.mix_home/0
+function.
+.It Ev MIX_PATH
+Allows expanding the code path. If the MIX_PATH environment variable has a value which consists of multiple paths, they must be colon-separated
+.Pq for Unix-like operating systems
+or semicolon-separated
+.Pq for Windows .
+.Pp
+As has already been mentioned above, there are two types of tasks: local and built-in. These tasks are always visible for
+.Nm
+because the directories, in which they are located, are a part of code path. If a task belongs to neither the one type nor the other, MIX_PATH helps you say to
+.Nm
+where it should search the task.
+.Pp
+Use the
+.Sy :code.get_path/0
+function to get the list of paths which are a part of the code path by default and the
+.Sy Mix.Utils.mix_paths/0
+function to get the list of paths specified in the MIX_PATH value.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It mix.exs
+Contains the most significant information related to the project, such as its name, version, list of dependencies and so on. As a rule, the file is named
+.Em mix.exs
+and located at the top of the project's source tree, but you can change the full path to it using the MIX_EXS environment variable
+.Pq see the Sy ENVIRONMENT No section .
+.It mix.lock
+Allows locking down the project dependencies with a proper version range before performing any updates. It is useful when you know that your project is incompatible with newer versions of certain dependencies. The file is located at the top of the project's source tree as well as
+.Em mix.exs
+.Pq see above .
+.El
+.Sh REFERENCES
+.Bl -tag -width Ds
+.It [1] http://erlang.org/doc/man/code.html#id103620
+.It [2] http://erlang.org/doc/design_principles/applications.html
+.El
+.Sh SEE ALSO
+.Xr elixir 1 ,
+.Xr elixirc 1 ,
+.Xr iex 1
+.Sh AUTHOR
+This manual page contributed by Evgeny Golyshev.
+.Sh INTERNET RESOURCES
+.Bl -tag -width Ds
+.It Main website: http://elixir-lang.org
+.It Documentation: http://elixir-lang.org/docs.html
+.It General Mailing List: http://groups.google.com/group/elixir-lang-talk
+.It Development Mailing List: http://groups.google.com/group/elixir-lang-core
+.El

@@ -20,6 +20,14 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :underscored_variable_on_match do
+    assert capture_err(fn ->
+      Code.eval_string """
+      {_arg, _arg} = {1, 1}
+      """
+    end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
+  end
+
   test :unused_function do
     assert capture_err(fn ->
       Code.eval_string """
@@ -150,7 +158,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: unused import :lists"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_alias do
@@ -163,7 +171,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: unused alias List"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_inside_dynamic_module do
@@ -174,12 +182,12 @@ defmodule Kernel.WarningTest do
         import String, only: [downcase: 1]
 
         def world do
-          flatten([1,2,3])
+          flatten([1, 2, 3])
         end
       end
     end) =~ "warning: unused import String"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :unused_guard do
@@ -195,7 +203,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "nofile:5: warning: the guard for this clause evaluates to 'false'"
+    end) =~ "nofile:5: warning: this check/guard will always yield the same result"
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -214,17 +222,16 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2]
   end
 
-  test :unused_docs do
+  test :empty_clause do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
-        @doc "Oops"
         def hello
       end
       """
-    end) =~ "warning: empty clause provided for nonexistent function or macro hello/0"
+    end) =~ "warning: bodyless clause provided for nonexistent def hello/0"
   after
-    purge [Sample1]
+    purge Sample1
   end
 
   test :used_import_via_alias do
@@ -234,7 +241,7 @@ defmodule Kernel.WarningTest do
         import List, only: [flatten: 1]
 
         defmacro generate do
-          List.duplicate(quote(do: flatten([1,2,3])), 100)
+          List.duplicate(quote(do: flatten([1, 2, 3])), 100)
         end
       end
 
@@ -310,7 +317,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -324,7 +331,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -336,7 +343,7 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it to nil before access"
+    end) =~ "warning: undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge Sample
   end
@@ -348,7 +355,7 @@ defmodule Kernel.WarningTest do
         def a(x) when x in [], do: x
       end
       """
-    end) =~ "warning: the guard for this clause evaluates to 'false'"
+    end) =~ "nofile:2: warning: this check/guard will always yield the same result"
   after
     purge Sample
   end
@@ -366,6 +373,20 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: use of operator != has no effect"
   after
     purge Sample
+  end
+
+  test :badarg_warning do
+    assert capture_err(fn ->
+      assert_raise ArgumentError, fn ->
+        Code.eval_string """
+        defmodule Sample do
+          Atom.to_string "abc"
+        end
+        """
+      end
+    end) =~ "warning: this expression will fail with ArgumentError"
+  after
+    purge [Sample]
   end
 
   test :undefined_function_for_behaviour do
@@ -411,7 +432,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "warning: @behavior attribute is not supported, please use @behaviour instead"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :undefined_macro_for_protocol do
@@ -440,7 +461,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:4: warning: clauses for the same def should be grouped together, def foo/2 was previously defined (nofile:2)"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :warning_with_overridden_file do
@@ -453,7 +474,13 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "sample:3: warning: variable x is unused"
   after
-    purge [Sample]
+    purge Sample
+  end
+
+  test :warning_on_codepoint_escape do
+    assert capture_err(fn ->
+      Code.eval_string "? "
+    end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
   end
 
   test :typedoc_on_typep do
@@ -468,7 +495,7 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:3: warning: type priv/0 is private, @typedoc's are always discarded for private types"
   after
-    purge [Sample]
+    purge Sample
   end
 
   test :typedoc_with_no_type do
@@ -480,7 +507,19 @@ defmodule Kernel.WarningTest do
       """
     end) =~ "nofile:1: warning: @typedoc provided but no type follows it"
   after
-    purge [Sample]
+    purge Sample
+  end
+
+  test :doc_with_no_function do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @doc "Something"
+      end
+      """
+    end) =~ "nofile:1: warning: @doc provided but no definition follows it"
+  after
+    purge Sample
   end
 
   defp purge(list) when is_list(list) do

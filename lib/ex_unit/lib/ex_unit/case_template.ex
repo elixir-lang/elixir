@@ -1,9 +1,9 @@
 defmodule ExUnit.CaseTemplate do
   @moduledoc """
   This module allows a developer to define a test case
-  template to be used throughout his tests. This is useful
+  template to be used throughout their tests. This is useful
   when there are a set of functions that should be shared
-  between tests or a set of setup/teardown callbacks.
+  between tests or a set of setup callbacks.
 
   By using this module, the callbacks and assertions
   available for regular test cases will also be available.
@@ -56,20 +56,21 @@ defmodule ExUnit.CaseTemplate do
       setup context do
         unquote(module).__ex_unit__(:setup, context)
       end
-
-      teardown context do
-        unquote(module).__ex_unit__(:teardown, context)
-      end
-
-      teardown_all context do
-        unquote(module).__ex_unit__(:teardown_all, context)
-      end
     end
   end
 
   @doc """
   Allows a developer to customize the using block
   when the case template is used.
+
+  ## Example
+
+    using do
+      quote do
+        alias MyApp.FunModule
+      end
+    end
+    
   """
   defmacro using(var \\ quote(do: _), do: block) do
     quote location: :keep do

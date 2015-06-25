@@ -3,8 +3,8 @@
 -include("elixir.hrl").
 
 clauses(_Meta, Clauses, Return, S) ->
-  Catch  = elixir_clauses:get_pairs('catch', Clauses),
-  Rescue = elixir_clauses:get_pairs(rescue, Clauses),
+  Catch  = elixir_clauses:get_pairs('catch', Clauses, 'catch'),
+  Rescue = elixir_clauses:get_pairs(rescue, Clauses, rescue),
   reduce_clauses(Rescue ++ Catch, [], S, Return, S).
 
 reduce_clauses([H|T], Acc, SAcc, Return, S) ->
@@ -18,10 +18,7 @@ each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
 
   Final = case Args of
     [X]   -> [throw, X, {'_', Meta, nil}];
-    [X,Y] -> [X, Y, {'_', Meta, nil}];
-    _ ->
-      elixir_errors:compile_error(Meta, S#elixir_scope.file,
-        "too many arguments given for catch")
+    [X, Y] -> [X, Y, {'_', Meta, nil}]
   end,
 
   Condition = [{'{}', Meta, Final}],
@@ -103,26 +100,16 @@ rescue_guards(Meta, Var, Aliases, S) ->
 %% Matching of variables is done with Erlang exceptions is done in
 %% function for optimization.
 
-rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, S) when
-  H == 'Elixir.UndefinedFunctionError'; H == 'Elixir.ErlangError';
-  H == 'Elixir.ArgumentError'; H == 'Elixir.ArithmeticError';
-  H == 'Elixir.BadArityError'; H == 'Elixir.BadFunctionError';
-  H == 'Elixir.MatchError'; H == 'Elixir.CaseClauseError';
-  H == 'Elixir.TryClauseError'; H == 'Elixir.FunctionClauseError';
-  H == 'Elixir.SystemLimitError'; H == 'Elixir.BadStructError' ->
-  Expr = erl_rescue_guard_for(Meta, Var, H),
-  rescue_each_ref(Meta, Var, T, [H|Elixir], [Expr|Erlang], S);
-
 rescue_each_ref(Meta, Var, [H|T], Elixir, Erlang, S) when is_atom(H) ->
-  rescue_each_ref(Meta, Var, T, [H|Elixir], Erlang, S);
+  case erl_rescue_guard_for(Meta, Var, H) of
+    false -> rescue_each_ref(Meta, Var, T, [H|Elixir], Erlang, S);
+    Expr  -> rescue_each_ref(Meta, Var, T, [H|Elixir], [Expr|Erlang], S)
+  end;
 
 rescue_each_ref(_, _, [], Elixir, Erlang, _) ->
   {Elixir, Erlang}.
 
 %% Handle erlang rescue matches.
-
-erl_rescue_guard_for(Meta, Var, List) when is_list(List) ->
-  join(Meta, fun erl_or/3, [erl_rescue_guard_for(Meta, Var, X) || X <- List]);
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.UndefinedFunctionError') ->
   {erl(Meta, '=='), Meta, [Var, undef]};
@@ -135,6 +122,9 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.SystemLimitError') ->
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.ArithmeticError') ->
   {erl(Meta, '=='), Meta, [Var, badarith]};
+
+erl_rescue_guard_for(Meta, Var, 'Elixir.CondClauseError') ->
+  {erl(Meta, '=='), Meta, [Var, cond_clause]};
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.BadArityError') ->
   erl_and(Meta,
@@ -178,7 +168,10 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
   IsException = {erl(Meta, '/='), Meta, [
     {erl(Meta, element), Meta, [2, Var]}, '__exception__'
   ]},
-  erl_or(Meta, IsNotTuple, IsException).
+  erl_or(Meta, IsNotTuple, IsException);
+
+erl_rescue_guard_for(_, _, _) ->
+  false.
 
 %% Helpers
 
@@ -190,9 +183,6 @@ erl_record_compare(Meta, Var, Expr) ->
     {erl(Meta, element), Meta, [1, Var]},
     Expr
   ]}.
-
-join(Meta, Kind, [H|T]) ->
-  lists:foldl(fun(X, Acc) -> Kind(Meta, Acc, X) end, H, T).
 
 prepend_to_block(_Meta, Expr, {'__block__', Meta, Args}) ->
   {'__block__', Meta, [Expr|Args]};

@@ -51,7 +51,7 @@ expand({'__block__', Meta, Args}, E) when is_list(Args) ->
 
 %% __aliases__
 
-expand({'__aliases__', _, _} = Alias, E) ->
+expand({'__aliases__', Meta, _} = Alias, E) ->
   case elixir_aliases:expand(Alias, ?m(E, aliases),
                              ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
     Receiver when is_atom(Receiver) ->
@@ -66,14 +66,16 @@ expand({'__aliases__', _, _} = Alias, E) ->
           elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          {{{'.', [], [elixir_aliases, concat]}, [], [EAliases]}, EA}
+          compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
+            "at compilation time, but did not in \"~ts\". Use Module.concat/2 "
+            "if you want to dynamically generate aliases", ['Elixir.Macro':to_string(Alias)])
       end
   end;
 
 %% alias
 
 expand({alias, Meta, [Ref]}, E) ->
-  expand({alias, Meta, [Ref,[]]}, E);
+  expand({alias, Meta, [Ref, []]}, E);
 expand({alias, Meta, [Ref, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, alias, E),
   {ERef, ER} = expand(Ref, E),
@@ -86,7 +88,7 @@ expand({alias, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for alias, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 expand({require, Meta, [Ref]}, E) ->
@@ -105,7 +107,7 @@ expand({require, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for require, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 expand({import, Meta, [Left]}, E) ->
@@ -125,7 +127,7 @@ expand({import, Meta, [Ref, KV]}, E) ->
     true ->
       compile_error(Meta, ?m(E, file),
         "invalid argument for import, expected a compile time atom or alias, got: ~ts",
-        ['Elixir.Kernel':inspect(ERef)])
+        ['Elixir.Macro':to_string(Ref)])
   end;
 
 %% Pseudo vars
@@ -154,7 +156,7 @@ expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_spli
 expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     {do, Do} ->
-      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do,Do}]]}, E);
+      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
     false ->
       compile_error(Meta, ?m(E, file), "missing do keyword in quote")
   end;
@@ -169,7 +171,7 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       false -> compile_error(Meta, E#elixir_scope.file, "missing do keyword in quote")
     end,
 
-  ValidOpts = [context, location, line, unquote, bind_quoted],
+  ValidOpts = [context, location, line, file, unquote, bind_quoted],
   {EKV, ET} = expand_opts(Meta, quote, ValidOpts, KV, E),
 
   Context = case lists:keyfind(context, 1, EKV) of
@@ -185,8 +187,20 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
       end
   end,
 
-  Keep = lists:keyfind(location, 1, EKV) == {location, keep},
-  Line = proplists:get_value(line, EKV, false),
+  {File, Line} = case lists:keyfind(location, 1, EKV) of
+    {location, keep} ->
+      {elixir_utils:relative_to_cwd(?m(E, file)), false};
+    false ->
+      { case lists:keyfind(file, 1, EKV) of
+          {file, F} -> F;
+          false -> nil
+        end,
+
+        case lists:keyfind(line, 1, EKV) of
+          {line, L} -> L;
+          false -> false
+        end }
+  end,
 
   {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EKV) of
     {bind_quoted, BQ} -> {BQ, false};
@@ -194,11 +208,11 @@ expand({quote, Meta, [KV, Do]}, E) when is_list(Do) ->
   end,
 
   Unquote = case lists:keyfind(unquote, 1, EKV) of
-    {unquote, Bool} when is_boolean(Bool) -> Bool;
+    {unquote, U} when is_boolean(U) -> U;
     false -> DefaultUnquote
   end,
 
-  Q = #elixir_quote{line=Line, keep=Keep, unquote=Unquote, context=Context},
+  Q = #elixir_quote{line=Line, file=File, unquote=Unquote, context=Context},
 
   {Quoted, _Q} = elixir_quote:quote(Exprs, Binding, Q, ET),
   expand(Quoted, ET);
@@ -225,11 +239,22 @@ expand({fn, Meta, Pairs}, E) ->
 
 %% Case/Receive/Try
 
+expand({'cond', Meta, [KV]}, E) ->
+  assert_no_match_or_guard_scope(Meta, 'cond', E),
+  {EClauses, EC} = elixir_exp_clauses:'cond'(Meta, KV, E),
+  {{'cond', Meta, [EClauses]}, EC};
+
 expand({'case', Meta, [Expr, KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'case', E),
   {EExpr, EE} = expand(Expr, E),
   {EClauses, EC} = elixir_exp_clauses:'case'(Meta, KV, EE),
-  {{'case', Meta, [EExpr, EClauses]}, EC};
+  FClauses =
+    case (lists:keyfind(optimize_boolean, 1, Meta) == {optimize_boolean, true}) and
+         elixir_utils:returns_boolean(EExpr) of
+      true  -> rewrite_case_clauses(EClauses);
+      false -> EClauses
+    end,
+  {{'case', Meta, [EExpr, FClauses]}, EC};
 
 expand({'receive', Meta, [KV]}, E) ->
   assert_no_match_or_guard_scope(Meta, 'receive', E),
@@ -243,7 +268,7 @@ expand({'try', Meta, [KV]}, E) ->
 
 %% Comprehensions
 
-expand({for, Meta, Args}, E) when is_list(Args) ->
+expand({for, Meta, [_|_] = Args}, E) ->
   elixir_for:expand(Meta, Args, E);
 
 %% Super
@@ -272,7 +297,7 @@ expand({'_', _, Kind} = Var, E) when is_atom(Kind) ->
 expand({Name, Meta, Kind} = Var, #{context := match, export_vars := Export} = E) when is_atom(Name), is_atom(Kind) ->
   Pair      = {Name, var_kind(Meta, Kind)},
   NewVars   = ordsets:add_element(Pair, ?m(E, vars)),
-  NewExport = case (Export /= nil) andalso (lists:keyfind(export, 1, Meta) /= {export, false}) of
+  NewExport = case (Export /= nil) of
     true  -> ordsets:add_element(Pair, Export);
     false -> Export
   end,
@@ -285,13 +310,8 @@ expand({Name, Meta, Kind} = Var, #{vars := Vars} = E) when is_atom(Name), is_ato
       VarMeta = lists:keyfind(var, 1, Meta),
       if
         VarMeta == {var, true} ->
-          Extra = case Kind of
-            nil -> "";
-            _   -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)])
-          end,
-
-          compile_error(Meta, ?m(E, file), "expected var ~ts~ts to expand to an existing "
-                        "variable or be a part of a match", [Name, Extra]);
+          compile_error(Meta, ?m(E, file), "expected var \"~ts\"~ts to expand to an existing variable "
+                        "or be part of a match", [Name, elixir_scope:context_info(Kind)]);
         true ->
           expand({Name, Meta, []}, E)
       end
@@ -335,8 +355,8 @@ expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
     ['Elixir.Macro':to_string(Invalid)]);
 
 expand({_, _, _} = Tuple, E) ->
-  compile_error([{line,0}], ?m(E, file), "invalid quoted expression: ~ts",
-    ['Elixir.Kernel':inspect(Tuple, [{records,false}])]);
+  compile_error([{line, 0}], ?m(E, file), "invalid quoted expression: ~ts",
+    ['Elixir.Kernel':inspect(Tuple, [])]);
 
 %% Literals
 
@@ -357,7 +377,7 @@ expand(Function, E) when is_function(Function) ->
     true ->
       {Function, E};
     false ->
-      compile_error([{line,0}], ?m(E, file),
+      compile_error([{line, 0}], ?m(E, file),
         "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Function)])
   end;
 
@@ -365,7 +385,7 @@ expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other); is_pid
   {Other, E};
 
 expand(Other, E) ->
-  compile_error([{line,0}], ?m(E, file),
+  compile_error([{line, 0}], ?m(E, file),
     "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
@@ -401,6 +421,9 @@ expand_arg(Arg, {Acc1, Acc2}) ->
   {EArg, EAcc} = expand(Arg, Acc1),
   {EArg, {elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc)}}.
 
+expand_args([Arg], E) ->
+  {EArg, EE} = expand(Arg, E),
+  {[EArg], EE};
 expand_args(Args, #{context := match} = E) ->
   expand_many(Args, E);
 expand_args(Args, E) ->
@@ -423,7 +446,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
       case lists:member({Name, Kind}, ?m(E, vars)) of
         true ->
           compile_error(Meta, ?m(E, file), "\"~ts ~ts\" looks like a function call but "
-                        "there is a variable named \"~ts\", please use explicit parenthesis or even spaces",
+                        "there is a variable named \"~ts\", please use explicit parentheses or even spaces",
                         [Name, 'Elixir.Macro':to_string(Arg), Name]);
         false ->
           ok
@@ -434,15 +457,12 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, #{local := nil, function := nil} = E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{Name, Meta, EArgs}, EA};
-expand_local(Meta, Name, Args, #{local := nil, module := Module, function := Function} = E) ->
+expand_local(Meta, Name, Args, #{function := nil} = E) ->
+  compile_error(Meta, ?m(E, file), "undefined function ~ts/~B", [Name, length(Args)]);
+expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   elixir_locals:record_local({Name, length(Args)}, Module, Function),
   {EArgs, EA} = expand_args(Args, E),
-  {{Name, Meta, EArgs}, EA};
-expand_local(Meta, Name, Args, E) ->
-  expand({{'.', Meta, [?m(E, local), Name]}, Meta, Args}, E).
+  {{Name, Meta, EArgs}, EA}.
 
 %% Remote
 
@@ -452,7 +472,8 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
     true -> ok
   end,
   {EArgs, EA} = expand_args(Args, E),
-  {{{'.', DotMeta, [Receiver, Right]}, Meta, EArgs}, elixir_env:mergev(EL, EA)}.
+  {elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),
+   elixir_env:mergev(EL, EA)}.
 
 %% Lexical helpers
 
@@ -464,11 +485,11 @@ expand_opts(Meta, Kind, Allowed, Opts, E) ->
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
     compile_error(Meta, ?m(E, file),
-                  "unsupported option ~ts given to ~s", ['Elixir.Kernel':inspect(Key), Kind])
+                  "unsupported option ~ts given to ~s", ['Elixir.Macro':to_string(Key), Kind])
   end || {Key, _} <- Opts, not lists:member(Key, Allowed)];
 
-validate_opts(Meta, Kind, _Allowed, _Opts, S) ->
-  compile_error(Meta, S#elixir_scope.file, "invalid options for ~s, expected a keyword list", [Kind]).
+validate_opts(Meta, Kind, _Allowed, _Opts, E) ->
+  compile_error(Meta, ?m(E, file), "invalid options for ~s, expected a keyword list", [Kind]).
 
 no_alias_opts(KV) when is_list(KV) ->
   case lists:keyfind(as, 1, KV) of
@@ -478,7 +499,7 @@ no_alias_opts(KV) when is_list(KV) ->
 no_alias_opts(KV) -> KV.
 
 no_alias_expansion({'__aliases__', Meta, [H|T]}) when (H /= 'Elixir') and is_atom(H) ->
-  {'__aliases__', Meta, ['Elixir',H|T]};
+  {'__aliases__', Meta, ['Elixir', H|T]};
 no_alias_expansion(Other) ->
   Other.
 
@@ -510,10 +531,10 @@ expand_as({as, false}, _Meta, _IncludeByDefault, Ref, _E) ->
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of
     1 -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected an alias, got atom: ~ts", [elixir_aliases:inspect(Atom)]);
+           "invalid value for keyword :as, expected an alias, got: ~ts", [elixir_aliases:inspect(Atom)]);
     2 -> Atom;
     _ -> compile_error(Meta, ?m(E, file),
-           "invalid value for keyword :as, expected an alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
+           "invalid value for keyword :as, expected a simple alias, got nested alias: ~ts", [elixir_aliases:inspect(Atom)])
   end;
 expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
@@ -524,6 +545,27 @@ expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
     "invalid value for keyword :as, expected an alias, got: ~ts", ['Elixir.Macro':to_string(Other)]).
 
 %% Assertions
+
+rewrite_case_clauses([{do, [
+  {'->', FalseMeta, [
+    [{'when', _, [Var, {'__op__', _, [
+      'orelse',
+      {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
+      {{'.', _, [erlang, '=:=']}, _, [Var, false]}
+    ]}]}],
+    FalseExpr
+  ]},
+  {'->', TrueMeta, [
+    [{'_', _, _}],
+    TrueExpr
+  ]}
+]}]) ->
+  [{do, [
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
+  ]}];
+rewrite_case_clauses(Clauses) ->
+  Clauses.
 
 assert_no_match_or_guard_scope(Meta, Kind, E) ->
   assert_no_match_scope(Meta, Kind, E),

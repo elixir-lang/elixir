@@ -54,6 +54,10 @@ defmodule ModuleTest do
     end
   end
 
+  test :in_memory do
+    assert :code.which(__MODULE__) == :in_memory
+  end
+
   ## Eval
 
   test :eval_quoted do
@@ -92,9 +96,9 @@ defmodule ModuleTest do
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{:foo, _, _}, {:bar, _ , _}] = args
+    assert [{:foo, _, _}, {:bar, _, _}] = args
     assert [] = guards
-    assert {{:., _, [:erlang, :+]}, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
+    assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
 
   test :overridable_inside_before_compile do
@@ -160,6 +164,12 @@ defmodule ModuleTest do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
     assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
+    assert_raise FunctionClauseError, fn ->
+      Module.split(:just_an_atom)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Module.split("Foo")
+    end
     assert Module.concat(Module.split(module)) == module
   end
 
@@ -235,10 +245,5 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__, :def)  == [foo: 3]
       assert Module.definitions_in(__MODULE__, :defp) == []
     end
-  end
-
-  test :function do
-    assert Module.function(:erlang, :atom_to_list, 1).(:hello) == 'hello'
-    assert is_function Module.function(This, :also_works, 0)
   end
 end

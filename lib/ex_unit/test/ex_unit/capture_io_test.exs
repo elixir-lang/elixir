@@ -1,41 +1,51 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule ExUnit.CaptureIOTest.Value do
-  def binary, do: "a"
-end
-
-alias ExUnit.CaptureIOTest.Value
-
-defmodule ExUnit.CaptureIOTest.GetUntil do
-  def until_new_line(_, :eof, _) do
-    {:done, :eof, []}
-  end
-
-  def until_new_line(this_far, chars, stop_char) do
-    case Enum.split_while(chars, fn(c) -> c != stop_char end) do
-      {l, []} ->
-        {:more, this_far ++ l}
-      {l, [stop_char|rest]} ->
-        {:done, this_far ++ l ++ [stop_char], rest}
-    end
-  end
-
-  def get_line(device \\ Process.group_leader) do
-    send device, {:io_request, self, device, {:get_until, :unicode, "", __MODULE__, :until_new_line, [?\n]}}
-    receive do
-      {:io_reply, _, data} -> data
-    end
-  end
-end
-
-alias ExUnit.CaptureIOTest.GetUntil
-
 defmodule ExUnit.CaptureIOTest do
   use ExUnit.Case
 
-  doctest ExUnit.CaptureIO, import: true
+  defmodule GetUntil do
+    def until_new_line(_, :eof, _) do
+      {:done, :eof, []}
+    end
+
+    def until_new_line(this_far, chars, stop_char) do
+      case Enum.split_while(chars, fn(c) -> c != stop_char end) do
+        {l, []} ->
+          {:more, this_far ++ l}
+        {l, [stop_char|rest]} ->
+          {:done, this_far ++ l ++ [stop_char], rest}
+      end
+    end
+
+    def get_line(device \\ Process.group_leader) do
+      send device, {:io_request, self, device, {:get_until, :unicode, "", __MODULE__, :until_new_line, [?\n]}}
+      receive do
+        {:io_reply, _, data} -> data
+      end
+    end
+  end
 
   import ExUnit.CaptureIO
+  doctest ExUnit.CaptureIO, import: true
+
+  test "no leakage on failures" do
+    group_leader = Process.group_leader()
+
+    test = self()
+    assert_raise ArgumentError, fn ->
+      capture_io(fn ->
+        send(test, {:string_io, Process.group_leader()})
+        raise ArgumentError
+      end)
+    end
+
+    receive do
+      {:string_io, pid} ->
+        ref = Process.monitor(pid)
+        assert_receive {:DOWN, ^ref, _, _, _}
+    end
+    assert Process.group_leader() == group_leader
+  end
 
   test "with no output" do
     assert capture_io(fn ->
@@ -51,10 +61,6 @@ defmodule ExUnit.CaptureIOTest do
       :io.put_chars("a")
       :io.put_chars("b")
     end) == "ab"
-
-    assert capture_io(fn ->
-      send_and_receive_io({:put_chars, :unicode, Value, :binary, []})
-    end) == "a"
 
     assert capture_io(fn ->
       :io.put_chars("josé")
@@ -237,7 +243,7 @@ defmodule ExUnit.CaptureIOTest do
 
     capture_io(":erl. mof*,,l", fn ->
       assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
-      assert :io.scan_erl_form('>') == {:ok, [{:atom, 1, :mof}, {:*, 1}, {:"," , 1}, {:",", 1}, {:atom, 1, :l}], 1}
+      assert :io.scan_erl_form('>') == {:ok, [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}], 1}
       assert :io.scan_erl_form('>') == {:eof, 1}
     end)
 
@@ -303,19 +309,14 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with assert inside" do
-    group_leader = :erlang.group_leader
-
     try do
       capture_io(fn ->
         assert false
       end)
     rescue
       error in [ExUnit.AssertionError] ->
-        "Expected truthy, got false" = error.message
+        assert error.message == "Expected truthy, got false"
     end
-
-    # Ensure no leakage on failures
-    assert group_leader == :erlang.group_leader
   end
 
   test "capture :stderr by two processes" do

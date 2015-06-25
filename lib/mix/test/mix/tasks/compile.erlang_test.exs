@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       def zzz(), do: b
       """
 
-      assert_raise CompileError, fn ->
+      assert_raise Mix.Error, fn ->
         capture_io fn ->
           Mix.Tasks.Compile.Erlang.run []
         end
@@ -35,6 +35,10 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       assert File.regular?("_build/dev/lib/sample/ebin/b.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/c.beam")
+
+      assert File.read!("_build/dev/lib/sample/.compile.erlang") ==
+             "_build/dev/lib/sample/ebin/b.beam\n" <>
+             "_build/dev/lib/sample/ebin/c.beam"
 
       assert Mix.Tasks.Compile.Erlang.run([]) == :noop
       refute_received {:mix_shell, :info, ["Compiled src/b.erl"]}

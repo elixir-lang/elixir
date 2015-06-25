@@ -43,7 +43,7 @@ defmodule Mix.Rebar do
         []
       {:error, error} ->
         reason = :file.format_error(error)
-        raise Mix.Error, message: "Error consulting rebar config #{config_path}: #{reason}"
+        Mix.raise "Error consulting rebar config #{config_path}: #{reason}"
     end
 
     if File.exists?(script_path) do
@@ -123,7 +123,7 @@ defmodule Mix.Rebar do
       {:ok, re} ->
         re
       {:error, reason} ->
-        raise Mix.Error, message: "Unable to compile version regex: \"#{req}\", #{reason}"
+        Mix.raise "Unable to compile version regex: \"#{req}\", #{reason}"
     end
   end
 
@@ -155,8 +155,8 @@ defmodule Mix.Rebar do
 
   defp wrap_cmd(nil), do: nil
   defp wrap_cmd(rebar) do
-    if match?({:win32, _}, :os.type) and not String.ends_with?(rebar,".cmd") do
-      "escript.exe #{rebar}"
+    if match?({:win32, _}, :os.type) and not String.ends_with?(rebar, ".cmd") do
+      "escript.exe \"#{rebar}\""
     else
       rebar
     end

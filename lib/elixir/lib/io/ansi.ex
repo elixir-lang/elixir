@@ -1,13 +1,13 @@
 defmodule IO.ANSI.Sequence do
   @moduledoc false
 
-  defmacro defsequence(name, code \\ "", terminator \\ "m") do
+  defmacro defsequence(name, code, terminator \\ "m") do
     quote bind_quoted: [name: name, code: code, terminator: terminator] do
       def unquote(name)() do
         "\e[#{unquote(code)}#{unquote(terminator)}"
       end
 
-      defp escape_sequence(unquote(Atom.to_char_list(name))) do
+      defp format_sequence(unquote(name)) do
         unquote(name)()
       end
     end
@@ -24,19 +24,21 @@ defmodule IO.ANSI do
 
   import IO.ANSI.Sequence
 
-  @doc """
-  Checks whether the default I/O device is a terminal or a file.
+  @typep ansicode :: atom()
+  @typep ansilist :: maybe_improper_list(char() | ansicode() | binary() | ansilist(), binary() | ansicode() | [])
+  @type  ansidata :: ansilist() | ansicode() | binary()
 
-  Used to identify whether printing ANSI escape sequences will likely
-  be displayed as intended. This is checked by sending a message to
-  the group leader. In case the group leader does not support the message,
-  it will likely lead to a timeout (and a slow down on execution time).
+  @doc """
+  Checks if ANSI coloring is supported and enabled on this machine.
+
+  This function simply reads the configuration value for
+  `:ansi_enabled` in the `:elixir` application. The value is by
+  default `false` unless Elixir can detect during startup that
+  both `stdout` and `stderr` are terminals.
   """
-  @spec terminal? :: boolean
-  @spec terminal?(:io.device) :: boolean
-  def terminal?(device \\ :erlang.group_leader) do
-    !match?({:win32, _}, :os.type()) and
-      match?({:ok, _}, :io.columns(device))
+  @spec enabled? :: boolean
+  def enabled? do
+    Application.get_env(:elixir, :ansi_enabled, false)
   end
 
   @doc "Resets all attributes"
@@ -93,9 +95,8 @@ defmodule IO.ANSI do
   defsequence :blink_off, 25
 
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
-  colors = Enum.zip(0..(length(colors)-1), colors)
 
-  for {code, color} <- colors do
+  for {color, code} <- Enum.with_index(colors) do
     @doc "Sets foreground color to #{color}"
     defsequence color, code + 30
 
@@ -130,99 +131,78 @@ defmodule IO.ANSI do
   @doc "Clear screen"
   defsequence :clear, "2", "J"
 
-  defp escape_sequence(other) do
+  defp format_sequence(other) do
     raise ArgumentError, "invalid ANSI sequence specification: #{other}"
   end
 
   @doc ~S"""
-  Escapes a string by converting named ANSI sequences into actual ANSI codes.
+  Formats a chardata-like argument by converting named ANSI sequences into actual
+  ANSI codes.
 
-  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences).
+  The named sequences are represented by atoms.
 
-  It will also append a `%{reset}` to the string. If you don't want this
-  behaviour, use `escape_fragment/2`.
+  It will also append an `IO.ANSI.reset` to the chardata when a conversion is
+  performed. If you don't want this behaviour, use `format_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
+  By default checks if ANSI is enabled using the `enabled?/0` function.
 
   ## Examples
 
-      iex> IO.ANSI.escape("Hello %{red,bright,green}yes", true)
-      "Hello \e[31m\e[1m\e[32myes\e[0m"
+      iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
+      [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  @spec escape(String.t, emit :: boolean) :: String.t
-  def escape(string, emit \\ terminal?) do
-    {rendered, emitted} = do_escape(string, emit, false, nil, [])
-    if emitted do
-      rendered <> reset
-    else
-      rendered
-    end
+  def format(chardata, emit \\ enabled?) when is_boolean(emit) do
+    do_format(chardata, [], [], emit, :maybe)
   end
 
   @doc ~S"""
-  Escapes a string by converting named ANSI sequences into actual ANSI codes.
+  Formats a chardata-like argument by converting named ANSI sequences into actual
+  ANSI codes.
 
-  The format for referring to sequences is `%{red}` and `%{red,bright}` (for
-  multiple sequences).
+  The named sequences are represented by atoms.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
-  By default, standard output will be checked if it is a terminal capable
-  of handling these sequences (using `terminal?/1` function)
+  By default checks if ANSI is enabled using the `enabled?/0` function.
 
   ## Examples
 
-      iex> IO.ANSI.escape_fragment("Hello %{red,bright,green}yes", true)
-      "Hello \e[31m\e[1m\e[32myes"
-
-      iex> IO.ANSI.escape_fragment("%{reset}bye", true)
-      "\e[0mbye"
+      iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
+      [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  @spec escape_fragment(String.t, emit :: boolean) :: String.t
-  def escape_fragment(string, emit \\ terminal?) do
-    {escaped, _emitted} = do_escape(string, emit, false, nil, [])
-    escaped
+  def format_fragment(chardata, emit \\ enabled?) when is_boolean(emit) do
+    do_format(chardata, [], [], emit, false)
   end
 
-  defp do_escape(<<?}, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
-    sequences =
-      buffer
-      |> Enum.reverse()
-      |> :string.tokens(',')
-      |> Enum.map(&(&1 |> :string.strip |> escape_sequence))
-      |> Enum.reverse()
-
-    if emit and sequences != [] do
-      do_escape(t, emit, true, nil, sequences ++ acc)
-    else
-      do_escape(t, emit, emitted, nil, acc)
-    end
+  defp do_format([term | rest], rem, acc, emit, append_reset) do
+    do_format(term, [rest | rem], acc, emit, append_reset)
   end
 
-  defp do_escape(<<h, t :: binary>>, emit, emitted, buffer, acc) when is_list(buffer) do
-    do_escape(t, emit, emitted, [h|buffer], acc)
+  defp do_format(term, rem, acc, true, append_reset) when is_atom(term) do
+    do_format([], rem, [acc | format_sequence(term)], true, !!append_reset)
   end
 
-  defp do_escape(<<>>, _emit, _emitted, buffer, _acc) when is_list(buffer) do
-    buffer = IO.iodata_to_binary Enum.reverse(buffer)
-    raise ArgumentError, "missing } for escape fragment #{buffer}"
+  defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
+    do_format([], rem, acc, false, append_reset)
   end
 
-  defp do_escape(<<?%, ?{, t :: binary>>, emit, emitted, nil, acc) do
-    do_escape(t, emit, emitted, [], acc)
+  defp do_format(term, rem, acc, emit, append_reset) when not is_list(term) do
+    do_format([], rem, [acc | [term]], emit, append_reset)
   end
 
-  defp do_escape(<<h, t :: binary>>, emit, emitted, nil, acc) do
-    do_escape(t, emit, emitted, nil, [h|acc])
+  defp do_format([], [next | rest], acc, emit, append_reset) do
+    do_format(next, rest, acc, emit, append_reset)
   end
 
-  defp do_escape(<<>>, _emit, emitted, nil, acc) do
-    {IO.iodata_to_binary(Enum.reverse(acc)), emitted}
+  defp do_format([], [], acc, true, true) do
+    [acc | IO.ANSI.reset]
+  end
+
+  defp do_format([], [], acc, _emit, _append_reset) do
+    acc
   end
 end

@@ -1,5 +1,4 @@
 defmodule Mix.ProjectStack do
-  # Keeps the project stack.
   @moduledoc false
 
   @timeout 30_000
@@ -10,14 +9,21 @@ defmodule Mix.ProjectStack do
 
   @spec start_link :: {:ok, pid}
   def start_link() do
-    Agent.start_link fn -> %{stack: [], post_config: [], cache: HashDict.new} end, name: __MODULE__
+    initial = %{stack: [], post_config: [], cache: HashDict.new}
+    Agent.start_link fn -> initial end, name: __MODULE__
   end
 
   @spec push(module, config, file) :: :ok | {:error, file}
   def push(module, config, file) do
     get_and_update fn %{stack: stack} = state ->
+      # Consider the first children to always have io_done
+      # because we don't need to print anything unless another
+      # project talks ahold of the shell.
+      io_done? = stack == []
+
       config  = Keyword.merge(config, state.post_config)
-      project = %{name: module, config: config, file: file, recursing?: false, io_done: false, tasks: HashSet.new}
+      project = %{name: module, config: config, file: file, pos: length(stack),
+                  recursing?: false, io_done: io_done?, tasks: HashSet.new}
 
       cond do
         file = find_project_named(module, stack) ->
@@ -32,7 +38,7 @@ defmodule Mix.ProjectStack do
   def pop do
     get_and_update fn %{stack: stack} = state ->
       case stack do
-        [h|t] -> {project_to_tuple(h), %{state | stack: t}}
+        [h|t] -> {take(h), %{state | stack: t}}
         [] -> {nil, state}
       end
     end
@@ -42,7 +48,7 @@ defmodule Mix.ProjectStack do
   def peek do
     get fn %{stack: stack} ->
       case stack do
-        [h|_] -> project_to_tuple(h)
+        [h|_] -> take(h)
         [] -> nil
       end
     end
@@ -55,15 +61,18 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @spec output_app?() :: boolean
-  def output_app? do
+  @spec printable_app_name() :: atom | nil
+  def printable_app_name do
     get_and_update fn %{stack: stack} = state ->
       case stack do
-        [h|t] ->
-          output = not h.io_done and not umbrella?(stack) and in_umbrella?(stack)
-          {output, %{state | stack: [%{h | io_done: true}|t]}}
         [] ->
-          {false, state}
+          {nil, state}
+        [%{io_done: true}|_] ->
+          {nil, state}
+        [h|t] ->
+          h = %{h | io_done: true}
+          t = Enum.map(t, &%{&1 | io_done: false})
+          {h.config[:app], %{state | stack: [h|t]}}
       end
     end
   end
@@ -77,7 +86,7 @@ defmodule Mix.ProjectStack do
 
   @doc """
   Enables the recursion for the project at the top of the stack.
-  Returns true if recursion was enabled or false if the project
+  Returns `true` if recursion was enabled or `false` if the project
   already had recursion enabled or there is no project in the stack.
   """
   @spec enable_recursion :: boolean
@@ -94,7 +103,7 @@ defmodule Mix.ProjectStack do
 
   @doc """
   Disables the recursion for the project in the stack.
-  Returns true if recursion was disabled or false if there
+  Returns `true` if recursion was disabled or `false` if there
   is no project or recursion was not enabled.
   """
   @spec disable_recursion :: boolean
@@ -130,19 +139,6 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  defp in_umbrella?(stack) do
-    Enum.any?(stack, fn(%{config: conf}) ->
-      conf[:apps_path] != nil
-    end)
-  end
-
-  defp umbrella?(stack) do
-    case stack do
-      [%{name: name, config: config}|_] when name != nil -> config[:apps_path] != nil
-      _ -> false
-    end
-  end
-
   defp find_project_named(name, stack) do
     name && Enum.find_value(stack, fn
       %{name: n, file: file} when n === name -> file
@@ -150,8 +146,8 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  defp project_to_tuple(%{name: name, config: config, file: file}) do
-    {name, config, file}
+  defp take(h) do
+    Map.take(h, [:name, :config, :file, :pos])
   end
 
   defp get_and_update(fun) do
@@ -165,5 +161,4 @@ defmodule Mix.ProjectStack do
   defp cast(fun) do
     Agent.cast __MODULE__, fun
   end
-
 end

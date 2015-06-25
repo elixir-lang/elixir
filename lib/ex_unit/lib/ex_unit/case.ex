@@ -7,9 +7,9 @@ defmodule ExUnit.Case do
 
   When used, it accepts the following options:
 
-  * :async - configure Elixir to run that specific test case
-             in parallel with others. Must be used for performance
-             when your test cases do not change any global state;
+    * :async - configure Elixir to run that specific test case in parallel with
+      others. Must be used for performance when your test cases do not change
+      any global state. It defaults to `false`.
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module's documentation for more
@@ -73,17 +73,10 @@ defmodule ExUnit.Case do
           if cd = context[:cd] do
             prev_cd = File.cwd!
             File.cd!(cd)
-            {:ok, [prev_cd: prev_cd]}
-          else
-            :ok
+            on_exit fn -> File.cd!(prev_cd) end
           end
-        end
 
-        teardown context do
-          # Revert to the previous working directory
-          if cd = context[:prev_cd] do
-            File.cd!(cd)
-          end
+          :ok
         end
 
         @tag cd: "fixtures"
@@ -93,10 +86,8 @@ defmodule ExUnit.Case do
       end
 
   In the example above, we have defined a tag called `:cd` that is
-  read in the setup callback to configure the working directory the test is
-  going to run on. We then use the same context to store the
-  previous working directory that is reverted to after the test
-  in the teardown callback.
+  read in the setup callback to configure the working directory the
+  test is going to run on.
 
   Tags are also very effective when used with case templates
   (`ExUnit.CaseTemplate`) allowing callbacks in the case template
@@ -118,15 +109,19 @@ defmodule ExUnit.Case do
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
 
-  ### Reserved tags
+  ### Known tags
 
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-  * `:case` - the test case module
-  * `:test` - the test name
-  * `:line` - the line on which the test was defined
-  * `:file` - the file on which the test was defined
+    * `:case` - the test case module
+    * `:test` - the test name
+    * `:line` - the line on which the test was defined
+    * `:file` - the file on which the test was defined
+
+  The following tags customize how tests behaves:
+
+    * `:timeout` - customizes the test timeout in milliseconds (defaults to 30000)
 
   ## Filters
 
@@ -139,7 +134,7 @@ defmodule ExUnit.Case do
       ExUnit.configure(exclude: [external: true])
 
   From now on, ExUnit will not run any test that has the `external` flag
-  set to true. This behaviour can be reversed with the `:include` option
+  set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 
       mix test --include external:true
@@ -167,16 +162,19 @@ defmodule ExUnit.Case do
 
     quote do
       unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
-        if unquote(async) do
-          ExUnit.Server.add_async_case(__MODULE__)
-        else
-          ExUnit.Server.add_sync_case(__MODULE__)
-        end
-
         Enum.each [:ex_unit_tests, :tag, :moduletag],
           &Module.register_attribute(__MODULE__, &1, accumulate: true)
 
+        if unquote(async) do
+          @moduletag async: true
+          ExUnit.Server.add_async_case(__MODULE__)
+        else
+          @moduletag async: false
+          ExUnit.Server.add_sync_case(__MODULE__)
+        end
+
         @before_compile ExUnit.Case
+        @ex_unit_test_names HashSet.new
         use ExUnit.Callbacks
       end
 
@@ -207,9 +205,9 @@ defmodule ExUnit.Case do
   defmacro test(message, var \\ quote(do: _), contents) do
     contents =
       case contents do
-        [do: _] ->
+        [do: block] ->
           quote do
-            unquote(contents)
+            unquote(block)
             :ok
           end
         _ ->
@@ -229,6 +227,28 @@ defmodule ExUnit.Case do
     end
   end
 
+  @doc """
+  Define a not implemented test with a string.
+
+  Provides a convenient macro that allows a test to be
+  defined with a string, but not yet implemented. The
+  resulting test will always fail and print "Not yet
+  implemented" error message. The resulting test case is
+  also tagged with :not_implemented.
+
+  ## Examples
+
+      test "this will be a test in future"
+
+  """
+  defmacro test(message) do
+    quote bind_quoted: binding do
+      test = :"test #{message}"
+      ExUnit.Case.__on_definition__(__ENV__, test, [:not_implemented])
+      def unquote(test)(_), do: flunk("Not yet implemented")
+    end
+  end
+
   @doc false
   defmacro __before_compile__(_) do
     quote do
@@ -239,13 +259,18 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  def __on_definition__(env, name) do
+  def __on_definition__(env, name, tags \\ []) do
     mod  = env.module
-    tags = Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+    tags = tags ++ Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
     tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
-    Module.put_attribute(mod, :ex_unit_tests,
-      %ExUnit.Test{name: name, case: mod, tags: tags})
+    test = %ExUnit.Test{name: name, case: mod, tags: tags}
+    test_names = Module.get_attribute(mod, :ex_unit_test_names)
+
+    unless name in test_names do
+      Module.put_attribute(mod, :ex_unit_tests, test)
+      Module.put_attribute(mod, :ex_unit_test_names, HashSet.put(test_names, name))
+    end
 
     Module.delete_attribute(mod, :tag)
   end

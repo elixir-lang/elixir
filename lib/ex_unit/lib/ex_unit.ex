@@ -23,11 +23,11 @@ defmodule ExUnit do
         end
       end
 
-  To run the tests above, run the file
-  using `elixir` from the command line. Assuming you named the file
-  `assertion_test.exs`, you can run it as:
+  To run the tests above, run the file using `elixir` from the
+  command line. Assuming you named the file `assertion_test.exs`,
+  you can run it as:
 
-      bin/elixir assertion_test.exs
+      elixir assertion_test.exs
 
   ## Case, Callbacks and Assertions
 
@@ -67,18 +67,25 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-    * `:name` - the test name
-    * `:case` - the test case
-    * `:state` - the test state (see ExUnit.state)
-    * `:time` - the time to run the test
-    * `:tags` - the test tags
+      * `:name`  - the test name
+      * `:case`  - the test case
+      * `:state` - the test state (see ExUnit.state)
+      * `:time`  - the time to run the test
+      * `:tags`  - the test tags
 
     """
-    defstruct name: nil :: atom,
-              case: nil :: module,
-              state: nil :: ExUnit.state,
-              time: 0 :: non_neg_integer,
-              tags: %{} :: map
+    defstruct name: nil,
+              case: nil,
+              state: nil,
+              time: 0,
+              tags: %{}
+
+    @type t :: %__MODULE__{
+                 name: atom,
+                 case: module,
+                 state: ExUnit.state,
+                 time: non_neg_integer,
+                 tags: map}
   end
 
   defmodule TestCase do
@@ -87,23 +94,45 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-    * `:name` - the test case name
-    * `:state` - the test state (see ExUnit.state)
-    * `:tests` - all tests for this case
+      * `:name`  - the test case name
+      * `:state` - the test state (see ExUnit.state)
+      * `:tests` - all tests for this case
 
     """
-    defstruct name: nil :: module,
-              state: nil :: ExUnit.state,
-              tests: [] :: [ExUnit.Test.t]
+    defstruct name: nil,
+              state: nil,
+              tests: []
+
+    @type t :: %__MODULE__{
+                 name: module,
+                 state: ExUnit.state,
+                 tests: [ExUnit.Test.t]}
+  end
+
+  defmodule TimeoutError do
+    defexception [:timeout]
+
+    def message(timeout)
+    def message(%{timeout: timeout}) do
+      "test timed out after #{timeout}ms. You can change the timeout globally " <>
+        "via ExUnit.start/1 or per test by setting \"@tag timeout: x\" where x " <>
+        "is an integer in milliseconds)"
+    end
   end
 
   use Application
 
   @doc false
   def start(_type, []) do
-    pid = ExUnit.Sup.start_link
-    ExUnit.Server.start_load
-    pid
+    import Supervisor.Spec
+
+    children = [
+      worker(ExUnit.Server, []),
+      worker(ExUnit.OnExitHandler, [])
+    ]
+
+    opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 
   @doc """
@@ -114,8 +143,7 @@ defmodule ExUnit do
   If you want to run tests manually, you can set `:autorun` to `false`.
   """
   def start(options \\ []) do
-    Application.start(:elixir)
-    Application.start(:ex_unit)
+    {:ok, _} = Application.ensure_all_started(:ex_unit)
 
     configure(options)
 
@@ -126,7 +154,7 @@ defmodule ExUnit do
         0 ->
           %{failures: failures} = ExUnit.run
           System.at_exit fn _ ->
-            if failures > 0, do: System.halt(1)
+            if failures > 0, do: exit({:shutdown, 1})
           end
         _ ->
           :ok
@@ -141,25 +169,35 @@ defmodule ExUnit do
 
   ExUnit supports the following options:
 
-  * `:color` - When color should be used by specific formatters.
-               Defaults to the result of `IO.ANSI.terminal?/1`;
+    * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
+      calls. Defaults to 100ms.
 
-  * `:formatters` - The formatters that will print results.
-                    Defaults to `[ExUnit.CLIFormatter]`;
+    * `:colors` - a keyword list of colors to be used by some formatters.
+      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
-  * `:max_cases` - Maximum number of cases to run in parallel.
-                   Defaults to `:erlang.system_info(:schedulers_online)`;
+    * `:formatters` - the formatters that will print results;
+      defaults to `[ExUnit.CLIFormatter]`
 
-  * `:trace` - Set ExUnit into trace mode, this sets `:max_cases` to `1`
-               and prints each test case and test while running;
+    * `:max_cases` - maximum number of cases to run in parallel;
+      defaults to `:erlang.system_info(:schedulers_online)`
 
-  * `:autorun` - If ExUnit should run by default on exit, defaults to `true`;
+    * `:trace` - set ExUnit into trace mode, this sets `:max_cases` to `1` and
+      prints each test case and test while running
 
-  * `:include` - Specify which tests are run by skipping tests that do not match the filter
+    * `:autorun` - if ExUnit should run by default on exit; defaults to `true`
 
-  * `:exclude` - Specify which tests are run by skipping tests that match the filter
+    * `:include` - specify which tests are run by skipping tests that do not
+      match the filter
 
-  * `:seed` - An integer seed value to randomize the test suite
+    * `:exclude` - specify which tests are run by skipping tests that match the
+      filter
+
+    * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
+      calls. Defaults to 100ms.
+
+    * `:seed` - an integer seed value to randomize the test suite
+
+    * `:timeout` - set the timeout for the tests (default 60_000 ms)
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
@@ -178,8 +216,8 @@ defmodule ExUnit do
   API used to run the tests. It is invoked automatically
   if ExUnit is started via `ExUnit.start/1`.
 
-  Returns a map containing the number of tests and the number
-  of failures.
+  Returns a map containing the total number of tests, the number
+  of failures and the number of skipped tests.
   """
   def run do
     {async, sync, load_us} = ExUnit.Server.start_run

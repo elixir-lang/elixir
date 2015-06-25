@@ -29,6 +29,7 @@ defmodule RegexTest do
     assert Regex.regex?(regex)
     assert {:error, _} = Regex.compile("*foo")
     assert {:error, _} = Regex.compile("foo", "y")
+    assert {:error, _} = Regex.compile("foo", "uy")
   end
 
   test :compile_with_erl_opts do
@@ -77,8 +78,12 @@ defmodule RegexTest do
   end
 
   test :unicode do
-    assert "josé" =~ ~r"\p{Latin}$"u
+    assert "olá" =~ ~r"\p{Latin}$"u
     refute "£" =~ ~r/\p{Lu}/u
+
+    # Non breaking space matches [[:space:]] with unicode
+    assert <<0xA0::utf8>> =~ ~r/[[:space:]]/u
+    assert <<0xA0::utf8>> =~ ~r/\s/u
 
     assert <<?<, 255, ?>>> =~ ~r/<.>/
     refute <<?<, 255, ?>>> =~ ~r/<.>/u
@@ -144,16 +149,40 @@ defmodule RegexTest do
 
   test :split do
     assert Regex.split(~r",", "") == [""]
+    assert Regex.split(~r",", "", trim: true) == []
+    assert Regex.split(~r",", "", trim: true, parts: 2) == []
+
+    assert Regex.split(~r"=", "key=") == ["key", ""]
+    assert Regex.split(~r"=", "=value") == ["", "value"]
+
     assert Regex.split(~r" ", "foo bar baz") == ["foo", "bar", "baz"]
-    assert Regex.split(~r" ", "foo bar baz", parts: 0) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", "foo bar baz", parts: :infinity) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", "foo bar baz", parts: 10) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", "foo bar baz", parts: 2) == ["foo", "bar baz"]
-    assert Regex.split(~r"\s", "foobar") == ["foobar"]
+
     assert Regex.split(~r" ", " foo bar baz ") == ["", "foo", "bar", "baz", ""]
     assert Regex.split(~r" ", " foo bar baz ", trim: true) == ["foo", "bar", "baz"]
-    assert Regex.split(~r"=", "key=") == ["key", ""]
-    assert Regex.split(~r"=", "=value") == ["", "value"]
+    assert Regex.split(~r" ", " foo bar baz ", parts: 2) == ["", "foo bar baz "]
+    assert Regex.split(~r" ", " foo bar baz ", trim: true, parts: 2) == ["foo", "bar baz "]
+  end
+
+  test :split_on do
+    assert Regex.split(~r/()abc()/, "xabcxabcx", on: :none) ==
+           ["xabcxabcx"]
+    assert Regex.split(~r/()abc()/, "xabcxabcx", on: :all_but_first) ==
+           ["x", "abc", "x", "abc", "x"]
+
+    assert Regex.split(~r/(?<first>)abc(?<last>)/, "xabcxabcx", on: [:first, :last]) ==
+           ["x", "abc", "x", "abc", "x"]
+    assert Regex.split(~r/(?<first>)abc(?<last>)/, "xabcxabcx", on: [:last, :first]) ==
+           ["xabc", "xabc", "x"]
+
+    assert Regex.split(~r/a(?<second>b)c/, "abc", on: [:second]) ==
+           ["a", "c"]
+    assert Regex.split(~r/a(?<second>b)c|a(?<fourth>d)c/, "abc adc abc", on: [:second]) ==
+           ["a", "c adc a", "c"]
+    assert Regex.split(~r/a(?<second>b)c|a(?<fourth>d)c/, "abc adc abc", on: [:second, :fourth]) ==
+           ["a", "c a", "c a", "c"]
   end
 
   test :replace do
@@ -161,15 +190,31 @@ defmodule RegexTest do
     assert Regex.replace(~r(b), "abc", "d") == "adc"
     assert Regex.replace(~r(b), "abc", "[\\0]") == "a[b]c"
     assert Regex.replace(~r[(b)], "abc", "[\\1]") == "a[b]c"
+    assert Regex.replace(~r[(b)], "abc", "[\\2]") == "a[]c"
+    assert Regex.replace(~r[(b)], "abc", "[\\3]") == "a[]c"
+    assert Regex.replace(~r(b), "abc", "[\\g{0}]") == "a[b]c"
+    assert Regex.replace(~r[(b)], "abc", "[\\g{1}]") == "a[b]c"
 
     assert Regex.replace(~r(b), "abcbe", "d") == "adcde"
     assert Regex.replace(~r(b), "abcbe", "d", global: false) == "adcbe"
+
+    assert Regex.replace(~r/ /, "first third", "\\second\\") ==
+           "first\\second\\third"
+    assert Regex.replace(~r/ /, "first third", "\\\\second\\\\") ==
+           "first\\second\\third"
 
     assert Regex.replace(~r[a(b)c], "abcabc", fn -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b", "" -> "ac" end) == "acac"
     assert Regex.replace(~r[a(b)c], "abcabc", fn "abc", "b" -> "ac" end, global: false) == "acabc"
+  end
+
+  test :ungreedy do
+    assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
+    assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
+    assert Regex.run(~r/[\d ]+/r, "1 2 3 4 5"), ["1"]
+    assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
   end
 
   test :escape do

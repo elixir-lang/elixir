@@ -5,18 +5,30 @@ defmodule Mix.Dep do
   The Mix.Dep a struct keeps information about your project dependencies.
   It contains:
 
-  * `scm` - a module representing the source code management tool (SCM) operations;
-  * `app` - the application name as an atom;
-  * `requirement` - a binary or regex with the dependency's requirement
-  * `status` - the current status of the dependency, check `Mix.Dep.format_status/1` for more info;
-  * `opts` - the options given by the developer
-  * `deps` - dependencies of this dependency
-  * `top_level` - true if dependency was defined in the top-level project
-  * `manager` - the project management, possible values: `:rebar` | `:mix` | `:make` | `nil`
-  * `from` - path to the file where the dependency was defined
-  * `extra` - a slot for adding extra configuration based on the manager.
-              the information on this field is private to the manager and
-              should not be relied on.
+    * `scm` - a module representing the source code management tool (SCM)
+      operations
+
+    * `app` - the application name as an atom
+
+    * `requirement` - a binary or regex with the dependency's requirement
+
+    * `status` - the current status of the dependency, check
+      `Mix.Dep.format_status/1` for more info
+
+    * `opts` - the options given by the developer
+
+    * `deps` - dependencies of this dependency
+
+    * `top_level` - true if dependency was defined in the top-level project
+
+    * `manager` - the project management, possible values:
+      `:rebar` | `:mix` | `:make` | `nil`
+
+    * `from` - path to the file where the dependency was defined
+
+    * `extra` - a slot for adding extra configuration based on the manager;
+      the information on this field is private to the manager and should not be
+      relied on
 
   A dependency is in two specific states: loaded and unloaded.
 
@@ -28,13 +40,25 @@ defmodule Mix.Dep do
   Furthermore, in the `opts` fields, Mix keeps some internal options, which
   can be accessed by SCMs:
 
-  * `:app` - The application name
-  * `:dest` - The destination path for the dependency
-  * `:lock` - The lock information retrieved from mix.lock
+    * `:app`   - the application name
+    * `:dest`  - the destination path for the dependency
+    * `:lock`  - the lock information retrieved from mix.lock
+    * `:build` - the build path for the dependency
 
   """
-  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: nil,
-            deps: [], top_level: false, extra: nil, manager: nil, from: nil
+  defstruct scm: nil, app: nil, requirement: nil, status: nil, opts: [],
+            deps: [], top_level: false, extra: [], manager: nil, from: nil
+
+  @type t :: %__MODULE__{
+               scm: module,
+               app: atom,
+               requirement: String.t | Regex.t,
+               status: atom,
+               opts: Keyword.t,
+               top_level: boolean,
+               manager: :rebar | :mix | :make | nil,
+               from: String.t,
+               extra: term}
 
   @doc """
   Returns all children dependencies for the current project,
@@ -81,7 +105,7 @@ defmodule Mix.Dep do
 
     Enum.each apps, fn(app) ->
       unless Enum.any?(all_deps, &(&1.app == app)) do
-        raise Mix.Error, message: "Unknown dependency #{app} for environment #{Mix.env}"
+        Mix.raise "Unknown dependency #{app} for environment #{Mix.env}"
       end
     end
 
@@ -123,9 +147,10 @@ defmodule Mix.Dep do
     do: "ok"
 
   def format_status(%Mix.Dep{status: {:noappfile, path}}),
-    do: "could not find an app file at #{Path.relative_to_cwd(path)}, " <>
-        "this may happen when you specified the wrong application name in your deps " <>
-        "or if the dependency did not compile (which can be amended with `#{mix_env_var}mix deps.compile`)"
+    do: "could not find an app file at #{Path.relative_to_cwd(path)}. " <>
+        "This may happen if the dependency was not yet compiled, " <>
+        "or you specified the wrong application name in your deps, " <>
+        "or the dependency indeed has no app file (then you can pass app: false as option)"
 
   def format_status(%Mix.Dep{status: {:invalidapp, path}}),
     do: "the app file at #{Path.relative_to_cwd(path)} is invalid"
@@ -137,7 +162,7 @@ defmodule Mix.Dep do
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date"
+    do: "lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
     do: "lock outdated: the lock is outdated compared to the options in your mixfile"
@@ -213,7 +238,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns true if the dependency is ok.
+  Returns `true` if the dependency is ok.
   """
   def ok?(%Mix.Dep{status: {:ok, _}}), do: true
   def ok?(%Mix.Dep{}), do: false

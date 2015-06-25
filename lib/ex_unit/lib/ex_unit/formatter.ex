@@ -8,19 +8,24 @@ defmodule ExUnit.Formatter do
 
   The following events are possible:
 
-  * `{:suite_started, opts}` - The suite has started with the specified
-                                 options to the runner.
-  * `{:suite_finished, run_us, load_us}` - The suite has finished. `run_us` and
-                                             `load_us` are the run and load
-                                             times in microseconds respectively.
-  * `{:case_started, test_case}` - A test case has started. See
-                                     `ExUnit.TestCase` for details.
-  * `{:case_finished, test_case}` - A test case has finished. See
-                                      `ExUnit.TestCase` for details.
-  * `{:test_started, test_case}` - A test case has started. See
-                                     `ExUnit.Test` for details.
-  * `{:test_finished, test_case}` - A test case has finished. See
-                                     `ExUnit.Test` for details.
+    * `{:suite_started, opts}` -
+      the suite has started with the specified options to the runner.
+
+    * `{:suite_finished, run_us, load_us}` -
+      the suite has finished. `run_us` and `load_us` are the run and load
+      times in microseconds respectively.
+
+    * `{:case_started, test_case}` -
+      a test case has started. See `ExUnit.TestCase` for details.
+
+    * `{:case_finished, test_case}` -
+      a test case has finished. See `ExUnit.TestCase` for details.
+
+    * `{:test_started, test_case}` -
+      a test case has started. See `ExUnit.Test` for details.
+
+    * `{:test_finished, test_case}` -
+      a test case has finished. See `ExUnit.Test` for details.
 
   """
 
@@ -81,7 +86,7 @@ defmodule ExUnit.Formatter do
   end
 
   @doc """
-  Formats filters used to constain cases to be run.
+  Formats filters used to constrain cases to be run.
 
   ## Examples
 
@@ -100,6 +105,7 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
+  def format_test_failure(test, failure, counter, width, formatter)
   def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
@@ -111,6 +117,7 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test case and formats its failure.
   """
+  def format_test_case_failure(test_case, failure, counter, width, formatter)
   def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
@@ -166,6 +173,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_banner(value, formatter) do
+    value = String.replace(value, "\n", "\n" <> @counter_padding)
     formatter.(:error_info, value)
   end
 
@@ -214,7 +222,7 @@ defmodule ExUnit.Formatter do
   defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
   defp with_counter(counter, msg)                    do   "#{counter}) #{msg}" end
 
-  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all/teardown_all callback, tests invalidated\n"
+  defp test_case_info(msg, nil),       do: msg <> "failure on setup_all callback, tests invalidated\n"
   defp test_case_info(msg, formatter), do: test_case_info(formatter.(:test_case_info, msg), nil)
 
   defp test_info(msg, nil),       do: msg <> "\n"

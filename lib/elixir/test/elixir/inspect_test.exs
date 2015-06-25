@@ -41,8 +41,14 @@ defmodule Inspect.AtomTest do
 
   test :op do
     assert inspect(:+)   == ":+"
+    assert inspect(:<~) == ":<~"
+    assert inspect(:~>) == ":~>"
     assert inspect(:&&&) == ":&&&"
     assert inspect(:~~~) == ":~~~"
+    assert inspect(:<<~) == ":<<~"
+    assert inspect(:~>>) == ":~>>"
+    assert inspect(:<~>) == ":<~>"
+    assert inspect(:<|>) == ":<|>"
   end
 
   test :... do
@@ -68,7 +74,7 @@ defmodule Inspect.BitStringTest do
   use ExUnit.Case, async: true
 
   test :bitstring do
-    assert inspect(<<1 :: [size(12), integer, signed]>>) == "<<0, 1::size(4)>>"
+    assert inspect(<<1 :: size(12)-integer-signed>>) == "<<0, 1::size(4)>>"
   end
 
   test :binary do
@@ -92,20 +98,20 @@ defmodule Inspect.BitStringTest do
   end
 
   test :opt_infer do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :infer) == ~s(<<101, 114, 105, 99, 193, 109, 106>>)
-    assert inspect(<<"eric">>, binaries: :infer) == ~s("eric")
+    assert inspect(<<"john", 193, "doe">>, binaries: :infer) == ~s(<<106, 111, 104, 110, 193, 100, 111, 101>>)
+    assert inspect(<<"john">>, binaries: :infer) == ~s("john")
     assert inspect(<<193>>, binaries: :infer) == ~s(<<193>>)
   end
 
   test :opt_as_strings do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :as_strings) == ~s("eric\\301mj")
-    assert inspect(<<"eric">>, binaries: :as_strings) == ~s("eric")
-    assert inspect(<<193>>, binaries: :as_strings) == ~s("\\301")
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\xC1doe")
+    assert inspect(<<"john">>, binaries: :as_strings) == ~s("john")
+    assert inspect(<<193>>, binaries: :as_strings) == ~s("\\xC1")
   end
 
   test :opt_as_binaries do
-    assert inspect(<<"eric", 193, "mj">>, binaries: :as_binaries) == "<<101, 114, 105, 99, 193, 109, 106>>"
-    assert inspect(<<"eric">>, binaries: :as_binaries) == "<<101, 114, 105, 99>>"
+    assert inspect(<<"john", 193, "doe">>, binaries: :as_binaries) == "<<106, 111, 104, 110, 193, 100, 111, 101>>"
+    assert inspect(<<"john">>, binaries: :as_binaries) == "<<106, 111, 104, 110>>"
     assert inspect(<<193>>, binaries: :as_binaries) == "<<193>>"
   end
 
@@ -121,8 +127,25 @@ defmodule Inspect.NumberTest do
     assert inspect(100) == "100"
   end
 
+  test :decimal do
+    assert inspect(100, base: :decimal) == "100"
+  end
+
+  test :hex do
+    assert inspect(100, base: :hex) == "0x64"
+  end
+
+  test :octal do
+    assert inspect(100, base: :octal) == "0o144"
+  end
+
+  test :binary do
+    assert inspect(86, base: :binary) == "0b1010110"
+  end
+
   test :float do
     assert inspect(1.0) == "1.0"
+    assert inspect(1.0E10) == "1.0e10"
     assert inspect(1.0e10) == "1.0e10"
     assert inspect(1.0e-10) == "1.0e-10"
   end
@@ -163,25 +186,25 @@ defmodule Inspect.ListTest do
     assert inspect([a: 1, a: 2, b: 2]) == "[a: 1, a: 2, b: 2]"
     assert inspect(["123": 1]) == ~s(["123": 1])
 
-    assert inspect([foo: [1,2,3,:bar], bazzz: :bat], [pretty: true, width: 30]) ==
+    assert inspect([foo: [1, 2, 3, :bar], bazzz: :bat], [pretty: true, width: 30]) ==
            "[foo: [1, 2, 3, :bar],\n bazzz: :bat]"
   end
 
   test :opt_infer do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :infer) == "[101, 114, 105, 99, 0, 109, 106]"
-    assert inspect('eric', char_lists: :infer) == "'eric'"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :infer) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', char_lists: :infer) == "'john'"
     assert inspect([0], char_lists: :infer) == "[0]"
   end
 
   test :opt_as_strings do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_char_lists) == "'eric\\000mj'"
-    assert inspect('eric', char_lists: :as_char_lists) == "'eric'"
-    assert inspect([0], char_lists: :as_char_lists) == "'\\000'"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\0doe'"
+    assert inspect('john', char_lists: :as_char_lists) == "'john'"
+    assert inspect([0], char_lists: :as_char_lists) == "'\\0'"
   end
 
   test :opt_as_lists do
-    assert inspect('eric' ++ [0] ++ 'mj', char_lists: :as_lists) == "[101, 114, 105, 99, 0, 109, 106]"
-    assert inspect('eric', char_lists: :as_lists) == "[101, 114, 105, 99]"
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_lists) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', char_lists: :as_lists) == "[106, 111, 104, 110]"
     assert inspect([0], char_lists: :as_lists) == "[0]"
   end
 
@@ -189,10 +212,17 @@ defmodule Inspect.ListTest do
     assert inspect([{:b, 1}, {:a, 1}]) == "[b: 1, a: 1]"
   end
 
-  test :unproper do
+  test :improper do
     assert inspect([:foo | :bar]) == "[:foo | :bar]"
 
-    assert inspect([1,2,3,4,5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+    assert inspect([1, 2, 3, 4, 5|42], [pretty: true, width: 1]) == "[1,\n 2,\n 3,\n 4,\n 5 |\n 42]"
+  end
+
+  test :nested do
+    assert inspect(Enum.reduce(1..100, [0], &[&2, Integer.to_string(&1)]), [limit: 5]) ==
+           "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
+    assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), [limit: 5]) ==
+           "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
   end
 
   test :codepoints do
@@ -213,7 +243,7 @@ defmodule Inspect.MapTest do
 
   test :basic do
     assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
-    assert inspect(%{1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n 2 => \"c\"}"
+    assert inspect(%{1 => "b", 2 => "c"}, [pretty: true, width: 1]) == "%{1 => \"b\",\n  2 => \"c\"}"
   end
 
   test :keyword do
@@ -255,19 +285,31 @@ defmodule Inspect.MapTest do
     end
 
     defimpl Inspect do
-      def inspect(_, _) do
-        raise "failing"
+      def inspect(struct, _) do
+        struct.unknown
       end
     end
   end
 
-  test :bad_implementation do
-    msg = "Got RuntimeError with message \"failing\" " <>
-          "while inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+  test :bad_implementation_unsafe do
+    msg = "got KeyError with message `key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
+          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
-    assert_raise ArgumentError, msg, fn ->
-      inspect(%Failing{})
+    assert_raise Inspect.Error, msg, fn ->
+      inspect(%Failing{}, safe: false)
     end
+
+    assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _}|_] = System.stacktrace
+  end
+
+  test :bad_implementation_safe do
+    msg = "got KeyError with message `key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
+          "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+
+    assert inspect(%Failing{}) ==
+           "%Inspect.Error{message: \"#{msg}\"}"
   end
 
   test :exception do
@@ -326,6 +368,10 @@ defmodule Inspect.OthersTest do
     assert "#HashSet<" <> _ = inspect(HashSet.new)
   end
 
+  test :map_set do
+    assert "#MapSet<" <> _ = inspect(MapSet.new)
+  end
+
   test :pids do
     assert "#PID<" <> _ = inspect(self)
   end
@@ -336,7 +382,7 @@ defmodule Inspect.OthersTest do
 
   test :regex do
     "~r/foo/m" = inspect(~r(foo)m)
-    "~r/\\a\\010\\177\\033\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
+    "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//" = inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/"))
     "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//" = inspect(~r<\a\b\d\e\f\n\r\s\t\v/>)
   end
 end

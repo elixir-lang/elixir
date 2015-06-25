@@ -21,7 +21,7 @@ defmodule HashDict do
   @node_size 8
   @node_template :erlang.make_tuple(@node_size, [])
 
-  @opaque t :: map
+  @opaque t :: %__MODULE__{size: non_neg_integer, root: term}
   @doc false
   defstruct size: 0, root: @node_template
 
@@ -194,7 +194,7 @@ defmodule HashDict do
   end
 
   defp do_reduce_each([k|v], {:cont, acc}, fun, next) do
-    next.(fun.({k,v}, acc))
+    next.(fun.({k, v}, acc))
   end
 
   defp do_reduce_each({k, v, n}, {:cont, acc}, fun, next) do
@@ -245,10 +245,6 @@ defimpl Access, for: HashDict do
 end
 
 defimpl Collectable, for: HashDict do
-  def empty(_dict) do
-    HashDict.new
-  end
-
   def into(original) do
     {original, fn
       dict, {:cont, {k, v}} -> Dict.put(dict, k, v)

@@ -1,14 +1,14 @@
 defmodule Set do
   @moduledoc ~S"""
-  This module specifies the Set API expected to be
-  implemented by different representations.
+  This module specifies the `Set` behaviour expected to be
+  implemented by different representations of sets.
 
   It also provides functions that redirect to the
-  underlying Set, allowing a developer to work with
-  different Set implementations using one API.
+  underlying implementation, allowing a developer to work with
+  different `Set` implementations using a common API.
 
-  To create a new set, use the `new` functions defined
-  by each set type:
+  To create a new set, use the `new` function which each set implementation
+  defines:
 
       HashSet.new  #=> creates an empty HashSet
 
@@ -17,12 +17,12 @@ defmodule Set do
 
   ## Protocols
 
-  Sets are required to implement both `Enumerable` and `Collectable`
+  Sets are required to implement both the `Enumerable` and `Collectable`
   protocols.
 
-  ## Match
+  ## Matching
 
-  Sets are required to implement all operations using the match (`===`)
+  Sets are required to implement all equality checks using the match (`===`)
   operator.
   """
 
@@ -59,6 +59,8 @@ defmodule Set do
   @doc """
   Deletes `value` from `set`.
 
+  Returns a new set which is a copy of `set` but without `value`.
+
   ## Examples
 
       iex> s = Enum.into([1, 2, 3], set_impl.new)
@@ -78,13 +80,14 @@ defmodule Set do
   @doc """
   Returns a set that is `set1` without the members of `set2`.
 
-  Notice this function is polymorphic as it calculates the difference
-  for of any type. Each set implementation also provides a `difference`
-  function, but they can only work with sets of the same type.
+  Note that this function is polymorphic as it calculates the difference for
+  sets of the same type as well as of sets of different types. Each set
+  implementation also provides a `difference` function which only works with
+  sets of that type.
 
   ## Examples
 
-      iex> Set.difference(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
+      iex> Set.difference(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
       [1]
 
   """
@@ -105,9 +108,9 @@ defmodule Set do
   @doc """
   Checks if `set1` and `set2` have no members in common.
 
-  Notice this function is polymorphic as it checks for disjoint sets of
+  Note that this function is polymorphic as it checks for disjoint sets of
   any type. Each set implementation also provides a `disjoint?` function,
-  but they can only work with sets of the same type.
+  but that function can only work with sets of the same type.
 
   ## Examples
 
@@ -142,11 +145,11 @@ defmodule Set do
   end
 
   @doc """
-  Check if two sets are equal using `===`.
+  Checks if two sets are equal using `===`.
 
-  Notice this function is polymorphic as it compares sets of
+  Note that this function is polymorphic as it compares sets of
   any type. Each set implementation also provides an `equal?`
-  function, but they can only work with sets of the same type.
+  function, but that function can only work with sets of the same type.
 
   ## Examples
 
@@ -175,18 +178,18 @@ defmodule Set do
   end
 
   @doc """
-  Returns a set containing only members in common between `set1` and `set2`.
+  Returns a set containing only members that `set1` and `set2` have in common.
 
-  Notice this function is polymorphic as it calculates the intersection of
-  any type. Each set implementation also provides a `intersection` function,
-  but they can only work with sets of the same type.
+  Note that this function is polymorphic as it calculates the intersection of
+  any type. Each set implementation also provides an `intersection` function,
+  but that function can only work with sets of the same type.
 
   ## Examples
 
-      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
+      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
       [2]
 
-      iex> Set.intersection(Enum.into([1,2], set_impl.new), Enum.into([3,4], set_impl.new)) |> Enum.sort
+      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new)) |> Enum.sort
       []
 
   """
@@ -198,7 +201,7 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      target1.reduce(set1, {:cont, Collectable.empty(set1)}, fn v, acc ->
+      target1.reduce(set1, {:cont, target1.new}, fn v, acc ->
         {:cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc)}
       end) |> elem(1)
     end
@@ -222,7 +225,7 @@ defmodule Set do
   end
 
   @doc """
-  Inserts `value` into `set` if it does not already contain it.
+  Inserts `value` into `set` if `set` doesn't already contain it.
 
   ## Examples
 
@@ -255,9 +258,11 @@ defmodule Set do
   @doc """
   Checks if `set1`'s members are all contained in `set2`.
 
-  Notice this function is polymorphic as it checks the subset for
+  This function checks if `set1` is a subset of `set2`.
+
+  Note that this function is polymorphic as it checks the subset for
   any type. Each set implementation also provides a `subset?` function,
-  but they can only work with sets of the same type.
+  but that function can only work with sets of the same type.
 
   ## Examples
 
@@ -286,7 +291,7 @@ defmodule Set do
   ## Examples
 
       iex> set_impl.to_list(Enum.into([1, 2, 3], set_impl.new)) |> Enum.sort
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec to_list(t) :: list
@@ -297,14 +302,14 @@ defmodule Set do
   @doc """
   Returns a set containing all members of `set1` and `set2`.
 
-  Notice this function is polymorphic as it calculates the union of
+  Note that this function is polymorphic as it calculates the union of sets of
   any type. Each set implementation also provides a `union` function,
-  but they can only work with sets of the same type.
+  but that function can only work with sets of the same type.
 
   ## Examples
 
-      iex> Set.union(Enum.into([1,2], set_impl.new), Enum.into([2,3,4], set_impl.new)) |> Enum.sort
-      [1,2,3,4]
+      iex> Set.union(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
+      [1, 2, 3, 4]
 
   """
   @spec union(t, t) :: t

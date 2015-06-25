@@ -1,3 +1,5 @@
+import Kernel, except: [round: 1]
+
 defmodule Float do
   @moduledoc """
   Functions for working with floating point numbers.
@@ -6,19 +8,22 @@ defmodule Float do
   @doc """
   Parses a binary into a float.
 
-  If successful, returns a tuple of the form `{float, remainder_of_binary}`.
-  Otherwise `:error`.
+  If successful, returns a tuple of the form `{float, remainder_of_binary}`;
+  otherwise, `:error`.
+
+  If a float formatted string wants to be directly converted to a float,
+  `String.to_float/1" can be used instead.
 
   ## Examples
 
       iex> Float.parse("34")
-      {34.0,""}
+      {34.0, ""}
 
       iex> Float.parse("34.25")
-      {34.25,""}
+      {34.25, ""}
 
       iex> Float.parse("56.5xyz")
-      {56.5,"xyz"}
+      {56.5, "xyz"}
 
       iex> Float.parse("pi")
       :error
@@ -26,129 +31,107 @@ defmodule Float do
   """
   @spec parse(binary) :: {float, binary} | :error
   def parse("-" <> binary) do
-    case parse_unsign(binary) do
+    case parse_unsigned(binary) do
       :error -> :error
       {number, remainder} -> {-number, remainder}
     end
   end
 
   def parse(binary) do
-    parse_unsign(binary)
+    parse_unsigned(binary)
   end
 
-  defp parse_unsign("-" <> _), do: :error
-  defp parse_unsign(binary) when is_binary(binary) do
-    case Integer.parse binary do
-      :error -> :error
-      {integer_part, after_integer} -> parse_unsign after_integer, integer_part
-    end
-  end
+  defp parse_unsigned(<<char, rest::binary>>) when char in ?0..?9, do:
+    parse_unsigned(rest, false, false, <<char>>)
 
-  # Dot followed by digit is required afterwards or we are done
-  defp parse_unsign(<< ?., char, rest :: binary >>, int) when char in ?0..?9 do
-    parse_unsign(rest, char - ?0, 1, int)
-  end
+  defp parse_unsigned(binary) when is_binary(binary), do:
+    :error
 
-  defp parse_unsign(rest, int) do
-    {:erlang.float(int), rest}
-  end
+  defp parse_unsigned(<<char, rest :: binary>>, dot?, e?, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, dot?, e?, <<acc::binary, char>>)
 
-  # Handle decimal points
-  defp parse_unsign(<< char, rest :: binary >>, float, decimal, int) when char in ?0..?9 do
-    parse_unsign rest, 10 * float + (char - ?0), decimal + 1, int
-  end
+  defp parse_unsigned(<<?., char, rest :: binary>>, false, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, false, <<acc::binary, ?., char>>)
 
-  defp parse_unsign(<< ?e, after_e :: binary >>, float, decimal, int) do
-    case Integer.parse after_e do
-      :error ->
-        # Note we rebuild the binary here instead of breaking it apart at
-        # the function clause because the current approach copies a binary
-        # just on this branch. If we broke it apart in the function clause,
-        # the copy would happen when calling Integer.parse/1.
-        {floatify(int, float, decimal), << ?e, after_e :: binary >>}
-      {exponential, after_exponential} ->
-        {floatify(int, float, decimal, exponential), after_exponential}
-    end
-  end
+  defp parse_unsigned(<<?e, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, char>>)
 
-  defp parse_unsign(bitstring, float, decimal, int) do
-    {floatify(int, float, decimal), bitstring}
-  end
+  defp parse_unsigned(<<?e, ?-, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, ?-, char>>)
 
-  defp floatify(int, float, decimal, exponential \\ 0) do
-    multiplier = if int < 0, do: -1.0, else: 1.0
+  defp parse_unsigned(rest, dot?, _e?, acc), do:
+    {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
 
-    # Try to ensure the minimum amount of rounding errors
-    result = multiplier * (abs(int) * :math.pow(10, decimal) + float) * :math.pow(10, exponential - decimal)
-
-    # Try avoiding stuff like this:
-    # iex(1)> 0.0001 * 75
-    # 0.007500000000000001
-    # Due to IEEE 754 floating point standard
-    # http://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
-
-    final_decimal_places = decimal - exponential
-    if final_decimal_places > 0 do
-      decimal_power_round = :math.pow(10,  final_decimal_places)
-      trunc(result * decimal_power_round) / decimal_power_round
-    else
-      result
-    end
-  end
+  defp add_dot(acc, true),  do: acc
+  defp add_dot(acc, false), do: acc <> ".0"
 
   @doc """
   Rounds a float to the largest integer less than or equal to `num`.
 
+  `floor/2` also accepts a precision to round a floating point value down
+  to an arbitrary number of fractional digits (between 0 and 15).
+
+  This function always returns a float. `Kernel.trunc/1` may be used instead to
+  truncate the result to an integer afterwards.
+
   ## Examples
 
-      iex> Float.floor(34)
-      34
-
       iex> Float.floor(34.25)
-      34
+      34.0
 
       iex> Float.floor(-56.5)
-      -57
+      -57.0
+
+      iex> Float.floor(34.253, 2)
+      34.25
 
   """
-  @spec floor(float | integer) :: integer
-  def floor(num) when is_integer(num), do: num
-  def floor(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num < 0 -> truncated - 1
-      _ -> truncated
-    end
+  @spec floor(float, 0..15) :: float
+  def floor(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power     = power_of_10(precision)
+    number    = number * power
+    truncated = trunc(number)
+    variance  = if number - truncated < 0, do: -1.0, else: 0.0
+    (truncated + variance) / power
   end
 
   @doc """
   Rounds a float to the largest integer greater than or equal to `num`.
 
+  `ceil/2` also accepts a precision to round a floating point value down
+  to an arbitrary number of fractional digits (between 0 and 15).
+
+  This function always returns floats. `Kernel.trunc/1` may be used instead to
+  truncate the result to an integer afterwards.
+
   ## Examples
 
-      iex> Float.ceil(34)
-      34
-
       iex> Float.ceil(34.25)
-      35
+      35.0
 
       iex> Float.ceil(-56.5)
-      -56
+      -56.0
+
+      iex> Float.ceil(34.253, 2)
+      34.26
 
   """
-  @spec ceil(float | integer) :: integer
-  def ceil(num) when is_integer(num), do: num
-  def ceil(num) when is_float(num) do
-    truncated = :erlang.trunc(num)
-    case :erlang.abs(num - truncated) do
-      x when x > 0 and num > 0 -> truncated + 1
-      _ -> truncated
-    end
+  @spec ceil(float, 0..15) :: float
+  def ceil(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power     = power_of_10(precision)
+    number    = number * power
+    truncated = trunc(number)
+    variance  = if number - truncated > 0, do: 1.0, else: 0.0
+    (truncated + variance) / power
   end
 
   @doc """
   Rounds a floating point value to an arbitrary number of fractional digits
   (between 0 and 15).
+
+  This function only accepts floats and always returns a float. Use
+  `Kernel.round/1` if you want a function that accepts both floats and integers
+  and always returns an integer.
 
   ## Examples
 
@@ -165,9 +148,15 @@ defmodule Float do
       -5.568
 
   """
-  @spec round(float, integer) :: float
-  def round(number, precision) when is_float(number) and is_integer(precision) and precision in 0..15 do
-    Kernel.round(number * :math.pow(10, precision)) / :math.pow(10, precision)
+  @spec round(float, 0..15) :: float
+  def round(number, precision \\ 0) when is_float(number) and precision in 0..15 do
+    power = power_of_10(precision)
+    Kernel.round(number * power) / power
+  end
+
+  Enum.reduce 0..15, 1, fn x, acc ->
+    defp power_of_10(unquote(x)), do: unquote(acc)
+    acc * 10
   end
 
   @doc """
@@ -182,19 +171,20 @@ defmodule Float do
 
   """
   @spec to_char_list(float) :: char_list
-  def to_char_list(number) do
-    :erlang.float_to_list(number)
+  def to_char_list(float) do
+    :erlang.float_to_list(float)
   end
 
   @doc """
   Returns a list which corresponds to the text representation
-  of `float`.
+  of the given float.
 
   ## Options
 
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
+    * `:decimals`   — number of decimal points to show
+    * `:scientific` — number of decimal points to show, in scientific format
+    * `:compact`    — when `true`, use the most compact representation (ignored
+                      with the `scientific` option)
 
   ## Examples
 
@@ -209,7 +199,7 @@ defmodule Float do
 
   @doc """
   Returns a binary which corresponds to the text representation
-  of `some_float`.
+  of the given float.
 
   Inlined by the compiler.
 
@@ -220,8 +210,8 @@ defmodule Float do
 
   """
   @spec to_string(float) :: String.t
-  def to_string(some_float) do
-    :erlang.float_to_binary(some_float)
+  def to_string(float) do
+    :erlang.float_to_binary(float)
   end
 
   @doc """
@@ -230,9 +220,10 @@ defmodule Float do
 
   ## Options
 
-  * `:decimals` — number of decimal points to show
-  * `:scientific` — number of decimal points to show, in scientific format
-  * `:compact` — when true, use the most compact representation (ignored with the `scientific` option)
+    * `:decimals` — number of decimal points to show
+    * `:scientific` — number of decimal points to show, in scientific format
+    * `:compact` — when `true`, use the most compact representation (ignored
+      with the `scientific` option)
 
   ## Examples
 

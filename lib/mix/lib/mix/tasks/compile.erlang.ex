@@ -1,9 +1,6 @@
 defmodule Mix.Tasks.Compile.Erlang do
-  alias :epp, as: Epp
-  alias :digraph, as: Graph
-  alias :digraph_utils, as: GraphUtils
-
   use Mix.Task
+  import Mix.Compilers.Erlang
 
   @recursive true
   @manifest ".compile.erlang"
@@ -25,38 +22,31 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times
+    * `--force` - forces compilation regardless of modification times
 
   ## Configuration
 
-  * `ERL_COMPILER_OPTIONS` - can be used to give default compile options.
-     The value must be a valid Erlang term. If the value is a list, it will
-     be used as is. If it is not a list, it will be put into a list.
+    * `ERL_COMPILER_OPTIONS` - can be used to give default compile options.
+      The value must be a valid Erlang term. If the value is a list, it will
+      be used as is. If it is not a list, it will be put into a list.
 
-  * `:erlc_paths` - directories to find source files.
-    Defaults to `["src"]`, can be configured as:
+    * `:erlc_paths` - directories to find source files.
+      Defaults to `["src"]`.
 
-    ```
-    [erlc_paths: ["src", "other"]]
-    ```
+    * `:erlc_include_path` - directory for adding include files.
+      Defaults to `"include"`.
 
-  * `:erlc_include_path` - directory for adding include files.
-    Defaults to `"include"`, can be configured as:
+    * `:erlc_options` - compilation options that apply to Erlang's compiler.
+      `:debug_info` is enabled by default.
 
-    ```
-    [erlc_include_path: "other"]
-    ```
-
-  * `:erlc_options` - compilation options that apply to Erlang's
-     compiler. `:debug_info` is enabled by default.
-
-     There are many available options here:
-     http://www.erlang.org/doc/man/compile.html#file-2
+      There are many available options here:
+      http://www.erlang.org/doc/man/compile.html#file-2
   """
 
   @doc """
   Runs this task.
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -69,18 +59,20 @@ defmodule Mix.Tasks.Compile.Erlang do
     erlc_options = project[:erlc_options] || []
     erlc_options = erlc_options ++ [{:outdir, compile_path}, {:i, include_path}, :report]
     erlc_options = Enum.map erlc_options, fn
-      {kind, dir} when kind in [:i, :outdit] ->
+      {kind, dir} when kind in [:i, :outdir] ->
         {kind, to_erl_file(dir)}
       opt ->
         opt
     end
+
+    compile_path = Path.relative_to(compile_path, File.cwd!)
 
     tuples = files
              |> scan_sources(include_path, source_paths)
              |> sort_dependencies
              |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
-    compile_mappings(manifest(), tuples, fn
+    Mix.Compilers.Erlang.compile(manifest(), tuples, fn
       input, _output ->
         file = to_erl_file(Path.rootname(input, ".erl"))
         :compile.file(file, erlc_options)
@@ -94,54 +86,10 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp manifest, do: Path.join(Mix.Project.manifest_path, @manifest)
 
   @doc """
-  Extracts the extensions from the mappings, automatically
-  invoking the callback for each stale input and output pair
-  (or for all if `force` is true) and removing files that no
-  longer have a source, while keeping the manifest up
-  to date.
-
-  ## Examples
-
-  For example, a simple compiler for Lisp Flavored Erlang
-  would be implemented like:
-
-      compile_mappings ".compile.lfe",
-                       [{"src", "ebin"}],
-                       :lfe, :beam, opts[:force], fn
-        input, output ->
-          :lfe_comp.file(to_erl_file(input),
-                         [output_dir: Path.dirname(output)])
-      end
-
-  The command above will:
-
-  1. Look for files ending with the `lfe` extension in `src`
-     and their `beam` counterpart in `ebin`;
-  2. For each stale file (or for all if `force` is true),
-     invoke the callback passing the calculated input
-     and output;
-  3. Update the manifest with the newly compiled outputs;
-  4. Remove any output in the manifest that that does not
-     have an equivalent source;
-
-  The callback must return `{:ok, mod}` or `:error` in case
-  of error. An error is raised at the end if any of the
-  files failed to compile.
+  Cleans up compilation artifacts.
   """
-  def compile_mappings(manifest, mappings, src_ext, dest_ext, force, callback) do
-    files = for {src, dest} <- mappings do
-              extract_targets(src, src_ext, dest, dest_ext, force)
-            end |> Enum.concat
-
-    compile_mappings(manifest, files, callback)
-  end
-
-  @doc """
-  Converts the given file to a format accepted by
-  the Erlang compilation tools.
-  """
-  def to_erl_file(file) do
-    to_char_list(file)
+  def clean do
+    Mix.Compilers.Erlang.clean(manifest())
   end
 
   ## Internal helpers
@@ -154,7 +102,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp scan_source(acc, file, include_paths) do
     erl_file = %{file: file, module: module_from_artifact(file),
                  behaviours: [], compile: [], includes: [], invalid: false}
-    case Epp.parse_file(to_erl_file(file), include_paths, []) do
+    case :epp.parse_file(to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
       {:error, _error} ->
@@ -180,105 +128,45 @@ defmodule Mix.Tasks.Compile.Erlang do
   end
 
   defp sort_dependencies(erls) do
-    graph = Graph.new
+    graph = :digraph.new
 
-    for erl <- erls do
-      Graph.add_vertex(graph, erl.module, erl)
+    _ = for erl <- erls do
+      :digraph.add_vertex(graph, erl.module, erl)
     end
 
-    for erl <- erls do
-      for b <- erl.behaviours, do: Graph.add_edge(graph, b, erl.module)
-      for c <- erl.compile do
+    _ = for erl <- erls do
+      _ = for b <- erl.behaviours, do: :digraph.add_edge(graph, b, erl.module)
+      _ = for c <- erl.compile do
         case c do
-          {:parse_transform, transform} -> Graph.add_edge(graph, transform, erl.module)
+          {:parse_transform, transform} -> :digraph.add_edge(graph, transform, erl.module)
           _ -> :ok
         end
       end
+      :ok
     end
 
     result =
-      case GraphUtils.topsort(graph) do
+      case :digraph_utils.topsort(graph) do
         false -> erls
         mods  ->
-          for m <- mods, do: elem(Graph.vertex(graph, m), 1)
+          for m <- mods, do: elem(:digraph.vertex(graph, m), 1)
       end
 
-    Graph.delete(graph)
+    :digraph.delete(graph)
     result
   end
 
   defp annotate_target(erl, compile_path, force) do
-    beam   = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
+    beam = Path.join(compile_path, "#{erl.module}#{:code.objfile_extension}")
 
     if force || Mix.Utils.stale?([erl.file|erl.includes], [beam]) do
-      {erl.file, erl.module, beam}
+      {:stale, erl.file, beam}
     else
-      {erl.file, erl.module, nil}
+      {:ok, erl.file, beam}
     end
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename |> Path.rootname
-  end
-
-  defp extract_targets(dir1, src_ext, dir2, dest_ext, force) do
-    files = Mix.Utils.extract_files([dir1], List.wrap(src_ext))
-
-    for file <- files do
-      module = module_from_artifact(file)
-      target = Path.join(dir2, module <> "." <> to_string(dest_ext))
-
-      if force || Mix.Utils.stale?([file], [target]) do
-        {file, module, target}
-      else
-        {file, module, nil}
-      end
-    end
-  end
-
-  defp compile_mappings(manifest, tuples, callback) do
-    # Stale files are the ones with a destination
-    stale = for {src, _mod, dest} <- tuples, dest != nil, do: {src, dest}
-
-    # Get the previous entries from the manifest
-    entries = Mix.Utils.read_manifest(manifest)
-
-    # Files to remove are the ones in the
-    # manifest but they no longer have a source
-    removed = Enum.filter(entries, fn entry ->
-      module = module_from_artifact(entry)
-      not Enum.any?(tuples, fn {_src, mod, _dest} -> module == mod end)
-    end)
-
-    if stale == [] && removed == [] do
-      :noop
-    else
-      # Build the project structure so we can write down compiled files.
-      Mix.Project.build_structure
-
-      # Remove manifest entries with no source
-      Enum.each(removed, &File.rm/1)
-
-      # Compile stale files and print the results
-      results = for {input, output} <- stale do
-        interpret_result(input, callback.(input, output))
-      end
-
-      # Write final entries to manifest
-      entries = (entries -- removed) ++ Enum.map(stale, &elem(&1, 1))
-      Mix.Utils.write_manifest(manifest, :lists.usort(entries))
-
-      # Raise if any error, return :ok otherwise
-      if :error in results, do: raise CompileError
-      :ok
-    end
-  end
-
-  defp interpret_result(file, result) do
-    case result do
-      {:ok, _} -> Mix.shell.info "Compiled #{file}"
-      :error -> :error
-    end
-    result
+    artifact |> Path.basename |> Path.rootname |> String.to_atom
   end
 end

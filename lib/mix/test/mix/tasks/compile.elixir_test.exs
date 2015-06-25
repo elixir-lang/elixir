@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
-  test "compiles a project" do
+  test "compiles a project without per environment build" do
     Mix.Project.pop
     Mix.ProjectStack.post_config [build_per_environment: false]
     Mix.Project.push MixTest.Case.Sample
@@ -40,6 +40,24 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end
   end
 
+  test "recompiles project if elixir version changed" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run []
+      purge [A, B, C]
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert System.version == Mix.Dep.Lock.elixir_vsn
+
+      Mix.Task.clear
+      File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
+      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Compile.run []
+      assert System.version == Mix.Dep.Lock.elixir_vsn
+      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
+    end
+  end
+
   test "does not write beam down on failures" do
     import ExUnit.CaptureIO
 
@@ -48,21 +66,24 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.write!("lib/a.ex", "raise ~s(oops)")
 
       capture_io fn ->
-        assert catch_exit(Mix.Tasks.Compile.Elixir.run []) == 1
+        assert catch_exit(Mix.Tasks.Compile.Elixir.run []) == {:shutdown, 1}
       end
 
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
     end
   end
 
-  test "removes old artifact files" do
+  test "removes, purges and deletes old artifacts" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      assert Code.ensure_loaded?(A)
 
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      refute Code.ensure_loaded?(A)
+      refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir"), "Elixir.A")
     end
   end
 
@@ -78,6 +99,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       future = {{2020, 1, 1}, {0, 0, 0}}
       File.touch!("lib/a.ex", future)
       Mix.Tasks.Compile.Elixir.run []
+
+      assert_received {:mix_shell, :error, ["warning: mtime (modified time) for \"lib/a.ex\" was set to the future, resetting to now"]}
+      refute_received {:mix_shell, :error, ["warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"]}
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -132,7 +156,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("lib/a.eex")
       File.write!("lib/a.ex", """
       defmodule A do
-        @file "lib/a.eex"
+        @external_resource "lib/b.eex"
+        @external_resource "lib/a.eex"
         def a, do: :ok
       end
       """)
@@ -165,7 +190,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   defmodule SourcePathsProject do
     def project do
-      [app: :source_paths, elixirc_paths: ["unknown"]]
+      [app: :source_paths, elixirc_paths: ["web", "lib", "lib/foo"]]
     end
   end
 
@@ -173,8 +198,53 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Mix.Project.push SourcePathsProject
 
     in_fixture "no_mixfile", fn ->
+      File.mkdir_p! "web"
+      File.write! "web/ab.ex", """
+      defmodule AB, do: :ok
+      """
+
       # Nothing to compile with the custom source paths
-      assert Mix.Tasks.Compile.Elixir.run([])
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      assert_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
+
+      # Compiling just web does not remove lib artifacts
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end
+  end
+
+  test "use custom source paths in subdirs" do
+    Mix.Project.push SourcePathsProject
+
+    in_fixture "no_mixfile", fn ->
+      File.mkdir_p! "lib/foo"
+      File.write! "lib/foo/ab.ex", """
+      defmodule AB, do: :ok
+      """
+
+      # Nested file (and nested file only) is compiled just once
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib/foo"])
+      assert_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/foo/ab.ex"]}
+
+      # Compiling just lib/foo does not remove lib artifacts
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib/foo"])
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end
   end

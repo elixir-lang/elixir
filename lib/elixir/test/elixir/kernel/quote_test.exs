@@ -13,7 +13,8 @@ defmodule Kernel.QuoteTest do
 
   test :keep_line do
     ## DO NOT MOVE THIS LINE
-    assert quote(location: :keep, do: bar(1, 2, 3)) == {:bar, [keep: 16], [1, 2, 3]}
+    assert quote(location: :keep, do: bar(1, 2, 3)) ==
+           {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16], [1, 2, 3]}
   end
 
   test :fixed_line do
@@ -23,7 +24,7 @@ defmodule Kernel.QuoteTest do
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 25], [1, 2, 3]}
+    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26], [1, 2, 3]}
   end
 
   test :unquote_call do
@@ -34,7 +35,7 @@ defmodule Kernel.QuoteTest do
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
     assert quote(do: foo.unquote(:bar)(1) do 2 + 3 end) == quote(do: foo.bar(1) do 2 + 3 end)
     assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar)
-    assert quote(do: foo.unquote({:bar, [], [1,2]})) == quote(do: foo.bar(1,2))
+    assert quote(do: foo.unquote({:bar, [], [1, 2]})) == quote(do: foo.bar(1, 2))
 
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar)))  == {Elixir.Foo.Bar, []}
     assert Code.eval_quoted(quote(do: Foo.unquote(quote do: Bar))) == {Elixir.Foo.Bar, []}
@@ -122,10 +123,10 @@ defmodule Kernel.QuoteTest do
   end
 
   test :when do
-    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: (1, 2, 3 when 4 -> 5))
-    assert [{:->,_,[[{:when,_,[1,2,3,4]}],5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
+    assert [{:->, _, [[{:when, _, [1, 2, 3, 4]}], 5]}] = quote(do: (1, 2, 3 when 4 -> 5))
+    assert [{:->, _, [[{:when, _, [1, 2, 3, 4]}], 5]}] = quote(do: ((1, 2, 3) when 4 -> 5))
 
-    assert [{:->,_,[[{:when,_,[1,2,3,{:when,_,[4,5]}]}],6]}] =
+    assert [{:->, _, [[{:when, _, [1, 2, 3, {:when, _, [4, 5]}]}], 6]}] =
              quote(do: ((1, 2, 3) when 4 when 5 -> 6))
   end
 
@@ -201,7 +202,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, :add, 2, [file: ^file, line: 181]}|_] = System.stacktrace
+    assert [{^mod, :add, 2, [file: ^file, line: 182]}|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -211,7 +212,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, _, _, [file: ^file, line: 209]}|_] = System.stacktrace
+    assert [{^mod, _, _, [file: ^file, line: 210]}|_] = System.stacktrace
   end
 end
 
@@ -229,7 +230,7 @@ defmodule Kernel.QuoteTest.VarHygiene do
   end
 
   defmacro cross_module_interference do
-    quote do: var!(:a, Kernel.QuoteTest.VarHygieneTest) = 1
+    quote do: var!(a, Kernel.QuoteTest.VarHygieneTest) = 1
   end
 end
 
@@ -348,63 +349,71 @@ end
 defmodule Kernel.QuoteTest.ImportsHygieneTest do
   use ExUnit.Case, async: true
 
-  defmacrop get_bin_size do
+  defmacrop get_list_length do
     quote do
-      size("hello")
+      length('hello')
     end
   end
 
-  defmacrop get_bin_size_with_partial do
+  defmacrop get_list_length_with_partial do
     quote do
-      (&size(&1)).("hello")
+      (&length(&1)).('hello')
     end
   end
 
-  defmacrop get_bin_size_with_function do
+  defmacrop get_list_length_with_function do
     quote do
-      (&size/1).("hello")
+      (&length/1).('hello')
     end
   end
 
   test :expand_imports do
-    import Kernel, except: [size: 1]
-    assert get_bin_size == 5
-    assert get_bin_size_with_partial == 5
-    assert get_bin_size_with_function == 5
+    import Kernel, except: [length: 1]
+    assert get_list_length == 5
+    assert get_list_length_with_partial == 5
+    assert get_list_length_with_function == 5
   end
 
-  defmacrop get_dict_size do
-    import Kernel, except: [size: 1]
+  defmacrop get_string_length do
+    import Kernel, except: [length: 1]
 
     quote do
-      size([a: 1, b: 2])
+      length("hello")
     end
   end
 
   test :lazy_expand_imports do
-    import Kernel, except: [size: 1]
-    import Dict, only: [size: 1]
-    assert get_dict_size == 2
+    import Kernel, except: [length: 1]
+    import String, only: [length: 1]
+    assert get_string_length == 5
   end
 
   test :lazy_expand_imports_no_conflicts do
-    import Kernel, except: [size: 1]
-    import Dict, only: [size: 1]
+    import Kernel, except: [length: 1]
+    import String, only: [length: 1]
 
-    assert get_bin_size == 5
-    assert get_bin_size_with_partial == 5
-    assert get_bin_size_with_function == 5
+    assert get_list_length == 5
+    assert get_list_length_with_partial == 5
+    assert get_list_length_with_function == 5
   end
 
-  defmacrop with_size do
+  defmacrop with_length do
     quote do
-      import Kernel, except: [size: 1]
-      import Dict, only: [size: 1]
-      size("foo")
+      import Kernel, except: [length: 1]
+      import String, only: [length: 1]
+      length('hello')
     end
   end
 
   test :explicitly_overridden_imports do
-    assert with_size == 3
+    assert with_length == 5
+  end
+end
+
+defmodule Kernel.QuoteTest.NoQuoteConflictTest do
+  defmacro x |> f do
+    quote do
+      unquote(x) |> unquote(f)
+    end
   end
 end

@@ -100,28 +100,34 @@ defmodule MapTest do
 
   defmodule ExternalUser do
     def __struct__ do
-      %{__struct__: ThisDoesNotLeak, name: "josé", age: 27}
+      %{__struct__: ThisDoesNotLeak, name: "john", age: 27}
     end
   end
 
   test "structs" do
     assert %ExternalUser{} ==
-           %{__struct__: ExternalUser, name: "josé", age: 27}
+           %{__struct__: ExternalUser, name: "john", age: 27}
 
-    assert %ExternalUser{name: "valim"} ==
-           %{__struct__: ExternalUser, name: "valim", age: 27}
+    assert %ExternalUser{name: "meg"} ==
+           %{__struct__: ExternalUser, name: "meg", age: 27}
 
     user = %ExternalUser{}
-    assert %ExternalUser{user | name: "valim"} ==
-           %{__struct__: ExternalUser, name: "valim", age: 27}
+    assert %ExternalUser{user | name: "meg"} ==
+           %{__struct__: ExternalUser, name: "meg", age: 27}
 
     %ExternalUser{name: name} = %ExternalUser{}
-    assert name == "josé"
+    assert name == "john"
 
     map = %{}
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
-      %ExternalUser{map | name: "valim"}
+      %ExternalUser{map | name: "meg"}
     end
+  end
+
+  test "map from struct" do
+    assert Map.from_struct(ExternalUser) == %{name: "john", age: 27}
+    assert Map.from_struct(%ExternalUser{name: "meg"}) == %{name: "meg", age: 27}
+    assert_raise FunctionClauseError, fn -> Map.from_struct(%{name: "meg"}) end
   end
 
   defmodule LocalUser do
@@ -129,7 +135,7 @@ defmodule MapTest do
       defstruct []
     end
 
-    defstruct name: "josé", nested: struct(NestedUser)
+    defstruct name: "john", nested: struct(NestedUser)
 
     def new do
       %LocalUser{}
@@ -143,8 +149,8 @@ defmodule MapTest do
   end
 
   test "local user" do
-    assert LocalUser.new == %LocalUser{name: "josé", nested: %LocalUser.NestedUser{}}
-    assert LocalUser.Context.new == %LocalUser{name: "josé", nested: %LocalUser.NestedUser{}}
+    assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
+    assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
 
   defmodule NilUser do

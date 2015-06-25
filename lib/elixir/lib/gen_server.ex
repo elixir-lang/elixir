@@ -11,7 +11,7 @@ defmodule GenServer do
   ## Example
 
   The GenServer behaviour abstracts the common client-server interaction.
-  Developer are only required to implement the callbacks and functionality they are
+  Developers are only required to implement the callbacks and functionality they are
   interested in.
 
   Let's start with a code example and then explore the available callbacks.
@@ -63,48 +63,49 @@ defmodule GenServer do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-  * `init(args)` - invoked when the server is started
+    * `init(args)` - invoked when the server is started.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, state}`
-    *  `{:ok, state, timeout}`
-    *  `:ignore`
-    *  `{:stop, reason}`
+      -  `{:ok, state}`
+      -  `{:ok, state, timeout}`
+      -  `{:ok, state, :hibernate}`
+      -  `:ignore`
+      -  `{:stop, reason}`
 
-  * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
-    invoked to handle call (sync) and cast (async) messages.
+    * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
+      invoked to handle call (sync) and cast (async) messages.
 
-    It must return:
+      It must return:
 
-    *  `{:reply, reply, new_state}`
-    *  `{:reply, reply, new_state, timeout}`
-    *  `{:reply, reply, new_state, :hibernate}`
-    *  `{:noreply, new_state}`
-    *  `{:noreply, new_state, timeout}`
-    *  `{:noreply, new_state, :hibernate}`
-    *  `{:stop, reason, new_state}`
-    *  `{:stop, reason, reply, new_state}`
+      -  `{:reply, reply, new_state}`
+      -  `{:reply, reply, new_state, timeout}`
+      -  `{:reply, reply, new_state, :hibernate}`
+      -  `{:noreply, new_state}`
+      -  `{:noreply, new_state, timeout}`
+      -  `{:noreply, new_state, :hibernate}`
+      -  `{:stop, reason, new_state}`
+      -  `{:stop, reason, reply, new_state}`
 
-  * `handle_info(msg, state)` - invoked to handle all other messages which
-    are received by the process.
+    * `handle_info(msg, state)` - invoked to handle all other messages which
+      are received by the process.
 
-    It must return:
+      It must return:
 
-    *  `{:noreply, state}`
-    *  `{:noreply, state, timeout}`
-    *  `{:stop, reason, state}`
+      -  `{:noreply, state}`
+      -  `{:noreply, state, timeout}`
+      -  `{:stop, reason, state}`
 
-  * `terminate(reason, state)` - called when the server is about to
-    terminate, useful for cleaning up. It must return `:ok`
+    * `terminate(reason, state)` - called when the server is about to
+      terminate, useful for cleaning up. It must return `:ok`.
 
-  * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swapping).
+    * `code_change(old_vsn, state, extra)` - called when the application
+      code is being upgraded live (hot code swapping).
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
-    *  `{:error, reason}`
+      -  `{:ok, new_state}`
+      -  `{:error, reason}`
 
   ## Name Registration
 
@@ -112,15 +113,15 @@ defmodule GenServer do
   a name on start via the `:name` option. Registered names are also
   automatically cleaned up on termination. The supported values are:
 
-  * an atom - the GenServer is registered locally with the given name
-    using `Process.register/2`;
+    * an atom - the GenServer is registered locally with the given name
+      using `Process.register/2`.
 
-  * `{:global, term}`- the GenServer is registered globally with the given
-    term using the functions in the `:global` module;
+    * `{:global, term}`- the GenServer is registered globally with the given
+      term using the functions in the `:global` module.
 
-  * `{:via, module, term}` - the GenServer is registered with the given
-    mechanism and name. The `:via` option expects a module name to control
-    the registration mechanism alongside a name which can be any term;
+    * `{:via, module, term}` - the GenServer is registered with the given
+      mechanism and name. The `:via` option expects a module name to control
+      the registration mechanism alongside a name which can be any term.
 
   For example, we could start and register our Stack server locally as follows:
 
@@ -134,11 +135,12 @@ defmodule GenServer do
   `cast/2`, and friends) will also accept an atom, or any `:global` or `:via`
   tuples. In general, the following formats are supported:
 
-  * a `pid`
-  * an `atom` if the server is locally registered
-  * `{atom, node}` if the server is locally registered at another node
-  * `{:global, term}` if the server is globally registered
-  * `{:via, module, name}` if the server is registered through an alternative registry
+    * a `pid`
+    * an `atom` if the server is locally registered
+    * `{atom, node}` if the server is locally registered at another node
+    * `{:global, term}` if the server is globally registered
+    * `{:via, module, name}` if the server is registered through an alternative
+      registry
 
   ## Client / Server APIs
 
@@ -196,10 +198,10 @@ defmodule GenServer do
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-  * http://elixir-lang.org/getting_started/mix/1.html
-  * http://www.erlang.org/doc/man/gen_server.html
-  * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
-  * http://learnyousomeerlang.com/clients-and-servers
+    * http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html
+    * http://www.erlang.org/doc/man/gen_server.html
+    * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
+    * http://learnyousomeerlang.com/clients-and-servers
   """
 
   @typedoc "Return values of `start*` functions"
@@ -232,7 +234,11 @@ defmodule GenServer do
 
       @doc false
       def handle_call(msg, _from, state) do
-        {:stop, {:bad_call, msg}, state}
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_call, msg})
+          2 -> {:noreply, state}
+        end
       end
 
       @doc false
@@ -242,7 +248,11 @@ defmodule GenServer do
 
       @doc false
       def handle_cast(msg, state) do
-        {:stop, {:bad_cast, msg}, state}
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_cast, msg})
+          2 -> {:noreply, state}
+        end
       end
 
       @doc false
@@ -269,6 +279,11 @@ defmodule GenServer do
   passing the given `args` to initialize it. To ensure a synchronized start-up
   procedure, this function does not return until `init/1` has returned.
 
+  Note that a `GenServer` started with `start_link/3` is linked to the
+  parent process and will exit in case of crashes. The GenServer will also
+  exit due to the `:normal` reasons in case it is configured to trap exits
+  in the `init/1` callback.
+
   ## Options
 
   The `:name` option is used for name registration as described in the module
@@ -285,8 +300,8 @@ defmodule GenServer do
   ## Return values
 
   If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where pid is the pid of the server. If there already exists a
-  process with the specified server name, the function returns
+  `{:ok, pid}`, where pid is the pid of the server. If a process with the 
+  specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
   If the `init/1` callback fails with `reason`, the function returns
@@ -343,18 +358,64 @@ defmodule GenServer do
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000) do
-    :gen_server.call(server, request, timeout)
+    try do
+      :gen.call(server, :"$gen_call", request, timeout)
+    catch
+      :exit, reason ->
+        exit({reason, {__MODULE__, :call, [server, request, timeout]}})
+    else
+      {:ok, res} -> res
+    end
   end
 
   @doc """
   Sends an asynchronous request to the `server`.
 
-  This function returns `:ok` immediately, regardless of whether the
-  destination node or server does exists. `handle_cast/2` will be called on the
-  server to handle the request.
+  This function returns `:ok` without waiting for the
+  destination `server` to handle the message. Therefore it
+  is unknown whether the destination `server` successfully
+  handled the message. If the `server` is an atom without
+  an associated process an `ArgumentError` is raised. In
+  all other cases the function returns `:ok` regardless of
+  whether the destination `server` (or node) exists. Note
+  that `{name, node()}` can be used when an exception is
+  not desired if no process is locally associated with the
+  atom `name`.
+
+  `handle_cast/2` will be called on the server to handle
+  the request. In case the `server` is on a node which is
+  not yet connected to the caller one, the call is going to
+  block until a connection happens. This is different than
+  the behaviour in OTP's `:gen_server` where the message
+  is sent by another process in this case, which could cause
+  messages to other nodes to arrive out of order.
   """
   @spec cast(server, term) :: :ok
-  defdelegate cast(server, request), to: :gen_server
+  def cast(server, request)
+
+  def cast({:global, name}, request) do
+    try do
+      :global.send(name, cast_msg(request))
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def cast({:via, mod, name}, request) do
+    try do
+      mod.send(name, cast_msg(request))
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def cast({name, node}, request) when is_atom(name) and is_atom(node),
+    do: do_send({name, node}, cast_msg(request))
+
+  def cast(dest, request) when is_atom(dest) or is_pid(dest),
+    do: do_send(dest, cast_msg(request))
 
   @doc """
   Casts all servers locally registered as `name` at the specified nodes.
@@ -365,8 +426,19 @@ defmodule GenServer do
   See `multi_call/4` for more information.
   """
   @spec abcast([node], name :: atom, term) :: :abcast
-  def abcast(nodes \\ nodes(), name, request) do
-    :gen_server.abcast(nodes, name, request)
+  def abcast(nodes \\ nodes(), name, request) when is_list(nodes) and is_atom(name) do
+    msg = cast_msg(request)
+    _   = for node <- nodes, do: do_send({name, node}, msg)
+    :abcast
+  end
+
+  defp cast_msg(req) do
+    {:"$gen_cast", req}
+  end
+
+  defp do_send(dest, msg) do
+    send(dest, msg)
+    :ok
   end
 
   @doc """

@@ -1,5 +1,4 @@
 -module(test_helper).
--include("elixir.hrl").
 -export([test/0, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 -define(TESTS, [
   atom_test,
@@ -13,7 +12,7 @@
 ]).
 
 test() ->
-  application:start(elixir),
+  application:ensure_all_started(elixir),
   case eunit:test(?TESTS) of
     error -> erlang:halt(1);
     _Res  -> erlang:halt(0)

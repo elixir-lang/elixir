@@ -6,10 +6,24 @@ defmodule KernelTest do
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
     assert ("abcd" =~ ~r/e/) == false
+    assert ("abcd" =~ ~R/c(d)/) == true
+    assert ("abcd" =~ ~R/e/) == false
 
     string = "^ab+cd*$"
     assert (string =~ "ab+") == true
     assert (string =~ "bb") == false
+
+    assert ("abcd" =~ ~r//) == true
+    assert ("abcd" =~ ~R//) == true
+    assert ("abcd" =~ "") == true
+
+    assert ("" =~ ~r//) == true
+    assert ("" =~ ~R//) == true
+    assert ("" =~ "") == true
+
+    assert ("" =~ "abcd") == false
+    assert ("" =~ ~r/abcd/) == false
+    assert ("" =~ ~R/abcd/) == false
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ "hello"
@@ -17,6 +31,34 @@ defmodule KernelTest do
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ ~r"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      1234 =~ ~R"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      ~r"hello" =~ "hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      ~r"hello" =~ ~r"hello"
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      :abcd =~ ~r//
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
+      :abcd =~ ""
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+      "abcd" =~ nil
+    end
+
+    assert_raise FunctionClauseError, "no function clause matching in Regex.match?/2", fn ->
+      "abcd" =~ :abcd
     end
   end
 
@@ -31,20 +73,14 @@ defmodule KernelTest do
 
   test "match?/2" do
     assert match?(_, List.first(1)) == true
-    assert binding([:x]) == []
+    assert binding() == []
 
     a = List.first([0])
     assert match?(b when b > a, 1) == true
-    assert binding([:b]) == []
+    assert binding() == [a: 0]
 
     assert match?(b when b > a, -1) == false
-    assert binding([:b]) == []
-  end
-
-  test "nil?/1" do
-    assert nil?(nil) == true
-    assert nil?(0) == false
-    assert nil?(false) == false
+    assert binding() == [a: 0]
   end
 
   test "in/2" do
@@ -58,7 +94,7 @@ defmodule KernelTest do
     refute 4 in list
   end
 
-  @at_list  [4,5]
+  @at_list  [4, 5]
   @at_range 6..8
   def fun_in(x) when x in [0],       do: :list
   def fun_in(x) when x in 1..3,      do: :range
@@ -82,15 +118,28 @@ defmodule KernelTest do
   end
 
   test "in/2 in case guard" do
-    assert case_in(1, [1,2,3]) == true
+    assert case_in(1, [1, 2, 3]) == true
     assert case_in(1, 1..3) == true
     assert case_in(2, 1..3) == true
     assert case_in(3, 1..3) == true
     assert case_in(-3, -1..-3) == true
   end
 
+  test "in/2 in module body" do
+    defmodule In do
+      @foo [:a, :b]
+      true = :a in @foo
+    end
+  end
+
+  @bitstring <<"foo", 16::4>>
+
+  test "bitstring attribute" do
+    assert @bitstring == <<"foo", 16::4>>
+  end
+
   test "paren as nil" do
-    assert nil?(()) == true
+    assert is_nil(()) == true
     assert ((); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
@@ -113,6 +162,14 @@ defmodule KernelTest do
     assert not ({:__info__, 1} in Kernel.__info__(:functions))
   end
 
+  def exported?,      do: not_exported?
+  defp not_exported?, do: true
+
+  test "function_exported?/3" do
+    assert function_exported?(__MODULE__, :exported?, 0)
+    refute function_exported?(__MODULE__, :not_exported?, 0)
+  end
+
   test "macro_exported?/3" do
     assert macro_exported?(Kernel, :in, 2) == true
     assert macro_exported?(Kernel, :def, 1) == true
@@ -126,25 +183,23 @@ defmodule KernelTest do
     assert apply(fn x -> x * 2 end, [2]) == 4
   end
 
-  test "binding/0, binding/1 and binding/2" do
+  test "binding/0 and binding/1" do
     x = 1
-    assert binding == [x: 1]
-    assert binding([:x, :y]) == [x: 1]
-    assert binding([:x, :y], nil) == [x: 1]
+    assert binding() == [x: 1]
 
     x = 2
-    assert binding == [x: 2]
+    assert binding() == [x: 2]
 
     y = 3
-    assert binding == [x: 2, y: 3]
+    assert binding() == [x: 2, y: 3]
 
-    var!(x, :foo) = 2
-    assert binding(:foo) == [x: 2]
-    assert binding([:x, :y], :foo) == [x: 2]
+    var!(x, :foo) = 4
+    assert binding() == [x: 2, y: 3]
+    assert binding(:foo) == [x: 4]
   end
 
   defmodule User do
-    defstruct name: "jose"
+    assert is_map defstruct name: "john"
   end
 
   defmodule UserTuple do
@@ -154,17 +209,17 @@ defmodule KernelTest do
   end
 
   test "struct/1 and struct/2" do
-    assert struct(User) == %User{name: "jose"}
+    assert struct(User) == %User{name: "john"}
 
-    user = struct(User, name: "eric")
-    assert user == %User{name: "eric"}
+    user = struct(User, name: "meg")
+    assert user == %User{name: "meg"}
 
     assert struct(user, unknown: "key") == user
-    assert struct(user, %{name: "jose"}) == %User{name: "jose"}
+    assert struct(user, %{name: "john"}) == %User{name: "john"}
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
 
     user_tuple = {UserTuple, :ok}
-    assert struct(user_tuple, name: "eric") == %User{name: "eric"}
+    assert struct(user_tuple, name: "meg") == %User{name: "meg"}
   end
 
   defdelegate my_flatten(list), to: List, as: :flatten
@@ -173,7 +228,7 @@ defmodule KernelTest do
   dynamic = :dynamic_flatten
   defdelegate unquote(dynamic)(list), to: List, as: :flatten
 
-  test "defdelefate/2" do
+  test "defdelegate/2" do
     assert my_flatten([[1]]) == [1]
   end
 
@@ -186,123 +241,102 @@ defmodule KernelTest do
   end
 
   test "get_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-    assert get_in(users, ["josé", :age]) == 27
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+    assert get_in(users, ["john", :age]) == 27
     assert get_in(users, ["dave", :age]) == nil
-    assert get_in(nil, ["josé", :age]) == nil
+    assert get_in(nil, ["john", :age]) == nil
+
+    map = %{"fruits" => ["banana", "apple", "orange"]}
+    assert get_in(map, ["fruits", by_index(0)])  == "banana"
+    assert get_in(map, ["fruits", by_index(3)])  == nil
+    assert get_in(map, ["unknown", by_index(3)]) == :oops
 
     assert_raise FunctionClauseError, fn ->
       get_in(users, [])
     end
   end
 
-  test "get_in/1" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
-    assert get_in(users["josé"][:age]) == 27
-    assert get_in(users["dave"][:age]) == nil
-
-    assert get_in(users["josé"].age) == 27
-
-    assert_raise ArgumentError, fn ->
-      get_in(users["dave"].age)
-    end
-
-    assert_raise KeyError, fn ->
-      get_in(users["eric"].unknown)
-    end
-  end
-
   test "put_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(nil, ["josé", :age], 28) ==
-           %{"josé" => %{age: 28}}
-
-    assert put_in(users, ["josé", :age], 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
-
-    assert put_in(users, ["dave", :age], 19) ==
-           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
+    assert put_in(users, ["john", :age], 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise FunctionClauseError, fn ->
       put_in(users, [], %{})
     end
+
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      put_in(nil, ["john", :age], 28)
+    end
   end
 
   test "put_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert put_in(nil["josé"][:age], 28) ==
-           %{"josé" => %{age: 28}}
+    assert put_in(users["john"][:age], 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert put_in(users["josé"][:age], 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert put_in(users["john"].age, 28) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert put_in(users["dave"][:age], 19) ==
-           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
-
-
-    assert put_in(users["josé"].age, 28) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
-
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       put_in(users["dave"].age, 19)
     end
 
     assert_raise KeyError, fn ->
-      put_in(users["eric"].unknown, "value")
+      put_in(users["meg"].unknown, "value")
     end
   end
 
   test "update_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert update_in(nil, ["josé", :age], fn nil -> 28 end) ==
-           %{"josé" => %{age: 28}}
-
-    assert update_in(users, ["josé", :age], &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
-
-    assert update_in(users, ["dave", :age], fn nil -> 19 end) ==
-           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
+    assert update_in(users, ["john", :age], &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
     assert_raise FunctionClauseError, fn ->
       update_in(users, [], fn _ -> %{} end)
     end
+
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      update_in(nil, ["john", :age], fn _ -> %{} end)
+    end
   end
 
   test "update_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert update_in(nil["josé"][:age], fn nil -> 28 end) ==
-           %{"josé" => %{age: 28}}
+    assert update_in(users["john"][:age], &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert update_in(users["josé"][:age], &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
+    assert update_in(users["john"].age, &(&1 + 1)) ==
+           %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert update_in(users["dave"][:age], fn nil -> 19 end) ==
-           %{"josé" => %{age: 27}, "eric" => %{age: 23}, "dave" => %{age: 19}}
-
-    assert update_in(users["josé"].age, &(&1 + 1)) ==
-           %{"josé" => %{age: 28}, "eric" => %{age: 23}}
-
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       update_in(users["dave"].age, &(&1 + 1))
     end
 
     assert_raise KeyError, fn ->
-      put_in(users["eric"].unknown, &(&1 + 1))
+      put_in(users["meg"].unknown, &(&1 + 1))
     end
   end
 
   test "get_and_update_in/3" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(nil, ["josé", :age], fn nil -> {:ok, 28} end) ==
-           {:ok, %{"josé" => %{age: 28}}}
+    assert get_and_update_in(users, ["john", :age], &{&1, &1 + 1}) ==
+           {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
-    assert get_and_update_in(users, ["josé", :age], &{&1, &1 + 1}) ==
-           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+    map = %{"fruits" => ["banana", "apple", "orange"]}
+    assert get_and_update_in(map, ["fruits", by_index(0)], &{&1, String.reverse(&1)}) ==
+           {"banana", %{"fruits" => ["ananab", "apple", "orange"]}}
+
+    assert get_and_update_in(map, ["fruits", by_index(3)], &{&1, &1}) ==
+           {nil, %{"fruits" => ["banana", "apple", "orange"]}}
+
+    assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
+           {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
 
     assert_raise FunctionClauseError, fn ->
       update_in(users, [], fn _ -> %{} end)
@@ -310,41 +344,54 @@ defmodule KernelTest do
   end
 
   test "get_and_update_in/2" do
-    users = %{"josé" => %{age: 27}, "eric" => %{age: 23}}
+    users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-    assert get_and_update_in(nil["josé"][:age], fn nil -> {:ok, 28} end) ==
-           {:ok, %{"josé" => %{age: 28}}}
+    assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
+           {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
 
-    assert get_and_update_in(users["josé"].age, &{&1, &1 + 1}) ==
-           {27, %{"josé" => %{age: 28}, "eric" => %{age: 23}}}
+    assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
+      get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
+    end
 
-    assert_raise ArgumentError, fn ->
+    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})
     end
 
     assert_raise KeyError, fn ->
-      get_and_update_in(users["eric"].unknown, &{&1, &1 + 1})
+      get_and_update_in(users["meg"].unknown, &{&1, &1 + 1})
     end
   end
 
   test "paths" do
     map = empty_map()
 
-    assert get_in(map[:foo]) == nil
-    assert get_in(empty_map()[:foo]) == nil
-    assert get_in(KernelTest.empty_map()[:foo]) == nil
-    assert get_in(__MODULE__.empty_map()[:foo]) == nil
+    assert put_in(map[:foo], "bar") == %{foo: "bar"}
+    assert put_in(empty_map()[:foo], "bar") == %{foo: "bar"}
+    assert put_in(KernelTest.empty_map()[:foo], "bar") == %{foo: "bar"}
+    assert put_in(__MODULE__.empty_map()[:foo], "bar") == %{foo: "bar"}
 
-    assert_raise ArgumentError, ~r"access at least one field,", fn ->
-      Code.eval_quoted(quote(do: get_in(map)), [])
+    assert_raise ArgumentError, ~r"access at least one element,", fn ->
+      Code.eval_quoted(quote(do: put_in(map, "bar")), [])
     end
 
     assert_raise ArgumentError, ~r"must start with a variable, local or remote call", fn ->
-      Code.eval_quoted(quote(do: get_in(map.foo(1, 2)[:bar])), [])
+      Code.eval_quoted(quote(do: put_in(map.foo(1, 2)[:bar], "baz")), [])
     end
   end
 
   def empty_map, do: %{}
+
+  def by_index(index) do
+    fn
+      _, nil, next ->
+        next.(:oops)
+      :get, data, next ->
+        next.(Enum.at(data, index))
+      :get_and_update, data, next ->
+        {get, update} = next.(Enum.at(data, index))
+        {get, List.replace_at(data, index, update)}
+    end
+  end
 
   defmodule PipelineOp do
     use ExUnit.Case, async: true
@@ -365,12 +412,9 @@ defmodule KernelTest do
       assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
     end
 
-    test "non-call" do
+    test "anonymous functions" do
       assert  1  |> (&(&1*2)).() == 2
       assert [1] |> (&hd(&1)).() == 1
-
-      import CompileAssertion
-      assert_compile_fail ArgumentError, "cannot pipe 1 into 2", "1 |> 2"
     end
 
     defp twice(a), do: a * 2
@@ -475,7 +519,7 @@ defmodule KernelTest do
 
     test "invalid match" do
       a = List.first([3])
-      assert_raise CaseClauseError, fn ->
+      assert_raise MatchError, fn ->
         destructure [^a, _b, _c], a_list
       end
     end

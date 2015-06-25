@@ -5,44 +5,44 @@ defmodule ExUnit.Server do
   use GenServer
 
   def start_link() do
-    :gen_server.start_link({:local, __MODULE__}, __MODULE__, :ok, [])
+    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
   end
 
   ## Before run API
 
   def start_load() do
-    :gen_server.cast(__MODULE__, :start_load)
+    GenServer.cast(__MODULE__, :start_load)
   end
 
   def add_async_case(name) do
-    :gen_server.cast(__MODULE__, {:add_async_case, name})
+    GenServer.cast(__MODULE__, {:add_async_case, name})
   end
 
   def add_sync_case(name) do
-    :gen_server.cast(__MODULE__, {:add_sync_case, name})
+    GenServer.cast(__MODULE__, {:add_sync_case, name})
   end
 
   ## After run API
 
   def start_run() do
-    :gen_server.call(__MODULE__, :start_run, @timeout)
+    GenServer.call(__MODULE__, :start_run, @timeout)
   end
 
   ## Capture Device API
 
   def add_device(device) do
-    :gen_server.call(__MODULE__, {:add_device, device})
+    GenServer.call(__MODULE__, {:add_device, device})
   end
 
   def remove_device(device) do
-    :gen_server.call(__MODULE__, {:remove_device, device})
+    GenServer.call(__MODULE__, {:remove_device, device})
   end
 
   ## Callbacks
 
   def init(:ok) do
     config = %{async_cases: HashSet.new, sync_cases: HashSet.new,
-               start_load: nil, captured_devices: HashSet.new}
+               start_load: :os.timestamp, captured_devices: HashSet.new}
     {:ok, config}
   end
 

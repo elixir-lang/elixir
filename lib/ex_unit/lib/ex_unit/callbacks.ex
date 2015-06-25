@@ -2,64 +2,75 @@ defmodule ExUnit.Callbacks do
   @moduledoc ~S"""
   Defines ExUnit Callbacks.
 
-  This module defines four callbacks: `setup_all`, `teardown_all`,
-  `setup` and `teardown`.
+  This module defines both `setup_all` and `setup` callbacks, as well as
+  the `on_exit` facility.
 
-  These callbacks are defined via macros and each one can optionally receive
-  a map with metadata, usually referred to as `context`. The callback
-  may optionally put extra data into `context` to be used in the tests.
+  The setup callbacks are defined via macros and each one can optionally
+  receive a map with metadata, usually referred to as `context`. The
+  callback may optionally put extra data into `context` to be used in
+  the tests.
 
-  If you return `{:ok, <dict>}` from `setup` or `teardown`, the keyword
-  list will be merged into the context that will be available in all
-  subsequent `setup`, `test` or `teardown` calls.
+  The `setup_all` callbacks are invoked once before the first test's `setup`
+  and all `setup` callbacks are run before each test. No callback runs if the
+  test case has no tests or all tests were filtered out.
 
-  Similarly, returning `{:ok, <dict>}` from `setup_all` or
-  `teardown_all` will merge the keyword list into the context that will be
-  available in all subsequent `setup_all` or `teardown_all` calls.
+  `on_exit` callbacks are registered on demand, usually to undo an action
+  performed by a setup callback. `on_exit` may also take a reference,
+  allowing callback to be overridden in the future. A registered `on_exit`
+  callback always runs, while failures in `setup` and `setup_all` will stop
+  all remaining setup callbacks from executing.
+
+  Finally, `setup_all` callbacks run in the test case process, while all
+  `setup` callbacks run in the same process as the test itself. `on_exit`
+  callbacks always run in a separate process than the test case or the
+  test itself. Since the test process exits with reason `:shutdown`, most
+  of times `on_exit/1` can be avoided as processes are going to clean
+  up on their own.
+
+  ## Context
+
+  If you return `{:ok, <dict>}` from `setup_all`, the dictionary
+  will be merged into the current context and be available in all
+  subsequent `setup_all`, `setup` and the test itself.
+
+  Similarly, returning `{:ok, <dict>}` from `setup`, the dict returned
+  will be merged into the current context and be available in all
+  subsequent `setup` and the `test` itself.
 
   Returning `:ok` leaves the context unchanged in both cases.
 
-  Returning anything else from `setup` or `teardown` will force the current
-  test to fail, and subsequent `setup`, `test` and `teardown` callbacks won't
-  be called for it.
-
-  Returning anything else from `setup_all` or `teardown_all` will force the
-  whole case to fail, and no other callback will be called.
-
-  It is possible to define multiple `setup` and `teardown` callbacks and they will
-  be called sequentially. In the case of `setup_all` and `teardown_all` callbacks,
-  each `setup_all` will be called only once before the first test's `setup` and each
-  `teardown_all` will be called once after the last test. No callback runs if the
-  test case has no tests or all tests were filtered out via `include`/`exclude`.
+  Returning anything else from `setup_all` will force all tests to fail,
+  while a bad response from `setup` causes the current test to fail.
 
   ## Examples
 
       defmodule AssertionTest do
         use ExUnit.Case, async: true
 
-        # `setup` is called before each test is run
-        setup do
-          IO.puts "This is a setup callback"
-
-          # Return extra metadata, it must be a keyword list / map
-          {:ok, hello: "world"}
-        end
-
-        # Same as `setup`, but receives the context for the current test
-        setup context do
-          # We can access the current test in the context
-          IO.puts "Setting up: #{context[:test]}"
-
-          # We can also access the data returned from `setup/0`
-          assert context[:hello] == "world"
+        # `setup_all` is called once before every test
+        setup_all do
+          IO.puts "Starting AssertionTest"
 
           # No metadata
           :ok
         end
 
-        # This is called after each test finishes
-        teardown context do
-          assert context[:hello] == "world"
+        # `setup` is called before each test is run
+        setup do
+          IO.puts "This is a setup callback"
+
+          on_exit fn ->
+            IO.puts "This is invoked once the test is done"
+          end
+
+          # Returns extra metadata, it must be a dict
+          {:ok, hello: "world"}
+        end
+
+        # Same as `setup`, but receives the context
+        # for the current test
+        setup context do
+          IO.puts "Setting up: #{context[:test]}"
           :ok
         end
 
@@ -78,9 +89,7 @@ defmodule ExUnit.Callbacks do
   defmacro __using__(_) do
     quote do
       @ex_unit_setup []
-      @ex_unit_teardown []
       @ex_unit_setup_all []
-      @ex_unit_teardown_all []
 
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
@@ -90,13 +99,11 @@ defmodule ExUnit.Callbacks do
   @doc false
   defmacro __before_compile__(env) do
     [compile_callbacks(env, :setup),
-     compile_callbacks(env, :teardown),
-     compile_callbacks(env, :setup_all),
-     compile_callbacks(env, :teardown_all)]
+     compile_callbacks(env, :setup_all)]
   end
 
   @doc """
-  Called before the start of each test.
+  Defines a callback to be run before each test in a case.
   """
   defmacro setup(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
@@ -107,22 +114,7 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Called after the completion of each test. 
-  
-  Note that if the test crashed with an `:exit`
-  message, `teardown` will not be run.
-  """
-  defmacro teardown(var \\ quote(do: _), block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
-      name = :"__ex_unit_teardown_#{length(@ex_unit_teardown)}"
-      defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_teardown [name|@ex_unit_teardown]
-    end
-  end
-
-  @doc """
-  Called before the start of a case, i.e. called once before the first test in
-  the current module and before any `setup` callbacks.
+  Defines a callback to be run before all tests in a case.
   """
   defmacro setup_all(var \\ quote(do: _), block) do
     quote bind_quoted: [var: escape(var), block: escape(block)] do
@@ -133,13 +125,22 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Called once after the last test finishes without emitting an `:exit` message.
+  Defines a callback that runs on the test (or test case) exit.
+
+  An `on_exit` callback is a function that receives no arguments and
+  runs in a separate process than the caller.
+
+  `on_exit/2` is usually called from `setup` and `setup_all` callbacks,
+  often to undo the action performed during `setup`. However, `on_exit`
+  may also be called dynamically, where a reference can be used to
+  guarantee the callback will be invoked only once.
   """
-  defmacro teardown_all(var \\ quote(do: _), block) do
-    quote bind_quoted: [var: escape(var), block: escape(block)] do
-      name = :"__ex_unit_teardown_all_#{length(@ex_unit_teardown_all)}"
-      defp unquote(name)(unquote(var)), unquote(block)
-      @ex_unit_teardown_all [name|@ex_unit_teardown_all]
+  @spec on_exit(term, (() -> term)) :: :ok
+  def on_exit(ref \\ make_ref, callback) do
+    case ExUnit.OnExitHandler.add(self, ref, callback) do
+      :ok -> :ok
+      :error ->
+        raise ArgumentError, "on_exit/1 callback can only be invoked from the test process"
     end
   end
 

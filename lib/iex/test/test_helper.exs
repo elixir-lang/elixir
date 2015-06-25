@@ -1,5 +1,5 @@
-Application.start(:iex)
-Application.put_env(:iex, :colors, [enabled: false])
+:ok = Application.start(:iex)
+IEx.configure([colors: [enabled: false]])
 ExUnit.start [trace: "--trace" in System.argv]
 
 defmodule IEx.Case do
@@ -31,14 +31,14 @@ defmodule IEx.Case do
     end
   end
 
+  @iex_app_env [:default_prompt, :alive_prompt, :inspect, :colors, :history_size]
   setup do
-    opts = IEx.configuration |>
-           Keyword.take([:default_prompt, :alive_prompt, :inspect, :colors, :history_size])
-    {:ok, [iex_opts: opts]}
-  end
-
-  teardown context do
-    IEx.configure context[:iex_opts]
+    opts = Application.get_all_env(:iex)
+           |> Keyword.take(@iex_app_env)
+    on_exit fn ->
+      Enum.each @iex_app_env, fn k -> Application.delete_env(:iex, k) end
+      IEx.configure(opts)
+    end
     :ok
   end
 
@@ -57,7 +57,7 @@ defmodule IEx.Case do
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
-      IEx.Server.start(server_options, fn -> end)
+      IEx.Server.start(server_options, {IEx, :dont_display_result, []})
     end) |> strip_iex
   end
 

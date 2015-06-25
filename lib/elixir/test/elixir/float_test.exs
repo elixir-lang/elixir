@@ -12,6 +12,8 @@ defmodule FloatTest do
     assert Float.parse("12.524235") === {12.524235, ""}
     assert Float.parse("-12.5") === {-12.5, ""}
     assert Float.parse("-12.524235") === {-12.524235, ""}
+    assert Float.parse("0.3534091") === {0.3534091, ""}
+    assert Float.parse("0.3534091elixir") === {0.3534091, "elixir"}
     assert Float.parse("7.5e3") === {7.5e3, ""}
     assert Float.parse("7.5e-3") === {7.5e-3, ""}
     assert Float.parse("12x") === {12.0, "x"}
@@ -28,35 +30,53 @@ defmodule FloatTest do
   end
 
   test :floor do
-    assert Float.floor(12) === 12
-    assert Float.floor(-12) === -12
-    assert Float.floor(12.524235) === 12
-    assert Float.floor(-12.5) === -13
-    assert Float.floor(-12.524235) === -13
-    assert Float.floor(7.5e3) === 7500
-    assert Float.floor(7.5432e3) === 7543
-    assert Float.floor(7.5e-3) === 0
-    assert Float.floor(-12.32453e4) === -123246
-    assert Float.floor(-12.32453e-10) === -1
-    assert Float.floor(0.32453e-10) === 0
-    assert Float.floor(-0.32453e-10) === -1
-    assert Float.floor(1.32453e-10) === 0
+    assert Float.floor(12.524235) === 12.0
+    assert Float.floor(-12.5) === -13.0
+    assert Float.floor(-12.524235) === -13.0
+    assert Float.floor(7.5e3) === 7500.0
+    assert Float.floor(7.5432e3) === 7543.0
+    assert Float.floor(7.5e-3) === 0.0
+    assert Float.floor(-12.32453e4) === -123246.0
+    assert Float.floor(-12.32453e-10) === -1.0
+    assert Float.floor(0.32453e-10) === 0.0
+    assert Float.floor(-0.32453e-10) === -1.0
+    assert Float.floor(1.32453e-10) === 0.0
+  end
+
+  test :floor_with_precision do
+    assert Float.floor(12.524235, 0) === 12.0
+    assert Float.floor(-12.524235, 0) === -13.0
+
+    assert Float.floor(12.52, 2) === 12.52
+    assert Float.floor(-12.52, 2) === -12.52
+
+    assert Float.floor(12.524235, 2) === 12.52
+    assert Float.floor(-12.524235, 3) === -12.525
   end
 
   test :ceil do
-    assert Float.ceil(12) === 12
-    assert Float.ceil(-12) === -12
-    assert Float.ceil(12.524235) === 13
-    assert Float.ceil(-12.5) === -12
-    assert Float.ceil(-12.524235) === -12
-    assert Float.ceil(7.5e3) === 7500
-    assert Float.ceil(7.5432e3) === 7544
-    assert Float.ceil(7.5e-3) === 1
-    assert Float.ceil(-12.32453e4) === -123245
-    assert Float.ceil(-12.32453e-10) === 0
-    assert Float.ceil(0.32453e-10) === 1
-    assert Float.ceil(-0.32453e-10) === 0
-    assert Float.ceil(1.32453e-10) === 1
+    assert Float.ceil(12.524235) === 13.0
+    assert Float.ceil(-12.5) === -12.0
+    assert Float.ceil(-12.524235) === -12.0
+    assert Float.ceil(7.5e3) === 7500.0
+    assert Float.ceil(7.5432e3) === 7544.0
+    assert Float.ceil(7.5e-3) === 1.0
+    assert Float.ceil(-12.32453e4) === -123245.0
+    assert Float.ceil(-12.32453e-10) === 0.0
+    assert Float.ceil(0.32453e-10) === 1.0
+    assert Float.ceil(-0.32453e-10) === 0.0
+    assert Float.ceil(1.32453e-10) === 1.0
+  end
+
+  test :ceil_with_precision do
+    assert Float.ceil(12.524235, 0) === 13.0
+    assert Float.ceil(-12.524235, 0) === -12.0
+
+    assert Float.ceil(12.52, 2) === 12.52
+    assert Float.ceil(-12.52, 2) === -12.52
+
+    assert Float.ceil(12.524235, 2) === 12.53
+    assert Float.ceil(-12.524235, 3) === -12.524
   end
 
   test :round do

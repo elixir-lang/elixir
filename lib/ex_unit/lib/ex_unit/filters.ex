@@ -3,7 +3,7 @@ defmodule ExUnit.Filters do
   Conveniences for parsing and evaluating filters.
   """
 
-  @type t :: list({atom, any} | atom)
+  @type t :: list({atom, Regex.t | String.Chars.t} | atom)
 
   @doc """
   Parses filters out of a path.
@@ -62,38 +62,48 @@ defmodule ExUnit.Filters do
   end
 
   @doc """
-  Evaluates the include and exclude filters against the given tags.
+  Evaluates the `include` and `exclude` filters against the given `tags`.
 
-  Expects filters to be normalized into a keyword
-  list where each key is an atom and the value is a list.
+  Some filters, like `:line`, may require the whole test collection to
+  find the closest line, that's why it must also be passed as argument.
+
+  Filters can either be a regular expression or any data structure
+  that implements to `String.Chars`, which is invoked before comparing
+  the filter with the tag value.
 
   ## Examples
 
-      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "bar"})
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "bar"}, [])
       :ok
 
-      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "baz"})
+      iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "baz"}, [])
       {:error, :foo}
 
   """
-  @spec eval(t, t, map) :: :ok | {:error, atom}
-  def eval(include, exclude, tags) when is_map(tags) do
-    excluded = Enum.find_value exclude, &has_tag(&1, tags)
-    if !excluded or Enum.any?(include, &has_tag(&1, tags)) do
+  @spec eval(t, t, map, [ExUnit.Test.t]) :: :ok | {:error, atom}
+  def eval(include, exclude, tags, collection) when is_map(tags) do
+    excluded = Enum.find_value exclude, &has_tag(&1, tags, collection)
+    if !excluded or Enum.any?(include, &has_tag(&1, tags, collection)) do
       :ok
     else
       {:error, excluded}
     end
   end
 
-  defp has_tag({key, %Regex{} = value}, tags) when is_atom(key) do
+  defp has_tag({:line, line}, tags, collection) do
+    line = to_integer(line)
+    tags.line <= line and
+      closest_test_before_line(line, collection).tags.line == tags.line
+  end
+
+  defp has_tag({key, %Regex{} = value}, tags, _collection) when is_atom(key) do
     case Map.fetch(tags, key) do
       {:ok, tag} -> to_string(tag) =~ value and key
       _ -> false
     end
   end
 
-  defp has_tag({key, value}, tags) when is_atom(key) do
+  defp has_tag({key, value}, tags, _collection) when is_atom(key) do
     case Map.fetch(tags, key) do
       {:ok, ^value} -> key
       {:ok, tag} -> compare(to_string(tag), to_string(value)) and key
@@ -101,10 +111,24 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag(key, tags) when is_atom(key),
+  defp has_tag(key, tags, _collection) when is_atom(key),
     do: Map.has_key?(tags, key) and key
 
-  defp compare("Elixir." <> tag, tag), do: true
+  defp to_integer(integer) when is_integer(integer), do: integer
+  defp to_integer(integer) when is_binary(integer),  do: String.to_integer(integer)
+
+  defp compare("Elixir." <> tag1, tag2), do: compare(tag1, tag2)
+  defp compare(tag1, "Elixir." <> tag2), do: compare(tag1, tag2)
   defp compare(tag, tag), do: true
   defp compare(_, _), do: false
+
+  defp closest_test_before_line(line, collection) do
+    Enum.min_by(collection, fn %ExUnit.Test{tags: %{line: test_line}} ->
+      if line - test_line >= 0 do
+        line - test_line
+      else
+        :infinity
+      end
+    end)
+  end
 end

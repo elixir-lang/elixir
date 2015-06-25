@@ -36,7 +36,7 @@ defmodule StringIO do
   """
   @spec open(binary, Keyword.t) :: {:ok, pid}
   def open(string, options \\ []) when is_binary(string) do
-    :gen_server.start_link(__MODULE__, {string, options}, [])
+    GenServer.start_link(__MODULE__, {string, options}, [])
   end
 
   @doc """
@@ -52,7 +52,25 @@ defmodule StringIO do
   """
   @spec contents(pid) :: {binary, binary}
   def contents(pid) when is_pid(pid) do
-    :gen_server.call(pid, :contents)
+    GenServer.call(pid, :contents)
+  end
+
+  @doc """
+  Flushes output buffer.
+
+  ## Examples
+
+      iex> {:ok, pid} = StringIO.open("in")
+      iex> IO.write(pid, "out")
+      iex> StringIO.flush(pid)
+      "out"
+      iex> StringIO.contents(pid)
+      {"in", ""}
+
+  """
+  @spec flush(pid) :: binary
+  def flush(pid) when is_pid(pid) do
+    GenServer.call(pid, :flush)
   end
 
   @doc """
@@ -68,7 +86,7 @@ defmodule StringIO do
   """
   @spec close(pid) :: {:ok, {binary, binary}}
   def close(pid) when is_pid(pid) do
-    :gen_server.call(pid, :close)
+    GenServer.call(pid, :close)
   end
 
   ## callbacks
@@ -89,6 +107,10 @@ defmodule StringIO do
 
   def handle_call(:contents, _from, %{input: input, output: output} = s) do
     {:reply, {input, output}, s}
+  end
+
+  def handle_call(:flush, _from, %{output: output} = s) do
+    {:reply, output, %{s | output: ""}}
   end
 
   def handle_call(:close, _from, %{input: input, output: output} = s) do
@@ -199,7 +221,7 @@ defmodule StringIO do
   end
 
   defp do_get_chars(input, :latin1, n) do
-    << chars :: [ binary, size(n) ], rest :: binary >> = input
+    <<chars :: binary-size(n), rest :: binary>> = input
     {chars, rest}
   end
 
@@ -209,7 +231,7 @@ defmodule StringIO do
         {buf_count, split_pos} when buf_count < n or split_pos == :none ->
           {input, ""}
         {_buf_count, split_pos} ->
-          << chars :: [ binary, size(split_pos) ], rest :: binary >> = input
+          <<chars :: binary-size(split_pos), rest :: binary>> = input
           {chars, rest}
       end
     catch

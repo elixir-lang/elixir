@@ -1,10 +1,11 @@
 defmodule Dict do
   @moduledoc ~S"""
   This module specifies the Dict API expected to be
-  implemented by different dictionaries. It also provides
-  functions that redirect to the underlying Dict, allowing
-  a developer to work with different Dict implementations
-  using one API.
+  implemented by different dictionaries.
+
+  It also provides functions that redirect to the underlying
+  Dict, allowing a developer to work with different Dict
+  implementations using one API.
 
   To create a new dict, use the `new` functions defined
   by each dict type:
@@ -13,6 +14,13 @@ defmodule Dict do
 
   In the examples below, `dict_impl` means a specific
   `Dict` implementation, for example `HashDict` or `Map`.
+
+  ## Warning
+
+  Do not use this module if you expect a certain `Dict`
+  implementation. For example, if you are working with
+  maps and you don't need polymorphism, it is preferrable
+  to use the `Map` module instead of the `Dict` one.
 
   ## Protocols
 
@@ -49,36 +57,40 @@ defmodule Dict do
 
   The client module must contain the following functions:
 
-  * `delete/2`
-  * `fetch/2`
-  * `put/3`
-  * `reduce/3`
-  * `size/1`
+    * `delete/2`
+    * `fetch/2`
+    * `put/3`
+    * `reduce/3`
+    * `size/1`
 
   All functions, except `reduce/3`, are required by the Dict behaviour.
-  `reduce/3` must be implemtented as per the Enumerable protocol.
+  `reduce/3` must be implemented as per the Enumerable protocol.
 
   Based on these functions, `Dict` generates default implementations
   for the following functions:
 
-  * `drop/2`
-  * `equal?/2`
-  * `fetch!/2`
-  * `get/2`
-  * `get/3`
-  * `has_key?/2`
-  * `keys/1`
-  * `merge/2`
-  * `merge/3`
-  * `pop/2`
-  * `pop/3`
-  * `put_new/3`
-  * `split/2`
-  * `take/2`
-  * `to_list/1`
-  * `update/4`
-  * `update!/3`
-  * `values/1`
+    * `drop/2`
+    * `equal?/2`
+    * `fetch!/2`
+    * `get/2`
+    * `get/3`
+    * `get_lazy/3`
+    * `get_and_update/3`
+    * `has_key?/2`
+    * `keys/1`
+    * `merge/2`
+    * `merge/3`
+    * `pop/2`
+    * `pop/3`
+    * `pop_lazy/3`
+    * `put_new/3`
+    * `put_new_lazy/3`
+    * `split/2`
+    * `take/2`
+    * `to_list/1`
+    * `update/4`
+    * `update!/3`
+    * `values/1`
 
   All of these functions are defined as overridable, so you can provide
   your own implementation if needed.
@@ -109,6 +121,8 @@ defmodule Dict do
   defcallback equal?(t, t) :: boolean
   defcallback get(t, key) :: value
   defcallback get(t, key, value) :: value
+  defcallback get_lazy(t, key, (() -> value)) :: value
+  defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
   defcallback fetch(t, key) :: {:ok, value} | :error
   defcallback fetch!(t, key) :: value | no_return
   defcallback has_key?(t, key) :: boolean
@@ -117,8 +131,10 @@ defmodule Dict do
   defcallback merge(t, t, (key, value, value -> value)) :: t
   defcallback pop(t, key) :: {value, t}
   defcallback pop(t, key, value) :: {value, t}
+  defcallback pop_lazy(t, key, (() -> value)) :: {value, t}
   defcallback put(t, key, value) :: t
   defcallback put_new(t, key, value) :: t
+  defcallback put_new_lazy(t, key, (() -> value)) :: t
   defcallback size(t) :: non_neg_integer()
   defcallback split(t, Enum.t) :: {t, t}
   defcallback take(t, Enum.t) :: t
@@ -141,6 +157,19 @@ defmodule Dict do
         end
       end
 
+      def get_lazy(dict, key, fun) when is_function(fun, 0) do
+        case fetch(dict, key) do
+          {:ok, value} -> value
+          :error -> fun.()
+        end
+      end
+
+      def get_and_update(dict, key, fun) do
+        current_value = get(dict, key)
+        {get, new_value} = fun.(current_value)
+        {get, put(dict, key, new_value)}
+      end
+
       def fetch!(dict, key) do
         case fetch(dict, key) do
           {:ok, value} -> value
@@ -156,6 +185,13 @@ defmodule Dict do
         case has_key?(dict, key) do
           true  -> dict
           false -> put(dict, key, value)
+        end
+      end
+
+      def put_new_lazy(dict, key, fun) when is_function(fun, 0) do
+        case has_key?(dict, key) do
+          true  -> dict
+          false -> put(dict, key, fun.())
         end
       end
 
@@ -248,6 +284,15 @@ defmodule Dict do
         end
       end
 
+      def pop_lazy(dict, key, fun) when is_function(fun, 0) do
+        case fetch(dict, key) do
+          {:ok, value} ->
+            {value, delete(dict, key)}
+          :error ->
+            {fun.(), dict}
+        end
+      end
+
       def split(dict, keys) do
         Enum.reduce(keys, {new, dict}, fn key, {inc, exc} = acc ->
           case fetch(exc, key) do
@@ -262,10 +307,10 @@ defmodule Dict do
       defoverridable merge: 2, merge: 3, equal?: 2, to_list: 1, keys: 1,
                      values: 1, take: 2, drop: 2, get: 2, get: 3, fetch!: 2,
                      has_key?: 2, put_new: 3, pop: 2, pop: 3, split: 2,
-                     update: 4, update!: 3
+                     update: 4, update!: 3, get_and_update: 3, get_lazy: 3,
+                     pop_lazy: 3, put_new_lazy: 3
     end
   end
-
 
   defmacrop target(dict) do
     quote do
@@ -288,9 +333,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> Enum.sort(Dict.keys(d))
-      [:a,:b]
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> Enum.sort(Dict.keys(dict))
+      [:a, :b]
 
   """
   @spec keys(t) :: [key]
@@ -304,9 +349,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> Enum.sort(Dict.values(d))
-      [1,2]
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> Enum.sort(Dict.values(dict))
+      [1, 2]
 
   """
   @spec values(t) :: [value]
@@ -319,8 +364,8 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> Dict.size(d)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> Dict.size(dict)
       2
 
   """
@@ -334,10 +379,10 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1], dict_impl.new)
-      iex> Dict.has_key?(d, :a)
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> Dict.has_key?(dict, :a)
       true
-      iex> Dict.has_key?(d, :b)
+      iex> Dict.has_key?(dict, :b)
       false
 
   """
@@ -352,12 +397,12 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1], dict_impl.new)
-      iex> Dict.get(d, :a)
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> Dict.get(dict, :a)
       1
-      iex> Dict.get(d, :b)
+      iex> Dict.get(dict, :b)
       nil
-      iex> Dict.get(d, :b, 3)
+      iex> Dict.get(dict, :b, 3)
       3
   """
   @spec get(t, key, value) :: value
@@ -366,15 +411,68 @@ defmodule Dict do
   end
 
   @doc """
+  Returns the value associated with `key` in `dict`. If `dict` does not
+  contain `key`, it lazily evaluates `fun` and returns its result.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> Dict.get_lazy(dict, :a, fun)
+      1
+      iex> Dict.get_lazy(dict, :b, fun)
+      :result
+
+  """
+  @spec get_lazy(t, key, (() -> value)) :: value
+  def get_lazy(dict, key, fun) do
+    target(dict).get_lazy(dict, key, fun)
+  end
+
+  @doc """
+  Gets a value from `dict` and updates the value at `key` in one pass.
+
+  This `fun` argument receives the value of `key` in `dict` (or `nil` if `key`
+  is not present) and must return a two-elements tuple: the "get" value (the
+  value retrieved from the dict which can be operated on before being returned)
+  and the new value to be stored under `key` in `dict`.
+
+  The returned value is a tuple with the "get" value returned by `fun` and a new
+  dict with the updated value under `key`.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> {get, new_dict} = Dict.get_and_update dict, :a, fn(current_value) ->
+      ...>   {current_value + 1, "foo"}
+      ...> end
+      iex> get
+      2
+      iex> Dict.get(new_dict, :a)
+      "foo"
+
+  """
+  @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  def get_and_update(dict, key, fun) do
+    target(dict).get_and_update(dict, key, fun)
+  end
+
+  @doc """
   Returns `{:ok, value}` associated with `key` in `dict`.
   If `dict` does not contain `key`, returns `:error`.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1], dict_impl.new)
-      iex> Dict.fetch(d, :a)
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> Dict.fetch(dict, :a)
       {:ok, 1}
-      iex> Dict.fetch(d, :b)
+      iex> Dict.fetch(dict, :b)
       :error
 
   """
@@ -389,8 +487,8 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1], dict_impl.new)
-      iex> Dict.fetch!(d, :a)
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> Dict.fetch!(dict, :a)
       1
 
   """
@@ -405,9 +503,9 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.put(d, :a, 3)
-      iex> Dict.get(d, :a)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.put(dict, :a, 3)
+      iex> Dict.get(dict, :a)
       3
 
   """
@@ -417,13 +515,13 @@ defmodule Dict do
   end
 
   @doc """
-  Puts the given `value` under `key` in `dict` unless `key` already exists.
+  Puts the given `value` under `key` in `dict` unless `key` is already present.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.put_new(d, :a, 3)
-      iex> Dict.get(d, :a)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.put_new(dict, :a, 3)
+      iex> Dict.get(dict, :a)
       1
 
   """
@@ -433,18 +531,45 @@ defmodule Dict do
   end
 
   @doc """
+  Evaluates `fun` and puts the result under `key` in `dict` unless `key`
+  is already present.
+
+  This is useful if the value is very expensive to calculate or generally
+  difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   3
+      ...> end
+      iex> dict = Dict.put_new_lazy(dict, :a, fun)
+      iex> Dict.get(dict, :a)
+      1
+      iex> dict = Dict.put_new_lazy(dict, :c, fun)
+      iex> Dict.get(dict, :c)
+      3
+
+  """
+  @spec put_new_lazy(t, key, (() -> value)) :: t
+  def put_new_lazy(dict, key, fun) do
+    target(dict).put_new_lazy(dict, key, fun)
+  end
+
+  @doc """
   Removes the entry stored under the given `key` from `dict`.
   If `dict` does not contain `key`, returns the dictionary unchanged.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.delete(d, :a)
-      iex> Dict.get(d, :a)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.delete(dict, :a)
+      iex> Dict.get(dict, :a)
       nil
 
-      iex> d = Enum.into([b: 2], dict_impl.new)
-      iex> Dict.delete(d, :a) == d
+      iex> dict = Enum.into([b: 2], dict_impl.new)
+      iex> Dict.delete(dict, :a) == dict
       true
 
   """
@@ -454,11 +579,10 @@ defmodule Dict do
   end
 
   @doc """
-  Merges the dict `b` into dict `a`.
+  Merges the dict `dict2` into dict `dict1`.
 
-  If one of the dict `b` entries already exists in the `dict`,
-  the functions in entries in `b` have higher precedence unless a
-  function is given to resolve conflicts.
+  If one of the `dict2` entries is found in `dict1`, the
+  conflicting entries in `dict2` have higher precedence.
 
   Notice this function is polymorphic as it merges dicts of any
   type. Each dict implementation also provides a `merge` function,
@@ -466,55 +590,87 @@ defmodule Dict do
 
   ## Examples
 
-      iex> d1 = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d2 = Enum.into([a: 3, d: 4], dict_impl.new)
-      iex> d = Dict.merge(d1, d2)
-      iex> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
+      iex> dict1 = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict2 = Enum.into([a: 3, d: 4], dict_impl.new)
+      iex> dict = Dict.merge(dict1, dict2)
+      iex> [a: Dict.get(dict, :a), b: Dict.get(dict, :b), d: Dict.get(dict, :d)]
       [a: 3, b: 2, d: 4]
 
-      iex> d1 = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d2 = Enum.into([a: 3, d: 4], dict_impl.new)
-      iex> d = Dict.merge(d1, d2, fn(_k, v1, v2) ->
+  """
+  @spec merge(t, t) :: t
+  def merge(dict1, dict2) do
+    target1 = target(dict1)
+    target2 = target(dict2)
+
+    if target1 == target2 do
+      target1.merge(dict1, dict2)
+    else
+      do_merge(target1, dict1, dict2, fn(_k, _v1, v2) -> v2 end)
+    end
+  end
+
+  @doc """
+  Merges the dict `dict2` into dict `dict1`.
+
+  If one of the `dict2` entries is found in `dict1`, the function
+  will be invoked to resolve the conflict.
+
+  Notice this function is polymorphic as it merges dicts of any
+  type. Each dict implementation also provides a `merge` function,
+  but they can only merge dicts of the same type.
+
+  ## Examples
+
+      iex> dict1 = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict2 = Enum.into([a: 3, d: 4], dict_impl.new)
+      iex> dict = Dict.merge(dict1, dict2, fn(_k, v1, v2) ->
       ...>   v1 + v2
       ...> end)
-      iex> [a: Dict.get(d, :a), b: Dict.get(d, :b), d: Dict.get(d, :d)]
+      iex> [a: Dict.get(dict, :a), b: Dict.get(dict, :b), d: Dict.get(dict, :d)]
       [a: 4, b: 2, d: 4]
 
   """
   @spec merge(t, t, (key, value, value -> value)) :: t
-  def merge(dict1, dict2, fun \\ fn(_k, _v1, v2) -> v2 end) do
+  def merge(dict1, dict2, fun) do
     target1 = target(dict1)
     target2 = target(dict2)
 
     if target1 == target2 do
       target1.merge(dict1, dict2, fun)
     else
-      Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
-        {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
-      end) |> elem(1)
+      do_merge(target1, dict1, dict2, fun)
     end
+  end
+
+  defp do_merge(target1, dict1, dict2, fun) do
+    Enumerable.reduce(dict2, {:cont, dict1}, fn({k, v}, acc) ->
+      {:cont, target1.update(acc, k, v, fn(other) -> fun.(k, other, v) end)}
+    end) |> elem(1)
   end
 
   @doc """
   Returns the value associated with `key` in `dict` as
   well as the `dict` without `key`.
 
+  If `key` is not present in `dict`, then the `dict` will
+  be returned unmodified.
+
   ## Examples
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
-      iex> {v, d} = Dict.pop dict, :a
-      iex> {v, Enum.sort(d)}
-      {1,[]}
+      iex> {v, dict} = Dict.pop dict, :a
+      iex> {v, Enum.sort(dict)}
+      {1, []}
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
-      iex> {v, d} = Dict.pop dict, :b
-      iex> {v, Enum.sort(d)}
-      {nil,[a: 1]}
+      iex> {v, dict} = Dict.pop dict, :b
+      iex> {v, Enum.sort(dict)}
+      {nil, [a: 1]}
 
       iex> dict = Enum.into([a: 1], dict_impl.new)
-      iex> {v, d} = Dict.pop dict, :b, 3
-      iex> {v, Enum.sort(d)}
-      {3,[a: 1]}
+      iex> {v, dict} = Dict.pop dict, :b, 3
+      iex> {v, Enum.sort(dict)}
+      {3, [a: 1]}
 
   """
   @spec pop(t, key, value) :: {value, t}
@@ -523,14 +679,51 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new
+  Returns the value associated with `key` in `dict` as
+  well as the `dict` without `key`.
+
+  If `key` is not present in `dict`, then the `dict` will
+  be returned unmodified, and it will lazily evaluate `fun`
+  and return its result instead of the missing value.
+
+  This is useful if the default value is very expensive to calculate or
+  generally difficult to set-up and tear-down again.
+
+  ## Examples
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> {v, dict} = Dict.pop_lazy dict, :a, fun
+      iex> {v, Enum.sort(dict)}
+      {1, []}
+
+      iex> dict = Enum.into([a: 1], dict_impl.new)
+      iex> fun = fn ->
+      ...>   # some expensive operation here
+      ...>   :result
+      ...> end
+      iex> {v, dict} = Dict.pop_lazy dict, :b, fun
+      iex> {v, Enum.sort(dict)}
+      {:result, [a: 1]}
+
+  """
+  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  def pop_lazy(dict, key, fun) do
+    target(dict).pop_lazy(dict, key, fun)
+  end
+
+  @doc """
+  Updates a value in `dict` by calling `fun` on the value to get a new
   value. An exception is generated if `key` is not present in the dict.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.update!(d, :a, fn(val) -> -val end)
-      iex> Dict.get(d, :a)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.update!(dict, :a, fn(val) -> -val end)
+      iex> Dict.get(dict, :a)
       -1
 
   """
@@ -540,15 +733,15 @@ defmodule Dict do
   end
 
   @doc """
-  Update a value in `dict` by calling `fun` on the value to get a new value. If
+  Updates a value in `dict` by calling `fun` on the value to get a new value. If
   `key` is not present in `dict` then `initial` will be stored as the first
   value.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.update(d, :c, 3, fn(val) -> -val end)
-      iex> Dict.get(d, :c)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.update(dict, :c, 3, fn(val) -> -val end)
+      iex> Dict.get(dict, :c)
       3
 
   """
@@ -560,25 +753,25 @@ defmodule Dict do
   @doc """
   Returns a tuple of two dicts, where the first dict contains only
   entries from `dict` with keys in `keys`, and the second dict
-  contains only entries from `dict` with keys not in `keys`
+  contains only entries from `dict` with keys not in `keys`.
 
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2, c: 3, d: 4], dict_impl.new)
-      iex> {d1, d2} = Dict.split(d, [:a, :c, :e])
-      iex> {Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2) |> Enum.sort}
+      iex> dict = Enum.into([a: 1, b: 2, c: 3, d: 4], dict_impl.new)
+      iex> {dict1, dict2} = Dict.split(dict, [:a, :c, :e])
+      iex> {Dict.to_list(dict1) |> Enum.sort, Dict.to_list(dict2) |> Enum.sort}
       {[a: 1, c: 3], [b: 2, d: 4]}
 
-      iex> d = Enum.into([], dict_impl.new)
-      iex> {d1, d2} = Dict.split(d, [:a, :c])
-      iex> {Dict.to_list(d1), Dict.to_list(d2)}
+      iex> dict = Enum.into([], dict_impl.new)
+      iex> {dict1, dict2} = Dict.split(dict, [:a, :c])
+      iex> {Dict.to_list(dict1), Dict.to_list(dict2)}
       {[], []}
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> {d1, d2} = Dict.split(d, [:a, :b, :c])
-      iex> {Dict.to_list(d1) |> Enum.sort, Dict.to_list(d2)}
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> {dict1, dict2} = Dict.split(dict, [:a, :b, :c])
+      iex> {Dict.to_list(dict1) |> Enum.sort, Dict.to_list(dict2)}
       {[a: 1, b: 2], []}
 
   """
@@ -589,18 +782,18 @@ defmodule Dict do
 
   @doc """
   Returns a new dict where the given `keys` are removed from `dict`.
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.drop(d, [:a, :c, :d])
-      iex> Dict.to_list(d)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.drop(dict, [:a, :c, :d])
+      iex> Dict.to_list(dict)
       [b: 2]
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.drop(d, [:c, :d])
-      iex> Dict.to_list(d) |> Enum.sort
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.drop(dict, [:c, :d])
+      iex> Dict.to_list(dict) |> Enum.sort
       [a: 1, b: 2]
 
   """
@@ -612,16 +805,16 @@ defmodule Dict do
   @doc """
   Returns a new dict where only the keys in `keys` from `dict` are included.
 
-  Any non-member keys are ignored.
+  All non-member keys are ignored.
 
   ## Examples
 
-      iex> d = Enum.into([a: 1, b: 2], dict_impl.new)
-      iex> d = Dict.take(d, [:a, :c, :d])
-      iex> Dict.to_list(d)
+      iex> dict = Enum.into([a: 1, b: 2], dict_impl.new)
+      iex> dict = Dict.take(dict, [:a, :c, :d])
+      iex> Dict.to_list(dict)
       [a: 1]
-      iex> d = Dict.take(d, [:c, :d])
-      iex> Dict.to_list(d)
+      iex> dict = Dict.take(dict, [:c, :d])
+      iex> Dict.to_list(dict)
       []
 
   """
@@ -637,7 +830,7 @@ defmodule Dict do
   end
 
   @doc """
-  Check if two dicts are equal using `===`.
+  Checks if two dicts are equal using `===`.
 
   Notice this function is polymorphic as it compares dicts of any
   type. Each dict implementation also provides an `equal?` function,
@@ -645,14 +838,14 @@ defmodule Dict do
 
   ## Examples
 
-      iex> a = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
-      iex> b = [a: 2, b: 3, f: 5, c: 123]
-      iex> Dict.equal?(a, b)
+      iex> dict1 = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
+      iex> dict2 = [a: 2, b: 3, f: 5, c: 123]
+      iex> Dict.equal?(dict1, dict2)
       true
 
-      iex> a = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
-      iex> b = []
-      iex> Dict.equal?(a, b)
+      iex> dict1 = Enum.into([a: 2, b: 3, f: 5, c: 123], dict_impl.new)
+      iex> dict2 = []
+      iex> Dict.equal?(dict1, dict2)
       false
 
   """

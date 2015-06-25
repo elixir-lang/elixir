@@ -7,7 +7,7 @@ defmodule IEx.InteractionTest do
 
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
-      IEx.Server.start([dot_iex_path: ""], fn -> end)
+      IEx.Server.start([dot_iex_path: ""], {IEx, :dont_display_result, []})
     end) =~ "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)" <>
             "\niex(1)> Hello world\n:ok\niex(2)>"
   end
@@ -27,6 +27,14 @@ defmodule IEx.InteractionTest do
     x
     """
     assert capture_iex(code) =~ "10"
+  end
+
+  test "code escape" do
+    code = """
+    1 \\
+    + 2
+    """
+    assert capture_iex(code) =~ "3"
   end
 
   test "exception" do
@@ -65,13 +73,7 @@ defmodule IEx.InteractionTest do
   end
 
   test "invalid input" do
-    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: \"do\" starting at"
-  end
-
-  test "undefined function" do
-    assert "** (RuntimeError) undefined function: format/0"   <> _ = capture_iex("format")
-    assert "** (RuntimeError) undefined function: with_one/1" <> _ = capture_iex("with_one(22)")
-    assert "** (RuntimeError) undefined function: many/3"     <> _ = capture_iex("many(:ok, 22, \"hi\")")
+    assert capture_iex("if true do ) false end") =~ "** (SyntaxError) iex:1: unexpected token: \")\". \"do\" starting at"
   end
 
   test "module definition" do
@@ -92,35 +94,18 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  unless match?({:win32,_}, :os.type) do
+  unless match?({:win32, _}, :os.type) do
     test "color" do
-      opts = [colors: [enabled: true, eval_result: "red"]]
+      opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
-
-      # Sanity checks
-      assert capture_iex("IO.ANSI.escape(\"%{blue}hello\", true)", opts)
-             == "\e[31m\"\\e[34mhello\\e[0m\"\e[0m"
-      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", opts)
-             == "\e[34mhello\e[0m\n\e[31m:ok\e[0m"
-      assert capture_iex("IO.puts IO.ANSI.escape(\"%{blue}hello\", true)", [colors: [enabled: false]])
-             == "\e[34mhello\e[0m\n:ok"
-
-      # Test that ANSI escapes in the docs are left alone
-      opts = [colors: [enabled: true]]
-      assert capture_iex("h IO.ANSI.escape_fragment", opts)
-             =~ ~r"%\{red\}"
-
-      # Test that ANSI escapes in iex output are left alone
-      opts = [colors: [enabled: true, eval_result: "red", eval_info: "red"]]
-      assert capture_iex("\"%{red} %{blue}\"", opts) == "\e[31m\"%{red} %{blue}\"\e[0m"
-      assert capture_iex("IO.puts IEx.color(:eval_info, \"%{red} %{blue}\")", opts)
-             == "\e[31m%{red} %{blue}\e[0m\n\e[31m:ok\e[0m"
+      assert capture_iex("IO.ANSI.blue", opts)
+             == "\e[31m\"\\e[34m\"\e[0m"
     end
   end
 
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, char_lists: :as_lists, structs: false, limit: 4]]
-    assert capture_iex("<<45,46,47>>\n[45,46,47]\n%IO.Stream{}", opts) ==
+    assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
               "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
@@ -135,7 +120,7 @@ defmodule IEx.InteractionTest do
   ## .iex file loading
 
   test "no .iex" do
-    assert "** (RuntimeError) undefined function: my_variable/0" <> _ = capture_iex("my_variable")
+    assert "** (CompileError) iex:1: undefined function my_variable/0" <> _ = capture_iex("my_variable")
   end
 
   test ".iex" do

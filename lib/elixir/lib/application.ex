@@ -4,29 +4,29 @@ defmodule Application do
 
   In Elixir (actually, in Erlang/OTP), an application is a component
   implementing some specific functionality, that can be started and stopped
-  as a unit, and which can be re-used in other systems as well.
+  as a unit, and which can be re-used in other systems.
 
   Applications are defined with an application file named `APP.app` where
-  `APP` is the APP name, usually in `underscore_case` convention. The
-  application file must reside in the same `ebin` directory as the
-  application's modules bytecode.
+  `APP` is the application name, usually in `underscore_case`. The application
+  file must reside in the same `ebin` directory as the compiled modules of the
+  application.
 
   In Elixir, Mix is responsible for compiling your source code and
   generating your application `.app` file. Furthermore, Mix is also
-  responsible for configuring, starting and stoping your application
+  responsible for configuring, starting and stopping your application
   and its dependencies. For this reason, this documentation will focus
-  on the remaining aspects of your application: the application environment,
+  on the remaining aspects of your application: the application environment
   and the application callback module.
 
-  You can learn more about Mix compilation of `.app` files by typing
+  You can learn more about Mix generation of `.app` files by typing
   `mix help compile.app`.
 
   ## Application environment
 
   Once an application is started, OTP provides an application environment
-  that can be used to configure applications.
+  that can be used to configure the application.
 
-  Assuming you are inside a Mix project, you can edit your application
+  Assuming you are inside a Mix project, you can edit the `application`
   function in the `mix.exs` file to the following:
 
       def application do
@@ -38,18 +38,18 @@ defmodule Application do
   can access the default value:
 
       Application.get_env(:APP_NAME, :hello)
-      #=> {:ok, :hello}
+      #=> :world
 
   It is also possible to put and delete values from the application value,
   including new values that are not defined in the environment file (although
-  those should be avoided).
+  this should be avoided).
 
-  In the future, we plan to support configuration files which allows
+  In the future, we plan to support configuration files which allow
   developers to configure the environment of their dependencies.
 
   Keep in mind that each application is responsible for its environment.
-  Do not use the fucntions in this module for directly access or modify
-  the environment of other application (as it may lead to inconsistent
+  Do not use the functions in this module for directly accessing or modifying
+  the environment of other applications (as it may lead to inconsistent
   data in the application environment).
 
   ## Application module callback
@@ -64,8 +64,8 @@ defmodule Application do
       end
 
   Our application now requires the `MyApp` module to provide an application
-  callback. This can be done by invoking `use Application` in that module
-  and defining a `start/2` callback, for example:
+  callback. This can be done by invoking `use Application` in that module and
+  defining a `start/2` callback, for example:
 
       defmodule MyApp do
         use Application
@@ -75,21 +75,22 @@ defmodule Application do
         end
       end
 
-  `start/2` most commonly returns `{:ok, pid}` or `{:ok, pid, state}` where
-  `pid` identifies the supervision tree and the state is the application state.
-  `args` is second element of the tuple given to the `:mod` option.
+  `start/2` typically returns `{:ok, pid}` or `{:ok, pid, state}` where
+  `pid` identifies the supervision tree and `state` is the application state.
+  `args` is the second element of the tuple given to the `:mod` option.
 
-  The `type` passed into `start/2` is usually `:normal` unless in a distributed
-  setup where applications takeover and failovers are configured. This particular
-  aspect of applications can be read with more detail in the OTP documentation:
+  The `type` argument passed to `start/2` is usually `:normal` unless in a
+  distributed setup where application takeovers and failovers are configured.
+  This particular aspect of applications is explained in more detail in the
+  OTP documentation:
 
-  * http://www.erlang.org/doc/man/application.html
-  * http://www.erlang.org/doc/design_principles/applications.html
+    * http://www.erlang.org/doc/man/application.html
+    * http://www.erlang.org/doc/design_principles/applications.html
 
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the
-  application state and can return any value. Notice that shutting down the
-  supervisor is automatically handled by the VM;
+  application state and can return any value. Note that shutting down the
+  supervisor is automatically handled by the VM.
   """
 
   @doc false
@@ -114,7 +115,7 @@ defmodule Application do
   @doc """
   Returns all key-value pairs for `app`.
   """
-  @spec get_all_env(app) :: [{key,value}]
+  @spec get_all_env(app) :: [{key, value}]
   def get_all_env(app) do
     :application.get_all_env(app)
   end
@@ -122,22 +123,18 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s environment.
 
-  If the specified application is not loaded, or the configuration parameter
-  does not exist, the function returns the `default` value.
+  If the configuration parameter does not exist, the function returns the
+  `default` value.
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) do
-    case :application.get_env(app, key) do
-      {:ok, value} -> value
-      :undefined -> default
-    end
+    :application.get_env(app, key, default)
   end
 
   @doc """
   Returns the value for `key` in `app`'s environment in a tuple.
 
-  If the specified application is not loaded, or the configuration parameter
-  does not exist, the function returns `:error`.
+  If the configuration parameter does not exist, the function returns `:error`.
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
   def fetch_env(app, key) do
@@ -148,19 +145,34 @@ defmodule Application do
   end
 
   @doc """
+  Returns the value for `key` in `app`'s environment.
+
+  If the configuration parameter does not exist, raises `ArgumentError`.
+  """
+  @spec fetch_env!(app, key) :: value | no_return
+  def fetch_env!(app, key) do
+    case fetch_env(app, key) do
+      {:ok, value} -> value
+      :error ->
+        raise ArgumentError,
+          "application #{inspect app} is not loaded, " <>
+          "or the configuration parameter #{inspect key} is not set"
+    end
+  end
+
+  @doc """
   Puts the `value` in `key` for the given `app`.
 
   ## Options
 
-  * `:timeout` - the timeout for the change (defaults to 5000ms);
-
-  * `:persistent` - persists the given value on application load and reloads;
+    * `:timeout`    - the timeout for the change (defaults to 5000ms)
+    * `:persistent` - persists the given value on application load and reloads
 
   If `put_env/4` is called before the application is loaded, the application
   environment values specified in the `.app` file will override the ones
   previously set.
 
-  The persistent option can be set to true when there is a need to guarantee
+  The persistent option can be set to `true` when there is a need to guarantee
   parameters set with this function will not be overridden by the ones defined
   in the application resource file on load. This means persistent values will
   stick after the application is loaded and also on application reload.
@@ -202,7 +214,7 @@ defmodule Application do
   `:applications` in the `.app` file in case they were not previously
   started.
   """
-  @spec ensure_all_started(app, start_type) :: {:ok, [app]} | {:error, term}
+  @spec ensure_all_started(app, start_type) :: {:ok, [app]} | {:error, {app, term}}
   def ensure_all_started(app, type \\ :temporary) when is_atom(app) do
     :application.ensure_all_started(app, type)
   end
@@ -223,13 +235,16 @@ defmodule Application do
 
   The `type` argument specifies the type of the application:
 
-  * `:permanent` - if `app` terminates, all other applications and the entire
-    node are also terminated;
-  * `:transient` - if `app` terminates with `:normal` reason, it is reported
-    but no other applications are terminated. If a transient application terminates
-    abnormally, all other applications and the entire node are also terminated;
-  * `:temporary` - if `app` termiantes, it is reported but no other applications
-    are terminated (the default);
+    * `:permanent` - if `app` terminates, all other applications and the entire
+      node are also terminated.
+
+    * `:transient` - if `app` terminates with `:normal` reason, it is reported
+      but no other applications are terminated. If a transient application
+      terminates abnormally, all other applications and the entire node are
+      also terminated.
+
+    * `:temporary` - if `app` terminates, it is reported but no other
+      applications are terminated (the default).
 
   Note that it is always possible to stop an application explicitly by calling
   `stop/1`. Regardless of the type of the application, no other applications will
@@ -320,7 +335,7 @@ defmodule Application do
 
   @doc """
   Formats the error reason returned by `start/2`,
-  `ensure_started/2, `stop/1`, `load/1` and `unload/1`,
+  `ensure_started/2`, `stop/1`, `load/1` and `unload/1`,
   returns a string.
   """
   @spec format_error(any) :: String.t

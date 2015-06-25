@@ -4,27 +4,44 @@ defmodule Record.Extractor do
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include* attribute from Erlang modules.
   def extract(name, from: file) when is_binary(file) do
-    file = String.to_char_list(file)
-
-    realfile =
-      case :code.where_is_file(file) do
-        :non_existing -> file
-        realfile -> realfile
-      end
-
-    extract_record(name, realfile)
+    extract_record(name, from_file(file))
   end
 
   # Retrieve a record definition from an Erlang file using
   # the same lookup as the *include_lib* attribute from Erlang modules.
   def extract(name, from_lib: file) when is_binary(file) do
-    [app|path] = :filename.split(String.to_char_list(file))
+    extract_record(name, from_lib_file(file))
+  end
 
+  # Retrieve all records definitions from an Erlang file using
+  # the same lookup as the *include* attribute from Erlang modules.
+  def extract_all(from: file) when is_binary(file) do
+    extract_all_records(from_file(file))
+  end
+
+  # Retrieve all records definitions from an Erlang file using
+  # the same lookup as the *include_lib* attribute from Erlang modules.
+  def extract_all(from_lib: file) when is_binary(file) do
+    extract_all_records(from_lib_file(file))
+  end
+
+  # Find file using the same lookup as the *include* attribute from Erlang modules.
+  defp from_file(file) do
+    file = String.to_char_list(file)
+    case :code.where_is_file(file) do
+      :non_existing -> file
+      realfile -> realfile
+    end
+  end
+
+  # Find file using the same lookup as the *include_lib* attribute from Erlang modules.
+  defp from_lib_file(file) do
+    [app|path] = :filename.split(String.to_char_list(file))
     case :code.lib_dir(List.to_atom(app)) do
       {:error, _} ->
         raise ArgumentError, "lib file #{file} could not be found"
       libpath ->
-        extract_record name, :filename.join([libpath|path])
+        :filename.join([libpath|path])
     end
   end
 
@@ -39,16 +56,24 @@ defmodule Record.Extractor do
     end
   end
 
+  # Retrieve all records from the given file
+  defp extract_all_records(file) do
+    form = read_file(file)
+    records = extract_records(form)
+    for rec = {name, _fields} <- records, do: {name, parse_record(rec, form)}
+  end
+
   # Parse the given file and extract all existent records.
   defp extract_records(form) do
     for {:attribute, _, :record, record} <- form, do: record
   end
 
   # Read a file and return its abstract syntax form that also
-  # includes record and other preprocessor modules. This is done
-  # by using Erlang's epp_dodger.
+  # includes record but with macros and other attributes expanded,
+  # such as `-include(...)` and `-include_lib(...)`. This is done
+  # by using Erlang's epp.
   defp read_file(file) do
-    case :epp_dodger.quick_parse_file(file) do
+    case :epp.parse_file(file, []) do
       {:ok, form} ->
         form
       other ->
@@ -80,11 +105,11 @@ defmodule Record.Extractor do
 
   defp eval_record(cons, form) do
     form = form ++
-      [ {:function, 0, :hello, 0, [
-          {:clause, 0, [], [], [ cons ]} ]} ]
+      [{:function, 0, :hello, 0, [
+         {:clause, 0, [], [], [cons]}]}]
 
     {:function, 0, :hello, 0, [
-      {:clause, 0, [], [], [ record_ast ]} ]} = :erl_expand_records.module(form, []) |> List.last
+      {:clause, 0, [], [], [record_ast]}]} = :erl_expand_records.module(form, []) |> List.last
 
     {:value, record, _} = :erl_eval.expr(record_ast, [])
     record

@@ -29,7 +29,7 @@ defmodule Mix.Dep.Umbrella do
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn umbrella_dep ->
-      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep)
+      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil)
       deps = Enum.filter(umbrella_dep.deps, fn dep ->
         Mix.Dep.available?(dep) and dep.app in apps
       end)
@@ -51,7 +51,7 @@ defmodule Mix.Dep.Umbrella do
 
   defp to_umbrella_dep(paths, build) do
     Enum.map paths, fn({app, path}) ->
-      opts = [path: path, dest: Path.expand(path),
+      opts = [path: path, dest: Path.expand(path), from_umbrella: true,
               env: Mix.env, build: Path.join([build, "lib", Atom.to_string(app)])]
       %Mix.Dep{
         scm: Mix.SCM.Path,

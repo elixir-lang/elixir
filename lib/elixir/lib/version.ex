@@ -51,6 +51,19 @@ defmodule Version do
 
       "~> 2.0.0"
 
+  `~>` will never include pre-release versions of its upper bound.
+  It can also be used to set an upper bound on only the major
+  version part. See the table below for `~>` requirements and
+  their corresponding translation.
+
+  `~>`           | Translation
+  :------------- | :---------------------
+  `~> 2.0.0`     | `>= 2.0.0 and < 2.1.0`
+  `~> 2.1.2`     | `>= 2.1.2 and < 2.2.0`
+  `~> 2.1.3-dev` | `>= 2.1.3-dev and < 2.2.0`
+  `~> 2.0`       | `>= 2.0.0 and < 3.0.0`
+  `~> 2.1`       | `>= 2.1.0 and < 3.0.0`
+
   """
 
   import Kernel, except: [match?: 2]
@@ -58,14 +71,25 @@ defmodule Version do
 
   @type version     :: String.t | t
   @type requirement :: String.t | Version.Requirement.t
-  @type matchable   :: {major :: String.t | non_neg_integer,
-                        minor :: non_neg_integer | nil,
-                        patch :: non_neg_integer | nil,
-                        pre   :: [String.t]}
+  @type major       :: String.t | non_neg_integer
+  @type minor       :: non_neg_integer | nil
+  @type patch       :: non_neg_integer | nil
+  @type pre         :: [String.t | non_neg_integer]
+  @type build       :: String.t | nil
+  @type matchable   :: {major :: major,
+                        minor :: minor,
+                        patch :: patch,
+                        pre   :: pre}
+  @type t           :: %__MODULE__{
+                         major: major,
+                         minor: minor,
+                         patch: patch,
+                         pre:   pre,
+                         build: build}
 
   defmodule Requirement do
-    @moduledoc false
     defstruct [:source, :matchspec]
+    @type t :: %__MODULE__{}
   end
 
   defmodule InvalidRequirementError do
@@ -77,7 +101,7 @@ defmodule Version do
   end
 
   @doc """
-  Check if the given version matches the specification.
+  Checks if the given version matches the specification.
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
   Raises a `Version.InvalidRequirementError` exception if `requirement` is not
@@ -101,12 +125,12 @@ defmodule Version do
 
   """
   @spec match?(version, requirement) :: boolean
-  def match?(vsn, req) when is_binary(req) do
-    case parse_requirement(req) do
-      {:ok, req} ->
-        match?(vsn, req)
+  def match?(version, requirement) when is_binary(requirement) do
+    case parse_requirement(requirement) do
+      {:ok, requirement} ->
+        match?(version, requirement)
       :error ->
-        raise InvalidRequirementError, message: req
+        raise InvalidRequirementError, message: requirement
     end
   end
 
@@ -136,8 +160,8 @@ defmodule Version do
 
   """
   @spec compare(version, version) :: :gt | :eq | :lt
-  def compare(vsn1, vsn2) do
-    do_compare(to_matchable(vsn1), to_matchable(vsn2))
+  def compare(version1, version2) do
+    do_compare(to_matchable(version1), to_matchable(version2))
   end
 
   defp do_compare({major1, minor1, patch1, pre1}, {major2, minor2, patch2, pre2}) do
@@ -153,11 +177,12 @@ defmodule Version do
   end
 
   @doc """
-  Parse a version string into a `Version`.
+  Parses a version string into a `Version`.
 
   ## Examples
 
-      iex> Version.parse("2.0.1-alpha1") |> elem(1)
+      iex> {:ok, version} = Version.parse("2.0.1-alpha1")
+      iex> version
       #Version<2.0.1-alpha1>
 
       iex> Version.parse("2.0-alpha1")
@@ -168,20 +193,21 @@ defmodule Version do
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
       {:ok, {major, minor, patch, pre}} ->
-        vsn = %Version{major: major, minor: minor, patch: patch,
+        version = %Version{major: major, minor: minor, patch: patch,
                        pre: pre, build: get_build(string)}
-        {:ok, vsn}
+        {:ok, version}
      :error ->
        :error
     end
   end
 
   @doc """
-  Parse a version requirement string into a `Version.Requirement`.
+  Parses a version requirement string into a `Version.Requirement`.
 
   ## Examples
 
-      iex> Version.parse_requirement("== 2.0.1") |> elem(1)
+      iex> {:ok, req} = Version.parse_requirement("== 2.0.1")
+      iex> req
       #Version.Requirement<== 2.0.1>
 
       iex> Version.parse_requirement("== == 2.0.1")
@@ -204,7 +230,7 @@ defmodule Version do
 
   defp to_matchable(string) do
     case Version.Parser.parse_version(string) do
-      {:ok, vsn} -> vsn
+      {:ok, version} -> version
       :error -> raise InvalidVersionError, message: string
     end
   end
@@ -310,7 +336,7 @@ defmodule Version do
         patch = nillify(patch)
         pre   = nillify(pre)
 
-        if nil?(minor) or (nil?(patch) and not approximate?) do
+        if is_nil(minor) or (is_nil(patch) and not approximate?) do
           :error
         else
           major = String.to_integer(major)
@@ -492,9 +518,21 @@ end
 
 defimpl String.Chars, for: Version do
   def to_string(version) do
-    pre = unless Enum.empty?(pre = version.pre), do: "-#{pre}"
+    pre = pre(version.pre)
     build = if build = version.build, do: "+#{build}"
     "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
+  end
+
+  defp pre([]) do
+    ""
+  end
+
+  defp pre(pre) do
+    "-" <>
+      Enum.map_join(pre, ".", fn
+        int when is_integer(int) -> Integer.to_string(int)
+        string when is_binary(string) -> string
+      end)
   end
 end
 

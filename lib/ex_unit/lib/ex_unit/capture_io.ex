@@ -14,6 +14,14 @@ defmodule ExUnit.CaptureIO do
             IO.puts "a"
           end) == "a\n"
         end
+
+        test "checking the return value and the IO output" do
+          fun = fn ->
+            assert Enum.each(["some", "example"], &(IO.puts &1)) == :ok
+          end
+          assert capture_io(fun) == "some\nexample\n"
+          # tip: or use only: `capture_io(fun)` to silence the IO output (so only assert the return value)
+        end
       end
 
   """
@@ -40,10 +48,10 @@ defmodule ExUnit.CaptureIO do
 
   ## Examples
 
-      iex> capture_io(fn -> IO.write "josé" end) == "josé"
+      iex> capture_io(fn -> IO.write "john" end) == "john"
       true
 
-      iex> capture_io(:stderr, fn -> IO.write(:stderr, "josé") end) == "josé"
+      iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) == "john"
       true
 
       iex> capture_io("this is input", fn ->
@@ -91,15 +99,13 @@ defmodule ExUnit.CaptureIO do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     input = Keyword.get(options, :input, "")
 
-    original_gl = :erlang.group_leader
+    original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
-    :erlang.group_leader(capture_gl, self)
-
     try do
-      fun.()
-      StringIO.close(capture_gl) |> elem(1) |> elem(1)
+      Process.group_leader(self(), capture_gl)
+      do_capture_io(capture_gl, fun)
     after
-      :erlang.group_leader(original_gl, self)
+      Process.group_leader(self(), original_gl)
     end
   end
 
@@ -119,8 +125,7 @@ defmodule ExUnit.CaptureIO do
     Process.register(capture_io, device)
 
     try do
-      fun.()
-      StringIO.close(capture_io) |> elem(1) |> elem(1)
+      do_capture_io(capture_io, fun)
     after
       try do
         Process.unregister(device)
@@ -129,6 +134,22 @@ defmodule ExUnit.CaptureIO do
       end
       Process.register(original_io, device)
       ExUnit.Server.remove_device(device)
+    end
+  end
+
+  defp do_capture_io(string_io, fun) do
+    try do
+       _ = fun.()
+      :ok
+    catch
+      kind, reason ->
+        stack = System.stacktrace()
+        _ = StringIO.close(string_io)
+        :erlang.raise(kind, reason, stack)
+    else
+      :ok ->
+        {:ok, output} = StringIO.close(string_io)
+        elem(output, 1)
     end
   end
 end

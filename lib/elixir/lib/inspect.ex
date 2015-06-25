@@ -210,33 +210,30 @@ defimpl Inspect, for: BitString do
   end
   defp escape(<<>>, _char, binary), do: binary
 
-
   @doc false
-  # also used by Regex
-  def escape_char(char) when char in ?\000..?\377,
-    do: octify(char)
-
-  def escape_char(char), do: hexify(char)
-
-  defp octify(byte) do
-    << hi :: size(2), mi :: size(3), lo :: size(3) >> = << byte >>
-    << ?\\, ?0 + hi, ?0 + mi, ?0 + lo >>
+  # Also used by Regex
+  def escape_char(0) do
+    <<?\\, ?0>>
   end
 
-  defp hexify(char) when char < 0x10000 do
+  def escape_char(char) when char < 0x100 do
+    <<a::4, b::4>> = <<char::size(8)>>
+    <<?\\, ?x, to_hex(a), to_hex(b)>>
+  end
+
+  def escape_char(char) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::size(16)>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
   end
 
-  defp hexify(char) when char < 0x1000000 do
+  def escape_char(char) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::size(24)>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
                    to_hex(d), to_hex(e), to_hex(f), ?}>>
   end
 
   defp to_hex(c) when c in 0..9, do: ?0+c
-  defp to_hex(c) when c in 10..15, do: ?a+c-10
-
+  defp to_hex(c) when c in 10..15, do: ?A+c-10
 
   defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
   defp append(<<>>, binary), do: binary
@@ -274,25 +271,6 @@ defimpl Inspect, for: BitString do
 end
 
 defimpl Inspect, for: List do
-  @doc ~S"""
-  Represents a list, checking if it can be printed or not.
-  If so, a single-quoted representation is returned,
-  otherwise the brackets syntax is used. Keywords are
-  printed in keywords syntax.
-
-  ## Examples
-
-      iex> inspect('bar')
-      "'bar'"
-
-      iex> inspect([0|'bar'])
-      "[0, 98, 97, 114]"
-
-      iex> inspect([:foo,:bar])
-      "[:foo, :bar]"
-
-  """
-
   def inspect([], _opts), do: "[]"
 
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
@@ -300,9 +278,9 @@ defimpl Inspect, for: List do
       lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
         << ?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
-        surround_many("[", thing, "]", opts.limit, &keyword(&1, opts))
+        surround_many("[", thing, "]", opts, &keyword/2)
       true ->
-        surround_many("[", thing, "]", opts.limit, &to_doc(&1, opts))
+        surround_many("[", thing, "]", opts, &to_doc/2)
     end
   end
 
@@ -349,25 +327,25 @@ defimpl Inspect, for: Tuple do
   def inspect({}, _opts), do: "{}"
 
   def inspect(tuple, opts) do
-    surround_many("{", Tuple.to_list(tuple), "}", opts.limit, &to_doc(&1, opts))
+    surround_many("{", Tuple.to_list(tuple), "}", opts, &to_doc/2)
   end
 end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    inspect(map, "", opts)
+    nest inspect(map, "", opts), 1
   end
 
   def inspect(map, name, opts) do
     map = :maps.to_list(map)
-    surround_many("%" <> name <> "{", map, "}", opts.limit, traverse_fun(map, opts))
+    surround_many("%" <> name <> "{", map, "}", opts, traverse_fun(map))
   end
 
-  defp traverse_fun(list, opts) do
+  defp traverse_fun(list) do
     if Inspect.List.keyword?(list) do
-      &Inspect.List.keyword(&1, opts)
+      &Inspect.List.keyword/2
     else
-      &to_map(&1, opts)
+      &to_map/2
     end
   end
 
@@ -380,8 +358,28 @@ defimpl Inspect, for: Map do
 end
 
 defimpl Inspect, for: Integer do
-  def inspect(thing, _opts) do
-    Integer.to_string(thing)
+  def inspect(thing, %Inspect.Opts{base: base}) do
+    Integer.to_string(thing, base_to_value(base))
+    |> prepend_prefix(base)
+  end
+
+  defp base_to_value(base) do
+    case base do
+      :binary  -> 2
+      :decimal -> 10
+      :octal   -> 8
+      :hex     -> 16
+    end
+  end
+
+  defp prepend_prefix(value, :decimal), do: value
+  defp prepend_prefix(value, base) do
+    prefix = case base do
+      :binary -> "0b"
+      :octal  -> "0o"
+      :hex    -> "0x"
+    end
+    prefix <> value
   end
 end
 

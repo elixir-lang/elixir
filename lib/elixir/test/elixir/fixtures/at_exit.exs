@@ -5,4 +5,4 @@ defmodule AtExit do
 end
 System.at_exit fn(status) -> IO.puts "cruel world with status #{status}" end
 AtExit.at_exit("goodbye ")
-exit(0)
+exit({:shutdown, 1})

@@ -49,7 +49,7 @@ defmodule DictTest.Common do
       end
 
       defp int_dict do
-        Enum.into [{1,1}], dict_impl.new
+        Enum.into [{1, 1}], dict_impl.new
       end
 
       test "access" do
@@ -75,6 +75,43 @@ defmodule DictTest.Common do
       test "get/2 with match" do
         assert Dict.get(int_dict, 1) == 1
         assert Dict.get(int_dict, 1.0) == nil
+      end
+
+      test "get_lazy/3" do
+        dict = new_dict()
+        Process.put(:get_lazy, 42)
+        fun = fn ->
+          Process.put(:get_lazy, Process.get(:get_lazy) + 1)
+          Process.get(:get_lazy)
+        end
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "second_key", fun)   == 2
+        assert Dict.get_lazy(dict, "other_key", fun)    == 43
+        assert Dict.get_lazy(dict, "first_key", fun)    == 1
+        assert Dict.get_lazy(dict, "other_key", fun)    == 44
+      end
+
+      test "get_and_update/3 when the key is present" do
+        dict = new_dict()
+        {get, dict} = Dict.get_and_update dict, "first_key", fn(current_val) ->
+          {[current_val: current_val], :new_value}
+        end
+
+        assert get == [current_val: 1]
+        assert Dict.get(dict, "first_key")  == :new_value
+        assert Dict.get(dict, "second_key") == 2
+      end
+
+      test "get_and_update/3 when the key is not present" do
+        dict = new_dict()
+        {get, dict} = Dict.get_and_update dict, "new_key", fn(current_val) ->
+          {[current_val: current_val], :new_value}
+        end
+
+        assert get == [current_val: nil]
+        assert Dict.get(dict, "first_key")  == 1
+        assert Dict.get(dict, "second_key") == 2
+        assert Dict.get(dict, "new_key")    == :new_value
       end
 
       test "fetch/2" do
@@ -124,6 +161,17 @@ defmodule DictTest.Common do
         assert Dict.get(Dict.put_new(int_dict, 1.0, :other), 1.0) == :other
       end
 
+      test "put_new_lazy/3" do
+        Process.put(:put_new_lazy, 42)
+        fun = fn ->
+          Process.put(:put_new_lazy, Process.get(:put_new_lazy) + 1)
+          Process.get(:put_new_lazy)
+        end
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "other_key", fun), "other_key") == 43
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "first_key", fun), "first_key") == 1
+        assert Dict.get(Dict.put_new_lazy(new_dict(), "another_key", fun), "another_key") == 44
+      end
+
       test "keys/1" do
         assert Enum.sort(Dict.keys(new_dict())) == ["first_key", "second_key"]
         assert Dict.keys(new_dict([])) == []
@@ -165,7 +213,7 @@ defmodule DictTest.Common do
 
       test "merge/2 with other dict" do
         dict1 = new_dict [{"a", 1}, {"b", 2}, {"c", 3}]
-        dict2 = TestDict.new [{"a",3}, {"c",:a}, {"d",0}]
+        dict2 = TestDict.new [{"a", 3}, {"c", :a}, {"d", 0}]
         actual = Dict.merge(dict1, dict2)
         assert Dict.merge(dict1, dict2) |> Enum.sort ==
                [{"a", 3}, {"b", 2}, {"c", :a}, {"d", 0}]
@@ -249,6 +297,27 @@ defmodule DictTest.Common do
         {v, actual} = Dict.pop(dict, 1.0)
         assert v == nil
         assert actual == dict
+      end
+
+      test "pop_lazy/3" do
+        dict = new_dict()
+        Process.put(:pop_lazy, 42)
+        fun = fn ->
+          Process.put(:pop_lazy, Process.get(:pop_lazy) + 1)
+          Process.get(:pop_lazy)
+        end
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 43
+        assert dict == actual
+
+        {v, actual} = Dict.pop_lazy(dict, "first_key", fun)
+        assert v == 1
+        assert actual == new_dict([{"second_key", 2}])
+
+        {v, actual} = Dict.pop_lazy(dict, "other_key", fun)
+        assert v == 44
+        assert dict == actual
       end
 
       test "split/2" do
@@ -351,16 +420,16 @@ defmodule DictTest.Common do
       end
 
       test "equal?/2 with match" do
-        dict1 = new_dict([{1,1}])
-        dict2 = new_dict([{1.0,1}])
+        dict1 = new_dict([{1, 1}])
+        dict2 = new_dict([{1.0, 1}])
         assert Dict.equal?(dict1, dict1)
         refute Dict.equal?(dict1, dict2)
       end
 
       test "equal?/2 with other dict" do
-        dict = new_dict([{1,1}])
-        assert Dict.equal?(dict, TestDict.new([{1,1}]))
-        refute Dict.equal?(dict, TestDict.new([{1.0,1}]))
+        dict = new_dict([{1, 1}])
+        assert Dict.equal?(dict, TestDict.new([{1, 1}]))
+        refute Dict.equal?(dict, TestDict.new([{1.0, 1}]))
       end
 
       test "is enumerable" do
@@ -381,8 +450,6 @@ defmodule DictTest.Common do
         dict = new_dict([{1}, {2}, {3}], fn {x} -> {<<x + 64>>, x} end)
         assert Dict.size(dict) == 3
         assert Enum.sort(dict) == [{"A", 1}, {"B", 2}, {"C", 3}]
-
-        assert Collectable.empty(new_dict) == new_dict([])
       end
 
       test "is zippable" do

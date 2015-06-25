@@ -3,30 +3,6 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.RebarTest do
   use MixTest.Case
 
-  # Have our own path implementation that bypasses some
-  # Path validation checks. We use this just for testing.
-  defmodule MyPath do
-    @behaviour Mix.SCM
-
-    for {name, arity} <- Mix.SCM.Path.__info__(:functions) do
-      args = tl Enum.map 0..arity, &{:"x#{&1}", [], nil}
-      def unquote(name)(unquote_splicing(args)) do
-        Mix.SCM.Path.unquote(name)(unquote_splicing(args))
-      end
-    end
-  end
-
-  setup do
-    available = Mix.SCM.available
-    Application.put_env(:mix, :scm, [Mix.SCM.Git, MyPath])
-    {:ok, [scm: available]}
-  end
-
-  teardown context do
-    Application.put_env(:mix, :scm, context[:scm])
-    :ok
-  end
-
   defmodule RebarAsDep do
     def project do
       [ app: :rebar_as_dep,
@@ -39,13 +15,13 @@ defmodule Mix.RebarTest do
   end
 
   test "load rebar config" do
-    path = MixTest.Case.tmp_path("rebar_dep")
+    path = MixTest.Case.fixture_path("rebar_dep")
     config = Mix.Rebar.load_config(path)
     assert config[:sub_dirs] == ['apps/*']
     assert config[:SCRIPT] == 'rebar.config.script'
   end
 
-  test "execute rebar.config.script on dependecy directory" do
+  test "execute rebar.config.script on dependency directory" do
     path = MixTest.Case.fixture_path("rebar_dep_script")
     config = Mix.Rebar.load_config(path)
     assert config[:dir] == {:ok, String.to_char_list(path)}
@@ -85,7 +61,7 @@ defmodule Mix.RebarTest do
   end
 
   test "recurs over sub dirs" do
-    path = MixTest.Case.tmp_path("rebar_dep")
+    path = MixTest.Case.fixture_path("rebar_dep")
 
     File.cd! path, fn ->
      config = Mix.Rebar.load_config(path)
@@ -103,17 +79,15 @@ defmodule Mix.RebarTest do
   end
 
   test "get and compile dependencies for rebar" do
-    # Use rebar from project root
-    System.put_env("MIX_HOME", MixTest.Case.elixir_root)
     Mix.Project.push(RebarAsDep)
 
     in_tmp "get and compile dependencies for rebar", fn ->
-      Mix.Tasks.Deps.Get.run ["--no-compile"]
+      Mix.Tasks.Deps.Get.run []
       assert_received {:mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"]}
 
       Mix.Tasks.Deps.Compile.run []
-      assert_received {:mix_shell, :info, ["* Compiling git_rebar"]}
-      assert_received {:mix_shell, :info, ["* Compiling rebar_dep"]}
+      assert_received {:mix_shell, :run, ["==> git_rebar (compile)\n"]}
+      assert_received {:mix_shell, :run, ["==> rebar_dep (compile)\n"]}
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 
@@ -123,8 +97,37 @@ defmodule Mix.RebarTest do
 
       assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
       assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
+
+      # Assert we have no .compile.lock as a .compile.lock
+      # means we check for the Elixir version on every command.
+      refute File.exists?("_build/dev/lib/rebar_dep/.compile.lock")
+      refute File.exists?("_build/dev/lib/git_rebar/.compile.lock")
+
       assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
       assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
     end
+  end
+
+  test "get and compile dependencies for rebar with mix" do
+    Mix.Project.push(RebarAsDep)
+
+    in_tmp "get and compile dependencies for rebar with mix", fn ->
+      File.write! MixTest.Case.tmp_path("rebar_dep/mix.exs"), """
+      defmodule RebarDep.Mixfile do
+        use Mix.Project
+
+        def project do
+          [app: :rebar_dep,
+           version: "0.0.1"]
+        end
+      end
+      """
+
+      Mix.Tasks.Deps.Compile.run []
+      assert_received {:mix_shell, :info, ["==> rebar_dep"]}
+      assert_received {:mix_shell, :info, ["Generated rebar_dep app"]}
+    end
+  after
+    File.rm MixTest.Case.tmp_path("rebar_dep/mix.exs")
   end
 end

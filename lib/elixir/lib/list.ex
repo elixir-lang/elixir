@@ -26,7 +26,7 @@ defmodule List do
   ## Examples
 
       iex> List.delete([1, 2, 3], 1)
-      [2,3]
+      [2, 3]
 
       iex> List.delete([1, 2, 2, 3], 2)
       [1, 2, 3]
@@ -43,10 +43,11 @@ defmodule List do
   ## Examples
 
       iex> List.duplicate("hello", 3)
-      ["hello","hello","hello"]
+      ["hello", "hello", "hello"]
 
       iex> List.duplicate([1, 2], 2)
-      [[1,2],[1,2]]
+      [[1, 2], [1, 2]]
+
 
   """
   @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
@@ -60,7 +61,7 @@ defmodule List do
   ## Examples
 
       iex> List.flatten([1, [[2], 3]])
-      [1,2,3]
+      [1, 2, 3]
 
   """
   @spec flatten(deep_list) :: list when deep_list: [any | deep_list]
@@ -76,7 +77,7 @@ defmodule List do
   ## Examples
 
       iex> List.flatten([1, [[2], 3]], [4, 5])
-      [1,2,3,4,5]
+      [1, 2, 3, 4, 5]
 
   """
   @spec flatten(deep_list, [elem]) :: [elem] when elem: var, deep_list: [elem | deep_list]
@@ -85,7 +86,7 @@ defmodule List do
   end
 
   @doc """
-  Folds (reduces) the given list to the left with
+  Folds (reduces) the given list from the left with
   a function. Requires an accumulator.
 
   ## Examples
@@ -103,7 +104,7 @@ defmodule List do
   end
 
   @doc """
-  Folds (reduces) the given list to the right with
+  Folds (reduces) the given list from the right with
   a function. Requires an accumulator.
 
   ## Examples
@@ -159,7 +160,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and returns the first tuple
   where the item at `position` in the tuple matches the
-  given `item`.
+  given `key`.
 
   ## Examples
 
@@ -181,7 +182,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and returns `true` if there is
   a tuple where the item at `position` in the tuple matches
-  the given `item`.
+  the given `key`.
 
   ## Examples
 
@@ -247,7 +248,7 @@ defmodule List do
       [a: 1, b: 2, c: 3]
 
   """
-  @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple]
+  @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple, ...]
   def keystore(list, key, position, new_tuple) do
     :lists.keystore(key, position + 1, list, new_tuple)
   end
@@ -255,7 +256,7 @@ defmodule List do
   @doc """
   Receives a list of tuples and deletes the first tuple
   where the item at `position` matches the
-  given `item`. Returns the new list.
+  given `key`. Returns the new list.
 
   ## Examples
 
@@ -285,7 +286,7 @@ defmodule List do
       ["hello"]
 
       iex> List.wrap([1, 2, 3])
-      [1,2,3]
+      [1, 2, 3]
 
       iex> List.wrap(nil)
       []
@@ -307,6 +308,8 @@ defmodule List do
   @doc """
   Zips corresponding elements from each list in `list_of_lists`.
 
+  The zipping finishes as soon as any list terminates.
+
   ## Examples
 
       iex> List.zip([[1, 2], [3, 4], [5, 6]])
@@ -320,24 +323,6 @@ defmodule List do
   def zip([]), do: []
   def zip(list_of_lists) when is_list(list_of_lists) do
     do_zip(list_of_lists, [])
-  end
-
-  @doc """
-  Unzips the given list of lists or tuples into separate lists and returns a
-  list of lists.
-
-  ## Examples
-
-      iex> List.unzip([{1, 2}, {3, 4}])
-      [[1, 3], [2, 4]]
-
-      iex> List.unzip([{1, :a, "apple"}, {2, :b, "banana"}, {3, :c}])
-      [[1, 2, 3], [:a, :b, :c]]
-
-  """
-  @spec unzip([tuple]) :: [list]
-  def unzip(list) when is_list(list) do
-    :lists.map &Tuple.to_list/1, zip(list)
   end
 
   @doc """
@@ -473,12 +458,24 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an existing atom.
+  Converts a char list to an existing atom. Raises an ArguementError
+  if the atom does not exist. 
 
   Currently Elixir does not support conversions from char lists
   which contains Unicode codepoints greater than 0xFF.
 
   Inlined by the compiler.
+
+  ## Examples
+
+      iex> barney = :barney
+      iex> List.to_existing_atom('barney')
+      :barney
+
+      iex> List.to_existing_atom('fred')
+      ** (ArgumentError) argument error
+         :erlang.list_to_existing_atom('fred')
+
   """
   @spec to_existing_atom(char_list) :: atom
   def to_existing_atom(char_list) do
@@ -528,7 +525,7 @@ defmodule List do
       1023
 
   """
-  @spec to_integer(char_list, non_neg_integer) :: integer
+  @spec to_integer(char_list, 2..36) :: integer
   def to_integer(char_list, base) do
     :erlang.list_to_integer(char_list, base)
   end
@@ -553,7 +550,7 @@ defmodule List do
   Converts a list of integers representing codepoints, lists or
   strings into a string.
 
-  Notice that this function expect a list of integer representing
+  Notice that this function expects a list of integers representing
   UTF-8 codepoints. If you have a list of bytes, you must instead use
   [the `:binary` module](http://erlang.org/doc/man/binary.html).
 
@@ -566,38 +563,10 @@ defmodule List do
       "abc"
 
   """
-  @spec to_string(:unicode.char_list) :: String.t
+  @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
     case :unicode.characters_to_binary(list) do
       result when is_binary(result) ->
-        result
-
-      {:error, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :invalid
-
-      {:incomplete, encoded, rest} ->
-        raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
-    end
-  end
-
-  @doc false
-  def from_char_data(char_data) do
-    case :unicode.characters_to_list(char_data) do
-      result when is_list(result) ->
-        {:ok, result}
-
-      {:error, _, _} = error ->
-        error
-
-      {:incomplete, _, _} = incomplete ->
-        incomplete
-    end
-  end
-
-  @doc false
-  def from_char_data!(char_data) do
-    case :unicode.characters_to_list(char_data) do
-      result when is_list(result) ->
         result
 
       {:error, encoded, rest} ->

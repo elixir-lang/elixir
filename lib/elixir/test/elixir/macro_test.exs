@@ -27,7 +27,7 @@ defmodule MacroTest do
   test :escape_handle_tuples_with_size_different_than_two do
     assert {:{}, [], [:a]} == Macro.escape({:a})
     assert {:{}, [], [:a, :b, :c]} == Macro.escape({:a, :b, :c})
-    assert {:{}, [], [:a, {:{}, [], [1,2,3]}, :c]} == Macro.escape({:a, {1, 2, 3}, :c})
+    assert {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]} == Macro.escape({:a, {1, 2, 3}, :c})
   end
 
   test :escape_simply_returns_tuples_with_size_equal_to_two do
@@ -42,13 +42,17 @@ defmodule MacroTest do
     assert {:%{}, [], [a: 1]} = Macro.escape(%{a: 1})
   end
 
+  test :escape_handles_bitstring do
+    assert {:<<>>, [], [{:::, [], [1, 4]}, ","]} == Macro.escape(<<300::12>>)
+  end
+
   test :escape_works_recursively do
-    assert [1,{:{}, [], [:a,:b,:c]}, 3] == Macro.escape([1, {:a, :b, :c}, 3])
+    assert [1, {:{}, [], [:a, :b, :c]}, 3] == Macro.escape([1, {:a, :b, :c}, 3])
   end
 
   test :escape_improper do
-    assert [{:|, [], [1,2]}] == Macro.escape([1|2])
-    assert [1,{:|, [], [2,3]}] == Macro.escape([1,2|3])
+    assert [{:|, [], [1, 2]}] == Macro.escape([1|2])
+    assert [1, {:|, [], [2, 3]}] == Macro.escape([1, 2|3])
   end
 
   test :escape_with_unquote do
@@ -232,6 +236,11 @@ defmodule MacroTest do
     end)
   end
 
+  test :var do
+    assert Macro.var(:foo, nil) == {:foo, [], nil}
+    assert Macro.var(:foo, Other) == {:foo, [], Other}
+  end
+
   ## to_string
 
   test :var_to_string do
@@ -268,6 +277,19 @@ defmodule MacroTest do
   test :aliases_call_to_string do
     assert Macro.to_string(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
     assert Macro.to_string(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
+  end
+
+  test :sigil_call_to_string do
+    assert Macro.to_string(quote do: ~r"123") == ~s/~r"123"/
+    assert Macro.to_string(quote do: ~r"123"u) == ~s/~r"123"u/
+    assert Macro.to_string(quote do: ~r"\n123") == ~s/~r"\\\\n123"/
+
+    assert Macro.to_string(quote do: ~r"1#{two}3") == ~S/~r"1#{two}3"/
+    assert Macro.to_string(quote do: ~r"1#{two}3"u) == ~S/~r"1#{two}3"u/
+
+    assert Macro.to_string(quote do: ~R"123") == ~s/~R"123"/
+    assert Macro.to_string(quote do: ~R"123"u) == ~s/~R"123"u/
+    assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
   end
 
   test :arrow_to_string do
@@ -363,7 +385,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: %{})  == "%{}"
     assert Macro.to_string(quote do: %{:foo => :bar})  == "%{foo: :bar}"
-    assert Macro.to_string(quote do: %{{1,2} => [1,2,3]})  == "%{{1, 2} => [1, 2, 3]}"
+    assert Macro.to_string(quote do: %{{1, 2} => [1, 2, 3]})  == "%{{1, 2} => [1, 2, 3]}"
     assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
     assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
@@ -399,18 +421,22 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: a[1 + 2]) == "a[1 + 2]"
   end
 
-  test :kw_list do
+  test :kw_list_to_string do
     assert Macro.to_string(quote do: [a: a, b: b]) == "[a: a, b: b]"
     assert Macro.to_string(quote do: [a: 1, b: 1 + 2]) == "[a: 1, b: 1 + 2]"
     assert Macro.to_string(quote do: ["a.b": 1, c: 1 + 2]) == "[\"a.b\": 1, c: 1 + 2]"
   end
 
-  test :string_list do
+  test :interpolation_to_string do
+    assert Macro.to_string(quote do: "foo#{bar}baz") == ~S["foo#{bar}baz"]
+  end
+
+  test :charlist_to_string do
     assert Macro.to_string(quote do: []) == "[]"
     assert Macro.to_string(quote do: 'abc') == "'abc'"
   end
 
-  test :last_arg_kw_list do
+  test :last_arg_kw_list_to_string do
     assert Macro.to_string(quote do: foo([])) == "foo([])"
     assert Macro.to_string(quote do: foo(x: y)) == "foo(x: y)"
     assert Macro.to_string(quote do: foo(x: 1 + 2)) == "foo(x: 1 + 2)"
@@ -428,6 +454,30 @@ defmodule MacroTest do
 
     assert Macro.to_string(quote(do: Bar.foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
            "::Bar:.foo(:1:, :2:, :3:):"
+  end
+
+  ## validate
+
+  test :validate do
+    ref = make_ref()
+
+    assert Macro.validate(1) == :ok
+    assert Macro.validate(1.0) == :ok
+    assert Macro.validate(:foo) == :ok
+    assert Macro.validate("bar") == :ok
+    assert Macro.validate(self()) == :ok
+    assert Macro.validate({1, 2}) == :ok
+    assert Macro.validate({:foo, [], :baz}) == :ok
+    assert Macro.validate({:foo, [], []}) == :ok
+    assert Macro.validate([1, 2, 3]) == :ok
+
+    assert Macro.validate(<<0::4>>) == {:error, <<0::4>>}
+    assert Macro.validate(ref) == {:error, ref}
+    assert Macro.validate({1, ref}) == {:error, ref}
+    assert Macro.validate({ref, 2}) == {:error, ref}
+    assert Macro.validate([1, ref, 3]) == {:error, ref}
+    assert Macro.validate({:foo, [], 0}) == {:error, {:foo, [], 0}}
+    assert Macro.validate({:foo, 0, []}) == {:error, {:foo, 0, []}}
   end
 
   ## decompose_call
@@ -474,7 +524,7 @@ defmodule MacroTest do
     assert Macro.pipe(1, quote(do: foo), -1) == quote(do: foo(1))
     assert Macro.pipe(2, quote(do: foo(1)), -1) == quote(do: foo(1, 2))
 
-    assert_raise ArgumentError, "cannot pipe 1 into 2", fn ->
+    assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
       Macro.pipe(1, 2, 0)
     end
   end

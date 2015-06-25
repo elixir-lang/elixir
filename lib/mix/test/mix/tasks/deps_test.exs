@@ -44,7 +44,7 @@ defmodule Mix.Tasks.DepsTest do
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
@@ -84,7 +84,7 @@ defmodule Mix.Tasks.DepsTest do
       end
       """
 
-      Mix.Tasks.Deps.run []
+      Mix.Tasks.Deps.Compile.run [:ok]
 
       msg = "warning: the dependency ok requires Elixir \"~> 0.1.0\" " <>
             "but you are running on v#{System.version}"
@@ -98,23 +98,23 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push DepsApp
 
     in_fixture "deps_status", fn ->
-      File.cd!("deps/ok", fn -> System.cmd("git init") end)
+      File.cd!("deps/ok", fn -> System.cmd("git", ["init"]) end)
 
       Mix.Tasks.Deps.run []
-      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  the dependency is not locked"]}
 
       Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/ok.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  locked at abcdefg"]}
-      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date"]}
+      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"]}
 
-      Mix.Dep.Lock.write [ok: {:git, "git://github.com/elixir-lang/another.git", "abcdefghi", []}]
+      Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/another.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
 
-      assert_received {:mix_shell, :info, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  lock outdated: the lock is outdated compared to the options in your mixfile"]}
     end
   end
@@ -127,17 +127,6 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "marks dependencies as needing compilation but automatically compile them on check" do
-    Mix.Project.push SuccessfulDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.touch!("_build/dev/lib/ok/.compile")
-      Mix.Tasks.Deps.Check.run []
-      assert_received {:mix_shell, :info, ["* Compiling ok"]}
-      refute File.exists?("_build/dev/lib/ok/.compile")
-    end
-  end
-
   test "checks list of dependencies and their status on failure" do
     Mix.Project.push DepsApp
 
@@ -146,7 +135,7 @@ defmodule Mix.Tasks.DepsTest do
         Mix.Tasks.Deps.Check.run []
       end
 
-      assert_received {:mix_shell, :error, ["* ok (git://github.com/elixir-lang/ok.git)"]}
+      assert_received {:mix_shell, :error, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"]}
       assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
@@ -194,12 +183,24 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  test "unlocks unused deps" do
+    Mix.Project.push DepsApp
+    in_fixture "no_mixfile", fn ->
+      Mix.Dep.Lock.write %{whatever: "abcdef", ok: "abcdef"}
+      assert Mix.Dep.Lock.read == %{whatever: "abcdef", ok: "abcdef"}
+      Mix.Tasks.Deps.Unlock.run ["--unused"]
+      assert Mix.Dep.Lock.read == %{ok: "abcdef"}
+    end
+  end
+
   test "unlocks specific deps" do
     Mix.Project.push DepsApp
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{git_repo: "abcdef", another: "hash"}
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Dep.Lock.read == %{another: "hash"}
+      error = "warning: unknown dependency is not locked"
+      assert_received {:mix_shell, :error, [^error]}
     end
   end
 
@@ -248,18 +249,6 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   ## Nested dependencies
-
-  defmodule NestedDepsApp do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          {:deps_repo, "0.1.0", path: "custom/deps_repo"}
-        ]
-      ]
-    end
-  end
 
   defmodule DivergedDepsApp do
     def project do
@@ -318,17 +307,8 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       assert_raise Mix.Error, ~r/Unknown dependency invalid for environment dev/, fn ->
-        Mix.Tasks.Deps.Get.run ["invalid"]
+        Mix.Tasks.Deps.Update.run ["invalid"]
       end
-    end
-  end
-
-  test "compiles dependencies with --quiet" do
-    Mix.Project.push SuccessfulDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Compile.run ["--quiet"]
-      refute_received {:mix_shell, :info, ["* Compiling ok"]}
     end
   end
 
@@ -478,24 +458,6 @@ defmodule Mix.Tasks.DepsTest do
     purge [GitRepo, GitRepo.Mix]
   end
 
-  test "updates parent dependencies" do
-    Mix.Project.push NestedDepsApp
-
-    in_fixture "deps_status", fn ->
-      Mix.Tasks.Deps.Get.run []
-
-      File.mkdir_p!("_build/dev/lib/git_repo")
-      File.mkdir_p!("_build/test/lib/deps_repo")
-
-      Mix.Tasks.Deps.Update.run ["git_repo"]
-      message = "* Updating git_repo (#{fixture_path("git_repo")})"
-      assert_received {:mix_shell, :info, [^message]}
-
-      assert File.exists?("_build/dev/lib/git_repo/.compile")
-      assert File.exists?("_build/test/lib/deps_repo/.compile")
-    end
-  end
-
   test "checks if dependencies are using old elixir version" do
     Mix.Project.push SuccessfulDepsApp
 
@@ -507,12 +469,16 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", "the_future")
       Mix.Task.clear
 
-      Mix.Tasks.Deps.run []
-      assert_received {:mix_shell, :info, ["* ok (deps/ok)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"]}
+      msg = "  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"
 
+      Mix.Tasks.Deps.run []
+      assert_received {:mix_shell, :info, [^msg]}
+
+      # deps.check will automatically recompile it
       Mix.Tasks.Deps.Check.run []
-      assert_received {:mix_shell, :info, ["* Compiling ok"]}
+
+      Mix.Tasks.Deps.run []
+      refute_received {:mix_shell, :info, [^msg]}
     end
   end
 
@@ -534,8 +500,8 @@ defmodule Mix.Tasks.DepsTest do
 
     in_fixture "deps_status", fn ->
       Mix.Tasks.Deps.Compile.run []
-      refute_received {:mix_shell, :info, ["* Compiling deps_repo"]}
-      refute_received {:mix_shell, :info, ["* Compiling git_repo"]}
+      refute_received {:mix_shell, :info, ["==> deps_repo"]}
+      refute_received {:mix_shell, :info, ["==> git_repo"]}
     end
   end
 
@@ -577,39 +543,51 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "clean all deps" do
+  test "cleans dependencies" do
     Mix.Project.push CleanDepsApp
 
     in_fixture "deps_status", fn ->
-      File.mkdir_p!("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/raw_sample")
       File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("_build/test/lib/git_repo")
 
       message = "mix deps.clean expects dependencies as arguments or " <>
-                "the --all option to clean all dependencies"
+                "a flag indicating which dependencies to clean. " <>
+                "The --all option will clean all dependencies while " <>
+                "the --unused option cleans unused dependencies."
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Deps.Clean.run []
       end
 
-      Mix.Tasks.Deps.Clean.run ["--all"]
-      refute File.exists?("deps/git_repo")
-    end
-  end
-
-  test "cleans dependencies" do
-    Mix.Project.push CleanDepsApp
-
-    in_fixture "deps_status", fn ->
-      File.mkdir_p!("_build/dev/lib/git_repo")
-      File.mkdir_p!("_build/test/lib/git_repo")
-
       Mix.Tasks.Deps.Clean.run ["--only", "dev", "--all"]
       refute File.exists?("_build/dev/lib/git_repo")
       assert File.exists?("_build/test/lib/git_repo")
+      assert File.exists?("_build/dev/lib/raw_sample")
 
       Mix.Tasks.Deps.Clean.run ["--all"]
       refute File.exists?("_build/dev/lib/git_repo")
       refute File.exists?("_build/test/lib/git_repo")
+      assert File.exists?("_build/dev/lib/raw_sample")
+    end
+  end
+
+  test "cleans unused dependencies" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.mkdir_p!("_build/dev/lib/raw_sample")
+      File.mkdir_p!("deps/git_repo")
+      File.mkdir_p!("_build/dev/lib/git_repo")
+      File.mkdir_p!("deps/git_repo_unused")
+      File.mkdir_p!("_build/dev/lib/git_repo_unused")
+
+      Mix.Tasks.Deps.Clean.run ["--unused"]
+      assert File.exists?("deps/git_repo")
+      assert File.exists?("_build/dev/lib/git_repo")
+      refute File.exists?("deps/git_repo_unused")
+      refute File.exists?("_build/dev/lib/git_repo_unused")
+      assert File.exists?("_build/dev/lib/raw_sample")
     end
   end
 end

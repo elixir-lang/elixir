@@ -27,7 +27,7 @@ defmodule Mix.SCM.Git do
   def accepts_options(_app, opts) do
     cond do
       gh = opts[:github] ->
-        opts |> Keyword.delete(:github) |> Keyword.put(:git, "git://github.com/#{gh}.git")
+        opts |> Keyword.delete(:github) |> Keyword.put(:git, "https://github.com/#{gh}.git")
       opts[:git] ->
         opts
       true ->
@@ -36,23 +36,22 @@ defmodule Mix.SCM.Git do
   end
 
   def checked_out?(opts) do
-    File.dir?(Path.join(opts[:dest], ".git")) &&
-      File.cd!(opts[:dest], fn ->
-        # Make sure git can read the dependency .git folder
-        String.strip(System.cmd "git rev-parse --git-dir") == ".git"
-      end)
+    # Are we inside a git repository?
+    File.regular?(Path.join(opts[:dest], ".git/HEAD"))
   end
 
   def lock_status(opts) do
+    assert_git
+
     case opts[:lock] do
       {:git, lock_repo, lock_rev, lock_opts} ->
         File.cd!(opts[:dest], fn ->
           rev_info = get_rev_info
           cond do
-            lock_repo != opts[:git]          -> :outdated
-            lock_opts != get_lock_opts(opts) -> :outdated
-            lock_rev  != rev_info[:rev]      -> :mismatch
-            lock_repo != rev_info[:origin]   -> :outdated
+            not git_repos_match?(lock_repo, opts[:git]) -> :outdated
+            lock_opts != get_lock_opts(opts)            -> :outdated
+            lock_rev  != rev_info[:rev]                 -> :mismatch
+            lock_repo != rev_info[:origin]              -> :outdated
             true -> :ok
           end
         end)
@@ -64,28 +63,31 @@ defmodule Mix.SCM.Git do
   end
 
   def equal?(opts1, opts2) do
-    opts1[:git] == opts2[:git] &&
+    git_repos_match?(opts1[:git], opts2[:git]) &&
       get_lock_opts(opts1) == get_lock_opts(opts2)
   end
 
   def checkout(opts) do
+    assert_git
+
     path     = opts[:dest]
     location = opts[:git]
 
-    File.rm_rf!(path)
-    command  = ~s(git clone --no-checkout --progress "#{location}" "#{path}")
+    _ = File.rm_rf!(path)
+    git!(~s(clone --no-checkout --progress "#{location}" "#{path}"))
 
-    run_cmd_or_raise(command)
     File.cd! path, fn -> do_checkout(opts) end
   end
 
   def update(opts) do
+    assert_git
+
     File.cd! opts[:dest], fn ->
       # Ensures origin is set the lock repo
       location = opts[:git]
       update_origin(location)
 
-      command = "git fetch --force"
+      command = "--git-dir=.git fetch --force"
 
       if {1, 7, 1} <= git_version() do
         command = command <> " --progress"
@@ -95,7 +97,7 @@ defmodule Mix.SCM.Git do
         command = command <> " --tags"
       end
 
-      run_cmd_or_raise(command)
+      git!(command)
       do_checkout(opts)
     end
   end
@@ -104,17 +106,17 @@ defmodule Mix.SCM.Git do
 
   defp do_checkout(opts) do
     ref = get_lock_rev(opts[:lock]) || get_opts_rev(opts)
-    run_cmd_or_raise "git checkout --quiet #{ref}"
+    git!("--git-dir=.git checkout --quiet #{ref}")
 
     if opts[:submodules] do
-      run_cmd_or_raise "git submodule update --init --recursive"
+      git!("--git-dir=.git submodule update --init --recursive")
     end
 
     get_lock(opts)
   end
 
   defp get_lock(opts) do
-    rev_info = get_rev_info
+    rev_info = get_rev_info()
     {:git, opts[:git], rev_info[:rev], get_lock_opts(opts)}
   end
 
@@ -141,36 +143,72 @@ defmodule Mix.SCM.Git do
 
   defp get_rev_info do
     destructure [origin, rev],
-      System.cmd('git config remote.origin.url && git rev-parse --verify --quiet HEAD')
+      :os.cmd('git --git-dir=.git config remote.origin.url && git --git-dir=.git rev-parse --verify --quiet HEAD')
       |> IO.iodata_to_binary
       |> String.split("\n", trim: true)
-    [ origin: origin, rev: rev ]
+    [origin: origin, rev: rev]
   end
 
   defp update_origin(location) do
-    System.cmd('git config remote.origin.url #{location}')
+    git!(~s(--git-dir=.git config remote.origin.url "#{location}"))
+    :ok
   end
 
-  defp run_cmd_or_raise(command) do
-    if Mix.shell.cmd(command) != 0 do
-      raise Mix.Error, message: "Command `#{command}` failed"
+  defp git!(command) do
+    if Mix.shell.cmd("git " <> command) != 0 do
+      Mix.raise "Command `git #{command}` failed"
     end
-    true
+    :ok
+  end
+
+  defp assert_git do
+    case Mix.State.fetch(:git_available) do
+      {:ok, true} ->
+        :ok
+      :error ->
+        if System.find_executable("git") do
+          Mix.State.put(:git_available, true)
+        else
+          Mix.raise "Error fetching/updating Git repository: the `git` "  <>
+            "executable is not available in your PATH. Please install "   <>
+            "Git on this machine or pass --no-deps-check if you want to " <>
+            "run a previously built application on a system without Git."
+        end
+    end
   end
 
   defp git_version do
-    case Application.fetch_env(:mix, :git_version) do
+    case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version
       :error ->
-        "git version " <> version = String.strip System.cmd("git --version")
-        version = String.split(version, ".")
-                  |> Enum.take(3)
-                  |> Enum.map(&String.to_integer(&1))
-                  |> List.to_tuple
+        version =
+          :os.cmd('git --version')
+          |> IO.iodata_to_binary
+          |> parse_version
 
-        Application.put_env(:mix, :git_version, version)
+        Mix.State.put(:git_version, version)
         version
     end
+  end
+
+  defp git_repos_match?(repo_a, repo_b) do
+    normalize_github_repo(repo_a) == normalize_github_repo(repo_b)
+  end
+
+  # TODO: Remove this on Elixir v2.0 to push everyone to https
+  defp normalize_github_repo("git://github.com/" <> rest), do: "https://github.com/#{rest}"
+  defp normalize_github_repo(repo), do: repo
+
+  defp parse_version("git version " <> version) do
+    String.split(version, ".")
+    |> Enum.take(3)
+    |> Enum.map(&to_integer/1)
+    |> List.to_tuple
+  end
+
+  defp to_integer(string) do
+    {int, _} = Integer.parse(string)
+    int
   end
 end

@@ -1,18 +1,186 @@
 defmodule Mix.Config do
-  @moduledoc """
-  Module for reading and merging app configurations.
+  @moduledoc ~S"""
+  Module for defining, reading and merging app configurations.
+
+  Most commonly, this module is used to define your own configuration:
+
+      use Mix.Config
+
+      config :plug,
+        key1: "value1",
+        key2: "value2"
+
+      import_config "#{Mix.env}.exs"
+
+  All `config/*` macros, including `import_config/1`, are used
+  to help define such configuration files.
+
+  Furthermore, this module provides functions like `read!/1`,
+  `merge/2` and friends which help manipulate configurations
+  in general.
+
+  Configuration set using `Mix.Config` will set the application env, so
+  that `Application.get_env/3` and other `Application` functions can be used
+  at run or compile time to retrieve or change the configuration.
+
+  For example, the `:key1` value from application `:plug` (see above) can be
+  retrieved with:
+
+      "value1" = Application.fetch!(:plug, :key1)
+
   """
+
+  defmodule LoadError do
+    defexception [:file, :error]
+
+    def message(%LoadError{file: file, error: error}) do
+      "could not load config #{Path.relative_to_cwd(file)}\n    " <>
+        "#{Exception.format_banner(:error, error)}"
+    end
+  end
+
+  @doc false
+  defmacro __using__(_) do
+    quote do
+      import Mix.Config, only: [config: 2, config: 3, import_config: 1]
+      {:ok, agent} = Mix.Config.Agent.start_link
+      var!(config_agent, Mix.Config) = agent
+    end
+  end
 
   @doc """
-  Reads a configuration file.
+  Configures the given application.
 
-  It returns the read configuration and a list of
-  dependencies this configuration may have on.
+  Keyword lists are always deep merged.
+
+  ## Examples
+
+  The given `opts` are merged into the existing configuration
+  for the given `app`. Conflicting keys are overridden by the
+  ones specified in `opts`. For example, the declaration below:
+
+      config :lager,
+        log_level: :warn,
+        mode: :truncate
+
+      config :lager,
+        log_level: :info,
+        threshold: 1024
+
+  Will have a final configuration of:
+
+      [log_level: :info, mode: :truncate, threshold: 1024]
+
+
+  This final configuration can be retrieved at run or compile time:
+
+      Application.get_all_env(:lager)
+
   """
-  def read(file) do
-    config = Code.eval_file(file) |> elem(0)
-    validate!(config)
+  defmacro config(app, opts) do
+    quote do
+      Mix.Config.Agent.merge var!(config_agent, Mix.Config), [{unquote(app), unquote(opts)}]
+    end
+  end
+
+  @doc """
+  Configures the given key for the given application.
+
+  Keyword lists are always deep merged.
+
+  ## Examples
+
+  The given `opts` are merged into the existing values for `key`
+  in the given `app`. Conflicting keys are overridden by the
+  ones specified in `opts`. For example, the declaration below:
+
+      config :ecto, Repo,
+        log_level: :warn
+
+      config :ecto, Repo,
+        log_level: :info,
+        pool_size: 10
+
+  Will have a final value for `Repo` of:
+
+      [log_level: :info, pool_size: 10]
+
+  This final value can be retrieved at run or compile time:
+
+      Application.get_env(:ecto, Repo)
+
+  """
+  defmacro config(app, key, opts) do
+    quote do
+      Mix.Config.Agent.merge var!(config_agent, Mix.Config),
+        [{unquote(app), [{unquote(key), unquote(opts)}]}]
+    end
+  end
+
+  @doc ~S"""
+  Imports configuration from the given file.
+
+  The path is expected to be relative to the directory the
+  current configuration file is on.
+
+  ## Examples
+
+  This is often used to emulate configuration across environments:
+
+      import_config "#{Mix.env}.exs"
+
+  Or to import files from children in umbrella projects:
+
+      import_config "../apps/*/config/config.exs"
+
+  """
+  defmacro import_config(file) do
+    quote do
+      Mix.Config.Agent.merge(
+        var!(config_agent, Mix.Config),
+         Mix.Config.read_wildcard!(Path.expand(unquote(file), __DIR__))
+      )
+    end
+  end
+
+  @doc """
+  Reads and validates a configuration file.
+  """
+  def read!(file) do
+    try do
+      {config, binding} = Code.eval_file(file)
+
+      config = case List.keyfind(binding, {:config_agent, Mix.Config}, 0) do
+        {_, agent} -> get_config_and_stop_agent(agent)
+        nil        -> config
+      end
+
+      validate!(config)
+      config
+    rescue
+      e in [LoadError] -> reraise(e, System.stacktrace)
+      e -> reraise(LoadError, [file: file, error: e], System.stacktrace)
+    end
+  end
+
+  defp get_config_and_stop_agent(agent) do
+    config = Mix.Config.Agent.get(agent)
+    Mix.Config.Agent.stop(agent)
     config
+  end
+
+  @doc """
+  Reads many configuration files given by wildcard into a single config.
+  Raises an error if `path` is a concrete filename (with no wildcards)
+  but the corresponding file does not exist.
+  """
+  def read_wildcard!(path) do
+    paths = if String.contains?(path, ~w(* ? [ {))do
+      Path.wildcard(path)
+    else
+      [path]
+    end
+    Enum.reduce(paths, [], &merge(&2, read!(&1)))
   end
 
   @doc """
@@ -44,7 +212,7 @@ defmodule Mix.Config do
       end)
     else
       raise ArgumentError,
-        "expected config to return keyword list, got: #{inspect config}"
+        "expected config file to return keyword list, got: #{inspect config}"
     end
   end
 
@@ -66,34 +234,15 @@ defmodule Mix.Config do
   """
   def merge(config1, config2) do
     Keyword.merge(config1, config2, fn _, app1, app2 ->
-      Keyword.merge(app1, app2)
+      Keyword.merge(app1, app2, &deep_merge/3)
     end)
   end
 
-  @doc """
-  Merges two configurations.
-
-  The configuration of each application is merged together
-  and a callback is invoked in case of conflicts receiving
-  the app, the conflicting key and both values. It must return
-  a value that will be used as part of the conflict resolution.
-
-  ## Examples
-
-      iex> Mix.Config.merge([app: [k: :v1]], [app: [k: :v2]],
-      ...>   fn app, k, v1, v2 -> {app, k, v1, v2} end)
-      [app: [k: {:app, :k, :v1, :v2}]]
-
-  """
-  def merge(config1, config2, callback) do
-    Keyword.merge(config1, config2, fn app, app1, app2 ->
-      Keyword.merge(app1, app2, fn k, v1, v2 ->
-        if v1 == v2 do
-          v1
-        else
-          callback.(app, k, v1, v2)
-        end
-      end)
-    end)
+  defp deep_merge(_key, value1, value2) do
+    if Keyword.keyword?(value1) and Keyword.keyword?(value2) do
+      Keyword.merge(value1, value2, &deep_merge/3)
+    else
+      value2
+    end
   end
 end

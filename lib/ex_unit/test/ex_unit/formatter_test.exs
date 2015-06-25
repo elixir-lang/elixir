@@ -103,7 +103,7 @@ defmodule ExUnit.FormatterTest do
   test "formats test case errors" do
     failure = {:error, catch_error(raise "oops"), []}
     assert format_test_case_failure(case(), failure, 1, 80, &formatter/2) =~ """
-      1) Hello: failure on setup_all/teardown_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, tests invalidated
          ** (RuntimeError) oops
     """
   end
@@ -111,7 +111,7 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with operators with no limit" do
     failure = {:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}
     assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) =~ """
-      1) Hello: failure on setup_all/teardown_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
          code: [1, 2, 3] == [4, 5, 6]
          lhs:  [1, 2, 3]
@@ -122,7 +122,7 @@ defmodule ExUnit.FormatterTest do
   test "formats assertions with operators with column limit" do
     failure = {:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}
     assert format_test_case_failure(case(), failure, 1, 15, &formatter/2) =~ """
-      1) Hello: failure on setup_all/teardown_all callback, tests invalidated
+      1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
          code: [1, 2, 3] == [4, 5, 6]
          lhs:  [1,
@@ -131,6 +131,63 @@ defmodule ExUnit.FormatterTest do
          rhs:  [4,
                 5,
                 6]
+    """
+  end
+
+  test "formats assertions with message with multiple lines" do
+    message = "Some meaningful error:\nuseful info\nanother useful info"
+    failure = {:error, catch_assertion(assert(false, message)), []}
+    assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) =~ """
+      1) Hello: failure on setup_all callback, tests invalidated
+         Some meaningful error:
+         useful info
+         another useful info
+    """
+  end
+
+  defmodule BadInspect do
+    defstruct key: 0
+
+    defimpl Inspect do
+      def inspect(struct, opts) when is_atom(opts) do
+        struct.unknown
+      end
+    end
+  end
+
+  test "inspect failure" do
+    failure = {:error, catch_assertion(assert :will_fail == %BadInspect{}), []}
+
+    message = "got FunctionClauseError with message `no function clause matching " <>
+              "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2` while inspecting " <>
+              "%{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}"
+
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         Assertion with == failed
+         code: :will_fail == %BadInspect{}
+         lhs:  :will_fail
+         rhs:  %Inspect.Error{message: \"#{message}\"}
+    """
+  end
+
+  defmodule BadMessage do
+    defexception key: 0
+
+    def message(_message) do
+      raise "oops"
+    end
+  end
+
+  test "message failure" do
+    failure = {:error, catch_error(raise BadMessage), []}
+    message = "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+              "for %ExUnit.FormatterTest.BadMessage{key: 0}"
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (ExUnit.FormatterTest.BadMessage) #{message}
     """
   end
 end

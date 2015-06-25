@@ -11,12 +11,6 @@ defmodule IEx.ServerTest do
     end) =~ "pry(1)> "
   end
 
-  test "delegate_locals_to option" do
-    assert capture_io("sort([:foo, :bar])", fn ->
-      boot([delegate_locals_to: Enum])
-    end) =~ "[:bar, :foo]"
-  end
-
   test "env option" do
     assert capture_io("__ENV__.file", fn ->
       boot([env: __ENV__])
@@ -55,6 +49,7 @@ defmodule IEx.ServerTest do
   # Helpers
 
   defp boot(opts, callback \\ fn -> end) do
-    IEx.Server.start(Keyword.merge([dot_iex_path: ""], opts), callback)
+    IEx.Server.start(Keyword.merge([dot_iex_path: ""], opts),
+                     {:erlang, :apply, [callback, []]})
   end
 end

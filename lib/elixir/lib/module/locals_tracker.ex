@@ -65,22 +65,25 @@ defmodule Module.LocalsTracker do
   """
   @spec reachable(ref) :: [local]
   def reachable(ref) do
-    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
-    reduce_reachable(d, :local, [])
+    reachable_from(:gen_server.call(to_pid(ref), :digraph, @timeout), :local)
+  end
+
+  defp reachable_from(d, starting) do
+    :sets.to_list(reduce_reachable(d, starting, :sets.new))
   end
 
   defp reduce_reachable(d, vertex, vertices) do
     neighbours = :digraph.out_neighbours(d, vertex)
-    neighbours = (for {_, _} = t <- neighbours, do: t) |> :ordsets.from_list
-    remaining  = :ordsets.subtract(neighbours, vertices)
-    vertices   = :ordsets.union(neighbours, vertices)
-    :lists.foldl(&reduce_reachable(d, &1, &2), vertices, remaining)
+    neighbours = (for {_, _} = t <- neighbours, do: t) |> :sets.from_list
+    remaining  = :sets.subtract(neighbours, vertices)
+    vertices   = :sets.union(neighbours, vertices)
+    :sets.fold(&reduce_reachable(d, &1, &2), vertices, remaining)
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{_, val}] = :ets.lookup(table, :__locals_tracker)
+    [{_, val}] = :ets.lookup(table, {:elixir, :locals_tracker})
     val
   end
 
@@ -89,8 +92,7 @@ defmodule Module.LocalsTracker do
   # Starts the tracker and returns its pid.
   @doc false
   def start_link do
-    {:ok, pid} = :gen_server.start_link(__MODULE__, [], [])
-    pid
+    :gen_server.start_link(__MODULE__, [], [])
   end
 
   # Adds a definition into the tracker. A public
@@ -134,9 +136,7 @@ defmodule Module.LocalsTracker do
   # Reattach a previously yanked node
   @doc false
   def reattach(pid, kind, tuple, neighbours) do
-    pid = to_pid(pid)
-    add_definition(pid, kind, tuple)
-    :gen_server.cast(pid, {:reattach, tuple, neighbours})
+    :gen_server.cast(to_pid(pid), {:reattach, kind, tuple, neighbours})
   end
 
   # Collecting all conflicting imports with the given functions
@@ -156,12 +156,42 @@ defmodule Module.LocalsTracker do
   # given also accounting the expected amount of default
   # clauses a private function have.
   @doc false
-  def collect_unused_locals(pid, private) do
-    reachable = reachable(pid)
-    :lists.foldl(&collect_unused_locals(&1, &2, reachable), [], private)
+  def collect_unused_locals(ref, private) do
+    d = :gen_server.call(to_pid(ref), :digraph, @timeout)
+    {unreachable(d, private), collect_warnings(d, private)}
   end
 
-  defp collect_unused_locals({tuple, kind, 0}, acc, reachable) do
+  defp unreachable(d, private) do
+    unreachable = for {tuple, _, _} <- private, do: tuple
+
+    private =
+      for {tuple, :defp, _} <- private do
+        neighbours = :digraph.in_neighbours(d, tuple)
+        neighbours = for {_, _} = t <- neighbours, do: t
+        {tuple, :sets.from_list(neighbours)}
+      end
+
+    reduce_unreachable(private, [], :sets.from_list(unreachable))
+  end
+
+  defp reduce_unreachable([{vertex, callers}|t], acc, unreachable) do
+    if :sets.is_subset(callers, unreachable) do
+      reduce_unreachable(t, [{vertex, callers}|acc], unreachable)
+    else
+      reduce_unreachable(acc ++ t, [], :sets.del_element(vertex, unreachable))
+    end
+  end
+
+  defp reduce_unreachable([], _acc, unreachable) do
+    :sets.to_list(unreachable)
+  end
+
+  defp collect_warnings(d, private) do
+    reachable = reachable_from(d, :local)
+    :lists.foldl(&collect_warnings(&1, &2, reachable), [], private)
+  end
+
+  defp collect_warnings({tuple, kind, 0}, acc, reachable) do
     if :lists.member(tuple, reachable) do
       acc
     else
@@ -169,7 +199,7 @@ defmodule Module.LocalsTracker do
     end
   end
 
-  defp collect_unused_locals({tuple, kind, default}, acc, reachable) when default > 0 do
+  defp collect_warnings({tuple, kind, default}, acc, reachable) when default > 0 do
     {name, arity} = tuple
     min = arity - default
     max = arity
@@ -211,13 +241,14 @@ defmodule Module.LocalsTracker do
     {:ok, {d, []}}
   end
 
+  @doc false
   def handle_call({:cache_env, env}, _from, {d, cache}) do
     case cache do
-      [{i,^env}|_] ->
+      [{i, ^env}|_] ->
         {:reply, i, {d, cache}}
       t ->
         i = length(t)
-        {:reply, i, {d, [{i,env}|t]}}
+        {:reply, i, {d, [{i, env}|t]}}
     end
   end
 
@@ -227,20 +258,16 @@ defmodule Module.LocalsTracker do
   end
 
   def handle_call({:yank, local}, _from, {d, _} = state) do
-    in_vertices  = :digraph.in_neighbours(d, local)
     out_vertices = :digraph.out_neighbours(d, local)
-    :digraph.del_vertex(d, local)
-    {:reply, {in_vertices, out_vertices}, state}
+    :digraph.del_edges(d, :digraph.out_edges(d, local))
+    {:reply, {[], out_vertices}, state}
   end
 
   def handle_call(:digraph, _from, {d, _} = state) do
     {:reply, d, state}
   end
 
-  def handle_call(request, _from, state) do
-    {:stop, {:bad_call, request}, state}
-  end
-
+  @doc false
   def handle_info(_msg, state) do
     {:noreply, state}
   end
@@ -268,9 +295,17 @@ defmodule Module.LocalsTracker do
     {:noreply, state}
   end
 
-  def handle_cast({:reattach, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
-    for from <- in_neigh, do: replace_edge(d, from, tuple)
-    for to <- out_neigh, do: replace_edge(d, tuple, to)
+  def handle_cast({:reattach, _kind, tuple, {in_neigh, out_neigh}}, {d, _} = state) do
+    for from <- in_neigh do
+      :digraph.add_vertex(d, from)
+      replace_edge!(d, from, tuple)
+    end
+
+    for to <- out_neigh do
+      :digraph.add_vertex(d, to)
+      replace_edge!(d, tuple, to)
+    end
+
     {:noreply, state}
   end
 
@@ -278,14 +313,12 @@ defmodule Module.LocalsTracker do
     {:stop, :normal, state}
   end
 
-  def handle_cast(msg, state) do
-    {:stop, {:bad_cast, msg}, state}
-  end
-
+  @doc false
   def terminate(_reason, _state) do
     :ok
   end
 
+  @doc false
   def code_change(_old, state, _extra) do
     {:ok, state}
   end
@@ -300,6 +333,8 @@ defmodule Module.LocalsTracker do
     if function != nil do
       replace_edge!(d, function, tuple)
     end
+
+    :ok
   end
 
   defp handle_add_local(d, from, to) do
@@ -317,14 +352,9 @@ defmodule Module.LocalsTracker do
   end
 
   defp replace_edge!(d, from, to) do
-    unless :lists.member(to, :digraph.out_neighbours(d, from)) do
+    _ = unless :lists.member(to, :digraph.out_neighbours(d, from)) do
       [:"$e"|_] = :digraph.add_edge(d, from, to)
     end
-  end
-
-  defp replace_edge(d, from, to) do
-    unless :lists.member(to, :digraph.out_neighbours(d, from)) do
-      :digraph.add_edge(d, from, to)
-    end
+    :ok
   end
 end

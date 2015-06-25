@@ -1,5 +1,5 @@
 %% Module responsible for handling imports and conflicts
-%% in between local functions and imports.
+%% between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
 -export([import/4, special_form/2, format_error/1]).
@@ -53,7 +53,7 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
   New = case keyfind(only, Opts) of
     {only, Only} when is_list(Only) ->
       case Only -- get_exports(Key) of
-        [{Name,Arity}|_] ->
+        [{Name, Arity}|_] ->
           Tuple = {invalid_import, {Key, Name, Arity}},
           elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
         _ ->
@@ -62,11 +62,10 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
     _ ->
       case keyfind(except, Opts) of
         false -> remove_underscored(Existing());
-        {except, []} -> remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
-            {Key,OldImports} -> OldImports -- Except
+            {Key, OldImports} -> OldImports -- Except
           end
       end
   end,
@@ -120,7 +119,7 @@ get_optional_macros(Module)  ->
 
 %% VALIDATION HELPERS
 
-ensure_no_special_form_conflict(Meta, File, Key, [{Name,Arity}|T]) ->
+ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity}|T]) ->
   case special_form(Name, Arity) of
     true  ->
       Tuple = {special_form_conflict, {Key, Name, Arity}},
@@ -133,11 +132,11 @@ ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
 
 %% ERROR HANDLING
 
-format_error({invalid_import,{Receiver, Name, Arity}}) ->
+format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it doesn't exist",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
-format_error({special_form_conflict,{Receiver, Name, Arity}}) ->
+format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
@@ -180,6 +179,7 @@ special_form('&', 1) -> true;
 special_form('^', 1) -> true;
 special_form('=', 2) -> true;
 special_form('%', 2) -> true;
+special_form('::', 2) -> true;
 special_form('__op__', 2) -> true;
 special_form('__op__', 3) -> true;
 special_form('__block__', _) -> true;
@@ -205,6 +205,7 @@ special_form('unquote_splicing', 1) -> true;
 special_form('fn', _) -> true;
 special_form('super', _) -> true;
 special_form('for', _) -> true;
+special_form('cond', 1) -> true;
 special_form('case', 2) -> true;
 special_form('try', 2) -> true;
 special_form('receive', 1) -> true;

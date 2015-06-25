@@ -1,5 +1,4 @@
 -module(control_test).
--include("elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
@@ -34,7 +33,7 @@ if_else_kv_blocks_test() ->
 
 vars_if_test() ->
   F = fun() ->
-    {1, [{foo,1}]} = eval("if foo = 1 do; true; else false; end; foo"),
+    {1, [{foo, 1}]} = eval("if foo = 1 do; true; else false; end; foo"),
     eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else foo = foo; end; foo; end\nend"),
     {1, _} = eval("Bar.bar(false)"),
     {2, _} = eval("Bar.bar(true)")
@@ -57,8 +56,8 @@ try_test() ->
 
 try_else_test() ->
   {true, _} = eval("try do\n1\nelse 2 -> false\n1 -> true\nrescue\nErlangError -> nil\nend"),
-  {true, _} = eval("try do\n1\nelse {x,y} -> false\nx -> true\nrescue\nErlangError -> nil\nend"),
-  {true, _} = eval("try do\n{1,2}\nelse {3,4} -> false\n_ -> true\nrescue\nErlangError -> nil\nend").
+  {true, _} = eval("try do\n1\nelse {x, y} -> false\nx -> true\nrescue\nErlangError -> nil\nend"),
+  {true, _} = eval("try do\n{1, 2}\nelse {3, 4} -> false\n_ -> true\nrescue\nErlangError -> nil\nend").
 
 % Receive
 
@@ -77,17 +76,17 @@ vars_receive_test() ->
 
 case_test() ->
   {true, []} = eval("case 1 do\n2 -> false\n1 -> true\nend"),
-  {true, []} = eval("case 1 do\n{x,y} -> false\nx -> true\nend"),
-  {true, []} = eval("case {1,2} do;{3,4} -> false\n_ -> true\nend").
+  {true, []} = eval("case 1 do\n{x, y} -> false\nx -> true\nend"),
+  {true, []} = eval("case {1, 2} do; {3, 4} -> false\n_ -> true\nend").
 
 case_with_do_ambiguity_test() ->
-  {true,_} = eval("case atom_to_list(true) do\n_ -> true\nend").
+  {true, _} = eval("case Atom.to_char_list(true) do\n_ -> true\nend").
 
 case_with_match_do_ambiguity_test() ->
-  {true,_} = eval("case x = atom_to_list(true) do\n_ -> true\nend").
+  {true, _} = eval("case x = Atom.to_char_list(true) do\n_ -> true\nend").
 
 case_with_unary_do_ambiguity_test() ->
-  {false,_} = eval("! case atom_to_list(true) do\n_ -> true\nend").
+  {false, _} = eval("! case Atom.to_char_list(true) do\n_ -> true\nend").
 
 multi_assigned_case_test() ->
   {3, _} = eval("x = 1\ncase true do\n true ->\nx = 2\nx = 3\n_ -> true\nend\nx"),
@@ -106,76 +105,60 @@ vars_case_test() ->
 % Comparison
 
 equal_test() ->
-  {true,_} = eval(":a == :a"),
-  {true,_} = eval("1 == 1"),
-  {true,_} = eval("{1,2} == {1,2}"),
-  {false,_} = eval("1 == 2"),
-  {false,_} = eval("{1,2} == {1,3}").
+  {true, _} = eval(":a == :a"),
+  {true, _} = eval("1 == 1"),
+  {true, _} = eval("{1, 2} == {1, 2}"),
+  {false, _} = eval("1 == 2"),
+  {false, _} = eval("{1, 2} == {1, 3}").
 
 not_equal_test() ->
-  {false,_} = eval(":a != :a"),
-  {false,_} = eval("1 != 1"),
-  {false,_} = eval("{1,2} != {1,2}"),
-  {true,_} = eval("1 != 2"),
-  {true,_} = eval("{1,2} != {1,3}").
+  {false, _} = eval(":a != :a"),
+  {false, _} = eval("1 != 1"),
+  {false, _} = eval("{1, 2} != {1, 2}"),
+  {true, _} = eval("1 != 2"),
+  {true, _} = eval("{1, 2} != {1, 3}").
 
 not_exclamation_mark_test() ->
-  {false,_} = eval("! :a"),
-  {false,_} = eval("!true"),
-  {false,_} = eval("!1"),
-  {false,_} = eval("![]"),
-  {true,_} = eval("!nil"),
-  {true,_} = eval("!false").
+  {false, _} = eval("! :a"),
+  {false, _} = eval("!true"),
+  {false, _} = eval("!1"),
+  {false, _} = eval("![]"),
+  {true, _} = eval("!nil"),
+  {true, _} = eval("!false").
 
 notnot_exclamation_mark_test() ->
-  {true,_} = eval("!! :a"),
-  {true,_} = eval("!!true"),
-  {true,_} = eval("!!1"),
-  {true,_} = eval("!![]"),
-  {false,_} = eval("!!nil"),
-  {false,_} = eval("!!false").
+  {true, _} = eval("!! :a"),
+  {true, _} = eval("!!true"),
+  {true, _} = eval("!!1"),
+  {true, _} = eval("!![]"),
+  {false, _} = eval("!!nil"),
+  {false, _} = eval("!!false").
 
 less_greater_test() ->
-  {true,_} = eval("1 < 2"),
-  {true,_} = eval("1 < :a"),
-  {false,_} = eval("1 < 1.0"),
-  {false,_} = eval("1 < 1"),
-  {true,_} = eval("1 <= 1.0"),
-  {true,_} = eval("1 <= 1"),
-  {true,_} = eval("1 <= :a"),
-  {false,_} = eval("1 > 2"),
-  {false,_} = eval("1 > :a"),
-  {false,_} = eval("1 > 1.0"),
-  {false,_} = eval("1 > 1"),
-  {true,_} = eval("1 >= 1.0"),
-  {true,_} = eval("1 >= 1"),
-  {false,_} = eval("1 >= :a").
+  {true, _} = eval("1 < 2"),
+  {true, _} = eval("1 < :a"),
+  {false, _} = eval("1 < 1.0"),
+  {false, _} = eval("1 < 1"),
+  {true, _} = eval("1 <= 1.0"),
+  {true, _} = eval("1 <= 1"),
+  {true, _} = eval("1 <= :a"),
+  {false, _} = eval("1 > 2"),
+  {false, _} = eval("1 > :a"),
+  {false, _} = eval("1 > 1.0"),
+  {false, _} = eval("1 > 1"),
+  {true, _} = eval("1 >= 1.0"),
+  {true, _} = eval("1 >= 1"),
+  {false, _} = eval("1 >= :a").
 
 integer_and_float_test() ->
-  {true,_} = eval("1 == 1"),
-  {false,_} = eval("1 != 1"),
-  {true,_} = eval("1 == 1.0"),
-  {false,_} = eval("1 != 1.0"),
-  {true,_} = eval("1 === 1"),
-  {false,_} = eval("1 !== 1"),
-  {false,_} = eval("1 === 1.0"),
-  {true,_} = eval("1 !== 1.0").
-
-xor_test() ->
-  F = fun() ->
-    eval("defmodule Bar do\ndef foo, do: true\ndef bar, do: false\n def baz(x), do: x == 1\nend"),
-    {false, _} = eval("true xor true"),
-    {true, _} = eval("true xor false"),
-    {true, _} = eval("false xor true"),
-    {false, _} = eval("false xor false"),
-    {false, _} = eval("Bar.foo xor Bar.foo"),
-    {true, _} = eval("Bar.foo xor Bar.bar"),
-    {false, _} = eval("Bar.bar xor Bar.bar"),
-    {true, _} = eval("Bar.bar xor Bar.baz 1"),
-    {false, _} = eval("Bar.bar xor Bar.baz 2"),
-    ?assertError(badarg, eval("1 xor 2"))
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Bar']).
+  {true, _} = eval("1 == 1"),
+  {false, _} = eval("1 != 1"),
+  {true, _} = eval("1 == 1.0"),
+  {false, _} = eval("1 != 1.0"),
+  {true, _} = eval("1 === 1"),
+  {false, _} = eval("1 !== 1"),
+  {false, _} = eval("1 === 1.0"),
+  {true, _} = eval("1 !== 1.0").
 
 and_test() ->
   F = fun() ->
@@ -269,31 +252,37 @@ oror_test() ->
   end,
   test_helper:run_and_remove(F, ['Elixir.Bar']).
 
+cond_line_test() ->
+  {'case', 1, _,
+    [{clause, 2, _, _, _},
+     {clause, 3, _, _, _}]
+  } = to_erl("cond do\n  1 -> :ok\n  2 -> :ok\nend").
+
 % Optimized
 
 optimized_if_test() ->
   {'case', _, _,
-    [{clause,_,[{atom,_,false}],[],[{atom,_,else}]},
-     {clause,_,[{atom,_,true}],[],[{atom,_,do}]}]
- } = to_erl("if is_list([]), do: :do, else: :else").
+    [{clause, _, [{atom, _, false}], [], [{atom, _, else}]},
+     {clause, _, [{atom, _, true}], [], [{atom, _, do}]}]
+  } = to_erl("if is_list([]), do: :do, else: :else").
 
 optimized_andand_test() ->
   {'case', _, _,
-    [{clause,_,
-      [{var,_,Var}],
-      [[{op,_,'orelse',_,_}]],
-      [{var,_,Var}]},
-    {clause,_,[{var,_,'_'}],[],[{atom,0,done}]}]
- } = to_erl("is_list([]) && :done").
+    [{clause, _,
+      [{var, _, Var}],
+      [[{op, _, 'orelse', _, _}]],
+      [{var, _, Var}]},
+    {clause, _, [{var, _, '_'}], [], [{atom, 0, done}]}]
+  } = to_erl("is_list([]) && :done").
 
 optimized_oror_test() ->
   {'case', _, _,
-    [{clause,1,
-      [{var,1,_}],
-      [[{op,1,'orelse',_,_}]],
-      [{atom,0,done}]},
-    {clause,1,[{var,1,Var}],[],[{var,1,Var}]}]
- } = to_erl("is_list([]) || :done").
+    [{clause, 1,
+      [{var, 1, _}],
+      [[{op, 1, 'orelse', _, _}]],
+      [{atom, 0, done}]},
+    {clause, 1, [{var, 1, Var}], [], [{var, 1, Var}]}]
+  } = to_erl("is_list([]) || :done").
 
 no_after_in_try_test() ->
   {'try', _, [_], [_], _, []} = to_erl("try do :foo.bar() else _ -> :ok end").

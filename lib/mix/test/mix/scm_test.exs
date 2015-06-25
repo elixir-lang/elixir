@@ -4,11 +4,8 @@ defmodule Mix.SCMTest do
   use MixTest.Case
 
   setup do
-    {:ok, [scm: Mix.SCM.available]}
-  end
-
-  teardown context do
-    Application.put_env(:mix, :scm, context[:scm])
+    available = Mix.SCM.available
+    on_exit fn -> Mix.State.put(:scm, available) end
     :ok
   end
 

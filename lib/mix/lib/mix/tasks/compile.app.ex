@@ -17,29 +17,29 @@ defmodule Mix.Tasks.Compile.App do
   configure the generated application by defining an `application`
   function in your `mix.exs` with the following options:
 
-  * `:applications` - all applications your application depends
-    on at runtime. For example, if your application depends on
-    Erlang's `:crypto`, it needs to be added to this list. Most
-    of your dependencies must be added as well (unless they're
-    a development or test dependency). Mix and other tools use this
-    list in order to properly boot your application dependencies
-    before starting the application itself;
+    * `:applications` - all applications your application depends
+      on at runtime. For example, if your application depends on
+      Erlang's `:crypto`, it needs to be added to this list. Most
+      of your dependencies must be added as well (unless they're
+      a development or test dependency). Mix and other tools use this
+      list in order to properly boot your application dependencies
+      before starting the application itself.
 
-  * `:registered` - the name of all registered processes in the
-    application. If your application defines a local GenServer
-    with name `MyServer`, it is recommended to add `MyServer`
-    to this list. It is mostly useful to detect conflicts in
-    between applications that register the same names;
+    * `:registered` - the name of all registered processes in the
+      application. If your application defines a local GenServer
+      with name `MyServer`, it is recommended to add `MyServer`
+      to this list. It is mostly useful to detect conflicts
+      between applications that register the same names.
 
-  * `:mod` - specify a module to invoke when the application
-    is started, it must be in the format `{Mod, args}` where
-    args is often an empty list. The module specified here must
-    implement the callbacks defined by the `Application`
-    module;
+    * `:mod` - specify a module to invoke when the application
+      is started, it must be in the format `{Mod, args}` where
+      args is often an empty list. The module specified here must
+      implement the callbacks defined by the `Application`
+      module.
 
-  * `:env` - default values for the application environment.
-    The application environment is one of the most common ways
-    to configure applications;
+    * `:env` - default values for the application environment.
+      The application environment is one of the most common ways
+      to configure applications.
 
   Let's see an example `application` function:
 
@@ -55,9 +55,10 @@ defmodule Mix.Tasks.Compile.App do
 
   ## Command line options
 
-  * `--force` - forces compilation regardless of modification times
+    * `--force` - forces compilation regardless of modification times
 
   """
+  @spec run(OptionParser.argv) :: :ok | :noop
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
@@ -71,7 +72,7 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path = Mix.Project.compile_path
-    mods = modules_from(Path.wildcard('#{path}/*.beam')) |> Enum.sort
+    mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort
 
     target  = Path.join(path, "#{app}.app")
     sources = Mix.Project.config_files
@@ -90,17 +91,17 @@ defmodule Mix.Tasks.Compile.App do
       end
 
       # Ensure we always prepend the standard application dependencies
-      properties = Keyword.update!(properties, :applications, fn apps -> 
-        [:kernel, :stdlib, :elixir] ++ apps 
+      core_apps = [:kernel, :stdlib] ++ language_app(config)
+      properties = Keyword.update!(properties, :applications, fn apps ->
+        core_apps ++ apps
       end)
 
       properties = ensure_correct_properties(app, config, properties)
       contents   = {:application, app, properties}
 
-      Mix.Project.build_structure(config)
+      Mix.Project.ensure_structure()
       File.write!(target, :io_lib.format("~p.", [contents]))
-
-      Mix.shell.info "Generated #{app}.app"
+      Mix.shell.info "Generated #{app} app"
       :ok
     else
       :noop
@@ -109,24 +110,32 @@ defmodule Mix.Tasks.Compile.App do
 
   defp modules_changed?(mods, target) do
     case :file.consult(target) do
-      {:ok, [ {:application, _app, properties} ]} ->
-        properties[:registered] == mods
+      {:ok, [{:application, _app, properties}]} ->
+        properties[:modules] != mods
       _ ->
         false
     end
   end
 
   defp validate_app(app) when is_atom(app), do: :ok
-  defp validate_app(_), do: raise(Mix.Error, message: "Expected :app to be an atom")
+  defp validate_app(_), do: Mix.raise("Expected :app to be an atom")
 
   defp validate_version(version) do
     unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
-      raise(Mix.Error, message: "Expected :version to be a SemVer version")
+      Mix.raise("Expected :version to be a SemVer version")
     end
   end
 
   defp modules_from(beams) do
     Enum.map beams, &(&1 |> Path.basename |> Path.rootname(".beam") |> String.to_atom)
+  end
+
+  defp language_app(config) do
+    case Keyword.fetch(config, :language) do
+      {:ok, :elixir} -> [:elixir]
+      {:ok, :erlang} -> []
+      :error -> [:elixir]
+    end
   end
 
   defp ensure_correct_properties(app, config, properties) do
@@ -182,6 +191,6 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp invalid(message) do
-    raise Mix.Error, message: message
+    Mix.raise message
   end
 end

@@ -15,8 +15,8 @@ if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --cookie \"cookie\" Sets a cookie for this distributed node
   --hidden          Makes a hidden node
+  --werl            Uses Erlang's Windows shell GUI (Windows only)
   --detached        Starts the Erlang VM detached from console
-  --gen-debug       Turns on default debugging for all GenServers
   --remsh \"name\"    Connects to a node using a remote shell
   --dot-iex \"path\"  Overrides default .iex.exs file and uses path instead;
                     path can be empty, then no file will be loaded

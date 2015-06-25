@@ -5,9 +5,11 @@
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], E) ->
   {[ELeft|ERight], EA} = elixir_exp:expand_args([Left|Right], E),
+  validate_kv(Meta, ERight, Right, E),
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EA};
 expand_map(Meta, Args, E) ->
   {EArgs, EA} = elixir_exp:expand_args(Args, E),
+  validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, EA}.
 
 expand_struct(Meta, Left, Right, E) ->
@@ -22,19 +24,8 @@ expand_struct(Meta, Left, Right, E) ->
 
   EMeta =
     case lists:member(ELeft, ?m(E, context_modules)) of
-      true ->
-        case (ELeft == ?m(E, module)) and
-             (?m(E, function) == nil) of
-          true ->
-            compile_error(Meta, ?m(E, file),
-              "cannot access struct ~ts in body of the module that defines it as "
-              "the struct fields are not yet accessible",
-              [elixir_aliases:inspect(ELeft)]);
-          false ->
-            [{struct, context}|Meta]
-        end;
-      false ->
-        Meta
+      true  -> [{struct, context}|Meta];
+      false -> Meta
     end,
 
   case ERight of
@@ -45,6 +36,15 @@ expand_struct(Meta, Left, Right, E) ->
   end,
 
   {{'%', EMeta, [ELeft, ERight]}, EE}.
+
+validate_kv(Meta, KV, Original, E) ->
+  lists:foldl(fun
+    ({_K, _V}, Acc) -> Acc + 1;
+    (_, Acc) ->
+      compile_error(Meta, ?m(E, file),
+        "expected key-value pairs in a map, got: ~ts",
+        ['Elixir.Macro':to_string(lists:nth(Acc, Original))])
+  end, 1, KV).
 
 translate_map(Meta, Args, S) ->
   {Assocs, TUpdate, US} = extract_assoc_update(Args, S),
@@ -82,7 +82,7 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
     S#elixir_scope.context == match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
     true ->
-      Keys = [K || {K,_} <- Assocs],
+      Keys = [K || {K, _} <- Assocs],
       {StructAssocs, _} = elixir_quote:escape(maps:to_list(maps:without(Keys, Struct)), false),
       translate_map(MapMeta, StructAssocs ++ Assocs ++ [{'__struct__', Name}], nil, US)
   end.
@@ -90,12 +90,11 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 %% Helpers
 
 load_struct(Meta, Name, S) ->
+  Context = lists:keyfind(struct, 1, Meta) == {struct, context},
+
   Local =
-    elixir_module:is_open(Name) andalso
-    (case lists:keyfind(struct, 1, Meta) of
-      {struct, context} -> true;
-      _ -> wait_for_struct(Name)
-    end),
+    not(ensure_loaded(Name)) andalso
+      (Context orelse wait_for_struct(Name)),
 
   try
     case Local of
@@ -112,8 +111,22 @@ load_struct(Meta, Name, S) ->
   catch
     error:undef ->
       Inspected = elixir_aliases:inspect(Name),
-      compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
-        "cannot expand struct ~ts", [Inspected, Inspected])
+
+      case Context andalso (S#elixir_scope.function == nil) of
+        true ->
+          compile_error(Meta, S#elixir_scope.file,
+            "cannot access struct ~ts, the struct was not yet defined or the struct is being "
+            "accessed in the same context that defines it", [Inspected]);
+        false ->
+          compile_error(Meta, S#elixir_scope.file, "~ts.__struct__/0 is undefined, "
+            "cannot expand struct ~ts", [Inspected, Inspected])
+      end
+  end.
+
+ensure_loaded(Module) ->
+  case code:ensure_loaded(Module) of
+    {module, Module} -> true;
+    {error, _} -> false
   end.
 
 wait_for_struct(Module) ->
@@ -137,14 +150,10 @@ translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
 
   Line = ?line(Meta),
 
-  {TArgs, SA} = lists:mapfoldl(fun
-    ({Key, Value}, Acc) ->
-      {TKey, Acc1}   = KeyFun(Key, Acc),
-      {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
-      {{Op, ?line(Meta), TKey, TValue}, Acc2};
-    (Other, _Acc) ->
-      compile_error(Meta, S#elixir_scope.file, "expected key-value pairs in map, got: ~ts",
-                     ['Elixir.Macro':to_string(Other)])
+  {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
+    {TKey, Acc1}   = KeyFun(Key, Acc),
+    {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
+    {{Op, ?line(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
 
   build_map(Line, TUpdate, TArgs, SA).

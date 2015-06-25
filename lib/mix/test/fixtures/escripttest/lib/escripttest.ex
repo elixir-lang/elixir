@@ -4,6 +4,6 @@ defmodule Escripttest do
   end
   
   def main(_args) do
-    IO.puts "TEST"
+    IO.puts Application.get_env(:foobar, :value, "TEST")
   end
 end

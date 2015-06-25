@@ -1,17 +1,31 @@
 defmodule Task.Supervised do
   @moduledoc false
 
-  def start_link(:undefined, fun) do
-    :proc_lib.start_link(__MODULE__, :noreply, [fun])
+  def start(info, fun) do
+    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [info, fun])}
   end
 
-  def start_link(caller, fun) do
-    :proc_lib.start_link(__MODULE__, :reply, [caller, fun])
+  def start_link(info, fun) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
 
-  def async(caller, {module, fun, args}) do
+  def start_link(caller, info, fun) do
+    :proc_lib.start_link(__MODULE__, :reply, [caller, info, fun])
+  end
+
+  def async(caller, info, mfa) do
+    initial_call(mfa)
+    ref = receive do: ({^caller, ref} -> ref)
+    send caller, {ref, do_apply(info, mfa)}
+  end
+
+  def reply(caller, info, mfa) do
+    initial_call(mfa)
+    :erlang.link(caller)
+    :proc_lib.init_ack({:ok, self()})
+
     ref =
-      # There is a race condition on this operation when working accross
+      # There is a race condition on this operation when working across
       # node that manifests if a `Task.Supervisor.async/1` call is made
       # while the supervisor is busy spawning previous tasks.
       #
@@ -24,7 +38,7 @@ defmodule Task.Supervised do
       # 5. The spawned task waits forever for the monitor reference so it can begin
       #
       # We have solved this by specifying a timeout of 5000 seconds.
-      # Given no work is done in the client in between the task start and
+      # Given no work is done in the client between the task start and
       # sending the reference, 5000 should be enough to not raise false
       # negatives unless the nodes are indeed not available.
       receive do
@@ -33,36 +47,85 @@ defmodule Task.Supervised do
         5000 -> exit(:timeout)
       end
 
+    send caller, {ref, do_apply(info, mfa)}
+  end
+
+  def noreply(info, mfa) do
+    initial_call(mfa)
+    do_apply(info, mfa)
+  end
+
+  defp initial_call(mfa) do
+    Process.put(:"$initial_call", get_initial_call(mfa))
+  end
+
+  defp get_initial_call({:erlang, :apply, [fun, []]}) when is_function(fun, 0) do
+    {:module, module} = :erlang.fun_info(fun, :module)
+    {:name, name} = :erlang.fun_info(fun, :name)
+    {module, name, 0}
+  end
+
+  defp get_initial_call({mod, fun, args}) do
+    {mod, fun, length(args)}
+  end
+
+  defp do_apply(info, {module, fun, args} = mfa) do
     try do
       apply(module, fun, args)
-    else
-      result ->
-        send caller, {ref, result}
     catch
-      :error, reason ->
-        exit({reason, System.stacktrace()})
+      :error, value ->
+        reason = {value, System.stacktrace()}
+        exit(info, mfa, reason, reason)
       :throw, value ->
-        exit({{:nocatch, value}, System.stacktrace()})
-    after
-      :erlang.unlink(caller)
+        reason = {{:nocatch, value}, System.stacktrace()}
+        exit(info, mfa, reason, reason)
+      :exit, value ->
+        exit(info, mfa, {value, System.stacktrace()}, value)
     end
   end
 
-  def reply(caller, mfa) do
-    :erlang.link(caller)
-    :proc_lib.init_ack({:ok, self()})
-    async(caller, mfa)
+  defp exit(_info, _mfa, _log_reason, reason)
+      when reason == :normal
+      when reason == :shutdown
+      when tuple_size(reason) == 2 and elem(reason, 0) == :shutdown do
+    exit(reason)
   end
 
-  def noreply({module, fun, args}) do
-    :proc_lib.init_ack({:ok, self()})
-    try do
-      apply(module, fun, args)
-    catch
-      :error, reason ->
-        exit({reason, System.stacktrace()})
-      :throw, value ->
-        exit({{:nocatch, value}, System.stacktrace()})
+  defp exit(info, mfa, log_reason, reason) do
+    {fun, args} = get_running(mfa)
+
+    :error_logger.format(
+      '** Task ~p terminating~n' ++
+      '** Started from ~p~n' ++
+      '** When function  == ~p~n' ++
+      '**      arguments == ~p~n' ++
+      '** Reason for termination == ~n' ++
+      '** ~p~n', [self, get_from(info), fun, args, get_reason(log_reason)])
+
+    exit(reason)
+  end
+
+  defp get_from({node, pid_or_name}) when node == node(), do: pid_or_name
+  defp get_from(other), do: other
+
+  defp get_running({:erlang, :apply, [fun, []]}) when is_function(fun, 0), do: {fun, []}
+  defp get_running({mod, fun, args}), do: {:erlang.make_fun(mod, fun, length(args)), args}
+
+  defp get_reason({:undef, [{mod, fun, args, _info} | _] = stacktrace} = reason)
+  when is_atom(mod) and is_atom(fun) do
+    cond do
+      :code.is_loaded(mod) === false ->
+        {:"module could not be loaded", stacktrace}
+      is_list(args) and not function_exported?(mod, fun, length(args)) ->
+        {:"function not exported", stacktrace}
+      is_integer(args) and not function_exported?(mod, fun, args) ->
+        {:"function not exported", stacktrace}
+      true ->
+        reason
     end
+  end
+
+  defp get_reason(reason) do
+    reason
   end
 end

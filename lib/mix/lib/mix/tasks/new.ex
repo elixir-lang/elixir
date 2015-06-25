@@ -10,11 +10,11 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--bare] [--module MODULE] [--umbrella]
+      mix new PATH [--sup] [--module MODULE] [--app APP] [--umbrella]
 
   A project at the given PATH  will be created. The
   application name and module name will be retrieved
-  from the path, unless `--module` is given.
+  from the path, unless `--module` or `--app` is given.
 
   A `--sup` option can be given to generate an OTP application
   skeleton including a supervision tree. Normally an app is
@@ -22,6 +22,12 @@ defmodule Mix.Tasks.New do
 
   An `--umbrella` option can be given to generate an
   umbrella project.
+
+  An `--app` option can be given in order to
+  name the OTP application for the project.
+
+  A `--module` option can be given in order
+  to name the modules in the generated code skeleton.
 
   ## Examples
 
@@ -36,30 +42,35 @@ defmodule Mix.Tasks.New do
       mix new hello_world --sup
 
   """
+
+  @spec run(OptionParser.argv) :: :ok
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: [sup: :boolean, umbrella: :boolean])
 
     case argv do
       [] ->
-        raise Mix.Error, message: "Expected PATH to be given, please use `mix new PATH`"
+        Mix.raise "Expected PATH to be given, please use `mix new PATH`"
       [path|_] ->
-        name = Path.basename(Path.expand(path))
-        check_project_name!(name)
+        app = opts[:app] || Path.basename(Path.expand(path))
+        check_application_name!(app, !!opts[:app])
+        mod = opts[:module] || camelize(app)
+        check_mod_name_validity!(mod)
+        check_mod_name_availability!(mod)
         File.mkdir_p!(path)
 
         File.cd! path, fn ->
           if opts[:umbrella] do
-            do_generate_umbrella(name, path, opts)
+            do_generate_umbrella(app, mod, path, opts)
           else
-            do_generate(name, path, opts)
+            do_generate(app, mod, path, opts)
           end
         end
     end
   end
 
-  defp do_generate(app, path, opts) do
-    mod     = opts[:module] || camelize(app)
-    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup])]
+  defp do_generate(app, mod, path, opts) do
+    assigns = [app: app, mod: mod, otp_app: otp_app(mod, !!opts[:sup]),
+               version: get_version(System.version)]
 
     create_file "README.md",  readme_template(assigns)
     create_file ".gitignore", gitignore_text
@@ -98,15 +109,14 @@ defmodule Mix.Tasks.New do
   end
 
   defp otp_app(_mod, false) do
-    "    [applications: []]"
+    "    [applications: [:logger]]"
   end
 
   defp otp_app(mod, true) do
-    "    [applications: [],\n     mod: {#{mod}, []}]"
+    "    [applications: [:logger],\n     mod: {#{mod}, []}]"
   end
 
-  defp do_generate_umbrella(app, path, _opts) do
-    mod = camelize(app)
+  defp do_generate_umbrella(_app, mod, path, _opts) do
     assigns = [mod: mod]
 
     create_file ".gitignore", gitignore_text
@@ -114,6 +124,10 @@ defmodule Mix.Tasks.New do
     create_file "mix.exs", mixfile_umbrella_template(assigns)
 
     create_directory "apps"
+
+    create_directory "config"
+    create_file "config/config.exs",
+      config_template(assigns) <> config_umbrella_template(assigns)
 
     Mix.shell.info """
 
@@ -131,10 +145,39 @@ defmodule Mix.Tasks.New do
     """
   end
 
-  defp check_project_name!(name) do
+  defp check_application_name!(name, from_app_flag) do
     unless name =~ ~r/^[a-z][\w_]*$/ do
-      raise Mix.Error, message: "Project path must start with a letter and have only lowercase letters, numbers and underscore"
+      Mix.raise "Application name must start with a letter and have only lowercase " <>
+                "letters, numbers and underscore, got: #{inspect name}" <>
+                (if !from_app_flag do
+                  ". The application name is inferred from the path, if you'd like to " <>
+                  "explicitly name the application then use the `--app APP` option."
+                else
+                  ""
+                end)
     end
+  end
+
+  defp check_mod_name_validity!(name) do
+    unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
+      Mix.raise "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect name}"
+    end
+  end
+
+  defp check_mod_name_availability!(name) do
+    name = Module.concat(Elixir, name)
+    if Code.ensure_loaded?(name) do
+      Mix.raise "Module name #{inspect name} is already taken, please choose another name"
+    end
+  end
+
+  defp get_version(version) do
+    {:ok, version} = Version.parse(version)
+    "#{version.major}.#{version.minor}" <>
+      case version.pre do
+        [h|_] -> "-#{h}"
+        []    -> ""
+      end
   end
 
   defp in_umbrella? do
@@ -154,11 +197,12 @@ defmodule Mix.Tasks.New do
    <%= @mod %>
    <%= String.duplicate("=", String.length(@mod)) %>
 
-   ** TODO: Add description **
+   **TODO: Add description**
    """
 
    embed_text :gitignore, """
    /_build
+   /cover
    /deps
    erl_crash.dump
    *.ez
@@ -171,7 +215,9 @@ defmodule Mix.Tasks.New do
     def project do
       [app: :<%= @app %>,
        version: "0.0.1",
-       elixir: "~> <%= System.version %>",
+       elixir: "~> <%= @version %>",
+       build_embedded: Mix.env == :prod,
+       start_permanent: Mix.env == :prod,
        deps: deps]
     end
 
@@ -182,13 +228,13 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # Dependencies can be hex.pm packages:
+    # Dependencies can be Hex packages:
     #
     #   {:mydep, "~> 0.3.0"}
     #
     # Or git/path repositories:
     #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
     # Type `mix help deps` for more examples and options
     defp deps do
@@ -206,7 +252,9 @@ defmodule Mix.Tasks.New do
        version: "0.0.1",
        deps_path: "../../deps",
        lockfile: "../../mix.lock",
-       elixir: "~> <%= System.version %>",
+       elixir: "~> <%= @version %>",
+       build_embedded: Mix.env == :prod,
+       start_permanent: Mix.env == :prod,
        deps: deps]
     end
 
@@ -217,13 +265,13 @@ defmodule Mix.Tasks.New do
   <%= @otp_app %>
     end
 
-    # Dependencies can be hex.pm packages:
+    # Dependencies can be Hex packages:
     #
     #   {:mydep, "~> 0.3.0"}
     #
     # Or git/path repositories:
     #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
     # To depend on another app inside the umbrella:
     #
@@ -242,18 +290,23 @@ defmodule Mix.Tasks.New do
 
     def project do
       [apps_path: "apps",
+       build_embedded: Mix.env == :prod,
+       start_permanent: Mix.env == :prod,
        deps: deps]
     end
 
-    # Dependencies can be hex.pm packages:
+    # Dependencies can be Hex packages:
     #
     #   {:mydep, "~> 0.3.0"}
     #
     # Or git/path repositories:
     #
-    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1"}
+    #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
-    # Type `mix help deps` for more examples and options
+    # Type `mix help deps` for more examples and options.
+    #
+    # Dependencies listed here are available only for this project
+    # and cannot be accessed from applications inside the apps folder
     defp deps do
       []
     end
@@ -261,30 +314,51 @@ defmodule Mix.Tasks.New do
   """
 
   embed_template :config, ~S"""
-  # This file is responsible for configuring your application and
-  # its dependencies. It must return a keyword list containing the
-  # application name and have as value another keyword list with
-  # the application key-value pairs.
+  # This file is responsible for configuring your application
+  # and its dependencies with the aid of the Mix.Config module.
+  use Mix.Config
 
-  # Note this configuration is loaded before any dependency and is
-  # restricted to this project. If another project depends on this
-  # project, this file won't be loaded nor affect the parent project.
-
-  # You can customize the configuration path by setting :config_path
-  # in your mix.exs file. For example, you can emulate configuration
-  # per environment by setting:
-  #
-  #     config_path: "config/#{Mix.env}.exs"
-  #
-  # Changing any file inside the config directory causes the whole
-  # project to be recompiled.
+  # This configuration is loaded before any dependency and is restricted
+  # to this project. If another project depends on this project, this
+  # file won't be loaded nor affect the parent project. For this reason,
+  # if you want to provide default values for your application for third-
+  # party users, it should be done in your mix.exs file.
 
   # Sample configuration:
   #
-  # [dep1: [key: :value],
-  #  dep2: [key: :value]]
+  #     config :logger,
+  #       level: :info
+  #
+  #     config :logger, :console,
+  #       format: "$date $time [$level] $metadata$message\n",
+  #       metadata: [:user_id]
 
-  []
+  # It is also possible to import configuration files, relative to this
+  # directory. For example, you can emulate configuration per environment
+  # by uncommenting the line below and defining dev.exs, test.exs and such.
+  # Configuration from the imported file will override the ones defined
+  # here (which is why it is important to import them last).
+  #
+  #     import_config "#{Mix.env}.exs"
+  """
+
+  embed_template :config_umbrella, ~S"""
+  # This file is responsible for configuring your application
+  # and its dependencies with the aid of the Mix.Config module.
+  use Mix.Config
+
+  # The configuration defined here will only affect the dependencies
+  # in the apps directory when commands are executed from the umbrella
+  # project. For this reason, it is preferred to configure each child
+  # application directly and import its configuration, as done below.
+  import_config "../apps/*/config/config.exs"
+
+  # Sample configuration (overrides the imported configuration above):
+  #
+  #     config :logger, :console,
+  #       level: :info,
+  #       format: "$date $time [$level] $metadata$message\n",
+  #       metadata: [:user_id]
   """
 
   embed_template :lib, """
@@ -303,7 +377,7 @@ defmodule Mix.Tasks.New do
 
       children = [
         # Define workers and child supervisors to be supervised
-        # worker(<%= @mod %>.Worker, [arg1, arg2, arg3])
+        # worker(<%= @mod %>.Worker, [arg1, arg2, arg3]),
       ]
 
       # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
@@ -317,6 +391,7 @@ defmodule Mix.Tasks.New do
   embed_template :test, """
   defmodule <%= @mod %>Test do
     use ExUnit.Case
+    doctest <%= @mod %>
 
     test "the truth" do
       assert 1 + 1 == 2

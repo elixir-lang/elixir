@@ -28,45 +28,57 @@ defmodule RecordTest do
            StructExtract.__struct__
   end
 
-  # We need indirection to avoid warnings
-  defp record?(data, kind) do
-    Record.record?(data, kind)
+  test "extract_all/1 extracts all records information from an Erlang file" do
+    all_extract = Record.extract_all(from_lib: "kernel/include/file.hrl")
+    assert length(all_extract) == 2 # has been stable over the very long time
+    assert all_extract[:file_info]
+    assert all_extract[:file_descriptor]
   end
 
-  test "record?/2" do
-    assert record?({User, "jose", 27}, User)
-    refute record?({User, "jose", 27}, Author)
+  # We need indirection to avoid warnings
+  defp record?(data, kind) do
+    Record.is_record(data, kind)
+  end
+
+  test "is_record/2" do
+    assert record?({User, "meg", 27}, User)
+    refute record?({User, "meg", 27}, Author)
     refute record?(13, Author)
   end
 
   # We need indirection to avoid warnings
   defp record?(data) do
-    Record.record?(data)
+    Record.is_record(data)
   end
 
-  test "record?/1" do
-    assert record?({User, "jose", 27})
-    refute record?({"jose", 27})
+  test "is_record/1" do
+    assert record?({User, "john", 27})
+    refute record?({"john", 27})
     refute record?(13)
   end
 
   Record.defrecord  :timestamp, [:date, :time]
-  Record.defrecord  :user, __MODULE__, name: "José", age: 25
-  Record.defrecordp :file_info, Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  Record.defrecord  :user, __MODULE__, name: "john", age: 25
+  Record.defrecordp :file_info,
+    Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
+  Record.defrecordp :certificate, :OTPCertificate,
+    Record.extract(:OTPCertificate, from_lib: "public_key/include/public_key.hrl")
 
   test "records generates macros that generates tuples" do
     record = user()
-    assert user(record, :name) == "José"
+    assert user(record, :name) == "john"
     assert user(record, :age)  == 25
 
-    record = user(record, name: "Eric")
-    assert user(record, :name) == "Eric"
+    record = user(record, name: "meg")
+    assert user(record, :name) == "meg"
 
-    assert elem(record, user(:name)) == "Eric"
+    assert elem(record, user(:name)) == "meg"
     assert elem(record, 0) == RecordTest
 
     user(name: name) = record
-    assert name == "Eric"
+    assert name == "meg"
+
+    assert user(:name) == 1
   end
 
   test "records with no tag" do
@@ -76,6 +88,16 @@ defmodule RecordTest do
   test "records with dynamic arguments" do
     record = file_info()
     assert file_info(record, :size) == :undefined
+
+    record = user()
+    assert user(record) == [name: "john", age: 25]
+    assert user(user()) == [name: "john", age: 25]
+
+    msg = "expected argument to be a literal atom, literal keyword or a :file_info record, " <>
+          "got runtime: {RecordTest, \"john\", 25}"
+    assert_raise ArgumentError, msg, fn ->
+      file_info(record)
+    end
   end
 
   test "records visibility" do

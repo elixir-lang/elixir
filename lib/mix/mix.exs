@@ -5,15 +5,12 @@ defmodule Mix.Mixfile do
     [app: :mix,
      build_per_environment: false,
      version: System.version,
-     escript_main_module: Mix.CLI]
+     escript: [main_module: Mix.CLI]]
   end
 
   def application do
-    [registered: [Mix.TasksServer, Mix.ProjectStack],
+    [registered: [Mix.State, Mix.TasksServer, Mix.ProjectStack],
      mod: {Mix, []},
-     env: [shell: Mix.Shell.IO,
-           env: :dev,
-           scm: [Mix.SCM.Git, Mix.SCM.Path],
-           colors: []]]
+     env: [colors: []]]
   end
 end

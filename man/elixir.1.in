@@ -1,0 +1,53 @@
+.Dd April 10, 2015
+.Dt ELIXIR 1
+.Os
+.Sh NAME
+.Nm elixir
+.Nd The Elixir script runner
+.Sh SYNOPSIS
+.Nm
+.Op Ar OPTIONS
+.Ar
+.Sh DESCRIPTION
+The program starts the runtime system typically for the execution of one or more scripts. It is similar to
+.Xr iex 1 ,
+but
+.Nm
+exits when the executed script does.
+.Sh OPTIONS
+Note that many of the options mentioned here were borrowed from the Erlang shell, therefore
+.Xr erl 1
+can be used as an additional source of information on the options.
+.Bl -tag -width Ds
+{COMMON}
+.It Fl -no-halt
+Does not halt the Erlang VM after execution.
+.It Fl -
+Separates the options passed to the compiler from the options passed to the executed code.
+.El
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev ELIXIR_ERL_OPTIONS
+Allows passing parameters to the Erlang runtime.
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.erlang.cookie
+Stores the magic cookie value which is used only when it wasn't specified via the option
+.Fl -cookie
+.Pq see above .
+If the file doesn't exist when a node starts, it will be created.
+.El
+.Sh SEE ALSO
+.Xr elixirc 1 ,
+.Xr iex 1 ,
+.Xr mix 1
+.Sh AUTHOR
+This manual page contributed by Evgeny Golyshev.
+.Sh INTERNET RESOURCES
+.Bl -tag -width Ds
+.It Main website: http://elixir-lang.org
+.It Documentation: http://elixir-lang.org/docs.html
+.It General Mailing List: http://groups.google.com/group/elixir-lang-talk
+.It Development Mailing List: http://groups.google.com/group/elixir-lang-core
+.El

@@ -6,7 +6,7 @@ defmodule Mix.GeneratorTest do
   import Mix.Generator
 
   embed_text :foo,     "foo"
-  embed_text :self,    from_file("../generator_test.exs")
+  embed_text :self,    from_file: __ENV__.file
   embed_template :bar, "<%= @a + @b %>"
 
   test :embed_text do
@@ -25,6 +25,18 @@ defmodule Mix.GeneratorTest do
     in_tmp "create_file", fn ->
       create_file "foo", "HELLO"
       assert File.read!("foo") == "HELLO"
+      assert_received {:mix_shell, :info, ["* creating foo"]}
+    end
+  end
+
+  test :force_create_file do
+    in_tmp "create_file", fn ->
+      File.write! "foo", "HELLO"
+
+      create_file "foo", "WORLD", force: true
+      assert File.read!("foo") == "WORLD"
+
+      refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       assert_received {:mix_shell, :info, ["* creating foo"]}
     end
   end

@@ -1,6 +1,6 @@
 /.eunit
 /.release
-/docs
+/doc
 /ebin
 /lib/*/ebin/*
 /lib/*/tmp
@@ -10,5 +10,6 @@
 /lib/elixir/test/ebin
 /rel/elixir
 erl_crash.dump
-.dialyzer_plt
-.dialyzer.base_plt
+.elixir.plt
+man/elixir.1
+man/iex.1

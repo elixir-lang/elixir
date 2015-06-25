@@ -1,12 +1,12 @@
 -module(elixir_compiler).
--export([get_opt/1, string/2, quoted/2, file/1, file_to_path/2]).
+-export([get_opt/1, string/2, quoted/2, file/1, file/2, file_to_path/2]).
 -export([core/0, module/4, eval_forms/3]).
 -include("elixir.hrl").
 
 %% Public API
 
 get_opt(Key) ->
-  Dict = elixir_code_server:call(compiler_options),
+  Dict = elixir_config:get(compiler_options),
   case lists:keyfind(Key, 1, Dict) of
     false -> false;
     {Key, Value} -> Value
@@ -15,17 +15,21 @@ get_opt(Key) ->
 %% Compilation entry points.
 
 string(Contents, File) when is_list(Contents), is_binary(File) ->
+  string(Contents, File, nil).
+string(Contents, File, Dest) ->
   Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
-  quoted(Forms, File).
+  quoted(Forms, File, Dest).
 
 quoted(Forms, File) when is_binary(File) ->
+  quoted(Forms, File, nil).
+quoted(Forms, File, Dest) ->
   Previous = get(elixir_compiled),
 
   try
     put(elixir_compiled, []),
-    elixir_lexical:run(File, fun
+    elixir_lexical:run(File, Dest, fun
       (Pid) ->
-        Env = elixir:env_for_eval([{line,1},{file,File}]),
+        Env = elixir:env_for_eval([{line, 1}, {file, File}]),
         eval_forms(Forms, [], Env#{lexical_tracker := Pid})
     end),
     lists:reverse(get(elixir_compiled))
@@ -34,14 +38,20 @@ quoted(Forms, File) when is_binary(File) ->
   end.
 
 file(Relative) when is_binary(Relative) ->
+  file(Relative, nil).
+file(Relative, Dest) ->
   File = filename:absname(Relative),
   {ok, Bin} = file:read_file(File),
-  string(elixir_utils:characters_to_list(Bin), File).
+  string(elixir_utils:characters_to_list(Bin), File, case Dest of
+    nil -> Dest;
+    _   -> filename:absname(Dest)
+  end).
 
-file_to_path(File, Path) when is_binary(File), is_binary(Path) ->
-  Lists = file(File),
-  [binary_to_path(X, Path) || X <- Lists],
-  Lists.
+file_to_path(File, Dest) when is_binary(File), is_binary(Dest) ->
+  Comp = file(File, Dest),
+  Abs  = filename:absname(Dest),
+  _ = [binary_to_path(X, Abs) || X <- Comp],
+  Comp.
 
 %% Evaluation
 
@@ -68,9 +78,9 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
 
   %% Pass {native, false} to speed up bootstrap
   %% process when native is set to true
-  AllOpts   = elixir_code_server:call(erl_compiler_options),
+  AllOpts   = options(),
   FinalOpts = AllOpts -- [native, warn_missing_spec],
-  module(Form, ?m(E, file), FinalOpts, true, fun(_, Binary) ->
+  inner_module(Form, FinalOpts, true, E, fun(_, Binary) ->
     %% If we have labeled locals, anonymous functions
     %% were created and therefore we cannot ditch the
     %% module
@@ -81,6 +91,36 @@ code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
       end,
     dispatch_loaded(Module, Fun, Args, Purgeable, I, EE)
   end).
+
+options() ->
+  case elixir_config:get(erl_compiler_options) of
+    nil ->
+      elixir_config:update(erl_compiler_options, fun options/1);
+    Opts ->
+      Opts
+  end.
+
+options(nil) ->
+  Key = "ERL_COMPILER_OPTIONS",
+  case os:getenv(Key) of
+    false -> [];
+    Str when is_list(Str) ->
+      case erl_scan:string(Str) of
+        {ok, Tokens, _} ->
+          case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
+            {ok, List} when is_list(List) -> List;
+            {ok, Term} -> [Term];
+            {error, _Reason} ->
+              io:format("Ignoring bad term in ~ts\n", [Key]),
+              []
+          end;
+        {error, {_, _, _Reason}, _} ->
+          io:format("Ignoring bad term in ~ts\n", [Key]),
+          []
+      end
+  end;
+options(Opts) ->
+    Opts.
 
 dispatch_loaded(Module, Fun, Args, Purgeable, I, E) ->
   Res = Module:Fun(Args),
@@ -120,7 +160,7 @@ return_module_name(I) ->
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
-allows_fast_compilation({defmodule,_,_}) -> true;
+allows_fast_compilation({defmodule, _, _}) -> true;
 allows_fast_compilation(_) -> false.
 
 %% INTERNAL API
@@ -128,27 +168,36 @@ allows_fast_compilation(_) -> false.
 %% Compile the module by forms based on the scope information
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
-module(Forms, File, Opts, Callback) ->
+module(Forms, Opts, E, Callback) ->
   Final =
     case (get_opt(debug_info) == true) orelse
          lists:member(debug_info, Opts) of
-      true  -> [debug_info] ++ elixir_code_server:call(erl_compiler_options);
-      false -> elixir_code_server:call(erl_compiler_options)
+      true  -> [debug_info] ++ options();
+      false -> options()
     end,
-  module(Forms, File, Final, false, Callback).
+  inner_module(Forms, Final, false, E, Callback).
 
-module(Forms, File, Options, Bootstrap, Callback) when
-    is_binary(File), is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
-  Listname = elixir_utils:characters_to_list(File),
+inner_module(Forms, Options, Bootstrap, #{file := File} = E, Callback) when
+    is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->
+  Source = elixir_utils:characters_to_list(File),
 
-  case compile:noenv_forms([no_auto_import()|Forms], [return,{source,Listname}|Options]) of
-    {ok, ModuleName, Binary, Warnings} ->
+  case compile:noenv_forms([no_auto_import()|Forms], [return, {source, Source}|Options]) of
+    {ok, Module, Binary, Warnings} ->
       format_warnings(Bootstrap, Warnings),
-      code:load_binary(ModuleName, Listname, Binary),
-      Callback(ModuleName, Binary);
+      {module, Module} = code:load_binary(Module, beam_location(E), Binary),
+      Callback(Module, Binary);
     {error, Errors, Warnings} ->
       format_warnings(Bootstrap, Warnings),
       format_errors(Errors)
+  end.
+
+beam_location(#{module := nil}) -> in_memory;
+beam_location(#{lexical_tracker := Pid, module := Module}) ->
+  case elixir_lexical:dest(Pid) of
+    nil  -> in_memory;
+    Dest ->
+      filename:join(elixir_utils:characters_to_list(Dest),
+                    atom_to_list(Module) ++ ".beam")
   end.
 
 no_auto_import() ->
@@ -157,14 +206,17 @@ no_auto_import() ->
 %% CORE HANDLING
 
 core() ->
-  application:start(elixir),
-  elixir_code_server:cast({compiler_options, [{docs,false},{internal,true}]}),
+  {ok, _} = application:ensure_all_started(elixir),
+  New = orddict:from_list([{docs, false}, {internal, true}]),
+  Merge = fun(_, _, Value) -> Value end,
+  Update = fun(Old) -> orddict:merge(Merge, Old, New) end,
+  _ = elixir_config:update(compiler_options, Update),
   [core_file(File) || File <- core_main()].
 
 core_file(File) ->
   try
     Lists = file(File),
-    [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
+    _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~ts~n", [File])
   catch
     Kind:Reason ->
@@ -181,7 +233,9 @@ core_main() ->
    <<"lib/elixir/lib/macro.ex">>,
    <<"lib/elixir/lib/code.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
+   <<"lib/elixir/lib/kernel/def.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
+   <<"lib/elixir/lib/behaviour.ex">>,
    <<"lib/elixir/lib/exception.ex">>,
    <<"lib/elixir/lib/protocol.ex">>,
    <<"lib/elixir/lib/stream/reducers.ex">>,
@@ -194,6 +248,7 @@ core_main() ->
    <<"lib/elixir/lib/string/chars.ex">>,
    <<"lib/elixir/lib/io.ex">>,
    <<"lib/elixir/lib/path.ex">>,
+   <<"lib/elixir/lib/file.ex">>,
    <<"lib/elixir/lib/system.ex">>,
    <<"lib/elixir/lib/kernel/cli.ex">>,
    <<"lib/elixir/lib/kernel/error_handler.ex">>,
@@ -202,8 +257,10 @@ core_main() ->
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
-  ok = file:write_file(Path, Binary),
-  Path.
+  case file:write_file(Path, Binary) of
+    ok -> Path;
+    {error, Reason} -> error('Elixir.File.Error':exception([{action, "write to"}, {path, Path}, {reason, Reason}]))
+  end.
 
 %% ERROR HANDLING
 
@@ -213,11 +270,11 @@ format_errors([]) ->
 format_errors(Errors) ->
   lists:foreach(fun ({File, Each}) ->
     BinFile = elixir_utils:characters_to_binary(File),
-    lists:foreach(fun (Error) -> elixir_errors:handle_file_error(BinFile, Error) end, Each)
+    lists:foreach(fun(Error) -> elixir_errors:handle_file_error(BinFile, Error) end, Each)
   end, Errors).
 
 format_warnings(Bootstrap, Warnings) ->
   lists:foreach(fun ({File, Each}) ->
     BinFile = elixir_utils:characters_to_binary(File),
-    lists:foreach(fun (Warning) -> elixir_errors:handle_file_warning(Bootstrap, BinFile, Warning) end, Each)
+    lists:foreach(fun(Warning) -> elixir_errors:handle_file_warning(Bootstrap, BinFile, Warning) end, Each)
   end, Warnings).

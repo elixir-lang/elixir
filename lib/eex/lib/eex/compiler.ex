@@ -1,7 +1,7 @@
 defmodule EEx.Compiler do
   @moduledoc false
 
-  # when changing this setting, don't forget to update the docs for EEx
+  # When changing this setting, don't forget to update the docs for EEx
   @default_engine EEx.SmartEngine
 
   @doc """
@@ -12,10 +12,15 @@ defmodule EEx.Compiler do
   def compile(source, opts) do
     file   = opts[:file] || "nofile"
     line   = opts[:line] || 1
-    tokens = EEx.Tokenizer.tokenize(source, line)
-    state  = %{engine: opts[:engine] || @default_engine,
-               file: file, line: line, quoted: [], start_line: nil}
-    generate_buffer(tokens, "", [], state)
+    trim   = opts[:trim] || false
+    case EEx.Tokenizer.tokenize(source, line, trim: trim) do
+      {:ok, tokens} ->
+        state = %{engine: opts[:engine] || @default_engine,
+                  file: file, line: line, quoted: [], start_line: nil}
+        generate_buffer(tokens, "", [], state)
+      {:error, line, message} ->
+        raise EEx.SyntaxError, line: line, file: file, message: message
+    end
   end
 
   # Generates the buffers by handling each expression from the tokenizer
@@ -27,7 +32,7 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:expr, line, mark, chars}|t], buffer, scope, state) do
     expr = Code.string_to_quoted!(chars, [line: line, file: state.file])
-    buffer = state.engine.handle_expr(buffer, mark, expr)
+    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(t, buffer, scope, state)
   end
 
@@ -35,7 +40,7 @@ defmodule EEx.Compiler do
     {contents, line, t} = look_ahead_text(t, start_line, chars)
     {contents, t} = generate_buffer(t, "", [contents|scope],
                                     %{state | quoted: [], line: line, start_line: start_line})
-    buffer = state.engine.handle_expr(buffer, mark, contents)
+    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(t, buffer, scope, state)
   end
 
@@ -51,16 +56,17 @@ defmodule EEx.Compiler do
     {buffer, t}
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars}|_], _buffer, [], _state) do
-    raise EEx.SyntaxError, message: "unexpected token: #{inspect chars} at line #{inspect line}"
+  defp generate_buffer([{:end_expr, line, _, chars}|_], _buffer, [], state) do
+    raise EEx.SyntaxError, message: "unexpected token #{inspect chars}", file: state.file, line: line
   end
 
   defp generate_buffer([], buffer, [], state) do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([], _buffer, _scope, _state) do
-    raise EEx.SyntaxError, message: "unexpected end of string. expecting a closing <% end %>."
+  defp generate_buffer([], _buffer, _scope, state) do
+    raise EEx.SyntaxError, message: "unexpected end of string, expected a closing '<% end %>'",
+                           file: state.file, line: state.line
   end
 
   # Creates a placeholder and wrap it inside the expression block

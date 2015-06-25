@@ -10,33 +10,21 @@ defmodule Mix.Dep.Loader do
   are included as children.
 
   By default, it will filter all dependencies that does not match
-  current environment, behaviour can be overriden via options.
+  current environment, behaviour can be overridden via options.
 
   ## Options
 
-  * `:env` - Filter dependencies on given environments
+    * `:env` - filter dependencies on given environments
   """
   def children(opts) do
-    from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
-
-    # Filter deps not matching mix environment
-    if env = opts[:env] do
-      deps =
-        Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-          only = opts[:only]
-          if only, do: env in List.wrap(only), else: true
-        end)
-    end
-
-    deps ++ Mix.Dep.Umbrella.unloaded
+    mix_children(opts) ++ Mix.Dep.Umbrella.unloaded
   end
 
   @doc """
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep) do
+  def load(dep, children) do
     %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
     dep  = %{dep | status: scm_status(scm, opts)}
     dest = opts[:dest]
@@ -46,23 +34,22 @@ defmodule Mix.Dep.Loader do
         not ok?(dep.status) ->
           {dep, []}
 
-        manager == :rebar ->
-          rebar_dep(dep)
-
         mix?(dest) ->
-          mix_dep(%{dep | manager: :mix})
+          mix_dep(dep, children)
 
-        rebar?(dest) ->
-          rebar_dep(%{dep | manager: :rebar})
+        # If not an explicit rebar or mix dependency
+        # but came from rebar, assume to be a rebar dep.
+        rebar?(dest) or manager == :rebar ->
+          rebar_dep(dep, children)
 
         make?(dest) ->
-          {%{dep | manager: :make}, []}
+          make_dep(dep)
 
         true ->
           {dep, []}
       end
 
-    %{validate_path(validate_app(dep)) | deps: children}
+    %{validate_app(dep) | deps: children}
   end
 
   @doc """
@@ -81,11 +68,11 @@ defmodule Mix.Dep.Loader do
             {:ok, req} ->
               Version.match?(version, req)
             :error ->
-              raise Mix.Error, message: "Invalid requirement #{req} for app #{app}"
+              Mix.raise "Invalid requirement #{req} for app #{app}"
           end
 
         :error ->
-          raise Mix.Error, message: "The application #{app} specified a non Semantic Version #{actual}. " <>
+          Mix.raise "The application #{app} specified a non Semantic Version #{actual}. " <>
             "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
             "version, please use a regex as requirement"
       end
@@ -107,7 +94,11 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
-    unless is_binary(req) or Regex.regex?(req) or nil?(req) do
+    unless is_binary(req) or Regex.regex?(req) or is_nil(req) do
+      invalid_dep_format(other)
+    end
+
+    unless Keyword.keyword?(opts) do
       invalid_dep_format(other)
     end
 
@@ -121,15 +112,13 @@ defmodule Mix.Dep.Loader do
 
     {scm, opts} = get_scm(app, opts)
 
-    unless scm do
-      Mix.Tasks.Local.Hex.maybe_install(app)
-      Mix.Tasks.Local.Hex.maybe_start()
+    if !scm && Mix.Tasks.Local.Hex.ensure_installed?(app) do
+      _ = Mix.Tasks.Local.Hex.start()
       {scm, opts} = get_scm(app, opts)
     end
 
     unless scm do
-      raise Mix.Error,
-        message: "could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+      Mix.raise "Could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
     end
 
     %Mix.Dep{
@@ -162,21 +151,23 @@ defmodule Mix.Dep.Loader do
   defp ok?(_), do: false
 
   defp mix?(dest) do
-    File.regular?(Path.join(dest, "mix.exs"))
+    any_of?(dest, ["mix.exs"])
   end
 
   defp rebar?(dest) do
-    Enum.any?(["rebar.config", "rebar.config.script"], fn file ->
-      File.regular?(Path.join(dest, file))
-    end) or File.regular?(Path.join(dest, "rebar"))
+    any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"])
   end
 
   defp make?(dest) do
-    File.regular? Path.join(dest, "Makefile")
+    any_of?(dest, ["Makefile", "Makefile.win"])
+  end
+
+  defp any_of?(dest, files) do
+    Enum.any?(files, &File.regular?(Path.join(dest, &1)))
   end
 
   defp invalid_dep_format(dep) do
-    raise Mix.Error, message: """
+    Mix.raise """
     Dependency specified in the wrong format:
 
         #{inspect dep}
@@ -196,32 +187,58 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      config    = Mix.Project.config
-      umbrella? = Mix.Project.umbrella?
-
-      if umbrella? do
+      if Mix.Project.umbrella? do
         opts = Keyword.put_new(opts, :app, false)
       end
 
-      if req = old_elixir_req(config) do
-        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
-                        "but you are running on v#{System.version}"
-      end
-
-      dep = %{dep | manager: :mix, opts: opts, extra: [umbrella: umbrella?]}
-      {dep, children(env: opts[:env] || :prod)}
+      deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
+      {%{dep | manager: :mix, opts: opts}, deps}
     end)
   end
 
-  defp rebar_dep(%Mix.Dep{} = dep) do
+  # If we have a Mix dependency that came from a remote converger,
+  # we just use the dependencies given by the remote converger,
+  # we don't need to load the mixfile at all. We can only do this
+  # because umbrella projects are not supported in remotes.
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
+    from = Path.join(opts[:dest], "mix.exs")
+    deps = Enum.map(children, &to_dep(&1, from))
+    {%{dep | manager: :mix}, deps}
+  end
+
+  defp rebar_dep(%Mix.Dep{} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
       extra = Dict.take(rebar, [:sub_dirs])
-      dep   = %{dep | manager: :rebar, extra: extra}
-      {dep, rebar_children(rebar)}
+      deps  = if children do
+        from = Path.absname("rebar.config")
+        Enum.map(children, &to_dep(&1, from, :rebar))
+      else
+        rebar_children(rebar)
+      end
+      {%{dep | manager: :rebar, extra: extra}, deps}
     end)
+  end
+
+  defp make_dep(dep) do
+    {%{dep | manager: :make}, []}
+  end
+
+  defp mix_children(opts) do
+    from = Path.absname("mix.exs")
+    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
+
+    # Filter deps not matching mix environment
+    if env = opts[:env] do
+      Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
+        only = opts[:only]
+        if only, do: env in List.wrap(only), else: true
+      end)
+    else
+      deps
+    end
   end
 
   defp rebar_children(root_config) do
@@ -231,31 +248,27 @@ defmodule Mix.Dep.Loader do
     end) |> Enum.concat
   end
 
-  defp validate_path(%Mix.Dep{scm: scm, manager: manager} = dep) do
-    if scm == Mix.SCM.Path and not manager in [:mix, nil] do
-      raise Mix.Error, message: ":path option can only be used with mix projects, " <>
-                                "invalid path dependency for #{inspect dep.app}"
-    else
-      dep
-    end
-  end
-
   defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app, status: status} = dep) do
     opts_app = opts[:app]
-    build    = opts[:build]
 
     cond do
       not ok?(status) ->
         dep
-      File.exists?(Path.join(opts[:build], ".compile")) ->
+      recently_fetched?(dep) ->
         %{dep | status: :compile}
       opts_app == false ->
         dep
       true ->
-        path  = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-        path  = Path.expand(path, build)
+        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+        path = Path.expand(path, opts[:build])
         %{dep | status: app_status(path, app, req)}
     end
+  end
+
+  defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
+    scm.fetchable? &&
+      Mix.Utils.stale?([Path.join(opts[:dest], ".fetch")],
+                       [Path.join(opts[:build], ".compile.fetch")])
   end
 
   defp app_status(app_path, app, req) do
@@ -276,13 +289,6 @@ defmodule Mix.Dep.Loader do
         end
       {:ok, _} -> {:invalidapp, app_path}
       {:error, _} -> {:noappfile, app_path}
-    end
-  end
-
-  defp old_elixir_req(config) do
-    req = config[:elixir]
-    if req && not Version.match?(System.version, req) do
-      req
     end
   end
 end

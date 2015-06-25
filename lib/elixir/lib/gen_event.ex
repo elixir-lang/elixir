@@ -8,12 +8,12 @@ defmodule GenEvent do
 
   An event manager implemented using this module will have a standard
   set of interface functions and include functionality for tracing and
-  error reporting. It will also fit into an supervision tree.
+  error reporting. It will also fit into a supervision tree.
 
   ## Example
 
   There are many use cases for event handlers. For example, a logging
-  system can be built using event handlers where which log message is
+  system can be built using event handlers where each log message is
   an event and different event handlers can be plugged to handle the
   log messages. One handler may print error messages on the terminal,
   another can write it to a file, while a third one can keep the
@@ -55,10 +55,10 @@ defmodule GenEvent do
 
   We start a new event manager by calling `GenEvent.start_link/0`.
   Notifications can be sent to the event manager which will then
-  invoke `handle_event/0` for each registered handler.
+  invoke `handle_event/2` for each registered handler.
 
-  We can add new handlers with `add_handler/4`. Calls can also
-  be made to specific handlers by using `call/3`.
+  We can add new handlers with `add_handler/3` and `add_mon_handler/3`.
+  Calls can also be made to specific handlers by using `call/3`.
 
   ## Callbacks
 
@@ -67,84 +67,115 @@ defmodule GenEvent do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize. The callbacks are:
 
-  * `init(args)` - invoked when the event handler is added
+    * `init(args)` - invoked when the event handler is added.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, state}`
-    *  `{:ok, state, :hibernate}`
-    *  `{:error, reason}`
+      -  `{:ok, state}`
+      -  `{:ok, state, :hibernate}`
+      -  `{:error, reason}`
 
-  * `handle_event(msg, state)` - invoked whenever an event is sent via
-    `notify/2` or `sync_notify/2`.
+    * `handle_event(msg, state)` - invoked whenever an event is sent via
+      `notify/2`, `ack_notify/2` or `sync_notify/2`.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
-    *  `{:ok, new_state, :hibernate}`
-    *  `{:swap_handler, args1, new_state, handler2, args2}`
-    *  `:remove_handler`
+      -  `{:ok, new_state}`
+      -  `{:ok, new_state, :hibernate}`
+      -  `:remove_handler`
 
-  * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific handler.
+    * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific
+      handler.
 
-    It must return:
+      It must return:
 
-    *  `{:ok, reply, new_state}`
-    *  `{:ok, reply, new_state, :hibernate}`
-    *  `{:swap_handler, reply, args1, new_state, handler2, args2}`
-    *  `{:remove_handler, reply}`
+      -  `{:ok, reply, new_state}`
+      -  `{:ok, reply, new_state, :hibernate}`
+      -  `{:remove_handler, reply}`
 
-  * `handle_info(msg, state)` - invoked to handle all other messages which
-    are received by the process. Must return the same values as `handle_event/2`;
+    * `handle_info(msg, state)` - invoked to handle all other messages which
+      are received by the process. Must return the same values as
+      `handle_event/2`.
 
-    It must return:
+    * `terminate(reason, state)` - called when the event handler is removed or
+      the event manager is terminating. It can return any term.
 
-    *  `{:noreply, state}`
-    *  `{:noreply, state, timeout}`
-    *  `{:stop, reason, state}`
+      The reason is one of:
 
-  * `terminate(reason, state)` - called when the event handler is removed or the
-    event manager is terminating. It can return any term.
+      -  `:stop` - manager is terminating
+      -  `{:stop, reason}` - monitored process terminated (for monitored handlers)
+      -  `:remove_handler` - handler is being removed
+      -  `{:error, term}` - handler crashed or returned a bad value
+      -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
 
-  * `code_change(old_vsn, state, extra)` - called when the application
-    code is being upgraded live (hot code swapping).
+    * `code_change(old_vsn, state, extra)` - called when the application
+      code is being upgraded live (hot code swapping).
 
-    It must return:
+      It must return:
 
-    *  `{:ok, new_state}`
+      -  `{:ok, new_state}`
 
   ## Name Registration
 
   A GenEvent is bound to the same name registration rules as a `GenServer`.
   Read more about it in the `GenServer` docs.
 
+  ## Modes
+
+  GenEvent stream supports three different notifications.
+
+  On `GenEvent.ack_notify/2`, the manager acknowledges each event,
+  providing backpressure, but processing of the message happens
+  asynchronously.
+
+  On `GenEvent.sync_notify/2`, the manager acknowledges an event
+  just after it was processed by all event handlers.
+
+  On `GenEvent.notify/2`, all events are processed asynchronously and
+  there is no ack (which means there is no backpressure).
+
   ## Streaming
 
-  `GenEvent`s can be streamed from and streamed with the help of `stream/2`.
-  Here are some examples:
+  `GenEvent` messages can be streamed with the help of `stream/2`.
+  You will need to start another process to consume the stream:
 
-      stream = GenEvent.stream(pid)
+      Task.start_link fn ->
+        stream = GenEvent.stream(pid)
 
-      # Take the next 10 events
-      Enum.take(stream, 10)
+        # Discard the next 3 events
+        _ = Enum.drop(stream, 3)
 
-      # Print all remaining events
-      for event <- stream do
-        IO.inspect event
+        # Print all remaining events
+        for event <- stream do
+          IO.inspect event
+        end
       end
 
-  A stream may also be given an id, which allows all streams with the given
-  id to be cancelled at any moment via `cancel_streams/1`.
+  Now call `GenEvent.notify/2` multiple times. You will see the
+  first three events will be skipped while the rest will be
+  continuously printed.
 
-  ## Learn more
+  ## Learn more and compatibility
 
   If you wish to find out more about gen events, Elixir getting started
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-  * http://elixir-lang.org/getting_started/mix/1.html
-  * http://www.erlang.org/doc/man/gen_event.html
-  * http://learnyousomeerlang.com/event-handlers
+    * http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html
+    * http://www.erlang.org/doc/man/gen_event.html
+    * http://learnyousomeerlang.com/event-handlers
+
+  Keep in mind though Elixir and Erlang gen events are not 100% compatible.
+  The `:gen_event.add_sup_handler/3` is not supported by Elixir's GenEvent,
+  which in turn supports `GenEvent.add_mon_handler/3`.
+
+  The benefits of the monitoring approach are described in the "Don't drink
+  too much kool aid" section of the "Learn you some Erlang" link above. Due
+  to those changes, Elixir's GenEvent does not trap exits by default.
+
+  Furthermore, Elixir's also normalizes the `{:error, _}` tuples returned
+  by many functions, in order to be more consistent with themselves and
+  the `GenServer` module.
   """
 
   @typedoc "Return values of `start*` functions"
@@ -160,20 +191,7 @@ defmodule GenEvent do
   @type manager :: pid | name | {atom, node}
 
   @typedoc "Supported values for new handlers"
-  @type handler :: module | {module, term}
-
-  @doc """
-  Defines a `GenEvent` stream.
-
-  This is a struct returned by `stream/2`. The struct is public and
-  contains the following fields:
-
-  * `:manager` - the manager reference given to `GenEvent.stream/2`
-  * `:id` - the event stream id for cancellation
-  * `:timeout` - the timeout in between events, defaults to `:infinity`
-  * `:duration` - the duration of the subscription, defaults to `:infinity`
-  """
-  defstruct manager: nil, id: nil, timeout: :infinity, duration: :infinity
+  @type handler :: atom | {atom, term} | {pid, reference}
 
   @doc false
   defmacro __using__(_) do
@@ -191,8 +209,12 @@ defmodule GenEvent do
       end
 
       @doc false
-      def handle_call(_request, state) do
-        {:ok, {:error, :bad_call}, state}
+      def handle_call(msg, state) do
+        # We do this to trick dialyzer to not complain about non-local returns.
+        case :random.uniform(1) do
+          1 -> exit({:bad_call, msg})
+          2 -> {:remove_handler, :ok}
+        end
       end
 
       @doc false
@@ -201,7 +223,7 @@ defmodule GenEvent do
       end
 
       @doc false
-      def terminate(reason, state) do
+      def terminate(_reason, _state) do
         :ok
       end
 
@@ -224,9 +246,13 @@ defmodule GenEvent do
   section in the `GenServer` module docs.
 
   If the event manager is successfully created and initialized, the function
-  returns `{:ok, pid}`, where pid is the pid of the server. If there already
-  exists a process with the specified server name, the function returns
+  returns `{:ok, pid}`, where pid is the pid of the server. If a process with 
+  the specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
+
+  Note that a `GenEvent` started with `start_link/1` is linked to the
+  parent process and will exit not only on crashes but also if the parent
+  process exits with `:normal` reason.
   """
   @spec start_link(options) :: on_start
   def start_link(options \\ []) when is_list(options) do
@@ -243,34 +269,39 @@ defmodule GenEvent do
     do_start(:nolink, options)
   end
 
+  @no_callback :"no callback module"
+
   defp do_start(mode, options) do
     case Keyword.get(options, :name) do
       nil ->
-        :gen.start(:gen_event, mode, :"no callback module", [], [])
+        :gen.start(GenEvent, mode, @no_callback, [], [])
       atom when is_atom(atom) ->
-        :gen.start(:gen_event, mode, {:local, atom}, :"no callback module", [], [])
+        :gen.start(GenEvent, mode, {:local, atom}, @no_callback, [], [])
       other when is_tuple(other) ->
-        :gen.start(:gen_event, mode, other, :"no callback module", [], [])
+        :gen.start(GenEvent, mode, other, @no_callback, [], [])
     end
   end
 
   @doc """
-  Returns a stream that consumes and notifies events to the `manager`.
+  Returns a stream that consumes events from the `manager`.
 
   The stream is a `GenEvent` struct that implements the `Enumerable`
-  protocol. The supported options are:
+  protocol. Consumption of events only begins when enumeration starts.
 
-  * `:id` - an id to identify all live stream instances. When an `:id` is given,
-    existing streams can be called with via `cancel_streams`;
-  * `:timeout` (Enumerable) - raises if no event arrives in X milliseconds;
-  * `:duration` (Enumerable) - only consume events during the X milliseconds
-    from the streaming start;
+  Note streaming is specific to Elixir's GenEvent and does not work
+  with Erlang ones.
+
+  ## Options
+
+    * `:timeout` - raises if no event arrives in X milliseconds
+      (defaults to `:infinity`)
+
   """
+  @spec stream(manager, Keyword.t) :: GenEvent.Stream.t
   def stream(manager, options \\ []) do
-    %GenEvent{manager: manager,
-              id: Keyword.get(options, :id),
-              timeout: Keyword.get(options, :timeout, :infinity),
-              duration: Keyword.get(options, :duration, :infinity)}
+    %GenEvent.Stream{
+      manager: manager,
+      timeout: Keyword.get(options, :timeout, :infinity)}
   end
 
   @doc """
@@ -282,13 +313,25 @@ defmodule GenEvent do
   If `init/1` returns a correct value indicating successful completion,
   the event manager adds the event handler and this function returns
   `:ok`. If the callback fails with `reason` or returns `{:error, reason}`,
-  the event handler is ignored and this function returns `{:EXIT, reason}`
-  or `{:error, reason}`, respectively.
+  the event handler is ignored and this function returns `{:error, reason}`.
 
-  ## Linked handlers
+  If the given handler was previously installed at the manager, this
+  function returns `{:error, :already_present}`.
+  """
+  @spec add_handler(manager, handler, term) :: :ok | {:error, term}
+  def add_handler(manager, handler, args) do
+    rpc(manager, {:add_handler, handler, args})
+  end
 
-  When adding a handler, a `:link` option with value `true` can be given.
-  This means the event handler and the calling process are now linked.
+  @doc """
+  Adds a monitored event handler to the event `manager`.
+
+  Expects the same input and returns the same values as `add_handler/3`.
+
+  ## Monitored handlers
+
+  A monitored handler implies the calling process will now be monitored
+  by the GenEvent manager.
 
   If the calling process later terminates with `reason`, the event manager
   will delete the event handler by calling the `terminate/2` callback with
@@ -296,50 +339,98 @@ defmodule GenEvent do
   the event manager sends a message `{:gen_event_EXIT, handler, reason}`
   to the calling process. Reason is one of the following:
 
-  * `:normal` - if the event handler has been removed due to a call to
-    `remove_handler/3`, or `:remove_handler` has been returned by a callback
-    function;
+    * `:normal` - if the event handler has been removed due to a call to
+      `remove_handler/3`, or `:remove_handler` has been returned by a callback
+      function
 
-  * `:shutdown` - if the event handler has been removed because the event
-    manager is terminating;
+    * `:shutdown` - if the event handler has been removed because the event
+      manager is terminating
 
-  * `{:swapped, new_handler, pid}` - if the process pid has replaced the
-    event handler by another;
+    * `{:swapped, new_handler, pid}` - if the process pid has replaced the
+      event handler by another
 
-  * a term - if the event handler is removed due to an error. Which term
-    depends on the error;
+    * a term - if the event handler is removed due to an error. Which term
+      depends on the error
 
+  Keep in mind that the `{:gen_event_EXIT, handler, reason}` message is not
+  guaranteed to be delivered in case the manager crashes. If you want to
+  guarantee the message is delivered, you have two options:
+
+    * monitor the event manager
+    * link to the event manager and then set `Process.flag(:trap_exit, true)`
+      in your handler callback
+
+  Finally, this functionality only works with GenEvent started via this
+  module (it is not backwards compatible with Erlang's `:gen_event`).
   """
-  @spec add_handler(manager, handler, term, [link: boolean]) :: :ok | {:EXIT, term} | {:error, term}
-  def add_handler(manager, handler, args, options \\ []) do
-    case Keyword.get(options, :link, false) do
-      true  -> :gen_event.add_sup_handler(manager, handler, args)
-      false -> :gen_event.add_handler(manager, handler, args)
-    end
+  @spec add_mon_handler(manager, handler, term) :: :ok | {:error, term}
+  def add_mon_handler(manager, handler, args) do
+    rpc(manager, {:add_mon_handler, handler, args, self()})
   end
 
   @doc """
   Sends an event notification to the event `manager`.
 
-  The event manager will call `handle_event/2` for each installed event handler.
+  The event manager will call `handle_event/2` for each
+  installed event handler.
 
-  `notify` is asynchronous and will return immediately after the notification is
-  sent. `notify` will not fail even if the specified event manager does not exist,
-  unless it is specified as `name` (atom).
+  `notify` is asynchronous and will return immediately after the
+  notification is sent. `notify` will not fail even if the specified
+  event manager does not exist, unless it is specified as an atom.
   """
   @spec notify(manager, term) :: :ok
-  defdelegate notify(manager, event), to: :gen_event
+  def notify(manager, event)
+
+  def notify({:global, name}, msg) do
+    try do
+      :global.send(name, {:notify, msg})
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def notify({:via, mod, name}, msg) do
+    try do
+      mod.send(name, {:notify, msg})
+      :ok
+    catch
+      _, _ -> :ok
+    end
+  end
+
+  def notify(other, msg) do
+    send(other, {:notify, msg})
+    :ok
+  end
 
   @doc """
   Sends a sync event notification to the event `manager`.
 
   In other words, this function only returns `:ok` after the event manager
-  invokes the `handle_event/2` on each installed event handler.
+  invokes the `handle_event/2` callback on each installed event handler.
 
   See `notify/2` for more info.
   """
   @spec sync_notify(manager, term) :: :ok
-  defdelegate sync_notify(manager, event), to: :gen_event
+  def sync_notify(manager, event) do
+    rpc(manager, {:sync_notify, event})
+  end
+
+  @doc """
+  Sends a ack event notification to the event `manager`.
+
+  In other words, this function only returns `:ok` as soon as the
+  event manager starts processing this event, but it does not wait
+  for event handlers to process the sent event.
+
+  See `notify/2` for more info. Note this function is specific
+  to Elixir's GenEvent and does not work with Erlang ones.
+  """
+  @spec ack_notify(manager, term) :: :ok
+  def ack_notify(manager, event) do
+    rpc(manager, {:ack_notify, event})
+  end
 
   @doc """
   Makes a synchronous call to the event `handler` installed in `manager`.
@@ -350,34 +441,18 @@ defmodule GenEvent do
 
   The return value `reply` is defined in the return value of `handle_call/2`.
   If the specified event handler is not installed, the function returns
-  `{:error, :bad_module}`.
+  `{:error, :not_found}`.
   """
   @spec call(manager, handler, term, timeout) ::  term | {:error, term}
   def call(manager, handler, request, timeout \\ 5000) do
-    :gen_event.call(manager, handler, request, timeout)
-  end
-
-  @doc """
-  Cancels all streams currently running with the given `:id`.
-
-  In order for a stream to be cancelled, an `:id` must be passed
-  when the stream is created via `stream/2`. Passing a stream without
-  an id leads to an argument error.
-  """
-  @spec cancel_streams(t) :: :ok
-  def cancel_streams(%GenEvent{id: nil}) do
-    raise ArgumentError, "cannot cancel streams without an id"
-  end
-
-  def cancel_streams(%GenEvent{manager: manager, id: id}) do
-    handlers = :gen_event.which_handlers(manager)
-
-    for {Enumerable.GenEvent, {handler_id, _}} = ref <- handlers,
-        handler_id === id do
-      :gen_event.delete_handler(manager, ref, :remove_handler)
+    try do
+      :gen.call(manager, self(), {:call, handler, request}, timeout)
+    catch
+      :exit, reason ->
+        exit({reason, {__MODULE__, :call, [manager, handler, request, timeout]}})
+    else
+      {:ok, res} -> res
     end
-
-    :ok
   end
 
   @doc """
@@ -385,11 +460,11 @@ defmodule GenEvent do
 
   The event manager will call `terminate/2` to terminate the event handler
   and return the callback value. If the specified event handler is not
-  installed, the function returns `{:error, :module_not_found}`.
+  installed, the function returns `{:error, :not_found}`.
   """
   @spec remove_handler(manager, handler, term) :: term | {:error, term}
   def remove_handler(manager, handler, args) do
-    :gen_event.delete_handler(manager, handler, args)
+    rpc(manager, {:delete_handler, handler, args})
   end
 
   @doc """
@@ -397,35 +472,39 @@ defmodule GenEvent do
 
   First, the old event handler is deleted by calling `terminate/2` with
   the given `args1` and collects the return value. Then the new event handler
-  is added and initiated by calling `init({args2, term}), where term is the
+  is added and initiated by calling `init({args2, term})`, where `term` is the
   return value of calling `terminate/2` in the old handler. This makes it
   possible to transfer information from one handler to another.
 
   The new handler will be added even if the specified old event handler
-  is not installed in which case `term = :error` or if the handler fails to
-  terminate with a given reason.
+  is not installed or if the handler fails to terminate with a given reason
+  in which case `state = {:error, term}`.
 
-  If there was a linked connection between handler1 and a process pid, there
-  will be a link connection between handler2 and pid instead. A new link in
-  between the caller process and the new handler can also be set with by
-  giving `link: true` as option. See `add_handler/4` for more information.
-
-  If `init/1` in the second handler returns a correct value, this function
-  returns `:ok`.
+  If `init/1` in the second handler returns a correct value, this
+  function returns `:ok`.
   """
-  @spec swap_handler(manager, handler, term, handler, term, [link: boolean]) :: :ok | {:error, term}
-  def swap_handler(manager, handler1, args1, handler2, args2, options \\ []) do
-    case Keyword.get(options, :link, false) do
-      true  -> :gen_event.swap_sup_handler(manager, {handler1, args1}, {handler2, args2})
-      false -> :gen_event.swap_handler(manager, {handler1, args1}, {handler2, args2})
-    end
+  @spec swap_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
+  def swap_handler(manager, handler1, args1, handler2, args2) do
+    rpc(manager, {:swap_handler, handler1, args1, handler2, args2})
+  end
+
+  @doc """
+  Replaces an old event handler with a new monitored one in the event `manager`.
+
+  Read the docs for `add_mon_handler/3` and `swap_handler/5` for more information.
+  """
+  @spec swap_mon_handler(manager, handler, term, handler, term) :: :ok | {:error, term}
+  def swap_mon_handler(manager, handler1, args1, handler2, args2) do
+    rpc(manager, {:swap_mon_handler, handler1, args1, handler2, args2, self()})
   end
 
   @doc """
   Returns a list of all event handlers installed in the `manager`.
   """
   @spec which_handlers(manager) :: [handler]
-  defdelegate which_handlers(manager), to: :gen_event
+  def which_handlers(manager) do
+    rpc(manager, :which_handlers)
+  end
 
   @doc """
   Terminates the event `manager`.
@@ -434,148 +513,541 @@ defmodule GenEvent do
   for each installed event handler.
   """
   @spec stop(manager) :: :ok
-  defdelegate stop(manager), to: :gen_event
-end
+  def stop(manager) do
+    rpc(manager, :stop)
+  end
 
-defimpl Enumerable, for: GenEvent do
-  use GenEvent
+  defp rpc(module, cmd) do
+    # TODO: Change the tag on OTP 18
+    {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
+    reply
+  end
+
+  ## Init callbacks
+
+  require Record
+  Record.defrecordp :handler, [:module, :id, :state, :pid, :ref]
 
   @doc false
-  def init({mon_pid, pid, ref}) do
-    # Tell the mon_pid we are good to go, and send self() so that this handler
-    # can be removed later without using the managers name.
-    send(mon_pid, {:UP, ref, self()})
-    {:ok, {pid, ref}}
+  def init_it(starter, :self, name, mod, args, options) do
+    init_it(starter, self(), name, mod, args, options)
+  end
+
+  def init_it(starter, parent, name, _, _, options) do
+    Process.put(:"$initial_call", {__MODULE__, :init_it, 6})
+    debug = :gen.debug_options(options)
+    :proc_lib.init_ack(starter, {:ok, self()})
+    loop(parent, name(name), [], debug, false)
   end
 
   @doc false
-  def handle_event(event, {pid, ref} = state) do
-    send pid, {ref, event}
-    {:ok, state}
+  def init_hib(parent, name, handlers, debug) do
+    fetch_msg(parent, name, handlers, debug, true)
   end
 
-  def reduce(stream, acc, fun) do
-    start_fun = fn() -> start(stream) end
-    next_fun = &next(stream, &1)
-    stop_fun = &stop(stream, &1)
-    Stream.resource(start_fun, next_fun, stop_fun).(acc, fun)
+  defp name({:local, name}),  do: name
+  defp name({:global, name}), do: name
+  defp name({:via, _, name}), do: name
+  defp name(pid) when is_pid(pid), do: pid
+
+  ## Loop
+
+  defp loop(parent, name, handlers, debug, true) do
+    :proc_lib.hibernate(__MODULE__, :init_hib, [parent, name, handlers, debug])
   end
 
-  def count(_stream) do
-    {:error, __MODULE__}
+  defp loop(parent, name, handlers, debug, false) do
+    fetch_msg(parent, name, handlers, debug, false)
   end
 
-  def member?(_stream, _item) do
-    {:error, __MODULE__}
-  end
-
-  defp start(%{manager: manager, id: id, duration: duration} = stream) do
-    {mon_pid, mon_ref} = add_handler(manager, id, duration)
-    send mon_pid, {:UP, mon_ref, self()}
-
+  defp fetch_msg(parent, name, handlers, debug, hib) do
     receive do
-      # The subscription process gave us a go.
-      {:UP, ^mon_ref, manager_pid} ->
-        {mon_ref, manager_pid}
-        # The subscription process died due to an abnormal reason.
-      {:DOWN, ^mon_ref, _, _, reason} ->
-        exit({reason, {__MODULE__, :start, [stream]}})
+      {:system, from, req} ->
+        :sys.handle_system_msg(req, from, parent, __MODULE__,
+          debug, [name, handlers, hib], hib)
+      {:EXIT, ^parent, reason} ->
+        server_terminate(reason, parent, handlers, name)
+      msg when debug == [] ->
+        handle_msg(msg, parent, name, handlers, [])
+      msg ->
+        debug = :sys.handle_debug(debug, &print_event/3, name, {:in, msg})
+        handle_msg(msg, parent, name, handlers, debug)
     end
   end
 
-  defp next(%{timeout: timeout} = stream, {mon_ref, _manager_pid} = acc) do
-    receive do
-      {^mon_ref, event} -> {event, acc}
-      {:DOWN, ^mon_ref, _, _, :normal} -> nil
-      {:DOWN, ^mon_ref, _, _, reason} ->
-        exit({reason, {__MODULE__, :next, [stream, acc]}})
-    after
-      timeout ->
-        exit({:timeout, {__MODULE__, :next, [stream, acc]}})
+  defp handle_msg(msg, parent, name, handlers, debug) do
+    case msg do
+      {:notify, event} ->
+        {hib, handlers} = server_event(:async, event, handlers, name)
+        loop(parent, name, handlers, debug, hib)
+      {_from, _tag, {:notify, event}} ->
+        {hib, handlers} = server_event(:async, event, handlers, name)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:ack_notify, event}} ->
+        reply(tag, :ok)
+        {hib, handlers} = server_event(:ack, event, handlers, name)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:sync_notify, event}} ->
+        {hib, handlers} = server_event(:sync, event, handlers, name)
+        reply(tag, :ok)
+        loop(parent, name, handlers, debug, hib)
+      {:DOWN, ref, :process, _pid, reason} = other ->
+        case handle_down(ref, reason, handlers, name) do
+          {:ok, handlers} ->
+            loop(parent, name, handlers, debug, false)
+          :error ->
+            {hib, handlers} = server_info(other, handlers, name)
+            loop(parent, name, handlers, debug, hib)
+        end
+      {_from, tag, {:call, handler, query}} ->
+        {hib, reply, handlers} = server_call(handler, query, handlers, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_handler, handler, args}} ->
+        {hib, reply, handlers} = server_add_handler(handler, args, handlers)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_mon_handler, handler, args, notify}} ->
+        {hib, reply, handlers} = server_add_mon_handler(handler, args, handlers, notify)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:add_process_handler, pid, notify}} ->
+        {hib, reply, handlers} = server_add_process_handler(pid, handlers, notify)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:delete_handler, handler, args}} ->
+        {reply, handlers} = server_remove_handler(handler, args, handlers, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, false)
+      {_from, tag, {:swap_handler, handler1, args1, handler2, args2}} ->
+        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, nil, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, {:swap_mon_handler, handler1, args1, handler2, args2, mon}} ->
+        {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, mon, name)
+        reply(tag, reply)
+        loop(parent, name, handlers, debug, hib)
+      {_from, tag, :stop} ->
+        try do
+          server_terminate(:normal, parent, handlers, name)
+        catch
+          :exit, :normal -> :ok
+        end
+        reply(tag, :ok)
+      {_from, tag, :which_handlers} ->
+        reply(tag, server_which_handlers(handlers))
+        loop(parent, name, handlers, debug, false)
+      {_from, tag, :get_modules} ->
+        reply(tag, server_get_modules(handlers))
+        loop(parent, name, handlers, debug, false)
+      other ->
+        {hib, handlers} = server_info(other, handlers, name)
+        loop(parent, name, handlers, debug, hib)
     end
   end
 
-  defp stop(%{id: id}, {mon_ref, manager_pid}) do
-    remove_handler(mon_ref, manager_pid, id)
-    flush_events(mon_ref)
+  ## System callbacks
+
+  @doc false
+  def system_continue(parent, debug, [name, handlers, hib]) do
+    loop(parent, name, handlers, debug, hib)
   end
 
-  defp add_handler(manager, id, duration) do
-    parent = self()
+  @doc false
+  def system_terminate(reason, parent, _debug, [name, handlers, _hib]) do
+    server_terminate(reason, parent, handlers, name)
+  end
 
-    # The subscription is managed by another process, that dies if
-    # the handler dies, and is killed when there is a need to remove
-    # the subscription.
-    spawn_monitor(fn ->
-      # It is possible that the handler could be removed, and then the GenEvent
-      # could exit before this process has exited normally. Because the removal
-      # does not cause an unlinking this process would exit with the same
-      # reason. Trapping exits ensures that no errors is raised in this case.
-      Process.flag(:trap_exit, true)
-      parent_ref = Process.monitor(parent)
-
-      # Receive the notification from the parent, unless it died.
-      mon_ref = receive do
-        {:UP, ref, ^parent} -> ref
-        {:DOWN, ^parent_ref, _, _, _} -> exit(:normal)
+  @doc false
+  def system_code_change([name, handlers, hib], module, old_vsn, extra) do
+    handlers =
+      for handler <- handlers do
+        if handler(handler, :module) == module do
+          {:ok, state} = module.code_change(old_vsn, handler(handler, :state), extra)
+          handler(handler, state: state)
+        else
+          handler
+        end
       end
+    {:ok, [name, handlers, hib]}
+  end
 
-      cancel = cancel_ref(id, mon_ref)
-      :ok = :gen_event.add_sup_handler(manager, {__MODULE__, cancel},
-                                       {self(), parent, mon_ref})
+  @doc false
+  def system_get_state([_name, handlers, _hib]) do
+    tuples = for handler(module: mod, id: id, state: state) <- handlers do
+      {mod, id, state}
+    end
+    {:ok, tuples}
+  end
 
-      receive do
-        # This message is already in the mailbox if we got this far.
-        {:UP, ^mon_ref, manager_pid} ->
-          send(parent, {:UP, mon_ref, manager_pid})
-          receive do
-            # If the parent died, we can exit normally.
-            {:DOWN, ^parent_ref, _, _, _} ->
-              exit(:normal)
+  @doc false
+  def system_replace_state(fun, [name, handlers, hib]) do
+    {handlers, states} =
+      :lists.unzip(for handler <- handlers do
+        handler(module: mod, id: id, state: state) = handler
+        cur = {mod, id, state}
+        try do
+          new = {^mod, ^id, new_state} = fun.(cur)
+          {handler(handler, state: new_state), new}
+        catch
+          _, _ ->
+            {handler, cur}
+        end
+      end)
+    {:ok, states, [name, handlers, hib]}
+  end
 
-            # reason should be normal unless the handler is swapped.
-            {:gen_event_EXIT, {__MODULE__, ^cancel}, reason} ->
-              exit(reason)
+  @doc false
+  def format_status(opt, status_data) do
+    [pdict, sys_state, parent, _debug, [name, handlers, _hib]] = status_data
+    header = :gen.format_status_header('Status for event handler', name)
 
-            # Exit if the manager dies, so the streamer is notified.
-            {:EXIT, ^manager_pid, :noconnection} ->
-              exit({:nodedown, node(manager_pid)})
+    formatted = for handler <- handlers do
+      handler(module: module, state: state) = handler
+      if function_exported?(module, :format_status, 2) do
+        try do
+          state = module.format_status(opt, [pdict, state])
+          handler(handler, state: state)
+        catch
+          _, _ -> handler
+        end
+      else
+        handler
+      end
+    end
 
-            {:EXIT, ^manager_pid, reason} ->
-              exit(reason)
-          after
-            # Our time is over, notify the parent.
-            duration -> exit(:normal)
+    [header: header,
+     data: [{'Status', sys_state}, {'Parent', parent}],
+     items: {'Installed handlers', formatted}]
+  end
+
+  ## Loop helpers
+
+  defp print_event(dev, {:in, msg}, name) do
+    case msg do
+      {:notify, event} ->
+        IO.puts dev, "*DBG* #{inspect name} got event #{inspect event}"
+      {_, _, {:call, handler, query}} ->
+        IO.puts dev, "*DBG* #{inspect name} (handler #{inspect handler}) got call #{inspect query}"
+      _ ->
+        IO.puts dev, "*DBG* #{inspect name} got #{inspect msg}"
+    end
+  end
+
+  defp print_event(dev, dbg, name) do
+    IO.puts dev, "*DBG* #{inspect name}: #{inspect dbg}"
+  end
+
+  defp server_add_handler({module, id}, args, handlers) do
+    handler = handler(module: module, id: {module, id})
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_handler(module, args, handlers) do
+    handler = handler(module: module, id: module)
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_mon_handler({module, id}, args, handlers, notify) do
+    ref = Process.monitor(notify)
+    handler = handler(module: module, id: {module, id}, pid: notify, ref: ref)
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_mon_handler(module, args, handlers, notify) do
+    ref = Process.monitor(notify)
+    handler = handler(module: module, id: module, pid: notify, ref: ref)
+    do_add_handler(module, handler, args, handlers, :ok)
+  end
+
+  defp server_add_process_handler(pid, handlers, notify) do
+    ref = Process.monitor(pid)
+    handler = handler(module: GenEvent.Stream, id: {self(), ref},
+                      pid: notify, ref: ref)
+    do_add_handler(GenEvent.Stream, handler, {pid, ref}, handlers, {self(), ref})
+  end
+
+  defp server_remove_handler(module, args, handlers, name) do
+    do_take_handler(module, args, handlers, name, :remove, :normal)
+  end
+
+  defp server_swap_handler(module1, args1, module2, args2, handlers, sup, name) do
+    {state, handlers} =
+      do_take_handler(module1, args1, handlers, name, :swapped, {:swapped, module2, sup})
+
+    if sup do
+      server_add_mon_handler(module2, {args2, state}, handlers, sup)
+    else
+      server_add_handler(module2, {args2, state}, handlers)
+    end
+  end
+
+  defp server_info(event, handlers, name) do
+    handlers = :lists.reverse(handlers)
+    server_notify(event, :handle_info, handlers, name, handlers, [], false)
+  end
+
+  defp server_event(mode, event, handlers, name) do
+    {handlers, streams} = server_split_process_handlers(mode, event, handlers, [], [])
+    {hib, handlers} = server_notify(event, :handle_event, handlers, name, handlers, [], false)
+    {hib, server_collect_process_handlers(mode, event, streams, handlers, name)}
+  end
+
+  defp server_split_process_handlers(mode, event, [handler|t], handlers, streams) do
+    case handler(handler, :id) do
+      {pid, _ref} when is_pid(pid) ->
+        server_process_notify(mode, event, handler)
+        server_split_process_handlers(mode, event, t, handlers, [handler|streams])
+      _ ->
+        server_split_process_handlers(mode, event, t, [handler|handlers], streams)
+    end
+  end
+
+  defp server_split_process_handlers(_mode, _event, [], handlers, streams) do
+    {handlers, streams}
+  end
+
+  defp server_process_notify(mode, event, handler(state: {pid, ref})) do
+    send pid, {self(), {self(), ref}, {mode_to_tag(mode), event}}
+  end
+
+  defp mode_to_tag(:ack),   do: :ack_notify
+  defp mode_to_tag(:sync),  do: :sync_notify
+  defp mode_to_tag(:async), do: :notify
+
+  defp server_notify(event, fun, [handler|t], name, handlers, acc, hib) do
+    case server_update(handler, fun, event, name, handlers) do
+      {new_hib, handler} ->
+        server_notify(event, fun, t, name, handlers, [handler|acc], hib or new_hib)
+      :error ->
+        server_notify(event, fun, t, name, handlers, acc, hib)
+    end
+  end
+
+  defp server_notify(_, _, [], _, _, acc, hib) do
+    {hib, acc}
+  end
+
+  defp server_update(handler, fun, event, name, _handlers) do
+    handler(module: module, state: state) = handler
+
+    case do_handler(module, fun, [event, state]) do
+      {:ok, res} ->
+        case res do
+          {:ok, state} ->
+            {false, handler(handler, state: state)}
+          {:ok, state, :hibernate} ->
+            {true, handler(handler, state: state)}
+          :remove_handler ->
+            do_terminate(handler, :remove_handler, event, name, :normal)
+            :error
+          other ->
+            reason = {:bad_return_value, other}
+            do_terminate(handler, {:error, reason}, event, name, reason)
+            :error
+        end
+      {:error, reason} ->
+        do_terminate(handler, {:error, reason}, event, name, reason)
+        :error
+    end
+  end
+
+  defp server_collect_process_handlers(:async, event, [handler|t], handlers, name) do
+    server_collect_process_handlers(:async, event, t, [handler|handlers], name)
+  end
+
+  defp server_collect_process_handlers(mode, event, [handler|t], handlers, name) when mode in [:sync, :ack] do
+    handler(ref: ref, id: id) = handler
+
+    receive do
+      {^ref, :ok} ->
+        server_collect_process_handlers(mode, event, t, [handler|handlers], name)
+      {_from, tag, {:delete_handler, ^id, args}} ->
+        do_terminate(handler, args, :remove, name, :normal)
+        reply(tag, :ok)
+        server_collect_process_handlers(mode, event, t, handlers, name)
+      {:DOWN, ^ref, _, _, reason} ->
+        do_terminate(handler, {:stop, reason}, :DOWN, name, :shutdown)
+        server_collect_process_handlers(mode, event, t, handlers, name)
+    end
+  end
+
+  defp server_collect_process_handlers(_mode, _event, [], handlers, _name) do
+    handlers
+  end
+
+  defp server_call(module, query, handlers, name) do
+    case :lists.keyfind(module, handler(:id) + 1, handlers) do
+      false ->
+        {false, {:error, :not_found}, handlers}
+      handler ->
+        case server_call_update(handler, query, name, handlers) do
+          {{hib, handler}, reply} ->
+            {hib, reply, :lists.keyreplace(module, handler(:id) + 1, handlers, handler)}
+          {:error, reply} ->
+            {false, reply, :lists.keydelete(module, handler(:id) + 1, handlers)}
+        end
+    end
+  end
+
+  defp server_call_update(handler, query, name, _handlers) do
+    handler(module: module, state: state) = handler
+    case do_handler(module, :handle_call, [query, state]) do
+      {:ok, res} ->
+        case res do
+          {:ok, reply, state} ->
+            {{false, handler(handler, state: state)}, reply}
+          {:ok, reply, state, :hibernate} ->
+            {{true, handler(handler, state: state)}, reply}
+          {:remove_handler, reply} ->
+            do_terminate(handler, :remove_handler, query, name, :normal)
+            {:error, reply}
+          other ->
+            reason = {:bad_return_value, other}
+            do_terminate(handler, {:error, reason}, query, name, reason)
+            {:error, {:error, reason}}
+        end
+      {:error, reason} ->
+        do_terminate(handler, {:error, reason}, query, name, reason)
+        {:error, {:error, reason}}
+    end
+  end
+
+  defp server_get_modules(handlers) do
+    (for handler(module: module) <- handlers, do: module)
+    |> :ordsets.from_list
+    |> :ordsets.to_list
+  end
+
+  defp server_which_handlers(handlers) do
+    for handler(id: id) <- handlers, do: id
+  end
+
+  defp server_terminate(reason, _parent, handlers, name) do
+    _ =
+      for handler <- handlers do
+        do_terminate(handler, :stop, :stop, name, :shutdown)
+      end
+    exit(reason)
+  end
+
+  defp reply({from, ref}, msg) do
+    send from, {ref, msg}
+  end
+
+  defp handle_down(ref, reason, handlers, name) do
+    case :lists.keyfind(ref, handler(:ref) + 1, handlers) do
+      false -> :error
+      handler ->
+        do_terminate(handler, {:stop, reason}, :DOWN, name, :shutdown)
+        {:ok, :lists.keydelete(ref, handler(:ref) + 1, handlers)}
+    end
+  end
+
+  defp do_add_handler(module, handler, arg, handlers, succ) do
+    case :lists.keyfind(handler(handler, :id), handler(:id) + 1, handlers) do
+      false ->
+        case do_handler(module, :init, [arg]) do
+          {:ok, res} ->
+            case res do
+              {:ok, state} ->
+                {false, succ, [handler(handler, state: state)|handlers]}
+              {:ok, state, :hibernate} ->
+                {true, succ, [handler(handler, state: state)|handlers]}
+              {:error, _} = error ->
+                {false, error, handlers}
+              other ->
+                {false, {:error, {:bad_return_value, other}}, handlers}
+            end
+          {:error, _} = error ->
+            {false, error, handlers}
+        end
+      _ ->
+        {false, {:error, :already_present}, handlers}
+    end
+  end
+
+  defp do_take_handler(module, args, handlers, name, last_in, reason) do
+    case :lists.keytake(module, handler(:id) + 1, handlers) do
+      {:value, handler, handlers} ->
+        {do_terminate(handler, args, last_in, name, reason), handlers}
+      false ->
+        {{:error, :not_found}, handlers}
+    end
+  end
+
+  defp do_terminate(handler, arg, last_in, name, reason) do
+    handler(module: module, state: state) = handler
+
+    res =
+      case do_handler(module, :terminate, [arg, state]) do
+        {:ok, res} -> res
+        {:error, _} = error -> error
+      end
+    report_terminate(handler, reason, state, last_in, name)
+    res
+  end
+
+  defp do_handler(mod, fun, args) do
+    try do
+      apply(mod, fun, args)
+    catch
+      :throw, val -> {:ok, val}
+      :error, val -> {:error, {val, System.stacktrace}}
+      :exit, val  -> {:error, val}
+    else
+      res -> {:ok, res}
+    end
+  end
+
+  defp report_terminate(handler, reason, state, last_in, name) do
+    report_error(handler, reason, state, last_in, name)
+    if ref = handler(handler, :ref) do
+      Process.demonitor(ref, [:flush])
+    end
+    if pid = handler(handler, :pid) do
+      send pid, {:gen_event_EXIT, handler(handler, :id), reason}
+    end
+  end
+
+  defp report_error(_handler, :normal, _, _, _), do: :ok
+  defp report_error(_handler, :shutdown, _, _, _), do: :ok
+  defp report_error(_handler, {:swapped, _, _}, _, _, _), do: :ok
+  defp report_error(handler, reason, state, last_in, name) do
+    reason =
+      case reason do
+        {:undef, [{m, f, a, _}|_]=mfas} ->
+          cond do
+            :code.is_loaded(m) === false ->
+              {:"module could not be loaded", mfas}
+            function_exported?(m, f, length(a)) ->
+              reason
+            true ->
+              {:"function not exported", mfas}
           end
+        _ ->
+          reason
       end
-    end)
+
+    formatted = report_status(handler, state)
+
+    :error_logger.error_msg(
+      '** gen_event handler ~p crashed.~n' ++
+      '** Was installed in ~p~n' ++
+      '** Last event was: ~p~n' ++
+      '** When handler state == ~p~n' ++
+      '** Reason == ~p~n', [handler(handler, :id), name, last_in, formatted, reason])
   end
 
-  defp cancel_ref(nil, mon_ref), do: mon_ref
-  defp cancel_ref(id, mon_ref),  do: {id, mon_ref}
-
-  defp remove_handler(mon_ref, manager_pid, id) do
-    Process.demonitor(mon_ref, [:flush])
-    handler = {__MODULE__, cancel_ref(id, mon_ref)}
-    # handler may nolonger be there, if it is the removal will cause the monitor
-    # process to exit. If this returns successfuly then no more events will be
-    # forwarded.
-    _ = :gen_event.delete_handler(manager_pid, handler, :remove_handler)
-  catch
-    # Do not want to overide the exit reason of the mon_pid so catch errors.
-    # However if the exit is due to a disconnection, exit because messages could
-    # leak if the nodes are reconnected before the manager on the other node
-    # removes the handler. In this case it is very likely that the mon_pid
-    # exited with the same reason.
-    :exit, reason when reason !== {:nodedown, node(manager_pid)} ->
-      :ok
-  end
-
-  defp flush_events(mon_ref) do
-    receive do
-      {^mon_ref, _} -> flush_events(mon_ref)
-    after
-      0 -> :ok
+  defp report_status(handler(module: module), state) do
+    if function_exported?(module, :format_status, 2) do
+      try do
+        module.format_status(:terminate, [Process.get(), state])
+      catch
+        _, _ -> state
+      end
+    else
+      state
     end
   end
 end

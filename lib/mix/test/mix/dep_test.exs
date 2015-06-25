@@ -63,7 +63,7 @@ defmodule Mix.DepTest do
 
     in_fixture "deps_status", fn ->
       send self, {:mix_shell_input, :yes?, false}
-      msg = "could not find a SCM for dependency :ok from Mix.DepTest.NoSCMApp"
+      msg = "Could not find a SCM for dependency :ok from Mix.DepTest.NoSCMApp"
       assert_raise Mix.Error, msg, fn -> Mix.Dep.loaded([]) end
     end
   end
@@ -76,7 +76,7 @@ defmodule Mix.DepTest do
 
     {_, true, _} =
       Mix.Dep.Converger.converge(false, [], nil, fn dep, acc, lock ->
-        assert nil?(dep.manager)
+        assert is_nil(dep.manager)
         {dep, acc or true, lock}
       end)
   end

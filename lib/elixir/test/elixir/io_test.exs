@@ -22,6 +22,12 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
+  test :binread_all do
+    {:ok, file} = File.open(Path.expand('fixtures/file.bin', __DIR__))
+    assert "LF\nCR\rCRLF\r\nLFCR\n\r" == IO.binread(file, :all)
+    assert File.close(file) == :ok
+  end
+
   test :getn do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "F" == IO.getn(file, "")
@@ -58,6 +64,20 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
+  test :readall do
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
+    assert "FOO\n" == IO.read(file, :all)
+    assert "" == IO.read(file, :all)
+    assert File.close(file) == :ok
+  end
+
+  test :readall_with_utf8_and_binary do
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
+    assert "Русский\n日\n" == IO.read(file, :all)
+    assert "" == IO.read(file, :all)
+    assert File.close(file) == :ok
+  end
+
   test :readline do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "FOO\n" == IO.read(file, :line)
@@ -69,6 +89,13 @@ defmodule IOTest do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский\n" == IO.read(file, :line)
     assert "日\n" == IO.read(file, :line)
+    assert File.close(file) == :ok
+  end
+
+  test :binreadall do
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
+    assert "Русский\n日\n" == IO.binread(file, :all)
+    assert "" == IO.binread(file, :all)
     assert File.close(file) == :ok
   end
 

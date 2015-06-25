@@ -7,18 +7,18 @@ process easy and effective for everyone involved!
 
 Use the issues tracker for:
 
-* [bug reports](#bugs-reports)
+* [bug reports](#bug-reports)
 * [submitting pull requests](#pull-requests)
 
-Please **do not** use the issues tracker for personal support requests nor feature requests. Support requests should be send to:
+Please **do not** use the issue tracker for personal support requests nor feature requests. Support requests should be sent to:
 
 * [the elixir-talk mailing list](http://groups.google.com/group/elixir-lang-talk)
 * [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir)
-* [#elixir-lang](irc://chat.freenode.net/elixir-lang)
+* **[#elixir-lang](irc://chat.freenode.net/elixir-lang)** IRC channel on [chat.freenode.net](http://www.freenode.net/)
 
 Feature requests can be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core).
 
-We do our best to keep the issues tracker tidy and organized, making it useful
+We do our best to keep the issue tracker tidy and organized, making it useful
 for everyone. For example, we classify open issues per application and perceived
 difficulty of the issue, making it easier for developers to
 [contribute to Elixir](#contributing).
@@ -107,26 +107,6 @@ check [the official build status on Travis-CI](https://travis-ci.org/elixir-lang
 With tests running and passing, you are ready to contribute to Elixir and
 send your pull requests.
 
-### Building on Windows
-
-There are a few extra steps you'll need to take for contributing from Windows.
-Basically, once you have Erlang 17, Git, and MSYS from MinGW on your system,
-you're all set.  Specifically, here's what you need to do to get up and running:
-
-1. Install [Git](http://www.git-scm.com/download/win), 
-[Erlang](http://www.erlang.org/download.html), and the
-[MinGW Installation Manager](http://sourceforge.net/projects/mingw/files/latest/download?source=files).
-2. Use the MinGW Installation Manager to install the msys-bash, msys-make, and
-msys-grep packages.
-3. Add `;C:\Program Files (x86)\Git\bin;C:\Program Files\erl6.0\bin;C:\MinGW\msys\1.0\bin`
-to your "Path" environment variable .  (This is under Control Panel > System 
-and Security > System > Advanced system settings > Environment Variables > 
-System variables)
-
-You can now work in the Command Prompt similar to how you would on other OS'es,
-except for some things (like creating symlinks) you'll need to run the Command
-Prompt as an Administrator.
-
 ## Contributing Documentation
 
 Code documentation (`@doc`, `@moduledoc`, `@typedoc`) has a special convention:
@@ -137,7 +117,7 @@ something like:
 
 ```elixir
 @doc """
-Returns only those elements for which `fun` is true.
+Returns only those elements for which `fun` is `true`.
 
 ...
 """
@@ -163,7 +143,7 @@ Keep in mind that the first paragraph might show up in a summary somewhere, long
 texts in the first paragraph create very ugly summaries. As a rule of thumb
 anything longer than 80 characters is too long.
 
-Try to keep unneccesary details out of the first paragraph, it's only there to
+Try to keep unnecessary details out of the first paragraph, it's only there to
 give a user a quick idea of what the documented "thing" does/is. The rest of the
 documentation string can contain the details, for example when a value and when
 `nil` is returned.
@@ -173,7 +153,7 @@ example:
 
 ```elixir
 @doc """
-Return only those elements for which `fun` is true.
+Return only those elements for which `fun` is `true`.
 
 ## Examples
 
@@ -279,7 +259,6 @@ We have saved some excellent pull requests we have received in the past in case
 you are looking for some examples:
 
 * https://github.com/elixir-lang/elixir/pull/992
-* https://github.com/elixir-lang/elixir/pull/1041
 * https://github.com/elixir-lang/elixir/pull/1058
 * https://github.com/elixir-lang/elixir/pull/1059
 

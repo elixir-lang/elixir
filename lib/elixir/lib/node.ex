@@ -11,6 +11,31 @@ defmodule Node do
   @type t :: node
 
   @doc """
+  Turns a non-distributed node into a distributed node.
+
+  This functionality starts the `:net_kernel` and other
+  related processes.
+  """
+  @spec start(node, :longnames | :shortnames, non_neg_integer) ::
+             {:ok, pid} | {:error, term}
+  def start(name, type \\ :longnames, tick_time \\ 15000) do
+    :net_kernel.start([name, type, tick_time])
+  end
+
+  @doc """
+  Turns a distributed node into a non-distributed node.
+
+  For other nodes in the network, this is the same as the node going down.
+  Only possible when the node was started with `Node.start/3`, otherwise
+  returns `{:error, :not_allowed}`. Returns `{:error, :not_found}` if the
+  local node is not alive.
+  """
+  @spec stop() :: :ok | {:error, :not_allowed | :not_found}
+  def stop() do
+    :net_kernel.stop()
+  end
+
+  @doc """
   Returns the current node.
 
   It returns the same as the built-in `node()`.

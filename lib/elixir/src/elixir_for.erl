@@ -28,7 +28,7 @@ expand(Meta, Args, E) ->
   {EOpts, EO}  = elixir_exp:expand(Opts, E),
   {ECases, EC} = lists:mapfoldl(fun expand/2, EO, Cases),
   {EExpr, _}   = elixir_exp:expand(Expr, EC),
-  {{for, Meta, ECases ++ [[{do,EExpr}|EOpts]]}, E}.
+  {{for, Meta, ECases ++ [[{do, EExpr}|EOpts]]}, E}.
 
 expand({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = elixir_exp:expand(Right, E),
@@ -58,7 +58,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
   Acc  = {var, Line, AccName},
   Var  = {var, Line, VarName},
 
-  {Cases, [{do,Expr}|Opts]} = elixir_utils:split_last(Args),
+  {Cases, [{do, Expr}|Opts]} = elixir_utils:split_last(Args),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
@@ -109,7 +109,7 @@ translate_filters(T, S) ->
 
 translate_filter(Filter, S) ->
   {TFilter, TS} = elixir_translator:translate(Filter, S),
-  case elixir_utils:returns_boolean(TFilter) of
+  case elixir_utils:returns_boolean(Filter) of
     true ->
       {{nil, TFilter}, TS};
     false ->
@@ -125,29 +125,6 @@ collect_filters([H|T], Acc) ->
   collect_filters(T, [H|Acc]);
 collect_filters([], Acc) ->
   {Acc, []}.
-
-%% If all we have is one enum generator, we check if it is a list
-%% for optimization otherwise fallback to the reduce generator.
-build_inline(Line, [{enum, Meta, Left, Right, Filters}] = Orig, Expr, Into, Var, Acc, S) ->
-  case Right of
-    {cons, _, _, _} ->
-      build_comprehension(Line, Orig, Expr, Into);
-    {Other, _, _} when Other == tuple; Other == map ->
-      build_reduce(Orig, Expr, Into, Acc, S);
-    _ ->
-      Clauses = [{enum, Meta, Left, Var, Filters}],
-
-      {'case', -1, Right, [
-        {clause, -1,
-          [Var],
-          [[elixir_utils:erl_call(Line, erlang, is_list, [Var])]],
-          [build_comprehension(Line, Clauses, Expr, Into)]},
-        {clause, -1,
-          [Var],
-          [],
-          [build_reduce(Clauses, Expr, Into, Acc, S)]}
-      ]}
-  end;
 
 build_inline(Line, Clauses, Expr, Into, _Var, Acc, S) ->
   case lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
@@ -165,7 +142,7 @@ build_into(Line, Clauses, Expr, Into, Fun, Acc, S) ->
   MatchExpr = {match, Line,
     {tuple, Line, [Acc, Fun]},
     elixir_utils:erl_call(Line, 'Elixir.Collectable', into, [Into])
- },
+  },
 
   TryExpr =
     {'try', Line,
@@ -199,10 +176,8 @@ build_reduce(Clauses, Expr, {bin, _, _} = Into, Acc, S) ->
 
 build_reduce_clause([{enum, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
   Line  = ?line(Meta),
-  Inner = build_reduce_clause(T, Expr, Acc, Acc, S),
-
-  True  = pair(Line, cont, Inner),
-  False = pair(Line, cont, Acc),
+  True  = build_reduce_clause(T, Expr, Acc, Acc, S),
+  False = Acc,
 
   Clauses0 =
     case is_var(Left) of
@@ -218,11 +193,8 @@ build_reduce_clause([{enum, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) -
       [Left, Acc], [],
       [join_filters(Line, Filters, True, False)]}|Clauses0],
 
-  Args  = [Right, pair(Line, cont, Arg), {'fun', Line, {clauses, Clauses1}}],
-  Tuple = elixir_utils:erl_call(Line, 'Elixir.Enumerable', reduce, Args),
-
-  %% Use -1 because in case of no returns we don't care about the result
-  elixir_utils:erl_call(-1, erlang, element, [{integer, Line, 2}, Tuple]);
+  Args  = [Right, Arg, {'fun', Line, {clauses, Clauses1}}],
+  elixir_utils:erl_call(Line, 'Elixir.Enum', reduce, Args);
 
 build_reduce_clause([{bin, Meta, Left, Right, Filters}|T], Expr, Arg, Acc, S) ->
   Line = ?line(Meta),

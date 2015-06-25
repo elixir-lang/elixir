@@ -8,6 +8,12 @@ defmodule Mix.CLI do
     Mix.Local.append_archives
     Mix.Local.append_paths
 
+    # Make sure all messages the tests might have sent to the
+    # Logger are printed before we shut down the VM.
+    System.at_exit fn _ ->
+      if Process.whereis(Logger), do: Logger.flush()
+    end
+
     case check_for_shortcuts(args) do
       :help ->
         proceed(["help"])
@@ -19,26 +25,25 @@ defmodule Mix.CLI do
   end
 
   defp proceed(args) do
-    Mix.Tasks.Local.Hex.maybe_update()
     load_dot_config()
-    args = load_mixfile(args)
+    load_mixfile()
     {task, args} = get_task(args)
+    ensure_hex(task)
     change_env(task)
     run_task(task, args)
   end
 
-  defp load_mixfile(args) do
+  defp load_mixfile() do
     file = System.get_env("MIX_EXS") || "mix.exs"
-    if File.regular?(file) do
+    _ = if File.regular?(file) do
       Code.load_file(file)
     end
-    args
   end
 
   defp get_task(["-" <> _|_]) do
     Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
                     "please invoke instead: mix #{Mix.Project.config[:default_task]}"
-    exit(1)
+    exit({:shutdown, 1})
   end
 
   defp get_task([h|t]) do
@@ -51,65 +56,57 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
-      if Mix.Project.get do
-        Mix.Task.run "loadconfig"
-        Mix.Task.run "deps.loadpaths", ["--no-deps-check"]
-        Mix.Task.run "loadpaths", ["--no-elixir-version-check"]
-        Mix.Task.reenable "deps.loadpaths"
-        Mix.Task.reenable "loadpaths"
-      end
-
-      # If the task is not available, let's try to
-      # compile the repository and then run it again.
-      cond do
-        Mix.Task.get(name) ->
-          Mix.Task.run(name, args)
-        Mix.Project.get ->
-          Mix.Task.run("compile")
-          Mix.Task.run(name, args)
-        true ->
-          # Raise no task error
-          Mix.Task.get!(name)
-      end
+      Mix.Task.run "loadconfig"
+      Mix.Task.run name, args
     rescue
       # We only rescue exceptions in the mix namespace, all
       # others pass through and will explode on the users face
       exception ->
         stacktrace = System.stacktrace
 
-        if Map.get(exception, :mix_error, false) do
-          if msg = Exception.message(exception) do
-            Mix.shell.error "** (Mix) #{msg}"
-          end
-          exit(1)
+        if Map.get(exception, :mix) do
+          mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
+          Mix.shell.error "** (#{mod}) #{Exception.message(exception)}"
+          exit({:shutdown, 1})
         else
           reraise exception, stacktrace
         end
     end
   end
 
+  defp ensure_hex("local.hex"),
+    do: :ok
+  defp ensure_hex(_task),
+    do: Mix.Tasks.Local.Hex.ensure_updated?()
+
   defp change_env(task) do
-    if nil?(System.get_env("MIX_ENV")) &&
-       (env = Mix.Project.config[:preferred_cli_env][task]) do
+    if is_nil(System.get_env("MIX_ENV")) &&
+       (env = preferred_cli_env(task)) do
       Mix.env(env)
       if project = Mix.Project.pop do
-        {project, _config, file} = project
-        Mix.Project.push project, file
+        %{name: name, file: file} = project
+        Mix.Project.push name, file
       end
     end
   end
 
+  defp preferred_cli_env(task) do
+    task = String.to_atom(task)
+    Mix.Project.config[:preferred_cli_env][task] || default_cli_env(task)
+  end
+
+  defp default_cli_env(:test), do: :test
+  defp default_cli_env(_),     do: nil
+
   defp load_dot_config do
-    path = Path.expand("~/.mix/config.exs")
+    path = Path.join(Mix.Utils.mix_home, "config.exs")
     if File.regular?(path) do
-      path
-      |> Mix.Config.read()
-      |> Mix.Config.persist()
+      Mix.Task.run "loadconfig", [path]
     end
   end
 
   defp display_version() do
-    IO.puts "Elixir #{System.version}"
+    IO.puts "Mix #{System.version}"
   end
 
   # Check for --help or --version in the args

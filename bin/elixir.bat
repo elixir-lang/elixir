@@ -1,4 +1,5 @@
 @echo off
+setlocal
 if "%1"==""       goto documentation
 if "%1"=="--help" goto documentation
 if "%1"=="-h"     goto documentation
@@ -22,13 +23,13 @@ echo   --sname name      Makes and assigns a short name to the distributed node
 echo   --cookie cookie   Sets a cookie for this distributed node
 echo   --hidden          Makes a hidden node
 echo   --detached        Starts the Erlang VM detached from console
+echo   --werl            Uses Erlang's Windows shell GUI
 echo   --no-halt         Does not halt the Erlang VM after execution
-echo   --gen-debug       Turns on default debugging for all GenServers
 echo.
 echo ** Options marked with (*) can be given more than once
 echo ** Options given after the .exs file or -- are passed down to the executed code
 echo ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl
-goto :EOF
+goto end
 
 :parseopts
 
@@ -47,6 +48,9 @@ set beforeExtra=
 rem Flag which determines whether or not to use werl vs erl
 set useWerl=0
 
+rem Designates which mode / Elixir component to run as
+set runMode="elixir"
+
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop
 set par="%1"
@@ -60,24 +64,24 @@ if "%par%"=="""" (
   goto :expand_erl_libs
 )
 rem ******* EXECUTION OPTIONS **********************
-IF "%par%"==""+iex"" (Set useWerl=1)
-rem ******* ERLANG PARAMETERS **********************
-IF NOT "%par%"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
-IF NOT "%par%"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
-IF NOT "%par%"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
-IF NOT "%par%"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
-IF NOT "%par%"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
-IF NOT "%par%"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
-IF NOT "%par%"=="%par:--gen-debug=%" (Set parsErlang=%parsErlang% -generic_debug)
+IF "%par%"==""--werl"" (Set useWerl=1)
+IF "%par%"==""+iex"" (Set runMode="iex")
 rem ******* elixir parameters **********************
 rem Note: we don't have to do anything with options that don't take an argument
-IF NOT "%par%"=="%par:-e=%"      (shift) 
-IF NOT "%par%"=="%par:-r=%"      (shift) 
-IF NOT "%par%"=="%par:-pr=%"     (shift) 
-IF NOT "%par%"=="%par:-pa=%"     (shift) 
-IF NOT "%par%"=="%par:-pz=%"     (shift) 
-IF NOT "%par%"=="%par:--app=%"   (shift) 
-IF NOT "%par%"=="%par:--remsh=%" (shift) 
+IF """"=="%par:-e=%"      (shift) 
+IF """"=="%par:-r=%"      (shift) 
+IF """"=="%par:-pr=%"     (shift) 
+IF """"=="%par:-pa=%"     (shift) 
+IF """"=="%par:-pz=%"     (shift) 
+IF """"=="%par:--app=%"   (shift) 
+IF """"=="%par:--remsh=%" (shift) 
+rem ******* ERLANG PARAMETERS **********************
+IF """"=="%par:--detached=%" (Set parsErlang=%parsErlang% -detached) 
+IF """"=="%par:--hidden=%"   (Set parsErlang=%parsErlang% -hidden)
+IF """"=="%par:--cookie=%"   (Set parsErlang=%parsErlang% -setcookie %1 && shift)
+IF """"=="%par:--sname=%"    (Set parsErlang=%parsErlang% -sname %1 && shift) 
+IF """"=="%par:--name=%"     (Set parsErlang=%parsErlang% -name %1 && shift) 
+IF """"=="%par:--erl=%"      (Set beforeExtra=%beforeExtra% %~1 && shift) 
 goto:startloop
 
 rem ******* assume all pre-params are parsed ********************
@@ -90,8 +94,11 @@ for  /d %%d in ("%originPath%..\lib\*.") do (
 )
 SETLOCAL disabledelayedexpansion
 :run
+IF NOT %runMode% == "iex" (
+  set beforeExtra=-noshell -s elixir start_cli %beforeExtra%
+)
 IF %useWerl% EQU 1 (
-    werl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
+  start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) ELSE (
     erl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )

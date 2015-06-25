@@ -18,20 +18,22 @@ defmodule Kernel.LexicalTracker do
   Returns all remotes linked to in this lexical scope.
   """
   def remotes(arg) do
-    # If the module is compiled from a function, its lexical
-    # scope may be long gone, so it has no associated PID.
-    if pid = to_pid(arg) do
-      ets = :gen_server.call(pid, :ets, @timeout)
-      :ets.match(ets, {:"$1", :_, :_}) |> List.flatten
-    else
-      []
-    end
+    ets = :gen_server.call(to_pid(arg), :ets, @timeout)
+    :ets.match(ets, {:"$1", :_, :_}) |> List.flatten
+  end
+
+  @doc """
+  Gets the destination the lexical scope is meant to
+  compile to.
+  """
+  def dest(arg) do
+    :gen_server.call(to_pid(arg), :dest, @timeout)
   end
 
   defp to_pid(pid) when is_pid(pid),  do: pid
   defp to_pid(mod) when is_atom(mod) do
     table = :elixir_module.data_table(mod)
-    [{_, val}] = :ets.lookup(table, :__lexical_tracker)
+    [{_, val}] = :ets.lookup(table, {:elixir, :lexical_tracker})
     val
   end
 
@@ -39,9 +41,8 @@ defmodule Kernel.LexicalTracker do
 
   # Starts the tracker and returns its pid.
   @doc false
-  def start_link do
-    {:ok, pid} = :gen_server.start_link(__MODULE__, [], [])
-    pid
+  def start_link(dest) do
+    :gen_server.start_link(__MODULE__, dest, [])
   end
 
   @doc false
@@ -96,62 +97,61 @@ defmodule Kernel.LexicalTracker do
 
   # Callbacks
 
-
-  def init([]) do
-    {:ok, :ets.new(:lexical, [:protected])}
+  def init(dest) do
+    {:ok, {:ets.new(:lexical, [:protected]), dest}}
   end
 
-  def handle_call(:ets, _from, d) do
-    {:reply, d, d}
+  @doc false
+  def handle_call(:ets, _from, {d, dest}) do
+    {:reply, d, {d, dest}}
   end
 
-  def handle_call(request, _from, d) do
-    {:stop, {:bad_call, request}, d}
+  def handle_call(:dest, _from, {d, dest}) do
+    {:reply, dest, {d, dest}}
   end
 
-  def handle_cast({:remote_dispatch, module}, d) do
+  def handle_cast({:remote_dispatch, module}, {d, dest}) do
     add_module(d, module)
-    {:noreply, d}
+    {:noreply, {d, dest}}
   end
 
-  def handle_cast({:import_dispatch, module}, d) do
+  def handle_cast({:import_dispatch, module}, {d, dest}) do
     add_dispatch(d, module, @import)
-    {:noreply, d}
+    {:noreply, {d, dest}}
   end
 
-  def handle_cast({:alias_dispatch, module}, d) do
+  def handle_cast({:alias_dispatch, module}, {d, dest}) do
     add_dispatch(d, module, @alias)
-    {:noreply, d}
+    {:noreply, {d, dest}}
   end
 
-  def handle_cast({:add_import, module, line, warn}, d) do
+  def handle_cast({:add_import, module, line, warn}, {d, dest}) do
     add_directive(d, module, line, warn, @import)
-    {:noreply, d}
+    {:noreply, {d, dest}}
   end
 
-  def handle_cast({:add_alias, module, line, warn}, d) do
+  def handle_cast({:add_alias, module, line, warn}, {d, dest}) do
     add_directive(d, module, line, warn, @alias)
-    {:noreply, d}
+    {:noreply, {d, dest}}
   end
 
-  def handle_cast(:stop, d) do
-    {:stop, :normal, d}
+  def handle_cast(:stop, {d, dest}) do
+    {:stop, :normal, {d, dest}}
   end
 
-  def handle_cast(msg, d) do
-    {:stop, {:bad_cast, msg}, d}
+  @doc false
+  def handle_info(_msg, {d, dest}) do
+    {:noreply, {d, dest}}
   end
 
-  def handle_info(_msg, d) do
-    {:noreply, d}
-  end
-
-  def terminate(_reason, _d) do
+  @doc false
+  def terminate(_reason, _state) do
     :ok
   end
 
-  def code_change(_old, d, _extra) do
-    {:ok, d}
+  @doc false
+  def code_change(_old, state, _extra) do
+    {:ok, state}
   end
 
   # Callbacks helpers

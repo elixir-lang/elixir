@@ -30,14 +30,14 @@ translate_fn_match(Arg, S) ->
 
 expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun(Clause) ->
-    {EClause, _} = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp:expand_args/2, Clause, E),
+    {EClause, _} = elixir_exp_clauses:clause(Meta, fn, fun elixir_exp_clauses:head/2, Clause, E),
     EClause
   end,
   {{fn, Meta, lists:map(Transformer, Clauses)}, E}.
 
 %% Capture
 
-capture(Meta, {'/', _, [{{'.', _, [_, F]} = Dot, RequireMeta , []}, A]}, E) when is_atom(F), is_integer(A) ->
+capture(Meta, {'/', _, [{{'.', _, [_, F]} = Dot, RequireMeta, []}, A]}, E) when is_atom(F), is_integer(A) ->
   Args = [{'&', [], [X]} || X <- lists:seq(1, A)],
   capture_require(Meta, {Dot, RequireMeta, Args}, E, true);
 

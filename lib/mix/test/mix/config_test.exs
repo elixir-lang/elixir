@@ -5,19 +5,118 @@ defmodule Mix.ConfigTest do
 
   doctest Mix.Config
 
-  test "read/1" do
-    assert Mix.Config.read(fixture_path("configs/good.exs")) ==
+  defmacrop config do
+    quote do
+      Mix.Config.Agent.get(var!(config_agent, Mix.Config))
+    end
+  end
+
+  test "config/2" do
+    use Mix.Config
+    assert config() == []
+
+    config :lager, key: :value
+    assert config() == [lager: [key: :value]]
+
+    config :lager, other: :value
+    assert config() == [lager: [key: :value, other: :value]]
+
+    config :lager, key: :other
+    assert config() == [lager: [key: :other, other: :value]]
+
+    # Works inside functions too...
+    f = fn -> config(:lager, key: :fn) end
+    f.()
+    assert config() == [lager: [key: :fn, other: :value]]
+
+    # ...and in for comprehensions.
+    for _ <- 0..0, do: config(:lager, key: :for)
+    assert config() == [lager: [key: :for, other: :value]]
+  end
+
+  test "config/3" do
+    use Mix.Config
+
+    config :app, Repo, key: :value
+    assert config() == [app: [{Repo, key: :value}]]
+
+    config :app, Repo, other: :value
+    assert config() == [app: [{Repo, key: :value, other: :value}]]
+
+    config :app, Repo, key: :other
+    assert config() == [app: [{Repo, key: :other, other: :value}]]
+
+    config :app, Repo, key: [nested: false]
+    assert config() == [app: [{Repo, key: [nested: false], other: :value}]]
+
+    config :app, Repo, key: [nested: true]
+    assert config() == [app: [{Repo, key: [nested: true], other: :value}]]
+
+    config :app, Repo, key: :other
+    assert config() == [app: [{Repo, key: :other, other: :value}]]
+  end
+
+  test "import_config/1" do
+    use Mix.Config
+    import_config fixture_path("configs/good_config.exs")
+    assert config() == [my_app: [key: :value]]
+  end
+
+  test "import_config/1 with wildcards" do
+    use Mix.Config
+    import_config fixture_path("configs/good_*.exs")
+    assert config() == [my_app: [key: :value]]
+  end
+
+  test "import_config/1 with wildcard with no matches" do
+    use Mix.Config
+    import_config fixture_path("configs/nonexistent_*.exs")
+    assert config() == []
+  end
+
+  test "import_config/1 with nested" do
+    use Mix.Config
+    config :app, Repo, key: [nested: false, other: true]
+
+    import_config fixture_path("configs/nested.exs")
+    assert config() == [app: [{Repo, key: [nested: true, other: true]}]]
+  end
+
+  test "import_config/1 with bad path" do
+    use Mix.Config
+
+    assert_raise Mix.Config.LoadError, ~r"could not load config", fn ->
+      import_config fixture_path("configs/unknown.exs")
+    end
+  end
+
+  test "read!/1" do
+    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
            [my_app: [key: :value]]
 
-    msg = "expected config for app :sample to return keyword list, got: :oops"
-    assert_raise ArgumentError, msg, fn ->
-      Mix.Config.read fixture_path("configs/bad_app.exs")
+    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) ==
+           [my_app: [key: :value]]
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_app.exs")
     end
 
-    msg = "expected config to return keyword list, got: :oops"
-    assert_raise ArgumentError, msg, fn ->
-      Mix.Config.read fixture_path("configs/bad_root.exs")
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_app\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config for app :sample to return keyword list, got: :oops"
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_root.exs")
     end
+
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_root\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config file to return keyword list, got: :oops"
+
+    exception = assert_raise Mix.Config.LoadError, fn ->
+      Mix.Config.read! fixture_path("configs/bad_import.exs")
+    end
+
+    assert Exception.message(exception) =~ ~r"could not load config .*bad_root\.exs\n"
+    assert Exception.message(exception) =~ ~r"expected config file to return keyword list, got: :oops"
   end
 
   test "persist/1" do

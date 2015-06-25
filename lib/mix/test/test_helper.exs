@@ -1,6 +1,6 @@
 Mix.start()
 Mix.shell(Mix.Shell.Process)
-
+Application.put_env(:mix, :colors, [enabled: false])
 ExUnit.start [trace: "--trace" in System.argv]
 
 defmodule MixTest.Case do
@@ -8,8 +8,9 @@ defmodule MixTest.Case do
 
   defmodule Sample do
     def project do
-      [ app: :sample,
-        version: "0.1.0" ]
+      [app: :sample,
+       version: "0.1.0",
+       aliases: [sample: "compile"]]
     end
   end
 
@@ -19,19 +20,18 @@ defmodule MixTest.Case do
     end
   end
 
-  teardown do
-    Mix.env(:dev)
-    Mix.Task.clear
-    Mix.Shell.Process.flush
-    Mix.ProjectStack.clear_cache
-    Mix.ProjectStack.clear_stack
-    System.put_env("MIX_HOME", tmp_path(".mix"))
-    delete_tmp_paths
-    :ok
-  end
+  setup do
+    on_exit fn ->
+      Application.start(:logger)
+      Mix.env(:dev)
+      Mix.Task.clear
+      Mix.Shell.Process.flush
+      Mix.ProjectStack.clear_cache
+      Mix.ProjectStack.clear_stack
+      delete_tmp_paths
+    end
 
-  def elixir_root do
-    Path.expand("../../..", __DIR__)
+    :ok
   end
 
   def fixture_path do
@@ -52,8 +52,8 @@ defmodule MixTest.Case do
 
   def purge(modules) do
     Enum.each modules, fn(m) ->
-      :code.delete(m)
       :code.purge(m)
+      :code.delete(m)
     end
   end
 
@@ -77,7 +77,7 @@ defmodule MixTest.Case do
   def in_fixture(which, tmp, function) do
     src  = fixture_path(which)
     dest = tmp_path(tmp)
-    flag = tmp_path |> String.to_char_list
+    flag = String.to_char_list(tmp_path)
 
     File.rm_rf!(dest)
     File.mkdir_p!(dest)
@@ -90,14 +90,26 @@ defmodule MixTest.Case do
       File.cd! dest, function
     after
       :code.set_path(get_path)
-      Enum.each (:code.all_loaded -- previous), fn {mod, file} ->
-        if is_list(file) and :lists.prefix(flag, file) do
-          purge [mod]
-        end
+
+      for {mod, file} <- :code.all_loaded -- previous,
+          file == :in_memory or
+          (is_list(file) and :lists.prefix(flag, file)) do
+        purge [mod]
       end
     end
   end
-    
+
+  def ensure_touched(file) do
+    ensure_touched(file, File.stat!(file).mtime)
+  end
+
+  def ensure_touched(file, current) do
+    File.touch!(file)
+    unless File.stat!(file).mtime > current do
+      ensure_touched(file, current)
+    end
+  end
+
   def os_newline do
     case :os.type do
       {:win32, _} -> "\r\n"
@@ -107,10 +119,19 @@ defmodule MixTest.Case do
 
   defp delete_tmp_paths do
     tmp = tmp_path |> String.to_char_list
-    to_remove = Enum.filter :code.get_path, fn(path) -> :string.str(path, tmp) != 0 end
-    Enum.map to_remove, &(:code.del_path(&1))
+    for path <- :code.get_path,
+        :string.str(path, tmp) != 0,
+        do: :code.del_path(path)
   end
 end
+
+## Set up mix home with rebar
+
+home = MixTest.Case.tmp_path(".mix")
+File.mkdir_p!(home)
+rebar = System.get_env("REBAR") || Path.expand("../../../rebar", __DIR__)
+File.cp!(rebar, Path.join(home, "rebar"))
+System.put_env("MIX_HOME", home)
 
 ## Copy fixtures to tmp
 
@@ -133,11 +154,11 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"bad\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "bad"])
   end
 
   File.write! Path.join(target, "mix.exs"), """
@@ -152,8 +173,8 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 
   File.write! Path.join(target, "lib/git_repo.ex"), """
@@ -166,8 +187,8 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git add .")
-    System.cmd("git commit -m \"lib\"")
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "lib"])
   end
 end
 
@@ -190,12 +211,17 @@ unless File.dir?(target) do
   end
   """
 
+  File.write! Path.join(target, "lib/deps_on_git_repo.ex"), """
+  ## Auto-generated fixture
+  GitRepo.hello
+  """
+
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 end
 
@@ -222,14 +248,47 @@ unless File.dir?(target) do
   """
 
   File.cd! target, fn ->
-    System.cmd("git init")
-    System.cmd("git config user.email \"mix@example.com\"")
-    System.cmd("git config user.name \"Mix Repo\"")
-    System.cmd("git add .")
-    System.cmd("git commit -m \"ok\"")
+    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[config user.email "mix@example.com"])
+    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[add .])
+    System.cmd("git", ~w[commit -m "ok"])
   end
 end
 
 Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
   File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end
+
+## Generate helper modules
+
+path = MixTest.Case.tmp_path("beams")
+File.rm_rf!(path)
+File.mkdir_p!(path)
+Code.prepend_path(path)
+
+write_beam = fn {:module, name, bin, _} ->
+  path
+  |> Path.join(Atom.to_string(name) <> ".beam")
+  |> File.write!(bin)
+end
+
+defmodule Mix.Tasks.Hello do
+  use Mix.Task
+  @shortdoc "This is short documentation, see"
+
+  @moduledoc """
+  A test task.
+  """
+
+  def run([]) do
+    "Hello, World!"
+  end
+
+  def run(args) do
+    "Hello, #{Enum.join(args, " ")}!"
+  end
+end |> write_beam.()
+
+defmodule Mix.Tasks.Invalid do
+end |> write_beam.()

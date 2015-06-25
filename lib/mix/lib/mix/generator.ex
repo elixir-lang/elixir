@@ -9,11 +9,15 @@ defmodule Mix.Generator do
   @doc """
   Creates a file with the given contents.
   If the file already exists, asks for user confirmation.
-  """
-  def create_file(path, contents) when is_binary(path) do
-    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}"
 
-    if overwriting?(path) do
+  ## Options
+
+    * `:force` - forces installation without a shell prompt.
+  """
+  def create_file(path, contents, opts \\ []) when is_binary(path) do
+    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
+
+    if opts[:force] || Mix.Utils.overwriting?(path) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
     end
@@ -23,31 +27,8 @@ defmodule Mix.Generator do
   Creates a directory if one does not exist yet.
   """
   def create_directory(path) when is_binary(path) do
-    Mix.shell.info "%{green}* creating%{reset} #{Path.relative_to_cwd path}"
+    Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
     File.mkdir_p! path
-  end
-
-  defp overwriting?(path) do
-    if File.exists?(path) do
-      full = Path.expand(path)
-      Mix.shell.yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
-    else
-      true
-    end
-  end
-
-  @doc """
-  Reads the content from a file relative to the current
-  file and not relative to the cwd. Useful when used with
-  embed macros:
-
-      embed_template :lib, from_file("../templates/lib.eex")
-
-  """
-  defmacro from_file(path) do
-    quote do
-      File.read! Path.expand(unquote(path), __ENV__.file)
-    end
   end
 
   @doc """
@@ -63,9 +44,21 @@ defmodule Mix.Generator do
   For more information, check `EEx.SmartEngine`.
   """
   defmacro embed_template(name, contents) do
-    quote do
+    quote bind_quoted: binding do
+      contents =
+        case contents do
+          [from_file: file] ->
+            @file file
+            File.read!(file)
+          c when is_binary(c) ->
+            @file {__ENV__.file, __ENV__.line+1}
+            c
+          _ ->
+            raise ArgumentError, "expected string or from_file: file"
+        end
+
       require EEx
-      EEx.function_from_string :defp, :"#{unquote(name)}_template", "<% _ = assigns %>" <> unquote(contents), [:assigns]
+      EEx.function_from_string :defp, :"#{name}_template", "<% _ = assigns %>" <> contents, [:assigns]
     end
   end
 
@@ -76,7 +69,13 @@ defmodule Mix.Generator do
   `_text` that expects no argument.
   """
   defmacro embed_text(name, contents) do
-    quote bind_quoted: [name: name, contents: Macro.escape(contents)] do
+    quote bind_quoted: binding do
+      contents =
+        case contents do
+          [from_file: f] -> File.read!(f)
+          c when is_binary(c) -> c
+          _ -> raise ArgumentError, "expected string or from_file: file"
+        end
       defp unquote(:"#{name}_text")(), do: unquote(contents)
     end
   end

@@ -4,7 +4,7 @@ defmodule Record do
 
   Records are simply tuples where the first element is an atom:
 
-      iex> Record.record? {User, "jose", 27}
+      iex> Record.is_record {User, "john", 27}
       true
 
   This module provides conveniences for working with records at
@@ -14,12 +14,26 @@ defmodule Record do
 
   In Elixir, records are used mostly in two situations:
 
-  1. To work with short, internal data;
-  2. To interface with Erlang records;
+    1. to work with short, internal data
+    2. to interface with Erlang records
 
   The macros `defrecord/3` and `defrecordp/3` can be used to create
   records while `extract/2` can be used to extract records from Erlang
   files.
+
+  ## Types
+
+  Types can be defined for tuples with the `record/2` macro (only available
+  in typespecs). Like with the generated record macros it will expand to
+  a tuple.
+
+      defmodule MyModule do
+        require Record
+        Record.defrecord :user, name: "john", age: 25
+
+        @type user :: record(:user, name: String.t, age: integer)
+        # expands to: `@type user :: {:user, String.t, integer}`
+      end
   """
 
   @doc """
@@ -38,8 +52,21 @@ defmodule Record do
        uid: :undefined, gid: :undefined]
 
   """
-  defmacro extract(name, opts) when is_atom(name) and is_list(opts) do
-    Macro.escape Record.Extractor.extract(name, opts)
+  def extract(name, opts) when is_atom(name) and is_list(opts) do
+    Record.Extractor.extract(name, opts)
+  end
+
+  @doc """
+  Extracts all records information from an Erlang file.
+
+  Returns a keyword list containing extracted record names as keys, and
+  lists of tuples describing the fields as values. It expects a named
+  argument :from or :from_lib, which correspond to *include* or
+  *include_lib* attribute from Erlang modules, respectively.
+
+  """
+  def extract_all(opts) when is_list(opts) do
+    Record.Extractor.extract_all(opts)
   end
 
   @doc """
@@ -49,12 +76,12 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = {User, "jose", 27}
-      iex> Record.record?(record, User)
+      iex> record = {User, "john", 27}
+      iex> Record.is_record(record, User)
       true
 
   """
-  defmacro record?(data, kind) do
+  defmacro is_record(data, kind) do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -77,15 +104,15 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = {User, "jose", 27}
-      iex> Record.record?(record)
+      iex> record = {User, "john", 27}
+      iex> Record.is_record(record)
       true
       iex> tuple = {}
-      iex> Record.record?(tuple)
+      iex> Record.is_record(tuple)
       false
 
   """
-  defmacro record?(data) do
+  defmacro is_record(data) do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
@@ -111,37 +138,69 @@ defmodule Record do
   ## Examples
 
       defmodule User do
-        Record.defrecord :user, [name: "José", age: "25"]
+        require Record
+        Record.defrecord :user, [name: "meg", age: "25"]
       end
 
   In the example above, a set of macros named `user` but with different
   arities will be defined to manipulate the underlying record:
 
       # To create records
-      user()        #=> {:user, "José", 25}
-      user(age: 26) #=> {:user, "José", 26}
+      record = user()        #=> {:user, "meg", 25}
+      record = user(age: 26) #=> {:user, "meg", 26}
 
       # To get a field from the record
-      user(record, :name) #=> "José"
+      user(record, :name) #=> "meg"
 
       # To update the record
-      user(record, age: 26) #=> {:user, "José", 26}
+      user(record, age: 26) #=> {:user, "meg", 26}
+
+      # Convert a record to a keyword list
+      user(record) #=> [name: "meg", age: 26]
+
+  The generated macros can also be used in order to pattern match on records and
+  to bind variables during the match:
+
+      record = user() #=> {:user, "meg", 25}
+
+      user(name: name) = record
+      name #=> "meg"
 
   By default, Elixir uses the record name as the first element of
   the tuple (the tag). But it can be changed to something else:
 
       defmodule User do
+        require Record
         Record.defrecord :user, User, name: nil
       end
 
       require User
       User.user() #=> {User, nil}
 
+  ## Defining extracted records with anonymous functions
+
+  If a record defines an anonymous function, an ArgumentError
+  will occur if you attempt to create a record with it.
+  This can occur unintentionally when defining a record after extracting
+  it from an Erlang library that uses anonymous functions for defaults.
+
+      Record.defrecord :my_rec, Record.extract(...)
+      #=> ** (ArgumentError) invalid value for record field fun_field,
+      cannot escape #Function<12.90072148/2 in :erl_eval.expr/5>.
+
+  To work around this error, redefine the field with your own &M.f/a function,
+  like so:
+
+      defmodule MyRec do
+        require Record
+        Record.defrecord :my_rec, Record.extract(...) |> Keyword.merge(fun_field: &__MODULE__.foo/2)
+        def foo(bar, baz), do: IO.inspect({bar, baz})
+      end
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape Record.__fields__(:defrecord, kv)
+      fields = Record.__fields__(:defrecord, kv)
 
       defmacro(unquote(name)(args \\ [])) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -159,7 +218,7 @@ defmodule Record do
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
       tag = tag || name
-      fields = Macro.escape Record.__fields__(:defrecordp, kv)
+      fields = Record.__fields__(:defrecordp, kv)
 
       defmacrop(unquote(name)(args \\ [])) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -175,9 +234,19 @@ defmodule Record do
   @doc false
   def __fields__(type, fields) do
     :lists.map(fn
-      { key, _ } = pair when is_atom(key) -> pair
-      key when is_atom(key) -> { key, nil }
-      other -> raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
+      {key, val} when is_atom(key) ->
+        try do
+          Macro.escape(val)
+        rescue
+          e in [ArgumentError] ->
+            raise ArgumentError, "invalid value for record field #{key}, " <> Exception.message(e)
+        else
+          val -> {key, val}
+        end
+      key when is_atom(key) ->
+        {key, nil}
+      other ->
+        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect other}"
     end, fields)
   end
 
@@ -190,8 +259,15 @@ defmodule Record do
       Keyword.keyword?(args) ->
         create(atom, fields, args, caller)
       true ->
-        msg = "expected arguments to be a compile time atom or keywords, got: #{Macro.to_string args}"
-        raise ArgumentError, msg
+        case Macro.expand(args, caller) do
+          {:{}, _, [^atom|list]} when length(list) == length(fields) ->
+            record = List.to_tuple([atom|list])
+            Macro.escape(Record.__keyword__(atom, fields, record))
+          {^atom, arg} when length(fields) == 1 ->
+            Macro.escape(Record.__keyword__(atom, fields, {atom, arg}))
+          _ ->
+            quote do: Record.__keyword__(unquote(atom), unquote(fields), unquote(args))
+        end
     end
   end
 
@@ -279,4 +355,21 @@ defmodule Record do
   defp find_index([{k, _}|_], k, i), do: i + 2
   defp find_index([{_, _}|t], k, i), do: find_index(t, k, i + 1)
   defp find_index([], _k, _i), do: nil
+
+  # Returns a keyword list of the record
+  @doc false
+  def __keyword__(atom, fields, record) do
+    if is_record(record, atom) do
+      [_tag|values] = Tuple.to_list(record)
+      join_keyword(fields, values, [])
+    else
+      msg = "expected argument to be a literal atom, literal keyword or a #{inspect atom} record, got runtime: #{inspect record}"
+      raise ArgumentError, msg
+    end
+  end
+
+  defp join_keyword([{field, _default}|fields], [value|values], acc),
+    do: join_keyword(fields, values, [{field, value}| acc])
+  defp join_keyword([], [], acc),
+    do: :lists.reverse(acc)
 end

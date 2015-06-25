@@ -9,25 +9,23 @@ defmodule Mix.Tasks.Deps.Get do
 
   ## Command line options
 
-  * `--quiet` - do not output verbose messages
-  * `--only` - only fetch dependencies for given environment
+    * `--quiet` - do not output verbose messages
+    * `--only`  - only fetch dependencies for given environment
   """
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    Mix.Project.get! # Require the project to be available
-    {opts, rest, _} = OptionParser.parse(args, switches: [quiet: :boolean, only: :string])
+    Mix.Project.get!
+    {opts, _, _} = OptionParser.parse(args, switches: [quiet: :boolean, only: :string])
 
     # Fetch all deps by default unless --only is given
     fetch_opts = if only = opts[:only], do: [env: :"#{only}"], else: []
 
-    apps =
-      if rest != [] do
-        Mix.Dep.Fetcher.by_name(rest, %{}, Mix.Dep.Lock.read, fetch_opts)
-      else
-        Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, fetch_opts)
-      end
+    apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read, fetch_opts)
 
     if apps == [] && !opts[:quiet] do
       Mix.shell.info "All dependencies up to date"
+    else
+      :ok
     end
   end
 end

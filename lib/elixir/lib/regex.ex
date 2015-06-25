@@ -22,53 +22,64 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-  * `unicode` (u) - enables unicode specific patterns like \p. it expects valid unicode
-    strings to be given on match
-  * `caseless` (i) - add case insensitivity
-  * `dotall` (s) - causes dot to match newlines and also set newline to anycrlf.
-    The new line setting can be overridden by setting `(*CR)` or `(*LF)` or
-    `(*CRLF)` or `(*ANY)` according to re documentation
-  * `multiline` (m) - causes `^` and `$` to mark the beginning and end of each line.
-    Use `\A` and `\z` to match the end or beginning of the string
-  * `extended` (x) - whitespace characters are ignored except when escaped and
-    allow `#` to delimit comments
-  * `firstline` (f) - forces the unanchored pattern to match before or at the first
-    newline, though the matched text may continue over the newline
-  * `ungreedy` (r) - inverts the "greediness" of the regexp
+    * `unicode` (u) - enables unicode specific patterns like `\p` and changes
+      modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
+      It expects valid unicode strings to be given on match
+
+    * `caseless` (i) - add case insensitivity
+
+    * `dotall` (s) - causes dot to match newlines and also set newline to
+      anycrlf; the new line setting can be overridden by setting `(*CR)` or
+      `(*LF)` or `(*CRLF)` or `(*ANY)` according to re documentation
+
+    * `multiline` (m) - causes `^` and `$` to mark the beginning and end of
+      each line; use `\A` and `\z` to match the end or beginning of the string
+
+    * `extended` (x) - whitespace characters are ignored except when escaped
+      and allow `#` to delimit comments
+
+    * `firstline` (f) - forces the unanchored pattern to match before or at the
+      first newline, though the matched text may continue over the newline
+
+    * `ungreedy` (U) - inverts the "greediness" of the regexp
+      (the previous `r` option is deprecated in favor of `U`)
 
   The options not available are:
 
-  * `anchored` - not available, use `^` or `\A` instead
-  * `dollar_endonly` - not available, use `\z` instead
-  * `no_auto_capture` - not available, use `?:` instead
-  * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or `(*ANYCRLF)`
-    or `(*ANY)` at the beginning of the regexp according to the re documentation
+    * `anchored` - not available, use `^` or `\A` instead
+    * `dollar_endonly` - not available, use `\z` instead
+    * `no_auto_capture` - not available, use `?:` instead
+    * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
+      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
+      re documentation
 
   ## Captures
 
   Many functions in this module allows what to capture in a regex
   match via the `:capture` option. The supported values are:
 
-  * `:all` - all captured subpatterns including the complete matching string.
-             This is the default;
+    * `:all` - all captured subpatterns including the complete matching string
+      (this is the default)
 
-  * `:first` - only the first captured subpattern, which is always the complete
-               matching part of the string. All explicitly captured subpatterns are
-               discarded;
+    * `:first` - only the first captured subpattern, which is always the
+      complete matching part of the string; all explicitly captured subpatterns
+      are discarded
 
-  * `:all_but_first`- all but the first matching subpattern, i.e. all explicitly
-                      captured subpatterns, but not the complete matching part of
-                      the string;
+    * `:all_but_first`- all but the first matching subpattern, i.e. all
+      explicitly captured subpatterns, but not the complete matching part of
+      the string
 
-  * `:none` - do not return matching subpatterns at all;
+    * `:none` - do not return matching subpatterns at all
 
-  * `:all_names` - captures all names in the Regex;
+    * `:all_names` - captures all names in the Regex
 
-  * `list(binary)` - a list of named captures to capture;
+    * `list(binary)` - a list of named captures to capture
 
   """
 
-  defstruct re_pattern: nil :: term, source: "" :: binary, opts: "" :: binary
+  defstruct re_pattern: nil, source: "", opts: ""
+
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
@@ -97,7 +108,7 @@ defmodule Regex do
   def compile(source, options \\ "")
 
   def compile(source, options) when is_binary(options) do
-    case translate_options(options) do
+    case translate_options(options, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
@@ -123,6 +134,7 @@ defmodule Regex do
   Compiles the regular expression according to the given options.
   Fails with `Regex.CompileError` if the regex cannot be compiled.
   """
+  @spec compile(binary, binary | [term]) :: t
   def compile!(source, options \\ "") do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -142,12 +154,13 @@ defmodule Regex do
       false
 
   """
+  @spec match?(t, String.t) :: boolean
   def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
     :re.run(string, compiled, [{:capture, :none}]) == :match
   end
 
   @doc """
-  Returns true if the given argument is a regex.
+  Returns `true` if the given argument is a regex.
 
   ## Examples
 
@@ -158,6 +171,8 @@ defmodule Regex do
       false
 
   """
+  @spec regex?(t) :: true
+  @spec regex?(any) :: false
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
@@ -167,9 +182,9 @@ defmodule Regex do
 
   ## Options
 
-  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
-  * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                 to see the possible capture values;
+    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+                   to see the possible capture values.
 
   ## Examples
 
@@ -180,9 +195,10 @@ defmodule Regex do
       nil
 
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
-      [{2,2},{3,1}]
+      [{2, 2}, {3, 1}]
 
   """
+  @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
   def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
@@ -213,6 +229,7 @@ defmodule Regex do
       nil
 
   """
+  @spec named_captures(t, String.t, [term]) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -223,6 +240,7 @@ defmodule Regex do
   @doc """
   Returns the underlying `re_pattern` in the regular expression.
   """
+  @spec re_pattern(t) :: term
   def re_pattern(%Regex{re_pattern: compiled}) do
     compiled
   end
@@ -236,6 +254,7 @@ defmodule Regex do
       "foo"
 
   """
+  @spec source(t) :: String.t
   def source(%Regex{source: source}) do
     source
   end
@@ -249,6 +268,7 @@ defmodule Regex do
       "m"
 
   """
+  @spec opts(t) :: String.t
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -262,6 +282,7 @@ defmodule Regex do
       ["foo"]
 
   """
+  @spec names(t) :: [String.t]
   def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
@@ -269,15 +290,16 @@ defmodule Regex do
 
   @doc """
   Same as `run/3`, but scans the target several times collecting all
-  matches of the regular expression. A list of lists is returned,
-  where each entry in the primary list represents a match and each
-  entry in the secondary list represents the captured contents.
+  matches of the regular expression.
+
+  A list of lists is returned, where each entry in the primary list represents a
+  match and each entry in the secondary list represents the captured contents.
 
   ## Options
 
-  * `:return` - Set to `:index` to return indexes. Defaults to `:binary`;
-  * `:capture` - What to capture in the result. Check the moduledoc for Regex
-                 to see the possible capture values;
+    * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
+    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+      to see the possible capture values.
 
   ## Examples
 
@@ -291,6 +313,7 @@ defmodule Regex do
       []
 
   """
+  @spec scan(t, String.t, [term]) :: [[String.t]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
@@ -306,25 +329,29 @@ defmodule Regex do
   end
 
   @doc """
-  Splits the given target into the number of parts specified.
+  Splits the given target based on the given pattern and in the given number of
+  parts.
 
   ## Options
 
-  * `:parts` - when specified, splits the string into the
-               given number of parts. If not specified, `:parts`
-               is defaulted to `:infinity`, which will split the
-               string into the maximum number of parts possible
-               based on the given pattern.
+    * `:parts` - when specified, splits the string into the given number of
+      parts. If not specified, `:parts` defaults to `:infinity`, which will
+      split the string into the maximum number of parts possible based on the
+      given pattern.
 
-  * `:trim` - when true, remove blank strings from the result;
+    * `:trim` - when `true`, removes empty strings (`""`) from the result.
+
+    * `:on` - specifies which captures to split the string on, and in what
+      order. Defaults to `:first` which means captures inside the regex do not
+      affect the splitting process.
 
   ## Examples
 
       iex> Regex.split(~r/-/, "a-b-c")
-      ["a","b","c"]
+      ["a", "b", "c"]
 
       iex> Regex.split(~r/-/, "a-b-c", [parts: 2])
-      ["a","b-c"]
+      ["a", "b-c"]
 
       iex> Regex.split(~r/-/, "abc")
       ["abc"]
@@ -332,27 +359,67 @@ defmodule Regex do
       iex> Regex.split(~r//, "abc")
       ["a", "b", "c", ""]
 
-      iex> Regex.split(~r//, "abc", trim: true)
-      ["a", "b", "c"]
+      iex> Regex.split(~r/a(?<second>b)c/, "abc")
+      ["", ""]
+
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
+      ["a", "c"]
 
   """
-
+  @spec split(t, String.t, [term]) :: [String.t]
   def split(regex, string, options \\ [])
 
-  def split(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
-    parts  = Keyword.get(options, :parts, :infinity)
-    opts   = [return: :binary, parts: zero_to_infinity(parts)]
-    splits = :re.split(string, compiled, opts)
-
-    if Keyword.get(options, :trim, false) do
-      for split <- splits, split != "", do: split
+  def split(%Regex{}, "", opts) do
+    if Keyword.get(opts, :trim, false) do
+      []
     else
-      splits
+      [""]
     end
   end
 
-  defp zero_to_infinity(0), do: :infinity
-  defp zero_to_infinity(n), do: n
+  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) do
+    on = Keyword.get(opts, :on, :first)
+    case :re.run(string, compiled, [:global, capture: on]) do
+      {:match, matches} ->
+        do_split(matches, string, 0,
+                 parts_to_index(Keyword.get(opts, :parts, :infinity)),
+                 Keyword.get(opts, :trim, false))
+      :match ->
+        [string]
+      :nomatch ->
+        [string]
+    end
+  end
+
+  defp parts_to_index(:infinity),                      do: 0
+  defp parts_to_index(n) when is_integer(n) and n > 0, do: n
+
+  defp do_split(_, string, offset, _counter, true) when byte_size(string) <= offset,
+    do: []
+
+  defp do_split(_, string, offset, 1, _trim),
+    do: [binary_part(string, offset, byte_size(string) - offset)]
+
+  defp do_split([], string, offset, _counter, _trim),
+    do: [binary_part(string, offset, byte_size(string) - offset)]
+
+  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim) when pos - offset < 0,
+    do: do_split([h|t], string, offset, counter, trim)
+
+  defp do_split([[]|t], string, offset, counter, trim),
+    do: do_split(t, string, offset, counter, trim)
+
+  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim) do
+    new_offset = pos + length
+    keep = pos - offset
+
+    if keep == 0 and (length == 0 or trim) do
+      do_split([h|t], string, new_offset, counter, trim)
+    else
+      <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
+      [part|do_split([h|t], string, new_offset, counter - 1, trim)]
+    end
+  end
 
   @doc ~S"""
   Receives a regex, a binary and a replacement, returns a new
@@ -360,8 +427,8 @@ defmodule Regex do
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
-  captures to be accessed via `\N`, where `N` is the capture. In
-  case `\0` is used, the whole match is inserted.
+  captures to be accessed via `\\N` or `\g{N}`, where `N` is the
+  capture. In case `\\0` is used, the whole match is inserted.
 
   When the replacement is a function, the function may have arity
   N where each argument maps to a capture, with the first argument
@@ -370,8 +437,8 @@ defmodule Regex do
 
   ## Options
 
-  * `:global` - when `false`, replaces only the first occurrence
-    (defaults to true)
+    * `:global` - when `false`, replaces only the first occurrence
+      (defaults to `true`)
 
   ## Examples
 
@@ -390,7 +457,11 @@ defmodule Regex do
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
       "[b][d]"
 
+      iex> Regex.replace(~r/a/, "abcadc", "A", global: false)
+      "Abcadc"
+
   """
+  @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
   def replace(regex, string, replacement, options \\ [])
 
   def replace(regex, string, replacement, options) when is_binary(replacement) do
@@ -419,18 +490,18 @@ defmodule Regex do
   defp precompile_replacement(""),
     do: []
 
-  defp precompile_replacement(<<?\\, x, rest :: binary>>) when x < ?0 or x > ?9 do
-    case precompile_replacement(rest) do
-      [head | t] when is_binary(head) ->
-        [<<x, head :: binary>> | t]
-      other ->
-        [<<x>> | other]
-    end
+  defp precompile_replacement(<<?\\, ?g, ?{, rest :: binary>>) when byte_size(rest) > 0 do
+    {ns, <<?}, rest :: binary>>} = pick_int(rest)
+    [List.to_integer(ns) | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<?\\, rest :: binary>>) when byte_size(rest) > 0 do
+  defp precompile_replacement(<<?\\, ?\\, rest :: binary>>) do
+    [<<?\\>> | precompile_replacement(rest)]
+  end
+
+  defp precompile_replacement(<<?\\, x, rest :: binary>>) when x in ?0..?9 do
     {ns, rest} = pick_int(rest)
-    [List.to_integer(ns) | precompile_replacement(rest)]
+    [List.to_integer([x|ns]) | precompile_replacement(rest)]
   end
 
   defp precompile_replacement(<<x, rest :: binary>>) do
@@ -465,12 +536,12 @@ defmodule Regex do
 
   defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
     length = mpos - pos
-    <<untouched :: [size(length), binary], rest :: binary>> = string
+    <<untouched :: binary-size(length), rest :: binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
-  defp apply_list(whole, string, pos, replacement, [[{mpos, length} | _] = head | tail]) when mpos == pos do
-    <<_ :: [size(length), binary], rest :: binary>> = string
+  defp apply_list(whole, string, pos, replacement, [[{pos, length} | _] = head | tail]) do
+    <<_ :: size(length)-binary, rest :: binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
   end
@@ -490,7 +561,7 @@ defmodule Regex do
       cond do
         is_binary(part) ->
           part
-        part > tuple_size(indexes) ->
+        part >= tuple_size(indexes) ->
           ""
         true ->
           get_index(string, elem(indexes, part))
@@ -503,7 +574,7 @@ defmodule Regex do
   end
 
   defp get_index(string, {pos, len}) do
-    <<_ :: [size(pos), binary], res :: [size(len), binary], _ :: binary>> = string
+    <<_ :: size(pos)-binary, res :: size(len)-binary, _ :: binary>> = string
     res
   end
 
@@ -553,18 +624,18 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?g, t :: binary>>) do
-    IO.write :stderr, "The /g flag for regular expressions is no longer needed\n#{Exception.format_stacktrace}"
-    translate_options(t)
-  end
+  defp translate_options(<<?u, t :: binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
+  defp translate_options(<<?i, t :: binary>>, acc), do: translate_options(t, [:caseless|acc])
+  defp translate_options(<<?x, t :: binary>>, acc), do: translate_options(t, [:extended|acc])
+  defp translate_options(<<?f, t :: binary>>, acc), do: translate_options(t, [:firstline|acc])
+  defp translate_options(<<?U, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?s, t :: binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
+  defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
 
-  defp translate_options(<<?u, t :: binary>>), do: [:unicode|translate_options(t)]
-  defp translate_options(<<?i, t :: binary>>), do: [:caseless|translate_options(t)]
-  defp translate_options(<<?x, t :: binary>>), do: [:extended|translate_options(t)]
-  defp translate_options(<<?f, t :: binary>>), do: [:firstline|translate_options(t)]
-  defp translate_options(<<?r, t :: binary>>), do: [:ungreedy|translate_options(t)]
-  defp translate_options(<<?s, t :: binary>>), do: [:dotall, {:newline, :anycrlf}|translate_options(t)]
-  defp translate_options(<<?m, t :: binary>>), do: [:multiline|translate_options(t)]
-  defp translate_options(<<>>), do: []
-  defp translate_options(rest), do: {:error, rest}
+  # TODO: Deprecate by 1.2
+  # TODO: Remove by 2.0
+  defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+
+  defp translate_options(<<>>, acc), do: acc
+  defp translate_options(rest, _acc), do: {:error, rest}
 end

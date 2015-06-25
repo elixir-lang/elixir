@@ -18,8 +18,7 @@ new() ->
     context_modules => [],                 %% modules defined in the current context
     vars => [],                            %% a set of defined variables
     export_vars => nil,                    %% a set of variables to be exported in some constructs
-    lexical_tracker => nil,                %% holds the lexical tracker pid
-    local => nil}.                         %% the module to delegate local functions to
+    lexical_tracker => nil}.               %% holds the lexical tracker pid
 
 linify({Line, Env}) ->
   Env#{line := Line}.
@@ -30,7 +29,7 @@ env_to_scope(#{module := Module, file := File, function := Function, context := 
 env_to_scope_with_vars(Env, Vars) ->
   (env_to_scope(Env))#elixir_scope{
     vars=orddict:from_list(Vars),
-    counter=[{'_',length(Vars)}]
+    counter=[{'_', length(Vars)}]
  }.
 
 %% SCOPE MERGING

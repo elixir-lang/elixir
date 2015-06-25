@@ -11,7 +11,7 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 
 ** Options given after -- are passed down to the executed code
 ** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS
-** Options can be passed to the erlang compiler using ERL_COMPILER_OPTS" >&2
+** Options can be passed to the erlang compiler using ERL_COMPILER_OPTIONS" >&2
   exit 1
 fi
 

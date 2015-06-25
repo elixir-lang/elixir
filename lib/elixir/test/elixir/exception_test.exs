@@ -1,6 +1,6 @@
 Code.require_file "test_helper.exs", __DIR__
 
-defmodule Kernel.ExceptionTest do
+defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
   test "raise preserves the stacktrace" do
@@ -12,7 +12,7 @@ defmodule Kernel.ExceptionTest do
         top
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert {Kernel.ExceptionTest, :"test raise preserves the stacktrace", _,
+    assert {__MODULE__, :"test raise preserves the stacktrace", _,
            [file: ^file, line: 9]} = stacktrace
   end
 
@@ -24,19 +24,21 @@ defmodule Kernel.ExceptionTest do
 
   test "message" do
     defmodule BadException do
-      def message(_) do
-        raise "oops"
+      def message(exception) do
+        if exception.raise do
+          raise "oops"
+        end
       end
     end
 
-    message = ~r/Got RuntimeError with message \"oops\" while retrieving message for/
+    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: true}) =~
+           "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+           "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: true}"
 
-    assert_raise ArgumentError, message, fn ->
-      Exception.message(%{__struct__: BadException, __exception__: true})
-    end
+    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: false}) =~
+           "got nil while retrieving Exception.message/1 " <>
+           "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: false}"
   end
-
-  require Record
 
   test "normalize" do
     assert Exception.normalize(:throw, :badarg) == :badarg
@@ -46,17 +48,10 @@ defmodule Kernel.ExceptionTest do
     assert Exception.normalize(:error, %ArgumentError{}).__struct__ == ArgumentError
   end
 
-  test "format_banner" do
-    assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
-    assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
-    assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
-    assert Exception.format_banner({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
-  end
-
   test "format without stacktrace" do
     stacktrace = try do throw(:stack) catch :stack -> System.stacktrace() end
-    assert Exception.format(:error, :badarg) == "** (ArgumentError) argument error" <>
-      "\n" <> Exception.format_stacktrace(stacktrace)
+    assert Exception.format(:error, :badarg) ==
+           "** (ArgumentError) argument error\n" <> Exception.format_stacktrace(stacktrace)
   end
 
   test "format with empty stacktrace" do
@@ -64,9 +59,81 @@ defmodule Kernel.ExceptionTest do
   end
 
   test "format with EXIT has no stacktrace" do
-    try do throw(:stack) catch :stack -> System.stacktrace() end
     assert Exception.format({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
   end
+
+  test "format_banner" do
+    assert Exception.format_banner(:error, :badarg) == "** (ArgumentError) argument error"
+    assert Exception.format_banner(:throw, :badarg) == "** (throw) :badarg"
+    assert Exception.format_banner(:exit, :badarg) == "** (exit) :badarg"
+    assert Exception.format_banner({:EXIT, self}, :badarg) == "** (EXIT from #{inspect self}) :badarg"
+  end
+
+  test "format_stacktrace from file" do
+    assert_raise ArgumentError, fn ->
+      Code.eval_string("def foo do end", [], file: "myfile")
+    end
+
+    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (file)"
+  end
+
+  test "format_stacktrace from module" do
+    assert_raise ArgumentError, fn ->
+      Code.eval_string("defmodule Foo do raise ArgumentError, ~s(oops) end", [], file: "myfile")
+    end
+
+    assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (module)"
+  end
+
+  test "format_stacktrace_entry with no file or line" do
+    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], []}) == "Foo.bar()"
+    assert Exception.format_stacktrace_entry({Foo, :bar, 1, []}) == "Foo.bar/1"
+  end
+
+  test "format_stacktrace_entry with file and line" do
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar()"
+    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar(1, 2, 3)"
+    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar/1"
+  end
+
+  test "format_stacktrace_entry with file no line" do
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex']}) == "file.ex: Foo.bar()"
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) == "file.ex: Foo.bar()"
+    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex']}) == "file.ex: Foo.bar(1, 2, 3)"
+    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex']}) == "file.ex: Foo.bar/1"
+  end
+
+  test "format_stacktrace_entry with application" do
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
+                       "(elixir) file.ex: Exception.bar()"
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
+                       "(elixir) file.ex:10: Exception.bar()"
+    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) ==
+                       "(stdlib) :lists.bar(1, 2, 3)"
+  end
+
+  test "format_stacktrace_entry with fun" do
+    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
+    assert Exception.format_stacktrace_entry({fn(x, y) -> {x, y} end, 2, []}) =~ ~r"#Function<.+>/2"
+  end
+
+  test "format_mfa" do
+    assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
+    assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
+    assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
+    assert Exception.format_mfa(nil, :bar, []) == "nil.bar()"
+    assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
+    assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
+    assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
+  end
+
+  test "format_fa" do
+    assert Exception.format_fa(fn -> end, 1) =~
+           ~r"#Function<\d+\.\d+/0 in ExceptionTest\.test format_fa/1>/1"
+  end
+
+  ## Format exits
 
   test "format_exit" do
     assert Exception.format_exit(:bye) == ":bye"
@@ -78,7 +145,7 @@ defmodule Kernel.ExceptionTest do
     assert Exception.format_exit(:normal) == "normal"
     assert Exception.format_exit(:shutdown) == "shutdown"
     assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
-    assert Exception.format_exit({:badarg,[{:not_a_real_module, :function, 0, []}]}) ==
+    assert Exception.format_exit({:badarg, [{:not_a_real_module, :function, 0, []}]}) ==
            "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
     assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
     assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
@@ -246,53 +313,7 @@ defmodule Kernel.ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  test "format_stacktrace_entry with no file or line" do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], []}) == "Foo.bar(1, 2, 3)"
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], []}) == "Foo.bar()"
-    assert Exception.format_stacktrace_entry({Foo, :bar, 1, []}) == "Foo.bar/1"
-  end
-
-  test "format_stacktrace_entry with file and line" do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar()"
-    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar(1, 2, 3)"
-    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) == "file.ex:10: Foo.bar/1"
-  end
-
-  test "format_stacktrace_entry with file no line" do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex']}) == "file.ex: Foo.bar()"
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) == "file.ex: Foo.bar()"
-    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex']}) == "file.ex: Foo.bar(1, 2, 3)"
-    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex']}) == "file.ex: Foo.bar/1"
-  end
-
-  test "format_stacktrace_entry with application" do
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
-                       "(elixir) file.ex: Exception.bar()"
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
-                       "(elixir) file.ex:10: Exception.bar()"
-    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) ==
-                       "(stdlib) :lists.bar(1, 2, 3)"
-  end
-
-  test "format_stacktrace_entry with fun" do
-    assert Exception.format_stacktrace_entry({fn(x) -> x end, [1], []}) =~ ~r/#Function<.+>\(1\)/
-    assert Exception.format_stacktrace_entry({fn(x, y) -> {x, y} end, 2, []}) =~ ~r"#Function<.+>/2"
-  end
-
-  test "format_mfa" do
-    assert Exception.format_mfa(Foo, nil, 1) == "Foo.nil/1"
-    assert Exception.format_mfa(Foo, :bar, 1) == "Foo.bar/1"
-    assert Exception.format_mfa(Foo, :bar, []) == "Foo.bar()"
-    assert Exception.format_mfa(nil, :bar, []) == "nil.bar()"
-    assert Exception.format_mfa(:foo, :bar, [1, 2]) == ":foo.bar(1, 2)"
-    assert Exception.format_mfa(Foo, :"bar baz", 1) == "Foo.\"bar baz\"/1"
-    assert Exception.format_mfa(Foo, :"-func/2-fun-0-", 4) == "anonymous fn/4 in Foo.func/2"
-  end
-
-  test "format_fa" do
-    assert Exception.format_fa(fn -> end, 1) =~
-           ~r"#Function<\d\.\d+/0 in Kernel\.ExceptionTest\.test format_fa/1>/1"
-  end
+  ## Exception messagges
 
   import Exception, only: [message: 1]
 
@@ -308,8 +329,10 @@ defmodule Kernel.ExceptionTest do
 
   test "undefined function message" do
     assert %UndefinedFunctionError{} |> message == "undefined function"
+    assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
+           "undefined function: Kernel.bar/1"
     assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
-           "undefined function: Foo.bar/1"
+           "undefined function: Foo.bar/1 (module Foo is not available)"
     assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
            "undefined function: nil.bar/0"
   end

@@ -6,7 +6,13 @@ defmodule IEx.HelpersTest do
   import IEx.Helpers
 
   test "clear helper" do
-    assert "\e[H\e[2J" == capture_iex("clear")
+    Application.put_env(:elixir, :ansi_enabled, true)
+    assert capture_iex("clear") == "\e[H\e[2J"
+
+    Application.put_env(:elixir, :ansi_enabled, false)
+    assert capture_iex("clear") =~ "Cannot clear the screen because ANSI escape codes are not enabled on this shell"
+  after
+    Application.delete_env(:elixir, :ansi_enabled)
   end
 
   test "h helper" do
@@ -27,7 +33,7 @@ defmodule IEx.HelpersTest do
 
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
-    c_h   = "* def c(files, path \\\\ \".\")\n\nExpects a list of files to compile"
+    c_h   = "* def c(files, path \\\\ \".\")\n\nCompiles the given files."
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
@@ -43,6 +49,22 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
+  test "b helper module" do
+    assert capture_io(fn -> b Mix end) == "No callbacks for Mix were found\n"
+    assert capture_io(fn -> b NoMix end) == "Could not load module NoMix, got: nofile\n"
+    assert capture_io(fn -> b Mix.SCM end) =~ """
+           defcallback accepts_options(app :: atom(), opts()) :: opts() | nil
+           defcallback checked_out?(opts()) :: boolean()
+      """
+  end
+
+  test "b helper function" do
+    assert capture_io(fn -> b Mix.Task.stop end) == "No documentation for Mix.Task.stop was found\n"
+    assert capture_io(fn -> b Mix.Task.run end) =~ "* defcallback run([binary()]) :: any()\n\nA task needs to implement `run`"
+    assert capture_io(fn -> b NoMix.run end) == "Could not load module NoMix, got: nofile\n"
+    assert capture_io(fn -> b Exception.message/1 end) == "* defcallback message(t()) :: String.t()\n\n\n"
+  end
+
   test "t helper" do
     assert capture_io(fn -> t IEx end) == "No type information for IEx was found\n"
 
@@ -54,6 +76,9 @@ defmodule IEx.HelpersTest do
     assert "@type t() :: " <> _
            = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
+
+    assert "@opaque t()\n" = capture_io(fn -> t HashDict.t end)
+    assert capture_io(fn -> t HashDict.t end) == capture_io(fn -> t HashDict.t/0 end)
   end
 
   test "s helper" do
@@ -71,38 +96,15 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> s Enum.all?/1 end) ==
            "@spec all?(t()) :: boolean()\n"
     assert capture_io(fn -> s struct end) ==
-           "@spec struct(module() | %{}, Enum.t()) :: %{}\n"
+           "@spec struct(module() | map(), Enum.t()) :: map()\n"
   end
 
   test "v helper" do
-    assert capture_iex("v") == ":ok"
-    assert capture_iex("1\n2\nv") == String.rstrip """
-      1
-      2
-      1: 1
-      #=> 1
-
-      2: 2
-      #=> 2
-
-      :ok
-      """
-
     assert "** (RuntimeError) v(0) is out of bounds" <> _
            = capture_iex("v(0)")
     assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
     assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
-
-    assert capture_iex("1\n2\nIEx.History.reset\nv")
-           == String.rstrip """
-           1
-           2
-           true
-           3: IEx.History.reset
-           #=> true
-
-           :ok
-           """
+    assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv()")
   end
 
   test "flush helper" do
@@ -131,9 +133,9 @@ defmodule IEx.HelpersTest do
 
   test "import_file helper" do
     with_file "dot-iex", "variable = :hello\nimport IO", fn ->
-      assert "** (RuntimeError) undefined function: variable/0" <> _
+      assert "** (CompileError) iex:1: undefined function variable/0" <> _
              = capture_iex("variable")
-      assert "** (RuntimeError) undefined function: puts/1" <> _
+      assert "** (CompileError) iex:1: undefined function puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"")
@@ -146,11 +148,9 @@ defmodule IEx.HelpersTest do
     dot_1 = "variable = :hello\nimport IO"
 
     with_file ["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-      assert "** (RuntimeError) undefined function: parent/0" <> _
+      assert "** (CompileError) iex:1: undefined function parent/0" <> _
              = capture_iex("parent")
-      assert "** (RuntimeError) undefined function: variable/0" <> _
-             = capture_iex("variable")
-      assert "** (RuntimeError) undefined function: puts/1" <> _
+      assert "** (CompileError) iex:1: undefined function puts/1" <> _
              = capture_iex("puts \"hi\"")
 
       assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent")
@@ -158,8 +158,16 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  test "import_file when the file is missing" do
+    assert "nil" == capture_iex("import_file \"nonexistent\", optional: true")
+
+    failing = capture_iex("import_file \"nonexistent\"")
+    assert "** (File.Error) could not read file" <> _ = failing
+    assert failing =~ "no such file or directory"
+  end
+
   test "c helper" do
-    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample\.run/0", fn ->
       Sample.run
     end
 
@@ -183,7 +191,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper multiple modules" do
-    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
       Sample.run
     end
 
@@ -198,7 +206,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper list" do
-    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
       Sample.run
     end
 
@@ -213,7 +221,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper erlang" do
-    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -228,7 +236,7 @@ defmodule IEx.HelpersTest do
 
 
   test "c helper skips unknown files" do
-    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -244,7 +252,7 @@ defmodule IEx.HelpersTest do
 
 
   test "l helper" do
-    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
       Sample.run
     end
 
@@ -256,7 +264,7 @@ defmodule IEx.HelpersTest do
       assert Sample.run == :run
 
       File.write! filename, "defmodule Sample do end"
-      elixirc("sample.ex")
+      elixirc ["sample.ex"]
 
       assert l(Sample) == {:module, Sample}
       assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
@@ -275,7 +283,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper elixir" do
-    assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0 \(module Sample is not available\)", fn ->
       Sample.run
     end
 
@@ -298,7 +306,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper erlang" do
-    assert_raise UndefinedFunctionError, "undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -377,7 +385,7 @@ defmodule IEx.HelpersTest do
 
   defp elixirc(args) do
     executable = Path.expand("../../../../bin/elixirc", __DIR__)
-    System.cmd("#{executable}#{executable_extension} #{args}")
+    System.cmd("#{executable}#{executable_extension}", args, [stderr_to_stdout: true])
   end
 
   defp iex_path do

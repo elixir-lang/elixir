@@ -1,9 +1,10 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_scope).
--export([translate_var/4, build_var/2,
+-export([translate_var/4, build_var/2, context_info/1,
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, mergef/2,
-  merge_vars/2, merge_opt_vars/2
+  merge_vars/2, merge_opt_vars/2,
+  format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -25,31 +26,30 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
       case Exists andalso ordsets:is_element(Tuple, MatchVars) of
         true ->
+          warn_underscored_var(Line, S#elixir_scope.file, Name, Kind),
           {{var, Line, Current}, S};
         false ->
-          %% If the variable is not exported, we use a counter name.
-          %% The same if the variable already exists or we are in a
-          %% noname context.
-          Private = (lists:keyfind(export, 1, Meta) == {export, false}),
-
+          %% We attempt to give vars a nice name because we
+          %% still use the unused vars warnings from erl_lint.
+          %%
+          %% Once we move the warning to Elixir compiler, we
+          %% can name vars as _@COUNTER.
           {NewVar, Counter, NS} =
             if
               Kind /= nil ->
                 build_var('_', S);
-              Private orelse Exists orelse S#elixir_scope.noname ->
-                build_var(Name, S);
               true ->
-                {Name, 0, S}
+                build_var(Name, S)
             end,
 
           FS = NS#elixir_scope{
             vars=orddict:store(Tuple, {NewVar, Counter}, Vars),
             match_vars=ordsets:add_element(Tuple, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
-              EV when Private; EV == nil -> EV;
-              EV -> orddict:store(Tuple, {NewVar, Counter}, EV)
+              nil -> nil;
+              EV  -> orddict:store(Tuple, {NewVar, Counter}, EV)
             end
-         },
+          },
 
           {{var, Line, NewVar}, FS}
       end;
@@ -61,6 +61,19 @@ build_var(Key, S) ->
   New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
   Cnt = orddict:fetch(Key, New),
   {elixir_utils:atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
+
+context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
+context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
+
+warn_underscored_var(Line, File, Name, Kind) ->
+  case atom_to_list(Name) of
+    "_@" ++ _ ->
+      ok; %% Automatically generated variables
+    "_" ++ _ ->
+      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
+    _ ->
+      ok
+  end.
 
 %% SCOPE MERGING
 
@@ -112,10 +125,10 @@ load_binding(Binding, Scope) ->
   {NewBinding, NewVars, NewCounter} = load_binding(Binding, [], [], 0),
   {NewBinding, Scope#elixir_scope{
     vars=NewVars,
-    counter=[{'_',NewCounter}]
+    counter=[{'_', NewCounter}]
  }}.
 
-load_binding([{Key,Value}|T], Binding, Vars, Counter) ->
+load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
   Actual = case Key of
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
@@ -130,7 +143,7 @@ load_binding([], Binding, Vars, Counter) ->
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   dump_binding(Vars, Binding, []).
 
-dump_binding([{{Var, Kind} = Key, {InternalName,_}}|T], Binding, Acc) when is_atom(Kind) ->
+dump_binding([{{Var, Kind} = Key, {InternalName, _}}|T], Binding, Acc) when is_atom(Kind) ->
   Actual = case Kind of
     nil -> Var;
     _   -> Key
@@ -140,3 +153,12 @@ dump_binding([{{Var, Kind} = Key, {InternalName,_}}|T], Binding, Acc) when is_at
 dump_binding([_|T], Binding, Acc) ->
   dump_binding(T, Binding, Acc);
 dump_binding([], _Binding, Acc) -> Acc.
+
+%% Errors
+
+format_error({unused_match, Name, Kind}) ->
+  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
+                "match. This means the pattern will only match if all \"~ts\" bind "
+                "to the same value. If this is the intended behaviour, please "
+                "remove the leading underscore from the variable name, otherwise "
+                "give the variables different names", [Name, context_info(Kind), Name]).

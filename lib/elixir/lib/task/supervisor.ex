@@ -7,7 +7,7 @@ defmodule Task.Supervisor do
   `:simple_one_for_one` supervisor where the workers are temporary
   (i.e. they are not restarted after they die).
 
-  The functions in this module allow tasks can be spawned and awaited
+  The functions in this module allow tasks to be spawned and awaited
   from a supervisor, similar to the functions defined in the `Task` module.
 
   ## Name Registration
@@ -25,14 +25,23 @@ defmodule Task.Supervisor do
     described under the `Name Registration` section in the `GenServer` module
     docs;
 
+  * `:restart` - the restart strategy, may be `:temporary` (the default),
+    `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
+    Defaults to temporary as most tasks can't be effectively restarted after
+    a crash;
+
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
-    or an integer indicating the timeout value, defaults to 5000 miliseconds;
+    or an integer indicating the timeout value, defaults to 5000 milliseconds;
+
+  * `:max_restarts` and `:max_seconds` - as specified in `Supervisor.Spec.supervise/2`;
+
   """
   @spec start_link(Supervisor.options) :: Supervisor.on_start
   def start_link(opts \\ []) do
     import Supervisor.Spec
+    {restart, opts}  = Keyword.pop(opts, :restart, :temporary)
     {shutdown, opts} = Keyword.pop(opts, :shutdown, 5000)
-    children = [worker(Task.Supervised, [], restart: :temporary, shutdown: shutdown)]
+    children = [worker(Task.Supervised, [], restart: restart, shutdown: shutdown)]
     Supervisor.start_link(children, [strategy: :simple_one_for_one] ++ opts)
   end
 
@@ -55,14 +64,15 @@ defmodule Task.Supervisor do
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    {:ok, pid} = Supervisor.start_child(supervisor, [self(), {module, fun, args}])
+    args = [self, get_info(self), {module, fun, args}]
+    {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
     send pid, {self(), ref}
     %Task{pid: pid, ref: ref}
   end
 
   @doc """
-  Terminates the given child at pid.
+  Terminates the child with the given `pid`.
   """
   @spec terminate_child(Supervisor.supervisor, pid) :: :ok
   def terminate_child(supervisor, pid) when is_pid(pid) do
@@ -80,9 +90,9 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task as child of the given `supervisor`.
 
-  Note the spawned process is not linked to the caller but
+  Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
-  task needs to emit side-effects (like I/O) and does not need
+  task needs to perform side-effects (like I/O) and does not need
   to report back to the caller.
   """
   @spec start_child(Supervisor.supervisor, fun) :: {:ok, pid}
@@ -98,6 +108,14 @@ defmodule Task.Supervisor do
   """
   @spec start_child(Supervisor.supervisor, module, atom, [term]) :: {:ok, pid}
   def start_child(supervisor, module, fun, args) do
-    Supervisor.start_child(supervisor, [:undefined, {module, fun, args}])
+    Supervisor.start_child(supervisor, [get_info(self), {module, fun, args}])
+  end
+
+  defp get_info(self) do
+    {node(),
+     case Process.info(self, :registered_name) do
+       {:registered_name, []} -> self()
+       {:registered_name, name} -> name
+     end}
   end
 end

@@ -12,12 +12,12 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
 
-      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "mod: {HelloWorld, []}"
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
@@ -44,8 +44,30 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "Supervisor.start_link(children, opts)"
       end
 
-      assert_file "hello_world/test/test_helper.exs", ~r/HelloWorld.start/
+      assert_file "hello_world/test/test_helper.exs", ~r/ExUnit.start()/
       assert_file "hello_world/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
+
+      assert_received {:mix_shell, :info, ["* creating mix.exs"]}
+      assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
+    end
+  end
+
+  test "new with --app" do
+    in_tmp "new app", fn ->
+      Mix.Tasks.New.run ["HELLO_WORLD", "--app", "hello_world"]
+
+      assert_file "HELLO_WORLD/mix.exs", fn(file) ->
+        assert file =~ "app: :hello_world"
+        assert file =~ "version: \"0.0.1\""
+      end
+
+      assert_file "HELLO_WORLD/README.md", ~r/HelloWorld\n==========\n\n/
+      assert_file "HELLO_WORLD/.gitignore"
+
+      assert_file "HELLO_WORLD/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
+
+      assert_file "HELLO_WORLD/test/test_helper.exs", ~r/ExUnit.start()/
+      assert_file "HELLO_WORLD/test/hello_world_test.exs", ~r/defmodule HelloWorldTest do/
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
       assert_received {:mix_shell, :info, ["* creating lib/hello_world.ex"]}
@@ -60,7 +82,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end
 
-      assert_file "hello_world/README.md", ~r/# HelloWorld/
+      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
       assert_file "hello_world/.gitignore"
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
@@ -88,11 +110,43 @@ defmodule Mix.Tasks.NewTest do
   end
 
   test "new with invalid args" do
-    in_tmp "new with invalid args", fn ->
-      assert_raise Mix.Error, "Project path must start with a letter and have only lowercase letters, numbers and underscore", fn ->
+    in_tmp "new with an invalid application name", fn ->
+      assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
         Mix.Tasks.New.run ["007invalid"]
       end
+    end
 
+    in_tmp "new with an invalid application name from the app option", fn ->
+      assert_raise Mix.Error, ~r"Application name must start with a letter and ", fn ->
+        Mix.Tasks.New.run ["valid", "--app", "007invalid"]
+      end
+    end
+
+    in_tmp "new with an invalid module name from the module options", fn ->
+      assert_raise Mix.Error, ~r"Module name must be a valid Elixir alias", fn ->
+        Mix.Tasks.New.run ["valid", "--module", "not.valid"]
+      end
+    end
+
+    in_tmp "new with an already taken application name", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
+        Mix.Tasks.New.run ["mix"]
+      end
+    end
+
+    in_tmp "new with an already taken application name from the app option", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
+        Mix.Tasks.New.run ["valid", "--app", "mix"]
+      end
+    end
+
+    in_tmp "new with an already taken module name from the module options", fn ->
+      assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
+        Mix.Tasks.New.run ["valid", "--module", "Mix"]
+      end
+    end
+
+    in_tmp "new without a specified path", fn ->
       assert_raise Mix.Error, "Expected PATH to be given, please use `mix new PATH`", fn ->
         Mix.Tasks.New.run []
       end
@@ -106,7 +160,7 @@ defmodule Mix.Tasks.NewTest do
   defp assert_file(file, match) do
     cond do
       Regex.regex?(match) ->
-        assert_file file, &(&1 =~ match)
+        assert_file file, &(assert &1 =~ match)
       is_function(match, 1) ->
         assert_file(file)
         match.(File.read!(file))

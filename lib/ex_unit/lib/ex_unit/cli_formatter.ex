@@ -13,10 +13,11 @@ defmodule ExUnit.CLIFormatter do
     config = %{
       seed: opts[:seed],
       trace: opts[:trace],
-      color: opts[:color],
+      colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?),
       width: get_terminal_width(),
       tests_counter: 0,
       failures_counter: 0,
+      skipped_counter: 0,
       invalids_counter: 0
     }
     {:ok, config}
@@ -43,7 +44,8 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:skip, _}} = test}, config) do
     if config.trace, do: IO.puts trace_test_skip(test)
-    {:ok, config}
+    {:ok, %{config | tests_counter: config.tests_counter + 1,
+                     skipped_counter: config.skipped_counter + 1}}
   end
 
   def handle_event({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
@@ -130,7 +132,24 @@ defmodule ExUnit.CLIFormatter do
     IO.write "\n\n"
     IO.puts format_time(run_us, load_us)
 
-    message = "#{config.tests_counter} tests, #{config.failures_counter} failures"
+    # singular/plural
+    if config.tests_counter == 1 do
+      test_pl = "test"
+    else
+      test_pl = "tests"
+    end
+
+    if config.failures_counter == 1 do
+      failure_pl = "failure"
+    else
+      failure_pl = "failures"
+    end
+
+    message = "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
+
+    if config.skipped_counter > 0 do
+      message = message <> ", #{config.skipped_counter} skipped"
+    end
 
     if config.invalids_counter > 0 do
       message = message <>  ", #{config.invalids_counter} invalid"
@@ -161,32 +180,33 @@ defmodule ExUnit.CLIFormatter do
       config.trace -> IO.puts ""
       true -> IO.puts "\n"
     end
-    IO.write formatted
+    IO.puts formatted
   end
 
   # Color styles
 
-  defp colorize(escape, string, %{color: color}) do
-    IO.ANSI.escape_fragment("%{#{escape}}", color)
-      <> string
-      <> IO.ANSI.escape_fragment("%{reset}", color)
+  defp colorize(escape, string, %{colors: colors}) do
+    enabled = colors[:enabled]
+    [IO.ANSI.format_fragment(escape, enabled),
+     string,
+     IO.ANSI.format_fragment(:reset, enabled)] |> IO.iodata_to_binary
   end
 
   defp success(msg, config) do
-    colorize("green", msg, config)
+    colorize([:green], msg, config)
   end
 
   defp invalid(msg, config) do
-    colorize("yellow", msg, config)
+    colorize([:yellow], msg, config)
   end
 
   defp failure(msg, config) do
-    colorize("red", msg, config)
+    colorize([:red], msg, config)
   end
 
-  defp formatter(:error_info, msg, config),    do: colorize("red", msg, config)
-  defp formatter(:extra_info, msg, config),    do: colorize("cyan", msg, config)
-  defp formatter(:location_info, msg, config), do: colorize("bright,black", msg, config)
+  defp formatter(:error_info, msg, config),    do: colorize([:red], msg, config)
+  defp formatter(:extra_info, msg, config),    do: colorize([:cyan], msg, config)
+  defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
   defp formatter(_,  msg, _config),            do: msg
 
   defp get_terminal_width do

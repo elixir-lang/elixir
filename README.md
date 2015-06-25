@@ -12,6 +12,8 @@ If you want to contribute to Elixir or run it from source, clone this repository
     $ cd elixir
     $ make clean test
 
+> Note: if you are running on Windows, [this article includes important notes for compiling Elixir from source on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
+
 If Elixir fails to build (specifically when pulling in a new version via git), be sure to remove any previous build artifacts by running `make clean`, then `make test`.
 
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
@@ -28,7 +30,7 @@ Building the documentation requires [ex_doc](https://github.com/elixir-lang/ex_d
 
     # After cloning and compiling Elixir
     $ git clone git://github.com/elixir-lang/ex_doc.git
-    $ cd ex_doc && ../elixir/bin/mix compile
+    $ cd ex_doc && ../elixir/bin/mix do deps.get, compile
     $ cd ../elixir && make docs
 
 ## Contributing
@@ -37,8 +39,9 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
 ## Important links
 
-* \#elixir-lang on freenode IRC
-* [Website][1]
+* [Elixir Website][1]
+* [Elixir Documentation][7]
+* **[#elixir-lang][5]** on [Freenode][6] IRC
 * [Issue tracker][2]
 * [elixir-talk Mailing list (questions)][3]
 * [elixir-core Mailing list (development)][4]
@@ -47,6 +50,9 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: http://groups.google.com/group/elixir-lang-talk
   [4]: http://groups.google.com/group/elixir-lang-core
+  [5]: irc://chat.freenode.net/elixir-lang
+  [6]: http://www.freenode.net/
+  [7]: http://elixir-lang.org/docs.html
 
 ## License
 

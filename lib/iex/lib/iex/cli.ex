@@ -53,10 +53,14 @@ defmodule IEx.CLI do
     if tty_works? do
       :user_drv.start([:"tty_sl -c -e", tty_args])
     else
-      :user.start
-      IO.puts "Warning: could not run smart terminal, falling back to dumb one"
+      :application.set_env(:stdlib, :shell_prompt_func,
+                           {__MODULE__, :prompt})
+      :user.start()
       local_start()
     end
+  end
+  def prompt(_n) do
+    []
   end
 
   # Check if tty works. If it does not, we fall back to the
@@ -92,7 +96,12 @@ defmodule IEx.CLI do
   end
 
   def local_start do
-    IEx.start(config(), fn -> :elixir.start_cli end)
+    IEx.start(options(), {:elixir, :start_cli, []})
+  end
+
+  def remote_start(parent, ref) do
+    send parent, {:begin, ref, self}
+    receive do: ({:done, ^ref} -> :ok)
   end
 
   defp local_start_function do
@@ -101,7 +110,7 @@ defmodule IEx.CLI do
 
   defp remote_start_function do
     ref    = make_ref
-    config = config()
+    opts = options()
 
     parent = spawn_link fn ->
       receive do
@@ -112,14 +121,11 @@ defmodule IEx.CLI do
     end
 
     fn ->
-      IEx.start(config, fn ->
-        send parent, {:begin, ref, self}
-        receive do: ({:done, ^ref} -> :ok)
-      end)
+      IEx.start(opts, {__MODULE__, :remote_start, [parent, ref]})
     end
   end
 
-  defp config do
+  defp options do
     [dot_iex_path: find_dot_iex(:init.get_plain_arguments)]
   end
 

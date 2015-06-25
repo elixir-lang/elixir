@@ -6,12 +6,12 @@ defmodule Kernel.LexicalTrackerTest do
   alias Kernel.LexicalTracker, as: D
 
   setup do
-    {:ok, [pid: D.start_link]}
+    {:ok, pid} = D.start_link("dest")
+    {:ok, [pid: pid]}
   end
 
-  teardown config do
-    D.stop(config[:pid])
-    :ok
+  test "gets the destination", config do
+    assert D.dest(config[:pid]) == "dest"
   end
 
   test "can add remote dispatches", config do
@@ -31,7 +31,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "unused imports", config do
     D.add_import(config[:pid], String, 1, true)
-    assert D.collect_unused_imports(config[:pid]) == [{String,1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, 1}]
   end
 
   test "used imports are not unused", config do
@@ -47,7 +47,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "unused aliases", config do
     D.add_alias(config[:pid], String, 1, true)
-    assert D.collect_unused_aliases(config[:pid]) == [{String,1}]
+    assert D.collect_unused_aliases(config[:pid]) == [{String, 1}]
   end
 
   test "used aliases are not unused", config do

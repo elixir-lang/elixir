@@ -96,6 +96,27 @@ defmodule Kernel.Overridable do
 end
 
 defmodule Kernel.OverridableTest do
+  defmodule OverridableOrder do
+    def not_private(str) do
+      process_url(str)
+    end
+
+    defp process_url(_str) do
+      :first
+    end
+
+    # There was a bug where the order in which we removed
+    # overridable expressions lead to errors. This module
+    # aims to guarantee removing process_url/1 before we
+    # remove the function that depends on it does not cause
+    # errors. If it compiles, it works!
+    defoverridable [process_url: 1, not_private: 1]
+
+    defp process_url(_str) do
+      :second
+    end
+  end
+
   require Kernel.Overridable, as: Overridable
   use ExUnit.Case, async: true
 
@@ -135,7 +156,7 @@ defmodule Kernel.OverridableTest do
   end
 
   test "overridable definitions are private" do
-    refute {:"with_super (overridable 0)", 0} in Overridable.__info__(:exports)
+    refute {:"with_super (overridable 0)", 0} in Overridable.module_info(:exports)
   end
 
   test "invalid super call" do

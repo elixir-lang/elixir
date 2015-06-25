@@ -24,7 +24,7 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
-  test "assert when value evalutes to false" do
+  test "assert when value evaluates to false" do
     try do
       "This should never be tested" = assert Value.falsy
     rescue
@@ -86,12 +86,35 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_received :hello
   end
 
-  test "assert received when different" do
+  test "assert received when empty mailbox" do
     try do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello" = error.message
+        "No message matching :hello after 0ms. The process mailbox is empty." = error.message
+    end
+  end
+
+  test "assert received when different message" do
+    send self, {:message, :not_expected, :at_all}
+    try do
+      "This should never be tested" = assert_received :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "No message matching :hello after 0ms. Process mailbox:\n{:message, :not_expected, :at_all}" = error.message
+    end
+  end
+
+  test "assert received when different message having more than 10 on mailbox" do
+    for i <- 1..11, do: send(self, {:message, i})
+    try do
+      "This should never be tested" = assert_received x when x == :hello
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "No message matching x when x == :hello after 0ms. Process mailbox:\n" <>
+        "{:message, 1}\n{:message, 2}\n{:message, 3}\n{:message, 4}\n" <>
+        "{:message, 5}\n{:message, 6}\n{:message, 7}\n{:message, 8}\n" <>
+        "{:message, 9}\n{:message, 10}\nShowing only 10 of 11 messages." = error.message
     end
   end
 
@@ -226,7 +249,8 @@ defmodule ExUnit.AssertionsTest do
     end
   rescue
     error in [ExUnit.AssertionError] ->
-      "Expected exception ArgumentError but got UndefinedFunctionError (undefined function: Not.Defined.function/3)" = error.message
+      "Expected exception ArgumentError but got UndefinedFunctionError " <>
+      "(undefined function: Not.Defined.function/3 (module Not.Defined is not available))" = error.message
   end
 
   test "assert raise with erlang error" do
@@ -357,5 +381,12 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "This should raise an error" = error.message
+  end
+
+  test "flunk with wrong argument type" do
+    "This should never be tested" = flunk ["flunk takes a binary, not a list"]
+  rescue
+    error ->
+      "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
   end
 end

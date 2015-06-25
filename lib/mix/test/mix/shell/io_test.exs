@@ -28,4 +28,19 @@ defmodule Mix.Shell.IOTest do
     assert capture_io("n", fn -> refute yes?("Ok?") end)
     assert capture_io("", fn -> refute yes?("Ok?") end)
   end
+
+  test "runs a given command" do
+    assert capture_io("", fn -> assert cmd("echo hello") == 0 end) == "hello\n"
+
+    will_print_sample()
+    assert capture_io("", fn -> assert cmd("echo hello", print_app: false) == 0 end) ==
+           "hello\n"
+    assert capture_io("", fn -> assert cmd("echo hello") == 0 end) ==
+           "==> sample\nhello\n"
+  end
+
+  defp will_print_sample do
+    Mix.Project.push nil
+    Mix.Project.push MixTest.Case.Sample
+  end
 end

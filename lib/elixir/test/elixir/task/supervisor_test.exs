@@ -1,28 +1,29 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Task.SupervisorTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   setup do
     {:ok, pid} = Task.Supervisor.start_link()
     {:ok, supervisor: pid}
   end
 
-  teardown config do
-    Process.exit(config[:supervisor], :shutdown)
+  setup do
+    Logger.remove_backend(:console)
+    on_exit fn -> Logger.add_backend(:console, flush: true) end
     :ok
   end
 
   def wait_and_send(caller, atom) do
+    send caller, :ready
     receive do: (true -> true)
     send caller, atom
   end
 
   test "async/1", config do
-    task = Task.Supervisor.async config[:supervisor], fn ->
-      receive do: (true -> true)
-      :done
-    end
+    parent = self()
+    fun = fn -> wait_and_send(parent, :done) end
+    task = Task.Supervisor.async(config[:supervisor], fun)
 
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
@@ -34,6 +35,12 @@ defmodule Task.SupervisorTest do
     # Assert the link
     {:links, links} = Process.info(self, :links)
     assert task.pid in links
+
+    receive do: (:ready -> :ok)
+
+    # Assert the initial call
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
 
     # Run the task
     send task.pid, true
@@ -48,6 +55,9 @@ defmodule Task.SupervisorTest do
     task = Task.Supervisor.async(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
     assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
 
+    receive do: (:ready -> :ok)
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(task.pid)
+
     send task.pid, true
     assert task.__struct__ == Task
     assert Task.await(task) == :done
@@ -55,11 +65,16 @@ defmodule Task.SupervisorTest do
 
   test "start_child/1", config do
     parent = self()
-    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fn -> wait_and_send(parent, :done) end)
+    fun = fn -> wait_and_send(parent, :done) end
+    {:ok, pid} = Task.Supervisor.start_child(config[:supervisor], fun)
     assert Task.Supervisor.children(config[:supervisor]) == [pid]
 
     {:links, links} = Process.info(self, :links)
     refute pid in links
+
+    receive do: (:ready -> :ok)
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
@@ -71,6 +86,9 @@ defmodule Task.SupervisorTest do
 
     {:links, links} = Process.info(self, :links)
     refute pid in links
+
+    receive do: (:ready -> :ok)
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(pid)
 
     send pid, true
     assert_receive :done
@@ -85,18 +103,21 @@ defmodule Task.SupervisorTest do
   end
 
   test "await/1 exits on task throw", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> throw :unknown end)
     assert {{{:nocatch, :unknown}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task error", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> raise "oops" end)
     assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))
   end
 
   test "await/1 exits on task exit", config do
+    Process.flag(:trap_exit, true)
     task = Task.Supervisor.async(config[:supervisor], fn -> exit :unknown end)
     assert {:unknown, {Task, :await, [^task, 5000]}} =
            catch_exit(Task.await(task))

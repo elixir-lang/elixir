@@ -25,10 +25,10 @@ defmodule ExUnit.Assertions do
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
 
-     Comparison (using ==) failed in:
-     code: some_fun() == 10
-     lhs:  13
-     rhs:  10
+      Comparison (using ==) failed in:
+      code: some_fun() == 10
+      lhs:  13
+      rhs:  10
 
   This module also provides other convenience functions
   like `assert_in_delta` and `assert_raise` to easily handle other
@@ -36,7 +36,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts its argument is true.
+  Asserts its argument is `true`.
 
   `assert` tries to be smart and provide good
   reporting whenever there is a failure. In particular, if
@@ -191,7 +191,7 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Asserts `value` is true, displaying the given `message` otherwise.
+  Asserts `value` is `true`, displaying the given `message` otherwise.
 
   ## Examples
 
@@ -208,25 +208,10 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `value` is true.
-  If it fails, it raises an expectation error
-  using the given `left` and `right` values.
+  Asserts a message was or is going to be received.
 
-  You probably don't need to use this—the regular `assert` function
-  handles this for you.
-
-  ## Examples
-
-      assert this > that, this, that, "more than"
-
-  """
-  def assert(value, left, right, message) when is_binary(message) do
-    assert(value, left: left, right: right, message: message)
-  end
-
-  @doc """
-  Asserts a message was or is going to be received. Unlike
-  `assert_received`, it has a default timeout of 100 milliseconds.
+  Unlike `assert_received`, it has a default timeout
+  of 100 milliseconds.
 
   The `expected` argument is a pattern.
 
@@ -246,7 +231,9 @@ defmodule ExUnit.Assertions do
       assert_receive {:count, ^x}
 
   """
-  defmacro assert_receive(expected, timeout \\ 100, message \\ nil) do
+  defmacro assert_receive(expected,
+                          timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
+                          message \\ nil) do
     do_assert_receive(expected, timeout, message)
   end
 
@@ -273,19 +260,50 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
-    message = message || "No message matching #{binary}"
+
+    pattern =
+      case expected do
+        {:when, meta, [left, right]} ->
+          {:when, meta, [quote(do: unquote(left) = received), right]}
+        left ->
+          quote(do: unquote(left) = received)
+      end
 
     {:receive, meta, args} =
       quote do
         receive do
-          unquote(expected) = received -> received
+          unquote(pattern) ->
+            received
         after
-          unquote(timeout) ->
-            flunk unquote(message)
+          timeout ->
+            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms"
+            flunk(message <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
-    {:receive, [{:export_head, true}|meta], args}
+    quote do
+      timeout = unquote(timeout)
+      unquote({:receive, [{:export_head, true}|meta], args})
+    end
+  end
+
+  @max_mailbox_length 10
+
+  @doc false
+  def __mailbox__(pid) do
+    {:messages, messages} = Process.info(pid, :messages)
+    length = length(messages)
+    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join("\n", &inspect/1)
+    mailbox_message(length, mailbox)
+  end
+
+  defp mailbox_message(0, _mailbox), do: ". The process mailbox is empty."
+  defp mailbox_message(length, mailbox) when length > 10 do
+    ". Process mailbox:\n" <> mailbox
+      <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
+  end
+  defp mailbox_message(_length, mailbox) do
+    ". Process mailbox:\n" <> mailbox
   end
 
   @doc """
@@ -346,7 +364,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts that `val1` and `val2` differ by no more than `delta`.
+  Asserts that `value1` and `value2` differ by no more than `delta`.
 
 
   ## Examples
@@ -355,11 +373,11 @@ defmodule ExUnit.Assertions do
       assert_in_delta 10, 15, 4
 
   """
-  def assert_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def assert_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = message ||
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be less than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be less than #{inspect delta}"
     assert diff < delta, message
   end
 
@@ -429,8 +447,6 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-      refute_receive message, timeout \\ 100, message \\ nil
-
   Asserts `message` was not received (and won't be received) within
   the `timeout` period.
 
@@ -445,7 +461,9 @@ defmodule ExUnit.Assertions do
       refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(not_expected, timeout \\ 100, message \\ nil) do
+  defmacro refute_receive(not_expected,
+                          timeout \\ Application.fetch_env!(:ex_unit, :refute_receive_timeout),
+                          message \\ nil) do
     do_refute_receive(not_expected, timeout, message)
   end
 
@@ -492,7 +510,7 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  Asserts `val1` and `val2` are not within `delta`.
+  Asserts `value1` and `value2` are not within `delta`.
 
   If you supply `message`, information about the values will
   automatically be appended to it.
@@ -503,14 +521,14 @@ defmodule ExUnit.Assertions do
       refute_in_delta 10, 11, 2
 
   """
-  def refute_in_delta(val1, val2, delta, message \\ nil) do
-    diff = abs(val1 - val2)
+  def refute_in_delta(value1, value2, delta, message \\ nil) do
+    diff = abs(value1 - value2)
     message = if message do
-      message <> " (difference between #{inspect val1} " <>
-      "and #{inspect val2} is less than #{inspect delta})"
+      message <> " (difference between #{inspect value1} " <>
+      "and #{inspect value2} is less than #{inspect delta})"
     else
-      "Expected the difference between #{inspect val1} and " <>
-      "#{inspect val2} (#{inspect diff}) to be more than #{inspect delta}"
+      "Expected the difference between #{inspect value1} and " <>
+      "#{inspect value2} (#{inspect diff}) to be more than #{inspect delta}"
     end
     refute diff < delta, message
   end
@@ -525,7 +543,7 @@ defmodule ExUnit.Assertions do
   """
   @spec flunk :: no_return
   @spec flunk(String.t) :: no_return
-  def flunk(message \\ "Flunked!") do
+  def flunk(message \\ "Flunked!") when is_binary(message) do
     assert false, message: message
   end
 end

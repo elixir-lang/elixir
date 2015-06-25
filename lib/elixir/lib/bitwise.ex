@@ -1,10 +1,8 @@
 defmodule Bitwise do
   @moduledoc """
-  This module provides macros and operators for bitwise operators.
-  These macros can be used in guards.
-
-  The easiest way to use is to simply import them into
-  your module:
+  This module provides macro-based operators that perform calculations
+  on (sets of) bits. In general, you should `use` the Bitwise module
+  as a whole:
 
       iex> use Bitwise
       iex> bnot 1
@@ -12,20 +10,27 @@ defmodule Bitwise do
       iex> 1 &&& 1
       1
 
-  You can select to include only or skip operators by passing options:
+  Alternatively, you can include or skip selected operators:
 
       iex> use Bitwise, only_operators: true
       iex> 1 &&& 1
       1
 
+  These macros can be used in guards:
+
+      iex> use Bitwise
+      iex> odd? = fn(int) when band(int, 1) == 1 -> true; (_) -> false end
+      iex> odd?.(1)
+      true
+
   """
 
   @doc """
-  Allow a developer to use this module in their programs with
+  Allows a developer to `use` this module in their programs with
   the following options:
 
-  * `:only_operators` - Include only operators;
-  * `:skip_operators` - Skip operators;
+    * `:only_operators` - include only operators
+    * `:skip_operators` - skip operators
 
   """
   defmacro __using__(options) do
@@ -43,84 +48,160 @@ defmodule Bitwise do
   end
 
   @doc """
-  Bitwise not.
+  Calculates the bitwise NOT of its argument.
+
+      iex> bnot(2)
+      -3
+      iex> bnot(2) &&& 3
+      1
+
   """
   defmacro bnot(expr) do
     quote do: :erlang.bnot(unquote(expr))
   end
 
   @doc """
-  Bitwise not as operator.
+  Prefix (unary) operator; calculates the bitwise NOT of its argument.
+
+      iex> ~~~2
+      -3
+      iex> ~~~2 &&& 3
+      1
+
   """
   defmacro ~~~expr do
     quote do: :erlang.bnot(unquote(expr))
   end
 
   @doc """
-  Bitwise and.
+  Calculates the bitwise AND of its arguments.
+
+      iex> band(9, 3)
+      1
+
   """
   defmacro band(left, right) do
     quote do: :erlang.band(unquote(left), unquote(right))
   end
 
   @doc """
-  Bitwise and as operator.
+  Infix operator; calculates the bitwise AND of its arguments.
+
+      iex> 9 &&& 3
+      1
+
   """
   defmacro left &&& right do
     quote do: :erlang.band(unquote(left), unquote(right))
   end
 
   @doc """
-  Bitwise or.
+  Calculates the bitwise OR of its arguments.
+
+      iex> bor(9, 3)
+      11
+
   """
   defmacro bor(left, right) do
     quote do: :erlang.bor(unquote(left), unquote(right))
   end
 
   @doc """
-  Bitwise or as operator.
+  Infix operator; calculates the bitwise OR of its arguments.
+
+      iex> 9 ||| 3
+      11
+
   """
   defmacro left ||| right do
     quote do: :erlang.bor(unquote(left), unquote(right))
   end
 
   @doc """
-  Bitwise xor.
+  Calculates the bitwise XOR of its arguments.
+
+      iex> bxor(9, 3)
+      10
+
   """
   defmacro bxor(left, right) do
     quote do: :erlang.bxor(unquote(left), unquote(right))
   end
 
   @doc """
-  Bitwise xor as operator.
+  Infix operator; calculates the bitwise XOR of its arguments.
+
+      iex> 9 ^^^ 3
+      10
+
   """
   defmacro left ^^^ right do
     quote do: :erlang.bxor(unquote(left), unquote(right))
   end
 
   @doc """
-  Arithmetic bitshift left.
+  Calculates the result of an arithmetic left bitshift.
+
+      iex> bsl(1, 2)
+      4
+      iex> bsl(1, -2)
+      0
+      iex> bsl(-1, 2)
+      -4
+      iex> bsl(-1, -2)
+      -1
+
   """
   defmacro bsl(left, right) do
     quote do: :erlang.bsl(unquote(left), unquote(right))
   end
 
   @doc """
-  Arithmetic bitshift left as operator.
+  Infix operator; calculates the result of an arithmetic left bitshift.
+
+      iex> 1 <<< 2
+      4
+      iex> 1 <<< -2
+      0
+      iex> -1 <<< 2
+      -4
+      iex> -1 <<< -2
+      -1
+
   """
   defmacro left <<< right do
     quote do: :erlang.bsl(unquote(left), unquote(right))
   end
 
   @doc """
-  Arithmetic bitshift right.
+  Calculates the result of an arithmetic right bitshift.
+
+      iex> bsr(1, 2)
+      0
+      iex> bsr(1, -2)
+      4
+      iex> bsr(-1, 2)
+      -1
+      iex> bsr(-1, -2)
+      -4
+
   """
   defmacro bsr(left, right) do
     quote do: :erlang.bsr(unquote(left), unquote(right))
   end
 
   @doc """
-  Arithmetic bitshift right as operator.
+  Infix operator; calculates the result of an arithmetic left bitshift.
+
+      iex> 1 >>> 2
+      0
+      iex> 1 >>> -2
+      4
+      iex> -1 >>> 2
+      -1
+      iex> -1 >>> -2
+      -4
+
   """
   defmacro left >>> right do
     quote do: :erlang.bsr(unquote(left), unquote(right))

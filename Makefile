@@ -1,17 +1,18 @@
-REBAR := rebar
+REBAR ?= $(CURDIR)/rebar
+PREFIX ?= /usr/local
+DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
 Q := @
-PREFIX := /usr/local
 LIBDIR := lib
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install compile erlang elixir dialyze test clean docs release_docs release_zip check_erlang_release
+.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -32,7 +33,7 @@ $(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 lib/$(1)/ebin/$(1).app: lib/$(1)/mix.exs
 	$(Q) mkdir -p lib/$(1)/_build/shared/lib/$(1)
 	$(Q) cp -R lib/$(1)/ebin lib/$(1)/_build/shared/lib/$(1)/
-	$(Q) cd lib/$(1) && ../../bin/elixir -e "Mix.Sup.start_link()" -r mix.exs -e "Mix.Task.run('compile.app')"
+	$(Q) cd lib/$(1) && ../../bin/elixir -e 'Mix.start(:permanent, [])' -r mix.exs -e 'Mix.Task.run("compile.app")'
 	$(Q) cp lib/$(1)/_build/shared/lib/$(1)/ebin/$(1).app lib/$(1)/ebin/$(1).app
 	$(Q) rm -rf lib/$(1)/_build
 
@@ -63,15 +64,15 @@ lib/elixir/src/elixir.app.src: src/elixir.app.src
 	$(Q) cat src/elixir.app.src >>lib/elixir/src/elixir.app.src
 
 erlang:
-	$(Q) cd lib/elixir && ../../$(REBAR) compile
+	$(Q) cd lib/elixir && $(REBAR) compile
 
 # Since Mix depends on EEx and EEx depends on
 # Mix, we first compile EEx without the .app
 # file, then mix and then compile EEx fully
-elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit eex iex
+elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
 stdlib: $(KERNEL) VERSION
-$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
+$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then                    \
 		echo "==> bootstrap (compile)";                 \
 		$(ERL) -s elixir_compiler core -s erlang halt;  \
@@ -81,15 +82,16 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
 	$(Q) $(MAKE) unicode
 	$(Q) rm -rf lib/elixir/ebin/elixir.app
-	$(Q) cd lib/elixir && ../../$(REBAR) compile
+	$(Q) cd lib/elixir && $(REBAR) compile
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	@ echo "This step can take up to a minute to compile in order to embed the Unicode database"
+	@ echo "Embedding the Unicode database... (this may take a while)"
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) unicode/unicode.ex -o ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
+$(eval $(call APP_TEMPLATE,logger,Logger))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
@@ -97,18 +99,28 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 install: compile
 	@ echo "==> elixir (install)"
 	$(Q) for dir in lib/*; do \
+		rm -Rf $(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin; \
 		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
 	done
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
-	$(Q) $(INSTALL_PROGRAM) $(filter-out %.bat, $(wildcard bin/*)) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
+	$(Q) $(INSTALL_PROGRAM) $(filter-out %.ps1, $(filter-out %.bat, $(wildcard bin/*))) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/bin"
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/* ; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/bin/" ; \
 	done
+	$(MAKE) install_man
+
+install_man:
+	$(Q) mkdir -p $(PREFIX)/share/man/man1
+	cd man && $(MAKE) build
+	$(Q) $(INSTALL_DATA) man/elixir.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1 $(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/mix.1 $(PREFIX)/share/man/man1
 
 clean:
-	cd lib/elixir && ../../$(REBAR) clean
+	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf lib/elixir/test/ebin
@@ -117,35 +129,71 @@ clean:
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
 	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
+	cd man && $(MAKE) clean
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
-#==> Release tasks
+#==>  Create Documentation
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o docs/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
 
-docs: compile ../ex_doc/bin/ex_doc
-	$(Q) rm -rf docs
-	$(call DOCS,Elixir,elixir,Kernel)
-	$(call DOCS,EEx,eex,EEx)
-	$(call DOCS,Mix,mix,Mix)
-	$(call DOCS,IEx,iex,IEx)
-	$(call DOCS,ExUnit,ex_unit,ExUnit)
+docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
+
+docs_elixir: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (elixir)"
+	$(Q) rm -rf doc/elixir
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel)
+
+docs_eex: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (eex)"
+	$(Q) rm -rf doc/eex
+	$(call COMPILE_DOCS,EEx,eex,EEx)
+
+docs_mix: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (mix)"
+	$(Q) rm -rf doc/mix
+	$(call COMPILE_DOCS,Mix,mix,Mix)
+
+docs_iex: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (iex)"
+	$(Q) rm -rf doc/iex
+	$(call COMPILE_DOCS,IEx,iex,IEx)
+
+docs_ex_unit: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (ex_unit)"
+	$(Q) rm -rf doc/ex_unit
+	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit)
+
+docs_logger: compile ../ex_doc/bin/ex_doc
+	@ echo "==> ex_doc (logger)"
+	$(Q) rm -rf doc/logger
+	$(call COMPILE_DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
+#==> Release tasks
+
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE README.md VERSION
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE Makefile README.md VERSION
 
 release_docs: docs
-	cd ../docs
-	rm -rf ../docs/master
-	mv docs ../docs/master
+	rm -rf ../docs/$(DOCS)/*/
+	mv doc/* ../docs/$(DOCS)
+
+# This task requires aws-cli to be installed and set up for access to s3.hex.pm
+# See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
+
+publish_mix: compile
+	cd lib/mix && MIX_ENV=prod mix escript.build
+	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/v$(VERSION)/mix --acl public-read
+	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/mix --acl public-read
+	rm lib/mix/mix
+	rm -rf lib/mix/_build
 
 #==> Tests tasks
 
@@ -164,7 +212,7 @@ $(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
 	$(Q) mkdir -p $(TEST_EBIN)
 	$(Q) $(ERLC) -o $(TEST_EBIN) $<
 
-test_elixir: test_stdlib test_ex_unit test_doc_test test_mix test_eex test_iex
+test_elixir: test_stdlib test_ex_unit test_logger test_doc_test test_mix test_eex test_iex
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"
@@ -172,16 +220,27 @@ test_doc_test: compile
 
 test_stdlib: compile
 	@ echo "==> elixir (exunit)"
-	$(Q) cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs";
+	$(Q) exec epmd & exit
+	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
+		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+	else \
+		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+	fi
 
-.dialyzer.base_plt:
-	@ echo "==> Adding Erlang/OTP basic applications to a new base PLT"
-	$(Q) dialyzer --output_plt .dialyzer.base_plt --build_plt --apps erts kernel stdlib compiler tools syntax_tools parsetools
+#==> Dialyzer tasks
 
-dialyze: .dialyzer.base_plt
-	$(Q) rm -f .dialyzer_plt
-	$(Q) cp .dialyzer.base_plt .dialyzer_plt
-	@ echo "==> Adding Elixir to PLT..."
-	$(Q) dialyzer --plt .dialyzer_plt --add_to_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
+DIALYZER_OPTS = --no_check_plt --fullpath -Werror_handling -Wunmatched_returns -Wunderspecs
+PLT = .elixir.plt
+
+$(PLT):
+	@ echo "==> Building PLT with Elixir's dependencies..."
+	$(Q) dialyzer --output_plt $(PLT) --build_plt --apps erts kernel stdlib compiler syntax_tools parsetools tools ssl inets
+
+clean_plt:
+	$(Q) rm -f $(PLT)
+
+build_plt: clean_plt $(PLT)
+
+dialyze: compile $(PLT)
 	@ echo "==> Dialyzing Elixir..."
-	$(Q) dialyzer --plt .dialyzer_plt -r lib/elixir/ebin lib/ex_unit/ebin lib/eex/ebin lib/iex/ebin lib/mix/ebin
+	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin

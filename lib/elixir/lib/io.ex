@@ -2,7 +2,7 @@ defmodule IO do
   @moduledoc """
   Functions handling IO.
 
-  Many functions in this module expects an IO device as argument.
+  Many functions in this module expect an IO device as an argument.
   An IO device must be a pid or an atom representing a process.
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
@@ -12,7 +12,7 @@ defmodule IO do
   it will do a conversion to string via the `String.Chars` protocol
   (as shown in typespecs).
 
-  The functions starting with `bin*` expects iodata as argument,
+  The functions starting with `bin*` expect iodata as an argument,
   i.e. binaries or lists of bytes and binaries.
 
   ## IO devices
@@ -21,12 +21,12 @@ defmodule IO do
   the atom must be the name of a registered process. However,
   there are three exceptions for this rule:
 
-  * `:standard_io` - when the `:standard_io` atom is given,
-    it is treated as a shortcut for `Process.group_leader`
+    * `:standard_io` - when the `:standard_io` atom is given,
+      it is treated as a shortcut for `Process.group_leader`
 
-  * `:stdio` - is a shortcut for `:standard_io`
+    * `:stdio` - is a shortcut for `:standard_io`
 
-  * `:stderr` - is a shortcut for `:standard_error`
+    * `:stderr` - is a shortcut for `:standard_error`
 
   """
 
@@ -43,19 +43,28 @@ defmodule IO do
   end
 
   @doc """
-  Reads `count` characters from the IO device or until
-  the end of the line if `:line` is given. It returns:
+  Reads `count` characters from the IO device, a whole
+  `:line` or the whole device with `:all`.
 
-  * `data` - The input characters.
+  It returns:
 
-  * `:eof` - End of file was encountered.
+    * `data` - the input characters
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `:eof` - end of file was encountered
+
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
+
+  If `:all` is given, `:eof` is never returned, but an
+  empty string in case the device has reached EOF.
   """
-  @spec read(device, :line | non_neg_integer) :: chardata | nodata
+  @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ group_leader, chars_or_line)
+
+  def read(device, :all) do
+    do_read_all(map_dev(device), "")
+  end
 
   def read(device, :line) do
     :io.get_line(map_dev(device), '')
@@ -65,20 +74,40 @@ defmodule IO do
     :io.get_chars(map_dev(device), '', count)
   end
 
+  defp do_read_all(mapped_dev, acc) do
+    case :io.get_line(mapped_dev, "") do
+      line when is_binary(line) -> do_read_all(mapped_dev, acc <> line)
+      :eof -> acc
+      other -> other
+    end
+  end
+
   @doc """
-  Reads `count` bytes from the IO device or until
-  the end of the line if `:line` is given. It returns:
+  Reads `count` characters from the IO device, a whole
+  `:line` or the whole device with `:all`.
 
-  * `data` - The input characters.
+  It returns:
 
-  * `:eof` - End of file was encountered.
+    * `data` - the input characters
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `:eof` - end of file was encountered
+
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
+
+  If `:all` is given, `:eof` is never returned, but an
+  empty string in case the device has reached EOF.
+
+  Note: do not use this function on IO devices in unicode mode
+  as it will return the wrong result.
   """
-  @spec binread(device, :line | non_neg_integer) :: iodata | nodata
+  @spec binread(device, :all | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ group_leader, chars_or_line)
+
+  def binread(device, :all) do
+    do_binread_all(map_dev(device), "")
+  end
 
   def binread(device, :line) do
     case :file.read_line(map_dev(device)) do
@@ -90,6 +119,15 @@ defmodule IO do
   def binread(device, count) when count >= 0 do
     case :file.read(map_dev(device), count) do
       {:ok, data} -> data
+      other -> other
+    end
+  end
+
+  @read_all_size 4096
+  defp do_binread_all(mapped_dev, acc) do
+    case :file.read(mapped_dev, @read_all_size) do
+      {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
+      :eof -> acc
       other -> other
     end
   end
@@ -119,6 +157,9 @@ defmodule IO do
   as a binary, no unicode conversion happens.
 
   Check `write/2` for more information.
+
+  Note: do not use this function on IO devices in unicode mode
+  as it will return the wrong result.
   """
   @spec binwrite(device, iodata) :: :ok | {:error, term}
   def binwrite(device \\ group_leader(), item) when is_iodata(item) do
@@ -139,17 +180,13 @@ defmodule IO do
   @doc """
   Inspects and writes the given argument to the device.
 
-  It sets by default pretty printing to true and returns
-  the item itself.
-
-  Note this function does not use the IO device width
-  because some IO devices does not implement the
-  appropriate functions. Setting the width must be done
-  explicitly by passing the `:width` option.
+  It enables pretty printing by default with width of
+  80 characters. The width can be changed by explicitly
+  passing the `:width` option.
 
   ## Examples
 
-      IO.inspect Process.list
+      IO.inspect Process.list, width: 40
 
   """
   @spec inspect(term, Keyword.t) :: term
@@ -162,8 +199,9 @@ defmodule IO do
   """
   @spec inspect(device, term, Keyword.t) :: term
   def inspect(device, item, opts) when is_list(opts) do
-    opts = Keyword.put_new(opts, :pretty, true)
-    puts device, Kernel.inspect(item, opts)
+    opts   = struct(Inspect.Opts, opts)
+    iodata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
+    puts device, iodata
     item
   end
 
@@ -174,13 +212,13 @@ defmodule IO do
   Otherwise, `count` is the number of raw bytes to be retrieved.
   It returns:
 
-  * `data` - The input characters.
+    * `data` - the input characters
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec getn(chardata | String.Chars.t, pos_integer) :: chardata | nodata
   @spec getn(device, chardata | String.Chars.t) :: chardata | nodata
@@ -208,14 +246,14 @@ defmodule IO do
   @doc """
   Reads a line from the IO device. It returns:
 
-  * `data` - The characters in the line terminated
-    by a LF (or end of file).
+    * `data` - the characters in the line terminated
+      by a LF (or end of file)
 
-  * `:eof` - End of file was encountered.
+    * `:eof` - end of file was encountered
 
-  * `{:error, reason}` - Other (rare) error condition,
-    for instance `{:error, :estale}` if reading from an
-    NFS file system.
+    * `{:error, reason}` - other (rare) error condition;
+      for instance, `{:error, :estale}` if reading from an
+      NFS volume
   """
   @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
   def gets(device \\ group_leader(), prompt) do
@@ -248,8 +286,7 @@ defmodule IO do
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t
   def stream(device, line_or_codepoints) do
-    struct IO.Stream,
-      device: map_dev(device), raw: false, line_or_bytes: line_or_codepoints
+    IO.Stream.__build__(map_dev(device), false, line_or_codepoints)
   end
 
   @doc """
@@ -264,11 +301,13 @@ defmodule IO do
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
+
+  Finally, do not use this function on IO devices in unicode
+  mode as it will return the wrong result.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t
   def binstream(device, line_or_bytes) do
-    struct IO.Stream,
-      device: map_dev(device), raw: true, line_or_bytes: line_or_bytes
+    IO.Stream.__build__(map_dev(device), true, line_or_bytes)
   end
 
   @doc """
@@ -324,11 +363,11 @@ defmodule IO do
       iex> bin2 = <<4, 5>>
       iex> bin3 = <<6>>
       iex> IO.iodata_to_binary([bin1, 1, [2, 3, bin2], 4|bin3])
-      <<1,2,3,1,2,3,4,5,4,6>>
+      <<1, 2, 3, 1, 2, 3, 4, 5, 4, 6>>
 
       iex> bin = <<1, 2, 3>>
       iex> IO.iodata_to_binary(bin)
-      <<1,2,3>>
+      <<1, 2, 3>>
 
   """
   @spec iodata_to_binary(iodata) :: binary
@@ -356,11 +395,11 @@ defmodule IO do
   def each_stream(device, what) do
     case read(device, what) do
       :eof ->
-        nil
+        {:halt, device}
       {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        {data, device}
+        {[data], device}
     end
   end
 
@@ -368,11 +407,11 @@ defmodule IO do
   def each_binstream(device, what) do
     case binread(device, what) do
       :eof ->
-        nil
+        {:halt, device}
       {:error, reason} ->
         raise IO.StreamError, reason: reason
       data ->
-        {data, device}
+        {[data], device}
     end
   end
 

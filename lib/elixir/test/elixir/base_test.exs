@@ -3,7 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule BaseTest do
   use ExUnit.Case, async: true
   import Base
-  
+
   test "encode16" do
     assert "" == encode16("")
     assert "66" == encode16("f")
@@ -13,6 +13,8 @@ defmodule BaseTest do
     assert "666F6F6261" == encode16("fooba")
     assert "666F6F626172" == encode16("foobar")
     assert "A1B2C3D4E5F67891" == encode16(<<161, 178, 195, 212, 229, 246, 120, 145>>)
+
+    assert "a1b2c3d4e5f67891" == encode16(<<161, 178, 195, 212, 229, 246, 120, 145>>, case: :lower)
   end
 
   test "decode16" do
@@ -23,9 +25,12 @@ defmodule BaseTest do
     assert {:ok, "foob"} == decode16("666F6F62")
     assert {:ok, "fooba"} == decode16("666F6F6261")
     assert {:ok, "foobar"} == decode16("666F6F626172")
-    assert {:ok, <<161, 178,  195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("A1B2C3D4E5F67891")
+
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1b2c3d4e5f67891", case: :lower)
+    assert {:ok, <<161, 178, 195, 212, 229, 246, 120, 145>>} == decode16("a1B2c3D4e5F67891", case: :mixed)
   end
- 
+
   test "decode16!" do
     assert "" == decode16!("")
     assert "f" == decode16!("66")
@@ -35,32 +40,33 @@ defmodule BaseTest do
     assert "fooba" == decode16!("666F6F6261")
     assert "foobar" == decode16!("666F6F626172")
     assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("A1B2C3D4E5F67891")
-  end
 
-  test "decode16 lowercase" do
-    assert :error == decode16("e8")
-  end
-
-  test "decode16! lowercase" do
-    assert_raise ArgumentError, "non-alphabet digit found: e", fn ->
-      decode16!("e8")
-    end
+    assert <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1b2c3d4e5f67891", case: :lower)
+    assert  <<161, 178, 195, 212, 229, 246, 120, 145>> == decode16!("a1B2c3D4e5F67891", case: :mixed)
   end
 
   test "decode16 non-alphabet digit" do
     assert :error == decode16("66KF")
+    assert :error == decode16("66ff")
+    assert :error == decode16("66FF", case: :lower)
   end
 
   test "decode16! non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: K", fn ->
       decode16!("66KF")
     end
+    assert_raise ArgumentError, "non-alphabet digit found: f", fn ->
+      decode16!("66ff")
+    end
+    assert_raise ArgumentError, "non-alphabet digit found: F", fn ->
+      decode16!("66FF", case: :lower)
+    end
   end
 
   test "decode16 odd-length string" do
     assert :error == decode16("666")
   end
-  
+
   test "decode16! odd-length string" do
     assert_raise ArgumentError, "odd-length string", fn ->
       decode16!("666")
@@ -70,7 +76,7 @@ defmodule BaseTest do
   test "encode64 empty" do
     assert "" == encode64("")
   end
-  
+
   test "encode64 two pads" do
     assert "QWxhZGRpbjpvcGVuIHNlc2FtZQ==" == encode64("Aladdin:open sesame")
   end
@@ -119,7 +125,7 @@ defmodule BaseTest do
   test "decode64 non-alphabet digit" do
     assert :error == decode64("Zm9)")
   end
-  
+
   test "decode64! non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
       decode64!("Zm9)")
@@ -129,7 +135,7 @@ defmodule BaseTest do
   test "decode64 incorrect padding" do
     assert :error == decode64("SGVsbG8gV29ybGQ")
   end
-  
+
   test "decode64! incorrect padding" do
     assert_raise ArgumentError, "incorrect padding", fn ->
       decode64!("SGVsbG8gV29ybGQ")
@@ -139,7 +145,7 @@ defmodule BaseTest do
   test "url_encode64 empty" do
     assert "" == url_encode64("")
   end
-  
+
   test "url_encode64 two pads" do
     assert "QWxhZGRpbjpvcGVuIHNlc2FtZQ==" == url_encode64("Aladdin:open sesame")
   end
@@ -154,10 +160,10 @@ defmodule BaseTest do
   end
 
   test "url_encode64 no URL unsafe characters" do
-    refute "/3/+/A==" == url_encode64(<<255,127,254,252>>)
-    assert "_3_-_A==" == url_encode64(<<255,127,254,252>>)
+    refute "/3/+/A==" == url_encode64(<<255, 127, 254, 252>>)
+    assert "_3_-_A==" == url_encode64(<<255, 127, 254, 252>>)
   end
-  
+
   test "url_decode64 empty" do
     assert {:ok, ""} == url_decode64("")
   end
@@ -165,7 +171,7 @@ defmodule BaseTest do
   test "url_decode64! empty" do
     assert "" == url_decode64!("")
   end
-  
+
   test "url_decode64 two pads" do
     assert {:ok, "Aladdin:open sesame"} == url_decode64("QWxhZGRpbjpvcGVuIHNlc2FtZQ==")
   end
@@ -193,7 +199,7 @@ defmodule BaseTest do
   test "url_decode64 non-alphabet digit" do
     assert :error == url_decode64("Zm9)")
   end
-    
+
   test "url_decode64! non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
       url_decode64!("Zm9)")
@@ -203,17 +209,17 @@ defmodule BaseTest do
   test "url_decode64 incorrect padding" do
     assert :error == url_decode64("SGVsbG8gV29ybGQ")
   end
-  
+
   test "url_decode64! incorrect padding" do
     assert_raise ArgumentError, "incorrect padding", fn ->
       url_decode64!("SGVsbG8gV29ybGQ")
     end
   end
-  
+
   test "encode32 empty" do
     assert "" == encode32("")
   end
-  
+
   test "encode32 one pad" do
     assert "MZXW6YQ=" == encode32("foob")
   end
@@ -221,7 +227,7 @@ defmodule BaseTest do
   test "encode32 three pads" do
     assert "MZXW6===" == encode32("foo")
   end
-  
+
   test "encode32 four pads" do
     assert "MZXQ====" == encode32("fo")
   end
@@ -235,6 +241,10 @@ defmodule BaseTest do
     assert "MZXW6YTB" == encode32("fooba")
   end
 
+  test "encode32 lowercase" do
+    assert "mzxw6ytb" == encode32("fooba", case: :lower)
+  end
+
   test "decode32 empty" do
     assert {:ok, ""} == decode32("")
   end
@@ -242,7 +252,7 @@ defmodule BaseTest do
   test "decode32! empty" do
     assert "" == decode32!("")
   end
-  
+
   test "decode32 one pad" do
     assert {:ok, "foob"} == decode32("MZXW6YQ=")
   end
@@ -267,6 +277,22 @@ defmodule BaseTest do
     assert "fo" == decode32!("MZXQ====")
   end
 
+  test "decode32 lowercase" do
+    assert {:ok, "fo"} == decode32("mzxq====", case: :lower)
+  end
+
+  test "decode32! lowercase" do
+    assert "fo" == decode32!("mzxq====", case: :lower)
+  end
+
+  test "decode32 mixed case" do
+    assert {:ok, "fo"} == decode32("mZXq====", case: :mixed)
+  end
+
+  test "decode32! mixed case" do
+    assert "fo" == decode32!("mZXq====", case: :mixed)
+  end
+
   test "decode32 six pads" do
     assert {:ok, "foobar"} == decode32("MZXW6YTBOI======")
     assert {:ok, "f"} == decode32("MY======")
@@ -287,18 +313,26 @@ defmodule BaseTest do
 
   test "decode32 non-alphabet digit" do
     assert :error == decode32("MZX)6YTB")
+    assert :error == decode32("66ff")
+    assert :error == decode32("66FF", case: :lower)
   end
-  
+
   test "decode32! non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
       decode32!("MZX)6YTB")
+    end
+    assert_raise ArgumentError, "non-alphabet digit found: m", fn ->
+      decode32!("mzxw6ytboi======")
+    end
+    assert_raise ArgumentError, "non-alphabet digit found: M", fn ->
+      decode32!("MZXW6YTBOI======", case: :lower)
     end
   end
 
   test "decode32 incorrect padding" do
     assert :error == decode32("MZXW6YQ")
   end
-  
+
   test "decode32! incorrect padding" do
     assert_raise ArgumentError, "incorrect padding", fn ->
       decode32!("MZXW6YQ")
@@ -308,7 +342,7 @@ defmodule BaseTest do
   test "hex_encode32 empty" do
     assert "" == hex_encode32("")
   end
-  
+
   test "hex_encode32 one pad" do
     assert "CPNMUOG=" == hex_encode32("foob")
   end
@@ -316,7 +350,7 @@ defmodule BaseTest do
   test "hex_encode32 three pads" do
     assert "CPNMU===" == hex_encode32("foo")
   end
-  
+
   test "hex_encode32 four pads" do
     assert "CPNG====" == hex_encode32("fo")
   end
@@ -328,6 +362,10 @@ defmodule BaseTest do
 
   test "hex_encode32 no pads" do
     assert "CPNMUOJ1" == hex_encode32("fooba")
+  end
+
+  test "hex_encode32 lowercase" do
+    assert "cpnmuoj1" == hex_encode32("fooba", case: :lower)
   end
 
   test "hex_decode32 empty" do
@@ -382,22 +420,45 @@ defmodule BaseTest do
 
   test "hex_decode32 non-alphabet digit" do
     assert :error == hex_decode32("CPN)UOJ1")
+    assert :error == hex_decode32("66f")
+    assert :error == hex_decode32("66F", case: :lower)
   end
 
   test "hex_decode32! non-alphabet digit" do
     assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
       hex_decode32!("CPN)UOJ1")
     end
+    assert_raise ArgumentError, "non-alphabet digit found: c", fn ->
+      hex_decode32!("cpnmuoj1e8======")
+    end
+    assert_raise ArgumentError, "non-alphabet digit found: C", fn ->
+      hex_decode32!("CPNMUOJ1E8======", case: :lower)
+    end
   end
 
   test "hex_decode32 incorrect padding" do
     assert :error == hex_decode32("CPNMUOG")
   end
-  
+
   test "hex_decode32! incorrect padding" do
     assert_raise ArgumentError, "incorrect padding", fn ->
       hex_decode32!("CPNMUOG")
     end
   end
-  
+
+  test "hex_decode32 lowercase" do
+    assert {:ok, "fo"} == hex_decode32("cpng====", case: :lower)
+  end
+
+  test "hex_decode32! lowercase" do
+    assert "fo" == hex_decode32!("cpng====", case: :lower)
+  end
+
+  test "hex_decode32 mixed case" do
+    assert {:ok, "fo"} == hex_decode32("cPNg====", case: :mixed)
+  end
+
+  test "hex_decode32! mixed case" do
+    assert "fo" == hex_decode32!("cPNg====", case: :mixed)
+  end
 end

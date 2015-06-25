@@ -8,12 +8,6 @@ defprotocol Collectable do
       iex> Enum.into([a: 1, b: 2], %{})
       %{a: 1, b: 2}
 
-  If a collection implements both `Enumerable` and `Collectable`, both
-  operations can be combined with `Enum.traverse/2`:
-
-      iex> Enum.traverse(%{a: 1, b: 2}, fn {k, v} -> {k, v * 2} end)
-      %{a: 2, b: 4}
-
   ## Why Collectable?
 
   The `Enumerable` protocol is useful to take values out of a collection.
@@ -27,24 +21,12 @@ defprotocol Collectable do
   shape where just the range limits are stored.
 
   The `Collectable` module was designed to fill the gap left by the
-  `Enumerable` protocol. It provides two functions: `into/1` and `empty/1`.
-
-  `into/1` can be seen as the opposite of `Enumerable.reduce/3`. If
-  `Enumerable` is about taking values out, `Collectable.into/1` is about
-  collecting those values into a structure.
-
-  `empty/1` receives a collectable and returns an empty version of the
-  same collectable. By combining the enumerable functionality with `into/1`
-  and `empty/1`, one can, for example, implement a traversal mechanism.
+  `Enumerable` protocol. `into/1` can be seen as the opposite of
+  `Enumerable.reduce/3`. If `Enumerable` is about taking values out,
+  `Collectable.into/1` is about collecting those values into a structure.
   """
 
   @type command :: {:cont, term} | :done | :halt
-
-  @doc """
-  Receives a collectable structure and returns an empty one.
-  """
-  @spec empty(t) :: t
-  def empty(collectable)
 
   @doc """
   Returns a function that collects values alongside
@@ -65,10 +47,6 @@ defprotocol Collectable do
 end
 
 defimpl Collectable, for: List do
-  def empty(_list) do
-    []
-  end
-
   def into(original) do
     {[], fn
       list, {:cont, x} -> [x|list]
@@ -79,34 +57,16 @@ defimpl Collectable, for: List do
 end
 
 defimpl Collectable, for: BitString do
-  def empty(_bitstring) do
-    ""
-  end
-
   def into(original) do
     {original, fn
-      bitstring, {:cont, x} -> <<bitstring :: bits, x :: bits>>
-      bitstring, :done -> bitstring
+      acc, {:cont, x} when is_bitstring(x) -> [acc|x]
+      acc, :done -> IO.iodata_to_binary(acc)
       _, :halt -> :ok
     end}
   end
 end
 
-defimpl Collectable, for: Function do
-  def empty(function) do
-    function
-  end
-
-  def into(function) do
-    {function, function}
-  end
-end
-
 defimpl Collectable, for: Map do
-  def empty(_map) do
-    %{}
-  end
-
   def into(original) do
     {original, fn
       map, {:cont, {k, v}} -> :maps.put(k, v, map)

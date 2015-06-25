@@ -14,19 +14,22 @@ defmodule IO.Stream do
 
   The following fields are public:
 
-  * `device` - the IO device
-  * `raw` - a boolean indicating if bin functions should be used
-  * `line_or_bytes` - if reading should read lines or a given amount of bytes
+    * `device`        - the IO device
+    * `raw`           - a boolean indicating if bin functions should be used
+    * `line_or_bytes` - if reading should read lines or a given amount of bytes
 
   """
 
   defstruct device: nil, raw: true, line_or_bytes: :line
 
-  defimpl Collectable do
-    def empty(stream) do
-      stream
-    end
+  @type t :: %__MODULE__{}
 
+  @doc false
+  def __build__(device, raw, line_or_bytes) do
+    %IO.Stream{device: device, raw: raw, line_or_bytes: line_or_bytes}
+  end
+
+  defimpl Collectable do
     def into(%{device: device, raw: raw} = stream) do
       {:ok, into(stream, device, raw)}
     end
@@ -50,7 +53,7 @@ defmodule IO.Stream do
           true  -> &IO.each_binstream(&1, line_or_bytes)
           false -> &IO.each_stream(&1, line_or_bytes)
         end
-      Stream.unfold(device, next_fun).(acc, fun)
+      Stream.resource(fn -> device end, next_fun, &(&1)).(acc, fun)
     end
 
     def count(_stream) do

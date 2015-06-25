@@ -1,5 +1,9 @@
 defmodule EEx.SyntaxError do
-  defexception [:message]
+  defexception [:message, :file, :line]
+
+  def message(exception) do
+    "#{exception.file}:#{exception.line}: #{exception.message}"
+  end
 end
 
 defmodule EEx do
@@ -14,32 +18,30 @@ defmodule EEx do
 
   This module provides 3 main APIs for you to use:
 
-  1) Evaluate a string (`eval_string`) or a file (`eval_file`)
-     directly. This is the simplest API to use but also the
-     slowest, since the code is evaluated and not compiled before;
+    1. Evaluate a string (`eval_string`) or a file (`eval_file`)
+       directly. This is the simplest API to use but also the
+       slowest, since the code is evaluated and not compiled before.
 
-  2) Define a function from a string (`function_from_string`)
-     or a file (`function_from_file`). This allows you to embed
-     the template as a function inside a module which will then
-     be compiled. This is the preferred API if you have access
-     to the template at compilation time;
+    2. Define a function from a string (`function_from_string`)
+       or a file (`function_from_file`). This allows you to embed
+       the template as a function inside a module which will then
+       be compiled. This is the preferred API if you have access
+       to the template at compilation time.
 
-  3) Compile a string (`compile_string`) or a file (`compile_file`)
-     into Elixir syntax tree. This is the API used by both functions
-     above and is available to you if you want to provide your own
-     ways of handling the compiled template.
+    3. Compile a string (`compile_string`) or a file (`compile_file`)
+       into Elixir syntax tree. This is the API used by both functions
+       above and is available to you if you want to provide your own
+       ways of handling the compiled template.
 
   ## Options
 
   All functions in this module accepts EEx-related options.
   They are:
 
-  * `:line` - the line to be used as the template start.
-              Defaults to 1;
-  * `:file` - the file to be used in the template.
-              Defaults to the given file the template is read from
-              or to "nofile" when compiling from a string;
-  * `:engine` - the EEx engine to be used for compilation.
+    * `:line` - the line to be used as the template start. Defaults to 1.
+    * `:file` - the file to be used in the template. Defaults to the given
+      file the template is read from or to "nofile" when compiling from a string.
+    * `:engine` - the EEx engine to be used for compilation.
 
   ## Engine
 
@@ -60,7 +62,7 @@ defmodule EEx do
 
   All expressions that output something to the template
   **must** use the equals sign (`=`). Since everything in
-  Elixir is a macro, there are no exceptions for this rule.
+  Elixir is an expression, there are no exceptions for this rule.
   For example, while some template languages would special-
   case `if` clauses, they are treated the same in EEx and
   also require `=` in order to have their result printed:
@@ -83,7 +85,7 @@ defmodule EEx do
       iex> EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
       "1"
 
-  In other words, <%= @foo %> is simply translated to:
+  In other words, `<%= @foo %>` is simply translated to:
 
       <%= Dict.get assigns, :foo %>
 
@@ -93,6 +95,7 @@ defmodule EEx do
 
   @doc """
   Generates a function definition from the string.
+
   The kind (`:def` or `:defp`) must be given, the
   function name, its arguments and the compilation options.
 
@@ -121,6 +124,7 @@ defmodule EEx do
 
   @doc """
   Generates a function definition from the file contents.
+
   The kind (`:def` or `:defp`) must be given, the
   function name, its arguments and the compilation options.
 
@@ -148,6 +152,7 @@ defmodule EEx do
       args = Enum.map args, fn arg -> {arg, [line: 1], nil} end
       compiled = EEx.compile_file(file, info)
 
+      @external_resource file
       @file file
       case kind do
         :def  -> def(unquote(name)(unquote_splicing(args)), do: unquote(compiled))
@@ -192,11 +197,11 @@ defmodule EEx do
 
   ## Examples
 
-      # sample.ex
+      # sample.eex
       foo <%= bar %>
 
       # iex
-      EEx.eval_file "sample.ex", [bar: "baz"] #=> "foo baz"
+      EEx.eval_file "sample.eex", [bar: "baz"] #=> "foo baz"
 
   """
   def eval_file(filename, bindings \\ [], options \\ []) do

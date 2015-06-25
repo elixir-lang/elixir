@@ -25,11 +25,11 @@ defmodule Kernel.ErrorHandler do
 
   defp ensure_loaded(module) do
     case Code.ensure_loaded(module) do
-      {:module, _} -> []
+      {:module, _} -> :ok
       {:error, _} ->
         parent = :erlang.get(:elixir_compiler_pid)
         ref    = :erlang.make_ref
-        send parent, {:waiting, module, self(), ref, module}
+        send parent, {:waiting, :module, self(), ref, module}
         :erlang.garbage_collect(self)
         receive do
           {^ref, :ready}   -> :ok

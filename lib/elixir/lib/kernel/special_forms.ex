@@ -37,7 +37,7 @@ defmodule Kernel.SpecialForms do
       {1, 2, 3}
 
       iex> quote do: {1, 2, 3}
-      {:{}, [], [1,2,3]}
+      {:{}, [], [1, 2, 3]}
 
   """
   defmacro unquote(:{})(args)
@@ -114,31 +114,31 @@ defmodule Kernel.SpecialForms do
 
       defmodule User do
         def __struct__ do
-          %{name: "josé", age: 27}
+          %{name: "john", age: 27}
         end
       end
 
   In practice though, structs are usually defined with the
-  `Kernel.defstruct/2` macro:
+  `Kernel.defstruct/1` macro:
 
       defmodule User do
-        defstruct name: "josé", age: 27
+        defstruct name: "john", age: 27
       end
 
-  Now a struct can be created as follow:
+  Now a struct can be created as follows:
 
       %User{}
 
   Underneath a struct is just a map with a `__struct__` field
-  pointing to the User module:
+  pointing to the `User` module:
 
-      %User{} == %{__struct__: User, name: "josé", age: 27}
+      %User{} == %{__struct__: User, name: "john", age: 27}
 
-  A struct also validates the given keys are part of the defined
+  A struct also validates that the given keys are part of the defined
   struct. The example below will fail because there is no key
-  `:full_name` in the user struct:
+  `:full_name` in the `User` struct:
 
-      %User{full_name: "José Valim"}
+      %User{full_name: "john doe"}
 
   Note that a struct specifies a minimum set of keys required
   for operations. Other keys can be added to structs via the
@@ -155,7 +155,7 @@ defmodule Kernel.SpecialForms do
   compilation time and it will guarantee at runtime the given
   argument is a struct, failing with `BadStructError` otherwise.
 
-  Alhought structs are maps, by default structs do not implement
+  Although structs are maps, by default structs do not implement
   any of the protocols implemented for maps. Check
   `Kernel.defprotocol/2` for more information on how structs
   can be used with protocols for polymorphic dispatch. Also
@@ -172,10 +172,22 @@ defmodule Kernel.SpecialForms do
       iex> << 1, 2, 3 >>
       << 1, 2, 3 >>
 
-  ## Bitstring types
+  ## Types
 
-  A bitstring is made of many segments. Each segment has a
-  type, which defaults to integer:
+  A bitstring is made of many segments and each segment has a
+  type. There are 9 types used in bitstrings:
+
+  - `integer`
+  - `float`
+  - `bits` (alias for bitstring)
+  - `bitstring`
+  - `binary`
+  - `bytes` (alias for binary)
+  - `utf8`
+  - `utf16`
+  - `utf32`
+
+  When no type is specified, the default is `integer`:
 
       iex> <<1, 2, 3>>
       <<1, 2, 3>>
@@ -186,14 +198,7 @@ defmodule Kernel.SpecialForms do
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
 
-  Any other type needs to be explicitly tagged. For example,
-  in order to store a float type in the binary, one has to do:
-
-      iex> <<3.14 :: float>>
-      <<64, 9, 30, 184, 81, 235, 133, 31>>
-
-  This also means that variables need to be explicitly tagged,
-  otherwise Elixir defaults to integer:
+  Variables or any other type need to be explicitly tagged:
 
       iex> rest = "oo"
       iex> <<102, rest>>
@@ -201,103 +206,161 @@ defmodule Kernel.SpecialForms do
 
   We can solve this by explicitly tagging it as a binary:
 
-      <<102, rest :: binary>>
+      iex> rest = "oo"
+      iex> <<102, rest :: binary>>
+      "foo"
 
-  The type can be integer, float, bitstring/bits, binary/bytes,
-  utf8, utf16 or utf32, e.g.:
-
-      <<102 :: float, rest :: binary>>
-
-  An integer can be any arbitrary precision integer. A float is an
-  IEEE 754 binary32 or binary64 floating point number. A bitstring
-  is an arbitrary series of bits. A binary is a special case of
-  bitstring that has a total size divisible by 8.
-
-  The utf8, utf16, and utf32 types are for UTF code points. They
+  The utf8, utf16, and utf32 types are for unicode codepoints. They
   can also be applied to literal strings and char lists:
 
       iex> <<"foo" :: utf16>>
-      <<0,102,0,111,0,111>>
+      <<0, 102, 0, 111, 0, 111>>
+      iex> <<"foo" :: utf32>>
+      <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
-  The bits type is an alias for bitstring. The bytes type is an
-  alias for binary.
+  ## Options
 
-  The signedness can also be given as signed or unsigned. The
-  signedness only matters for matching. If unspecified, it
-  defaults to unsigned. Example:
+  Many options can be given by using `-` as separator. Order is
+  arbitrary, so the following are all equivalent:
 
-      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
-      <<156,102,111,111>>
+      <<102 :: integer-native, rest :: binary>>
+      <<102 :: native-integer, rest :: binary>>
+      <<102 :: unsigned-big-integer, rest :: binary>>
+      <<102 :: unsigned-big-integer-size(8), rest :: binary>>
+      <<102 :: unsigned-big-integer-8, rest :: binary>>
+      <<102 :: 8-integer-big-unsigned, rest :: binary>>
+      <<102, rest :: binary>>
 
-  This match would have failed if we did not specify that the
-  value -100 is signed. If we're matching into a variable instead
-  of a value, the signedness won't be checked; rather, the number
-  will simply be interpreted as having the given (or implied)
-  signedness, e.g.:
+  ### Unit and Size
 
-      iex> <<val, _rest :: binary>> = <<-100, "foo">>
-      iex> val
-      156
+  The length of the match is equal to the `unit` (a number of bits) times the
+  `size` (the number of repeated segnments of length `unit`).
 
-  Here, `val` is interpreted as unsigned.
+  Type      | Default Unit
+  --------- | ------------
+  `integer` | 1 bit
+  `float`   | 1 bit
+  `binary`  | 8 bits
 
-  Signedness is only relevant on integers.
+  Sizes for types are a bit more nuanced. The default size for integers is 8.
 
-  The endianness of a segment can be big, little or native (the
-  latter meaning it will be resolved at VM load time). Passing
-  many options can be done by giving a list:
+  For floats, it is 64. For floats, `size * unit` must result in 32 or 64,
+  corresponding to [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)
+  binary32 and binary64, respectively.
 
-      <<102 :: [integer, native], rest :: binary>>
+  For binaries, the default is the size of the binary. Only the last binary in a
+  match can use the default size. All others must have their size specified
+  explicitly, even if the match is unambiguous. For example:
 
-  Or:
+      iex> <<name::binary-size(5), " the ", species::binary>> = <<"Frank the Walrus">>
+      "Frank the Walrus"
+      iex> {name, species}
+      {"Frank", "Walrus"}
 
-      <<102 :: [unsigned, big, integer], rest :: binary>>
+  Failing to specify the size for the non-last causes compilation to fail:
+  
+      <<name::binary, " the ", species::binary>> = <<"Frank the Walrus">>
+      ** (CompileError): a binary field without size is only allowed at the end of a binary pattern
 
-  And so on.
+  #### Shortcut Syntax
 
-  Endianness only makes sense for integers and some UTF code
-  point types (utf16 and utf32).
+  Size and unit can also be specified using a syntax shortcut
+  when passing integer values:
 
-  Finally, we can also specify size and unit for each segment. The
-  unit is multiplied by the size to give the effective size of
-  the segment:
-
-      iex> <<102, _rest :: [size(2), unit(8)]>> = "foo"
-      "foo"
-
-      iex> <<102, _rest :: size(16)>> = "foo"
-      "foo"
-
-      iex> <<102, _rest :: size(32)>> = "foo"
-      ** (MatchError) no match of right hand side value: "foo"
-
-  In the example above, the first two expressions matches
-  because the string "foo" takes 24 bits and we are matching
-  against a segment of 24 bits as well, 8 of which are taken by
-  the integer 102 and the remaining 16 bits are specified on
-  the rest. On the last example, we expect a rest with size 32,
-  which won't match.
-
-  Size and unit are not applicable to utf8, utf16, and utf32.
-
-  The default size for integers is 8. For floats, it is 64. For
-  binaries, it is the size of the binary. Only the last binary
-  in a binary match can use the default size (all others must
-  have their size specified explicitly). Bitstrings do not have
-  a default size.
-
-  Size can also be specified using a syntax shortcut. Instead of
-  writing `size(8)`, one can write just `8` and it will be interpreted
-  as `size(8)`
-
-      iex> << 1 :: 3 >> == << 1 :: size(3) >>
+      iex> x = 1
+      iex> << x :: 8 >> == << x :: size(8) >>
+      true
+      iex> << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
       true
 
-  The default unit for integers, floats, and bitstrings is 1. For
-  binaries, it is 8.
+  This syntax reflects the fact the effective size is given by
+  multiplying the size by the unit.
 
-  For floats, unit * size must result in 32 or 64, corresponding
-  to binary32 and binary64, respectively.
+  ### Modifiers
+
+  Some types have associated modifiers to clear up ambiguity in byte
+  representation.
+
+  Modifier             | Relevant Type(s)
+  -------------------- | ----------------
+  `signed`             | `integer`
+  `unsigned` (default) | `integer`
+  `little`             | `integer`, `utf16`, `utf32`
+  `big` (default)      | `integer`, `utf16`, `utf32`
+  `native`             | `integer`, `utf16`, `utf32`
+
+  ### Sign
+
+  Integers can be `signed` or `unsigned`, defaulting to `unsigned`.
+
+      iex> <<int::integer>> =  <<-100>>
+      <<156>>
+      iex> int
+      156
+      iex> <<int::integer-signed>> =  <<-100>>
+      <<156>>
+      iex> int
+      -100
+
+  `signed` and `unsigned` are only used for matching binaries (see below) and
+  are only used for integers.
+
+      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
+      <<156, 102, 111, 111>>
+
+  ### Endianness
+
+  Elixir has three options for endianness: `big`, `little`, and `native`.
+  The default is `big`. `native` is determined by the VM at startup.
+
+      iex> <<number::little-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      256
+      iex> <<number::big-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      1
+      iex> <<number::native-integer-size(16)>> = <<0, 1>>
+      <<0, 1>>
+      iex> number
+      256
+
+  ## Binary/Bitstring Matching
+
+  Binary matching is a powerful feature in Elixir that is useful for extracting
+  information from binaries as well as pattern matching.
+
+  Binary matching can be used by itself to extract information from binaries:
+
+      iex> <<"Hello, ", place::binary>> = "Hello, World"
+      "Hello, World"
+      iex> place
+      "World"
+
+  Or as a part of function definitions to pattern match:
+
+      defmodule ImageTyper
+        @png_signature <<137::size(8), 80::size(8), 78::size(8), 71::size(8),
+                      13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
+        @jpg_signature <<255::size(8), 216::size(8)>>
+
+        def type(<<@png_signature, rest::binary>>), do: :png
+        def type(<<@jpg_signature, rest::binary>>), do: :jpg
+        def type(_), do :unknown
+      end
+
+  ### Performance & Optimizations
+
+  The Erlang compiler can provide a number of optimizations on binary creation
+  and matching. To see optimization output, set the `bin_opt_info` compiler
+  option:
+
+      ERL_COMPILER_OPTIONS=bin_opt_info mix compile
+
+  To learn more about specific optimizations and performance considerations,
+  check out
+  [Erlang's Efficiency Guide on handling binaries](http://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
   """
   defmacro unquote(:<<>>)(args)
 
@@ -329,13 +392,13 @@ defmodule Kernel.SpecialForms do
       iex> Kernel.Sample
       Kernel.Sample
 
-      iex> Kernel.length([1,2,3])
+      iex> Kernel.length([1, 2, 3])
       3
 
       iex> Kernel.+(1, 2)
       3
 
-      iex> Kernel."length"([1,2,3])
+      iex> Kernel."length"([1, 2, 3])
       3
 
       iex> Kernel.'+'(1, 2)
@@ -343,27 +406,8 @@ defmodule Kernel.SpecialForms do
 
   Note that `Kernel."HELLO"` will be treated as a remote call and not an alias.
   This choice was done so every time single- or double-quotes are used, we have
-  a remote call irregardless of the quote contents. This decision is also reflected
+  a remote call regardless of the quote contents. This decision is also reflected
   in the quoted expressions discussed below.
-
-  ## Runtime (dynamic) behaviour
-
-  The result returned by `.` is always specified by the right-side:
-
-      iex> x = String
-      iex> x.downcase("FOO")
-      "foo"
-      iex> x.Sample
-      String.Sample
-
-  In case the right-side is also dynamic, `.`'s behaviour can be reproduced
-  at runtime via `apply/3` and `Module.concat/2`:
-
-      iex> apply(:erlang, :+, [1,2])
-      3
-
-      iex> Module.concat(Kernel, Sample)
-      Kernel.Sample
 
   ## Quoted expression
 
@@ -465,7 +509,7 @@ defmodule Kernel.SpecialForms do
   was not explicitly defined.
 
   Both warning behaviours could be changed by explicitly
-  setting the `:warn` option to true or false.
+  setting the `:warn` option to `true` or `false`.
   """
   defmacro alias(module, opts)
 
@@ -511,7 +555,7 @@ defmodule Kernel.SpecialForms do
 
       iex> import List
       iex> flatten([1, [2], 3])
-      [1,2,3]
+      [1, 2, 3]
 
   ## Selector
 
@@ -577,7 +621,7 @@ defmodule Kernel.SpecialForms do
   was not explicitly defined.
 
   Both warning behaviours could be changed by explicitly
-  setting the `:warn` option to true or false.
+  setting the `:warn` option to `true` or `false`.
 
   ## Ambiguous function/macro names
 
@@ -613,6 +657,14 @@ defmodule Kernel.SpecialForms do
   defmacro __DIR__
 
   @doc """
+  Returns the current calling environment as a `Macro.Env` struct.
+
+  In the environment you can access the filename, line numbers,
+  set up aliases, the function and others.
+  """
+  defmacro __CALLER__
+
+  @doc """
   Accesses an already bound variable in match clauses.
 
   ## Examples
@@ -643,6 +695,32 @@ defmodule Kernel.SpecialForms do
   """
   defmacro ^(var)
 
+  @doc """
+  Matches the value on the right against the pattern on the left.
+  """
+  defmacro left = right
+
+  @doc """
+  Used by types and bitstrings to specify types.
+
+  This operator is used in two distinct occasions in Elixir.
+  It is used in typespecs to specify the type of a variable,
+  function or of a type itself:
+
+      @type number :: integer | float
+      @spec add(number, number) :: number
+
+  It may also be used in bit strings to specify the type
+  of a given bit segment:
+
+      <<int::integer-little, rest::bits>> = bits
+
+  Read the documentation for `Kernel.Typespec` and
+  `<<>>/1` for more information on typespecs and
+  bitstrings respectively.
+  """
+  defmacro left :: right
+
   @doc ~S"""
   Gets the representation of any expression.
 
@@ -662,23 +740,28 @@ defmodule Kernel.SpecialForms do
   The tuple above represents a function call to `sum` passing 1, 2 and
   3 as arguments. The tuple elements are:
 
-  * The first element of the tuple is always an atom or
-    another tuple in the same representation;
-  * The second element of the tuple represents metadata;
-  * The third element of the tuple are the arguments for the
-    function call. The third argument may be an atom, which is
-    usually a variable (or a local call);
+    * The first element of the tuple is always an atom or
+      another tuple in the same representation.
+
+    * The second element of the tuple represents metadata.
+
+    * The third element of the tuple are the arguments for the
+      function call. The third argument may be an atom, which is
+      usually a variable (or a local call).
 
   ## Options
 
-  * `:unquote` - When false, disables unquoting. Useful when you have a quote
-                 inside another quote and want to control what quote is
-                 able to unquote;
-  * `:location` - When set to `:keep`, keeps the current line and file from quote.
-                  Read the Stacktrace information section below for more information;
-  * `:context` - Sets the resolution context;
-  * `:bind_quoted` - Passes a binding to the macro. Whenever a binding is given,
-                    `unquote` is automatically disabled;
+    * `:unquote` - when `false`, disables unquoting. Useful when you have a quote
+      inside another quote and want to control what quote is able to unquote.
+
+    * `:location` - when set to `:keep`, keeps the current line and file from
+      quote. Read the Stacktrace information section below for more
+      information.
+
+    * `:context` - sets the resolution context.
+
+    * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
+      given, `unquote` is automatically disabled.
 
   ## Quote literals
 
@@ -1056,9 +1139,9 @@ defmodule Kernel.SpecialForms do
   we are passing the representation of the variable `kv`, our
   code fails.
 
-  This is actually a common pitfall when developing macros. In
-  practice, we want to avoid doing work at compilation time as
-  much as possible. That said, let's attempt to improve our macro:
+  This is actually a common pitfall when developing macros. We are
+  assuming a particular shape in the macro. We can work around it
+  by unquoting the variable inside the quoted expression:
 
       defmacro defkv(kv) do
         quote do
@@ -1099,7 +1182,7 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-  Imagine the situation you have a variable `name` and
+  Imagine the situation you have a variable `value` and
   you want to inject it inside some quote. The first attempt
   would be:
 
@@ -1161,17 +1244,17 @@ defmodule Kernel.SpecialForms do
   Note generators can also be used to filter as it removes any value
   that doesn't match the left side of `<-`:
 
-      iex> for {:user, name} <- [user: "jose", admin: "john", user: "eric"] do
+      iex> for {:user, name} <- [user: "john", admin: "john", user: "meg"] do
       ...>   String.upcase(name)
       ...> end
-      ["JOSE", "ERIC"]
+      ["JOHN", "MEG"]
 
   Bitstring generators are also supported and are very useful when you
   need to organize bitstring streams:
 
       iex> pixels = <<213, 45, 132, 64, 76, 32, 76, 0, 0, 234, 32, 15>>
       iex> for <<r::8, g::8, b::8 <- pixels >>, do: {r, g, b}
-      [{213,45,132},{64,76,32},{76,0,0},{234,32,15}]
+      [{213, 45, 132}, {64, 76, 32}, {76, 0, 0}, {234, 32, 15}]
 
   Variable assignments inside the comprehension, be it in generators,
   filters or inside the block, are not reflected outside of the
@@ -1314,21 +1397,12 @@ defmodule Kernel.SpecialForms do
 
   On the other hand, aliases holds some properties:
 
-  1) The head element of aliases can be any term;
+    1. The head element of aliases can be any term that must expand to
+       an atom at compilation time.
 
-  2) The tail elements of aliases are guaranteed to always be atoms;
+    2. The tail elements of aliases are guaranteed to always be atoms.
 
-  3) When the head element of aliases is the atom `:Elixir`, no expansion happen;
-
-  4) When the head element of aliases is not an atom, it is expanded at runtime:
-
-        quote do: some_var.Foo
-        {:__aliases__, [], [{:some_var, [], Elixir}, :Foo]}
-
-     Since `some_var` is not available at compilation time, the compiler
-     expands such expression to:
-
-        Module.concat [some_var, Foo]
+    3. When the head element of aliases is the atom `:Elixir`, no expansion happen.
 
   """
   defmacro __aliases__(args)
@@ -1382,12 +1456,32 @@ defmodule Kernel.SpecialForms do
   In the example above, value is going to be `7` or `13` depending on
   the value of `lucky?`. In case `value` has no previous value before
   case, clauses that do not explicitly bind a value have the variable
-  bound to nil.
+  bound to `nil`.
   """
-  defmacro case(condition, blocks)
+  defmacro case(condition, clauses)
+
+  @doc """
+  Evaluates the expression corresponding to the first clause that
+  evaluates to truth value.
+
+  Raises an error if all conditions evaluate to `nil` or `false`.
+
+  ## Examples
+
+      cond do
+        1 + 1 == 1 ->
+          "This will never match"
+        2 * 2 != 4 ->
+          "Nor this"
+        true ->
+          "This will"
+      end
+
+  """
+  defmacro cond(clauses)
 
   @doc ~S"""
-  Evaluate the given expressions and handle any error, exit
+  Evaluates the given expressions and handle any error, exit
   or throw that may have happened.
 
   ## Examples
@@ -1483,9 +1577,9 @@ defmodule Kernel.SpecialForms do
   The catch clause can be used to catch throws values and exits.
 
       try do
-        exit(1)
+        exit(:shutdown)
       catch
-        :exit, 1 -> IO.puts "Exited with 1"
+        :exit, :shutdown -> IO.puts "Exited with shutdown reason"
       end
 
       try do
@@ -1573,7 +1667,7 @@ defmodule Kernel.SpecialForms do
   This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
-  is true for rescue and catch clauses.
+  is `true` for `rescue` and `catch` clauses.
 
   ## Variable handling
 
@@ -1643,11 +1737,11 @@ defmodule Kernel.SpecialForms do
   The `after` clause can be specified even if there are no match clauses.
   There are two special cases for the timeout value given to `after`
 
-  * `:infinity` - The process should wait indefinitely for a matching
-  message, this is the same as not using a timeout.
+    * `:infinity` - the process should wait indefinitely for a matching
+      message, this is the same as not using a timeout
 
-  * 0 - if there is no matching message in the mailbox, the timeout
-  will occur immediately.
+    * 0 - if there is no matching message in the mailbox, the timeout
+      will occur immediately
 
   ## Variables handling
 

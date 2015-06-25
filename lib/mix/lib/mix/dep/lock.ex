@@ -9,6 +9,7 @@ defmodule Mix.Dep.Lock do
   @doc """
   Returns the manifest file for dependencies.
   """
+  @spec manifest(Path.t) :: Path.t
   def manifest(manifest_path \\ Mix.Project.manifest_path) do
     Path.join(manifest_path, @manifest)
   end
@@ -16,29 +17,33 @@ defmodule Mix.Dep.Lock do
   @doc """
   Touches the manifest timestamp unless it is an umbrella application.
   """
+  @spec touch() :: :ok
   def touch() do
-    unless Mix.Project.umbrella?, do: touch(Mix.Project.manifest_path)
+    _ = unless Mix.Project.umbrella?, do: touch(Mix.Project.manifest_path)
+    :ok
   end
 
   @doc """
-  Touches the manifest timestamp and updates the elixir version
-  and mix environment information in the given path.
+  Touches the manifest timestamp and updates the elixir version.
   """
+  @spec touch(Path.t) :: :ok
   def touch(manifest_path) do
     File.mkdir_p!(manifest_path)
     File.write!(Path.join(manifest_path, @manifest), System.version)
   end
 
   @doc """
-  Returns the elixir version in the lock manifest unless is an umbrella app.
+  Returns the elixir version in the lock manifest.
   """
+  @spec elixir_vsn() :: binary | nil
   def elixir_vsn() do
-    unless Mix.Project.umbrella?, do: elixir_vsn(Mix.Project.manifest_path)
+    elixir_vsn(Mix.Project.manifest_path)
   end
 
   @doc """
   Returns the elixir version in the lock manifest in the given path.
   """
+  @spec elixir_vsn(Path.t) :: binary | nil
   def elixir_vsn(manifest_path) do
     case File.read(manifest(manifest_path)) do
       {:ok, contents} ->
@@ -49,23 +54,28 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Read the lockfile, returns a keyword list containing
+  Read the lockfile, returns a map containing
   each app name and its current lock information.
   """
+  @spec read() :: map
   def read() do
     case File.read(lockfile) do
       {:ok, info} ->
-        {value, _binding} = Code.eval_string(info)
-        # TODO: Remove Enum.into() once apps migrate to new lock
-        Enum.into(value || [], %{})
+        case Code.eval_string(info) do
+          # lock could be a keyword list
+          {lock, _binding} when is_list(lock) -> Enum.into(lock, %{})
+          {lock, _binding} when is_map(lock)  -> lock
+          {nil, _binding}                     -> %{}
+        end
       {:error, _} ->
         %{}
     end
   end
 
   @doc """
-  Receives a keyword list and writes it as the latest lock.
+  Receives a map and writes it as the latest lock.
   """
+  @spec write(map) :: :ok
   def write(map) do
     unless map == read do
       lines =
@@ -75,6 +85,7 @@ defmodule Mix.Dep.Lock do
       File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
       touch
     end
+    :ok
   end
 
   defp lockfile do

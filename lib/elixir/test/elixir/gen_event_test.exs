@@ -1,358 +1,517 @@
 Code.require_file "test_helper.exs", __DIR__
 
 defmodule GenEventTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
-  defmodule LoggerHandler do
+  defmodule ReplyHandler do
     use GenEvent
 
-    def handle_event({:log, x}, messages) do
-      {:ok, [x|messages]}
+    def init(:raise) do
+      raise "oops"
     end
 
-    def handle_call(:messages, messages) do
-      {:ok, Enum.reverse(messages), []}
+    def init({:throw, process}) do
+      {:ok, process}
     end
 
-    def handle_call(call, state) do
-      super(call, state)
+    def init({:raise, _}) do
+      raise "oops"
+    end
+
+    def init({:swap, {:error, :not_found}}) do
+      {:error, :not_found_on_swap}
+    end
+
+    def init({:swap, parent}) when is_pid(parent) do
+      send parent, :swapped
+      {:ok, parent}
+    end
+
+    def init({:custom, return}) do
+      return
+    end
+
+    def init({parent, :hibernate}) do
+      {:ok, parent, :hibernate}
+    end
+
+    def init({parent, trap}) when is_pid(parent) and is_boolean(trap) do
+      Process.flag(:trap_exit, trap)
+      {:ok, parent}
+    end
+
+    def handle_event(:raise, _parent) do
+      raise "oops"
+    end
+
+    def handle_event(:hibernate, parent) do
+      {:ok, parent, :hibernate}
+    end
+
+    def handle_event({:custom, reply}, _parent) do
+      reply
+    end
+
+    def handle_event(event, parent) do
+      send parent, {:event, event}
+      {:ok, parent}
+    end
+
+    def handle_call(:raise, _parent) do
+      raise "oops"
+    end
+
+    def handle_call(:hibernate, parent) do
+      {:ok, :ok, parent, :hibernate}
+    end
+
+    def handle_call({:custom, reply}, _parent) do
+      reply
+    end
+
+    def handle_call(event, parent) do
+      send parent, {:call, event}
+      {:ok, :ok, parent}
+    end
+
+    def handle_info(:hibernate, parent) do
+      {:ok, parent, :hibernate}
+    end
+
+    def handle_info(event, parent) do
+      send parent, {:info, event}
+      {:ok, parent}
+    end
+
+    def terminate(:raise, _parent) do
+      raise "oops"
+    end
+
+    def terminate(:swapped, parent) do
+      send parent, {:terminate, :swapped}
+      parent
+    end
+
+    def terminate(arg, parent) do
+      send parent, {:terminate, arg}
     end
   end
 
-  defmodule SlowHandler do
+  defmodule DefaultHandler do
     use GenEvent
+  end
 
-    def handle_event(_event, state) do
-      :timer.sleep(300)
-      {:ok, state}
+  defmodule Via do
+    def register_name(name, pid) do
+      Process.register(pid, name)
+      :yes
+    end
+
+    def whereis_name(name) do
+      Process.whereis(name) || :undefined
     end
   end
 
   @receive_timeout 1000
 
-  teardown _ do
-    Process.flag(:trap_exit, false)
-    :ok
+  test "start/1" do
+    assert {:ok, pid} = GenEvent.start()
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop(pid) == :ok
+
+    assert {:ok, pid} = GenEvent.start(name: :my_gen_event_name)
+    assert GenEvent.which_handlers(:my_gen_event_name) == []
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop(:my_gen_event_name) == :ok
   end
 
-  test "start_link/2 and handler workflow" do
-    {:ok, pid} = GenEvent.start_link()
+  test "start_link/1" do
+    assert {:ok, pid} = GenEvent.start_link()
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop(pid) == :ok
 
-    {:links, links} = Process.info(self, :links)
-    assert pid in links
+    assert {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
+    assert GenEvent.which_handlers(:my_gen_event_name) == []
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop(:my_gen_event_name) == :ok
 
-    assert GenEvent.notify(pid, {:log, 0}) == :ok
-    assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
-    assert GenEvent.notify(pid, {:log, 1}) == :ok
-    assert GenEvent.notify(pid, {:log, 2}) == :ok
+    assert {:ok, pid} = GenEvent.start_link(name: {:global, :my_gen_event_name})
+    assert GenEvent.which_handlers({:global, :my_gen_event_name}) == []
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop({:global, :my_gen_event_name}) == :ok
 
-    assert GenEvent.call(pid, LoggerHandler, :messages) == [1, 2]
-    assert GenEvent.call(pid, LoggerHandler, :messages) == []
+    assert {:ok, pid} = GenEvent.start_link(name: {:via, Via, :my_gen_event_name})
+    assert GenEvent.which_handlers({:via, Via, :my_gen_event_name}) == []
+    assert GenEvent.which_handlers(pid) == []
+    assert GenEvent.stop({:via, Via, :my_gen_event_name}) == :ok
 
-    assert GenEvent.call(pid, LoggerHandler, :whatever)  == {:error, :bad_call}
-    assert GenEvent.call(pid, UnknownHandler, :messages) == {:error, :bad_module}
+    assert {:ok, pid} = GenEvent.start_link(name: :my_gen_event_name)
+    assert GenEvent.start_link(name: :my_gen_event_name) ==
+           {:error, {:already_started, pid}}
 
-    assert GenEvent.remove_handler(pid, LoggerHandler, []) == :ok
     assert GenEvent.stop(pid) == :ok
   end
 
-  test "start/2 with linked handler" do
+  test "handles exit signals" do
+    Process.flag(:trap_exit, true)
+
+    # Terminates on signal from parent when not trapping exits
+    {:ok, pid} = GenEvent.start_link()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    Process.exit(pid, :shutdown)
+    assert_receive {:EXIT, ^pid, :shutdown}
+    refute_received {:terminate, _}
+
+    # Terminates on signal from parent when trapping exits
+    {:ok, pid} = GenEvent.start_link()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), true})
+    Process.exit(pid, :shutdown)
+    assert_receive {:EXIT, ^pid, :shutdown}
+    assert_receive {:terminate, :stop}
+
+    # Terminates on signal not from parent when not trapping exits
+    {:ok, pid} = GenEvent.start_link()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    spawn fn -> Process.exit(pid, :shutdown) end
+    assert_receive {:EXIT, ^pid, :shutdown}
+    refute_received {:terminate, _}
+
+    # Does not terminate on signal not from parent when trapping exits
+    {:ok, pid} = GenEvent.start_link()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), true})
+    terminator = spawn fn -> Process.exit(pid, :shutdown) end
+    assert_receive {:info, {:EXIT, ^terminator, :shutdown}}
+    refute_received {:terminate, _}
+  end
+
+  test "hibernates" do
+    {:ok, pid} = GenEvent.start()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), :hibernate})
+    wait_until fn -> hibernating?(pid) end
+
+    wake_up(pid)
+    refute hibernating?(pid)
+
+    :ok = GenEvent.call(pid, ReplyHandler, :hibernate)
+    wait_until fn -> hibernating?(pid) end
+
+    wake_up(pid)
+    :ok = GenEvent.sync_notify(pid, :hibernate)
+    wait_until fn -> hibernating?(pid) end
+
+    GenEvent.stop(pid)
+  end
+
+  test "add_handler/3" do
     {:ok, pid} = GenEvent.start()
 
-    {:links, links} = Process.info(self, :links)
-    refute pid in links
+    assert GenEvent.add_handler(pid, ReplyHandler, {:custom, {:error, :my_error}}) ==
+           {:error, :my_error}
+    assert GenEvent.add_handler(pid, ReplyHandler, {:custom, :oops}) ==
+           {:error, {:bad_return_value, :oops}}
 
-    assert GenEvent.add_handler(pid, LoggerHandler, [], link: true) == :ok
+    assert {:error, {%RuntimeError{}, _}} =
+           GenEvent.add_handler(pid, ReplyHandler, :raise)
 
-    {:links, links} = Process.info(self, :links)
-    assert pid in links
+    assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == :ok
+    assert GenEvent.which_handlers(pid) == [ReplyHandler]
+    assert GenEvent.add_handler(pid, ReplyHandler, {:throw, self()}) == {:error, :already_present}
 
-    assert GenEvent.notify(pid, {:log, 1}) == :ok
-    assert GenEvent.sync_notify(pid, {:log, 2}) == :ok
-
-    assert GenEvent.call(pid, LoggerHandler, :messages) == [1, 2]
-    assert GenEvent.stop(pid) == :ok
+    assert GenEvent.add_handler(pid, {ReplyHandler, self()}, {self(), false}) == :ok
+    assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}, ReplyHandler]
   end
 
-  test "start/2 with linked swap" do
+  test "add_mon_handler/3" do
+    {:ok, pid} = GenEvent.start()
+    parent = self()
+
+    {mon_pid, mon_ref} = spawn_monitor(fn ->
+      assert GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false}) == :ok
+      send parent, :ok
+      receive after: (:infinity -> :ok)
+    end)
+
+    assert_receive :ok
+    assert GenEvent.add_handler(pid, {ReplyHandler, self()}, {self(), false}) == :ok
+    assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}, ReplyHandler]
+
+    # A regular monitor message is passed forward
+    send pid, {:DOWN, make_ref(), :process, self(), :oops}
+    assert_receive {:info, {:DOWN, _, :process, _, :oops}}
+
+    # Killing the monitor though is not passed forward
+    Process.exit(mon_pid, :oops)
+    assert_receive {:DOWN, ^mon_ref, :process, ^mon_pid, :oops}
+    refute_received {:info, {:DOWN, _, :process, _, :oops}}
+    assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}]
+  end
+
+  test "add_mon_handler/3 with notifications" do
+    {:ok, pid} = GenEvent.start()
+    self = self()
+
+    GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
+    GenEvent.remove_handler(pid, ReplyHandler, :ok)
+    assert_receive {:gen_event_EXIT, ReplyHandler, :normal}
+
+    :ok = GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
+    :ok = GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
+    assert_receive {:gen_event_EXIT, ReplyHandler, {:swapped, ReplyHandler, nil}}
+
+    :ok = GenEvent.swap_mon_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
+    :ok = GenEvent.swap_mon_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap)
+    assert_receive {:gen_event_EXIT, ReplyHandler, {:swapped, ReplyHandler, ^self}}
+
+    GenEvent.stop(pid)
+    assert_receive {:gen_event_EXIT, ReplyHandler, :shutdown}
+  end
+
+  test "remove_handler/3" do
     {:ok, pid} = GenEvent.start()
 
-    assert GenEvent.add_handler(pid, LoggerHandler, []) == :ok
+    GenEvent.add_mon_handler(pid, ReplyHandler, {self(), false})
 
-    {:links, links} = Process.info(self, :links)
-    refute pid in links
+    assert GenEvent.remove_handler(pid, {ReplyHandler, self()}, :ok) ==
+           {:error, :not_found}
+    assert GenEvent.remove_handler(pid, ReplyHandler, :ok) ==
+           {:terminate, :ok}
+    assert_receive {:terminate, :ok}
 
-    assert GenEvent.swap_handler(pid, LoggerHandler, [], LoggerHandler, [], link: true) == :ok
+    GenEvent.add_mon_handler(pid, {ReplyHandler, self()}, {self(), false})
 
-    {:links, links} = Process.info(self, :links)
-    assert pid in links
+    assert GenEvent.remove_handler(pid, ReplyHandler, :ok) ==
+           {:error, :not_found}
+    assert {:error, {%RuntimeError{}, _}} =
+           GenEvent.remove_handler(pid, {ReplyHandler, self()}, :raise)
 
+    assert GenEvent.which_handlers(pid) == []
+  end
+
+  test "swap_handler/5" do
+    {:ok, pid} = GenEvent.start()
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.swap_handler(pid, ReplyHandler, :swapped,
+                                 {ReplyHandler, self()}, :swap) == :ok
+    assert_receive {:terminate, :swapped}
+    assert_receive :swapped
+
+    assert GenEvent.add_handler(pid, ReplyHandler, {self(), false}) == :ok
+    assert GenEvent.swap_handler(pid, ReplyHandler, :swapped,
+                                 {ReplyHandler, self()}, :swap) == {:error, :already_present}
+    assert GenEvent.which_handlers(pid) == [{ReplyHandler, self()}]
+
+    assert GenEvent.remove_handler(pid, {ReplyHandler, self()}, :remove_handler) ==
+           {:terminate, :remove_handler}
+
+    # The handler is initialized even when the module does not exist
+    # on swap. However, in this case, we are returning an error on init.
+    assert GenEvent.swap_handler(pid, ReplyHandler, :swapped, ReplyHandler, :swap) ==
+           {:error, :not_found_on_swap}
+  end
+
+  test "notify/2" do
+    {:ok, pid} = GenEvent.start()
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert GenEvent.notify(pid, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.notify(pid, {:custom, :remove_handler}) == :ok
+    assert_receive {:terminate, :remove_handler}
+    assert GenEvent.which_handlers(pid) == []
+
+    Logger.remove_backend(:console)
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.notify(pid, {:custom, :oops}) == :ok
+    assert_receive {:terminate, {:error, {:bad_return_value, :oops}}}
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.notify(pid, :raise) == :ok
+    assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+  after
+    Logger.add_backend(:console, flush: true)
+  end
+
+  test "notify/2 with bad args" do
+    assert GenEvent.notify({:global, :foo}, :bar) == :ok
+    assert GenEvent.notify({:foo, :bar}, :bar) == :ok
+    assert GenEvent.notify(self, :bar) == :ok
+
+    assert_raise ArgumentError, fn ->
+      GenEvent.notify(:foo, :bar)
+    end
+  end
+
+  test "ack_notify/2" do
+    {:ok, pid} = GenEvent.start()
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert GenEvent.ack_notify(pid, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.ack_notify(pid, {:custom, :remove_handler}) == :ok
+    assert_receive {:terminate, :remove_handler}
+    assert GenEvent.which_handlers(pid) == []
+
+    Logger.remove_backend(:console)
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.ack_notify(pid, {:custom, :oops}) == :ok
+    assert_receive {:terminate, {:error, {:bad_return_value, :oops}}}
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.ack_notify(pid, :raise) == :ok
+    assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+  after
+    Logger.add_backend(:console, flush: true)
+  end
+
+  test "sync_notify/2" do
+    {:ok, pid} = GenEvent.start()
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert GenEvent.sync_notify(pid, :hello) == :ok
+    assert_received {:event, :hello}
+
+    assert GenEvent.sync_notify(pid, {:custom, :remove_handler}) == :ok
+    assert_received {:terminate, :remove_handler}
+    assert GenEvent.which_handlers(pid) == []
+
+    Logger.remove_backend(:console)
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.sync_notify(pid, {:custom, :oops}) == :ok
+    assert_received {:terminate, {:error, {:bad_return_value, :oops}}}
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert GenEvent.sync_notify(pid, :raise) == :ok
+    assert_received {:terminate, {:error, {%RuntimeError{}, _}}}
+  after
+    Logger.add_backend(:console, flush: true)
+  end
+
+  test "call/3" do
+    {:ok, pid} = GenEvent.start()
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert GenEvent.call(pid, ReplyHandler, :hello) == :ok
+    assert_receive {:call, :hello}
+
+    assert GenEvent.call(pid, ReplyHandler, {:custom, {:remove_handler, :ok}}) == :ok
+    assert_receive {:terminate, :remove_handler}
+    assert GenEvent.which_handlers(pid) == []
+
+    Logger.remove_backend(:console)
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+
+    assert {:error, {:bad_return_value, :oops}} =
+           GenEvent.call(pid, ReplyHandler, {:custom, :oops})
+    assert_receive {:terminate, {:error, {:bad_return_value, :oops}}}
+    assert GenEvent.which_handlers(pid) == []
+
+    GenEvent.add_handler(pid, ReplyHandler, {self(), false})
+    assert {:error, {%RuntimeError{}, _}} = GenEvent.call(pid, ReplyHandler, :raise)
+    assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+    assert GenEvent.which_handlers(pid) == []
+  after
+    Logger.add_backend(:console, flush: true)
+  end
+
+  test "call/2 with bad args" do
+    Logger.remove_backend(:console)
+    {:ok, pid} = GenEvent.start_link()
+
+    assert GenEvent.add_handler(pid, DefaultHandler, []) == :ok
+    assert GenEvent.call(pid, UnknownHandler, :messages) ==
+            {:error, :not_found}
+    assert GenEvent.call(pid, DefaultHandler, :whatever) ==
+            {:error, {:bad_call, :whatever}}
+    assert GenEvent.which_handlers(pid) == []
     assert GenEvent.stop(pid) == :ok
+  after
+    Logger.add_backend(:console, flush: true)
   end
 
-  test "start/2 with registered name" do
-    {:ok, _} = GenEvent.start(name: :logger)
-    assert GenEvent.stop(:logger) == :ok
+  test "add_process_handler/2 with GenEvent" do
+    {:ok, snd} = GenEvent.start_link()
+    GenEvent.add_handler(snd, ReplyHandler, {self(), false})
+
+    {:ok, fst} = GenEvent.start_link()
+    :gen.call(fst, self(), {:add_process_handler, snd, snd})
+
+    assert GenEvent.notify(fst, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.ack_notify(fst, :hello) == :ok
+    assert_receive {:event, :hello}
+
+    assert GenEvent.sync_notify(fst, :hello) == :ok
+    assert_received {:event, :hello}
   end
 
-  test "stream/2 is enumerable" do
-    # Start a manager
-    {:ok, pid} = GenEvent.start_link()
+  test ":sys.get_status/2" do
+    {:ok, pid} = GenEvent.start()
+    :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self(), true})
 
-    # Also start multiple subscribers
-    parent = self()
-    spawn_link fn -> send parent, Enum.take(GenEvent.stream(pid), 5) end
-    spawn_link fn -> send parent, Enum.take(GenEvent.stream(pid), 3) end
-    wait_for_handlers(pid, 2)
-
-    # Notify the events
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    # Receive one of the results
-    assert_receive  [1, 2, 3], @receive_timeout
-    refute_received [1, 2, 3, 4, 5]
-
-    # Push the remaining events
-    for i <- 4..10 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    assert_receive [1, 2, 3, 4, 5], @receive_timeout
-
-    # Both subscriptions are gone
-    wait_for_handlers(pid, 0)
+    self = self()
+    status = :sys.get_status(pid)
     GenEvent.stop(pid)
+
+    assert {:status, ^pid, {:module, GenEvent},
+             [pdict, _, ^pid, [], data]} = status
+    assert pdict[:"$ancestors"] == [self()]
+    assert pdict[:"$initial_call"] == {GenEvent, :init_it, 6}
+    assert {'Installed handlers', [
+            {:handler, ReplyHandler, {ReplyHandler, :ok}, ^self, nil, nil}]} = data[:items]
   end
 
-  test "stream/2 with timeout" do
-    # Start a manager
+  test ":sys.get_state/1 and :sys.replace_state/2" do
     {:ok, pid} = GenEvent.start_link()
-    Process.flag(:trap_exit, true)
+    self = self()
 
-    pid = spawn_link fn ->
-      Enum.take(GenEvent.stream(pid, timeout: 50), 5)
-    end
+    assert [] = :sys.get_state(pid)
 
-    assert_receive {:EXIT, ^pid,
-                     {:timeout, {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self, true})
+    assert [{ReplyHandler, ReplyHandler, ^self}] = :sys.get_state(pid)
+
+    replacer = fn {ReplyHandler, ReplyHandler, _} -> {ReplyHandler, ReplyHandler, :unknown} end
+    :sys.replace_state(pid, replacer)
+    assert [{ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    # Fail while replacing does not cause a crash
+    :sys.replace_state(pid, fn _ -> exit(:fail) end)
+    assert [{ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    :ok = GenEvent.add_handler(pid, {ReplyHandler, :ok}, {self, true})
+    assert [{ReplyHandler, {ReplyHandler, :ok}, ^self},
+            {ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+
+    :ok = :sys.suspend(pid)
+    assert [{ReplyHandler, {ReplyHandler, :ok}, ^self},
+            {ReplyHandler, ReplyHandler, :unknown}] = :sys.get_state(pid)
+    :ok = :sys.resume(pid)
   end
 
-  test "stream/2 with error/timeout on subscription" do
-    # Start a manager
-    {:ok, pid} = GenEvent.start_link()
-
-    # Start a subscriber with timeout
-    child = spawn fn -> Enum.to_list(GenEvent.stream(pid)) end
-    wait_for_handlers(pid, 1)
-
-    # Kill and wait until we have 0 handlers
-    Process.exit(child, :kill)
-    wait_for_handlers(pid, 0)
-    GenEvent.stop(pid)
+  defp hibernating?(pid) do
+    Process.info(pid, :current_function) ==
+      {:current_function, {:erlang, :hibernate, 3}}
   end
 
-  test "stream/2 with manager stop" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-
-    parent = self()
-    stream_pid = spawn_link fn ->
-      send parent, Enum.take(GenEvent.stream(pid), 5)
+  defp wait_until(fun, counter \\ 0) do
+    cond do
+      counter > 100 ->
+        flunk "Waited for 1s, but #{inspect fun} never returned true"
+      fun.() ->
+        true
+      true ->
+        receive after: (10 -> wait_until(fun, counter + 1))
     end
-    wait_for_handlers(pid, 1)
-
-    # Notify the events
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    Process.flag(:trap_exit, true)
-    GenEvent.stop(pid)
-    assert_receive {:EXIT, ^stream_pid,
-                     {:shutdown, {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
   end
 
-  test "stream/2 with cancel streams" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid, id: make_ref())
-
-    parent = self()
-    spawn_link fn -> send parent, Enum.take(stream, 5) end
-    wait_for_handlers(pid, 1)
-
-    # Notify the events
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    GenEvent.cancel_streams(stream)
-    assert_receive [1, 2, 3], @receive_timeout
-    GenEvent.stop(pid)
-  end
-
-  test "stream/2 with swap_handler" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid, id: make_ref())
-
-    parent = self()
-    stream_pid = spawn_link fn -> send parent, Enum.take(stream, 5) end
-    wait_for_handlers(pid, 1)
-
-    # Notify the events
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    [handler] = GenEvent.which_handlers(pid)
-    Process.flag(:trap_exit, true)
-    GenEvent.swap_handler(pid, handler, :swap_handler, LogHandler, [])
-    assert_receive {:EXIT, ^stream_pid,
-                     {{:swapped, LogHandler, _}, {Enumerable.GenEvent, :next, [_, _]}}}, @receive_timeout
-  end
-
-  test "stream/2 with duration" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid, duration: 200)
-
-    parent = self()
-    spawn_link fn -> send parent, {:duration, Enum.take(stream, 10)} end
-    wait_for_handlers(pid, 1)
-
-    # Notify the events
-    for i <- 1..5 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    # Wait until the handler is gone
-    wait_for_handlers(pid, 0)
-
-    # The stream is not complete but terminated anyway due to duration
-    assert_receive {:duration, [1, 2, 3, 4, 5]}, @receive_timeout
-
-    GenEvent.stop(pid)
-  end
-
-  test "stream/2 with parallel use and first finishing first" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid, duration: 200)
-
-    parent = self()
-    spawn_link fn -> send parent, {:take, Enum.take(stream, 3)} end
-    wait_for_handlers(pid, 1)
-    spawn_link fn -> send parent, {:to_list, Enum.to_list(stream)} end
-    wait_for_handlers(pid, 2)
-
-    # Notify the events for both handlers
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-    assert_receive {:take, [1, 2, 3]}, @receive_timeout
-
-    # Notify the events for to_list stream handler
-    for i <- 4..5 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    assert_receive {:to_list, [1, 2, 3, 4, 5]}, @receive_timeout
-  end
-
-  test "stream/2 with manager killed and trap_exit" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid)
-
-    parent = self()
-    stream_pid = spawn_link fn ->
-      send parent, Enum.to_list(stream)
-    end
-    wait_for_handlers(pid, 1)
-
-    Process.flag(:trap_exit, true)
-    Process.exit(pid, :kill)
-    assert_receive {:EXIT, ^pid, :killed}, @receive_timeout
-    assert_receive {:EXIT, ^stream_pid,
-                     {:killed, {Enumerable.GenEvent, :next, [_,_]}}}, @receive_timeout
-  end
-
-  test "stream/2 with manager not alive" do
-    # Start a manager and subscribers
-    stream = GenEvent.stream(:does_not_exit)
-
-    parent = self()
-    stream_pid = spawn_link fn ->
-      send parent, Enum.to_list(stream)
-    end
-
-    Process.flag(:trap_exit, true)
-    assert_receive {:EXIT, ^stream_pid,
-                     {:noproc, {Enumerable.GenEvent, :start, [_]}}}, @receive_timeout
-  end
-
-  test "stream/2 with manager unregistered" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link(name: :unreg)
-    stream = GenEvent.stream(:unreg)
-
-    parent = self()
-    spawn_link fn ->
-      send parent, Enum.take(stream, 5)
-    end
-    wait_for_handlers(pid, 1)
-
-    # Notify the events
-    for i <- 1..3 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    # Unregister the process
-    Process.unregister(:unreg)
-
-    # Notify the remaining events
-    for i <- 4..5 do
-      GenEvent.sync_notify(pid, i)
-    end
-
-    # We should have gotten the message and all handlers were removed
-    assert_receive [1, 2, 3, 4, 5], @receive_timeout
-    wait_for_handlers(pid, 0)
-  end
-
-  test "stream/2 with slow handler" do
-    # Start a manager and subscribers
-    {:ok, pid} = GenEvent.start_link()
-    stream = GenEvent.stream(pid, duration: 200)
-
-    spawn_link fn ->
-      # Wait for stream to start
-      wait_for_handlers(pid, 1)
-      GenEvent.notify(pid, 1)
-
-      # Add slow handler so that the second or
-      # third event arrives after duration of 200.
-      GenEvent.add_handler(pid, SlowHandler, [], link: true)
-      GenEvent.notify(pid, 2)
-      GenEvent.notify(pid, 3)
-    end
-
-    # Evaluate stream.
-    _ = Enum.to_list(stream)
-
-    # Wait for the slow handler to be removed so all events have been handled.
-    wait_for_handlers(pid, 0)
-
-    # Check no messages leaked.
-    refute_received _any
-  end
-
-  defp wait_for_handlers(pid, count) do
-    unless length(GenEvent.which_handlers(pid)) == count do
-      wait_for_handlers(pid, count)
-    end
+  defp wake_up(pid) do
+    send pid, :wake
+    assert_receive {:info, :wake}
   end
 end

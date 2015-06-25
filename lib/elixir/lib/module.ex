@@ -14,7 +14,7 @@ defmodule Module do
   Each module can be decorated with one or more attributes. The following ones
   are currently defined by Elixir:
 
-  * `@after_compile`
+    * `@after_compile`
 
       A hook that will be invoked right after the current module is compiled.
 
@@ -33,7 +33,7 @@ defmodule Module do
             end
           end
 
-  * `@before_compile`
+    * `@before_compile`
 
       A hook that will be invoked before the module is compiled.
 
@@ -63,9 +63,9 @@ defmodule Module do
             @before_compile A
           end
 
-  * `@behaviour`   (notice the British spelling)
+    * `@behaviour`   (notice the British spelling)
 
-      Specify an OTP or user-defined behaviour.
+      Specifies an OTP or user-defined behaviour.
 
       ### Example
 
@@ -75,15 +75,18 @@ defmodule Module do
             # ...
           end
 
-  * `@compile`
+    * `@compile`
 
-      Define options for module compilation that are passed to the Erlang
+      Defines options for module compilation that are passed to the Erlang
       compiler.
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
 
       See http://www.erlang.org/doc/man/compile.html for the list of supported
       options.
+
+      Several uses of `@compile` will accumulate instead of overriding
+      previous ones.
 
       ### Example
 
@@ -95,9 +98,9 @@ defmodule Module do
               end
             end
 
-  * `@doc`
+    * `@doc`
 
-      Provide documentation for the function or macro that follows the
+      Provides documentation for the function or macro that follows the
       attribute.
 
       Accepts a string (often a heredoc) or `false` where `@doc false` will
@@ -122,9 +125,9 @@ defmodule Module do
               end
             end
 
-  * `@file`
+    * `@file`
 
-      Change the filename used in stacktraces for the function or macro that
+      Changes the filename used in stacktraces for the function or macro that
       follows the attribute.
 
       Accepts a string. Can be used more than once.
@@ -139,9 +142,9 @@ defmodule Module do
               end
             end
 
-  * `@moduledoc`
+    * `@moduledoc`
 
-      Provide documentation for the current module.
+      Provides documentation for the current module.
 
       Accepts a string (which is often a heredoc) or `false` where
       `@moduledoc false` will make the module invisible to the
@@ -156,7 +159,7 @@ defmodule Module do
             end
 
 
-  * `@on_definition`
+    * `@on_definition`
 
       A hook that will be invoked when each function or macro in the current
       module is defined. Useful when annotating functions.
@@ -167,13 +170,13 @@ defmodule Module do
         - the module environment
         - kind: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
         - function/macro name
-        - list of expanded arguments
-        - list of expanded guards
-        - expanded function body
+        - list of quoted arguments
+        - list of quoted guards
+        - quoted function body
 
-      Note the hook receives the expanded arguments and it is invoked before
+      Note the hook receives the quoted arguments and it is invoked before
       the function is stored in the module. So `Module.defines?/2` will return
-      false for the first clause of every function.
+      `false` for the first clause of every function.
 
       If the function/macro being defined has multiple clauses, the hook will
       be called for each clause.
@@ -211,7 +214,7 @@ defmodule Module do
               end
             end
 
-  * `@on_load`
+    * `@on_load`
 
       A hook that will be invoked whenever the module is loaded.
 
@@ -237,7 +240,7 @@ defmodule Module do
               end
             end
 
-  * `@vsn`
+    * `@vsn`
 
       Specify the module version. Accepts any valid Elixir value.
 
@@ -247,14 +250,25 @@ defmodule Module do
               @vsn "1.0"
             end
 
+    * `@external_resource`
+
+      Specifies an external resource to the current module.
+
+      Many times a module embeds information from an external file. This
+      attribute allows the module to annotate which external resources
+      have been used.
+
+      Tools like Mix may use this information to ensure the module is
+      recompiled in case any of the external resources change.
+
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 
-  * `@type`        - defines a type to be used in `@spec`
-  * `@typep`       - defines a private type to be used in `@spec`
-  * `@opaque`      - defines an opaque type to be used in `@spec`
-  * `@spec`        - provides a specification for a function
-  * `@callback`    - provides a specification for the behaviour callback
+    * `@type`        - defines a type to be used in `@spec`
+    * `@typep`       - defines a private type to be used in `@spec`
+    * `@opaque`      - defines an opaque type to be used in `@spec`
+    * `@spec`        - provides a specification for a function
+    * `@callback`    - provides a specification for the behaviour callback
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
@@ -280,21 +294,21 @@ defmodule Module do
   Each module gets an `__info__/1` function when it's compiled. The function
   takes one of the following atoms:
 
-  * `:functions`  - keyword list of public functions along with their arities
+    * `:functions`  - keyword list of public functions along with their arities
 
-  * `:macros`     - keyword list of public macros along with their arities
+    * `:macros`     - keyword list of public macros along with their arities
 
-  * `:module`     - module name (`Module == Module.__info__(:module)`)
+    * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
   by Erlang's `module_info` function which also gets defined for each compiled
-  module. See http://erlang.org/doc/reference_manual/modules.html#id69430 for
+  module. See http://erlang.org/doc/reference_manual/modules.html#id75777 for
   more information.
   """
   def __info__(kind)
 
   @doc """
-  Check if a module is open, i.e. it is currently being defined
+  Checks if a module is open, i.e. it is currently being defined
   and its attributes and functions can be modified.
   """
   def open?(module) do
@@ -318,7 +332,7 @@ defmodule Module do
 
       Foo.sum(1, 2) #=> 3
 
-  For convenience, you can my pass `__ENV__` as argument and
+  For convenience, you can pass `__ENV__` as an argument and
   all options will be automatically extracted from the environment:
 
       defmodule Foo do
@@ -349,8 +363,10 @@ defmodule Module do
 
   @doc """
   Creates a module with the given name and defined by
-  the given quoted expressions. The line where the module
-  is defined and its file can be passed as options.
+  the given quoted expressions.
+
+  The line where the module is defined and its file **must**
+  be passed as options.
 
   ## Examples
 
@@ -376,13 +392,16 @@ defmodule Module do
   when defining the module, while `defmodule` automatically
   shares the same environment.
   """
-  def create(module, quoted, opts \\ [])
+  def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) do
     create(module, quoted, Map.to_list(env))
   end
 
-  def create(module, quoted, opts) when is_atom(module) do
+  def create(module, quoted, opts) when is_atom(module) and is_list(opts) do
+    unless Keyword.has_key?(opts, :file) do
+      raise ArgumentError, "expected :file to be given as option"
+    end
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 
@@ -461,19 +480,6 @@ defmodule Module do
   end
 
   @doc """
-  Gets an anonymous function from the given module, function
-  and arity. The module and function are not verified to exist.
-
-      iex> fun = Module.function(Kernel, :is_atom, 1)
-      iex> fun.(:hello)
-      true
-
-  """
-  def function(mod, fun, arity) do
-    :erlang.make_fun(mod, fun, arity)
-  end
-
-  @doc """
   Attaches documentation to a given function or type. It expects
   the module the function/type belongs to, the line (a non negative
   integer), the kind (`def` or `defmacro`), a tuple representing
@@ -498,23 +504,21 @@ defmodule Module do
   def add_doc(module, line, kind, tuple, signature, doc) when
       kind in [:def, :defmacro, :type, :opaque] and (is_binary(doc) or is_boolean(doc) or doc == nil) do
     assert_not_compiled!(:add_doc, module)
-    table = docs_table_for(module)
+    table = data_table_for(module)
 
-    {signature, _} = :lists.mapfoldl fn(x, acc) ->
-      {simplify_signature(x, acc), acc + 1}
-    end, 1, signature
+    signature = simplify_signature(signature)
 
-    case :ets.lookup(table, tuple) do
+    case :ets.lookup(table, {:doc, tuple}) do
       [] ->
-        :ets.insert(table, {tuple, line, kind, signature, doc})
+        :ets.insert(table, {{:doc, tuple}, line, kind, signature, doc})
         :ok
-      [{tuple, line, _old_kind, old_sign, old_doc}] ->
+      [{doc_tuple, line, _old_kind, old_sign, old_doc}] ->
         :ets.insert(table, {
-          tuple,
+          doc_tuple,
           line,
           kind,
           merge_signatures(old_sign, signature, 1),
-          if(nil?(doc), do: old_doc, else: doc)
+          if(is_nil(doc), do: old_doc, else: doc)
        })
         :ok
     end
@@ -522,46 +526,83 @@ defmodule Module do
 
   # Simplify signatures to be stored in docs
 
-  defp simplify_signature({:\\, _, [left, right ]}, i) do
-    {:\\, [], [simplify_signature(left, i), right]}
+  defp simplify_signature(signature) do
+    {signature, acc} = :lists.mapfoldl(&simplify_signature/2, [], signature)
+    {signature, _} = :lists.mapfoldl(&expand_signature/2, {acc, acc}, signature)
+    signature
   end
 
-  defp simplify_signature({:%, _, [left, _]}, _i) when is_atom(left) do
-    last = List.last(String.split(Atom.to_string(left), "."))
-    atom = String.to_atom(downcase(last))
-    {atom, [], nil}
+  defp simplify_signature({:\\, _, [left, right ]}, acc) do
+    {left, acc} = simplify_signature(left, acc)
+    {{:\\, [], [left, right]}, acc}
   end
 
-  defp simplify_signature({:=, _, [_, right]}, i) do
-    simplify_signature(right, i)
+  defp simplify_signature({:=, _, [_, right]}, acc) do
+    simplify_signature(right, acc)
   end
 
-  defp simplify_signature({var, _, atom}, _i) when is_atom(atom) do
+  defp simplify_signature({var, _, atom}, acc) when is_atom(atom) do
     case Atom.to_string(var) do
-      "_" <> rest -> {String.to_atom(rest), [], Elixir}
-      _           -> {var, [], nil}
+      "_" <> rest -> {{String.to_atom(rest), [], Elixir}, acc}
+      _           -> {{var, [], nil}, acc}
     end
   end
 
-  defp simplify_signature(other, i) when is_integer(other), do: {:"int#{i}", [], Elixir}
-  defp simplify_signature(other, i) when is_boolean(other), do: {:"bool#{i}", [], Elixir}
-  defp simplify_signature(other, i) when is_atom(other),    do: {:"atom#{i}", [], Elixir}
-  defp simplify_signature(other, i) when is_list(other),    do: {:"list#{i}", [], Elixir}
-  defp simplify_signature(other, i) when is_float(other),   do: {:"float#{i}", [], Elixir}
-  defp simplify_signature(other, i) when is_binary(other),  do: {:"binary#{i}", [], Elixir}
-  defp simplify_signature(_, i), do: {:"arg#{i}", [], Elixir}
-
-  defp downcase(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z do
-    <<c + 32 :: utf8, downcase(rest) :: binary>>
+  defp simplify_signature({:%, _, [left, _]}, acc) when is_atom(left) do
+    struct_name = String.to_atom(camelcase_to_underscore(List.last(split(left))))
+    autogenerated(acc, struct_name)
   end
 
-  defp downcase(<<c, rest :: binary>>) do
-    <<c, downcase(rest) :: binary>>
+  defp simplify_signature({:%{}, _, _}, acc) do
+    autogenerated(acc, :map)
   end
 
-  defp downcase(<<>>) do
-    <<>>
+  defp simplify_signature(other, acc) when is_integer(other), do: autogenerated(acc, :int)
+  defp simplify_signature(other, acc) when is_boolean(other), do: autogenerated(acc, :bool)
+  defp simplify_signature(other, acc) when is_atom(other),    do: autogenerated(acc, :atom)
+  defp simplify_signature(other, acc) when is_list(other),    do: autogenerated(acc, :list)
+  defp simplify_signature(other, acc) when is_float(other),   do: autogenerated(acc, :float)
+  defp simplify_signature(other, acc) when is_binary(other),  do: autogenerated(acc, :binary)
+  defp simplify_signature(_, acc),                            do: autogenerated(acc, :arg)
+
+  defp autogenerated(acc, key) do
+    {key, [key|acc]}
   end
+
+  defp expand_signature(key, {all_keys, acc}) when is_atom(key) do
+    case previous_values(key, all_keys, acc) do
+      {i, acc} -> {{:"#{key}#{i}", [], Elixir}, {all_keys, acc}}
+      :none    -> {{key, [], Elixir}, {all_keys, acc}}
+    end
+  end
+
+  defp expand_signature(term, {_, _} = acc) do
+    {term, acc}
+  end
+
+  defp previous_values(key, all_keys, acc) do
+    total_occurrences = occurrences(key, all_keys)
+
+    if total_occurrences == 1 do
+      :none
+    else
+      index = total_occurrences - occurrences(key, acc) + 1
+      {index, :lists.delete(key, acc)}
+    end
+  end
+
+  defp occurrences(key, list) do
+    length(:lists.filter(fn(el) -> el == key end, list))
+  end
+
+  defp camelcase_to_underscore(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<c + 32 :: utf8>>)
+  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<acc :: binary, ?_, c + 32 :: utf8>>)
+  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc),
+    do: do_camelcase_to_underscore(rest, <<acc :: binary, c>>)
+  defp do_camelcase_to_underscore(<<>>, acc),
+    do: acc
 
   # Merge
 
@@ -606,7 +647,7 @@ defmodule Module do
   """
   def defines?(module, tuple) when is_tuple(tuple) do
     assert_not_compiled!(:defines?, module)
-    table = function_table_for(module)
+    table = defs_table_for(module)
     :ets.lookup(table, tuple) != []
   end
 
@@ -626,7 +667,7 @@ defmodule Module do
   """
   def defines?(module, tuple, kind) do
     assert_not_compiled!(:defines?, module)
-    table = function_table_for(module)
+    table = defs_table_for(module)
     case :ets.lookup(table, tuple) do
       [{_, ^kind, _, _, _, _, _}] -> true
       _ -> false
@@ -634,20 +675,20 @@ defmodule Module do
   end
 
   @doc """
-  Return all functions defined in `module`.
+  Returns all functions defined in `module`.
 
   ## Examples
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__ #=> [{:version,0}]
+        Module.definitions_in __MODULE__ #=> [{:version, 0}]
       end
 
   """
   def definitions_in(module) do
     assert_not_compiled!(:definitions_in, module)
-    table = function_table_for(module)
-    for {tuple, _, _, _, _, _, _} <- :ets.tab2list(table), do: tuple
+    table = defs_table_for(module)
+    :lists.concat :ets.match(table, {:'$1', :_, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -658,15 +699,15 @@ defmodule Module do
 
       defmodule Example do
         def version, do: 1
-        Module.definitions_in __MODULE__, :def  #=> [{:version,0}]
+        Module.definitions_in __MODULE__, :def  #=> [{:version, 0}]
         Module.definitions_in __MODULE__, :defp #=> []
       end
 
   """
   def definitions_in(module, kind) do
     assert_not_compiled!(:definitions_in, module)
-    table = function_table_for(module)
-    for {tuple, stored_kind, _, _, _, _, _} <- :ets.tab2list(table), stored_kind == kind, do: tuple
+    table = defs_table_for(module)
+    :lists.concat :ets.match(table, {:'$1', kind, :_, :_, :_, :_, :_})
   end
 
   @doc """
@@ -678,7 +719,7 @@ defmodule Module do
   def make_overridable(module, tuples) do
     assert_not_compiled!(:make_overridable, module)
 
-    for tuple <- tuples do
+    :lists.foreach(fn tuple ->
       case :elixir_def.lookup_definition(module, tuple) do
         false ->
           {name, arity} = tuple
@@ -686,27 +727,26 @@ defmodule Module do
         clause ->
           :elixir_def.delete_definition(module, tuple)
 
-          neighbours = if loaded?(Module.LocalsTracker) do
-            Module.LocalsTracker.yank(module, tuple)
-          else
+          neighbours = if :elixir_compiler.get_opt(:internal) do
             []
+          else
+            Module.LocalsTracker.yank(module, tuple)
           end
 
-          old    = get_attribute(module, :__overridable)
+          old    = :elixir_def_overridable.overridable(module)
           merged = :orddict.update(tuple, fn({count, _, _, _}) ->
             {count + 1, clause, neighbours, false}
           end, {1, clause, neighbours, false}, old)
-
-          put_attribute(module, :__overridable, merged)
+          :elixir_def_overridable.overridable(module, merged)
       end
-    end
+    end, tuples)
   end
 
   @doc """
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
   def overridable?(module, tuple) do
-    !!List.keyfind(get_attribute(module, :__overridable), tuple, 0)
+    !!List.keyfind(:elixir_def_overridable.overridable(module), tuple, 0)
   end
 
   @doc """
@@ -725,7 +765,7 @@ defmodule Module do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = normalize_attribute(key, value)
-    acc   = :ets.lookup_element(table, :__acc_attributes, 2)
+    acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
     new =
       if :lists.member(key, acc) do
@@ -750,15 +790,9 @@ defmodule Module do
 
       @foo
 
-  Expands to:
+  Expands close to:
 
-      Module.get_attribute(__MODULE__, :foo, true)
-
-  Notice the third argument may be given to indicate a stacktrace
-  to be emitted when the attribute was not previously defined.
-  The default value for `warn` is nil for direct calls but the `@foo`
-  macro sets it to the proper stacktrace automatically, warning
-  every time `@foo` is used but not set previously.
+      Module.get_attribute(__MODULE__, :foo)
 
   ## Examples
 
@@ -772,37 +806,9 @@ defmodule Module do
       end
 
   """
-  @spec get_attribute(module, atom, warn :: nil | [tuple]) :: term
-  def get_attribute(module, key, warn \\ nil) when
-      is_atom(key) and (is_list(warn) or nil?(warn)) do
-    assert_not_compiled!(:get_attribute, module)
-    table = data_table_for(module)
-
-    case :ets.lookup(table, key) do
-      [{^key, val}] -> val
-      [] ->
-        acc = :ets.lookup_element(table, :__acc_attributes, 2)
-
-        cond do
-          :lists.member(key, acc) ->
-            []
-          is_list(warn) ->
-            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
-              "please remove access to @#{key} or explicitly set it to nil before access\n"
-            nil
-          true ->
-            nil
-        end
-    end
-  end
-
-  defp warn_info([entry|_]) do
-    opts = elem(entry, size(entry) - 1)
-    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
-  end
-
-  defp warn_info([]) do
-    ""
+  @spec get_attribute(atom, atom) :: term
+  def get_attribute(module, key) do
+    get_attribute(module, key, nil)
   end
 
   @doc """
@@ -816,10 +822,12 @@ defmodule Module do
       end
 
   """
+  @spec delete_attribute(atom, atom) :: :ok
   def delete_attribute(module, key) when is_atom(key) do
     assert_not_compiled!(:delete_attribute, module)
     table = data_table_for(module)
     :ets.delete(table, key)
+    :ok
   end
 
   @doc """
@@ -831,12 +839,12 @@ defmodule Module do
 
   When registering an attribute, two options can be given:
 
-  * `:accumulate` - Several calls to the same attribute will
-    accumulate instead of override the previous one. New attributes
-    are always added to the top of the accumulated list.
+    * `:accumulate` - several calls to the same attribute will
+      accumulate instead of override the previous one. New attributes
+      are always added to the top of the accumulated list.
 
-  * `:persist` - The attribute will be persisted in the Erlang
-    Abstract Format. Useful when interfacing with Erlang libraries.
+    * `:persist` - the attribute will be persisted in the Erlang
+      Abstract Format. Useful when interfacing with Erlang libraries.
 
   By default, both options are `false`.
 
@@ -858,18 +866,18 @@ defmodule Module do
     table = data_table_for(module)
 
     if Keyword.get(opts, :persist) do
-      old = :ets.lookup_element(table, :__persisted_attributes, 2)
-      :ets.insert(table, {:__persisted_attributes,  [new|old]})
+      old = :ets.lookup_element(table, {:elixir, :persisted_attributes}, 2)
+      :ets.insert(table, {{:elixir, :persisted_attributes}, [new|old]})
     end
 
     if Keyword.get(opts, :accumulate) do
-      old = :ets.lookup_element(table, :__acc_attributes, 2)
-      :ets.insert(table, {:__acc_attributes,  [new|old]})
+      old = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
+      :ets.insert(table, {{:elixir, :acc_attributes}, [new|old]})
     end
   end
 
   @doc """
-  Split the given module name into binary parts.
+  Splits the given module name into binary parts.
 
   ## Examples
 
@@ -877,8 +885,12 @@ defmodule Module do
       #=> ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
 
   """
-  def split(module) do
-    tl(String.split(String.Chars.to_string(module), "."))
+  def split(module) when is_atom(module) do
+    split(String.Chars.to_string(module))
+  end
+
+  def split("Elixir." <> name) do
+    String.split(name, ".")
   end
 
   @doc false
@@ -891,11 +903,24 @@ defmodule Module do
     pair   = {name, arity}
     doc    = get_attribute(module, :doc)
 
+    # Arguments are not expanded for the docs, but we make an exception for
+    # module attributes and for structs (aliases to be precise).
+    args = Macro.prewalk args, fn
+      {:@,  _, _} = attr ->
+        Macro.expand_once(attr, env)
+      {:%, meta, [aliases, fields]} ->
+        {:%, meta, [Macro.expand_once(aliases, env), fields]}
+      x ->
+        x
+    end
+
     case add_doc(module, line, kind, pair, args, doc) do
       :ok ->
         :ok
       {:error, :private_doc} ->
-        :elixir_errors.warn line, env.file, "function #{name}/#{arity} is private, @doc's are always discarded for private functions\n"
+        :elixir_errors.warn line, env.file,
+          "function #{name}/#{arity} is private, " <>
+          "@doc's are always discarded for private functions"
     end
 
     delete_attribute(module, :doc)
@@ -904,7 +929,7 @@ defmodule Module do
   @doc false
   # Used internally to compile types. This function
   # is private and must be used only internally.
-  def compile_typespec(module, key, value) when is_atom(key) do
+  def store_typespec(module, key, value) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
 
@@ -917,6 +942,38 @@ defmodule Module do
     :ets.insert(table, {key, new})
   end
 
+  @doc false
+  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or is_nil(warn)) do
+    assert_not_compiled!(:get_attribute, module)
+    table = data_table_for(module)
+
+    case :ets.lookup(table, key) do
+      [{^key, val}] -> val
+      [] ->
+        acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
+
+        cond do
+          :lists.member(key, acc) ->
+            []
+          is_list(warn) ->
+            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
+              "please remove access to @#{key} or explicitly set it before access"
+            nil
+          true ->
+            nil
+        end
+    end
+  end
+
+  defp warn_info([entry|_]) do
+    opts = elem(entry, tuple_size(entry) - 1)
+    Exception.format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line)) <> " "
+  end
+
+  defp warn_info([]) do
+    ""
+  end
+
   ## Helpers
 
   defp normalize_attribute(:on_load, atom) when is_atom(atom) do
@@ -924,7 +981,8 @@ defmodule Module do
   end
 
   defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
-    Code.ensure_compiled(atom)
+    # Attempt to compile behaviour but ignore failure (will warn later)
+    _ = Code.ensure_compiled(atom)
     atom
   end
 
@@ -932,10 +990,12 @@ defmodule Module do
     file
   end
 
-  defp normalize_attribute(key, atom) when is_atom(atom) and
-      key in [:before_compile, :after_compile, :on_definition] do
-    {atom, :"__#{key}__"}
-  end
+  defp normalize_attribute(:before_compile, atom) when is_atom(atom),
+    do: {atom, :__before_compile__}
+  defp normalize_attribute(:after_compile, atom) when is_atom(atom),
+    do: {atom, :__after_compile__}
+  defp normalize_attribute(:on_definition, atom) when is_atom(atom),
+    do: {atom, :__on_definition__}
 
   defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
     raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
@@ -947,15 +1007,11 @@ defmodule Module do
   end
 
   defp data_table_for(module) do
-    module
+    :elixir_module.data_table(module)
   end
 
-  defp function_table_for(module) do
-    :elixir_def.table(module)
-  end
-
-  defp docs_table_for(module) do
-    :elixir_module.docs_table(module)
+  defp defs_table_for(module) do
+    :elixir_module.defs_table(module)
   end
 
   defp assert_not_compiled!(fun, module) do
@@ -963,6 +1019,4 @@ defmodule Module do
       raise ArgumentError,
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
-
-  defp loaded?(module), do: is_tuple :code.is_loaded(module)
 end

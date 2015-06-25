@@ -14,7 +14,7 @@ defmodule Mix.ProjectTest do
     Mix.Project.push(SampleProject, "sample")
     assert Mix.Project.get == SampleProject
 
-    assert {SampleProject, _config, "sample"} = Mix.Project.pop
+    assert %{name: SampleProject, config: _, file: "sample"} = Mix.Project.pop
     assert nil = Mix.Project.pop
   end
 
@@ -29,9 +29,9 @@ defmodule Mix.ProjectTest do
   test "allows nil projects to be pushed twice" do
     Mix.Project.push nil
     Mix.Project.push nil
-    assert is_tuple Mix.Project.pop
-    assert is_tuple Mix.Project.pop
-    assert nil? Mix.Project.pop
+    assert is_map Mix.Project.pop
+    assert is_map Mix.Project.pop
+    assert is_nil Mix.Project.pop
   end
 
   test "retrieves configuration from projects" do
@@ -41,7 +41,7 @@ defmodule Mix.ProjectTest do
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert nil? Mix.Project.config[:app_path]
+    assert is_nil Mix.Project.config[:app_path]
   end
 
   test "retrieves configuration even when a project is not set" do
@@ -63,7 +63,16 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  test "builds the project structure with ebin symlink" do
+  test "builds the project structure without symlinks" do
+    in_fixture "archive", fn ->
+      config = [app_path: Path.expand("_build/archive"), build_embedded: true]
+      assert Mix.Project.build_structure(config) == :ok
+      assert File.dir?("_build/archive/ebin")
+      assert {:error, _} = :file.read_link("_build/archive/ebin")
+    end
+  end
+
+  test "builds the project structure with symlinks" do
     in_fixture "archive", fn ->
       config = [app_path: Path.expand("_build/archive")]
       File.mkdir_p!("include")
@@ -79,23 +88,51 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "in_project pushes given configuration" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
+        assert Mix.Project.config[:app] == :foo
+        assert Mix.Project.config[:hello] == :world
+      end
+    end
+  end
+
+  test "in_project prints nice error message if fails to load file" do
+    in_fixture "no_mixfile", fn ->
+      File.write "mix.exs", """
+      raise "oops"
+      """
+
+      assert_raise RuntimeError, "oops", fn ->
+        Mix.Project.in_project :hello, ".", [], fn _ ->
+          :ok
+        end
+      end
+
+      assert_receive {:mix_shell, :error, ["Error while loading project :hello at" <> _]}
+    end
+  end
+
   test "config_files" do
     Mix.Project.push(SampleProject)
 
     in_fixture "no_mixfile", fn ->
-      File.mkdir_p!("config")
+      File.mkdir_p!("config/sub")
       File.write! "config/config.exs", "[]"
       File.write! "config/dev.exs", "[]"
       File.write! "config/.exs", "[]"
+      File.write! "config/sub/init.exs", "[]"
 
       files = Mix.Project.config_files
+
       assert __ENV__.file in files
       assert "config/config.exs" in files
       assert "config/dev.exs" in files
       refute "config/.exs" in files
+      assert "config/sub/init.exs" in files
     end
   end
-  
+
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
       {:ok, path} -> assert path == symlink_path

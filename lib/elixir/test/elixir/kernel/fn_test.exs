@@ -22,7 +22,7 @@ defmodule Kernel.FnTest do
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&(List.flatten/1)).([[0]]) == [0]
     assert (&List.flatten(&1)).([[0]]) == [0]
-    assert &List.flatten(&1) == &List.flatten/1
+    assert (&List.flatten(&1)) == (&List.flatten/1)
   end
 
   test "capture local" do
@@ -41,7 +41,7 @@ defmodule Kernel.FnTest do
     assert (&is_atom/1).(:a)
     assert (&(is_atom/1)).(:a)
     assert (&is_atom(&1)).(:a)
-    assert &is_atom(&1) == &is_atom/1
+    assert (&is_atom(&1)) == &is_atom/1
   end
 
   test "capture macro" do
@@ -54,6 +54,7 @@ defmodule Kernel.FnTest do
   test "capture operator" do
     assert is_function &+/2
     assert is_function &(&&/2)
+    assert is_function & &1 + &2, 2
   end
 
   test "capture with variable module" do
@@ -70,7 +71,7 @@ defmodule Kernel.FnTest do
 
   test "imported partial application" do
     import Record
-    assert (&record?(&1, :sample)).({:sample, 1})
+    assert (&is_record(&1, :sample)).({:sample, 1})
   end
 
   test "remote partial application" do

@@ -15,17 +15,23 @@ defmodule Inspect.AlgebraTest do
       "d")
   end
 
-  def factor(doc, w), do: format(w, 0, [{0, :flat, group(doc)}])
+  def sdoc(doc) do
+    format(group(doc), :infinity)
+  end
+
+  defp render(doc, limit) do
+    format(doc, limit) |> IO.iodata_to_binary
+  end
 
   test "empty doc" do
     # Consistence with definitions
     assert empty == :doc_nil
 
     # Consistence of corresponding sdoc
-    assert factor(empty, 80) == []
+    assert sdoc(empty) == []
 
     # Consistent formatting
-    assert pretty(empty, 80) == ""
+    assert render(empty, 80) == ""
   end
 
   test "break doc" do
@@ -37,10 +43,10 @@ defmodule Inspect.AlgebraTest do
     assert_raise FunctionClauseError, fn -> break(42) end
 
     # Consistence of corresponding sdoc
-    assert factor(break("_"), 80) == ["_"]
+    assert sdoc(break("_")) == ["_"]
 
     # Consistent formatting
-    assert pretty(break("_"), 80) == "_"
+    assert render(break("_"), 80) == "_"
   end
 
   test "glue doc" do
@@ -56,10 +62,10 @@ defmodule Inspect.AlgebraTest do
 
   test "text doc" do
     # Consistence of corresponding sdoc
-    assert factor("_", 80) == ["_"]
+    assert sdoc("_") == ["_"]
 
     # Consistent formatting
-    assert pretty("_", 80) == "_"
+    assert render("_", 80) == "_"
   end
 
   test "space doc" do
@@ -78,12 +84,11 @@ defmodule Inspect.AlgebraTest do
     assert_raise FunctionClauseError, fn -> nest("foo", empty) end
 
     # Consistence of corresponding sdoc
-    assert factor(nest("a", 1), 80)  == ["a"]
-    assert format(2, 0, [{0, :break, nest(glue("a", "b"), 1)}]) == ["a", "\n ", "b"]
+    assert sdoc(nest("a", 1))  == ["a"]
 
     # Consistent formatting
-    assert pretty(nest("a", 1), 80) == "a"
-    assert render(format 2, 0, [{0, :break, nest(glue("a", "b"), 1)}]) == "a\n b"
+    assert render(nest("a", 1), 80) == "a"
+    assert render(nest(glue("a", "b"), 1), 2) == "a\n b"
   end
 
   test "line doc" do
@@ -92,11 +97,10 @@ defmodule Inspect.AlgebraTest do
       {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
 
     # Consistence of corresponding sdoc
-    assert factor(line("a", "b"), 1) == ["a", "\n", "b"]
-    assert factor(line("a", "b"), 9) == ["a", "\n", "b"]
+    assert sdoc(line("a", "b")) == ["a", "\n", "b"]
 
     # Consistent formatting
-    assert pretty(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) ==
+    assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) ==
            "aaa bbb\nccc ddd"
   end
 
@@ -107,12 +111,11 @@ defmodule Inspect.AlgebraTest do
     assert group(empty) == {:doc_group, empty}
 
     # Consistence of corresponding sdoc
-    assert factor(glue("a", "b"), 1) == ["a", " ", "b"]
-    assert factor(glue("a", "b"), 9) == ["a", " ", "b"]
+    assert sdoc(glue("a", "b")) == ["a", " ", "b"]
 
     # Consistent formatting
-    assert pretty(helloabcd, 5) == "hello\na b\ncd"
-    assert pretty(helloabcd, 80) == "hello a b cd"
+    assert render(helloabcd, 5) == "hello\na b\ncd"
+    assert render(helloabcd, 80) == "hello a b cd"
   end
 
   test "formatting with infinity" do
@@ -120,6 +123,24 @@ defmodule Inspect.AlgebraTest do
     g = ";"
     doc = group(glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s))
 
-    assert pretty(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
+    assert render(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
+  end
+
+  test "formatting surround_many with empty" do
+    sm = &surround_many("[", &1, "]", %Inspect.Opts{}, fn(d, _) -> d end, ",")
+
+    assert sm.([])                |> render(80) == "[]"
+    assert sm.([empty])           |> render(80) == "[]"
+    assert sm.([empty, empty])    |> render(80) == "[]"
+    assert sm.(["a"])             |> render(80) == "[a]"
+    assert sm.(["a", empty])      |> render(80) == "[a]"
+    assert sm.([empty, "a"])      |> render(80) == "[a]"
+    assert sm.(["a", empty, "b"]) |> render(80) == "[a, b]"
+    assert sm.([empty, "a", "b"]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b", empty]) |> render(80) == "[a, b]"
+    assert sm.(["a", "b" | "c"])  |> render(80) == "[a, b | c]"
+    assert sm.(["a" | "b"])       |> render(80) == "[a | b]"
+    assert sm.(["a" | empty])     |> render(80) == "[a]"
+    assert sm.([empty | "b"])     |> render(80) == "[b]"
   end
 end

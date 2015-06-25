@@ -6,17 +6,17 @@ defmodule Process do
   exposes and auto-imports some basic functionality related to processes
   available through the functions:
 
-  * `Kernel.spawn/1` and `Kernel.spawn/3`
-  * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
-  * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
-  * `Kernel.self/0`
-  * `Kernel.send/2`
+    * `Kernel.spawn/1` and `Kernel.spawn/3`
+    * `Kernel.spawn_link/1` and `Kernel.spawn_link/3`
+    * `Kernel.spawn_monitor/1` and `Kernel.spawn_monitor/3`
+    * `Kernel.self/0`
+    * `Kernel.send/2`
 
   """
 
   @doc """
-  Returns true if the process exists and is alive, that is,
-  is not exiting and has not exited. Otherwise, returns false.
+  Returns `true` if the process exists and is alive, that is,
+  is not exiting and has not exited. Otherwise, returns `false`.
 
   `pid` must refer to a process at the local node.
   """
@@ -34,7 +34,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns the value for the given key.
+  Returns the value for the given `key`.
   """
   @spec get(term) :: term
   @spec get(term, default :: term) :: term
@@ -64,7 +64,7 @@ defmodule Process do
   end
 
   @doc """
-  Deletes the given key from the dictionary.
+  Deletes the given `key` from the dictionary.
   """
   @spec delete(term) :: term | nil
   def delete(key) do
@@ -76,18 +76,19 @@ defmodule Process do
 
   The following behaviour applies if reason is any term except `:normal` or `:kill`:
 
-  1) If pid is not trapping exits, pid will exit with the given reason;
+    1. If pid is not trapping exits, pid will exit with the given reason.
 
-  2) If pid is trapping exits, the exit signal is transformed into a message
-     {:EXIT, from, reason} and delivered to the message queue of pid;
+    2. If pid is trapping exits, the exit signal is transformed into a message
+       `{:EXIT, from, reason}` and delivered to the message queue of pid.
 
-  3) If reason is the atom `:normal`, pid will not exit. If it is trapping exits,
-     the exit signal is transformed into a message {:EXIT, from, :normal} and
-     delivered to its message queue;
+    3. If reason is the atom `:normal`, pid will not exit (unless it is the calling
+       process's pid, in which case it will exit with the reason `:normal`).
+       If it is trapping exits, the exit signal is transformed into a message
+       `{:EXIT, from, :normal}` and delivered to its message queue.
 
-  4) If reason is the atom `:kill`, that is if `exit(pid, :kill)` is called, an
-     untrappable exit signal is sent to pid which will unconditionally exit with
-     exit reason `:killed`.
+    4. If reason is the atom `:kill`, that is if `exit(pid, :kill)` is called,
+       an untrappable exit signal is sent to pid which will unconditionally
+       exit with exit reason `:killed`.
 
   Inlined by the compiler.
 
@@ -129,10 +130,10 @@ defmodule Process do
   end
 
   @doc """
-  Sends `msg` to `dest` after `time` millisecons.
+  Sends `msg` to `dest` after `time` milliseconds.
 
-  If `dest` is a pid, it has to be a pid of a local process, dead or alive.
-  If `dest` is an atom, it is supposed to be the name of a registered process
+  If `dest` is a pid, it must be the pid of a local process, dead or alive.
+  If `dest` is an atom, it must be the name of a registered process
   which is looked up at the time of delivery. No error is given if the name does
   not refer to a process.
 
@@ -208,8 +209,8 @@ defmodule Process do
   end
 
   @doc """
-  If monitor_ref is a reference which the calling process
-  obtained by calling monitor/1, this monitoring is turned off.
+  If `monitor_ref` is a reference which the calling process
+  obtained by calling `monitor/1`, this monitoring is turned off.
   If the monitoring is already turned off, nothing happens.
 
   See http://www.erlang.org/doc/man/erlang.html#demonitor-2 for more info.
@@ -227,7 +228,7 @@ defmodule Process do
   processes currently existing on the local node.
 
   Note that a process that is exiting, exists but is not alive, i.e.,
-  alive?/1 will return false for a process that is exiting,
+  `alive?/1` will return `false` for a process that is exiting,
   but its process identifier will be part of the result returned.
 
   See http://www.erlang.org/doc/man/erlang.html#processes-0 for more info.
@@ -252,7 +253,7 @@ defmodule Process do
 
   @doc """
   Removes the link, if there is one, between the calling process and
-  the process or port referred to by `pid`. Returns true and does not
+  the process or port referred to by `pid`. Returns `true` and does not
   fail, even if there is no link or `id` does not exist
 
   See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
@@ -265,16 +266,16 @@ defmodule Process do
   end
 
   @doc """
-  Associates the name with a pid or a port identifier. name, which must
+  Associates the name with a pid or a port identifier. `name`, which must
   be an atom, can be used instead of the pid / port identifier with the
   `Kernel.send/2` function.
 
   `Process.register/2` will fail with `ArgumentError` if the pid supplied
   is no longer alive, (check with `alive?/1`) or if the name is
-  already registered (check with `registered?/1`).
+  already registered (check with `whereis/1`).
   """
   @spec register(pid | port, atom) :: true
-  def register(pid, name) do
+  def register(pid, name) when not name in [nil, false, true] do
     :erlang.register(name, pid)
   end
 
@@ -290,7 +291,7 @@ defmodule Process do
 
   @doc """
   Returns the pid or port identifier with the registered name.
-  Returns nil if the name is not registered.
+  Returns `nil` if the name is not registered.
 
   See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
   """
@@ -309,7 +310,7 @@ defmodule Process do
 
   @doc """
   Sets the group leader of `pid` to `leader`. Typically, this is used when a processes
-  started from a certain shell should have another group leader than `:init`.
+  started from a certain shell should have a group leader other than `:init`.
   """
   @spec group_leader(pid, leader :: pid) :: true
   def group_leader(pid, leader) do
@@ -317,7 +318,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns a list of names which have been registered using register/2.
+  Returns a list of names which have been registered using `register/2`.
   """
   @spec registered :: [atom]
   def registered do
@@ -339,19 +340,19 @@ defmodule Process do
   end
 
   @doc """
-  Sets certain flags for the process Pid, in the same manner as flag/2.
-  Returns the old value of the flag. The allowed values for Flag are
-  only a subset of those allowed in flag/2, namely: save_calls.
+  Sets certain flags for the process `pid`, in the same manner as `flag/2`.
+  Returns the old value of the flag. The allowed values for `flag` are
+  only a subset of those allowed in `flag/2`, namely: `save_calls`.
 
   See http://www.erlang.org/doc/man/erlang.html#process_flag-3 for more info.
   """
-  @spec flag(pid, process_flag, term) :: term
+  @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
   def flag(pid, flag, value) do
     :erlang.process_flag(pid, flag, value)
   end
 
   @doc """
-  Returns information about the process identified by pid or nil if the process
+  Returns information about the process identified by `pid` or `nil` if the process
   is not alive.
   Use this only for debugging information.
 
@@ -363,14 +364,39 @@ defmodule Process do
   end
 
   @doc """
-  Returns information about the process identified by pid
-  or nil if the process is not alive.
+  Returns information about the process identified by `pid`
+  or `nil` if the process is not alive.
 
   See http://www.erlang.org/doc/man/erlang.html#process_info-2 for more info.
   """
-  @spec info(pid, atom) :: {atom, term}
-  def info(pid, spec) do
+  @spec info(pid, atom) :: {atom, term} | nil
+  def info(pid, spec)
+
+  def info(pid, :registered_name) do
+    case :erlang.process_info(pid, :registered_name) do
+      :undefined -> nil
+      [] -> {:registered_name, []}
+      other -> other
+    end
+  end
+
+  def info(pid, spec) when is_atom(spec) do
     nillify :erlang.process_info(pid, spec)
+  end
+
+  @doc """
+  Puts the calling process into a wait state
+  where its memory allocation has been reduced as much as possible,
+  which is useful if the process does not expect to receive any messages
+  in the near future.
+
+  See http://www.erlang.org/doc/man/erlang.html#hibernate-3 for more info.
+
+  Inlined by the compiler.
+  """
+  @spec hibernate(module, atom, list) :: no_return
+  def hibernate(mod, fun, args) do
+    :erlang.hibernate(mod, fun, args)
   end
 
   @compile {:inline, nillify: 1}

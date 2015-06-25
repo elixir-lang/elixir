@@ -40,65 +40,65 @@ defmodule Supervisor.Spec do
 
   Explicit supervisors as above are required when there is a need to:
 
-  1. partialy change the supervision tree during hot-code swaps;
+    1. Partially change the supervision tree during hot-code swaps.
 
-  2. define supervisors inside other supervisors;
+    2. Define supervisors inside other supervisors.
 
-  3. perform actions inside the supervision `init/1` callback.
+    3. Perform actions inside the supervision `init/1` callback.
 
-     For example, you may want to start an ETS table that is linked to
-     the supervisor (i.e. if the supervision tree needs to be restarted,
-     the ETS table must be restarted too);
+       For example, you may want to start an ETS table that is linked to
+       the supervisor (i.e. if the supervision tree needs to be restarted,
+       the ETS table must be restarted too).
 
   ## Supervisor and worker options
 
   In the example above, we have defined workers and supervisors
   and each accepts the following options:
 
-  * `:id` - a name used to identify the child specification
-    internally by the supervisor. Defaults to the given module
-    name;
+    * `:id` - a name used to identify the child specification
+      internally by the supervisor; defaults to the given module
+      name
 
-  * `:function` - the function to invoke on the child to start it;
+    * `:function` - the function to invoke on the child to start it
 
-  * `:restart` - defines when the child process should restart;
+    * `:restart` - defines when the child process should restart
 
-  * `:shutdown` - defines how a child process should be terminated;
+    * `:shutdown` - defines how a child process should be terminated
 
-  * `:modules` - it should be a list with one element `[module]`,
-    where module is the name of the callback module only if the
-    child process is a `Supervisor` or `GenServer` If the child
-    process is a `GenEvent`, modules should be `:dynamic`;
+    * `:modules` - it should be a list with one element `[module]`,
+      where module is the name of the callback module only if the
+      child process is a `Supervisor` or `GenServer`; if the child
+      process is a `GenEvent`, modules should be `:dynamic`
 
-  ### Restart values
+  ### Restart values (:restart)
 
   The following restart values are supported:
 
-  * `:permanent` - the child process is always restarted;
+    * `:permanent` - the child process is always restarted
 
-  * `:temporary` - the child process is never restarted (not even
-    when the supervisor's strategy is `:rest_for_one` or `:one_for_all`);
+    * `:temporary` - the child process is never restarted (not even
+      when the supervisor's strategy is `:rest_for_one` or `:one_for_all`)
 
-  * `:transient` - the child process is restarted only if it
-    terminates abnormally, i.e. with another exit reason than
-    `:normal`, `:shutdown` or `{:shutdown, term}`;
+    * `:transient` - the child process is restarted only if it
+      terminates abnormally, i.e. with another exit reason than
+      `:normal`, `:shutdown` or `{:shutdown, term}`
 
-  ### Shutdown values
+  ### Shutdown values (:shutdown)
 
   The following shutdown values are supported:
 
-  * `:brutal_kill` - the child process is unconditionally terminated
-    using `exit(child, :kill)`;
+    * `:brutal_kill` - the child process is unconditionally terminated
+      using `exit(child, :kill)`.
 
-  * `:infinity` - if the child process is a supervisor, it is a mechanism
-    to give the subtree enough time to shutdown. It can also be used with
-    workers with care;
+    * `:infinity` - if the child process is a supervisor, it is a mechanism
+      to give the subtree enough time to shutdown. It can also be used with
+      workers with care.
 
-  * Finally, it can also be any integer meaning that the supervisor tells
-    the child process to terminate by calling `Process.exit(child, :shutdown)`
-    and then waits for an exit signal back. If no exit signal is received
-    within the specified time (in miliseconds), the child process is
-    unconditionally terminated using `Process.exit(child, :kill)`;
+    * Finally, it can also be any integer meaning that the supervisor tells
+      the child process to terminate by calling `Process.exit(child, :shutdown)`
+      and then waits for an exit signal back. If no exit signal is received
+      within the specified time (in milliseconds), the child process is
+      unconditionally terminated using `Process.exit(child, :kill)`.
   """
 
   @typedoc "Supported strategies"
@@ -139,18 +139,18 @@ defmodule Supervisor.Spec do
 
   ## Options
 
-  * `:strategy` - the restart strategy option. It can be either
-    `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
-    `:simple_one_for_one`. You can learn more about strategies
-    in the `Supervisor` module docs;
+    * `:strategy` - the restart strategy option. It can be either
+      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or
+      `:simple_one_for_one`. You can learn more about strategies
+      in the `Supervisor` module docs.
 
-  * `:max_restarts` - the maximum amount of restarts allowed in
-    a time frame. Defaults to 5;
+    * `:max_restarts` - the maximum amount of restarts allowed in
+      a time frame. Defaults to 3.
 
-  * `:max_seconds` - the time frame in which `:max_restarts` applies.
-    Defaults to 5;
+    * `:max_seconds` - the time frame in which `:max_restarts` applies.
+      Defaults to 5.
 
-  The `:strategy` option is required and by default maximum 5 restarts
+  The `:strategy` option is required and by default maximum 3 restarts
   are allowed within 5 seconds. Please check the `Supervisor` module for
   a complete description of the available strategies.
   """
@@ -162,7 +162,7 @@ defmodule Supervisor.Spec do
       raise ArgumentError, "expected :strategy option to be given"
     end
 
-    maxR = Keyword.get(options, :max_restarts, 5)
+    maxR = Keyword.get(options, :max_restarts, 3)
     maxS = Keyword.get(options, :max_seconds, 5)
 
     assert_unique_ids(Enum.map(children, &elem(&1, 0)))

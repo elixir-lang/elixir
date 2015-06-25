@@ -2,7 +2,7 @@
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
--export([main/1, start_cli/0,
+-export([start_cli/0,
   string_to_quoted/4, 'string_to_quoted!'/4,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
@@ -18,46 +18,85 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  %% Set the shell to unicode so printing inside scripts work
-  %% Those can take a while, so let's do it in a new process
-  spawn(fun() ->
-    io:setopts(standard_io, [binary,{encoding,utf8}]),
-    io:setopts(standard_error, [{unicode,true}]),
-    case file:native_name_encoding() of
-      latin1 ->
-        io:format(standard_error,
-          "warning: the VM is running with native name encoding of latin1 which may cause "
-          "Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 "
-          "(which can be verified by running \"locale\" in your shell)~n", []);
-      _ ->
-        ok
-    end
-  end),
-  elixir_sup:start_link().
+  %% In case there is a shell, we can't really change its
+  %% encoding, so we just set binary to true. Otherwise
+  %% we must set the encoding as the user with no shell
+  %% has encoding set to latin1.
+  Opts =
+    case init:get_argument(noshell) of
+      {ok, _} -> [binary, {encoding, utf8}];
+      error   -> [binary]
+    end,
 
-stop(_S) ->
-  ok.
+  ok = io:setopts(standard_io, Opts),
+
+  %% TODO: Remove this once we support only OTP >18
+  ok = case io:setopts(standard_error, [{encoding, utf8}]) of
+    ok         -> ok;
+    {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% OTP 17.3 and earlier
+  end,
+
+  Encoding = file:native_name_encoding(),
+  case Encoding of
+    latin1 ->
+      io:format(standard_error,
+        "warning: the VM is running with native name encoding of latin1 which may cause "
+        "Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 "
+        "(which can be verified by running \"locale\" in your shell)~n", []);
+    _ ->
+      ok
+  end,
+
+  URIs = [{<<"ftp">>, 21},
+          {<<"sftp">>, 22},
+          {<<"tftp">>, 69},
+          {<<"http">>, 80},
+          {<<"https">>, 443},
+          {<<"ldap">>, 389}],
+  URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
+  CompilerOpts = [{docs, true}, {debug_info, true}, {warnings_as_errors, false}],
+  {ok, [[Home] | _]} = init:get_argument(home),
+  Config = [{at_exit, []},
+            {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
+            {compiler_options, orddict:from_list(CompilerOpts)}
+            | URIConfig],
+  Tab = elixir_config:new(Config),
+  case elixir_sup:start_link() of
+    {ok, Sup} ->
+      {ok, Sup, Tab};
+    {error, _Reason} = Error ->
+      elixir_config:delete(Tab),
+      Error
+  end.
+
+stop(Tab) ->
+  elixir_config:delete(Tab).
+
 
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-%% escript entry point
-
-main(Args) ->
-  application:start(?MODULE),
-  'Elixir.Kernel.CLI':main(Args).
-
 %% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
-  application:start(?MODULE),
+  {ok, _} = application:ensure_all_started(?MODULE),
+
+  %% We start the Logger so tools that depend on Elixir
+  %% always have the Logger directly accessible. However
+  %% Logger is not a dependency of the Elixir application,
+  %% which means releases that want to use Logger must
+  %% always list it as part of its applications.
+  _ = case code:ensure_loaded('Elixir.Logger') of
+    {module, _} -> application:start(logger);
+    {error, _}  -> ok
+  end,
+
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS
 
 env_for_eval(Opts) ->
   env_for_eval((elixir_env:new())#{
-    local := nil,
     requires := elixir_dispatch:default_requires(),
     functions := elixir_dispatch:default_functions(),
     macros := elixir_dispatch:default_macros()
@@ -65,37 +104,32 @@ env_for_eval(Opts) ->
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of
-    {line, RawLine} when is_integer(RawLine) -> RawLine;
+    {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
     false -> ?m(Env, line)
   end,
 
   File = case lists:keyfind(file, 1, Opts) of
-    {file, RawFile} when is_binary(RawFile) -> RawFile;
+    {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
     false -> ?m(Env, file)
   end,
 
-  Local = case lists:keyfind(delegate_locals_to, 1, Opts) of
-    {delegate_locals_to, LocalOpt} -> LocalOpt;
-    false -> ?m(Env, local)
-  end,
-
   Aliases = case lists:keyfind(aliases, 1, Opts) of
-    {aliases, AliasesOpt} -> AliasesOpt;
+    {aliases, AliasesOpt} when is_list(AliasesOpt) -> AliasesOpt;
     false -> ?m(Env, aliases)
   end,
 
   Requires = case lists:keyfind(requires, 1, Opts) of
-    {requires, List} -> ordsets:from_list(List);
+    {requires, RequiresOpt} when is_list(RequiresOpt) -> ordsets:from_list(RequiresOpt);
     false -> ?m(Env, requires)
   end,
 
   Functions = case lists:keyfind(functions, 1, Opts) of
-    {functions, FunctionsOpt} -> FunctionsOpt;
+    {functions, FunctionsOpt} when is_list(FunctionsOpt) -> FunctionsOpt;
     false -> ?m(Env, functions)
   end,
 
   Macros = case lists:keyfind(macros, 1, Opts) of
-    {macros, MacrosOpt} -> MacrosOpt;
+    {macros, MacrosOpt} when is_list(MacrosOpt) -> MacrosOpt;
     false -> ?m(Env, macros)
   end,
 
@@ -105,10 +139,10 @@ env_for_eval(Env, Opts) ->
   end,
 
   Env#{
-    file := File, local := Local, module := Module,
+    file := File, module := Module,
     macros := Macros, functions := Functions,
     requires := Requires, aliases := Aliases, line := Line
- }.
+  }.
 
 %% String evaluation
 
@@ -139,21 +173,26 @@ eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
   {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := [K || {K,_} <- ParsedScope#elixir_scope.vars]},
+  ParsedEnv = Env#{vars := [K || {K, _} <- ParsedScope#elixir_scope.vars]},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of
     {atom, _, Atom} ->
       {Atom, Binding, NewEnv, NewScope};
     _  ->
-      {value, Value, NewBinding} = erl_eval(Erl, ParsedBinding),
+      {value, Value, NewBinding} = erl_eval(Erl, ParsedBinding, Env),
       {Value, elixir_scope:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
-erl_eval(Erl, ParsedBinding) ->
+erl_eval(Erl, ParsedBinding, E) ->
+  case erl_eval:check_command([Erl], ParsedBinding) of
+    ok -> ok;
+    {error, Desc} -> elixir_errors:handle_file_error(?m(E, file), Desc)
+  end,
+
   % Below must be all one line for locations to be the same when the stacktrace
   % needs to be extended to the full stacktrace.
-  try erl_eval:expr(Erl, ParsedBinding) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end.
+  try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch Class:Exception -> erlang:raise(Class, Exception, get_stacktrace()) end.
 
 get_stacktrace() ->
   Stacktrace = erlang:get_stacktrace(),
@@ -192,14 +231,19 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File}|Opts]) of
-    {ok, _Line, Tokens} ->
+    {ok, _Line, _Column, Tokens} ->
       try elixir_parser:parse(Tokens) of
         {ok, Forms} -> {ok, Forms};
+        {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       catch
+        {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
       end;
-    {error, {Line, Error, Token}, _Rest, _SoFar} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+    {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
+      {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
+    {error, {Line, Error, Token}, _Rest, _SoFar} ->
+      {error, {Line, to_binary(Error), to_binary(Token)}}
   end.
 
 'string_to_quoted!'(String, StartLine, File, Opts) ->

@@ -1,44 +1,52 @@
 defmodule Mix.Tasks.Clean do
   use Mix.Task
 
-  @shortdoc "Clean generated application files"
+  @shortdoc "Delete generated application files"
   @recursive true
 
   @moduledoc """
-  Clean generated application files.
+  Delete generated application files.
 
-  This command delete all build artifacts for the current application
-  accross all environments. Dependencies are only cleaned up if the
-  `--all` option is given.
+  This command deletes all build artifacts for the current project
+  Dependencies' build files are cleaned if the `--deps` option is given.
 
-  ## Command line options
-
-  * `--all` - Clean everything, including builds and dependencies
-
+  By default this task works across all environments, unless `--only`
+  is given.
   """
 
+  @switches [deps: :boolean, only: :string]
+
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    {opts, _, _} = OptionParser.parse(args)
+    Mix.Project.get!
+    loadpaths!
 
-    manifests = Mix.Tasks.Compile.manifests
-    Enum.each(manifests, fn(manifest) ->
-      Enum.each Mix.Utils.read_manifest(manifest),
-                &(&1 |> String.split("\t") |> hd |> File.rm)
-      File.rm(manifest)
-    end)
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    if opts[:all] do
-      Mix.Task.run("deps.clean", args)
-      Mix.Project.build_path
-      |> Path.dirname
-      |> File.rm_rf
+    _ = for compiler <- Mix.Tasks.Compile.compilers(),
+            module = Mix.Task.get("compile.#{compiler}"),
+            function_exported?(module, :clean, 0),
+            do: module.clean
+
+    build = Mix.Project.build_path
+            |> Path.dirname
+            |> Path.join("#{opts[:only] || :*}")
+
+    if opts[:deps] do
+      build
+      |> Path.wildcard
+      |> Enum.each(&File.rm_rf/1)
     else
-      config = Mix.Project.config
-      Mix.Project.build_path(config)
-      |> Path.dirname
-      |> Path.join("*/lib/#{config[:app]}")
+      build
+      |> Path.join("lib/#{Mix.Project.config[:app]}")
       |> Path.wildcard
       |> Enum.each(&File.rm_rf/1)
     end
+  end
+
+  # Loadpaths without checks because compilers may be defined in deps.
+  defp loadpaths! do
+    Mix.Task.run "loadpaths", ["--no-elixir-version-check", "--no-deps-check"]
+    Mix.Task.reenable "loadpaths"
   end
 end

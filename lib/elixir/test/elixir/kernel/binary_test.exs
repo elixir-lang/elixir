@@ -42,7 +42,7 @@ bar """
   end
 
   test :utf8 do
-    assert size(" ゆんゆん") == 13
+    assert byte_size(" ゆんゆん") == 13
   end
 
   test :utf8_char do
@@ -60,33 +60,23 @@ bar """
     <<"f", "oo">> <> x = "foobar"
     assert x == "bar"
 
-    <<x :: [binary, size(3)]>> <> _ = "foobar"
+    <<x :: binary-size(3)>> <> _ = "foobar"
     assert x == "foo"
 
     size = 3
-    <<x :: [binary, size(size)]>> <> _ = "foobar"
+    <<x :: binary-size(size)>> <> _ = "foobar"
     assert x == "foo"
 
-    <<x :: [binary, size(6), unit(4)]>> <> _ = "foobar"
+    <<x :: 6*4-binary>> <> _ = "foobar"
     assert x == "foo"
 
-    assert_raise ErlangError, fn ->
-      Code.eval_string(~s(<<x :: [binary, size(3), unit(4)]>> <> _ = "foobar"))
+    assert_raise CompileError, fn ->
+      Code.eval_string(~s{<<x :: binary-size(3)-unit(4)>> <> _ = "foobar"})
     end
 
-    assert_raise ErlangError, fn ->
-      Code.eval_string(~s(<<x :: [integer, size(4)]>> <> _ = "foobar"))
+    assert_raise CompileError, fn ->
+      Code.eval_string(~s{<<x :: integer-size(4)>> <> _ = "foobar"})
     end
-  end
-
-  test :octals do
-    assert "\1" == <<1>>
-    assert "\12" == "\n"
-    assert "\123" == "S"
-    assert "\123" == "S"
-    assert "\377" == "ÿ"
-    assert "\128" == "\n8"
-    assert "\18"  == <<1, ?8>>
   end
 
   test :hex do
@@ -129,15 +119,15 @@ bar """
   end
 
   test :literal do
-    assert <<106,111,115,195,169>> == << "josé" :: binary >>
-    assert <<106,111,115,195,169>> == << "josé" :: bits >>
-    assert <<106,111,115,195,169>> == << "josé" :: bitstring >>
-    assert <<106,111,115,195,169>> == << "josé" :: bytes >>
+    assert <<106, 111, 115, 195, 169>> == << "josé" :: binary >>
+    assert <<106, 111, 115, 195, 169>> == << "josé" :: bits >>
+    assert <<106, 111, 115, 195, 169>> == << "josé" :: bitstring >>
+    assert <<106, 111, 115, 195, 169>> == << "josé" :: bytes >>
 
-    assert <<106,111,115,195,169>> == << "josé" :: utf8 >>
-    assert <<0,106,0,111,0,115,0,233>> == << "josé" :: utf16 >>
-    assert <<106,0,111,0,115,0,233,0>> == << "josé" :: [utf16, little] >>
-    assert <<0,0,0,106,0,0,0,111,0,0,0,115,0,0,0,233>> == << "josé" :: utf32 >>
+    assert <<106, 111, 115, 195, 169>> == << "josé" :: utf8 >>
+    assert <<0, 106, 0, 111, 0, 115, 0, 233>> == << "josé" :: utf16 >>
+    assert <<106, 0, 111, 0, 115, 0, 233, 0>> == << "josé" :: little-utf16 >>
+    assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 233>> == << "josé" :: utf32 >>
   end
 
   test :literal_errors do
@@ -167,35 +157,35 @@ bar """
   test :bitsyntax_translation do
     refb = "sample"
     sec_data = "another"
-    << size(refb) :: [size(1), big, signed, integer, unit(8)],
+    << byte_size(refb) :: size(1)-big-signed-integer-unit(8),
        refb :: binary,
-       size(sec_data) :: [size(1), big, signed, integer, unit(16)],
+       byte_size(sec_data) :: 1*16-big-signed-integer,
        sec_data :: binary >>
   end
 
   test :bitsyntax_size_shorcut do
     assert << 1 :: 3 >> == << 1 :: size(3) >>
-    assert << 1 :: [unit(8), 3] >> == << 1 :: [unit(8), size(3)] >>
+    assert << 1 :: 3*8 >> == << 1 :: size(3)-unit(8) >>
   end
 
   defmacrop signed_16 do
     quote do
-      [big, signed, integer, unit(16)]
+      big-signed-integer-unit(16)
     end
   end
 
   defmacrop refb_spec do
     quote do
-      [size(1), big, signed, integer, unit(8)]
+      1*8-big-signed-integer
     end
   end
 
   test :bitsyntax_macro do
     refb = "sample"
     sec_data = "another"
-    << size(refb) :: refb_spec,
+    << byte_size(refb) :: refb_spec,
        refb :: binary,
-       size(sec_data) :: [size(1), signed_16],
+       byte_size(sec_data) :: size(1)-signed_16,
        sec_data :: binary >>
   end
 end

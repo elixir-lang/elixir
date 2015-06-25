@@ -5,7 +5,7 @@ defmodule PathTest do
   import PathHelpers
 
   if :file.native_name_encoding == :utf8 do
-    test :wildcard do
+    test :wildcard_with_utf8 do
       File.mkdir_p(tmp_path("héllò"))
       assert Path.wildcard(tmp_path("héllò")) == [tmp_path("héllò")]
     after
@@ -13,8 +13,24 @@ defmodule PathTest do
     end
   end
 
-  if is_win? do
-    test :relative do
+  test :wildcard do
+    hello = tmp_path("wildcard/.hello")
+    world = tmp_path("wildcard/.hello/world")
+    File.mkdir_p(world)
+
+    assert Path.wildcard(tmp_path("wildcard/*/*")) == []
+    assert Path.wildcard(tmp_path("wildcard/**/*")) == []
+    assert Path.wildcard(tmp_path("wildcard/?hello/world")) == []
+
+    assert Path.wildcard(tmp_path("wildcard/*/*"), match_dot: true) == [world]
+    assert Path.wildcard(tmp_path("wildcard/**/*"), match_dot: true) == [hello, world]
+    assert Path.wildcard(tmp_path("wildcard/?hello/world"), match_dot: true) == [world]
+  after
+    File.rm_rf tmp_path("wildcard")
+  end
+
+  if windows? do
+    test :relative_win do
       assert Path.relative("C:/usr/local/bin")    == "usr/local/bin"
       assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
       assert Path.relative("C:usr\\local\\bin")   == "usr\\local\\bin"
@@ -22,9 +38,15 @@ defmodule PathTest do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
+
+      assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
+      assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "d:") == "usr/local/foo"
+      assert Path.relative_to("D:/usr/local/foo", "D:") == "usr/local/foo"
     end
 
-    test :type do
+    test :type_win do
       assert Path.type("C:/usr/local/bin")    == :absolute
       assert Path.type('C:\\usr\\local\\bin') == :absolute
       assert Path.type("C:usr\\local\\bin")   == :volumerelative
@@ -33,15 +55,20 @@ defmodule PathTest do
       assert Path.type('usr/local/bin')    == :relative
       assert Path.type("../usr/local/bin") == :relative
     end
+
+    test :split_win do
+      assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
+      assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
+    end
   else
-    test :relative do
+    test :relative_unix do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
     end
 
-    test :type do
+    test :type_unix do
       assert Path.type("/usr/local/bin")   == :absolute
       assert Path.type("usr/local/bin")    == :relative
       assert Path.type("../usr/local/bin") == :relative
@@ -65,6 +92,9 @@ defmodule PathTest do
   end
 
   test :absname do
+    assert (Path.absname("/") |> strip_drive_letter_if_windows) == "/"
+    assert (Path.absname("/foo") |> strip_drive_letter_if_windows) == "/foo"
+    assert (Path.absname("/./foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.absname("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.absname("/foo/bar/") |> strip_drive_letter_if_windows)  == "/foo/bar"
     assert (Path.absname("/foo/bar/../bar")  |> strip_drive_letter_if_windows) == "/foo/bar/../bar"
@@ -89,9 +119,13 @@ defmodule PathTest do
     assert Path.expand("~/file", "whatever") == Path.join(home, "file")
     assert Path.expand("file", Path.expand("~")) == Path.expand("~/file")
     assert Path.expand("file", "~") == Path.join(home, "file")
+    assert Path.expand("~file") == Path.join(System.cwd!, "file")
   end
 
   test :expand_path do
+    assert (Path.expand("/") |> strip_drive_letter_if_windows) == "/"
+    assert (Path.expand("/foo") |> strip_drive_letter_if_windows) == "/foo"
+    assert (Path.expand("/./foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.expand("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows)== "/foo/bar"
@@ -105,6 +139,7 @@ defmodule PathTest do
 
     assert (Path.expand(['..', ?/, "bar/../bar"], '/foo/../foo/../foo') |>
             strip_drive_letter_if_windows) == "/bar"
+    assert (Path.expand("/..") |> strip_drive_letter_if_windows) == "/"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end
@@ -172,23 +207,29 @@ defmodule PathTest do
     assert Path.join("/foo", "bar") == "/foo/bar"
     assert Path.join("~", "foo") == "~/foo"
 
-    assert Path.join("", "bar") == "/bar"
-    assert Path.join("/foo", "/bar") == "/foo/bar"
-    assert Path.join("/foo", "./bar") == "/foo/bar"
+    assert Path.join("", "bar")  == "bar"
+    assert Path.join("bar", "")  == "bar"
+    assert Path.join("", "/bar") == "bar"
+    assert Path.join("/bar", "") == "/bar"
 
-    assert Path.join([?/, "foo"], "./bar") == "/foo/bar"
+    assert Path.join("foo", "/bar") == "foo/bar"
+    assert Path.join("/foo", "/bar") == "/foo/bar"
+    assert Path.join("/foo", "/bar") == "/foo/bar"
+    assert Path.join("/foo", "./bar") == "/foo/./bar"
+
+    assert Path.join([?/, "foo"], "./bar") == "/foo/./bar"
   end
 
-  test :split_with_binary do
+  test :split do
     assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
     assert Path.split("/foo/bar") == ["/", "foo", "bar"]
     assert Path.split([?/, "foo/bar"]) == ["/", "foo", "bar"]
   end
 
-  if is_win? do
-    defp strip_drive_letter_if_windows([_d,?:|rest]), do: rest
-    defp strip_drive_letter_if_windows(<<_d,?:,rest::binary>>), do: rest
+  if windows? do
+    defp strip_drive_letter_if_windows([_d, ?:|rest]), do: rest
+    defp strip_drive_letter_if_windows(<<_d, ?:, rest::binary>>), do: rest
   else
     defp strip_drive_letter_if_windows(path), do: path
   end

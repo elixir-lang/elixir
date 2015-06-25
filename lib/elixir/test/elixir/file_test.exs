@@ -12,11 +12,7 @@ defmodule Elixir.FileCase do
 
   setup do
     File.mkdir_p!(tmp_path)
-    :ok
-  end
-
-  teardown do
-    File.rm_rf(tmp_path)
+    on_exit(fn -> File.rm_rf(tmp_path) end)
     :ok
   end
 end
@@ -127,9 +123,23 @@ defmodule FileTest do
     test :cp_with_src_dir! do
       src   = fixture_path("cp_r")
       dest  = tmp_path("tmp.file")
-      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}: " <>
+      assert_raise File.CopyError, "could not copy from #{src} to #{dest}: " <>
           "illegal operation on a directory", fn ->
         File.cp!(src, dest)
+      end
+    end
+
+    test :copy_file_to_itself do
+      src = dest = tmp_path("tmp.file")
+
+      File.write!(src, "here")
+
+      try do
+        assert File.cp(src, dest) == :ok
+        assert File.read!(dest) == "here"
+        assert File.cp_r(src, dest) == {:ok, []}
+      after
+        File.rm(dest)
       end
     end
 
@@ -689,6 +699,15 @@ defmodule FileTest do
       refute File.exists?(fixture)
     end
 
+    test :rm_read_only_file do
+      fixture = tmp_path("tmp_test.txt")
+      File.write(fixture, "test")
+      assert File.exists?(fixture)
+      File.chmod(fixture, 0o100444)
+      assert File.rm(fixture) == :ok
+      refute File.exists?(fixture)
+    end
+
     test :rm_file_with_dir do
       assert File.rm(fixture_path) == {:error, :eperm}
     end
@@ -766,7 +785,7 @@ defmodule FileTest do
       File.write!(Path.join(to, "hello"), "world")
       :file.make_symlink(to, from)
 
-      if File.exists?(from) or not is_win? do
+      if File.exists?(from) or not windows? do
         assert File.exists?(from)
 
         {:ok, files} = File.rm_rf(from)
@@ -863,6 +882,51 @@ defmodule FileTest do
       File.stat!("./invalid_file")
     end
   end
+
+  test :lstat do
+    {:ok, info} = File.lstat(__ENV__.file)
+    assert info.mtime
+  end
+
+  test :lstat! do
+    assert File.lstat!(__ENV__.file).mtime
+  end
+
+  test :lstat_with_invalid_file do
+    invalid_file = tmp_path("invalid_file")
+    assert {:error, _} = File.lstat(invalid_file)
+  end
+
+  test :lstat_with_invalid_file! do
+    invalid_file = tmp_path("invalid_file")
+    assert_raise File.Error, fn ->
+      File.lstat!(invalid_file)
+    end
+  end
+
+  test :lstat_with_dangling_symlink do
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file, dest)
+    try do
+      assert {:ok, info } = File.lstat(dest)
+      assert info.type == :symlink
+    after
+      File.rm(dest)
+    end
+  end
+
+  test :lstat_with_dangling_symlink! do
+    invalid_file = tmp_path("invalid_file")
+    dest = tmp_path("dangling_symlink")
+    File.ln_s(invalid_file, dest)
+    try do
+     assert File.lstat!(dest).type == :symlink
+    after
+     File.rm(dest)
+    end
+  end
+
 
   test :io_stream_utf8 do
     src  = File.open! fixture_path("file.txt"), [:utf8]
@@ -1190,14 +1254,14 @@ defmodule FileTest do
 
     File.touch(fixture)
     try do
-      assert File.chmod(fixture, 0100666) == :ok
+      assert File.chmod(fixture, 0o100666) == :ok
       stat = File.stat!(fixture)
-      assert stat.mode == 0100666
+      assert stat.mode == 0o100666
 
-      unless is_win? do
-        assert File.chmod(fixture, 0100777) == :ok
+      unless windows? do
+        assert File.chmod(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
-        assert stat.mode == 0100777
+        assert stat.mode == 0o100777
       end
     after
       File.rm(fixture)
@@ -1209,14 +1273,14 @@ defmodule FileTest do
 
     File.touch(fixture)
     try do
-      assert File.chmod!(fixture, 0100666) == :ok
+      assert File.chmod!(fixture, 0o100666) == :ok
       stat = File.stat!(fixture)
-      assert stat.mode == 0100666
+      assert stat.mode == 0o100666
 
-      unless is_win? do
-        assert File.chmod!(fixture, 0100777) == :ok
+      unless windows? do
+        assert File.chmod!(fixture, 0o100777) == :ok
         stat = File.stat!(fixture)
-        assert stat.mode == 0100777
+        assert stat.mode == 0o100777
       end
     after
       File.rm(fixture)
@@ -1227,7 +1291,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chmod(fixture, 0100777) == {:error,:enoent}
+    assert File.chmod(fixture, 0o100777) == {:error, :enoent}
   end
 
   test :chmod_with_failure! do
@@ -1236,7 +1300,7 @@ defmodule FileTest do
 
     message = ~r"could not change mode for #{escape fixture}: no such file or directory"
     assert_raise File.Error, message, fn ->
-      File.chmod!(fixture, 0100777)
+      File.chmod!(fixture, 0o100777)
     end
   end
 
@@ -1244,7 +1308,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chgrp(fixture, 1) == {:error,:enoent}
+    assert File.chgrp(fixture, 1) == {:error, :enoent}
   end
 
   test :chgrp_with_failure! do
@@ -1261,7 +1325,7 @@ defmodule FileTest do
     fixture = tmp_path("tmp_test.txt")
     File.rm(fixture)
 
-    assert File.chown(fixture, 1) == {:error,:enoent}
+    assert File.chown(fixture, 1) == {:error, :enoent}
   end
 
   test :chown_with_failure! do

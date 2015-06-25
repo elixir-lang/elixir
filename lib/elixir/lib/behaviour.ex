@@ -44,14 +44,14 @@ defmodule Behaviour do
   """
 
   @doc """
-  Define a function callback according to the given type specification.
+  Defines a function callback according to the given type specification.
   """
   defmacro defcallback(spec) do
     do_defcallback(split_spec(spec, quote(do: term)), __CALLER__)
   end
 
   @doc """
-  Define a macro callback according to the given type specification.
+  Defines a macro callback according to the given type specification.
   """
   defmacro defmacrocallback(spec) do
     do_defmacrocallback(split_spec(spec, quote(do: Macro.t)), __CALLER__)
@@ -93,7 +93,7 @@ defmodule Behaviour do
   end
 
   defp do_callback(kind, name, args, docs_name, docs_arity, _docs_args, return, guards, caller) do
-    Enum.each args, fn
+    :lists.foreach fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
@@ -101,7 +101,7 @@ defmodule Behaviour do
       other ->
         ensure_not_default(other)
         other
-    end
+    end, args
 
     quote do
       @callback unquote(name)(unquote_splicing(args)) :: unquote(return) when unquote(guards)
@@ -127,26 +127,19 @@ defmodule Behaviour do
   defmacro __using__(_) do
     quote do
       Module.register_attribute(__MODULE__, :behaviour_docs, accumulate: true)
-      @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__)
-    end
-  end
 
-  @doc false
-  defmacro __before_compile__(env) do
-    docs = if Code.compiler_options[:docs] do
-      Enum.reverse Module.get_attribute(env.module, :behaviour_docs)
-    end
-
-    quote do
+      # TODO: Deprecate by 1.2
+      # TODO: Remove by 2.0
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)
       end
 
       def __behaviour__(:docs) do
-        unquote(Macro.escape(docs))
+        Code.get_docs(__MODULE__, :behaviour_docs)
       end
+
+      import unquote(__MODULE__)
     end
   end
 end

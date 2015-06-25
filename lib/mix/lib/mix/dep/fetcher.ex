@@ -27,7 +27,7 @@ defmodule Mix.Dep.Fetcher do
     {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
-    Mix.Dep.loaded_by_name(names, deps, opts)
+    _ = Mix.Dep.loaded_by_name(names, deps, opts)
     apps
   end
 
@@ -77,29 +77,28 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp out_of_date?(%Mix.Dep{status: {:lockmismatch, _}}), do: true
-  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),        do: true
-  defp out_of_date?(%Mix.Dep{status: :nolock}),              do: true
+  defp out_of_date?(%Mix.Dep{status: :lockoutdated}),      do: true
+  defp out_of_date?(%Mix.Dep{status: :nolock}),            do: true
   defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
-  defp out_of_date?(%Mix.Dep{}),                             do: false
+  defp out_of_date?(%Mix.Dep{}),                           do: false
 
   defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
-    # Do not mark dependencies that are not available
-    deps = Enum.filter(deps, &available?/1)
-
     # Note we only retrieve the parent dependencies of the updated
     # deps if all dependencies are available. This is because if a
-    # dependency is missing, it could be a children of the parent
-    # (aka a sibling) which would make parent compilation fail.
+    # dependency is missing, it could directly affect one of the
+    # dependencies we are trying to compile, causing the whole thing
+    # to fail.
     #
     # If there is any other dependency that is not ok, we include
     # it for compilation too, this is our best to try to solve the
     # maximum we can at each deps.get and deps.update.
     if Enum.all?(all_deps, &available?/1) do
-      deps = with_depending(deps, all_deps) ++
-             Enum.filter(all_deps, fn dep -> not ok?(dep) end)
+      deps = (with_depending(deps, all_deps) ++
+              Enum.filter(all_deps, fn dep -> not ok?(dep) end))
+             |> Enum.uniq(&(&1.app))
     end
 
     # Merge the new lock on top of the old to guarantee we don't
@@ -107,20 +106,23 @@ defmodule Mix.Dep.Fetcher do
     lock = Dict.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
 
-    require_compilation(deps)
+    mark_as_fetched(deps)
     {apps, all_deps}
   end
 
-  defp require_compilation(deps) do
-    envs = Path.wildcard("_build/*/lib")
-
-    for %Mix.Dep{app: app} <- deps, env <- envs do
-      File.touch Path.join [env, Atom.to_string(app), ".compile"]
+  defp mark_as_fetched(deps) do
+    # If the dependency is fetchable, we are going to write a .fetch
+    # file to it. Each build, regardless of the environment and location,
+    # will compared against this .fetch file to know if the dependency
+    # needs recompiling.
+    _ = for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable? do
+      File.touch! Path.join opts[:dest], ".fetch"
     end
+    :ok
   end
 
   defp with_depending(deps, all_deps) do
-    (deps ++ do_with_depending(deps, all_deps)) |> Enum.uniq(&(&1.app))
+    deps ++ do_with_depending(deps, all_deps)
   end
 
   defp do_with_depending([], _all_deps) do
@@ -131,7 +133,7 @@ defmodule Mix.Dep.Fetcher do
     dep_names = Enum.map(deps, fn dep -> dep.app end)
 
     parents = Enum.filter all_deps, fn dep ->
-      Enum.any?(dep.deps, &(&1 in dep_names))
+      Enum.any?(dep.deps, &(&1.app in dep_names))
     end
 
     do_with_depending(parents, all_deps) ++ parents

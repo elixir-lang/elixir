@@ -2,7 +2,7 @@ defmodule Range do
   @moduledoc """
   Defines a Range.
 
-  A Range are represented internally as a struct. However,
+  A Range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
   is via the `../2` macro, auto-imported from Kernel:
 
@@ -18,7 +18,8 @@ defmodule Range do
 
   defstruct first: nil, last: nil
 
-  @type t(first, last) :: %{__struct__: Range, first: first, last: last}
+  @type t :: %Range{}
+  @type t(first, last) :: %Range{first: first, last: last}
 
   @doc """
   Creates a new range.
@@ -28,7 +29,7 @@ defmodule Range do
   end
 
   @doc """
-  Returns true if the given argument is a range.
+  Returns `true` if the given argument is a range.
 
   ## Examples
 
@@ -54,7 +55,7 @@ defprotocol Range.Iterator do
   def next(first, range)
 
   @doc """
-  Count how many items are in the range.
+  Counts how many items are in the range.
   """
   def count(first, range)
 end

@@ -11,6 +11,13 @@ defmodule Mix.ShellTest do
     ExUnit.CaptureIO.capture_io(from, somefunc) |> String.replace("\r\n","\n")
   end
 
+  setup do
+    on_exit fn ->
+      Mix.shell(Mix.Shell.Process)
+    end
+    :ok
+  end
+
   test "shell process" do
     Mix.shell.info "abc"
     Mix.shell.error "def"
@@ -26,7 +33,7 @@ defmodule Mix.ShellTest do
     assert_received {:mix_shell, :yes?, ["hello?"]}
 
     assert Mix.shell.cmd("echo first") == 0
-    
+
     nl = os_newline
     assert_received {:mix_shell, :run, ["first" <> ^nl]}
   end
@@ -37,8 +44,13 @@ defmodule Mix.ShellTest do
     assert capture_io(fn -> Mix.shell.info "abc" end) ==
            "abc\n"
 
-    assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
-           (IO.ANSI.escape "%{red,bright}def") <> "\n"
+    if IO.ANSI.enabled? do
+      assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
+             "#{IO.ANSI.red}#{IO.ANSI.bright}def#{IO.ANSI.reset}\n"
+    else
+      assert capture_io(:stderr, fn -> Mix.shell.error "def" end) ==
+             "def\n"
+    end
 
     assert capture_io("world", fn -> assert Mix.shell.prompt("hello?") == "world" end) ==
            "hello? "
@@ -58,8 +70,11 @@ defmodule Mix.ShellTest do
     end) |> String.replace(" \n", "\n")) == "first\nsecond\n"
   end
 
-  teardown do
-    Mix.shell(Mix.Shell.Process)
-    :ok
+  test "shell cmd ignores output if desired" do
+    Mix.shell Mix.Shell.IO
+
+    assert capture_io(fn ->
+      assert Mix.shell.cmd("echo first && echo second", quiet: true) == 0
+    end) == ""
   end
 end

@@ -8,6 +8,13 @@ defmodule Mix.Utils do
 
   It defaults to `~/.mix` unless the `MIX_HOME`
   environment variable is set.
+
+  Developers should only store entries in the
+  `MIX_HOME` directory which are guaranteed to
+  work across multiple Elixir versions, as it is
+  not recommended to swap the `MIX_HOME` directory
+  as configuration and other important data may be
+  stored there.
   """
   def mix_home do
     System.get_env("MIX_HOME") || Path.expand("~/.mix")
@@ -92,35 +99,18 @@ defmodule Mix.Utils do
   end
 
   def last_modified(path) do
+    now = :calendar.local_time
+
     case File.stat(path) do
-      {:ok, %File.Stat{mtime: mtime}} -> mtime
-      {:error, _} -> {{1970, 1, 1}, {0, 0, 0}}
+      {:ok, %File.Stat{mtime: mtime}} when mtime > now ->
+        Mix.shell.error("warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now")
+        File.touch!(path, now)
+        mtime
+      {:ok, %File.Stat{mtime: mtime}} ->
+        mtime
+      {:error, _} ->
+        {{1970, 1, 1}, {0, 0, 0}}
     end
-  end
-
-  @doc ~S"""
-  Reads the given file as a manifest and returns each entry
-  as a list.
-
-  A manifest is a tabular file where each line is a row
-  and each entry in a row is separated by "\t". The first
-  entry must always be a path to a compiled artifact.
-
-  In case there is no manifest file, returns an empty list.
-  """
-  def read_manifest(file) do
-    case File.read(file) do
-      {:ok, contents} -> String.split(contents, "\n")
-      {:error, _} -> []
-    end
-  end
-
-  @doc """
-  Writes a manifest file with the given `entries` list.
-  """
-  def write_manifest(file, entries) do
-    Path.dirname(file) |> File.mkdir_p!
-    File.write!(file, Enum.join(entries, "\n"))
   end
 
   @doc """
@@ -133,8 +123,6 @@ defmodule Mix.Utils do
   the return result. If it is a directory, it is searched
   recursively for files with the given extensions or matching
   the given patterns.
-
-  Any file starting with `"."` is ignored.
   """
   def extract_files(paths, exts_or_pattern)
 
@@ -143,15 +131,9 @@ defmodule Mix.Utils do
   end
 
   def extract_files(paths, pattern) do
-    files = Enum.flat_map(paths, fn path ->
+    Enum.flat_map(paths, fn path ->
       if File.regular?(path), do: [path], else: Path.wildcard("#{path}/**/#{pattern}")
-    end)
-    files |> exclude_files |> Enum.uniq
-  end
-
-  defp exclude_files(files) do
-    filter = fn(x) -> not match?("." <> _, Path.basename(x)) end
-    Enum.filter files, filter
+    end) |> Enum.uniq
   end
 
   @doc """
@@ -174,8 +156,11 @@ defmodule Mix.Utils do
   In general, `underscore` can be thought of as the reverse of
   `camelize`, however, in some cases formatting may be lost:
 
-      Mix.Utils.underscore "SAPExample"  #=> "sap_example"
-      Mix.Utils.camelize   "sap_example" #=> "SapExample"
+      iex> Mix.Utils.underscore "SAPExample"
+      "sap_example"
+
+      iex> Mix.Utils.camelize "sap_example"
+      "SapExample"
 
   """
   def underscore(atom) when is_atom(atom) do
@@ -189,23 +174,13 @@ defmodule Mix.Utils do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not t in ?A..?Z do
+  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not (t in ?A..?Z or t == ?.) do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
 
   defp do_underscore(<<h, t :: binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
     <<?_, to_lower_char(h)>> <> do_underscore(t, h)
   end
-
-  defp do_underscore(<<?-, t :: binary>>, _) do
-    <<?_>> <> do_underscore(t, ?-)
-  end
-
-  defp do_underscore(<< "..", t :: binary>>, _) do
-    <<"..">> <> underscore(t)
-  end
-
-  defp do_underscore(<<?.>>, _), do: <<?.>>
 
   defp do_underscore(<<?., t :: binary>>, _) do
     <<?/>> <> underscore(t)
@@ -228,39 +203,35 @@ defmodule Mix.Utils do
       "FooBar"
 
   """
-  def camelize(""), do: ""
+  @spec camelize(String.t) :: String.t
+  def camelize(string)
 
-  def camelize(<<?_, t :: binary>>) do
-    camelize(t)
-  end
+  def camelize(""),
+    do: ""
 
-  def camelize(<<h, t :: binary>>) do
-    <<to_upper_char(h)>> <> do_camelize(t)
-  end
+  def camelize(<<?_, t :: binary>>),
+    do: camelize(t)
 
-  defp do_camelize(<<?_, ?_, t :: binary>>) do
-    do_camelize(<< ?_, t :: binary >>)
-  end
+  def camelize(<<h, t :: binary>>),
+    do: <<to_upper_char(h)>> <> do_camelize(t)
 
-  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z do
-    <<to_upper_char(h)>> <> do_camelize(t)
-  end
+  defp do_camelize(<<?_, ?_, t :: binary>>),
+    do: do_camelize(<< ?_, t :: binary >>)
 
-  defp do_camelize(<<?_>>) do
-    <<>>
-  end
+  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z,
+    do: <<to_upper_char(h)>> <> do_camelize(t)
 
-  defp do_camelize(<<?/, t :: binary>>) do
-    <<?.>> <> camelize(t)
-  end
+  defp do_camelize(<<?_>>),
+    do: <<>>
 
-  defp do_camelize(<<h, t :: binary>>) do
-    <<h>> <> do_camelize(t)
-  end
+  defp do_camelize(<<?/, t :: binary>>),
+    do: <<?.>> <> camelize(t)
 
-  defp do_camelize(<<>>) do
-    <<>>
-  end
+  defp do_camelize(<<h, t :: binary>>),
+    do: <<h>> <> do_camelize(t)
+
+  defp do_camelize(<<>>),
+    do: <<>>
 
   @doc """
   Takes a module and converts it to a command.
@@ -285,7 +256,7 @@ defmodule Mix.Utils do
 
   def module_name_to_command(module, nesting) do
     t = Regex.split(~r/\./, to_string(module))
-    t |> Enum.drop(nesting) |> Enum.map(&first_to_lower(&1)) |> Enum.join(".")
+    t |> Enum.drop(nesting) |> Enum.map(&underscore(&1)) |> Enum.join(".")
   end
 
   @doc """
@@ -299,15 +270,9 @@ defmodule Mix.Utils do
   """
   def command_to_module_name(s) do
     Regex.split(~r/\./, to_string(s)) |>
-      Enum.map(&first_to_upper(&1)) |>
+      Enum.map(&camelize(&1)) |>
       Enum.join(".")
   end
-
-  defp first_to_upper(<<s, t :: binary>>), do: <<to_upper_char(s)>> <> t
-  defp first_to_upper(<<>>), do: <<>>
-
-  defp first_to_lower(<<s, t :: binary>>), do: <<to_lower_char(s)>> <> t
-  defp first_to_lower(<<>>), do: <<>>
 
   defp to_upper_char(char) when char in ?a..?z, do: char - 32
   defp to_upper_char(char), do: char
@@ -324,37 +289,37 @@ defmodule Mix.Utils do
   """
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
-      source_list = String.to_char_list(source)
+      # Relative symbolic links on windows are broken
+      link = case :os.type do
+        {:win32, _} -> source
+        _           -> make_relative_path(source, target)
+      end |> String.to_char_list
+
       case :file.read_link(target) do
-        {:ok, ^source_list} ->
+        {:ok, ^link} ->
           :ok
         {:ok, _} ->
           File.rm!(target)
-          do_symlink_or_copy(source, target)
+          do_symlink_or_copy(source, target, link)
         {:error, :enoent} ->
-          do_symlink_or_copy(source, target)
+          do_symlink_or_copy(source, target, link)
         {:error, _} ->
-          File.rm_rf!(target)
-          do_symlink_or_copy(source, target)
+          _ = File.rm_rf!(target)
+          do_symlink_or_copy(source, target, link)
       end
     else
       {:error, :enoent}
     end
   end
 
-  defp do_symlink_or_copy(source, target) do
-    if match? {:win32, _}, :os.type do
-      {:ok, File.cp_r!(source, target)}
-    else
-      symlink_source = make_relative_path(source, target)
-      case :file.make_symlink(symlink_source, target) do
-        :ok -> :ok
-        {:error, _} -> {:ok, File.cp_r!(source, target)}
-      end
+  defp do_symlink_or_copy(source, target, link) do
+    case :file.make_symlink(link, target) do
+      :ok -> :ok
+      {:error, _} -> {:ok, File.cp_r!(source, target)}
     end
   end
 
-  # Make a relative path in between two paths.
+  # Make a relative path between the two given paths.
   # Expects both paths to be fully expanded.
   defp make_relative_path(source, target) do
     do_make_relative_path(Path.split(source), Path.split(target))
@@ -370,19 +335,76 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Opens and reads content from either a URL or a local filesystem path.
+  Opens and reads content from either a URL or a local filesystem path
+  and returns the contents as a binary.
 
-  Used by tasks like `local.install` and `local.rebar` that support
+  Raises if the given path is not a URL, nor a file or if the
+  file or URL are invalid.
+
+  ## Options
+
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
+  """
+  def read_path!(path, opts \\ []) do
+    cond do
+      url?(path) && opts[:system] ->
+        read_shell(path, nil)
+      url?(path) ->
+        read_httpc(path, nil)
+      file?(path) ->
+        read_file(path)
+      true ->
+        Mix.raise "Expected #{path} to be a url or a local file path"
+    end
+  end
+
+  @doc """
+  Copies content from either a URL or a local filesystem path to
+  target path.
+
+  Used by tasks like `archive.install` and `local.rebar` that support
   installation either from a URL or a local file.
 
-  Raises if the given path is not a url, nor a file or if the
-  file or url are invalid.
+  Raises if the given path is not a URL, nor a file or if the
+  file or URL are invalid.
+
+  ## Options
+
+    * `:system` - Boolean value forces the use of `wget` or `curl`
+      to fetch the file if the given path is a URL.
+
+    * `:force` - Forces overwriting target file without a shell prompt.
   """
-  def read_path!(path) do
-    cond do
-      url?(path)  -> read_url(path)
-      file?(path) -> read_file(path)
-      :else       -> raise Mix.Error, message: "Expected #{path} to be a url or a local file path"
+  def copy_path!(source, target, opts \\ []) when is_binary(source) and is_binary(target) do
+    if opts[:force] || overwriting?(target) do
+      cond do
+        url?(source) && opts[:system] ->
+          read_shell(source, target)
+        url?(source) ->
+          read_httpc(source, target)
+        file?(source) ->
+          copy_file(source, target)
+        true ->
+          Mix.raise "Expected #{source} to be a url or a local file path"
+      end
+
+      true
+    else
+      false
+    end
+  end
+
+  @doc """
+  Prompts the user to overwrite the file if it exists. Returns
+  the user input.
+  """
+  def overwriting?(path) do
+    if File.exists?(path) do
+      full = Path.expand(path)
+      Mix.shell.yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
+    else
+      true
     end
   end
 
@@ -390,25 +412,115 @@ defmodule Mix.Utils do
     File.read!(path)
   end
 
-  defp read_url(path) do
-    :ssl.start
-    :inets.start
+  defp copy_file(source, target) do
+    File.mkdir_p!(Path.dirname(target))
+    File.cp!(source, target)
+  end
+
+  defp read_httpc(path, target) do
+    {:ok, _} = Application.ensure_all_started(:ssl)
+    {:ok, _} = Application.ensure_all_started(:inets)
+
+    # Starting a http client profile allows us to scope
+    # the effects of using a http proxy to this function
+    {:ok, _pid} = :inets.start(:httpc, [{:profile, :mix}])
 
     headers = [{'user-agent', 'Mix/#{System.version}'}]
     request = {:binary.bin_to_list(path), headers}
 
-    # We are using relaxed: true because some clients (namely Github pages
-    # which we are using to download rebar) is returning a Location header
-    # with relative paths, which does not follow the spec. This would cause
-    # the request to fail with {:error, :no_scheme} unless :relaxed is given.
-    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary]) do
+    # If a proxy environment variable was supplied add a proxy to httpc
+    http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+    if http_proxy,  do: proxy(http_proxy)
+    if https_proxy, do: proxy(https_proxy)
+
+    if target do
+      File.mkdir_p!(Path.dirname(target))
+      File.rm(target)
+      req_opts = [stream: String.to_char_list(target)]
+    else
+      req_opts = [body_format: :binary]
+    end
+
+    # We are using relaxed: true because some servers is returning a Location
+    # header with relative paths, which does not follow the spec. This would
+    # cause the request to fail with {:error, :no_scheme} unless :relaxed
+    # is given.
+    case :httpc.request(:get, request, [relaxed: true], req_opts, :mix) do
+      {:ok, :saved_to_file} ->
+        :ok
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         body
       {:ok, {{_, status, _}, _, _}} ->
-        raise Mix.Error, message: "Could not access url #{path}, got status: #{status}"
+        Mix.raise "Could not access url #{path}, got status: #{status}"
       {:error, reason} ->
-        raise Mix.Error, message: "Could not access url #{path}, error: #{inspect reason}"
+        Mix.raise "Could not access url #{path}, error: #{inspect reason}"
     end
+  after
+    :inets.stop(:httpc, :mix)
+  end
+
+  defp proxy(proxy) do
+    uri  = URI.parse(proxy)
+
+    if uri.host && uri.port do
+      host = String.to_char_list(uri.host)
+      :httpc.set_options([{proxy_scheme(uri.scheme), {{host, uri.port}, []}}], :mix)
+    end
+  end
+
+  defp proxy_scheme(scheme) do
+    case scheme do
+      "http" -> :proxy
+      "https" -> :https_proxy
+    end
+  end
+
+  defp read_shell(path, target) do
+    filename = URI.parse(path).path |> Path.basename
+    out_path = target || Path.join(System.tmp_dir!, filename)
+
+    File.mkdir_p!(Path.dirname(out_path))
+    File.rm(out_path)
+
+    status = cond do
+      windows? && System.find_executable("powershell") ->
+        command = ~s[$ErrorActionPreference = 'Stop'; ] <>
+                  ~s[$client = new-object System.Net.WebClient; ] <>
+                  ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
+        Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
+      System.find_executable("curl") ->
+        Mix.shell.cmd(~s[curl -sSL -o "#{out_path}" "#{path}"])
+      System.find_executable("wget") ->
+        Mix.shell.cmd(~s[wget -nv -O "#{out_path}" "#{path}"])
+      windows? ->
+        Mix.shell.error "powershell, wget or curl not installed"
+      true ->
+        Mix.shell.error "wget or curl not installed"
+        1
+    end
+
+    check_command!(status, path, target)
+
+    unless target do
+      data = File.read!(out_path)
+      File.rm!(out_path)
+      data
+    end
+  end
+
+  defp check_command!(0, _path, _out_path), do: :ok
+  defp check_command!(_status, path, nil) do
+    Mix.raise "Could not fetch data, please download manually from " <>
+              "#{inspect path}"
+  end
+  defp check_command!(_status, path, out_path) do
+    Mix.raise "Could not fetch data, please download manually from " <>
+              "#{inspect path} and copy it to #{inspect out_path}"
+  end
+
+  defp windows? do
+    match?({:win32, _}, :os.type)
   end
 
   defp file?(path) do

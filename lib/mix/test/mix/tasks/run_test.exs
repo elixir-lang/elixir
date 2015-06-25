@@ -3,6 +3,8 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.RunTest do
   use MixTest.Case
 
+  import ExUnit.CaptureIO
+
   defmodule GetApp do
     def project do
       [ app: :get_app,
@@ -15,6 +17,18 @@ defmodule Mix.Tasks.RunTest do
 
   setup do
     Mix.Project.push MixTest.Case.Sample
+  end
+
+  test "loads configuration" do
+    in_fixture "no_mixfile", fn ->
+      assert capture_io(fn ->
+        Mix.Task.run "run",
+          ["--config", fixture_path("configs/good_config.exs"),
+           "--eval", "IO.puts Application.get_env(:my_app, :key)"]
+      end) == "value\n"
+    end
+  after
+    Application.delete_env(:my_app, :key)
   end
 
   test "run requires files before evaling commands" do
@@ -32,14 +46,12 @@ defmodule Mix.Tasks.RunTest do
   end
 
   test "run errors on missing files" do
-    git_repo = fixture_path("git_repo/lib/git_repo.ex")
-
     in_fixture "no_mixfile", fn ->
-      assert_raise Mix.Error, "require: No files matched pattern non-existent", fn ->
+      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         Mix.Tasks.Run.run ["-r", "non-existent"]
       end
 
-      assert_raise Mix.Error, "parallel-require: No files matched pattern non-existent", fn ->
+      assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --parallel-require", fn ->
         Mix.Tasks.Run.run ["-pr", "non-existent"]
       end
 

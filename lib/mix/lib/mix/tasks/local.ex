@@ -7,17 +7,17 @@ defmodule Mix.Tasks.Local do
   List local tasks.
   """
 
+  @spec run([]) :: :ok
   def run([]) do
     shell   = Mix.shell
     modules = Mix.Local.all_tasks
 
-    docs = for module <- modules,
-        Mix.Task.is_task?(module) do
+    docs = for module <- modules do
       {Mix.Task.task_name(module), Mix.Task.shortdoc(module)}
     end
 
     max = Enum.reduce docs, 0, fn({task, _}, acc) ->
-      max(size(task), acc)
+      max(byte_size(task), acc)
     end
 
     sorted = Enum.sort(docs)

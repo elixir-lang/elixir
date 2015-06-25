@@ -42,7 +42,7 @@ defmodule ExUnit.DocTest do
       iex> Enum.map [1, 2, 3], fn(x) ->
       ...>   x * 2
       ...> end
-      [2,4,6]
+      [2, 4, 6]
 
   Multiple results can be checked within the same test:
 
@@ -64,12 +64,12 @@ defmodule ExUnit.DocTest do
 
       iex(1)> [1+2,
       ...(1)>  3]
-      [3,3]
+      [3, 3]
 
   This is useful in two use cases:
 
-  * Being able to refer to specific numbered scenarios
-  * Copy-pasting examples from an actual iex session
+    * being able to refer to specific numbered scenarios
+    * copy-pasting examples from an actual iex session
 
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
@@ -124,21 +124,20 @@ defmodule ExUnit.DocTest do
 
   Options can also be supplied:
 
-  * `:except` — generate tests for all functions except those listed
-                (list of `{function, arity}` tuples)
+    * `:except` — generate tests for all functions except those listed
+      (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
-  * `:only`   — generate tests only for functions listed
-                (list of `{function, arity}` tuples)
+    * `:only` — generate tests only for functions listed
+      (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
-  * `:import` — when true, one can test a function defined in the module
-                without referring to the module name. However, this is not
-                feasible when there is a clash with a module like
-                Kernel. In these cases, `import` should be set to `false`
-                and a full `M.f` construct should be used.
+    * `:import` — when `true`, one can test a function defined in the module
+      without referring to the module name. However, this is not feasible when
+      there is a clash with a module like Kernel. In these cases, `import`
+      should be set to `false` and a full `M.f` construct should be used.
 
   ## Examples
 
-      doctest MyModule, except: [trick_fun: 1]
+      doctest MyModule, except: [:moduledoc, trick_fun: 1]
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
@@ -153,6 +152,7 @@ defmodule ExUnit.DocTest do
     tests = quote bind_quoted: binding do
       file = "(for doctest at) " <> Path.relative_to_cwd(mod.__info__(:compile)[:source])
       for {name, test} <- ExUnit.DocTest.__doctests__(mod, opts) do
+        @tag :doctest
         @file file
         test name, do: unquote(test)
       end
@@ -176,11 +176,9 @@ defmodule ExUnit.DocTest do
   defp filter_by_opts(tests, opts) do
     only   = opts[:only] || []
     except = opts[:except] || []
-
-    Stream.filter(tests, fn(test) ->
-      fa = test.fun_arity
-      Enum.all?(except, &(&1 != fa)) and Enum.all?(only, &(&1 == fa))
-    end)
+    tests
+    |> Stream.reject(&(&1.fun_arity in except))
+    |> Stream.filter(&(Enum.empty?(only) or &1.fun_arity in only))
   end
 
   ## Compilation of extracted tests
@@ -189,7 +187,7 @@ defmodule ExUnit.DocTest do
     {test_name(test, module, n), test_content(test, module, do_import)}
   end
 
-  defp test_name(%{fun_arity: nil}, m, n) do
+  defp test_name(%{fun_arity: :moduledoc}, m, n) do
     "moduledoc at #{inspect m} (#{n})"
   end
 
@@ -340,11 +338,18 @@ defmodule ExUnit.DocTest do
 
   defp extract(module) do
     all_docs = Code.get_docs(module, :all)
+
+    unless all_docs do
+      raise Error, message:
+        "could not retrieve the documentation for module #{inspect module}. " <>
+        "The module was not compiled with documentation or its beam file cannot be accessed"
+    end
+
     moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
 
-    docs = for doc <- all_docs[:docs] do
-      extract_from_doc(doc)
-    end |> Enum.concat
+    docs = for doc <- all_docs[:docs],
+               doc <- extract_from_doc(doc),
+               do: doc
 
     moduledocs ++ docs
   end
@@ -352,7 +357,9 @@ defmodule ExUnit.DocTest do
   defp extract_from_moduledoc({_, doc}) when doc in [false, nil], do: []
 
   defp extract_from_moduledoc({line, doc}) do
-    extract_tests(line, doc)
+    for test <- extract_tests(line, doc) do
+      %{test | fun_arity: :moduledoc}
+    end
   end
 
   defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []

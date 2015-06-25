@@ -1,14 +1,23 @@
 defprotocol Access do
   @moduledoc """
-  The Access protocol is used by `foo[bar]` and also
-  empowers the nested update functions in Kernel.
+  Dictionary-like access to data structures via the `foo[bar]` syntax.
 
-  For instance, `foo[bar]` translates `Access.get(foo, bar)`.
-  `Kernel.get_in/2`, `Kernel.put_in/3` and `Kernel.update_in/3`
-  are also all powered by the Access protocol.
+  This module also empowers `Kernel`s nested update functions
+  `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3` and
+  `Kernel.get_and_update_in/3`.
 
-  This protocol is implemented by default for keywords, maps
-  and dictionary like types:
+  ## Deprecated
+
+  Currently, the Access protocol is deprecated as there are performance
+  concerns in the current implementation. Since Elixir v1.1, instead of
+  using a protocol, `foo[bar]` will dispatch directly to the `Dict`
+  module. Therefore, while `foo[bar]` will continue to work, extension
+  of the syntax should be done via a custom `Dict` implementation.
+
+  ## Examples
+
+  Out of the box, Access works all built-in dictionaries: `Keyword`,
+  `Map` and `HashDict`:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -22,25 +31,34 @@ defprotocol Access do
       iex> star_ratings[1.5]
       "★☆"
 
-  The key access must be implemented using the `===` operator.
+  Furthermore, Access transparently ignores `nil` values:
+
+      iex> keywords = [a: 1, b: 2]
+      iex> keywords[:c][:unknown]
+      nil
+
+  The key comparison must be implemented using the `===` operator.
   """
 
   @doc """
-  Accesses the given key in the container.
+  Gets the container's value for the given key.
   """
+  @spec get(t, term) :: t
   def get(container, key)
 
   @doc """
-  Gets a value and updates the given key in one pass.
+  Gets and updates the container's value for the given key, in a single pass.
 
-  In case the key is not set, invokes the function passing nil.
+  The argument function `fun` must receive the value for the given `key` (or
+  `nil` if the key doesn't exist in `container`). It must return a tuple
+  containing the `get` value and the new value to be stored in the `container`.
+
+  This function returns a two-element tuple.
+  The first element is the `get` value, as returned by `fun`.
+  The second element is the container, updated with the value returned by `fun`.
   """
+  @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
-
-  @doc false
-  Kernel.def access(container, key) do
-    get(container, key)
-  end
 end
 
 defimpl Access, for: List do
@@ -75,7 +93,7 @@ defimpl Access, for: List do
   end
 end
 
-defimpl Access, for: Map do
+defimpl Access, for: [Map, Any] do
   def get(map, key) do
     case :maps.find(key, map) do
       {:ok, value} -> value
@@ -118,7 +136,7 @@ defimpl Access, for: Map do
 
   def get_and_update!(other, key, _fun) do
     raise ArgumentError,
-      "could not update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
 end
 
@@ -131,8 +149,9 @@ defimpl Access, for: Atom do
     undefined(atom)
   end
 
-  def get_and_update(nil, _, fun) do
-    fun.(nil)
+  def get_and_update(nil, key, _fun) do
+    raise ArgumentError,
+      "could not put/update key #{inspect key} on a nil value"
   end
 
   def get_and_update(atom, _key, _fun) do

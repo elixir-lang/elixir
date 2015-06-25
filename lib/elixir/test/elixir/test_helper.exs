@@ -48,7 +48,7 @@ defmodule PathHelpers do
     res
   end
 
-  defp runcmd(executable,args) do
+  defp runcmd(executable, args) do
     :os.cmd :binary.bin_to_list("#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win}")
   end
 
@@ -57,11 +57,11 @@ defmodule PathHelpers do
   end
 
   if match? {:win32, _}, :os.type do
-    def is_win?, do: true
+    def windows?, do: true
     def executable_extension, do: ".bat"
     def redirect_std_err_on_win, do: " 2>&1"
   else
-    def is_win?, do: false
+    def windows?, do: false
     def executable_extension, do: ""
     def redirect_std_err_on_win, do: ""
   end
@@ -100,6 +100,6 @@ defmodule CompileAssertion do
       error -> {error.__struct__, Exception.message(error)}
     end
 
-    result || flunk(message: "Expected expression to fail")
+    result || flunk("Expected expression to fail")
   end
 end

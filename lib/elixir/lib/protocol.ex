@@ -19,11 +19,12 @@ defmodule Protocol do
   defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
     arity = length(args)
 
-    type_args = for _ <- :lists.seq(2, arity), do: quote(do: term)
+    type_args = :lists.map(fn _ -> quote(do: term) end,
+                           :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    call_args = for i <- :lists.seq(2, arity),
-                  do: {String.to_atom(<<?x, i + 64>>), [], __MODULE__}
+    call_args = :lists.map(fn i -> {String.to_atom(<<?x, i + 64>>), [], __MODULE__} end,
+                           :lists.seq(2, arity))
     call_args = [quote(do: t) | call_args]
 
     quote do
@@ -69,7 +70,7 @@ defmodule Protocol do
     end
 
     try do
-      module.__protocol__(:name)
+      module.__protocol__(:module)
     rescue
       UndefinedFunctionError ->
         raise ArgumentError, "#{inspect module} is not a protocol" <> extra
@@ -85,11 +86,13 @@ defmodule Protocol do
   Returns `:ok` if so, otherwise raises ArgumentError.
   """
   @spec assert_impl!(module, module) :: :ok | no_return
-  def assert_impl!(protocol, impl) do
-    assert_impl!(protocol, impl, "")
+  def assert_impl!(protocol, base) do
+    assert_impl!(protocol, base, "")
   end
 
-  defp assert_impl!(protocol, impl, extra) do
+  defp assert_impl!(protocol, base, extra) do
+    impl = Module.concat(protocol, base)
+
     case Code.ensure_compiled(impl) do
       {:module, ^impl} -> :ok
       _ -> raise ArgumentError,
@@ -111,10 +114,20 @@ defmodule Protocol do
     end
   end
 
+  @doc """
+  Derives the `protocol` for `module` with the given options.
+  """
+  defmacro derive(protocol, module, options \\ []) do
+    quote do
+      module = unquote(module)
+      Protocol.__derive__([{unquote(protocol), unquote(options)}], module, __ENV__)
+    end
+  end
+
   ## Consolidation
 
   @doc """
-  Extract all protocols from the given paths.
+  Extracts all protocols from the given paths.
 
   The paths can be either a char list or a string. Internally
   they are worked on as char lists, so passing them as lists
@@ -136,14 +149,14 @@ defmodule Protocol do
     extract_matching_by_attribute paths, 'Elixir.',
       fn module, attributes ->
         case attributes[:protocol] do
-          [fallback_to_any: _, consolidated: _] -> module
+          [fallback_to_any: _] -> module
           _ -> nil
         end
       end
   end
 
   @doc """
-  Extract all types implemented for the given protocol from
+  Extracts all types implemented for the given protocol from
   the given paths.
 
   The paths can be either a char list or a string. Internally
@@ -214,11 +227,11 @@ defmodule Protocol do
   end
 
   @doc """
-  Returns true if the protocol was consolidated.
+  Returns `true` if the protocol was consolidated.
   """
   @spec consolidated?(module) :: boolean
   def consolidated?(protocol) do
-    protocol.__info__(:attributes)[:protocol][:consolidated]
+    protocol.__protocol__(:consolidated?)
   end
 
   @doc """
@@ -237,7 +250,7 @@ defmodule Protocol do
 
       Protocol.consolidated?(Enumerable)
 
-  If the first element of the tuple is true, it means
+  If the first element of the tuple is `true`, it means
   the protocol was consolidated.
 
   This function does not load the protocol at any point
@@ -265,7 +278,7 @@ defmodule Protocol do
                          {:attributes, attributes},
                          {@docs_chunk, docs}]}} ->
         case attributes[:protocol] do
-          [fallback_to_any: any, consolidated: _] ->
+          [fallback_to_any: any] ->
             {:ok, {protocol, any, abstract_code, docs}}
           _ ->
             {:error, :not_a_protocol}
@@ -277,7 +290,7 @@ defmodule Protocol do
 
   defp beam_file(module) when is_atom(module) do
     case :code.which(module) do
-      :non_existing -> module
+      atom when is_atom(atom) -> module
       file -> file
     end
   end
@@ -294,10 +307,16 @@ defmodule Protocol do
     end
   end
 
-  defp change_impl_for([{:attribute, line, :protocol, opts}|t], protocol, types, structs, _, acc) do
-    opts = [fallback_to_any: opts[:fallback_to_any], consolidated: true]
+  defp change_impl_for([{:function, line, :__protocol__, 1, clauses}|t], protocol, types, structs, _, acc) do
+    clauses = :lists.map(fn
+      {:clause, l, [{:atom, _, :consolidated?}], [], [{:atom, _, _}]} ->
+        {:clause, l, [{:atom, 0, :consolidated?}], [], [{:atom, 0, true}]}
+      {:clause, _, _, _, _} = c ->
+        c
+    end, clauses)
+
     change_impl_for(t, protocol, types, structs, true,
-                    [{:attribute, line, :protocol, opts}|acc])
+                    [{:function, line, :__protocol__, 1, clauses}|acc])
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
@@ -416,7 +435,7 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote bind_quoted: [builtin: builtin] do
-      @spec impl_for(term) :: module | nil
+      @spec impl_for(term) :: atom() | nil
       Kernel.def impl_for(data)
 
       # Define the implementation for structs.
@@ -428,7 +447,7 @@ defmodule Protocol do
       end
 
       # Define the implementation for builtins.
-      for {guard, mod} <- builtin do
+      :lists.foreach(fn {guard, mod} ->
         target = Module.concat(__MODULE__, mod)
 
         Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
@@ -437,21 +456,16 @@ defmodule Protocol do
             false -> any_impl_for
           end
         end
-      end
+      end, builtin)
 
-      @spec impl_for!(term) :: module | no_return
+      @spec impl_for!(term) :: atom() | no_return()
       Kernel.def impl_for!(data) do
         impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
       end
 
       # Internal handler for Any
       if @fallback_to_any do
-        Kernel.defp any_impl_for do
-          case impl_for?(__MODULE__.Any) do
-            true  -> __MODULE__.Any.__impl__(:target)
-            false -> nil
-          end
-        end
+        Kernel.defp any_impl_for, do: __MODULE__.Any.__impl__(:target)
       else
         Kernel.defp any_impl_for, do: nil
       end
@@ -481,14 +495,23 @@ defmodule Protocol do
       # Store information as an attribute so it
       # can be read without loading the module.
       Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol [fallback_to_any: !!@fallback_to_any, consolidated: false]
+      @protocol [fallback_to_any: !!@fallback_to_any]
 
       @doc false
-      @spec __protocol__(atom) :: term
-      Kernel.def __protocol__(:name),      do: __MODULE__
+      @spec __protocol__(:module) :: __MODULE__
+      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
+      @spec __protocol__(:consolidated?) :: boolean
+      Kernel.def __protocol__(:module), do: __MODULE__
       Kernel.def __protocol__(:functions), do: unquote(:lists.sort(@functions))
+      Kernel.def __protocol__(:consolidated?), do: false
     end
   end
+
+  @doc false
+  def __functions_spec__([]),
+    do: []
+  def __functions_spec__([h|t]),
+    do: [:lists.foldl(&{:|, [], [&1, &2]}, h, t), quote(do: ...)]
 
   @doc false
   def __impl__(protocol, opts) do
@@ -500,10 +523,31 @@ defmodule Protocol do
   end
 
   defp do_defimpl(protocol, [do: block, for: for]) do
+    # Unquote the implementation just later
+    # when all variables will already be injected
+    # into the module body.
+    __impl__ =
+      quote unquote: false do
+        @doc false
+        @spec __impl__(:for) :: unquote(for)
+        @spec __impl__(:target) :: __MODULE__
+        @spec __impl__(:protocol) :: unquote(protocol)
+        def __impl__(:for),      do: unquote(for)
+        def __impl__(:target),   do: __MODULE__
+        def __impl__(:protocol), do: unquote(protocol)
+      end
+
     quote do
       protocol = unquote(protocol)
       for      = unquote(for)
       name     = Module.concat(protocol, for)
+
+      # TODO: Emit warnings once we reimplement Access before 1.1
+      # if protocol == Access do
+      #   :elixir_errors.warn __ENV__.line, __ENV__.file,
+      #     "implementation of the Access protocol is deprecated. For customization of " <>
+      #     "the dict[key] syntax, please implement the Dict behaviour instead"
+      # end
 
       Protocol.assert_protocol!(protocol)
 
@@ -517,27 +561,40 @@ defmodule Protocol do
         Module.register_attribute(__MODULE__, :impl, persist: true)
         @impl [protocol: @protocol, for: @for]
 
-        @doc false
-        @spec __impl__(atom) :: term
-        def __impl__(:target),   do: __MODULE__
-        def __impl__(:protocol), do: @protocol
-        def __impl__(:for),      do: @for
+        unquote(__impl__)
       end
     end
   end
 
   @doc false
-  def __derive__(protocol, struct, %Macro.Env{} = env) do
-    for  = env.module
-    impl = Module.concat(protocol, Map)
+  def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
+    struct =
+      if for == env.module do
+        Module.get_attribute(for, :struct) ||
+          raise "struct is not defined for #{inspect for}"
+      else
+        for.__struct__
+      end
 
-    extra = ", cannot derive #{inspect protocol} for #{inspect env.module}"
+    :lists.foreach(fn
+      proto when is_atom(proto) ->
+        derive(proto, for, struct, [], env)
+      {proto, opts} when is_atom(proto) ->
+        derive(proto, for, struct, opts, env)
+    end, :lists.flatten(derives))
+
+    :ok
+  end
+
+  defp derive(protocol, for, struct, opts, env) do
+    extra = ", cannot derive #{inspect protocol} for #{inspect for}"
     assert_protocol!(protocol, extra)
-    assert_impl!(protocol, impl, extra)
+    assert_impl!(protocol, Any, extra)
 
     # Clean up variables from eval context
-    env  = %{env | vars: []}
-    args = [env, struct]
+    env  = %{env | vars: [], export_vars: nil}
+    args = [for, struct, opts]
+    impl = Module.concat(protocol, Any)
 
     :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn
       mod, fun, args ->
@@ -549,28 +606,31 @@ defmodule Protocol do
             @impl [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
-            @spec __impl__(atom) :: term
+            @spec __impl__(:target) :: unquote(impl)
+            @spec __impl__(:protocol) :: unquote(protocol)
+            @spec __impl__(:for) :: unquote(for)
             def __impl__(:target),   do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for),      do: unquote(for)
-          end)
+          end, Macro.Env.location(env))
         end
     end)
-
-    :ok
   end
 
   @doc false
   def __spec__?(module, name, arity) do
-    tuple = {name, arity}
+    signature = {name, arity}
+
     specs = Module.get_attribute(module, :spec)
+    found =
+      :lists.map(fn {:spec, expr, caller} ->
+        if Kernel.Typespec.spec_to_signature(expr) == signature do
+          Kernel.Typespec.define_spec(:callback, expr, caller)
+          true
+        end
+      end, specs)
 
-    found = for {k, v} <- specs, k == tuple do
-      Kernel.Typespec.define_callback(module, tuple, v)
-      true
-    end
-
-    found != []
+    :lists.any(& &1 == true, found)
   end
 
   ## Helpers

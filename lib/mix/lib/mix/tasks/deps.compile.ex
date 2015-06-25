@@ -9,53 +9,52 @@ defmodule Mix.Tasks.Deps.Compile do
   By default, compile all dependencies. A list of dependencies can
   be given to force the compilation of specific dependencies.
 
-  By default, attempt to detect if the project contains one of
-  the following files:
+  This task attempts to detect if the project contains one of
+  the following files and act accordingly:
 
-  * `mix.exs`      - if so, invokes `mix compile`
-  * `rebar.config` - if so, invokes `rebar compile`
-  * `Makefile`     - if so, invokes `make`
+    * `mix.exs`      - invokes `mix compile`
+    * `rebar.config` - invokes `rebar compile`
+    * `Makefile.win` - invokes `nmake /F Makefile.win` (only on Windows)
+    * `Makefile`     - invokes `make` (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
 
-      {:some_dependency, "0.1.0", git: "...", compile: "command to compile"}
-
-  ## Command line options
-
-  * `--quiet` - do not output verbose messages
+      {:some_dependency, "0.1.0", compile: "command to compile"}
 
   """
 
   import Mix.Dep, only: [loaded: 1, available?: 1, loaded_by_name: 2,
-                          format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
+                         format_dep: 1, make?: 1, mix?: 1, rebar?: 1]
 
+  @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    Mix.Project.get! # Require the project to be available
+    Mix.Project.get!
 
-    case OptionParser.parse(args, switches: [quiet: :boolean]) do
-      {opts, [], _} ->
-        compile(Enum.filter(loaded(env: Mix.env), &compilable?/1), opts)
-      {opts, tail, _} ->
-        compile(loaded_by_name(tail, env: Mix.env), opts)
+    case OptionParser.parse(args) do
+      {_, [], _} ->
+        # Because this command is invoked explicitly with
+        # deps.compile, we simply try to compile any available
+        # dependency.
+        compile(Enum.filter(loaded(env: Mix.env), &available?/1))
+      {_, tail, _} ->
+        compile(loaded_by_name(tail, env: Mix.env))
     end
   end
 
   @doc false
-  def compile(deps, run_opts) do
+  def compile(deps) do
     shell  = Mix.shell
     config = Mix.Project.deps_config
 
+    Mix.Task.run "deps.loadpaths"
+
     compiled =
-      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts} = dep ->
+      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
 
-        unless run_opts[:quiet] || opts[:compile] == false do
-          shell.info "* Compiling #{app}"
-        end
-
         compiled = cond do
-          not nil?(opts[:compile]) ->
+          not is_nil(opts[:compile]) ->
             do_compile dep
           mix?(dep) ->
             do_mix dep
@@ -69,21 +68,22 @@ defmodule Mix.Tasks.Deps.Compile do
         end
 
         unless mix?(dep), do: build_structure(dep, config)
-        File.rm(Path.join(opts[:build], ".compile"))
+        touch_fetchable(scm, opts[:build])
         compiled
       end)
 
-    if Enum.any?(compiled), do: Mix.Dep.Lock.touch
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
   end
 
-  # All available dependencies can be compiled
-  # except for umbrella applications.
-  defp compilable?(%Mix.Dep{manager: manager, extra: extra} = dep) do
-    available?(dep) and (manager != :mix or !extra[:umbrella?])
+  defp touch_fetchable(scm, path) do
+    if scm.fetchable? do
+      File.mkdir_p!(path)
+      File.touch!(Path.join(path, ".compile.fetch"))
+    end
   end
 
   defp check_unavailable!(app, {:unavailable, _}) do
-    raise Mix.Error, message: "Cannot compile dependency #{app} because " <>
+    Mix.raise "Cannot compile dependency #{app} because " <>
       "it isn't available, run `mix deps.get` first"
   end
 
@@ -93,6 +93,11 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_mix(dep) do
     Mix.Dep.in_dependency dep, fn _ ->
+      if req = old_elixir_req(Mix.Project.config) do
+        Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
+                        "but you are running on v#{System.version}"
+      end
+
       try do
         res = Mix.Task.run("compile", ["--no-deps", "--no-elixir-version-check"])
         :ok in List.wrap(res)
@@ -109,7 +114,9 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(%Mix.Dep{app: app} = dep, config) do
-    do_command dep, rebar_cmd(app), "compile skip_deps=true deps_dir=#{inspect config[:deps_path]}"
+    lib_path = Path.join(config[:build_path], "lib")
+    do_command dep, rebar_cmd(app), false,
+               "compile skip_deps=true deps_dir=#{inspect lib_path}"
   end
 
   defp rebar_cmd(app) do
@@ -122,31 +129,35 @@ defmodule Mix.Tasks.Deps.Compile do
     shell.info "I can install a local copy which is just used by mix"
 
     unless shell.yes?("Shall I install rebar?") do
-      raise Mix.Error, message: "Could not find rebar to compile " <>
+      Mix.raise "Could not find rebar to compile " <>
         "dependency #{app}, please ensure rebar is available"
     end
 
-    Mix.Tasks.Local.Rebar.run []
-    Mix.Rebar.local_rebar_cmd || raise Mix.Error, message: "rebar installation failed"
+    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd) ||
+      Mix.raise "rebar installation failed"
   end
 
   defp do_make(dep) do
-    do_command(dep, "make")
+    command = if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
+      "nmake /F Makefile.win"
+    else
+      "make"
+    end
+    do_command(dep, command, true)
   end
 
-  defp do_compile(%Mix.Dep{app: app, opts: opts} = dep) do
+  defp do_compile(%Mix.Dep{opts: opts} = dep) do
     if command = opts[:compile] do
-      Mix.shell.info("#{app}: #{command}")
-      do_command(dep, command)
+      do_command(dep, command, true)
     else
       false
     end
   end
 
-  defp do_command(%Mix.Dep{app: app, opts: opts}, command, extra \\ "") do
-    File.cd! opts[:dest], fn ->
-      if Mix.shell.cmd("#{command} #{extra}") != 0 do
-        raise Mix.Error, message: "Could not compile dependency #{app}, #{command} command failed. " <>
+  defp do_command(%Mix.Dep{app: app} = dep, command, print_app?, extra \\ "") do
+    Mix.Dep.in_dependency dep, fn _ ->
+      if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?) != 0 do
+        Mix.raise "Could not compile dependency #{app}, #{command} command failed. " <>
           "If you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
     end
@@ -166,6 +177,13 @@ defmodule Mix.Tasks.Deps.Compile do
     File.cd! dest, fn ->
       config = Keyword.put(config, :app_path, build)
       Mix.Project.build_structure(config, symlink_ebin: true)
+    end
+  end
+
+  defp old_elixir_req(config) do
+    req = config[:elixir]
+    if req && not Version.match?(System.version, req) do
+      req
     end
   end
 end
