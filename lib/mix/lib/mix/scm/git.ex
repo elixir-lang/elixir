@@ -27,7 +27,7 @@ defmodule Mix.SCM.Git do
   def accepts_options(_app, opts) do
     cond do
       gh = opts[:github] ->
-        opts |> Keyword.delete(:github) |> Keyword.put(:git, "git://github.com/#{gh}.git")
+        opts |> Keyword.delete(:github) |> Keyword.put(:git, "https://github.com/#{gh}.git")
       opts[:git] ->
         opts
       true ->
@@ -48,10 +48,10 @@ defmodule Mix.SCM.Git do
         File.cd!(opts[:dest], fn ->
           rev_info = get_rev_info
           cond do
-            lock_repo != opts[:git]          -> :outdated
-            lock_opts != get_lock_opts(opts) -> :outdated
-            lock_rev  != rev_info[:rev]      -> :mismatch
-            lock_repo != rev_info[:origin]   -> :outdated
+            not git_repos_match?(lock_repo, opts[:git]) -> :outdated
+            lock_opts != get_lock_opts(opts)            -> :outdated
+            lock_rev  != rev_info[:rev]                 -> :mismatch
+            lock_repo != rev_info[:origin]              -> :outdated
             true -> :ok
           end
         end)
@@ -63,7 +63,7 @@ defmodule Mix.SCM.Git do
   end
 
   def equal?(opts1, opts2) do
-    opts1[:git] == opts2[:git] &&
+    git_repos_match?(opts1[:git], opts2[:git]) &&
       get_lock_opts(opts1) == get_lock_opts(opts2)
   end
 
@@ -191,6 +191,14 @@ defmodule Mix.SCM.Git do
         version
     end
   end
+
+  defp git_repos_match?(repo_a, repo_b) do
+    normalize_github_repo(repo_a) == normalize_github_repo(repo_b)
+  end
+
+  # TODO: Remove this on Elixir v2.0 to push everyone to https
+  defp normalize_github_repo("git://github.com/" <> rest), do: "https://github.com/#{rest}"
+  defp normalize_github_repo(repo), do: repo
 
   defp parse_version("git version " <> version) do
     String.split(version, ".")
