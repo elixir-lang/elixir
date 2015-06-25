@@ -46,6 +46,7 @@ defmodule Mix.Tasks.ArchiveTest do
       info  = "mix local.sample # A local install sample"
       assert_received {:mix_shell, :info, [^info]}
 
+
       Mix.Tasks.Archive.run []
       assert_received {:mix_shell, :info, ["* archive-0.1.0.ez"]}
 
@@ -61,14 +62,6 @@ defmodule Mix.Tasks.ArchiveTest do
 
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
-      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
-
-      # Try to install a missing version
-      assert_raise Mix.Error, fn ->
-        send self, {:mix_shell_input, :yes?, true}
-        Mix.Tasks.Archive.Install.run ["./archive-0.0.0.ez"]
-      end
-
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
 
       # We don't do the assertion below on Windows because
