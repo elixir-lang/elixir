@@ -39,17 +39,17 @@ defmodule Logger.ErrorHandlerTest do
     assert error_log(:error_report, :special, :hello) == ""
   end
 
-  test "formats error_logger warning message" do
-    # Warnings by default are logged as errors by Erlang
-    assert error_log(:warning_msg, "hello", []) =~ msg("[error] hello")
-    assert error_log(:warning_msg, "~p~n", [:hello]) =~ msg("[error] :hello")
-  end
+  if :erlang.system_info(:otp_release) >= '18' do
+    test "formats error_logger warning message" do
+      assert error_log(:warning_msg, "hello", []) =~ msg("[warn]  hello")
+      assert error_log(:warning_msg, "~p~n", [:hello]) =~ msg("[warn]  :hello")
+    end
 
-  test "formats error_logger warning report" do
-    # Warnings by default are logged as errors by Erlang
-    assert error_log(:warning_report, "hello") =~ msg("[error] \"hello\"")
-    assert error_log(:warning_report, :hello) =~ msg("[error] :hello")
-    assert error_log(:warning_report, :special, :hello) == ""
+    test "formats error_logger warning report" do
+      assert error_log(:warning_report, "hello") =~ msg("[warn]  \"hello\"")
+      assert error_log(:warning_report, :hello) =~ msg("[warn]  :hello")
+      assert error_log(:warning_report, :special, :hello) == ""
+    end
   end
 
   defp error_log(fun, format) do
