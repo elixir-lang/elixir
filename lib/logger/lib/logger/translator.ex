@@ -53,6 +53,11 @@ defmodule Logger.Translator do
               "** (exit) " <> Exception.format_exit(reason)
         {:ok, msg}
 
+      {'Error in process ' ++ _, [pid, {reason, stack}]} ->
+        msg = ["Process ", inspect(pid), " raised an exception" |
+               format(:error, reason, stack)]
+        {:ok, msg}
+
       _ ->
         :none
     end
