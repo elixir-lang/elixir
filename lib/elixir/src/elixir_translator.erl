@@ -257,6 +257,9 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
           %% the is_map/1 guard instead of matching on map. Hopefully
           %% we can use a match on 17.1.
           %%
+          %% In the future, we could also use maps:get/2 instead
+          %% of pattern match, reducing the AST footprint.
+          %%
           %% http://erlang.org/pipermail/erlang-bugs/2014-April/004338.html
           {{'case', -1, TLeft, [
             {clause, -1,

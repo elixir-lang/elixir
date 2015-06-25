@@ -156,6 +156,16 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.BadStructError') ->
           erl_tuple_size(Meta, Var, 3),
           erl_record_compare(Meta, Var, badstruct));
 
+erl_rescue_guard_for(Meta, Var, 'Elixir.BadMapError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_record_compare(Meta, Var, badmap));
+
+erl_rescue_guard_for(Meta, Var, 'Elixir.KeyError') ->
+  erl_and(Meta,
+          erl_tuple_size(Meta, Var, 2),
+          erl_record_compare(Meta, Var, badkey));
+
 erl_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
   erl_or(Meta,
          {erl(Meta, '=='), Meta, [Var, badarg]},

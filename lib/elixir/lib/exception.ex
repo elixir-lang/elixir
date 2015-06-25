@@ -565,10 +565,10 @@ defmodule BadStructError do
 end
 
 defmodule BadMapError do
-  defexception [map: nil]
-  
+  defexception [term: nil]
+
   def message(exception) do
-    "expected a map, got: #{inspect(exception.map)}"
+    "expected a map, got: #{inspect(exception.term)}"
   end
 end
 
@@ -780,19 +780,19 @@ defmodule ErlangError do
   def normalize({:badmatch, term}, _stacktrace) do
     %MatchError{term: term}
   end
-  
-  # Erlang R18.0 changed this for various functions in the maps module
-  def normalize({:badmap, map}, _stacktrace) do
-    %BadMapError{map: map}
+
+  def normalize({:badmap, term}, _stacktrace) do
+    %BadMapError{term: term}
   end
-  
-  # Erlang R18.0 changed this for various functions in the maps module
+
   def normalize({:badkey, key}, stacktrace) do
-    term = case stacktrace do
-      [{:maps, :update, [_, _, map], []}|_] -> map
-      _                                     -> nil
-    end
-    %KeyError{key: key, term: term }
+    term =
+      case stacktrace || :erlang.get_stacktrace do
+        [{:maps, :update, [_, _, map], _}|_] -> map
+        [{:maps, :get, [_, map], _}|_] -> map
+        _ -> nil
+      end
+    %KeyError{key: key, term: term}
   end
 
   def normalize({:case_clause, term}, _stacktrace) do
