@@ -682,6 +682,10 @@ defmodule Kernel.Typespec do
     [typespec_to_ast(arg), {:..., [line: line], nil}]
   end
 
+  defp typespec_to_ast({:type, line, :map, :any}) do
+    {:map, [line: line], []}
+  end
+
   defp typespec_to_ast({:type, line, :map, fields}) do
     fields = Enum.map fields, fn
       # OTP 18
@@ -831,6 +835,10 @@ defmodule Kernel.Typespec do
   end
 
   ## Handle maps and structs
+  defp typespec({:map, meta, args}, _vars, _caller) when args == [] or is_atom(args) do
+    {:type, line(meta), :map, :any}
+  end
+
   defp typespec({:%{}, meta, fields}, vars, caller) do
     fields =
       # TODO: Remove else once we support only OTP >18

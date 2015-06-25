@@ -524,7 +524,10 @@ defmodule Kernel.TypespecTest do
   test "type_to_ast" do
     quoted = [
       (quote do: @type with_ann() :: (t :: atom())),
-      (quote do: @type empty_tuple_type() :: {}),
+      (quote do: @type a_tuple() :: tuple()),
+      (quote do: @type empty_tuple() :: {}),
+      (quote do: @type one_tuple() :: {:foo}),
+      (quote do: @type two_tuple() :: {:foo, :bar}),
       (quote do: @type imm_type_1() :: 1),
       (quote do: @type imm_type_2() :: :atom),
       (quote do: @type simple_type() :: integer()),
@@ -541,6 +544,8 @@ defmodule Kernel.TypespecTest do
       (quote do: @type rng() :: 1 .. 10),
       (quote do: @type opts() :: [first: integer(), step: integer(), last: integer()]),
       (quote do: @type ops() :: {+1, -1}),
+      (quote do: @type a_map() :: map()),
+      (quote do: @type empty_map() :: %{}),
       (quote do: @type my_map() :: %{hello: :world}),
       (quote do: @type my_struct() :: %Kernel.TypespecTest{hello: :world}),
       (quote do: @type list1() :: list()),
