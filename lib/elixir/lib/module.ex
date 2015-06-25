@@ -261,6 +261,29 @@ defmodule Module do
       Tools like Mix may use this information to ensure the module is
       recompiled in case any of the external resources change.
 
+    * `@dialyzer`
+
+      Defines warnings to request or suppress when using a version of
+      `dialyzer` that supports module attributes.
+
+      Accepts an atom, a tuple, or a list of atoms and tuples.
+
+      See http://www.erlang.org/doc/man/dialyzer.html for the list of supported
+      warnings.
+
+      Several uses of `@dialyzer` will accumulate instead of overriding
+      previous ones.
+
+      ### Example
+
+            defmodule M do
+              @dialyzer {:nowarn_function, myfun: 1}
+
+              def myfun(arg) do
+                M.not_a_function(arg)
+              end
+            end
+
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 
