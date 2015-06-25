@@ -304,32 +304,34 @@ defmodule Kernel.RaiseTest do
     assert result == "no match of right hand side value: 0"
   end
 
-  test :bad_key_error do
-    result = try do
-      %{%{} | foo: :bar}
-    rescue
-      x in [KeyError] -> Exception.message(x)
+  if :erlang.system_info(:otp_release) >= '18' do
+    test :bad_key_error do
+      result = try do
+        %{%{} | foo: :bar}
+      rescue
+        x in [KeyError] -> Exception.message(x)
+      end
+
+      assert result == "key :foo not found"
+
+      result = try do
+        %{}.foo
+      rescue
+        x in [KeyError] -> Exception.message(x)
+      end
+
+      assert result == "key :foo not found in: %{}"
     end
 
-    assert result == "key :foo not found"
+    test :bad_map_error do
+      result = try do
+        %{zero(0) | foo: :bar}
+      rescue
+        x in [BadMapError] -> Exception.message(x)
+      end
 
-    result = try do
-      %{}.foo
-    rescue
-      x in [KeyError] -> Exception.message(x)
+      assert result == "expected a map, got: 0"
     end
-
-    assert result == "key :foo not found in: %{}"
-  end
-
-  test :bad_map_error do
-    result = try do
-      %{zero(0) | foo: :bar}
-    rescue
-      x in [BadMapError] -> Exception.message(x)
-    end
-
-    assert result == "expected a map, got: 0"
   end
 
   test :case_clause_error do
