@@ -10,12 +10,24 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.format_lock(lock(ref: "abcdef0"))   == "abcdef0 (ref)"
   end
 
-  test "considers to dep equals if the have the same git and the same opts" do
+  test "considers two dep equals if the have the same git and the same opts" do
     assert Mix.SCM.Git.equal?([git: "foo"], [git: "foo"])
     refute Mix.SCM.Git.equal?([git: "foo"], [git: "bar"])
 
     assert Mix.SCM.Git.equal?([git: "foo", branch: "master"], [git: "foo", branch: "master"])
     refute Mix.SCM.Git.equal?([git: "foo", branch: "master"], [git: "foo", branch: "other"])
+  end
+
+  # TODO: remove this in Elixir v2.0 when this functionality is removed
+  test "considers two GitHub dep equals if they are the same repo and opts match, just different protocols" do
+    git_url = "git://github.com/elixir-lang/elixir.git"
+    https_url = "https://github.com/elixir-lang/elixir.git"
+
+    assert Mix.SCM.Git.equal?([git: git_url], [git: https_url])
+    refute Mix.SCM.Git.equal?([git: "git@github.com:elixir-lang/ecto.git"], [git: https_url])
+
+    assert Mix.SCM.Git.equal?([git: git_url, branch: "master"], [git: https_url, branch: "master"])
+    refute Mix.SCM.Git.equal?([git: git_url, branch: "master"], [git: https_url, branch: "other"])
   end
 
   test "lock should not be taken into account when considering deps equal as the lock is shared" do
