@@ -12,7 +12,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
+      assert_file "hello_world/README.md", ~r/# HelloWorld\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "mod: {HelloWorld, []}"
       end
 
-      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
+      assert_file "hello_world/README.md", ~r/# HelloWorld\n/
       assert_file "hello_world/.gitignore"
 
       assert_file "hello_world/lib/hello_world.ex", fn(file) ->
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.0.1\""
       end
 
-      assert_file "HELLO_WORLD/README.md", ~r/HelloWorld\n==========\n\n/
+      assert_file "HELLO_WORLD/README.md", ~r/# HelloWorld\n/
       assert_file "HELLO_WORLD/.gitignore"
 
       assert_file "HELLO_WORLD/lib/hello_world.ex",  ~r/defmodule HelloWorld do/
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end
 
-      assert_file "hello_world/README.md", ~r/HelloWorld\n==========\n\n/
+      assert_file "hello_world/README.md", ~r/# HelloWorld\n/
       assert_file "hello_world/.gitignore"
 
       assert_received {:mix_shell, :info, ["* creating mix.exs"]}
