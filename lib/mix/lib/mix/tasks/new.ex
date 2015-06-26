@@ -127,7 +127,7 @@ defmodule Mix.Tasks.New do
 
     create_directory "config"
     create_file "config/config.exs",
-      config_template(assigns) <> config_umbrella_template(assigns)
+      config_umbrella_template(assigns)
 
     Mix.shell.info """
 
