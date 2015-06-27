@@ -78,14 +78,37 @@ defmodule ExUnit.DocTest do
 
   Some types internal structure are kept hidden and instead show a
   user-friendly structure when inspecting the value. The idiom in
-  Elixir is to print those data types as `#Name<...>`. Doctest will
-  test these values by doing a string compare.
+  Elixir is to print those data types as `#Name<...>`. Because those
+  values are treated as comments in Elixir code due to the leading
+  `#` sign, they require special care when used in doctests.
+  
+  Imagine you have a map with a HashSet inside which is printed as:
+  
+      %{users: #HashSet<[:foo, :bar]>}
+  
+  If you try to match on such expression, doctest will fail to compile.
+  You have two options to solve this.
 
-      iex> Enum.into([a: 10, b: 20], HashDict.new)
-      #HashDict<[b: 20, a: 10]>
+  The first one is to rely on the fact that doctest can compare internal
+  structures as long as they are at the root. So one could write:
 
-  The above example will be tested with the following match:
-  `"#HashDict<[b: 20, a: 10]>" = inspect(Enum.into([a: 10, b: 20], HashDict.new))`.
+      iex> map = %{users: Enum.into([:foo, :bar], HashSet.new)}
+      iex> map.users
+      #HashSet<[:foo, :bar]>
+
+  Whenever a doctest starts with "#Name<", doctest will perform a string
+  comparison. For example, the above test will perform the following match:
+  
+      inspect(map.users) == "#HashSet<[:foo, :bar]>"
+
+  Alternatively, since doctest results are actually evaluated, you can have
+  the HashSet building expression as the doctest result:
+
+      iex> %{users: Enum.into([:foo, :bar], HashSet.new)}
+      %{users: Enum.into([:foo, :bar], HashSet.new)}
+
+  The downside of this approach is that the doctest result is not really
+  what users would see in the terminal.
 
   ## Exceptions
 
