@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Clean do
   @moduledoc """
   Delete generated application files.
 
-  This command deletes all build artifacts for the current project
+  This command deletes all build artifacts for the current project.
   Dependencies' build files are cleaned if the `--deps` option is given.
 
   By default this task works across all environments, unless `--only`
