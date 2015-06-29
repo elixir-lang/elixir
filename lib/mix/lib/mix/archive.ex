@@ -75,10 +75,10 @@ defmodule Mix.Archive do
       ebin = Path.wildcard("ebin/*.{beam,app}")
       priv = Path.wildcard("priv/**/*")
 
-      Enum.reduce evsn ++ ebin ++ priv, [], fn(f, acc) ->
-        case File.read(f) do
+      Enum.reduce evsn ++ ebin ++ priv, [], fn(file, acc) ->
+        case File.read(file) do
           {:ok, bin} ->
-            [{Path.join(dir, f) |> String.to_char_list, bin}|acc]
+            [{Path.join(dir, file) |> String.to_char_list, bin}|acc]
           {:error, _} ->
             acc
         end

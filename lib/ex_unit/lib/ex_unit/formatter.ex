@@ -203,15 +203,15 @@ defmodule ExUnit.Formatter do
   defp format_stacktrace(stacktrace, test_case, test, color) do
     extra_info("stacktrace:", color) <>
       Enum.map_join(stacktrace,
-        fn(s) -> stacktrace_info format_stacktrace_entry(s, test_case, test), color end)
+        fn(st_entry) -> stacktrace_info format_stacktrace_entry(st_entry, test_case, test), color end)
   end
 
   defp format_stacktrace_entry({test_case, test, _, location}, test_case, test) do
     "#{location[:file]}:#{location[:line]}"
   end
 
-  defp format_stacktrace_entry(s, _test_case, _test) do
-    format_stacktrace_entry(s)
+  defp format_stacktrace_entry(st_entry, _test_case, _test) do
+    format_stacktrace_entry(st_entry)
   end
 
   defp with_location(tags) do

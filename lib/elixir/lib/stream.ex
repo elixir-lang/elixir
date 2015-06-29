@@ -105,17 +105,17 @@ defmodule Stream do
     {:cont, acc}
   end
 
-  defmacrop next(f, entry, acc) do
-    quote do: unquote(f).(unquote(entry), unquote(acc))
+  defmacrop next(fun, entry, acc) do
+    quote do: unquote(fun).(unquote(entry), unquote(acc))
   end
 
   defmacrop acc(h, n, t) do
     quote do: [unquote(h), unquote(n)|unquote(t)]
   end
 
-  defmacrop next_with_acc(f, entry, h, n, t) do
+  defmacrop next_with_acc(fun, entry, h, n, t) do
     quote do
-      {reason, [h|t]} = unquote(f).(unquote(entry), [unquote(h)|unquote(t)])
+      {reason, [h|t]} = unquote(fun).(unquote(entry), [unquote(h)|unquote(t)])
       {reason, [h, unquote(n)|t]}
     end
   end

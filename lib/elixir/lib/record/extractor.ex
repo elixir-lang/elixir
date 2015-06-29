@@ -85,8 +85,8 @@ defmodule Record.Extractor do
   # list of tuples where the first element is the field
   # and the second is its default value.
   defp parse_record({_name, fields}, form) do
-    cons = List.foldr fields, {nil, 0}, fn f, acc ->
-      {:cons, 0, parse_field(f), acc}
+    cons = List.foldr fields, {nil, 0}, fn fun, acc ->
+      {:cons, 0, parse_field(fun), acc}
     end
     eval_record(cons, form)
   end

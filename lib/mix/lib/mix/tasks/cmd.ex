@@ -18,8 +18,8 @@ defmodule Mix.Tasks.Cmd do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     case Mix.shell.cmd(Enum.join(args, " ")) do
-      0 -> :ok
-      s -> exit(s)
+      0      -> :ok
+      status -> exit(status)
     end
   end
 end
