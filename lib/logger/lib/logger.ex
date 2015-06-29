@@ -180,7 +180,7 @@ defmodule Logger do
   `config/config.exs` file:
 
       config :logger, :console,
-        format: "\n$date $time [$level] $metadata$message",
+        format: "\n$time $metadata[$level] $levelpad$message\n"
         metadata: [:user_id]
 
   You can read more about formatting in `Logger.Formatter`.
