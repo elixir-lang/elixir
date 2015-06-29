@@ -1153,7 +1153,7 @@ defmodule Kernel.SpecialForms do
 
   If you try to run our new macro, you will notice it won't
   even compile, complaining that the variables `k` and `v`
-  does not exist. This is because of the ambiguity: `unquote(k)`
+  do not exist. This is because of the ambiguity: `unquote(k)`
   can either be an unquote fragment, as previously, or a regular
   unquote as in `unquote(kv)`.
 
