@@ -1,8 +1,9 @@
 # Changelog
 
-## v1.0.5
+## v1.0.5 (2015-06-29)
 
 * Enhancements
+  * [Elixir] Support 18.0
   * [IEx] Rely only on loaded applications for autocompletion on IEx
   * [Record] Expand attributes and macros in record extractor
   * [String] `Optimize String.rstrip/1`
@@ -16,8 +17,8 @@
   * [Float] Avoid rounding errors on `Float.parse/1`
   * [GenEvent] Fix `GenEvent` detection of modules that aren't loaded
   * [IO] Read 4K blocks instead of lines in `IO.binread/2`. This fixes a bug where CRLF were being ignored and is also going to improve performance
-  * [Logger] Handle `:undefined` arity in Logger.Translator (we get :undefined when a temporary worker of a `simple_one_for_one` supervisor crashes)
-  * [Mix] Ensure config is escaped before being injected into escripts. This fixes a bug where escripts failed to be built when containing values like maps in config files
+  * [Logger] Handle `:undefined` arity in `Logger.Translator` (we get :undefined when a temporary worker of a `simple_one_for_one` supervisor crashes)
+  * [Mix] Ensure config is escaped before being injected into escripts. This fixes a bug where escripts failed to build when containing values like maps in config files
   * [Mix] Ensure we properly underscore acronyms followed by paths, for example, `HTTP.Foo`
   * [Stream] Ensure `Stream.flat_map/2` does not consume more items than necessary when piped to another `Stream.flat_map/2` that halts in the inner stream
   * [Version] Fix `to_string` for versions with numeric pre releases
@@ -25,7 +26,7 @@
 ## v1.0.4 (2015-04-07)
 
 * Enhancements
-  * [Elixir] Support Erlang 17.5 and 18.0
+  * [Elixir] Support Erlang 17.5 and 18.0-rc
   * [Mix] Support "--search PATTERN" in "mix help"
   * [Mix] Support `:start_permanent` that starts the application as permanent
   * [Mix] Support `:build_embedded` that compile protocols, avoid symlinks and ensure protocols are loaded on boot
