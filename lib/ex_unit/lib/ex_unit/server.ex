@@ -87,9 +87,9 @@ defmodule ExUnit.Server do
 
     if HashSet.size(refs) == 1 do
       status = Logger.remove_backend(:console)
-      {:reply, {:ok, ref}, %{config | log_captures: refs, log_status: status}}
+      {:reply, ref, %{config | log_captures: refs, log_status: status}}
     else
-      {:reply, {:ok, ref}, %{config | log_captures: refs}}
+      {:reply, ref, %{config | log_captures: refs}}
     end
   end
 

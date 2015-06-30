@@ -352,4 +352,3 @@ defmodule ExUnit.Runner do
   defp prune_stacktrace([h|t]), do: [h|prune_stacktrace(t)]
   defp prune_stacktrace([]), do: []
 end
-
