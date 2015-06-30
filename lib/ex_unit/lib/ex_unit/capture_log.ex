@@ -29,6 +29,8 @@ defmodule ExUnit.CaptureLog do
 
   """
 
+  alias Logger.Backends.Console
+
   @doc """
   Captures Logger messages generated when evaluating `fun`.
 
@@ -55,21 +57,19 @@ defmodule ExUnit.CaptureLog do
   def capture_log(opts \\ [], fun) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
+
     try do
-      case ExUnit.Server.log_capture_on(self(), {string_io, opts}) do
-        {:ok, ref} ->
-          try do
-            _ = fun.()
-          after
-            :ok = Logger.flush()
-            case ExUnit.Server.log_capture_off(ref) do
-              {:error, reason} ->
-                exit({reason, {ExUnit.Server, :log_capture_off, [ref]}})
-              :ok -> :ok
-            end
-          end
-        {:error, :no_logger} -> exit(:noproc)
+      :ok = add_capture(string_io, opts)
+      {:ok, ref} = ExUnit.Server.log_capture_on(self())
+
+      try do
+        fun.()
+      after
+        :ok = Logger.flush()
+        :ok = ExUnit.Server.log_capture_off(ref)
+        :ok = remove_capture(string_io)
       end
+
       :ok
     catch
       kind, reason ->
@@ -80,6 +80,28 @@ defmodule ExUnit.CaptureLog do
       :ok ->
         {:ok, content} = StringIO.close(string_io)
         elem(content, 1)
+    end
+  end
+
+  defp add_capture(pid, opts) do
+    GenEvent.add_mon_handler(Logger, {Console, pid}, {pid, opts})
+  end
+
+  defp remove_capture(pid) do
+    case GenEvent.remove_handler(Logger, {Console, pid}, nil) do
+      :ok ->
+        receive do
+          {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
+        end
+      {:error, :not_found} = error ->
+        mfa = {ExUnit.Capture_log, :remove_capture, [pid]}
+        receive do
+          {:gen_event_EXIT, {Console, ^pid}, reason} -> exit({reason, mfa})
+        after
+          # In case someone accidentally flushed the message,
+          # let's raise not found.
+          0 -> exit({error, mfa})
+        end
     end
   end
 end
