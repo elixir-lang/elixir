@@ -188,11 +188,40 @@ defmodule ExUnit.Runner do
       {:error, %{test_case | state: failed}}
   end
 
-  defp run_test(config, test, context) do
+  defp run_test(true, config, test, context) do
+    run_test([], config, test, context)
+  end
+
+  defp run_test(false, config, test, context) do
+    spawn_test(config, test, context)
+  end
+
+  defp run_test(opts, config, test, context) do
+    ref = make_ref()
+    try do
+      ExUnit.CaptureLog.capture_log(opts, fn ->
+        send self(), {ref, spawn_test(config, test, context)}
+      end)
+    catch
+      :exit, :noproc ->
+        message =
+          "could not run test, it uses @tag :capture_log" <>
+          " but the :logger application is not running"
+        %{test | state: {:failed, {:error, RuntimeError.exception(message), []}}}
+    else
+      logged ->
+        receive do
+          {^ref, test} -> %{test | logs: logged}
+        end
+    end
+  end
+
+  defp run_test(config, %{tags: tags} = test, context) do
     EM.test_started(config.manager, test)
 
     if is_nil(test.state) do
-      test = spawn_test(config, test, Map.merge(test.tags, context))
+      capture_log? = Map.get(tags, :capture_log, false)
+      test = run_test(capture_log?, config, test, Map.merge(tags, context))
     end
 
     EM.test_finished(config.manager, test)

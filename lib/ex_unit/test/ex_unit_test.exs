@@ -111,6 +111,48 @@ defmodule ExUnitTest do
     assert output =~ "4 tests, 1 failure, 3 skipped"
   end
 
+  test "log capturing" do
+    defmodule LogCapturingTest do
+      use ExUnit.Case
+
+      require Logger
+
+      setup_all do
+        :ok = Logger.remove_backend(:console)
+        on_exit(fn -> Logger.add_backend(:console, flush: true) end)
+      end
+
+      @tag :capture_log
+      test "one" do
+        Logger.debug("one")
+        assert 1 == 1
+      end
+
+      @tag :capture_log
+      test "two" do
+        Logger.debug("two")
+        assert 1 == 2
+      end
+
+      @tag capture_log: []
+      test "three" do
+        Logger.debug("three")
+        assert 1 == 2
+      end
+
+      test "four" do
+        Logger.debug("four")
+        assert 1 == 2
+      end
+    end
+
+    output = capture_io(&ExUnit.run/0)
+    assert output =~ "[debug] two"
+    refute output =~ "[debug] one"
+    assert output =~ "[debug] three"
+    refute output =~ "[debug] four"
+  end
+
   defp run_with_filter(filters, {async, sync, load_us}) do
     opts = Keyword.merge(ExUnit.configuration, filters)
     output = capture_io fn ->

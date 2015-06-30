@@ -72,13 +72,11 @@ defmodule ExUnit do
       * `:state` - the test state (see ExUnit.state)
       * `:time`  - the time to run the test
       * `:tags`  - the test tags
+      * `:logs`  - the captured logs
 
     """
-    defstruct name: nil,
-              case: nil,
-              state: nil,
-              time: 0,
-              tags: %{}
+    defstruct [:name, :case, :state,
+               time: 0, tags: %{}, logs: ""]
 
     @type t :: %__MODULE__{
                  name: atom,
