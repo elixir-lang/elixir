@@ -1347,8 +1347,9 @@ defmodule Kernel do
               :erlang.error atom.exception([])
             %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
               :erlang.error other
-            _ ->
-              :erlang.error ArgumentError.exception("raise/1 expects an alias or a string as the first argument")
+            other ->
+              message = "raise/1 expects an alias, string or exception as the first argument, got: #{inspect other}"
+              :erlang.error ArgumentError.exception(message)
           end
         end
     end
@@ -1428,8 +1429,9 @@ defmodule Kernel do
               :erlang.raise :error, atom.exception([]), stacktrace
             %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
               :erlang.raise :error, other, stacktrace
-            _ ->
-              :erlang.error ArgumentError.exception("reraise/2 expects an alias or a string as the first argument")
+            other ->
+              message = "reraise/2 expects an alias, string or exception as the first argument, got: #{inspect other}"
+              :erlang.error ArgumentError.exception(message)
           end
         end
     end
