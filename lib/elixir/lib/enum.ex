@@ -1403,6 +1403,8 @@ defmodule Enum do
   Invokes `fun` for each element in the collection passing that element and the
   accumulator `acc` as arguments. `fun`'s return value is stored in `acc`.
   The first element of the collection is used as the initial value of `acc`.
+  If you wish to use another value for `acc`, use `Enumerable.reduce/3`.
+  This function won't call the specified function for enumerables that are 1-element long.
   Returns the accumulator.
 
   ## Examples
