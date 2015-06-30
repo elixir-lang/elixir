@@ -30,6 +30,7 @@ defmodule ExUnit.CaptureLogTest do
 
     # Ensure no leakage on failures
     assert group_leader == Process.group_leader()
+    refute_received {:gen_event_EXIT, _, _}
   end
 
   test "level aware" do
