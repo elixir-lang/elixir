@@ -153,14 +153,6 @@ defmodule ExUnitTest do
     refute output =~ "[debug] four"
   end
 
-  defp run_with_filter(filters, {async, sync, load_us}) do
-    opts = Keyword.merge(ExUnit.configuration, filters)
-    output = capture_io fn ->
-      Process.put :capture_result, ExUnit.Runner.run(async, sync, opts, load_us)
-    end
-    {Process.get(:capture_result), output}
-  end
-
   test "it registers only the first test with any given name" do
     capture_io :stderr, fn ->
       defmodule TestWithSameNames do
@@ -199,5 +191,13 @@ defmodule ExUnitTest do
 
     assert output =~ "Not yet implemented"
     assert output =~ "1 test, 1 failure"
+  end
+
+  defp run_with_filter(filters, {async, sync, load_us}) do
+    opts = Keyword.merge(ExUnit.configuration, filters)
+    output = capture_io fn ->
+      Process.put(:capture_result, ExUnit.Runner.run(async, sync, opts, load_us))
+    end
+    {Process.get(:capture_result), output}
   end
 end
