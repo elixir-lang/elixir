@@ -258,7 +258,7 @@ defmodule Kernel.SpecialForms do
       {"Frank", "Walrus"}
 
   Failing to specify the size for the non-last causes compilation to fail:
-  
+
       <<name::binary, " the ", species::binary>> = <<"Frank the Walrus">>
       ** (CompileError): a binary field without size is only allowed at the end of a binary pattern
 
@@ -671,7 +671,7 @@ defmodule Kernel.SpecialForms do
   Elixir allows variables to be rebound via static single assignment:
 
       iex> x = 1
-      iex> x = 2
+      iex> x = x + 1
       iex> x
       2
 
