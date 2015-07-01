@@ -2038,7 +2038,7 @@ defmodule Kernel do
   outside of the function call (unlike regular pattern matching with the `=`
   operator):
 
-      iex> match?(x, 1)
+      iex> match?(_x, 1)
       true
       iex> binding()
       []
