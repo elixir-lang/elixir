@@ -37,6 +37,13 @@ defmodule HashSet do
     %HashSet{}
   end
 
+  @doc """
+  Creates a new set from an existing collection.
+  """
+  def new(coll) do
+    Enum.into(coll, new)
+  end
+
   def union(%HashSet{size: size1} = set1, %HashSet{size: size2} = set2) when size1 <= size2 do
     set_fold set1, set2, fn v, acc -> put(acc, v) end
   end

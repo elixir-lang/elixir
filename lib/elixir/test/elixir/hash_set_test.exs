@@ -62,6 +62,10 @@ defmodule HashSetTest do
     assert S.size(make(2..100)) == 99
   end
 
+  test "new" do
+    assert S.size(S.new([1,2,3])) == 3
+  end
+
   test "to_list" do
     assert S.to_list(S.new) == []
 
