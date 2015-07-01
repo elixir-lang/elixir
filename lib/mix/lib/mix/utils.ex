@@ -431,8 +431,8 @@ defmodule Mix.Utils do
     # If a proxy environment variable was supplied add a proxy to httpc
     http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
     https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
-    if http_proxy,  do: proxy(http_proxy)
-    if https_proxy, do: proxy(https_proxy)
+    if http_proxy,  do: proxy(:proxy, http_proxy)
+    if https_proxy, do: proxy(:https_proxy, https_proxy)
 
     if target do
       File.mkdir_p!(Path.dirname(target))
@@ -460,19 +460,12 @@ defmodule Mix.Utils do
     :inets.stop(:httpc, :mix)
   end
 
-  defp proxy(proxy) do
+  defp proxy(proxy_scheme, proxy) do
     uri  = URI.parse(proxy)
 
     if uri.host && uri.port do
       host = String.to_char_list(uri.host)
-      :httpc.set_options([{proxy_scheme(uri.scheme), {{host, uri.port}, []}}], :mix)
-    end
-  end
-
-  defp proxy_scheme(scheme) do
-    case scheme do
-      "http" -> :proxy
-      "https" -> :https_proxy
+      :httpc.set_options([{proxy_scheme, {{host, uri.port}, []}}], :mix)
     end
   end
 
