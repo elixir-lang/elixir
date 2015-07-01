@@ -311,7 +311,7 @@ defmodule Kernel.SpecialForms do
   ### Endianness
 
   Elixir has three options for endianness: `big`, `little`, and `native`.
-  The default is `big`. `native` is determined by the VM at startup.
+  The default is `big`:
 
       iex> <<number::little-integer-size(16)>> = <<0, 1>>
       <<0, 1>>
@@ -321,10 +321,9 @@ defmodule Kernel.SpecialForms do
       <<0, 1>>
       iex> number
       1
-      iex> <<number::native-integer-size(16)>> = <<0, 1>>
-      <<0, 1>>
-      iex> number
-      256
+
+  `native` is determined by the VM at startup and will depend on the
+  host operating system.
 
   ## Binary/Bitstring Matching
 
