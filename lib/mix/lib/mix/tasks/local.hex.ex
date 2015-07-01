@@ -81,7 +81,7 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   defp get_matching_version do
-    Mix.Utils.read_path!(@hex_list_url)
+    Mix.Utils.read_path!(@hex_list_url, [system: true])
     |> parse_csv
     |> all_eligibile_versions
     |> List.last
