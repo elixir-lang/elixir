@@ -458,8 +458,8 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an existing atom. Raises an ArguementError
-  if the atom does not exist. 
+  Converts a char list to an existing atom. Raises an `ArguementError`
+  if the atom does not exist.
 
   Currently Elixir does not support conversions from char lists
   which contains Unicode codepoints greater than 0xFF.
@@ -468,7 +468,7 @@ defmodule List do
 
   ## Examples
 
-      iex> barney = :barney
+      iex> :barney
       iex> List.to_existing_atom('barney')
       :barney
 
