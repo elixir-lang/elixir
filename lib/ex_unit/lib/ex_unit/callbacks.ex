@@ -10,9 +10,9 @@ defmodule ExUnit.Callbacks do
   callback may optionally put extra data into `context` to be used in
   the tests.
 
-  The `setup_all` callbacks are invoked once before the first test's `setup`
-  and all `setup` callbacks are run before each test. No callback runs if the
-  test case has no tests or all tests were filtered out.
+  The `setup_all` callbacks are invoked once to setup the test case before any
+  test is run and all `setup` callbacks are run before each test. No callback
+  runs if the test case has no tests or all tests were filtered out.
 
   `on_exit` callbacks are registered on demand, usually to undo an action
   performed by a setup callback. `on_exit` may also take a reference,
@@ -47,7 +47,7 @@ defmodule ExUnit.Callbacks do
       defmodule AssertionTest do
         use ExUnit.Case, async: true
 
-        # `setup_all` is called once before every test
+        # `setup_all` is called once to setup the case before any test is run
         setup_all do
           IO.puts "Starting AssertionTest"
 
