@@ -1,36 +1,43 @@
 defmodule Mix.Tasks.Run do
   use Mix.Task
 
-  @shortdoc "Run the given file or expression"
+  @shortdoc "Runs the given file or expression"
 
   @moduledoc """
   Runs the given file or expression in the context of the application.
 
-  Before running the code, it invokes the `app.start` task which compiles
-  and loads your project.
-
-  It is the goal of this task to provide a subset of the functionality
-  existent in the `elixir` executable, including setting up the `System.argv`:
+  You can use this task to execute a particular file or command:
 
       mix run -e Hello.world
+      mix run my_script.exs
+
+  This task provides a subset of the functionality available in the
+  `elixir` executable, including setting up the `System.argv`:
+
       mix run my_script.exs arg1 arg2 arg3
 
-  Many command line options need to be passed to the `elixir` executable
-  directly, which can be done as follows:
+  You can also use this task to simply start an application and keep
+  it running without halting:
 
-      elixir --sname hello -S mix run -e "My.code"
+      mix run --no-halt
+
+  Before running any command, the task compiles and starts the current
+  application. Those can be configured with the options below.
+
+  You may also pass option specific to the `elixir` executable as follows:
+
+      elixir --sname hello -S mix run --no-halt
 
   ## Command line options
 
     * `--config`, `-c`  - loads the given configuration file
-    * `--eval`, `-e`    - evaluate the given code
+    * `--eval`, `-e` - evaluate the given code
     * `--require`, `-r` - require pattern before running the command
-    * `--parallel-require`, `-pr`
-                        - requires pattern in parallel
-    * `--no-compile`    - do not compile even if files require compilation
+    * `--parallel-require`, `-pr` - requires pattern in parallel
+    * `--no-compile` - do not compile even if files require compilation
     * `--no-deps-check` - do not check dependencies
-    * `--no-halt`       - do not halt the system after running the command
-    * `--no-start`      - do not start applications after compilation
+    * `--no-halt` - do not halt the system after running the command
+    * `--no-start` - do not start applications after compilation
 
   """
 
