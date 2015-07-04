@@ -3162,9 +3162,18 @@ defmodule Kernel do
       @behaviour Exception
       fields = defstruct unquote(fields)
 
-      @spec exception(String.t) :: Exception.t
-      def exception(msg) when is_binary(msg) do
-        exception(message: msg)
+      if Map.has_key?(fields, :message) do
+        @spec message(Exception.t) :: String.t
+        def message(exception) do
+          exception.message
+        end
+
+        defoverridable message: 1
+
+        @spec exception(String.t) :: Exception.t
+        def exception(msg) when is_binary(msg) do
+          exception(message: msg)
+        end
       end
 
       @spec exception(Keyword.t) :: Exception.t
@@ -3173,15 +3182,6 @@ defmodule Kernel do
       end
 
       defoverridable exception: 1
-
-      if Map.has_key?(fields, :message) do
-        @spec message(Exception.t) :: String.t
-        def message(exception) do
-          exception.message
-        end
-
-        defoverridable message: 1
-      end
     end
   end
 
