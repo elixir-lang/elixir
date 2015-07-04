@@ -56,15 +56,15 @@ defmodule ExUnit.CaptureLogTest do
         receive do: (:done -> :ok)
       end)
 
-    assert logged =~ "[info]  one\n\e[0m"
-    assert logged =~ "[warn]  two\n\e[0m"
-    assert logged =~ "[debug] three\n\e[0m"
-    assert logged =~ "[error] one\n\e[0m"
+    assert logged =~ "[info]  one\n"
+    assert logged =~ "[warn]  two\n"
+    assert logged =~ "[debug] three\n"
+    assert logged =~ "[error] one\n"
 
     receive do
       {:nested, logged} ->
-        assert logged =~ "[error] one\n\e[0m"
-        refute logged =~ "[warn]  two\n\e[0m"
+        assert logged =~ "[error] one\n"
+        refute logged =~ "[warn]  two\n"
     end
   end
 end
