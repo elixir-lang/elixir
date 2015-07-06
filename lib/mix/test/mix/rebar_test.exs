@@ -43,6 +43,11 @@ defmodule Mix.RebarTest do
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar'}, [:raw]}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false]}] ==
            Mix.Rebar.deps(config)
+
+    config = [deps: [{:git_rebar, '', {:git, '../../test/fixtures/git_rebar', {:ref, '64691eb'}}}]]
+    assert [{:git_rebar, ~r"", [git: "../../test/fixtures/git_rebar", ref: "64691eb"]}] ==
+           Mix.Rebar.deps(config)
+
   end
 
   test "parse rebar dependencies from rebar.config" do
