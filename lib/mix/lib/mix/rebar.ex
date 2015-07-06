@@ -101,6 +101,7 @@ defmodule Mix.Rebar do
         [""|_]                -> [branch: "HEAD"]
         [{:branch, branch}|_] -> [branch: to_string(branch)]
         [{:tag, tag}|_]       -> [tag: to_string(tag)]
+        [{:ref, ref}|_]       -> [ref: to_string(ref)]
         [ref|_]               -> [ref: to_string(ref)]
         _                     -> []
       end
