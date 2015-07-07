@@ -98,7 +98,7 @@ expr -> unmatched_expr : '$1'.
 %% problematic they are:
 %%
 %% (a) no_parens_one: a call with one unproblematic argument
-%% (e.g. `f a` or `f g a` and similar)
+%% (e.g. `f a` or `f g a` and similar) (includes unary operators)
 %%
 %% (b) no_parens_many: a call with several arguments (e.g. `f a, b`)
 %%
@@ -130,13 +130,9 @@ expr -> unmatched_expr : '$1'.
 %% if calls without parentheses are do blocks in particular
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
-matched_expr -> matched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
-matched_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
-matched_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
-matched_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> access_expr : '$1'.
 
@@ -146,6 +142,13 @@ unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
+
+no_parens_expr -> matched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+no_parens_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> no_parens_one_ambig_expr : '$1'.
+no_parens_expr -> no_parens_many_expr : '$1'.
 
 block_expr -> parens_call call_args_parens do_block : build_identifier('$1', '$2' ++ '$3').
 block_expr -> parens_call call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3' ++ '$4').
@@ -202,9 +205,6 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
-
-no_parens_expr -> no_parens_one_ambig_expr : '$1'.
-no_parens_expr -> no_parens_many_expr : '$1'.
 
 no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
 no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
@@ -432,7 +432,7 @@ parens_call -> matched_expr dot_call_op : {'.', meta('$2'), ['$1']}. % Fun/local
 % Function calls with no parentheses
 
 call_args_no_parens_expr -> matched_expr : '$1'.
-call_args_no_parens_expr -> no_parens_many_expr : throw_no_parens_many_strict('$1').
+call_args_no_parens_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
 call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3'|'$1'].
@@ -500,7 +500,9 @@ kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'}|'$1'].
 kw -> kw_base : reverse('$1').
 kw -> kw_base ',' : reverse('$1').
 
-call_args_no_parens_kw_expr -> kw_eol call_args_no_parens_expr : {'$1', '$2'}.
+call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
+call_args_no_parens_kw_expr -> kw_eol no_parens_expr : {'$1', '$2'}.
+
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1'|'$3'].
 
