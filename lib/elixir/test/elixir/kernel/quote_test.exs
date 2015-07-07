@@ -173,6 +173,26 @@ defmodule Kernel.QuoteTest do
     assert {:/, _, [{:+, _, _}, 2]} = quote do: +/2
     assert {:/, _, [{:&&, _, _}, 3]} = quote do: &&/3
   end
+
+  test :pipe_precedence do
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo |> bar |> baz)
+
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo do end |> bar |> baz)
+
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo |> bar do end |> baz)
+
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo |> bar |> baz do end)
+
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo do end |> bar |> baz do end)
+
+    assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
+           quote do: (foo do end |> bar do end |> baz do end)
+  end
 end
 
 ## DO NOT MOVE THIS LINE
@@ -202,7 +222,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, :add, 2, [file: ^file, line: 182]}|_] = System.stacktrace
+    assert [{^mod, :add, 2, [file: ^file, line: 202]}|_] = System.stacktrace
   end
 
   test :outside_function_error do
@@ -212,7 +232,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, _, _, [file: ^file, line: 210]}|_] = System.stacktrace
+    assert [{^mod, _, _, [file: ^file, line: 230]}|_] = System.stacktrace
   end
 end
 
