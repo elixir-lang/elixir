@@ -144,11 +144,14 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg, '{foo 1, 2}'
     assert_compile_fail SyntaxError, msg, '{foo bar 1, 2}'
     assert_compile_fail SyntaxError, msg, 'foo 1, foo 2, 3'
+    assert_compile_fail SyntaxError, msg, 'foo 1, @bar 3, 4'
+    assert_compile_fail SyntaxError, msg, 'foo 1, 2 + bar 3, 4'
     assert_compile_fail SyntaxError, msg, 'foo(1, foo 2, 3)'
 
     assert is_list List.flatten [1]
     assert is_list Enum.reverse [3, 2, 1], [4, 5, 6]
     assert is_list(Enum.reverse [3, 2, 1], [4, 5, 6])
+    assert false || is_list Enum.reverse [3, 2, 1], [4, 5, 6]
     assert [List.flatten List.flatten [1]] == [[1]]
 
     interpret = fn x -> Macro.to_string Code.string_to_quoted! x end
