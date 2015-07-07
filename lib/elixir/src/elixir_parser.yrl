@@ -3,7 +3,7 @@ Nonterminals
   expr container_expr block_expr access_expr
   no_parens_expr no_parens_one_expr no_parens_one_ambig_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
-  op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
+  unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   add_op_eol mult_op_eol hat_op_eol two_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
@@ -136,8 +136,10 @@ matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> access_expr : '$1'.
 
-unmatched_expr -> matched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
-unmatched_expr -> unmatched_expr op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> matched_expr unmatched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> unmatched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> unmatched_expr unmatched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
+unmatched_expr -> unmatched_expr no_parens_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
@@ -155,41 +157,6 @@ block_expr -> parens_call call_args_parens call_args_parens do_block : build_nes
 block_expr -> dot_do_identifier do_block : build_identifier('$1', '$2').
 block_expr -> dot_identifier call_args_no_parens_all do_block : build_identifier('$1', '$2' ++ '$3').
 
-op_expr -> match_op_eol expr : {'$1', '$2'}.
-op_expr -> add_op_eol expr : {'$1', '$2'}.
-op_expr -> mult_op_eol expr : {'$1', '$2'}.
-op_expr -> hat_op_eol expr : {'$1', '$2'}.
-op_expr -> two_op_eol expr : {'$1', '$2'}.
-op_expr -> and_op_eol expr : {'$1', '$2'}.
-op_expr -> or_op_eol expr : {'$1', '$2'}.
-op_expr -> in_op_eol expr : {'$1', '$2'}.
-op_expr -> in_match_op_eol expr : {'$1', '$2'}.
-op_expr -> type_op_eol expr : {'$1', '$2'}.
-op_expr -> when_op_eol expr : {'$1', '$2'}.
-op_expr -> pipe_op_eol expr : {'$1', '$2'}.
-op_expr -> comp_op_eol expr : {'$1', '$2'}.
-op_expr -> rel_op_eol expr : {'$1', '$2'}.
-op_expr -> arrow_op_eol expr : {'$1', '$2'}.
-
-no_parens_op_expr -> match_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> add_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> mult_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> hat_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> two_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> and_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> or_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> in_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> in_match_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> type_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
-
-%% Allow when (and only when) with keywords
-no_parens_op_expr -> when_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
-
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> mult_op_eol matched_expr : {'$1', '$2'}.
@@ -205,6 +172,41 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
+
+unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> add_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> mult_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> hat_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> two_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> and_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> or_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> in_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> in_match_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> type_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> when_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> pipe_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> comp_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> rel_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> arrow_op_eol unmatched_expr : {'$1', '$2'}.
+
+no_parens_op_expr -> match_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> add_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> mult_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> hat_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> two_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> and_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> or_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> in_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> in_match_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> type_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> when_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
+
+%% Allow when (and only when) with keywords
+no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
 
 no_parens_one_ambig_expr -> dot_op_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
 no_parens_one_ambig_expr -> dot_identifier call_args_no_parens_ambig : build_identifier('$1', '$2').
