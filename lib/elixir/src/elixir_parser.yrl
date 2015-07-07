@@ -432,11 +432,9 @@ parens_call -> matched_expr dot_call_op : {'.', meta('$2'), ['$1']}. % Fun/local
 % Function calls with no parentheses
 
 call_args_no_parens_expr -> matched_expr : '$1'.
-call_args_no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 call_args_no_parens_expr -> no_parens_many_expr : throw_no_parens_many_strict('$1').
 
 call_args_no_parens_comma_expr -> matched_expr ',' call_args_no_parens_expr : ['$3', '$1'].
-call_args_no_parens_comma_expr -> no_parens_one_ambig_expr ',' call_args_no_parens_expr : ['$3', '$1'].
 call_args_no_parens_comma_expr -> call_args_no_parens_comma_expr ',' call_args_no_parens_expr : ['$3'|'$1'].
 
 call_args_no_parens_all -> call_args_no_parens_one : '$1'.
