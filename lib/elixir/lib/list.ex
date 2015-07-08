@@ -678,11 +678,10 @@ defmodule List do
 
   defp do_zip(list, acc) do
     converter = fn x, acc -> do_zip_each(to_list(x), acc) end
-    {mlist, heads} = :lists.mapfoldl converter, [], list
-
-    case heads do
-      nil -> :lists.reverse acc
-      _   -> do_zip mlist, [:erlang.list_to_tuple(:lists.reverse(heads))|acc]
+    case :lists.mapfoldl(converter, [], list) do
+      {_, nil} -> :lists.reverse(acc)
+      {mlist, heads} ->
+        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
     end
   end
 
