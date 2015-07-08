@@ -276,6 +276,33 @@ defmodule List do
   end
 
   @doc """
+  Receives a `list` of tuples and returns the first tuple
+  where the element at `position` in the tuple matches the
+  given `key`, as well as the `list` without found tuple.
+
+  If such a tuple is not found, `nil` will be returned.
+
+  ## Examples
+
+      iex> List.keytake([a: 1, b: 2], :a, 0)
+      {{:a, 1}, [b: 2]}
+
+      iex> List.keytake([a: 1, b: 2], 2, 1)
+      {{:b, 2}, [a: 1]}
+
+      iex> List.keytake([a: 1, b: 2], :c, 0)
+      nil
+
+  """
+  @spec keytake([tuple], any, non_neg_integer) :: {tuple, [tuple]} | nil
+  def keytake(list, key, position) do
+    case :lists.keytake(key, position + 1, list) do
+      {:value, item, list} -> {item, list}
+      false                -> nil
+    end
+  end
+
+  @doc """
   Wraps the argument in a list.
   If the argument is already a list, returns the list.
   If the argument is `nil`, returns an empty list.
