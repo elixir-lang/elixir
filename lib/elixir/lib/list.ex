@@ -616,40 +616,40 @@ defmodule List do
     list
   end
 
-  defp do_replace_at([_old|rest], 0, value) do
-    [ value | rest ]
+  defp do_replace_at([_old | rest], 0, value) do
+    [value | rest]
   end
 
-  defp do_replace_at([h|t], index, value) do
-    [ h | do_replace_at(t, index - 1, value) ]
+  defp do_replace_at([h | t], index, value) do
+    [h | do_replace_at(t, index - 1, value)]
   end
 
   # insert_at
 
   defp do_insert_at([], _index, value) do
-    [ value ]
+    [value]
   end
 
   defp do_insert_at(list, index, value) when index <= 0 do
-    [ value | list ]
+    [value | list]
   end
 
-  defp do_insert_at([h|t], index, value) do
-    [ h | do_insert_at(t, index - 1, value) ]
+  defp do_insert_at([h | t], index, value) do
+    [h | do_insert_at(t, index - 1, value)]
   end
 
   # update_at
 
-  defp do_update_at([value|list], 0, fun) do
-    [ fun.(value) | list ]
+  defp do_update_at([value | list], 0, fun) do
+    [fun.(value) | list]
   end
 
   defp do_update_at(list, index, _fun) when index < 0 do
     list
   end
 
-  defp do_update_at([h|t], index, fun) do
-    [ h | do_update_at(t, index - 1, fun) ]
+  defp do_update_at([h | t], index, fun) do
+    [h | do_update_at(t, index - 1, fun)]
   end
 
   defp do_update_at([], _index, _fun) do
@@ -662,7 +662,7 @@ defmodule List do
     []
   end
 
-  defp do_delete_at([_|t], 0) do
+  defp do_delete_at([_ | t], 0) do
     t
   end
 
@@ -670,8 +670,8 @@ defmodule List do
     list
   end
 
-  defp do_delete_at([h|t], index) do
-    [h | do_delete_at(t, index-1)]
+  defp do_delete_at([h | t], index) do
+    [h | do_delete_at(t, index - 1)]
   end
 
   # zip
@@ -690,8 +690,8 @@ defmodule List do
     {nil, nil}
   end
 
-  defp do_zip_each([h|t], acc) do
-    {t, [h|acc]}
+  defp do_zip_each([h | t], acc) do
+    {t, [h | acc]}
   end
 
   defp do_zip_each([], _) do
