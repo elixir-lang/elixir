@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Local.Hex do
   @hex_list_url     @hex_s3 <> "/installs/list.csv"
   @hex_archive_url  @hex_s3 <> "/installs/[VERSION]/hex.ez"
   @hex_requirement  ">= 0.5.0"
+  @fallback_elixir  "1.0.0"
 
   @shortdoc "Install hex locally"
 
@@ -81,10 +82,18 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   defp get_matching_version do
-    Mix.Utils.read_path!(@hex_list_url, [system: true])
-    |> parse_csv
-    |> all_eligibile_versions
-    |> List.last
+    try do
+      Mix.Utils.read_path!(@hex_list_url, [system: true])
+    rescue
+      Mix.Error ->
+        @fallback_elixir
+    else
+      csv ->
+        csv
+        |> parse_csv
+        |> all_eligibile_versions
+        |> List.last
+    end
   end
 
   defp parse_csv(body) do
