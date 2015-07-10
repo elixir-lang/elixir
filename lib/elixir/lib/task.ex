@@ -52,40 +52,61 @@ defmodule Task do
   unlike `async/1`, returns `{:ok, pid}` (which is
   the result expected by supervision trees).
 
-  ## Supervision trees
+  ## Dynamically supervised tasks
 
-  The `Task.Supervisor` module allows developers to start supervisors
-  that dynamically supervise tasks:
+  The `Task.Supervisor` module allows developers to dynamically
+  create multiple supervised tasks.
+
+  A short example is:
 
       {:ok, pid} = Task.Supervisor.start_link()
-      Task.Supervisor.async(pid, MyMod, :my_fun, [arg1, arg2, arg3])
+      task = Task.Supervisor.async(pid, fn ->
+        # Do something
+      end)
+      Task.await(task)
 
-  `Task.Supervisor` also makes it possible to spawn tasks in remote nodes as
-  long as the supervisor is registered locally or globally:
-
-      # In the remote node
-      Task.Supervisor.start_link(name: :tasks_sup)
-
-      # In the client
-      Task.Supervisor.async({:tasks_sup, :remote@local}, MyMod, :my_fun, [arg1, arg2, arg3])
-
-  `Task.Supervisor` is more often started in your supervision tree as:
+  However, in the majority of cases, you want to add the task supervisor
+  to your supervision tree:
 
       import Supervisor.Spec
 
       children = [
-        supervisor(Task.Supervisor, [[name: :tasks_sup]])
+        supervisor(Task.Supervisor, [[name: MyApp.TaskSupervisor]])
       ]
 
-  Note that, when working with distributed tasks, one should use the `async/3` API,
-  that expects explicit module, function and arguments, instead of `async/1` that
-  works with anonymous functions. That's because the anonymous function API expects
-  the same module version to exist on all involved nodes. Check the `Agent` module
-  documentation for more information on distributed processes, as the limitations
-  described in the agents documentation apply to the whole ecosystem.
+  Now you can dynamically start supervised tasks:
 
-  Finally, check `Task.Supervisor` for other operations supported by the Task
-  supervisor.
+      Task.Supervisor.start_child(MyApp.TaskSupervisor, fn ->
+        # Do something
+      end)
+
+  Or even use the async/await pattern:
+
+      Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
+        # Do something
+      end) |> Task.await()
+
+  Finally, check `Task.Supervisor` for other operations supported by the
+  Task supervisor.
+
+  ## Distributed tasks
+
+  Since Elixir provides a Task supervisor, it is easy to use a task
+  supervisor to dynamically spawn tasks across nodes:
+
+      # In the remote node
+      Task.Supervisor.start_link(name: MyApp.DistSupervisor)
+
+      # In the client
+      Task.Supervisor.async({:MyApp.DistSupervisor, :remote@local},
+                            MyMod, :my_fun, [arg1, arg2, arg3])
+
+  Note that, when working with distributed tasks, one should use the `async/4` function
+  that expects explicit module, function and arguments, instead of `async/2` that
+  works with anonymous functions. That's because anonymous functions expect
+  the same module version to exist on all involved nodes. Check the `Agent` module
+  documentation for more information on distributed processes as the limitations
+  described in the agents documentation apply to the whole ecosystem.
   """
 
   @doc """
@@ -189,8 +210,8 @@ defmodule Task do
   A timeout, in milliseconds, can be given with default value
   of `5000`. In case the task process dies, this function will
   exit with the same reason as the task.
-  
-  If the timeout is exceeded, `await` will exit, however, 
+
+  If the timeout is exceeded, `await` will exit, however,
   the task will continue to run.  Use `Process.kill/2` to
   terminate it.
   """
