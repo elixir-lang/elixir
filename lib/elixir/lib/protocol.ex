@@ -526,7 +526,7 @@ defmodule Protocol do
     # Unquote the implementation just later
     # when all variables will already be injected
     # into the module body.
-    __impl__ =
+    impl =
       quote unquote: false do
         @doc false
         @spec __impl__(:for) :: unquote(for)
@@ -561,7 +561,7 @@ defmodule Protocol do
         Module.register_attribute(__MODULE__, :impl, persist: true)
         @impl [protocol: @protocol, for: @for]
 
-        unquote(__impl__)
+        unquote(impl)
       end
     end
   end
