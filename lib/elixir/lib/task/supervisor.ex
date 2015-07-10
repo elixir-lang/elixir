@@ -7,8 +7,7 @@ defmodule Task.Supervisor do
   `:simple_one_for_one` supervisor where the workers are temporary
   (i.e. they are not restarted after they die).
 
-  The functions in this module allow tasks to be spawned and awaited
-  from a supervisor, similar to the functions defined in the `Task` module.
+  See the `Task` module for more information.
 
   ## Name Registration
 
