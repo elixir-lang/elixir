@@ -1731,11 +1731,11 @@ defmodule Enum do
     []
   end
 
-  def take(collection, count) when is_list(collection) and count > 0 do
+  def take(collection, count) when is_list(collection) and is_integer(count) and count > 0 do
     do_take(collection, count)
   end
 
-  def take(collection, count) when count > 0 do
+  def take(collection, count) when count > 0 and is_integer(count) do
     {_, {res, _}} =
       Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, count}) ->
         case count do
@@ -1747,7 +1747,7 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
-  def take(collection, count) when count < 0 do
+  def take(collection, count) when count < 0 and is_integer(count) do
     Stream.take(collection, count).({:cont, []}, &{:cont, [&1|&2]})
     |> elem(1) |> :lists.reverse
   end
