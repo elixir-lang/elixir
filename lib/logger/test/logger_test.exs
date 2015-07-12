@@ -2,6 +2,17 @@ defmodule LoggerTest do
   use Logger.Case
   require Logger
 
+  setup_all do
+    Logger.configure_backend(:console, metadata: [:module])
+    on_exit(fn ->
+      Logger.configure_backend(:console, metadata: [])
+    end)
+  end
+
+  defp msg_with_meta(text) do
+    msg("module=#{LoggerTest} #{text}")
+  end
+
   test "add_translator/1 and remove_translator/1" do
     defmodule CustomTranslator do
       def t(:debug, :info, :format, {'hello: ~p', [:ok]}) do
@@ -69,7 +80,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
-    end) =~ msg("[debug] hello")
+    end) =~ msg_with_meta("[debug] hello")
 
     assert Logger.disable(self()) == :ok
 
@@ -87,7 +98,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
-    end) =~ msg("[debug] hello")
+    end) =~ msg_with_meta("[debug] hello")
   end
 
   test "compare_levels/2" do
@@ -115,7 +126,7 @@ defmodule LoggerTest do
   test "debug/2" do
     assert capture_log(fn ->
       assert Logger.debug("hello", []) == :ok
-    end) =~ msg("[debug] hello")
+    end) =~ msg_with_meta("[debug] hello")
 
     assert capture_log(:info, fn ->
       assert Logger.debug("hello", []) == :ok
@@ -125,7 +136,7 @@ defmodule LoggerTest do
   test "info/2" do
     assert capture_log(fn ->
       assert Logger.info("hello", []) == :ok
-    end) =~ msg("[info]  hello")
+    end) =~ msg_with_meta("[info]  hello")
 
     assert capture_log(:warn, fn ->
       assert Logger.info("hello", []) == :ok
@@ -135,7 +146,7 @@ defmodule LoggerTest do
   test "warn/2" do
     assert capture_log(fn ->
       assert Logger.warn("hello", []) == :ok
-    end) =~ msg("[warn]  hello")
+    end) =~ msg_with_meta("[warn]  hello")
 
     assert capture_log(:error, fn ->
       assert Logger.warn("hello", []) == :ok
@@ -145,7 +156,7 @@ defmodule LoggerTest do
   test "error/2" do
     assert capture_log(fn ->
       assert Logger.error("hello", []) == :ok
-    end) =~ msg("[error] hello")
+    end) =~ msg_with_meta("[error] hello")
   end
 
   test "remove unused calls at compile time" do
@@ -167,7 +178,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Sample.info == :ok
-    end) =~ msg("[info]  hello")
+    end) =~ msg("module=#{LoggerTest}.Sample [info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
   end
