@@ -11,5 +11,5 @@
 /rel/elixir
 erl_crash.dump
 .elixir.plt
-man/elixir.1
-man/iex.1
+/man/elixir.1
+/man/iex.1
