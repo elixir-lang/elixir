@@ -61,11 +61,11 @@ defmodule Agent do
         Agent.get(agent, &(&1)) |> do_something_expensive()
       end
 
-  The first one blocks the agent while the second one copies
-  all the state to the client and executes the operation in the client.
-  The trade-off here is exactly if the data is small enough to be
-  sent to the client cheaply or large enough to require processing on
-  the server (or at least some initial processing).
+  The first function blocks the agent. The second function copies
+  all the state to the client and then executes the operation in the
+  client. The difference is whether the data is large enough to require
+  processing in the server, at least initially, or small enough to be
+  sent to the client cheaply.
 
   ## Name Registration
 
@@ -75,8 +75,8 @@ defmodule Agent do
   ## A word on distributed agents
 
   It is important to consider the limitations of distributed agents. Agents
-  provides two APIs, one that works with anonymous functions and another
-  that expects explicit module, function and arguments.
+  provide two APIs, one that works with anonymous functions and another
+  that expects an explicit module, function, and arguments.
 
   In a distributed setup with multiple nodes, the API that accepts anonymous
   functions only works if the caller (client) and the agent have the same
@@ -89,13 +89,13 @@ defmodule Agent do
   In this setup, part of your environment will have one version of a given
   module and the other part another version (the newer one) of the same module.
 
-  The best solution is to simply use the explicit module, function and arguments
+  The best solution is to simply use the explicit module, function, and arguments
   APIs when working with distributed agents.
 
   ## Hot code swapping
 
   An agent can have its code hot swapped live by simply passing a module,
-  function and args tuple to the update instruction. For example, imagine
+  function, and args tuple to the update instruction. For example, imagine
   you have an agent named `:sample` and you want to convert its inner state
   from some dict structure to a map. It can be done with the following
   instruction:
