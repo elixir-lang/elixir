@@ -518,11 +518,11 @@ defmodule Stream do
   @spec take(Enumerable.t, non_neg_integer) :: Enumerable.t
   def take(_enum, 0), do: %Stream{enum: []}
 
-  def take(enum, n) when n > 0 do
+  def take(enum, n) when n > 0 and is_integer(n) do
     lazy enum, n, fn(f1) -> R.take(f1) end
   end
 
-  def take(enum, n) when n < 0 do
+  def take(enum, n) when n < 0 and is_integer(n) do
     &do_take(enum, abs(n), &1, &2)
   end
 
