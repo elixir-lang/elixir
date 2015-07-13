@@ -325,7 +325,7 @@ defmodule Module do
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
   by Erlang's `module_info` function which also gets defined for each compiled
-  module. See http://erlang.org/doc/reference_manual/modules.html#id75777 for
+  module. See http://www.erlang.org/doc/reference_manual/modules.html#id75777 for
   more information.
   """
   def __info__(kind)
