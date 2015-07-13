@@ -1,6 +1,6 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master "Build Status")](http://travis-ci.org/elixir-lang/elixir)
+[![Build Status](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master "Build Status")](https://travis-ci.org/elixir-lang/elixir)
 
 For more about Elixir, installation and documentation, [check Elixir's website](http://elixir-lang.org/).
 
@@ -48,8 +48,8 @@ We appreciate any contribution to Elixir, so check out our [CONTRIBUTING.md](CON
 
   [1]: http://elixir-lang.org
   [2]: https://github.com/elixir-lang/elixir/issues
-  [3]: http://groups.google.com/group/elixir-lang-talk
-  [4]: http://groups.google.com/group/elixir-lang-core
+  [3]: https://groups.google.com/group/elixir-lang-talk
+  [4]: https://groups.google.com/group/elixir-lang-core
   [5]: irc://chat.freenode.net/elixir-lang
   [6]: http://www.freenode.net/
   [7]: http://elixir-lang.org/docs.html

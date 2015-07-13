@@ -1,7 +1,7 @@
 defmodule ExUnit.DocTest do
   @moduledoc """
   ExUnit.DocTest implements functionality similar to [Python's
-  doctest](http://docs.python.org/2/library/doctest.html).
+  doctest](https://docs.python.org/2/library/doctest.html).
 
   In a nutshell, it allows us to generate tests from the code
   examples existing in a module/function/macro's documentation.

@@ -4,7 +4,7 @@ defmodule Port do
   """
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#open_port-2.
+  See http://www.erlang.org/doc/man/erlang.html#open_port-2
 
   Inlined by the compiler.
   """
@@ -13,7 +13,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_close-1.
+  See http://www.erlang.org/doc/man/erlang.html#port_close-1
 
   Inlined by the compiler.
   """
@@ -22,7 +22,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_command-2.
+  See http://www.erlang.org/doc/man/erlang.html#port_command-2
 
   Inlined by the compiler.
   """
@@ -31,7 +31,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_connect-2.
+  See http://www.erlang.org/doc/man/erlang.html#port_connect-2
 
   Inlined by the compiler.
   """
@@ -40,7 +40,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_control-3.
+  See http://www.erlang.org/doc/man/erlang.html#port_control-3
 
   Inlined by the compiler.
   """
@@ -49,7 +49,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#port_call-3.
+  See http://www.erlang.org/doc/man/erlang.html#port_call-3
 
   Inlined by the compiler.
   """
@@ -61,7 +61,7 @@ defmodule Port do
   Returns information about the `port`
   or `nil` if the port is closed.
 
-  See http://www.erlang.org/doc/man/erlang.html#port_info-1.
+  See http://www.erlang.org/doc/man/erlang.html#port_info-1
   """
   def info(port) do
     nillify :erlang.port_info(port)
@@ -71,7 +71,7 @@ defmodule Port do
   Returns information about the `port`
   or `nil` if the port is closed.
 
-  See http://www.erlang.org/doc/man/erlang.html#port_info-2.
+  See http://www.erlang.org/doc/man/erlang.html#port_info-2
   """
   @spec info(port, atom) :: {atom, term} | nil
   def info(port, spec)
@@ -88,7 +88,7 @@ defmodule Port do
   end
 
   @doc """
-  See http://www.erlang.org/doc/man/erlang.html#ports-0.
+  See http://www.erlang.org/doc/man/erlang.html#ports-0
 
   Inlined by the compiler.
   """
