@@ -73,8 +73,8 @@ defmodule GenServer do
       -  `:ignore`
       -  `{:stop, reason}`
 
-    * `handle_call(msg, {from, ref}, state)` and `handle_cast(msg, state)` -
-      invoked to handle call (sync) and cast (async) messages.
+    * `handle_call(msg, {from, ref}, state)` - invoked to handle call (sync)
+       messages.
 
       It must return:
 
@@ -86,6 +86,15 @@ defmodule GenServer do
       -  `{:noreply, new_state, :hibernate}`
       -  `{:stop, reason, new_state}`
       -  `{:stop, reason, reply, new_state}`
+
+    * `handle_cast(msg, state)` - invoked to handle cast (async) messages.
+
+      It must return:
+
+      -  `{:noreply, new_state}`
+      -  `{:noreply, new_state, timeout}`
+      -  `{:noreply, new_state, :hibernate}`
+      -  `{:stop, reason, new_state}`
 
     * `handle_info(msg, state)` - invoked to handle all other messages which
       are received by the process.
