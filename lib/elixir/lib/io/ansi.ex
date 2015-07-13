@@ -17,7 +17,7 @@ end
 defmodule IO.ANSI do
   @moduledoc """
   Functionality to render ANSI escape sequences
-  (http://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
+  (https://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
   in text used to control formatting, color, and other output options
   on video text terminals.
   """
