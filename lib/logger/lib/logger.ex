@@ -402,28 +402,23 @@ defmodule Logger do
   end
 
   @doc """
-  Logs a message.
+  Logs a message dynamically.
 
-  Developers should use the macros `Logger.debug/2`,
-  `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
-  of this function as they automatically include caller metadata
-  and can eliminate the Logger call altogether at compile time if
-  desired.
-
-  Use this function only when there is a need to log dynamically
-  or you want to explicitly avoid embedding metadata.
+  Use this function only when there is a need to
+  explicitly avoid embedding metadata.
   """
-  @spec log(level, message | (() -> message), Keyword.t) ::
+  @spec bare_log(level, message | (() -> message), Keyword.t) ::
         :ok | {:error, :noproc} | {:error, term}
-  def log(level, chardata, metadata \\ []) when level in @levels and is_list(metadata) do
+  def bare_log(level, chardata_or_fn, metadata \\ [])
+      when level in @levels and is_list(metadata) do
     case __metadata__() do
       {true, pdict} ->
         %{mode: mode, truncate: truncate,
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
-          tuple = {Logger, truncate(chardata, truncate), Logger.Utils.timestamp(utc_log?),
-                   [pid: self()] ++ metadata ++ pdict}
+          tuple = {Logger, truncate(chardata_or_fn, truncate),
+                   Logger.Utils.timestamp(utc_log?), [pid: self()] ++ metadata ++ pdict}
           try do
             notify(mode, {level, Process.group_leader(), tuple})
             :ok
@@ -450,7 +445,7 @@ defmodule Logger do
 
   """
   defmacro warn(chardata_or_fn, metadata \\ []) do
-    macro_log(:warn, chardata_or_fn, metadata, __CALLER__)
+    maybe_log(:warn, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -463,7 +458,7 @@ defmodule Logger do
 
   """
   defmacro info(chardata_or_fn, metadata \\ []) do
-    macro_log(:info, chardata_or_fn, metadata, __CALLER__)
+    maybe_log(:info, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -476,7 +471,7 @@ defmodule Logger do
 
   """
   defmacro error(chardata_or_fn, metadata \\ []) do
-    macro_log(:error, chardata_or_fn, metadata, __CALLER__)
+    maybe_log(:error, chardata_or_fn, metadata, __CALLER__)
   end
 
   @doc """
@@ -489,17 +484,33 @@ defmodule Logger do
 
   """
   defmacro debug(chardata_or_fn, metadata \\ []) do
-    macro_log(:debug, chardata_or_fn, metadata, __CALLER__)
+    maybe_log(:debug, chardata_or_fn, metadata, __CALLER__)
   end
 
-  defp macro_log(level, chardata, metadata, caller) do
+  @doc """
+  Logs a message.
+
+  Developers should rather use the macros `Logger.debug/2`,
+  `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
+  of this macro as they can automatically eliminate
+  the Logger call altogether at compile time if desired.
+  """
+  defmacro log(level, chardata_or_fn, metadata \\ []) do
+    macro_log(level, chardata_or_fn, metadata, __CALLER__)
+  end
+
+  defp macro_log(level, data, metadata, caller) do
+    %{module: module, function: fun, line: line} = caller
+    caller = [module: module, function: form_fa(fun), line: line]
+    quote do
+      Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))
+    end
+  end
+
+  defp maybe_log(level, data, metadata, caller) do
     min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
     if compare_levels(level, min_level) != :lt do
-      %{module: module, function: fun, line: line} = caller
-      caller = [module: module, function: form_fa(fun), line: line]
-      quote do
-        Logger.log(unquote(level), unquote(chardata), unquote(caller) ++ unquote(metadata))
-      end
+      macro_log(level, data, metadata, caller)
     else
       :ok
     end
