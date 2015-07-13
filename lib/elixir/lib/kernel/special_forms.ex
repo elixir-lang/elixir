@@ -245,7 +245,7 @@ defmodule Kernel.SpecialForms do
   Sizes for types are a bit more nuanced. The default size for integers is 8.
 
   For floats, it is 64. For floats, `size * unit` must result in 32 or 64,
-  corresponding to [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)
+  corresponding to [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point)
   binary32 and binary64, respectively.
 
   For binaries, the default is the size of the binary. Only the last binary in a

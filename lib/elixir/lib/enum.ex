@@ -1552,7 +1552,7 @@ defmodule Enum do
       :random.seed(:os.timestamp)
 
   The implementation is based on the
-  [reservoir sampling](http://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
+  [reservoir sampling](https://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
   algorithm.
   It assumes that the sample being returned can fit into memory;
   the input collection doesn't have to - it is traversed just once.

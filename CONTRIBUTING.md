@@ -12,11 +12,11 @@ Use the issues tracker for:
 
 Please **do not** use the issue tracker for personal support requests nor feature requests. Support requests should be sent to:
 
-* [the elixir-talk mailing list](http://groups.google.com/group/elixir-lang-talk)
+* [the elixir-talk mailing list](https://groups.google.com/group/elixir-lang-talk)
 * [Stack Overflow](http://stackoverflow.com/questions/ask?tags=elixir)
 * **[#elixir-lang](irc://chat.freenode.net/elixir-lang)** IRC channel on [chat.freenode.net](http://www.freenode.net/)
 
-Feature requests can be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core).
+Feature requests can be discussed on [the elixir-core mailing list](https://groups.google.com/group/elixir-lang-core).
 
 We do our best to keep the issue tracker tidy and organized, making it useful
 for everyone. For example, we classify open issues per application and perceived
@@ -64,7 +64,7 @@ Example:
 
 ## Feature requests
 
-Feature requests are welcome and should be discussed on [the elixir-core mailing list](http://groups.google.com/group/elixir-lang-core). But take a moment to find
+Feature requests are welcome and should be discussed on [the elixir-core mailing list](https://groups.google.com/group/elixir-lang-core). But take a moment to find
 out whether your idea fits with the scope and aims of the project. It's up to *you*
 to make a strong case to convince the community of the merits of this feature.
 Please provide as much detail and context as possible.
@@ -186,7 +186,7 @@ accurate comments, etc.) and don't forget to add your own tests and
 documentation. When working with git, we recommend the following process
 in order to craft an excellent pull request:
 
-1. [Fork](http://help.github.com/fork-a-repo/) the project, clone your fork,
+1. [Fork](https://help.github.com/fork-a-repo/) the project, clone your fork,
    and configure the remotes:
 
    ```bash

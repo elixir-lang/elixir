@@ -870,7 +870,7 @@ defmodule String do
   are not valid characters. They may be reserved, private,
   or other.
 
-  More info at: http://en.wikipedia.org/wiki/Mapping_of_Unicode_characters#Noncharacters
+  More info at: https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters
 
   ## Examples
 
@@ -1509,7 +1509,7 @@ defmodule String do
 
   @doc """
   Returns a float value between 0 (equates to no similarity) and 1 (is an exact match)
-  representing [Jaro](http://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
   distance between `str1` and `str2`.
 
   The Jaro distance metric is designed and best suited for short strings such as person names.

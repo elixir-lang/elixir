@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     * `:leex_options` - compilation options that apply
       to Leex's compiler. There are many available options
-      here: http://www.erlang.org/doc/man/leex.html#file-2.
+      here: http://www.erlang.org/doc/man/leex.html#file-2
 
   """
 
