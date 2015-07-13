@@ -67,7 +67,7 @@ defmodule String do
     * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
     * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
     * Plus a number of functions for working with binaries (bytes)
-      [in the `:binary` module](http://erlang.org/doc/man/binary.html)
+      [in the `:binary` module](http://www.erlang.org/doc/man/binary.html)
 
   There are many situations where using the `String` module can
   be avoided in favor of binary functions or pattern matching.
@@ -870,7 +870,7 @@ defmodule String do
   are not valid characters. They may be reserved, private,
   or other.
 
-  More info at: http://en.wikipedia.org/wiki/Mapping_of_Unicode_characters#Noncharacters
+  More info at: https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters
 
   ## Examples
 
@@ -1388,7 +1388,7 @@ defmodule String do
   strings.
 
   In case you need to work with bytes, take a look at the
-  [`:binary` module](http://erlang.org/doc/man/binary.html).
+  [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 
   ## Examples
 
@@ -1509,7 +1509,7 @@ defmodule String do
 
   @doc """
   Returns a float value between 0 (equates to no similarity) and 1 (is an exact match)
-  representing [Jaro](http://en.wikipedia.org/wiki/Jaro–Winkler_distance)
+  representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
   distance between `str1` and `str2`.
 
   The Jaro distance metric is designed and best suited for short strings such as person names.

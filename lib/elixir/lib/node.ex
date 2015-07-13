@@ -141,7 +141,7 @@ defmodule Node do
   Returns `true` if successful, `false` if not, and the atom
   `:ignored` if the local node is not alive.
 
-  See http://erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
+  See http://www.erlang.org/doc/man/net_kernel.html#connect_node-1 for more info.
   """
   @spec connect(t) :: boolean | :ignored
   def connect(node) do
