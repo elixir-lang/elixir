@@ -16,9 +16,6 @@
 -define(unary_op3(T1, T2, T3),
   T1 == $~, T2 == $~, T3 == $~).
 
--define(hat_op3(T1, T2, T3),
-  T1 == $^, T2 == $^, T3 == $^).
-
 -define(two_op(T1, T2),
   T1 == $+, T2 == $+;
   T1 == $-, T2 == $-;
@@ -37,7 +34,8 @@
   T1 == $~, T2 == $>, T3 == $>;
   T1 == $<, T2 == $<, T3 == $~;
   T1 == $<, T2 == $~, T3 == $>;
-  T1 == $<, T2 == $|, T3 == $>).
+  T1 == $<, T2 == $|, T3 == $>;
+  T1 == $^, T2 == $^, T3 == $^).
 
 -define(arrow_op(T1, T2),
   T1 == $|, T2 == $>;
@@ -289,7 +287,7 @@ tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3|Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3) ->
   tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, list_to_atom([T1, T2, T3])}|Tokens]);
 
 % ## Two Token Operators
@@ -358,9 +356,6 @@ tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
-
-tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?hat_op3(T1, T2, T3) ->
-  handle_op(Rest, Line, Column, hat_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Containers + punctuation tokens
 tokenize([T, T|Rest], Line, Column, Scope, Tokens) when T == $<; T == $> ->
@@ -576,7 +571,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3|Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?hat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
