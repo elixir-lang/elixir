@@ -27,10 +27,10 @@ defmodule Task do
   the task action finishes, a message will be sent to the caller
   with the result.
 
-  `Task.await/2` is used to read the message sent by the task. On
-  `await`, Elixir will also setup a monitor to verify if the process
-  exited for any abnormal reason (or in case exits are being
-  trapped by the caller).
+  `Task.await/2` is used to read the message sent by the task.
+  `await` will check the monitor setup by the call to `async/1' to
+  verify if the process exited for any abnormal reason (or in case
+  exits are being trapped by the caller).
 
   ## Supervised tasks
 
