@@ -31,13 +31,14 @@ defmodule IEx.Case do
     end
   end
 
-  @iex_app_env [:default_prompt, :alive_prompt, :inspect, :colors, :history_size]
+  keys = [:default_prompt, :alive_prompt, :inspect, :colors, :history_size]
+  @iex_env Application.get_all_env(:iex) |> Keyword.take(keys)
+
   setup do
-    opts = Application.get_all_env(:iex)
-           |> Keyword.take(@iex_app_env)
     on_exit fn ->
-      Enum.each @iex_app_env, fn k -> Application.delete_env(:iex, k) end
-      IEx.configure(opts)
+      env = @iex_env
+      Enum.each(env, fn {k,_} -> Application.delete_env(:iex, k) end)
+      IEx.configure(env)
     end
     :ok
   end
