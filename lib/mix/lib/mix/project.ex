@@ -314,7 +314,7 @@ defmodule Mix.Project do
   """
   def compile(args, config \\ config()) do
     if config[:build_embedded] do
-      if not File.exists?(app_path(config)) do
+      if not File.exists?(compile_path(config)) do
         Mix.raise "Cannot execute task because the project was not yet compiled. " <>
                   "When build_embedded is set to true, which is the default " <>
                   "for production, `mix compile` must be explicitly executed"
