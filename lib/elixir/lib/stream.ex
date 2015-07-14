@@ -530,14 +530,14 @@ defmodule Stream do
   end
 
   @doc """
-  Lazily takes the next `n` items from the enumerable and stops
+  Lazily takes the next `count` items from the enumerable and stops
   enumeration.
 
-  If a negative `n` is given, the last `n` values will be taken.
-  For such, the collection is fully enumerated keeping up to `2 * n`
+  If a negative `count` is given, the last `count` values will be taken.
+  For such, the collection is fully enumerated keeping up to `2 * count`
   elements in memory. Once the end of the collection is reached,
   the last `count` elements will be executed. Therefore, using
-  a negative `n` on an infinite collection will never return.
+  a negative `count` on an infinite collection will never return.
 
   ## Examples
 
@@ -556,22 +556,22 @@ defmodule Stream do
   """
   @spec take(Enumerable.t, integer) :: Enumerable.t
   def take(_enum, 0), do: %Stream{enum: []}
-  def take([], _n), do: %Stream{enum: []}
+  def take([], _count), do: %Stream{enum: []}
 
-  def take(enum, n) when is_integer(n) and n > 0 do
-    lazy enum, n, fn(f1) -> R.take(f1) end
+  def take(enum, count) when is_integer(count) and count > 0 do
+    lazy enum, count, fn(f1) -> R.take(f1) end
   end
 
-  def take(enum, n) when is_integer(n) and n < 0 do
-    &Enumerable.reduce(Enum.take(enum, n), &1, &2)
+  def take(enum, count) when is_integer(count) and count < 0 do
+    &Enumerable.reduce(Enum.take(enum, count), &1, &2)
   end
 
   @doc """
-  Creates a stream that takes every `n` item from the enumerable.
+  Creates a stream that takes every `nth` item from the enumerable.
 
-  The first item is always included, unless `n` is 0.
+  The first item is always included, unless `nth` is 0.
 
-  `n` must be a non-negative integer, or `FunctionClauseError` will be thrown.
+  `nth` must be a non-negative integer, or `FunctionClauseError` will be thrown.
 
   ## Examples
 
@@ -579,13 +579,22 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [1, 3, 5, 7, 9]
 
+      iex> stream = Stream.take_every([1, 2, 3, 4, 5], 1)
+      iex> Enum.to_list(stream)
+      [1, 2, 3, 4, 5]
+
+      iex> stream = Stream.take_every(1..1000, 0)
+      iex> Enum.to_list(stream)
+      []
+
   """
   @spec take_every(Enumerable.t, non_neg_integer) :: Enumerable.t
-  def take_every(enum, n) when is_integer(n) and n > 0 do
-    lazy enum, n, fn(f1) -> R.take_every(n, f1) end
-  end
-
   def take_every(_enum, 0), do: %Stream{enum: []}
+  def take_every([], _nth), do: %Stream{enum: []}
+
+  def take_every(enum, nth) when is_integer(nth) and nth > 0 do
+    lazy enum, nth, fn(f1) -> R.take_every(nth, f1) end
+  end
 
   @doc """
   Lazily takes elements of the enumerable while the given
