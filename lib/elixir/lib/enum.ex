@@ -1974,61 +1974,71 @@ defmodule Enum do
   def take(_collection, 0), do: []
   def take([], _count), do: []
 
-  def take(collection, n) when is_list(collection) and is_integer(n) and n > 0 do
-    do_take(collection, n)
+  def take(collection, count) when is_list(collection) and is_integer(count) and count > 0 do
+    do_take(collection, count)
   end
 
-  def take(collection, n) when is_integer(n) and n > 0 do
+  def take(collection, count) when is_integer(count) and count > 0 do
     {_, {res, _}} =
-      Enumerable.reduce(collection, {:cont, {[], n}}, fn(entry, {list, count}) ->
-        case count do
-          0 -> {:halt, {list, count}}
-          1 -> {:halt, {[entry|list], count - 1}}
-          _ -> {:cont, {[entry|list], count - 1}}
+      Enumerable.reduce(collection, {:cont, {[], count}}, fn(entry, {list, n}) ->
+        case n do
+          0 -> {:halt, {list, n}}
+          1 -> {:halt, {[entry|list], n - 1}}
+          _ -> {:cont, {[entry|list], n - 1}}
         end
       end)
     :lists.reverse(res)
   end
 
-  def take(collection, n) when is_integer(n) and n < 0 do
-    n = abs(n)
+  def take(collection, count) when is_integer(count) and count < 0 do
+    count = abs(count)
 
     {_count, buf1, buf2} =
-      reduce(collection, {0, [], []}, fn entry, {count, buf1, buf2} ->
+      reduce(collection, {0, [], []}, fn entry, {n, buf1, buf2} ->
         buf1  = [entry|buf1]
-        count = count + 1
-        if count == n do
+        n = n + 1
+        if n == count do
           {0, [], buf1}
         else
-          {count, buf1, buf2}
+          {n, buf1, buf2}
         end
       end)
 
-    do_take_last(buf1, buf2, n, [])
+    do_take_last(buf1, buf2, count, [])
   end
 
   defp do_take_last(_buf1, _buf2, 0, acc),
     do: acc
   defp do_take_last([], [], _, acc),
     do: acc
-  defp do_take_last([], [h|t], n, acc),
-    do: do_take_last([], t, n-1, [h|acc])
-  defp do_take_last([h|t], buf2, n, acc),
-    do: do_take_last(t, buf2, n-1, [h|acc])
+  defp do_take_last([], [h|t], count, acc),
+    do: do_take_last([], t, count-1, [h|acc])
+  defp do_take_last([h|t], buf2, count, acc),
+    do: do_take_last(t, buf2, count-1, [h|acc])
 
   @doc """
   Returns a collection of every `nth` item in the collection,
   starting with the first element.
 
-  The second argument specifying every `nth` item must be a non-negative integer.
+  The first item is always included, unless `nth` is 0.
+
+  The second argument specifying every `nth` item must be a non-negative integer,
+  otherwise `FunctionClauseError` will be thrown.
 
   ## Examples
 
       iex> Enum.take_every(1..10, 2)
       [1, 3, 5, 7, 9]
 
+      iex> Enum.take_every(1..10, 0)
+      []
+
+      iex> Enum.take_every([1, 2, 3], 1)
+      [1, 2, 3]
+
   """
   @spec take_every(t, non_neg_integer) :: list
+  def take_every(collection, 1), do: Enum.to_list(collection)
   def take_every(_collection, 0), do: []
   def take_every([], _nth), do: []
 
