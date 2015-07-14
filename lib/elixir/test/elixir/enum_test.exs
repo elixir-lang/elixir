@@ -443,8 +443,12 @@ defmodule EnumTest.List do
     assert Enum.take_every([], 2) == []
     assert Enum.take_every([1, 2], 2) == [1]
     assert Enum.take_every([1, 2, 3], 0) == []
+    assert Enum.take_every(1..3, 1) == [1, 2, 3]
     assert_raise FunctionClauseError, fn ->
       Enum.take_every([1, 2, 3], -1)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.take_every(1..10, 3.33)
     end
   end
 
