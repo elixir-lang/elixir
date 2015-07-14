@@ -2038,7 +2038,7 @@ defmodule Enum do
 
   """
   @spec take_every(t, non_neg_integer) :: list
-  def take_every(collection, 1), do: Enum.to_list(collection)
+  def take_every(collection, 1), do: to_list(collection)
   def take_every(_collection, 0), do: []
   def take_every([], _nth), do: []
 
