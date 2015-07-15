@@ -341,9 +341,9 @@ defmodule Kernel.Typespec do
     body = {name, meta, Enum.map(args, &typespec_to_ast/1)}
 
     vars = args ++ [result]
-      |> Enum.flat_map(&collect_vars/1)
-      |> Enum.uniq
-      |> Enum.map(&{&1, {:var, meta, nil}})
+           |> Enum.flat_map(&collect_vars/1)
+           |> Enum.uniq
+           |> Enum.map(&{&1, {:var, meta, nil}})
 
     spec = {:::, meta, [body, typespec_to_ast(result)]}
 

@@ -75,11 +75,11 @@ defmodule Mix.Rebar do
 
   def recur(config, fun) do
     subs = (config[:sub_dirs] || [])
-     |> Enum.map(&Path.wildcard(&1))
-     |> Enum.concat
-     |> Enum.filter(&File.dir?(&1))
-     |> Enum.map(&recur(&1, fun))
-     |> Enum.concat
+           |> Enum.map(&Path.wildcard(&1))
+           |> Enum.concat
+           |> Enum.filter(&File.dir?(&1))
+           |> Enum.map(&recur(&1, fun))
+           |> Enum.concat
 
     [fun.(config)|subs]
   end

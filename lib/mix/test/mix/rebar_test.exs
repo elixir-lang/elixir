@@ -97,8 +97,8 @@ defmodule Mix.RebarTest do
       assert :rebar_dep.any_function == :ok
 
       load_paths = Mix.Dep.loaded([])
-        |> Enum.map(&Mix.Dep.load_paths(&1))
-        |> Enum.concat
+                   |> Enum.map(&Mix.Dep.load_paths(&1))
+                   |> Enum.concat
 
       assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
       assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
