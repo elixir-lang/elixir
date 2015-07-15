@@ -1592,12 +1592,16 @@ defmodule Kernel do
   @spec struct(module | map, Enum.t) :: map
   def struct(struct, kv \\ [])
 
-  def struct(struct, []) when is_atom(struct) or is_tuple(struct) do
+  def struct(struct, []) when is_atom(struct) do
     apply(struct, :__struct__, [])
   end
 
-  def struct(struct, kv) when is_atom(struct) or is_tuple(struct) do
+  def struct(struct, kv) when is_atom(struct) do
     struct(apply(struct, :__struct__, []), kv)
+  end
+
+  def struct(%{__struct__: _} = struct, []) do
+    struct
   end
 
   def struct(%{__struct__: _} = struct, kv) do
