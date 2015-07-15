@@ -63,11 +63,12 @@ defmodule Mix.Task do
     # We may get duplicate modules because we look through the
     # entire load path so make sure we only return unique modules.
 
-    for(dir <- dirs,
+    for dir <- dirs,
         {:ok, files} = :erl_prim_loader.list_dir(to_char_list(dir)),
         file <- files,
-        mod = task_from_path(file),
-        do: mod)
+        mod = task_from_path(file) do
+      mod
+    end
     |> Enum.uniq
   end
 
