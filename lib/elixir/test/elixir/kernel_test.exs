@@ -217,9 +217,6 @@ defmodule KernelTest do
     assert struct(user, unknown: "key") == user
     assert struct(user, %{name: "john"}) == %User{name: "john"}
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
-
-    user_tuple = {UserTuple, :ok}
-    assert struct(user_tuple, name: "meg") == %User{name: "meg"}
   end
 
   defdelegate my_flatten(list), to: List, as: :flatten
