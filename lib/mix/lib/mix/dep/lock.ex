@@ -79,7 +79,7 @@ defmodule Mix.Dep.Lock do
   def write(map) do
     unless map == read do
       lines =
-        for {app, rev} <- map, rev != nil do
+        for {app, rev} <- Enum.sort(map), rev != nil do
           ~s("#{app}": #{inspect rev, limit: :infinity})
         end
       File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
