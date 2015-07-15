@@ -108,8 +108,8 @@ defmodule Mix.Shell do
     case :os.type do
       {:unix, _} ->
         command = command
-          |> String.replace("\"", "\\\"")
-          |> :binary.bin_to_list
+                  |> String.replace("\"", "\\\"")
+                  |> :binary.bin_to_list
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
