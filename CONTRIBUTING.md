@@ -173,6 +173,11 @@ Good pull requests - patches, improvements, new features - are a fantastic
 help. They should remain focused in scope and avoid containing unrelated
 commits.
 
+**NOTE**: Do not send code style changes as pull requests like changing
+the indentation of some particular code snippet or how a function is called.
+Those will not be accepted as they pollute the repository history with non
+functional changes and are often based on personal preferences.
+
 **IMPORTANT**: By submitting a patch, you agree that your work will be
 licensed under the license used by the project.
 
