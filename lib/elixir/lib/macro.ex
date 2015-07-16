@@ -621,8 +621,7 @@ defmodule Macro do
     false
   end
 
-  def interpolate(expr, fun)
-  def interpolate({:<<>>, _, parts}, fun) do
+  defp interpolate({:<<>>, _, parts}, fun) do
     parts = Enum.map_join(parts, "", fn
       {:::, _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
         "\#{" <> to_string(arg, fun) <> "}"
