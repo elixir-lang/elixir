@@ -18,15 +18,14 @@ defmodule IO do
   ## IO devices
 
   An IO device may be an atom or a pid. In case it is an atom,
-  the atom must be the name of a registered process. However,
-  there are three exceptions for this rule:
+  the atom must be the name of a registered process. In addition,
+  Elixir provides two shorcuts:
 
-    * `:standard_io` - when the `:standard_io` atom is given,
-      it is treated as a shortcut for `Process.group_leader`
+    * `:stdio` - a shortcut for `:standard_io`, which maps to
+      to the current `Process.group_leader` in Erlang
 
-    * `:stdio` - is a shortcut for `:standard_io`
-
-    * `:stderr` - is a shortcut for `:standard_error`
+    * `:stderr` - a shortcut for the named process `:standard_error`
+      provided in Erlang
 
   """
 
