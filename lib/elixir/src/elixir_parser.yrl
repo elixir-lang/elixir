@@ -776,9 +776,17 @@ throw_no_parens_many_strict(Token) ->
       false -> 0
     end,
 
-  throw(Line, "unexpected comma. Parentheses are required to solve ambiguity "
-    "in nested calls. Syntax error before: ", "','").
+  throw(Line,
+    "unexpected comma. Parentheses are required to solve ambiguity in nested calls.\n\n"
+    "This error happens when you have nested function calls without parentheses. "
+    "For example:\n\n"
+    "    one a, two b, c, d\n\n"
+    "In the example above, we don't know if the parameters \"c\" and \"d\" apply "
+    "to the function \"one\" or \"two\". You can solve this by explicitly adding "
+    "parentheses:\n\n"
+    "    one a, two(b, c, d)\n\n"
+    "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 throw_bad_atom(Line) ->
   throw(Line, "atom cannot be followed by an alias. If the '.' was meant to be "
-    "part of the atom's name, the name must be quoted. Syntax error before: ", "'.'").
+    "part of the atom's name, the atom name must be quoted. Syntax error before: ", "'.'").
