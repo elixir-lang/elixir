@@ -1255,12 +1255,12 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.minmax([2, 3, 1])
+      iex> Enum.min_max([2, 3, 1])
       {1, 3}
 
   """
-  @spec minmax(t) :: element | no_return
-  def minmax(collection) do
+  @spec min_max(t) :: element | no_return
+  def min_max(collection) do
     result =
       Enum.reduce(collection, :first, fn
         entry, {min_value, max_value} ->
@@ -1281,12 +1281,12 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.minmax_by(["aaa", "bb", "c"], fn(x) -> String.length(x) end)
+      iex> Enum.min_max_by(["aaa", "bb", "c"], fn(x) -> String.length(x) end)
       {"c", "aaa"}
 
   """
-  @spec minmax_by(t, (element -> any)) :: element | no_return
-  def minmax_by(collection, fun) do
+  @spec min_max_by(t, (element -> any)) :: element | no_return
+  def min_max_by(collection, fun) do
     result =
       Enum.reduce(collection, :first, fn
         entry, {{_, fun_min} = acc_min, {_, fun_max} = acc_max} ->
