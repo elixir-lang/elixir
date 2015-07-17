@@ -60,7 +60,7 @@ defmodule ExUnit.CaptureLog do
 
     try do
       :ok = add_capture(string_io, opts)
-      {:ok, ref} = ExUnit.Server.log_capture_on(self())
+      ref = ExUnit.Server.log_capture_on(self())
 
       try do
         fun.()
