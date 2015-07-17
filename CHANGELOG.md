@@ -42,7 +42,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Dict] Add `Dict.get_and_update/3` which behaves similar to the now deprecated Access protocol
   * [Dict] Add `Dict.get_lazy/3`, `Dict.pop_lazy/3` and `Dict.put_new_lazy/3`
   * [EEx] Add `:trim` option to EEx that automatically trims the left side of `<%` and right side `%>` if only spaces and new lines preceed/follow them
-  * [Enum] Add `Enum.random/1`, `Enum.minmax/1`, `Enum.minmax_by/2`, `Enum.reverse_slice/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
+  * [Enum] Add `Enum.random/1`, `Enum.min_max/1`, `Enum.min_max_by/2`, `Enum.reverse_slice/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
   * [Enum] Inline common map usage in `Enum` functions for performance
   * [ExUnit] Add number of skipped tests to `ExUnit` output
   * [ExUnit] Make timeout configurable for the whole test suite via the `:timeout` configuration
