@@ -407,7 +407,7 @@ defmodule Stream do
   is delayed until the stream is executed. See `run/1` for an example.
   """
   @spec into(Enumerable.t, Collectable.t) :: Enumerable.t
-  def into(enum, collectable, transform \\ fn x -> x end) do
+  def into(enum, collectable, transform \\ fn(x) -> x end) do
     &do_into(enum, collectable, transform, &1, &2)
   end
 
@@ -769,7 +769,7 @@ defmodule Stream do
   """
   @spec uniq(Enumerable.t) :: Enumerable.t
   @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
-  def uniq(enum, fun \\ fn x -> x end) do
+  def uniq(enum, fun \\ fn(x) -> x end) do
     lazy enum, HashSet.new, fn f1 -> R.uniq(fun, f1) end
   end
 
