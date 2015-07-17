@@ -1567,50 +1567,11 @@ defmodule Enum do
   """
   @spec random(t) :: element
   def random(collection) do
-    case random(collection, 1) do
+    case take_random(collection, 1) do
       [] -> raise Enum.EmptyError
       [e] -> e
     end
   end
-
-  @doc """
-  Returns a random sublist of a collection.
-
-  Notice this function will traverse the whole collection to
-  get the random sublist of collection. If you want the random
-  number between two integers, the best option is to use the
-  :random module.
-
-  See `random/1` for notes on implementation and random seed.
-
-  ## Examples
-
-      iex> Enum.random(1..10, 2)
-      [1, 5]
-      iex> Enum.random(?a..?z, 5)
-      'tfesm'
-
-  """
-  @spec random(t, integer) :: list
-  def random(collection, count) when count > 0 do
-    sample = Tuple.duplicate(nil, count)
-
-    reducer = fn x, {i, sample} ->
-      j = random_index(i)
-      if i < count do
-        swapped = sample |> elem(j)
-        {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
-      else
-        if j < count, do: sample = sample |> put_elem(j, x)
-        {i + 1, sample}
-      end
-    end
-
-    {n, sample} = reduce(collection, {0, sample}, reducer)
-    sample |> Tuple.to_list |> take(Kernel.min(count, n))
-  end
-
-  def random(_collection, 0), do: []
 
   @doc """
   Applies the given function to each element in the collection,
@@ -2045,6 +2006,45 @@ defmodule Enum do
   def take_every(collection, nth) when is_integer(nth) and nth > 0 do
     {res, _} = reduce(collection, {[], :first}, R.take_every(nth))
     :lists.reverse(res)
+  end
+
+  @doc """
+  Takes random items from a collection.
+
+  Notice this function will traverse the whole collection to
+  get the random sublist of collection. If you want the random
+  number between two integers, the best option is to use the
+  `:random` module.
+
+  See `random/1` for notes on implementation and random seed.
+
+  ## Examples
+
+      iex> Enum.take_random(1..10, 2)
+      [1, 5]
+      iex> Enum.take_random(?a..?z, 5)
+      'tfesm'
+
+  """
+  @spec take_random(t, integer) :: list
+  def take_random(_collection, 0), do: []
+
+  def take_random(collection, count) when count > 0 do
+    sample = Tuple.duplicate(nil, count)
+
+    reducer = fn x, {i, sample} ->
+      j = random_index(i)
+      if i < count do
+        swapped = sample |> elem(j)
+        {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
+      else
+        if j < count, do: sample = sample |> put_elem(j, x)
+        {i + 1, sample}
+      end
+    end
+
+    {n, sample} = reduce(collection, {0, sample}, reducer)
+    sample |> Tuple.to_list |> take(Kernel.min(count, n))
   end
 
   @doc """
