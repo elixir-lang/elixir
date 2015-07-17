@@ -70,25 +70,25 @@ end
 defmodule CompileAssertion do
   import ExUnit.Assertions
 
-  def assert_compile_fail(exception, string) do
+  def assert_compile_fail(given_exception, string) do
     case format_rescue(string) do
-      {^exception, _} -> :ok
-      error ->
+      {^given_exception, _} -> :ok
+      {exception, _} ->
         raise ExUnit.AssertionError,
-          left: inspect(elem(error, 0)),
-          right: inspect(exception),
+          left: inspect(exception),
+          right: inspect(given_exception),
           message: "Expected match"
     end
   end
 
-  def assert_compile_fail(exception, message, string) do
-    case format_rescue(string) do
-      {^exception, ^message} -> :ok
-      error ->
-        raise ExUnit.AssertionError,
-          left: "#{inspect elem(error, 0)}[message: #{inspect elem(error, 1)}]",
-          right: "#{inspect exception}[message: #{inspect message}]",
-          message: "Expected match"
+  def assert_compile_fail(given_exception, given_message, string) do
+    {exception, message} = format_rescue(string)
+
+    unless exception == given_exception and message =~ given_message do
+      raise ExUnit.AssertionError,
+        left: "#{inspect exception}[message: #{inspect message}]",
+        right: "#{inspect given_exception}[message: #{inspect given_message}]",
+        message: "Expected match"
     end
   end
 
