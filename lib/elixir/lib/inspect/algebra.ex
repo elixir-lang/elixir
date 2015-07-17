@@ -272,7 +272,7 @@ defmodule Inspect.Algebra do
   """
   @spec concat([t]) :: doc_cons
   def concat(docs) do
-    folddoc(docs, &concat(&1, &2))
+    fold_doc(docs, &concat(&1, &2))
   end
 
   @doc ~S"""
@@ -403,18 +403,18 @@ defmodule Inspect.Algebra do
   ## Examples
 
       iex> doc = ["A", "B"]
-      iex> doc = Inspect.Algebra.folddoc(doc, fn(x, y) ->
+      iex> doc = Inspect.Algebra.fold_doc(doc, fn(x, y) ->
       ...>   Inspect.Algebra.concat [x, "!", y]
       ...> end)
       iex> Inspect.Algebra.format(doc, 80)
       ["A", "!", "B"]
 
   """
-  @spec folddoc([t], ((t, t) -> t)) :: t
-  def folddoc(list, fun)
-  def folddoc([], _), do: empty
-  def folddoc([doc], _), do: doc
-  def folddoc([d|ds], fun), do: fun.(d, folddoc(ds, fun))
+  @spec fold_doc([t], ((t, t) -> t)) :: t
+  def fold_doc(list, fun)
+  def fold_doc([], _), do: empty
+  def fold_doc([doc], _), do: doc
+  def fold_doc([d|ds], fun), do: fun.(d, fold_doc(ds, fun))
 
   # Elixir conveniences
 
