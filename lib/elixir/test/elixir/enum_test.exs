@@ -530,19 +530,19 @@ defmodule EnumTest.List do
     end
   end
 
-  test :minmax do
-    assert Enum.minmax([1]) == {1, 1}
-    assert Enum.minmax([2, 3, 1]) == {1, 3}
-    assert Enum.minmax([[], :a, {}]) == {:a, []}
+  test :min_max do
+    assert Enum.min_max([1]) == {1, 1}
+    assert Enum.min_max([2, 3, 1]) == {1, 3}
+    assert Enum.min_max([[], :a, {}]) == {:a, []}
     assert_raise Enum.EmptyError, fn ->
-      Enum.minmax([])
+      Enum.min_max([])
     end
   end
 
-  test :minmax_by do
-    assert Enum.minmax_by(["aaa", "a", "aa"], fn(x) -> String.length(x) end) == {"a", "aaa"}
+  test :min_max_by do
+    assert Enum.min_max_by(["aaa", "a", "aa"], fn(x) -> String.length(x) end) == {"a", "aaa"}
     assert_raise Enum.EmptyError, fn ->
-      Enum.minmax_by([], fn(x) -> String.length(x) end)
+      Enum.min_max_by([], fn(x) -> String.length(x) end)
     end
   end
 
