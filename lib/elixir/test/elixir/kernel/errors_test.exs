@@ -134,8 +134,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_on_nested_no_parens_call do
-    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity in " <>
-          "nested calls. Syntax error before: ','"
+    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity in nested calls"
 
     assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
     assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
@@ -162,7 +161,7 @@ defmodule Kernel.ErrorsTest do
 
   test :syntax_error_on_atom_dot_alias do
     msg = "nofile:1: atom cannot be followed by an alias. If the '.' was meant to be " <>
-          "part of the atom's name, the name must be quoted. Syntax error before: '.'"
+          "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
 
     assert_compile_fail SyntaxError, msg, ':foo.Bar'
     assert_compile_fail SyntaxError, msg, ':"foo".Bar'
