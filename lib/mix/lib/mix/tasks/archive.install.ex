@@ -55,17 +55,35 @@ defmodule Mix.Tasks.Archive.Install do
     previous = previous_versions(src)
 
     if opts[:force] || should_install?(src, previous) do
-      archive = Path.join(Mix.Local.archives_path(), basename(src))
-      check_file_exists(src, archive)
-      opts = [force: true] ++ opts
+      dirname = Mix.Local.archives_path
+      archive = Path.join(dirname, basename(src))
+      check_file_exists!(src, archive)
 
-      if Mix.Utils.copy_path!(src, archive, opts) do
-        Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
-        Mix.Local.check_archive_elixir_version archive
+      case Mix.Utils.read_path(src, opts) do
+        {:ok, binary} ->
+          File.mkdir_p!(dirname)
+          File.write!(archive, binary)
+        :badname ->
+          Mix.raise "Expected #{inspect src} to be a url or a local file path"
+        {:local, message} ->
+          Mix.raise message
+        {:remote, message} ->
+          Mix.raise """
+          #{message}
 
-        unless archive in previous, do: remove_previous_versions(previous)
+          Could not fetch archive at:
+
+              #{src}
+
+          Please download the archive above manually to your current directory and run:
+
+              mix archive.install ./#{Path.basename(archive)}
+          """
       end
 
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
+      Mix.Local.check_archive_elixir_version archive
+      unless archive in previous, do: remove_previous_versions(previous)
       true = Code.append_path(Mix.Archive.ebin(archive))
     else
       false
@@ -73,8 +91,11 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   defp basename(path) do
-    %URI{path: path} = URI.parse(path)
-    Path.basename(path)
+    if path = URI.parse(path).path do
+      Path.basename(path)
+    else
+      Mix.raise "Expected #{inspect path} to be a url or a local file path"
+    end
   end
 
   defp should_install?(src, []) do
@@ -88,7 +109,7 @@ defmodule Mix.Tasks.Archive.Install do
                    "Are you sure you want to replace them?")
   end
 
-  defp check_file_exists(src, path) do
+  defp check_file_exists!(src, path) do
     # OTP keeps loaded archives open, this leads to unfortunate behaviour on
     # Windows when trying overwrite loaded archives. remove_previous_versions
     # completes successfully even though the file will be first removed after

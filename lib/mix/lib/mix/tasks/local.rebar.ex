@@ -25,17 +25,35 @@ defmodule Mix.Tasks.Local.Rebar do
       []       -> @rebar_url
       [path|_] -> path
     end
-    do_install(path, opts)
-  end
 
-  defp do_install(path, opts) do
-    local_rebar_path = Mix.Rebar.local_rebar_path
+    local = Mix.Rebar.local_rebar_path
 
-    if Mix.Utils.copy_path!(path, local_rebar_path, opts) do
-      :ok = :file.change_mode local_rebar_path, 0o755
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(local_rebar_path)]
+    if opts[:force] || Mix.Utils.can_write?(path) do
+      case Mix.Utils.read_path(path, opts) do
+        {:ok, binary} ->
+          File.mkdir_p!(Path.dirname(local))
+          File.write!(local, binary)
+          File.chmod!(local, 0o755)
+          Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(local)]
+        :badname ->
+          Mix.raise "Expected #{inspect path} to be a url or a local file path"
+        {:local, message} ->
+          Mix.raise message
+        {:remote, message} ->
+          Mix.raise """
+          #{message}
+
+          Could not fetch rebar at:
+
+              #{path}
+
+          Please download the file above manually to your current directory and run:
+
+              mix local.rebar ./#{Path.basename(local)}
+          """
+      end
     end
 
-    true
+    :ok
   end
 end
