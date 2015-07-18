@@ -10,11 +10,15 @@ defmodule Bitwise do
       iex> 1 &&& 1
       1
 
-  Alternatively, you can include or skip selected operators:
+  When used, it accepts the following options:
+
+    * `:only_operators` - include only operators
+    * `:skip_operators` - skip operators
 
       iex> use Bitwise, only_operators: true
       iex> 1 &&& 1
       1
+
 
   These macros can be used in guards:
 
@@ -25,14 +29,7 @@ defmodule Bitwise do
 
   """
 
-  @doc """
-  Allows a developer to `use` this module in their programs with
-  the following options:
-
-    * `:only_operators` - include only operators
-    * `:skip_operators` - skip operators
-
-  """
+  @doc false
   defmacro __using__(options) do
     except = cond do
       Keyword.get(options, :only_operators) ->
