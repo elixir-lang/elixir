@@ -23,7 +23,6 @@ defmodule Mix.Tasks.Local.Hex do
   def run(args) do
     version = get_matching_version()
     url = String.replace(@hex_archive_url, "[VERSION]", version)
-
     Mix.Tasks.Archive.Install.run [url, "--system" | args]
   end
 
@@ -82,17 +81,14 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   defp get_matching_version do
-    try do
-      Mix.Utils.read_path!(@hex_list_url, [system: true])
-    rescue
-      Mix.Error ->
-        @fallback_elixir
-    else
-      csv ->
+    case Mix.Utils.read_path(@hex_list_url, [system: true]) do
+      {:ok, csv} ->
         csv
         |> parse_csv
         |> all_eligibile_versions
         |> List.last
+      {:remote, _} ->
+        @fallback_elixir
     end
   end
 

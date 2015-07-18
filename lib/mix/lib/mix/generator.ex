@@ -17,7 +17,7 @@ defmodule Mix.Generator do
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
 
-    if opts[:force] || Mix.Utils.overwriting?(path) do
+    if opts[:force] || Mix.Utils.can_write?(path) do
       File.mkdir_p!(Path.dirname(path))
       File.write!(path, contents)
     end

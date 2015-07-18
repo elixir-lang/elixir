@@ -336,62 +336,25 @@ defmodule Mix.Utils do
 
   @doc """
   Opens and reads content from either a URL or a local filesystem path
-  and returns the contents as a binary.
-
-  Raises if the given path is not a URL, nor a file or if the
-  file or URL are invalid.
+  and returns the contents as a `{:ok, binary}`, `:badpath` for invalid
+  paths or `{:local, message}` for local errors and `{:remote, message}`
+  for remote ones.
 
   ## Options
 
     * `:system` - Boolean value forces the use of `wget` or `curl`
       to fetch the file if the given path is a URL.
   """
-  def read_path!(path, opts \\ []) do
+  def read_path(path, opts \\ []) do
     cond do
       url?(path) && opts[:system] ->
-        read_shell(path, nil)
+        read_system(path)
       url?(path) ->
-        read_httpc(path, nil)
+        read_httpc(path)
       file?(path) ->
         read_file(path)
       true ->
-        Mix.raise "Expected #{path} to be a url or a local file path"
-    end
-  end
-
-  @doc """
-  Copies content from either a URL or a local filesystem path to
-  target path.
-
-  Used by tasks like `archive.install` and `local.rebar` that support
-  installation either from a URL or a local file.
-
-  Raises if the given path is not a URL, nor a file or if the
-  file or URL are invalid.
-
-  ## Options
-
-    * `:system` - Boolean value forces the use of `wget` or `curl`
-      to fetch the file if the given path is a URL.
-
-    * `:force` - Forces overwriting target file without a shell prompt.
-  """
-  def copy_path!(source, target, opts \\ []) when is_binary(source) and is_binary(target) do
-    if opts[:force] || overwriting?(target) do
-      cond do
-        url?(source) && opts[:system] ->
-          read_shell(source, target)
-        url?(source) ->
-          read_httpc(source, target)
-        file?(source) ->
-          copy_file(source, target)
-        true ->
-          Mix.raise "Expected #{source} to be a url or a local file path"
-      end
-
-      true
-    else
-      false
+        :badname
     end
   end
 
@@ -399,7 +362,7 @@ defmodule Mix.Utils do
   Prompts the user to overwrite the file if it exists. Returns
   the user input.
   """
-  def overwriting?(path) do
+  def can_write?(path) do
     if File.exists?(path) do
       full = Path.expand(path)
       Mix.shell.yes?(Path.relative_to_cwd(full) <> " already exists, overwrite?")
@@ -409,15 +372,14 @@ defmodule Mix.Utils do
   end
 
   defp read_file(path) do
-    File.read!(path)
+    try do
+      {:ok, File.read!(path)}
+    rescue
+      e in [File.Error] -> {:local, Exception.message(e)}
+    end
   end
 
-  defp copy_file(source, target) do
-    File.mkdir_p!(Path.dirname(target))
-    File.cp!(source, target)
-  end
-
-  defp read_httpc(path, target) do
+  defp read_httpc(path) do
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
@@ -434,82 +396,51 @@ defmodule Mix.Utils do
     if http_proxy,  do: proxy(:proxy, http_proxy)
     if https_proxy, do: proxy(:https_proxy, https_proxy)
 
-    if target do
-      File.mkdir_p!(Path.dirname(target))
-      File.rm(target)
-      req_opts = [stream: String.to_char_list(target)]
-    else
-      req_opts = [body_format: :binary]
-    end
-
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
     # cause the request to fail with {:error, :no_scheme} unless :relaxed
     # is given.
-    case :httpc.request(:get, request, [relaxed: true], req_opts, :mix) do
-      {:ok, :saved_to_file} ->
-        :ok
+    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
-        body
+        {:ok, body}
       {:ok, {{_, status, _}, _, _}} ->
-        Mix.raise "Could not access url #{path}, got status: #{status}"
+        {:remote, "httpc request failed with: {:bad_status_code, #{status}}"}
       {:error, reason} ->
-        Mix.raise "Could not access url #{path}, error: #{inspect reason}"
+        {:remote, "httpc request failed with: #{inspect reason}"}
     end
   after
     :inets.stop(:httpc, :mix)
   end
 
-  defp proxy(proxy_scheme, proxy) do
-    uri  = URI.parse(proxy)
-
-    if uri.host && uri.port do
-      host = String.to_char_list(uri.host)
-      :httpc.set_options([{proxy_scheme, {{host, uri.port}, []}}], :mix)
-    end
-  end
-
-  defp read_shell(path, target) do
+  defp read_system(path) do
     filename = URI.parse(path).path |> Path.basename
-    out_path = target || Path.join(System.tmp_dir!, filename)
+    tmp_path = Path.join(System.tmp_dir!, filename)
 
-    File.mkdir_p!(Path.dirname(out_path))
-    File.rm(out_path)
+    File.mkdir_p!(Path.dirname(tmp_path))
+    File.rm(tmp_path)
 
-    status = cond do
+    cond do
       windows? && System.find_executable("powershell") ->
         command = ~s[$ErrorActionPreference = 'Stop'; ] <>
                   ~s[$client = new-object System.Net.WebClient; ] <>
-                  ~s[$client.DownloadFile(\\"#{path}\\", \\"#{out_path}\\")]
-        Mix.shell.cmd(~s[powershell -Command "& {#{command}}"])
+                  ~s[$client.DownloadFile(\\"#{path}\\", \\"#{tmp_path}\\")]
+        cmd("powershell", tmp_path, ~s[powershell -Command "& {#{command}}"])
       System.find_executable("curl") ->
-        Mix.shell.cmd(~s[curl -sSfL -o "#{out_path}" "#{path}"])
+        cmd("curl", tmp_path, ~s[curl -sSfL -o "#{tmp_path}" "#{path}"])
       System.find_executable("wget") ->
-        Mix.shell.cmd(~s[wget -nv -O "#{out_path}" "#{path}"])
+        cmd("wget", tmp_path, ~s[wget -nv -O "#{tmp_path}" "#{path}"])
       windows? ->
-        Mix.shell.error "powershell, wget or curl not installed"
+        {:remote, "powershell, wget or curl not available."}
       true ->
-        Mix.shell.error "wget or curl not installed"
-        1
-    end
-
-    check_command!(status, path, target)
-
-    unless target do
-      data = File.read!(out_path)
-      File.rm!(out_path)
-      data
+        {:remote, "wget or curl not available."}
     end
   end
 
-  defp check_command!(0, _path, _out_path), do: :ok
-  defp check_command!(_status, path, nil) do
-    Mix.raise "Could not fetch data, please download manually from " <>
-              "#{inspect path}"
-  end
-  defp check_command!(_status, path, out_path) do
-    Mix.raise "Could not fetch data, please download manually from " <>
-              "#{inspect path} and copy it to #{inspect out_path}"
+  defp cmd(executable, tmp_path, command) do
+    case Mix.shell.cmd(command) do
+      0 -> {:ok, File.read!(tmp_path)}
+      _ -> {:remote, "#{executable} failed."}
+    end
   end
 
   defp windows? do
@@ -522,5 +453,14 @@ defmodule Mix.Utils do
 
   defp url?(path) do
     URI.parse(path).scheme in ["http", "https"]
+  end
+
+  defp proxy(proxy_scheme, proxy) do
+    uri  = URI.parse(proxy)
+
+    if uri.host && uri.port do
+      host = String.to_char_list(uri.host)
+      :httpc.set_options([{proxy_scheme, {{host, uri.port}, []}}], :mix)
+    end
   end
 end
