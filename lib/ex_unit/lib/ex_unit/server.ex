@@ -30,12 +30,12 @@ defmodule ExUnit.Server do
 
   ## Capture Device API
 
-  def add_device(device) do
-    GenServer.call(__MODULE__, {:add_device, device})
+  def capture_device(device, pid) do
+    GenServer.call(__MODULE__, {:capture_device, device, pid})
   end
 
-  def remove_device(device) do
-    GenServer.call(__MODULE__, {:remove_device, device})
+  def release_device(ref) do
+    GenServer.call(__MODULE__, {:release_device, ref})
   end
 
   def log_capture_on(pid) do
@@ -53,7 +53,7 @@ defmodule ExUnit.Server do
       async_cases: HashSet.new,
       sync_cases: HashSet.new,
       start_load: :os.timestamp,
-      captured_devices: HashSet.new,
+      captured_devices: {HashSet.new, %{}},
       log_captures: HashSet.new,
       log_status: nil
     }}
@@ -70,15 +70,24 @@ defmodule ExUnit.Server do
       %{config | async_cases: HashSet.new, sync_cases: HashSet.new, start_load: nil}}
   end
 
-  def handle_call({:add_device, device}, _from, config) do
-    {:reply,
-      not(device in config.captured_devices),
-      %{config | captured_devices: Set.put(config.captured_devices, device)}}
+  def handle_call({:capture_device, name, pid}, _from, config) do
+    {names, refs} = config.captured_devices
+    if name in names do
+      {:reply, {:error, :already_captured}, config}
+    else
+      orig_pid = Process.whereis(name)
+      Process.unregister(name)
+      Process.register(pid, name)
+      ref = Process.monitor(pid)
+      refs = Map.put(refs, ref, {name, orig_pid})
+      names = HashSet.put(names, name)
+      {:reply, {:ok, ref}, %{config | captured_devices: {names, refs}}}
+    end
   end
 
-  def handle_call({:remove_device, device}, _from, config) do
-    {:reply, :ok,
-      %{config | captured_devices: Set.delete(config.captured_devices, device)}}
+  def handle_call({:release_device, ref}, _from, config) do
+    config = release_device(ref, config)
+    {:reply, :ok, config}
   end
 
   def handle_call({:log_capture_on, pid}, _from, config) do
@@ -116,11 +125,31 @@ defmodule ExUnit.Server do
 
   def handle_info({:DOWN, ref, _, _, _}, config) do
     config = remove_log_capture(ref, config)
+    config = release_device(ref, config)
     {:noreply, config}
   end
 
-  def handle_info(_msg, state) do
-    {:noreply, state}
+  def handle_info(msg, state) do
+    super(msg, state)
+  end
+
+  defp release_device(ref, %{captured_devices: {names, refs}} = config) do
+    case Map.pop(refs, ref) do
+      {{name, pid}, refs} ->
+        names = HashSet.delete(names, name)
+        Process.demonitor(ref, [:flush])
+        try do
+          try do
+            Process.unregister(name)
+          after
+            Process.register(pid, name)
+          end
+        rescue
+          ArgumentError -> nil
+        end
+        %{config | captured_devices: {names, refs}}
+      {nil, _refs} -> config
+    end
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do
