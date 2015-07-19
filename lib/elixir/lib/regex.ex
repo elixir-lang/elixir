@@ -423,7 +423,7 @@ defmodule Regex do
 
   @doc ~S"""
   Receives a regex, a binary and a replacement, returns a new
-  binary where the all matches are replaced by replacement.
+  binary where all matches are replaced by the replacement.
 
   The replacement can be either a string or a function. The string
   is used as a replacement for every match and it allows specific
