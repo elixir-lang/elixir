@@ -110,30 +110,21 @@ defmodule ExUnit.CaptureIO do
   end
 
   defp do_capture_io(device, options, fun) do
-    unless original_io = Process.whereis(device) do
-      raise "could not find IO device registered at #{inspect device}"
-    end
-
-    unless ExUnit.Server.add_device(device) do
-      raise "IO device registered at #{inspect device} is already captured"
-    end
-
     input = Keyword.get(options, :input, "")
-
-    Process.unregister(device)
-    {:ok, capture_io} = StringIO.open(input)
-    Process.register(capture_io, device)
-
-    try do
-      do_capture_io(capture_io, fun)
-    after
-      try do
-        Process.unregister(device)
-      rescue
-        ArgumentError -> nil
-      end
-      Process.register(original_io, device)
-      ExUnit.Server.remove_device(device)
+    {:ok, string_io} = StringIO.open(input)
+    case ExUnit.Server.capture_device(device, string_io) do
+      {:ok, ref} ->
+        try do
+          do_capture_io(string_io, fun)
+        after
+          ExUnit.Server.release_device(ref)
+        end
+      {:error, :no_device} ->
+        _ = StringIO.close(string_io)
+        raise "could not find IO device registered at #{inspect device}"
+      {:error, :already_captured} ->
+        _ = StringIO.close(string_io)
+        raise "IO device registered at #{inspect device} is already captured"
     end
   end
 
