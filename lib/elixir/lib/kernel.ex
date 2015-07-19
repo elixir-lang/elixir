@@ -931,7 +931,7 @@ defmodule Kernel do
   Removes the first occurrence of an item on the left list
   for each item on the right.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Inlined by the compiler.
 
   ## Examples
 
