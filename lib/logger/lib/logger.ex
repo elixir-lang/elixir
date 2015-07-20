@@ -422,8 +422,9 @@ defmodule Logger do
           level: min_level, utc_log: utc_log?} = Logger.Config.__data__
 
         if compare_levels(level, min_level) != :lt do
+          metadata = [pid: self()] ++ Keyword.merge(pdict, metadata)
           tuple = {Logger, truncate(chardata_or_fn, truncate),
-                   Logger.Utils.timestamp(utc_log?), [pid: self()] ++ metadata ++ pdict}
+                   Logger.Utils.timestamp(utc_log?), metadata}
           try do
             notify(mode, {level, Process.group_leader(), tuple})
             :ok
