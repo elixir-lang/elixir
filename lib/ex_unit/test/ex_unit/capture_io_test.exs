@@ -308,19 +308,15 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  @tag timeout: 5_000
   test "device re-registering" do
-    Process.flag(:trap_exit, true)
-    pid = spawn_link(fn ->
+    {_pid, ref} = spawn_monitor(fn ->
       capture_io(:stderr, fn ->
         spawn_link(Kernel, :exit, [:shutdown])
         :timer.sleep(:infinity)
       end)
     end)
-    receive do
-      {:EXIT, ^pid, :shutdown} -> :ok
-    end
 
+    assert_receive {:DOWN, ^ref, _, _, :shutdown}
     assert capture_io(:stderr, fn -> end)
   end
 
