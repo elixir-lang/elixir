@@ -612,10 +612,16 @@ defmodule EnumTest.List do
     assert Enum.slice(list, -6..-1) == []
     assert Enum.slice(list, -6..-3) == []
     assert_raise FunctionClauseError, fn ->
+      Enum.slice(list, 1.1..2)
+    end
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(list, -1.1..2)
+    end
+    assert_raise FunctionClauseError, fn ->
       Enum.slice(list, 1..1.1)
     end
     assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 1.1..2)
+      Enum.slice(list, 1..-1.1)
     end
   end
 end
