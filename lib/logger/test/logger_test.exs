@@ -87,6 +87,14 @@ defmodule LoggerTest do
     assert Logger.metadata() == [meta: 1]
   end
 
+  test "metadata merge" do
+    assert Logger.metadata([module: Sample]) == :ok
+
+    assert capture_log(fn ->
+      assert Logger.bare_log(:info, "ok", [module: LoggerTest]) == :ok
+    end) =~ msg_with_meta("[info]  ok")
+  end
+
   test "enable/1 and disable/1" do
     assert Logger.metadata([]) == :ok
 
