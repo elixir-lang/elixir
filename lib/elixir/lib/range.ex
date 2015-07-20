@@ -1,5 +1,5 @@
 defmodule Range do
-  @moduledoc """
+  @moduledoc ~S(
   Defines a Range.
 
   A Range is represented internally as a struct. However,
@@ -14,7 +14,12 @@ defmodule Range do
       iex> last
       3
 
-  """
+      iex> first .. last = "a".."z"
+      "a".."z"
+      iex> "#{first} - #{last}"
+      "a - z"
+
+  )
 
   defstruct first: nil, last: nil
 
@@ -34,6 +39,9 @@ defmodule Range do
   ## Examples
 
       iex> Range.range?(1..3)
+      true
+
+      iex Range.range?("a".."z")
       true
 
       iex> Range.range?(0)
@@ -108,6 +116,24 @@ defimpl Range.Iterator, for: Integer do
   end
 
   def count(first, _ .. last) when is_integer(last) do
+    if last >= first do
+      last - first + 1
+    else
+      first - last + 1
+    end
+  end
+end
+
+defimpl Range.Iterator, for: BitString do
+  def next(<< first :: utf8 >>, _ .. << last :: utf8 >>) do
+    if last >= first do
+      fn << char :: utf8 >> -> << char + 1 :: utf8 >> end
+    else
+      fn << char :: utf8 >> -> << char - 1 :: utf8 >> end
+    end
+  end
+
+  def count(<< first :: utf8 >>, _ .. << last :: utf8 >>) do
     if last >= first do
       last - first + 1
     else
