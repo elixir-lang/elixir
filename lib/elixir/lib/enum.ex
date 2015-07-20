@@ -1725,7 +1725,7 @@ defmodule Enum do
     end
   end
 
-  def slice(collection, first..last) do
+  def slice(collection, first..last) when is_integer(first) and is_integer(last) do
     {list, count} = enumerate_and_count(collection, 0)
     corr_first = if first >= 0, do: first, else: first + count
     corr_last = if last >= 0, do: last, else: last + count
