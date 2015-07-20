@@ -255,7 +255,12 @@ defmodule Logger do
   """
   def metadata(dict) do
     {enabled, metadata} = __metadata__()
-    Process.put(@metadata, {enabled, Keyword.merge(metadata, dict)})
+    metadata =
+      Enum.reduce(dict, metadata, fn
+        {key, nil}, acc -> Keyword.delete(acc, key)
+        {key, val}, acc -> Keyword.put(acc, key, val)
+      end)
+    Process.put(@metadata, {enabled, metadata})
     :ok
   end
 
