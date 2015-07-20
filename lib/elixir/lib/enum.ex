@@ -1655,9 +1655,9 @@ defmodule Enum do
   """
   @spec slice(t, integer, non_neg_integer) :: list
 
-  def slice(_collection, _start, 0), do: []
+  def slice(_collection, start, 0) when is_integer(start), do: []
 
-  def slice(collection, start, count) when start < 0 do
+  def slice(collection, start, count) when is_integer(start) and start < 0 and is_integer(count) and count >= 0 do
     {list, new_start} = enumerate_and_count(collection, start)
     if new_start >= 0 do
       slice(list, new_start, count)
@@ -1666,11 +1666,11 @@ defmodule Enum do
     end
   end
 
-  def slice(collection, start, count) when is_list(collection) and start >= 0 and count > 0 do
+  def slice(collection, start, count) when is_list(collection) and is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
     do_slice(collection, start, count)
   end
 
-  def slice(collection, start, count) when start >= 0 and count > 0 do
+  def slice(collection, start, count) when is_integer(start) and start >= 0 and is_integer(count) and count > 0 do
     {_, _, list} = Enumerable.reduce(collection, {:cont, {start, count, []}}, fn
       _entry, {start, count, _list} when start > 0 ->
         {:cont, {start-1, count, []}}
@@ -1716,7 +1716,7 @@ defmodule Enum do
   @spec slice(t, Range.t) :: list
   def slice(collection, range)
 
-  def slice(collection, first..last) when first >= 0 and last >= 0 do
+  def slice(collection, first..last) when is_integer(first) and first >= 0 and is_integer(last) and last >= 0 do
     # Simple case, which works on infinite collections
     if last - first >= 0 do
       slice(collection, first, last - first + 1)
