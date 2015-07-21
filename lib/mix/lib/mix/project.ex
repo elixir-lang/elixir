@@ -316,11 +316,11 @@ defmodule Mix.Project do
     if config[:build_embedded] do
       if not File.exists?(compile_path(config)) do
         Mix.raise "Cannot execute task because the project was not yet compiled. " <>
-                  "When build_embedded is set to true, which is the default " <>
-                  "for production, `mix compile` must be explicitly executed"
+                  "When build_embedded is set to true, `MIX_ENV=#{Mix.env} mix compile` " <>
+                  "must be explicitly executed"
       end
 
-      :ok
+      Mix.Task.run "loadpaths", args
     else
       Mix.Task.run "compile", args
     end
