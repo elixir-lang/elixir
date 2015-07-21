@@ -51,8 +51,8 @@ defmodule Mix.SCM.Git do
             not git_repos_match?(lock_repo, opts[:git]) -> :outdated
             lock_opts != get_lock_opts(opts)            -> :outdated
             lock_rev  != rev_info[:rev]                 -> :mismatch
-            lock_repo != rev_info[:origin]              -> :outdated
-            true -> :ok
+            lock_repo != rev_info[:origin]              -> :mismatch
+            true                                        -> :ok
           end
         end)
       nil ->
