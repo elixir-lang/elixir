@@ -11,16 +11,24 @@ defmodule Kernel.LexicalTracker do
   @timeout 30_000
   @behaviour :gen_server
 
-  @import 2
-  @alias  3
+  @compile? 2
+  @import   3
+  @alias    4
 
   @doc """
   Returns all remotes linked to in this lexical scope.
   """
   def remotes(arg) do
     ets = :gen_server.call(to_pid(arg), :ets, @timeout)
-    :ets.match(ets, {:"$1", :_, :_}) |> List.flatten
+    partition :ets.match(ets, {:'$1', :'$2', :_, :_}), [], []
   end
+
+  defp partition([[remote, true]|t], compile, runtime),
+    do: partition(t, [remote|compile], runtime)
+  defp partition([[remote, false]|t], compile, runtime),
+    do: partition(t, compile, [remote|runtime])
+  defp partition([], compile, runtime),
+    do: {compile, runtime}
 
   @doc """
   Gets the destination the lexical scope is meant to
@@ -61,18 +69,18 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_dispatch(pid, module) do
-    :gen_server.cast(pid, {:remote_dispatch, module})
+  def remote_dispatch(pid, module, compile?) do
+    :gen_server.cast(pid, {:remote_dispatch, module, compile?})
   end
 
   @doc false
-  def import_dispatch(pid, module) do
-    :gen_server.cast(pid, {:import_dispatch, module})
+  def import_dispatch(pid, module, compile?) do
+    :gen_server.cast(pid, {:import_dispatch, module, compile?})
   end
 
   @doc false
-  def alias_dispatch(pid, module) do
-    :gen_server.cast(pid, {:alias_dispatch, module})
+  def alias_dispatch(pid, module, compile?) do
+    :gen_server.cast(pid, {:alias_dispatch, module, compile?})
   end
 
   @doc false
@@ -88,7 +96,7 @@ defmodule Kernel.LexicalTracker do
   defp unused(pid, pos) do
     ets = :gen_server.call(pid, :ets, @timeout)
     :ets.foldl(fn
-      {module, _, _} = tuple, acc when is_integer(:erlang.element(pos, tuple)) ->
+      {module, _, _, _} = tuple, acc when is_integer(:erlang.element(pos, tuple)) ->
         [{module, :erlang.element(pos, tuple)}|acc]
       _, acc ->
         acc
@@ -98,7 +106,7 @@ defmodule Kernel.LexicalTracker do
   # Callbacks
 
   def init(dest) do
-    {:ok, {:ets.new(:lexical, [:protected]), dest}}
+    {:ok, {:ets.new(__MODULE__, [:protected]), dest}}
   end
 
   @doc false
@@ -110,18 +118,18 @@ defmodule Kernel.LexicalTracker do
     {:reply, dest, {d, dest}}
   end
 
-  def handle_cast({:remote_dispatch, module}, {d, dest}) do
-    add_module(d, module)
+  def handle_cast({:remote_dispatch, module, compile?}, {d, dest}) do
+    add_module(d, module, compile?)
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:import_dispatch, module}, {d, dest}) do
-    add_dispatch(d, module, @import)
+  def handle_cast({:import_dispatch, module, compile?}, {d, dest}) do
+    add_dispatch(d, module, @import, compile?)
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:alias_dispatch, module}, {d, dest}) do
-    add_dispatch(d, module, @alias)
+  def handle_cast({:alias_dispatch, module, compile?}, {d, dest}) do
+    add_dispatch(d, module, @alias, compile?)
     {:noreply, {d, dest}}
   end
 
@@ -160,16 +168,21 @@ defmodule Kernel.LexicalTracker do
   # If the value is false, it was not imported/aliased
   # If the value is true, it was imported/aliased
   # If the value is a line, it was imported/aliased and has a pending warning
-  defp add_module(d, module) do
-    :ets.insert_new(d, {module, false, false})
+  defp add_module(d, module, compile?) do
+    :ets.insert_new(d, {module, false, false, false})
+    add_compile(d, module, compile?)
   end
 
-  defp add_dispatch(d, module, pos) do
+  defp add_dispatch(d, module, pos, compile?) do
     :ets.update_element(d, module, {pos, true})
+    add_compile(d, module, compile?)
   end
+
+  defp add_compile(_d, _module, false), do: true
+  defp add_compile(d, module, true), do: :ets.update_element(d, module, {@compile?, true})
 
   defp add_directive(d, module, line, warn, pos) do
-    add_module(d, module)
+    add_module(d, module, false)
     marker = if warn, do: line, else: true
     :ets.update_element(d, module, {pos, marker})
   end

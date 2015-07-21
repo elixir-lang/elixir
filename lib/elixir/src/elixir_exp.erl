@@ -52,10 +52,10 @@ expand({'__block__', Meta, Args}, E) when is_list(Args) ->
 %% __aliases__
 
 expand({'__aliases__', Meta, _} = Alias, E) ->
-  case elixir_aliases:expand(Alias, ?m(E, aliases),
-                             ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
+  case elixir_aliases:expand(Alias, ?m(E, aliases), ?m(E, macro_aliases),
+                             ?m(E, function), ?m(E, lexical_tracker)) of
     Receiver when is_atom(Receiver) ->
-      elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
       {Receiver, E};
     Aliases ->
       {EAliases, EA} = expand_args(Aliases, E),
@@ -63,7 +63,7 @@ expand({'__aliases__', Meta, _} = Alias, E) ->
       case lists:all(fun is_atom/1, EAliases) of
         true ->
           Receiver = elixir_aliases:concat(EAliases),
-          elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
+          elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
           compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
@@ -468,8 +468,10 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, EL) ->
   if
-    is_atom(Receiver) -> elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker));
-    true -> ok
+    is_atom(Receiver) ->
+      elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker));
+    true ->
+      ok
   end,
   {EArgs, EA} = expand_args(Args, E),
   {elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs),

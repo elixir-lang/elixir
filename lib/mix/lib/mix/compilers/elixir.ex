@@ -113,7 +113,8 @@ defmodule Mix.Compilers.Elixir do
            |> Path.join(Atom.to_string(module) <> ".beam")
            |> Path.relative_to(cwd)
 
-    deps = Kernel.LexicalTracker.remotes(module)
+    {compile, runtime} = Kernel.LexicalTracker.remotes(module)
+    deps = (compile ++ runtime)
            |> List.delete(module)
            |> :lists.usort
            |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
