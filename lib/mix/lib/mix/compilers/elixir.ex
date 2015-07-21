@@ -1,6 +1,8 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
+  @manifest_vsn 1
+
   @doc """
   Compiles stale Elixir files.
 
@@ -16,7 +18,7 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, skip, exts, dest, force, on_start) do
     keep = srcs -- skip
     all  = Mix.Utils.extract_files(keep, exts)
-    {all_entries, skip_entries} = read_manifest(manifest, dest, keep)
+    {all_entries, skip_entries} = parse_manifest(manifest, keep)
 
     removed =
       for {_b, _m, source, _d, _f, _bin} <- all_entries, not(source in all), do: source
@@ -73,15 +75,10 @@ defmodule Mix.Compilers.Elixir do
   Removes compiled files.
   """
   def clean(manifest) do
-    case File.read(manifest) do
-      {:ok, contents} ->
-        contents
-        |> String.split("\n")
-        |> Enum.each &(&1 |> String.split("\t") |> hd |> File.rm)
-        File.rm(manifest)
-      {:error, _} ->
-        :ok
+    for {beam, _, _, _, _} <- read_manifest(manifest) do
+      File.rm(beam)
     end
+    :ok
   end
 
   defp compile_manifest(manifest, entries, stale, dest, on_start) do
@@ -112,17 +109,14 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_module(pid, dest, cwd, source, module, binary) do
-    source = Path.relative_to(source, cwd)
-    bin    = Atom.to_string(module)
-    beam   = dest
-             |> Path.join(bin <> ".beam")
-             |> Path.relative_to(cwd)
+    beam = dest
+           |> Path.join(Atom.to_string(module) <> ".beam")
+           |> Path.relative_to(cwd)
 
     deps = Kernel.LexicalTracker.remotes(module)
            |> List.delete(module)
            |> :lists.usort
-           |> Enum.map(&Atom.to_string(&1))
-           |> Enum.reject(&match?("elixir_" <> _, &1))
+           |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
     files = for file <- get_external_resources(module),
                 File.regular?(file),
@@ -130,7 +124,9 @@ defmodule Mix.Compilers.Elixir do
                 Path.type(relative) == :relative,
                 do: relative
 
-    Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, bin, source, deps, files, binary})
+    source = Path.relative_to(source, cwd)
+
+    Agent.cast pid, &:lists.keystore(beam, 1, &1, {beam, module, source, deps, files, binary})
   end
 
   defp get_external_resources(module) do
@@ -159,10 +155,9 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries([{beam, module, source, _d, _f, _bin} = entry|t], changed, removed, acc) do
     if source in changed do
-      atom = String.to_atom(module)
       _ = File.rm(beam)
-      _ = :code.purge(atom)
-      _ = :code.delete(atom)
+      _ = :code.purge(module)
+      _ = :code.delete(module)
       remove_stale_entries(t, changed, [module|removed], acc)
     else
       remove_stale_entries(t, changed, removed, [entry|acc])
@@ -182,65 +177,47 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  # Reads the manifest returning the results as tuples.
-  # The beam files are read, removed and stored in memory.
-  defp read_manifest(manifest, dest, keep_paths) do
-    initial = {[], []}
+  defp read_manifest(manifest) do
+    case :file.consult(manifest) do
+      {:ok, [{:version, @manifest_vsn}|t]} -> t
+      {:error, _} -> []
+    end
+  end
 
-    case File.read(manifest) do
-      {:ok, contents} ->
-        keep_paths = Enum.map(keep_paths, &(&1 <> "/"))
-        Enum.reduce String.split(contents, "\n"), initial, fn x, acc ->
-          read_manifest_entry(String.split(x, "\t"), acc, dest, keep_paths)
+  defp parse_manifest(manifest, keep_paths) do
+    Enum.reduce read_manifest(manifest), {[], []}, fn
+      {beam, module, source, deps, files}, {keep, skip} ->
+        entry = {beam, module, source, deps, files, nil}
+
+        if String.starts_with?(source, keep_paths) do
+          {[entry|keep], skip}
+        else
+          {keep, [entry|skip]}
         end
-      {:error, _} ->
-        initial
     end
   end
 
-  defp read_manifest_entry([_beam, module, source|deps], {keep, skip}, dest, keep_paths) do
-    {deps, files} =
-      case Enum.split_while(deps, &(&1 != "Elixir")) do
-        {deps, ["Elixir"|files]} -> {deps, files}
-        {deps, _} -> {deps, []}
-      end
-
-    # TODO: Notice we do not use beam from the file.
-    # From Elixir v1.2 onwards, we can start writing "1"
-    # instead of the beam file in write_manifest/2.
-    entry = {Path.join(dest, module <> ".beam"), module, source,
-             deps, files, nil}
-
-    if String.starts_with?(source, keep_paths) do
-      {[entry|keep], skip}
-    else
-      {keep, [entry|skip]}
-    end
-  end
-
-  defp read_manifest_entry(_, acc, _dest, _skip_paths) do
-    acc
-  end
-
-  # Writes the manifest separating entries by tabs.
   defp write_manifest(_manifest, []) do
     :ok
   end
 
   defp write_manifest(manifest, entries) do
-    lines = Enum.map(entries, fn
-      {beam, module, source, deps, files, binary} ->
+    File.mkdir_p!(Path.dirname(manifest))
+
+    File.open!(manifest, [:write], fn device ->
+      :io.format(device, "~p.~n", [{:version, @manifest_vsn}])
+
+      for {beam, module, source, deps, files, binary} <- entries do
         if binary, do: File.write!(beam, binary)
-        tail = deps ++ ["Elixir"] ++ files
-        [beam, module, source | tail] |> Enum.join("\t")
+        :io.format(device, "~p.~n", [{beam, module, source, deps, files}])
+      end
+
+      :ok
     end)
 
     # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
     # is a dependency itself, we need to touch the lock so the current
     # Elixir version, used to compile the files above, is properly stored.
     Mix.Dep.Lock.touch
-
-    File.mkdir_p!(Path.dirname(manifest))
-    File.write!(manifest, Enum.join(lines, "\n"))
   end
 end
