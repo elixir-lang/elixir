@@ -15,18 +15,21 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add remote dispatches", config do
-    D.remote_dispatch(config[:pid], String)
-    assert D.remotes(config[:pid]) == [String]
+    D.remote_dispatch(config[:pid], String, false)
+    assert D.remotes(config[:pid]) == {[], [String]}
+
+    D.remote_dispatch(config[:pid], String, true)
+    assert D.remotes(config[:pid]) == {[String], []}
   end
 
   test "can add imports", config do
     D.add_import(config[:pid], String, 1, true)
-    assert D.remotes(config[:pid]) == [String]
+    assert D.remotes(config[:pid]) == {[], [String]}
   end
 
   test "can add aliases", config do
     D.add_alias(config[:pid], String, 1, true)
-    assert D.remotes(config[:pid]) == [String]
+    assert D.remotes(config[:pid]) == {[], [String]}
   end
 
   test "unused imports", config do
@@ -36,7 +39,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "used imports are not unused", config do
     D.add_import(config[:pid], String, 1, true)
-    D.import_dispatch(config[:pid], String)
+    D.import_dispatch(config[:pid], String, false)
     assert D.collect_unused_imports(config[:pid]) == []
   end
 
@@ -52,7 +55,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "used aliases are not unused", config do
     D.add_alias(config[:pid], String, 1, true)
-    D.alias_dispatch(config[:pid], String)
+    D.alias_dispatch(config[:pid], String, false)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 

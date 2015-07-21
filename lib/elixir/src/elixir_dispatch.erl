@@ -26,11 +26,11 @@ find_import(Meta, Name, Arity, E) ->
 
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
       %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     {macro, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, nil, ?m(E, lexical_tracker)),
       %% elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       Receiver;
     _ ->
@@ -43,7 +43,7 @@ import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, ?m(E, module), ?m(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
@@ -62,13 +62,14 @@ import_function(Meta, Name, Arity, E) ->
 require_function(Meta, Receiver, Name, Arity, E) ->
   case is_element({Name, Arity}, get_optional_macros(Receiver)) of
     true  -> false;
-    false -> remote_function(Meta, Receiver, Name, Arity, E)
+    false ->
+      elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
+      remote_function(Meta, Receiver, Name, Arity, E)
   end.
 
 remote_function(Meta, Receiver, Name, Arity, E) ->
   check_deprecation(Meta, Receiver, Name, Arity, E),
 
-  elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} -> {remote, AR, AN, Arity};
     false    -> {remote, Receiver, Name, Arity}
@@ -136,12 +137,12 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   case Result of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
       check_deprecation(Meta, Receiver, Name, Arity, E),
-      elixir_lexical:record_import(Receiver, ?m(E, lexical_tracker)),
+      elixir_lexical:record_import(Receiver, nil, ?m(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?m(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
@@ -167,7 +168,7 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
       Requires = ?m(E, requires),
       case (Receiver == Module) orelse is_element(Receiver, Requires) orelse skip_require(Meta) of
         true  ->
-          elixir_lexical:record_remote(Receiver, ?m(E, lexical_tracker)),
+          elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
         false ->
           Info = {unrequired_module, {Receiver, Name, length(Args), Requires}},
