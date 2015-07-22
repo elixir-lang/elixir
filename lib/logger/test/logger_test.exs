@@ -75,6 +75,26 @@ defmodule LoggerTest do
     assert Logger.level == :debug
   end
 
+  test "process metadata" do
+    assert Logger.metadata(data: true) == :ok
+    assert Logger.metadata() == [data: true]
+    assert Logger.metadata(data: true) == :ok
+    assert Logger.metadata() == [data: true]
+    assert Logger.metadata(meta: 1) == :ok
+    metadata = Logger.metadata()
+    assert Enum.sort(metadata) == [data: true, meta: 1]
+    assert Logger.metadata(data: nil) == :ok
+    assert Logger.metadata() == [meta: 1]
+  end
+
+  test "metadata merge" do
+    assert Logger.metadata([module: Sample]) == :ok
+
+    assert capture_log(fn ->
+      assert Logger.bare_log(:info, "ok", [module: LoggerTest]) == :ok
+    end) =~ msg_with_meta("[info]  ok")
+  end
+
   test "enable/1 and disable/1" do
     assert Logger.metadata([]) == :ok
 
