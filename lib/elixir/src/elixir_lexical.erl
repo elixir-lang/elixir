@@ -1,8 +1,8 @@
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
 -export([run/3, dest/1,
-  record_alias/4, record_alias/3,
-  record_import/4, record_import/3,
+  record_alias/4, record_alias/2,
+  record_import/4, record_import/2,
   record_remote/3, format_error/1
 ]).
 -include("elixir.hrl").
@@ -37,11 +37,11 @@ record_alias(Module, Line, Warn, Ref) ->
 record_import(Module, Line, Warn, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:add_import(Pid, Module, Line, Warn), ok end).
 
-record_alias(Module, Function, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module, mode(Function)), ok end).
+record_alias(Module, Ref) ->
+  if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module), ok end).
 
-record_import(Module, Function, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module, mode(Function)), ok end).
+record_import(Module, Ref) ->
+  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module), ok end).
 
 record_remote(Module, Function, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module, mode(Function)), ok end).

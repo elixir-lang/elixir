@@ -536,8 +536,7 @@ expand_without_aliases_report(Other, E) ->
   expand(Other, E).
 
 expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
-  case elixir_aliases:expand(Alias, ?m(E, aliases), ?m(E, macro_aliases),
-                             ?m(E, function), ?m(E, lexical_tracker)) of
+  case elixir_aliases:expand(Alias, ?m(E, aliases), ?m(E, macro_aliases), ?m(E, lexical_tracker)) of
     Receiver when is_atom(Receiver) ->
       Report andalso
         elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
