@@ -179,7 +179,9 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE Makefile README.md VERSION
+	cd man && $(MAKE) build
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION -x man/Makefile
+	cd man && $(MAKE) clean
 
 release_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
