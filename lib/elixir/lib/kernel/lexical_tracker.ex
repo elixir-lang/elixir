@@ -24,8 +24,6 @@ defmodule Kernel.LexicalTracker do
     do: partition(t, [remote|compile], runtime)
   defp partition([[remote, :runtime]|t], compile, runtime),
     do: partition(t, compile, [remote|runtime])
-  defp partition([[_remote, nil]|t], compile, runtime),
-    do: partition(t, compile, runtime)
   defp partition([], compile, runtime),
     do: {compile, runtime}
 
@@ -68,18 +66,18 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_dispatch(pid, module, compile?) do
-    :gen_server.cast(pid, {:remote_dispatch, module, compile?})
+  def remote_dispatch(pid, module, mode) do
+    :gen_server.cast(pid, {:remote_dispatch, module, mode})
   end
 
   @doc false
-  def import_dispatch(pid, module, compile?) do
-    :gen_server.cast(pid, {:import_dispatch, module, compile?})
+  def import_dispatch(pid, module) do
+    :gen_server.cast(pid, {:import_dispatch, module})
   end
 
   @doc false
-  def alias_dispatch(pid, module, compile?) do
-    :gen_server.cast(pid, {:alias_dispatch, module, compile?})
+  def alias_dispatch(pid, module) do
+    :gen_server.cast(pid, {:alias_dispatch, module})
   end
 
   @doc false
@@ -118,13 +116,15 @@ defmodule Kernel.LexicalTracker do
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:import_dispatch, module, mode}, {d, dest}) do
+  def handle_cast({:import_dispatch, module}, {d, dest}) do
     add_dispatch(d, module, :import)
-    add_compile(d, module, mode)
+    # Always compile time because we depend
+    # on the module at compile time
+    add_compile(d, module, :compile)
     {:noreply, {d, dest}}
   end
 
-  def handle_cast({:alias_dispatch, module, _mode}, {d, dest}) do
+  def handle_cast({:alias_dispatch, module}, {d, dest}) do
     add_dispatch(d, module, :alias)
     {:noreply, {d, dest}}
   end
@@ -168,9 +168,8 @@ defmodule Kernel.LexicalTracker do
     :ets.insert(d, {{tag, module}, true})
   end
 
-  defp add_compile(d, module, compile) do
-    :ets.insert(d, {{:mode, module}, compile})
-  end
+  defp add_compile(d, module, :runtime), do: :ets.insert_new(d, {{:mode, module}, :runtime})
+  defp add_compile(d, module, :compile), do: :ets.insert(d, {{:mode, module}, :compile})
 
   defp add_directive(d, module, line, warn, tag) do
     marker = if warn, do: line, else: true

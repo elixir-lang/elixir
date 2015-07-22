@@ -1,6 +1,6 @@
 -module(elixir_aliases).
 -export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
-         ensure_loaded/3, expand/5, store/7]).
+         ensure_loaded/3, expand/4, store/7]).
 -include("elixir.hrl").
 
 inspect(Atom) when is_atom(Atom) ->
@@ -40,20 +40,20 @@ record_warn(Meta, Ref, Opts, Lexical) ->
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({'__aliases__', _Meta, ['Elixir'|_] = List}, _Aliases, _MacroAliases, _Function, _LexicalTracker) ->
+expand({'__aliases__', _Meta, ['Elixir'|_] = List}, _Aliases, _MacroAliases, _LexicalTracker) ->
   concat(List);
 
-expand({'__aliases__', Meta, _} = Alias, Aliases, MacroAliases, Function, LexicalTracker) ->
+expand({'__aliases__', Meta, _} = Alias, Aliases, MacroAliases, LexicalTracker) ->
   case lists:keyfind(alias, 1, Meta) of
     {alias, false} ->
-      expand(Alias, MacroAliases, Function, LexicalTracker);
+      expand(Alias, MacroAliases, LexicalTracker);
     {alias, Atom} when is_atom(Atom) ->
       Atom;
     false ->
-      expand(Alias, Aliases, Function, LexicalTracker)
+      expand(Alias, Aliases, LexicalTracker)
   end.
 
-expand({'__aliases__', Meta, [H|T]}, Aliases, Function, LexicalTracker) when is_atom(H) ->
+expand({'__aliases__', Meta, [H|T]}, Aliases, LexicalTracker) when is_atom(H) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
   Counter = case lists:keyfind(counter, 1, Meta) of
     {counter, C} -> C;
@@ -62,14 +62,14 @@ expand({'__aliases__', Meta, [H|T]}, Aliases, Function, LexicalTracker) when is_
   case lookup(Lookup, Aliases, Counter) of
     Lookup -> [H|T];
     Atom ->
-      elixir_lexical:record_alias(Lookup, Function, LexicalTracker),
+      elixir_lexical:record_alias(Lookup, LexicalTracker),
       case T of
         [] -> Atom;
         _  -> concat([Atom|T])
       end
   end;
 
-expand({'__aliases__', _Meta, List}, _Aliases, _Function, _LexicalTracker) ->
+expand({'__aliases__', _Meta, List}, _Aliases, _LexicalTracker) ->
   List.
 
 %% Ensure a module is loaded before its usage.
