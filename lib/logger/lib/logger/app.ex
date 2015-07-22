@@ -36,6 +36,11 @@ defmodule Logger.App do
   end
 
   @doc false
+  def start do
+    Application.start(:logger)
+  end
+
+  @doc false
   def stop(config) do
     Logger.Config.deleted_handlers()
     |> add_handlers()
