@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean docs release_docs release_zip check_erlang_release
+.PHONY: install install_man compile erlang elixir build_man build_plt clean_man clean_plt dialyze test clean clean_man docs release_docs release_zip check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -111,15 +111,6 @@ install: compile
 	done
 	$(MAKE) install_man
 
-install_man:
-	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	cd man && $(MAKE) build
-	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
-	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(PREFIX)/share/man/man1
-	cd man && $(MAKE) clean
-
 clean:
 	cd lib/elixir && $(REBAR) clean
 	rm -rf ebin
@@ -130,7 +121,7 @@ clean:
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
 	rm -rf lib/mix/test/fixtures/git_rebar
 	rm -rf lib/elixir/src/elixir.app.src
-	cd man && $(MAKE) clean
+	$(MAKE) clean_man
 
 clean_exbeam:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -180,9 +171,9 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 release_zip: compile
 	rm -rf v$(VERSION).zip
-	cd man && $(MAKE) build
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION -x man/Makefile
-	cd man && $(MAKE) clean
+	$(MAKE) build_man
+	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
+	$(MAKE) clean_man
 
 release_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
@@ -247,3 +238,27 @@ build_plt: clean_plt $(PLT)
 dialyze: compile $(PLT)
 	@ echo "==> Dialyzing Elixir..."
 	$(Q) dialyzer --plt $(PLT) $(DIALYZER_OPTS) lib/*/ebin
+
+#==> Man page tasks
+
+build_man:
+	$(Q) cp man/iex.1.in man/iex.1
+	$(Q) sed -i.bak "/{COMMON}/r common" man/iex.1
+	$(Q) sed -i.bak "/{COMMON}/d" man/iex.1
+	$(Q) cp man/elixir.1.in man/elixir.1
+	$(Q) sed -i.bak "/{COMMON}/r common" man/elixir.1
+	$(Q) sed -i.bak "/{COMMON}/d" man/elixir.1
+	$(Q) rm man/*.bak
+
+clean_man:
+	rm -f man/elixir.1
+	rm -f man/iex.1
+
+install_man:
+	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
+	$(MAKE) build_man
+	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
+	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(PREFIX)/share/man/man1
+	$(MAKE) clean_man
