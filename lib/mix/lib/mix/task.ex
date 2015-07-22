@@ -149,7 +149,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Checks if exists an alias with the given task name.
+  Checks if an alias called `task` exists.
+
+  For more information about task aliasing, take a look at the "Aliasing"
+  section in the docs for `Mix`.
   """
   @spec alias?(task_name) :: boolean
   def alias?(task) when is_binary(task) do
