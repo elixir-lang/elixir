@@ -542,12 +542,11 @@ defmodule Kernel.Typespec do
         for(arg <- args, do: variable(arg))
       end
 
-    vars   = for {:var, _, var} <- args, do: var
-    spec   = typespec(definition, vars, caller)
-
-    vars   = for {:var, _, _} = var <- args, do: var
-    type   = {name, spec, vars}
-    arity  = length(vars)
+    vars  = for {:var, _, var} <- args, do: var
+    spec  = typespec(definition, vars, caller)
+    vars  = for {:var, _, _} = var <- args, do: var
+    type  = {name, spec, vars}
+    arity = length(vars)
 
     {kind, export} =
       case kind do
@@ -922,7 +921,9 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:__aliases__, _, _} = alias, vars, caller) do
-    atom = Macro.expand alias, caller
+    # We set a function name to avoid tracking
+    # aliases in typespecs as compile time dependencies.
+    atom = Macro.expand(alias, %{caller | function: {:typespec, 0}})
     typespec(atom, vars, caller)
   end
 

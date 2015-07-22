@@ -38,18 +38,18 @@ record_import(Module, Line, Warn, Ref) ->
   if_tracker(Ref, fun(Pid) -> ?tracker:add_import(Pid, Module, Line, Warn), ok end).
 
 record_alias(Module, Function, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module, is_compile_time(Function)), ok end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:alias_dispatch(Pid, Module, mode(Function)), ok end).
 
 record_import(Module, Function, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module, is_compile_time(Function)), ok end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:import_dispatch(Pid, Module, mode(Function)), ok end).
 
 record_remote(Module, Function, Ref) ->
-  if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module, is_compile_time(Function)), ok end).
+  if_tracker(Ref, fun(Pid) -> ?tracker:remote_dispatch(Pid, Module, mode(Function)), ok end).
 
 %% HELPERS
 
-is_compile_time(nil) -> true;
-is_compile_time({_, _}) -> false.
+mode(nil) -> compile;
+mode({_, _}) -> runtime.
 
 if_tracker(nil, _Callback) -> ok;
 if_tracker(Pid, Callback) when is_pid(Pid) -> Callback(Pid).
