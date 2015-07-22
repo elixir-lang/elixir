@@ -118,6 +118,7 @@ install_man:
 	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(PREFIX)/share/man/man1
+	cd man && $(MAKE) clean
 
 clean:
 	cd lib/elixir && $(REBAR) clean
