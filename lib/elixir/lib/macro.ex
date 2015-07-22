@@ -863,8 +863,7 @@ defmodule Macro do
   end
 
   defp do_expand_once({:__aliases__, _, _} = original, env) do
-    case :elixir_aliases.expand(original, env.aliases, env.macro_aliases,
-                                env.function, env.lexical_tracker) do
+    case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
       receiver when is_atom(receiver) ->
         :elixir_lexical.record_remote(receiver, env.function, env.lexical_tracker)
         {receiver, true}
