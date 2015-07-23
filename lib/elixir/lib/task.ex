@@ -98,7 +98,7 @@ defmodule Task do
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
       # In the client
-      Task.Supervisor.async({:MyApp.DistSupervisor, :remote@local},
+      Task.Supervisor.async({MyApp.DistSupervisor, :remote@local},
                             MyMod, :my_fun, [arg1, arg2, arg3])
 
   Note that, when working with distributed tasks, one should use the `async/4` function
