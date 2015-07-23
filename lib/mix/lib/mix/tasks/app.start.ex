@@ -49,13 +49,22 @@ defmodule Mix.Tasks.App.Start do
       end
     end
 
-    unless "--no-start" in args do
-      # Stop the Logger when starting the application as it is
-      # up to the application to decide if it should be restarted
-      # or not.
-      #
-      # Mix should not depend directly on Logger so check that it's loaded.
-      if Process.whereis(Logger), do: Logger.App.stop()
+    # Stop the Logger when starting the application as it is
+    # up to the application to decide if it should be restarted
+    # or not.
+    #
+    # Mix should not depend directly on Logger so check that it's loaded.
+    logger = Process.whereis(Logger)
+    if logger do
+      Logger.App.stop
+    end
+
+    if "--no-start" in args do
+      # Start the Logger again if the application won't be starting it
+      if logger do
+        :ok = Logger.App.start
+      end
+    else
       start(Mix.Project.config, opts)
     end
 
