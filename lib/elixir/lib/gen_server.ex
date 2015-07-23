@@ -107,6 +107,10 @@ defmodule GenServer do
 
     * `terminate(reason, state)` - called when the server is about to
       terminate, useful for cleaning up. It must return `:ok`.
+      If part of a supervision tree, terminate only gets called if the
+      GenServer is set to trap exits using `Process.flag/2` *and*
+      the shutdown strategy of the Supervisor is a timeout value,
+      not `:brutal_kill`.
 
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
