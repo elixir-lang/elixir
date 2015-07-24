@@ -43,6 +43,8 @@ defmodule Mix.Shell do
 
     * `:quiet` - when `true`, do not print the command output
 
+    * `:env` - environment options to the executed command
+
   """
   defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
 
@@ -72,6 +74,8 @@ defmodule Mix.Shell do
   is shared across different shells.
   """
   def cmd(command, options \\ [], callback) do
+    env = validate_env(Keyword.get(options, :env, []))
+
     args =
       if Keyword.get(options, :stderr_to_stdout, true) do
         [:stderr_to_stdout]
@@ -87,7 +91,7 @@ defmodule Mix.Shell do
       end
 
     port = Port.open({:spawn, shell_command(command)},
-                     [:stream, :binary, :exit_status, :hide, :use_stdio|args])
+                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env}|args])
 
     do_cmd(port, callback)
   end
@@ -119,6 +123,15 @@ defmodule Mix.Shell do
           {nil, _}        -> 'cmd /c ' ++ command
           {cmd, _}        -> '#{cmd} /c ' ++ command
         end
+    end
+  end
+
+  defp validate_env(enum) do
+    Enum.map enum, fn
+      {k, v} ->
+        {String.to_char_list(k), String.to_char_list(v)}
+      other ->
+        raise ArgumentError, "invalid environment key-value #{inspect other}"
     end
   end
 end
