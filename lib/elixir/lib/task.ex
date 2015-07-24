@@ -32,6 +32,13 @@ defmodule Task do
   verify if the process exited for any abnormal reason (or in case
   exits are being trapped by the caller).
 
+  `Task.yield/2` is an alternative to `await` where the caller will
+  temporarily block waiting for a task's result. If the result does not
+  arrive within the timeout it can be called again at later moment. This
+  allows checking for the result of a task multiple times or to handle
+  a timeout. If a reply does not arrive within the desired time, and the
+  caller is not going exit, `Task.shutdown/2` can be used to stop the task.
+
   ## Supervised tasks
 
   It is also possible to spawn a task inside a supervision tree
@@ -212,8 +219,16 @@ defmodule Task do
   exit with the same reason as the task.
 
   If the timeout is exceeded, `await` will exit, however,
-  the task will continue to run.  Use `Process.kill/2` to
-  terminate it.
+  the task will continue to run. When the calling process exits, its
+  exit signal will close the task if it is not trapping exits.
+
+  This function assumes the task's monitor is still active or the monitor's
+  `:DOWN` message is in the message queue. If it has been demonitored, or the
+  message already received, this function may wait for the duration of the
+  timeout awaiting the message.
+
+  This function will always demonitor the task and so the task can not be used
+  again. To await the task's reply multiple times use `yield/2` instead.
   """
   @spec await(t, timeout) :: term | no_return
   def await(%Task{ref: ref}=task, timeout \\ 5000) do
@@ -221,11 +236,8 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         reply
-      {:DOWN, ^ref, _, _, :noconnection} ->
-        mfa = {__MODULE__, :await, [task, timeout]}
-        exit({{:nodedown, node(task.pid)}, mfa})
       {:DOWN, ^ref, _, _, reason} ->
-        exit({reason, {__MODULE__, :await, [task, timeout]}})
+        exit({reason(reason, task), {__MODULE__, :await, [task, timeout]}})
     after
       timeout ->
         Process.demonitor(ref, [:flush])
@@ -302,5 +314,132 @@ defmodule Task do
 
   def find(_tasks, _msg) do
     nil
+  end
+
+  @doc """
+  Yields, temporarily, for a task reply.
+
+  Returns `{:ok, reply}` if the reply is received.
+
+  A timeout, in milliseconds, can be given with default value
+  of `5000`. In case of the timeout, this function will return `nil`
+  and the monitor will remain active. Therefore `yield/2` can be
+  called multiple times on the same task.
+
+  In case the task process dies, this function will exit with the
+  same reason as the task.
+
+  This function assumes the task's monitor is still active or the monitor's
+  `:DOWN` message is in the message queue. If it has been demonitored, or the
+  message already received, this function wait for the duration of the timeout
+  awaiting the message.
+  """
+  @spec yield(t, timeout) :: {:ok, term} | nil
+  def yield(%Task{ref: ref} = task, timeout \\ 5_000) do
+    receive do
+      {^ref, reply} ->
+        Process.demonitor(ref, [:flush])
+        {:ok, reply}
+      {:DOWN, ^ref, _, _, reason} ->
+        exit({reason(reason, task), {__MODULE__, :yield, [task, timeout]}})
+    after
+      timeout ->
+        nil
+    end
+  end
+
+  @doc """
+  Unlink and shutdown the task then check for a reply.
+
+  Returns `{:ok, reply}` if the reply is received while shutting down the task,
+  otherwise `nil`.
+
+  The shutdown method is either a timeout or `:brutal_kill`. In the case
+  of a `timeout`, a `:shutdown` exit signal is sent to the task process
+  and if it does not exit within the timeout it is killed. With `:brutal_kill`
+  the task is killed straight away. In the case that the task exits abnormal,
+  or a timeout shutdown kills the task, this function will exit with the same
+  reason.
+
+  It is not required to call this function when terminating the caller, unless
+  exiting with reason `:normal` or the task is trapping exits. If the caller is
+  exiting with a reason other than `:normal` and the task is not trapping exits the
+  caller's exit signal will stop the task. The caller can exit with reason
+  `:shutdown` to shutdown linked processes, such as tasks, that are not trapping
+  exits without generating any log messages.
+
+  This function assumes the task's monitor is still active or the monitor's
+  `:DOWN` message is in the message queue. If it has been demonitored, or the
+  message already received, this function will block forever awaiting the message.
+  """
+  @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | nil
+  def shutdown(task, shutdown \\ 5_000)
+
+  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
+    exit(pid, :kill)
+    case shutdown_receive(task, :brutal_kill, :infinity) do
+      {:error, reason} ->
+        exit({reason, {__MODULE__, :shutdown, [task, :brutal_kill]}})
+      result ->
+        result
+    end
+  end
+
+  def shutdown(%Task{pid: pid} = task, timeout) do
+    Process.exit(pid, :shutdown)
+    case shutdown_receive(task, :shutdown, timeout) do
+      {:error, reason} ->
+        exit({reason, {__MODULE__, :shutdown, [task, timeout]}})
+      result ->
+        result
+    end
+  end
+
+  ## Helpers
+
+  defp reason(:noconnection, %{pid: pid}), do: {:nodedown, node(pid)}
+  defp reason(reason, _),                  do: reason
+
+  # spawn a process to ensure task gets exit signal if process dies from exit signal
+  # between unlink and exit.
+  defp exit(task, reason) do
+    caller = self()
+    ref = make_ref()
+    enforcer = spawn(fn() -> enforce_exit(task, reason, caller, ref) end)
+    Process.unlink(task)
+    Process.exit(task, reason)
+    send(enforcer, {:done, ref})
+    :ok
+  end
+
+  defp enforce_exit(pid, reason, caller, ref) do
+    mon = Process.monitor(caller)
+    receive do
+      {:done, ^ref}          -> :ok
+      {:DOWN, ^mon, _, _, _} -> Process.exit(pid, reason)
+    end
+  end
+
+  defp shutdown_receive(%{ref: ref} = task, type, timeout) do
+    receive do
+      {:DOWN, ^ref, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
+        flush_reply(ref)
+      {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
+        flush_reply(ref)
+      {:DOWN, ^ref, _, _, reason} ->
+        flush_reply(ref) || {:error, reason(reason, task)}
+    after
+      timeout ->
+        Process.exit(task.pid, :kill)
+        shutdown_receive(task, :timeout_kill, :infinity)
+    end
+  end
+
+  defp flush_reply(ref) do
+    receive do
+      {^ref, reply} -> {:ok, reply}
+    after
+      0 -> nil
+    end
   end
 end

@@ -188,4 +188,173 @@ defmodule TaskTest do
            {:kill, {Task, :find, [[task], msg]}}
   end
 
+  test "yield/1 returns {:ok, result} when reply and :DOWN in message queue" do
+    task = %Task{ref: make_ref}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, self, :abnormal})
+    assert Task.yield(task, 0) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "yield/1 returns nil on timeout" do
+    task = %Task{ref: make_ref()}
+    assert Task.yield(task, 0) == nil
+  end
+
+  test "yield/1 exits on normal exit" do
+    task = Task.async(fn -> exit :normal end)
+    assert catch_exit(Task.yield(task)) == {:normal, {Task, :yield, [task, 5000]}}
+  end
+
+  test "yield/1 exits on :noconnection" do
+    ref  = make_ref()
+    task = %Task{ref: ref, pid: self()}
+    send self(), {:DOWN, ref, self(), self(), :noconnection}
+    assert catch_exit(Task.yield(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+  end
+
+  test "shutdown/1 returns {:ok, result} when reply and abnormal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
+    assert Task.shutdown(task) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/1 returns {:ok, result} when reply and normal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
+    assert Task.shutdown(task) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/1 returns {:ok, result} when reply and shutdown :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
+    assert Task.shutdown(task) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/1 returns nil on shutting down task" do
+    Process.flag(:trap_exit, true)
+    task = Task.async(:timer, :sleep, [:infinity])
+    assert Task.shutdown(task) == nil
+  end
+
+  test "shutdown/1 exits on abnormal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
+    assert catch_exit(Task.shutdown(task)) == {:abnormal, {Task, :shutdown, [task, 5000]}}
+  end
+
+  test "shutdown/1 exits on normal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
+    assert catch_exit(Task.shutdown(task)) == {:normal, {Task, :shutdown, [task, 5000]}}
+  end
+
+  test "shutdown/1 returns nil on shutdown :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
+    assert Task.shutdown(task) == nil
+  end
+
+  test "shutdown/1 exits on killed :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :killed})
+    assert catch_exit(Task.shutdown(task)) == {:killed, {Task, :shutdown, [task, 5000]}}
+  end
+
+  test "shutdown/1 exits on noconnection :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :noconnection})
+    assert catch_exit(Task.shutdown(task)) ==
+      {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
+  end
+
+  test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
+    assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/2 brutal kill returns {:ok, result} when reply and normal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
+    assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/2 brutal kill returns {:ok, result} when reply and shutdown :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {task.ref, :result})
+    send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
+    assert Task.shutdown(task, :brutal_kill) == {:ok, :result}
+    refute_received {:DOWN, _, _, _, _}
+  end
+
+  test "shutdown/2 brutal kill exits on abnormal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
+    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
+      {:abnormal, {Task, :shutdown, [task, :brutal_kill]}}
+  end
+
+  test "shutdown/2 brutal kill exits on normal :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
+    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
+      {:normal, {Task, :shutdown, [task, :brutal_kill]}}
+  end
+
+  test "shutdown/2 brutal kill exits on shutdown :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
+    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
+      {:shutdown, {Task, :shutdown, [task, :brutal_kill]}}
+  end
+
+  test "shutdown/2 brutal kill exits on noconnection :DOWN in message queue" do
+    task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
+    send(self(), {:DOWN, task.ref, :process, task.pid, :noconnection})
+    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
+      {{:nodedown, node()}, {Task, :shutdown, [task, :brutal_kill]}}
+  end
+
+  test "shutdown/2 exits on killing task after shutdown timeout" do
+    Process.flag(:trap_exit, true)
+    caller = self()
+
+    task = Task.async(fn() ->
+      Process.flag(:trap_exit, true)
+      wait_and_send(caller, :ready)
+      :timer.sleep(:infinity)
+    end)
+
+    receive do: (:ready -> :ok)
+
+    assert catch_exit(Task.shutdown(task, 1)) ==
+      {:killed, {Task, :shutdown, [task, 1]}}
+  end
+
+  test "shutdown/2 returns nil on killing task" do
+    Process.flag(:trap_exit, true)
+    caller = self()
+
+    task = Task.async(fn() ->
+      Process.flag(:trap_exit, true)
+      wait_and_send(caller, :ready)
+      :timer.sleep(:infinity)
+    end)
+
+    receive do: (:ready -> :ok)
+
+    assert Task.shutdown(task, :brutal_kill) == nil
+    refute_received {:DOWN, _, _, _, _}
+  end
 end
