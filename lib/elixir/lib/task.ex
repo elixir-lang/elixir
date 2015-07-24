@@ -237,16 +237,43 @@ defmodule Task do
   Receives a group of tasks and a message and finds
   a task that matches the given message.
 
-  This function returns a tuple with the task and the
-  returned value in case the message matches a task that
-  exited with success, it raises in case the found task
-  failed or `nil` if no task was found.
+  This function returns a tuple with the returned value
+  in case the message matches a task that exited with
+  success alongside the matching task. It raises in case
+  the found task failed or `nil` if no task was found.
 
   This function is useful in situations where multiple
   tasks are spawned and their results are collected
   later on. For example, a `GenServer` can spawn tasks,
   store the tasks in a list and later use `Task.find/2`
   to see if incoming messages are from any of the tasks.
+
+  ## Examples
+
+      defmodule TaskFinder do
+        def run do
+          task1 = Task.async fn -> :timer.sleep(1000); 1 end
+          task2 = Task.async fn -> :timer.sleep(5000); 2 end
+          await [task1, task2]
+        end
+
+        # Be careful, this will receive all messages sent
+        # to this process. It will return the first task
+        # reply and the list of tasks that came second.
+        def await(tasks) do
+          receive do
+            message ->
+              case Task.find(tasks, message) do
+                {reply, task} ->
+                  {reply, List.delete(tasks, task)}
+                nil ->
+                  await(tasks)
+              end
+          end
+        end
+      end
+
+      TaskFinder.run
   """
   @spec find([t], any) :: {term, t} | nil | no_return
   def find(tasks, msg)
