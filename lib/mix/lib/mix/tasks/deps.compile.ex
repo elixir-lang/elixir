@@ -55,13 +55,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
         compiled = cond do
           not is_nil(opts[:compile]) ->
-            do_compile dep
+            do_compile dep, config
           mix?(dep) ->
-            do_mix dep
+            do_mix dep, config
           rebar?(dep) ->
             do_rebar dep, config
           make?(dep) ->
-            do_make dep
+            do_make dep, config
           true ->
             shell.error "Could not compile #{app}, no mix.exs, rebar.config or Makefile " <>
               "(pass :compile as an option to customize compilation, set it to false to do nothing)"
@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Deps.Compile do
     :ok
   end
 
-  defp do_mix(dep) do
+  defp do_mix(dep, _config) do
     Mix.Dep.in_dependency dep, fn _ ->
       if req = old_elixir_req(Mix.Project.config) do
         Mix.shell.error "warning: the dependency #{dep.app} requires Elixir #{inspect req} " <>
@@ -115,7 +115,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_rebar(%Mix.Dep{app: app} = dep, config) do
     lib_path = Path.join(config[:build_path], "lib")
-    do_command dep, rebar_cmd(app), false,
+    do_command dep, config, rebar_cmd(app), false,
                "compile skip_deps=true deps_dir=#{inspect lib_path}"
   end
 
@@ -137,26 +137,27 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.raise "rebar installation failed"
   end
 
-  defp do_make(dep) do
+  defp do_make(dep, config) do
     command = if match?({:win32, _}, :os.type) and File.regular?("Makefile.win") do
       "nmake /F Makefile.win"
     else
       "make"
     end
-    do_command(dep, command, true)
+    do_command(dep, config, command, true)
   end
 
-  defp do_compile(%Mix.Dep{opts: opts} = dep) do
+  defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
     if command = opts[:compile] do
-      do_command(dep, command, true)
+      do_command(dep, config, command, true)
     else
       false
     end
   end
 
-  defp do_command(%Mix.Dep{app: app} = dep, command, print_app?, extra \\ "") do
+  defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, extra \\ "") do
     Mix.Dep.in_dependency dep, fn _ ->
-      if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?) != 0 do
+      env = [{"ERL_LIBS", Path.join(config[:build_path], "lib")}]
+      if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?, env: env) != 0 do
         Mix.raise "Could not compile dependency #{app}, #{command} command failed. " <>
           "If you want to recompile this dependency, please run: mix deps.compile #{app}"
       end
