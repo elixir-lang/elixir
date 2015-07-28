@@ -183,20 +183,24 @@ defmodule IO do
   80 characters. The width can be changed by explicitly
   passing the `:width` option.
 
+  See `Inspect.Opts` for a full list of options.
+
   ## Examples
 
       IO.inspect Process.list, width: 40
 
   """
-  @spec inspect(term, Keyword.t) :: term
+  @spec inspect(item, Keyword.t) :: item when item: var
   def inspect(item, opts \\ []) do
     inspect group_leader(), item, opts
   end
 
   @doc """
   Inspects the item with options using the given device.
+
+  See `Inspect.Opts` for a full list of options.
   """
-  @spec inspect(device, term, Keyword.t) :: term
+  @spec inspect(device, item, Keyword.t) :: item when item: var
   def inspect(device, item, opts) when is_list(opts) do
     opts   = struct(Inspect.Opts, opts)
     iodata = Inspect.Algebra.format(Inspect.Algebra.to_doc(item, opts), opts.width)
