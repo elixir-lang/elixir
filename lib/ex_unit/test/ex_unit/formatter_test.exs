@@ -6,6 +6,8 @@ defmodule ExUnit.FormatterTest do
   import ExUnit.Formatter
   doctest ExUnit.Formatter
 
+  @rel_file_path Path.relative_to_cwd(__ENV__.file)
+
   def falsy, do: false
   def formatter(_color, msg), do: msg
 
@@ -37,7 +39,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:error, catch_error(raise "oops"), []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (RuntimeError) oops
     """
   end
@@ -46,7 +48,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:exit, 1, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (exit) 1
     """
   end
@@ -55,7 +57,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:exit, {:bye, {:m, :f, []}}, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (exit) exited in: :m.f()
              ** (EXIT) :bye
     """
@@ -65,7 +67,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:throw, 1, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (throw) 1
     """
   end
@@ -74,7 +76,7 @@ defmodule ExUnit.FormatterTest do
     failure = {{:EXIT, self}, 1, []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (EXIT from #{inspect self}) 1
     """
   end
@@ -83,7 +85,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:error, catch_error(raise "oops"), [{Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}]}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (RuntimeError) oops
          stacktrace:
            formatter_test.exs:1: Oops.wrong/1
@@ -94,7 +96,7 @@ defmodule ExUnit.FormatterTest do
     failure = {:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []}
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          Expected truthy, got false
          code: ExUnit.FormatterTest.falsy()
     """
@@ -164,7 +166,7 @@ defmodule ExUnit.FormatterTest do
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          Assertion with == failed
          code: :will_fail == %BadInspect{}
          lhs:  :will_fail
@@ -186,7 +188,7 @@ defmodule ExUnit.FormatterTest do
               "for %ExUnit.FormatterTest.BadMessage{key: 0}"
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
-         test/ex_unit/formatter_test.exs:1
+         #{@rel_file_path}:1
          ** (ExUnit.FormatterTest.BadMessage) #{message}
     """
   end

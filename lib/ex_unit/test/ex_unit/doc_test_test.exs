@@ -114,7 +114,9 @@ defmodule ExUnit.DocTestTest.NoImport do
   def min(a, b), do: max(a, b)
 end |> write_beam
 
-defmodule ExUnit.DocTestTest.Invalid do
+defmodule ExUnit.DocTestTest.Invalid do; @mod_line __ENV__.line
+  def mod_line, do: @mod_line
+
   @moduledoc """
 
       iex> 1 + * 1
@@ -189,7 +191,7 @@ defmodule ExUnit.DocTestTest.Incomplete do
 end |> write_beam
 
 defmodule ExUnit.DocTestTest do
-  use ExUnit.Case
+  use ExUnit.Case;
 
   # This is intentional. The doctests in DocTest's docs
   # fail for demonstration purposes.
@@ -203,6 +205,11 @@ defmodule ExUnit.DocTestTest do
 
   import ExUnit.CaptureIO
 
+  defmacro rel_file_path, do: Path.relative_to_cwd(__ENV__.file)
+
+  defmacro mod_invalid_line, do: ExUnit.DocTestTest.Invalid.mod_line
+
+
   test "multiple functions filtered with :only" do
     defmodule MultipleOnly do
       use ExUnit.Case
@@ -215,8 +222,13 @@ defmodule ExUnit.DocTestTest do
   test "doctest failures" do
     defmodule ActuallyCompiled do
       use ExUnit.Case
-      doctest ExUnit.DocTestTest.Invalid
+      doctest ExUnit.DocTestTest.Invalid; @fun_line __ENV__.line
+
+      def fun_line, do: @fun_line
     end
+
+    file_path_fun_line_no =  "#{rel_file_path}:#{ActuallyCompiled.fun_line}"
+    file_path_mod_line_no = "#{rel_file_path}:#{mod_invalid_line}"
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     output = capture_io(fn -> ExUnit.run end)
@@ -226,58 +238,58 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:117: syntax error before: '*'
+         #{file_path_fun_line_no}
+         Doctest did not compile, got: (SyntaxError) #{file_path_mod_line_no}: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
+         #{file_path_fun_line_no}
          Doctest failed
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
+         #{file_path_fun_line_no}
          Doctest failed
          code: inspect(:oops) === "#HashDict<[]>"
          lhs:  ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
+         #{file_path_fun_line_no}
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
+         #{file_path_fun_line_no}
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
       6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:218
+         #{file_path_fun_line_no}
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           #{file_path_mod_line_no}: ExUnit.DocTestTest.Invalid (module)
     """
   end
 
