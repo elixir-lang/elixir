@@ -217,8 +217,8 @@ defmodule Mix.Tasks.New do
   /_build
   /cover
   /deps
-  erl_crash.dump
   *.ez
+  erl_crash.dump
   """
 
   embed_template :mixfile, """
