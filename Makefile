@@ -1,6 +1,7 @@
 REBAR ?= $(CURDIR)/rebar
 PREFIX ?= /usr/local
 DOCS := master
+ELIXIR := bin/elixir
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
@@ -44,7 +45,7 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
-	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+	$(Q) $(ELIXIR) -r "lib/$(1)/test/test_helper.exs" -pr "lib/$(1)/test/**/*_test.exs";
 endef
 
 #==> Compilation tasks
@@ -129,7 +130,7 @@ clean_exbeam:
 #==>  Create Documentation
 
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = $(ELIXIR) ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
@@ -210,15 +211,15 @@ test_elixir: test_stdlib test_ex_unit test_logger test_doc_test test_mix test_ee
 
 test_doc_test: compile
 	@ echo "==> doctest (exunit)"
-	$(Q) cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
+	$(Q) $(ELIXIR) -r "lib/elixir/test/doc_test.exs";
 
 test_stdlib: compile
 	@ echo "==> elixir (exunit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cmd //C call bin/elixir.bat -r "lib/elixir/test/elixir/test_helper.exs" -pr "lib/elixir/test/elixir/**/*_test.exs"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		$(ELIXIR) -r "lib/elixir/test/elixir/test_helper.exs" -pr "lib/elixir/test/elixir/**/*_test.exs"; \
 	fi
 
 #==> Dialyzer tasks
