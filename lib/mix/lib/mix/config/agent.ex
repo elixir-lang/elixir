@@ -15,7 +15,7 @@ defmodule Mix.Config.Agent do
 
   @spec get(pid) :: config
   def get(agent) do
-    Agent.get(agent, &(&1))
+    Agent.get(agent)
   end
 
   @spec merge(pid, config) :: config
