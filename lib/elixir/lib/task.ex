@@ -59,6 +59,11 @@ defmodule Task do
   unlike `async/1`, returns `{:ok, pid}` (which is
   the result expected by supervision trees).
 
+  By default, most supervision strategies will try to restart
+  a worker after it exits regardless of reason. If you design the
+  task to terminate normally (as in the example with `IO.puts` above),
+  consider passing `restart: :transient` in the options to `worker/3`.
+
   ## Dynamically supervised tasks
 
   The `Task.Supervisor` module allows developers to dynamically
