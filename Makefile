@@ -174,6 +174,7 @@ release_precompiled: compile
 	$(MAKE) build_man
 	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
 	$(MAKE) clean_man
+	@ echo "Release file created: $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 release_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
