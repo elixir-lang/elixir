@@ -316,7 +316,11 @@ defmodule ExUnit.CaptureIOTest do
       end)
     end)
 
+    # Assert the process is down then invoke capture_io
+    # to trigger the ExUnit.Server, ensuring the DOWN
+    # message from previous capture_io has been processed
     assert_receive {:DOWN, ^ref, _, _, :shutdown}
+    _ = capture_io(fn -> "trigger" end)
     assert capture_io(:stderr, fn -> end)
   end
 
