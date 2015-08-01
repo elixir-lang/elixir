@@ -456,7 +456,7 @@ stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
 
 container_expr -> matched_expr : '$1'.
 container_expr -> unmatched_expr : '$1'.
-container_expr -> no_parens_expr : throw_no_parens_many_strict('$1').
+container_expr -> no_parens_expr : throw_no_parens_container_strict('$1').
 
 container_args_base -> container_expr : ['$1'].
 container_args_base -> container_args_base ',' container_expr : ['$3'|'$1'].
@@ -785,6 +785,25 @@ throw_no_parens_many_strict(Token) ->
     "to the function \"one\" or \"two\". You can solve this by explicitly adding "
     "parentheses:\n\n"
     "    one a, two(b, c, d)\n\n"
+    "Elixir cannot compile otherwise. Syntax error before: ", "','").
+
+throw_no_parens_container_strict(Token) ->
+  Line =
+    case lists:keyfind(line, 1, element(2, Token)) of
+      {line, L} -> L;
+      false -> 0
+    end,
+
+  throw(Line,
+    "unexpected comma. Parentheses are required to solve ambiguity inside containers.\n\n"
+    "This error may happen when you forget a comma in a list or other container:\n\n"
+    "    [a, b c, d]\n\n"
+    "Or when you have ambiguous calls:\n\n"
+    "    [one, two three, four, five]\n\n"
+    "In the example above, we don't know if the parameters \"four\" and \"five\" "
+    "belongs to the list or the function \"two\". You can solve this by explicitly "
+    "adding parentheses:\n\n"
+    "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 throw_bad_atom(Line) ->
