@@ -134,7 +134,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test :syntax_error_on_nested_no_parens_call do
-    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity in nested calls"
+    msg = "nofile:1: unexpected comma. Parentheses are required to solve ambiguity"
 
     assert_compile_fail SyntaxError, msg, '[foo 1, 2]'
     assert_compile_fail SyntaxError, msg, '[foo bar 1, 2]'
