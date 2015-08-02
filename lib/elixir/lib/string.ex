@@ -422,24 +422,24 @@ defmodule String do
 
   """
   @spec split_at(t, integer) :: {t, t}
-  def split_at(string, offset)
+  def split_at(string, position)
 
-  def split_at(binary, 0), do: {"", binary}
+  def split_at(string, position) when is_integer(position) and position >= 0 do
+    do_split_at(string, position)
+  end
 
-  def split_at(binary, index) when is_integer(index) and index > 0, do:
-    do_split_at(next_grapheme(binary), 0, index, "")
+  def split_at(string, position) when is_integer(position) and position < 0 do
+    position = length(string) - abs(position)
+    case position >= 0 do
+      true  -> do_split_at(string, position)
+      false -> {"", string}
+    end
+  end
 
-  def split_at(binary, index) when is_integer(index) and index < 0, do:
-    do_split_at(next_grapheme(binary), 0, max(0, byte_size(binary)+index), "")
-
-  defp do_split_at(nil, _, _, acc), do:
-    {acc, ""}
-
-  defp do_split_at({grapheme, rest}, current_pos, target_pos, acc) when current_pos < target_pos, do:
-    do_split_at(next_grapheme(rest), current_pos+1, target_pos, acc <> grapheme)
-
-  defp do_split_at({grapheme, rest}, pos, pos, acc), do:
-    {acc, grapheme <> rest}
+  defp do_split_at(string, position) do
+    {byte_size, rest} = String.Graphemes.split_at(string, position)
+    {binary_part(string, 0, byte_size), rest || ""}
+  end
 
   @doc """
   Converts all characters in the given string to uppercase.
@@ -961,8 +961,10 @@ defmodule String do
   @spec graphemes(t) :: [grapheme]
   defdelegate graphemes(string), to: String.Graphemes
 
+  @compile {:inline, next_grapheme: 1, next_grapheme_size: 1}
+
   @doc """
-  Returns the next grapheme in a String.
+  Returns the next grapheme in a string.
 
   The result is a tuple with the grapheme and the
   remainder of the string or `nil` in case
@@ -974,9 +976,29 @@ defmodule String do
       {"o", "lá"}
 
   """
-  @compile {:inline, next_grapheme: 1}
   @spec next_grapheme(t) :: {grapheme, t} | nil
-  defdelegate next_grapheme(string), to: String.Graphemes
+  def next_grapheme(binary) do
+    case next_grapheme_size(binary) do
+      {size, rest} -> {:binary.part(binary, 0, size), rest}
+      nil          -> nil
+    end
+  end
+
+  @doc """
+  Returns the size of the next grapheme.
+
+  The result is a tuple with the next grapheme size and
+  the remainder of the string or `nil` in case the string
+  reached its end.
+
+  ## Examples
+
+      iex> String.next_grapheme_size("olá")
+      {1, "lá"}
+
+  """
+  @spec next_grapheme_size(t) :: {pos_integer, t} | nil
+  defdelegate next_grapheme_size(string), to: String.Graphemes
 
   @doc """
   Returns the first grapheme from a utf8 string,
@@ -1036,15 +1058,7 @@ defmodule String do
 
   """
   @spec length(t) :: non_neg_integer
-  def length(string) do
-    do_length(next_grapheme(string))
-  end
-
-  defp do_length({_, rest}) do
-    1 + do_length(next_grapheme(rest))
-  end
-
-  defp do_length(nil), do: 0
+  defdelegate length(string), to: String.Graphemes
 
   @doc """
   Returns the grapheme in the `position` of the given utf8 `string`.
@@ -1071,26 +1085,23 @@ defmodule String do
   @spec at(t, integer) :: grapheme | nil
 
   def at(string, position) when is_integer(position) and position >= 0 do
-    do_at(next_grapheme(string), position, 0)
+    do_at(string, position)
   end
 
   def at(string, position) when is_integer(position) and position < 0 do
-    real_pos = length(string) - abs(position)
-    case real_pos >= 0 do
-      true  -> do_at(next_grapheme(string), real_pos, 0)
+    position = length(string) - abs(position)
+    case position >= 0 do
+      true  -> do_at(string, position)
       false -> nil
     end
   end
 
-  defp do_at({_, rest}, desired_pos, current_pos) when desired_pos > current_pos do
-    do_at(next_grapheme(rest), desired_pos, current_pos + 1)
+  defp do_at(string, position) do
+    case String.Graphemes.split_at(string, position) do
+      {_, nil}  -> nil
+      {_, rest} -> first(rest)
+    end
   end
-
-  defp do_at({char, _}, desired_pos, desired_pos) do
-    char
-  end
-
-  defp do_at(nil, _, _), do: nil
 
   @doc """
   Returns a substring starting at the offset `start`, and of
@@ -1136,10 +1147,10 @@ defmodule String do
   end
 
   def slice(string, start, len) when start >= 0 and len >= 0 do
-    case do_count_bytes(next_grapheme(string), start, 0) do
-      {nil, _} -> ""
-      {next, start_bytes} ->
-        {_, len_bytes} = do_count_bytes(next, len, 0)
+    case String.Graphemes.split_at(string, start) do
+      {_, nil} -> ""
+      {start_bytes, rest} ->
+        {len_bytes, _} = String.Graphemes.split_at(rest, len)
         binary_part(string, start_bytes, len_bytes)
     end
   end
@@ -1150,13 +1161,6 @@ defmodule String do
       true  -> slice(string, start, len)
       false -> ""
     end
-  end
-
-  defp do_count_bytes(next, 0, acc), do: {next, acc}
-  defp do_count_bytes(nil, _, acc),  do: {nil, acc}
-
-  defp do_count_bytes({char, rest}, counter, acc) do
-    do_count_bytes(next_grapheme(rest), counter - 1, acc + byte_size(char))
   end
 
   @doc """
@@ -1214,9 +1218,11 @@ defmodule String do
   def slice("", _.._), do: ""
 
   def slice(string, first..-1) when first >= 0 do
-    case do_count_bytes(next_grapheme(string), first, 0) do
-      {nil, _} -> ""
-      {_, start_bytes} -> binary_part(string, start_bytes, byte_size(string) - start_bytes)
+    case String.Graphemes.split_at(string, first) do
+      {_, nil} ->
+        ""
+      {start_bytes, _} ->
+        binary_part(string, start_bytes, byte_size(string) - start_bytes)
     end
   end
 
@@ -1229,7 +1235,7 @@ defmodule String do
   end
 
   def slice(string, first..last) do
-    {bytes, length} = do_acc_bytes(next_grapheme(string), [], 0)
+    {bytes, length} = do_acc_bytes(next_grapheme_size(string), [], 0)
 
     if first < 0, do: first = length + first
     if last < 0,  do: last  = length + last
@@ -1245,8 +1251,8 @@ defmodule String do
     end
   end
 
-  defp do_acc_bytes({char, rest}, bytes, length) do
-    do_acc_bytes(next_grapheme(rest), [byte_size(char)|bytes], length + 1)
+  defp do_acc_bytes({size, rest}, bytes, length) do
+    do_acc_bytes(next_grapheme_size(rest), [size|bytes], length + 1)
   end
 
   defp do_acc_bytes(nil, bytes, length) do
