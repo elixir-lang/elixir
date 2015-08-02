@@ -228,145 +228,178 @@ defmodule String.Graphemes do
   end
 
   # Don't break CRLF
-  def next_grapheme(<< ?\r, ?\n, rest :: binary >>) do
-    {"\r\n", rest}
+  def next_grapheme_size(<<?\r, ?\n, rest :: binary>>) do
+    {2, rest}
   end
 
   # Break on control
   for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      {:binary.part(string, 0, unquote(byte_size(codepoint))), rest}
+    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+      {unquote(byte_size(codepoint)), rest}
     end
   end
 
   # Break on Prepend*
   # for codepoint <- cluster["Prepend"] do
-  #   def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-  #     next_prepend(rest, string, unquote(byte_size(codepoint)))
+  #   def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+  #     next_prepend_size(rest, unquote(byte_size(codepoint)))
   #   end
   # end
 
   # Handle Hangul L
   for codepoint <- cluster["L"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_hangul_l(rest, string, unquote(byte_size(codepoint)))
+    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+      next_hangul_l_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Hangul T
   for codepoint <- cluster["T"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_hangul_t(rest, string, unquote(byte_size(codepoint)))
+    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+      next_hangul_t_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Regional
   for codepoint <- cluster["Regional_Indicator"] do
-    def next_grapheme(<< unquote(codepoint), rest :: binary >> = string) do
-      next_regional(rest, string, unquote(byte_size(codepoint)))
+    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+      next_regional_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle extended entries
-  def next_grapheme(<< cp :: utf8, rest :: binary >> = string) do
-    next_extend(rest, string, byte_size(<< cp :: utf8 >>))
+
+  def next_grapheme_size(<<cp :: utf8, rest :: binary>>) do
+    case cp do
+      x when x <= 0x007F -> next_extend_size(rest, 1)
+      x when x <= 0x07FF -> next_extend_size(rest, 2)
+      x when x <= 0xFFFF -> next_extend_size(rest, 3)
+      _                  -> next_extend_size(rest, 4)
+    end
   end
 
-  def next_grapheme(<< cp, rest :: binary >>) do
-    {<<cp>>, rest}
+  def next_grapheme_size(<<_, rest :: binary>>) do
+    {1, rest}
   end
 
-  def next_grapheme(<<>>) do
+  def next_grapheme_size(<<>>) do
     nil
   end
 
   # Handle Hangul L
   for codepoint <- cluster["L"] do
-    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_l(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LV"] do
-    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_v(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LVT"] do
-    defp next_hangul_l(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_t(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
-  defp next_hangul_l(rest, string, size) do
-    next_hangul_v(rest, string, size)
+  defp next_hangul_l_size(rest, size) do
+    next_hangul_v_size(rest, size)
   end
 
   # Handle Hangul V
   for codepoint <- cluster["V"] do
-    defp next_hangul_v(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_v(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_hangul_v_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
-  defp next_hangul_v(rest, string, size) do
-    next_hangul_t(rest, string, size)
+  defp next_hangul_v_size(rest, size) do
+    next_hangul_t_size(rest, size)
   end
 
   # Handle Hangul T
   for codepoint <- cluster["T"] do
-    defp next_hangul_t(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_hangul_t(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_hangul_t_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
-  defp next_hangul_t(rest, string, size) do
-    next_extend(rest, string, size)
+  defp next_hangul_t_size(rest, size) do
+    next_extend_size(rest, size)
   end
 
   # Handle regional
   for codepoint <- cluster["Regional_Indicator"] do
-    defp next_regional(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_regional(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_regional_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_regional_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
-  defp next_regional(rest, string, size) do
-    next_extend(rest, string, size)
+  defp next_regional_size(rest, size) do
+    next_extend_size(rest, size)
   end
 
   # Handle Extend+SpacingMark
   for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
-    defp next_extend(<< unquote(codepoint), rest :: binary >>, string, size) do
-      next_extend(rest, string, size + unquote(byte_size(codepoint)))
+    defp next_extend_size(<<unquote(codepoint), rest :: binary>>, size) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
-  defp next_extend(rest, string, size) do
-    {:binary.part(string, 0, size), rest}
+  defp next_extend_size(rest, size) do
+    {size, rest}
   end
 
   # Handle Prepend
   # for codepoint <- cluster["Prepend"] do
-  #   defp next_prepend(<< unquote(codepoint), rest :: binary >>, string, size) do
-  #     next_prepend(rest, string, size + unquote(byte_size(codepoint)))
+  #   defp next_prepend_size(<<unquote(codepoint), rest :: binary>>, size) do
+  #     next_prepend_size(rest, size + unquote(byte_size(codepoint)))
   #   end
   # end
   #
-  # defp next_prepend(rest, string, size) do
-  #   {:binary.part(string, 0, size), rest}
+  # defp next_prepend_size(rest, size) do
+  #   {size, rest}
   # end
 
+  ## Tight-loop implementations
+
   def graphemes(binary) when is_binary(binary) do
-    do_graphemes(next_grapheme(binary))
+    do_graphemes(next_grapheme_size(binary), binary)
   end
 
-  defp do_graphemes({c, rest}) do
-    [c|do_graphemes(next_grapheme(rest))]
+  defp do_graphemes({size, rest}, binary) do
+    [:binary.part(binary, 0, size)|do_graphemes(next_grapheme_size(rest), rest)]
   end
 
-  defp do_graphemes(nil) do
+  defp do_graphemes(nil, _) do
     []
+  end
+
+  def length(string) do
+    do_length(next_grapheme_size(string), 0)
+  end
+
+  defp do_length({_, rest}, acc) do
+    do_length(next_grapheme_size(rest), acc + 1)
+  end
+
+  defp do_length(nil, acc), do: acc
+
+  def split_at(string, pos) do
+    do_split_at(string, 0, pos, 0)
+  end
+
+  defp do_split_at(string, acc, desired_pos, current_pos) when desired_pos > current_pos do
+    case next_grapheme_size(string) do
+      {count, rest} -> do_split_at(rest, acc + count, desired_pos, current_pos + 1)
+      nil -> {acc, nil}
+    end
+  end
+
+  defp do_split_at(string, acc, desired_pos, desired_pos) do
+    {acc, string}
   end
 end
