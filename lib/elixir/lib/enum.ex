@@ -2029,22 +2029,54 @@ defmodule Enum do
   @spec take_random(t, integer) :: list
   def take_random(_collection, 0), do: []
 
+  if :erlang.system_info(:otp_release) >= '18' do
+    def take_random(collection, count) when count > 128 do
+      reducer = fn(elem, {idx, sample}) ->
+        jdx = random_index(idx)
+        cond do
+          idx < count ->
+            value = Map.get(sample, jdx)
+            {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
+          jdx < count ->
+            {idx + 1, Map.put(sample, jdx, elem)}
+          true ->
+            {idx + 1, sample}
+        end
+      end
+
+      {size, sample} = reduce(collection, {0, %{}}, reducer)
+      take_random(sample, Kernel.min(count, size), [])
+    end
+  end
+
   def take_random(collection, count) when count > 0 do
     sample = Tuple.duplicate(nil, count)
 
-    reducer = fn x, {i, sample} ->
-      j = random_index(i)
-      if i < count do
-        swapped = sample |> elem(j)
-        {i + 1, sample |> put_elem(i, swapped) |> put_elem(j, x)}
-      else
-        if j < count, do: sample = sample |> put_elem(j, x)
-        {i + 1, sample}
+    reducer = fn(elem, {idx, sample}) ->
+      jdx = random_index(idx)
+      cond do
+        idx < count ->
+          value = elem(sample, jdx)
+          {idx + 1, put_elem(sample, idx, value) |> put_elem(jdx, elem)}
+        jdx < count ->
+          {idx + 1, put_elem(sample, jdx, elem)}
+        true ->
+          {idx + 1, sample}
       end
     end
 
-    {n, sample} = reduce(collection, {0, sample}, reducer)
-    sample |> Tuple.to_list |> take(Kernel.min(count, n))
+    {size, sample} = reduce(collection, {0, sample}, reducer)
+    sample |> Tuple.to_list |> take(Kernel.min(count, size))
+  end
+
+  if :erlang.system_info(:otp_release) >= '18' do
+    defp take_random(_sample, 0, acc), do: acc
+
+    defp take_random(sample, position, acc) do
+      position = position - 1
+      acc = [Map.get(sample, position) | acc]
+      take_random(sample, position, acc)
+    end
   end
 
   @doc """
