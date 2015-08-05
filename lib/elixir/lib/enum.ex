@@ -1407,6 +1407,10 @@ defmodule Enum do
   This function won't call the specified function for enumerables that are 1-element long.
   Returns the accumulator.
 
+  Note that since the first element of the enumerable is used as the initial
+  value of the accumulator, `fun` will only be executed `n - 1` times where `n`
+  is the length of the enumerable.
+
   ## Examples
 
       iex> Enum.reduce([1, 2, 3, 4], fn(x, acc) -> x * acc end)
