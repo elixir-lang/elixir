@@ -911,7 +911,7 @@ defmodule Kernel do
   @doc """
   Concatenates two lists.
 
-  Allowed in guard tests. Inlined by the compiler.
+  Inlined by the compiler.
 
   ## Examples
 
