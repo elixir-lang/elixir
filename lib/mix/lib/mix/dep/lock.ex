@@ -61,7 +61,7 @@ defmodule Mix.Dep.Lock do
   def read() do
     case File.read(lockfile) do
       {:ok, info} ->
-        case Code.eval_string(info) do
+        case Code.eval_string(info, [], file: lockfile) do
           # lock could be a keyword list
           {lock, _binding} when is_list(lock) -> Enum.into(lock, %{})
           {lock, _binding} when is_map(lock)  -> lock
