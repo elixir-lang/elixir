@@ -14,17 +14,17 @@ defmodule Kernel.QuoteTest do
   test :keep_line do
     ## DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1, 2, 3)) ==
-           {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16], [1, 2, 3]}
+           {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16, column_begin: 39, column_end: 42], [1, 2, 3]}
   end
 
   test :fixed_line do
-    assert quote(line: 3, do: bar(1, 2, 3)) == {:bar, [line: 3], [1, 2, 3]}
+    assert quote(line: 3, do: bar(1, 2, 3)) == {:bar, [line: 3, column_begin: 31, column_end: 34], [1, 2, 3]}
   end
 
   test :quote_line_var do
     ## DO NOT MOVE THIS LINE
     line = __ENV__.line
-    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26], [1, 2, 3]}
+    assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26, column_begin: 34, column_end: 37], [1, 2, 3]}
   end
 
   test :unquote_call do
@@ -160,7 +160,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test :with_dynamic_opts do
-    assert quote(dynamic_opts, do: bar(1, 2, 3)) == {:bar, [line: 3], [1, 2, 3]}
+    assert quote(dynamic_opts, do: bar(1, 2, 3)) == {:bar, [line: 3, column_begin: 36, column_end: 39], [1, 2, 3]}
   end
 
   test :unary_with_integer_precedence do
