@@ -148,6 +148,16 @@ defmodule ListTest do
     assert List.delete_at([1, 2, 3], -4) == [1, 2, 3]
   end
 
+  test :combinations do
+    list = [1,2,3,4]
+    assert List.combinations(list, 0) == [[]]
+    assert List.combinations(list, 1) == [[1], [2], [3], [4]]
+    assert List.combinations(list, 2) == [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]]
+    assert List.combinations(list, 3) == [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
+    assert List.combinations(list, 4) == [[1,2,3,4]]
+    assert List.combinations(list, 5) == []
+  end
+
   test :to_string do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"
