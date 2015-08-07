@@ -466,6 +466,20 @@ defmodule List do
   end
 
   @doc """
+  Returns a list of all possible `k` length combinations
+
+  ## Examples
+
+      iex> List.combinations([1, 2, 3], 2)
+      [[1, 2], [1, 3], [2, 3]]
+
+  """
+  @spec combinations(list, non_neg_integer) :: list
+  def combinations(collection, k) do
+    List.last(do_combinations(collection, k))
+  end
+
+  @doc """
   Converts a char list to an atom.
 
   Currently Elixir does not support conversions from char lists
@@ -695,6 +709,18 @@ defmodule List do
 
   defp do_zip_each([], _) do
     {nil, nil}
+  end
+
+  # combinations
+
+  defp do_combinations(list, k) do
+    combinations_by_length = [[[]]|List.duplicate([], k)]
+
+    List.foldr list, combinations_by_length, fn x, next ->
+      sub = :lists.droplast(next)
+      step = [[]|(for l <- sub, do: (for s <- l, do: [x|s]))]
+      :lists.zipwith(&:lists.append/2, step, next)
+    end
   end
 
   defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
