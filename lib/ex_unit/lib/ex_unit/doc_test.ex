@@ -60,9 +60,20 @@ defmodule ExUnit.DocTest do
       iex> a + 1  # will fail with a "function a/0 undefined" error
       2
 
+  If you don't want to assert for every result in a doctest, you can just omit
+  the result:
+
+      iex> pid = spawn fn -> :ok end
+      iex> is_pid(pid)
+      true
+
+  This is useful when the result is something variable (like a pid in the
+  example above) or when the result is a complicated data structure and you
+  don't want to show it all, but just parts of it or some of its properties.
+
   Similarly to iex you can use numbers in your "prompts":
 
-      iex(1)> [1+2,
+      iex(1)> [1 + 2,
       ...(1)>  3]
       [3, 3]
 
@@ -81,11 +92,11 @@ defmodule ExUnit.DocTest do
   Elixir is to print those data types as `#Name<...>`. Because those
   values are treated as comments in Elixir code due to the leading
   `#` sign, they require special care when used in doctests.
-  
+
   Imagine you have a map with a HashSet inside which is printed as:
-  
+
       %{users: #HashSet<[:foo, :bar]>}
-  
+
   If you try to match on such expression, doctest will fail to compile.
   You have two options to solve this.
 
@@ -98,7 +109,7 @@ defmodule ExUnit.DocTest do
 
   Whenever a doctest starts with "#Name<", doctest will perform a string
   comparison. For example, the above test will perform the following match:
-  
+
       inspect(map.users) == "#HashSet<[:foo, :bar]>"
 
   Alternatively, since doctest results are actually evaluated, you can have
