@@ -3331,14 +3331,14 @@ defmodule Kernel do
     * `impl_for!/1` - same as above but raises an error if an implementation is
       not found
 
-      Enumerable.__protocol__(:functions)
-      #=> [count: 1, member?: 2, reduce: 3]
+          Enumerable.__protocol__(:functions)
+          #=> [count: 1, member?: 2, reduce: 3]
 
-      Enumerable.impl_for([])
-      #=> Enumerable.List
+          Enumerable.impl_for([])
+          #=> Enumerable.List
 
-      Enumerable.impl_for(42)
-      #=> nil
+          Enumerable.impl_for(42)
+          #=> nil
 
   ## Consolidation
 
