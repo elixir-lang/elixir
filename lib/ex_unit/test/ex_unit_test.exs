@@ -193,6 +193,29 @@ defmodule ExUnitTest do
     assert output =~ "1 test, 1 failure"
   end
 
+  test "it skips tagged test with skip" do
+    defmodule TestSkipped do
+      use ExUnit.Case, async: false
+
+      setup context do
+        assert context[:not_implemented]
+        :ok
+      end
+
+      @tag :skip
+      test "this will raise", do: raise "oops"
+
+      @tag skip: "won't work"
+      test "this will also raise", do: raise "oops"
+    end
+
+    output = capture_io(fn ->
+      assert ExUnit.run == %{failures: 0, skipped: 2, total: 2}
+    end)
+
+    assert output =~ "2 tests, 0 failures, 2 skipped"
+  end
+
   defp run_with_filter(filters, {async, sync, load_us}) do
     opts = Keyword.merge(ExUnit.configuration, filters)
     output = capture_io fn ->

@@ -174,12 +174,8 @@ defmodule ExUnit.Callbacks do
         [h|t] ->
           Enum.reduce t, compile_merge(h), fn(callback, acc) ->
             quote do
-              case unquote(acc) do
-                {:ok, context} ->
-                  unquote(compile_merge(callback))
-                other ->
-                  other
-              end
+              {:ok, context} = unquote(acc)
+              unquote(compile_merge(callback))
             end
           end
       end

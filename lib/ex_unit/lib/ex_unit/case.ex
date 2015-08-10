@@ -121,6 +121,7 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behaves:
 
+    * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 30000)
 
   ## Filters

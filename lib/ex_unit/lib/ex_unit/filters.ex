@@ -77,16 +77,23 @@ defmodule ExUnit.Filters do
       :ok
 
       iex> ExUnit.Filters.eval([foo: "bar"], [:foo], %{foo: "baz"}, [])
-      {:error, :foo}
+      {:error, "due to foo filter"}
 
   """
   @spec eval(t, t, map, [ExUnit.Test.t]) :: :ok | {:error, atom}
   def eval(include, exclude, tags, collection) when is_map(tags) do
-    excluded = Enum.find_value exclude, &has_tag(&1, tags, collection)
-    if !excluded or Enum.any?(include, &has_tag(&1, tags, collection)) do
-      :ok
-    else
-      {:error, excluded}
+    case Map.fetch(tags, :skip) do
+      {:ok, msg} when is_binary(msg) ->
+        {:error, msg}
+      {:ok, true} ->
+        {:error, "due to skip tag"}
+      _ ->
+        excluded = Enum.find_value exclude, &has_tag(&1, tags, collection)
+        if !excluded or Enum.any?(include, &has_tag(&1, tags, collection)) do
+          :ok
+        else
+          {:error, "due to #{excluded} filter"}
+        end
     end
   end
 

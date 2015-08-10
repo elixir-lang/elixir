@@ -139,7 +139,7 @@ defmodule ExUnit.Runner do
       tags = Map.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok           -> %{test | tags: tags}
-        {:error, tag} -> %{test | state: {:skip, "due to #{tag} filter"}}
+        {:error, msg} -> %{test | state: {:skip, msg}}
       end
     end
   end
