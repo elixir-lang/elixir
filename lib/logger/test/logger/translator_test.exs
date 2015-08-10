@@ -60,6 +60,19 @@ defmodule Logger.TranslatorTest do
     """
   end
 
+  test "translates GenServer crashes with custom inspect options" do
+    {:ok, pid} = GenServer.start(MyGenServer, List.duplicate(:ok, 1000))
+    Application.put_env(:logger, :translator_inspect_opts, [limit: 3])
+
+    assert capture_log(:debug, fn ->
+      catch_exit(GenServer.call(pid, :error))
+    end) =~ """
+    [:ok, :ok, :ok, ...]
+    """
+  after
+    Application.put_env(:logger, :translator_inspect_opts, [])
+  end
+
   test "translates GenServer crashes on debug" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 

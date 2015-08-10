@@ -20,6 +20,7 @@ defmodule Logger.Mixfile do
            handle_sasl_reports: false,
            compile_time_purge_level: :debug,
            discard_threshold_for_error_logger: 500,
+           translator_inspect_opts: [],
            console: []]]
   end
 end

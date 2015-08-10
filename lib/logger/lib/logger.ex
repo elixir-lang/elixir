@@ -88,6 +88,11 @@ defmodule Logger do
       in the queue is reduced to `sync_threshold * 0.75` messages.
       Defaults to 20 messages.
 
+    * `:translator_inspect_opts` - when translating OTP reports and
+      errors, the last message and state must be inspected in the
+      error reports. This configuration allow developers to change
+      how much and how the data should be inspected.
+
   For example, to configure the `:level` and `:truncate` in a
   `config/config.exs` file:
 

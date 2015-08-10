@@ -65,7 +65,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Allow underscores in binary, octal and hex literals
   * [List] Add `List.keytake/3`
   * [Logger] Support printing pids and refs in Logger metadata
-  * [Logger] Allow logger metadata to be removed from pdict by setting it to nil
+  * [Logger] Allow logger metadata to be removed from pdict by setting it to `nil`
+  * [Logger] Add application configuration `translator_inspect_opts` for logger to customize how state and message are formatted when translating OTP errors and reports
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
   * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
   * [Mix] Allow rebar dependencies to be specified via `:path`
