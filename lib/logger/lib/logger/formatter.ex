@@ -45,7 +45,6 @@ defmodule Logger.Formatter do
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
 
-
   @doc ~S"""
   Compiles a format string into an array that the `format/5` can handle.
 
