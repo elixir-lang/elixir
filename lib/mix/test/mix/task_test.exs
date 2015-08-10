@@ -26,6 +26,35 @@ defmodule Mix.TaskTest do
     end
   end
 
+  test "try to deps.loadpaths if task is missing" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Project.push(SampleProject, "sample")
+
+      {:module, _, bin, _} =
+        defmodule Elixir.Mix.Tasks.TaskHello do
+          use Mix.Task
+          def run(_), do: "Hello, World"
+        end
+      :code.purge(Mix.Tasks.TaskHello)
+      :code.delete(Mix.Tasks.TaskHello)
+
+      assert_raise Mix.NoTaskError, fn ->
+        Mix.Task.run("task_hello")
+      end
+
+      # Clean up the tasks and copy it into deps
+      Mix.TasksServer.clear
+      File.mkdir_p!("_build/dev/lib/sample/ebin")
+      File.write!("_build/dev/lib/sample/ebin/Elixir.Mix.Tasks.TaskHello.beam", bin)
+
+      # Task was found from deps loadpaths
+      assert Mix.Task.run("task_hello") == "Hello, World"
+
+      # The compile task should not have run yet
+      assert Mix.TasksServer.run({:task, "compile", Mix.Project.get})
+    end
+  end
+
   test "try to compile if task is missing" do
     in_fixture "no_mixfile", fn ->
       Mix.Project.push(SampleProject, "sample")

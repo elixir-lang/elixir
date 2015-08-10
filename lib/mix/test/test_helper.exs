@@ -265,7 +265,6 @@ end
 path = MixTest.Case.tmp_path("beams")
 File.rm_rf!(path)
 File.mkdir_p!(path)
-Code.prepend_path(path)
 
 write_beam = fn {:module, name, bin, _} ->
   path
