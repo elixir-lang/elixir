@@ -253,13 +253,15 @@ defmodule ExUnit.DocTestTest do
            test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
     """
 
+    # The stacktrace points to the cause of the error
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:218
          Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           Hello.world()
+           (for doctest at) test/ex_unit/doc_test_test.exs:117
     """
 
     assert output =~ """

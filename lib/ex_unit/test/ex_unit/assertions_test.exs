@@ -253,6 +253,16 @@ defmodule ExUnit.AssertionsTest do
       "(undefined function: Not.Defined.function/3 (module Not.Defined is not available))" = error.message
   end
 
+  test "assert raise with some other error includes stacktrace from original error" do
+    "This should never be tested" = assert_raise ArgumentError, fn ->
+      Not.Defined.function(1, 2, 3)
+    end
+  rescue
+    ExUnit.AssertionError ->
+      stacktrace = System.stacktrace
+      [{Not.Defined, :function, [1,2,3], _}|_] = stacktrace
+  end
+
   test "assert raise with erlang error" do
     assert_raise SyntaxError, fn ->
       List.flatten(1)

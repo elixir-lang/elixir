@@ -356,7 +356,7 @@ defmodule ExUnit.Assertions do
           name == ExUnit.AssertionError ->
             reraise(error, stacktrace)
           true ->
-            flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
+            reraise ExUnit.AssertionError, [message: "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"], stacktrace
         end
     else
       _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
