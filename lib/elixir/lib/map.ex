@@ -38,7 +38,24 @@ defmodule Map do
     end, map1, map2
   end
 
-  def get_and_update(map, key, fun) do
+  @doc """
+  Updates the value in the map with the given function.
+  """
+  def update!(%{} = map, key, fun) do
+    case fetch(map, key) do
+      {:ok, value} ->
+        put(map, key, fun.(value))
+      :error ->
+        :erlang.error({:badkey, key})
+    end
+  end
+
+  def update!(map, _key, _fun), do: :erlang.error({:badmap, map})
+
+  @doc """
+  Gets a value and updates a map in one operation.
+  """
+  def get_and_update(%{} = map, key, fun) do
     current_value = case :maps.find(key, map) do
       {:ok, value} -> value
       :error -> nil
@@ -47,6 +64,23 @@ defmodule Map do
     {get, update} = fun.(current_value)
     {get, :maps.put(key, update, map)}
   end
+
+  def get_and_update(map, _key, _fun), do: :erlang.error({:badmap, map})
+
+  @doc """
+  Gets a value and updates a map only if the key exists in one operation.
+  """
+  def get_and_update!(%{} = map, key, fun) do
+    case :maps.find(key, map) do
+      {:ok, value} ->
+        {get, update} = fun.(value)
+        {get, :maps.put(key, update, map)}
+      :error ->
+        :erlang.error({:badkey, key})
+    end
+  end
+
+  def get_and_update!(map, _key, _fun), do: :erlang.error({:badmap, map})
 
   @doc """
   Converts a struct to map.

@@ -1802,9 +1802,13 @@ defmodule Kernel do
 
   """
   defmacro put_in(path, value) do
-    [h|t] = unnest(path, [], "put_in/2")
-    expr  = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
-    quote do: :erlang.element(2, unquote(expr))
+    case unnest(path, [], true, "put_in/2") do
+      {[h|t], true} ->
+        nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
+      {[h|t], false} ->
+        expr = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
+        quote do: :erlang.element(2, unquote(expr))
+    end
   end
 
   @doc """
@@ -1835,9 +1839,13 @@ defmodule Kernel do
 
   """
   defmacro update_in(path, fun) do
-    [h|t] = unnest(path, [], "update_in/2")
-    expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
-    quote do: :erlang.element(2, unquote(expr))
+    case unnest(path, [], true, "update_in/2") do
+      {[h|t], true} ->
+        nest_update_in(h, t, fun)
+      {[h|t], false} ->
+        expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
+        quote do: :erlang.element(2, unquote(expr))
+    end
   end
 
   @doc """
@@ -1889,8 +1897,20 @@ defmodule Kernel do
 
   """
   defmacro get_and_update_in(path, fun) do
-    [h|t] = unnest(path, [], "get_and_update_in/2")
+    {[h|t], _} = unnest(path, [], true, "get_and_update_in/2")
     nest_get_and_update_in(h, t, fun)
+  end
+
+  defp nest_update_in([], fun),  do: fun
+  defp nest_update_in(list, fun) do
+    quote do
+      fn x -> unquote(nest_update_in(quote(do: x), list, fun)) end
+    end
+  end
+  defp nest_update_in(h, [{:map, key}|t], fun) do
+    quote do
+      Map.update!(unquote(h), unquote(key), unquote(nest_update_in(t, fun)))
+    end
   end
 
   defp nest_get_and_update_in([], fun),  do: fun
@@ -1899,7 +1919,6 @@ defmodule Kernel do
       fn x -> unquote(nest_get_and_update_in(quote(do: x), list, fun)) end
     end
   end
-
   defp nest_get_and_update_in(h, [{:access, key}|t], fun) do
     quote do
       Access.get_and_update(
@@ -1909,32 +1928,31 @@ defmodule Kernel do
       )
     end
   end
-
   defp nest_get_and_update_in(h, [{:map, key}|t], fun) do
     quote do
-      Access.Map.get_and_update!(unquote(h), unquote(key), unquote(nest_get_and_update_in(t, fun)))
+      Map.get_and_update!(unquote(h), unquote(key), unquote(nest_get_and_update_in(t, fun)))
     end
   end
 
-  defp unnest({{:., _, [Access, :get]}, _, [expr, key]}, acc, kind) do
-    unnest(expr, [{:access, key}|acc], kind)
+  defp unnest({{:., _, [Access, :get]}, _, [expr, key]}, acc, _all_map?, kind) do
+    unnest(expr, [{:access, key}|acc], false, kind)
   end
 
-  defp unnest({{:., _, [expr, key]}, _, []}, acc, kind)
+  defp unnest({{:., _, [expr, key]}, _, []}, acc, all_map?, kind)
       when is_tuple(expr) and
            :erlang.element(1, expr) != :__aliases__ and
            :erlang.element(1, expr) != :__MODULE__ do
-    unnest(expr, [{:map, key}|acc], kind)
+    unnest(expr, [{:map, key}|acc], all_map?, kind)
   end
 
-  defp unnest(other, [], kind) do
+  defp unnest(other, [], _all_map?, kind) do
     raise ArgumentError,
       "expected expression given to #{kind} to access at least one element, got: #{Macro.to_string other}"
   end
 
-  defp unnest(other, acc, kind) do
+  defp unnest(other, acc, all_map?, kind) do
     case proper_start?(other) do
-      true -> [other|acc]
+      true -> {[other|acc], all_map?}
       false ->
         raise ArgumentError,
           "expression given to #{kind} must start with a variable, local or remote call " <>

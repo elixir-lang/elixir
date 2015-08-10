@@ -277,7 +277,7 @@ defmodule KernelTest do
     assert put_in(users["john"].age, 28) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       put_in(users["dave"].age, 19)
     end
 
@@ -310,7 +310,7 @@ defmodule KernelTest do
     assert update_in(users["john"].age, &(&1 + 1)) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       update_in(users["dave"].age, &(&1 + 1))
     end
 
@@ -350,7 +350,7 @@ defmodule KernelTest do
       get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
     end
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})
     end
 
