@@ -249,7 +249,7 @@ defmodule Mix.DepTest do
   end
 
   test "only fetch parent deps matching specified env" do
-    with_deps [{:only, github: "elixir-lang/only", only: :dev}], fn ->
+    with_deps [{:only, github: "elixir-lang/only", only: [:dev]}], fn ->
       in_fixture "deps_status", fn ->
         Mix.Tasks.Deps.Get.run(["--only", "prod"])
         refute_received {:mix_shell, :info, ["* Getting" <> _]}
