@@ -19,6 +19,7 @@ defmodule AccessTest do
 
   test "for nil" do
     assert nil[:foo] == nil
+    assert Access.fetch(nil, :foo) == :error
     assert Access.get(nil, :foo) == nil
     assert_raise ArgumentError, "could not put/update key :foo on a nil value", fn ->
       Access.get_and_update(nil, :foo, fn nil -> {:ok, :bar} end)
@@ -29,6 +30,9 @@ defmodule AccessTest do
     assert [foo: :bar][:foo] == :bar
     assert [foo: [bar: :baz]][:foo][:bar] == :baz
     assert [foo: [bar: :baz]][:fuu][:bar] == nil
+
+    assert Access.fetch([foo: :bar], :foo) == {:ok, :bar}
+    assert Access.fetch([foo: :bar], :bar) == :error
 
     assert Access.get([foo: :bar], :foo) == :bar
     assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
@@ -41,18 +45,11 @@ defmodule AccessTest do
     assert %{1.0 => 1.0}[1.0] == 1.0
     assert %{1 => 1}[1.0] == nil
 
+    assert Access.fetch(%{foo: :bar}, :foo) == {:ok, :bar}
+    assert Access.fetch(%{foo: :bar}, :bar) == :error
+
     assert Access.get(%{foo: :bar}, :foo) == :bar
     assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
     assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
-  end
-
-  test "for atoms" do
-    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
-      Access.get(:foo, :bar)
-    end
-
-    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
-      Access.get_and_update(:foo, :bar, fn _ -> {:ok, :baz} end)
-    end
   end
 end
