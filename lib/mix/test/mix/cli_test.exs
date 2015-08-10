@@ -36,7 +36,7 @@ defmodule Mix.CLITest do
       """
 
       File.write! "lib/hello.ex", """
-      defmodule Mix.Tasks.Hello do
+      defmodule Mix.Tasks.MyHello do
         use Mix.Task
 
         @shortdoc "Hello"
@@ -47,7 +47,7 @@ defmodule Mix.CLITest do
       end
       """
 
-      contents = mix ~w[hello]
+      contents = mix ~w[my_hello]
       assert contents =~ "Hello from MyProject!\n"
       assert contents =~ "Compiled lib/hello.ex\n"
     end
