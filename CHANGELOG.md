@@ -49,6 +49,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Allow moduledoc to be filtered/skipped in doctests
   * [ExUnit] Provide built-in log capturing functionality
   * [ExUnit] Allow `assert_receive_timeout` and `refute_receive_timeout` to be configured in the ExUnit application
+  * [ExUnit] Allow tests to be skipped with `@tag :skip` or `@tag skip: "reason"`
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [IEx] Add `b/1` helper that shows documentation for behaviour modules and its callback functions
   * [IEx] Provide tab completion for aliases and allow aliases like `Foo.Bar.Baz` to autocomplete even if `Foo.Bar` is not defined
@@ -64,12 +65,14 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Allow underscores in binary, octal and hex literals
   * [List] Add `List.keytake/3`
   * [Logger] Support printing pids and refs in Logger metadata
+  * [Logger] Allow logger metadata to be removed from pdict by setting it to nil
   * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
   * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
   * [Mix] Allow rebar dependencies to be specified via `:path`
   * [Mix] Also consider subdirectories in `config` directory for `Mix.Project.config_files/0`
   * [Mix] Allow dynamic configuration in Mix projects by storing config in an agent
   * [Mix] Support rebar3 style git refs in `rebar.config` files
+  * [Mix] Only recompile compile time dependencies in mix projects. This should considerably speed up recompilation times in Elixir projects
   * [Module] Improve name inference for function signatures in documentation metadata
   * [Process] Add `Process.hibernate/3`
   * [Set] Introduce `MapSet` data type. This new data type uses maps behind the scenes and is useful for storing a dozens of items in Erlang 17. In future versions when maps efficiently support large collections, it is meant to be the main Set abstraction in Elixir
@@ -77,6 +80,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [String] Support calculation of the jaro distance between strings (usually names) via `String.jaro_distance/2`. This is used by Mix to support "Did you mean?" feature when a task does not exist
   * [String] Add `String.splitter/3` that splits strings as a stream
   * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
+  * [Task] Introduce `Task.yield/2` and `Task.shutdown/2` to check if a task is still executing and shutdown otherwise
   * [Tuple] Add `Tuple.append/2`
   * [URI] Default ports were added for "ws" and "wss" schemas
 
