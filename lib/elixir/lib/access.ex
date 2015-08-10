@@ -149,19 +149,22 @@ defmodule Access do
 end
 
 # Callbacks invoked when inlining code for *_in in Kernel.
+# TODO: Remove me on 1.2
 defmodule Access.Map do
   @moduledoc false
 
-  def get!(%{} = map, key) do
+  def update!(%{} = map, key, fun) do
     case :maps.find(key, map) do
-      {:ok, value} -> value
-      :error -> raise KeyError, key: key, term: map
+      {:ok, value} ->
+        :maps.put(key, fun.(value), map)
+      :error ->
+        raise KeyError, key: key, term: map
     end
   end
 
-  def get!(other, key) do
+  def update!(other, key, _fun) do
     raise ArgumentError,
-      "could not get key #{inspect key}. Expected map/struct, got: #{inspect other}"
+      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
 
   def get_and_update!(%{} = map, key, fun) do
