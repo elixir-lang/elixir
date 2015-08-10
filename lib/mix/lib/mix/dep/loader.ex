@@ -234,9 +234,11 @@ defmodule Mix.Dep.Loader do
     {%{dep | manager: :make}, []}
   end
 
-  defp validate_only!(only) when is_atom(only), do: only
   defp validate_only!(only) do
-    Mix.raise "Expected :only in dependency to be an atom, got: #{inspect only}"
+    for entry <- only, not is_atom(entry) do
+      Mix.raise "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect only}"
+    end
+    only
   end
 
   defp mix_children(opts) do
@@ -246,8 +248,8 @@ defmodule Mix.Dep.Loader do
     # Filter deps not matching mix environment
     if env = opts[:env] do
       Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-        only = validate_only!(opts[:only])
-        is_nil(only) or env in List.wrap(only)
+        only = opts[:only] |> List.wrap |> validate_only!
+        only == [] or env in List.wrap(only)
       end)
     else
       deps
