@@ -1,4 +1,4 @@
-defprotocol Access do
+defmodule Access do
   @moduledoc """
   Dictionary-like access to data structures via the `foo[bar]` syntax.
 
@@ -6,18 +6,10 @@ defprotocol Access do
   `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3` and
   `Kernel.get_and_update_in/3`.
 
-  ## Deprecated
-
-  Currently, the Access protocol is deprecated as there are performance
-  concerns in the current implementation. Since Elixir v1.1, instead of
-  using a protocol, `foo[bar]` will dispatch directly to the `Dict`
-  module. Therefore, while `foo[bar]` will continue to work, extension
-  of the syntax should be done via a custom `Dict` implementation.
-
   ## Examples
 
-  Out of the box, Access works all built-in dictionaries: `Keyword`,
-  `Map` and `HashDict`:
+  Out of the box, Access works with built-in dictionaries: `Keyword`
+  and `Map`:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -40,11 +32,83 @@ defprotocol Access do
   The key comparison must be implemented using the `===` operator.
   """
 
+  use Behaviour
+
+  @type t :: list | map | nil
+  @type key :: any
+  @type value :: any
+
+  defcallback fetch(t, key) :: {:ok, value} | :error
+  defcallback get(t, key, value) :: value
+  defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+
+  @doc """
+  Fetches value for the given key.
+
+  Returns a `{:ok, value}` if the tuple exists,
+  `:error` otherwise.
+  """
+  @spec fetch(t, key) :: {:ok, value} | :error
+  def fetch(container, key)
+
+  def fetch(%{__struct__: struct} = container, key) do
+    struct.fetch(container, key)
+  end
+
+  def fetch(%{} = map, key) do
+    :maps.find(key, map)
+  end
+
+  def fetch(list, key) when is_list(list) do
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> {:ok, value}
+      false -> :error
+    end
+  end
+
+  def fetch(nil, _key) do
+    :error
+  end
+
+  @doc """
+  Fetches value for the given key.
+
+  Returns `value` or raises otherwise.
+  """
+  def fetch!(dict, key) do
+    case fetch(dict, key) do
+      {:ok, value} -> value
+      :error -> raise KeyError, key: key, term: dict
+    end
+  end
+
   @doc """
   Gets the container's value for the given key.
   """
-  @spec get(t, term) :: t
-  def get(container, key)
+  @spec get(t, term, term) :: term
+  def get(container, key, default \\ nil)
+
+  def get(%{__struct__: struct} = container, key, default) do
+    struct.get(container, key, default)
+  end
+
+  def get(%{} = map, key, default) do
+    case :maps.find(key, map) do
+      {:ok, value} -> value
+      :error -> default
+    end
+  end
+
+  def get(list, key, default) when is_list(list) do
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> value
+      false -> default
+    end
+  end
+
+  def get(nil, _key, default) do
+    default
+  end
 
   @doc """
   Gets and updates the container's value for the given key, in a single pass.
@@ -59,58 +123,34 @@ defprotocol Access do
   """
   @spec get_and_update(t, term, (term -> {get, term})) :: {get, t} when get: var
   def get_and_update(container, key, fun)
-end
 
-defimpl Access, for: List do
-  def get(dict, key) when is_atom(key) do
-    case :lists.keyfind(key, 1, dict) do
-      {^key, value} -> value
-      false -> nil
-    end
+  def get_and_update(%{__struct__: struct} = container, key, fun) do
+    struct.get_and_update(container, key, fun)
   end
 
-  def get(_dict, key) do
-    raise ArgumentError,
-      "the access protocol for lists expect the key to be an atom, got: #{inspect key}"
-  end
-
-  def get_and_update(dict, key, fun) when is_atom(key) do
-    get_and_update(dict, [], key, fun)
-  end
-
-  defp get_and_update([{key, value}|t], acc, key, fun) do
-    {get, update} = fun.(value)
-    {get, :lists.reverse(acc, [{key, update}|t])}
-  end
-
-  defp get_and_update([h|t], acc, key, fun) do
-    get_and_update(t, [h|acc], key, fun)
-  end
-
-  defp get_and_update([], acc, key, fun) do
-    {get, update} = fun.(nil)
-    {get, [{key, update}|:lists.reverse(acc)]}
-  end
-end
-
-defimpl Access, for: [Map, Any] do
-  def get(map, key) do
-    case :maps.find(key, map) do
+  def get_and_update(%{} = map, key, fun) do
+    current_value = case :maps.find(key, map) do
       {:ok, value} -> value
       :error -> nil
     end
-  end
 
-  def get_and_update(map, key, fun) do
-    value =
-      case :maps.find(key, map) do
-        {:ok, value} -> value
-        :error -> nil
-      end
-
-    {get, update} = fun.(value)
+    {get, update} = fun.(current_value)
     {get, :maps.put(key, update, map)}
   end
+
+  def get_and_update(list, key, fun) when is_list(list) do
+    Keyword.get_and_update(list, key, fun)
+  end
+
+  def get_and_update(nil, key, _fun) do
+    raise ArgumentError,
+      "could not put/update key #{inspect key} on a nil value"
+  end
+end
+
+# Callbacks invoked when inlining code for *_in in Kernel.
+defmodule Access.Map do
+  @moduledoc false
 
   def get!(%{} = map, key) do
     case :maps.find(key, map) do
@@ -137,31 +177,5 @@ defimpl Access, for: [Map, Any] do
   def get_and_update!(other, key, _fun) do
     raise ArgumentError,
       "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
-  end
-end
-
-defimpl Access, for: Atom do
-  def get(nil, _) do
-    nil
-  end
-
-  def get(atom, _) do
-    undefined(atom)
-  end
-
-  def get_and_update(nil, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key} on a nil value"
-  end
-
-  def get_and_update(atom, _key, _fun) do
-    undefined(atom)
-  end
-
-  defp undefined(atom) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: atom,
-      description: "only the nil atom is supported"
   end
 end

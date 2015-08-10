@@ -233,17 +233,6 @@ defimpl Enumerable, for: HashDict do
   def count(dict),             do: {:ok, HashDict.size(dict)}
 end
 
-defimpl Access, for: HashDict do
-  def get(dict, key) do
-    HashDict.get(dict, key, nil)
-  end
-
-  def get_and_update(dict, key, fun) do
-    {get, update} = fun.(HashDict.get(dict, key, nil))
-    {get, HashDict.put(dict, key, update)}
-  end
-end
-
 defimpl Collectable, for: HashDict do
   def into(original) do
     {original, fn
