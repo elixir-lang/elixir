@@ -79,7 +79,7 @@ defmodule Macro do
   end
 
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
-      when call in @binary_ops do
+      when call in unquote(@binary_ops) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
       "the #{to_string call} operator can only take two arguments"
   end
