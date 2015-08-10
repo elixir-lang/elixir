@@ -85,21 +85,33 @@ defmodule Mix.Dep.Loader do
     %{with_scm_and_app(tuple) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({app, opts}) when is_list(opts) do
-    with_scm_and_app({app, nil, opts})
+  defp with_scm_and_app({app, opts} = original) when is_atom(app) and is_list(opts) do
+    with_scm_and_app(app, nil, opts, original)
   end
 
-  defp with_scm_and_app({app, req}) do
-    with_scm_and_app({app, req, []})
-  end
-
-  defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
-    unless is_binary(req) or Regex.regex?(req) or is_nil(req) do
-      invalid_dep_format(other)
+  defp with_scm_and_app({app, req} = original) when is_atom(app) do
+    if is_binary(req) or Regex.regex?(req) do
+      with_scm_and_app(app, req, [], original)
+    else
+      invalid_dep_format(original)
     end
+  end
 
+  defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts)  do
+    if is_binary(req) or Regex.regex?(req) do
+      with_scm_and_app(app, req, opts, original)
+    else
+      invalid_dep_format(original)
+    end
+  end
+
+  defp with_scm_and_app(original) do
+    invalid_dep_format(original)
+  end
+
+  defp with_scm_and_app(app, req, opts, original) do
     unless Keyword.keyword?(opts) do
-      invalid_dep_format(other)
+      invalid_dep_format(original)
     end
 
     bin_app = Atom.to_string(app)
@@ -127,10 +139,6 @@ defmodule Mix.Dep.Loader do
       requirement: req,
       status: scm_status(scm, opts),
       opts: opts}
-  end
-
-  defp with_scm_and_app(other) do
-    invalid_dep_format(other)
   end
 
   defp get_scm(app, opts) do
