@@ -234,6 +234,11 @@ defmodule Mix.Dep.Loader do
     {%{dep | manager: :make}, []}
   end
 
+  defp validate_only!(only) when is_atom(only), do: only
+  defp validate_only!(only) do
+    Mix.raise "Expected :only in dependency to be an atom, got: #{inspect only}"
+  end
+
   defp mix_children(opts) do
     from = Path.absname("mix.exs")
     deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
@@ -241,8 +246,8 @@ defmodule Mix.Dep.Loader do
     # Filter deps not matching mix environment
     if env = opts[:env] do
       Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-        only = opts[:only]
-        if only, do: env in List.wrap(only), else: true
+        only = validate_only!(opts[:only])
+        is_nil(only) or env in List.wrap(only)
       end)
     else
       deps
