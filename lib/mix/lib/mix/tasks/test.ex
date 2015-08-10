@@ -184,8 +184,13 @@ defmodule Mix.Tasks.Test do
     test_files   = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
 
-    test_files = Mix.Utils.extract_files(test_files, test_pattern)
-    _ = Kernel.ParallelRequire.files(test_files)
+    case Mix.Utils.extract_files(test_files, test_pattern) do
+      [] ->
+        Mix.raise "Test pattern did not match any file, " <>
+          "the files given to compile: " <> Enum.join(files, ", ")
+      test_files ->
+        _ = Kernel.ParallelRequire.files(test_files)
+    end
 
     # Run the test suite, coverage tools and register an exit hook
     %{failures: failures} = ExUnit.run
