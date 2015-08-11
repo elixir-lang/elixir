@@ -188,8 +188,11 @@ defmodule Mix.Config do
   the configured applications environment.
   """
   def persist(config) do
-    for {app, kw} <- config, {k, v} <- kw do
-      :application.set_env(app, k, v, persistent: true)
+    for {app, kw} <- config do
+      Mix.State.append(:configured_application, app)
+      for {k, v} <- kw do
+        :application.set_env(app, k, v, persistent: true)
+      end
     end
     :ok
   end
