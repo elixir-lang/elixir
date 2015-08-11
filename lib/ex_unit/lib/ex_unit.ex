@@ -170,6 +170,10 @@ defmodule ExUnit do
     * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
       calls. Defaults to 100ms.
 
+    * `:capture_log` - if ExUnit should default to keeping track of log messages
+      and print them on test failure. Can be overriden for individual tests via
+      `@tag capture_log: false`. Defaults to `false`.
+
     * `:colors` - a keyword list of colors to be used by some formatters.
       The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
