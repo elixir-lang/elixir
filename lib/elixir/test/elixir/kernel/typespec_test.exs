@@ -231,6 +231,22 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "@type when overriding elixir builtin" do
+    assert_raise CompileError, ~r"type struct\(\) is a builtin type; it cannot be redefined", fn ->
+      test_module do
+        @type struct :: :oops
+      end
+    end
+  end
+
+  test "@type when overriding erlang builtin" do
+    assert_raise CompileError, ~r"type list\(\) is a builtin type; it cannot be redefined", fn ->
+      test_module do
+        @type list :: :oops
+      end
+    end
+  end
+
   test "@type with public record" do
     module = test_module do
       require Record
@@ -539,6 +555,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: char_list()),
+      (quote do: @type st() :: struct()),
       (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
