@@ -1,4 +1,4 @@
-REBAR ?= $(CURDIR)/rebar
+REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
 DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
