@@ -13,8 +13,10 @@ defmodule Agent.Server do
   end
 
   def handle_call({:get_and_update, fun}, _from, state) do
-    {reply, state} = run(fun, [state])
-    {:reply, reply, state}
+    case run(fun, [state]) do
+      {reply, state} -> {:reply, reply, state}
+      other          -> {:stop, {:bad_return_value, other}, state}
+    end
   end
 
   def handle_call({:update, fun}, _from, state) do
