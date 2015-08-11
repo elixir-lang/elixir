@@ -36,8 +36,13 @@ defmodule Kernel.CLI do
     {ok_or_shutdown, status} = exec_fun(fun, {:ok, 0})
     if ok_or_shutdown == :shutdown or halt do
       {_, status} = at_exit({ok_or_shutdown, status})
-      # Ensure all logger messages are shown before halting
-      if Process.whereis(Logger), do: Logger.flush()
+
+      # Ensure logger messages are flushed before halting
+      case :erlang.whereis(Logger) do
+        :undefined -> :ok
+        _ -> Logger.flush()
+      end
+
       System.halt(status)
     end
   end
