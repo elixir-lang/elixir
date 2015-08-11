@@ -71,8 +71,11 @@ defmodule Mix.Tasks.App.StartTest do
         Mix.Tasks.App.Start.run []
       end
 
+      Mix.Config.persist([app_embedded_unknown: [foo: :bar], app_embedded_sample: [foo: :bar]])
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])
+      assert_received {:mix_shell, :info, ["You have configured application :app_embedded_unknown" <> _]}
+      refute_received {:mix_shell, :info, ["You have configured application :app_embedded_sample" <> _]}
     end
   end
 
