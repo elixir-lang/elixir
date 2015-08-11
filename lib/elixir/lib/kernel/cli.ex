@@ -39,8 +39,8 @@ defmodule Kernel.CLI do
 
       # Ensure logger messages are flushed before halting
       case :erlang.whereis(Logger) do
-        :undefined -> :ok
-        _ -> Logger.flush()
+        pid when is_pid(pid) -> Logger.flush()
+        _ -> :ok
       end
 
       System.halt(status)
