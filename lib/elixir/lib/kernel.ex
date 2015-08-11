@@ -2403,7 +2403,16 @@ defmodule Kernel do
 
   """
   defmacro first .. last do
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+    case is_float(first) or is_float(last) or
+         is_atom(first) or is_atom(last) or
+         is_binary(first) or is_binary(last) do
+      true ->
+        raise ArgumentError,
+          "ranges (left .. right) expect both sides to be integers, " <>
+          "got: #{Macro.to_string({:.., [], [first, last]})}"
+      false ->
+        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+    end
   end
 
   @doc """
@@ -2632,30 +2641,38 @@ defmodule Kernel do
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ ->
         raise ArgumentError, <<"invalid args for operator in, it expects a compile time list ",
-                                        "or range on the right side when used in guard expressions, got: ",
-                                        Macro.to_string(right) :: binary>>
+                               "or range on the right side when used in guard expressions, got: ",
+                               Macro.to_string(right) :: binary>>
     end
   end
 
   defp in_range(left, first, last) do
-    case opt_in?(first) and opt_in?(last) do
+    case is_integer(first) and is_integer(last) do
       true  ->
-        case first <= last do
-          true  -> increasing_compare(left, first, last)
-          false -> decreasing_compare(left, first, last)
+        quote do
+          :erlang.is_integer(unquote(left))
+          and
+          unquote(case first <= last do
+                    true  -> increasing_compare(left, first, last)
+                    false -> decreasing_compare(left, first, last)
+                  end)
         end
       false ->
         quote do
-          (:erlang."=<"(unquote(first), unquote(last)) and
-           unquote(increasing_compare(left, first, last)))
-          or
-          (:erlang."<"(unquote(last), unquote(first)) and
-           unquote(decreasing_compare(left, first, last)))
+          (:erlang.is_integer(unquote(left)) and
+           :erlang.is_integer(unquote(first)) and
+           :erlang.is_integer(unquote(last)))
+          and
+          (
+            (:erlang."=<"(unquote(first), unquote(last)) and
+             unquote(increasing_compare(left, first, last)))
+            or
+            (:erlang."<"(unquote(last), unquote(first)) and
+             unquote(decreasing_compare(left, first, last)))
+          )
         end
     end
   end
-
-  defp opt_in?(x), do: is_integer(x) or is_float(x) or is_atom(x)
 
   defp comp(left, right) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
