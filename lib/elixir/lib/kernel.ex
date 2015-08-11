@@ -1254,19 +1254,32 @@ defmodule Kernel do
   @doc """
   Concatenates two binaries.
 
+  Allowed in guard tests.
+
+  When used in pattern matching, `left` must be a literal binary, otherwise it will
+  result in a `CompileError` exception.
+
   ## Examples
 
       iex> "foo" <> "bar"
       "foobar"
 
-  The `<>` operator can also be used in pattern matching (and guard clauses) as
-  long as the first part is a literal binary:
-
+      # Pattern matching
       iex> "foo" <> x = "foobar"
       iex> x
       "bar"
 
   `x <> "bar" = "foobar"` would have resulted in a `CompileError` exception.
+
+  This restriction does not apply to guard tests, where a literal is not necessary
+  on the `left` side of the expression.
+
+      iex> initial = "E"
+      iex> case true do
+      iex>   _ when initial <> "lixir" == "Elixir" -> "Elixir"
+      iex>   _ -> :no_match
+      iex> end
+      "Elixir"
 
   """
   defmacro left <> right do
