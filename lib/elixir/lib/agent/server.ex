@@ -4,6 +4,7 @@ defmodule Agent.Server do
   use GenServer
 
   def init(fun) do
+    _ = initial_call(fun)
     {:ok, run(fun, [])}
   end
 
@@ -49,6 +50,21 @@ defmodule Agent.Server do
       _ -> :ok
     end
     :ok
+  end
+
+  defp initial_call(mfa) do
+    _ = Process.put(:"$initial_call", get_initial_call(mfa))
+    :ok
+  end
+
+  defp get_initial_call(fun) when is_function(fun, 0) do
+    {:module, module} = :erlang.fun_info(fun, :module)
+    {:name, name} = :erlang.fun_info(fun, :name)
+    {module, name, 0}
+  end
+
+  defp get_initial_call({mod, fun, args}) do
+    {mod, fun, length(args)}
   end
 
   defp run({m, f, a}, extra), do: apply(m, f, extra ++ a)
