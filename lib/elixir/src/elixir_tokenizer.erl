@@ -87,6 +87,13 @@
 -define(pipe_op(T),
   T == $|).
 
+-define(operator_kw(A),
+  A == 'and';
+  A == 'or';
+  A == 'when';
+  A == 'not';
+  A == 'in').
+
 tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
@@ -972,6 +979,8 @@ terminator('<<') -> '>>'.
 %% Keywords checking
 
 check_keyword(_Line, _Column, _Length, _Atom, [{'.', _}|_]) ->
+  nomatch;
+check_keyword(_Line, _Column, _Length, Atom, [{capture_op, _, _}|_]) when ?operator_kw(Atom) ->
   nomatch;
 check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndColumn}, Atom}|T]) when Identifier == identifier ->
   {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}},
