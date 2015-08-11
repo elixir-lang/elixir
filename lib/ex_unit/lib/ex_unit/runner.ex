@@ -26,6 +26,7 @@ defmodule ExUnit.Runner do
 
     config = %{
       async_cases: [],
+      capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
       manager: pid,
@@ -220,7 +221,7 @@ defmodule ExUnit.Runner do
     EM.test_started(config.manager, test)
 
     if is_nil(test.state) do
-      capture_log? = Map.get(tags, :capture_log, false)
+      capture_log? = Map.get(tags, :capture_log, config.capture_log)
       test = run_test(capture_log?, config, test, Map.merge(tags, context))
     end
 
