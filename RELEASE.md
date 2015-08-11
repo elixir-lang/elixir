@@ -20,7 +20,7 @@ This document simply outlines the release process:
 
 8. Release new docs with `make release_docs`, copy docs to `docs/stable` if appropriate, and push
 
-9. Release new zip with `make release_zip`, push `Precompiled.zip` to GitHub Releases
+9. Release new zip with `make release_precompiled`, push `Precompiled.zip` to GitHub Releases
 
 10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
 
