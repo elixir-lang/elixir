@@ -387,28 +387,38 @@ expand_block([H], Acc, Meta, E) ->
   {EH, EE} = expand(H, E),
   expand_block([], [EH|Acc], Meta, EE);
 expand_block([H|T], Acc, Meta, E) ->
-  %% Notice we do this check BEFORE expansion instead
-  %% of relying on Erlang checks.
+  {EH, EE} = expand(H, E),
+
+  %% Notice checks rely on the code BEFORE expansion
+  %% instead of relying on Erlang checks.
   %%
   %% That's because expansion may generate useless
   %% terms on their own (think compile time removed
   %% logger calls) and we don't want to catch those.
-  case is_useless_building(H, Meta) of
+  %%
+  %% Or, similarly, the work is all in the expansion
+  %% (for example, to register something) and it is
+  %% simply returning something as replacement.
+  case is_useless_building(H, EH, Meta) of
     {UselessMeta, UselessTerm} ->
       elixir_errors:form_warn(UselessMeta, ?m(E, file), ?MODULE, UselessTerm);
     false ->
       ok
   end,
-  {EH, EE} = expand(H, E),
+
   expand_block(T, [EH|Acc], Meta, EE).
 
 %% Notice we don't handle atoms on purpose. They are common
 %% when unquoting AST and it is unlikely that we would catch
 %% bugs as we don't do binary operations on them like in
 %% strings or numbers.
-is_useless_building(H, Meta) when is_binary(H); is_number(H) ->
+is_useless_building(H, _, Meta) when is_binary(H); is_number(H) ->
   {Meta, {useless_literal, H}};
-is_useless_building(_, _) ->
+is_useless_building({'@', Meta, [{Var, _, Ctx}]}, _, _) when is_atom(Ctx); Ctx == [] ->
+  {Meta, {useless_attr, Var}};
+is_useless_building({Var, Meta, Ctx}, {Var, _, Ctx}, _) when is_atom(Ctx) ->
+  {Meta, {useless_var, Var}};
+is_useless_building(_, _, _) ->
   false.
 
 %% Variables in arguments are not propagated from one
@@ -618,6 +628,14 @@ assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
 format_error({useless_literal, Term}) ->
-  io_lib:format("code block contains unused literal ~ts "
+  io_lib:format("code block starting at line contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
-                ['Elixir.Macro':to_string(Term)]).
+                ['Elixir.Macro':to_string(Term)]);
+format_error({useless_var, Var}) ->
+  io_lib:format("variable ~ts in code block has no effect as it is never returned "
+                "(remove the variable or assign it to _ to avoid warnings)",
+                [Var]);
+format_error({useless_attr, Attr}) ->
+  io_lib:format("module attribute @~ts in code block has no effect as it is never returned "
+                "(remove the attribute or assign it to _ to avoid warnings)",
+                [Attr]).

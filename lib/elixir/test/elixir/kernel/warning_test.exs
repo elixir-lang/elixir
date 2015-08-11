@@ -20,13 +20,100 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :useless_building do
+  test :useless_literal do
+    message = "warning: code block starting at line contains unused literal \"oops\""
+
     assert capture_err(fn ->
       Code.eval_string """
       "oops"
       :ok
       """
-    end) =~ "warning: code block contains unused literal \"oops\" (remove the literal or assign it to _ to avoid warnings)"
+    end) =~ message
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      fn ->
+        "oops"
+        :ok
+      end
+      """
+    end) =~ message
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      try do
+        "oops"
+        :ok
+      after
+        :ok
+      end
+      """
+    end) =~ message
+  end
+
+  test :useless_attr do
+    message = "warning: module attribute @foo in code block has no effect as it is never returned "
+
+    message = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @foo 1
+        @bar 1
+        @foo
+
+        def bar do
+          @bar
+          :ok
+        end
+      end
+      """
+    end)
+
+    assert message =~ "warning: module attribute @foo in code block has no effect as it is never returned "
+    assert message =~ "warning: module attribute @bar in code block has no effect as it is never returned "
+  after
+    purge Sample
+  end
+
+  test :useless_var do
+    message = "warning: variable foo in code block has no effect as it is never returned "
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      foo = 1
+      foo
+      :ok
+      """
+    end) =~ message
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      fn ->
+        foo = 1
+        foo
+        :ok
+      end
+      """
+    end) =~ message
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      try do
+        foo = 1
+        foo
+        :ok
+      after
+        :ok
+      end
+      """
+    end) =~ message
+
+    assert capture_err(fn ->
+      Code.eval_string """
+      node()
+      :ok
+      """
+    end) == ""
   end
 
   test :underscored_variable_on_match do
