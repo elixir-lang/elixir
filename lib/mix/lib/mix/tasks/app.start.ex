@@ -120,12 +120,12 @@ defmodule Mix.Tasks.App.Start do
       You have configured application #{inspect app} but it was not started.
       This usually means one of:
 
-      1. You depend on application #{inspect app} but you (or a dependency) haven't
-      listed it as a dependency in :applications (or :included_applications) in
-      the mix.exs file.
+      1. You depend on application #{inspect app} but you (or a dependency)
+      haven't listed it in :applications (or :included_applications) in the
+      mix.exs file.
 
-      2. You are configuring an application that does not really exist. Please ensure it
-      exists or remove the configuration.
+      2. You are configuring an application that does not really exist.
+      Please ensure it exists or remove the configuration.
       """
     end
     :ok
