@@ -31,7 +31,7 @@ end
 defmodule ModuleTest.ToUse do
   32 = __ENV__.line # Moving the next line around can make tests fail
   var = 1
-  var # Not available in callbacks
+  _ = var # Not available in callbacks
   def callback_value(false), do: false
   use ModuleTest.ToBeUsed
 end

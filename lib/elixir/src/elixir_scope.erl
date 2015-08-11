@@ -175,7 +175,7 @@ format_error({unused_match, Name, Kind}) ->
                 "give the variables different names", [Name, context_info(Kind), Name]);
 
 format_error({underscore_var_access, Name}) ->
-  io_lib:format("the underscored variable \"~ts\" is used in the body of the "
-                "function. A leading underscore indicates that the value of "
-                "the variable should be ignored. If this is intended please "
-                "rename the variable to remove the underscore", [Name]).
+  io_lib:format("the underscored variable \"~ts\" is used after being set. "
+                "A leading underscore indicates that the value of the variable "
+                "should be ignored. If this is intended please rename the "
+                "variable to remove the underscore", [Name]).
