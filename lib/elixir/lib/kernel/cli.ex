@@ -88,7 +88,7 @@ defmodule Kernel.CLI do
             stack = System.stacktrace
             print_error(kind, reason, stack)
             send parent, {self, {:shutdown, 1}}
-            exit({to_exit(kind, reason), stack})
+            exit(to_exit(kind, reason, stack))
         else
           _ ->
             send parent, {self, res}
@@ -105,8 +105,9 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp to_exit(:throw, reason), do: {:nocatch, reason}
-  defp to_exit(:error, reason), do: reason
+  defp to_exit(:throw, reason, stack), do: {{:nocatch, reason}, stack}
+  defp to_exit(:error, reason, stack), do: {reason, stack}
+  defp to_exit(:exit, reason, _stack), do: reason
 
   defp shared_option?(list, config, callback) do
     case parse_shared(list, config) do
