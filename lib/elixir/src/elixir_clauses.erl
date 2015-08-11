@@ -1,7 +1,7 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/7, clauses/4, guards/4, get_pairs/3, get_pairs/4,
+-export([match/3, clause/6, clauses/3, guards/4, get_pairs/3, get_pairs/4,
   extract_splat_guards/1, extract_guards/1]).
 -include("elixir.hrl").
 
@@ -31,9 +31,9 @@ match(Fun, Args, S) -> Fun(Args, S).
 
 %% Translate clauses with args, guards and expressions
 
-clause(Line, Fun, Args, Expr, Guards, Return, S) when is_integer(Line) ->
+clause(Line, Fun, Args, Expr, Guards, S) when is_integer(Line) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_scope{extra_guards=[]}),
-  {TExpr, SE} = elixir_translator:translate_block(Expr, Return, SA#elixir_scope{extra_guards=nil}),
+  {TExpr, SE} = elixir_translator:translate(Expr, SA#elixir_scope{extra_guards=nil}),
 
   Extra = SA#elixir_scope.extra_guards,
   TGuards = guards(Line, Guards, Extra, SA),
@@ -68,18 +68,18 @@ extract_splat_guards(Else) ->
 
 % Function for translating macros with match style like case and receive.
 
-clauses(Meta, Clauses, Return, #elixir_scope{export_vars=CV} = S) ->
-  {TC, TS} = do_clauses(Meta, Clauses, Return, S#elixir_scope{export_vars=[]}),
+clauses(Meta, Clauses, #elixir_scope{export_vars=CV} = S) ->
+  {TC, TS} = do_clauses(Meta, Clauses, S#elixir_scope{export_vars=[]}),
   {TC, TS#elixir_scope{export_vars=elixir_scope:merge_opt_vars(CV, TS#elixir_scope.export_vars)}}.
 
-do_clauses(_Meta, [], _Return, S) ->
+do_clauses(_Meta, [], S) ->
   {[], S};
 
-do_clauses(Meta, DecoupledClauses, Return, S) ->
+do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, VAcc}) ->
-    {TX, TS} = each_clause(Meta, X, Return, SAcc),
+    {TX, TS} = each_clause(Meta, X, SAcc),
     {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
   end,
 
@@ -139,14 +139,14 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause(Export, {match, Meta, [Condition], Expr}, Return, S) ->
+each_clause(Export, {match, Meta, [Condition], Expr}, S) ->
   Fun = wrap_export_fun(Export, fun elixir_translator:translate_args/2),
   {Arg, Guards} = extract_guards(Condition),
-  clause(?line(Meta), Fun, [Arg], Expr, Guards, Return, S);
+  clause(?line(Meta), Fun, [Arg], Expr, Guards, S);
 
-each_clause(Export, {expr, Meta, [Condition], Expr}, Return, S) ->
+each_clause(Export, {expr, Meta, [Condition], Expr}, S) ->
   {TCondition, SC} = (wrap_export_fun(Export, fun elixir_translator:translate/2))(Condition, S),
-  {TExpr, SB} = elixir_translator:translate_block(Expr, Return, SC),
+  {TExpr, SB} = elixir_translator:translate(Expr, SC),
   {{clause, ?line(Meta), [TCondition], [], unblock(TExpr)}, SB}.
 
 wrap_export_fun(Meta, Fun) ->
