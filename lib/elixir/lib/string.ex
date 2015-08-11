@@ -1444,7 +1444,7 @@ defmodule String do
 
   ## Examples
 
-      iex> :my_atom
+      iex> _ = :my_atom
       iex> String.to_existing_atom("my_atom")
       :my_atom
 

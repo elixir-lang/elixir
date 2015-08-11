@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_args/2, expand_arg/2]).
+-export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -46,7 +46,7 @@ expand({'__block__', _Meta, []}, E) ->
 expand({'__block__', _Meta, [Arg]}, E) ->
   expand(Arg, E);
 expand({'__block__', Meta, Args}, E) when is_list(Args) ->
-  {EArgs, EA} = expand_many(Args, E),
+  {EArgs, EA} = expand_block(Args, [], Meta, E),
   {{'__block__', Meta, EArgs}, EA};
 
 %% __aliases__
@@ -381,8 +381,35 @@ expand_list([H|T], Fun, Acc, List) ->
 expand_list([], _Fun, Acc, List) ->
   {lists:reverse(List), Acc}.
 
-expand_many(Args, E) ->
-  lists:mapfoldl(fun expand/2, E, Args).
+expand_block([], Acc, _Meta, E) ->
+  {lists:reverse(Acc), E};
+expand_block([H], Acc, Meta, E) ->
+  {EH, EE} = expand(H, E),
+  expand_block([], [EH|Acc], Meta, EE);
+expand_block([H|T], Acc, Meta, E) ->
+  %% Notice we do this check BEFORE expansion instead
+  %% of relying on Erlang checks.
+  %%
+  %% That's because expansion may generate useless
+  %% terms on their own (think compile time removed
+  %% logger calls) and we don't want to catch those.
+  case is_useless_building(H, Meta) of
+    {UselessMeta, UselessTerm} ->
+      elixir_errors:form_warn(UselessMeta, ?m(E, file), ?MODULE, UselessTerm);
+    false ->
+      ok
+  end,
+  {EH, EE} = expand(H, E),
+  expand_block(T, [EH|Acc], Meta, EE).
+
+%% Notice we don't handle atoms on purpose. They are common
+%% when unquoting AST and it is unlikely that we would catch
+%% bugs as we don't do binary operations on them like in
+%% strings or numbers.
+is_useless_building(H, Meta) when is_binary(H); is_number(H) ->
+  {Meta, {useless_literal, H}};
+is_useless_building(_, _) ->
+  false.
 
 %% Variables in arguments are not propagated from one
 %% argument to the other. For instance:
@@ -407,7 +434,7 @@ expand_args([Arg], E) ->
   {EArg, EE} = expand(Arg, E),
   {[EArg], EE};
 expand_args(Args, #{context := match} = E) ->
-  expand_many(Args, E);
+  lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
   {EArgs, {EC, EV}} = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
   {EArgs, elixir_env:mergea(EV, EC)}.
@@ -589,3 +616,8 @@ assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
   compile_error(Meta, File, "invalid expression in guard");
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
+
+format_error({useless_literal, Term}) ->
+  io_lib:format("code block contains unused literal ~ts "
+                "(remove the literal or assign it to _ to avoid warnings)",
+                ['Elixir.Macro':to_string(Term)]).

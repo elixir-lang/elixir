@@ -20,6 +20,15 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test :useless_building do
+    assert capture_err(fn ->
+      Code.eval_string """
+      "oops"
+      :ok
+      """
+    end) =~ "warning: code block contains unused literal \"oops\" (remove the literal or assign it to _ to avoid warnings)"
+  end
+
   test :underscored_variable_on_match do
     assert capture_err(fn ->
       Code.eval_string """
