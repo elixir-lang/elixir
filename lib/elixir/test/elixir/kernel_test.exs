@@ -125,7 +125,19 @@ defmodule KernelTest do
   def fun_in(_x, _y, _z), do: false
 
   test "in/2 in dynamic function guard" do
+    assert fun_in(1, 1, 3)
     assert fun_in(2, 1, 3)
+    assert fun_in(3, 1, 3)
+
+    assert fun_in(1, 3, 1)
+    assert fun_in(2, 3, 1)
+    assert fun_in(3, 3, 1)
+
+    refute fun_in(0, 1, 3)
+    refute fun_in(4, 1, 3)
+    refute fun_in(0, 3, 1)
+    refute fun_in(4, 3, 1)
+
     refute fun_in(2, 1.0, 3)
     refute fun_in(2, 1, 3.0)
     refute fun_in(2.0, 1, 3)
