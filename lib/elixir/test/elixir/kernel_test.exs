@@ -100,12 +100,35 @@ defmodule KernelTest do
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list,  do: :at_list
   def fun_in(x) when x in @at_range, do: :at_range
+  def fun_in(_), do: :none
 
   test "in/2 in function guard" do
     assert fun_in(0) == :list
+    assert fun_in(1) == :range
     assert fun_in(2) == :range
+    assert fun_in(3) == :range
     assert fun_in(5) == :at_list
+    assert fun_in(6) == :at_range
+    assert fun_in(7) == :at_range
     assert fun_in(8) == :at_range
+
+    assert fun_in(0.0) == :none
+    assert fun_in(1.0) == :none
+    assert fun_in(2.0) == :none
+    assert fun_in(3.0) == :none
+    assert fun_in(6.0) == :none
+    assert fun_in(7.0) == :none
+    assert fun_in(8.0) == :none
+  end
+
+  def fun_in(x, y, z) when x in y..z, do: true
+  def fun_in(_x, _y, _z), do: false
+
+  test "in/2 in dynamic function guard" do
+    assert fun_in(2, 1, 3)
+    refute fun_in(2, 1.0, 3)
+    refute fun_in(2, 1, 3.0)
+    refute fun_in(2.0, 1, 3)
   end
 
   defmacrop case_in(x, y) do

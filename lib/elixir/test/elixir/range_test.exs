@@ -38,4 +38,13 @@ defmodule RangeTest do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
   end
+
+  test :integer_only do
+    x = 1.0
+    y = 3.0
+    message = "ranges (left .. right) expect both sides to be integers, got: 1.0..3.0"
+    assert_raise ArgumentError, message, fn ->
+      Enum.map(x..y, &(&1 * 2))
+    end
+  end
 end
