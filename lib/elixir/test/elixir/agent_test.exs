@@ -8,15 +8,18 @@ defmodule AgentTest do
   end
 
   test "start_link/2 workflow with unregistered name and anonymous functions" do
-    {:ok, pid} = Agent.start_link(fn -> %{} end)
+    {:ok, pid} = Agent.start_link(&Map.new/0)
 
     {:links, links} = Process.info(self, :links)
     assert pid in links
+
+    assert :proc_lib.translate_initial_call(pid) == {Map, :new, 0}
 
     assert Agent.update(pid, &Map.put(&1, :hello, :world)) == :ok
     assert Agent.get(pid, &Map.get(&1, :hello), 3000) == :world
     assert Agent.get_and_update(pid, &Map.pop(&1, :hello), 3000) == :world
     assert Agent.get(pid, &(&1)) == %{}
+    assert Agent.get(pid, &:erlang.throw/1) == %{}
     assert Agent.stop(pid) == :ok
     wait_until_dead(pid)
   end
@@ -24,12 +27,35 @@ defmodule AgentTest do
   test "start/2 workflow with registered name and module functions" do
     {:ok, pid} = Agent.start(Map, :new, [], name: :agent)
     assert Process.info(pid, :registered_name) == {:registered_name, :agent}
+    assert :proc_lib.translate_initial_call(pid) == {Map, :new, 0}
     assert Agent.cast(:agent, Map, :put, [:hello, :world]) == :ok
     assert Agent.get(:agent, Map, :get, [:hello]) == :world
     assert Agent.get_and_update(:agent, Map, :pop, [:hello]) == :world
     assert Agent.get(:agent, AgentTest, :identity, []) == %{}
+    assert Agent.get(:agent, :erlang, :throw, []) == %{}
     assert Agent.stop(:agent) == :ok
     assert Process.info(pid, :registered_name) == nil
+  end
+
+  test ":sys.get_state/1 and :sys.replace_state/2 use state" do
+    {:ok, pid} = Agent.start_link(&Map.new/0)
+
+    assert :sys.get_state(pid) == %{}
+    assert :sys.replace_state(pid, &Map.put(&1, :hello, :world))
+    assert :sys.get_state(pid) == %{hello: :world}
+
+    assert Agent.stop(pid) == :ok
+    wait_until_dead(pid)
+  end
+
+  test ":sys.get_status/1 returns state like GenServer" do
+    {:ok, pid} = Agent.start_link(&Map.new/0)
+
+    {:status, _, _, [_, _, _, _, [_, _, server_state]]} = :sys.get_status(pid)
+    assert server_state == {:data, [{'State', %{}}]}
+
+    assert Agent.stop(pid) == :ok
+    wait_until_dead(pid)
   end
 
   test ":sys.change_code/4 with mfa" do

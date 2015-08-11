@@ -114,6 +114,148 @@ defmodule Logger.TranslatorTest do
     """s
   end
 
+  test "translates Agent.get/4 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      catch_exit(Agent.get(pid, Map, :fetch!, [:hello]))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &Map.fetch!/2
+        Args: [%{}, :hello]
+    ** (exit) an exception was raised:
+        ** (KeyError) key :hello not found in: %{}
+    """
+  end
+
+  test "translates Agent.get/2 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      catch_exit(Agent.get(pid, &:erlang.exit/1))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &:erlang.exit/1
+        Args: [%{}]
+    ** (exit) %{}
+    """
+  end
+
+  test "translates Agent.get_and_update/4 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      catch_exit(Agent.get_and_update(pid, Map, :fetch!, [:hello]))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &Map.fetch!/2
+        Args: [%{}, :hello]
+    ** (exit) an exception was raised:
+        ** (KeyError) key :hello not found in: %{}
+    """
+  end
+
+  test "translates Agent.update/4 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      catch_exit(Agent.update(pid, Map, :fetch!, [:hello]))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &Map.fetch!/2
+        Args: [%{}, :hello]
+    ** (exit) an exception was raised:
+        ** (KeyError) key :hello not found in: %{}
+    """
+  end
+
+  test "translates Agent.cast/4 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      ref = Process.monitor(pid)
+      Agent.cast(pid, Map, :fetch!, [:hello])
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &Map.fetch!/2
+        Args: [%{}, :hello]
+    ** (exit) an exception was raised:
+        ** (KeyError) key :hello not found in: %{}
+    """
+  end
+
+  test "translates Agent.cast/2 crashes" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      ref = Process.monitor(pid)
+      Agent.cast(pid, &:erlang.exit/1)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &:erlang.exit/1
+        Args: [%{}]
+    ** (exit) %{}
+    """
+  end
+
+  test "translates Agent.get/4 crashes on debug" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:debug, fn ->
+      catch_exit(Agent.get(pid, Map, :fetch!, [:hello]))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &Map.fetch!/2
+        Args: [%{}, :hello]
+      Action: :get
+        Init: Map.new/0
+    ** (exit) an exception was raised:
+        ** (KeyError) key :hello not found in: %{}
+    """
+  end
+
+  test "translates Agent.get/2 crashes on debug" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:debug, fn ->
+      catch_exit(Agent.get(pid, &:erlang.exit/1))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Function: &:erlang.exit/1
+        Args: [%{}]
+      Action: :get
+        Init: Map.new/0
+    ** (exit) %{}
+    """
+  end
+
+  test "translates Agent crashes on bad call" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:info, fn ->
+      catch_exit(GenServer.call(pid, :invalid_call))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    ** (exit) bad call: :invalid_call
+    """
+  end
+
+  test "translates Agent crashes on bad call on debug" do
+    {:ok, pid} = Agent.start(&Map.new/0)
+
+    assert capture_log(:debug, fn ->
+      catch_exit(GenServer.call(pid, :invalid_call))
+    end) =~ """
+    [error] Agent #{inspect pid} terminating
+    Last Message: :invalid_call
+           State: %{}
+            Init: Map.new/0
+    ** (exit) bad call: :invalid_call
+    """
+  end
+
   test "translates Task crashes" do
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self()])
 
