@@ -495,13 +495,12 @@ defmodule List do
 
   ## Examples
 
-      iex> :barney
-      iex> List.to_existing_atom('barney')
-      :barney
+      iex> _ = :my_atom
+      iex> List.to_existing_atom('my_atom')
+      :my_atom
 
-      iex> List.to_existing_atom('fred')
+      iex> List.to_existing_atom('this_atom_will_never_exist')
       ** (ArgumentError) argument error
-         :erlang.list_to_existing_atom('fred')
 
   """
   @spec to_existing_atom(char_list) :: atom

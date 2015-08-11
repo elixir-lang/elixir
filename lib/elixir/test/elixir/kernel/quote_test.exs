@@ -307,7 +307,7 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
   test :nested do
     assert (nested 1 do
       nested 2 do
-        :ok
+        _ = :ok
       end
     end) == 1
   end

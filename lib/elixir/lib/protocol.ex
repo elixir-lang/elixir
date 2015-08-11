@@ -425,7 +425,7 @@ defmodule Protocol do
         @fallback_to_any false
 
         # Invoke the user given block
-        unquote(block)
+        _ = unquote(block)
 
         # Finalize expansion
         unquote(after_defprotocol)
@@ -543,7 +543,7 @@ defmodule Protocol do
       name     = Module.concat(protocol, for)
 
       # TODO: Remove this by 1.2
-      if protocol == Access do
+      if Atom.to_string(protocol) =~ "Elixir.Access" do
         :elixir_errors.warn __ENV__.line, __ENV__.file,
           "implementation of the Access protocol is deprecated. For customization of " <>
           "the dict[key] syntax, please implement the Dict behaviour instead"

@@ -208,12 +208,12 @@ defmodule ExUnit.Case do
       case contents do
         [do: block] ->
           quote do
-            unquote(block)
+            _ = unquote(block)
             :ok
           end
         _ ->
           quote do
-            try(unquote(contents))
+            _ = try(unquote(contents))
             :ok
           end
       end

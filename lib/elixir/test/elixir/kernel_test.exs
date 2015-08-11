@@ -175,7 +175,7 @@ defmodule KernelTest do
 
   test "paren as nil" do
     assert is_nil(()) == true
-    assert ((); ();) == nil
+    assert (_ = (); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
     assert {1, (), 3} == {1, nil, 3}
