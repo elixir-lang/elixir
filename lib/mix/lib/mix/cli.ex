@@ -8,12 +8,6 @@ defmodule Mix.CLI do
     Mix.Local.append_archives
     Mix.Local.append_paths
 
-    # Make sure all messages the tests might have sent to the
-    # Logger are printed before we shut down the VM.
-    System.at_exit fn _ ->
-      if Process.whereis(Logger), do: Logger.flush()
-    end
-
     case check_for_shortcuts(args) do
       :help ->
         proceed(["help"])
