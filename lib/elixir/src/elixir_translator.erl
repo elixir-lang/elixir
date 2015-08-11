@@ -8,13 +8,12 @@
 
 %% =
 
-translate({'=', Meta, [Left, Right]}, S) ->
-  Return = case Left of
-    {'_', _, Atom} when is_atom(Atom) -> S#elixir_scope.return;
-    _ -> true
-  end,
+translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
+  {TRight, SR} = translate(Right, S),
+  {{match, ?line(Meta), {var, ?line(Meta), '_'}, TRight}, SR#elixir_scope{return=true}};
 
-  {TRight, SR} = translate_block(Right, Return, S),
+translate({'=', Meta, [Left, Right]}, S) ->
+  {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_clauses:match(fun translate/2, Left, SR),
   {{match, ?line(Meta), TLeft, TRight}, SL};
 
@@ -370,6 +369,7 @@ translate_block(Expr, Return, S) ->
 %% return is typically true, except when we find one
 %% of the expressions below, which may handle return=false
 %% but must always return return=true.
+handles_no_return({'=', _, [{'_', _, Atom}, _]}) when is_atom(Atom) -> true;
 handles_no_return({'try', _, [_]}) -> true;
 handles_no_return({'cond', _, [_]}) -> true;
 handles_no_return({'for', _, [_|_]}) -> true;
