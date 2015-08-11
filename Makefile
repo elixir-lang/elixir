@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install install_man compile erlang elixir build_man build_plt clean_man clean_plt dialyze test clean clean_man docs release_docs release_zip check_erlang_release
+.PHONY: install install_man compile erlang elixir build_man build_plt clean_man clean_plt dialyze test clean clean_man docs release_docs release_precompiled check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -169,10 +169,10 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 #==> Release tasks
 
-release_zip: compile
-	rm -rf v$(VERSION).zip
+release_precompiled: compile
+	rm -rf Precompiled-v$(VERSION).zip
 	$(MAKE) build_man
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
+	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
 	$(MAKE) clean_man
 
 release_docs: docs
