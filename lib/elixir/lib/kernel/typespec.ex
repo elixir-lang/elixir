@@ -560,6 +560,11 @@ defmodule Kernel.Typespec do
                           "@typedoc's are always discarded for private types")
     end
 
+    if elixir_builtin_type?(name, arity) do
+      :elixir_errors.handle_file_error(caller.file,
+        {caller.line, :erl_lint, {:builtin_type, {name, arity}}})
+    end
+
     {{kind, {name, arity}, type}, caller.line, export, doc}
   end
 
@@ -567,6 +572,11 @@ defmodule Kernel.Typespec do
     type_spec = Macro.to_string(other)
     compile_error caller, "invalid type specification: #{type_spec}"
   end
+
+  defp elixir_builtin_type?(:as_boolean, 1), do: true
+  defp elixir_builtin_type?(:struct, 0), do: true
+  defp elixir_builtin_type?(:char_list, 0), do: true
+  defp elixir_builtin_type?(_, _), do: false
 
   @doc false
   def translate_spec(kind, {:when, _meta, [spec, guard]}, caller) do
@@ -759,6 +769,10 @@ defmodule Kernel.Typespec do
   # Special shortcut(s)
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :char_list}, []]}) do
     typespec_to_ast({:type, line, :char_list, []})
+  end
+
+  defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :struct}, []]}) do
+    typespec_to_ast({:type, line, :struct, []})
   end
 
   defp typespec_to_ast({:remote_type, line, [{:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]]}) do
@@ -992,6 +1006,10 @@ defmodule Kernel.Typespec do
 
   defp typespec({:char_list, _meta, []}, vars, caller) do
     typespec((quote do: :elixir.char_list()), vars, caller)
+  end
+
+  defp typespec({:struct, _meta, []}, vars, caller) do
+    typespec((quote do: :elixir.struct()), vars, caller)
   end
 
   defp typespec({:as_boolean, _meta, [arg]}, vars, caller) do
