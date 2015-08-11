@@ -133,7 +133,7 @@ defmodule Kernel.WarningTest do
         end
       end
       """
-    end) =~ "warning: the underscored variable \"_var\" is used in the body of the function"
+    end) =~ "warning: the underscored variable \"_var\" is used after being set"
   after
     purge Sample
   end
