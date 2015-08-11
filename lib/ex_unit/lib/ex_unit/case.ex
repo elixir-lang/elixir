@@ -121,6 +121,7 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behaves:
 
+    * `:capture_log` - see Log Capture below.
     * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 30000)
 
@@ -150,6 +151,25 @@ defmodule ExUnit.Case do
 
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
+
+  ## Log Capture
+
+  ExUnit can optionally supress printing of log messages that are generated during a test. Log
+  messages generated while running a test are captured and only if the test fails are they printed
+  to aid with debugging.
+
+  You can opt into this behavior for individual tests by tagging them with `:capture_log` or enable
+  log capture for all tests in the ExUnit configuration:
+
+      config :ex_unit, capture_log: true
+
+  This default can be overriden by `@tag capture_log: false` or `@moduletag capture_log: false`.
+
+  Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or 
+  between tests) are never captured. If you want to supress these messages as well, remove the
+  console backend globally:
+
+      config :logger, backends: []
   """
 
   @doc false
