@@ -274,6 +274,12 @@ defmodule TaskTest do
       {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
   end
 
+  test "shutdown/1 raises if task pid is nil" do
+    task = %Task{ref: make_ref, pid: nil}
+    assert_raise ArgumentError, "task #{inspect task} does not have an associated task process.",
+      fn -> Task.shutdown(task) end
+  end
+
   test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do
     task = %Task{ref: make_ref, pid: spawn(fn() -> :ok end)}
     send(self(), {task.ref, :result})
