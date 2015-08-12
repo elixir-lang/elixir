@@ -25,138 +25,98 @@ defmodule Kernel.Typespec do
   `false`). All other types are built of unions of predefined types. Certain
   shorthands are allowed, such as `[...]`, `<<>>` and `{...}`.
 
-  ### Predefined types
+  ### Basic types
 
-      Type :: any         # the top type, the set of all terms
-            | none        # the bottom type, contains no terms
-            | pid
-            | port
-            | reference
-            | Atom
-            | Bitstring
-            | float
-            | Fun
-            | Integer
-            | List
-            | Map
-            | Tuple
-            | Union
-            | UserDefined # Described in section "Defining a type"
+      type :: any()                   # the top type, the set of all terms
+            | none()                  # the bottom type, contains no terms
+            | pid()
+            | port()
+            | reference()
+            | tuple()
+            | atom()
+            | integer()
+            | non_neg_integer()       # 0, 1, 2, 3, ...
+            | pos_integer()           # 1, 2, 3, ...
+            | neg_integer()           # ..., -3, -2, -1
+            | float()
+            | map()
+            | struct()
+            | list(type)
+            | nonempty_list(type)
+            | improper_list(type1, type2)
+            | maybe_improper_list(type1, type2)
+            | Literals                # Described in section "Literals"
+            | Builtin                 # Described in section "Builtin-types"
+            | Remotes                 # Described in section "Remotes"
 
-      Atom :: atom
-            | ElixirAtom # `:foo`, `:bar`, ...
+  ### Literals
 
-      Bitstring :: <<>>
-                 | << _ :: M >>             # M is a positive integer
-                 | << _ :: _ * N >>         # N is a positive integer
-                 | << _ :: M, _ :: _ * N >>
+  The following literals are also supported in typespecs:
 
-      Fun :: (... -> any)    # any function
-           | (... -> Type)   # any arity, returning Type
-           | (() -> Type))
-           | (TList -> Type)
+      type :: :atom                         ## Atoms
+            | 1                             ## Integers
+            | 1..10                         ## Integers from 1 to 10
+            | 1.0                           ## Floats
 
-      Integer :: integer
-               | ElixirInteger                # ..., -1, 0, 1, ... 42 ...
-               | ElixirInteger..ElixirInteger # an integer range
+            | <<>>                          ## Bitstrings
+            | <<_ :: size>>                 # size is a positive integer
+            | <<_ :: _ * unit>>             # unit is a positive integer
+            | <<_ :: size, _ :: _ * unit>>
 
-      List :: list(Type)                        # proper list ([]-terminated)
-            | improper_list(Type1, Type2)       # Type1=contents, Type2=termination
-            | maybe_improper_list(Type1, Type2) # Type1 and Type2 as above
-            | nonempty_list(Type)               # proper non-empty list
-            | []                                # empty list
-            | [Type]                            # shorthand for list(Type)
-            | [...]                             # shorthand for nonempty_list()
-            | [Type, ...]                       # shorthand for nonempty_list(Type)
-            | [Keyword]
+            | [type]                        ## Lists
+            | []                            # empty list
+            | [...]                         # shorthand for nonempty_list(any())
+            | [type, ...]                   # shorthand for nonempty_list(type)
+            | [key: type]                   # keyword lists
 
-      Map :: map()            # map of any size
-           | %{}              # map of any size
-           | %Struct{}        # struct (see defstruct/1)
-           | %Struct{Keyword}
-           | %{Keyword}
-           | %{Pairs}
+            | (... -> type)                 ## Functions
+            | (... -> type)                 # any arity, returns type
+            | (() -> type)                  # 0-arity, returns type
+            | (type1, type2 -> type)        # 2-arity, returns type
 
-      Tuple :: tuple                 # a tuple of any size
-             | {}                    # empty tuple
-             | {TList}
-             | record(Atom)          # record (see Record)
-             | record(Atom, Keyword)
+            | %{}                           ## Maps
+            | %{key: type}                  # map with :key of given type
+            | %{type1 => type2}             # map with key of type1 and value of type2
+            | %SomeStruct{}
+            | %SomeStruct{key: type}
 
-      Keyword :: ElixirAtom: Type
-               | ElixirAtom: Type, Keyword
+            | {}                            ## Tuples
+            | {:ok, type}                   # two element tuple with an atom and any type
 
-      Pairs :: Type => Type
-             | Type => Type, Pairs
+  ### Built-in types
 
-      TList :: Type
-             | Type, TList
+  Those types are also provided by Elixir as shortcuts on top of the
+  basic and literal types.
 
-      Union :: Type | Type
+  Built-in type           | Defined as
+  :---------------------- | :---------
+  `term()`                | `any()`
+  `binary()`              | `<< _ :: _ * 8 >>`
+  `bitstring()`           | `<< _ :: _ * 1 >>`
+  `boolean()`             | `false` \| `true`
+  `byte()`                | `0..255`
+  `char()`                | `0..0x10ffff`
+  `number()`              | `integer()` \| `float()`
+  `char_list()`           | `[char()]`
+  `list()`                | `[any()]`
+  `maybe_improper_list()` | `maybe_improper_list(any(), any())`
+  `nonempty_list()`       | `nonempty_list(any())`
+  `iodata()`              | `iolist()` \| `binary()`
+  `iolist()`              | `maybe_improper_list(byte()` \| `binary()` \| `iolist(), binary()` \| `[])`
+  `module()`              | `atom()` \| `tuple()`
+  `arity()`               | `0..255`
+  `mfa()`                 | `{atom(), atom(), arity()}`
+  `node()`                | `atom()`
+  `timeout()`             | `:infinity` \| `non_neg_integer()`
+  `no_return()`           | `none()`
+  `fun()`                 | `(... -> any)`
+  `struct()`              | `%{__struct__: atom()}`
 
-  ### Bit strings
+  ### Remote types
 
-  Bit string with a base size of 3:
-
-      << _ :: 3 >>
-
-  Bit string with a unit size of 8:
-
-      << _ :: _ * 8 >>
-
-  ### Anonymous functions
-
-  Any anonymous function:
-
-      ((...) -> any)
-      (... -> any)
-
-  Anonymous function with arity of zero:
-
-      (() -> type)
-
-  Anonymous function with some arity:
-
-      ((type, type) -> type)
-      (type, type -> type)
-
-  ## Built-in types
-
-  Built-in type         | Defined as
-  :-------------------- | :---------
-  `term`                | `any`
-  `binary`              | `<< _ :: _ * 8 >>`
-  `bitstring`           | `<< _ :: _ * 1 >>`
-  `boolean`             | `false` \| `true`
-  `byte`                | `0..255`
-  `char`                | `0..0x10ffff`
-  `number`              | `integer` \| `float`
-  `char_list`           | `[char]`
-  `list`                | `[any]`
-  `maybe_improper_list` | `maybe_improper_list(any, any)`
-  `nonempty_list`       | `nonempty_list(any)`
-  `iodata`              | `iolist` \| `binary`
-  `iolist`              | `maybe_improper_list(byte` \| `binary` \| `iolist, binary` \| `[])`
-  `module`              | `atom` \| `tuple`
-  `mfa`                 | `{atom, atom, arity}`
-  `arity`               | `0..255`
-  `node`                | `atom`
-  `timeout`             | `:infinity` \| `non_neg_integer`
-  `no_return`           | `none`
-  `fun`                 | `(... -> any)`
-
-
-  Some built-in types cannot be expressed with valid syntax according to the
-  language defined above.
-
-  Built-in type     | Can be interpreted as
-  :---------------- | :--------------------
-  `non_neg_integer` | `0..`
-  `pos_integer`     | `1..`
-  `neg_integer`     | `..-1`
-
-  Types defined in other modules are referred to as "remote types", they are
-  referenced as `Module.type_name` (ex. `Enum.t` or `String.t`).
+  Any module is also able to define their own type and the modules in
+  Elixir are no exception. For example, a string is `String.t`, a
+  range is `Range.t`, any enumerable can be `Enum.t` and so on.
 
   ## Defining a type
 
