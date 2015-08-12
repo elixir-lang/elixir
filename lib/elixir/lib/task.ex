@@ -404,8 +404,11 @@ defmodule Task do
 
   ## Helpers
 
-  defp reason(:noconnection, proc), do: {:nodedown, node(proc)}
+  defp reason(:noconnection, proc), do: {:nodedown, monitor_node(proc)}
   defp reason(reason, _),           do: reason
+
+  defp monitor_node(pid) when is_pid(pid), do: node(pid)
+  defp monitor_node({_, node}),            do: node
 
   # spawn a process to ensure task gets exit signal if process dies from exit signal
   # between unlink and exit.
