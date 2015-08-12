@@ -320,7 +320,7 @@ store_each(Check, Kind, File, Location, Module, Defaults, {function, Line, Name,
       check_valid_kind(Line, File, Name, Arity, Kind, StoredKind),
       (Check and StoredCheck) andalso
         check_valid_clause(Line, File, Name, Arity, Kind, Data, StoredLine, StoredFile),
-      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, LastDefaults, LastHasBody);
+      check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, LastHasBody);
     [] ->
       FinalLine = Line,
       FinalLocation = Location,
@@ -348,19 +348,19 @@ check_valid_clause(Line, File, Name, Arity, Kind, Data, StoredLine, StoredFile) 
         {ungrouped_clause, {Kind, Name, Arity, StoredLine, Relative}})
   end.
 
-% Any clause after clause with defaults (body less does not count)
-check_valid_defaults(Line, File, Name, Arity, Kind, _, StoredDefaults, true) when StoredDefaults > 0 ->
+% Clause with defaults after clause with defaults
+check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _) when Defaults > 0, StoredDefaults > 0 ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE,
     {clauses_with_defaults, {Kind, Name, Arity}});
-% Clause without defaults
-check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _) -> [];
-% Clause with defaults after clause without defaults
-check_valid_defaults(Line, File, Name, Arity, Kind, _, 0, _) ->
+% Clause with defaults after clause(s) without defaults
+check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
   elixir_errors:form_warn([{line, Line}], File, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}});
-% Clause with defaults after clause with defaults
-check_valid_defaults(Line, File, Name, Arity, Kind, _, _, _) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE,
-    {clauses_with_defaults, {Kind, Name, Arity}}).
+% Clause without defaults directly after clause with defaults (body less does not count)
+check_valid_defaults(Line, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE,
+    {out_of_order_defaults, {Kind, Name, Arity}});
+% Clause without defaults
+check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
 
 check_previous_defaults(Line, Module, Name, Arity, Kind, Defaults, E) ->
   Matches = ets:match(elixir_module:defs_table(Module), {{Name, '$2'}, '$1', '_', '_', '_', '_', {'$3', '_', '_'}}),
@@ -417,7 +417,8 @@ format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
     "define a function head with the defaults", [Kind, Name, Arity]);
 
 format_error({out_of_order_defaults, {Kind, Name, Arity}}) ->
-  io_lib:format("clause with defaults should be the first clause in ~ts ~ts/~B", [Kind, Name, Arity]);
+  io_lib:format("multiple clauses with default values should define a function head with the defaults, "
+   "~ts ~ts/~B has multiple clauses and defines defaults in a clause with a body", [Kind, Name, Arity]);
 
 format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses for the same ~ts should be grouped together, ~ts ~ts/~B was previously defined (~ts:~B)",

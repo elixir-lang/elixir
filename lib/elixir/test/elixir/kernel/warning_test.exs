@@ -386,7 +386,20 @@ defmodule Kernel.WarningTest do
         def hello(arg \\ 0), do: nil
       end
       """
-    end) =~ "warning: clause with defaults should be the first clause in def hello/1"
+    end) =~ "warning: multiple clauses with default values should define a function head with the defaults, def hello/1 has multiple clauses and defines defaults in a clause with a body"
+  after
+    purge Sample
+  end
+
+  test :clauses_with_default_should_use_fun_head do
+    assert capture_err(fn ->
+      Code.eval_string ~S"""
+      defmodule Sample do
+      def hello(arg \\ 0), do: nil
+      def hello(arg), do: nil
+      end
+      """
+    end) =~ "warning: multiple clauses with default values should define a function head with the defaults, def hello/1 has multiple clauses and defines defaults in a clause with a body"
   after
     purge Sample
   end
