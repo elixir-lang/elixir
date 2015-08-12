@@ -270,7 +270,7 @@ optimized_andand_test() ->
   {'case', _, _,
     [{clause, _,
       [{var, _, Var}],
-      [[{op, _, 'orelse', _, _}]],
+      [[{op, _, 'or', _, _}]],
       [{var, _, Var}]},
     {clause, _, [{var, _, '_'}], [], [{atom, 0, done}]}]
   } = to_erl("is_list([]) && :done").
@@ -279,7 +279,7 @@ optimized_oror_test() ->
   {'case', _, _,
     [{clause, 1,
       [{var, 1, _}],
-      [[{op, 1, 'orelse', _, _}]],
+      [[{op, 1, 'or', _, _}]],
       [{atom, 0, done}]},
     {clause, 1, [{var, 1, Var}], [], [{var, 1, Var}]}]
   } = to_erl("is_list([]) || :done").
