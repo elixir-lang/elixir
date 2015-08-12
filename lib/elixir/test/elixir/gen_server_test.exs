@@ -91,4 +91,21 @@ defmodule GenServerTest do
 
     GenServer.call(:stack, :stop)
   end
+
+  test "whereis/1" do
+    name = :whereis_server
+
+    {:ok, pid} = GenServer.start_link(Stack, [], name: name)
+    assert GenServer.whereis(name) == pid
+    assert GenServer.whereis({name, node()}) == pid
+    assert GenServer.whereis({name, :another_node}) == {name, :another_node}
+    assert GenServer.whereis(pid) == pid
+    assert GenServer.whereis(:whereis_bad_server) == nil
+
+    {:ok, pid} = GenServer.start_link(Stack, [], name: {:global, name})
+    assert GenServer.whereis({:global, name}) == pid
+    assert GenServer.whereis({:global, :whereis_bad_server}) == nil
+    assert GenServer.whereis({:via, :global, name}) == pid
+    assert GenServer.whereis({:via, :global, :whereis_bad_server}) == nil
+  end
 end

@@ -501,6 +501,41 @@ defmodule GenServer do
     end
   end
 
+  @doc """
+  Returns the `pid` or `{name, node}` of a GenServer process.
+  Returns `nil` if no process is associated with the given name.
+
+  For example, to lookup a server process, monitor it and send a cast:
+
+      process = GenServer.whereis(server)
+      monitor = Process.monitor(process)
+      GenServer.cast(process, :hello)
+
+  """
+  @spec whereis(server) :: pid | {atom, node} | nil
+  def whereis(pid) when is_pid(pid), do: pid
+  def whereis(name) when is_atom(name) do
+    Process.whereis(name)
+  end
+  def whereis({:global, name}) do
+    case :global.whereis_name(name) do
+      pid when is_pid(pid) -> pid
+      :undefined           -> nil
+    end
+  end
+  def whereis({:via, mod, name}) do
+    case apply(mod, :whereis_name, [name]) do
+      pid when is_pid(pid) -> pid
+      :undefined           -> nil
+    end
+  end
+  def whereis({name, local}) when is_atom(name) and local == node() do
+    Process.whereis(name)
+  end
+  def whereis({name, node} = server) when is_atom(name) and is_atom(node) do
+    server
+  end
+
   @compile {:inline, [nodes: 0]}
 
   defp nodes do
