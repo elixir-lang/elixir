@@ -59,8 +59,8 @@ defmodule Kernel.Typespec do
             | 1.0                           ## Floats
 
             | <<>>                          ## Bitstrings
-            | <<_ :: size>>                 # size is a positive integer
-            | <<_ :: _ * unit>>             # unit is a positive integer
+            | <<_ :: size>>                 # size is 0 or a positive integer
+            | <<_ :: _ * unit>>             # unit is an integer from 1 to 256
             | <<_ :: size, _ :: _ * unit>>
 
             | [type]                        ## Lists
@@ -75,8 +75,8 @@ defmodule Kernel.Typespec do
             | (type1, type2 -> type)        # 2-arity, returns type
 
             | %{}                           ## Maps
-            | %{key: type}                  # map with :key of given type
-            | %{type1 => type2}             # map with key of type1 and value of type2
+            | %{key: type}                  # map with key :key with value of type
+            | %{type1 => type2}             # map with keys of type1 with values of type2
             | %SomeStruct{}
             | %SomeStruct{key: type}
 
