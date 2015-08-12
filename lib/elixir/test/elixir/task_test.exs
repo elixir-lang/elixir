@@ -173,8 +173,15 @@ defmodule TaskTest do
   test "await/1 exits on :noconnection" do
     ref  = make_ref()
     task = %Task{ref: ref, pid: self()}
-    send self(), {:DOWN, ref, self(), self(), :noconnection}
+    send self(), {:DOWN, ref, :process, self(), :noconnection}
     assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+  end
+
+  test "await/1 exits on :noconnection from named monitor" do
+    ref  = make_ref()
+    task = %Task{ref: ref, pid: nil}
+    send self(), {:DOWN, ref, :process, {:name, :node}, :noconnection}
+    assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :node}
   end
 
   test "find/2" do
