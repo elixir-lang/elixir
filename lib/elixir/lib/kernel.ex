@@ -1188,7 +1188,7 @@ defmodule Kernel do
 
   """
   defmacro left or right do
-    quote do: __op__(:orelse, unquote(left), unquote(right))
+    quote do: :erlang.orelse(unquote(left), unquote(right))
   end
 
   @doc """
@@ -1211,7 +1211,7 @@ defmodule Kernel do
 
   """
   defmacro left and right do
-    quote do: __op__(:andalso, unquote(left), unquote(right))
+    quote do: :erlang.andalso(unquote(left), unquote(right))
   end
 
   @doc """
@@ -2633,9 +2633,7 @@ defmodule Kernel do
         false
       [h|t] ->
         :lists.foldr(fn x, acc ->
-          quote do
-            unquote(comp(left, x)) or unquote(acc)
-          end
+          quote do: :erlang.or(unquote(comp(left, x)), unquote(acc))
         end, comp(left, h), t)
       {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))

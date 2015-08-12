@@ -40,13 +40,13 @@ translate({'__block__', Meta, Args}, S) when is_list(Args) ->
 
 %% Erlang op
 
-translate({'__op__', Meta, [Op, Expr]}, S) when is_atom(Op) ->
-  {TExpr, NS} = translate(Expr, S),
-  {{op, ?line(Meta), Op, TExpr}, NS};
-
-translate({'__op__', Meta, [Op, Left, Right]}, S) when is_atom(Op) ->
+translate({{'.', _, [erlang, 'andalso']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?line(Meta), Op, TLeft, TRight}, NS};
+  {{op, ?line(Meta), 'andalso', TLeft, TRight}, NS};
+
+translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
+  {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
+  {{op, ?line(Meta), 'orelse', TLeft, TRight}, NS};
 
 %% Lexical
 
@@ -386,8 +386,7 @@ build_truthy_clause(Meta, Condition, Body) ->
     false ->
       Var  = {'cond', [], 'Elixir'},
       Head = {'when', [], [Var,
-        {'__op__', [], [
-          'andalso',
+        {{'.', [], [erlang, 'andalso']}, [], [
           {{'.', [], [erlang, '/=']}, [], [Var, nil]},
           {{'.', [], [erlang, '/=']}, [], [Var, false]}
         ]}

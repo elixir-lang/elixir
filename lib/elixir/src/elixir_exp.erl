@@ -26,16 +26,6 @@ expand({'%', Meta, [Left, Right]}, E) ->
 expand({'<<>>', Meta, Args}, E) ->
   elixir_bitstring:expand(Meta, Args, E);
 
-%% Other operators
-
-expand({'__op__', Meta, [_, _] = Args}, E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{'__op__', Meta, EArgs}, EA};
-
-expand({'__op__', Meta, [_, _, _] = Args}, E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{'__op__', Meta, EArgs}, EA};
-
 expand({'->', Meta, _Args}, E) ->
   compile_error(Meta, ?m(E, file), "unhandled operator ->");
 
@@ -598,8 +588,7 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {'__op__', _, [
-      'orelse',
+    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
       {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
       {{'.', _, [erlang, '=:=']}, _, [Var, false]}
     ]}]}],
