@@ -26,10 +26,8 @@ if_else_kv_args_test() ->
 
 if_else_kv_blocks_test() ->
   {2, _} = eval("if(false) do\n1\nelse\n2\nend"),
-  {2, _} = eval("if(false) do\n1\n3\nelse\n2\nend"),
   {2, _} = eval("if(false) do 1 else 2 end"),
-  {2, _} = eval("if(false) do 1;else 2; end"),
-  {3, _} = eval("if(false) do 1;else 2; 3; end").
+  {2, _} = eval("if(false) do 1;else 2; end").
 
 vars_if_test() ->
   F = fun() ->
