@@ -393,7 +393,7 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid} = task, timeout) do
-    Process.exit(pid, :shutdown)
+    exit(pid, :shutdown)
     case shutdown_receive(task, :shutdown, timeout) do
       {:error, reason} ->
         exit({reason, {__MODULE__, :shutdown, [task, timeout]}})

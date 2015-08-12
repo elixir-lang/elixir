@@ -238,7 +238,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/1 returns nil on shutting down task" do
-    Process.flag(:trap_exit, true)
     task = Task.async(:timer, :sleep, [:infinity])
     assert Task.shutdown(task) == nil
   end
@@ -333,7 +332,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 exits on killing task after shutdown timeout" do
-    Process.flag(:trap_exit, true)
     caller = self()
 
     task = Task.async(fn() ->
@@ -349,7 +347,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 returns nil on killing task" do
-    Process.flag(:trap_exit, true)
     caller = self()
 
     task = Task.async(fn() ->
