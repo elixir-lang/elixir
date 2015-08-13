@@ -2790,6 +2790,14 @@ defmodule Kernel do
         # code here can refer to `Foo.Bar` as just `Bar`
       end
 
+  ## Module names
+
+  A module name can be any atom, but Elixir provides a special syntax which is
+  usually used for module names. What is called a module name is an upper case
+  character followed by any alphanumeric characters or `_` or `.`. This
+  identifier is equivilant to an atom prefixed by `Elixir.`. So in the
+  `defmodule Foo` example `Foo` is equivalent to `:"Elixir.Foo"`
+
   ## Dynamic names
 
   Elixir module names can be dynamically generated. This is very
@@ -2941,6 +2949,30 @@ defmodule Kernel do
 
   In the example above, a `sum/2` function is defined; this function receives
   two arguments and returns their sum.
+
+  ## Names
+
+  Varable and function names have the following syntax: A lower case letter or
+  underscore followed by any number of lower or upper case numbers, letters,
+  or underscores and optionally ending in `!` or `?`.
+
+  For variables, any identifier starting with an underscore shoud indicate an
+  unused variable. For example
+
+      def foo(bar) do
+        []
+      end
+      # warning: variable bar is unused
+
+      def foo(_bar) do
+        []
+      end
+      # no warning
+
+      def foo(_bar) do
+        _bar
+      end
+      # warning: the underscored variable "_bar" is used after being set
 
   """
   defmacro def(call, expr \\ nil) do
