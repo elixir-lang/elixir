@@ -107,13 +107,11 @@ defmodule Mix.Tasks.Profile.Fprof do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     unless Mix.env == :prod do
-      IO.puts(
-        """
+      IO.puts """
         Warning: It's advised to run this task with the prod environment.
         Otherwise, the results may contain false bottlenecks which will not
         appear in production.
         """
-      )
     end
 
     {opts, head, _} = OptionParser.parse_head(args,
@@ -181,22 +179,22 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp filter_patterns(pattern) do
-    Enum.filter(Enum.uniq(Path.wildcard(pattern)), &File.regular?(&1))
+    Path.wildcard(pattern)
+    |> Enum.uniq
+    |> Enum.filter(&File.regular?/1)
   end
-
 
   # Profiling functions
 
   defp profile_code(code_string, opts) do
-    # Use compile_quoted since it leaves less noise than eval_quoted
-    Code.compile_quoted(quote do
-      Mix.Tasks.Profile.Fprof.profile(
-        fn ->
+    content =
+      quote do
+        unquote(__MODULE__).profile(fn ->
           unquote(Code.string_to_quoted!(code_string))
-        end,
-        unquote(opts)
-      )
-    end)
+        end, unquote(opts))
+      end
+    # Use compile_quoted since it leaves less noise than eval_quoted
+    Code.compile_quoted(content)
   end
 
   @doc false
@@ -207,6 +205,11 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp profile_and_analyse(fun, opts) do
+    sorting = case Keyword.get(opts, :sort, "acc") do
+      "acc" -> :acc
+      "own" -> :own
+    end
+
     {:ok, tracer} = :fprof.profile(:start)
     :fprof.apply(fun, [], tracer: tracer)
 
@@ -217,14 +220,12 @@ defmodule Mix.Tasks.Profile.Fprof do
         totals: true,
         details: Keyword.get(opts, :details, false),
         callers: Keyword.get(opts, :callers, false),
-        sort:
-          case Keyword.get(opts, :sort, "acc") do
-            "acc" -> :acc
-            "own" -> :own
-          end
+        sort: sorting
       )
-      {_in, analysis_output} = StringIO.contents(analyse_dest)
-      to_char_list(analysis_output)
+    else
+      :ok ->
+        {_in, analysis_output} = StringIO.contents(analyse_dest)
+        String.to_char_list(analysis_output)
     after
       StringIO.close(analyse_dest)
     end
@@ -235,10 +236,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     {total_row, analysis_output} = next_term(analysis_output)
     print_total_row(total_row)
 
-    Enum.each(
-      Stream.unfold(analysis_output, &next_term/1),
-      &print_analysis_result/1
-    )
+    Stream.unfold(analysis_output, &next_term/1)
+    |> Enum.each(&print_analysis_result/1)
   end
 
   defp next_term(char_list) do
@@ -261,20 +260,21 @@ defmodule Mix.Tasks.Profile.Fprof do
     print_row(["s", "B", ".3f", ".3f", "s"], ["Total", count, acc, own, ""])
   end
 
-
   # Represents the `pid` entry
   defp print_analysis_result([{pid_atom, count, :undefined, own} | info]) do
     print_process(pid_atom, count, own)
 
-    if (info[:spawned_by]), do:
-      IO.puts("  spawned by #{info[:spawned_by]}")
+    if spawned_by = info[:spawned_by] do
+      IO.puts("  spawned by #{spawned_by}")
+    end
 
-    if (info[:spawned_as]), do:
-      IO.puts("  as #{function_text(info[:spawned_as])}")
+    if spawned_as = info[:spawned_as] do
+      IO.puts("  as #{function_text(spawned_as)}")
+    end
 
-    if (info[:initial_calls]) do
+    if initial_calls = info[:initial_calls] do
       IO.puts("  initial calls:")
-      Enum.each(info[:initial_calls], &IO.puts("    #{function_text(&1)}"))
+      Enum.each(initial_calls, &IO.puts("    #{function_text(&1)}"))
     end
 
     IO.puts("")
@@ -294,9 +294,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     print_function(function, "", "")
   end
 
-
   defp print_process(pid_atom, count, own) do
-    IO.puts("\n#{List.duplicate(?-, 100)}")
+    IO.puts([?\n, String.duplicate("-", 100)])
     print_row(["s", "B", "s", ".3f", "s"], ["#{pid_atom}", count, "", own, ""])
   end
 
@@ -312,7 +311,6 @@ defmodule Mix.Tasks.Profile.Fprof do
   end
 
   defp function_text(other), do: inspect(other)
-
 
   @columns [-60, 10, 12, 12, 5]
   defp print_row(formats, data) do
