@@ -88,4 +88,23 @@ defmodule Mix.Tasks.CompileTest do
       refute File.regular?("ebin/Elixir.C.beam")
     end
   end
+
+  test "add logger application metadata" do
+    import ExUnit.CaptureLog
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+      require Logger
+      def info, do: Logger.info("hello")
+      end
+      """)
+
+      assert Mix.Tasks.Compile.run([]) == :ok
+      try do
+        assert capture_log([metadata: [:application]], &A.info/0) =~ "application=sample"
+      after
+        purge [A]
+      end
+    end
+  end
 end
