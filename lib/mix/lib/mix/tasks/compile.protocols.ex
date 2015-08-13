@@ -82,5 +82,4 @@ defmodule Mix.Tasks.Compile.Protocols do
   def clean do
     File.rm_rf(default_path)
   end
-
 end
