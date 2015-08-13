@@ -642,4 +642,62 @@ defmodule Kernel.TypespecTest do
     assert Kernel.Typespec.beam_types(Unknown) == nil
     assert Kernel.Typespec.beam_specs(Unknown) == nil
   end
+
+  defmodule Sample do
+    @callback first(integer) :: integer
+
+    @callback foo(atom(), binary) :: binary
+
+    @callback bar(External.hello, my_var :: binary) :: binary
+
+    @callback guarded(my_var) :: my_var when my_var: binary
+
+    @callback orr(atom | integer) :: atom
+
+    @callback literal(123, {atom}, :atom, [integer], true) :: atom
+
+    @macrocallback last(integer) :: Macro.t
+  end
+
+  test :callbacks do
+    assert Sample.behaviour_info(:callbacks) == [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+  end
+
+  test :default_is_not_supported do
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @callback hello(num \\ 0 :: integer) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @callback hello(num :: integer \\ 0) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @macrocallback hello(num \\ 0 :: integer) :: Macro.t
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @macrocallback hello(num :: integer \\ 0) :: Macro.t
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @spec hello(num \\ 0 :: integer) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @spec hello(num :: integer \\ 0) :: integer
+      end
+    end
+  end
 end

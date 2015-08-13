@@ -152,7 +152,7 @@ build(Line, File, Module, Docs, Lexical) ->
 
   Attributes = [behaviour, on_load, compile, external_resource, dialyzer],
   ets:insert(Data, {?acc_attr, [before_compile, after_compile, on_definition, derive,
-                                spec, type, typep, opaque, callback|Attributes]}),
+                                spec, type, typep, opaque, callback, macrocallback|Attributes]}),
   ets:insert(Data, {?persisted_attr, [vsn|Attributes]}),
   ets:insert(Data, {?lexical_attr, Lexical}),
 
@@ -276,7 +276,7 @@ typedocs_attributes(Types, Forms) ->
 specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
   case elixir_compiler:get_opt(internal) of
     false ->
-      Specs0 = get_typespec(Data, spec) ++ get_typespec(Data, callback),
+      Specs0 = get_typespec(Data, spec) ++ get_typespec(Data, callback) ++ get_typespec(Data, macrocallback),
       Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Specs0],
       Specs2 = lists:flatmap(fun(Spec) ->
