@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Clean do
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    _ = for compiler <- Mix.Tasks.Compile.compilers(),
+    _ = for compiler <- [:protocols] ++ Mix.Tasks.Compile.compilers(),
             module = Mix.Task.get("compile.#{compiler}"),
             function_exported?(module, :clean, 0),
             do: module.clean
