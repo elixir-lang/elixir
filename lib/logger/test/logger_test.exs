@@ -3,14 +3,14 @@ defmodule LoggerTest do
   require Logger
 
   setup_all do
-    Logger.configure_backend(:console, metadata: [:module])
+    Logger.configure_backend(:console, metadata: [:application, :module])
     on_exit(fn ->
       Logger.configure_backend(:console, metadata: [])
     end)
   end
 
   defp msg_with_meta(text) do
-    msg("module=#{LoggerTest} #{text}")
+    msg("application= module=#{LoggerTest} #{text}")
   end
 
   test "add_translator/1 and remove_translator/1" do
@@ -91,7 +91,7 @@ defmodule LoggerTest do
     assert Logger.metadata([module: Sample]) == :ok
 
     assert capture_log(fn ->
-      assert Logger.bare_log(:info, "ok", [module: LoggerTest]) == :ok
+      assert Logger.bare_log(:info, "ok", [application: nil, module: LoggerTest]) == :ok
     end) =~ msg_with_meta("[info]  ok")
   end
 
@@ -198,9 +198,35 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Sample.info == :ok
-    end) =~ msg("module=#{LoggerTest}.Sample [info]  hello")
+    end) =~ msg("application= module=#{LoggerTest}.Sample [info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
+  end
+
+  test "set application metadata at compile time" do
+    Logger.configure(compile_time_application: nil)
+    defmodule SampleNoApp do
+      def info do
+        Logger.info "hello"
+      end
+    end
+
+    assert capture_log(fn ->
+      assert SampleNoApp.info == :ok
+    end) =~ msg("application= module=#{LoggerTest}.SampleNoApp [info]  hello")
+
+    Logger.configure(compile_time_application: :sample_app)
+    defmodule SampleApp do
+      def info do
+        Logger.info "hello"
+      end
+    end
+
+    assert capture_log(fn ->
+      assert SampleApp.info == :ok
+    end) =~ msg("application=sample_app module=#{LoggerTest}.SampleApp [info]  hello")
+  after
+    Logger.configure(compile_time_application: nil)
   end
 
   test "log/2 truncates messages" do
