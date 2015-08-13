@@ -57,6 +57,12 @@ defmodule Logger do
       no overhead at runtime. Defaults to `:debug` and only
       applies to the `Logger.debug`, `Logger.info`, etc style of calls.
 
+    * `:compile_time_application` - sets the `:application` metadata value
+      to the configured value at compilation time. This configuration is
+      usually only useful for build tools to automatically add the
+      application to the metadata for `Logger.debug`, `Logger.info`, etc
+      style of calls.
+
   For example, to configure the `:backends` and `compile_time_purge_level`
   in a `config/config.exs` file:
 
@@ -330,7 +336,7 @@ defmodule Logger do
   See the "Runtime Configuration" section in `Logger` module
   documentation for the available options.
   """
-  @valid_options [:compile_time_purge_level, :sync_threshold, :truncate, :level, :utc_log]
+  @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
 
   def configure(options) do
     Logger.Config.configure(Dict.take(options, @valid_options))
@@ -512,7 +518,8 @@ defmodule Logger do
 
   defp macro_log(level, data, metadata, caller) do
     %{module: module, function: fun, line: line} = caller
-    caller = [module: module, function: form_fa(fun), line: line]
+    app = Application.get_env(:logger, :compile_time_application)
+    caller = [application: app, module: module, function: form_fa(fun), line: line]
     quote do
       Logger.bare_log(unquote(level), unquote(data), unquote(caller) ++ unquote(metadata))
     end
