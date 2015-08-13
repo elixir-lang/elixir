@@ -586,6 +586,14 @@ defmodule Kernel.SpecialForms do
   After the two import calls above, only `List.keyfind/3` will be
   imported.
 
+  ## Underscore functions
+
+  By default functions starting with `_` are not imported. If you really want
+  to import a function starting with `_` you must explicitly include it in the
+  `:only` selector.
+
+      import File.Stream, only: [__build__: 3]
+
   ## Lexical scope
 
   It is important to notice that `import` is lexical. This means you
