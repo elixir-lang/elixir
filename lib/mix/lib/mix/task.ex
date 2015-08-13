@@ -26,7 +26,7 @@ defmodule Mix.Task do
   configure them in Mix:
 
     * `@shortdoc`  - makes the task public with a short description that appears
-                     on `mix help`
+      on `mix help`
     * `@recursive` - run the task recursively in umbrella projects
 
   """
