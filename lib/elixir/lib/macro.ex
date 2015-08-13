@@ -3,6 +3,19 @@ import Kernel, except: [to_string: 1]
 defmodule Macro do
   @moduledoc """
   Conveniences for working with macros.
+
+  ## Custom Sigils
+
+  To create a custom sigil, define a function with the name
+  `sigil_{identifier}` that takes two arguments. The first argument will be
+  the interpolated string, the second will be a char list containing any
+  modifiers.
+
+  Valid modifiers include only lower and upper case letters. Other characters
+  will cause a syntax error.
+
+  The module containing the custom sigil must be imported before the sigil
+  syntax can be used.
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
