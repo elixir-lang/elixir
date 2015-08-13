@@ -74,7 +74,7 @@ defmodule GenServer do
       -  `{:stop, reason}`
 
     * `handle_call(msg, {from, ref}, state)` - invoked to handle call (sync)
-       messages.
+      messages.
 
       It must return:
 
