@@ -47,14 +47,14 @@ defmodule Behaviour do
   Defines a function callback according to the given type specification.
   """
   defmacro defcallback(spec) do
-    do_defcallback(split_spec(spec, quote(do: term)), __CALLER__)
+    do_defcallback(:def, split_spec(spec, quote(do: term)))
   end
 
   @doc """
   Defines a macro callback according to the given type specification.
   """
   defmacro defmacrocallback(spec) do
-    do_defmacrocallback(split_spec(spec, quote(do: Macro.t)), __CALLER__)
+    do_defcallback(:defmacro, split_spec(spec, quote(do: Macro.t)))
   end
 
   defp split_spec({:when, _, [{:::, _, [spec, return]}, guard]}, _default) do
@@ -73,26 +73,16 @@ defmodule Behaviour do
     {spec, default, []}
   end
 
-  defp do_defcallback({spec, return, guards}, caller) do
+  defp do_defcallback(kind, {spec, return, guards}) do
     case Macro.decompose_call(spec) do
       {name, args} ->
-        do_callback(:def, name, args, name, length(args), args, return, guards, caller)
+        do_callback(kind, name, args, return, guards)
       _ ->
-        raise ArgumentError, "invalid syntax in defcallback #{Macro.to_string(spec)}"
+        raise ArgumentError, "invalid syntax in #{kind}callback #{Macro.to_string(spec)}"
     end
   end
 
-  defp do_defmacrocallback({spec, return, guards}, caller) do
-    case Macro.decompose_call(spec) do
-      {name, args} ->
-        do_callback(:defmacro, :"MACRO-#{name}", [quote(do: env :: Macro.Env.t)|args],
-                    name, length(args), args, return, guards, caller)
-      _ ->
-        raise ArgumentError, "invalid syntax in defmacrocallback #{Macro.to_string(spec)}"
-    end
-  end
-
-  defp do_callback(kind, name, args, docs_name, docs_arity, _docs_args, return, guards, caller) do
+  defp do_callback(kind, name, args, return, guards) do
     :lists.foreach fn
       {:::, _, [left, right]} ->
         ensure_not_default(left)
@@ -103,10 +93,14 @@ defmodule Behaviour do
         other
     end, args
 
-    quote do
-      @callback unquote(name)(unquote_splicing(args)) :: unquote(return) when unquote(guards)
-      Behaviour.store_docs(__MODULE__, unquote(caller.line), unquote(kind),
-                           unquote(docs_name), unquote(docs_arity))
+    spec =
+      quote do
+        unquote(name)(unquote_splicing(args)) :: unquote(return) when unquote(guards)
+      end
+
+    case kind do
+      :def -> quote(do: @callback unquote(spec))
+      :defmacro -> quote(do: @macrocallback unquote(spec))
     end
   end
 
@@ -115,13 +109,6 @@ defmodule Behaviour do
   end
 
   defp ensure_not_default(_), do: :ok
-
-  @doc false
-  def store_docs(module, line, kind, name, arity) do
-    doc = Module.get_attribute module, :doc
-    Module.delete_attribute module, :doc
-    Module.put_attribute module, :behaviour_docs, {{name, arity}, line, kind, doc}
-  end
 
   @doc false
   defmacro __using__(_) do

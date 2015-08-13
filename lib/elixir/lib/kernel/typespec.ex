@@ -8,9 +8,10 @@ defmodule Kernel.Typespec do
   tools such as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html) can
   analyze the code with typespecs to find bugs.
 
-  The attributes `@type`, `@opaque`, `@typep`, `@spec` and `@callback` available
-  in modules are handled by the equivalent macros defined by this module. See
-  sub-sections "Defining a type" and "Defining a specification" below.
+  The attributes `@type`, `@opaque`, `@typep`, `@spec`, `@callback` and
+  `@macrocallback` available in modules are handled by the equivalent macros
+  defined by this module. See sub-sections "Defining a type" and "Defining a
+  specification" below.
 
   ## Types and their syntax
 
@@ -137,6 +138,7 @@ defmodule Kernel.Typespec do
 
       @spec function_name(type1, type2) :: return_type
       @callback function_name(type1, type2) :: return_type
+      @macrocallback macro_name(type1, type2) :: Macro.t
 
   Callbacks are used to define the callbacks functions of behaviours (see
   `Behaviour`).
@@ -242,6 +244,22 @@ defmodule Kernel.Typespec do
     end
   end
 
+
+  @doc """
+  Defines a macro callback.
+  This macro is responsible for handling the attribute `@macrocallback`.
+
+  ## Examples
+
+      @macrocallback add(number, number) :: Macro.t
+
+  """
+  defmacro defmacrocallback(spec) do
+    quote do
+      Kernel.Typespec.defspec(:macrocallback, unquote(Macro.escape(spec, unquote: true)), __ENV__)
+    end
+  end
+
   @doc """
   Defines a `type`, `typep` or `opaque` by receiving a typespec expression.
   """
@@ -253,7 +271,7 @@ defmodule Kernel.Typespec do
   Defines a `spec` by receiving a typespec expression.
   """
   def define_spec(kind, expr, env) do
-    Module.store_typespec(env.module, kind, {kind, expr, env})
+    defspec(kind, expr, env)
   end
 
   @doc """
@@ -354,6 +372,20 @@ defmodule Kernel.Typespec do
   def type_to_ast({name, type, args}) do
     args = for arg <- args, do: typespec_to_ast(arg)
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
+  end
+
+  @doc """
+  Returns all callback docs available from the module's beam code.
+
+  The result is returned as a list of tuples where the first element is the pair of type
+  name and arity and the second element is the documentation.
+
+  The module must have a corresponding beam file which can be
+  located by the runtime system.
+  """
+  @spec beam_callbackdocs(module | binary) :: [tuple] | nil
+  def beam_callbackdocs(module) when is_atom(module) or is_binary(module) do
+    Code.get_docs(module, :behaviour_docs)
   end
 
   @doc """
@@ -478,8 +510,33 @@ defmodule Kernel.Typespec do
   ## Macro callbacks
 
   @doc false
+  def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
+    Module.store_typespec(caller.module, kind, {kind, expr, caller})
+
+    {name, arity} = spec_to_signature(expr)
+
+    callback_docs_kind =
+      case kind do
+        :callback -> :def
+        :macrocallback -> :defmacro
+      end
+
+    Kernel.Typespec.store_callback_docs(caller.module, caller.line, callback_docs_kind, name, arity)
+  end
+
+  @doc false
   def defspec(kind, expr, caller) do
     Module.store_typespec(caller.module, kind, {kind, expr, caller})
+  end
+
+  @doc false
+  def store_callback_docs(module, line, kind, name, arity) do
+    doc = Module.get_attribute module, :doc
+    Module.delete_attribute module, :doc
+
+    Module.register_attribute(module, :behaviour_docs, accumulate: true)
+
+    Module.put_attribute module, :behaviour_docs, {{name, arity}, line, kind, doc}
   end
 
   @doc false
@@ -550,6 +607,14 @@ defmodule Kernel.Typespec do
   defp translate_spec(kind, {:::, meta, [{name, _, args}, return]}, guard, caller) when is_atom(name) and name != ::: do
     if is_atom(args), do: args = []
 
+    if kind == :macrocallback do
+      kind = :callback
+      name = :"MACRO-#{name}"
+      args = [quote(do: env :: Macro.Env.t)|args]
+    end
+
+    ensure_no_defaults! args
+
     unless Keyword.keyword?(guard) do
       guard = Macro.to_string(guard)
       compile_error caller, "expected keywords as guard in function type specification, got: #{guard}"
@@ -571,6 +636,24 @@ defmodule Kernel.Typespec do
     spec = Macro.to_string(spec)
     compile_error caller, "invalid function type specification: #{spec}"
   end
+
+  defp ensure_no_defaults!(args) do
+    :lists.foreach fn
+      {:::, _, [left, right]} ->
+        ensure_not_default(left)
+        ensure_not_default(right)
+        left
+      other ->
+        ensure_not_default(other)
+        other
+    end, args
+  end
+
+  defp ensure_not_default({:\\, _, [_, _]}) do
+    raise ArgumentError, "default arguments \\\\ not supported in type spec"
+  end
+
+  defp ensure_not_default(_), do: :ok
 
   defp guard_to_constraints(guard, vars, meta, caller) do
     line = line(meta)

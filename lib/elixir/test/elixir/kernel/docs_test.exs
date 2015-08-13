@@ -7,8 +7,7 @@ defmodule Kernel.DocsTest do
     deftestmodule(SampleDocs)
     docs = Code.get_docs(SampleDocs, :all)
 
-    assert [{{:__behaviour__, 1}, _, :def, [{:atom, [], Elixir}], false},
-            {{:argnames, 5}, _, :def, [
+    assert [{{:argnames, 5}, _, :def, [
               {:list1, [], Elixir},
               {:list2, [], Elixir},
               {:map1, [], Elixir},
@@ -60,21 +59,19 @@ defmodule Kernel.DocsTest do
     write_beam(defmodule name do
       @moduledoc "Hello, I am a module"
 
-      use Behaviour
-
       @doc "I should be first."
-      defcallback first :: term
+      @callback first :: term
 
       @doc "Foo"
-      defcallback foo(any) :: any
+      @callback foo(any) :: any
 
       @doc false
-      defcallback bar(true) :: false
+      @callback bar(true) :: false
 
-      defcallback baz(1, binary) :: binary
+      @callback baz(1, binary) :: binary
 
       @doc "I should be last."
-      defmacrocallback last(integer) :: Macro.t
+      @macrocallback last(integer) :: Macro.t
 
       @doc """
       This is fun!
