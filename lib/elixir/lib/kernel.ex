@@ -2647,13 +2647,24 @@ defmodule Kernel do
   defp in_range(left, first, last) do
     case is_integer(first) and is_integer(last) do
       true  ->
-        quote do
-          :erlang.is_integer(unquote(left))
-          and
-          unquote(case first <= last do
-                    true  -> increasing_compare(left, first, last)
-                    false -> decreasing_compare(left, first, last)
-                  end)
+        case first < last do
+          true ->
+            quote do
+              :erlang.is_integer(unquote(left)) and
+                unquote(increasing_compare(left, first, last))
+            end
+          false ->
+            case first > last do
+              true ->
+                quote do
+                  :erlang.is_integer(unquote(left)) and
+                    unquote(decreasing_compare(left, first, last))
+                end
+              false ->
+                quote do
+                  unquote(left) === unquote(first)
+                end
+            end
         end
       false ->
         quote do
