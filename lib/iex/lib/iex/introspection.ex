@@ -171,7 +171,7 @@ defmodule IEx.Introspection do
   """
   def b(mod) when is_atom(mod) do
     printer = &puts_callback_info/2
-    case print_behaviour_docs(mod, &match?(_, &1), printer) do
+    case print_callback_docs(mod, &match?(_, &1), printer) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -192,7 +192,7 @@ defmodule IEx.Introspection do
   """
   def b(mod, fun) when is_atom(mod) and is_atom(fun) do
     filter = &match?({^fun, _}, elem(&1, 0))
-    case print_behaviour_docs(mod, filter, &print_doc/2) do
+    case print_callback_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -207,7 +207,7 @@ defmodule IEx.Introspection do
   """
   def b(mod, fun, arity) when is_atom(mod) and is_atom(fun) and is_integer(arity) do
     filter = &match?({^fun, ^arity}, elem(&1, 0))
-    case print_behaviour_docs(mod, filter, &print_doc/2) do
+    case print_callback_docs(mod, filter, &print_doc/2) do
       :ok        -> :ok
       :no_beam   -> nobeam(mod)
       :no_docs   -> puts_error("#{inspect mod} was not compiled with docs")
@@ -217,8 +217,8 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  defp print_behaviour_docs(mod, filter, printer) do
-    case get_behaviour_docs(mod) do
+  defp print_callback_docs(mod, filter, printer) do
+    case get_callback_docs(mod) do
       {callbacks, docs} ->
         printed =
           Enum.filter_map docs, filter, fn
@@ -233,9 +233,9 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp get_behaviour_docs(mod) do
+  defp get_callback_docs(mod) do
     callbacks = Typespec.beam_callbacks(mod)
-    docs = Code.get_docs(mod, :behaviour_docs)
+    docs = Code.get_docs(mod, :callback_docs)
     cond do
       is_nil(callbacks) -> :no_beam
       is_nil(docs) -> :no_docs

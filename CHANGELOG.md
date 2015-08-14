@@ -152,6 +152,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
 #### Elixir
 
+  * [Behaviour] The module `Behaviour` is deprecated. Instead of `defcallback`, one can simply use `@callback`. Instead of `defmacrocallback`, one can simply use `@macrocallback`
   * [Enum] `Enum.uniq/2` is deprecated in favor of `Enum.uniq_by/2`
   * [Regex] Ungreedy option `r` is deprecated in favor of `U` (which is standard in regular expressions in other languages)
 

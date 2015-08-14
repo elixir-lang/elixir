@@ -1,47 +1,14 @@
 defmodule Behaviour do
   @moduledoc """
-  Utilities for defining behaviour interfaces.
+  This module has been deprecated.
 
-  Behaviours can be referenced by other modules
-  to ensure they implement required callbacks.
-
-  For example, you can specify the `URI.Parser`
-  behaviour as follows:
-
-      defmodule URI.Parser do
-        use Behaviour
-
-        @doc "Parses the given URL"
-        defcallback parse(uri_info :: URI.t) :: URI.t
-
-        @doc "Defines a default port"
-        defcallback default_port() :: integer
-      end
-
-  And then a module may use it as:
-
-      defmodule URI.HTTP do
-        @behaviour URI.Parser
-        def default_port(), do: 80
-        def parse(info), do: info
-      end
-
-  If the behaviour changes or `URI.HTTP` does
-  not implement one of the callbacks, a warning
-  will be raised.
-
-  ## Implementation
-
-  Since Erlang R15, behaviours must be defined via
-  `@callback` attributes. `defcallback` is a simple
-  mechanism that defines the `@callback` attribute
-  according to the given type specification. `defcallback` allows
-  documentation to be created for the callback and defines
-  a custom function signature.
-
-  The callbacks and their documentation can be retrieved
-  via the `__behaviour__` callback function.
+  Instead of `defcallback`, one can simply use `@callback`.
+  Instead of `defmacrocallback`, one can simply use `@macrocallback`.
+  Instead of `__behaviour__(:callbacks)`, one can simply use `behaviour_info(:callbacks)`.
   """
+
+  # TODO: Deprecate by 1.2
+  # TODO: Remove by 2.0
 
   @doc """
   Defines a function callback according to the given type specification.
@@ -113,17 +80,13 @@ defmodule Behaviour do
   @doc false
   defmacro __using__(_) do
     quote do
-      Module.register_attribute(__MODULE__, :behaviour_docs, accumulate: true)
-
-      # TODO: Deprecate by 1.2
-      # TODO: Remove by 2.0
       @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)
       end
 
       def __behaviour__(:docs) do
-        Code.get_docs(__MODULE__, :behaviour_docs)
+        Code.get_docs(__MODULE__, :callback_docs)
       end
 
       import unquote(__MODULE__)

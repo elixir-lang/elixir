@@ -141,7 +141,6 @@ build(Line, File, Module, Docs, Lexical) ->
   ets:insert(Data, {before_compile, []}),
   ets:insert(Data, {after_compile, []}),
   ets:insert(Data, {moduledoc, nil}),
-  ets:insert(Data, {behaviour_docs, []}),
 
   OnDefinition =
     case Docs of
@@ -235,38 +234,29 @@ types_form(Line, File, Data, Forms0) ->
       Types0 = get_typespec(Data, type) ++ get_typespec(Data, typep)
                                         ++ get_typespec(Data, opaque),
 
-      Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Doc, Caller) ||
-                {Kind, Expr, Doc, Caller} <- Types0],
+      Types1 = ['Elixir.Kernel.Typespec':translate_type(Kind, Expr, Caller) ||
+                {Kind, Expr, Caller} <- Types0],
 
       warn_unused_docs(Line, File, Data, typedoc),
       Forms1 = types_attributes(Types1, Forms0),
       Forms2 = export_types_attributes(Types1, Forms1),
-      typedocs_attributes(Types1, Forms2);
+      Forms2;
 
     true ->
       Forms0
   end.
 
 types_attributes(Types, Forms) ->
-  Fun = fun({{Kind, _NameArity, Expr}, Line, _Export, _Doc}, Acc) ->
+  Fun = fun({{Kind, _NameArity, Expr}, Line, _Export}, Acc) ->
     [{attribute, Line, Kind, Expr}|Acc]
   end,
   lists:foldl(Fun, Forms, Types).
 
 export_types_attributes(Types, Forms) ->
   Fun = fun
-    ({{_Kind, NameArity, _Expr}, Line, true, _Doc}, Acc) ->
+    ({{_Kind, NameArity, _Expr}, Line, true}, Acc) ->
       [{attribute, Line, export_type, [NameArity]}|Acc];
-    ({_Type, _Line, false, _Doc}, Acc) ->
-      Acc
-  end,
-  lists:foldl(Fun, Forms, Types).
-
-typedocs_attributes(Types, Forms) ->
-  Fun = fun
-    ({{_Kind, NameArity, _Expr}, Line, true, Doc}, Acc) when Doc =/= nil ->
-      [{attribute, Line, typedoc, {NameArity, Doc}}|Acc];
-    ({_Type, _Line, _Export, _Doc}, Acc) ->
+    ({_Type, _Line, false}, Acc) ->
       Acc
   end,
   lists:foldl(Fun, Forms, Types).
@@ -276,7 +266,9 @@ typedocs_attributes(Types, Forms) ->
 specs_form(Data, Defmacro, Defmacrop, Unreachable, Forms) ->
   case elixir_compiler:get_opt(internal) of
     false ->
-      Specs0 = get_typespec(Data, spec) ++ get_typespec(Data, callback) ++ get_typespec(Data, macrocallback),
+      Specs0 = get_typespec(Data, spec) ++
+               get_typespec(Data, callback) ++
+               get_typespec(Data, macrocallback),
       Specs1 = ['Elixir.Kernel.Typespec':translate_spec(Kind, Expr, Caller) ||
                 {Kind, Expr, Caller} <- Specs0],
       Specs2 = lists:flatmap(fun(Spec) ->
@@ -358,24 +350,27 @@ add_docs_chunk(Bin, Data, Line, true) ->
   ChunkData = term_to_binary({elixir_docs_v1, [
     {docs, get_docs(Data)},
     {moduledoc, get_moduledoc(Line, Data)},
-    {behaviour_docs, get_behaviour_docs(Data)}
+    {callback_docs, get_callback_docs(Data)},
+    {type_docs, get_type_docs(Data)}
   ]}),
   add_beam_chunk(Bin, "ExDc", ChunkData);
 
 add_docs_chunk(Bin, _, _, _) -> Bin.
 
 get_docs(Data) ->
-  Match = ets:match(Data, {{doc, '$1'}, '$2', '$3', '$4', '$5'}),
-  lists:usort(
-    [{Tuple, Line, Kind, Sig, Doc} ||
-     [Tuple, Line, Kind, Sig, Doc] <- Match,
-      Kind =/= type, Kind =/= opaque]).
+  lists:usort(ets:select(Data, [{{{doc, '$1'}, '$2', '$3', '$4', '$5'},
+                                 [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
 
 get_moduledoc(Line, Data) ->
   {Line, ets:lookup_element(Data, moduledoc, 2)}.
 
-get_behaviour_docs(Data) ->
-  lists:usort(ets:lookup_element(Data, behaviour_docs, 2)).
+get_callback_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{callbackdoc, '$1'}, '$2', '$3', '$4'},
+                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
+
+get_type_docs(Data) ->
+  lists:usort(ets:select(Data, [{{{typedoc, '$1'}, '$2', '$3', '$4'},
+                                 [], [{{'$1', '$2', '$3', '$4'}}]}])).
 
 get_typespec(Data, Key) ->
   case ets:lookup(Data, Key) of
