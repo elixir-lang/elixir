@@ -8,7 +8,7 @@ it does not introduce any feature that is specific to Erlang 18. Such
 will be tackled on the follow up Elixir v1.2 release.
 
 On the enhancements side, the most notable changes are the new functions
-added to `Enum` and `Dict` modules, and a new datatype called `MapSet`.
+added to `Enum`, `Dict` and `Task` modules, and a new datatype called `MapSet`.
 `MapSet` implements the `Set` API on top of a map and, for Elixir v1.1,
 it is useful for holding only dozens of entries. Future Elixir versions,
 however, will be able to rely on `MapSet` from dozens of keys up to
@@ -29,6 +29,10 @@ means the documentation has been updated to mention the new best
 practices. Warnings will be emitted in the future though (when they are
 promoted to deprecations).
 
+On the tooling side, ExUnit got the ability to skip tests and a couple
+new configuration options. Mix got improved warnings and error messages,
+faster compilation times and the brand new `mix profile.fprof` task.
+
 Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
@@ -48,7 +52,6 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
   * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
-
   * [IO] Support fenced code blocks on `IO.ANSI.Docs`
   * [GenServer] Add `GenServer.whereis/1` that expands `GenServer` dispatches into a proper pid
   * [Kernel] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
