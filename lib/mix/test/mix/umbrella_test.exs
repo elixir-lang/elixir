@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Mix.UmbrellaTest do
   use MixTest.Case
 
+  @moduletag apps: [:foo, :bar]
+
   test "compiles umbrella" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

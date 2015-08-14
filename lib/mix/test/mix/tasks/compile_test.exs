@@ -50,6 +50,7 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
+  @tag apps: [:consolidation]
   test "compile a project with protocol consolidation" do
     Mix.Project.push Consolidation
     in_fixture "no_mixfile", fn ->

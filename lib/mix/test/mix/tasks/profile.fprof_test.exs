@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   alias Mix.Tasks.Profile.Fprof
 
+  @moduletag apps: [:sample]
+
   setup do
     Mix.Project.push MixTest.Case.Sample
   end

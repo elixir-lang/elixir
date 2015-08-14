@@ -20,7 +20,11 @@ defmodule MixTest.Case do
     end
   end
 
-  setup do
+  setup config do
+    if apps = config[:apps] do
+      Logger.remove_backend(:console)
+    end
+
     on_exit fn ->
       Application.start(:logger)
       Mix.env(:dev)
@@ -29,6 +33,14 @@ defmodule MixTest.Case do
       Mix.ProjectStack.clear_cache
       Mix.ProjectStack.clear_stack
       delete_tmp_paths
+
+      if apps do
+        for app <- apps do
+          Application.stop(app)
+          Application.unload(app)
+        end
+        Logger.add_backend(:console, flush: true)
+      end
     end
 
     :ok

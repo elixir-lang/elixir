@@ -25,20 +25,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  setup config do
-    if app = config[:app] do
-      Logger.remove_backend(:console)
-
-      on_exit fn ->
-        Application.stop(app)
-        Application.unload(app)
-        Logger.add_backend(:console, flush: true)
-      end
-    end
-
-    :ok
-  end
-
+  @tag apps: [:app_start_sample]
   test "compiles and starts the project" do
     Mix.Project.push AppStartSample
 
@@ -63,6 +50,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:app_embedded_sample]
   test "compiles and starts a project with build_embedded" do
     Mix.Project.push AppEmbeddedSample
 
@@ -73,12 +61,30 @@ defmodule Mix.Tasks.App.StartTest do
 
       Mix.Config.persist([app_embedded_unknown: [foo: :bar], app_embedded_sample: [foo: :bar]])
       Mix.Tasks.Compile.run([])
-      Mix.Tasks.App.Start.run([])
+      paths = :code.get_path()
+      try do
+        Mix.Tasks.App.Start.run([])
+
+        # code path should be all loaded applications + consolidated protocols
+        for {app, _, _} <- :application.loaded_applications() do
+          assert :code.lib_dir(app, :ebin) in :code.get_path()
+        end
+        assert Enum.any?(:code.get_path(), fn(path) ->
+          Path.expand(path) == Path.expand('./_build/dev/consolidated')
+        end)
+        # erts ebin must still be in code path
+        assert :code.lib_dir(:erts, :ebin) in :code.get_path()
+        assert length(:code.get_path()) == length(:application.loaded_applications()) + 1
+      after
+        :code.add_paths(paths)
+      end
+
       assert_received {:mix_shell, :info, ["You have configured application :app_embedded_unknown" <> _]}
       refute_received {:mix_shell, :info, ["You have configured application :app_embedded_sample" <> _]}
     end
   end
 
+  @tag apps: [:error]
   test "validates Elixir version requirement" do
     Mix.ProjectStack.post_config elixir: "~> ~> 0.8.1"
     Mix.Project.push WrongElixirProject
@@ -90,6 +96,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:error]
   test "validates the Elixir version with requirement" do
     Mix.Project.push WrongElixirProject
 
@@ -100,6 +107,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:error]
   test "does not validate the Elixir version with requirement when disabled" do
     Mix.Project.push WrongElixirProject
 
@@ -135,7 +143,7 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, return), do: return
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on error" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -152,7 +160,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on exception error" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -172,7 +180,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on bad return" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -205,7 +213,7 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, reason), do: exit(reason)
   end
 
-  @tag app: :exit_sample
+  @tag apps: [:exit_sample]
   test "start points to report on exit" do
     Mix.Project.push ExitSample
     in_fixture "no_mixfile", fn ->
@@ -222,7 +230,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :exit_sample
+  @tag apps: [:exit_sample]
   test "start points to report on normal exit" do
     Mix.Project.push ExitSample
     in_fixture "no_mixfile", fn ->

@@ -36,16 +36,18 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless "--no-protocols" in args do
-      path = Path.join(Mix.Project.build_path, "consolidated")
+      consolidated = Path.join(Mix.Project.build_path, "consolidated")
 
-      if File.dir?(path) do
-        Code.prepend_path(path)
+      if File.dir?(consolidated) do
+        Code.prepend_path(consolidated)
 
-        Enum.each(File.ls!(path), fn file ->
+        Enum.each(File.ls!(consolidated), fn file ->
           module = file |> Path.rootname() |> String.to_atom()
           :code.purge(module)
           :code.delete(module)
         end)
+      else
+        consolidated = nil
       end
     end
 
@@ -65,7 +67,7 @@ defmodule Mix.Tasks.App.Start do
         :ok = Logger.App.start
       end
     else
-      start(Mix.Project.config, opts)
+      start(Mix.Project.config, [consolidated: consolidated] ++ opts)
     end
 
     :ok
@@ -83,6 +85,10 @@ defmodule Mix.Tasks.App.Start do
           []
       end
 
+    if config[:build_embedded] do
+      ensure_all_loaded([:erts] ++ apps)
+      put_code_paths(opts)
+    end
     type = type(config, opts)
     Enum.each apps, &ensure_all_started(&1, type)
     if config[:build_embedded], do: check_configured()
@@ -106,6 +112,66 @@ defmodule Mix.Tasks.App.Start do
       config[:start_permanent] -> :permanent
       true -> :temporary
     end
+  end
+
+  defp ensure_all_loaded(apps, loaded \\ [])
+
+  defp ensure_all_loaded([], _), do: :ok
+  defp ensure_all_loaded([app | apps], loaded) do
+    case ensure_loaded(app) do
+      :ok ->
+        deps = app_deps(app)
+        loaded = [app | loaded]
+        apps = (deps -- loaded) ++ apps
+        ensure_all_loaded(apps, loaded)
+      {:error, reason} ->
+        _ = for app <- loaded, do: :application.unload(app)
+        Mix.raise "Could not load application #{app}: " <>
+          Application.format_error(reason)
+    end
+  end
+
+  defp ensure_loaded(app) do
+    case :application.load(app) do
+      :ok                               -> :ok
+      {:error, {:already_loaded, ^app}} -> :ok
+      {:error, _} = error               -> error
+    end
+  end
+
+  defp app_deps(app) do
+    app_key(app, :included_applications) ++ app_key(app, :applications)
+  end
+
+  defp app_key(app, key) do
+    case :application.get_key(app, key) do
+      {:ok, val} -> val
+      :undefined -> []
+    end
+  end
+
+  defp put_code_paths(opts) do
+    apps = for {app, _, _} <- :application.loaded_applications(), do: app
+    ebins = app_ebins(apps)
+    put_code_paths(ebins, opts)
+  end
+
+  defp app_ebins(apps) do
+    for app <- apps do
+      case :code.lib_dir(app, :ebin) do
+        ebin when is_list(ebin) ->
+          ebin
+        {:error, reason} ->
+          Mix.raise "Could not find ebin directory for application #{app}: #{reason}"
+      end
+    end
+  end
+
+  defp put_code_paths(paths, opts) do
+    _ = for path <- :code.get_path(), not (path in paths), do: :code.del_path(path)
+    consolidated = opts[:consolidated]
+    if consolidated, do: Code.append_path(consolidated)
+    :ok
   end
 
   defp check_configured() do
