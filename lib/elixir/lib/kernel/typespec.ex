@@ -280,10 +280,9 @@ defmodule Kernel.Typespec do
   for modules being compiled.
   """
   def defines_type?(module, name, arity) do
-    finder = fn {_kind, expr, _doc, _caller} ->
+    finder = fn {_kind, expr, _caller} ->
       type_to_signature(expr) == {name, arity}
     end
-
     :lists.any(finder, Module.get_attribute(module, :type)) or
     :lists.any(finder, Module.get_attribute(module, :opaque))
   end
@@ -374,37 +373,12 @@ defmodule Kernel.Typespec do
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
   end
 
-  @doc """
-  Returns all callback docs available from the module's beam code.
-
-  The result is returned as a list of tuples where the first element is the pair of type
-  name and arity and the second element is the documentation.
-
-  The module must have a corresponding beam file which can be
-  located by the runtime system.
-  """
-  @spec beam_callbackdocs(module | binary) :: [tuple] | nil
-  def beam_callbackdocs(module) when is_atom(module) or is_binary(module) do
-    Code.get_docs(module, :behaviour_docs)
-  end
-
-  @doc """
-  Returns all type docs available from the module's beam code.
-
-  The result is returned as a list of tuples where the first element is the pair of type
-  name and arity and the second element is the documentation.
-
-  The module must have a corresponding beam file which can be
-  located by the runtime system.
-  """
-  @spec beam_typedocs(module | binary) :: [tuple] | nil
+  # TODO: Deprecate by 1.2
+  # TODO: Remove by 2.0
+  @doc false
   def beam_typedocs(module) when is_atom(module) or is_binary(module) do
-    case abstract_code(module) do
-      {:ok, abstract_code} ->
-        type_docs = for {:attribute, _, :typedoc, tup} <- abstract_code, do: tup
-        :lists.flatten(type_docs)
-      _ ->
-        nil
+    if docs = Code.get_docs(module, :type_docs) do
+      for {tuple, _, _, doc} <- docs, do: {tuple, doc}
     end
   end
 
@@ -506,22 +480,23 @@ defmodule Kernel.Typespec do
     do: {name, 0}
   def type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name),
     do: {name, length(args)}
+  def type_to_signature(_),
+    do: :error
 
   ## Macro callbacks
 
   @doc false
   def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
-    Module.store_typespec(caller.module, kind, {kind, expr, caller})
-
-    {name, arity} = spec_to_signature(expr)
-
-    callback_docs_kind =
+    callback_doc_kind =
       case kind do
         :callback -> :def
         :macrocallback -> :defmacro
       end
-
-    Kernel.Typespec.store_callback_docs(caller.module, caller.line, callback_docs_kind, name, arity)
+    case spec_to_signature(expr) do
+      {name, arity} -> store_callbackdoc(caller, caller.module, callback_doc_kind, name, arity)
+      :error -> :error
+    end
+    Module.store_typespec(caller.module, kind, {kind, expr, caller})
   end
 
   @doc false
@@ -529,29 +504,40 @@ defmodule Kernel.Typespec do
     Module.store_typespec(caller.module, kind, {kind, expr, caller})
   end
 
-  @doc false
-  def store_callback_docs(module, line, kind, name, arity) do
-    doc = Module.get_attribute module, :doc
-    Module.delete_attribute module, :doc
-
-    Module.register_attribute(module, :behaviour_docs, accumulate: true)
-
-    Module.put_attribute module, :behaviour_docs, {{name, arity}, line, kind, doc}
+  defp store_callbackdoc(caller, module, kind, name, arity) do
+    doc = Module.get_attribute(module, :doc)
+    Module.delete_attribute(module, :doc)
+    :ets.insert(:elixir_module.data_table(module),
+                {{:callbackdoc, {name, arity}}, caller.line, kind, doc})
   end
 
   @doc false
   def deftype(kind, expr, caller) do
     module = caller.module
-    doc    = Module.get_attribute(module, :typedoc)
+    case type_to_signature(expr) do
+      {name, arity} -> store_typedoc(caller, caller.module, kind, name, arity)
+      :error -> :error
+    end
+    Module.store_typespec(module, kind, {kind, expr, caller})
+  end
+
+  defp store_typedoc(caller, module, kind, name, arity) do
+    doc = Module.get_attribute(module, :typedoc)
+
+    if kind == :typep && doc do
+      :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
+                          "@typedoc's are always discarded for private types")
+    end
 
     Module.delete_attribute(module, :typedoc)
-    Module.store_typespec(module, kind, {kind, expr, doc, caller})
+    :ets.insert(:elixir_module.data_table(module),
+                {{:typedoc, {name, arity}}, caller.line, kind, doc})
   end
 
   ## Translation from Elixir AST to typespec AST
 
   @doc false
-  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, doc, caller) when is_atom(name) and name != ::: do
+  def translate_type(kind, {:::, _, [{name, _, args}, definition]}, caller) when is_atom(name) and name != ::: do
     args =
       if is_atom(args) do
         []
@@ -572,20 +558,15 @@ defmodule Kernel.Typespec do
         :opaque -> {:opaque, true}
       end
 
-    if not export and doc do
-      :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
-                          "@typedoc's are always discarded for private types")
-    end
-
     if elixir_builtin_type?(name, arity) do
       :elixir_errors.handle_file_error(caller.file,
         {caller.line, :erl_lint, {:builtin_type, {name, arity}}})
     end
 
-    {{kind, {name, arity}, type}, caller.line, export, doc}
+    {{kind, {name, arity}, type}, caller.line, export}
   end
 
-  def translate_type(_kind, other, _doc, caller) do
+  def translate_type(_kind, other, caller) do
     type_spec = Macro.to_string(other)
     compile_error caller, "invalid type specification: #{type_spec}"
   end

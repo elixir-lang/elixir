@@ -616,51 +616,24 @@ defmodule Kernel.TypespecTest do
     end)
   end
 
-  test "typedoc retrieval" do
-    {:module, _, binary, _} = defmodule T do
-      @typedoc "A"
-      @type a :: any
-      @typep b :: any
-      @typedoc "C"
-      @opaque c(x, y) :: {x, y}
-      @type d :: any
-      @spec uses_b() :: b
-      def uses_b(), do: nil
-    end
-
-    :code.delete(T)
-    :code.purge(T)
-
-    assert [
-      {{:c, 2}, "C"},
-      {{:a, 0}, "A"}
-    ] = Kernel.Typespec.beam_typedocs(binary)
-  end
-
   test "retrieval invalid data" do
-    assert Kernel.Typespec.beam_typedocs(Unknown) == nil
     assert Kernel.Typespec.beam_types(Unknown) == nil
     assert Kernel.Typespec.beam_specs(Unknown) == nil
   end
 
   defmodule Sample do
     @callback first(integer) :: integer
-
     @callback foo(atom(), binary) :: binary
-
     @callback bar(External.hello, my_var :: binary) :: binary
-
     @callback guarded(my_var) :: my_var when my_var: binary
-
     @callback orr(atom | integer) :: atom
-
     @callback literal(123, {atom}, :atom, [integer], true) :: atom
-
     @macrocallback last(integer) :: Macro.t
   end
 
   test :callbacks do
-    assert Sample.behaviour_info(:callbacks) == [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+    assert Sample.behaviour_info(:callbacks) ==
+           [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
   end
 
   test :default_is_not_supported do
