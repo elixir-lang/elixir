@@ -5,16 +5,6 @@ defmodule Mix.Tasks.RunTest do
 
   import ExUnit.CaptureIO
 
-  defmodule GetApp do
-    def project do
-      [ app: :get_app,
-        version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
-        ] ]
-    end
-  end
-
   setup do
     Mix.Project.push MixTest.Case.Sample
   end
