@@ -1,12 +1,10 @@
 defmodule Mix.SCM do
-  use Behaviour
-
-  @type opts :: Keyword.t
-
   @moduledoc """
   This module provides helper functions and defines the
   behaviour required by any SCM used by mix.
   """
+
+  @type opts :: Keyword.t
 
   @doc """
   Returns a boolean if the dependency can be fetched
@@ -16,7 +14,7 @@ defmodule Mix.SCM do
   Local dependencies (i.e. non fetchable ones) are automatically
   recompiled every time the parent project is compiled.
   """
-  defcallback fetchable? :: boolean
+  @callback fetchable? :: boolean
 
   @doc """
   Returns a string representing the SCM. This is used
@@ -24,7 +22,7 @@ defmodule Mix.SCM do
   so the amount of information should be concise and
   easy to spot.
   """
-  defcallback format(opts) :: String.t
+  @callback format(opts) :: String.t
 
   @doc """
   Returns a string representing the SCM. This is used
@@ -34,7 +32,7 @@ defmodule Mix.SCM do
 
   If nil is returned, it means no lock information is available.
   """
-  defcallback format_lock(opts) :: String.t | nil
+  @callback format_lock(opts) :: String.t | nil
 
   @doc """
   This behaviour function receives a keyword list of `opts`
@@ -49,13 +47,13 @@ defmodule Mix.SCM do
   sense for the Git SCM, it will return an update list of options
   while other SCMs would simply return `nil`.
   """
-  defcallback accepts_options(app :: atom, opts) :: opts | nil
+  @callback accepts_options(app :: atom, opts) :: opts | nil
 
   @doc """
   This behaviour function returns a boolean if the
   dependency is available.
   """
-  defcallback checked_out?(opts) :: boolean
+  @callback checked_out?(opts) :: boolean
 
   @doc """
   This behaviour function checks out dependencies.
@@ -67,7 +65,7 @@ defmodule Mix.SCM do
 
   It must return the current lock.
   """
-  defcallback checkout(opts) :: any
+  @callback checkout(opts) :: any
 
   @doc """
   This behaviour function updates dependencies. It may be
@@ -79,7 +77,7 @@ defmodule Mix.SCM do
 
   It must return the current lock.
   """
-  defcallback update(opts) :: any
+  @callback update(opts) :: any
 
   @doc """
   This behaviour function checks the status of the lock. In
@@ -102,14 +100,14 @@ defmodule Mix.SCM do
   structural check is required. A structural mismatch should always
   return `:outdated`.
   """
-  defcallback lock_status(opts) :: :mismatch | :outdated | :ok
+  @callback lock_status(opts) :: :mismatch | :outdated | :ok
 
   @doc """
   Receives two options and must return `true` if they refer to the
   same repository. The options are guaranteed to belong to the
   same SCM.
   """
-  defcallback equal?(opts1 :: opts, opts2 :: opts) :: boolean
+  @callback equal?(opts1 :: opts, opts2 :: opts) :: boolean
 
   @doc """
   Returns all available SCMs. Each SCM is tried in order

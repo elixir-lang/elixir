@@ -3,32 +3,30 @@ defmodule Mix.Shell do
   Defines Mix.Shell contract.
   """
 
-  use Behaviour
-
   @doc """
   Informs the given message.
   """
-  defcallback info(message :: IO.ANSI.ansidata) :: any
+  @callback info(message :: IO.ANSI.ansidata) :: any
 
   @doc """
   Warns about the given error message.
   """
-  defcallback error(message :: IO.ANSI.ansidata) :: any
+  @callback error(message :: IO.ANSI.ansidata) :: any
 
   @doc """
   Prompts the user for input.
   """
-  defcallback prompt(message :: String.t) :: String.t
+  @callback prompt(message :: String.t) :: String.t
 
   @doc """
   Asks the user for confirmation.
   """
-  defcallback yes?(message :: String.t) :: boolean
+  @callback yes?(message :: String.t) :: boolean
 
   @doc """
   Executes the given command and returns its exit status.
   """
-  defcallback cmd(command :: String.t) :: integer
+  @callback cmd(command :: String.t) :: integer
 
   @doc """
   Executes the given command and returns its exit status.
@@ -46,13 +44,13 @@ defmodule Mix.Shell do
     * `:env` - environment options to the executed command
 
   """
-  defcallback cmd(command :: String.t, options :: Keyword.t) :: integer
+  @callback cmd(command :: String.t, options :: Keyword.t) :: integer
 
   @doc """
   Prints the current application to shell if
   it was not printed yet.
   """
-  defcallback print_app() :: any
+  @callback print_app() :: any
 
   @doc """
   Returns the printable app name.

@@ -1,6 +1,4 @@
 defmodule Mix.Task do
-  use Behaviour
-
   @moduledoc """
   A simple module that provides conveniences for creating,
   loading and manipulating tasks.
@@ -38,7 +36,7 @@ defmodule Mix.Task do
   A task needs to implement `run` which receives
   a list of command line args.
   """
-  defcallback run([binary]) :: any
+  @callback run([binary]) :: any
 
   @doc false
   defmacro __using__(_opts) do

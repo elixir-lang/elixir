@@ -26,24 +26,22 @@ defmodule Set do
   operator.
   """
 
-  use Behaviour
-
   @type value :: any
   @type values :: [ value ]
   @type t :: map
 
-  defcallback new :: t
-  defcallback delete(t, value) :: t
-  defcallback difference(t, t) :: t
-  defcallback disjoint?(t, t) :: boolean
-  defcallback equal?(t, t) :: boolean
-  defcallback intersection(t, t) :: t
-  defcallback member?(t, value) :: boolean
-  defcallback put(t, value) :: t
-  defcallback size(t) :: non_neg_integer
-  defcallback subset?(t, t) :: boolean
-  defcallback to_list(t) :: list()
-  defcallback union(t, t) :: t
+  @callback new :: t
+  @callback delete(t, value) :: t
+  @callback difference(t, t) :: t
+  @callback disjoint?(t, t) :: boolean
+  @callback equal?(t, t) :: boolean
+  @callback intersection(t, t) :: t
+  @callback member?(t, value) :: boolean
+  @callback put(t, value) :: t
+  @callback size(t) :: non_neg_integer
+  @callback subset?(t, t) :: boolean
+  @callback to_list(t) :: list()
+  @callback union(t, t) :: t
 
   defmacrop target(set) do
     quote do
