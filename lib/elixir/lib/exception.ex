@@ -28,10 +28,8 @@ defmodule Exception do
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: Keyword.t
 
-  use Behaviour
-
-  defcallback exception(term) :: t
-  defcallback message(t) :: String.t
+  @callback exception(term) :: t
+  @callback message(t) :: String.t
 
   @doc """
   Returns `true` if the given `term` is an exception.

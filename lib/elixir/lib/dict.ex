@@ -109,39 +109,37 @@ defmodule Dict do
 
   """
 
-  use Behaviour
-
   @type key :: any
   @type value :: any
   @type t :: list | map
 
-  defcallback new :: t
-  defcallback delete(t, key) :: t
-  defcallback drop(t, Enum.t) :: t
-  defcallback equal?(t, t) :: boolean
-  defcallback get(t, key) :: value
-  defcallback get(t, key, value) :: value
-  defcallback get_lazy(t, key, (() -> value)) :: value
-  defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
-  defcallback fetch(t, key) :: {:ok, value} | :error
-  defcallback fetch!(t, key) :: value | no_return
-  defcallback has_key?(t, key) :: boolean
-  defcallback keys(t) :: [key]
-  defcallback merge(t, t) :: t
-  defcallback merge(t, t, (key, value, value -> value)) :: t
-  defcallback pop(t, key) :: {value, t}
-  defcallback pop(t, key, value) :: {value, t}
-  defcallback pop_lazy(t, key, (() -> value)) :: {value, t}
-  defcallback put(t, key, value) :: t
-  defcallback put_new(t, key, value) :: t
-  defcallback put_new_lazy(t, key, (() -> value)) :: t
-  defcallback size(t) :: non_neg_integer()
-  defcallback split(t, Enum.t) :: {t, t}
-  defcallback take(t, Enum.t) :: t
-  defcallback to_list(t) :: list()
-  defcallback update(t, key, value, (value -> value)) :: t
-  defcallback update!(t, key, (value -> value)) :: t | no_return
-  defcallback values(t) :: list(value)
+  @callback new :: t
+  @callback delete(t, key) :: t
+  @callback drop(t, Enum.t) :: t
+  @callback equal?(t, t) :: boolean
+  @callback get(t, key) :: value
+  @callback get(t, key, value) :: value
+  @callback get_lazy(t, key, (() -> value)) :: value
+  @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  @callback fetch(t, key) :: {:ok, value} | :error
+  @callback fetch!(t, key) :: value | no_return
+  @callback has_key?(t, key) :: boolean
+  @callback keys(t) :: [key]
+  @callback merge(t, t) :: t
+  @callback merge(t, t, (key, value, value -> value)) :: t
+  @callback pop(t, key) :: {value, t}
+  @callback pop(t, key, value) :: {value, t}
+  @callback pop_lazy(t, key, (() -> value)) :: {value, t}
+  @callback put(t, key, value) :: t
+  @callback put_new(t, key, value) :: t
+  @callback put_new_lazy(t, key, (() -> value)) :: t
+  @callback size(t) :: non_neg_integer()
+  @callback split(t, Enum.t) :: {t, t}
+  @callback take(t, Enum.t) :: t
+  @callback to_list(t) :: list()
+  @callback update(t, key, value, (value -> value)) :: t
+  @callback update!(t, key, (value -> value)) :: t | no_return
+  @callback values(t) :: list(value)
 
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion

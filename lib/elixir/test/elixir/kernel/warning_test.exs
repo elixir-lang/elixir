@@ -516,8 +516,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
-        use Behaviour
-        defcallback foo
+        @callback foo :: term
       end
 
       defmodule Sample2 do
@@ -533,8 +532,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
-        use Behaviour
-        defmacrocallback foo
+        @macrocallback foo :: Macro.t
       end
 
       defmodule Sample2 do

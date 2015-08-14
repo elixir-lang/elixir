@@ -32,15 +32,13 @@ defmodule Access do
   The key comparison must be implemented using the `===` operator.
   """
 
-  use Behaviour
-
   @type t :: list | map | nil
   @type key :: any
   @type value :: any
 
-  defcallback fetch(t, key) :: {:ok, value} | :error
-  defcallback get(t, key, value) :: value
-  defcallback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  @callback fetch(t, key) :: {:ok, value} | :error
+  @callback get(t, key, value) :: value
+  @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
 
   @doc """
   Fetches value for the given key.
