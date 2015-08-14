@@ -32,7 +32,20 @@ defmodule Task do
   verify if the process exited for any abnormal reason (or in case
   exits are being trapped by the caller).
 
-  `Task.yield/2` is an alternative to `await` where the caller will
+  There are two important things to consider when using async:
+
+    1. If you are using async tasks, you must await for a reply
+       as they are *always* sent. If you are not expecting a reply,
+       consider using `Task.start_link/1` detailed below
+
+    2. async tasks link the caller and the spawned process. This
+       means that, if the caller crashes, the task will crash
+       too and vice-versa. This is on purpose, if the process
+       meant to receive the result no longer exists, there is
+       no purpose in computing the result until the end. If this
+       is not desired, consider using `Task.start_link/1` as well
+
+  `Task.yield/2` is an alternative to `await/2` where the caller will
   temporarily block waiting for a task's result. If the result does not
   arrive within the timeout it can be called again at later moment. This
   allows checking for the result of a task multiple times or to handle
@@ -183,6 +196,9 @@ defmodule Task do
   by the caller process. A `Task` struct is returned containing
   the relevant information.
 
+  Read the `Task` module documentation for more info on general
+  usage of `async/1` and `async/3`.
+
   ## Task's message format
 
   The reply sent by the task will be in the format `{ref, msg}`,
@@ -196,8 +212,17 @@ defmodule Task do
   @doc """
   Starts a task that can be awaited on.
 
-  Similar to `async/1`, but the task is specified by the given
-  module, function and arguments.
+  This function spawns a process that is linked to and monitored
+  by the caller process. A `Task` struct is returned containing
+  the relevant information.
+
+  Read the `Task` module documentation for more info on general
+  usage of `async/1` and `async/3`.
+
+  ## Task's message format
+
+  The reply sent by the task will be in the format `{ref, msg}`,
+  where `ref` is the monitoring reference held by the task.
   """
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
