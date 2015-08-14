@@ -15,6 +15,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   residing in the OTP application supervision tree) are not profiled.
 
   To profile the code, you can use the syntax similar to `mix run` task:
+
       mix profile.fprof -e Hello.world
       mix profile.fprof my_script.exs arg1 arg2 arg3
 
@@ -100,18 +101,18 @@ defmodule Mix.Tasks.Profile.Fprof do
   Finally, it's advised to profile your program with the `prod` environment, since
   this should give you a more correct insight into your real bottlenecks.
   Profiling with other environments might produce some false bottlenecks, such as
-  protocol dispatches, which perform much faster with the `prod` environment due to
-  protocol consolidation.
+  protocol dispatches, which perform much faster with the `prod` environment when
+  `build_embedded` is true (which is the default for production).
   """
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
-    unless Mix.env == :prod do
+    unless Mix.Project.config[:build_embedded] do
       IO.puts """
-        Warning: It's advised to run this task with the prod environment.
-        Otherwise, the results may contain false bottlenecks which will not
-        appear in production.
-        """
+      Warning: It's advised to run this task when build_embedded is set
+      to true (usually the prod environment). Otherwise, the results may
+      contain false bottlenecks which will not appear in production.
+      """
     end
 
     {opts, head, _} = OptionParser.parse_head(args,
