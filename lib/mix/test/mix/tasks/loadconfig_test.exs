@@ -3,19 +3,7 @@ Code.require_file "../../test_helper.exs", __DIR__
 defmodule Mix.Tasks.LoadconfigTest do
   use MixTest.Case
 
-  @apps [:my_app, :other_app]
-
-  setup do
-    on_exit fn ->
-      Enum.each @apps, fn app ->
-        Enum.each Application.get_all_env(app), fn {key, _} ->
-          Application.delete_env(app, key, persistent: true)
-        end
-      end
-    end
-    :ok
-  end
-
+  @tag apps: [:my_app]
   test "reads and persists project configuration" do
     Mix.Project.push MixTest.Case.Sample
 
