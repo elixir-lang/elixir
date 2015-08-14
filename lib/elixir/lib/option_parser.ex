@@ -53,8 +53,8 @@ defmodule OptionParser do
   For each switch, the following types are supported:
 
     * `:boolean` - marks the given switch as a boolean. Boolean switches
-                   never consume the following value unless it is `true` or
-                   `false`.
+      never consume the following value unless it is `true` or
+      `false`.
     * `:integer` - parses the switch as an integer.
     * `:float`   - parses the switch as a float.
     * `:string`  - returns the switch as a string.

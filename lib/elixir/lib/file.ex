@@ -132,12 +132,12 @@ defmodule File do
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
-       directories of `path`
+      directories of `path`
     * `:eexist`  - there is already a file or directory named `path`
     * `:enoent`  - a component of `path` does not exist
     * `:enospc`  - there is a no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
-       on some platforms, `:enoent` is returned instead
+      on some platforms, `:enoent` is returned instead
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
@@ -164,7 +164,7 @@ defmodule File do
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
-                   directories of `path`
+      directories of `path`
     * `:enospc`  - there is a no space left on the device
     * `:enotdir` - a component of `path` is not a directory
   """
@@ -218,10 +218,10 @@ defmodule File do
 
     * `:enoent`  - the file does not exist
     * `:eacces`  - missing permission for reading the file,
-                   or for searching one of the parent directories
+      or for searching one of the parent directories
     * `:eisdir`  - the named file is a directory
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, `:enoent` is returned instead
+      on some platforms, `:enoent` is returned instead
     * `:enomem`  - there is not enough memory for the contents of the file
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
@@ -656,10 +656,10 @@ defmodule File do
 
     * `:enoent`  - a component of the file name does not exist
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, enoent is returned instead
+      on some platforms, enoent is returned instead
     * `:enospc`  - there is a no space left on the device
     * `:eacces`  - missing permission for writing the file or searching one of
-                   the parent directories
+      the parent directories
     * `:eisdir`  - the named file is a directory
 
   Check `File.open/2` for other available options.
@@ -695,7 +695,7 @@ defmodule File do
     * `:eacces`  - missing permission for the file or one of its parents
     * `:eperm`   - the file is a directory and user is not super-user
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, enoent is returned instead
+      on some platforms, enoent is returned instead
     * `:einval`  - filename had an improper type, such as tuple
 
   ## Examples
