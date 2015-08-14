@@ -2202,12 +2202,13 @@ defmodule Kernel do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
-  defp typespec(:type),     do: :deftype
-  defp typespec(:typep),    do: :deftypep
-  defp typespec(:opaque),   do: :defopaque
-  defp typespec(:spec),     do: :defspec
-  defp typespec(:callback), do: :defcallback
-  defp typespec(_),         do: false
+  defp typespec(:type),          do: :deftype
+  defp typespec(:typep),         do: :deftypep
+  defp typespec(:opaque),        do: :defopaque
+  defp typespec(:spec),          do: :defspec
+  defp typespec(:callback),      do: :defcallback
+  defp typespec(:macrocallback), do: :defmacrocallback
+  defp typespec(_),              do: false
 
   @doc """
   Returns the binding for the given context as a keyword list.

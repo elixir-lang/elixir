@@ -287,11 +287,12 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 
-    * `@type`        - defines a type to be used in `@spec`
-    * `@typep`       - defines a private type to be used in `@spec`
-    * `@opaque`      - defines an opaque type to be used in `@spec`
-    * `@spec`        - provides a specification for a function
-    * `@callback`    - provides a specification for the behaviour callback
+    * `@type`          - defines a type to be used in `@spec`
+    * `@typep`         - defines a private type to be used in `@spec`
+    * `@opaque`        - defines an opaque type to be used in `@spec`
+    * `@spec`          - provides a specification for a function
+    * `@callback`      - provides a specification for a behaviour callback
+    * `@macrocallback` - provides a specification for a macro behaviour callback
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
@@ -1020,8 +1021,8 @@ defmodule Module do
   defp normalize_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
-    raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
+  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
+    raise ArgumentError, "attributes type, typep, export_type, opaque, callback and macrocallback " <>
       "must be set via Kernel.Typespec"
   end
 
