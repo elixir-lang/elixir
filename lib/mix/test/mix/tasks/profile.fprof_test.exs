@@ -5,15 +5,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   import ExUnit.CaptureIO
 
-  defmodule GetApp do
-    def project do
-      [ app: :get_app,
-        version: "0.1.0",
-        deps: [
-          {:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}
-        ] ]
-    end
-  end
+  alias Mix.Tasks.Profile.Fprof
 
   setup do
     Mix.Project.push MixTest.Case.Sample
@@ -22,9 +14,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "profiles evaluated expression" do
     in_fixture "no_mixfile", fn ->
       assert capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          ["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)"]
-        )
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
@@ -34,9 +24,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
     in_fixture "no_mixfile", fn ->
       assert capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          [git_repo]
-        )
+        Fprof.run([git_repo])
       end) =~ ~r(:elixir_module\.compile/4 *\d+ *\d+\.\d{3} *\d+\.\d{3})
     end
   end
@@ -44,9 +32,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "expands callers" do
     in_fixture "no_mixfile", fn ->
       assert capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          ["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--callers"]
-        )
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--callers"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
     end
   end
@@ -54,9 +40,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "expands processes" do
     in_fixture "no_mixfile", fn ->
       output = capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          ["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> HashSet.new end)", "--details"]
-        )
+        Fprof.run(["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> HashSet.new end)", "--details"])
       end)
       assert output =~ ~r(#{:erlang.pid_to_list(self)} +\d+ +\d+\.\d{3})
       assert output =~ ~r(spawned by #{:erlang.pid_to_list(self)})
@@ -68,15 +52,11 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "sort options" do
     in_fixture "no_mixfile", fn ->
       assert capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          ["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort acc"]
-        )
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort acc"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
 
       assert capture_io(fn ->
-        Mix.Tasks.Profile.Fprof.run(
-          ["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort own"]
-        )
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort own"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
@@ -84,20 +64,20 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "errors on missing files" do
     in_fixture "no_mixfile", fn ->
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
-        capture_io(fn -> Mix.Tasks.Profile.Fprof.run ["-r", "non-existent"] end)
+        capture_io(fn -> Fprof.run ["-r", "non-existent"] end)
       end
 
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --parallel-require", fn ->
-        capture_io(fn -> Mix.Tasks.Profile.Fprof.run ["-pr", "non-existent"] end)
+        capture_io(fn -> Fprof.run ["-pr", "non-existent"] end)
       end
 
       assert_raise Mix.Error, "No such file: non-existent", fn ->
-        capture_io(fn -> Mix.Tasks.Profile.Fprof.run ["non-existent"] end)
+        capture_io(fn -> Fprof.run ["non-existent"] end)
       end
 
       assert File.dir?("lib")
       assert_raise Mix.Error, "No such file: lib", fn ->
-        capture_io(fn -> Mix.Tasks.Profile.Fprof.run ["lib"] end)
+        capture_io(fn -> Fprof.run ["lib"] end)
       end
     end
   end
