@@ -85,7 +85,7 @@ defmodule Mix.Tasks.App.Start do
 
     type = type(config, opts)
     Enum.each apps, &ensure_all_started(&1, type)
-    if config[:build_embedded], do: check_configured()
+    check_configured()
     :ok
   end
 
@@ -109,23 +109,18 @@ defmodule Mix.Tasks.App.Start do
   end
 
   defp check_configured() do
-    started = for {app, _, _} <- :application.which_applications(), do: app
-    apps = Enum.flat_map(started, fn(app) ->
-      {:ok, included} = :application.get_key(app, :included_applications)
-      [app | included]
-    end)
     configured = Mix.State.get(:configured_application, [])
-    _ = for app <- configured -- apps do
+    loaded = for {app, _, _} <- :application.loaded_applications(), do: app
+    _ = for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
       Mix.shell.info """
-      You have configured application #{inspect app} but it was not started.
+      You have configured application #{inspect app} but it is not available.
       This usually means one of:
 
-      1. You depend on application #{inspect app} but you (or a dependency)
-      haven't listed it in :applications (or :included_applications) in the
-      mix.exs file.
+      1. You have not added the application as a dependency in a mix.exs file.
 
       2. You are configuring an application that does not really exist.
-      Please ensure it exists or remove the configuration.
+
+      Please ensure #{inspect app} exists or remove the configuration.
       """
     end
     :ok
