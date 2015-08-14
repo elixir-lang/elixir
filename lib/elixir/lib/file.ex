@@ -531,7 +531,7 @@ defmodule File do
 
       # Same as before, but asks the user how to proceed in case of conflicts
       File.cp_r "samples", "tmp", fn(source, destination) ->
-        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm.") == "y"
+        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end
 
   """
