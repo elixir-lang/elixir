@@ -61,7 +61,24 @@ defmodule Mix.Tasks.App.StartTest do
 
       Mix.Config.persist([app_embedded_unknown: [foo: :bar], app_embedded_sample: [foo: :bar]])
       Mix.Tasks.Compile.run([])
-      Mix.Tasks.App.Start.run([])
+      paths = :code.get_path()
+      try do
+        Mix.Tasks.App.Start.run([])
+
+        # code path should be all loaded applications + consolidated protocols
+        for {app, _, _} <- :application.loaded_applications() do
+          assert :code.lib_dir(app, :ebin) in :code.get_path()
+        end
+        assert Enum.any?(:code.get_path(), fn(path) ->
+          Path.expand(path) == Path.expand('./_build/dev/consolidated')
+        end)
+        # erts ebin must still be in code path
+        assert :code.lib_dir(:erts, :ebin) in :code.get_path()
+        assert length(:code.get_path()) == length(:application.loaded_applications()) + 1
+      after
+        :code.add_paths(paths)
+      end
+
       assert_received {:mix_shell, :info, ["You have configured application :app_embedded_unknown" <> _]}
       refute_received {:mix_shell, :info, ["You have configured application :app_embedded_sample" <> _]}
     end
