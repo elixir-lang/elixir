@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install install_man compile erlang elixir build_man build_plt clean_man clean_plt dialyze test clean clean_man docs release_docs release_precompiled check_erlang_release
+.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean clean_man docs release_docs release_precompiled check_erlang_release
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -169,12 +169,10 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 #==> Release tasks
 
-release_precompiled: compile
+release_precompiled: build_man compile
 	rm -rf Precompiled-v$(VERSION).zip
-	$(MAKE) build_man
 	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
-	$(MAKE) clean_man
-	@ echo "Release file created: $(CURDIR)/Precompiled-v$(VERSION).zip"
+	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 release_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
@@ -242,22 +240,26 @@ dialyze: compile $(PLT)
 
 #==> Man page tasks
 
-build_man:
+build_man: man/iex.1 man/elixir.1
+
+man/iex.1:
 	$(Q) cp man/iex.1.in man/iex.1
 	$(Q) sed -i.bak "/{COMMON}/r common" man/iex.1
 	$(Q) sed -i.bak "/{COMMON}/d" man/iex.1
+	$(Q) rm man/iex.1.bak
+
+man/elixir.1:
 	$(Q) cp man/elixir.1.in man/elixir.1
 	$(Q) sed -i.bak "/{COMMON}/r common" man/elixir.1
 	$(Q) sed -i.bak "/{COMMON}/d" man/elixir.1
-	$(Q) rm man/*.bak
+	$(Q) rm man/elixir.1.bak
 
 clean_man:
 	rm -f man/elixir.1
 	rm -f man/iex.1
 
-install_man:
+install_man: build_man
 	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	$(MAKE) build_man
 	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1
