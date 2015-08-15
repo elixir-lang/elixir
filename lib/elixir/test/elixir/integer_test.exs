@@ -24,7 +24,7 @@ defmodule IntegerTest do
     assert Integer.is_even(-3) == false
   end
 
-  test :digits do
+  test "digits" do
     assert Integer.digits(101) == [1, 0, 1]
     assert Integer.digits(1) == [1]
     assert Integer.digits(0) == [0]
@@ -32,7 +32,7 @@ defmodule IntegerTest do
     assert Integer.digits(58127, 2) == [1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1]
   end
 
-  test :undigits do
+  test "undigits" do
     assert Integer.undigits([1, 0, 1]) == 101
     assert Integer.undigits([1]) == 1
     assert Integer.undigits([0]) == 0
@@ -45,7 +45,7 @@ defmodule IntegerTest do
     assert Integer.undigits([-1, -1, -5]) == -115
   end
 
-  test :parse do
+  test "parse" do
     assert Integer.parse("12") === {12, ""}
     assert Integer.parse("-12") === {-12, ""}
     assert Integer.parse("123456789") === {123456789, ""}

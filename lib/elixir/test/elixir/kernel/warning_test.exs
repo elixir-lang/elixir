@@ -8,7 +8,7 @@ defmodule Kernel.WarningTest do
     capture_io(:stderr, fun)
   end
 
-  test :unused_variable do
+  test "unused variable" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -20,7 +20,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :useless_literal do
+  test "useless literal" do
     message = "warning: code block starting at line contains unused literal \"oops\""
 
     assert capture_err(fn ->
@@ -51,7 +51,7 @@ defmodule Kernel.WarningTest do
     end) =~ message
   end
 
-  test :useless_attr do
+  test "useless attr" do
     message = "warning: module attribute @foo in code block has no effect as it is never returned "
 
     message = capture_err(fn ->
@@ -75,7 +75,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :useless_var do
+  test "useless var" do
     message = "warning: variable foo in code block has no effect as it is never returned "
 
     assert capture_err(fn ->
@@ -116,7 +116,7 @@ defmodule Kernel.WarningTest do
     end) == ""
   end
 
-  test :underscored_variable_on_match do
+  test "underscored variable on match" do
     assert capture_err(fn ->
       Code.eval_string """
       {_arg, _arg} = {1, 1}
@@ -124,7 +124,7 @@ defmodule Kernel.WarningTest do
     end) =~ "warning: the underscored variable \"_arg\" appears more than once in a match"
   end
 
-  test :underscored_variable_on_assign do
+  test "underscored variable on assign" do
     assert capture_err(fn ->
       Code.eval_string """
        defmodule Sample do
@@ -138,7 +138,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_function do
+  test "unused function" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -170,7 +170,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3]
   end
 
-  test :unused_cyclic_functions do
+  test "unused cyclic functions" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -183,7 +183,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_macro do
+  test "unused macro" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -195,7 +195,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :shadowing do
+  test "shadowing" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -212,7 +212,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_default_args do
+  test "unused default args" do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample1 do
@@ -252,7 +252,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3, Sample4]
   end
 
-  test :unused_import do
+  test "unused import" do
     assert capture_err(fn ->
       Code.compile_string """
       defmodule Sample do
@@ -271,7 +271,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_alias do
+  test "unused alias" do
     assert capture_err(fn ->
       Code.compile_string """
       defmodule Sample do
@@ -284,7 +284,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_inside_dynamic_module do
+  test "unused inside dynamic module" do
     import List, only: [flatten: 1], warn: false
 
     assert capture_err(fn ->
@@ -300,7 +300,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_guard do
+  test "unused guard" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -332,7 +332,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2]
   end
 
-  test :empty_clause do
+  test "empty clause" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -344,7 +344,7 @@ defmodule Kernel.WarningTest do
     purge Sample1
   end
 
-  test :used_import_via_alias do
+  test "used import via alias" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -365,7 +365,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2]
   end
 
-  test :clause_not_match do
+  test "clause not match" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -378,7 +378,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :clause_with_defaults_should_be_first do
+  test "clause with defaults should be first" do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample do
@@ -391,7 +391,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :clauses_with_default_should_use_fun_head do
+  test "clauses with default should use fun head" do
     assert capture_err(fn ->
       Code.eval_string ~S"""
       defmodule Sample do
@@ -404,7 +404,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :unused_with_local_with_overridable do
+  test "unused with local with overridable" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -419,7 +419,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :used_with_local_with_reattached_overridable do
+  test "used with local with reattached overridable" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -433,7 +433,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :undefined_module_attribute do
+  test "undefined module attribute" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -445,7 +445,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :undefined_module_attribute_in_function do
+  test "undefined module attribute in function" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -459,7 +459,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :undefined_module_attribute_with_file do
+  test "undefined module attribute with file" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -471,7 +471,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :in_guard_empty_list do
+  test "in guard empty list" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -483,7 +483,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :no_effect_operator do
+  test "no effect operator" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -498,7 +498,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :badarg_warning do
+  test "badarg warning" do
     assert capture_err(fn ->
       assert_raise ArgumentError, fn ->
         Code.eval_string """
@@ -512,7 +512,7 @@ defmodule Kernel.WarningTest do
     purge [Sample]
   end
 
-  test :undefined_function_for_behaviour do
+  test "undefined function for behaviour" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -528,7 +528,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3]
   end
 
-  test :undefined_macro_for_behaviour do
+  test "undefined macro for behaviour" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample1 do
@@ -544,7 +544,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample2, Sample3]
   end
 
-  test :undefined_behavior do
+  test "undefined behavior" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -556,7 +556,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :undefined_macro_for_protocol do
+  test "undefined macro for protocol" do
     assert capture_err(fn ->
       Code.eval_string """
       defprotocol Sample1 do
@@ -571,7 +571,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample1.Atom]
   end
 
-  test :overidden_def do
+  test "overidden def" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -585,7 +585,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :warning_with_overridden_file do
+  test "warning with overridden file" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -598,13 +598,13 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :warning_on_codepoint_escape do
+  test "warning on codepoint escape" do
     assert capture_err(fn ->
       Code.eval_string "? "
     end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
   end
 
-  test :typedoc_on_typep do
+  test "typedoc on typep" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -619,7 +619,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :typedoc_with_no_type do
+  test "typedoc with no type" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -631,7 +631,7 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
-  test :doc_with_no_function do
+  test "doc with no function" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do

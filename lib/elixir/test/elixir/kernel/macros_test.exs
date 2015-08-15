@@ -25,28 +25,28 @@ defmodule Kernel.MacrosTest do
     quote do: 1 + unquote(value)
   end
 
-  test :require do
+  test "require" do
     assert Kernel.MacrosTest.Nested.value == 1
   end
 
-  test :require_with_alias do
+  test "require with alias" do
     assert Nested.value == 1
   end
 
-  test :local_but_private_macro do
+  test "local but private macro" do
     assert my_private_macro == 4
   end
 
-  test :local_with_defaults_macro do
+  test "local with defaults macro" do
     assert my_macro_with_default == 6
   end
 
-  test :macros_cannot_be_called_dynamically do
+  test "macros cannot be called dynamically" do
     x = Nested
     assert_raise UndefinedFunctionError, fn -> x.value end
   end
 
-  test :bang_do_block do
+  test "bang do block" do
     import Kernel.MacrosTest.Nested
     assert (do_identity! do 1 end) == 1
     assert (Kernel.MacrosTest.Nested.do_identity! do 1 end) == 1

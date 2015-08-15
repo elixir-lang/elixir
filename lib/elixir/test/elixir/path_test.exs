@@ -5,7 +5,7 @@ defmodule PathTest do
   import PathHelpers
 
   if :file.native_name_encoding == :utf8 do
-    test :wildcard_with_utf8 do
+    test "wildcard with utf8" do
       File.mkdir_p(tmp_path("héllò"))
       assert Path.wildcard(tmp_path("héllò")) == [tmp_path("héllò")]
     after
@@ -13,7 +13,7 @@ defmodule PathTest do
     end
   end
 
-  test :wildcard do
+  test "wildcard" do
     hello = tmp_path("wildcard/.hello")
     world = tmp_path("wildcard/.hello/world")
     File.mkdir_p(world)
@@ -30,7 +30,7 @@ defmodule PathTest do
   end
 
   if windows? do
-    test :relative_win do
+    test "relative win" do
       assert Path.relative("C:/usr/local/bin")    == "usr/local/bin"
       assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
       assert Path.relative("C:usr\\local\\bin")   == "usr\\local\\bin"
@@ -46,7 +46,7 @@ defmodule PathTest do
       assert Path.relative_to("D:/usr/local/foo", "D:") == "usr/local/foo"
     end
 
-    test :type_win do
+    test "type win" do
       assert Path.type("C:/usr/local/bin")    == :absolute
       assert Path.type('C:\\usr\\local\\bin') == :absolute
       assert Path.type("C:usr\\local\\bin")   == :volumerelative
@@ -56,19 +56,19 @@ defmodule PathTest do
       assert Path.type("../usr/local/bin") == :relative
     end
 
-    test :split_win do
+    test "split win" do
       assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
       assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
     end
   else
-    test :relative_unix do
+    test "relative unix" do
       assert Path.relative("/usr/local/bin")   == "usr/local/bin"
       assert Path.relative("usr/local/bin")    == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
     end
 
-    test :type_unix do
+    test "type unix" do
       assert Path.type("/usr/local/bin")   == :absolute
       assert Path.type("usr/local/bin")    == :relative
       assert Path.type("../usr/local/bin") == :relative
@@ -83,7 +83,7 @@ defmodule PathTest do
     end
   end
 
-  test :relative_to_cwd do
+  test "relative to cwd" do
     assert Path.relative_to_cwd(__ENV__.file) ==
            Path.relative_to(__ENV__.file, System.cwd!)
 
@@ -91,7 +91,7 @@ defmodule PathTest do
            Path.relative_to(to_char_list(__ENV__.file), to_char_list(System.cwd!))
   end
 
-  test :absname do
+  test "absname" do
     assert (Path.absname("/") |> strip_drive_letter_if_windows) == "/"
     assert (Path.absname("/foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.absname("/./foo") |> strip_drive_letter_if_windows) == "/foo"
@@ -107,7 +107,7 @@ defmodule PathTest do
     assert Path.absname(["bar/", ?., ?., ["/bar"]], "/foo") == "/foo/bar/../bar"
   end
 
-  test :expand_path_with_user_home do
+  test "expand path with user home" do
     home = System.user_home!
 
     assert home == Path.expand("~")
@@ -122,7 +122,7 @@ defmodule PathTest do
     assert Path.expand("~file") == Path.join(System.cwd!, "file")
   end
 
-  test :expand_path do
+  test "expand path" do
     assert (Path.expand("/") |> strip_drive_letter_if_windows) == "/"
     assert (Path.expand("/foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.expand("/./foo") |> strip_drive_letter_if_windows) == "/foo"
@@ -144,7 +144,7 @@ defmodule PathTest do
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end
 
-  test :relative_to do
+  test "relative to" do
     assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
     assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
     assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
@@ -158,14 +158,14 @@ defmodule PathTest do
     assert Path.relative_to(["usr", ?/, 'local/foo'], 'usr/local') == "foo"
   end
 
-  test :rootname do
+  test "rootname" do
     assert Path.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
     assert Path.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
     assert Path.rootname("~/foo/bar.old.ex", ".ex") == "~/foo/bar.old"
     assert Path.rootname([?~, '/foo/bar', ".old.ex"], '.ex') == "~/foo/bar.old"
   end
 
-  test :extname do
+  test "extname" do
     assert Path.extname("foo.erl") == ".erl"
     assert Path.extname("~/foo/bar") == ""
 
@@ -173,7 +173,7 @@ defmodule PathTest do
     assert Path.extname('~/foo/bar') == ""
   end
 
-  test :dirname do
+  test "dirname" do
     assert Path.dirname("/foo/bar.ex") == "/foo"
     assert Path.dirname("foo/bar.ex") == "foo"
 
@@ -183,7 +183,7 @@ defmodule PathTest do
     assert Path.dirname([?~, "/foo", '/bar.ex']) == "~/foo"
   end
 
-  test :basename do
+  test "basename" do
     assert Path.basename("foo") == "foo"
     assert Path.basename("/foo/bar") == "bar"
     assert Path.basename("/") == ""
@@ -195,7 +195,7 @@ defmodule PathTest do
     assert Path.basename([?~, "/for/bar", '.old.ex'], ".ex") == "bar.old"
   end
 
-  test :join do
+  test "join" do
     assert Path.join([""]) == ""
     assert Path.join(["foo"]) == "foo"
     assert Path.join(["/", "foo", "bar"]) == "/foo/bar"
@@ -203,7 +203,7 @@ defmodule PathTest do
     assert Path.join(['/foo/', "/bar/"]) == "/foo/bar"
   end
 
-  test :join_two do
+  test "join two" do
     assert Path.join("/foo", "bar") == "/foo/bar"
     assert Path.join("~", "foo") == "~/foo"
 
@@ -220,7 +220,7 @@ defmodule PathTest do
     assert Path.join([?/, "foo"], "./bar") == "/foo/./bar"
   end
 
-  test :split do
+  test "split" do
     assert Path.split("") == []
     assert Path.split("foo") == ["foo"]
     assert Path.split("/foo/bar") == ["/", "foo", "bar"]

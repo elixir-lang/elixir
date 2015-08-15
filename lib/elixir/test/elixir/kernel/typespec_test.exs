@@ -631,12 +631,12 @@ defmodule Kernel.TypespecTest do
     @macrocallback last(integer) :: Macro.t
   end
 
-  test :callbacks do
+  test "callbacks" do
     assert Sample.behaviour_info(:callbacks) ==
            [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
   end
 
-  test :default_is_not_supported do
+  test "default is not supported" do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         @callback hello(num \\ 0 :: integer) :: integer

@@ -3,7 +3,7 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.BinaryTest do
   use ExUnit.Case, async: true
 
-  test :heredoc do
+  test "heredoc" do
     assert 7 == __ENV__.line
     assert "foo\nbar\n" == """
 foo
@@ -17,14 +17,14 @@ bar """
 """
   end
 
-  test :aligned_heredoc do
+  test "aligned heredoc" do
     assert "foo\nbar\n" == """
     foo
     bar
     """
   end
 
-  test :heredoc_with_interpolation do
+  test "heredoc with interpolation" do
     assert "29\n" == """
     #{__ENV__.line}
     """
@@ -35,22 +35,22 @@ bar """
     """
   end
 
-  test :heredoc_in_call do
+  test "heredoc in call" do
     assert "foo\nbar" == Kernel.<>("""
     foo
     """, "bar")
   end
 
-  test :utf8 do
+  test "utf8" do
     assert byte_size(" ゆんゆん") == 13
   end
 
-  test :utf8_char do
+  test "utf8 char" do
     assert ?ゆ == 12422
     assert ?\ゆ == 12422
   end
 
-  test :string_concatenation_as_match do
+  test "string concatenation as match" do
     "foo" <> x = "foobar"
     assert x == "bar"
 
@@ -79,7 +79,7 @@ bar """
     end
   end
 
-  test :hex do
+  test "hex" do
     assert "\xa" == "\n"
     assert "\xE9" == "é"
     assert "\xFF" == "ÿ"
@@ -91,34 +91,34 @@ bar """
     assert "\x{10FFFF}" == <<244, 143, 191, 191>>
   end
 
-  test :match do
+  test "match" do
     assert match?(<< ?a, _ :: binary >>, "ab")
     refute match?(<< ?a, _ :: binary >>, "cd")
     assert match?(<< _ :: utf8 >> <> _, "éf")
   end
 
-  test :interpolation do
+  test "interpolation" do
     res = "hello \\abc"
     assert "hello #{"\\abc"}" == res
     assert "hello #{"\\abc" <> ""}" == res
   end
 
-  test :pattern_match do
+  test "pattern match" do
     s = 16
     assert <<_a, _b :: size(s)>> = "foo"
   end
 
-  test :pattern_match_with_splice do
+  test "pattern match with splice" do
     assert << 1, <<2, 3, 4>>, 5 >> = <<1, 2, 3, 4, 5>>
   end
 
-  test :partial_application do
+  test "partial application" do
     assert (&<< &1, 2 >>).(1) == << 1, 2 >>
     assert (&<< &1, &2 >>).(1, 2) == << 1, 2 >>
     assert (&<< &2, &1 >>).(2, 1) == << 1, 2 >>
   end
 
-  test :literal do
+  test "literal" do
     assert <<106, 111, 115, 195, 169>> == << "josé" :: binary >>
     assert <<106, 111, 115, 195, 169>> == << "josé" :: bits >>
     assert <<106, 111, 115, 195, 169>> == << "josé" :: bitstring >>
@@ -130,7 +130,7 @@ bar """
     assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 233>> == << "josé" :: utf32 >>
   end
 
-  test :literal_errors do
+  test "literal errors" do
     assert_raise CompileError, fn ->
       Code.eval_string(~s[<< "foo" :: integer >>])
     end
@@ -150,11 +150,11 @@ bar """
 
   @binary "new "
 
-  test :bitsyntax_with_expansion do
+  test "bitsyntax with expansion" do
     assert <<@binary, "world">> == "new world"
   end
 
-  test :bitsyntax_translation do
+  test "bitsyntax translation" do
     refb = "sample"
     sec_data = "another"
     << byte_size(refb) :: size(1)-big-signed-integer-unit(8),
@@ -163,7 +163,7 @@ bar """
        sec_data :: binary >>
   end
 
-  test :bitsyntax_size_shorcut do
+  test "bitsyntax size shorcut" do
     assert << 1 :: 3 >> == << 1 :: size(3) >>
     assert << 1 :: 3*8 >> == << 1 :: size(3)-unit(8) >>
   end
@@ -180,7 +180,7 @@ bar """
     end
   end
 
-  test :bitsyntax_macro do
+  test "bitsyntax macro" do
     refb = "sample"
     sec_data = "another"
     << byte_size(refb) :: refb_spec,
