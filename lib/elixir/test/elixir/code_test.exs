@@ -18,16 +18,16 @@ defmodule CodeTest do
 
   Code.eval_quoted contents, [], file: "sample.ex", line: 13
 
-  test :eval_string do
+  test "eval string" do
     assert Code.eval_string("1 + 2") == {3, []}
     assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], Macro.Env.location(__ENV__))
   end
 
-  test :eval_string_with_other_context do
+  test "eval string with other context" do
     assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
   end
 
-  test :eval_binary_errors do
+  test "eval binary errors" do
     msg = "nofile:2: a binary field without size is only allowed at the end of a binary pattern"
     assert_raise CompileError, msg, fn ->
       Code.eval_string("""
@@ -37,12 +37,12 @@ defmodule CodeTest do
     end
   end
 
-  test :eval_with_unnamed_scopes do
+  test "eval with unnamed scopes" do
     assert {%RuntimeError{}, [a: %RuntimeError{}]} =
            Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
   end
 
-  test :eval_options do
+  test "eval options" do
     assert Code.eval_string("is_atom(:foo) and K.is_list([])", [],
                             functions: [{Kernel, [is_atom: 1]}],
                             macros: [{Kernel, [..: 2, and: 2]}],
@@ -50,7 +50,7 @@ defmodule CodeTest do
                             requires: [Kernel]) == {true, []}
   end
 
-  test :eval_stacktrace do
+  test "eval stacktrace" do
     try do
       Code.eval_string("<<a :: size(b)>>", a: :a, b: :b)
     rescue
@@ -59,21 +59,21 @@ defmodule CodeTest do
     end
   end
 
-  test :eval_with_requires do
+  test "eval with requires" do
     assert Code.eval_string("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == {:ok, []}
   end
 
-  test :eval_quoted do
+  test "eval quoted" do
     assert Code.eval_quoted(quote(do: 1 + 2)) == {3, []}
     assert CodeTest.Sample.eval_quoted_info() == {CodeTest.Sample, "sample.ex", 13}
   end
 
-  test :eval_quoted_with_env do
+  test "eval quoted with env" do
     alias :lists, as: MyList
     assert Code.eval_quoted(quote(do: MyList.flatten [[1, 2, 3]]), [], __ENV__) == {[1, 2, 3], []}
   end
 
-  test :eval_file do
+  test "eval file" do
     assert Code.eval_file(fixture_path("code_sample.exs")) == {3, [var: 3]}
 
     assert_raise Code.LoadError, fn ->
@@ -81,7 +81,7 @@ defmodule CodeTest do
     end
   end
 
-  test :require do
+  test "require" do
     Code.require_file fixture_path("code_sample.exs")
     assert fixture_path("code_sample.exs") in Code.loaded_files
     assert Code.require_file(fixture_path("code_sample.exs")) == nil
@@ -91,7 +91,7 @@ defmodule CodeTest do
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
   end
 
-  test :string_to_quoted do
+  test "string to quoted" do
     assert Code.string_to_quoted("1 + 2")  == {:ok, {:+, [line: 1], [1, 2]}}
     assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
@@ -103,7 +103,7 @@ defmodule CodeTest do
     end
   end
 
-  test :string_to_quoted_existing_atoms_only do
+  test "string to quoted existing atoms only" do
     assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
   end
 
@@ -119,30 +119,30 @@ defmodule CodeTest do
     end
   end
 
-  test :compile_source do
+  test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_char_list(__ENV__.file)
   end
 
-  test :compile_info_returned_with_source_accessible_through_keyword_module do
+  test "compile info returned with source accessible through keyword module" do
     compile = __MODULE__.__info__(:compile)
     assert Keyword.get(compile, :source) != nil
   end
 
-  test :compile_string_works_accross_lexical_scopes do
+  test "compile string works accross lexical scopes" do
     assert [{CompileCrossSample, _}] = Code.compile_string("CodeTest.genmodule CompileCrossSample")
   after
     :code.purge CompileCrossSample
     :code.delete CompileCrossSample
   end
 
-  test :compile_string do
+  test "compile string" do
     assert [{CompileStringSample, _}] = Code.compile_string("defmodule CompileStringSample, do: :ok")
   after
     :code.purge CompileSimpleSample
     :code.delete CompileSimpleSample
   end
 
-  test :compile_quoted do
+  test "compile quoted" do
     assert [{CompileQuotedSample, _}] = Code.compile_string("defmodule CompileQuotedSample, do: :ok")
   after
     :code.purge CompileQuotedSample
@@ -163,7 +163,7 @@ end
 defmodule Code.SyncTest do
   use ExUnit.Case
 
-  test :path_manipulation do
+  test "path manipulation" do
     path = Path.join(__DIR__, "fixtures")
     Code.prepend_path path
     assert to_char_list(path) in :code.get_path

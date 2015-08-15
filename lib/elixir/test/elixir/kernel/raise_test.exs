@@ -133,7 +133,7 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  test :rescue_with_underscore_no_exception do
+  test "rescue with underscore no exception" do
     result = try do
       RescueUndefinedModule.go
     rescue
@@ -143,7 +143,7 @@ defmodule Kernel.RaiseTest do
     assert result
   end
 
-  test :rescue_with_higher_precedence_than_catch do
+  test "rescue with higher precedence than catch" do
     result = try do
       RescueUndefinedModule.go
     catch
@@ -155,7 +155,7 @@ defmodule Kernel.RaiseTest do
     assert result
   end
 
-  test :rescue_runtime_error do
+  test "rescue runtime error" do
     result = try do
       raise "an exception"
     rescue
@@ -177,7 +177,7 @@ defmodule Kernel.RaiseTest do
     refute result
   end
 
-  test :rescue_named_runtime_error do
+  test "rescue named runtime error" do
     result = try do
       raise "an exception"
     rescue
@@ -189,7 +189,7 @@ defmodule Kernel.RaiseTest do
     assert result == "an exception"
   end
 
-  test :rescue_argument_error_from_elixir do
+  test "rescue argument error from elixir" do
     result = try do
      raise ArgumentError, ""
     rescue
@@ -199,7 +199,7 @@ defmodule Kernel.RaiseTest do
     assert result
   end
 
-  test :rescue_named_with_underscore do
+  test "rescue named with underscore" do
     result = try do
       raise "an exception"
     rescue
@@ -209,7 +209,7 @@ defmodule Kernel.RaiseTest do
     assert result == "an exception"
   end
 
-  test :wrap_custom_erlang_error do
+  test "wrap custom erlang error" do
     result = try do
       :erlang.error(:sample)
     rescue
@@ -219,7 +219,7 @@ defmodule Kernel.RaiseTest do
     assert result == "erlang error: :sample"
   end
 
-  test :undefined_function_error do
+  test "undefined function error" do
     result = try do
       DoNotExist.for_sure()
     rescue
@@ -229,7 +229,7 @@ defmodule Kernel.RaiseTest do
     assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
-  test :function_clause_error do
+  test "function clause error" do
     result = try do
       zero(1)
     rescue
@@ -239,7 +239,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
   end
 
-  test :badarg_error do
+  test "badarg error" do
     result = try do
       :erlang.error(:badarg)
     rescue
@@ -249,7 +249,7 @@ defmodule Kernel.RaiseTest do
     assert result == "argument error"
   end
 
-  test :tuple_badarg_error do
+  test "tuple badarg error" do
     result = try do
       :erlang.error({:badarg, [1, 2, 3]})
     rescue
@@ -259,7 +259,7 @@ defmodule Kernel.RaiseTest do
     assert result == "argument error: [1, 2, 3]"
   end
 
-  test :badarith_error do
+  test "badarith error" do
     result = try do
       :erlang.error(:badarith)
     rescue
@@ -269,7 +269,7 @@ defmodule Kernel.RaiseTest do
     assert result == "bad argument in arithmetic expression"
   end
 
-  test :badarity_error do
+  test "badarity error" do
     fun    = fn(x) -> x end
     string = "#{inspect(fun)} with arity 1 called with 2 arguments (1, 2)"
 
@@ -282,7 +282,7 @@ defmodule Kernel.RaiseTest do
     assert result == string
   end
 
-  test :badfun_error do
+  test "badfun error" do
     x = :example
     result = try do
       x.(2)
@@ -293,7 +293,7 @@ defmodule Kernel.RaiseTest do
     assert result == "expected a function, got: :example"
   end
 
-  test :badmatch_error do
+  test "badmatch error" do
     x = :example
     result = try do
       ^x = zero(0)
@@ -305,7 +305,7 @@ defmodule Kernel.RaiseTest do
   end
 
   if :erlang.system_info(:otp_release) >= '18' do
-    test :bad_key_error do
+    test "bad key error" do
       result = try do
         %{%{} | foo: :bar}
       rescue
@@ -323,7 +323,7 @@ defmodule Kernel.RaiseTest do
       assert result == "key :foo not found in: %{}"
     end
 
-    test :bad_map_error do
+    test "bad map error" do
       result = try do
         %{zero(0) | foo: :bar}
       rescue
@@ -334,7 +334,7 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  test :case_clause_error do
+  test "case clause error" do
     x = :example
     result = try do
       case zero(0) do
@@ -347,7 +347,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no case clause matching: 0"
   end
 
-  test :cond_clause_error do
+  test "cond clause error" do
     result = try do
       cond do
         !zero(0) -> :ok
@@ -359,7 +359,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no cond clause evaluated to a true value"
   end
 
-  test :try_clause_error do
+  test "try clause error" do
     f = fn() -> :example end
     result = try do
       try do
@@ -375,7 +375,7 @@ defmodule Kernel.RaiseTest do
     assert result == "no try clause matching: :example"
   end
 
-  test :undefined_function_error_as_erlang_error do
+  test "undefined function error as erlang error" do
     result = try do
       DoNotExist.for_sure()
     rescue
@@ -389,7 +389,7 @@ defmodule Kernel.RaiseTest do
     [ErlangError]
   end
 
-  test :with_macros do
+  test "with macros" do
     result = try do
       DoNotExist.for_sure()
     rescue

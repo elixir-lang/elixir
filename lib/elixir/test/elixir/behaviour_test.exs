@@ -21,15 +21,15 @@ defmodule BehaviourTest do
     defmacrocallback last(integer) :: Macro.t
   end
 
-  test :callbacks do
+  test "callbacks" do
     assert Sample.__behaviour__(:callbacks) == [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
   end
 
-  test :specs do
+  test "specs" do
     assert length(Keyword.get_values(Sample.module_info[:attributes], :callback)) == 7
   end
 
-  test :default_is_not_supported do
+  test "default is not supported" do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         use Behaviour

@@ -3,24 +3,24 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule TupleTest do
   use ExUnit.Case, async: true
 
-  test :elem do
+  test "elem" do
     assert elem({:a, :b, :c}, 1) == :b
   end
 
-  test :put_elem do
+  test "put elem" do
     assert put_elem({:a, :b, :c}, 1, :d) == {:a, :d, :c}
   end
 
-  test :keywords do
+  test "keywords" do
     assert {1, 2, three: :four} == {1, 2, [three: :four]}
   end
 
-  test :optional_comma do
+  test "optional comma" do
     assert {1} == {1,}
     assert {1, 2, 3} == {1, 2, 3,}
   end
 
-  test :partial_application do
+  test "partial application" do
     assert (&{&1, 2}).(1) == {1, 2}
     assert (&{&1, &2}).(1, 2) == {1, 2}
     assert (&{&2, &1}).(2, 1) == {1, 2}
@@ -29,7 +29,7 @@ defmodule TupleTest do
   # Tuple module
   # We check two variants due to inlining.
 
-  test :duplicate do
+  test "duplicate" do
     assert Tuple.duplicate(:foo, 0) == {}
     assert Tuple.duplicate(:foo, 3) == {:foo, :foo, :foo}
 
@@ -38,21 +38,21 @@ defmodule TupleTest do
     assert mod.duplicate(:foo, 3) == {:foo, :foo, :foo}
   end
 
-  test :insert_at do
+  test "insert at" do
     assert Tuple.insert_at({:bar, :baz}, 0, :foo) == {:foo, :bar, :baz}
 
     mod = Tuple
     assert mod.insert_at({:bar, :baz}, 0, :foo) == {:foo, :bar, :baz}
   end
 
-  test :append do
+  test "append" do
     assert Tuple.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
 
     mod = Tuple
     assert mod.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
   end
 
-  test :delete_at do
+  test "delete at" do
     assert Tuple.delete_at({:foo, :bar, :baz}, 0) == {:bar, :baz}
 
     mod = Tuple

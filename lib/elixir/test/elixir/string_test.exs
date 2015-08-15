@@ -3,14 +3,14 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringTest do
   use ExUnit.Case, async: true
 
-  test :next_codepoint do
+  test "next codepoint" do
     assert String.next_codepoint("ésoj") == {"é", "soj"}
     assert String.next_codepoint(<<255>>) == {<<255>>, ""}
     assert String.next_codepoint("") == nil
   end
 
   # test cases described in http://mortoray.com/2013/11/27/the-string-type-is-broken/
-  test :unicode do
+  test "unicode" do
     assert String.reverse("noël") == "lëon"
     assert String.slice("noël", 0..2) == "noë"
     assert String.length("noël") == 4
@@ -22,7 +22,7 @@ defmodule StringTest do
     assert String.upcase("baﬄe") == "BAFFLE"
   end
 
-  test :split do
+  test "split" do
     assert String.split("") == []
     assert String.split("foo bar") == ["foo", "bar"]
     assert String.split(" foo bar") == ["foo", "bar"]
@@ -60,7 +60,7 @@ defmodule StringTest do
     assert String.split("noël", "") == ["n", "o", "ë", "l", ""]
   end
 
-  test :split_with_regex do
+  test "split with regex" do
     assert String.split("", ~r{,}) == [""]
     assert String.split("", ~r{,}, trim: true) == []
     assert String.split("a,b", ~r{,}) == ["a", "b"]
@@ -71,7 +71,7 @@ defmodule StringTest do
     assert String.split("a,b", ~r{\.}) == ["a,b"]
   end
 
-  test :splitter do
+  test "splitter" do
     assert String.splitter("a,b,c", ",") |> Enum.to_list == ["a", "b", "c"]
     assert String.splitter("a,b", ".") |> Enum.to_list == ["a,b"]
     assert String.splitter("1,2 3,4", [" ", ","]) |> Enum.to_list == ["1", "2", "3", "4"]
@@ -83,7 +83,7 @@ defmodule StringTest do
     assert String.splitter(" a b c ", " ", trim: true) |> Enum.take(2) == ["a", "b"]
   end
 
-  test :split_at do
+  test "split at" do
     assert String.split_at("", 0) == {"", ""}
     assert String.split_at("", -1) == {"", ""}
     assert String.split_at("", 1) == {"", ""}
@@ -108,35 +108,35 @@ defmodule StringTest do
     end
   end
 
-  test :upcase do
+  test "upcase" do
     assert String.upcase("123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz") == "123 ABCD 456 EFG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ"
     assert String.upcase("") == ""
     assert String.upcase("abcD") == "ABCD"
   end
 
-  test :upcase_utf8 do
+  test "upcase utf8" do
     assert String.upcase("& % # àáâ ãäå 1 2 ç æ") == "& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ"
     assert String.upcase("àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ") == "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ"
   end
 
-  test :upcase_utf8_multibyte do
+  test "upcase utf8 multibyte" do
     assert String.upcase("straße") == "STRASSE"
     assert String.upcase("áüÈß") == "ÁÜÈSS"
   end
 
-  test :downcase do
+  test "downcase" do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") == "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
     assert String.downcase("abcD") == "abcd"
     assert String.downcase("") == ""
   end
 
-  test :downcase_utf8 do
+  test "downcase utf8" do
     assert String.downcase("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ") == "& % # àáâ ãäå 1 2 ç æ"
     assert String.downcase("ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ") == "àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþ"
     assert String.downcase("áüÈß") == "áüèß"
   end
 
-  test :capitalize do
+  test "capitalize" do
     assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
     assert String.capitalize("ABC") == "Abc"
@@ -146,7 +146,7 @@ defmodule StringTest do
     assert String.capitalize(" aBc1") == " abc1"
   end
 
-  test :capitalize_utf8 do
+  test "capitalize utf8" do
     assert String.capitalize("àáâ") == "Àáâ"
     assert String.capitalize("ÀÁÂ") == "Àáâ"
     assert String.capitalize("âáà") == "Âáà"
@@ -156,7 +156,7 @@ defmodule StringTest do
     assert String.capitalize("ﬁn") == "Fin"
   end
 
-  test :rstrip do
+  test "rstrip" do
     assert String.rstrip("") == ""
     assert String.rstrip("1\n") == "1"
     assert String.rstrip("\r\n") == ""
@@ -171,7 +171,7 @@ defmodule StringTest do
     assert String.rstrip("   cat 猫猫", ?猫) == "   cat "
   end
 
-  test :lstrip do
+  test "lstrip" do
     assert String.lstrip("") == ""
     assert String.lstrip("   abc  ") == "abc  "
     assert String.lstrip("a  abc  a") == "a  abc  a"
@@ -183,7 +183,7 @@ defmodule StringTest do
     assert String.lstrip("猫猫 cat   ", ?猫) == " cat   "
   end
 
-  test :strip do
+  test "strip" do
     assert String.strip("") == ""
     assert String.strip("   abc  ") == "abc"
     assert String.strip("a  abc  a\n\n") == "a  abc  a"
@@ -192,7 +192,7 @@ defmodule StringTest do
     assert String.strip("猫猫猫  cat  猫猫猫", ?猫) == "  cat  "
   end
 
-  test :rjust do
+  test "rjust" do
     assert String.rjust("", 5) == "     "
     assert String.rjust("abc", 5) == "  abc"
     assert String.rjust("  abc  ", 9) == "    abc  "
@@ -205,7 +205,7 @@ defmodule StringTest do
     end
   end
 
-  test :ljust do
+  test "ljust" do
     assert String.ljust("", 5) == "     "
     assert String.ljust("abc", 5) == "abc  "
     assert String.ljust("  abc  ", 9) == "  abc    "
@@ -218,7 +218,7 @@ defmodule StringTest do
     end
   end
 
-  test :reverse do
+  test "reverse" do
     assert String.reverse("") == ""
     assert String.reverse("abc") == "cba"
     assert String.reverse("Hello World") == "dlroW olleH"
@@ -228,7 +228,7 @@ defmodule StringTest do
     assert String.reverse(String.reverse("Hello \r\n World")) == "Hello \r\n World"
   end
 
-  test :replace do
+  test "replace" do
     assert String.replace("a,b,c", ",", "-") == "a-b-c"
     assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
 
@@ -244,7 +244,7 @@ defmodule StringTest do
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
   end
 
-  test :duplicate do
+  test "duplicate" do
     assert String.duplicate("abc", 0) == ""
     assert String.duplicate("abc", 1) == "abc"
     assert String.duplicate("abc", 2) == "abcabc"
@@ -254,7 +254,7 @@ defmodule StringTest do
     end
   end
 
-  test :codepoints do
+  test "codepoints" do
     assert String.codepoints("elixir") == ["e", "l", "i", "x", "i", "r"]
     assert String.codepoints("elixír") == ["e", "l", "i", "x", "í", "r"] # slovak
     assert String.codepoints("ոգելից ըմպելիք") == ["ո", "գ", "ե", "լ", "ի", "ց", " ", "ը", "մ", "պ", "ե", "լ", "ի", "ք"] # armenian
@@ -271,7 +271,7 @@ defmodule StringTest do
            ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
   end
 
-  test :graphemes do
+  test "graphemes" do
     # Extended
     assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]
     # CLRF
@@ -284,12 +284,12 @@ defmodule StringTest do
     assert String.graphemes("a\x{0300}\x{0903}") == ["a\x{0300}\x{0903}"]
   end
 
-  test :next_grapheme do
+  test "next grapheme" do
     assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
     assert String.next_grapheme("") == nil
   end
 
-  test :first do
+  test "first" do
     assert String.first("elixir") == "e"
     assert String.first("íelixr") == "í"
     assert String.first("եոգլից ըմպելիք") == "ե"
@@ -301,7 +301,7 @@ defmodule StringTest do
     assert String.first("") == nil
   end
 
-  test :last do
+  test "last" do
     assert String.last("elixir") == "r"
     assert String.last("elixrí") == "í"
     assert String.last("եոգլից ըմպելիքե") == "ե"
@@ -313,7 +313,7 @@ defmodule StringTest do
     assert String.last("") == nil
   end
 
-  test :length do
+  test "length" do
     assert String.length("elixir") == 6
     assert String.length("elixrí") == 6
     assert String.length("եոգլից") == 6
@@ -325,7 +325,7 @@ defmodule StringTest do
     assert String.length("") == 0
   end
 
-  test :at do
+  test "at" do
     assert String.at("л", 0) == "л"
     assert String.at("elixir", 1) == "l"
     assert String.at("がガちゃ", 2) == "ち"
@@ -345,7 +345,7 @@ defmodule StringTest do
     end
   end
 
-  test :slice do
+  test "slice" do
     assert String.slice("elixir", 1, 3) == "lix"
     assert String.slice("あいうえお", 2, 2) == "うえ"
     assert String.slice("ειξήριολ", 2, 3) == "ξήρ"
@@ -410,7 +410,7 @@ defmodule StringTest do
     refute String.valid_character?("ab")
   end
 
-  test :chunk_valid do
+  test "chunk valid" do
     assert String.chunk("", :valid) == []
 
     assert String.chunk("ødskfjあ\x11ska", :valid)
@@ -423,7 +423,7 @@ defmodule StringTest do
            == ["日本", <<0x0ffff::utf8, 0xfdef::utf8>>, "ござございます", <<0xfdd0::utf8>>]
   end
 
-  test :chunk_printable do
+  test "chunk printable" do
     assert String.chunk("", :printable) == []
 
     assert String.chunk("ødskfjあska", :printable)
@@ -469,7 +469,7 @@ defmodule StringTest do
     refute String.contains? "elixir of life", ["death", "mercury", "eternal life"]
   end
 
-  test :to_char_list do
+  test "to char list" do
     assert String.to_char_list("æß")  == [?æ, ?ß]
     assert String.to_char_list("abc") == [?a, ?b, ?c]
 
@@ -484,14 +484,14 @@ defmodule StringTest do
     end
   end
 
-  test :to_float do
+  test "to float" do
     assert String.to_float("3.0") == 3.0
 
     three = fn -> "3" end
     assert_raise ArgumentError, fn -> String.to_float(three.()) end
   end
 
-  test :jaro_distance do
+  test "jaro distance" do
     assert String.jaro_distance("same", "same") == 1.0
     assert String.jaro_distance("any", "") == 0.0
     assert String.jaro_distance("", "any") == 0.0

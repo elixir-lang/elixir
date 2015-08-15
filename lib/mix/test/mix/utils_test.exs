@@ -7,12 +7,12 @@ defmodule Mix.UtilsTest do
   use MixTest.Case
   doctest Mix.Utils
 
-  test :command_to_module do
+  test "command to module" do
     assert Mix.Utils.command_to_module("cheers", Mix.Tasks)   == {:module, Mix.Tasks.Cheers}
     assert Mix.Utils.command_to_module("unknown", Mix.Tasks) == {:error, :nofile}
   end
 
-  test :module_name_to_command do
+  test "module name to command" do
     assert Mix.Utils.module_name_to_command(Mix.Tasks.Foo, 2)       == "foo"
     assert Mix.Utils.module_name_to_command("Mix.Tasks.Foo", 2)     == "foo"
     assert Mix.Utils.module_name_to_command("Mix.Tasks.Foo.Bar", 2) == "foo.bar"
@@ -20,14 +20,14 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.module_name_to_command("Mix.Tasks.FooBar.BingBang", 2) == "foo_bar.bing_bang"
   end
 
-  test :command_to_module_name do
+  test "command to module name" do
     assert Mix.Utils.command_to_module_name("foo")     == "Foo"
     assert Mix.Utils.command_to_module_name("foo.bar") == "Foo.Bar"
     assert Mix.Utils.command_to_module_name("foo_bar.baz") == "FooBar.Baz"
     assert Mix.Utils.command_to_module_name("foo_bar.baz_bing") == "FooBar.BazBing"
   end
 
-  test :underscore do
+  test "underscore" do
     assert Mix.Utils.underscore("foo") == "foo"
     assert Mix.Utils.underscore("foo_bar") == "foo_bar"
     assert Mix.Utils.underscore("Foo") == "foo"
@@ -41,7 +41,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.underscore("") == ""
   end
 
-  test :camelize do
+  test "camelize" do
     assert Mix.Utils.camelize("Foo") == "Foo"
     assert Mix.Utils.camelize("FooBar") == "FooBar"
     assert Mix.Utils.camelize("foo") == "Foo"
@@ -53,13 +53,13 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.camelize("") == ""
   end
 
-  test :extract_files do
+  test "extract files" do
     files = Mix.Utils.extract_files [Path.join(fixture_path, "archive")], "*.ex"
     assert length(files) == 1
     assert Path.basename(hd(files)) == "local.sample.ex"
   end
 
-  test :extract_stale do
+  test "extract stale" do
     time = {{2030, 1, 1}, {0, 0, 0}}
     assert Mix.Utils.extract_stale([__ENV__.file], [time]) == []
 
@@ -69,7 +69,7 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.extract_stale([__ENV__.file], [__ENV__.file]) == []
   end
 
-  test :symlink_or_copy do
+  test "symlink or copy" do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
@@ -77,7 +77,7 @@ defmodule Mix.UtilsTest do
     end
   end
 
-  test :symlink_or_copy_removes_previous_directories do
+  test "symlink or copy removes previous directories" do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive/ebin")
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
@@ -85,7 +85,7 @@ defmodule Mix.UtilsTest do
     end
   end
 
-  test :symlink_or_copy_erases_wrong_symblinks do
+  test "symlink or copy erases wrong symblinks" do
     in_fixture "archive", fn ->
       File.mkdir_p!("_build/archive")
       Mix.Utils.symlink_or_copy(Path.expand("priv"), Path.expand("_build/archive/ebin"))

@@ -3,12 +3,12 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule RangeTest do
   use ExUnit.Case, async: true
 
-  test :precedence do
+  test "precedence" do
     assert Enum.to_list(1..3+2) == [1, 2, 3, 4, 5]
     assert 1..3 |> Enum.to_list == [1, 2, 3]
   end
 
-  test :op do
+  test "op" do
     assert (1..3).first == 1
     assert (1..3).last  == 3
   end
@@ -18,7 +18,7 @@ defmodule RangeTest do
     refute Range.range?(0)
   end
 
-  test :enum do
+  test "enum" do
     refute Enum.empty?(1..1)
 
     assert Enum.member?(1..3, 2)
@@ -34,12 +34,12 @@ defmodule RangeTest do
     assert Enum.map(3..1, &(&1 * 2)) == [6, 4, 2]
   end
 
-  test :inspect do
+  test "inspect" do
     assert inspect(1..3) == "1..3"
     assert inspect(3..1) == "3..1"
   end
 
-  test :integer_only do
+  test "integer only" do
     x = 1.0
     y = 3.0
     message = "ranges (left .. right) expect both sides to be integers, got: 1.0..3.0"

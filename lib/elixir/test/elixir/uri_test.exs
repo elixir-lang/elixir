@@ -3,19 +3,19 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule URITest do
   use ExUnit.Case, async: true
 
-  test :encode do
+  test "encode" do
     assert URI.encode("4_test.is-s~") == "4_test.is-s~"
     assert URI.encode("\r\n&<%>\" ゆ", &URI.char_unreserved?/1) ==
            "%0D%0A%26%3C%25%3E%22%20%E3%82%86"
   end
 
-  test :encode_www_form do
+  test "encode www form" do
     assert URI.encode_www_form("4test ~1.x") == "4test+~1.x"
     assert URI.encode_www_form("poll:146%") == "poll%3A146%25"
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
   end
 
-  test :encode_query do
+  test "encode query" do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
@@ -25,7 +25,7 @@ defmodule URITest do
     end
   end
 
-  test :decode_query do
+  test "decode query" do
     assert URI.decode_query("", []) == []
     assert URI.decode_query("", %{}) == %{}
 
@@ -43,13 +43,13 @@ defmodule URITest do
            %{"something" => "weird=happening"}
   end
 
-  test :decoder do
+  test "decoder" do
     decoder  = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
     assert Enum.map(decoder, &(&1)) == expected
   end
 
-  test :decode do
+  test "decode" do
     assert URI.decode("%0D%0A%26%3C%25%3E%22%20%E3%82%86") == "\r\n&<%>\" ゆ"
     assert URI.decode("%2f%41%4a%55") == "/AJU"
     assert URI.decode("4_t+st.is-s~") == "4_t+st.is-s~"
@@ -62,35 +62,35 @@ defmodule URITest do
     end
   end
 
-  test :decode_www_form do
+  test "decode www form" do
     assert URI.decode_www_form("%3Eval+ue%2B") == ">val ue+"
     assert URI.decode_www_form("%E3%82%86+") == "ゆ "
   end
 
-  test :parse_uri do
+  test "parse uri" do
     assert URI.parse(uri = %URI{scheme: "http", host: "foo.com"}) == uri
   end
 
-  test :parse_http do
+  test "parse http" do
     assert %URI{scheme: "http", host: "foo.com", path: "/path/to/something",
                 query: "foo=bar&bar=foo", fragment: "fragment", port: 80,
                 authority: "foo.com", userinfo: nil} ==
            URI.parse("http://foo.com/path/to/something?foo=bar&bar=foo#fragment")
   end
 
-  test :parse_https do
+  test "parse https" do
     assert %URI{scheme: "https", host: "foo.com", authority: "foo.com",
                 query: nil, fragment: nil, port: 443, path: nil, userinfo: nil} ==
            URI.parse("https://foo.com")
   end
 
-  test :parse_file do
+  test "parse file" do
     assert %URI{scheme: "file", host: nil, path: "/foo/bar/baz", userinfo: nil,
                 query: nil, fragment: nil, port: nil, authority: nil} ==
            URI.parse("file:///foo/bar/baz")
   end
 
-  test :parse_ftp do
+  test "parse ftp" do
     assert %URI{scheme: "ftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil,
@@ -98,14 +98,14 @@ defmodule URITest do
            URI.parse("ftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
   end
 
-  test :parse_sftp do
+  test "parse sftp" do
     assert %URI{scheme: "sftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 22} ==
            URI.parse("sftp://user001:secretpassword@private.ftp-servers.example.com/mydirectory/myfile.txt")
   end
 
-  test :parse_tftp do
+  test "parse tftp" do
     assert %URI{scheme: "tftp", host: "private.ftp-servers.example.com",
                 userinfo: "user001:secretpassword", authority: "user001:secretpassword@private.ftp-servers.example.com",
                 path: "/mydirectory/myfile.txt", query: nil, fragment: nil, port: 69} ==
@@ -113,7 +113,7 @@ defmodule URITest do
   end
 
 
-  test :parse_ldap do
+  test "parse ldap" do
     assert %URI{scheme: "ldap", host: nil, authority: nil, userinfo: nil,
                 path: "/dc=example,dc=com", query: "?sub?(givenName=John)",
                 fragment: nil, port: 389} ==
@@ -124,7 +124,7 @@ defmodule URITest do
            URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=example,dc=com")
   end
 
-  test :parse_splits_authority do
+  test "parse splits authority" do
     assert %URI{scheme: "http", host: "foo.com", path: nil,
                 query: nil, fragment: nil, port: 4444,
                 authority: "foo:bar@foo.com:4444",
@@ -140,7 +140,7 @@ defmodule URITest do
            URI.parse("http://foo.com:4444")
   end
 
-  test :default_port do
+  test "default port" do
     assert URI.default_port("http") == 80
     try do
       URI.default_port("http", 8000)
@@ -154,7 +154,7 @@ defmodule URITest do
     assert URI.default_port("unknown") == 13
   end
 
-  test :parse_bad_uris do
+  test "parse bad uris" do
     assert URI.parse("")
     assert URI.parse("https:??@?F?@#>F//23/")
 
@@ -163,7 +163,7 @@ defmodule URITest do
     assert URI.parse("ht\0tps://foo.com").path == "ht\0tps://foo.com"
   end
 
-  test :ipv6_addresses do
+  test "ipv6 addresses" do
     addrs = [
       "::",                                      # undefined
       "::1",                                     # loopback
@@ -194,11 +194,11 @@ defmodule URITest do
     end
   end
 
-  test :downcase_scheme do
+  test "downcase scheme" do
     assert URI.parse("hTtP://google.com").scheme == "http"
   end
 
-  test :to_string do
+  test "to string" do
     assert to_string(URI.parse("http://google.com")) == "http://google.com"
     assert to_string(URI.parse("http://google.com:443")) == "http://google.com:443"
     assert to_string(URI.parse("https://google.com:443")) == "https://google.com"

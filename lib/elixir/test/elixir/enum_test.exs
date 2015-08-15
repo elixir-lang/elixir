@@ -17,12 +17,12 @@ defmodule EnumTest.List do
     refute Enum.member?(1..3, 0)
   end
 
-  test :count do
+  test "count" do
     assert Enum.count([1, 2, 3]) == 3
     assert Enum.count([]) == 0
   end
 
-  test :count_fun do
+  test "count fun" do
     assert Enum.count([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == 1
     assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
   end
@@ -50,7 +50,7 @@ defmodule EnumTest.List do
     refute Enum.any?([])
   end
 
-  test :at do
+  test "at" do
     assert Enum.at([2, 4, 6], 0) == 2
     assert Enum.at([2, 4, 6], 2) == 6
     assert Enum.at([2, 4, 6], 4) == nil
@@ -59,7 +59,7 @@ defmodule EnumTest.List do
     assert Enum.at([2, 4, 6], -4) == nil
   end
 
-  test :concat_1 do
+  test "concat/1" do
     assert Enum.concat([[1, [2], 3], [4], [5, 6]]) == [1, [2], 3, 4, 5, 6]
     assert Enum.concat(1..3, []) == [1, 2, 3]
 
@@ -70,7 +70,7 @@ defmodule EnumTest.List do
     assert Enum.concat([1..5, fn acc, _ -> acc end, [1]]) == [1, 2, 3, 4, 5, 1]
   end
 
-  test :concat_2 do
+  test "concat/2" do
     assert Enum.concat([], [1]) == [1]
     assert Enum.concat([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
     assert Enum.concat(1..3, []) == [1, 2, 3]
@@ -94,7 +94,7 @@ defmodule EnumTest.List do
     end
   end
 
-  test :dedup do
+  test "dedup" do
     assert Enum.dedup([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
     assert Enum.dedup([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
     assert Enum.dedup([1, 2, 3, 4]) == [1, 2, 3, 4]
@@ -104,14 +104,14 @@ defmodule EnumTest.List do
     assert Enum.dedup([nil]) == [nil]
   end
 
-  test :dedup_by do
+  test "dedup by" do
     assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end)
       == [{1, :x}, {2, :y}, {1, :x}]
 
     assert Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end) == [5, 1, 3, 2]
   end
 
-  test :drop do
+  test "drop" do
     assert Enum.drop([1, 2, 3], 0) == [1, 2, 3]
     assert Enum.drop([1, 2, 3], 1) == [2, 3]
     assert Enum.drop([1, 2, 3], 2) == [3]
@@ -123,31 +123,31 @@ defmodule EnumTest.List do
     assert Enum.drop([], 3) == []
   end
 
-  test :drop_while do
+  test "drop while" do
     assert Enum.drop_while([1, 2, 3, 4, 3, 2, 1], fn(x) -> x <= 3 end) == [4, 3, 2, 1]
     assert Enum.drop_while([1, 2, 3], fn(_) -> false end) == [1, 2, 3]
     assert Enum.drop_while([1, 2, 3], fn(x) -> x <= 3 end) == []
     assert Enum.drop_while([], fn(_) -> false end) == []
   end
 
-  test :find do
+  test "find" do
     assert Enum.find([2, 4, 6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find([2, 4, 6], 0, fn(x) -> rem(x, 2) == 1 end) == 0
     assert Enum.find([2, 3, 4], fn(x) -> rem(x, 2) == 1 end) == 3
   end
 
-  test :find_value do
+  test "find value" do
     assert Enum.find_value([2, 4, 6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find_value([2, 4, 6], 0, fn(x) -> rem(x, 2) == 1 end) == 0
     assert Enum.find_value([2, 3, 4], fn(x) -> rem(x, 2) == 1 end)
   end
 
-  test :find_index do
+  test "find index" do
     assert Enum.find_index([2, 4, 6], fn(x) -> rem(x, 2) == 1 end) == nil
     assert Enum.find_index([2, 3, 4], fn(x) -> rem(x, 2) == 1 end) == 1
   end
 
-  test :each do
+  test "each" do
     assert Enum.each([], fn(x) -> x end) == :ok
     assert Enum.each([1, 2, 3], fn(x) -> Process.put(:enum_test_each, x * 2) end) == :ok
     assert Process.get(:enum_test_each) == 6
@@ -155,7 +155,7 @@ defmodule EnumTest.List do
     Process.delete(:enum_test_each)
   end
 
-  test :fetch do
+  test "fetch" do
     assert Enum.fetch([2, 4, 6], 0) == {:ok, 2}
     assert Enum.fetch([2, 4, 6], 2) == {:ok, 6}
     assert Enum.fetch([2, 4, 6], 4) == :error
@@ -163,29 +163,29 @@ defmodule EnumTest.List do
     assert Enum.fetch([2, 4, 6], -4) == :error
   end
 
-  test :filter do
+  test "filter" do
     assert Enum.filter([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [2]
     assert Enum.filter([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == [2, 4, 6]
   end
 
-  test :filter_with_match do
+  test "filter with match" do
     assert Enum.filter([1, 2, 3], &match?(1, &1)) == [1]
     assert Enum.filter([1, 2, 3], &match?(x when x < 3, &1)) == [1, 2]
     assert Enum.filter([1, 2, 3], &match?(_, &1)) == [1, 2, 3]
   end
 
-  test :filter_map do
+  test "filter map" do
     assert Enum.filter_map([1, 2, 3], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
     assert Enum.filter_map([2, 4, 6], fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
   end
 
-  test :flat_map do
+  test "flat map" do
     assert Enum.flat_map([], fn(x) -> [x, x] end) == []
     assert Enum.flat_map([1, 2, 3], fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
     assert Enum.flat_map([1, 2, 3], fn(x) -> x..x+1 end) == [1, 2, 2, 3, 3, 4]
   end
 
-  test :flat_map_reduce do
+  test "flat map reduce" do
     assert Enum.flat_map_reduce([1, 2, 3], 0, &{[&1, &2], &1 + &2}) ==
            {[1, 0, 2, 1, 3, 3], 6}
 
@@ -194,7 +194,7 @@ defmodule EnumTest.List do
     end) == {[1, 2, 3], 3}
   end
 
-  test :group_by do
+  test "group by" do
     assert Enum.group_by([], fn -> nil end) == %{}
     assert Enum.group_by(1..6, &rem(&1, 3)) ==
            %{0 => [6, 3], 1 => [4, 1], 2 => [5, 2]}
@@ -204,20 +204,20 @@ defmodule EnumTest.List do
     assert result[3] == :default
   end
 
-  test :into do
+  test "into" do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
     assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
   end
 
-  test :intersperse do
+  test "intersperse" do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
     assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
   end
 
-  test :join do
+  test "join" do
     assert Enum.join([], " = ") == ""
     assert Enum.join([1, 2, 3], " = ") == "1 = 2 = 3"
     assert Enum.join([1, "2", 3], " = ") == "1 = 2 = 3"
@@ -226,7 +226,7 @@ defmodule EnumTest.List do
     assert Enum.join([""]) == ""
   end
 
-  test :map_join do
+  test "map join" do
     assert Enum.map_join([], " = ", &(&1 * 2)) == ""
     assert Enum.map_join([1, 2, 3], " = ", &(&1 * 2)) == "2 = 4 = 6"
     assert Enum.map_join([1, 2, 3], &(&1 * 2)) == "246"
@@ -234,28 +234,28 @@ defmodule EnumTest.List do
     assert Enum.map_join([""], "", &(&1)) == ""
   end
 
-  test :join_empty do
+  test "join empty" do
     fun = fn (acc, _) -> acc end
     assert Enum.join(fun, ".") == ""
     assert Enum.map_join(fun, ".", &(&1 + 0)) == ""
   end
 
-  test :map do
+  test "map" do
     assert Enum.map([], fn x -> x * 2 end) == []
     assert Enum.map([1, 2, 3], fn x -> x * 2 end) == [2, 4, 6]
   end
 
-  test :map_reduce do
+  test "map reduce" do
     assert Enum.map_reduce([], 1, fn(x, acc) -> {x * 2, x + acc} end) == {[], 1}
     assert Enum.map_reduce([1, 2, 3], 1, fn(x, acc) -> {x * 2, x + acc} end) == {[2, 4, 6], 7}
   end
 
-  test :partition do
+  test "partition" do
     assert Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
   end
 
-  test :reduce do
+  test "reduce" do
     assert Enum.reduce([], 1, fn(x, acc) -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn(x, acc) -> x + acc end) == 7
 
@@ -265,7 +265,7 @@ defmodule EnumTest.List do
     end
   end
 
-  test :reduce_while do
+  test "reduce while" do
     assert Enum.reduce_while(1..100, 0, fn i, acc ->
       if i <= 3, do: {:cont, acc + i}, else: {:halt, acc}
     end) == 6
@@ -275,18 +275,18 @@ defmodule EnumTest.List do
     assert Enum.reduce_while([], 0, fn _i, acc -> {:cont, acc} end) == 0
   end
 
-  test :reject do
+  test "reject" do
     assert Enum.reject([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == [1, 3]
     assert Enum.reject([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == []
   end
 
-  test :reverse do
+  test "reverse" do
     assert Enum.reverse([]) == []
     assert Enum.reverse([1, 2, 3]) == [3, 2, 1]
     assert Enum.reverse([1, 2, 3], [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 
-  test :reverse_slice do
+  test "reverse slice" do
     assert Enum.reverse_slice([], 1, 2) == []
     assert Enum.reverse_slice([1, 2, 3], 0, 0) == [1, 2, 3]
     assert Enum.reverse_slice([1, 2, 3], 0, 1) == [1, 2, 3]
@@ -296,7 +296,7 @@ defmodule EnumTest.List do
     assert Enum.reverse_slice([1, 2, 3], 10, 10) == [1, 2, 3]
   end
 
-  test :random do
+  test "random" do
     # corner cases, independent of the seed
     assert_raise Enum.EmptyError, fn -> Enum.random([]) end
     assert Enum.random([1]) == 1
@@ -317,7 +317,7 @@ defmodule EnumTest.List do
     assert Enum.random([1, 2, 3, 4, 5]) == 5
   end
 
-  test :take_random do
+  test "take random" do
     # corner cases, independent of the seed
     assert_raise FunctionClauseError, fn -> Enum.take_random([1, 2], -1) end
     assert Enum.take_random([], 0) == []
@@ -352,7 +352,7 @@ defmodule EnumTest.List do
     end
   end
 
-  test :scan do
+  test "scan" do
     assert Enum.scan([1, 2, 3, 4, 5], &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan([], &(&1 + &2)) == []
 
@@ -360,18 +360,18 @@ defmodule EnumTest.List do
     assert Enum.scan([], 0, &(&1 + &2)) == []
   end
 
-  test :shuffle do
+  test "shuffle" do
     # set a fixed seed so the test can be deterministic
     :random.seed(1374, 347975, 449264)
     assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 4, 1, 5, 3]
   end
 
-  test :sort do
+  test "sort" do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
   end
 
-  test :sort_by do
+  test "sort by" do
     collection = [
       [other_data: 1, sorted_data: 5],
       [other_data: 3, sorted_data: 4],
@@ -393,7 +393,7 @@ defmodule EnumTest.List do
     assert Enum.sort_by(collection, &(&1[:sorted_data]), &>=/2) == collection
   end
 
-  test :split do
+  test "split" do
     assert Enum.split([1, 2, 3], 0) == {[], [1, 2, 3]}
     assert Enum.split([1, 2, 3], 1) == {[1], [2, 3]}
     assert Enum.split([1, 2, 3], 2) == {[1, 2], [3]}
@@ -406,7 +406,7 @@ defmodule EnumTest.List do
     assert Enum.split([1, 2, 3], -10) == {[], [1, 2, 3]}
   end
 
-  test :split_while do
+  test "split while" do
     assert Enum.split_while([1, 2, 3], fn(_) -> false end) == {[], [1, 2, 3]}
     assert Enum.split_while([1, 2, 3], fn(_) -> true end) == {[1, 2, 3], []}
     assert Enum.split_while([1, 2, 3], fn(x) -> x > 2 end) == {[], [1, 2, 3]}
@@ -415,7 +415,7 @@ defmodule EnumTest.List do
     assert Enum.split_while([], fn(_) -> true end) == {[], []}
   end
 
-  test :sum do
+  test "sum" do
     assert Enum.sum([]) == 0
     assert Enum.sum([1]) == 1
     assert Enum.sum([1, 2, 3]) == 6
@@ -428,7 +428,7 @@ defmodule EnumTest.List do
     end
   end
 
-  test :take do
+  test "take" do
     assert Enum.take([1, 2, 3], 0) == []
     assert Enum.take([1, 2, 3], 1) == [1]
     assert Enum.take([1, 2, 3], 2) == [1, 2]
@@ -440,7 +440,7 @@ defmodule EnumTest.List do
     assert Enum.take([], 3) == []
   end
 
-  test :take_every do
+  test "take every" do
     assert Enum.take_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [1, 3, 5, 7, 9]
     assert Enum.take_every([], 2) == []
     assert Enum.take_every([1, 2], 2) == [1]
@@ -454,28 +454,28 @@ defmodule EnumTest.List do
     end
   end
 
-  test :take_while do
+  test "take while" do
     assert Enum.take_while([1, 2, 3], fn(x) -> x > 3 end) == []
     assert Enum.take_while([1, 2, 3], fn(x) -> x <= 1 end) == [1]
     assert Enum.take_while([1, 2, 3], fn(x) -> x <= 3 end) == [1, 2, 3]
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 
-  test :to_list do
+  test "to list" do
     assert Enum.to_list([]) == []
     assert Enum.to_list(1 .. 3) == [1, 2, 3]
   end
 
-  test :uniq_by do
+  test "uniq by" do
     assert Enum.uniq_by([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
   end
 
-  test :uniq do
+  test "uniq" do
     assert Enum.uniq([5, 1, 2, 3, 2, 1]) == [5, 1, 2, 3]
     assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
   end
 
-  test :zip do
+  test "zip" do
     assert Enum.zip([:a, :b], [1, 2]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], [1, 2, 3, 4]) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b, :c, :d], [1, 2]) == [{:a, 1}, {:b, 2}]
@@ -484,7 +484,7 @@ defmodule EnumTest.List do
     assert Enum.zip([], [])  == []
   end
 
-  test :unzip do
+  test "unzip" do
     assert Enum.unzip([{:a, 1}, {:b, 2}, {:c, 3}]) == {[:a, :b, :c], [1, 2, 3]}
     assert Enum.unzip([]) == {[], []}
     assert Enum.unzip(%{a: 1, b: 2}) == {[:a, :b], [1, 2]}
@@ -495,12 +495,12 @@ defmodule EnumTest.List do
     assert_raise FunctionClauseError, fn -> Enum.unzip([1, 2, 3]) end
   end
 
-  test :with_index do
+  test "with index" do
     assert Enum.with_index([]) == []
     assert Enum.with_index([1, 2, 3]) == [{1, 0}, {2, 1}, {3, 2}]
   end
 
-  test :max do
+  test "max" do
     assert Enum.max([1]) == 1
     assert Enum.max([1, 2, 3]) == 3
     assert Enum.max([1, [], :a, {}]) == []
@@ -509,14 +509,14 @@ defmodule EnumTest.List do
     end
   end
 
-  test :max_by do
+  test "max by" do
     assert Enum.max_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "aaa"
     assert_raise Enum.EmptyError, fn ->
       Enum.max_by([], fn(x) -> String.length(x) end)
     end
   end
 
-  test :min do
+  test "min" do
     assert Enum.min([1]) == 1
     assert Enum.min([1, 2, 3]) == 1
     assert Enum.min([[], :a, {}]) == :a
@@ -525,14 +525,14 @@ defmodule EnumTest.List do
     end
   end
 
-  test :min_by do
+  test "min by" do
     assert Enum.min_by(["a", "aa", "aaa"], fn(x) -> String.length(x) end) == "a"
     assert_raise Enum.EmptyError, fn ->
       Enum.min_by([], fn(x) -> String.length(x) end)
     end
   end
 
-  test :min_max do
+  test "min max" do
     assert Enum.min_max([1]) == {1, 1}
     assert Enum.min_max([2, 3, 1]) == {1, 3}
     assert Enum.min_max([[], :a, {}]) == {:a, []}
@@ -541,14 +541,14 @@ defmodule EnumTest.List do
     end
   end
 
-  test :min_max_by do
+  test "min max by" do
     assert Enum.min_max_by(["aaa", "a", "aa"], fn(x) -> String.length(x) end) == {"a", "aaa"}
     assert_raise Enum.EmptyError, fn ->
       Enum.min_max_by([], fn(x) -> String.length(x) end)
     end
   end
 
-  test :chunk do
+  test "chunk" do
     assert Enum.chunk([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4]]
     assert Enum.chunk([1, 2, 3, 4, 5], 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
     assert Enum.chunk([1, 2, 3, 4, 5, 6], 3, 2) == [[1, 2, 3], [3, 4, 5]]
@@ -558,14 +558,14 @@ defmodule EnumTest.List do
     assert Enum.chunk([1, 2, 3, 4, 5], 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 
-  test :chunk_by do
+  test "chunk by" do
     assert Enum.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1)) == [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
     assert Enum.chunk_by([1, 2, 3, 4], fn _ -> true end) == [[1, 2, 3, 4]]
     assert Enum.chunk_by([], fn _ -> true end) == []
     assert Enum.chunk_by([1], fn _ -> true end) == [[1]]
   end
 
-  test :slice do
+  test "slice" do
     list = [1, 2, 3, 4, 5]
     assert Enum.slice(list, 0, 0) == []
     assert Enum.slice(list, 0, 1) == [1]
@@ -592,7 +592,7 @@ defmodule EnumTest.List do
     end
   end
 
-  test :slice_range do
+  test "slice range" do
     list = [1, 2, 3, 4, 5]
     assert Enum.slice(list, 0..0) == [1]
     assert Enum.slice(list, 0..1) == [1, 2]
@@ -669,7 +669,7 @@ defmodule EnumTest.Range do
     end
   end
 
-  test :count do
+  test "count" do
     range = 1..5
     assert Enum.count(range) == 5
     range = 1..1
@@ -678,7 +678,7 @@ defmodule EnumTest.Range do
     assert Enum.count([1, true, false, nil]) == 4
   end
 
-  test :count_fun do
+  test "count fun" do
     range = 1..5
     assert Enum.count(range, fn(x) -> rem(x, 2) == 0 end) == 2
     range = 1..1
@@ -687,7 +687,7 @@ defmodule EnumTest.Range do
     assert Enum.count([1, true, false, nil], & &1) == 2
   end
 
-  test :chunk do
+  test "chunk" do
     assert Enum.chunk(1..5, 2) == [[1, 2], [3, 4]]
     assert Enum.chunk(1..5, 2, 2, [6]) == [[1, 2], [3, 4], [5, 6]]
     assert Enum.chunk(1..6, 3, 2) == [[1, 2, 3], [3, 4, 5]]
@@ -696,20 +696,20 @@ defmodule EnumTest.Range do
     assert Enum.chunk(1..5, 4, 4, 6..10) == [[1, 2, 3, 4], [5, 6, 7, 8]]
   end
 
-  test :chunk_by do
+  test "chunk by" do
     assert Enum.chunk_by(1..4, fn _ -> true end) == [[1, 2, 3, 4]]
     assert Enum.chunk_by(1..4, &(rem(&1, 2) == 1)) == [[1], [2], [3], [4]]
   end
 
-  test :dedup do
+  test "dedup" do
     assert Enum.dedup(1..3) == [1, 2, 3]
   end
 
-  test :dedup_by do
+  test "dedup by" do
     assert Enum.dedup_by(1..3, fn _ -> 1 end) == [1]
   end
 
-  test :drop do
+  test "drop" do
     range = 1..3
     assert Enum.drop(range, 0) == [1, 2, 3]
     assert Enum.drop(range, 1) == [2, 3]
@@ -724,7 +724,7 @@ defmodule EnumTest.Range do
     assert Enum.drop(range, 3) == []
   end
 
-  test :drop_while do
+  test "drop while" do
     range = 0..6
     assert Enum.drop_while(range, fn(x) -> x <= 3 end) == [4, 5, 6]
     assert Enum.drop_while(range, fn(_) -> false end) == [0, 1, 2, 3, 4, 5, 6]
@@ -736,7 +736,7 @@ defmodule EnumTest.Range do
     assert Enum.drop_while(range, fn(_) -> nil end) == [1, 0]
   end
 
-  test :find do
+  test "find" do
     range = 2..6
     assert Enum.find(range, fn(x) -> rem(x, 2) == 0 end) == 2
     assert Enum.find(range, fn(x) -> rem(x, 2) == 1 end) == 3
@@ -744,12 +744,12 @@ defmodule EnumTest.Range do
     assert Enum.find(range, 0, fn _ -> false end) == 0
   end
 
-  test :find_value do
+  test "find value" do
     range = 2..6
     assert Enum.find_value(range, fn(x) -> rem(x, 2) == 1 end)
   end
 
-  test :find_index do
+  test "find index" do
     range = 2..6
     assert Enum.find_index(range, fn(x) -> rem(x, 2) == 1 end) == 1
   end
@@ -762,7 +762,7 @@ defmodule EnumTest.Range do
     refute Enum.empty?(range)
   end
 
-  test :each do
+  test "each" do
     try do
       range = 1..0
       assert Enum.each(range, fn(x) -> x end) == :ok
@@ -783,7 +783,7 @@ defmodule EnumTest.Range do
     end
   end
 
-  test :filter do
+  test "filter" do
     range = 1..3
     assert Enum.filter(range, fn(x) -> rem(x, 2) == 0 end) == [2]
 
@@ -793,14 +793,14 @@ defmodule EnumTest.Range do
     assert Enum.filter([1, 2, false, 3, nil], & &1) == [1, 2, 3]
   end
 
-  test :filter_with_match do
+  test "filter with match" do
     range = 1..3
     assert Enum.filter(range, &match?(1, &1)) == [1]
     assert Enum.filter(range, &match?(x when x < 3, &1)) == [1, 2]
     assert Enum.filter(range, &match?(_, &1)) == [1, 2, 3]
   end
 
-  test :filter_map do
+  test "filter map" do
     range = 1..3
     assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4]
 
@@ -808,12 +808,12 @@ defmodule EnumTest.Range do
     assert Enum.filter_map(range, fn(x) -> rem(x, 2) == 0 end, &(&1 * 2)) == [4, 8, 12]
   end
 
-  test :flat_map do
+  test "flat map" do
     range = 1..3
     assert Enum.flat_map(range, fn(x) -> [x, x] end) == [1, 1, 2, 2, 3, 3]
   end
 
-  test :intersperse do
+  test "intersperse" do
     range = 1..0
     assert Enum.intersperse(range, true) == [1, true, 0]
 
@@ -821,7 +821,7 @@ defmodule EnumTest.Range do
     assert Enum.intersperse(range, false) == [1, false, 2, false, 3]
   end
 
-  test :into do
+  test "into" do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into(3..5, [1, 2]) == [1, 2, 3, 4, 5]
@@ -830,7 +830,7 @@ defmodule EnumTest.Range do
     assert Enum.into(1..3, "numbers: ", &to_string/1) == "numbers: 123"
   end
 
-  test :join do
+  test "join" do
     range = 1..0
     assert Enum.join(range, " = ") == "1 = 0"
 
@@ -839,7 +839,7 @@ defmodule EnumTest.Range do
     assert Enum.join(range) == "123"
   end
 
-  test :map_join do
+  test "map join" do
     range = 1..0
     assert Enum.map_join(range, " = ", &(&1 * 2)) == "2 = 0"
 
@@ -848,7 +848,7 @@ defmodule EnumTest.Range do
     assert Enum.map_join(range, &(&1 * 2)) == "246"
   end
 
-  test :map do
+  test "map" do
     range = 1..3
     assert Enum.map(range, fn x -> x * 2 end) == [2, 4, 6]
 
@@ -856,7 +856,7 @@ defmodule EnumTest.Range do
     assert Enum.map(range, fn x -> x * 2 end) == [-2, -4, -6]
   end
 
-  test :map_reduce do
+  test "map reduce" do
     range = 1..0
     assert Enum.map_reduce(range, 1, fn(x, acc) -> {x * 2, x + acc} end) == {[2, 0], 2}
 
@@ -864,33 +864,33 @@ defmodule EnumTest.Range do
     assert Enum.map_reduce(range, 1, fn(x, acc) -> {x * 2, x + acc} end) == {[2, 4, 6], 7}
   end
 
-  test :max do
+  test "max" do
     assert Enum.max(1..1) == 1
     assert Enum.max(1..3) == 3
     assert Enum.max(3..1) == 3
   end
 
-  test :max_by do
+  test "max by" do
     assert Enum.max_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.max_by(1..3, fn(x) -> :math.pow(-2, x) end) == 2
   end
 
-  test :min do
+  test "min" do
     assert Enum.min(1..1) == 1
     assert Enum.min(1..3) == 1
   end
 
-  test :min_by do
+  test "min by" do
     assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
   end
 
-  test :partition do
+  test "partition" do
     range = 1..3
     assert Enum.partition(range, fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
   end
 
-  test :reduce do
+  test "reduce" do
     range = 1..0
     assert Enum.reduce(range, 1, fn(x, acc) -> x + acc end) == 2
 
@@ -901,7 +901,7 @@ defmodule EnumTest.Range do
     assert Enum.reduce(range, fn(x, acc) -> x + acc end) == 6
   end
 
-  test :reject do
+  test "reject" do
     range = 1..3
     assert Enum.reject(range, fn(x) -> rem(x, 2) == 0 end) == [1, 3]
 
@@ -911,7 +911,7 @@ defmodule EnumTest.Range do
     assert Enum.reject([1, true, nil, false, 2], & &1) == [nil, false]
   end
 
-  test :reverse do
+  test "reverse" do
     assert Enum.reverse(0..0) == [0]
     assert Enum.reverse(1..3) == [3, 2, 1]
     assert Enum.reverse(1..3, 4..6) == [3, 2, 1, 4, 5, 6]
@@ -919,7 +919,7 @@ defmodule EnumTest.Range do
     assert Enum.reverse(1..3, [4, 5, 6]) == [3, 2, 1, 4, 5, 6]
   end
 
-  test :reverse_slice do
+  test "reverse slice" do
     assert Enum.reverse_slice(1..6, 2, 0) == [1, 2, 3, 4, 5, 6]
     assert Enum.reverse_slice(1..6, 2, 2) == [1, 2, 4, 3, 5, 6]
     assert Enum.reverse_slice(1..6, 2, 4) == [1, 2, 6, 5, 4, 3]
@@ -928,7 +928,7 @@ defmodule EnumTest.Range do
     assert Enum.reverse_slice(1..6, 50, 50) == [1, 2, 3, 4, 5, 6]
   end
 
-  test :random do
+  test "random" do
     # corner cases, independent of the seed
     assert Enum.random(1..1) == 1
 
@@ -956,7 +956,7 @@ defmodule EnumTest.Range do
     assert Enum.random(?0..?9) == ?0
   end
 
-  test :take_random do
+  test "take random" do
     # corner cases, independent of the seed
     assert_raise FunctionClauseError, fn -> Enum.take_random(1..2, -1) end
     assert Enum.take_random(1..1, 0) == []
@@ -1006,18 +1006,18 @@ defmodule EnumTest.Range do
     assert Enum.take_random(?a..?z, 5) == 'rhzju'
   end
 
-  test :scan do
+  test "scan" do
     assert Enum.scan(1..5, &(&1 + &2)) == [1, 3, 6, 10, 15]
     assert Enum.scan(1..5, 0, &(&1 + &2)) == [1, 3, 6, 10, 15]
   end
 
-  test :shuffle do
+  test "shuffle" do
     # set a fixed seed so the test can be deterministic
     :random.seed(1374, 347975, 449264)
     assert Enum.shuffle(1..5) == [2, 4, 1, 5, 3]
   end
 
-  test :slice do
+  test "slice" do
     assert Enum.slice(1..5, 0, 0) == []
     assert Enum.slice(1..5, 0, 1) == [1]
     assert Enum.slice(1..5, 0, 2) == [1, 2]
@@ -1034,7 +1034,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -3, 1) == [3]
   end
 
-  test :slice_range do
+  test "slice range" do
     assert Enum.slice(1..5, 0..0) == [1]
     assert Enum.slice(1..5, 0..1) == [1, 2]
     assert Enum.slice(1..5, 0..2) == [1, 2, 3]
@@ -1054,7 +1054,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, -6..-3) == []
   end
 
-  test :sort do
+  test "sort" do
     assert Enum.sort(3..1) == [1, 2, 3]
     assert Enum.sort(2..1) == [1, 2]
     assert Enum.sort(1..1) == [1]
@@ -1064,7 +1064,7 @@ defmodule EnumTest.Range do
     assert Enum.sort(1..1, &(&1 > &2)) == [1]
   end
 
-  test :split do
+  test "split" do
     range = 1..3
     assert Enum.split(range, 0) == {[], [1, 2, 3]}
     assert Enum.split(range, 1) == {[1], [2, 3]}
@@ -1080,7 +1080,7 @@ defmodule EnumTest.Range do
     assert Enum.split(range, 3) == {[1, 0], []}
   end
 
-  test :split_while do
+  test "split while" do
     range = 1..3
     assert Enum.split_while(range, fn(_) -> false end) == {[], [1, 2, 3]}
     assert Enum.split_while(range, fn(_) -> nil end) == {[], [1, 2, 3]}
@@ -1094,12 +1094,12 @@ defmodule EnumTest.Range do
     assert Enum.split_while(range, fn(_) -> true end) == {[1, 0], []}
   end
 
-  test :sum do
+  test "sum" do
     assert Enum.sum(1..1) == 1
     assert Enum.sum(1..3) == 6
   end
 
-  test :take do
+  test "take" do
     range = 1..3
     assert Enum.take(range, 0) == []
     assert Enum.take(range, 1) == [1]
@@ -1114,7 +1114,7 @@ defmodule EnumTest.Range do
     assert Enum.take(range, 3) == [1, 0]
   end
 
-  test :take_every do
+  test "take every" do
     assert Enum.take_every(1..10, 2) == [1, 3, 5, 7, 9]
     assert Enum.take_every(1..2, 2) == [1]
     assert Enum.take_every(1..3, 0) == []
@@ -1123,7 +1123,7 @@ defmodule EnumTest.Range do
     end
   end
 
-  test :take_while do
+  test "take while" do
     range = 1..3
     assert Enum.take_while(range, fn(x) -> x > 3 end) == []
     assert Enum.take_while(range, fn(x) -> x <= 1 end) == [1]
@@ -1133,12 +1133,12 @@ defmodule EnumTest.Range do
     assert Enum.take_while([], fn(_) -> true end) == []
   end
 
-  test :uniq do
+  test "uniq" do
     assert Enum.uniq(1..3) == [1, 2, 3]
     assert Enum.uniq(1..3, fn x -> x end) == [1, 2, 3]
   end
 
-  test :zip do
+  test "zip" do
     assert Enum.zip([:a, :b], 1..2) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b], 1..4) == [{:a, 1}, {:b, 2}]
     assert Enum.zip([:a, :b, :c, :d], 1..2) == [{:a, 1}, {:b, 2}]
@@ -1152,7 +1152,7 @@ defmodule EnumTest.Range do
     assert Enum.zip(1..2, 1..4) == [{1, 1}, {2, 2}]
   end
 
-  test :with_index do
+  test "with index" do
     assert Enum.with_index(1..3) == [{1, 0}, {2, 1}, {3, 2}]
   end
 end
