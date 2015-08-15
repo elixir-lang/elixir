@@ -227,10 +227,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:218
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:117: syntax error before: '*'
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:120: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:120: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
@@ -240,7 +240,7 @@ defmodule ExUnit.DocTestTest do
          code: 1 + hd(List.flatten([1])) === 3
          lhs:  2
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:123: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
@@ -250,7 +250,7 @@ defmodule ExUnit.DocTestTest do
          code: inspect(:oops) === "#HashDict<[]>"
          lhs:  ":oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:127: ExUnit.DocTestTest.Invalid (module)
     """
 
     # The stacktrace points to the cause of the error
@@ -261,7 +261,7 @@ defmodule ExUnit.DocTestTest do
          code:  Hello.world
          stacktrace:
            Hello.world()
-           (for doctest at) test/ex_unit/doc_test_test.exs:117
+           (for doctest at) test/ex_unit/doc_test_test.exs:130
     """
 
     assert output =~ """
@@ -270,7 +270,7 @@ defmodule ExUnit.DocTestTest do
          Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:133: ExUnit.DocTestTest.Invalid (module)
     """
 
     assert output =~ """
@@ -279,7 +279,7 @@ defmodule ExUnit.DocTestTest do
          Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
          code: raise "oops"
          stacktrace:
-           test/ex_unit/doc_test_test.exs:117: ExUnit.DocTestTest.Invalid (module)
+           test/ex_unit/doc_test_test.exs:136: ExUnit.DocTestTest.Invalid (module)
     """
   end
 
