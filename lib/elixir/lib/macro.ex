@@ -124,9 +124,9 @@ defmodule Macro do
   ## Examples
 
       iex> quoted = quote line: 10, do: sample()
-      {:sample, [line: 10], []}
+      {:sample, [line: 10, column_begin: 31, column_end: 37], []}
       iex> Macro.update_meta(quoted, &Keyword.delete(&1, :line))
-      {:sample, [], []}
+      {:sample, [column_begin: 31, column_end: 37], []}
 
   """
   @spec update_meta(t, (Keyword.t -> Keyword.t)) :: t

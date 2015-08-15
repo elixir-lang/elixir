@@ -583,7 +583,7 @@ Erlang code.
 -import(lists, [reverse/1, reverse/2]).
 
 meta(Line, Counter) -> [{counter, Counter}|meta(Line)].
-meta({Line, Column, EndColumn}) when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}];
+meta({Line, Column, EndColumn}) when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}, {column_begin, Column}, {column_end, EndColumn}];
 meta(Node) -> meta(?line(Node)).
 
 %% Operators

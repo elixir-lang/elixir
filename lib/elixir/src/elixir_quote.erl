@@ -331,7 +331,9 @@ line(Meta, #elixir_quote{file=File}) when File /= nil ->
 line(Meta, #elixir_quote{line=true}) ->
   Meta;
 line(Meta, #elixir_quote{line=false}) ->
-  keydelete(line, Meta);
+  Meta1 = keydelete(line, Meta),
+  Meta2 = keydelete(column_begin, Meta1),
+  keydelete(column_end, Meta2);
 line(Meta, #elixir_quote{line=Line}) ->
   keystore(line, Meta, Line).
 

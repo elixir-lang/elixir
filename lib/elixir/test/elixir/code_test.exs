@@ -92,8 +92,8 @@ defmodule CodeTest do
   end
 
   test :string_to_quoted do
-    assert Code.string_to_quoted("1 + 2")  == {:ok, {:+, [line: 1], [1, 2]}}
-    assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
+    assert Code.string_to_quoted("1 + 2")  == {:ok, {:+, [line: 1, column_begin: 3, column_end: 4], [1, 2]}}
+    assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1, column_begin: 3, column_end: 4], [1, 2]}
 
     assert Code.string_to_quoted("a.1") ==
            {:error, {1, "syntax error before: ", "1"}}
@@ -108,7 +108,7 @@ defmodule CodeTest do
   end
 
   test :string_to_quoted! do
-    assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
+    assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1, column_begin: 3, column_end: 4], [1, 2]}
 
     assert_raise SyntaxError, fn ->
       Code.string_to_quoted!("a.1")
