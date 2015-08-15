@@ -2805,9 +2805,10 @@ defmodule Kernel do
   ## Module names
 
   A module name can be any atom, but Elixir provides a special syntax which is
-  usually used for module names. What is called a module name is an upper case
-  character followed by any alphanumeric characters or `_` or `.`. This
-  identifier is equivilant to an atom prefixed by `Elixir.`. So in the
+  usually used for module names. What is called a module name is an
+  _uppercase ASCII letter_ followed by any number of _lowercase or
+  uppercase ASCII letters_, _numbers_, or _underscores_.
+  This identifier is equivilant to an atom prefixed by `Elixir.`. So in the
   `defmodule Foo` example `Foo` is equivalent to `:"Elixir.Foo"`
 
   ## Dynamic names
@@ -2962,29 +2963,30 @@ defmodule Kernel do
   In the example above, a `sum/2` function is defined; this function receives
   two arguments and returns their sum.
 
-  ## Names
+  ## Function and variable names
 
-  Varable and function names have the following syntax: A lower case letter or
-  underscore followed by any number of lower or upper case numbers, letters,
-  or underscores and optionally ending in `!` or `?`.
+  Function and variable names have the following syntax:
+  A _lowercase ASCII letter_ or an _underscore_, followed by any number of
+  _lowercase or uppercase ASCII letters_, _numbers_, or _underscores_.
+  Optionally they can end in either an _exclamation mark_ or a _question mark_.
 
-  For variables, any identifier starting with an underscore shoud indicate an
-  unused variable. For example
+  For variables, any identifier starting with an underscore should indicate an
+  unused variable. For example:
 
       def foo(bar) do
         []
       end
-      # warning: variable bar is unused
+      #=> warning: variable bar is unused
 
       def foo(_bar) do
         []
       end
-      # no warning
+      #=> no warning
 
       def foo(_bar) do
         _bar
       end
-      # warning: the underscored variable "_bar" is used after being set
+      #=> warning: the underscored variable "_bar" is used after being set
 
   """
   defmacro def(call, expr \\ nil) do
