@@ -52,8 +52,6 @@ defmodule Kernel.WarningTest do
   end
 
   test "useless attr" do
-    message = "warning: module attribute @foo in code block has no effect as it is never returned "
-
     message = capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
