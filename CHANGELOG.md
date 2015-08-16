@@ -162,4 +162,5 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 #### Elixir
 
   * [Access] Implementing the Access protocol is deprecated. The Access protocol relies on the code server in development and test mode (when protocol consolidation is not applied) and it generated a bottleneck when working with multiple processes and the Access protocol was invoked hundreds of times (which is not uncommon). Note the `Access` module and the `opts[key]` syntax are not affected and they are not deprecated, only the underlying protocol dispatch
+  * [Kernel] `?\xHEX` is deprecated in favor of `0xHEX`. There is no situation where the former should be used in favor of the latter and the latter is always cleaner
   * [String] Passing an empty string to `starts_with?`, `contains?` and `ends_with?` had dubious behaviour and have been deprecated to help developers identify possible bugs in their source code

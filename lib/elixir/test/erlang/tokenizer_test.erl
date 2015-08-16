@@ -145,14 +145,7 @@ chars_test() ->
   [{number, {1,1,4}, 0}]       = tokenize("?\\0"),
   [{number, {1,1,4}, 7}]       = tokenize("?\\a"),
   [{number, {1,1,4}, 10}]      = tokenize("?\\n"),
-  [{number, {1,1,4}, 92}]      = tokenize("?\\\\"),
-  [{number, {1,1,5}, 10}]      = tokenize("?\\xa"),
-  [{number, {1,1,7}, 10}]      = tokenize("?\\x{a}"),
-  [{number, {1,1,8}, 171}]     = tokenize("?\\x{ab}"),
-  [{number, {1,1,9}, 2748}]    = tokenize("?\\x{abc}"),
-  [{number, {1,1,10}, 43981}]   = tokenize("?\\x{abcd}"),
-  [{number, {1,1,11}, 703710}]  = tokenize("?\\x{abcde}"),
-  [{number, {1,1,12}, 1092557}] = tokenize("?\\x{10abcd}").
+  [{number, {1,1,4}, 92}]      = tokenize("?\\\\").
  
 interpolation_test() ->
   [{bin_string, {1,1,9}, [<<"f">>,
