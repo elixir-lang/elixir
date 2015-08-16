@@ -238,7 +238,7 @@ defmodule RegexTest do
     assert matches_escaped?("  x    x ") # unicode spaces here
     assert matches_escaped?("# lol")
 
-    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\xff\\z #hello\x{202F}\x{205F}")
+    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\xff\\z #hello\u202F\u205F")
   end
 
   defp matches_escaped?(string) do

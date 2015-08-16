@@ -61,6 +61,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Warn when a variable with underscore is used
   * [Kernel] Allow underscores in binary, octal and hex literals
   * [Kernel] Warn when module attributes, variables, strings and numbers are used in code but the expression has no effect
+  * [Kernel] Support `\uXXXX` and `\u{X*}` in strings and char lists to map to Unicode codepoints
   * [List] Add `List.keytake/3`
   * [Module] Improve name inference for function signatures in documentation metadata
   * [Process] Add `Process.hibernate/3`
@@ -154,6 +155,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
   * [Behaviour] The module `Behaviour` is deprecated. Instead of `defcallback`, one can simply use `@callback`. Instead of `defmacrocallback`, one can simply use `@macrocallback`
   * [Enum] `Enum.uniq/2` is deprecated in favor of `Enum.uniq_by/2`
+  * [Kernel] `\x` inside strings and charlists is deprecated in favor of `\uXXXX` and `\u{X*}`. The values emitted by `\x` are unfortunately wrong (they should be bytes but currently it emits codepoints). `\u` is meant to correctly map to codepoints and `\x` will be fixed in the future to map to bytes
   * [Regex] Ungreedy option `r` is deprecated in favor of `U` (which is standard in regular expressions in other languages)
 
 ### 4. Deprecations

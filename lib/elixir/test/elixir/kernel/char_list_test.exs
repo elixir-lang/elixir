@@ -22,14 +22,13 @@ bar '''
   end
 
   test "hex" do
-    assert '\xa' == '\n'
-    assert '\xE9' == 'é'
-    assert '\xfF' == 'ÿ'
-    assert '\x{A}' == '\n'
-    assert '\x{e9}' == 'é'
-    assert '\x{10F}' == [271]
-    assert '\x{10FF}' == [4351]
-    assert '\x{10FFF}' == [69631]
-    assert '\x{10FFFF}' == [1114111]
+    assert '\x76' == 'v'
+    assert '\u00fF' == 'ÿ'
+    assert '\u{A}' == '\n'
+    assert '\u{e9}' == 'é'
+    assert '\u{10F}' == [271]
+    assert '\u{10FF}' == [4351]
+    assert '\u{10FFF}' == [69631]
+    assert '\u{10FFFF}' == [1114111]
   end
 end
