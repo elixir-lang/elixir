@@ -117,7 +117,7 @@ tokenize(String, Line, Column, Opts) ->
     file=File,
     existing_atoms_only=Existing,
     check_terminators=Check
- }).
+  }).
 
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).

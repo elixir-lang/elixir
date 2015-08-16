@@ -32,14 +32,6 @@ defmodule MapTest do
     ]}
 
     assert (quote do
-      %
-        User{foo: 1}
-    end) == {:%, [], [
-      {:__aliases__, [alias: false], [:User]},
-      {:%{}, [], [{:foo, 1}]}
-    ]}
-
-    assert (quote do
       %unquote(User){foo: 1}
     end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
