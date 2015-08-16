@@ -542,7 +542,7 @@ defmodule Protocol do
       for      = unquote(for)
       name     = Module.concat(protocol, for)
 
-      # TODO: Remove this by 1.2
+      # TODO: Remove this by 1.3
       if Atom.to_string(protocol) =~ "Elixir.Access" do
         :elixir_errors.warn __ENV__.line, __ENV__.file,
           "implementation of the Access protocol is deprecated. For customization of " <>
