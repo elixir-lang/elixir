@@ -535,9 +535,13 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
+%% TODO: Deprecate true and false by 1.2
+%% TODO: Remove true and false by 2.0
 expand_as({as, true}, _Meta, _IncludeByDefault, Ref, _E) ->
   elixir_aliases:last(Ref);
 expand_as({as, false}, _Meta, _IncludeByDefault, Ref, _E) ->
+  Ref;
+expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of

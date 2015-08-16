@@ -154,6 +154,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
   * [Behaviour] The module `Behaviour` is deprecated. Instead of `defcallback`, one can simply use `@callback`. Instead of `defmacrocallback`, one can simply use `@macrocallback`
   * [Enum] `Enum.uniq/2` is deprecated in favor of `Enum.uniq_by/2`
+  * [Kernel] Giving `as: true | false` to `alias/2` and `require/2` have been deprecated (it was undocumented behaviour)
   * [Regex] Ungreedy option `r` is deprecated in favor of `U` (which is standard in regular expressions in other languages)
 
 ### 4. Deprecations
