@@ -933,10 +933,8 @@ handle_terminator(Token, #elixir_tokenizer{terminators=Terminators} = Scope) ->
     New -> Scope#elixir_tokenizer{terminators=New}
   end.
 
-check_terminator({S, Line}, Terminators) when S == 'fn' ->
-  [{fn, Line}|Terminators];
-
 check_terminator({S, _} = New, Terminators) when
+    S == 'fn';
     S == 'do';
     S == '(';
     S == '[';
@@ -1007,9 +1005,12 @@ check_keyword(Line, Column, Length, Atom, Tokens) ->
     Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + Length}, Atom}, Tokens)}
   end.
 
-%% do is only valid after the end, true, false and nil keywords
+%% Fail early on invalid do syntax. For example, after
+%% most keywords, after comma and so on.
 do_keyword_valid([{Atom, _}|_]) ->
   case Atom of
+    ','   -> false;
+    ';'   -> false;
     'end' -> true;
     nil   -> true;
     true  -> true;
