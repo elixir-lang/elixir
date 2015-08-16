@@ -563,7 +563,6 @@ map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2',
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', []).
 
 struct_op -> '%' : '$1'.
-struct_op -> '%' eol : '$1'.
 
 map -> map_op map_args : '$2'.
 map -> struct_op map_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
