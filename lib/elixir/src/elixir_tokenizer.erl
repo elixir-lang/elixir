@@ -438,14 +438,14 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 % Others
 
+tokenize([$%,${|T], Line, Column, Scope, Tokens) ->
+  tokenize([${|T], Line, Column + 1, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
+
 tokenize([$%|T], Line, Column, Scope, Tokens) ->
-  case strip_space(T, 0, Column + 1) of
-    {[${|_] = Rest, Counter, Offset} -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
-    {Rest, Counter, Offset}          -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%', {Line, Column, Column + 1}}|Tokens])
-  end;
+  tokenize(T, Line, Column + 1, Scope, [{'%', {Line, Column, Column + 1}}|Tokens]);
 
 tokenize([$.|T], Line, Column, Scope, Tokens) ->
-  {Rest, Counter, Offset} = strip_space(T, 0, Column + 1),
+  {Rest, Counter, Offset} = strip_dot_space(T, 0, Column + 1),
   handle_dot([$.|Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
 
 % Integers and floats
@@ -501,10 +501,11 @@ strip_horizontal_space([H|T], Counter) when ?is_horizontal_space(H) ->
 strip_horizontal_space(T, Counter) ->
   {T, Counter}.
 
-strip_space(T, Counter, Column) ->
+strip_dot_space(T, Counter, Column) ->
   case strip_horizontal_space(T) of
-    {"\r\n" ++ Rest, _} -> strip_space(Rest, Counter + 1, 1);
-    {"\n" ++ Rest, _}   -> strip_space(Rest, Counter + 1, 1);
+    {"#" ++ Rest, _}    -> strip_dot_space(tokenize_comment(Rest), Counter, 1);
+    {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1);
+    {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1);
     {Rest, Length}      -> {Rest, Counter, Column + Length}
   end.
 
