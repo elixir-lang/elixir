@@ -60,12 +60,6 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg, "foo:+1"
   end
 
-  test "invalid or reserved codepoint" do
-    assert_compile_fail ArgumentError,
-      "invalid or reserved unicode codepoint 55296",
-      '?\\x{D800}'
-  end
-
   test "sigil terminator" do
     assert_compile_fail TokenMissingError,
       "nofile:3: missing terminator: \" (for sigil ~r\" starting at line 1)",
