@@ -26,7 +26,7 @@ defmodule String do
   the same "é" character written above could be represented
   by the letter "e" followed by the accent ́:
 
-      iex> string = "\x{0065}\x{0301}"
+      iex> string = "\u0065\u0301"
       iex> byte_size(string)
       3
       iex> String.length(string)
@@ -151,7 +151,7 @@ defmodule String do
   As we have seen above, codepoints can be inserted into
   a string by their hexadecimal code:
 
-      "ol\x{0061}\x{0301}" #=>
+      "ol\u0061\u0301" #=>
       "olá"
 
   ## Self-synchronization
@@ -880,7 +880,7 @@ defmodule String do
       iex> String.valid_character?("ø")
       true
 
-      iex> String.valid_character?("\x{ffff}")
+      iex> String.valid_character?("\uFFFF")
       false
 
   """

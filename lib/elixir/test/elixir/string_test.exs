@@ -277,11 +277,11 @@ defmodule StringTest do
     # CLRF
     assert String.graphemes("\r\n\f") == ["\r\n", "\f"]
     # Regional indicator
-    assert String.graphemes("\x{1F1E6}\x{1F1E7}\x{1F1E8}") == ["\x{1F1E6}\x{1F1E7}\x{1F1E8}"]
+    assert String.graphemes("\u{1F1E6}\u{1F1E7}\u{1F1E8}") == ["\u{1F1E6}\u{1F1E7}\u{1F1E8}"]
     # Hangul
-    assert String.graphemes("\x{1100}\x{115D}\x{B4A4}") == ["ᄀᅝ뒤"]
+    assert String.graphemes("\u1100\u115D\uB4A4") == ["ᄀᅝ뒤"]
     # Special Marking with Extended
-    assert String.graphemes("a\x{0300}\x{0903}") == ["a\x{0300}\x{0903}"]
+    assert String.graphemes("a\u0300\u0903") == ["a\u0300\u0903"]
   end
 
   test "next grapheme" do
@@ -406,7 +406,7 @@ defmodule StringTest do
     assert String.valid_character?("ø")
     assert String.valid_character?("あ")
 
-    refute String.valid_character?("\x{ffff}")
+    refute String.valid_character?("\uFFFF")
     refute String.valid_character?("ab")
   end
 
@@ -415,11 +415,11 @@ defmodule StringTest do
 
     assert String.chunk("ødskfjあ\x11ska", :valid)
            == ["ødskfjあ\x11ska"]
-    assert String.chunk("abc\x{0ffff}def", :valid)
+    assert String.chunk("abc\u{0ffff}def", :valid)
            == ["abc", <<0x0ffff::utf8>>, "def"]
-    assert String.chunk("\x{0fffe}\x{3ffff}привет\x{0ffff}мир", :valid)
+    assert String.chunk("\u{0fffe}\u{3ffff}привет\u{0ffff}мир", :valid)
            == [<<0x0fffe::utf8, 0x3ffff::utf8>>, "привет", <<0x0ffff::utf8>>, "мир"]
-    assert String.chunk("日本\x{0ffff}\x{fdef}ござございます\x{fdd0}", :valid)
+    assert String.chunk("日本\u{0ffff}\u{fdef}ござございます\u{fdd0}", :valid)
            == ["日本", <<0x0ffff::utf8, 0xfdef::utf8>>, "ござございます", <<0xfdd0::utf8>>]
   end
 

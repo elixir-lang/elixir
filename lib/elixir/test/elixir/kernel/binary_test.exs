@@ -80,15 +80,14 @@ bar """
   end
 
   test "hex" do
-    assert "\xa" == "\n"
-    assert "\xE9" == "é"
-    assert "\xFF" == "ÿ"
-    assert "\x{A}"== "\n"
-    assert "\x{E9}"== "é"
-    assert "\x{10F}" == <<196, 143>>
-    assert "\x{10FF}" == <<225, 131, 191>>
-    assert "\x{10FFF}" == <<240, 144, 191, 191>>
-    assert "\x{10FFFF}" == <<244, 143, 191, 191>>
+    assert "\x76" == "v"
+    assert "\u00FF" == "ÿ"
+    assert "\u{A}"== "\n"
+    assert "\u{E9}"== "é"
+    assert "\u{10F}" == <<196, 143>>
+    assert "\u{10FF}" == <<225, 131, 191>>
+    assert "\u{10FFF}" == <<240, 144, 191, 191>>
+    assert "\u{10FFFF}" == <<244, 143, 191, 191>>
   end
 
   test "match" do
