@@ -535,11 +535,12 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
-%% TODO: Deprecate true and false by 1.2
-%% TODO: Remove true and false by 2.0
-expand_as({as, true}, _Meta, _IncludeByDefault, Ref, _E) ->
+%% TODO: Remove this by 1.3
+expand_as({as, true}, Meta, _IncludeByDefault, Ref, E) ->
+  elixir_errors:warn(?line(Meta), ?m(E, file), "as: true given to require/alias is deprecated"),
   elixir_aliases:last(Ref);
-expand_as({as, false}, _Meta, _IncludeByDefault, Ref, _E) ->
+expand_as({as, false}, Meta, _IncludeByDefault, Ref, E) ->
+  elixir_errors:warn(?line(Meta), ?m(E, file), "as: false given to require/alias is deprecated"),
   Ref;
 expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;

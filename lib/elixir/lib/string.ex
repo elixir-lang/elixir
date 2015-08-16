@@ -1277,6 +1277,7 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
+  # TODO: Remove me by 1.3
   def starts_with?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.starts_with?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
@@ -1309,6 +1310,7 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
+  # TODO: Remove me by 1.3
   def ends_with?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.ends_with?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
@@ -1372,6 +1374,7 @@ defmodule String do
   """
   @spec contains?(t, pattern) :: boolean
 
+  # TODO: Remove me by 1.3
   def contains?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.contains?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
