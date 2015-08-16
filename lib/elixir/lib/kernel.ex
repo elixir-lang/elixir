@@ -2917,11 +2917,11 @@ defmodule Kernel do
   #     {false, 'Elixir.Foo.Bar.Baz.Bat'}
   #
   defp module_nesting(nil, full),
-    do: {false, full}
+    do: {nil, full}
 
   defp module_nesting(prefix, full) do
     case split_module(prefix) do
-      [] -> {false, full}
+      [] -> {nil, full}
       prefix -> module_nesting(prefix, split_module(full), [], full)
     end
   end
@@ -2932,7 +2932,7 @@ defmodule Kernel do
     do: {String.to_atom(<<"Elixir.", h::binary>>),
           :elixir_aliases.concat(:lists.reverse([h|acc]))}
   defp module_nesting(_, _, _acc, full),
-    do: {false, full}
+    do: {nil, full}
 
   defp split_module(atom) do
     case :binary.split(Atom.to_string(atom), ".", [:global]) do
