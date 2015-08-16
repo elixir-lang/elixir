@@ -2133,7 +2133,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.uniq([1, 2, 3, 3, 2, 1]) |> Enum.to_list
+      iex> Enum.uniq([1, 2, 3, 3, 2, 1])
       [1, 2, 3]
 
   """
