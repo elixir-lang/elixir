@@ -46,6 +46,12 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail SyntaxError, msg.(:!, "Foo!"), 'Foo!'
   end
 
+  test "invalid fn" do
+    assert_compile_fail SyntaxError,
+                        "nofile:1: expected clauses to be defined with -> inside: 'fn'",
+                        'fn 1 end'
+  end
+
   test "kw missing space" do
     msg = "nofile:1: keyword argument must be followed by space after: foo:"
 

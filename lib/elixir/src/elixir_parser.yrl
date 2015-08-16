@@ -224,7 +224,7 @@ access_expr -> bracket_expr : '$1'.
 access_expr -> at_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', build_stab(reverse('$2'))).
+access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
@@ -668,8 +668,10 @@ build_identifier({_, Location, Identifier}, Args) ->
 
 %% Fn
 
-build_fn(Op, Stab) ->
-  {fn, meta_from_token(Op), Stab}.
+build_fn(Op, [{'->', _, [_, _]}|_] = Stab) ->
+  {fn, meta_from_token(Op), build_stab(Stab)};
+build_fn(Op, _Stab) ->
+  throw(meta_from_token(Op), "expected clauses to be defined with -> inside: ", "'fn'").
 
 %% Access
 
