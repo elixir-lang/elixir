@@ -105,12 +105,22 @@ dot_keyword_test() ->
   {identifier, {1,5,7}, do}] = tokenize("foo.do").
 
 newline_test() ->
- [{identifier, {1,1,4}, foo},
-  {'.', {2,1,2}},
-  {identifier, {2,2,5}, bar}]  = tokenize("foo\n.bar"),
+  [{identifier, {1,1,4}, foo},
+   {'.', {2,1,2}},
+   {identifier, {2,2,5}, bar}]  = tokenize("foo\n.bar"),
   [{number, {1,1,2}, 1},
    {two_op, {2,1,3}, '++'},
    {number, {2,3,4}, 2}]  = tokenize("1\n++2").
+
+dot_newline_operator_test() ->
+  [{identifier,{1,1,4},foo},
+   {'.',{2,4,5}},
+   {identifier,{2,1,2},'+'},
+   {number,{2,2,3},1}] = tokenize("foo.\n+1"),
+  [{identifier,{1,1,4},foo},
+   {'.',{2,4,5}},
+   {identifier,{2,1,2},'+'},
+   {number,{2,2,3},1}] = tokenize("foo.#bar\n+1").
 
 aliases_test() ->
   [{'aliases', {1,1,4}, ['Foo']}] = tokenize("Foo"),
