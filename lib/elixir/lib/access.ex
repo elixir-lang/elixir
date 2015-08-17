@@ -36,49 +36,8 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
-  @callback fetch(t, key) :: {:ok, value} | :error
   @callback get(t, key, value) :: value
   @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
-
-  @doc """
-  Fetches value for the given key.
-
-  Returns a `{:ok, value}` if the tuple exists,
-  `:error` otherwise.
-  """
-  @spec fetch(t, key) :: {:ok, value} | :error
-  def fetch(container, key)
-
-  def fetch(%{__struct__: struct} = container, key) do
-    struct.fetch(container, key)
-  end
-
-  def fetch(%{} = map, key) do
-    :maps.find(key, map)
-  end
-
-  def fetch(list, key) when is_list(list) do
-    case :lists.keyfind(key, 1, list) do
-      {^key, value} -> {:ok, value}
-      false -> :error
-    end
-  end
-
-  def fetch(nil, _key) do
-    :error
-  end
-
-  @doc """
-  Fetches value for the given key.
-
-  Returns `value` or raises otherwise.
-  """
-  def fetch!(dict, key) do
-    case fetch(dict, key) do
-      {:ok, value} -> value
-      :error -> raise KeyError, key: key, term: dict
-    end
-  end
 
   @doc """
   Gets the container's value for the given key.
