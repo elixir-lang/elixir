@@ -13,7 +13,7 @@ bar
     assert 13 == __ENV__.line
     assert "foo\nbar \"\"\"\n" == """
 foo
-bar """
+bar \"""
 """
   end
 
