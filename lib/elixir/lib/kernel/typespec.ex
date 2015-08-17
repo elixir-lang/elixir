@@ -910,11 +910,14 @@ defmodule Kernel.Typespec do
         module.__struct__
       end
 
+    unless Keyword.keyword?(fields) do
+      compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
+    end
+
     struct =
       :lists.map(fn {field, _} ->
         {field, quote do: term()}
       end, Map.to_list(struct))
-
 
     :lists.foreach(fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
