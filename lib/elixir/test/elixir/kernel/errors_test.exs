@@ -92,6 +92,9 @@ defmodule Kernel.ErrorsTest do
     assert_compile_fail TokenMissingError,
       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
       '"""\nbar'
+    assert_compile_fail SyntaxError,
+      "nofile:2: invalid location for heredoc terminator, please escape token or move to its own line: \"\"\"",
+      '"""\nbar"""'
   end
 
   test "unexpected end" do
