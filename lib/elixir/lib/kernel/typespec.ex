@@ -62,7 +62,7 @@ defmodule Kernel.Typespec do
             | <<>>                          ## Bitstrings
             | <<_ :: size>>                 # size is 0 or a positive integer
             | <<_ :: _ * unit>>             # unit is an integer from 1 to 256
-            | <<_ :: size, _ :: _ * unit>>
+            | <<_ :: size * unit>>
 
             | [type]                        ## Lists
             | []                            # empty list
@@ -863,12 +863,19 @@ defmodule Kernel.Typespec do
     {:type, line(meta), :binary, [{:integer, line(meta), 0}, {:integer, line(meta), 0}]}
   end
 
-  defp typespec({:<<>>, meta, [{:::, _, [{:_, meta1, atom}, {:*, _, [{:_, meta2, atom}, unit]}]}]}, _, _) when is_atom(atom) do
-    {:type, line(meta), :binary, [{:integer, line(meta1), 0}, {:integer, line(meta2), unit}]}
+  defp typespec({:<<>>, meta, [{:::, unit_meta, [{:_, _, ctx1}, {:*, _, [{:_, _, ctx2}, unit]}]}]}, _, _)
+      when is_atom(ctx1) and is_atom(ctx2) and is_integer(unit) do
+    {:type, line(meta), :binary, [{:integer, line(meta), 0}, {:integer, line(unit_meta), unit}]}
   end
 
-  defp typespec({:<<>>, meta, [{:::, meta1, [{:_, meta2, atom}, base]}]}, _, _) when is_atom(atom) do
-    {:type, line(meta), :binary, [{:integer, line(meta1), base}, {:integer, line(meta2), 0}]}
+  defp typespec({:<<>>, meta, [{:::, shared_meta, [{:_, _, ctx}, {:*, _, [size, unit]}]}]}, _, _)
+      when is_atom(ctx) and is_integer(unit) and is_integer(size) do
+    {:type, line(meta), :binary, [{:integer, line(shared_meta), size}, {:integer, line(shared_meta), unit}]}
+  end
+
+  defp typespec({:<<>>, meta, [{:::, size_meta, [{:_, _, ctx}, size]}]}, _, _)
+      when is_atom(ctx) and is_integer(size) do
+    {:type, line(meta), :binary, [{:integer, line(size_meta), size}, {:integer, line(meta), 0}]}
   end
 
   ## Handle maps and structs
