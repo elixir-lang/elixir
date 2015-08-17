@@ -694,16 +694,23 @@ extract_heredoc(Line0, Column0, Rest0, Marker) ->
       case extract_heredoc_body(Line0, Column0, Marker, [$\n|Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
           {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2};
-        {error, ErrorLine} ->
+        {error, Reason, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
-          Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
-          {error, {ErrorLine, io_lib:format(Message, [Terminator, Line0]), []}}
+          {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),
+          {error, {ErrorLine, Message, Token}}
       end;
     error ->
       Message = "heredoc start must be followed by a new line after ",
       {error, {Line0, io_lib:format(Message, []), [Marker, Marker, Marker]}}
   end.
 
+heredoc_error_message(eof, Line, Terminator) ->
+  {io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)",
+                 [Terminator, Line]),
+   []};
+heredoc_error_message(misplacedterminator, _Line, Terminator) ->
+  {"invalid location for heredoc terminator, please escape token or move to its own line: ",
+   Terminator}.
 %% Remove spaces from heredoc based on the position of the final quotes.
 
 remove_heredoc_spaces(Body, 0) ->
@@ -740,19 +747,26 @@ extract_heredoc_body(Line, _Column, Marker, Rest, Buffer) ->
       extract_heredoc_body(Line + 1, 1, Marker, NewRest, NewBuffer);
     {ok, NewBuffer, NewRest, Spaces} ->
       {ok, Line, NewBuffer, NewRest, Spaces};
-    {error, eof} ->
-      {error, Line}
+    {error, Reason} ->
+      {error, Reason, Line}
   end.
 
 %% Extract a line from the heredoc prepending its contents to a buffer.
+%% Allow lazy escaping (e.g. \""")
 
-extract_heredoc_line("\r\n" ++ Rest, Buffer) ->
+extract_heredoc_line(Marker, [$\\, $\\|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [$\\, $\\|Buffer]);
+extract_heredoc_line(Marker, [$\\, Marker|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [Marker, $\\|Buffer]);
+extract_heredoc_line(Marker, [Marker, Marker, Marker|_], _) ->
+  {error, misplacedterminator};
+extract_heredoc_line(_, "\r\n" ++ Rest, Buffer) ->
   {ok, [$\n|Buffer], Rest};
-extract_heredoc_line("\n" ++ Rest, Buffer) ->
+extract_heredoc_line(_, "\n" ++ Rest, Buffer) ->
   {ok, [$\n|Buffer], Rest};
-extract_heredoc_line([H|T], Buffer) ->
-  extract_heredoc_line(T, [H|Buffer]);
-extract_heredoc_line(_, _) ->
+extract_heredoc_line(Marker, [H|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [H|Buffer]);
+extract_heredoc_line(_, _, _) ->
   {error, eof}.
 
 %% Extract each heredoc line trying to find a match according to the marker.
@@ -761,8 +775,8 @@ extract_heredoc_line(Marker, [H|T], Buffer, Counter) when ?is_horizontal_space(H
   extract_heredoc_line(Marker, T, [H|Buffer], Counter + 1);
 extract_heredoc_line(Marker, [Marker, Marker, Marker|T], Buffer, Counter) ->
   {ok, Buffer, T, Counter};
-extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
-  extract_heredoc_line(Rest, Buffer).
+extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
+  extract_heredoc_line(Marker, Rest, Buffer).
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.
