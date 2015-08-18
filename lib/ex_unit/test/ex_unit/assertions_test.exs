@@ -173,28 +173,37 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match" do
-    {:ok, true} = assert {:ok, _} = {:ok, true}
+    {:ok, true} = assert {:ok, _} = ok(true)
   end
 
   test "assert match when no match" do
     try do
-      "This should never be tested" = assert {:ok, _} = "bar"
+      "This should never be tested" = assert {:ok, _} = error(true)
     rescue
       error in [ExUnit.AssertionError] ->
-        "match (=) failed"   = error.message
-        "{:ok, _} = \"bar\"" = error.expr |> Macro.to_string
-        "bar"                = error.right
+        "match (=) failed"       = error.message
+        "{:ok, _} = error(true)" = error.expr |> Macro.to_string
+        "{:error, true}"         = error.right |> Macro.to_string
+    end
+  end
+
+  test "assert match when falsy" do
+    try do
+      "This should never be tested" = assert x = nil
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "Expected truthy, got nil" = error.message
+        "x = nil" = error.expr |> Macro.to_string
     end
   end
 
   test "refute match when no match" do
     try do
-      "This should never be tested" = refute _ = "bar"
+      "This should never be tested" = refute _ = ok(true)
     rescue
       error in [ExUnit.AssertionError] ->
-        "bar"         = error.right
-        "_ = \"bar\"" = error.expr |> Macro.to_string
-        "match (=) succeeded, but should have failed" = error.message
+        "_ = ok(true)" = error.expr |> Macro.to_string
+        "Expected false or nil, got {:ok, true}" = error.message
     end
   end
 
@@ -399,4 +408,7 @@ defmodule ExUnit.AssertionsTest do
     error ->
       "no function clause matching in ExUnit.Assertions.flunk/1" = FunctionClauseError.message error
   end
+
+  defp ok(val), do: {:ok, val}
+  defp error(val), do: {:error, val}
 end
