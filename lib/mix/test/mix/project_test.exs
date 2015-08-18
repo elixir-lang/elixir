@@ -15,7 +15,7 @@ defmodule Mix.ProjectTest do
     assert Mix.Project.get == SampleProject
 
     assert %{name: SampleProject, config: _, file: "sample"} = Mix.Project.pop
-    assert nil = Mix.Project.pop
+    assert Mix.Project.pop == nil
   end
 
   test "does not allow the same project to be pushed twice" do

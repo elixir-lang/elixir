@@ -68,18 +68,23 @@ defmodule ExUnit.Assertions do
     {:case, meta, args} =
       quote do
         case right do
+          value when value in [nil, false] ->
+            raise ExUnit.AssertionError,
+              expr: expr,
+              message: "Expected truthy, got #{inspect value}"
           unquote(left) ->
             right
           _ ->
             raise ExUnit.AssertionError,
               right: right,
-              expr: unquote(code),
+              expr: expr,
               message: "match (=) failed"
         end
       end
 
     quote do
       right = unquote(right)
+      expr  = unquote(code)
       unquote({:case, [{:export_head, true}|meta], args})
     end
   end
@@ -113,27 +118,6 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
-  defmacro refute({:=, _, [left, right]} = assertion) do
-    code = Macro.escape(assertion)
-    {:case, meta, args} =
-      quote do
-        case right do
-          unquote(left) ->
-            raise ExUnit.AssertionError,
-              right: right,
-              expr: unquote(code),
-              message: "match (=) succeeded, but should have failed"
-          _ ->
-            right
-        end
-      end
-
-    quote do
-      right = unquote(right)
-      unquote({:case, [{:export_head, true}|meta], args})
-    end
-  end
-
   defmacro refute(assertion) do
     case translate_assertion({:!, [], [assertion]}) do
       nil ->

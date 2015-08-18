@@ -136,6 +136,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
+  * [ExUnit] Do not change the semantics of evaluated code with `assert`/`refute`. For example, from now on, `assert nil = some_expr()` will now raise as expected, as the expression still evaluates to a falsy value
 
 #### Logger
 
