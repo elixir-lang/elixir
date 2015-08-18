@@ -66,6 +66,7 @@ defmodule Mix.Tasks.Deps.Check do
   # Can the dependency be compiled automatically without user intervention?
   defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
   defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
   defp compilable?(%Mix.Dep{status: :compile}), do: true
   defp compilable?(%Mix.Dep{}), do: false
 

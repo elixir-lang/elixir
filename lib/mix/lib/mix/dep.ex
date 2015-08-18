@@ -121,13 +121,15 @@ defmodule Mix.Dep do
   """
   def in_dependency(dep, post_config \\ [], fun)
 
-  def in_dependency(%Mix.Dep{app: app, opts: opts}, config, fun) do
+  def in_dependency(%Mix.Dep{app: app, opts: opts, scm: scm}, config, fun) do
     # Set the app_path to be the one stored in the dependency.
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs
-    config = Keyword.merge(Mix.Project.deps_config, config)
-    config = Keyword.put(config, :app_path, opts[:build])
+    config =
+      Keyword.merge(Mix.Project.deps_config, config)
+      |> Keyword.put(:app_path, opts[:build])
+      |> Keyword.put(:build_scm, scm)
 
     env = opts[:env] || :prod
     old_env = Mix.env
@@ -202,7 +204,10 @@ defmodule Mix.Dep do
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency was built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
+
+  def format_status(%Mix.Dep{status: {:scmlock, _}}),
+    do: "the dependency was built with another SCM, run `#{mix_env_var}mix deps.compile`"
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
     info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
@@ -226,14 +231,23 @@ defmodule Mix.Dep do
           # Don't include the lock in the dependency if it is outdated
           %{dep | status: :lockoutdated}
         :ok ->
-          if vsn = old_elixir_lock(dep) do
-            %{dep | status: {:elixirlock, vsn}, opts: opts}
-          else
-            %{dep | opts: opts}
-          end
+          check_manifest(%{dep | opts: opts}, opts[:build])
       end
     else
       %{dep | opts: opts}
+    end
+  end
+
+  defp check_manifest(%{scm: scm} = dep, build_path) do
+    vsn = System.version
+
+    case Mix.Dep.Lock.status(build_path) do
+      {:ok, old_vsn, _} when old_vsn != vsn ->
+        %{dep | status: {:elixirlock, old_vsn}}
+      {:ok, _, old_scm} when old_scm != scm ->
+        %{dep | status: {:scmlock, old_scm}}
+      _ ->
+        dep
     end
   end
 
@@ -334,13 +348,6 @@ defmodule Mix.Dep do
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
       if is_binary(app), do: String.to_atom(app), else: app
-    end
-  end
-
-  defp old_elixir_lock(%Mix.Dep{opts: opts}) do
-    old_vsn = Mix.Dep.Lock.elixir_vsn(opts[:build])
-    if old_vsn && old_vsn != System.version do
-      old_vsn
     end
   end
 end

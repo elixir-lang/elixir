@@ -466,10 +466,34 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      File.write!("_build/dev/lib/ok/.compile.lock", "the_future")
+      File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<\"the_future\">>, scm}.))
       Mix.Task.clear
 
-      msg = "  the dependency is built with an out-of-date elixir version, run `mix deps.compile`"
+      msg = "  the dependency was built with an out-of-date elixir version, run `mix deps.compile`"
+
+      Mix.Tasks.Deps.run []
+      assert_received {:mix_shell, :info, [^msg]}
+
+      # deps.check will automatically recompile it
+      Mix.Tasks.Deps.Check.run []
+
+      Mix.Tasks.Deps.run []
+      refute_received {:mix_shell, :info, [^msg]}
+    end
+  end
+
+  test "checks if dependencies are using old scm version" do
+    Mix.Project.push SuccessfulDepsApp
+
+    in_fixture "deps_status", fn ->
+      Mix.Tasks.Deps.Compile.run []
+      Mix.Tasks.Deps.Check.run []
+
+      File.mkdir_p!("_build/dev/lib/ok/ebin")
+      File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<"#{System.version}">>, scm}.))
+      Mix.Task.clear
+
+      msg = "  the dependency was built with another SCM, run `mix deps.compile`"
 
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
