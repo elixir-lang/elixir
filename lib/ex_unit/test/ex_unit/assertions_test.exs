@@ -187,6 +187,17 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match when falsy but not match" do
+    try do
+      "This should never be tested" = assert {:ok, x} = nil
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed" = error.message
+        "{:ok, x} = nil"   = error.expr |> Macro.to_string
+        "nil"              = error.right |> Macro.to_string
+    end
+  end
+
   test "assert match when falsy" do
     try do
       "This should never be tested" = assert x = nil
