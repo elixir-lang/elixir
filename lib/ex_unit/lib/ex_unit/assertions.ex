@@ -65,15 +65,27 @@ defmodule ExUnit.Assertions do
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
+
+    # If the match works, we need to check if the value
+    # is not nil nor false. We need to rewrite the line
+    # to -1 to avoid silly warnings though.
+    {:if, meta, args} =
+        quote do
+          if right do
+            right
+          else
+            raise ExUnit.AssertionError,
+              expr: expr,
+              message: "Expected truthy, got #{inspect right}"
+          end
+        end
+    return = {:if, [line: -1] ++ meta, args}
+
     {:case, meta, args} =
       quote do
         case right do
-          value when value in [nil, false] ->
-            raise ExUnit.AssertionError,
-              expr: expr,
-              message: "Expected truthy, got #{inspect value}"
           unquote(left) ->
-            right
+            unquote(return)
           _ ->
             raise ExUnit.AssertionError,
               right: right,
