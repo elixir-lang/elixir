@@ -210,6 +210,53 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 
 %% Remote calls
 
+translate({{'.', _, [Left, Right]}, Meta, []}, S)
+    when is_tuple(Left), is_atom(Right), is_list(Meta) ->
+  assert_allowed_in_context(Meta, Left, Right, 0, S),
+
+  {TLeft, SL}  = translate(Left, S),
+  {Var, _, SV} = elixir_scope:build_var('_', SL),
+
+  Line   = ?line(Meta),
+  TRight = {atom, Line, Right},
+
+  %% TODO: Consider making this {badkey, _} error
+  TVar = {var, Line, Var},
+  TMap = {map, Line, [
+    {map_field_assoc, Line,
+      {atom, Line, '__struct__'},
+      {atom, Line, 'Elixir.KeyError'}},
+    {map_field_assoc, Line,
+      {atom, Line, '__exception__'},
+      {atom, Line, 'true'}},
+    {map_field_assoc, Line,
+      {atom, Line, key},
+      TRight},
+    {map_field_assoc, Line,
+      {atom, Line, term},
+      TVar}]},
+
+  %% TODO: There is a bug in dialyzer that makes it fail on
+  %% empty maps. We work around the bug below by using
+  %% the is_map/1 guard instead of matching on map. Hopefully
+  %% we can use a match on 17.1.
+  %%
+  %% http://erlang.org/pipermail/erlang-bugs/2014-April/004338.html
+  {{'case', -1, TLeft, [
+    {clause, -1,
+      [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
+      [],
+      [TVar]},
+    {clause, -1,
+      [TVar],
+      [[elixir_utils:erl_call(Line, erlang, is_map, [TVar])]],
+      [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
+    {clause, -1,
+      [TVar],
+      [],
+      [{call, Line, {remote, Line, TVar, TRight}, []}]}
+  ]}, SV};
+
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {TLeft, SL} = translate(Left, S),
@@ -218,63 +265,19 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   Line   = ?line(Meta),
   Arity  = length(Args),
   TRight = {atom, Line, Right},
+  SC = mergev(SL, SA),
 
-  %% We need to rewrite erlang function calls as operators
-  %% because erl_eval chokes on them. We can remove this
-  %% once a fix is merged into Erlang, keeping only the
-  %% list operators one (since it is required for inlining
-  %% [1, 2, 3] ++ Right in matches).
-  case (Left == erlang) andalso erl_op(Right, Arity) of
+  %% Rewrite erlang function calls as operators so they
+  %% work on guards, matches and so on.
+  case (Left == erlang) andalso guard_op(Right, Arity) of
     true ->
-      {list_to_tuple([op, Line, Right] ++ TArgs), mergev(SL, SA)};
+      case TArgs of
+        [TOne]       -> {{op, Line, Right, TOne}, SC};
+        [TOne, TTwo] -> {{op, Line, Right, TOne, TTwo}, SC}
+      end;
     false ->
       assert_allowed_in_context(Meta, Left, Right, Arity, S),
-      SC = mergev(SL, SA),
-
-      case not is_atom(Left) andalso (Arity == 0) of
-        true ->
-          {Var, _, SV} = elixir_scope:build_var('_', SC),
-          TVar = {var, Line, Var},
-          TMap = {map, Line, [
-            {map_field_assoc, Line,
-              {atom, Line, '__struct__'},
-              {atom, Line, 'Elixir.KeyError'}},
-            {map_field_assoc, Line,
-              {atom, Line, '__exception__'},
-              {atom, Line, 'true'}},
-            {map_field_assoc, Line,
-              {atom, Line, key},
-              TRight},
-            {map_field_assoc, Line,
-              {atom, Line, term},
-              TVar}]},
-
-          %% TODO There is a bug in dialyzer that makes it fail on
-          %% empty maps. We work around the bug below by using
-          %% the is_map/1 guard instead of matching on map. Hopefully
-          %% we can use a match on 17.1.
-          %%
-          %% In the future, we could also use maps:get/2 instead
-          %% of pattern match, reducing the AST footprint.
-          %%
-          %% http://erlang.org/pipermail/erlang-bugs/2014-April/004338.html
-          {{'case', -1, TLeft, [
-            {clause, -1,
-              [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
-              [],
-              [TVar]},
-            {clause, -1,
-              [TVar],
-              [[elixir_utils:erl_call(Line, erlang, is_map, [TVar])]],
-              [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
-            {clause, -1,
-              [TVar],
-              [],
-              [{call, Line, {remote, Line, TVar, TRight}, []}]}
-          ]}, SV};
-        false ->
-          {{call, Line, {remote, Line, TLeft, TRight}, TArgs}, SC}
-      end
+      {{call, Line, {remote, Line, TLeft, TRight}, TArgs}, SC}
   end;
 
 %% Anonymous function calls
@@ -302,11 +305,16 @@ translate(Other, S) ->
 
 %% Helpers
 
-erl_op(Op, Arity) ->
-  erl_internal:list_op(Op, Arity) orelse
-    erl_internal:comp_op(Op, Arity) orelse
-    erl_internal:bool_op(Op, Arity) orelse
-    erl_internal:arith_op(Op, Arity).
+guard_op(Op, Arity) ->
+  try erl_internal:op_type(Op, Arity) of
+    arith -> true;
+    list  -> true;
+    comp  -> true;
+    bool  -> true;
+    send  -> false
+  catch
+    _:_ -> false
+  end.
 
 translate_list([{'|', _, [_, _]=Args}], Fun, Acc, List) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(Fun, Acc, Args),
