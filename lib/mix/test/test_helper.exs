@@ -272,6 +272,99 @@ Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
   File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
 end
 
+## Generate Hg repo fixtures
+
+# Hg repo
+target = Path.expand("fixtures/hg_repo", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "lib"))
+
+  File.write! Path.join(target, "mix.exs"), """
+  ## Auto-generated fixture
+  raise "I was not supposed to be loaded"
+  """
+
+  File.cd! target, fn ->
+    System.cmd("hg", ~w[init])
+    
+    File.write! ".hg/hgrc", """
+    [ui]
+    username = mix-repo <mix@example.com>
+    """
+    
+    System.cmd("hg", ~w[addremove])
+    System.cmd("hg", ~w[commit -m "bad"])
+  end
+
+  File.write! Path.join(target, "mix.exs"), """
+  ## Auto-generated fixture
+  defmodule HgRepo.Mix do
+    use Mix.Project
+
+    def project do
+      [app: :hg_repo, version: "0.1.0"]
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("hg", ~w[addremove])
+    System.cmd("hg", ~w[commit -m "ok"])
+  end
+
+  File.write! Path.join(target, "lib/hg_repo.ex"), """
+  ## Auto-generated fixture
+  defmodule HgRepo do
+    def hello do
+      "World"
+    end
+  end
+  """
+
+  File.cd! target, fn ->
+    System.cmd("hg", ~w[addremove])
+    System.cmd("hg", ~w[commit -m "lib"])
+  end
+end
+
+# Deps on Hg repo
+target = Path.expand("fixtures/deps_on_hg_repo", __DIR__)
+
+unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "lib"))
+
+  File.write! Path.join(target, "mix.exs"), """
+  ## Auto-generated fixture
+  defmodule DepsOnHgRepo.Mix do
+    use Mix.Project
+
+    def project do
+      [ app: :deps_on_hg_repo,
+        version: "0.2.0",
+        deps: [{:hg_repo, hg: MixTest.Case.fixture_path("hg_repo")}] ]
+    end
+  end
+  """
+
+  File.write! Path.join(target, "lib/deps_on_hg_repo.ex"), """
+  ## Auto-generated fixture
+  HgRepo.hello
+  """
+
+  File.cd! target, fn ->
+    System.cmd("hg", ~w[init])
+    
+    File.write! ".hg/hgrc", """
+    [ui]
+    username = mix-repo <mix@example.com>
+    """
+    
+    System.cmd("hg", ~w[addremove])
+    System.cmd("hg", ~w[commit -m "ok"])
+  end
+end
+
 ## Generate helper modules
 
 path = MixTest.Case.tmp_path("beams")

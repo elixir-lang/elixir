@@ -74,7 +74,15 @@ defmodule Mix.Tasks.Deps do
     * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
     * `:branch`     - the git branch to checkout
     * `:tag`        - the git tag to checkout
-    * `:submodules` - when ` true`, initialize submodules for the repo
+    * `:submodules` - when `true`, initialize submodules for the repo
+
+  ## Mercurial options (`:hg`)
+
+    * `:hg`         - the hg repository URI
+    * `:bitbucket`  - a shortcut for specifying hg repos from Bitbucket, uses `hg:`
+    * `:ref`        - the reference to checkout (may be a branch, a commit sha or a tag)
+    * `:branch`     - the Hg branch to checkout
+    * `:tag`        - the Hg tag to checkout
 
   ## Path options (`:path`)
 

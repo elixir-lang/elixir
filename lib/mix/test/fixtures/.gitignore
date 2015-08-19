@@ -1,3 +1,5 @@
 git_repo
 deps_on_git_repo
 git_rebar
+hg_repo
+deps_on_hg_repo

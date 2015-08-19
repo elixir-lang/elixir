@@ -120,6 +120,8 @@ clean:
 	rm -rf lib/mix/test/fixtures/git_repo
 	rm -rf lib/mix/test/fixtures/deps_on_git_repo
 	rm -rf lib/mix/test/fixtures/git_rebar
+	rm -rf lib/mix/test/fixtures/hg_repo
+	rm -rf lib/mix/test/fixtures/deps_on_hg_repo
 	rm -rf lib/elixir/src/elixir.app.src
 	$(MAKE) clean_man
 
