@@ -613,6 +613,11 @@ defmodule Kernel.Typespec do
     {{kind, {name, arity}, spec}, caller.line}
   end
 
+  defp translate_spec(_kind, {_name, _meta, _args} = spec, _guard, caller) do
+    spec = Macro.to_string(spec)
+    compile_error caller, "function type specification missing return type: #{spec}"
+  end
+
   defp translate_spec(_kind, spec, _guard, caller) do
     spec = Macro.to_string(spec)
     compile_error caller, "invalid function type specification: #{spec}"
