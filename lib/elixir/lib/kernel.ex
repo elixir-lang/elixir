@@ -2161,12 +2161,13 @@ defmodule Kernel do
       true ->
         raise ArgumentError, "cannot set attribute @#{name} inside function/macro"
       false ->
-        case name do
+        arg = case name do
           :behavior ->
             :elixir_errors.warn env.line, env.file,
                                 "@behavior attribute is not supported, please use @behaviour instead"
-          _ ->
-            :ok
+          :doc       -> {env.line, arg}
+          :moduledoc -> {env.line, arg}
+          _          -> arg
         end
 
         quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))

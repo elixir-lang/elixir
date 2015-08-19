@@ -505,10 +505,19 @@ defmodule Kernel.Typespec do
   end
 
   defp store_callbackdoc(caller, module, kind, name, arity) do
-    doc = Module.get_attribute(module, :doc)
-    Module.delete_attribute(module, :doc)
+    {line, doc} = get_doc_info(module, caller)
     :ets.insert(:elixir_module.data_table(module),
-                {{:callbackdoc, {name, arity}}, caller.line, kind, doc})
+                {{:callbackdoc, {name, arity}}, line, kind, doc})
+  end
+
+  defp get_doc_info(module, caller) do
+    case Module.get_attribute(module, :doc) do
+      nil         ->
+        {caller.line, nil}
+      {line, doc} ->
+        Module.delete_attribute(module, :doc)
+        {line, doc}
+    end
   end
 
   @doc false
