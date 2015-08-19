@@ -56,9 +56,9 @@ defmodule Kernel.TypespecTest do
   end
 
   test "invalid function specification" do
-    assert_raise CompileError, ~r"invalid function type specification: myfun = 1", fn ->
+    assert_raise CompileError, ~r"invalid function type specification: \"not a spec\"", fn ->
       test_module do
-        @spec myfun = 1
+        @spec "not a spec"
       end
     end
   end
@@ -670,6 +670,14 @@ defmodule Kernel.TypespecTest do
     assert_raise ArgumentError, fn ->
       defmodule WithDefault do
         @spec hello(num :: integer \\ 0) :: integer
+      end
+    end
+  end
+
+  test "@spec gives a nice error message when return type is missing" do
+    assert_raise CompileError, ~r"function type specification missing return type: myfun\(integer\)", fn ->
+      test_module do
+        @spec myfun(integer)
       end
     end
   end
