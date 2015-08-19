@@ -598,7 +598,7 @@ defmodule Kernel.Typespec do
 
     unless Keyword.keyword?(guard) do
       guard = Macro.to_string(guard)
-      compile_error caller, "expected keywords as guard in function type specification, got: #{guard}"
+      compile_error caller, "expected keywords as guard in type specification, got: #{guard}"
     end
 
     vars = Keyword.keys(guard)
@@ -613,14 +613,14 @@ defmodule Kernel.Typespec do
     {{kind, {name, arity}, spec}, caller.line}
   end
 
-  defp translate_spec(_kind, {_name, _meta, _args} = spec, _guard, caller) do
+  defp translate_spec(_kind, {name, _meta, _args} = spec, _guard, caller) when is_atom(name) and name != ::: do
     spec = Macro.to_string(spec)
-    compile_error caller, "function type specification missing return type: #{spec}"
+    compile_error caller, "type specification missing return type: #{spec}"
   end
 
   defp translate_spec(_kind, spec, _guard, caller) do
     spec = Macro.to_string(spec)
-    compile_error caller, "invalid function type specification: #{spec}"
+    compile_error caller, "invalid type specification: #{spec}"
   end
 
   defp ensure_no_defaults!(args) do
