@@ -193,6 +193,31 @@ defmodule Application do
   end
 
   @doc """
+  Returns the application specification key-value pairs for `app`.
+  """
+  @spec get_all_keys(app) :: [{key, value}]
+  def get_all_keys(app) do
+    case :application.get_all_key(app) do
+      {:ok, dict} -> dict
+      :undefined -> []
+    end
+  end
+
+  @doc """
+  Returns the value for `key` in `app`'s specification.
+
+  If the configuration parameter does not exist, the function returns :undefined.
+  """
+  @spec get_key(app, key) :: value | :error
+  def get_key(app, key) do
+    case :application.get_key(app, key) do
+      {:ok, value} -> value
+      :undefined -> :error
+    end
+  end
+
+
+  @doc """
   Ensures the given `app` is started.
 
   Same as `start/2` but returns `:ok` if the application was already
