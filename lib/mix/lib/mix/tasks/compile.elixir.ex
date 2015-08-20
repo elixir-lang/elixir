@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp local_deps_changed?(manifest) do
     manifest = Path.absname(manifest)
 
-    Enum.any?(Mix.Dep.children([]), fn(dep) ->
+    Enum.any?(Mix.Dep.children(), fn(dep) ->
       not dep.scm.fetchable? and Mix.Dep.in_dependency(dep, fn(_) ->
         files = Mix.Project.config_files ++ Mix.Tasks.Compile.manifests
         Mix.Utils.stale?(files, [manifest])

@@ -11,13 +11,26 @@ defmodule Mix.Dep.Loader do
 
   By default, it will filter all dependencies that does not match
   current environment, behaviour can be overridden via options.
-
-  ## Options
-
-    * `:env` - filter dependencies on given environments
   """
-  def children(opts) do
-    mix_children(opts) ++ Mix.Dep.Umbrella.unloaded
+  def children() do
+    mix_children([]) ++ Mix.Dep.Umbrella.unloaded
+  end
+
+  @doc """
+  Partition loaded dependencies by environment.
+  """
+  def partition_by_env(deps, opts) do
+    if env = opts[:env] do
+      Enum.partition(deps, fn
+        %Mix.Dep{status: {:divergedonly, _}} ->
+          true
+        %Mix.Dep{opts: opts} ->
+          only = opts[:only] |> List.wrap |> validate_only!
+          only == [] or env in List.wrap(only)
+      end)
+    else
+      {deps, []}
+    end
   end
 
   @doc """
@@ -243,17 +256,10 @@ defmodule Mix.Dep.Loader do
 
   defp mix_children(opts) do
     from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
-
-    # Filter deps not matching mix environment
-    if env = opts[:env] do
-      Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-        only = opts[:only] |> List.wrap |> validate_only!
-        only == [] or env in List.wrap(only)
-      end)
-    else
-      deps
-    end
+    (Mix.Project.config[:deps] || [])
+    |> Enum.map(&to_dep(&1, from))
+    |> partition_by_env(opts)
+    |> elem(0)
   end
 
   defp rebar_children(root_config) do

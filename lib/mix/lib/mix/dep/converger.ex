@@ -49,17 +49,22 @@ defmodule Mix.Dep.Converger do
   end
 
   defp all(acc, lock, opts, callback) do
-    main = Mix.Dep.Loader.children(opts)
-    main = Enum.map(main, &(%{&1 | top_level: true}))
+    deps = Mix.Dep.Loader.children()
+    deps = Enum.map(deps, &(%{&1 | top_level: true}))
+
+    # Filter the dependencies per environment. We pass the ones
+    # left out as accumulator and upper breadth to help catch
+    # inconsistencies across environment, specially regarding
+    # the :only option. They are filtered again later.
+    {main, upper} = Mix.Dep.Loader.partition_by_env(deps, opts)
     apps = Enum.map(main, &(&1.app))
 
     # Run converger for all dependencies, except remote
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
-
     {deps, rest, lock} =
-      all(main, [], [], apps, callback, acc, lock, fn dep ->
+      all(main, upper, upper, apps, callback, acc, lock, fn dep ->
         if (converger = Mix.RemoteConverger.get) &&
            converger.remote?(dep) do
           {:loaded, dep}
@@ -67,6 +72,10 @@ defmodule Mix.Dep.Converger do
           {:unloaded, dep, nil}
         end
       end)
+
+    # Filter deps per environment once more. If the filtered
+    # dependencies had no conflicts, they are removed now.
+    {deps, _} = Mix.Dep.Loader.partition_by_env(deps, opts)
 
     # Run remote converger if one is available and rerun mix's
     # converger with the new information
@@ -191,9 +200,9 @@ defmodule Mix.Dep.Converger do
           app != other_app ->
             {other, match}
           in_upper? && other_opts[:override] ->
-            {other, true}
+            {other |> with_matching_only(dep), true}
           converge?(other, dep) ->
-            {with_matching_req(other, dep), true}
+            {other |> with_matching_only(dep) |> with_matching_req(dep), true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
             {%{other | status: {tag, dep}}, true}
@@ -201,6 +210,23 @@ defmodule Mix.Dep.Converger do
       end
 
     if match, do: acc
+  end
+
+  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep) do
+    case Keyword.fetch(other_opts, :only) do
+      {:ok, other_only} ->
+        case Keyword.fetch(opts, :only) do
+          {:ok, only} ->
+            case List.wrap(only) -- List.wrap(other_only) do
+              [] -> other
+              _  -> %{other | status: {:divergedonly, dep}}
+            end
+          :error ->
+            %{other | status: {:divergedonly, dep}}
+        end
+      :error ->
+        other
+    end
   end
 
   defp converge?(%Mix.Dep{scm: scm1, opts: opts1}, %Mix.Dep{scm: scm2, opts: opts2}) do

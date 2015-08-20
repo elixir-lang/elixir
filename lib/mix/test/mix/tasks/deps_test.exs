@@ -38,6 +38,8 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  ## deps
+
   test "prints list of dependencies and their status" do
     Mix.Project.push DepsApp
 
@@ -119,6 +121,8 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  ## deps.check
+
   test "checks list of dependencies and their status with success" do
     Mix.Project.push SuccessfulDepsApp
 
@@ -172,6 +176,8 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end
   end
+
+  ## deps.unlock
 
   test "unlocks all deps" do
     Mix.Project.push DepsApp
@@ -554,6 +560,8 @@ defmodule Mix.Tasks.DepsTest do
       refute_received {:mix_shell, :info, [^msg]}
     end
   end
+
+  ## deps.clean
 
   defmodule CleanDepsApp do
     def project do
