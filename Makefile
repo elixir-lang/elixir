@@ -5,6 +5,7 @@ ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
 ERLC := erlc -I lib/elixir/include
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 VERSION := $(strip $(shell cat VERSION))
+PROCESSOR := $(strip $(shell uname -p))
 Q := @
 LIBDIR := lib
 INSTALL = install
@@ -170,9 +171,9 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 #==> Release tasks
 
 release_precompiled: build_man compile
-	rm -rf Precompiled-v$(VERSION).zip
-	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
-	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
+	rm -rf Precompiled-v$(VERSION)-$(PROCESSOR).zip
+	zip -9 -r Precompiled-v$(VERSION)-$(PROCESSOR).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
+	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION)-$(PROCESSOR).zip"
 
 release_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
