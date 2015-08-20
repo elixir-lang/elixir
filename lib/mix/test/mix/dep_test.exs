@@ -292,8 +292,7 @@ defmodule Mix.DepTest do
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
         Mix.Tasks.Deps.run([])
-        assert_received {:mix_shell, :info,
-                         ["* git_repo (/Users/jose/OSS/elixir/lib/mix/test/fixtures/git_repo)"]}
+        assert_received {:mix_shell, :info, ["* git_repo" <> _]}
         assert_received {:mix_shell, :info, [msg]}
         assert msg =~ "Remove the :only restriction from your dep"
       end
@@ -372,8 +371,7 @@ defmodule Mix.DepTest do
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
         Mix.Tasks.Deps.run([])
-        assert_received {:mix_shell, :info,
-                         ["* git_repo (/Users/jose/OSS/elixir/lib/mix/test/fixtures/git_repo)"]}
+        assert_received {:mix_shell, :info, ["* git_repo" <> _]}
         assert_received {:mix_shell, :info, [msg]}
         assert msg =~ "Ensure the parent dependency specifies a superset of the child one"
       end
