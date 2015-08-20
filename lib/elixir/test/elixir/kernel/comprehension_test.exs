@@ -38,6 +38,11 @@ defmodule Kernel.ComprehensionTest do
     assert for({_, x} <- 1..3, do: x * 2) == []
   end
 
+  test "for comprehensions with pin" do
+    x = 5
+    assert for([^x|t] <- [[4, 2], [5, 6, 7]], do: t) == [[6, 7]]
+  end
+
   test "for comprehensions with filters" do
     assert for(x <- 1..3, x > 1, x < 3, do: x * 2) == [4]
   end
@@ -147,6 +152,11 @@ defmodule Kernel.ComprehensionTest do
     assert for({_, x} <- [1, 2, a: 3, b: 4, c: 5], do: x * 2) == [6, 8, 10]
   end
 
+  test "list for comprehensions with pin" do
+    key = :k
+    assert for({^key, x} <- [1, 2, k: 3, b: 4, k: [5]], do: x) == [3, [5]]
+  end
+
   test "list for comprehension matched to '_' on last line of block" do
     assert (if true do
       _ = for x <- [1, 2, 3], do: x * 2
@@ -196,6 +206,11 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions" do
     bin = <<1, 2, 3>>
     assert for(<< x <- bin >>, do: x * 2) == [2, 4, 6]
+  end
+
+  test "binary for comprehensions with pin" do
+    {bin, x} = {<<1, 2, 3>>, 2}
+    assert for(<< ^x <- bin >>, do: x * 2) == [4]
   end
 
   test "binary for comprehensions with inner binary" do

@@ -98,13 +98,18 @@ translate_gen(ForMeta, _, _, S) ->
 
 translate_gen(_Meta, Left, Right, T, S) ->
   {TRight, SR} = elixir_translator:translate(Right, S),
-  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  {TT, {TFilters, TS}} = translate_filters(T, SL),
+  {PLeft, TP} = handle_pins(Left, T, SR),
+  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, PLeft, SR),
+  {TT, {TFilters, TS}} = translate_filters(TP, SL),
   {TLeft, TRight, TFilters, TT, TS}.
-
 translate_filters(T, S) ->
   {Filters, Rest} = collect_filters(T, []),
   {Rest, lists:mapfoldr(fun translate_filter/2, S, Filters)}.
+
+%% Turn a pin into an == filter
+translate_filter({pin, Var, PinVar}, S) ->
+  {ReduceVar, RS} = elixir_translator:translate(Var, S),
+  {{nil,{op,1,'==',ReduceVar,PinVar}}, RS};
 
 translate_filter(Filter, S) ->
   {TFilter, TS} = elixir_translator:translate(Filter, S),
@@ -115,6 +120,18 @@ translate_filter(Filter, S) ->
       {Name, _, VS} = elixir_scope:build_var('_', TS),
       {{{var, 0, Name}, TFilter}, VS}
   end.
+
+%% Track the var in current scope, remove the pin.
+handle_pins({'^',_,[Var]} = Pin, Filters, S) ->
+  {PinVar = {var,_,_}, _} = elixir_clauses:match(fun elixir_translator:translate/2, Pin, S),
+  {Var, [{pin, Var, PinVar}|Filters]};
+handle_pins(List, Filters, S) when is_list(List) ->
+  lists:mapfoldl(fun(N, Fltrs) -> handle_pins(N, Fltrs, S) end, Filters, List);
+handle_pins(Tup, Filters, S) when is_tuple(Tup) ->
+  {L, F} = lists:mapfoldl(fun(N, Fltrs) -> handle_pins(N, Fltrs, S) end, Filters, tuple_to_list(Tup)),
+  {list_to_tuple(L), F};
+handle_pins(Other, Filters, _S) ->
+  {Other, Filters}.
 
 collect_filters([{'<-', _, [_, _]}|_] = T, Acc) ->
   {Acc, T};
