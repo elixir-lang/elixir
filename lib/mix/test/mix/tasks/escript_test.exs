@@ -122,7 +122,7 @@ defmodule Mix.Tasks.EscriptTest do
   test "generate escript with consolidated protocols" do
     Mix.Project.push EscriptConsolidated
 
-    in_fixture "escripttest_protocols", fn ->
+    in_fixture "escripttest", fn ->
       Mix.Tasks.Escript.Build.run []
       assert_received {:mix_shell, :info, ["Generated escript escripttestconsolidated with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escripttestconsolidated", "Enumerable"]) == {"true\n", 0}

@@ -227,16 +227,6 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "only fetch child deps matching prod env" do
-    with_deps [{:only_deps, path: fixture_path("only_deps")}], fn ->
-      in_fixture "deps_status", fn ->
-        Mix.Tasks.Deps.Get.run([])
-        message = "* Getting git_repo (#{fixture_path("git_repo")})"
-        refute_received {:mix_shell, :info, [^message]}
-      end
-    end
-  end
-
   test "only fetch parent deps matching specified env" do
     with_deps [{:only, github: "elixir-lang/only", only: [:dev]}], fn ->
       in_fixture "deps_status", fn ->
@@ -253,6 +243,36 @@ defmodule Mix.DepTest do
     end
   end
 
+  test "nested deps selects only prod dependencies" do
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"}]
+
+    with_deps deps, fn ->
+      in_fixture "deps_status", fn ->
+        File.write! "custom/deps_repo/mix.exs", """
+        defmodule DepsRepo do
+          use Mix.Project
+
+          def project do
+            [
+              app: :deps_repo,
+              version: "0.1.0",
+              deps: [
+                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}
+              ]
+            ]
+          end
+        end
+        """
+
+        loaded = Mix.Dep.loaded([])
+        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
+
+        loaded = Mix.Dep.loaded([env: :test])
+        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
+      end
+    end
+  end
+
   test "nested deps on only conflict" do
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}]
@@ -263,11 +283,11 @@ defmodule Mix.DepTest do
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :dev])
+        loaded = Mix.Dep.loaded([env: :dev])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :test])
+        loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
@@ -295,7 +315,7 @@ defmodule Mix.DepTest do
               app: :deps_repo,
               version: "0.1.0",
               deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}
+                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :prod}
               ]
             ]
           end
@@ -306,18 +326,18 @@ defmodule Mix.DepTest do
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :dev])
-        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        loaded = Mix.Dep.loaded([env: :dev])
+        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :test])
+        loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
       end
     end
   end
 
-test "nested deps with invalid only subset" do
+  test "nested deps with invalid only subset" do
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: [:test]}]
 
@@ -343,11 +363,11 @@ test "nested deps with invalid only subset" do
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :dev])
+        loaded = Mix.Dep.loaded([env: :dev])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
-        loaded = Mix.Dep.loaded([only: :test])
+        loaded = Mix.Dep.loaded([env: :test])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
