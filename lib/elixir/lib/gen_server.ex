@@ -110,7 +110,10 @@ defmodule GenServer do
       If part of a supervision tree, terminate only gets called if the
       GenServer is set to trap exits using `Process.flag/2` *and*
       the shutdown strategy of the Supervisor is a timeout value,
-      not `:brutal_kill`.
+      not `:brutal_kill`. The callback is also not invoked if links
+      are broken unless trapping exits. For such reasons, we usually
+      recommend important clean-up rules to happen in separated
+      processes either by use of monitoring or by links themselves.
 
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
@@ -204,6 +207,14 @@ defmodule GenServer do
   In practice, it is common to have both server and client functions in
   the same module. If the server and/or client implementations are growing
   complex, you may want to have them in different modules.
+
+  ## Receiving custom messages
+
+  The goal of a `GenServer` is to abstract the "receive" loop for developers,
+  automatically handling system messages, support code change, synchronous
+  calls and more. Therefore, you should never call your own "receive" inside
+  the GenServer callbacks as doing so will cause the GenServer to misbehave.
+  If you want to receive custom messages, always receive them in `handle_info/2`.
 
   ## Learn more
 
