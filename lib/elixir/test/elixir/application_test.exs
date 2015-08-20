@@ -26,7 +26,10 @@ defmodule ApplicationTest do
     assert Application.get_all_keys(:unknown) == []
 
     assert Application.get_key(:elixir, :description) == 'elixir'
-    assert Application.get_key(:elixir, :unknown) == :error
+    assert Application.get_key(:elixir, :unknown) == nil
+
+    assert Application.fetch_key(:elixir, :description) == {:ok, 'elixir'}
+    assert Application.fetch_key(:elixir, :unknown) == :error
   end
 
   test "application directory" do

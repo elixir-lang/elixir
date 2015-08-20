@@ -206,12 +206,26 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s specification.
 
-  If the configuration parameter does not exist, the function returns :undefined.
+  If the configuration parameter does not exist, the function returns the
+  `default` value.
   """
-  @spec get_key(app, key) :: value | :error
-  def get_key(app, key) do
-    case :application.get_key(app, key) do
+  @spec get_key(app, key, value) :: value
+  def get_key(app, key, default \\ nil) do
+    case fetch_key(app, key) do
       {:ok, value} -> value
+      :error -> default
+    end
+  end
+
+  @doc """
+  Returns the value for `key` in `app`'s specification in a tuple.
+
+  If the configuration parameter does not exist, the function returns `:error`.
+  """
+  @spec fetch_key(app, key) :: {:ok, value} | :error
+  def fetch_key(app, key) do
+    case :application.get_key(app, key) do
+      {:ok, value} -> {:ok, value}
       :undefined -> :error
     end
   end
