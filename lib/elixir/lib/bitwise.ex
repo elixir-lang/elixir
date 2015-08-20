@@ -188,7 +188,7 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the result of an arithmetic left bitshift.
+  Infix operator; calculates the result of an arithmetic right bitshift.
 
       iex> 1 >>> 2
       0
