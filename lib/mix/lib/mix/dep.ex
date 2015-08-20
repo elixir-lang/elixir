@@ -71,7 +71,7 @@ defmodule Mix.Dep do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(otps), to: Mix.Dep.Loader
+  defdelegate children(), to: Mix.Dep.Loader
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` struct.
@@ -180,19 +180,34 @@ defmodule Mix.Dep do
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
+  end
+
+  def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
+    recommendation =
+      if Keyword.has_key?(other.opts, :only) do
+        "Ensure the parent dependency specifies a superset of the child one in"
+      else
+        "Remove the :only restriction from"
+      end
+
+    "the dependency #{app} defined\n" <>
+    "#{dep_status(dep)}" <>
+    "\n  does not match the environments specified in :only by\n" <>
+    "#{dep_status(other)}" <>
+    "\n  #{recommendation} your dep"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
@@ -261,10 +276,11 @@ defmodule Mix.Dep do
   Checks if a dependency is available. Available dependencies
   are the ones that can be loaded.
   """
+  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
   def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
   def available?(%Mix.Dep{status: {:diverged, _}}),     do: false
   def available?(%Mix.Dep{status: {:divergedreq, _}}),  do: false
-  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
+  def available?(%Mix.Dep{status: {:divergedonly, _}}), do: false
   def available?(%Mix.Dep{}), do: true
 
   @doc """
