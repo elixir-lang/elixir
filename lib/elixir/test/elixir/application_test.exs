@@ -21,6 +21,20 @@ defmodule ApplicationTest do
     assert Application.get_env(:elixir, :unknown, :default) == :default
   end
 
+  test "application information" do
+    started = Application.started_applications
+    assert is_list(started)
+    assert {:elixir, 'elixir', _} = List.keyfind(started, :elixir, 0)
+
+    started_timeout = Application.started_applications(7000)
+    assert is_list(started_timeout)
+    assert {:elixir, 'elixir', _} = List.keyfind(started_timeout, :elixir, 0)
+
+    loaded = Application.loaded_applications
+    assert is_list(loaded)
+    assert {:elixir, 'elixir', _} = List.keyfind(loaded, :elixir, 0)
+  end
+
   test "application directory" do
     root = Path.expand("../../../..", __DIR__)
     assert String.downcase(Application.app_dir(:elixir)) ==
