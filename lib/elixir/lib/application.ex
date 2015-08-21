@@ -334,6 +334,22 @@ defmodule Application do
   end
 
   @doc """
+  Returns a list with information about the applications which are currently running.
+  """
+  @spec started_applications(timeout) :: [tuple]
+  def started_applications(timeout \\ 5000) do
+    :application.which_applications(timeout)
+  end
+
+  @doc """
+  Returns a list with information about the applications which have been loaded.
+  """
+  @spec loaded_applications :: [tuple]
+  def loaded_applications do
+    :application.loaded_applications
+  end
+
+  @doc """
   Formats the error reason returned by `start/2`,
   `ensure_started/2`, `stop/1`, `load/1` and `unload/1`,
   returns a string.
