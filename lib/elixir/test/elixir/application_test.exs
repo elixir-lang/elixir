@@ -21,6 +21,17 @@ defmodule ApplicationTest do
     assert Application.get_env(:elixir, :unknown, :default) == :default
   end
 
+  test "application specification" do
+    assert is_list Application.get_all_keys(:elixir)
+    assert Application.get_all_keys(:unknown) == []
+
+    assert Application.get_key(:elixir, :description) == 'elixir'
+    assert Application.get_key(:elixir, :unknown) == nil
+
+    assert Application.fetch_key(:elixir, :description) == {:ok, 'elixir'}
+    assert Application.fetch_key(:elixir, :unknown) == :error
+  end
+
   test "application directory" do
     root = Path.expand("../../../..", __DIR__)
     assert String.downcase(Application.app_dir(:elixir)) ==
