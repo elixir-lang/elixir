@@ -206,7 +206,7 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s specification.
 
-  If the configuration parameter does not exist, the function returns the
+  If the specification parameter does not exist, the function returns the
   `default` value.
   """
   @spec get_key(app, key, value) :: value
@@ -220,7 +220,7 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s specification in a tuple.
 
-  If the configuration parameter does not exist, the function returns `:error`.
+  If the specification parameter does not exist, the function returns `:error`.
   """
   @spec fetch_key(app, key) :: {:ok, value} | :error
   def fetch_key(app, key) do
