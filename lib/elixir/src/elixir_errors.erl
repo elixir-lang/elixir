@@ -6,8 +6,12 @@
   handle_file_warning/2, handle_file_warning/3, handle_file_error/2]).
 -include("elixir.hrl").
 
--spec warn(non_neg_integer(), binary(), unicode:chardata()) -> ok.
+-spec warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
 
+%% Erlang may set line to none in some occasions,
+%% so we convert it to 0 accordingly.
+warn(none, File, Warning) ->
+  warn(0, File, Warning);
 warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
   warn(file_format(Line, File), Warning).
 
