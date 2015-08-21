@@ -75,6 +75,32 @@ defmodule ExUnit.AssertionsTest do
     {2, 1} = (assert {2, 1} = Value.tuple)
   end
 
+  test "assert match?" do
+    true = assert match?({2, 1}, Value.tuple)
+
+    try do
+      "This should never be tested" = assert match?({:ok, _}, error(true))
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (match?) failed" = error.message
+        "match?({:ok, _}, error(true))" = Macro.to_string(error.expr)
+        "{:error, true}" = Macro.to_string(error.right)
+    end
+  end
+
+  test "refute match?" do
+    false = refute match?({1, 1}, Value.tuple)
+
+    try do
+      "This should never be tested" = refute match?({:error, _}, error(true))
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (match?) succeeded, but should have failed" = error.message
+        "match?({:error, _}, error(true))" = Macro.to_string(error.expr)
+        "{:error, true}" = Macro.to_string(error.right)
+    end
+  end
+
   test "assert receive waits" do
     parent = self
     spawn fn -> send parent, :hello end
