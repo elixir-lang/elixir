@@ -101,6 +101,17 @@ defmodule ExUnit.Assertions do
     end
   end
 
+  defmacro assert({:match?, _, [left, right]} = assertion) do
+    code = Macro.escape(assertion)
+    quote do
+      right = unquote(right)
+      assert match?(unquote(left), right),
+        right: right,
+        expr: unquote(code),
+        message: "match (match?) failed"
+    end
+  end
+
   defmacro assert(assertion) do
     case translate_assertion(assertion) do
       nil ->
@@ -130,6 +141,17 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
+  defmacro refute({:match?, _, [left, right]} = assertion) do
+    code = Macro.escape(assertion)
+    quote do
+      right = unquote(right)
+      refute match?(unquote(left), right),
+        right: right,
+        expr: unquote(code),
+        message: "match (match?) succeeded, but should have failed"
+    end
+  end
+
   defmacro refute(assertion) do
     case translate_assertion({:!, [], [assertion]}) do
       nil ->
