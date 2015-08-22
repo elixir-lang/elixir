@@ -13,18 +13,10 @@ defmodule IEx.Introspection do
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        if function_exported?(module, :__info__, 1) do
-          case Code.get_docs(module, :moduledoc) do
-            {_, binary} when is_binary(binary) ->
-              print_doc(inspect(module), binary)
-            {_, _} ->
-              nodocs(inspect module)
-            _ ->
-              puts_error("#{inspect module} was not compiled with docs")
-          end
-        else
-          puts_error("#{inspect module} is an Erlang module and, as such, it does not have Elixir-style docs")
-        end
+        get_docs(module) |>
+        Enum.map( fn { status, doc_list }  -> 
+                    display_doc_list(status, doc_list)  
+                  end )
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
@@ -119,6 +111,72 @@ defmodule IEx.Introspection do
       :no_docs
     end
   end
+
+  @doc """
+  Map over module list and return a list of header, doc tuples.
+  """
+  def get_docs(module) do
+    helpers = IEx.Config.doc_helpers(:helpers)
+    opts = IEx.Config.doc_helpers(:find)
+    case opts do 
+      :first -> 
+        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module) end)
+        case doc_list do 
+          nil -> [{:not_found,{inspect(module),"No documentation found for #{inspect module}"}}]
+          _   -> doc_list
+        end 
+      _ -> 
+        helpers |> Enum.map( fn(mod) -> mod.documentation(module) end)
+        # What about nil result
+    end 
+  end
+
+  @doc """
+  Return nil if mod.documentation returns :unknown
+  """
+  def can_help(mod,module) do
+    {status, doc_list } = mod.documentation(module)
+    case status do
+      :unknown      -> nil 
+      _             -> [{status, doc_list}]
+    end
+  end 
+
+  @doc """
+  Return nil if mod.documentation returns :unknown
+  """
+  def can_help(mod,module,function) do
+    {status, doc_list } = mod.documentation(module,function)
+    case status do
+      :unknown      -> nil 
+      _             -> [{status, doc_list}]
+    end
+  end 
+
+  @doc """
+  Return nil if mod.documentation returns :unknown
+  """
+  def can_help(mod,module,function,arity) do
+    {status, doc_list } = mod.documentation(module,function,arity)
+    case status do
+      :unknown      -> nil 
+      _             -> [{status, doc_list}]
+    end
+  end 
+
+  defp display_doc_list(status, doc_list) do
+    case status do 
+      :found -> 
+        Enum.map(doc_list, fn({header,doc})-> print_doc(header, doc) end ) 
+      :not_found -> 
+        Enum.map(doc_list, fn({header,doc})-> print_error(header, doc) end ) 
+    end 
+  end
+
+  defp print_error(_heading, doc) do
+    doc = doc || ""
+    puts_error(doc)
+  end 
 
   defp find_doc(docs, function, arity, pos) do
     if doc = List.keyfind(docs, {function, arity}, 0) do
