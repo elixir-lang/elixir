@@ -6,21 +6,21 @@ defmodule IEx.H_Erlang_Stub do
   def documentation(module) do 
     case is_erlang?(module) do
       true -> get_doc(module)
-      _  -> {:unknown, [{inspect(module), "" }]} 
+      _    -> {:unknown, [{inspect(module), "" }]} 
     end 
   end 
   
   def documentation(module, function) do 
     case is_erlang?(module) do
       true -> get_doc(module, function)
-      _  -> {:unknown, [{inspect(module), "" }]} 
+      _    -> {:unknown, [{inspect(module), "" }]} 
     end 
   end 
 
   def documentation(module, function,arity) do 
     case is_erlang?(module) do
       true -> get_doc(module, function,arity)
-      _  -> {:unknown, [{inspect(module), "" }]} 
+      _    -> {:unknown, [{inspect(module), "" }]} 
     end 
   end 
   

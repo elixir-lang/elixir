@@ -97,7 +97,7 @@ defmodule IEx.Introspection do
       :first -> 
         doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module) end)
         case doc_list do 
-          nil -> [{:not_found,{inspect(module),"No documentation found for #{inspect module}"}}]
+          nil -> [{:not_found, {inspect(module),"No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
@@ -118,7 +118,7 @@ defmodule IEx.Introspection do
       :first -> 
         doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module, function) end)
         case doc_list do 
-          nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
+          nil -> [{:not_found, {inspect(module), "No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
@@ -139,7 +139,7 @@ defmodule IEx.Introspection do
       :first -> 
         doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module, function, arity) end)
         case doc_list do 
-          nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
+          nil -> [{:not_found, {inspect(module), "No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
@@ -148,8 +148,8 @@ defmodule IEx.Introspection do
         Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
         # What about nil result
     end 
-  end
 
+  end
 
   @doc """
   Return nil if mod.documentation returns :unknown
@@ -157,8 +157,8 @@ defmodule IEx.Introspection do
   def can_help(mod, module) do
     {status, doc_list} = mod.documentation(module)
     case status do
-      :unknown      -> nil 
-      _             -> [{status, doc_list}]
+      :unknown -> nil 
+      _        -> [{status, doc_list}]
     end
   end 
 
@@ -168,8 +168,8 @@ defmodule IEx.Introspection do
   def can_help(mod, module, function) do
     {status, doc_list} = mod.documentation(module, function)
     case status do
-      :unknown      -> nil 
-      _             -> [{status, doc_list}]
+      :unknown -> nil 
+      _        -> [{status, doc_list}]
     end
   end 
 
@@ -179,8 +179,8 @@ defmodule IEx.Introspection do
   def can_help(mod, module, function, arity) do
     {status, doc_list} = mod.documentation(module, function, arity)
     case status do
-      :unknown      -> nil 
-      _             -> [{status, doc_list}]
+      :unknown -> nil 
+      _        -> [{status, doc_list}]
     end
   end 
 

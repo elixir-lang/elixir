@@ -28,7 +28,7 @@ defmodule IEx.HelpersTest do
            "Could not load module :whatever, got: nofile\n"
 
     assert capture_io(fn -> h :lists end) ==
-           ":lists is an Erlang module\n and currently there is no helper installed to provide Erlang documentation\n"
+      ":lists is an Erlang module\n and currently there is no helper installed to provide Erlang documentation\n"
 
   end
 
