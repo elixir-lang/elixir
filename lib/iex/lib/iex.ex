@@ -213,7 +213,7 @@ defmodule IEx do
   Configures IEx.
 
   The supported options are: `:colors`, `:inspect`,
-  `:default_prompt`, `:alive_prompt` and `:history_size`.
+  `:default_prompt`, `:alive_prompt` , `:doc_helpers` and `:history_size`.
 
   ## Colors
 
@@ -254,6 +254,21 @@ defmodule IEx do
 
   Number of expressions and their results to keep in the history.
   The value is an integer. When it is negative, the history is unlimited.
+
+  ## Documentation Helpers
+
+  Documentation Helpers allows iex to have a configurable set of functions
+  for looking up both Elixir and Erlang function documentation. It consists
+  of two values, a list of modules that implement the doc_helper Behaviour,
+  and a flag for whether all the helpers are used or just the first to 
+  respond with either `:found` or `:not_found` status
+
+  The keyword list contains two supported keys: 
+
+    * `:helpers`     - A list of modules that implement the doc_helper Behaviour.
+    * `:find`        - Can have two values `:first` or `:all` (:first)
+
+  See `Iex.DocHelpers` for the full description and default values.
 
   ## Prompt
 
