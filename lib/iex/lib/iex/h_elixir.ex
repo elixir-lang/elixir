@@ -81,9 +81,27 @@ defmodule IEx.H_Elixir do
 
   # Turn this [{:string, [], nil}, {:char, [], nil}] into this (string, char)
   defp stringify_args(args) do
-    inner = args |> Enum.map( fn(tp) -> to_string(elem(tp, 0 ) ) end ) |> Enum.join(", ")
+    inner = args |> Enum.map(fn(tp) -> format_doc_arg(tp) end ) |> Enum.join(", ")
     "("<>inner<>")"
   end 
+
+  defp format_doc_arg({:\\, _, [left, right]}) do
+    format_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
+  end
+
+  defp format_doc_arg({var, _, _}) do
+    Atom.to_string(var)
+  end
+
+  defp find_default_doc(doc, function, min) do
+    case elem(doc, 0) do
+      {^function, max} when max > min ->
+        defaults = Enum.count elem(doc, 3), &match?({:\\, _, _}, &1)
+        min + defaults >= max
+      _ ->
+        false
+    end
+  end
 
   # Not happy about magic numbers in elem.
   defp match_function(docstring, function) do
@@ -92,7 +110,12 @@ defmodule IEx.H_Elixir do
   end 
 
   # Not happy about magic numbers in elem.
+  # To duplicate current iex behaviour this should 
+  # match foo/1 when foo/2 has a default second arg. 
   defp match_function(docstring, function, arity) do 
-    { function, arity} == elem(docstring,0)
+    case {function, arity} == elem(docstring,0) do
+    	true  -> true
+      false -> find_default_doc(docstring, function, arity)
+    end 
   end 
 end
