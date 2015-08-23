@@ -14,9 +14,9 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         get_docs(module) |>
-        Enum.map( fn { status, doc_list }  -> 
+        Enum.map(fn {status, doc_list} -> 
                     display_doc_list(status, doc_list)  
-                  end )
+                  end)
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
     end
@@ -39,34 +39,23 @@ defmodule IEx.Introspection do
     result = modules |>
     Enum.find_value fn(module) -> 
                       helpers |> 
-                      Enum.find_value( fn(mod) -> can_help(mod,module,function) end)
+                      Enum.find_value(fn(mod) -> can_help(mod, module, function) end)
                  end 
     case result do 
       [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
-      _                    -> print_error(result, "No documentation for #{to_string(function)} was found" )
+      _                    -> 
+              print_error(result, "No documentation for #{to_string(function)} was found")
     end 
 
     dont_display_result
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
-    get_docs(module,function) |>
-        Enum.map( fn { status, doc_list }  -> 
-                     display_doc_list(status, doc_list)  
-                  end )
+    get_docs(module, function) |>
+        Enum.map(fn {status, doc_list} -> 
+                    display_doc_list(status, doc_list)  
+                  end)
     dont_display_result
-  end
-
-  defp h_mod_fun(mod, fun) when is_atom(mod) do
-    if docs = Code.get_docs(mod, :docs) do
-      result = for {{f, arity}, _line, _type, _args, doc} <- docs, fun == f, doc != false do
-        h(mod, fun, arity)
-      end
-
-      if result != [], do: :ok, else: :not_found
-    else
-      :no_docs
-    end
   end
 
   @doc """
@@ -78,11 +67,12 @@ defmodule IEx.Introspection do
     result = modules |>
     Enum.find_value fn(module) -> 
                       helpers |> 
-                      Enum.find_value( fn(mod) -> can_help(mod,module,function,arity) end)
-                 end 
+                      Enum.find_value(fn(mod) -> can_help(mod, module, function, arity) end)
+                    end 
     case result do 
       [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
-      _                    -> print_error(result, "No documentation for #{to_string(function)}/#{inspect(arity)} was found" )
+      _                    -> 
+        print_error(result, "No documentation for #{to_string(function)}/#{inspect(arity)} was found" )
     end 
 
     dont_display_result
@@ -90,27 +80,11 @@ defmodule IEx.Introspection do
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     get_docs(module, function, arity) |>
-    Enum.map( fn { status, doc_list }  -> 
+    Enum.map(fn {status, doc_list}  -> 
                        display_doc_list(status, doc_list) 
-                  end )
+                  end)
 
     dont_display_result
-  end
-
-  defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
-    if docs = Code.get_docs(mod, :docs) do
-      doc = find_doc(docs, fun, arity, 4)
-            || find_default_doc(docs, fun, arity)
-
-      if doc do
-        print_doc(doc)
-        :ok
-      else
-        :not_found
-      end
-    else
-      :no_docs
-    end
   end
 
   @doc """
@@ -121,13 +95,15 @@ defmodule IEx.Introspection do
     opts = IEx.Config.doc_helpers(:find)
     case opts do 
       :first -> 
-        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module) end)
+        doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module) end)
         case doc_list do 
           nil -> [{:not_found,{inspect(module),"No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
-        helpers |> Enum.map( fn(mod) -> mod.documentation(module) end)
+        helpers |> 
+        Enum.map(fn(mod) -> mod.documentation(module) end) |>
+        Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
         # What about nil result
     end 
   end
@@ -140,13 +116,15 @@ defmodule IEx.Introspection do
     opts = IEx.Config.doc_helpers(:find)
     case opts do 
       :first -> 
-        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module,function) end)
+        doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module, function) end)
         case doc_list do 
           nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
-        helpers |> Enum.map( fn(mod) -> mod.documentation(module,function) end)
+        helpers |> 
+        Enum.map(fn(mod) -> mod.documentation(module, function) end) |>
+        Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
         # What about nil result
     end 
   end
@@ -159,13 +137,15 @@ defmodule IEx.Introspection do
     opts = IEx.Config.doc_helpers(:find)
     case opts do 
       :first -> 
-        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module,function,arity) end)
+        doc_list = helpers |> Enum.find_value(fn(mod) -> can_help(mod, module, function, arity) end)
         case doc_list do 
           nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
           _   -> doc_list
         end 
       _ -> 
-        helpers |> Enum.map( fn(mod) -> mod.documentation(module,function,arity) end)
+        helpers |> 
+        Enum.map(fn(mod) -> mod.documentation(module, function, arity) end) |>
+        Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
         # What about nil result
     end 
   end
@@ -174,8 +154,8 @@ defmodule IEx.Introspection do
   @doc """
   Return nil if mod.documentation returns :unknown
   """
-  def can_help(mod,module) do
-    {status, doc_list } = mod.documentation(module)
+  def can_help(mod, module) do
+    {status, doc_list} = mod.documentation(module)
     case status do
       :unknown      -> nil 
       _             -> [{status, doc_list}]
@@ -185,8 +165,8 @@ defmodule IEx.Introspection do
   @doc """
   Return nil if mod.documentation returns :unknown
   """
-  def can_help(mod,module,function) do
-    {status, doc_list } = mod.documentation(module,function)
+  def can_help(mod, module, function) do
+    {status, doc_list} = mod.documentation(module, function)
     case status do
       :unknown      -> nil 
       _             -> [{status, doc_list}]
@@ -196,8 +176,8 @@ defmodule IEx.Introspection do
   @doc """
   Return nil if mod.documentation returns :unknown
   """
-  def can_help(mod,module,function,arity) do
-    {status, doc_list } = mod.documentation(module,function,arity)
+  def can_help(mod, module, function, arity) do
+    {status, doc_list} = mod.documentation(module, function, arity)
     case status do
       :unknown      -> nil 
       _             -> [{status, doc_list}]
@@ -207,9 +187,9 @@ defmodule IEx.Introspection do
   defp display_doc_list(status, doc_list) do
     case status do 
       :found -> 
-        Enum.map(doc_list, fn({header,doc})-> print_doc(header, doc) end ) 
+        Enum.map(doc_list, fn({header, doc}) -> print_doc(header, doc) end) 
       :not_found -> 
-        Enum.map(doc_list, fn({header,doc})-> print_error(header, doc) end ) 
+        Enum.map(doc_list, fn({header, doc}) -> print_error(header, doc) end) 
     end 
   end
 
@@ -217,33 +197,6 @@ defmodule IEx.Introspection do
     doc = doc || ""
     puts_error(doc)
   end 
-
-  defp find_doc(docs, function, arity, pos) do
-    if doc = List.keyfind(docs, {function, arity}, 0) do
-      case elem(doc, pos) do
-        false -> nil
-        _ -> doc
-      end
-    end
-  end
-
-  defp find_default_doc(docs, function, min) do
-    Enum.find docs, fn(doc) ->
-      case elem(doc, 0) do
-        {^function, max} when max > min ->
-          defaults = Enum.count elem(doc, 3), &match?({:\\, _, _}, &1)
-          min + defaults >= max
-        _ ->
-          false
-      end
-    end
-  end
-
-  defp print_doc({{fun, _}, _line, kind, args, doc}) do
-    args = Enum.map_join(args, ", ", &format_doc_arg(&1))
-
-    print_doc("#{kind} #{fun}(#{args})", doc)
-  end
 
   defp print_doc(heading, doc) do
     doc = doc || ""
@@ -254,14 +207,6 @@ defmodule IEx.Introspection do
       IO.puts "* #{heading}\n"
       IO.puts doc
     end
-  end
-
-  defp format_doc_arg({:\\, _, [left, right]}) do
-    format_doc_arg(left) <> " \\\\ " <> Macro.to_string(right)
-  end
-
-  defp format_doc_arg({var, _, _}) do
-    Atom.to_string(var)
   end
 
   @doc """
