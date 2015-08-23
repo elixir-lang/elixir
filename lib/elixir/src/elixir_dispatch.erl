@@ -261,11 +261,9 @@ is_import(Meta) ->
     {import, _} = Import ->
       case lists:keyfind(context, 1, Meta) of
         {context, _} -> Import;
-        false ->
-          false
+        false -> false
       end;
-    false ->
-      false
+    false -> false
   end.
 
 % %% We've reached the macro wrapper fun, skip it with the rest
