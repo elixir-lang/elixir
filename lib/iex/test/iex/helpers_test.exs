@@ -29,7 +29,6 @@ defmodule IEx.HelpersTest do
 
     assert capture_io(fn -> h :lists end) ==
       ":lists is an Erlang module\n and currently there is no helper installed to provide Erlang documentation\n"
-
   end
 
   test "h helper function" do

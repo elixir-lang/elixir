@@ -1,7 +1,6 @@
 defmodule IEx.H_Elixir do
 
   @moduledoc """
-  An initial pass at converting h to use the dynamic backends.
 	This module duplicates the prior behaviour of the iex h
 	command using the new dynamic backend interface. 
 	"""

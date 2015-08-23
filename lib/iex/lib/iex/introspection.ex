@@ -83,6 +83,7 @@ defmodule IEx.Introspection do
     Enum.map(fn {status, doc_list}  -> 
                        display_doc_list(status, doc_list) 
                   end)
+
     dont_display_result
   end
 
