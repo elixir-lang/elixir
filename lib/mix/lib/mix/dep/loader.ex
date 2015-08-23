@@ -62,7 +62,7 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    %{validate_app(dep) | deps: children}
+    %{validate_app(dep) | deps: attach_only(children, opts)}
   end
 
   @doc """
@@ -207,6 +207,24 @@ defmodule Mix.Dep.Loader do
   end
 
   ## Fetching
+
+  # We need to override the dependencies so they mirror
+  # the :only requirement in the parent. Furthermore, if
+  # a dependency has :only, we must remove it as deps
+  # always run in a given environment (which does not
+  # necessarily mirror the application one unless
+  # configured otherwise).
+  defp attach_only(deps, opts) do
+    if only = opts[:only] do
+      Enum.map(deps, fn %{opts: opts} = dep ->
+        %{dep | opts: Keyword.put(opts, :only, only)}
+      end)
+    else
+      Enum.map(deps, fn %{opts: opts} = dep ->
+        %{dep | opts: Keyword.delete(opts, :only)}
+      end)
+    end
+  end
 
   defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->

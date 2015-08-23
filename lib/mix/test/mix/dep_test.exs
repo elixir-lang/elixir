@@ -300,36 +300,23 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with valid only subset" do
-    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :prod},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: [:prod, :test]}]
 
     with_deps deps, fn ->
       in_fixture "deps_status", fn ->
-        File.write! "custom/deps_repo/mix.exs", """
-        defmodule DepsRepo do
-          use Mix.Project
-
-          def project do
-            [
-              app: :deps_repo,
-              version: "0.1.0",
-              deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :prod}
-              ]
-            ]
-          end
-        end
-        """
-
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :dev])
-        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [] = Enum.map(loaded, &(&1.app))
 
         loaded = Mix.Dep.loaded([env: :test])
+        assert [:git_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :prod])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
       end
@@ -337,27 +324,11 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with invalid only subset" do
-    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :dev},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: [:test]}]
 
     with_deps deps, fn ->
       in_fixture "deps_status", fn ->
-        File.write! "custom/deps_repo/mix.exs", """
-        defmodule DepsRepo do
-          use Mix.Project
-
-          def project do
-            [
-              app: :deps_repo,
-              version: "0.1.0",
-              deps: [
-                {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :prod}
-              ]
-            ]
-          end
-        end
-        """
-
         loaded = Mix.Dep.loaded([])
         assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
@@ -367,8 +338,8 @@ defmodule Mix.DepTest do
         assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
 
         loaded = Mix.Dep.loaded([env: :test])
-        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
-        assert [divergedonly: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+        assert [:git_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _] = Enum.map(loaded, &(&1.status))
 
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* git_repo" <> _]}

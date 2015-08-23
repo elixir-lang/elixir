@@ -176,7 +176,7 @@ defmodule Mix.Dep do
     do: "the dependency build is outdated, please run `#{mix_env_var}mix deps.compile`"
 
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
-    "the dependency #{app} defined\n" <>
+    "the dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>
@@ -191,9 +191,9 @@ defmodule Mix.Dep do
         "Remove the :only restriction from"
       end
 
-    "the dependency #{app} defined\n" <>
+    "the dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
-    "\n  does not match the environments specified in :only by\n" <>
+    "\n  does not match the environments calculated for\n" <>
     "#{dep_status(other)}" <>
     "\n  #{recommendation} your dep"
   end
