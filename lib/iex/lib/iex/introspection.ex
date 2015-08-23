@@ -83,7 +83,6 @@ defmodule IEx.Introspection do
     Enum.map(fn {status, doc_list}  -> 
                        display_doc_list(status, doc_list) 
                   end)
-
     dont_display_result
   end
 
@@ -148,7 +147,6 @@ defmodule IEx.Introspection do
         Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
         # What about nil result
     end 
-
   end
 
   @doc """
