@@ -101,11 +101,12 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defmacro assert({:match?, _, [left, right]} = assertion) do
-    code = Macro.escape(assertion)
+  defmacro assert({:match?, meta, [left, right]} = assertion) do
+    code   = Macro.escape(assertion)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     quote do
       right = unquote(right)
-      assert match?(unquote(left), right),
+      assert unquote(match?),
         right: right,
         expr: unquote(code),
         message: "match (match?) failed"
@@ -141,11 +142,12 @@ defmodule ExUnit.Assertions do
       refute age < 0
 
   """
-  defmacro refute({:match?, _, [left, right]} = assertion) do
-    code = Macro.escape(assertion)
+  defmacro refute({:match?, meta, [left, right]} = assertion) do
+    code   = Macro.escape(assertion)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     quote do
       right = unquote(right)
-      refute match?(unquote(left), right),
+      refute unquote(match?),
         right: right,
         expr: unquote(code),
         message: "match (match?) succeeded, but should have failed"
@@ -176,12 +178,13 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({operator, _, [left, right]} = expr) when operator in @operator  do
+  defp translate_assertion({operator, meta, [left, right]} = expr) when operator in @operator  do
     expr = Macro.escape(expr)
+    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert unquote(operator)(left, right),
+      assert unquote(call),
              left: left,
              right: right,
              expr: unquote(expr),
@@ -189,12 +192,13 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({:!, [], [{operator, _, [left, right]} = expr]}) when operator in @operator do
+  defp translate_assertion({:!, _, [{operator, meta, [left, right]} = expr]}) when operator in @operator do
     expr = Macro.escape(expr)
+    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert not(unquote(operator)(left, right)),
+      assert not(unquote(call)),
              left: left,
              right: right,
              expr: unquote(expr),
