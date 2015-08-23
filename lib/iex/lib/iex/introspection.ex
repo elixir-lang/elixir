@@ -30,29 +30,30 @@ defmodule IEx.Introspection do
 
   @doc """
   Prints the documentation for the given function
-  with any arity in the list of modules.
+  with any arity in the list of modules. 
+
+  Used to find functions that either iex commands or kernel functions.
   """
   def h(modules, function) when is_list(modules) and is_atom(function) do
-    result =
-      Enum.find_value modules, false, fn module ->
-        h_mod_fun(module, function) == :ok
-      end
-
-    unless result, do: nodocs(function)
+    helpers = IEx.Config.doc_helpers(:helpers)
+    result = modules |>
+    Enum.find_value fn(module) -> 
+                      helpers |> 
+                      Enum.find_value( fn(mod) -> can_help(mod,module,function) end)
+                 end 
+    case result do 
+      [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
+      _                    -> print_error(result, "No documentation for #{to_string(function)} was found" )
+    end 
 
     dont_display_result
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
-    case h_mod_fun(module, function) do
-      :ok ->
-        :ok
-      :no_docs ->
-        puts_error("#{inspect module} was not compiled with docs")
-      :not_found ->
-        nodocs("#{inspect module}.#{function}")
-    end
-
+    get_docs(module,function) |>
+        Enum.map( fn { status, doc_list }  -> 
+                     display_doc_list(status, doc_list)  
+                  end )
     dont_display_result
   end
 
@@ -73,25 +74,25 @@ defmodule IEx.Introspection do
   and arity in the list of modules.
   """
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
-    result =
-      Enum.find_value modules, false, fn module ->
-        h_mod_fun_arity(module, function, arity) == :ok
-      end
-
-    unless result, do: nodocs("#{function}/#{arity}")
+    helpers = IEx.Config.doc_helpers(:helpers)
+    result = modules |>
+    Enum.find_value fn(module) -> 
+                      helpers |> 
+                      Enum.find_value( fn(mod) -> can_help(mod,module,function,arity) end)
+                 end 
+    case result do 
+      [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
+      _                    -> print_error(result, "No documentation for #{to_string(function)}/#{inspect(arity)} was found" )
+    end 
 
     dont_display_result
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
-    case h_mod_fun_arity(module, function, arity) do
-      :ok ->
-        :ok
-      :no_docs ->
-        puts_error("#{inspect module} was not compiled with docs")
-      :not_found ->
-        nodocs("#{inspect module}.#{function}/#{arity}")
-    end
+    get_docs(module, function, arity) |>
+    Enum.map( fn { status, doc_list }  -> 
+                       display_doc_list(status, doc_list) 
+                  end )
 
     dont_display_result
   end
@@ -113,7 +114,7 @@ defmodule IEx.Introspection do
   end
 
   @doc """
-  Map over module list and return a list of header, doc tuples.
+  Map over helpers and return a list of header, doc tuples.
   """
   def get_docs(module) do
     helpers = IEx.Config.doc_helpers(:helpers)
@@ -130,6 +131,45 @@ defmodule IEx.Introspection do
         # What about nil result
     end 
   end
+
+  @doc """
+  Map over helpers and return a list of header, doc tuples.
+  """
+  def get_docs(module, function) do
+    helpers = IEx.Config.doc_helpers(:helpers)
+    opts = IEx.Config.doc_helpers(:find)
+    case opts do 
+      :first -> 
+        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module,function) end)
+        case doc_list do 
+          nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
+          _   -> doc_list
+        end 
+      _ -> 
+        helpers |> Enum.map( fn(mod) -> mod.documentation(module,function) end)
+        # What about nil result
+    end 
+  end
+
+  @doc """
+  Map over helpers and return a list of header, doc tuples.
+  """
+  def get_docs(module, function, arity) do
+    helpers = IEx.Config.doc_helpers(:helpers)
+    opts = IEx.Config.doc_helpers(:find)
+    case opts do 
+      :first -> 
+        doc_list = helpers |> Enum.find_value( fn(mod) -> can_help(mod,module,function,arity) end)
+        case doc_list do 
+          nil -> [{:not_found,{inspect(module), "No documentation found for #{inspect module}"}}]
+          _   -> doc_list
+        end 
+      _ -> 
+        helpers |> Enum.map( fn(mod) -> mod.documentation(module,function,arity) end)
+        # What about nil result
+    end 
+  end
+
 
   @doc """
   Return nil if mod.documentation returns :unknown
