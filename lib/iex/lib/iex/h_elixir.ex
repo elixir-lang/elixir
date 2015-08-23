@@ -1,5 +1,5 @@
 defmodule IEx.H_Elixir do
-	@moduledoc """
+  @moduledoc """
 	This module duplicates the prior behaviour of the iex h
 	command using the new dynamic backend Behaviour. 
 	"""
@@ -7,21 +7,21 @@ defmodule IEx.H_Elixir do
 	def documentation(module) do 
 		case is_elixir?(module) do
 			true -> get_doc(module)
-			_	 -> { :unknown, [{inspect( module), ""}]} 
+			_	 -> {:unknown, [{inspect( module), ""}]} 
 		end 
 	end 
 
 	def documentation(module, function) do 
 		case is_elixir?(module) do
 			true -> get_doc(module, function)
-			_	 -> { :unknown, [{inspect( module), ""}]} 
+			_	 -> {:unknown, [{inspect( module), ""}]} 
 		end 
 	end 
 
   def documentation(module, function, arity) do 
     case is_elixir?(module) do
       true -> get_doc(module, function, arity)
-      _  -> { :unknown, [{inspect( module), ""}]} 
+      _  -> {:unknown, [{inspect( module), ""}]} 
     end 
   end 
 
@@ -32,17 +32,17 @@ defmodule IEx.H_Elixir do
 	end
 
 	def get_doc(module) when is_atom(module) do
-		{ _line, doc } = Code.get_docs(module, :moduledoc)
+		{_line, doc} = Code.get_docs(module, :moduledoc)
 		case doc do 
-			nil -> { :not_found, [{ inspect(module), "No moduledocs found\n"}] }
-			_   -> { :found, [{ inspect(module), doc}] }
+			nil -> {:not_found, [{inspect(module), "No moduledocs found\n"}]}
+			_   -> {:found, [{inspect(module), doc}]}
 		end 
 	end 
 
 	def get_doc(module, function) when is_atom(module) and is_atom(function) do
 		docs = Code.get_docs(module, :docs)
 		case docs do 
-			nil -> { :not_found, [{ "#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}] }
+			nil -> {:not_found, [{"#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}]}
 			_   -> find_doc(docs, module, function)
 		end 
 	end 
@@ -50,26 +50,26 @@ defmodule IEx.H_Elixir do
   def get_doc(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
     docs = Code.get_docs(module, :docs)
     case docs do 
-      nil -> { :not_found, [{ "#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}] }
+      nil -> {:not_found, [{"#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}]}
       _   -> find_doc(docs, module, function, arity)
     end 
   end 
 
 	#  match on all arities.
 	def find_doc(docs, module ,function) do
-		doc_list = docs |> Enum.filter( fn(x) -> match_function(x, function) end ) 
+		doc_list = docs |> Enum.filter(fn(x) -> match_function(x, function) end) 
 		case doc_list do 
-			[] -> { :not_found, [{ "#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}] }
-			_  -> { :found, get_docstrings(doc_list) }
+			[] -> {:not_found, [{"#{inspect module}.#{function}", "No documentation for #{inspect module}.#{function} found\n"}]}
+			_  -> {:found, get_docstrings(doc_list)}
 		end 
 	end 
 
   #  match on all arities.
-  def find_doc(docs, module ,function, arity ) do
-    doc_list = docs |> Enum.filter( fn(x) -> match_function(x, function, arity) end ) 
+  def find_doc(docs, module ,function, arity) do
+    doc_list = docs |> Enum.filter(fn(x) -> match_function(x, function, arity) end) 
     case doc_list do 
-      [] -> { :not_found, [{ "#{inspect module}.#{function}/#{arity}", "No documentation for #{inspect module}.#{function}/#{arity} found\n"}] }
-      _  -> { :found, get_docstrings(doc_list) }
+      [] -> {:not_found, [{"#{inspect module}.#{function}/#{arity}", "No documentation for #{inspect module}.#{function}/#{arity} found\n"}]}
+      _  -> {:found, get_docstrings(doc_list) }
     end 
   end 
 
@@ -81,7 +81,7 @@ defmodule IEx.H_Elixir do
 
   # Turn this [{:string, [], nil}, {:char, [], nil}] into this (string, char)
   defp stringify_args(args) do
-    inner = args |> Enum.map(fn(tp) -> format_doc_arg(tp) end ) |> Enum.join(", ")
+    inner = args |> Enum.map(fn(tp) -> format_doc_arg(tp) end) |> Enum.join(", ")
     "("<>inner<>")"
   end 
 
