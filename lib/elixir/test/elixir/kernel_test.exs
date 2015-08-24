@@ -502,6 +502,28 @@ defmodule KernelTest do
 
       assert r == 0
     end
+
+    test "calling if with invalid keys" do
+      assert_raise ArgumentError, "invalid key `foo` in if, valid keys are `do` and `else`", fn ->
+        Code.eval_string("if true, foo: 7")
+      end
+
+      assert_raise ArgumentError, "invalid key `boo` in if, valid keys are `do` and `else`", fn ->
+          Code.eval_string("if true, do: 6, boo: 7")
+        end
+
+      assert_raise ArgumentError, "duplicate `do` key in if", fn ->
+        Code.eval_string("if true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, "duplicate `else` key in if", fn ->
+        Code.eval_string("if true, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, "if clauses must contain `do`, `else` or both", fn ->
+        Code.eval_string("if true, []")
+      end
+    end
   end
 
   defmodule Destructure do

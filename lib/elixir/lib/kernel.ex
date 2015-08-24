@@ -2292,15 +2292,14 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
-    do_clause = Keyword.get(clauses, :do, nil)
-    else_clause = Keyword.get(clauses, :else, nil)
-
+    {do_clause, else_clause} = extract_do_else(clauses)
     optimize_boolean(quote do
       case unquote(condition) do
         x when x in [false, nil] -> unquote(else_clause)
         _ -> unquote(do_clause)
       end
     end)
+
   end
 
   @doc """
@@ -3871,5 +3870,38 @@ defmodule Kernel do
       true  -> Macro.Env.stacktrace(env)
       false -> []
     end
+  end
+
+  defp extract_do_else(clauses), do: extract_do_else(clauses, :missing, :missing)
+
+  defp extract_do_else([{:do, _} = do_block | tail], :missing, else_block) do
+    extract_do_else(tail, do_block, else_block)
+  end
+  defp extract_do_else([{:do, _} | _t], _, _) do
+    raise(ArgumentError, "duplicate `do` key in if")
+  end
+
+  defp extract_do_else([{:else, _} = else_block | tail], do_block, :missing) do
+    extract_do_else(tail, do_block, else_block)
+  end
+  defp extract_do_else([{:else, _} | _t], _, _) do
+    raise(ArgumentError, "duplicate `else` key in if")
+  end
+
+  defp extract_do_else([{key, _} | _t], _, _) do
+    raise(ArgumentError, "invalid key `#{key}` in if, valid keys are `do` and `else`")
+  end
+
+  defp extract_do_else([], {:do, do_block}, {:else, else_block}) do
+    {do_block, else_block}
+  end
+  defp extract_do_else([], {:do, do_block}, :missing) do
+    {do_block, nil}
+  end
+  defp extract_do_else([], :missing, {:else, else_block}) do
+    {nil, else_block}
+  end
+  defp extract_do_else([], :missing, :missing) do
+    raise(ArgumentError, "if clauses must contain `do`, `else` or both")
   end
 end
