@@ -362,7 +362,10 @@ get_docs(Data) ->
                                  [], [{{'$1', '$2', '$3', '$4', '$5'}}]}])).
 
 get_moduledoc(Line, Data) ->
-  {Line, ets:lookup_element(Data, moduledoc, 2)}.
+  case ets:lookup_element(Data, moduledoc, 2) of
+    nil -> {Line, nil};
+    {DocLine, Doc} -> {DocLine, Doc}
+  end.
 
 get_callback_docs(Data) ->
   lists:usort(ets:select(Data, [{{{callbackdoc, '$1'}, '$2', '$3', '$4'},

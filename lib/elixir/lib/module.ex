@@ -921,11 +921,13 @@ defmodule Module do
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(env, kind, name, args, _guards, _body) do
-    module = env.module
-    line   = env.line
-    arity  = length(args)
-    pair   = {name, arity}
-    doc    = get_attribute(module, :doc)
+    module      = env.module
+    arity       = length(args)
+    pair        = {name, arity}
+    {line, doc} = case get_attribute(module, :doc) do
+      nil         -> {env.line, nil}
+      {line, doc} -> {line, doc}
+    end
 
     # Arguments are not expanded for the docs, but we make an exception for
     # module attributes and for structs (aliases to be precise).
