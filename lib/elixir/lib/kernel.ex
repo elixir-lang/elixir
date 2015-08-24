@@ -2166,6 +2166,7 @@ defmodule Kernel do
             :elixir_errors.warn env.line, env.file,
                                 "@behavior attribute is not supported, please use @behaviour instead"
           :doc       -> {env.line, arg}
+          :typedoc   -> {env.line, arg}
           :moduledoc -> {env.line, arg}
           _          -> arg
         end
