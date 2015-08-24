@@ -43,7 +43,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
 #### Elixir
 
-  * [Application] Add `Application.fetch_env!/2`
+  * [Application] Add `Application.fetch_env!/2`, `Application.loaded_applications/0` and `Application.started_applications/0`
   * [CLI] Add support for `--werl` in Windows bash-like shells
   * [Dict] Add `Dict.get_and_update/3` which behaves similar to the now deprecated Access protocol
   * [Dict] Add `Dict.get_lazy/3`, `Dict.pop_lazy/3` and `Dict.put_new_lazy/3`
@@ -110,6 +110,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Mix] Only recompile compile time dependencies in mix projects. This should considerably speed up recompilation times in Elixir projects
   * [Mix] Warn when configuring an application that is not available
   * [Mix] Add `mix profile.fprof` for easy code profiling
+  * [Mix] Abort when dependencies have conflicting `:only` definitions
+  * [Mix] Fully recompile projects if Elixir or SCM changes
 
 ### 2. Bug fixes
 
@@ -117,11 +119,13 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
   * [CLI] Ensure Logger messages are flushed when executing commands
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
+  * [Code] Store the documentation line in the metadata returned by `Code.get_docs/2`
   * [Exception] Do not fail when calculating an exception message, even if the message is invalid
   * [Kernel] Do not expand `in/2` argument in module body
   * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
   * [Kernel] Improve error message when we can't compile because the target directory is not writeable
   * [Kernel] Allow capture of non-symbolic operators like `&and/2`, `&not/1` and others
+  * [Kernel] Raise if heredoc terminal is accidentally found in the middle of a line without escaping
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
   * [Range] Restrict ranges to integers to fix diverse bugs of values being included in the range when they should not (false positives)
@@ -137,6 +141,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
   * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
   * [ExUnit] Do not change the semantics of evaluated code with `assert`/`refute`. For example, from now on, `assert nil = some_expr()` will now raise as expected, as the expression still evaluates to a falsy value
+  * [ExUnit] Report proper line number for doctest failures
 
 #### Logger
 
