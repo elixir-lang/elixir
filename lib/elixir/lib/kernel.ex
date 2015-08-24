@@ -2292,15 +2292,14 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
-    do_clause = Keyword.get(clauses, :do, nil)
-    else_clause = Keyword.get(clauses, :else, nil)
-
+    {do_clause, else_clause} = extract_do_else(clauses, "if")
     optimize_boolean(quote do
       case unquote(condition) do
         x when x in [false, nil] -> unquote(else_clause)
         _ -> unquote(do_clause)
       end
     end)
+
   end
 
   @doc """
@@ -2329,8 +2328,7 @@ defmodule Kernel do
 
   """
   defmacro unless(clause, options) do
-    do_clause   = Keyword.get(options, :do, nil)
-    else_clause = Keyword.get(options, :else, nil)
+    {do_clause, else_clause} = extract_do_else(options, "unless")
     quote do
       if(unquote(clause), do: unquote(else_clause), else: unquote(do_clause))
     end
@@ -3871,5 +3869,48 @@ defmodule Kernel do
       true  -> Macro.Env.stacktrace(env)
       false -> []
     end
+  end
+
+  defp extract_do_else(clauses, type) do
+    case extract_do_else(clauses, :missing, :missing) do
+      {:ok, do_else_clauses} ->
+        do_else_clauses
+      {:error, :duplicate_do} ->
+        raise(ArgumentError, "duplicate `do` key in #{type}")
+      {:error, :duplicate_else} ->
+        raise(ArgumentError, "duplicate `else` key in #{type}")
+      {:error, :missing_do} ->
+        raise(ArgumentError, "#{type} clauses must contain `do` key")
+      {:error, {:invalid_key, key}} ->
+        raise(ArgumentError, "invalid key `#{key}` in #{type}, valid keys are `do` and `else`")
+    end
+  end
+
+  defp extract_do_else([{:do, _} = do_block | tail], :missing, else_block) do
+    extract_do_else(tail, do_block, else_block)
+  end
+  defp extract_do_else([{:do, _} | _t], _, _) do
+    {:error, :duplicate_do}
+  end
+
+  defp extract_do_else([{:else, _} = else_block | tail], do_block, :missing) do
+    extract_do_else(tail, do_block, else_block)
+  end
+  defp extract_do_else([{:else, _} | _t], _, _) do
+    {:error, :duplicate_else}
+  end
+
+  defp extract_do_else([{key, _} | _t], _, _) do
+    {:error, {:invalid_key, key}}
+  end
+
+  defp extract_do_else([], {:do, do_block}, {:else, else_block}) do
+    {:ok, {do_block, else_block}}
+  end
+  defp extract_do_else([], {:do, do_block}, :missing) do
+    {:ok, {do_block, nil}}
+  end
+  defp extract_do_else([], :missing, _) do
+    {:error, :missing_do}
   end
 end
