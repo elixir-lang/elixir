@@ -3,6 +3,16 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
+  @moduledoc "foo"
+  "foo" = @moduledoc
+
+  @typedoc "foo"
+  "foo" = @typedoc
+  @type foo :: term
+
+  @doc "foo"
+  "foo" = @doc
+
   test "compiled with docs" do
     deftestmodule(SampleDocs)
     docs = Code.get_docs(SampleDocs, :all)

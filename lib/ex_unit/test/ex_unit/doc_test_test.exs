@@ -147,7 +147,7 @@ defmodule ExUnit.DocTestTest.Invalid do
       iex> 1 + * 1
       1
   """
-  defmacro b()
+  defmacro b(), do: :ok
 
 end |> write_beam
 

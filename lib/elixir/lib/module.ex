@@ -788,7 +788,7 @@ defmodule Module do
   def put_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
-    value = normalize_attribute(key, value)
+    value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
     new =
@@ -921,13 +921,12 @@ defmodule Module do
   # Used internally to compile documentation. This function
   # is private and must be used only internally.
   def compile_doc(env, kind, name, args, _guards, _body) do
-    module      = env.module
-    arity       = length(args)
-    pair        = {name, arity}
-    {line, doc} = case get_attribute(module, :doc) do
-      nil         -> {env.line, nil}
-      {line, doc} -> {line, doc}
-    end
+    module = env.module
+    table  = data_table_for(module)
+    arity  = length(args)
+    pair   = {name, arity}
+
+    {line, doc} = get_doc_info(table, env)
 
     # Arguments are not expanded for the docs, but we make an exception for
     # module attributes and for structs (aliases to be precise).
@@ -949,7 +948,7 @@ defmodule Module do
           "@doc's are always discarded for private functions"
     end
 
-    delete_attribute(module, :doc)
+    :ok
   end
 
   @doc false
@@ -974,7 +973,8 @@ defmodule Module do
     table = data_table_for(module)
 
     case :ets.lookup(table, key) do
-      [{^key, val}] -> val
+      [{^key, val}] ->
+        postprocess_attribute(key, val)
       [] ->
         acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
@@ -1002,34 +1002,50 @@ defmodule Module do
 
   ## Helpers
 
-  defp normalize_attribute(:on_load, atom) when is_atom(atom) do
+  defp preprocess_attribute(:on_load, atom) when is_atom(atom) do
     {atom, 0}
   end
 
-  defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
+  defp preprocess_attribute(:behaviour, atom) when is_atom(atom) do
     # Attempt to compile behaviour but ignore failure (will warn later)
     _ = Code.ensure_compiled(atom)
     atom
   end
 
-  defp normalize_attribute(:file, file) when is_binary(file) do
+  defp preprocess_attribute(:file, file) when is_binary(file) do
     file
   end
 
-  defp normalize_attribute(:before_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:before_compile, atom) when is_atom(atom),
     do: {atom, :__before_compile__}
-  defp normalize_attribute(:after_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
     do: {atom, :__after_compile__}
-  defp normalize_attribute(:on_definition, atom) when is_atom(atom),
+  defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
+  defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
     raise ArgumentError, "attributes type, typep, export_type, opaque, callback and macrocallback " <>
       "must be set via Kernel.Typespec"
   end
 
-  defp normalize_attribute(_key, value) do
+  defp preprocess_attribute(_key, value) do
     value
+  end
+
+  defp postprocess_attribute(:doc, {_line, doc}), do: doc
+  defp postprocess_attribute(:typedoc, {_line, doc}), do: doc
+  defp postprocess_attribute(:moduledoc, {_line, doc}), do: doc
+  defp postprocess_attribute(_, value), do: value
+
+  defp get_doc_info(table, env) do
+    # TODO: Use :ets.take/2 with Erlang 18
+    case :ets.lookup(table, :doc) do
+      [doc: {_, _} = pair] ->
+        :ets.delete(table, :doc)
+        pair
+      [] ->
+        {env.line, nil}
+    end
   end
 
   defp data_table_for(module) do

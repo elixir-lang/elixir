@@ -505,18 +505,19 @@ defmodule Kernel.Typespec do
   end
 
   defp store_callbackdoc(caller, module, kind, name, arity) do
-    {line, doc} = get_doc_info(module, caller)
-    :ets.insert(:elixir_module.data_table(module),
-                {{:callbackdoc, {name, arity}}, line, kind, doc})
+    table = :elixir_module.data_table(module)
+    {line, doc} = get_doc_info(table, :doc, caller)
+    :ets.insert(table, {{:callbackdoc, {name, arity}}, line, kind, doc})
   end
 
-  defp get_doc_info(module, caller) do
-    case Module.get_attribute(module, :doc) do
-      nil         ->
-        {caller.line, nil}
-      {line, doc} ->
-        Module.delete_attribute(module, :doc)
+  defp get_doc_info(table, attr, caller) do
+    # TODO: Use :ets.take/2 with Erlang 18
+    case :ets.lookup(table, attr) do
+      [{^attr, {line, doc}}] ->
+        :ets.delete(table, attr)
         {line, doc}
+      [] ->
+        {caller.line, nil}
     end
   end
 
@@ -531,16 +532,15 @@ defmodule Kernel.Typespec do
   end
 
   defp store_typedoc(caller, module, kind, name, arity) do
-    doc = Module.get_attribute(module, :typedoc)
+    table = :elixir_module.data_table(module)
+    {line, doc} = get_doc_info(table, :typedoc, caller)
 
     if kind == :typep && doc do
       :elixir_errors.warn(caller.line, caller.file, "type #{name}/#{arity} is private, " <>
                           "@typedoc's are always discarded for private types")
     end
 
-    Module.delete_attribute(module, :typedoc)
-    :ets.insert(:elixir_module.data_table(module),
-                {{:typedoc, {name, arity}}, caller.line, kind, doc})
+    :ets.insert(table, {{:typedoc, {name, arity}}, line, kind, doc})
   end
 
   ## Translation from Elixir AST to typespec AST
