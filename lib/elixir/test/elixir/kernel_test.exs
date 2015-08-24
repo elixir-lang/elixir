@@ -517,11 +517,41 @@ defmodule KernelTest do
       end
 
       assert_raise ArgumentError, "duplicate `else` key in if", fn ->
-        Code.eval_string("if true, else: 7, else: 6")
+        Code.eval_string("if true, do: 8, else: 7, else: 6")
       end
 
-      assert_raise ArgumentError, "if clauses must contain `do`, `else` or both", fn ->
+      assert_raise ArgumentError, "if clauses must contain `do` key", fn ->
+        Code.eval_string("if true, else: 6")
+      end
+
+      assert_raise ArgumentError, "if clauses must contain `do` key", fn ->
         Code.eval_string("if true, []")
+      end
+    end
+
+    test "calling unless with invalid keys" do
+      assert_raise ArgumentError, "invalid key `foo` in unless, valid keys are `do` and `else`", fn ->
+        Code.eval_string("unless true, foo: 7")
+      end
+
+      assert_raise ArgumentError, "invalid key `boo` in unless, valid keys are `do` and `else`", fn ->
+        Code.eval_string("unless true, do: 6, boo: 7")
+      end
+
+      assert_raise ArgumentError, "duplicate `do` key in unless", fn ->
+        Code.eval_string("unless true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, "duplicate `else` key in unless", fn ->
+        Code.eval_string("unless true, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, "unless clauses must contain `do` key", fn ->
+        Code.eval_string("unless true, else: 6")
+      end
+
+      assert_raise ArgumentError, "unless clauses must contain `do` key", fn ->
+        Code.eval_string("unless true, []")
       end
     end
   end
