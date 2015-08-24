@@ -502,6 +502,62 @@ defmodule KernelTest do
 
       assert r == 0
     end
+
+    test "calling if with invalid keys" do
+      error_message = "invalid or duplicate keys for if, only `do` " <>
+      "and an optional `else` are permitted"
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, foo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+          Code.eval_string("if true, do: 6, boo: 7")
+        end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, do: 8, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, []")
+      end
+    end
+
+    test "calling unless with invalid keys" do
+      error_message = "invalid or duplicate keys for unless, only `do` " <>
+        "and an optional `else` are permitted"
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, foo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 6, boo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 8, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, []")
+      end
+    end
   end
 
   defmodule Destructure do
