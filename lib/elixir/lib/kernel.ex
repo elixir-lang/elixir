@@ -2292,15 +2292,33 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
+<<<<<<< Updated upstream
     do_clause = Keyword.get(clauses, :do, nil)
     else_clause = Keyword.get(clauses, :else, nil)
 
+=======
+    build_if(condition, clauses)
+  end
+
+  defp build_if(condition, do: do_clause) do
+    build_if(condition, do: do_clause, else: nil)
+  end
+
+  defp build_if(condition, do: do_clause, else: else_clause) do
+>>>>>>> Stashed changes
     optimize_boolean(quote do
       case unquote(condition) do
         x when x in [false, nil] -> unquote(else_clause)
         _ -> unquote(do_clause)
       end
     end)
+<<<<<<< Updated upstream
+=======
+  end
+
+  defp build_if(_condition, _keys) do
+    raise(ArgumentError, "invalid or duplicate keys for if")
+>>>>>>> Stashed changes
   end
 
   @doc """
@@ -2328,13 +2346,30 @@ defmodule Kernel do
       "Math still works"
 
   """
+<<<<<<< Updated upstream
   defmacro unless(clause, options) do
     do_clause   = Keyword.get(options, :do, nil)
     else_clause = Keyword.get(options, :else, nil)
+=======
+  defmacro unless(condition, clauses) do
+    build_unless(condition, clauses)
+  end
+
+  defp build_unless(condition, do: do_clause) do
+    build_unless(condition, do: do_clause, else: nil)
+  end
+
+  defp build_unless(condition, do: do_clause, else: else_clause) do
+>>>>>>> Stashed changes
     quote do
-      if(unquote(clause), do: unquote(else_clause), else: unquote(do_clause))
+      if(unquote(condition), do: unquote(else_clause), else: unquote(do_clause))
     end
   end
+
+  defp build_unless(_condition, keys) do
+    raise(ArgumentError, "invalid or duplicate keys for unless")
+  end
+
 
   @doc """
   Destructures two lists, assigning each term in the
