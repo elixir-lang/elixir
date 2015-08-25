@@ -2310,7 +2310,7 @@ defmodule Kernel do
 
   defp build_if(_condition, _arguments) do
     raise(ArgumentError, "invalid or duplicate keys for if, only `do` " <>
-    "and an optional `else` are permitted")
+      "and an optional `else` are permitted")
   end
 
   @doc """
