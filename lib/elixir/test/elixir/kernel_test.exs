@@ -511,8 +511,8 @@ defmodule KernelTest do
       end
 
       assert_raise ArgumentError, error_message, fn ->
-          Code.eval_string("if true, do: 6, boo: 7")
-        end
+        Code.eval_string("if true, do: 6, boo: 7")
+      end
 
       assert_raise ArgumentError, error_message, fn ->
         Code.eval_string("if true, do: 7, do: 6")
