@@ -10,7 +10,7 @@ defmodule LoggerTest do
   end
 
   defp msg_with_meta(text) do
-    msg("application= module=#{LoggerTest} #{text}")
+    msg("module=#{LoggerTest} #{text}")
   end
 
   test "add_translator/1 and remove_translator/1" do
@@ -92,7 +92,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Logger.bare_log(:info, "ok", [application: nil, module: LoggerTest]) == :ok
-    end) =~ msg_with_meta("[info]  ok")
+    end) =~ msg("application= module=#{LoggerTest} [info]  ok")
   end
 
   test "enable/1 and disable/1" do
@@ -198,7 +198,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert Sample.info == :ok
-    end) =~ msg("application= module=#{LoggerTest}.Sample [info]  hello")
+    end) =~ msg("module=#{LoggerTest}.Sample [info]  hello")
   after
     Logger.configure(compile_time_purge_level: :debug)
   end
@@ -213,7 +213,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
       assert SampleNoApp.info == :ok
-    end) =~ msg("application= module=#{LoggerTest}.SampleNoApp [info]  hello")
+    end) =~ msg("module=#{LoggerTest}.SampleNoApp [info]  hello")
 
     Logger.configure(compile_time_application: :sample_app)
     defmodule SampleApp do
