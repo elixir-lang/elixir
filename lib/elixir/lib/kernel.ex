@@ -2292,15 +2292,25 @@ defmodule Kernel do
   In order to compare more than two clauses, the `cond/1` macro has to be used.
   """
   defmacro if(condition, clauses) do
-    do_clause = Keyword.get(clauses, :do, nil)
-    else_clause = Keyword.get(clauses, :else, nil)
+    build_if(condition, clauses)
+  end
 
+  defp build_if(condition, do: do_clause) do
+    build_if(condition, do: do_clause, else: nil)
+  end
+
+  defp build_if(condition, do: do_clause, else: else_clause) do
     optimize_boolean(quote do
       case unquote(condition) do
         x when x in [false, nil] -> unquote(else_clause)
         _ -> unquote(do_clause)
       end
     end)
+  end
+
+  defp build_if(_condition, _arguments) do
+    raise(ArgumentError, "invalid or duplicate keys for if, only `do` " <>
+    "and an optional `else` are permitted")
   end
 
   @doc """
@@ -2328,12 +2338,23 @@ defmodule Kernel do
       "Math still works"
 
   """
-  defmacro unless(clause, options) do
-    do_clause   = Keyword.get(options, :do, nil)
-    else_clause = Keyword.get(options, :else, nil)
+  defmacro unless(condition, clauses) do
+    build_unless(condition, clauses)
+  end
+
+  defp build_unless(condition, do: do_clause) do
+    build_unless(condition, do: do_clause, else: nil)
+  end
+
+  defp build_unless(condition, do: do_clause, else: else_clause) do
     quote do
-      if(unquote(clause), do: unquote(else_clause), else: unquote(do_clause))
+      if(unquote(condition), do: unquote(else_clause), else: unquote(do_clause))
     end
+  end
+
+  defp build_unless(_condition, _arguments) do
+    raise(ArgumentError, "invalid or duplicate keys for unless, only `do` " <>
+      "and an optional `else` are permitted")
   end
 
   @doc """
