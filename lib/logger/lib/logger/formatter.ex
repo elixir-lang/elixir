@@ -125,5 +125,12 @@ defmodule Logger.Formatter do
     '#Ref' ++ rest = :erlang.ref_to_list(pid)
     rest
   end
+  defp metadata(atom) when is_atom(atom) do
+    case Atom.to_string(atom) do
+      "Elixir." <> rest -> rest
+      "nil" -> ""
+      binary -> binary
+    end
+  end
   defp metadata(other), do: to_string(other)
 end
