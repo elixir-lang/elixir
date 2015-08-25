@@ -127,8 +127,8 @@ defmodule URI do
   end
 
   defp pair({k, v}) do
-    encode_www_form(to_string(k)) <>
-    "=" <> encode_www_form(to_string(v))
+    encode_www_form(Kernel.to_string(k)) <>
+    "=" <> encode_www_form(Kernel.to_string(v))
   end
 
   @doc """
@@ -342,6 +342,14 @@ defmodule URI do
       if byte_size(s) > 0, do: s, else: nil
     end
   end
+
+  @doc """
+  Converts the URI to string.
+
+      iex> URI.to_string(URI.parse("http://google.com"))
+      "http://google.com"
+  """
+  defdelegate to_string(uri), to: String.Chars.URI
 end
 
 defimpl String.Chars, for: URI do

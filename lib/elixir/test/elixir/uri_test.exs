@@ -209,5 +209,8 @@ defmodule URITest do
     assert to_string(URI.parse("//google.com/elixir")) == "//google.com/elixir"
     assert to_string(URI.parse("//google.com:8080/elixir")) == "//google.com:8080/elixir"
     assert to_string(URI.parse("//user:password@google.com/")) == "//user:password@google.com/"
+
+    assert URI.to_string(URI.parse("http://google.com")) == "http://google.com"
+    assert URI.to_string(URI.parse("//user:password@google.com/")) == "//user:password@google.com/"
   end
 end
