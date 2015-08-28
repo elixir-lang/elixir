@@ -282,17 +282,28 @@ defmodule ExUnit.Case do
   @doc false
   def __on_definition__(env, name, tags \\ []) do
     mod  = env.module
-    tags = tags ++ Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
-    tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
+    #tags = tags ++ Module.get_attribute(mod, :tag) ++ ( Module.get_attribute(mod, :moduletag) || [])
+    tag = Module.get_attribute(mod, :tag)
+    moduletag = Module.get_attribute(mod, :moduletag)
+    if moduletag do
+      if not tag in [[], "", nil] do
+        tags = tags ++ tag
+      end
+      if not moduletag in [[], "", nil] do
+        tags = tags ++ moduletag
+      end
+      tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
+      
+      test = %ExUnit.Test{name: name, case: mod, tags: tags}
+      test_names = Module.get_attribute(mod, :ex_unit_test_names)
 
-    test = %ExUnit.Test{name: name, case: mod, tags: tags}
-    test_names = Module.get_attribute(mod, :ex_unit_test_names)
-
-    unless name in test_names do
-      Module.put_attribute(mod, :ex_unit_tests, test)
-      Module.put_attribute(mod, :ex_unit_test_names, HashSet.put(test_names, name))
+      if test_names != nil do
+        unless name in test_names do
+          Module.put_attribute(mod, :ex_unit_tests, test)
+          Module.put_attribute(mod, :ex_unit_test_names, HashSet.put(test_names, name))
+        end
+      end
     end
-
     Module.delete_attribute(mod, :tag)
   end
 
