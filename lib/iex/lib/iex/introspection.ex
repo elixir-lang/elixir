@@ -43,7 +43,7 @@ defmodule IEx.Introspection do
               end 
 
     case result do 
-      [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
+      {:found, doc_list} -> display_doc_list(:found, doc_list)  
       _                    -> 
               print_error(result, "No documentation for #{to_string(function)} was found")
     end 
@@ -74,7 +74,7 @@ defmodule IEx.Introspection do
                               end 
 
     case result do 
-      [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
+      {:found, doc_list} -> display_doc_list(:found, doc_list)  
       _                    -> 
         print_error(result, "No documentation for #{to_string(function)}/#{inspect(arity)} was found" )
     end 
@@ -191,7 +191,7 @@ defmodule IEx.Introspection do
   defp found_help(mod, module, function) do
     {status, doc_list} = mod.documentation(module, function)
     case status do 
-      :found -> [{status,doc_list}]
+      :found -> {status,doc_list}
       _      -> nil
     end
   end 
@@ -199,7 +199,7 @@ defmodule IEx.Introspection do
   defp found_help(mod, module, function,arity) do
     {status, doc_list} = mod.documentation(module, function, arity)
     case status do 
-      :found -> [{status,doc_list}]
+      :found -> {status,doc_list}
       _      -> nil
     end
   end 
