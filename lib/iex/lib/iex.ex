@@ -265,7 +265,7 @@ defmodule IEx do
     * `:default_prompt` - used when `Node.alive?` returns `false`
     * `:alive_prompt`   - used when `Node.alive?` returns `true`
 
-  The part of the listed in the following of the prompt string is replaced.
+  The following values in the prompt string will be replaced appropriately:
 
     * `%counter` - the index of the history
     * `%prefix`  - a prefix given by `IEx.Server`
