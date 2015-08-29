@@ -34,12 +34,14 @@ defmodule IEx.HelpersTest do
   test "h helper function" do
     pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
     c_h   = "* def c(files, path \\\\ \".\")\n\nCompiles the given files."
+    defp_h = "* defmacro defp(call, expr \\\\ nil)\n\nDefines a private function"
 
     assert capture_io(fn -> h IEx.Helpers.pwd/0 end) =~ pwd_h
     assert capture_io(fn -> h IEx.Helpers.c/2 end) =~ c_h
 
     assert capture_io(fn -> h IEx.Helpers.c/1 end) =~ c_h
     assert capture_io(fn -> h pwd end) =~ pwd_h
+    assert capture_io(fn -> h defp end) =~ defp_h
   end
 
   test "h helper __info__" do

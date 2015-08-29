@@ -37,10 +37,10 @@ defmodule IEx.Introspection do
   def h(modules, function) when is_list(modules) and is_atom(function) do
     helpers = IEx.Config.doc_helpers(:helpers)
     result = modules |>
-    Enum.find_value fn(module) -> 
+              Enum.find_value fn(module) -> 
                       helpers |> 
-                      Enum.find_value(fn(mod) -> can_help(mod, module, function) end)
-                 end 
+                      Enum.find_value(fn(mod) -> found_help(mod, module, function) end)
+              end 
     case result do 
       [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
       _                    -> 
@@ -52,7 +52,7 @@ defmodule IEx.Introspection do
 
   def h(module, function) when is_atom(module) and is_atom(function) do
     get_docs(module, function) |>
-        Enum.map(fn {status, doc_list} -> 
+      Enum.map(fn {status, doc_list} -> 
                     display_doc_list(status, doc_list)  
                   end)
     dont_display_result
@@ -65,10 +65,12 @@ defmodule IEx.Introspection do
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
     helpers = IEx.Config.doc_helpers(:helpers)
     result = modules |>
-    Enum.find_value fn(module) -> 
-                      helpers |> 
-                      Enum.find_value(fn(mod) -> can_help(mod, module, function, arity) end)
-                    end 
+             Enum.find_value fn(module) -> 
+                               helpers |> 
+                               Enum.find_value(fn(mod) -> 
+                                  found_help(mod, module, function, arity) 
+                                end)
+                              end 
     case result do 
       [{:found, doc_list}] -> display_doc_list(:found, doc_list)  
       _                    -> 
@@ -180,6 +182,22 @@ defmodule IEx.Introspection do
     case status do
       :unknown -> nil 
       _        -> [{status, doc_list}]
+    end
+  end 
+
+  defp found_help(mod, module, function) do
+    {status, doc_list} = mod.documentation(module, function)
+    case status do 
+      :found -> [{status,doc_list}]
+      _      -> nil
+    end
+  end 
+
+  defp found_help(mod, module, function,arity) do
+    {status, doc_list} = mod.documentation(module, function, arity)
+    case status do 
+      :found -> [{status,doc_list}]
+      _      -> nil
     end
   end 
 
