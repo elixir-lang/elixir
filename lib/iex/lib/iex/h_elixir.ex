@@ -32,10 +32,10 @@ defmodule IEx.H_Elixir do
 	end
 
 	def get_doc(module) when is_atom(module) do
-		{_line, doc} = Code.get_docs(module, :moduledoc)
-		case doc do 
+		docs = Code.get_docs(module, :moduledoc)
+		case docs do 
 			nil -> {:not_found, [{inspect(module), "No moduledocs found\n"}]}
-			_   -> {:found, [{inspect(module), doc}]}
+			_   -> {:found, [{inspect(module), elem(docs, 1)}]}
 		end 
 	end 
 
@@ -105,8 +105,8 @@ defmodule IEx.H_Elixir do
 
   # Not happy about magic numbers in elem.
   defp match_function(docstring, function) do
-	{func, _arity} = elem(docstring,0)
-	function == func 
+	  {func, _arity} = elem(docstring,0)
+	  function == func 
   end 
 
   # Not happy about magic numbers in elem.
