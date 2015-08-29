@@ -215,22 +215,22 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when falsy but not match" do
     try do
-      "This should never be tested" = assert {:ok, x} = nil
+      "This should never be tested" = assert {:ok, _x} = nil
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "{:ok, x} = nil"   = error.expr |> Macro.to_string
+        "{:ok, _x} = nil"   = error.expr |> Macro.to_string
         "nil"              = error.right |> Macro.to_string
     end
   end
 
   test "assert match when falsy" do
     try do
-      "This should never be tested" = assert x = nil
+      "This should never be tested" = assert _x = nil
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected truthy, got nil" = error.message
-        "x = nil" = error.expr |> Macro.to_string
+        "_x = nil" = error.expr |> Macro.to_string
     end
   end
 
