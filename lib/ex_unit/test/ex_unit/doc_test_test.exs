@@ -114,6 +114,33 @@ defmodule ExUnit.DocTestTest.NoImport do
   def min(a, b), do: max(a, b)
 end |> write_beam
 
+defmodule ExUnit.DocTestTest.ExtendedModule do
+  def foo, do: :foo
+  def bar, do: :bar
+  def raise(msg), do: msg
+end |> write_beam
+
+defmodule ExUnit.DocTestTest.WithSetup do
+  @doc """
+  iex> Extended.foo()
+  :foo
+  iex> Extended.bar()
+  :bar
+  iex> raise :nothing_happens
+  :nothing_happens
+  """
+  def test_fun1, do: 1
+
+  @doc """
+  iex> Extended.foo()
+  :foo
+  
+  iex> Extended.bar()
+  :bar
+  """
+  def test_fun2, do: 2
+end |> write_beam
+
 defmodule ExUnit.DocTestTest.Invalid do
   @moduledoc """
 
@@ -214,6 +241,13 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.NoImport
   doctest ExUnit.DocTestTest.IndentationHeredocs
 
+  setup_doctest = quote do
+    alias ExUnit.DocTestTest.ExtendedModule, as: Extended
+    import Kernel, except: [raise: 1]
+    import ExUnit.DocTestTest.ExtendedModule, only: [raise: 1]
+  end
+  doctest ExUnit.DocTestTest.WithSetup, setup: setup_doctest
+
   import ExUnit.CaptureIO
 
   test "multiple functions filtered with :only" do
@@ -239,78 +273,77 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
       1) test moduledoc at ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:120: syntax error before: '*'
-         code: 1 + * 1
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:120: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest failed
-         code: 1 + hd(List.flatten([1])) === 3
-         lhs:  2
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:123: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest failed
-         code: inspect(:oops) === "#HashDict<[]>"
-         lhs:  ":oops"
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:126: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    # The stacktrace points to the cause of the error
-    assert output =~ """
-      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
-         code:  Hello.world
-         stacktrace:
-           Hello.world()
-           (for doctest at) test/ex_unit/doc_test_test.exs:129
-    """
-
-    assert output =~ """
-      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest failed: expected exception WhatIsThis with message "oops" but got RuntimeError with message "oops"
-         code: raise "oops"
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:132: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest failed: expected exception RuntimeError with message "hello" but got RuntimeError with message "oops"
-         code: raise "oops"
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:135: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
-         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:141: syntax error before: '*'
-         code: 1 + * 1
-         stacktrace:
-           test/ex_unit/doc_test_test.exs:141: ExUnit.DocTestTest.Invalid (module)
-    """
-
-    assert output =~ """
-      8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
-         test/ex_unit/doc_test_test.exs:231
+         test/ex_unit/doc_test_test.exs:265
          Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:147: syntax error before: '*'
          code: 1 + * 1
          stacktrace:
            test/ex_unit/doc_test_test.exs:147: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      2) test moduledoc at ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest failed
+         code: 1 + hd(List.flatten([1])) === 3
+         lhs:  2
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:150: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest failed
+         code: inspect(:oops) === \"#HashDict<[]>\"
+         lhs:  \":oops\"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:153: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
+         code:  Hello.world
+         stacktrace:
+           Hello.world()
+           (for doctest at) test/ex_unit/doc_test_test.exs:156
+    """
+
+    assert output =~ """
+      5) test moduledoc at ExUnit.DocTestTest.Invalid (5) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest failed: expected exception WhatIsThis with message \"oops\" but got RuntimeError with message \"oops\"
+         code: raise \"oops\"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      6) test moduledoc at ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest failed: expected exception RuntimeError with message \"hello\" but got RuntimeError with message \"oops\"
+         code: raise \"oops\"
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:162: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      7) test doc at ExUnit.DocTestTest.Invalid.a/0 (7) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:168: syntax error before: '*'
+         code: 1 + * 1
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:168: ExUnit.DocTestTest.Invalid (module)
+    """
+
+    assert output =~ """
+      8) test doc at ExUnit.DocTestTest.Invalid.b/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
+         test/ex_unit/doc_test_test.exs:265
+         Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:174: syntax error before: '*'
+         code: 1 + * 1
+         stacktrace:
+           test/ex_unit/doc_test_test.exs:174: ExUnit.DocTestTest.Invalid (module)
     """
   end
 
@@ -326,6 +359,28 @@ defmodule ExUnit.DocTestTest do
     end
 
     assert capture_io(fn -> ExUnit.run end) =~ "1 test, 0 failures"
+  end
+
+  test "no setup option" do
+    defmodule DoctestWithoutSetup do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.WithSetup, import: true
+    end
+    assert capture_io(fn -> ExUnit.run end) =~ "Doctest failed: got UndefinedFunctionError with message undefined function: Extended.foo/0 (module Extended is not available)"
+  end
+
+  test "do setup (function clash)" do
+      defmodule DoctestWithSetupClash do
+        import ExUnit.DocTest
+
+        setup_doctest = quote do
+          import ExUnit.DocTestTest.ExtendedModule, only: [raise: 1]
+          alias ExUnit.DocTestTest.ExtendedModule, as: Extended
+        end
+        assert_raise CompileError, ~r"function raise\/1 imported from both ExUnit.DocTestTest.ExtendedModule and Kernel, call is ambiguous", fn ->
+          doctest ExUnit.DocTestTest.WithSetup, [import: true, setup: setup_doctest, ]
+        end
+      end
   end
 
   test "multiple exceptions in one test case is not supported" do

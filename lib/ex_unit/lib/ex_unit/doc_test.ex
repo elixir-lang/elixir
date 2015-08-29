@@ -167,11 +167,25 @@ defmodule ExUnit.DocTest do
     * `:import` — when `true`, one can test a function defined in the module
       without referring to the module name. However, this is not feasible when
       there is a clash with a module like Kernel. In these cases, `import`
-      should be set to `false` and a full `M.f` construct should be used.
+      should be set to `false` and a full `M.f` construct should be used, or
+      the `:setup` option can be used to fine-tune the configuration.
+
+    * `:setup` — takes a quoted expression of the configuration desired
+      to run for each test.
 
   ## Examples
 
       doctest MyModule, except: [:moduledoc, trick_fun: 1]
+
+      setup_expr = quote do: alias AnotherModule, as: MyModule
+      doctest MyModule, setup: setup_expr
+
+      setup_doctest = quote do
+        alias ExUnit.DocTestTest.ExtendedModule, as: Extended
+        import Kernel, except: [raise: 1]
+        import ExUnit.DocTestTest.ExtendedModule, only: [raise: 1]
+      end
+      doctest ExUnit.DocTestTest.WithSetup, setup: setup_doctest
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
@@ -198,12 +212,13 @@ defmodule ExUnit.DocTest do
   @doc false
   def __doctests__(module, opts) do
     do_import = Keyword.get(opts, :import, false)
+    setup_expr = Keyword.get(opts, :setup, nil)
 
     extract(module)
     |> filter_by_opts(opts)
     |> Stream.with_index
     |> Enum.map(fn {test, acc} ->
-      compile_test(test, module, do_import, acc + 1)
+      compile_test(test, module, do_import, setup_expr, acc + 1)
     end)
   end
 
@@ -217,8 +232,8 @@ defmodule ExUnit.DocTest do
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, do_import, n) do
-    {test_name(test, module, n), test_content(test, module, do_import)}
+  defp compile_test(test, module, do_import, setup_expr, n) do
+    {test_name(test, module, n), test_content(test, module, do_import, setup_expr)}
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
@@ -229,7 +244,7 @@ defmodule ExUnit.DocTest do
     "doc at #{inspect m}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(%{exprs: exprs, line: line, fun_arity: fun_arity}, module, do_import) do
+  defp test_content(%{exprs: exprs, line: line, fun_arity: fun_arity}, module, do_import, setup_expr) do
     file     = module.__info__(:compile)[:source] |> List.to_string
     location = [line: line, file: Path.relative_to_cwd(file)]
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
@@ -245,6 +260,7 @@ defmodule ExUnit.DocTest do
     end
 
     quote do
+      unquote_splicing(test_setup(setup_expr))
       unquote_splicing(test_import(module, do_import))
       unquote(gen_code_for_tests(tests, whole_expr(exprs), stack))
     end
@@ -345,6 +361,11 @@ defmodule ExUnit.DocTest do
             stack
       end
     end
+  end
+
+  defp test_setup(nil), do: []
+  defp test_setup(expr) do
+    [quote do: unquote(expr)]
   end
 
   defp test_import(_mod, false), do: []
