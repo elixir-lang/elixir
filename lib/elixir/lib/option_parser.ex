@@ -89,6 +89,9 @@ defmodule OptionParser do
       ...>                    switches: [limit: :integer])
       {[limit: 3, unknown: "xyz"], [], []}
 
+      iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
+      {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
+
   ## Negation switches
 
   In case a switch is declared as boolean, it may be passed as `--no-SWITCH`
