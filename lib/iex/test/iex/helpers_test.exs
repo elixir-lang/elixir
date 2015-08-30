@@ -323,6 +323,13 @@ defmodule IEx.HelpersTest do
     cleanup_modules([:sample])
   end
 
+  test "pid helper" do
+    assert "#PID<0.32767.3276>" == capture_iex("pid(0,32767,3276)")
+    assert "#PID<0.5.6>" == capture_iex("pid(0,5,6)")
+    assert "** (FunctionClauseError) no function clause matching in IEx.Helpers.pid/3" <> _ =
+      capture_iex("pid(0,6,-6)")
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
