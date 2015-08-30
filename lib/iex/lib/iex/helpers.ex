@@ -20,6 +20,7 @@ defmodule IEx.Helpers do
     * `l/1`           — loads the given module's beam code
     * `ls/0`          — lists the contents of the current directory
     * `ls/1`          — lists the contents of the specified directory
+    * `pid/3`         — creates a PID with the 3 integer arguments passed
     * `pwd/0`         — prints the current working directory
     * `r/1`           — recompiles and reloads the given module's source file
     * `respawn/0`     — respawns the current shell
@@ -528,4 +529,20 @@ defmodule IEx.Helpers do
   end
 
   defp history, do: Process.get(:iex_history)
+
+  @doc """
+  Creates a PID with 3 non negative integers passed as arguments 
+  to the function.
+
+  ## Examples
+      iex> pid(0, 21, 32)
+      #PID<0.21.32>
+      iex> pid(0, 64, 2048)
+      #PID<0.64.2048>
+  """
+  def pid(x, y, z) when is_integer(x) and x >= 0 and
+                        is_integer(y) and y >= 0 and
+                        is_integer(z) and z >= 0 do
+    :c.pid(x, y, z)
+  end
 end
