@@ -146,9 +146,6 @@ space_test() ->
   [{op_identifier, {1,1,4}, foo}, {dual_op, {1,5,6}, '-'}, {number, {1,6,7}, 2}] = tokenize("foo -2"),
   [{op_identifier, {1,1,4}, foo}, {dual_op, {1,6,7}, '-'}, {number, {1,7,8}, 2}] = tokenize("foo  -2").
 
-invalid_space_test() ->
-  {1, "invalid space character U+A0 before: ", "-2"} = tokenize_error("foo" ++ [16#A0] ++"-2").
-
 chars_test() ->
   [{number, {1,1,3}, 97}]      = tokenize("?a"),
   [{number, {1,1,3}, 99}]      = tokenize("?c"),

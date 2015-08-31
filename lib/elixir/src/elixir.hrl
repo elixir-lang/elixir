@@ -66,4 +66,3 @@
 -define(is_horizontal_space(S), ((S == $\s) orelse (S == $\t))).
 -define(is_vertical_space(S), ((S == $\r) orelse (S == $\n))).
 -define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
--define(is_invalid_space(S), (S == 16#A0)).

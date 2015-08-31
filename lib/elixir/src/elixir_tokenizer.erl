@@ -486,12 +486,9 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
       handle_space_sensitive_tokens(Remaining, Line, Column + 1 + Stripped, Scope, Tokens)
   end;
 
-tokenize([T|Rest] = Original, Line, _Column, _Scope, Tokens) when ?is_invalid_space(T) ->
-  Message = io_lib:format("invalid space character U+~.16B before: ", [T]),
-  {error, {Line, lists:flatten(Message), until_eol(Rest)}, Original, Tokens};
-
-tokenize(T, Line, _Column, _Scope, Tokens) ->
-  {error, {Line, "invalid token: ", until_eol(T)}, T, Tokens}.
+tokenize([T|Rest], Line, Column, _Scope, Tokens) ->
+  Message = io_lib:format("\"~s\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
+  {error, {Line, "unexpected token: ", Message}, Rest, Tokens}.
 
 strip_horizontal_space(T) ->
   strip_horizontal_space(T, 0).
@@ -508,11 +505,6 @@ strip_dot_space(T, Counter, Column) ->
     {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1);
     {Rest, Length}      -> {Rest, Counter, Column + Length}
   end.
-
-until_eol("\r\n" ++ _) -> [];
-until_eol("\n" ++ _)   -> [];
-until_eol([])          -> [];
-until_eol([H|T])       -> [H|until_eol(T)].
 
 handle_char(7)   -> {"\\a", "alert"};
 handle_char($\b) -> {"\\b", "backspace"};
