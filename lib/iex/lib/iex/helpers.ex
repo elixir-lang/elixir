@@ -22,6 +22,7 @@ defmodule IEx.Helpers do
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
+    * `m/0`           - list loaded modules and their BEAM file locations
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
     * `r/1`           - recompiles and reloads the given module
@@ -337,6 +338,28 @@ defmodule IEx.Helpers do
     quote do
       IEx.Introspection.s(unquote_splicing(args))
     end
+  end
+
+  @doc """
+  Prints out a list of all modules loaded and their BEAM file path.
+
+  """
+  def m() do
+    :code.all_loaded |>
+    Enum.sort |>
+    Enum.map(fn {module, path} -> m_print(module, path) end)
+
+    dont_display_result
+  end
+
+  defp m_print(module, path) when is_atom(module) and is_atom(path) do
+    IO.puts IEx.color(:eval_result, inspect(module))
+    IO.puts IEx.color(:eval_info, "  #{inspect(path)}")
+  end
+
+  defp m_print(module, path) when is_atom(module) do
+    IO.puts IEx.color(:eval_result, inspect(module))
+    IO.puts IEx.color(:eval_info, "  #{Path.relative_to_cwd(path)}")
   end
 
   @doc """
