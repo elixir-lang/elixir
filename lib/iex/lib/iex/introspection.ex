@@ -41,6 +41,10 @@ defmodule IEx.Introspection do
                       helpers |> 
                       Enum.find_value(fn(mod) -> found_help(mod, module, function) end)
               end 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1db7bb5403f33d8a3ceb0dcee2dc8201d4eb1b68
     case result do 
       {:found, doc_list} -> display_doc_list(:found, doc_list)  
       _                    -> 
@@ -71,6 +75,10 @@ defmodule IEx.Introspection do
                                   found_help(mod, module, function, arity) 
                                 end)
                               end 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1db7bb5403f33d8a3ceb0dcee2dc8201d4eb1b68
     case result do 
       {:found, doc_list} -> display_doc_list(:found, doc_list)  
       _                    -> 

@@ -104,17 +104,15 @@ defmodule IEx.H_Elixir do
     end
   end
 
-  # Not happy about magic numbers in elem.
   defp match_function(docstring, function) do
     {func, _arity} = elem(docstring, 0)
     function == func 
   end 
 
-  # Not happy about magic numbers in elem.
   # To duplicate current iex behaviour this should 
   # match foo/1 when foo/2 has a default second arg. 
   defp match_function(docstring, function, arity) do 
-    case {function, arity} == elem(docstring,0) do
+    case {function, arity} == elem(docstring, 0) do
     	true  -> true
       false -> find_default_doc(docstring, function, arity)
     end 
