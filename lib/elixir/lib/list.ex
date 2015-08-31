@@ -449,7 +449,7 @@ defmodule List do
       iex> List.delete_at([1, 2, 3], 0)
       [2, 3]
 
-      iex List.delete_at([1, 2, 3], 10)
+      iex> List.delete_at([1, 2, 3], 10)
       [1, 2, 3]
 
       iex> List.delete_at([1, 2, 3], -1)
