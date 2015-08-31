@@ -11,8 +11,8 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid token" do
     assert_compile_fail SyntaxError,
-      "nofile:1: invalid token: \end",
-      '\end\nlol\nbarbecue'
+      "nofile:1: unexpected token: \" \" (column 7, codepoint U+00A0)",
+      '[foo: \u00A0]\noops'
   end
 
   test "invalid quoted token" do
