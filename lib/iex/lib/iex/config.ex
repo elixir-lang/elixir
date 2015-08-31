@@ -3,7 +3,7 @@ defmodule IEx.Config do
 
   @table __MODULE__
   @agent __MODULE__
-  @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt]
+  @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt, :doc_helpers]
   @colors [:eval_interrupt, :eval_result, :eval_error, :eval_info, :stack_app,
     :stack_info, :ls_directory, :ls_device]
 
@@ -46,6 +46,7 @@ defmodule IEx.Config do
   defp merge_option(:history_size, _old, new) when is_integer(new), do: new
   defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
+  defp merge_option(:doc_helpers, old, new) when is_list(new), do: Keyword.merge(old,new)
 
   defp merge_option(k, _old, new) do
     raise ArgumentError, "invalid configuration or value for pair #{inspect k} - #{inspect new}"
@@ -62,6 +63,7 @@ defmodule IEx.Config do
   defp default_option(:colors), do: [{:enabled, IO.ANSI.enabled?} | default_colors()]
   defp default_option(:inspect), do: []
   defp default_option(:history_size), do: 20
+  defp default_option(:doc_helpers), do: [{:find, :first},{:helpers, [IEx.H_Elixir, IEx.H_Erlang_Stub]}]
 
   defp default_option(prompt) when prompt in [:default_prompt, :alive_prompt] do
     "%prefix(%counter)>"
@@ -134,6 +136,15 @@ defmodule IEx.Config do
         inspect_options
     end
   end
+
+  def doc_helpers(key) do
+    d_helpers = get(:doc_helpers)
+    case key do
+      :find    -> d_helpers[key]
+      :helpers -> d_helpers[key]
+      _        -> raise ArgumentError, "invalid key #{inspect key}"
+    end
+  end 
 
   def width() do
     case :io.columns() do
