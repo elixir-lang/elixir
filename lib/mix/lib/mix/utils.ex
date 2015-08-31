@@ -342,17 +342,46 @@ defmodule Mix.Utils do
 
   ## Options
 
-  No options are currently supported.
+    * `:sha512` - checks against the given sha512 checksum. Returns
+      `{:checksum, message}` in case it fails
   """
-  def read_path(path, _opts \\ []) do
+  @spec read_path(String.t, Keyword.t) ::
+        {:ok, binary} | :badpath | {:remote, String.t} |
+        {:local, String.t} | {:checksum, String.t}
+  def read_path(path, opts \\ []) do
     cond do
       url?(path) ->
-        read_httpc(path)
+        read_httpc(path) |> checksum(opts)
       file?(path) ->
-        read_file(path)
+        read_file(path) |> checksum(opts)
       true ->
-        :badname
+        :badpath
     end
+  end
+
+  @checksums [:sha512]
+
+  defp checksum({:ok, binary} = return, opts) do
+    Enum.find_value @checksums, return, fn hash ->
+      if (expected = Keyword.get(opts, hash)) &&
+         (actual = hexhash(binary, hash)) &&
+         expected != actual do
+          {:checksum, """
+            Data does not match the given sha512 checksum.
+
+            Expected: #{expected}
+              Actual: #{actual}
+            """}
+      end
+    end
+  end
+
+  defp checksum({_, _} = error, _opts) do
+    error
+  end
+
+  defp hexhash(binary, hash) do
+    Base.encode16 :crypto.hash(hash, binary), case: :lower
   end
 
   @doc """
