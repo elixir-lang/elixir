@@ -4,7 +4,6 @@ defmodule Mix.Tasks.Local.Hex do
   @hex_s3           "https://s3.amazonaws.com/s3.hex.pm"
   @hex_list_url     @hex_s3 <> "/installs/list.csv"
   @hex_archive_url  @hex_s3 <> "/installs/[VERSION]/hex.ez"
-  @hex_requirement  ">= 0.5.0"
   @fallback_elixir  "1.0.0"
 
   @shortdoc "Install hex locally"
@@ -24,60 +23,6 @@ defmodule Mix.Tasks.Local.Hex do
     version = get_matching_version()
     url = String.replace(@hex_archive_url, "[VERSION]", version)
     Mix.Tasks.Archive.Install.run [url, "--system" | args]
-  end
-
-  @doc false
-  # Returns true if Hex is loaded or installed, otherwise returns false.
-  @spec ensure_installed?(atom) :: boolean
-  def ensure_installed?(app) do
-    if Code.ensure_loaded?(Hex) do
-      true
-    else
-      shell = Mix.shell
-      shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
-
-      if shell.yes?("Shall I install hex?") do
-        run ["--force"]
-      else
-        false
-      end
-    end
-  end
-
-  @doc false
-  # Returns true if have required Hex, returns false if don't and don't update,
-  # if update then exits.
-  @spec ensure_updated?() :: boolean
-  def ensure_updated?() do
-    if Code.ensure_loaded?(Hex) do
-      if Version.match?(Hex.version, @hex_requirement) do
-        true
-      else
-        Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
-
-        if Mix.shell.yes?("Shall I abort the current command and update hex?") do
-          run ["--force"]
-          exit({:shutdown, 0})
-        end
-
-        false
-      end
-    else
-      false
-    end
-  end
-
-  @doc false
-  def start do
-    try do
-      Hex.start
-    catch
-      kind, reason ->
-        stacktrace = System.stacktrace
-        Mix.shell.error "Could not start Hex. Try fetching a new version with " <>
-                        "`mix local.hex` or uninstalling it with `mix archive.uninstall hex.ez`"
-        :erlang.raise(kind, reason, stacktrace)
-    end
   end
 
   defp get_matching_version do
