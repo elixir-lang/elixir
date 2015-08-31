@@ -307,7 +307,7 @@ defmodule Enum do
   @doc """
   Shortcut to `chunk(collection, n, n)`.
   """
-  @spec chunk(t, non_neg_integer) :: [list]
+  @spec chunk(t, pos_integer) :: [list]
   def chunk(collection, n), do: chunk(collection, n, n, nil)
 
   @doc """
@@ -338,7 +338,7 @@ defmodule Enum do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(t, non_neg_integer, non_neg_integer, t | nil) :: [list]
+  @spec chunk(t, pos_integer, pos_integer, t | nil) :: [list]
   def chunk(collection, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
 
