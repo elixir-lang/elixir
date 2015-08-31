@@ -2,9 +2,8 @@ defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
   @hex_s3           "https://s3.amazonaws.com/s3.hex.pm"
-  @hex_list_url     @hex_s3 <> "/installs/list.csv"
+  @hex_list_url     @hex_s3 <> "/installs/hex-1.x.csv"
   @hex_archive_url  @hex_s3 <> "/installs/[VERSION]/hex.ez"
-  @fallback_elixir  "1.0.0"
 
   @shortdoc "Install hex locally"
 
@@ -20,34 +19,57 @@ defmodule Mix.Tasks.Local.Hex do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(args) do
-    version = get_matching_version()
+    {version, sha512} = get_matching_version()
     url = String.replace(@hex_archive_url, "[VERSION]", version)
-    Mix.Tasks.Archive.Install.run [url, "--system" | args]
+    Mix.Tasks.Archive.Install.run [url, "--sha512", sha512 | args]
   end
 
   defp get_matching_version do
-    case Mix.Utils.read_path(@hex_list_url, [system: true]) do
-      {:ok, csv} ->
-        csv
-        |> parse_csv
-        |> all_eligibile_versions
-        |> List.last
-      {:remote, _} ->
-        @fallback_elixir
+    csv = read_path!(@hex_list_url)
+
+    signature =
+      read_path!(@hex_list_url <> ".signed")
+      |> String.replace("\n", "")
+      |> Base.decode64!
+
+    if Mix.PublicKey.verify csv, :sha512, signature do
+      csv
+      |> parse_csv
+      |> find_latest_eligibile_version
+    else
+      Mix.raise "Could not install hex because mix could not verify authenticity " <>
+                "of metadata file at #{@hex_list_url}."
+    end
+  end
+
+  defp read_path!(path) do
+    case Mix.Utils.read_path(path) do
+      {:ok, contents} -> contents
+      {:remote, message} ->
+        Mix.raise """
+        #{message}
+
+        Could not install hex because mix could not download metadata at #{path}.
+        """
     end
   end
 
   defp parse_csv(body) do
-    :binary.split(body, "\n", [:global, :trim])
-    |> Enum.flat_map(fn line ->
-         [_hex|elixirs] = :binary.split(line, ",", [:global, :trim])
-         elixirs
-       end)
-    |> Enum.uniq
+    body
+    |> :binary.split("\n", [:global, :trim])
+    |> Enum.map(&:binary.split(&1, ",", [:global, :trim]))
   end
 
-  defp all_eligibile_versions(versions) do
+  defp find_latest_eligibile_version(entries) do
     {:ok, current_version} = Version.parse(System.version)
-    Enum.filter(versions, &Version.compare(&1, current_version) != :gt)
+    entries
+    |> Enum.reverse
+    |> Enum.find_value(entries, &find_version(&1, current_version))
+  end
+
+  defp find_version([_hex, digest|versions], current_version) do
+    if version = Enum.find(versions, &Version.compare(&1, current_version) != :gt) do
+      {version, digest}
+    end
   end
 end

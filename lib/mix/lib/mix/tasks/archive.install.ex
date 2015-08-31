@@ -22,18 +22,14 @@ defmodule Mix.Tasks.Archive.Install do
 
   ## Command line options
 
-    * `--system` - uses one of the system tools (curl, wget or powershell
-      on Windows) to download the archive in case a URL is given
-
     * `--sha512` - checks the archive matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
   """
-  # TODO: Remove --system option
   @spec run(OptionParser.argv) :: boolean
-  @switches [force: :boolean, system: :boolean, sha512: :string]
+  @switches [force: :boolean, sha512: :string]
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 

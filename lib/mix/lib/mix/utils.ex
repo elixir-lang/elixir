@@ -342,13 +342,10 @@ defmodule Mix.Utils do
 
   ## Options
 
-    * `:system` - Boolean value forces the use of `wget` or `curl`
-      to fetch the file if the given path is a URL.
+  No options are currently supported.
   """
-  def read_path(path, opts \\ []) do
+  def read_path(path, _opts \\ []) do
     cond do
-      url?(path) && opts[:system] ->
-        read_system(path)
       url?(path) ->
         read_httpc(path)
       file?(path) ->
@@ -410,41 +407,6 @@ defmodule Mix.Utils do
     end
   after
     :inets.stop(:httpc, :mix)
-  end
-
-  defp read_system(path) do
-    filename = URI.parse(path).path |> Path.basename
-    tmp_path = Path.join(System.tmp_dir!, filename)
-
-    File.mkdir_p!(Path.dirname(tmp_path))
-    File.rm(tmp_path)
-
-    cond do
-      windows? && System.find_executable("powershell") ->
-        command = ~s[$ErrorActionPreference = 'Stop'; ] <>
-                  ~s[$client = new-object System.Net.WebClient; ] <>
-                  ~s[$client.DownloadFile(\\"#{path}\\", \\"#{tmp_path}\\")]
-        cmd("powershell", tmp_path, ~s[powershell -Command "& {#{command}}"])
-      System.find_executable("curl") ->
-        cmd("curl", tmp_path, ~s[curl -sSfL -o "#{tmp_path}" "#{path}"])
-      System.find_executable("wget") ->
-        cmd("wget", tmp_path, ~s[wget -nv -O "#{tmp_path}" "#{path}"])
-      windows? ->
-        {:remote, "powershell, wget or curl not available."}
-      true ->
-        {:remote, "wget or curl not available."}
-    end
-  end
-
-  defp cmd(executable, tmp_path, command) do
-    case Mix.shell.cmd(command) do
-      0 -> {:ok, File.read!(tmp_path)}
-      _ -> {:remote, "#{executable} failed."}
-    end
-  end
-
-  defp windows? do
-    match?({:win32, _}, :os.type)
   end
 
   defp file?(path) do
