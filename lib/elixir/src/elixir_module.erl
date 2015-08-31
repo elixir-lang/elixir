@@ -422,13 +422,7 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
         {attribute, Line, spec, {Pair,
           [{type, Line, 'fun', [
             {type, Line, product, [
-              {type, Line, union, [
-                {atom, Line, attributes},
-                {atom, Line, compile},
-                {atom, Line, functions},
-                {atom, Line, macros},
-                {atom, Line, module}
-              ]}
+              {type, Line, atom, []}
             ]},
             {type, Line, union, [
               {type, Line, atom, []},
@@ -446,9 +440,7 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
         {function, 0, '__info__', 1, [
           functions_clause(Def),
           macros_clause(Defmacro),
-          module_clause(Module),
-          info_clause(Module, attributes),
-          info_clause(Module, compile)
+          info_clause(Module)
         ]},
 
       {Spec, Info}
@@ -460,14 +452,11 @@ functions_clause(Def) ->
 macros_clause(Defmacro) ->
   {clause, 0, [{atom, 0, macros}], [], [elixir_utils:elixir_to_erl(lists:sort(Defmacro))]}.
 
-module_clause(Module) ->
-  {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
-
-info_clause(Module, Atom) ->
+info_clause(Module) ->
   Info = {call, 0,
             {remote, 0, {atom, 0, erlang}, {atom, 0, get_module_info}},
-            [{atom, 0, Module}, {atom, 0, Atom}]},
-  {clause, 0, [{atom, 0, Atom}], [], [Info]}.
+            [{atom, 0, Module}, {var, 0, info}]},
+  {clause, 0, [{var, 0, info}], [], [Info]}.
 
 % HELPERS
 
