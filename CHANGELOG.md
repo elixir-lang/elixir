@@ -39,7 +39,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
 ## v1.1.0-dev
 
-### 1 Enhancements
+### 1. Enhancements
 
 #### Elixir
 
