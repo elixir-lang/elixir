@@ -197,6 +197,13 @@ defmodule KernelTest do
     assert not ({:__info__, 1} in Kernel.__info__(:functions))
   end
 
+  test "__info__(others)" do
+    assert Kernel.__info__(:module) == Kernel
+    assert is_list Kernel.__info__(:compile)
+    assert is_list Kernel.__info__(:attributes)
+    assert is_list Kernel.__info__(:exports)
+  end
+
   def exported?,      do: not_exported?
   defp not_exported?, do: true
 
