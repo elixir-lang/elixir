@@ -28,8 +28,8 @@ defmodule Mix.Tasks.Archive.Install do
       intended for automation in build systems like make
 
   """
-  @spec run(OptionParser.argv) :: boolean
   @switches [force: :boolean, sha512: :string]
+  @spec run(OptionParser.argv) :: boolean
   def run(argv) do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
@@ -62,14 +62,13 @@ defmodule Mix.Tasks.Archive.Install do
 
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
-          validate_checksum!(binary, opts)
           File.mkdir_p!(dirname)
           File.write!(archive, binary)
-        :badname ->
+        :badpath ->
           Mix.raise "Expected #{inspect src} to be a url or a local file path"
         {:local, message} ->
           Mix.raise message
-        {:remote, message} ->
+        {kind, message} when kind in [:remote, :checksum] ->
           Mix.raise """
           #{message}
 
@@ -109,28 +108,6 @@ defmodule Mix.Tasks.Archive.Install do
 
     Mix.shell.yes?("Found existing archive(s): #{files}.\n" <>
                    "Are you sure you want to replace them?")
-  end
-
-  defp validate_checksum!(binary, opts) do
-    case Keyword.fetch(opts, :sha512) do
-      {:ok, expected} ->
-        case hexhash(:sha512, binary) do
-          ^expected -> :ok
-          actual ->
-            Mix.raise """
-            Downloaded archive does not match the given sha512 checksum.
-
-            Expected: #{expected}
-              Actual: #{actual}
-            """
-        end
-      :error ->
-        :ok
-    end
-  end
-
-  defp hexhash(algorithm, binary) do
-    Base.encode16 :crypto.hash(algorithm, binary), case: :lower
   end
 
   defp check_file_exists!(src, path) do

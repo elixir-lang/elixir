@@ -16,8 +16,7 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
   """
 
   setup do
-    File.rm_rf! tmp_path("pubhome")
-    System.put_env "MIX_HOME", tmp_path("pubhome")
+    File.rm_rf! tmp_path(".mix/public_keys")
     :ok
   end
 
@@ -45,8 +44,11 @@ defmodule Mix.Tasks.Local.PublicKeysTest do
   end
 
   test "raises on bad public keys on install" do
-    assert_raise Mix.Error, ~r(Could not decode public key: ./README.md), fn ->
-      Mix.Tasks.Local.PublicKeys.run ["./README.md"]
+    assert_raise Mix.Error, ~r(Could not decode public key:), fn ->
+      path = tmp_path("bad.pub")
+      File.write!(path, "oops")
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Local.PublicKeys.run [path]
     end
   end
 end

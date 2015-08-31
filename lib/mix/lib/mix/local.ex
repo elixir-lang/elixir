@@ -73,4 +73,61 @@ defmodule Mix.Local do
         :ok
     end
   end
+
+  @doc """
+  Fetches the given signed CSV files, verify and return the matching
+  Elixir version with checksum.
+
+  Used to install both Rebar and Hex from S3.
+  """
+  def find_matching_elixir_version_from_signed_csv!(name, path) do
+    csv = read_path!(name, path)
+
+    signature =
+      read_path!(name, path <> ".signed")
+      |> String.replace("\n", "")
+      |> Base.decode64!
+
+    if Mix.PublicKey.verify csv, :sha512, signature do
+      csv
+      |> parse_csv
+      |> find_latest_eligibile_version
+    else
+      Mix.raise "Could not install #{name} because Mix could not verify authenticity " <>
+                "of metadata file at #{path}. This may happen because a proxy or some " <>
+                "entity is interfering with the download or because you don't have a " <>
+                "public key to verify the download"
+    end
+  end
+
+  defp read_path!(name, path) do
+    case Mix.Utils.read_path(path) do
+      {:ok, contents} -> contents
+      {:remote, message} ->
+        Mix.raise """
+        #{message}
+
+        Could not install #{name} because Mix could not download metadata at #{path}.
+        """
+    end
+  end
+
+  defp parse_csv(body) do
+    body
+    |> :binary.split("\n", [:global, :trim])
+    |> Enum.map(&:binary.split(&1, ",", [:global, :trim]))
+  end
+
+  defp find_latest_eligibile_version(entries) do
+    {:ok, current_version} = Version.parse(System.version)
+    entries
+    |> Enum.reverse
+    |> Enum.find_value(entries, &find_version(&1, current_version))
+  end
+
+  defp find_version([_, digest|versions], current_version) do
+    if version = Enum.find(versions, &Version.compare(&1, current_version) != :gt) do
+      {version, digest}
+    end
+  end
 end
