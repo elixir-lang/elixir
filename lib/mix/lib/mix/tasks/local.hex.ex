@@ -37,8 +37,10 @@ defmodule Mix.Tasks.Local.Hex do
       |> parse_csv
       |> find_latest_eligibile_version
     else
-      Mix.raise "Could not install hex because mix could not verify authenticity " <>
-                "of metadata file at #{@hex_list_url}."
+      Mix.raise "Could not install Hex because Mix could not verify authenticity " <>
+                "of metadata file at #{@hex_list_url}. This may happen because a " <>
+                "proxy or some entity is interfering with the download or because " <>
+                "you don't have a public key to verify the downloaded package"
     end
   end
 
@@ -49,7 +51,7 @@ defmodule Mix.Tasks.Local.Hex do
         Mix.raise """
         #{message}
 
-        Could not install hex because mix could not download metadata at #{path}.
+        Could not install Hex because Mix could not download metadata at #{path}.
         """
     end
   end
