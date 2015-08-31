@@ -71,7 +71,7 @@ defmodule Mix.CLI do
   defp ensure_hex("local.hex"),
     do: :ok
   defp ensure_hex(_task),
-    do: Mix.Tasks.Local.Hex.ensure_updated?()
+    do: Mix.Hex.ensure_updated?()
 
   defp change_env(task) do
     if is_nil(System.get_env("MIX_ENV")) &&

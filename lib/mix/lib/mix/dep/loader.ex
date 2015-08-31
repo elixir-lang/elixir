@@ -137,8 +137,8 @@ defmodule Mix.Dep.Loader do
 
     {scm, opts} = get_scm(app, opts)
 
-    if !scm && Mix.Tasks.Local.Hex.ensure_installed?(app) do
-      _ = Mix.Tasks.Local.Hex.start()
+    if !scm && Mix.Hex.ensure_installed?(app) do
+      _ = Mix.Hex.start()
       {scm, opts} = get_scm(app, opts)
     end
 
