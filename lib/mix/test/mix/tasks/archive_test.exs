@@ -15,13 +15,16 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
-  test "archive" do
+  setup do
     File.rm_rf! tmp_path("userhome")
     System.put_env "MIX_ARCHIVES", tmp_path("userhome/.mix/archives/")
     Mix.Project.push(ArchiveProject)
+    :ok
+  end
 
+  test "archive" do
     in_fixture "archive", fn() ->
-      # Install it!
+      # Build and install archive
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert File.regular? "archive-0.1.0.ez"
       assert_received {:mix_shell, :info, ["Generated archive archive-0.1.0.ez with MIX_ENV=dev"]}
@@ -37,11 +40,11 @@ defmodule Mix.Tasks.ArchiveTest do
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0.ez/archive-0.1.0/ebin")
       assert to_char_list(archive) in :code.get_path
 
-      # Load it!
+      # Loading the archive should emit warning again
       Mix.Local.append_archives
       assert_received {:mix_shell, :error, [^version_error]}
 
-      # List it!
+      # List archive
       Mix.Tasks.Local.run []
       info  = "mix local.sample # A local install sample"
       assert_received {:mix_shell, :info, [^info]}
@@ -49,26 +52,38 @@ defmodule Mix.Tasks.ArchiveTest do
       Mix.Tasks.Archive.run []
       assert_received {:mix_shell, :info, ["* archive-0.1.0.ez"]}
 
-      # Run it!
+      # Run archived task
       Mix.Task.run "local.sample"
       assert_received {:mix_shell, :info, ["sample"]}
+    end
+  end
 
-      # Install new version!
+  test "archive update" do
+    in_fixture "archive", fn() ->
+      # Install previous version
+      Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
+      assert File.regular? "archive-0.1.0.ez"
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Archive.Install.run []
+      assert_received {:mix_shell, :error, [_]}
+
+      # Build new version
       Mix.Project.push(ArchiveProject2)
-      Mix.Tasks.Archive.Build.run ["--no_compile"]
+      Mix.Tasks.Archive.Build.run ["--no-compile"]
       assert File.regular? "archive-0.2.0.ez"
       assert_received {:mix_shell, :info, ["Generated archive archive-0.2.0.ez with MIX_ENV=dev"]}
 
+      # Install new version
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
 
-      # Re-install an existing version
+      # Re-install current version should not change system
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
       assert File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
 
-      # Try to install a missing version
+      # Try to install a missing version does not remove archive
       assert_raise Mix.Error, fn ->
         send self, {:mix_shell_input, :yes?, true}
         Mix.Tasks.Archive.Install.run ["./archive-0.0.0.ez"]
@@ -83,11 +98,11 @@ defmodule Mix.Tasks.ArchiveTest do
         refute File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
       end
 
-      # Load it! No warnings because there is no :elixir in mix.exs.
+      # Load archive without warnings because there is no :elixir requirement in mix.exs
       Mix.Local.append_archives
       refute_received {:mix_shell, :error, [_]}
 
-      # Remove it!
+      # Remove archive
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Uninstall.run ["archive-0.2.0.ez"]
 
@@ -96,5 +111,28 @@ defmodule Mix.Tasks.ArchiveTest do
         refute File.regular? tmp_path("userhome/.mix/archives/archive-0.2.0.ez")
       end
     end
+  end
+
+  test "archive checksum" do
+    in_fixture "archive", fn() ->
+      Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
+      assert File.regular? "archive-0.1.0.ez"
+      send self, {:mix_shell_input, :yes?, true}
+
+      # Install with wrong checksum
+      assert_raise Mix.Error, ~r"Downloaded archive does not match the given sha512 checksum", fn ->
+        send self, {:mix_shell_input, :yes?, true}
+        Mix.Tasks.Archive.Install.run ["--sha512", "wrong"]
+      end
+
+      # Install with correct checksum
+      send self, {:mix_shell_input, :yes?, true}
+      Mix.Tasks.Archive.Install.run ["--sha512", sha512("archive-0.1.0.ez")]
+      assert File.regular? tmp_path("userhome/.mix/archives/archive-0.1.0.ez")
+    end
+  end
+
+  defp sha512(file) do
+    Base.encode16 :crypto.hash(:sha512, File.read!(file)), case: :lower
   end
 end

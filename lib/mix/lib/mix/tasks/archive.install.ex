@@ -25,13 +25,17 @@ defmodule Mix.Tasks.Archive.Install do
     * `--system` - uses one of the system tools (curl, wget or powershell
       on Windows) to download the archive in case a URL is given
 
+    * `--sha512` - checks the archive matches the given sha512 checksum
+
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like make
 
   """
+  # TODO: Remove --system option
   @spec run(OptionParser.argv) :: boolean
+  @switches [force: :boolean, system: :boolean, sha512: :string]
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, system: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)
@@ -46,7 +50,8 @@ defmodule Mix.Tasks.Archive.Install do
       if File.exists?(src) do
         install_archive(src, opts)
       else
-        Mix.raise "Expected PATH to be given, please use `mix archive.install PATH`"
+        Mix.raise "Expected local archive to exist or PATH to be given, " <>
+                  "please use `mix archive.install PATH`"
       end
     end
   end
@@ -61,6 +66,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       case Mix.Utils.read_path(src, opts) do
         {:ok, binary} ->
+          validate_checksum!(binary, opts)
           File.mkdir_p!(dirname)
           File.write!(archive, binary)
         :badname ->
@@ -107,6 +113,28 @@ defmodule Mix.Tasks.Archive.Install do
 
     Mix.shell.yes?("Found existing archive(s): #{files}.\n" <>
                    "Are you sure you want to replace them?")
+  end
+
+  defp validate_checksum!(binary, opts) do
+    case Keyword.fetch(opts, :sha512) do
+      {:ok, expected} ->
+        case hexhash(:sha512, binary) do
+          ^expected -> :ok
+          actual ->
+            Mix.raise """
+            Downloaded archive does not match the given sha512 checksum.
+
+            Expected: #{expected}
+              Actual: #{actual}
+            """
+        end
+      :error ->
+        :ok
+    end
+  end
+
+  defp hexhash(algorithm, binary) do
+    Base.encode16 :crypto.hash(algorithm, binary), case: :lower
   end
 
   defp check_file_exists!(src, path) do
