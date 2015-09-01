@@ -384,4 +384,13 @@ defmodule ExUnit.DocTestTest do
       end
     end
   end
+
+  test "fails on invalid use" do
+    assert_raise RuntimeError, ~r"cannot define test", fn ->
+      defmodule FunctionClashFail2 do
+        import ExUnit.DocTest
+        doctest ExUnit.DocTestTest.Invalid
+      end
+    end
+  end
 end
