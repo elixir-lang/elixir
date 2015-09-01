@@ -3,6 +3,9 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.ImportTest do
   use ExUnit.Case, async: true
 
+  # This should not warn due to the empty only
+  import URI, only: []
+
   defmodule ImportAvailable do
     defmacro flatten do
       [flatten: 1]
@@ -122,9 +125,16 @@ defmodule Kernel.ImportTest do
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
+  test "import only removes the non-import part" do
+    import List
+    import List, only: :macros
+    # Buggy local duplicate is used because we asked only for macros
+    assert duplicate([1], 2) == [1]
+  end
+
   test "import lexical on if" do
     if false do
-      import :lists
+      import List
       flatten([1, [2], 3])
       flunk
     else
@@ -136,7 +146,7 @@ defmodule Kernel.ImportTest do
   test "import lexical on case" do
     case true do
       false ->
-        import :lists
+        import List
         flatten([1, [2], 3])
         flunk
       true ->
@@ -147,7 +157,7 @@ defmodule Kernel.ImportTest do
 
   test "import lexical on try" do
     try do
-      import :lists
+      import List
       flatten([1, [2], 3])
       flunk
     catch
