@@ -156,8 +156,8 @@ defmodule Stream do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
-  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
   def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
     if is_nil(pad) do
