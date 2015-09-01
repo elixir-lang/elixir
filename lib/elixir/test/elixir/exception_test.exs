@@ -313,6 +313,98 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
+  test "sanitize_file_name" do
+    assert Exception.sanitize_file_name("/usr/file.ex", 10) == "/usr/file.ex:10:"
+    assert Exception.sanitize_file_name("exception_test.exs", 20, " **") == "exception_test.exs:20: **"
+    assert Exception.sanitize_file_name("exception_test.exs", nil, " **") == "exception_test.exs: **"
+    assert Exception.sanitize_file_name("exception_test.exs", "") == "exception_test.exs:"
+    assert Exception.sanitize_file_name("", "", "SUFFIX") == ""
+    assert Exception.sanitize_file_name("nofile", "100a") == "nofile:100a:"
+    assert Exception.sanitize_file_name("nofile", :invalid_line) == "nofile:invalid_line:"
+    assert Exception.sanitize_file_name(:invalid_file, :invalid_line) == ""
+  end
+
+  ## Raise exceptions with no options
+  test "call raise with no options" do
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError end
+
+    assert_raise SyntaxError,
+      "syntax error",
+      fn -> raise SyntaxError end
+
+    assert_raise TokenMissingError,
+      "expression is incomplete",
+      fn -> raise TokenMissingError end
+
+    assert_raise Code.LoadError,
+      "could not load file",
+      fn -> raise Code.LoadError end
+  end
+
+  ## Raise exceptions with options
+  test "raise CompileError with options" do
+    assert_raise CompileError,
+      "yace.ex: yet another compile error",
+      fn -> raise CompileError, [file: "yace.ex", description: "yet another compile error"] end
+
+    assert_raise CompileError,
+      "dir/file/exception_test.exs:42: compile error",
+      fn -> raise CompileError, [file: "dir/file/exception_test.exs", line: 42] end
+
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [line: 84] end
+
+    assert_raise CompileError,
+      "/usr/local/lib/elixir/rocks.ex:2015: custom error message",
+      fn -> raise CompileError, [
+        file: "/usr/local/lib/elixir/rocks.ex",
+        line: 2015,
+        message: "custom error message",
+        ]
+      end
+
+    # ignore invalid file names
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [file: ""] end
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [file: :wrong_argument] end
+  end
+
+  # TODO: FIX: this is a temporary test since it's not fully implemeneted
+  # on thiese Exceptions
+  test "raise Code.LoadError with options" do
+    assert_raise SyntaxError,
+      "file.ex: syntax error",
+      fn -> raise SyntaxError, [file: "file.ex"] end
+
+    assert_raise SyntaxError,
+      "file.ex:1: syntax error",
+      fn -> raise SyntaxError, [file: "file.ex", line: 1] end
+
+    assert_raise TokenMissingError,
+      "file.ex:2: expression is incomplete",
+      fn -> raise TokenMissingError, [file: "file.ex", line: "2"] end
+  end
+
+  test "raise other exceptions that require file, with options" do
+    assert_raise Code.LoadError,
+      "could not load file.ex",
+      fn -> raise Code.LoadError, [file: "file.ex"] end
+
+    assert_raise Code.LoadError,
+      "default description",
+      fn -> raise Code.LoadError, [description: "default description"] end
+
+    assert_raise Code.LoadError,
+      "custom error message",
+      fn -> raise Code.LoadError, [file: "", description: "default description", message: "custom error message"] end
+  end
+
   ## Exception messagges
 
   import Exception, only: [message: 1]
