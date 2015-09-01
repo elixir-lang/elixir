@@ -112,9 +112,17 @@ defmodule ExUnit do
 
     def message(timeout)
     def message(%{timeout: timeout}) do
-      "test timed out after #{timeout}ms. You can change the timeout globally " <>
-        "via ExUnit.start/1 or per test by setting \"@tag timeout: x\" where x " <>
-        "is an integer in milliseconds)"
+      """
+      test timed out after #{timeout}ms. You can change the timeout:
+
+        1. per test by setting "@tag timeout: x"
+        2. per case by setting "@moduletag timeout: x"
+        3. globally via "ExUnit.start(timeout: x)" configuration
+        4. or set it to infinity per run by calling "mix test --trace"
+           (useful when using IEx.pry)
+
+      Timeouts are given as integers in miliseconds.
+      """
     end
   end
 
