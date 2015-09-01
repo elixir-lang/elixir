@@ -12,5 +12,8 @@
 /v*.zip
 /.eunit
 /.release
-.elixir.plt
 erl_crash.dump
+
+# Third-party apps
+.elixir.plt
+.exenv-version
