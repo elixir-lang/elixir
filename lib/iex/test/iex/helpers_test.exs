@@ -379,6 +379,12 @@ defmodule IEx.HelpersTest do
     assert loaded =~ ~r/IEx\n.*\.beam/
   end
 
+  test "m module helper" do
+    assert capture_iex("m IEx") =~ ~r/Module\:\n  IEx/
+    assert capture_iex("m Atom") =~ ~r/Compile Time\:\n  \d*\-\d*\-\d* \d*\:\d*\:\d*/
+    assert capture_iex("m :erlang") =~ ~r/\Module\:\n  \:erlang/
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
