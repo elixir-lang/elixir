@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install install_man compile erlang elixir build_plt clean_plt dialyze test clean clean_man docs release_docs release_precompiled check_erlang_release
+.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -167,16 +167,25 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
-#==> Release tasks
+#==> Zips
 
-release_precompiled: build_man compile
+Docs.zip: docs
+	rm -rf Docs-v$(VERSION).zip
+	zip -9 -r Docs-v$(VERSION).zip doc
+	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
+
+Precompiled.zip: build_man compile
 	rm -rf Precompiled-v$(VERSION).zip
 	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
-release_docs: docs
+#==> Publish
+
+publish_zips: Precompiled.zip Docs.zip
+
+publish_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
-	mv doc/* ../docs/$(DOCS)
+	cp -R doc/* ../docs/$(DOCS)
 
 # This task requires aws-cli to be installed and set up for access to s3.hex.pm
 # See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html

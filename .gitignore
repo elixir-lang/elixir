@@ -9,7 +9,8 @@
 /man/elixir.1
 /man/iex.1
 /rel/elixir
-/v*.zip
+/Docs-v*.zip
+/Precompiled-v*.zip
 /.eunit
 /.release
 .elixir.plt
