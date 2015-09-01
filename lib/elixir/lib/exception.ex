@@ -445,8 +445,9 @@ defmodule Exception do
   end
 
   @doc """
-  Formats the given file and line as shown in stacktraces.
-  If any of the values are `nil`, they are omitted.
+  Formats the given `file` and `line` as shown in stacktraces.
+  If any `file` or `line` are `nil`, they are omitted.
+  Adds `suffix` at the end of the string, if a result is returned.
 
   ## Examples
 
@@ -460,13 +461,9 @@ defmodule Exception do
       ""
 
   """
-  def format_file_line(file, line) do
-    format_file_line(file, line, "")
-  end
-
-  defp format_file_line(file, line, suffix) do
+  def format_file_line(file, line, suffix \\ "") do
     if file do
-      if line && line != 0 do
+      if not line in [0, nil, ""] do
         "#{file}:#{line}:#{suffix}"
       else
         "#{file}:#{suffix}"
@@ -478,6 +475,17 @@ defmodule Exception do
 
   defp format_location(opts) when is_list(opts) do
     format_file_line Keyword.get(opts, :file), Keyword.get(opts, :line), " "
+  end
+
+  @doc false
+  # Make sure file name is not invalid, so we don't get an unexpected
+  # error from Path.relative_to_cwd/1
+  def sanitize_file_name(file, line, suffix \\ "") do
+    if is_bitstring(file) and file != "" do
+      format_file_line(Path.relative_to_cwd(file), line, suffix)
+    else
+      ""
+    end
   end
 end
 
@@ -514,8 +522,8 @@ defmodule SyntaxError do
   defexception [file: nil, line: nil, description: "syntax error"]
 
   def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+    Exception.sanitize_file_name(exception.file, exception.line, " ")
+    <> exception.description
   end
 end
 
@@ -523,17 +531,23 @@ defmodule TokenMissingError do
   defexception [file: nil, line: nil, description: "expression is incomplete"]
 
   def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+    Exception.sanitize_file_name(exception.file, exception.line, " ")
+    <> exception.description
   end
 end
 
 defmodule CompileError do
-  defexception [file: nil, line: nil, description: "compile error"]
+  defexception [file: nil, line: nil, description: "compile error", message: nil, ]
 
   def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+    file_line = Exception.sanitize_file_name(exception.file, exception.line, " ")
+    cond do
+      exception.message ->
+        file_line <> exception.message
+
+      true ->
+        file_line <> exception.description
+    end
   end
 end
 
@@ -653,12 +667,20 @@ defmodule FunctionClauseError do
 end
 
 defmodule Code.LoadError do
-  defexception [:file, :message]
+  defexception [file: nil, message: nil, description: "could not load file"]
 
-  def exception(opts) do
-    file = Keyword.fetch!(opts, :file)
-    %Code.LoadError{message: "could not load #{file}", file: file}
-  end
+  def message(exception) do
+    cond do
+      exception.message ->
+        exception.message
+
+      not exception.file in [nil, ""]  ->
+        "could not load #{exception.file}"
+
+      true ->
+        exception.description
+    end
+  end 
 end
 
 defmodule Protocol.UndefinedError do
