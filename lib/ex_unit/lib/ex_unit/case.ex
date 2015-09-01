@@ -281,8 +281,15 @@ defmodule ExUnit.Case do
 
   @doc false
   def __on_definition__(env, name, tags \\ []) do
-    mod  = env.module
-    tags = tags ++ Module.get_attribute(mod, :tag) ++ Module.get_attribute(mod, :moduletag)
+    mod = env.module
+    moduletag = Module.get_attribute(mod, :moduletag)
+
+    unless moduletag do
+      raise "cannot define test. Please make sure you have invoked " <>
+            "\"use ExUnit.Case\" in the current module"
+    end
+
+    tags = tags ++ Module.get_attribute(mod, :tag) ++ moduletag
     tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
