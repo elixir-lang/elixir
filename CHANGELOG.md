@@ -33,6 +33,11 @@ On the tooling side, ExUnit got the ability to skip tests and a couple
 new configuration options. Mix got improved warnings and error messages,
 faster compilation times and the brand new `mix profile.fprof` task.
 
+Finally, Mix now ships with `local.public_keys` to safely manage the
+installation of Hex and Rebar alongside the ability to checksum
+archive installs. By default, Elixir will always ship with a valid
+public key and this feature should work transparently for users.
+
 Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
@@ -73,6 +78,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Task] Introduce `Task.yield/2` and `Task.shutdown/2` to check if a task is still executing and shutdown otherwise
   * [Tuple] Add `Tuple.append/2`
   * [URI] Default ports were added for "ws" and "wss" schemas
+  * [URI] Add `URI.to_string/1`
 
 #### EEx
 
@@ -92,6 +98,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [IEx] Support `IEx.pry` with `--remsh` for remote debugging
   * [IEx] Add `b/1` helper that shows documentation for behaviour modules and its callback functions
   * [IEx] Provide tab completion for aliases and allow aliases like `Foo.Bar.Baz` to autocomplete even if `Foo.Bar` is not defined
+  * [IEx] Provide a `pid/3` helper for buildings pids from numbers
 
 #### Logger
 
@@ -113,6 +120,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Mix] Add `mix profile.fprof` for easy code profiling
   * [Mix] Abort when dependencies have conflicting `:only` definitions
   * [Mix] Fully recompile projects if Elixir or SCM changes
+  * [Mix] Allow checksum to be checked on archive install via `--sha512` option
+  * [Mix] Add `mix local.public_keys` to safely manage installation of Hex and Rebar dependencies
 
 ### 2. Bug fixes
 
