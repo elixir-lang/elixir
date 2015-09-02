@@ -15,9 +15,13 @@ defmodule ProcessTest do
   end
 
   test "info/2" do
-    pid = spawn fn -> end
+    pid = spawn fn -> :timer.sleep(1000) end
+    assert Process.info(pid, :priority) == {:priority, :normal}
+    assert Process.info(pid, [:priority]) == [priority: :normal]
+
     Process.exit(pid, :kill)
     assert Process.info(pid, :backtrace) == nil
+    assert Process.info(pid, [:backtrace, :status]) == nil
   end
 
   test "info/2 with registered name" do
@@ -25,13 +29,19 @@ defmodule ProcessTest do
     Process.exit(pid, :kill)
     assert Process.info(pid, :registered_name) ==
            nil
+    assert Process.info(pid, [:registered_name]) ==
+           nil
 
     assert Process.info(self, :registered_name) ==
            {:registered_name, []}
+    assert Process.info(self, [:registered_name]) ==
+           [registered_name: []]
 
     Process.register(self, __MODULE__)
     assert Process.info(self, :registered_name) ==
            {:registered_name, __MODULE__}
+    assert Process.info(self, [:registered_name]) ==
+           [registered_name: __MODULE__]
   end
 
   test "exit(pid, :normal) does not cause the target process to exit" do
