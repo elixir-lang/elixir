@@ -30,7 +30,7 @@
 #   * out neighbours: `Module`
 #
 # Note that since this is required for bootstrap, we can't use
-# any of the `GenServer.Behaviour` conveniences.
+# any of the `GenServer` conveniences.
 defmodule Module.LocalsTracker do
   @moduledoc false
 
