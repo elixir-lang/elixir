@@ -88,7 +88,7 @@ defmodule Kernel.SpecialForms do
       %{:a => :c}
 
   Notice the update syntax requires the given keys to exist.
-  Trying to update a key that does not exist will raise an `ArgumentError`.
+  Trying to update a key that does not exist will raise an `KeyError`.
 
   ## AST representation
 
