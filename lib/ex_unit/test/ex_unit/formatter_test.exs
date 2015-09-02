@@ -168,7 +168,8 @@ defmodule ExUnit.FormatterTest do
          Assertion with == failed
          code: :will_fail == %BadInspect{}
          lhs:  :will_fail
-         rhs:  %Inspect.Error{message: \"#{message}\"}
+         rhs:  %Inspect.Error{description: nil,
+                message: \"#{message}\"}
     """
   end
 
@@ -183,7 +184,7 @@ defmodule ExUnit.FormatterTest do
   test "message failure" do
     failure = {:error, catch_error(raise BadMessage), []}
     message = "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
-              "for %ExUnit.FormatterTest.BadMessage{key: 0}"
+              "for %ExUnit.FormatterTest.BadMessage{description: nil, key: 0, message: nil}"
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1

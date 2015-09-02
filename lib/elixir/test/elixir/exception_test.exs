@@ -1,5 +1,17 @@
 Code.require_file "test_helper.exs", __DIR__
 
+defmodule CompileTestError do
+  defexception []
+end
+
+defmodule CompileTest2Error do
+  defexception [description: "compile test error"]
+end
+
+defmodule CompileTest3Error do
+  defexception "compile test error type 3"
+end
+
 defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
@@ -13,7 +25,7 @@ defmodule ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
     assert {__MODULE__, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 9]} = stacktrace
+           [file: ^file, line: 21]} = stacktrace
   end
 
   test "exception?" do
@@ -313,15 +325,15 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  test "sanitize_file_name" do
-    assert Exception.sanitize_file_name("/usr/file.ex", 10) == "/usr/file.ex:10:"
-    assert Exception.sanitize_file_name("exception_test.exs", 20, " **") == "exception_test.exs:20: **"
-    assert Exception.sanitize_file_name("exception_test.exs", nil, " **") == "exception_test.exs: **"
-    assert Exception.sanitize_file_name("exception_test.exs", "") == "exception_test.exs:"
-    assert Exception.sanitize_file_name("", "", "SUFFIX") == ""
-    assert Exception.sanitize_file_name("nofile", "100a") == "nofile:100a:"
-    assert Exception.sanitize_file_name("nofile", :invalid_line) == "nofile:invalid_line:"
-    assert Exception.sanitize_file_name(:invalid_file, :invalid_line) == ""
+  test "sanitize_file_line" do
+    assert Exception.sanitize_file_line("/usr/file.ex", 10) == "/usr/file.ex:10:"
+    assert Exception.sanitize_file_line("exception_test.exs", 20, " **") == "exception_test.exs:20: **"
+    assert Exception.sanitize_file_line("exception_test.exs", nil, " **") == "exception_test.exs: **"
+    assert Exception.sanitize_file_line("exception_test.exs", "") == "exception_test.exs:"
+    assert Exception.sanitize_file_line("", "", "SUFFIX") == ""
+    assert Exception.sanitize_file_line("nofile", "100a") == "nofile:100a:"
+    assert Exception.sanitize_file_line("nofile", :invalid_line) == "nofile:invalid_line:"
+    assert Exception.sanitize_file_line(:invalid_file, :invalid_line) == ""
   end
 
   ## Raise exceptions with no options
@@ -377,7 +389,11 @@ defmodule ExceptionTest do
 
   # TODO: FIX: this is a temporary test since it's not fully implemeneted
   # on thiese Exceptions
-  test "raise Code.LoadError with options" do
+  test "raise other exceptions that require file with options" do
+    assert_raise SyntaxError,
+      "syntax error",
+      fn -> raise SyntaxError end
+
     assert_raise SyntaxError,
       "file.ex: syntax error",
       fn -> raise SyntaxError, [file: "file.ex"] end
@@ -387,11 +403,23 @@ defmodule ExceptionTest do
       fn -> raise SyntaxError, [file: "file.ex", line: 1] end
 
     assert_raise TokenMissingError,
+      "expression is incomplete",
+      fn -> raise TokenMissingError end
+
+    assert_raise TokenMissingError,
       "file.ex:2: expression is incomplete",
       fn -> raise TokenMissingError, [file: "file.ex", line: "2"] end
+
+    assert_raise TokenMissingError,
+      "custom error message",
+      fn -> raise TokenMissingError, [message: "custom error message"] end
+
+    assert_raise TokenMissingError,
+      "file.ex:2: custom error message",
+      fn -> raise TokenMissingError, [file: "file.ex", line: "2", message: "custom error message"] end
   end
 
-  test "raise other exceptions that require file, with options" do
+  test "raise Code.LoadError with options" do
     assert_raise Code.LoadError,
       "could not load file.ex",
       fn -> raise Code.LoadError, [file: "file.ex"] end
@@ -403,6 +431,111 @@ defmodule ExceptionTest do
     assert_raise Code.LoadError,
       "custom error message",
       fn -> raise Code.LoadError, [file: "", description: "default description", message: "custom error message"] end
+  end
+
+  ####################################################
+  ## Exception Messages (new)
+  
+  test "CompileError - no options" do
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError
+    end
+  end
+
+  test "CompileError - message as second argument" do
+    assert_raise CompileError,
+      "custom message",
+      fn -> raise CompileError, "custom message"
+    end
+  end
+
+  test "CompileError - options" do
+    assert_raise CompileError,
+      "file.ex:10: custom error",
+      fn ->
+        raise CompileError, [file: "file.ex", line: 10, message: "custom error"]
+    end
+  end
+
+  test "CompileError - invalid options" do
+    assert_raise CompileError,
+      "file.ex:10: custom error",
+      fn ->
+        raise CompileError, [file: "file.ex", line: 10, message: "custom error", description: ""]
+    end
+  end
+
+  test "CompileError - force all options to nil, except message" do
+    assert_raise CompileError,
+      "",
+      fn ->
+        raise CompileError, [file: nil, line: nil, description: nil, message: ""]
+    end
+  end
+
+  test "CompileError - message: nil" do
+    assert_raise CompileError,
+      "",
+      fn ->
+        raise CompileError, [message: nil, description: nil]
+    end
+  end
+
+  ################################
+  test "CompileTestError - no options" do
+    #raise CompileTestError
+    assert_raise CompileTestError,
+      "",
+      fn -> raise CompileTestError
+    end
+
+    assert_raise CompileTestError,
+      "",
+      fn -> raise CompileTestError
+    end
+  end
+
+  test "CompileTestError - with options" do
+    assert_raise CompileTestError,
+      "yes",
+      fn -> raise CompileTestError, [message: "yes"]
+    end
+
+    assert_raise CompileTestError,
+      "desc",
+      fn -> raise CompileTestError, [description: "desc"]
+    end
+
+    assert_raise CompileTestError,
+      "",
+      fn -> raise CompileTestError, []
+    end
+
+    assert_raise CompileTestError,
+      "",
+      fn -> raise CompileTestError, [foxxxo: ""] # ignore unknown options
+    end
+
+  end
+
+  test "CompileTest2Error - options" do
+    assert_raise CompileTest2Error,
+      "custom error",
+      fn -> raise CompileTest2Error, [file: "file.ex", line: 10, message: "custom error"]
+    end
+
+    assert_raise CompileTest2Error,
+      "compile test error",
+      fn -> raise CompileTest2Error, [foxxxo: ""] # ignore unknown options
+    end
+  end
+
+  test "CompileTest3Error - no options, defexception with bitstring as description" do
+    assert_raise CompileTest3Error,
+      "compile test error type 3",
+      fn -> raise CompileTest3Error
+    end
   end
 
   ## Exception messagges

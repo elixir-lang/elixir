@@ -3259,27 +3259,37 @@ defmodule Kernel do
 
   """
   defmacro defexception(fields) do
-    fields = case is_list(fields) do
-      true  -> [{:__exception__, true}|fields]
-      false -> quote(do: [{:__exception__, true}] ++ unquote(fields))
+    fields = cond do
+      is_bitstring(fields) ->
+        [{:__exception__, true}, {:message, nil}, {:description, fields}]
+      is_list(fields) ->
+        [{:__exception__, true}, {:message, nil}, {:description, nil} | fields]
+      true ->
+        quote(do: [{:__exception__, true}, {:message, nil}, {:description, nil}] ++ unquote(fields))
     end
 
     quote do
       @behaviour Exception
-      fields = defstruct unquote(fields)
+      defstruct unquote(fields)
 
-      if Map.has_key?(fields, :message) do
-        @spec message(Exception.t) :: String.t
-        def message(exception) do
-          exception.message
-        end
+      @spec message(Exception.t) :: String.t
+      def message(%{message: message, description: description}) when is_nil(message) and description != nil do
+        "#{description}"
+      end
 
-        defoverridable message: 1
+      def message(%{message: nil}) do
+        ""
+      end
 
-        @spec exception(String.t) :: Exception.t
-        def exception(msg) when is_binary(msg) do
-          exception(message: msg)
-        end
+      def message(%{message: message}) do
+        "#{message}"
+      end
+
+      defoverridable message: 1
+
+      @spec exception(String.t) :: Exception.t
+      def exception(msg) when is_binary(msg) do
+        exception(message: msg)
       end
 
       @spec exception(Keyword.t) :: Exception.t

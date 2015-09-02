@@ -309,12 +309,12 @@ defmodule Inspect.MapTest do
           "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert inspect(%Failing{}) ==
-           "%Inspect.Error{message: \"#{msg}\"}"
+           "%Inspect.Error{description: nil, message: \"#{msg}\"}"
   end
 
   test "exception" do
     assert inspect(%RuntimeError{message: "runtime error"}) ==
-           "%RuntimeError{message: \"runtime error\"}"
+           "%RuntimeError{description: nil, message: \"runtime error\"}"
   end
 end
 

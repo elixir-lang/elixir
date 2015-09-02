@@ -446,8 +446,9 @@ defmodule Exception do
 
   @doc """
   Formats the given `file` and `line` as shown in stacktraces.
-  If any `file` or `line` are `nil`, they are omitted.
-  Adds `suffix` at the end of the string, if a result is returned.
+  If `file` is falsey or an empty string, it returns an empty string.
+  If `line` is 0, falsey or an empty string, `line` is omitted.
+  Adds `suffix` at the end of the string, if a non-empty string is returned.
 
   ## Examples
 
@@ -457,19 +458,19 @@ defmodule Exception do
       iex> Exception.format_file_line("foo", nil)
       "foo:"
 
-      iex> Exception.format_file_line(nil, nil)
+      iex> Exception.format_file_line(nil, "bar")
       ""
 
   """
+  @spec format_file_line(term, term, term) :: String.t
   def format_file_line(file, line, suffix \\ "") do
-    if file do
-      if not line in [0, nil, ""] do
-        "#{file}:#{line}:#{suffix}"
-      else
+    cond do
+      file in [nil, false, ""] ->
+        ""
+      line in [0, nil, false, ""] ->
         "#{file}:#{suffix}"
-      end
-    else
-      ""
+      true ->
+        "#{file}:#{line}:#{suffix}"
     end
   end
 
@@ -480,7 +481,7 @@ defmodule Exception do
   @doc false
   # Make sure file name is not invalid, so we don't get an unexpected
   # error from Path.relative_to_cwd/1
-  def sanitize_file_name(file, line, suffix \\ "") do
+  def sanitize_file_line(file, line, suffix \\ "") do
     if is_bitstring(file) and file != "" do
       format_file_line(Path.relative_to_cwd(file), line, suffix)
     else
@@ -522,8 +523,13 @@ defmodule SyntaxError do
   defexception [file: nil, line: nil, description: "syntax error"]
 
   def message(exception) do
-    Exception.sanitize_file_name(exception.file, exception.line, " ")
-    <> exception.description
+    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
+    cond do
+      exception.message ->
+        file_line <> "#{exception.message}"
+      true ->
+        file_line <> "#{exception.description}"
+    end
   end
 end
 
@@ -531,30 +537,35 @@ defmodule TokenMissingError do
   defexception [file: nil, line: nil, description: "expression is incomplete"]
 
   def message(exception) do
-    Exception.sanitize_file_name(exception.file, exception.line, " ")
-    <> exception.description
+    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
+    cond do
+      exception.message ->
+        file_line <> "#{exception.message}"
+      true ->
+        file_line <> "#{exception.description}"
+    end
   end
 end
 
 defmodule CompileError do
-  defexception [file: nil, line: nil, description: "compile error", message: nil, ]
+  defexception [file: nil, line: nil, description: "compile error"]
 
   def message(exception) do
-    file_line = Exception.sanitize_file_name(exception.file, exception.line, " ")
+    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
     cond do
       exception.message ->
-        file_line <> exception.message
-
+        file_line <> "#{exception.message}"
       true ->
-        file_line <> exception.description
+        file_line <> "#{exception.description}"
     end
   end
 end
 
 defmodule BadFunctionError do
   defexception [term: nil]
-
+  require Logger
   def message(exception) do
+    Logger.debug inspect(exception)
     "expected a function, got: #{inspect(exception.term)}"
   end
 end
@@ -673,10 +684,8 @@ defmodule Code.LoadError do
     cond do
       exception.message ->
         exception.message
-
       not exception.file in [nil, ""]  ->
         "could not load #{exception.file}"
-
       true ->
         exception.description
     end
