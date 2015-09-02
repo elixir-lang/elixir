@@ -448,10 +448,8 @@ defmodule ExceptionTest do
   # TestEmptyError & TestNonEmptyError
 
   test "TestEmptyError" do
-    undefined_error_msg = "got nil while retrieving Exception.message/1 for %TestEmptyError{message: nil} (expected a string)"
-
     assert_raise TestEmptyError,
-      "got nil while retrieving Exception.message/1 for %TestEmptyError{message: nil} (expected a string)",
+      "",
       fn -> raise TestEmptyError
     end
 
@@ -461,7 +459,7 @@ defmodule ExceptionTest do
     end
 
     assert_raise TestEmptyError,
-      undefined_error_msg,
+      "",
       fn -> raise TestEmptyError, [description: "desc"]
     end
   end
