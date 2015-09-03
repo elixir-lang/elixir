@@ -187,6 +187,17 @@ defmodule GenServer do
 
   Returning `:ignore` will cause `start_link/3` to return `:ignore` and the
   process will exit normally without entering the loop or calling `terminate/2`.
+  If used when part of a supervision tree the parent supervisor will not fail
+  to start nor immediately try to restart the `GenServer`. The remainder of the
+  supervision tree will be (re)started and so the `GenServer` should not be
+  required by other processes. It can be started later with
+  `Supervisor.restart_child/2` as the child specification is saved in the parent
+  supervisor. The main use cases for this are:
+
+  - The `GenServer` is disabled by configuration but might be enabled later.
+  - An error occured and it will be handled by a different mechanism than the
+  `Supervisor`. Likely this approach involves calling `Supervisor.restart_child/2`
+  after a delay to attempt a restart.
 
   Returning `{:stop, reason}` will cause `start_link/3` to return
   `{:error, reason}` and the process to exit with reason `reason` without
