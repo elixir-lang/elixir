@@ -482,7 +482,7 @@ defmodule Exception do
   # Make sure file name is not invalid, so we don't get an unexpected
   # error from Path.relative_to_cwd/1
   def sanitize_file_line(file, line, suffix \\ "") do
-    if is_bitstring(file) and file != "" do
+    if is_binary(file) and file != "" do
       format_file_line(Path.relative_to_cwd(file), line, suffix)
     else
       ""
@@ -520,49 +520,35 @@ defmodule SystemLimitError do
 end
 
 defmodule SyntaxError do
-  defexception [file: nil, line: nil, description: "syntax error", message: nil]
+  defexception [file: nil, line: nil,  description: "syntax error"]
 
   def message(exception) do
-    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
-    cond do
-      exception.message ->
-        file_line <> "#{exception.message}"
-      true ->
-        file_line <> "#{exception.description}"
-    end
+    Exception.sanitize_file_line(exception.file, exception.line, " ")
+    <> "#{exception.description}"
   end
 end
 
 defmodule TokenMissingError do
-  defexception [file: nil, line: nil, description: "expression is incomplete", message: nil]
+  defexception [file: nil, line: nil,  description: "expression is incomplete"]
 
   def message(exception) do
-    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
-    cond do
-      exception.message ->
-        file_line <> "#{exception.message}"
-      true ->
-        file_line <> "#{exception.description}"
-    end
+    Exception.sanitize_file_line(exception.file, exception.line, " ")
+    <> "#{exception.description}"
   end
 end
 
 defmodule CompileError do
-  defexception [file: nil, line: nil, description: "compile error", message: nil]
+  defexception [file: nil, line: nil, description: "compile error"]
 
   def message(exception) do
-    file_line = Exception.sanitize_file_line(exception.file, exception.line, " ")
-    cond do
-      exception.message ->
-        file_line <> "#{exception.message}"
-      true ->
-        file_line <> "#{exception.description}"
-    end
+    Exception.sanitize_file_line(exception.file, exception.line, " ")
+    <> "#{exception.description}"
   end
 end
 
 defmodule BadFunctionError do
   defexception [term: nil]
+
   def message(exception) do
     "expected a function, got: #{inspect(exception.term)}"
   end

@@ -335,6 +335,8 @@ defmodule ExceptionTest do
     assert Exception.sanitize_file_line("exception_test.exs", 20, " **") == "exception_test.exs:20: **"
     assert Exception.sanitize_file_line("exception_test.exs", nil, " **") == "exception_test.exs: **"
     assert Exception.sanitize_file_line("exception_test.exs", "") == "exception_test.exs:"
+    assert Exception.sanitize_file_line("áéíóü", "áíüeo") == "áéíóü:áíüeo:"
+    assert Exception.sanitize_file_line([], []) == ""
     assert Exception.sanitize_file_line("", "", "SUFFIX") == ""
     assert Exception.sanitize_file_line("nofile", "100a") == "nofile:100a:"
     assert Exception.sanitize_file_line("nofile", :invalid_line) == "nofile:invalid_line:"
@@ -348,17 +350,8 @@ defmodule ExceptionTest do
   ## Raise exceptions with options
   test "raise CompileError with options" do
     assert_raise CompileError,
-      "yace.ex: yet another compile error",
-      fn -> raise CompileError, [file: "yace.ex", description: "yet another compile error"] end
-
-    assert_raise CompileError,
-      "/usr/local/lib/elixir/rocks.ex:2015: custom error message",
-      fn -> raise CompileError, [
-        file: "/usr/local/lib/elixir/rocks.ex",
-        line: 2015,
-        message: "custom error message",
-        ]
-      end
+      "compile error",
+      fn -> raise CompileError end
 
     assert_raise CompileError,
       "dir/file/exception_test.exs:42: compile error",
@@ -372,23 +365,25 @@ defmodule ExceptionTest do
     assert_raise CompileError,
       "compile error",
       fn -> raise CompileError, [file: ""] end
+
     assert_raise CompileError,
       "compile error",
       fn -> raise CompileError, [file: :wrong_value] end
+
+    assert_raise CompileError,
+      "/usr/local/lib/elixir/rocks.ex:2015: custom error message",
+      fn -> raise CompileError, [
+        file: "/usr/local/lib/elixir/rocks.ex",
+        line: 2015,
+        description: "custom error message",
+        ]
+      end
   end
   
   test "CompileError - message as second argument" do
     assert_raise CompileError,
       "custom message",
-      fn -> raise CompileError, "custom message"
-    end
-  end
-
-  test "CompileError - invalid options" do
-    assert_raise CompileError,
-      "file.ex:10: custom error",
-      fn ->
-        raise CompileError, [file: "file.ex", line: 10, message: "custom error", description: ""]
+      fn -> raise CompileError, [description: "custom message"]
     end
   end
 
@@ -396,15 +391,15 @@ defmodule ExceptionTest do
     assert_raise CompileError,
       "",
       fn ->
-        raise CompileError, [file: nil, line: nil, description: nil, message: ""]
+        raise CompileError, [file: nil, line: nil, description: ""]
     end
   end
 
-  test "CompileError - message: nil" do
+  test "CompileError - description: nil" do
     assert_raise CompileError,
       "",
       fn ->
-        raise CompileError, [message: nil, description: nil]
+        raise CompileError, [description: nil]
     end
   end
 
@@ -412,11 +407,7 @@ defmodule ExceptionTest do
   # Errors using file and line number
 
   ## Raise exceptions with no options
-  test "raise exceptions that require :file (no options)" do
-    assert_raise CompileError,
-      "compile error",
-      fn -> raise CompileError end
-
+  test "raise exceptions that require :file" do
     assert_raise SyntaxError,
       "syntax error",
       fn -> raise SyntaxError end
@@ -425,23 +416,23 @@ defmodule ExceptionTest do
       "expression is incomplete",
       fn -> raise TokenMissingError end
 
-    assert_raise Code.LoadError,
-      "could not load file",
-      fn -> raise Code.LoadError end
-  end
-
-  test "raise exceptions that require :file (with options)" do
     assert_raise SyntaxError,
       "file.ex:1: syntax error",
       fn -> raise SyntaxError, [file: "file.ex", line: 1] end
 
     assert_raise TokenMissingError,
       "file.ex:2: custom error message",
-      fn -> raise TokenMissingError, [file: "file.ex", line: "2", message: "custom error message"] end
+      fn -> raise TokenMissingError, [file: "file.ex", line: "2", description: "custom error message"] end
+  end
+
+  test "Code.LoadError" do
+    assert_raise Code.LoadError,
+      "could not load file",
+      fn -> raise Code.LoadError end
 
     assert_raise Code.LoadError,
-      "custom error message",
-      fn -> raise Code.LoadError, [file: "", description: "desc", message: "custom error message"] end
+      "could not load foo.ex",
+      fn -> raise Code.LoadError, [file: "foo.ex", ] end
   end
 
   ####################################################
