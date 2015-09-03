@@ -338,7 +338,7 @@ defmodule GenServer do
   exits. For such reasons, we usually recommend important clean-up rules to
   happen in separated processes either by use of monitoring or by links
   themselves. For example if the `GenServer` controls a `port` (e.g.
-  `:gen_tcp.socket`) or `File.t`, they will be closed on receiving a
+  `:gen_tcp.socket`) or `File.io_device`, they will be closed on receiving a
   `GenServer`'s exit signal and do not need to be closed in `terminate/2`.
 
   If `reason` is not `:normal`, `:shutdown` nor `{:shutdown, term}` an error is
