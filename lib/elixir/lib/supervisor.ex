@@ -265,7 +265,7 @@ defmodule Supervisor do
   and will exit not only on crashes but also if the parent process
   exits with `:normal` reason.
   """
-  @spec start_link([tuple], options) :: on_start
+  @spec start_link([Supervisor.Spec.spec], options) :: on_start
   def start_link(children, options) when is_list(children) do
     spec = Supervisor.Spec.supervise(children, options)
     start_link(Supervisor.Default, spec, options)
@@ -291,6 +291,7 @@ defmodule Supervisor do
 
   Other failure conditions are specified in `start_link/2` docs.
   """
+  @spec start_link(module, term) :: on_start
   @spec start_link(module, term, options) :: on_start
   def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
