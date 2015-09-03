@@ -3271,7 +3271,12 @@ defmodule Kernel do
       if Map.has_key?(fields, :message) do
         @spec message(Exception.t) :: String.t
         def message(exception) do
-          exception.message
+          cond do
+            is_nil(exception.message) ->
+              ""
+            true ->
+              exception.message
+          end
         end
 
         defoverridable message: 1

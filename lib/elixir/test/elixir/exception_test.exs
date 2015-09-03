@@ -1,5 +1,22 @@
 Code.require_file "test_helper.exs", __DIR__
 
+defmodule TestEmptyError do
+  defexception [:message]
+end
+
+defmodule TestNonEmptyError do
+  defexception [description: "compile test error", message: nil]
+
+  def message(exception) do
+    cond do
+      exception.message ->
+        exception.message
+      true ->
+        exception.description
+    end
+  end
+end
+
 defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
@@ -13,7 +30,7 @@ defmodule ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
     assert {__MODULE__, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 9]} = stacktrace
+           [file: ^file, line: 26]} = stacktrace
   end
 
   test "exception?" do
@@ -313,7 +330,155 @@ defmodule ExceptionTest do
     assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
   end
 
-  ## Exception messagges
+  test "sanitize_file_line" do
+    assert Exception.sanitize_file_line("/usr/file.ex", 10) == "/usr/file.ex:10:"
+    assert Exception.sanitize_file_line("exception_test.exs", 20, " **") == "exception_test.exs:20: **"
+    assert Exception.sanitize_file_line("exception_test.exs", nil, " **") == "exception_test.exs: **"
+    assert Exception.sanitize_file_line("exception_test.exs", "") == "exception_test.exs:"
+    assert Exception.sanitize_file_line("áéíóü", "áíüeo") == "áéíóü:áíüeo:"
+    assert Exception.sanitize_file_line([], []) == ""
+    assert Exception.sanitize_file_line("", "", "SUFFIX") == ""
+    assert Exception.sanitize_file_line("nofile", "100a") == "nofile:100a:"
+    assert Exception.sanitize_file_line("nofile", :invalid_line) == "nofile:invalid_line:"
+    assert Exception.sanitize_file_line(:invalid_file, :invalid_line) == ""
+  end
+
+
+  ####################################################
+  # CompileError - Test case for an Error that involve :file and :line
+
+  ## Raise exceptions with options
+  test "raise CompileError with options" do
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError end
+
+    assert_raise CompileError,
+      "dir/file/exception_test.exs:42: compile error",
+      fn -> raise CompileError, [file: "dir/file/exception_test.exs", line: 42] end
+
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [line: 84] end
+
+    # ignore invalid file names
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [file: ""] end
+
+    assert_raise CompileError,
+      "compile error",
+      fn -> raise CompileError, [file: :wrong_value] end
+
+    assert_raise CompileError,
+      "/usr/local/lib/elixir/rocks.ex:2015: custom error message",
+      fn -> raise CompileError, [
+        file: "/usr/local/lib/elixir/rocks.ex",
+        line: 2015,
+        description: "custom error message",
+        ]
+      end
+  end
+  
+  test "CompileError - message as second argument" do
+    assert_raise CompileError,
+      "custom message",
+      fn -> raise CompileError, [description: "custom message"]
+    end
+  end
+
+  test "CompileError - force all options to nil, except message" do
+    assert_raise CompileError,
+      "",
+      fn ->
+        raise CompileError, [file: nil, line: nil, description: ""]
+    end
+  end
+
+  test "CompileError - description: nil" do
+    assert_raise CompileError,
+      "",
+      fn ->
+        raise CompileError, [description: nil]
+    end
+  end
+
+  ####################################################
+  # Errors using file and line number
+
+  ## Raise exceptions with no options
+  test "raise exceptions that require :file" do
+    assert_raise SyntaxError,
+      "syntax error",
+      fn -> raise SyntaxError end
+
+    assert_raise TokenMissingError,
+      "expression is incomplete",
+      fn -> raise TokenMissingError end
+
+    assert_raise SyntaxError,
+      "file.ex:1: syntax error",
+      fn -> raise SyntaxError, [file: "file.ex", line: 1] end
+
+    assert_raise TokenMissingError,
+      "file.ex:2: custom error message",
+      fn -> raise TokenMissingError, [file: "file.ex", line: "2", description: "custom error message"] end
+  end
+
+  test "Code.LoadError" do
+    assert_raise Code.LoadError,
+      "could not load file",
+      fn -> raise Code.LoadError end
+
+    assert_raise Code.LoadError,
+      "could not load foo.ex",
+      fn -> raise Code.LoadError, [file: "foo.ex", ] end
+  end
+
+  ####################################################
+  # TestEmptyError & TestNonEmptyError
+
+  test "TestEmptyError" do
+    assert_raise TestEmptyError,
+      "",
+      fn -> raise TestEmptyError
+    end
+
+    assert_raise TestEmptyError,
+      "yes",
+      fn -> raise TestEmptyError, [message: "yes"]
+    end
+
+    assert_raise TestEmptyError,
+      "",
+      fn -> raise TestEmptyError, [description: "desc"]
+    end
+  end
+
+  test "TestNonEmptyError - options" do
+    assert_raise TestNonEmptyError,
+      "custom error",
+      fn -> raise TestNonEmptyError, [file: "file.ex", line: 10, message: "custom error"]
+    end
+
+    assert_raise TestNonEmptyError,
+      "compile test error",
+      fn -> raise TestNonEmptyError, [unknown_option: ""] # ignore unknown options
+    end
+
+    assert_raise TestNonEmptyError,
+      "yes",
+      fn -> raise TestNonEmptyError, [message: "yes"]
+    end
+
+    assert_raise TestNonEmptyError,
+      "desc",
+      fn -> raise TestNonEmptyError, [description: "desc"]
+    end
+  end
+
+  ####################################################
+  ## Exception messages
 
   import Exception, only: [message: 1]
 
