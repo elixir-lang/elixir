@@ -65,24 +65,7 @@ defmodule GenEvent do
   There are 6 callbacks required to be implemented in a `GenEvent`. By
   adding `use GenEvent` to your module, Elixir will automatically define
   all 6 callbacks for you, leaving it up to you to implement the ones
-  you want to customize. The callbacks are:
-
-    * `init(args)` - invoked when the event handler is added.
-
-      It must return:
-
-      -  `{:ok, state}`
-      -  `{:ok, state, :hibernate}`
-      -  `{:error, reason}`
-
-    * `handle_event(msg, state)` - invoked whenever an event is sent via
-      `notify/2`, `ack_notify/2` or `sync_notify/2`.
-
-      It must return:
-
-      -  `{:ok, new_state}`
-      -  `{:ok, new_state, :hibernate}`
-      -  `:remove_handler`
+  you want to customize.
 
     * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific
       handler.
@@ -177,6 +160,153 @@ defmodule GenEvent do
   by many functions, in order to be more consistent with themselves and
   the `GenServer` module.
   """
+
+  @doc """
+  Invoked when the handler is added to the `GenEvent` process. `add_handler/3`,
+  (and `add_mon_handler/3`) will block until it returns.
+
+  `args` is the argument term (third argument) passed to `add_handler/3`.
+
+  Returning `{:ok, state}` will cause `add_handler/3` to return `:ok` and the
+  handler to become part of the `GenEvent` loop with state `state`.
+
+  Returning `{:ok, state, :hibernate}` is similar to
+  `{:ok, state}` except the `GenEvent` process is hibernated before continuing
+  its loop. See `handle_event/2` for more information on hibernation.
+
+  Returning `{:error, reason}` will cause `add_handler/3` to return
+  `{:error, reason}` and the handler is not added to `GenEvent` loop.
+  """
+  @callback init(args :: term) ::
+    {:ok, state} |
+    {:ok, state, :hibernate} |
+    {:error, reason :: any} when state: any
+
+  @doc """
+  Invoked to handle `notify/2`, `ack_notify/2` or `sync_notify/2` messages.
+
+  `event` is the event message and `state` is the current state of the handler.
+
+  Returning `{:ok, new_state}` sets the handler's state to `new_state` and the
+  `GenEvent` loop continues.
+
+  Returning `{:ok, new_state, :hibernate}` is similar to
+  `{:ok, new_state}` except the process is hibernated once all handlers have
+  handled the events. The `GenEvent` process will continue the loop once a
+  message is its message queue. If a message is already in the message queue
+  this will be immediately. Hibernating a `GenEvent` causes garbage collection
+  and leaves a continuous heap that minimises the memory used by the process.
+
+  Hibernating should not be used aggressively as too much time could be spent
+  garbage collecting. Normally it should only be used when a message is not
+  expected soon and minimising the memory of the process is shown to be
+  beneficial.
+
+  Returning `:remove_handler` removes the handler from the `GenEvent` loop and
+  calls `terminate/2` with reason `:remove_handler` and state `state`.
+  """
+  @callback handle_event(event :: term, state :: term) ::
+    {:ok, new_state} |
+    {:ok, new_state, :hibernate} |
+    :remove_handler when new_state: term
+
+  @doc """
+  Invoked to handle synchronous `call/4` messages to a specific handler.
+
+  `request` is the request message sent by a `call/4` and `state` is the current
+  state of the handler.
+
+  Returning `{:ok, reply, new_state}` sends `reply` as a response to the call
+  and sets the handler's state to `new_state`.
+
+  Returning `{:ok, reply, new_state, :hibernate}` is similar to
+  `{:ok, reply, new_state}` except the process is hibernated. See
+  `handle_event/2` for more information on hibernation.
+
+  Returning `{:remove_handler, reply}` sends `reply` as a reponse to the call,
+  removes the handler from the `GenEvent` loop and calls `terminate/2` with
+  reason `:remove_handler` and state `state`.
+  """
+
+  @callback handle_call(request :: term, state :: term) ::
+    {:ok, reply, new_state} |
+    {:ok, reply, new_state, :hibernate} |
+    {:remove_handler, reply} when reply: term, new_state: term
+
+  @doc """
+  Invoked to handle all other messages. All handlers are run in the `GenEvent`
+  process so messages intended for other handlers should be ignored with a catch
+  all clause.
+
+  `msg` is the message and `state` is the current state of the handler.
+
+  Return values are the same as `handle_event/2`.
+  """
+  @callback handle_info(msg :: term, state :: term) ::
+    {:ok, new_state} |
+    {:ok, new_state, :hibernate} |
+    :remove_handler when new_state: term
+
+  @doc """
+  Invoked when the server is about to exit. It should do any cleanup required.
+
+  `reason` is removal reason and `state` is the current state of the handler.
+  The return value is returned to `GenEvent.remove_handler/2` or ignored if
+  removing for another reason.
+
+  `reason` is one of:
+
+  -  `:stop` - manager is terminating
+  -  `{:stop, term}` - monitored process terminated (for monitored handlers)
+  -  `:remove_handler` - handler is being removed
+  -  `{:error, term}` - handler crashed or returned a bad value and an error is
+  logged
+  -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
+
+  If part of a supervision tree, a `GenEvent`'s `Supervisor` will send an exit
+  signal when shutting it down. The exit signal is based on the shutdown
+  strategy in the child's specification. If it is `:brutal_kill` the `GenEvent`
+  is killed and so `terminate/2` is not called for its handlers. However if it is
+  a timeout the `Supervisor` will send the exit signal `:shutdown` and the
+  `GenEvent` will have the duration of the timeout to call `terminate/2` on all
+  of its handlers - if the process is still alive after the timeout it is
+  killed.
+
+  If the `GenEvent` receives an exit signal (that is not `:normal`) from any
+  process when it is not trapping exits it will exit abruptly with the same
+  reason and so not call the handlers' `terminate/2`. Note that a process does
+  *NOT* trap exits by default and an exit signal is sent when a linked process
+  exits or its node is disconnected. Therefore it is not guaranteed that
+  `terminate/2` is called when a `GenEvent` exits.
+
+  Care should be taken to cleanup because the `GenEvent` can continue is loop
+  after removing the handler. This is different to most other OTP behaviours.
+  For example if the handler controls a `port` (e.g. `:gen_tcp.socket`) or
+  `File.io_device`, it will be need to be closed in `terminate/2` as the
+  process is not exiting so will not be automatically cleaned up.
+  """
+  @callback terminate(reason, state :: term) ::
+    term when reason: :stop | {:stop, term} | :remove_handler | {:error, term} | term
+
+  @doc """
+  Invoked to change the state of the handler when a different version of the
+  handler's module module is loaded (hot code swapping) and the state's term
+  structure should be changed.
+
+  `old_vsn` is the previous version of the module (defined by the `@vsn`
+  attribute) when upgrading. When downgrading the previous version is wrapped in
+  a 2-tuple with first element `:down`. `state` is the current state of the
+  handker and `extra` is any extra data required to change the state.
+
+  Returning `{:ok, new_state}` changes the state to `new_state` and the code
+  change is successful.
+
+  If `code_change/3` raises, the code change fails and the handler will continue
+  with its previous state. Therefore this callback does not usually contain side
+  effects.
+  """
+  @callback code_change(old_vsn, state :: term, extra :: term) ::
+    {:ok, new_state :: term} when old_vsn: term | {:down, term}
 
   @typedoc "Return values of `start*` functions"
   @type on_start :: {:ok, pid} | {:error, {:already_started, pid}}
