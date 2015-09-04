@@ -185,6 +185,7 @@ defmodule IO do
     IO.format "Number ~b", [13]
     #=> "Number 13"
   """
+  @spec format(iodata, list) :: :ok
   def format(format_string, data \\ []) do
     erl_dev = map_dev(group_leader())
     IO.format(erl_dev, format_string, data)
@@ -194,6 +195,7 @@ defmodule IO do
   Writes the items in data to the given device in in accordance
   with `format_string`.
   """
+  @spec format(device, iodata, list) :: :ok
   def format(device, format_string, data) do
     :io.format device, format_string, data
   end
