@@ -181,9 +181,6 @@ defmodule IEx.Introspection do
     dont_display_result
   end
 
-  defp puts_callback_info("defc" <> _rest = heading, _doc),
-    do: puts_info("     " <> heading)
-
   defp puts_callback_info(heading, _doc),
     do: puts_info(heading)
 
@@ -222,8 +219,8 @@ defmodule IEx.Introspection do
       {callbacks, docs} ->
         printed =
           Enum.filter_map docs, filter, fn
-            {{fun, arity}, _, :defmacro, doc} ->
-              print_callback_doc(fun, :defmacro, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
+            {{fun, arity}, _, :macrocallback, doc} ->
+              print_callback_doc(fun, :macrocallback, doc, {:"MACRO-#{fun}", arity + 1}, callbacks, printer)
             {{fun, arity}, _, kind, doc} ->
               print_callback_doc(fun, kind, doc, {fun, arity}, callbacks, printer)
           end
@@ -236,22 +233,23 @@ defmodule IEx.Introspection do
   defp get_callback_docs(mod) do
     callbacks = Typespec.beam_callbacks(mod)
     docs = Code.get_docs(mod, :callback_docs)
+
     cond do
       is_nil(callbacks) -> :no_beam
       is_nil(docs) -> :no_docs
-      true ->
-        {callbacks, docs}
+      true -> {callbacks, docs}
     end
   end
 
   defp print_callback_doc(name, kind, doc, key, callbacks, printer) do
     {_, [spec | _]} = List.keyfind(callbacks, key, 0)
+
     definition =
       Typespec.spec_to_ast(name, spec)
       |> Macro.prewalk(&drop_macro_env/1)
       |> Macro.to_string
 
-    printer.("#{kind}callback #{definition}", doc)
+    printer.("@#{kind} #{definition}", doc)
   end
 
   defp drop_macro_env({name, meta, [{:::, _, [{:env, _, _}, _ | _]} | args]}),

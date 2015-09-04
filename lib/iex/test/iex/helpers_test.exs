@@ -53,16 +53,16 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> b Mix end) == "No callbacks for Mix were found\n"
     assert capture_io(fn -> b NoMix end) == "Could not load module NoMix, got: nofile\n"
     assert capture_io(fn -> b Mix.SCM end) =~ """
-           defcallback accepts_options(app :: atom(), opts()) :: opts() | nil
-           defcallback checked_out?(opts()) :: boolean()
-      """
+    @callback accepts_options(app :: atom(), opts()) :: opts() | nil
+    @callback checked_out?(opts()) :: boolean()
+    """
   end
 
   test "b helper function" do
     assert capture_io(fn -> b Mix.Task.stop end) == "No documentation for Mix.Task.stop was found\n"
-    assert capture_io(fn -> b Mix.Task.run end) =~ "* defcallback run([binary()]) :: any()\n\nA task needs to implement `run`"
+    assert capture_io(fn -> b Mix.Task.run end) =~ "* @callback run([binary()]) :: any()\n\nA task needs to implement `run`"
     assert capture_io(fn -> b NoMix.run end) == "Could not load module NoMix, got: nofile\n"
-    assert capture_io(fn -> b Exception.message/1 end) == "* defcallback message(t()) :: String.t()\n\n\n"
+    assert capture_io(fn -> b Exception.message/1 end) == "* @callback message(t()) :: String.t()\n\n\n"
   end
 
   test "t helper" do
