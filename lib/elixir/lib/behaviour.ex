@@ -86,7 +86,12 @@ defmodule Behaviour do
       end
 
       def __behaviour__(:docs) do
-        Code.get_docs(__MODULE__, :callback_docs)
+        for {tuple, line, kind, docs} <- Code.get_docs(__MODULE__, :callback_docs) do
+          case kind do
+            :callback -> {tuple, line, :def, docs}
+            :macrocallback -> {tuple, line, :defmacro, docs}
+          end
+        end
       end
 
       import unquote(__MODULE__)

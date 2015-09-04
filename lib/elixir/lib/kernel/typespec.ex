@@ -487,14 +487,11 @@ defmodule Kernel.Typespec do
 
   @doc false
   def defspec(kind, expr, caller) when kind in [:callback, :macrocallback] do
-    callback_doc_kind =
-      case kind do
-        :callback -> :def
-        :macrocallback -> :defmacro
-      end
     case spec_to_signature(expr) do
-      {name, arity} -> store_callbackdoc(caller, caller.module, callback_doc_kind, name, arity)
-      :error -> :error
+      {name, arity} ->
+        store_callbackdoc(caller, caller.module, kind, name, arity)
+      :error ->
+        :error
     end
     Module.store_typespec(caller.module, kind, {kind, expr, caller})
   end

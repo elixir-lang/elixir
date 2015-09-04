@@ -37,10 +37,11 @@ defmodule Kernel.DocsTest do
     assert [{{:bar, 1}, _, :opaque, "Me too."},
             {{:foo, 1}, _, :type, "I am a type."}] = docs[:type_docs]
 
-    assert [{{:bar, 1}, _, :def, false}, {{:baz, 2}, _, :def, nil},
-            {{:first, 0}, _, :def, "I should be first."},
-            {{:foo, 1}, _, :def, "Foo"},
-            {{:last, 1}, _, :defmacro, "I should be last."}] = docs[:callback_docs]
+    assert [{{:bar, 1}, _, :callback, false},
+            {{:baz, 2}, _, :callback, nil},
+            {{:first, 0}, _, :callback, "I should be first."},
+            {{:foo, 1}, _, :callback, "Foo"},
+            {{:last, 1}, _, :macrocallback, "I should be last."}] = docs[:callback_docs]
   end
 
   test "compiled without docs" do
