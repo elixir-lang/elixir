@@ -518,6 +518,23 @@ defmodule String do
   defdelegate rstrip(binary), to: String.Unicode
 
   @doc """
+  Returns a string which represents `data` formatted
+  in accordance with `format_string`
+
+  ## Examples
+
+    iex> String.format("hello")
+    "hello"
+
+    iex> String.format("elixir of ~s", ["life"])
+    "elixir of life"
+  """
+  @spec format(t, list) :: t
+  def format(format_string, data \\ []) do
+    IO.iodata_to_binary :io_lib.format(format_string, data)
+  end
+
+  @doc """
   Returns a string where trailing `char` have been removed.
 
   ## Examples

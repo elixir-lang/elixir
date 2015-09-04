@@ -156,6 +156,11 @@ defmodule StringTest do
     assert String.capitalize("ﬁn") == "Fin"
   end
 
+  test "format" do
+    assert String.format("Hello") == "Hello"
+    assert String.format("Number ~b", [13]) == "Number 13"
+  end
+
   test "rstrip" do
     assert String.rstrip("") == ""
     assert String.rstrip("1\n") == "1"
