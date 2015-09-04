@@ -564,6 +564,17 @@ defmodule Macro do
     fun.(ast, "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun))
   end
 
+  # Capture
+  def to_string({:&, _, [{:/, _, [{name, _, ctx}, arity]}]} = ast, fun)
+      when is_atom(name) and is_atom(ctx) and is_integer(arity) do
+    fun.(ast, "&" <> Atom.to_string(name) <> "/" <> to_string(arity, fun))
+  end
+
+  def to_string({:&, _, [{:/, _, [{{:., _, [mod, name]}, _, []}, arity]}]} = ast, fun)
+      when is_atom(name) and is_integer(arity) do
+    fun.(ast, "&" <> to_string(mod, fun) <> "." <> Atom.to_string(name) <> "/" <> to_string(arity, fun))
+  end
+
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do

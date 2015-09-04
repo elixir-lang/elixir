@@ -378,6 +378,12 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: (1 + 2 - 3) == "(1 + 2 - 3)")
   end
 
+  test "capture op to string" do
+    assert Macro.to_string(quote do: &foo/0) == "&foo/0"
+    assert Macro.to_string(quote do: &Foo.foo/0) == "&Foo.foo/0"
+    assert Macro.to_string(quote do: & &1 + &2) == "&(&1 + &2)"
+  end
+
   test "containers to string" do
     assert Macro.to_string(quote do: {})   == "{}"
     assert Macro.to_string(quote do: [])   == "[]"
