@@ -56,15 +56,15 @@ defmodule Mix.Dep.Converger do
     # left out as accumulator and upper breadth to help catch
     # inconsistencies across environment, specially regarding
     # the :only option. They are filtered again later.
-    {main, upper} = Mix.Dep.Loader.partition_by_env(deps, opts)
-    apps = Enum.map(main, &(&1.app))
+    current = Enum.map(deps, &(&1.app))
+    {main, only} = Mix.Dep.Loader.partition_by_env(deps, opts)
 
     # Run converger for all dependencies, except remote
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
     {deps, rest, lock} =
-      all(main, upper, upper, apps, callback, acc, lock, fn dep ->
+      all(main, only, [], current, callback, acc, lock, fn dep ->
         if (converger = Mix.RemoteConverger.get) &&
            converger.remote?(dep) do
           {:loaded, dep}
@@ -98,7 +98,7 @@ defmodule Mix.Dep.Converger do
       # valid.
       lock_for_converger = lock || Mix.Dep.Lock.read
 
-      all(main, [], [], apps, callback, rest, lock, fn dep ->
+      all(main, [], [], Enum.map(main, &(&1.app)), callback, rest, lock, fn dep ->
         cond do
           cached = deps[dep.app] ->
             {:loaded, cached}
@@ -200,9 +200,9 @@ defmodule Mix.Dep.Converger do
           app != other_app ->
             {other, match}
           in_upper? && other_opts[:override] ->
-            {other |> with_matching_only(dep), true}
+            {other |> with_matching_only(dep, in_upper?), true}
           converge?(other, dep) ->
-            {other |> with_matching_only(dep) |> with_matching_req(dep), true}
+            {other |> with_matching_only(dep, in_upper?) |> with_matching_req(dep), true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
             {%{other | status: {tag, dep}}, true}
@@ -212,7 +212,8 @@ defmodule Mix.Dep.Converger do
     if match, do: acc
   end
 
-  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep) do
+  # in_upper requires conflict resolution
+  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, true) do
     case Keyword.fetch(other_opts, :only) do
       {:ok, other_only} ->
         case Keyword.fetch(opts, :only) do
@@ -226,6 +227,16 @@ defmodule Mix.Dep.Converger do
         end
       :error ->
         other
+    end
+  end
+
+  # Not in_upper performs merging
+  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, false) do
+    case {Keyword.get(other_opts, :only), Keyword.get(opts, :only)} do
+      {nil, nil}     -> other
+      {_only, nil}   -> other
+      {nil, only}    -> put_in other.opts[:only], only
+      {only1, only2} -> put_in other.opts[:only], Enum.uniq(List.wrap(only1) ++ List.wrap(only2))
     end
   end
 
