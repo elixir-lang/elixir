@@ -212,7 +212,18 @@ defmodule Mix.Dep.Converger do
     if match, do: acc
   end
 
-  # in_upper requires conflict resolution
+  # When in_upper is true
+  #
+  # When a parent dependency specifies only that is a subset
+  # of a child dependency, we are going to abort as the parent
+  # dependency must explicitly outline a superset of child
+  # dependencies.
+  #
+  # We could resolve such conflicts automatically but, since
+  # the user has likely written only: :env in their mix.exs
+  # file, we decided to go with a more explicit approach of
+  # asking them to change it to avoid later surprises and
+  # headaches.
   defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, true) do
     case Keyword.fetch(other_opts, :only) do
       {:ok, other_only} ->
@@ -230,13 +241,19 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  # Not in_upper performs merging
-  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, false) do
-    case {Keyword.get(other_opts, :only), Keyword.get(opts, :only)} do
-      {nil, nil}     -> other
-      {_only, nil}   -> other
-      {nil, only}    -> put_in other.opts[:only], only
-      {only1, only2} -> put_in other.opts[:only], Enum.uniq(List.wrap(only1) ++ List.wrap(only2))
+  # When in_upper is false
+  #
+  # In this case, the two dependencies do not have a common path and
+  # only solution is to merge the environments. We have decided to
+  # perform it explicitly as, opposite to in_upper above, the
+  # dependencies are never really laid out in the parent tree.
+  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts}, false) do
+    other_only = Keyword.get(other_opts, :only)
+    only = Keyword.get(opts, :only)
+    if other_only && only do
+      put_in other.opts[:only], Enum.uniq(List.wrap(other_only) ++ List.wrap(only))
+    else
+      %{other | opts: Keyword.delete(other_opts, :only)}
     end
   end
 

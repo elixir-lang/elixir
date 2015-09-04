@@ -348,4 +348,46 @@ defmodule Mix.DepTest do
       end
     end
   end
+
+  test "nested deps on only diverged" do
+    loaded_only = fn deps ->
+      with_deps deps, fn ->
+        in_fixture "deps_status", fn ->
+          File.mkdir_p! "custom/other_repo"
+          File.write! "custom/other_repo/mix.exs", """
+          defmodule OtherRepo do
+            use Mix.Project
+
+            def project do
+              [app: :deps_repo,
+               version: "0.1.0",
+               deps: [{:git_repo, "0.1.0", git: MixTest.Case.fixture_path("git_repo")}]]
+            end
+          end
+          """
+
+          Mix.ProjectStack.clear_cache
+          loaded = Mix.Dep.loaded([])
+          assert [:git_repo, _, _] = Enum.map(loaded, &(&1.app))
+          hd(loaded).opts[:only]
+        end
+      end
+    end
+
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :prod},
+            {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}]
+    assert loaded_only.(deps) == [:test, :prod]
+
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
+            {:other_repo, "0.1.0", path: "custom/other_repo", only: :test}]
+    refute loaded_only.(deps)
+
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :prod},
+            {:other_repo, "0.1.0", path: "custom/other_repo"}]
+    refute loaded_only.(deps)
+
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
+            {:other_repo, "0.1.0", path: "custom/other_repo"}]
+    refute loaded_only.(deps)
+  end
 end
