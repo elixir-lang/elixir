@@ -120,6 +120,16 @@ defmodule IOTest do
     assert capture_io(fn -> IO.write(13) end) == "13"
   end
 
+  test "format" do
+    assert capture_io(fn -> IO.format("hello") end) == "hello"
+    assert capture_io(fn -> IO.format('hello') end) == "hello"
+  end
+
+  test "format with control characters" do
+    assert capture_io(fn -> IO.format("hello ~s", ["world"]) end) == "hello world"
+    assert capture_io(fn -> IO.format("number ~B", [13]) end) == "number 13"
+  end
+
   test "gets with chardata" do
     assert capture_io("foo\n", fn -> IO.gets("hello") end) == "hello"
     assert capture_io("foo\n", fn -> IO.gets('hello') end) == "hello"

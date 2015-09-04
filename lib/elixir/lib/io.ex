@@ -177,6 +177,28 @@ defmodule IO do
   end
 
   @doc """
+  Writes the items in data to the given device in in accordance
+  with `format_string`.
+
+  ## Examples
+
+    IO.format "Number ~b", [13]
+    #=> "Number 13"
+  """
+  def format(format_string, data \\ []) do
+    erl_dev = map_dev(group_leader())
+    IO.format(erl_dev, format_string, data)
+  end
+
+  @doc """
+  Writes the items in data to the given device in in accordance
+  with `format_string`.
+  """
+  def format(device, format_string, data) do
+    :io.format device, format_string, data
+  end
+
+  @doc """
   Inspects and writes the given argument to the device.
 
   It enables pretty printing by default with width of
