@@ -3,13 +3,13 @@ defmodule Mix.PublicKey do
 
   @in_memory_key """
   -----BEGIN PUBLIC KEY-----
-  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+ynw5jnGF5S+rdUoa2R9
-  Z2iQMwN/oNpWre48XC/aQo4X9nWflzq63Mgmm/XJk3rV7oaNUu23gnP+KUwxkOSV
-  6hsk9PEdE9cg/DjVB8p4332Lay5EQk96oeEm2igYk0Mj7TnaUWLZs8FqIFbX+zfb
-  jAMhbz6tnjKHiVgchxDsc0gGOOMkIlY+Dwc/CHoE/c/vcGuclZyLXRt141gXmB7+
-  KDG4caWTs7SHwKJNaYrgZ77fSSF4Fk+jbQF1479ZWiI/mdhMweJ+4i7v+IVh2vyz
-  JAV/94hTL8xIK6grnjtxZytqPL5GMEs3vydbOMILDCqpvPnC/AhjL5LwqwpaVaRw
-  jwIDAQAB
+  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAslPz1mAfyAvRv8W8xOdv
+  HQMbDJkDKfRhsL4JBGwGH7qw0xh+TbaUlNaM3pF+i8VUjS/4FeXjT/OAUEAHu5Y2
+  rBVlx00QcH8Dpbyf+H73XiCs0MXnTSecqDgzx6i6NMi8knklHT7yHySHtuuPmPuN
+  Po8QTKolCKftwPE/iNDeyZfwufd+hTCoCQdoTVcB01SElfNtvKRtoKbx35q80IPr
+  rOcGsALmr58+bWqCTY/51kFeRxzrPJ5LdcLU/AebyWddD4IUfPDxk16jTiCagMWA
+  JPSwo8NUrWDIBbD+rEUp06y0ek276rG5Tzm/3Bma56RN/u6nAqBTBE8F2Hu2QBKj
+  lQIDAQAB
   -----END PUBLIC KEY-----
   """
 
