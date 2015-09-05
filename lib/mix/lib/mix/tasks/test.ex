@@ -173,12 +173,15 @@ defmodule Mix.Tasks.Test do
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
+    # Configure ex_unit with command line options before requiring
+    # test helpers so that the configuration is available in helpers.
+    # Then configure ex_unit again so command line options override
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
-    ExUnit.configure(opts)
+    ExUnit.configure(merge_helper_opts(opts))
 
     # Finally parse, require and load the files
     test_files   = parse_files(files, test_paths)
@@ -209,15 +212,20 @@ defmodule Mix.Tasks.Test do
            |> filter_only_opts()
 
     default_opts(opts) ++
-      Dict.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
+      Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
+  end
+
+  defp merge_helper_opts(opts) do
+    opts
+    |> merge_opts(:exclude)
   end
 
   defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    case Dict.get(opts, :color) do
-      nil -> [autorun: false]
-      enabled? -> [autorun: false, colors: [enabled: enabled?]]
+    case Keyword.fetch(opts, :color) do
+      {:ok, enabled?} -> [autorun: false, colors: [enabled: enabled?]]
+      :error -> [autorun: false]
     end
   end
 
@@ -249,6 +257,11 @@ defmodule Mix.Tasks.Test do
     else
       opts
     end
+  end
+
+  defp merge_opts(opts, key) do
+    value = Application.get_env(:ex_unit, key, [])
+    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 
   defp filter_only_opts(opts) do
