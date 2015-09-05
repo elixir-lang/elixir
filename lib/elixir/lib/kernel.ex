@@ -3599,17 +3599,31 @@ defmodule Kernel do
   please define it a module which will be imported accordingly.
   """
   defmacro use(module, opts \\ []) do
-    expanded = Macro.expand(module, __CALLER__)
-
-    case is_atom(expanded) do
-      false ->
-        raise ArgumentError, "invalid arguments for use, expected an atom or alias as argument"
-      true ->
+    calls = Enum.map(expand_aliases(module, __CALLER__), fn
+      expanded when is_atom(expanded) ->
         quote do
           require unquote(expanded)
           unquote(expanded).__using__(unquote(opts))
         end
-    end
+      _otherwise ->
+        raise ArgumentError, "invalid arguments for use, expected an atom or alias as argument"
+    end)
+    quote(do: (unquote_splicing calls))
+  end
+
+  defp expand_aliases({{:., _, [base, :{}]}, _, refs}, env) do
+    base = Macro.expand(base, env)
+    Enum.map(refs, fn
+      {:__aliases__, _, ref} ->
+        Module.concat([base | ref])
+      ref when is_atom(ref) ->
+        Module.concat(base, ref)
+      other -> other
+    end)
+  end
+
+  defp expand_aliases(module, env) do
+    [Macro.expand(module, env)]
   end
 
   @doc """
