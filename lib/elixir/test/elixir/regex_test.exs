@@ -16,7 +16,7 @@ defmodule RegexTest do
     assert "aa" =~ ~r/(a)\1/
   end
 
-  test :compile! do
+  test "compile!" do
     assert Regex.regex?(Regex.compile!("foo"))
 
     assert_raise Regex.CompileError, ~r/position 0$/, fn ->
@@ -37,7 +37,7 @@ defmodule RegexTest do
     assert "foo\nbar" =~ regex
   end
 
-  test :regex? do
+  test "regex?" do
     assert Regex.regex?(~r/foo/)
     refute Regex.regex?(0)
   end
@@ -93,7 +93,7 @@ defmodule RegexTest do
     assert Regex.names(~r/(?<FOO>foo)/) == ["FOO"]
   end
 
-  test :match? do
+  test "match?" do
     assert Regex.match?(~r/foo/, "foo")
     refute Regex.match?(~r/foo/, "FOO")
     assert Regex.match?(~r/foo/i, "FOO")

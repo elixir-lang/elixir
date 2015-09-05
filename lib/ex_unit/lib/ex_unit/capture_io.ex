@@ -9,7 +9,7 @@ defmodule ExUnit.CaptureIO do
 
         import ExUnit.CaptureIO
 
-        test :example do
+        test "example" do
           assert capture_io(fn ->
             IO.puts "a"
           end) == "a\n"

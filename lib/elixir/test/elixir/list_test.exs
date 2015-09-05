@@ -96,7 +96,7 @@ defmodule ListTest do
     assert List.keystore([a: 1], :b, 0, {:b, 2}) == [a: 1, b: 2]
   end
 
-  test :keymember? do
+  test "keymember?" do
     assert List.keymember?([a: 1, b: 2], :a, 0) == true
     assert List.keymember?([a: 1, b: 2], 2, 1) == true
     assert List.keymember?([a: 1, b: 2], :c, 0) == false

@@ -13,7 +13,7 @@ defmodule RangeTest do
     assert (1..3).last  == 3
   end
 
-  test :range? do
+  test "range?" do
     assert Range.range?(1..3)
     refute Range.range?(0)
   end

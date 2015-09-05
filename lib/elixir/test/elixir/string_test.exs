@@ -392,7 +392,7 @@ defmodule StringTest do
     assert String.slice("abc", -1..14) == "c"
   end
 
-  test :valid? do
+  test "valid?" do
     assert String.valid?("afds")
     assert String.valid?("øsdfh")
     assert String.valid?("dskfjあska")
@@ -401,7 +401,7 @@ defmodule StringTest do
     refute String.valid?("asd" <> <<0xffff :: 16>>)
   end
 
-  test :valid_character? do
+  test "valid_character?" do
     assert String.valid_character?("a")
     assert String.valid_character?("ø")
     assert String.valid_character?("あ")
@@ -434,7 +434,7 @@ defmodule StringTest do
            == [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
   end
 
-  test :starts_with? do
+  test "starts_with?" do
     assert String.starts_with? "hello", "he"
     assert String.starts_with? "hello", "hello"
     refute String.starts_with? "hello", []
@@ -446,7 +446,7 @@ defmodule StringTest do
     refute String.starts_with? "エリクシア", "仙丹"
   end
 
-  test :ends_with? do
+  test "ends_with?" do
     assert String.ends_with? "hello", "lo"
     assert String.ends_with? "hello", "hello"
     refute String.ends_with? "hello", []
@@ -459,7 +459,7 @@ defmodule StringTest do
     refute String.ends_with? "エリクシア", "仙丹"
   end
 
-  test :contains? do
+  test "contains?" do
     assert String.contains? "elixir of life", "of"
     assert String.contains? "エリクシア", "シ"
     refute String.contains? "elixir of life", []

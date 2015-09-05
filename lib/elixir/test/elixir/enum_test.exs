@@ -3,13 +3,13 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule EnumTest.List do
   use ExUnit.Case, async: true
 
-  test :empty? do
+  test "empty?" do
     assert Enum.empty?([])
     refute Enum.empty?([1, 2, 3])
     refute Enum.empty?(1..3)
   end
 
-  test :member? do
+  test "member?" do
     assert Enum.member?([1, 2, 3], 2)
     refute Enum.member?([], 0)
     refute Enum.member?([1, 2, 3], 0)
@@ -27,7 +27,7 @@ defmodule EnumTest.List do
     assert Enum.count([], fn(x) -> rem(x, 2) == 0 end) == 0
   end
 
-  test :all? do
+  test "all?" do
     assert Enum.all?([2, 4, 6], fn(x) -> rem(x, 2) == 0 end)
     refute Enum.all?([2, 3, 4], fn(x) -> rem(x, 2) == 0 end)
 
@@ -37,7 +37,7 @@ defmodule EnumTest.List do
     assert Enum.all?([])
   end
 
-  test :any? do
+  test "any?" do
     refute Enum.any?([2, 4, 6], fn(x) -> rem(x, 2) == 1 end)
     assert Enum.any?([2, 3, 4], fn(x) -> rem(x, 2) == 1 end)
 
@@ -80,7 +80,7 @@ defmodule EnumTest.List do
     assert Enum.concat(fn acc, _ -> acc end, [1]) == [1]
   end
 
-  test :fetch! do
+  test "fetch!" do
     assert Enum.fetch!([2, 4, 6], 0) == 2
     assert Enum.fetch!([2, 4, 6], 2) == 6
     assert Enum.fetch!([2, 4, 6], -2) == 4
@@ -625,7 +625,7 @@ end
 defmodule EnumTest.Range do
   use ExUnit.Case, async: true
 
-  test :all? do
+  test "all?" do
     range = 0..5
     refute Enum.all?(range, fn(x) -> rem(x, 2) == 0 end)
 
@@ -637,7 +637,7 @@ defmodule EnumTest.Range do
     assert Enum.all?(range)
   end
 
-  test :any? do
+  test "any?" do
     range = 0..5
     refute Enum.any?(range, &(&1 > 10))
 
@@ -648,7 +648,7 @@ defmodule EnumTest.Range do
     assert Enum.any?(range)
   end
 
-  test :fetch! do
+  test "fetch!" do
     assert Enum.fetch!(2..6, 0) == 2
     assert Enum.fetch!(2..6, 4) == 6
     assert Enum.fetch!(2..6, -1) == 6
@@ -754,7 +754,7 @@ defmodule EnumTest.Range do
     assert Enum.find_index(range, fn(x) -> rem(x, 2) == 1 end) == 1
   end
 
-  test :empty? do
+  test "empty?" do
     range = 1..0
     refute Enum.empty?(range)
 

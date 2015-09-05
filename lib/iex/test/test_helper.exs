@@ -12,7 +12,7 @@ defmodule IEx.Case do
   #   defmodule IEx.InteractionTest do
   #     use IEx.Case
   #
-  #     test :input do
+  #     test "input" do
   #       assert capture_iex("1+2") == "3"
   #     end
   #   end

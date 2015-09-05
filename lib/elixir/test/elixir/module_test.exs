@@ -220,7 +220,7 @@ defmodule ModuleTest do
 
   ## Definitions
 
-  test :defines? do
+  test "defines?" do
     in_module do
       refute Module.defines? __MODULE__, {:foo, 0}
       def foo(), do: bar()
