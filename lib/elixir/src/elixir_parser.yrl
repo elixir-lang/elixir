@@ -21,7 +21,8 @@ Nonterminals
   call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_maybe_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
-  dot_op dot_alias dot_identifier dot_op_identifier dot_do_identifier
+  dot_op dot_alias dot_alias_container
+  dot_identifier dot_op_identifier dot_do_identifier
   dot_paren_identifier dot_bracket_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
   .
@@ -407,6 +408,10 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
 dot_alias -> aliases : {'__aliases__', meta_from_token('$1', 0), ?exprs('$1')}.
 dot_alias -> matched_expr dot_op aliases : build_dot_alias('$2', '$1', '$3').
+dot_alias -> matched_expr dot_op dot_alias_container : build_dot_container('$2', '$1', '$3').
+
+dot_alias_container -> open_curly '}' : [].
+dot_alias_container -> open_curly container_args close_curly : '$2'.
 
 dot_op_identifier -> op_identifier : '$1'.
 dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
@@ -633,6 +638,10 @@ build_dot_alias(_Dot, Atom, {'aliases', _, _} = Token) when is_atom(Atom) ->
 
 build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
   {'__aliases__', meta_from_token(Dot), [Other|Right]}.
+
+build_dot_container(Dot, Left, Right) ->
+  Meta = meta_from_token(Dot),
+  {{'.', Meta, [Left, '{}']}, Meta, Right}.
 
 build_dot(Dot, Left, Right) ->
   {'.', meta_from_token(Dot), [Left, extract_identifier(Right)]}.
