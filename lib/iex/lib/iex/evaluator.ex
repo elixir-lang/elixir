@@ -158,8 +158,9 @@ defmodule IEx.Evaluator do
     io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
   end
 
-  @elixir_internals [:elixir_exp, :elixir_compiler, :elixir_module, :elixir_exp_clauses,
-                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_clauses]
+  @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,
+                     :elixir_translator, :elixir_expand, :elixir_lexical, :elixir_exp_clauses,
+                     :elixir_def]
 
   defp prune_stacktrace(stacktrace) do
     # The order in which each drop_while is listed is important.
