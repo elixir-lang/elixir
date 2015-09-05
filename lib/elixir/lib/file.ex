@@ -442,6 +442,31 @@ defmodule File do
   end
 
   @doc """
+  Rename the `source` file to `destination` file.  If can be used to move files
+  (and directories) between directories.  If moving a file, you must fully
+  specify the `destination` filename, it is not sufficient to simply specify
+  it's directory.
+
+  It returns `:ok` in case of success, returns `{:error, reason}` otherwise
+
+  Note: The command `mv` in Unix systems behaves differently depending
+  if `source` is a file and the `destination` is an existing directory. 
+  We have chosen to explicitly disallow this behaviour. 
+
+  ## Examples
+
+      # Rename file "a.txt" to "b.txt"
+      File.rename "a.txt", "b.txt"
+
+      # Rename directory "samples" to "tmp"
+      File.rename "samples", "tmp"  
+  """
+  @spec rename(Path.t, Path.t) :: :ok | {:error, posix}
+  def rename(source, destination) do
+    F.rename(source, destination)
+  end
+
+  @doc """
   Copies the contents in `source` to `destination` preserving its mode.
 
   If a file already exists in the destination, it invokes a
