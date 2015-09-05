@@ -46,6 +46,20 @@ expand({'__aliases__', _, _} = Alias, E) ->
 
 %% alias
 
+expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
+    when Kind == alias; Kind == require; Kind == import ->
+  case Rest of
+    [] ->
+      expand_multi_alias_call(Kind, Meta, Base, Refs, [], E);
+    [Opts] ->
+      case lists:keymember(as, 1, Opts) of
+        true ->
+          compile_error(Meta, ?m(E, file),
+            ":as option is not supported by multi-alias call");
+        false ->
+          expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E)
+      end
+  end;
 expand({alias, Meta, [Ref]}, E) ->
   expand({alias, Meta, [Ref, []]}, E);
 expand({alias, Meta, [Ref, KV]}, E) ->
@@ -361,6 +375,20 @@ expand(Other, E) ->
     "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
+
+expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
+  {BaseRef, EB} = expand_without_aliases_report(Base, E),
+  Fun = fun
+    ({'__aliases__', _, Ref}, ER) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, ER);
+    (Ref, ER) when is_atom(Ref) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, ER);
+    (Other, _ER) ->
+      compile_error(Meta, ?m(E, file),
+        "invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
+        [atom_to_list(Kind), 'Elixir.Macro':to_string(Other)])
+  end,
+  lists:mapfoldl(Fun, EB, Refs).
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->
   {EArgs, EAcc} = lists:mapfoldl(Fun, Acc, Args),
