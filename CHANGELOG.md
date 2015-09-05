@@ -42,7 +42,7 @@ Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
-## v1.1.0-dev
+## v1.1.0-beta (2015-09-05)
 
 ### 1. Enhancements
 
@@ -55,6 +55,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Enum] Add `Enum.random/1`, `Enum.take_random/2`, `Enum.min_max/1`, `Enum.min_max_by/2`, `Enum.reverse_slice/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
   * [Enum] Inline common map usage in `Enum` functions for performance
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
+  * [File] Add `File.rename/2`
   * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
   * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
   * [IO] Support fenced code blocks on `IO.ANSI.Docs`
@@ -71,7 +72,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Module] Improve name inference for function signatures in documentation metadata
   * [Process] Add `Process.hibernate/3`
   * [Set] Introduce `MapSet` data type. This new data type uses maps behind the scenes and is useful for storing a dozens of items in Erlang 17. In future versions when maps efficiently support large collections, it is meant to be the main Set abstraction in Elixir
-  * [Stream] Add `Stream.dedup/1` and `Stream.dedup_by/2`
+  * [Stream] Add `Stream.dedup/1`, `Stream.dedup_by/2` and `Stream.transform/4`
   * [String] Support calculation of the jaro distance between strings (usually names) via `String.jaro_distance/2`. This is used by Mix to support "Did you mean?" feature when a task does not exist
   * [String] Add `String.splitter/3` that splits strings as a stream
   * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
@@ -136,6 +137,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Improve error message when we can't compile because the target directory is not writeable
   * [Kernel] Allow capture of non-symbolic operators like `&and/2`, `&not/1` and others
   * [Kernel] Raise if heredoc terminal is accidentally found in the middle of a line without escaping
+  * [Kernel] Don't warn on missing imports if nothing was imported
+  * [Macro] Properly convert captures in `Macro.to_string/1`
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
   * [Range] Restrict ranges to integers to fix diverse bugs of values being included in the range when they should not (false positives)
@@ -164,6 +167,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Mix] Do not raise if wildcard given to `import_config` does not match any file
   * [Mix] Applications with `:build_embedded` set to true require explicit compilation step
   * [Mix] Also remove consolidated protocols on `mix clean`
+  * [Mix] Ensure `--exclude` in `mix test` concatenates with test helper excludes
 
 ### 3. Soft deprecations (no warnings emitted)
 
