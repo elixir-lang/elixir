@@ -4,7 +4,7 @@ defmodule IntegerTest do
   use ExUnit.Case, async: true
   require Integer
 
-  test :odd? do
+  test "odd?" do
     assert Integer.is_odd(0) == false
     assert Integer.is_odd(1) == true
     assert Integer.is_odd(2) == false
@@ -14,7 +14,7 @@ defmodule IntegerTest do
     assert Integer.is_odd(-3) == true
   end
 
-  test :even? do
+  test "even?" do
     assert Integer.is_even(0) == true
     assert Integer.is_even(1) == false
     assert Integer.is_even(2) == true

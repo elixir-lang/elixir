@@ -107,7 +107,7 @@ defmodule CodeTest do
     assert :badarg = catch_error(Code.string_to_quoted!(":thereisnosuchatom", existing_atoms_only: true))
   end
 
-  test :string_to_quoted! do
+  test "string_to_quoted!" do
     assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
     assert_raise SyntaxError, fn ->
@@ -149,12 +149,12 @@ defmodule CodeTest do
     :code.delete CompileQuotedSample
   end
 
-  test :ensure_loaded? do
+  test "ensure_loaded?" do
     assert Code.ensure_loaded?(__MODULE__)
     refute Code.ensure_loaded?(Unknown.Module)
   end
 
-  test :ensure_compiled? do
+  test "ensure_compiled?" do
     assert Code.ensure_compiled?(__MODULE__)
     refute Code.ensure_compiled?(Unknown.Module)
   end
