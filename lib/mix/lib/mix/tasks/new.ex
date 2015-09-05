@@ -200,6 +200,8 @@ defmodule Mix.Tasks.New do
 
   ## Installation
 
+  If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+
     1. Add <%= @app %> to your list of dependencies in mix.exs:
 
           def deps do
