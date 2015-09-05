@@ -523,8 +523,8 @@ defmodule File do
 
   ## Examples
 
-      # Copies "a.txt" to "tmp"
-      File.cp_r "a.txt", "tmp.txt"
+      # Copies file "a.txt" to "b.txt"
+      File.cp_r "a.txt", "b.txt"
 
       # Copies all files in "samples" to "tmp"
       File.cp_r "samples", "tmp"
