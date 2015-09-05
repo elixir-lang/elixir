@@ -627,4 +627,15 @@ defmodule KernelTest do
     defp a_list, do: [1, 2, 3]
     defp a_nil, do: nil
   end
+
+  defmodule UseMacro do
+    use ExUnit.Case, async: true
+
+    test "invalid argument" do
+      message = "invalid arguments for use, expected an atom or alias as argument"
+      assert_raise ArgumentError, message, fn ->
+        Code.eval_string("use 42")
+      end
+    end
+  end
 end
