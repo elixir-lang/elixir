@@ -36,7 +36,7 @@ defmodule Mix.Dep.Lock do
   def status(manifest_path \\ Mix.Project.manifest_path) do
     case :file.consult(manifest(manifest_path)) do
       {:ok, [{:v1, vsn, scm}]} -> {:ok, vsn, scm}
-      {:ok, _} -> {:ok, "1.0.0", nil} # Force old version if file exists but old format
+      {:error, {_, :erl_parse, _}} -> {:ok, "1.0.0", nil} # Force old version if file exists but old format
       _ -> :error
     end
   end
