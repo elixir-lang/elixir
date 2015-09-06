@@ -37,27 +37,31 @@ defmodule Float do
     end
   end
 
+  def parse("+" <> binary) do
+    parse_unsigned(binary)
+  end
+
   def parse(binary) do
     parse_unsigned(binary)
   end
 
-  defp parse_unsigned(<<char, rest::binary>>) when char in ?0..?9, do:
-    parse_unsigned(rest, false, false, <<char>>)
+  defp parse_unsigned(<<digit, rest::binary>>) when digit in ?0..?9, do:
+    parse_unsigned(rest, false, false, <<digit>>)
 
   defp parse_unsigned(binary) when is_binary(binary), do:
     :error
 
-  defp parse_unsigned(<<char, rest :: binary>>, dot?, e?, acc) when char in ?0..?9, do:
-    parse_unsigned(rest, dot?, e?, <<acc::binary, char>>)
+  defp parse_unsigned(<<digit, rest :: binary>>, dot?, e?, acc) when digit in ?0..?9, do:
+    parse_unsigned(rest, dot?, e?, <<acc::binary, digit>>)
 
-  defp parse_unsigned(<<?., char, rest :: binary>>, false, false, acc) when char in ?0..?9, do:
-    parse_unsigned(rest, true, false, <<acc::binary, ?., char>>)
+  defp parse_unsigned(<<?., digit, rest :: binary>>, false, false, acc) when digit in ?0..?9, do:
+    parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
 
-  defp parse_unsigned(<<?e, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
-    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, char>>)
+  defp parse_unsigned(<<exp_marker, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and  digit in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
 
-  defp parse_unsigned(<<?e, ?-, char, rest :: binary>>, dot?, false, acc) when char in ?0..?9, do:
-    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, ?-, char>>)
+  defp parse_unsigned(<<exp_marker, sign, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9, do:
+    parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
 
   defp parse_unsigned(rest, dot?, _e?, acc), do:
     {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
