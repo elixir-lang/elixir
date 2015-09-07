@@ -3535,7 +3535,7 @@ defmodule Kernel do
   By calling `use`, a hook called `__using__` will be invoked in
   `ExUnit.Case` which will then do the proper setup.
 
-  Simply put, `use` translates to to:
+  Simply put, `use` translates to:
 
       defmodule AssertionTest do
         require ExUnit.Case
