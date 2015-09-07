@@ -27,11 +27,11 @@ defmodule Mix.Tasks.Test do
 
   use Mix.Task
 
-  @shortdoc "Run a project's tests"
+  @shortdoc "Runs a project's tests"
   @recursive true
 
   @moduledoc """
-  Run the tests for a project.
+  Runs the tests for a project.
 
   This task starts the current application, loads up
   `test/test_helper.exs` and then requires all files matching the

@@ -314,7 +314,7 @@ defmodule Logger do
   end
 
   @doc """
-  Compare log levels.
+  Compares log levels.
 
   Receives two log levels and compares the `left`
   against `right` and returns `:lt`, `:eq` or `:gt`.

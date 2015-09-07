@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Archive do
   use Mix.Task
 
-  @shortdoc "List all archives"
+  @shortdoc "Lists all archives"
 
   @moduledoc """
   Lists all installed archives.

@@ -207,7 +207,7 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Define a test with a string.
+  Defines a test with a string.
 
   Provides a convenient macro that allows a test to be
   defined with a string. This macro automatically inserts
@@ -249,7 +249,7 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Define a not implemented test with a string.
+  Defines a not implemented test with a string.
 
   Provides a convenient macro that allows a test to be
   defined with a string, but not yet implemented. The

@@ -5,10 +5,10 @@ defmodule Mix.Tasks.Local.Rebar do
   @rebar_list_url     @rebar_s3 <> "/installs/rebar-1.x.csv"
   @rebar_escript_url  @rebar_s3 <> "/installs/[VERSION]/rebar"
 
-  @shortdoc  "Install rebar locally"
+  @shortdoc  "Installs rebar locally"
 
   @moduledoc """
-  Fetch a copy of rebar from the given path or url.
+  Fetches a copy of rebar from the given path or url.
 
   It defaults to safely download a rebar copy from S3. However, a URL
   can be given as argument, usually from an existing local copy of rebar.

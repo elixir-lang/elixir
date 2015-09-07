@@ -18,7 +18,7 @@ defmodule Mix.Shell.Process do
   @behaviour Mix.Shell
 
   @doc """
-  Flush all `:mix_shell` and `:mix_shell_input` messages from the current process.
+  Flushes all `:mix_shell` and `:mix_shell_input` messages from the current process.
   If a callback is given, it is invoked for each received message.
 
   ## Examples

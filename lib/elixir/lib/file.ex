@@ -442,7 +442,7 @@ defmodule File do
   end
 
   @doc """
-  Rename the `source` file to `destination` file.  If can be used to move files
+  Renames the `source` file to `destination` file.  If can be used to move files
   (and directories) between directories.  If moving a file, you must fully
   specify the `destination` filename, it is not sufficient to simply specify
   it's directory.

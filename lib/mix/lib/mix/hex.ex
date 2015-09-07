@@ -45,7 +45,7 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Ensure Hex is started.
+  Ensures Hex is started.
   """
   def start do
     try do

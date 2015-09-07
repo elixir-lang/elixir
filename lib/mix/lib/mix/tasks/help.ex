@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Help do
   use Mix.Task
 
-  @shortdoc "Print help information for tasks"
+  @shortdoc "Prints help information for tasks"
 
   @moduledoc """
   Lists all tasks or prints the documentation for a given task.

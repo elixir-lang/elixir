@@ -39,7 +39,7 @@ defmodule Mix.CLITest do
       defmodule Mix.Tasks.MyHello do
         use Mix.Task
 
-        @shortdoc "Hello"
+        @shortdoc "Says hello"
 
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
@@ -63,7 +63,7 @@ defmodule Mix.CLITest do
   test "--help smoke test" do
     in_fixture "no_mixfile", fn ->
       output = mix ~w[--help]
-      assert output =~ ~r/mix compile\s+# Compile source files/
+      assert output =~ ~r/mix compile\s+# Compiles source files/
       refute output =~ "mix invalid"
     end
   end

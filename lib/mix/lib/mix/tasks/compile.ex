@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Compile do
   use Mix.Task
 
-  @shortdoc "Compile source files"
+  @shortdoc "Compiles source files"
 
   @moduledoc """
   A meta task that compiles source files.
