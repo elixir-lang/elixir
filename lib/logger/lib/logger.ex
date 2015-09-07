@@ -55,12 +55,12 @@ defmodule Logger do
       lower than the configured value at compilation time. This means the
       Logger call will be completely removed at compile time, accruing
       no overhead at runtime. Defaults to `:debug` and only
-      applies to the `Logger.debug`, `Logger.info`, etc style of calls.
+      applies to the `Logger.debug/2`, `Logger.info/2`, etc style of calls.
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       usually only useful for build tools to automatically add the
-      application to the metadata for `Logger.debug`, `Logger.info`, etc
+      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc
       style of calls.
 
   For example, to configure the `:backends` and `compile_time_purge_level`
@@ -244,7 +244,7 @@ defmodule Logger do
     * `format` - the logging format for that backend
     * `metadata` - the metadata to include the backend
 
-  Check the implementation for `Logger.Backends.Console` for
+  Check the implementation for `Logger.Backends.Console`, for
   examples on how to handle the recommendations in this section
   and how to process the existing options.
   """

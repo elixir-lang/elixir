@@ -128,7 +128,7 @@ defmodule Mix.Project do
   pushed into the stack. Calling it multiple times won't
   cause it to be recomputed.
 
-  Do not use `Mix.Project.config` to rely on runtime configuration.
+  Do not use `Mix.Project.config/0` to rely on runtime configuration.
   Use it only to configure aspects of your project (like
   compilation directories) and not your application runtime.
   """
