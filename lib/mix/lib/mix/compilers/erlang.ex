@@ -90,7 +90,7 @@ defmodule Mix.Compilers.Erlang do
 
       # Raise if any error, return :ok otherwise
       if :error in results do
-        Mix.raise "Encountered compilation errors."
+        Mix.raise "Encountered compilation errors"
       end
       :ok
     end

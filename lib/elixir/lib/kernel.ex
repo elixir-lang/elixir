@@ -1305,8 +1305,8 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> raise "Oops"
-      ** (RuntimeError) Oops
+      iex> raise "oops"
+      ** (RuntimeError) oops
 
       try do
         1 + :foo
@@ -1393,11 +1393,11 @@ defmodule Kernel do
   ## Examples
 
       try do
-        raise "Oops"
+        raise "oops"
       rescue
         exception ->
           stacktrace = System.stacktrace
-          if Exception.message(exception) == "Oops" do
+          if Exception.message(exception) == "oops" do
             reraise exception, stacktrace
           end
       end
@@ -1446,7 +1446,7 @@ defmodule Kernel do
   ## Examples
 
       try do
-        raise "Oops"
+        raise "oops"
       rescue
         exception ->
           stacktrace = System.stacktrace

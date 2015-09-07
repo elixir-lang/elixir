@@ -26,7 +26,7 @@ defmodule Mix.Dep.Converger do
           Enum.find(deps, fn(%Mix.Dep{app: other_app}) -> app == other_app end)
         end)
       else
-        Mix.raise "Could not sort dependencies. There are cycles in the dependency graph."
+        Mix.raise "Could not sort dependencies. There are cycles in the dependency graph"
       end
     after
       :digraph.delete(graph)
