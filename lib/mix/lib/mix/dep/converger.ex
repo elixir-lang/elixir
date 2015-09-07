@@ -111,8 +111,8 @@ defmodule Mix.Dep.Converger do
     end
   end
 
-  # We traverse the tree of dependencies in a breadth-
-  # first fashion. The reason for this is that we converge
+  # We traverse the tree of dependencies in a breadth-first
+  # fashion. The reason for this is that we converge
   # dependencies, but allow the parent to override any
   # dependency in the child. Consider this tree with
   # dependencies `a`, `b`, etc and the order they are
