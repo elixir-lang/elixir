@@ -353,7 +353,7 @@ defmodule IEx do
   ## Examples
 
   Let's suppose you want to investigate what is happening
-  with some particular function. By invoking `IEx.pry` from
+  with some particular function. By invoking `IEx.pry/1` from
   the function, IEx will allow you to access its binding
   (variables), verify its lexical information and access
   the process information. Let's see an example:
@@ -378,7 +378,7 @@ defmodule IEx do
       2
       3
 
-  Keep in mind that `IEx.pry` runs in the caller process,
+  Keep in mind that `IEx.pry/1` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
   process can be freed by calling `respawn`, which starts a
   new IEx evaluation cycle, letting this one go:

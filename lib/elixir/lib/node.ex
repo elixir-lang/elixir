@@ -239,7 +239,7 @@ defmodule Node do
   @doc """
   Sets the magic cookie of `node` to the atom `cookie`.
 
-  The default node is `Node.self`, the local node. If `node` is the local node,
+  The default node is `Node.self/0`, the local node. If `node` is the local node,
   the function also sets the cookie of all other unknown nodes to `cookie`.
 
   This function will raise `FunctionClauseError` if the given `node` is not alive.

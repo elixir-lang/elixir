@@ -405,13 +405,13 @@ defmodule Module do
 
   ## Differences from `defmodule`
 
-  `Module.create` works similarly to `defmodule` and
+  `Module.create/3` works similarly to `defmodule` and
   return the same results. While one could also use
   `defmodule` to define modules dynamically, this
   function is preferred when the module body is given
   by a quoted expression.
 
-  Another important distinction is that `Module.create`
+  Another important distinction is that `Module.create/3`
   allows you to control the environment variables used
   when defining the module, while `defmodule` automatically
   shares the same environment.

@@ -36,7 +36,7 @@ defmodule GenEvent do
         end
       end
 
-      {:ok, pid} = GenEvent.start_link()
+      {:ok, pid} = GenEvent.start_link([])
 
       GenEvent.add_handler(pid, LoggerHandler, [])
       #=> :ok
@@ -53,7 +53,7 @@ defmodule GenEvent do
       GenEvent.call(pid, LoggerHandler, :messages)
       #=> []
 
-  We start a new event manager by calling `GenEvent.start_link/0`.
+  We start a new event manager by calling `GenEvent.start_link/1`.
   Notifications can be sent to the event manager which will then
   invoke `handle_event/2` for each registered handler.
 
@@ -89,7 +89,7 @@ defmodule GenEvent do
       -  `{:stop, reason}` - monitored process terminated (for monitored handlers)
       -  `:remove_handler` - handler is being removed
       -  `{:error, term}` - handler crashed or returned a bad value
-      -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
+      -  `term` - any term passed to functions like `GenEvent.remove_handler/3`
 
     * `code_change(old_vsn, state, extra)` - called when the application
       code is being upgraded live (hot code swapping).
@@ -251,7 +251,7 @@ defmodule GenEvent do
   Invoked when the server is about to exit. It should do any cleanup required.
 
   `reason` is removal reason and `state` is the current state of the handler.
-  The return value is returned to `GenEvent.remove_handler/2` or ignored if
+  The return value is returned to `GenEvent.remove_handler/3` or ignored if
   removing for another reason.
 
   `reason` is one of:
@@ -261,7 +261,7 @@ defmodule GenEvent do
   -  `:remove_handler` - handler is being removed
   -  `{:error, term}` - handler crashed or returned a bad value and an error is
   logged
-  -  `term` - any term passed to functions like `GenEvent.remove_handler/2`
+  -  `term` - any term passed to functions like `GenEvent.remove_handler/3`
 
   If part of a supervision tree, a `GenEvent`'s `Supervisor` will send an exit
   signal when shutting it down. The exit signal is based on the shutdown

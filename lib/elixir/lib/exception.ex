@@ -4,7 +4,7 @@ defmodule Exception do
 
   Note that stacktraces in Elixir are updated on throw,
   errors and exits. For example, at any given moment,
-  `System.stacktrace` will return the stacktrace for the
+  `System.stacktrace/0` will return the stacktrace for the
   last throw/error/exit that occurred in the current process.
 
   Do not rely on the particular format returned by the `format`
