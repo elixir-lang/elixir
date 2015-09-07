@@ -160,7 +160,8 @@ defmodule Regex do
   end
 
   @doc """
-  Returns `true` if the given argument is a regex.
+  Returns `true` if the given `term` is a regex.
+  Otherwise returns `false`.
 
   ## Examples
 
@@ -173,6 +174,7 @@ defmodule Regex do
   """
   @spec regex?(t) :: true
   @spec regex?(any) :: false
+  def regex?(term)
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
