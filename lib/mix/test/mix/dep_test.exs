@@ -72,7 +72,7 @@ defmodule Mix.DepTest do
     with_deps [{:ok, "~> 0.1", not_really: :ok}], fn ->
       in_fixture "deps_status", fn ->
         send self, {:mix_shell_input, :yes?, false}
-        msg = "Could not find a SCM for dependency :ok from Mix.DepTest.ProcessDepsApp"
+        msg = "Could not find an SCM for dependency :ok from Mix.DepTest.ProcessDepsApp"
         assert_raise Mix.Error, msg, fn -> Mix.Dep.loaded([]) end
       end
     end

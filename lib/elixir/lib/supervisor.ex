@@ -108,7 +108,7 @@ defmodule Supervisor do
   You may want to use a module-based supervisor if:
 
     * You need to do some particular action on supervisor
-      initialization, like setting up a ETS table.
+      initialization, like setting up an ETS table.
 
     * You want to perform partial hot-code swapping of the
       tree. For example, if you add or remove children,
