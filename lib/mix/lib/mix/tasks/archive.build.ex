@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Archive.Build do
   use Mix.Task
 
-  @shortdoc "Archive this project into a .ez file"
+  @shortdoc "Archives this project into a .ez file"
 
   @moduledoc """
   Builds an archive according to the specification of the

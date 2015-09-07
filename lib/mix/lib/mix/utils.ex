@@ -4,7 +4,7 @@ defmodule Mix.Utils do
   """
 
   @doc """
-  Get the mix home.
+  Gets the mix home.
 
   It defaults to `~/.mix` unless the `MIX_HOME`
   environment variable is set.
@@ -21,7 +21,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Get all paths defined in the MIX_PATH env variable.
+  Gets all paths defined in the MIX_PATH env variable.
 
   `MIX_PATH` may contain multiple paths. If on Windows, those
   paths should be separated by `;`, if on unix systems, use `:`.
@@ -69,7 +69,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Extract all stale `sources` compared to the given `targets`.
+  Extracts all stale `sources` compared to the given `targets`.
   """
   def extract_stale(_sources, []), do: []
   def extract_stale([], _targets), do: []
@@ -114,7 +114,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Extract files from a list of paths.
+  Extracts files from a list of paths.
 
   `exts_or_pattern` may be a list of extensions or a
   `Path.wildcard/1` pattern.
@@ -284,7 +284,7 @@ defmodule Mix.Utils do
   Symlink directory `source` to `target` or copy it recursively
   in case symlink fails.
 
-  Expect source and target to be absolute paths as it generates
+  Expects source and target to be absolute paths as it generates
   a relative symlink.
   """
   def symlink_or_copy(source, target) do

@@ -12,7 +12,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Append archives paths into Erlang code path.
+  Appends archives paths into Erlang code path.
   """
   def append_archives do
     archives = archives_ebin()
@@ -21,7 +21,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Append mix paths into Erlang code path.
+  Appends mix paths into Erlang code path.
   """
   def append_paths do
     Enum.each(Mix.Utils.mix_paths, &Code.append_path(&1))
@@ -43,7 +43,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Check Elixir version requirement stored in the archive and print a warning if it is not satisfied.
+  Checks Elixir version requirement stored in the archive and print a warning if it is not satisfied.
   """
   def check_archive_elixir_version(path) do
     path |> Mix.Archive.ebin |> check_elixir_version_in_ebin()

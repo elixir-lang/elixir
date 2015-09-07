@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Local do
   use Mix.Task
 
-  @shortdoc "List local tasks"
+  @shortdoc "Lists local tasks"
 
   @moduledoc """
-  List local tasks.
+  Lists local tasks.
   """
 
   @spec run([]) :: :ok

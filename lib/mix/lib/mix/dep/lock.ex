@@ -42,7 +42,7 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Read the lockfile, returns a map containing
+  Reads the lockfile, returns a map containing
   each app name and its current lock information.
   """
   @spec read() :: map

@@ -32,7 +32,7 @@ defmodule Mix.Generator do
   end
 
   @doc """
-  Embed a template given by `contents` into the current module.
+  Embeds a template given by `contents` into the current module.
 
   It will define a private function with the `name` followed by
   `_template` that expects assigns as arguments.

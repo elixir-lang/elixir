@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.Leex do
   @manifest ".compile.leex"
 
   @moduledoc """
-  Compile Leex source files.
+  Compiles Leex source files.
 
   When this task runs, it will check the modification time of every file, and
   if it has changed, the file will be compiled. Files will be
