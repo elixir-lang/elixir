@@ -15,8 +15,8 @@ defmodule Process do
   """
 
   @doc """
-  Returns `true` if the process exists and is alive, that is,
-  is not exiting and has not exited. Otherwise, returns `false`.
+  Returns `true` if the process exists and is alive (i.e. it is not exiting
+  and has not exited yet). Otherwise, returns `false`.
 
   `pid` must refer to a process at the local node.
   """
