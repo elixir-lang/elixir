@@ -478,7 +478,7 @@ defmodule ExUnit.Assertions do
 
       refute_receive :bye
 
-  Refute received with a explicit timeout:
+  Refute received with an explicit timeout:
 
       refute_receive :bye, 1000
 

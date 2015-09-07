@@ -8,7 +8,7 @@ defmodule String do
 
   The functions in this module act according to the Unicode
   Standard, version 6.3.0. As per the standard, a codepoint is
-  an Unicode Character, which may be represented by one or more
+  a Unicode Character, which may be represented by one or more
   bytes. For example, the character "é" is represented with two
   bytes:
 

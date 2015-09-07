@@ -316,7 +316,7 @@ defmodule GenServer do
   The return value is ignored.
 
   `terminate/2` is called if a callback (except `init/1`) returns a `:stop`
-  tuple, raises, calls `Kernel.exit/1` or returns a invalid value. It may also
+  tuple, raises, calls `Kernel.exit/1` or returns an invalid value. It may also
   be called if the `GenServer` traps exits using `Process.flag/2` *and* the
   parent process sends an exit signal.
 

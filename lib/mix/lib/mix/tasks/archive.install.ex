@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Archive.Install do
           File.mkdir_p!(dirname)
           File.write!(archive, binary)
         :badpath ->
-          Mix.raise "Expected #{inspect src} to be a url or a local file path"
+          Mix.raise "Expected #{inspect src} to be a URL or a local file path"
         {:local, message} ->
           Mix.raise message
         {kind, message} when kind in [:remote, :checksum] ->
