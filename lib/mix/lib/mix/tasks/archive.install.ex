@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Archive.Install do
   use Mix.Task
 
-  @shortdoc "Install an archive locally"
+  @shortdoc "Installs an archive locally"
 
   @moduledoc """
-  Install an archive locally.
+  Installs an archive locally.
 
   If no argument is supplied but there is an archive in the root
   (created with mix archive), then the archive will be installed

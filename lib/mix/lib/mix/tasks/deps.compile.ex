@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Deps.Compile do
   use Mix.Task
 
-  @shortdoc "Compile dependencies"
+  @shortdoc "Compiles dependencies"
 
   @moduledoc """
-  Compile dependencies.
+  Compiles dependencies.
 
   By default, compile all dependencies. A list of dependencies can
   be given to force the compilation of specific dependencies.

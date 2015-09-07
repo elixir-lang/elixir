@@ -17,7 +17,7 @@ defmodule Mix.Dep.Loader do
   end
 
   @doc """
-  Partition loaded dependencies by environment.
+  Partitions loaded dependencies by environment.
   """
   def partition_by_env(deps, opts) do
     if env = opts[:env] do

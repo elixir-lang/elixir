@@ -119,14 +119,14 @@ defmodule Mix.SCM do
   end
 
   @doc """
-  Prepend the given SCM module to the list of available SCMs.
+  Prepends the given SCM module to the list of available SCMs.
   """
   def prepend(mod) when is_atom(mod) do
     Mix.State.prepend(:scm, mod)
   end
 
   @doc """
-  Append the given SCM module to the list of available SCMs.
+  Appends the given SCM module to the list of available SCMs.
   """
   def append(mod) when is_atom(mod) do
     Mix.State.append(:scm, mod)

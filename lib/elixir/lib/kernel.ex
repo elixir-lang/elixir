@@ -3572,7 +3572,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Define a function that delegates to another module.
+  Defines a function that delegates to another module.
 
   Functions defined with `defdelegate/2` are public and can be invoked from
   outside the module they're defined in (like if they were defined using

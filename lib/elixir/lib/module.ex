@@ -118,7 +118,7 @@ defmodule Module do
               end
 
               @doc """
-              Sum.
+              Sums `a` to `b`.
               """
               def sum(a, b) do
                 a + b
