@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Deps.Clean do
         Mix.raise "mix deps.clean expects dependencies as arguments or " <>
                   "a flag indicating which dependencies to clean. " <>
                   "The --all option will clean all dependencies while " <>
-                  "the --unused option cleans unused dependencies."
+                  "the --unused option cleans unused dependencies"
     end
 
     if opts[:unlock] do
