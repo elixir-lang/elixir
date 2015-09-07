@@ -84,7 +84,7 @@ defmodule Code do
   directories the Erlang VM uses for finding module code.
 
   The path is expanded with `Path.expand/1` before being deleted. If the
-  path does not exist it returns false.
+  path does not exist it returns `false`.
 
   ## Examples
 
@@ -341,7 +341,7 @@ defmodule Code do
 
   ## Examples
 
-  If the code is already loaded, it returns nil:
+  If the code is already loaded, it returns `nil`:
 
       Code.require_file("eex_test.exs","../eex/test") #=> nil
 

@@ -358,7 +358,7 @@ defmodule String do
 
   ## Options
 
-    * :trim - when true, does not emit empty patterns
+    * :trim - when `true`, does not emit empty patterns
   """
   @spec splitter(t, pattern, Keyword.t) :: Enumerable.t
   def splitter(string, pattern, options \\ []) do
