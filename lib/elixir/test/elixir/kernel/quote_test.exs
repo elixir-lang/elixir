@@ -12,7 +12,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "keep line" do
-    ## DO NOT MOVE THIS LINE
+    # DO NOT MOVE THIS LINE
     assert quote(location: :keep, do: bar(1, 2, 3)) ==
            {:bar, [file: Path.relative_to_cwd(__ENV__.file), keep: 16], [1, 2, 3]}
   end
@@ -22,7 +22,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "quote line var" do
-    ## DO NOT MOVE THIS LINE
+    # DO NOT MOVE THIS LINE
     line = __ENV__.line
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26], [1, 2, 3]}
   end
@@ -195,7 +195,7 @@ defmodule Kernel.QuoteTest do
   end
 end
 
-## DO NOT MOVE THIS LINE
+# DO NOT MOVE THIS LINE
 defmodule Kernel.QuoteTest.Errors do
   defmacro defadd do
     quote location: :keep do

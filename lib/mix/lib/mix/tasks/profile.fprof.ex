@@ -102,7 +102,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   this should give you a more correct insight into your real bottlenecks.
   Profiling with other environments might produce some false bottlenecks, such as
   protocol dispatches, which perform much faster with the `prod` environment when
-  `build_embedded` is true (which is the default for production).
+  `build_embedded` is `true` (which is the default for production).
   """
 
   @spec run(OptionParser.argv) :: :ok
@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     unless Mix.Project.config[:build_embedded] do
       IO.puts """
       Warning: It's advised to run this task when build_embedded is set
-      to true (usually the prod environment). Otherwise, the results may
+      to `true` (usually the prod environment). Otherwise, the results may
       contain false bottlenecks which will not appear in production.
       """
     end
