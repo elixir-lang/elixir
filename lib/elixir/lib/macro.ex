@@ -117,7 +117,7 @@ defmodule Macro do
   @doc """
   Applies the given function to the node metadata if it contains one.
 
-  This is often useful when used with `Macro.prewalk/1` to remove
+  This is often useful when used with `Macro.prewalk/2` to remove
   information like lines and hygienic counters from the expression
   for either storage or comparison.
 
