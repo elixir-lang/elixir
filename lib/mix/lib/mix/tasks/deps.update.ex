@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Deps.Update do
   use Mix.Task
 
-  @shortdoc "Update the given dependencies"
+  @shortdoc "Updates the given dependencies"
 
   @moduledoc """
-  Update the given dependencies.
+  Updates the given dependencies.
 
   Since this is a destructive action, update of all dependencies
   can only happen by passing the `--all` command line option.

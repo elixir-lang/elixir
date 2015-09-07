@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Archive.Uninstall do
   use Mix.Task
 
-  @shortdoc "Uninstall archives"
+  @shortdoc "Uninstalls archives"
 
   @moduledoc """
-  Uninstall local archives:
+  Uninstalls local archives:
 
       mix archive.uninstall archive.ez
 

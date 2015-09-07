@@ -6,13 +6,13 @@ defmodule Mix.RemoteConverger do
   # Useful for things like external package managers
 
   @doc """
-  Return `true` if given dependency is handled by
+  Returns `true` if given dependency is handled by
   remote converger.
   """
   @callback remote?(Mix.Dep.t) :: boolean
 
   @doc """
-  Run the remote converger.
+  Runs the remote converger.
 
   Return updated lock.
   """
@@ -25,14 +25,14 @@ defmodule Mix.RemoteConverger do
   @callback deps(Mix.Dep.t, map) :: [atom]
 
   @doc """
-  Get registered remote converger.
+  Gets registered remote converger.
   """
   def get do
     Mix.State.get(:remote_converger)
   end
 
   @doc """
-  Register a remote converger.
+  Registers a remote converger.
   """
   def register(mod) when is_atom(mod) do
     Mix.State.put(:remote_converger, mod)

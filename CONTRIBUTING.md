@@ -153,7 +153,7 @@ example:
 
 ```elixir
 @doc """
-Return only those elements for which `fun` is `true`.
+Returns only those elements for which `fun` is `true`.
 
 ## Examples
 

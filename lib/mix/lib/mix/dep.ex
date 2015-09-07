@@ -331,21 +331,21 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Return `true` if dependency is a mix project.
+  Returns `true` if dependency is a mix project.
   """
   def mix?(%Mix.Dep{manager: manager}) do
     manager == :mix
   end
 
   @doc """
-  Return `true` if dependency is a rebar project.
+  Returns `true` if dependency is a rebar project.
   """
   def rebar?(%Mix.Dep{manager: manager}) do
     manager == :rebar
   end
 
   @doc """
-  Return `true` if dependency is a make project.
+  Returns `true` if dependency is a make project.
   """
   def make?(%Mix.Dep{manager: manager}) do
     manager == :make

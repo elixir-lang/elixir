@@ -377,7 +377,7 @@ defmodule Task do
   end
 
   @doc """
-  Unlink and shutdown the task then check for a reply.
+  Unlinks and shutdowns the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   otherwise `nil`.

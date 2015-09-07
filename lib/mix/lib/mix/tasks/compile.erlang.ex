@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   @manifest ".compile.erlang"
 
   @moduledoc """
-  Compile Erlang source files.
+  Compiles Erlang source files.
 
   When this task runs, it will first check the modification times of
   all files to be compiled and if they haven't been

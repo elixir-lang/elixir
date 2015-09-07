@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Deps do
 
   import Mix.Dep, only: [loaded: 1, format_dep: 1, format_status: 1, check_lock: 2]
 
-  @shortdoc "List dependencies and their status"
+  @shortdoc "Lists dependencies and their status"
 
   @moduledoc ~S"""
   List all dependencies and their status.

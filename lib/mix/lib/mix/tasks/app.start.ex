@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
-  @shortdoc "Start all registered apps"
+  @shortdoc "Starts all registered apps"
 
   @moduledoc """
   Starts all registered apps.

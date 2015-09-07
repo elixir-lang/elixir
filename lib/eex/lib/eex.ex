@@ -162,7 +162,7 @@ defmodule EEx do
   end
 
   @doc """
-  Get a string `source` and generate a quoted expression
+  Gets a string `source` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
   def compile_string(source, options \\ []) do
@@ -170,7 +170,7 @@ defmodule EEx do
   end
 
   @doc """
-  Get a `filename` and generate a quoted expression
+  Gets a `filename` and generate a quoted expression
   that can be evaluated by Elixir or compiled to a function.
   """
   def compile_file(filename, options \\ []) do
@@ -179,7 +179,7 @@ defmodule EEx do
   end
 
   @doc """
-  Get a string `source` and evaluate the values using the `bindings`.
+  Gets a string `source` and evaluate the values using the `bindings`.
 
   ## Examples
 
@@ -193,7 +193,7 @@ defmodule EEx do
   end
 
   @doc """
-  Get a `filename` and evaluate the values using the `bindings`.
+  Gets a `filename` and evaluate the values using the `bindings`.
 
   ## Examples
 
