@@ -121,7 +121,7 @@ defmodule ExUnit do
         4. or set it to infinity per run by calling "mix test --trace"
            (useful when using IEx.pry)
 
-      Timeouts are given as integers in miliseconds.
+      Timeouts are given as integers in milliseconds.
       """
     end
   end
