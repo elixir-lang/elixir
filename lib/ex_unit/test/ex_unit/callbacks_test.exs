@@ -245,10 +245,10 @@ defmodule ExUnit.CallbacksNoTests do
   use ExUnit.Case, async: true
 
   setup_all do
-    raise "Never run"
+    raise "never run"
   end
 
   setup do
-    raise "Never run"
+    raise "never run"
   end
 end
