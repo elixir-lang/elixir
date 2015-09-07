@@ -14,10 +14,10 @@ defmodule Mix.Tasks.Compile do
     * `:compilers` - compilers to run, defaults to:
       `[:yeec, :leex, :erlang, :elixir, :app]`
 
-    * `:consolidate_protocols` - when true, runs protocol
+    * `:consolidate_protocols` - when `true`, runs protocol
       consolidation via the `compile.protocols` task
 
-    * `:build_embedded` - when true, activates protocol
+    * `:build_embedded` - when `true`, activates protocol
       consolidation and does not generate symlinks in builds
 
   ## Command line options

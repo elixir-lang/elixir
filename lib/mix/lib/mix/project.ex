@@ -370,7 +370,7 @@ defmodule Mix.Project do
   @doc """
   Ensures the project structure exists.
 
-  In case it does, it is a no-op, otherwise, it is built.
+  In case it does exist, it is a no-op. Otherwise, it is built.
   """
   def ensure_structure(config \\ config(), opts \\ []) do
     if File.exists?(app_path(config)) do

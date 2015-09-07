@@ -3,7 +3,7 @@ defmodule Mix.Hex do
   @hex_requirement  ">= 0.5.0"
 
   @doc """
-  Returns true if Hex is loaded or installed, otherwise returns false.
+  Returns `true` if `Hex` is loaded or installed. Otherwise returns `false`.
   """
   @spec ensure_installed?(atom) :: boolean
   def ensure_installed?(app) do
@@ -22,15 +22,15 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Returns true if have required Hex, returns false if don't and don't update,
-  if update then exits.
+  Returns `true` if it has the required `Hex`. If an update is performed, it then exits.
+  Otherwise returns `false` without updating anything. 
   """
   @spec ensure_updated?() :: boolean
   def ensure_updated?() do
     cond do
-      !Code.ensure_loaded?(Hex) ->
+      not Code.ensure_loaded?(Hex) ->
         false
-      !Version.match?(Hex.version, @hex_requirement) ->
+      not Version.match?(Hex.version, @hex_requirement) ->
         Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
 
         if Mix.shell.yes?("Shall I abort the current command and update hex?") do
@@ -45,7 +45,7 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Ensures Hex is started.
+  Ensures `Hex` is started.
   """
   def start do
     try do
