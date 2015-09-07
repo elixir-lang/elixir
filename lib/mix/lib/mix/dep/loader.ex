@@ -143,7 +143,7 @@ defmodule Mix.Dep.Loader do
     end
 
     unless scm do
-      Mix.raise "Could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+      Mix.raise "Could not find an SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
     end
 
     %Mix.Dep{

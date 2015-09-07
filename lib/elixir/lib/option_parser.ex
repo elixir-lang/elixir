@@ -280,7 +280,7 @@ defmodule OptionParser do
     do_split(strip_leading_spaces(string), "", [], nil)
   end
 
-  # If we have a escaped quote, simply remove the escape
+  # If we have an escaped quote, simply remove the escape
   defp do_split(<<?\\, quote, t :: binary>>, buffer, acc, quote),
     do: do_split(t, <<buffer::binary, quote>>, acc, quote)
 
@@ -292,7 +292,7 @@ defmodule OptionParser do
   defp do_split(<<quote, t :: binary>>, buffer, acc, quote),
     do: do_split(t, buffer, acc, nil)
 
-  # If we have a escaped quote/space, simply remove the escape as long as we are not inside a quote
+  # If we have an escaped quote/space, simply remove the escape as long as we are not inside a quote
   defp do_split(<<?\\, h, t :: binary>>, buffer, acc, nil) when h in [?\s, ?', ?"],
     do: do_split(t, <<buffer::binary, h>>, acc, nil)
 
