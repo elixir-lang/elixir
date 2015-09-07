@@ -345,7 +345,7 @@ defmodule Code do
 
       Code.require_file("eex_test.exs","../eex/test") #=> nil
 
-  If the code is not already loaded, it returns the same as `load_file/2`:
+  If the code is not loaded yet, it returns the same as `load_file/2`:
 
       Code.require_file("eex_test.exs","../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
