@@ -90,8 +90,8 @@ defmodule ExUnit.Formatter do
 
   ## Examples
 
-    iex> format_filters([run: true, slow: false], :include)
-    "Including tags: [run: true, slow: false]"
+      iex> format_filters([run: true, slow: false], :include)
+      "Including tags: [run: true, slow: false]"
 
   """
   @spec format_filters(Keyword.t, atom) :: String.t
