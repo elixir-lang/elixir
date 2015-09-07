@@ -250,7 +250,7 @@ defmodule IO do
   Reads a line from the IO device. It returns:
 
     * `data` - the characters in the line terminated
-      by a LF (or end of file)
+      by a line-feed (LF) or end of file (EOF)
 
     * `:eof` - end of file was encountered
 
