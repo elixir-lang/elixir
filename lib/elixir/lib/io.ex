@@ -22,7 +22,7 @@ defmodule IO do
   Elixir provides two shorcuts:
 
     * `:stdio` - a shortcut for `:standard_io`, which maps to
-      the current `Process.group_leader` in Erlang
+      the current `Process.group_leader/0` in Erlang
 
     * `:stderr` - a shortcut for the named process `:standard_error`
       provided in Erlang

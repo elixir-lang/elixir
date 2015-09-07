@@ -580,10 +580,10 @@ defmodule Kernel.SpecialForms do
   Notice that calling `except` for a previously declared `import`
   simply filters the previously imported elements. For example:
 
-      import List, only: [flatten: 1, keyfind: 3]
+      import List, only: [flatten: 1, keyfind: 4]
       import List, except: [flatten: 1]
 
-  After the two import calls above, only `List.keyfind/3` will be
+  After the two import calls above, only `List.keyfind/4` will be
   imported.
 
   ## Underscore functions
@@ -1415,8 +1415,9 @@ defmodule Kernel.SpecialForms do
   defmacro __aliases__(args)
 
   @doc """
-  Calls the overriden function when overriding it with `defoverridable`.
-  See `Kernel.defoverridable` for more information and documentation.
+  Calls the overriden function when overriding it with `Kernel.defoverridable/1`.
+
+  See `Kernel.defoverridable/1` for more information and documentation.
   """
   defmacro super(args)
 
