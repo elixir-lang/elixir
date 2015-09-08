@@ -82,8 +82,8 @@ defmodule Module do
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
 
-      See http://www.erlang.org/doc/man/compile.html for the list of supported
-      options.
+      For the list of supported options, see Erlang's
+      [`:compile` module](http://www.erlang.org/doc/man/compile.html).
 
       Several uses of `@compile` will accumulate instead of overriding
       previous ones.
@@ -264,12 +264,12 @@ defmodule Module do
     * `@dialyzer`
 
       Defines warnings to request or suppress when using a version of
-      `dialyzer` that supports module attributes.
+      `:dialyzer` that supports module attributes.
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
 
-      See http://www.erlang.org/doc/man/dialyzer.html for the list of supported
-      warnings.
+      For the list of supported warnings, see
+      [`:dialyzer` module](http://www.erlang.org/doc/man/dialyzer.html).
 
       Several uses of `@dialyzer` will accumulate instead of overriding
       previous ones.
@@ -325,9 +325,10 @@ defmodule Module do
     * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
-  by Erlang's `module_info` function which also gets defined for each compiled
-  module. See http://www.erlang.org/doc/reference_manual/modules.html#id75777 for
-  more information.
+  by [`:erlang.module_info/0`](http://www.erlang.org/doc/man/erlang.html#module_info.html) which also gets defined for each compiled
+  module.
+
+  For more information, see [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html).
   """
   def __info__(kind)
 

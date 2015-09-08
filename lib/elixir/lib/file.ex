@@ -66,7 +66,7 @@ defmodule File do
   and `:delayed_write` are also useful when operating large files or
   working with files in tight loops.
 
-  Check http://www.erlang.org/doc/man/file.html#open-2 for more information
+  Check [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2) for more information
   about such options and other performance considerations.
   """
 
@@ -292,8 +292,9 @@ defmodule File do
   @doc """
   Returns information about the `path`. If the file is a symlink sets
   the `type` to `:symlink` and returns `File.Stat` for the link. For any
-  other file, returns exactly the same values as `stat/2`. For more details
-  see http://www.erlang.org/doc/man/file.html#read_link_info-2
+  other file, returns exactly the same values as `stat/2`.
+
+  For more details, see [`:file.read_link_info/2`](http://www.erlang.org/doc/man/file.html#read_link_info-2).
 
   ## Options
 
@@ -955,8 +956,8 @@ defmodule File do
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
-  Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
-  other options like `:read_ahead` and `:delayed_write`.
+  For more information about other options like `:read_ahead` and `:delayed_write`,
+  see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
 
   This function returns:
 

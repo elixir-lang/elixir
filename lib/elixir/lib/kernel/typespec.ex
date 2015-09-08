@@ -15,8 +15,8 @@ defmodule Kernel.Typespec do
 
   ## Types and their syntax
 
-  The type syntax provided by Elixir is fairly similar to the one in
-  [Erlang](http://www.erlang.org/doc/reference_manual/typespec.html).
+  The type syntax provided by Elixir is fairly similar to [the one in
+  Erlang](http://www.erlang.org/doc/reference_manual/typespec.html).
 
   Most of the built-in types provided in Erlang (for example, `pid()`) are
   expressed the same way: `pid()` or simply `pid`. Parameterized types are also

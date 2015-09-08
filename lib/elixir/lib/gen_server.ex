@@ -162,10 +162,10 @@ defmodule GenServer do
   guide provides a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-    * http://elixir-lang.org/getting-started/mix-otp/genserver.html
-    * http://www.erlang.org/doc/man/gen_server.html
-    * http://www.erlang.org/doc/design_principles/gen_server_concepts.html
-    * http://learnyousomeerlang.com/clients-and-servers
+    * [GenServer – Elixir's Getting Started Guide](http://elixir-lang.org/getting-started/mix-otp/genserver.html)
+    * [`:gen_server` module documentation](http://www.erlang.org/doc/man/gen_server.html)
+    * [gen_server Behaviour – OTP Design Principles](http://www.erlang.org/doc/design_principles/gen_server_concepts.html)
+    * [Clients and Servers – Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
     """
 
   @doc """
