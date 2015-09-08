@@ -262,7 +262,7 @@ defmodule System do
   Returns the process identifier of the current Erlang emulator
   in the format most commonly used by the operating system environment.
 
-  See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
+  For more information, see [`:os.getpid/0`](http://www.erlang.org/doc/man/os.html#getpid-0).
   """
   @spec get_pid() :: binary
   def get_pid, do: IO.iodata_to_binary(:os.getpid)
@@ -331,7 +331,7 @@ defmodule System do
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
 
-  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-1
+  For more information, see [`:erlang.halt/1`](http://www.erlang.org/doc/man/erlang.html#halt-1).
 
   ## Examples
 
@@ -421,7 +421,7 @@ defmodule System do
 
   If you desire to execute a trusted command inside a shell, with pipes,
   redirecting and so on, please check
-  [Erlang's :os.cmd/1 function](http://www.erlang.org/doc/man/os.html#cmd-1).
+  [`:os.cmd/1`](http://www.erlang.org/doc/man/os.html#cmd-1).
   """
   @spec cmd(binary, [binary], Keyword.t) ::
         {Collectable.t, exit_status :: non_neg_integer}
