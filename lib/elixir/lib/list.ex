@@ -578,7 +578,7 @@ defmodule List do
 
   Notice that this function expects a list of integers representing
   UTF-8 codepoints. If you have a list of bytes, you must instead use
-  [the `:binary` module](http://www.erlang.org/doc/man/binary.html).
+  the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 
   ## Examples
 

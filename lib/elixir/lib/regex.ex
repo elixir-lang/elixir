@@ -1,10 +1,10 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Regular expressions for Elixir built on top of Erlang's `re` module.
+  Regular expressions for Elixir built on top of Erlang's `:re` module.
 
-  As the `re` module, Regex is based on PCRE
+  As the `:re` module, Regex is based on PCRE
   (Perl Compatible Regular Expressions). More information can be
-  found in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
+  found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
   or using the special form with [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
@@ -90,7 +90,7 @@ defmodule Regex do
 
   The given options can either be a binary with the characters
   representing the same regex options given to the `~r` sigil,
-  or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
+  or a list of options, as expected by the Erlang's [`:re` module](http://www.erlang.org/doc/man/re.html).
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.

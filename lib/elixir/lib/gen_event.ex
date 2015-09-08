@@ -144,9 +144,9 @@ defmodule GenEvent do
   guides provide a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-    * http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html
-    * http://www.erlang.org/doc/man/gen_event.html
-    * http://learnyousomeerlang.com/event-handlers
+    * [Introduction to Mix – Elixir's Getting Started Guide](http://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html)
+    * [`:gen_event` module documentation](http://www.erlang.org/doc/man/gen_event.html)
+    * [Event Handlers – Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/event-handlers)
 
   Keep in mind though Elixir and Erlang gen events are not 100% compatible.
   The `:gen_event.add_sup_handler/3` is not supported by Elixir's GenEvent,

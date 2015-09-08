@@ -23,9 +23,10 @@ defmodule Mix.Tasks.Compile.Yecc do
     * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
     * `:yecc_options` - compilation options that apply
-      to Yecc's compiler. There are many other available
-      options here: http://www.erlang.org/doc/man/yecc.html#file-1
+      to Yecc's compiler.
 
+      For a list of the many more available options,
+      see [`:yecc.file/1`](http://www.erlang.org/doc/man/yecc.html#file-1).
   """
 
   @doc """

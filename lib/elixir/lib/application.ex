@@ -84,8 +84,8 @@ defmodule Application do
   This particular aspect of applications is explained in more detail in the
   OTP documentation:
 
-    * http://www.erlang.org/doc/man/application.html
-    * http://www.erlang.org/doc/design_principles/applications.html
+    * [`:application` module](http://www.erlang.org/doc/man/application.html)
+    * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)
 
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the

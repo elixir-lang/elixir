@@ -23,9 +23,10 @@ defmodule Mix.Tasks.Compile.Leex do
     * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
     * `:leex_options` - compilation options that apply
-      to Leex's compiler. There are many available options
-      here: http://www.erlang.org/doc/man/leex.html#file-2
+      to Leex's compiler.
 
+      For a list of the many more available options,
+      see [`:leex.file/2`](http://www.erlang.org/doc/man/leex.html#file-2).
   """
 
   @doc """
