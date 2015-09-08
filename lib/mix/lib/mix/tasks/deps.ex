@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Deps do
   @shortdoc "Lists dependencies and their status"
 
   @moduledoc ~S"""
-  List all dependencies and their status.
+  Lists all dependencies and their status.
 
   Dependencies must be specified in the `mix.exs` file in one of
   the following formats:
