@@ -219,7 +219,7 @@ defmodule Mix.Dep do
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency was built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency was built with an out-of-date Elixir version, run `#{mix_env_var}mix deps.compile`"
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}),
     do: "the dependency was built with another SCM, run `#{mix_env_var}mix deps.compile`"

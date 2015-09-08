@@ -167,15 +167,15 @@ defmodule Mix.Tasks.Test do
     Mix.shell.print_app
     Mix.Task.run "app.start", args
 
-    # Ensure ex_unit is loaded.
+    # Ensure ExUnit is loaded.
     case Application.load(:ex_unit) do
       :ok -> :ok
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
-    # Configure ex_unit with command line options before requiring
+    # Configure ExUnit with command line options before requiring
     # test helpers so that the configuration is available in helpers.
-    # Then configure ex_unit again so command line options override
+    # Then configure ExUnit again so command line options override
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
 

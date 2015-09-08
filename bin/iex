@@ -10,7 +10,7 @@ if [ $# -gt 0 ] && ([ "$1" = "--help" ] || [ "$1" = "-h" ]); then
   -pa \"path\"        Prepends the given path to Erlang code path (*)
   -pz \"path\"        Appends the given path to Erlang code path (*)
   --app \"app\"       Start the given app and its dependencies (*)
-  --erl \"switches\"  Switches to be passed down to erlang (*)
+  --erl \"switches\"  Switches to be passed down to Erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --cookie \"cookie\" Sets a cookie for this distributed node

@@ -71,7 +71,7 @@ defmodule ExUnit.DocTest do
   example above) or when the result is a complicated data structure and you
   don't want to show it all, but just parts of it or some of its properties.
 
-  Similarly to iex you can use numbers in your "prompts":
+  Similarly to IEx you can use numbers in your "prompts":
 
       iex(1)> [1 + 2,
       ...(1)>  3]
@@ -80,7 +80,7 @@ defmodule ExUnit.DocTest do
   This is useful in two use cases:
 
     * being able to refer to specific numbered scenarios
-    * copy-pasting examples from an actual iex session
+    * copy-pasting examples from an actual IEx session
 
   We also allow you to select or skip some functions when calling
   `doctest`. See the documentation for more info.
@@ -97,7 +97,7 @@ defmodule ExUnit.DocTest do
 
       %{users: #HashSet<[:foo, :bar]>}
 
-  If you try to match on such expression, doctest will fail to compile.
+  If you try to match on such expression, `doctest` will fail to compile.
   You have two options to solve this.
 
   The first one is to rely on the fact that doctest can compare internal
@@ -107,7 +107,7 @@ defmodule ExUnit.DocTest do
       iex> map.users
       #HashSet<[:foo, :bar]>
 
-  Whenever a doctest starts with "#Name<", doctest will perform a string
+  Whenever a doctest starts with "#Name<", `doctest` will perform a string
   comparison. For example, the above test will perform the following match:
 
       inspect(map.users) == "#HashSet<[:foo, :bar]>"
@@ -135,10 +135,10 @@ defmodule ExUnit.DocTest do
   or a no-op line with documentation. Thus, multiline messages are not
   supported.
 
-  ## When not to use doctest
+  ## When not to use `doctest`
 
   In general, doctests are not recommended when your code examples contain
-  side effects. For example, if a doctest prints to standard output, doctest
+  side effects. For example, if a doctest prints to standard output, `doctest`
   will not try to capture the output.
 
   Similarly, doctests do not run in any kind of sandbox. So any module

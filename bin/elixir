@@ -10,7 +10,7 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   -pa \"path\"        Prepends the given path to Erlang code path (*)
   -pz \"path\"        Appends the given path to Erlang code path (*)
   --app \"app\"       Start the given app and its dependencies (*)
-  --erl \"switches\"  Switches to be passed down to erlang (*)
+  --erl \"switches\"  Switches to be passed down to Erlang (*)
   --name \"name\"     Makes and assigns a name to the distributed node
   --sname \"name\"    Makes and assigns a short name to the distributed node
   --cookie \"cookie\" Sets a cookie for this distributed node
@@ -21,7 +21,7 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 
 ** Options marked with (*) can be given more than once
 ** Options given after the .exs file or -- are passed down to the executed code
-** Options can be passed to the erlang runtime using ELIXIR_ERL_OPTIONS or --erl" >&2
+** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS or --erl" >&2
   exit 1
 fi
 

@@ -37,7 +37,7 @@ defmodule Kernel.CLI do
     if ok_or_shutdown == :shutdown or halt do
       {_, status} = at_exit({ok_or_shutdown, status})
 
-      # Ensure logger messages are flushed before halting
+      # Ensure Logger messages are flushed before halting
       case :erlang.whereis(Logger) do
         pid when is_pid(pid) -> Logger.flush()
         _ -> :ok

@@ -325,7 +325,7 @@ defmodule System do
     * If `:abort`, the runtime system aborts producing a core dump, if that is
       enabled in the operating system.
 
-    * If a string, an erlang crash dump is produced with status as slogan,
+    * If a string, an Erlang crash dump is produced with status as slogan,
       and then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported

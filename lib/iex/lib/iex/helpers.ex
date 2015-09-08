@@ -516,7 +516,7 @@ defmodule IEx.Helpers do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
-  # Compiles and loads an erlang source file, returns {module, binary}
+  # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
     source = Path.relative_to_cwd(source) |> String.to_char_list
     case :compile.file(source, [:binary, :report]) do
