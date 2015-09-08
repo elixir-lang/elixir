@@ -362,7 +362,7 @@ defmodule Macro do
   defp find_invalid(other), do: {:error, other}
 
   @doc ~S"""
-  Unescape the given chars.
+  Unescapes the given chars.
 
   This is the unescaping behaviour used by default in Elixir
   single- and double-quoted strings. Check `unescape_string/2`
