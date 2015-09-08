@@ -67,7 +67,7 @@ defmodule String do
     * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
     * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
     * Plus a number of functions for working with binaries (bytes)
-      [in the `:binary` module](http://www.erlang.org/doc/man/binary.html)
+      in the [`:binary` module](http://www.erlang.org/doc/man/binary.html)
 
   There are many situations where using the `String` module can
   be avoided in favor of binary functions or pattern matching.
@@ -870,7 +870,7 @@ defmodule String do
   are not valid characters. They may be reserved, private,
   or other.
 
-  More info at: https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters
+  More info at: [Non-characters – Wikipedia](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters)
 
   ## Examples
 
