@@ -3516,8 +3516,7 @@ defmodule Kernel do
   end
 
   @doc """
-  `use` is a simple mechanism for using a given module into
-  the current context.
+  Uses the given module in the current context.
 
   ## Examples
 
@@ -3546,7 +3545,8 @@ defmodule Kernel do
         end
       end
 
-  `__using__/1` is just a regular macro that can be defined in any module:
+  Where `__using__/1` is just a regular macro that can be defined
+  in any module:
 
       defmodule MyModule do
         defmacro __using__(opts) do
@@ -3556,6 +3556,47 @@ defmodule Kernel do
         end
       end
 
+  ## Best practices
+
+  `__using__` is typically used when there is a need to set some state
+  (via module attributes) or callbacks (like `@before_compile`)
+  into the caller.
+
+  `__using__` may also be used to alias, require or import functionality
+  from different modules:
+
+      defmodule MyModule do
+        defmacro __using__(opts) do
+          quote do
+            import MyModule.Foo
+            import MyModule.Bar
+            import MyModule.Baz
+
+            alias MyModule.Repo
+          end
+        end
+      end
+
+  However, do not provide `__using__` if all it does is to import,
+  alias or require the module itself. For example, do not:
+
+      defmodule MyModule do
+        defmacro __using__(opts) do
+          quote do
+            import MyModule
+          end
+        end
+      end
+
+  In such cases, developers must just import or alias the module
+  directly, allowing developers to customize those as they wish,
+  without the indirection behind `use`.
+
+  Finally, developers should also avoid defining functions inside
+  the `__using__` callback, unless those functions are the default
+  implementation of a previously defined `@callback`. In case you
+  want to provide some existing functionality to the user module,
+  please define it a module which will be imported accordingly.
   """
   defmacro use(module, opts \\ []) do
     expanded = Macro.expand(module, __CALLER__)
