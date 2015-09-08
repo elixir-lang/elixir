@@ -22,7 +22,7 @@ defmodule FileTest do
   import Regex, only: [escape: 1]
 
   defmodule Rename do
-    # Following erlang's underlying implementation
+    # Following Erlang's underlying implementation
     #
     # Renaming files
     # :ok               -> rename file to existing file default behaviour

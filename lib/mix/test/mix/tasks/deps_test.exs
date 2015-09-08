@@ -467,7 +467,7 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<\"the_future\">>, scm}.))
       Mix.Task.clear
 
-      msg = "  the dependency was built with an out-of-date elixir version, run `mix deps.compile`"
+      msg = "  the dependency was built with an out-of-date Elixir version, run `mix deps.compile`"
 
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Loadpaths do
   ## Command line options
 
     * `--no-deps-check` - do not check dependencies
-    * `--no-elixir-version-check` - do not check elixir version
+    * `--no-elixir-version-check` - do not check `elixir` version
 
   """
 

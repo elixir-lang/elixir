@@ -15,7 +15,7 @@
 #    bug has arisen;
 #
 # 2. In some situations, connecting to a remote node via --remsh
-#    is not possible. This can be tested by starting two iex nodes:
+#    is not possible. This can be tested by starting two IEx nodes:
 #
 #      $ iex --sname foo
 #      $ iex --sname bar --remsh foo@localhost

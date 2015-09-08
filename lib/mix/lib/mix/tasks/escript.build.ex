@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:embed_elixir` - if `true` embed elixir and its children apps
+    * `:embed_elixir` - if `true` embed `elixir` and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application` function in `mix.exs`.
 

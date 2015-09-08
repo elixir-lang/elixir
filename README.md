@@ -28,7 +28,7 @@ If you have the correct version and tests still fail, feel free to [open an issu
 
 ## Building documentation
 
-Building the documentation requires [ex_doc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as elixir.
+Building the documentation requires [ExDoc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as elixir.
 
 ```sh
 # After cloning and compiling Elixir
