@@ -42,7 +42,7 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Take a `command` name and attempts to load a module
+  Takes a `command` name and attempts to load a module
   with the command name converted to a module name
   in the given `at` scope.
 
@@ -281,7 +281,7 @@ defmodule Mix.Utils do
   defp to_lower_char(char), do: char
 
   @doc """
-  Symlink directory `source` to `target` or copy it recursively
+  Symlinks directory `source` to `target` or copies it recursively
   in case symlink fails.
 
   Expects source and target to be absolute paths as it generates
