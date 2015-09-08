@@ -113,9 +113,9 @@ defmodule IEx do
 
   Where "remsh" means "remote shell". In general, Elixir supports:
 
-    * remsh from an elixir node to an elixir node
-    * remsh from a plain erlang node to an elixir node (through the ^G menu)
-    * remsh from an elixir node to a plain erlang node (and get an erl shell there)
+    * remsh from an Elixir node to an Elixir node
+    * remsh from a plain Erlang node to an Elixir node (through the ^G menu)
+    * remsh from an Elixir node to a plain Erlang node (and get an `erl` shell there)
 
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
