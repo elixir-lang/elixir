@@ -200,7 +200,7 @@ defmodule Mix.Compilers.Elixir do
   defp read_manifest(manifest) do
     case :file.consult(manifest) do
       {:ok, [{:version, @manifest_vsn}|t]} -> t
-      {:error, _} -> []
+      _ -> []
     end
   end
 
