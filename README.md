@@ -8,9 +8,11 @@ For more about Elixir, installation and documentation, [check Elixir's website](
 
 If you want to contribute to Elixir or run it from source, clone this repository to your machine, compile and test it:
 
-    $ git clone https://github.com/elixir-lang/elixir.git
-    $ cd elixir
-    $ make clean test
+```sh
+git clone https://github.com/elixir-lang/elixir.git
+cd elixir
+make clean test
+```
 
 > Note: if you are running on Windows, [this article includes important notes for compiling Elixir from source on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 
@@ -20,7 +22,7 @@ If tests pass, you are ready to move on to the [Getting Started guide][1] or to 
 
 However, if tests fail, it is likely you have an outdated Erlang version (Elixir requires Erlang 17.0 or later). You can check your Erlang version by calling `erl` in the command line. You will see some information as follows:
 
-    Erlang/OTP 17 [erts-6.0] [source-07b8f44] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
+`Erlang/OTP 17 [erts-6.0] [source-07b8f44] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]`
 
 If you have the correct version and tests still fail, feel free to [open an issue][2].
 
@@ -28,10 +30,12 @@ If you have the correct version and tests still fail, feel free to [open an issu
 
 Building the documentation requires [ex_doc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as elixir.
 
-    # After cloning and compiling Elixir
-    $ git clone git://github.com/elixir-lang/ex_doc.git
-    $ cd ex_doc && ../elixir/bin/mix do deps.get, compile
-    $ cd ../elixir && make docs
+```sh
+# After cloning and compiling Elixir
+git clone git://github.com/elixir-lang/ex_doc.git
+cd ex_doc && ../elixir/bin/mix do deps.get, compile
+cd ../elixir && make docs
+```
 
 ## Contributing
 
