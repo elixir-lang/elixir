@@ -10,7 +10,7 @@ defmodule Logger do
       supervised when plugged into Logger.
 
     * Formats and truncates messages on the client
-      to avoid clogging logger backends.
+      to avoid clogging Logger backends.
 
     * Alternates between sync and async modes to remain
       performant when required but also apply backpressure
@@ -34,10 +34,10 @@ defmodule Logger do
 
   This configuration is split in three categories:
 
-    * Application configuration - must be set before the logger
+    * Application configuration - must be set before the Logger
       application is started
 
-    * Runtime configuration - can be set before the logger
+    * Runtime configuration - can be set before the Logger
       application is started, but may be changed during runtime
 
     * Error logger configuration - configuration for the
@@ -46,7 +46,7 @@ defmodule Logger do
   ### Application configuration
 
   The following configuration must be set via config files
-  before the logger application is started.
+  before the Logger application is started.
 
     * `:backends` - the backends to be used. Defaults to `[:console]`.
       See the "Backends" section for more information.
@@ -87,7 +87,7 @@ defmodule Logger do
       to 8192 bytes. Note this configuration is approximate. Truncated
       messages will have `" (truncated)"` at the end.
 
-    * `:sync_threshold` - if the logger manager has more than
+    * `:sync_threshold` - if the Logger manager has more than
       `sync_threshold` messages in its queue, Logger will change
       to sync mode, to apply backpressure to the clients.
       Logger will return to async mode once the number of messages
@@ -106,11 +106,11 @@ defmodule Logger do
         level: :warn,
         truncate: 4096
 
-  ### Error logger configuration
+  ### Error Logger configuration
 
   The following configuration applies to the Logger wrapper around
   Erlang's `error_logger`. All the configurations below must be set
-  before the logger application starts.
+  before the Logger application starts.
 
     * `:handle_otp_reports` - redirects OTP reports to Logger so
       they are formatted in Elixir terms. This uninstalls Erlang's
@@ -153,7 +153,7 @@ defmodule Logger do
   is explored with detail below.
 
   The initial backends are loaded via the `:backends` configuration,
-  which must be set before the logger application is started.
+  which must be set before the Logger application is started.
 
   ### Console backend
 
@@ -303,9 +303,9 @@ defmodule Logger do
   end
 
   @doc """
-  Retrieves the logger level.
+  Retrieves the Logger level.
 
-  The logger level can be changed via `configure/1`.
+  The Logger level can be changed via `configure/1`.
   """
   @spec level() :: level
   def level() do

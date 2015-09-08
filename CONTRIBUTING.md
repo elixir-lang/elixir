@@ -267,6 +267,6 @@ you are looking for some examples:
 
 * [Implement Enum.member? – Pull Request](https://github.com/elixir-lang/elixir/pull/992)
 * [Add String.valid? – Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
-* [Implement capture_io for ex_unit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
+* [Implement capture_io for ExUnit – Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
 
 Thank you for your contributions!

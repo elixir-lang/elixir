@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--debug-info` (`--no-debug-info`) - attach (or not) debug info to compiled modules
     * `--ignore-module-conflict` - do not emit warnings if a module was previously defined
     * `--warnings-as-errors` - treat warnings as errors and return a non-zero exit code
-    * `--elixirc-paths` - restrict the original elixirc paths to
+    * `--elixirc-paths` - restrict the original `elixirc` paths to
       a subset of the ones specified. Can be given multiple times.
 
   ## Configuration
