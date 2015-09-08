@@ -904,7 +904,7 @@ defmodule Kernel.SpecialForms do
 
   In the example above, `a` returns 10 even if the macro
   is apparently setting it to 1 because variables defined
-  in the macro does not affect the context the macro is executed in.
+  in the macro do not affect the context the macro is executed in.
   If you want to set or get a variable in the caller's context, you
   can do it with the help of the `var!` macro:
 
