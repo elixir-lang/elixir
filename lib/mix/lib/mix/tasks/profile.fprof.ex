@@ -108,11 +108,9 @@ defmodule Mix.Tasks.Profile.Fprof do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     unless Mix.Project.config[:build_embedded] do
-      IO.puts """
-      Warning: It's advised to run this task when build_embedded is set
-      to `true` (usually the prod environment). Otherwise, the results may
-      contain false bottlenecks which will not appear in production.
-      """
+      Mix.shell.error "Warning: It's advised to run this task when build_embedded is set " <>
+                      "to true (usually the prod environment). Otherwise the results may " <>
+                      "contain false bottlenecks which will not appear in production."
     end
 
     {opts, head, _} = OptionParser.parse_head(args,
