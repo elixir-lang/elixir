@@ -39,8 +39,8 @@ defmodule Macro.Env do
     * `vars` - a list keeping all defined variables as `{var, context}`
     * `export_vars` - a list keeping all variables to be exported in a
       construct (may be `nil`)
-    * `lexical_tracker` - PID of the lexical tracker which is responsible to
-      keep user info
+    * `lexical_tracker` - PID of the lexical tracker which is responsible for
+      keeping user info
     * `local` - the module to expand local functions to
   """
 
