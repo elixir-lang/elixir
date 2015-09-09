@@ -52,7 +52,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [CLI] Add support for `--werl` in Windows bash-like shells
   * [Dict] Add `Dict.get_and_update/3` which behaves similar to the now deprecated Access protocol
   * [Dict] Add `Dict.get_lazy/3`, `Dict.pop_lazy/3` and `Dict.put_new_lazy/3`
-  * [Enum] Add `Enum.random/1`, `Enum.take_random/2`, `Enum.min_max/1`, `Enum.min_max_by/2`, `Enum.reverse_slice/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
+  * [Enum] Add `Enum.random/1`, `Enum.take_random/2`, `Enum.min_max/1`, `Enum.min_max_by/2`, `Enum.reverse_slice/3`, `Enum.reduce_while/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
   * [Enum] Inline common map usage in `Enum` functions for performance
   * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
   * [File] Add `File.rename/2`
@@ -93,6 +93,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Provide built-in log capturing functionality
   * [ExUnit] Allow `assert_receive_timeout` and `refute_receive_timeout` to be configured in the ExUnit application
   * [ExUnit] Allow tests to be skipped with `@tag :skip` or `@tag skip: "reason"`
+  * [ExUnit] Add tests without implementation (missing the do block) which automatically fail
 
 #### IEx
 
