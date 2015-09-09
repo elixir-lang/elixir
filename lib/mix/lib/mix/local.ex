@@ -21,7 +21,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Appends mix paths into Erlang code path.
+  Appends Mix paths into Erlang code path.
   """
   def append_paths do
     Enum.each(Mix.Utils.mix_paths, &Code.append_path(&1))

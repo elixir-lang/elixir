@@ -27,7 +27,7 @@ defmodule Mix.Tasks.ArchiveTest do
       # Build and install archive
       Mix.Tasks.Archive.Build.run ["--no-elixir-version-check"]
       assert File.regular? "archive-0.1.0.ez"
-      assert_received {:mix_shell, :info, ["Generated archive archive-0.1.0.ez with MIX_ENV=dev"]}
+      assert_received {:mix_shell, :info, ["Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"]}
 
       send self, {:mix_shell_input, :yes?, true}
       Mix.Tasks.Archive.Install.run []
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.ArchiveTest do
       Mix.Project.push(ArchiveProject2)
       Mix.Tasks.Archive.Build.run ["--no-compile"]
       assert File.regular? "archive-0.2.0.ez"
-      assert_received {:mix_shell, :info, ["Generated archive archive-0.2.0.ez with MIX_ENV=dev"]}
+      assert_received {:mix_shell, :info, ["Generated archive \"archive-0.2.0.ez\" with MIX_ENV=dev"]}
 
       # Install new version
       send self, {:mix_shell_input, :yes?, true}

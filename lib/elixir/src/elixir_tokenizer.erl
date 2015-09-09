@@ -681,7 +681,7 @@ extract_heredoc(Line0, Column0, Rest0, Marker) ->
   case extract_heredoc_header(Rest0) of
     {ok, Rest1} ->
       %% We prepend a new line so we can transparently remove
-      %% spaces later. This new line is removed by calling `tl`
+      %% spaces later. This new line is removed by calling "tl"
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n|Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->

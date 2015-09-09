@@ -113,10 +113,10 @@ defmodule Mix.RebarTest do
     end
   end
 
-  test "get and compile dependencies for rebar with mix" do
+  test "get and compile dependencies for rebar with Mix" do
     Mix.Project.push(RebarAsDep)
 
-    in_tmp "get and compile dependencies for rebar with mix", fn ->
+    in_tmp "get and compile dependencies for rebar with Mix", fn ->
       File.write! MixTest.Case.tmp_path("rebar_dep/mix.exs"), """
       defmodule RebarDep.Mixfile do
         use Mix.Project

@@ -70,7 +70,7 @@ defmodule IEx.Evaluator do
     end
   end
 
-  # Instead of doing just `:elixir.eval`, we first parse the expression to see
+  # Instead of doing just :elixir.eval, we first parse the expression to see
   # if it's well formed. If parsing succeeds, we evaluate the AST as usual.
   #
   # If parsing fails, this might be a TokenMissingError which we treat in
@@ -125,7 +125,7 @@ defmodule IEx.Evaluator do
 
   defp handle_eval({:error, {_, _, ""}}, code, _line, state, history) do
     # Update state.cache so that IEx continues to add new input to
-    # the unfinished expression in `code`
+    # the unfinished expression in "code"
     {%{state | cache: code}, history}
   end
 

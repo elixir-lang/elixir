@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         Mix.Dep.Lock.write(lock)
 
       true ->
-        Mix.raise "mix deps.unlock expects dependencies as arguments or " <>
+        Mix.raise "\"mix deps.unlock\" expects dependencies as arguments or " <>
                   "the --all option to unlock all dependencies"
     end
   end

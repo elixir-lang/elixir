@@ -16,7 +16,7 @@ make clean test
 
 > Note: if you are running on Windows, [this article includes important notes for compiling Elixir from source on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 
-If Elixir fails to build (specifically when pulling in a new version via git), be sure to remove any previous build artifacts by running `make clean`, then `make test`.
+If Elixir fails to build (specifically when pulling in a new version via `git`), be sure to remove any previous build artifacts by running `make clean`, then `make test`.
 
 If tests pass, you are ready to move on to the [Getting Started guide][1] or to try Interactive Elixir by running: `bin/iex` in your terminal.
 
@@ -28,7 +28,7 @@ If you have the correct version and tests still fail, feel free to [open an issu
 
 ## Building documentation
 
-Building the documentation requires [ExDoc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as elixir.
+Building the documentation requires [ExDoc](https://github.com/elixir-lang/ex_doc) to be installed and built in the same containing folder as Elixir.
 
 ```sh
 # After cloning and compiling Elixir

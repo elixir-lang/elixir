@@ -29,7 +29,7 @@ defmodule IEx.History.State do
   # Traverses the queue front-to-back, dropping items as we go
   # until its size is within the specified limit.
   #
-  # The `start` value contains the index of the expression at the head
+  # The "start" value contains the index of the expression at the head
   # of the queue.
   def prune(%{start: start} = state, limit),
     do: prune(state, start, limit, false)

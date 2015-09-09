@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Archive.Build do
   ## Command line options
 
     * `-o` - specify output file name.
-      If there is a `mix.exs`, defaults to `APP-VERSION.ez`.
+      If there is a `mix.exs`, defaults to "APP-VERSION.ez".
 
     * `-i` - specify the input directory to archive.
       If there is a `mix.exs`, defaults to the current application build.
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Archive.Build do
 
     Mix.Archive.create(source, target)
 
-    Mix.shell.info "Generated archive #{target} with MIX_ENV=#{Mix.env}"
+    Mix.shell.info "Generated archive #{inspect target} with MIX_ENV=#{Mix.env}"
     :ok
   end
 end

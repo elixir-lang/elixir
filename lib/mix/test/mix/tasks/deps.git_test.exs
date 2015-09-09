@@ -160,7 +160,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # mix deps.compile is required...
       Mix.Tasks.Deps.run []
-      msg = "  the dependency build is outdated, please run `mix deps.compile`"
+      msg = "  the dependency build is outdated, please run \"mix deps.compile\""
       assert_received {:mix_shell, :info, [^msg]}
 
       # But also ran automatically
@@ -292,7 +292,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert Exception.message(exception) =~ "Command `git clone"
+      assert Exception.message(exception) =~ "Command \"git clone"
     end
   end
 

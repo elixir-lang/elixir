@@ -17,7 +17,7 @@ defmodule System do
     end
   end
 
-  # Read and strip the version from the `VERSION` file.
+  # Read and strip the version from the VERSION file.
   defmacrop get_version do
     case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
       ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
@@ -25,7 +25,7 @@ defmodule System do
     end
   end
 
-  # Tries to run `git describe --always --tags`. In the case of success returns
+  # Tries to run "git describe --always --tags". In the case of success returns
   # the most recent tag. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
   defmacrop get_describe do

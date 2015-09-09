@@ -4,7 +4,7 @@ defmodule Mix.Utils do
   """
 
   @doc """
-  Gets the mix home.
+  Gets the Mix home.
 
   It defaults to `~/.mix` unless the `MIX_HOME`
   environment variable is set.

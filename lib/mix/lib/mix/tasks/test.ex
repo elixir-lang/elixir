@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Test do
   first (either in the test helper or via the `--exclude` option), the
   `--include` flag has no effect.
 
-  For this reason, mix also provides an `--only` option that excludes all
+  For this reason, Mix also provides an `--only` option that excludes all
   tests and includes only the given ones:
 
       mix test --only external
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Test do
     {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
-      Mix.raise "mix test is running on environment #{Mix.env}. If you are " <>
+      Mix.raise "\"mix test\" is running on environment \"#{Mix.env}\". If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
@@ -234,7 +234,7 @@ defmodule Mix.Tasks.Test do
 
   defp parse_files([single_file], _test_paths) do
     # Check if the single file path matches test/path/to_test.exs:123, if it does
-    # apply `--only line:123` and trim the trailing :123 part.
+    # apply "--only line:123" and trim the trailing :123 part.
     {single_file, opts} = ExUnit.Filters.parse_path(single_file)
     ExUnit.configure(opts)
     [single_file]

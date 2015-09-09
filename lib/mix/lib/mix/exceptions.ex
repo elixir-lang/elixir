@@ -7,10 +7,10 @@ defmodule Mix.NoTaskError do
   end
 
   defp msg(task) do
-    msg = "The task #{task} could not be found"
+    msg = "The task #{inspect task} could not be found"
     case did_you_mean(task) do
       {similar, score} when score > 0.8 ->
-        msg <> ". Did you mean '#{similar}'?"
+        msg <> ". Did you mean #{inspect similar}?"
 
       _otherwise -> msg
     end
@@ -34,7 +34,7 @@ defmodule Mix.InvalidTaskError do
 
   def exception(opts) do
     task = opts[:task]
-    %Mix.InvalidTaskError{task: task, message: "The task #{task} does not export run/1"}
+    %Mix.InvalidTaskError{task: task, message: "The task #{inspect task} does not export run/1"}
   end
 end
 

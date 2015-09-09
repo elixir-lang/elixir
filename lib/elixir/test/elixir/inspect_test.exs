@@ -292,8 +292,8 @@ defmodule Inspect.MapTest do
   end
 
   test "bad implementation unsafe" do
-    msg = "got KeyError with message `key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
+    msg = "got KeyError with message \"key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
           "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert_raise Inspect.Error, msg, fn ->
@@ -304,12 +304,12 @@ defmodule Inspect.MapTest do
   end
 
   test "bad implementation safe" do
-    msg = "got KeyError with message `key :unknown not found in: " <>
-          "%{__struct__: Inspect.MapTest.Failing, key: 0}` while " <>
+    msg = "got KeyError with message \"key :unknown not found in: " <>
+          "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
           "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
 
     assert inspect(%Failing{}) ==
-           "%Inspect.Error{message: \"#{msg}\"}"
+           inspect(%Inspect.Error{message: "#{msg}"})
   end
 
   test "exception" do

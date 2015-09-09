@@ -35,8 +35,8 @@ defmodule Mix.CLI do
   end
 
   defp get_task(["-" <> _|_]) do
-    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
-                    "please invoke instead: mix #{Mix.Project.config[:default_task]}"
+    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default Mix task, " <>
+                    "please invoke instead \"mix #{Mix.Project.config[:default_task]}\""
     exit({:shutdown, 1})
   end
 
@@ -53,7 +53,7 @@ defmodule Mix.CLI do
       Mix.Task.run "loadconfig"
       Mix.Task.run name, args
     rescue
-      # We only rescue exceptions in the mix namespace, all
+      # We only rescue exceptions in the Mix namespace, all
       # others pass through and will explode on the users face
       exception ->
         stacktrace = System.stacktrace

@@ -156,7 +156,7 @@ defmodule Mix.SCM.Git do
 
   defp git!(command) do
     if Mix.shell.cmd("git " <> command) != 0 do
-      Mix.raise "Command `git #{command}` failed"
+      Mix.raise "Command \"git #{command}\" failed"
     end
     :ok
   end
@@ -169,7 +169,7 @@ defmodule Mix.SCM.Git do
         if System.find_executable("git") do
           Mix.State.put(:git_available, true)
         else
-          Mix.raise "Error fetching/updating Git repository: the `git` "  <>
+          Mix.raise "Error fetching/updating Git repository: the \"git\" "  <>
             "executable is not available in your PATH. Please install "   <>
             "Git on this machine or pass --no-deps-check if you want to " <>
             "run a previously built application on a system without Git."

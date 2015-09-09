@@ -47,7 +47,7 @@ defmodule ExUnit.Callbacks do
       defmodule AssertionTest do
         use ExUnit.Case, async: true
 
-        # `setup_all` is called once to setup the case before any test is run
+        # "setup_all" is called once to setup the case before any test is run
         setup_all do
           IO.puts "Starting AssertionTest"
 
@@ -55,7 +55,7 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
-        # `setup` is called before each test is run
+        # "setup" is called before each test is run
         setup do
           IO.puts "This is a setup callback"
 
@@ -67,7 +67,7 @@ defmodule ExUnit.Callbacks do
           {:ok, hello: "world"}
         end
 
-        # Same as `setup`, but receives the context
+        # Same as "setup", but receives the context
         # for the current test
         setup context do
           IO.puts "Setting up: #{context[:test]}"

@@ -94,9 +94,9 @@ defmodule EEx.Tokenizer do
   # Receive an expression content and check
   # if it is a start, middle or an end token.
   #
-  # Start tokens finish with `do` and `fn ->`
-  # Middle tokens are marked with `->` or keywords
-  # End tokens contain only the end word and optionally `)`
+  # Start tokens finish with "do" and "fn ->"
+  # Middle tokens are marked with "->" or keywords
+  # End tokens contain only the end word and optionally ")"
 
   defp token_name([h|t]) when h in [?\s, ?\t, ?)] do
     token_name(t)

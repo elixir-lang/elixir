@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:embed_elixir` - if `true` embed `elixir` and its children apps
+    * `:embed_elixir` - if `true` embed elixir and its children apps
       (`ex_unit`, `mix`, etc.) mentioned in the `:applications` list inside the
       `application` function in `mix.exs`.
 
@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Escript.Build do
 
       !main or !Code.ensure_loaded?(main)->
         Mix.raise "Could not generate escript, please set :main_module " <>
-          "in your project configuration (under `:escript` option) to a module that implements main/1"
+          "in your project configuration (under :escript option) to a module that implements main/1"
 
       force || Mix.Utils.stale?(files, [filename]) ->
         beam_paths =

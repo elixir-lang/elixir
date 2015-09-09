@@ -49,12 +49,14 @@ defmodule Exception do
       module.message(exception)
     rescue
       e ->
-        "got #{inspect e.__struct__} with message `#{message(e)}` " <>
+        "got #{inspect e.__struct__} with message #{inspect message(e)} " <>
         "while retrieving Exception.message/1 for #{inspect(exception)}"
     else
       x when is_binary(x) -> x
-      x -> "got #{inspect(x)} while retrieving Exception.message/1 for #{inspect(exception)} " <>
-           "(expected a string)"
+      x ->
+        "got #{inspect(x)} " <>
+        "while retrieving Exception.message/1 for #{inspect(exception)} " <>
+        "(expected a string)"
     end
   end
 
@@ -481,9 +483,9 @@ defmodule Exception do
   end
 end
 
-# Some exceptions implement `message/1` instead of `exception/1` mostly
+# Some exceptions implement "message/1" instead of "exception/1" mostly
 # for bootstrap reasons. It is recommended for applications to implement
-# `exception/1` instead of `message/1` as described in `defexception/1`
+# "exception/1" instead of "message/1" as described in "defexception/1"
 # docs.
 
 defmodule RuntimeError do
