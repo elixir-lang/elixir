@@ -728,7 +728,7 @@ defmodule Enum do
 
   @doc """
   Returns the first item for which `fun` returns a truthy value. If no such
-  item is found, returns `ifnone`.
+  item is found, returns `default`.
 
   ## Examples
 
@@ -743,15 +743,15 @@ defmodule Enum do
 
   """
   @spec find(t, default, (element -> any)) :: element | default
-  def find(collection, ifnone \\ nil, fun)
+  def find(collection, default \\ nil, fun)
 
-  def find(collection, ifnone, fun) when is_list(collection) do
-    do_find(collection, ifnone, fun)
+  def find(collection, default, fun) when is_list(collection) do
+    do_find(collection, default, fun)
   end
 
-  def find(collection, ifnone, fun) do
-    Enumerable.reduce(collection, {:cont, ifnone}, fn(entry, ifnone) ->
-      if fun.(entry), do: {:halt, entry}, else: {:cont, ifnone}
+  def find(collection, default, fun) do
+    Enumerable.reduce(collection, {:cont, default}, fn(entry, default) ->
+      if fun.(entry), do: {:halt, entry}, else: {:cont, default}
     end) |> elem(1)
   end
 
@@ -772,16 +772,16 @@ defmodule Enum do
 
   """
   @spec find_value(t, any, (element -> any)) :: any | :nil
-  def find_value(collection, ifnone \\ nil, fun)
+  def find_value(collection, default \\ nil, fun)
 
-  def find_value(collection, ifnone, fun) when is_list(collection) do
-    do_find_value(collection, ifnone, fun)
+  def find_value(collection, default, fun) when is_list(collection) do
+    do_find_value(collection, default, fun)
   end
 
-  def find_value(collection, ifnone, fun) do
-    Enumerable.reduce(collection, {:cont, ifnone}, fn(entry, ifnone) ->
+  def find_value(collection, default, fun) do
+    Enumerable.reduce(collection, {:cont, default}, fn(entry, default) ->
       fun_entry = fun.(entry)
-      if fun_entry, do: {:halt, fun_entry}, else: {:cont, ifnone}
+      if fun_entry, do: {:halt, fun_entry}, else: {:cont, default}
     end) |> elem(1)
   end
 
@@ -2321,16 +2321,16 @@ defmodule Enum do
 
   ## find
 
-  defp do_find([h|t], ifnone, fun) do
+  defp do_find([h|t], default, fun) do
     if fun.(h) do
       h
     else
-      do_find(t, ifnone, fun)
+      do_find(t, default, fun)
     end
   end
 
-  defp do_find([], ifnone, _) do
-    ifnone
+  defp do_find([], default, _) do
+    default
   end
 
   ## find_index
@@ -2349,12 +2349,12 @@ defmodule Enum do
 
   ## find_value
 
-  defp do_find_value([h|t], ifnone, fun) do
-    fun.(h) || do_find_value(t, ifnone, fun)
+  defp do_find_value([h|t], default, fun) do
+    fun.(h) || do_find_value(t, default, fun)
   end
 
-  defp do_find_value([], ifnone, _) do
-    ifnone
+  defp do_find_value([], default, _) do
+    default
   end
 
   ## shuffle
