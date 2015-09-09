@@ -20,7 +20,7 @@ defmodule ExUnit.CaptureIO do
             assert Enum.each(["some", "example"], &(IO.puts &1)) == :ok
           end
           assert capture_io(fun) == "some\nexample\n"
-          # tip: or use only: `capture_io(fun)` to silence the IO output (so only assert the return value)
+          # tip: or use only: "capture_io(fun)" to silence the IO output (so only assert the return value)
         end
       end
 

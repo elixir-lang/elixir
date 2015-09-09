@@ -8,20 +8,21 @@ defmodule Mix.Tasks.Local.Rebar do
   @shortdoc  "Installs rebar locally"
 
   @moduledoc """
-  Fetches a copy of rebar from the given path or url.
+  Fetches a copy of `rebar` from the given path or url.
 
-  It defaults to safely download a rebar copy from S3. However, a URL
-  can be given as argument, usually from an existing local copy of rebar.
+  It defaults to safely download a `rebar` copy from
+  [Amazon S3](https://aws.amazon.com/s3/). However, a URL
+  can be given as argument, usually from an existing local copy of `rebar`.
 
-  The local copy is stored in your MIX_HOME (defaults to ~/.mix).
-  This version of rebar will be used as required by `mix deps.compile`.
+  The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
+  This version of `rebar` will be used as required by `mix deps.compile`.
 
   ## Command line options
 
     * `--sha512` - checks the archive matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
   """
   @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: true

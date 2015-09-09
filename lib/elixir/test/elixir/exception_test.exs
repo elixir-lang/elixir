@@ -32,7 +32,7 @@ defmodule ExceptionTest do
     end
 
     assert Exception.message(%{__struct__: BadException, __exception__: true, raise: true}) =~
-           "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+           "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
            "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: true}"
 
     assert Exception.message(%{__struct__: BadException, __exception__: true, raise: false}) =~

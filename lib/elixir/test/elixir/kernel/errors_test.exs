@@ -676,7 +676,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid rescue clause" do
     assert_compile_fail CompileError,
-      "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the `var in [alias]` format",
+      "nofile:4: invalid rescue clause. The clause should match on an alias, a variable or be in the \"var in [alias]\" format",
       'try do\n1\nrescue\n%UndefinedFunctionError{arity: 1} -> false\nend'
   end
 

@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Deps.Update do
         {old, new} = Dict.split(Mix.Dep.Lock.read, to_app_names(rest))
         Mix.Dep.Fetcher.by_name(rest, old, new, fetch_opts)
       true ->
-        Mix.raise "mix deps.update expects dependencies as arguments or " <>
+        Mix.raise "\"mix deps.update\" expects dependencies as arguments or " <>
                                   "the --all option to update all dependencies"
     end
   end

@@ -50,7 +50,7 @@ defmodule Mix.Dep.Loader do
         mix?(dest) ->
           mix_dep(dep, children)
 
-        # If not an explicit rebar or mix dependency
+        # If not an explicit rebar or Mix dependency
         # but came from rebar, assume to be a rebar dep.
         rebar?(dest) or manager == :rebar ->
           rebar_dep(dep, children)
