@@ -505,7 +505,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where trailing Unicode whitespace
+  Returns a string where all trailing Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -518,7 +518,7 @@ defmodule String do
   defdelegate rstrip(binary), to: String.Unicode
 
   @doc """
-  Returns a string where trailing `char` have been removed.
+  Returns a string where all trailing `char`s have been removed.
 
   ## Examples
 
@@ -558,7 +558,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading Unicode whitespace
+  Returns a string where all leading Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -570,7 +570,7 @@ defmodule String do
   defdelegate lstrip(binary), to: String.Unicode
 
   @doc """
-  Returns a string where leading `char` have been removed.
+  Returns a string where all leading `char`s have been removed.
 
   ## Examples
 
@@ -591,7 +591,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading and trailing Unicode whitespace
+  Returns a string where all leading and trailing Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -607,7 +607,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading and trailing `char` have been
+  Returns a string where all leading and trailing `char`s have been
   removed.
 
   ## Examples
