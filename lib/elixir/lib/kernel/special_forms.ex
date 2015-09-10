@@ -672,7 +672,7 @@ defmodule Kernel.SpecialForms do
   defmacro __CALLER__
 
   @doc """
-  Accesses an already bound variable in match clauses.
+  Accesses an already bound variable in match clauses. Also known as the pin operator.
 
   ## Examples
 
@@ -684,14 +684,15 @@ defmodule Kernel.SpecialForms do
       2
 
   However, in some situations, it is useful to match against an existing
-  value, instead of rebinding. This can be done with the `^` special form:
+  value, instead of rebinding. This can be done with the `^` special form,
+  colloquially known as the pin operator:
 
       iex> x = 1
       iex> ^x = List.first([1])
       iex> ^x = List.first([2])
       ** (MatchError) no match of right hand side value: 2
 
-  Note that `^` always refers to the value of x prior to the match. The
+  Note that `^x` always refers to the value of `x` prior to the match. The
   following example will match:
 
       iex> x = 0
