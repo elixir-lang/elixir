@@ -282,6 +282,13 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
+    {_, pins} =
+      Macro.prewalk(expected, [], fn
+        {:^, _, [var]} = form, acc ->
+          {form, [var | acc]}
+        form, acc ->
+          {form, acc}
+      end)
 
     pattern =
       case expected do
@@ -298,8 +305,8 @@ defmodule ExUnit.Assertions do
             received
         after
           timeout ->
-            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms"
-            flunk(message <> ExUnit.Assertions.__mailbox__(self()))
+            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            flunk(message <> unquote(pinned_vars(pins)) <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
@@ -319,13 +326,27 @@ defmodule ExUnit.Assertions do
     mailbox_message(length, mailbox)
   end
 
-  defp mailbox_message(0, _mailbox), do: ". The process mailbox is empty."
+  defp pinned_vars([]), do: "\n"
+  defp pinned_vars(pins) do
+    content = Enum.map(pins, fn(var) ->
+      binary = Macro.to_string(var)
+      quote do
+        unquote(binary) <> " = " <> inspect(unquote(var)) <> "\n"
+      end
+    end)
+
+    quote do
+      "\nThe following variables were pinned:\n" <> unquote_splicing(content)
+    end
+  end
+
+  defp mailbox_message(0, _mailbox), do: "The process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    ". Process mailbox:\n" <> mailbox
+    "Process mailbox:\n" <> mailbox
       <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
   defp mailbox_message(_length, mailbox) do
-    ". Process mailbox:\n" <> mailbox
+    "Process mailbox:\n" <> mailbox
   end
 
   @doc """
