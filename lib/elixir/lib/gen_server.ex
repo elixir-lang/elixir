@@ -166,7 +166,7 @@ defmodule GenServer do
     * [`:gen_server` module documentation](http://www.erlang.org/doc/man/gen_server.html)
     * [gen_server Behaviour – OTP Design Principles](http://www.erlang.org/doc/design_principles/gen_server_concepts.html)
     * [Clients and Servers – Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
-    """
+  """
 
   @doc """
   Invoked when the server is started. `start_link/3` (or `start/3`) will
