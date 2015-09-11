@@ -69,14 +69,14 @@ defmodule Mix.Tasks.App.StartTest do
 
     in_fixture "no_mixfile", fn ->
       :ok = :application.load({:application, :app_loaded_sample, [vsn: '1.0.0', env: []]})
-      Mix.Config.persist([app_start_sample: [foo: :bar], app_unknown_sample: [foo: :bar], app_loaded_sample: [:foo, :bar]])
+      Mix.ProjectStack.configured_applications([:app_start_sample, :app_unknown_sample, :app_loaded_sample])
 
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])
 
-      refute_received {:mix_shell, :info, ["You have configured application :app_embedded_sample" <> _]}
-      assert_received {:mix_shell, :info, ["You have configured application :app_unknown_sample" <> _]}
-      refute_received {:mix_shell, :info, ["You have configured application :app_loaded_sample" <> _]}
+      refute_received {:mix_shell, :error, ["You have configured application :app_embedded_sample" <> _]}
+      assert_received {:mix_shell, :error, ["You have configured application :app_unknown_sample" <> _]}
+      refute_received {:mix_shell, :error, ["You have configured application :app_loaded_sample" <> _]}
     end
   end
 

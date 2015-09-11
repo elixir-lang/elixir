@@ -23,7 +23,8 @@ defmodule Mix.ProjectStack do
 
       config  = Keyword.merge(config, state.post_config)
       project = %{name: module, config: config, file: file, pos: length(stack),
-                  recursing?: false, io_done: io_done?, tasks: HashSet.new}
+                  recursing?: false, io_done: io_done?, tasks: HashSet.new,
+                  configured_applications: []}
 
       cond do
         file = find_project_named(module, stack) ->
@@ -31,6 +32,24 @@ defmodule Mix.ProjectStack do
         true ->
           {:ok, %{state | post_config: [], stack: [project|state.stack]}}
       end
+    end
+  end
+
+  @spec configured_applications([atom]) :: :ok
+  def configured_applications(apps) do
+    cast fn state ->
+      update_in state.stack, fn
+        [h|t] -> [%{h | configured_applications: apps}|t]
+        []    -> []
+      end
+    end
+  end
+
+  @spec configured_applications() :: [atom]
+  def configured_applications() do
+    get fn
+      %{stack: [h|_]} -> h.configured_applications
+      %{stack: []} -> []
     end
   end
 
