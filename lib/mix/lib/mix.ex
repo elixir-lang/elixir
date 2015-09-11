@@ -238,9 +238,10 @@ defmodule Mix do
   @doc """
   Raises a Mix compatible exception.
 
-  A Mix compatible exception has a `:mix` field which Mix
-  uses to store the project or application name which is
-  automatically by the formatting tools.
+  A Mix compatible exception contains a special field called
+  `:mix` that is used to store the current project or application
+  name. This information is used by modules like `Mix.CLI` to
+  properly format and show information to the user.
   """
   def raise(exception, opts) when is_atom(exception) do
     Kernel.raise %{exception.exception(opts) | mix: true}
