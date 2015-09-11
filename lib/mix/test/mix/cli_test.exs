@@ -63,7 +63,7 @@ defmodule Mix.CLITest do
   test "tasks with slashes in them raise a NoTaskError right away" do
     in_fixture "no_mixfile", fn ->
       contents = mix ~w[my/task]
-      assert contents =~ "** (Mix) The task my/task could not be found"
+      assert contents =~ "** (Mix) The task \"my/task\" could not be found"
     end
   end
 
