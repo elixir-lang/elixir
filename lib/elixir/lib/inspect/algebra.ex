@@ -72,10 +72,12 @@ end
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
-  documents, as described in ["Strictly Pretty" (2000) by Christian Lindig][0].
+  documents.
 
-  An algebra document is represented by an `Inspect.Algebra` node
-  or a regular string.
+  This module implements the functionality described in
+  ["Strictly Pretty" (2000) by Christian Lindig][0] with small
+  additions, like support for String nodes, and a custom
+  rendering function that maximises horizontal space use. 
 
       iex> Inspect.Algebra.empty
       :doc_nil
