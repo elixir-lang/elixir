@@ -37,7 +37,7 @@ defmodule ExUnit.Assertions do
   """
 
   @doc """
-  Asserts its argument is a truth value.
+  Asserts its argument is a truthy value.
 
   `assert` instrospects the underlying expression and provide
   good  reporting whenever there is a failure. For example,
