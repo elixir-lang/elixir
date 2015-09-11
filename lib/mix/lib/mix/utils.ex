@@ -99,9 +99,9 @@ defmodule Mix.Utils do
   end
 
   def last_modified(path) do
-    now = :calendar.local_time
+    now = :calendar.universal_time
 
-    case File.stat(path) do
+    case File.stat(path, time: :universal) do
       {:ok, %File.Stat{mtime: mtime}} when mtime > now ->
         Mix.shell.error("warning: mtime (modified time) for \"#{path}\" was set to the future, resetting to now")
         File.touch!(path, now)
