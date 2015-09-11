@@ -164,7 +164,7 @@ defmodule Mix.Dep do
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"
+    do: "lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
     do: "lock outdated: the lock is outdated compared to the options in your mixfile"
@@ -173,14 +173,14 @@ defmodule Mix.Dep do
     do: "the dependency is not locked"
 
   def format_status(%Mix.Dep{status: :compile}),
-    do: "the dependency build is outdated, please run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency build is outdated, please run \"#{mix_env_var}mix deps.compile\""
 
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
     "the dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
@@ -201,28 +201,28 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
     if scm.fetchable? do
-      "the dependency is not available, run `mix deps.get`"
+      "the dependency is not available, run \"mix deps.get\""
     else
       "the dependency is not available"
     end
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency was built with an out-of-date Elixir version, run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var}mix deps.compile\""
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}),
-    do: "the dependency was built with another SCM, run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
     info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
@@ -312,7 +312,7 @@ defmodule Mix.Dep do
   Returns all source paths.
 
   Source paths are the directories that contains ebin files for a given
-  dependency. All managers, except rebar, have only one source path.
+  dependency. All managers, except `:rebar`, have only one source path.
   """
   def source_paths(%Mix.Dep{manager: :rebar, opts: opts, extra: extra}) do
     # Add root dir and all sub dirs with ebin/ directory
@@ -331,7 +331,7 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Returns `true` if dependency is a mix project.
+  Returns `true` if dependency is a Mix project.
   """
   def mix?(%Mix.Dep{manager: manager}) do
     manager == :mix

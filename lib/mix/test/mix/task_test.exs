@@ -13,15 +13,15 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
-    assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
+    assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
       Mix.Task.run("unknown")
     end
 
-    assert_raise Mix.NoTaskError, "The task helli could not be found. Did you mean 'hello'?", fn ->
+    assert_raise Mix.NoTaskError, "The task \"helli\" could not be found. Did you mean \"hello\"?", fn ->
       Mix.Task.run("helli")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.run("invalid")
     end
   end
@@ -107,11 +107,11 @@ defmodule Mix.TaskTest do
   test "get!" do
     assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
-    assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
+    assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
       Mix.Task.get!("unknown")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.get!("invalid")
     end
   end

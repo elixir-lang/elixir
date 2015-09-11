@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
   ## Command line options
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
   """
   @spec run(OptionParser.argv) :: true
   def run(argv) do

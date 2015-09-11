@@ -117,7 +117,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Mix] Allow rebar dependencies to be specified via `:path`
   * [Mix] Also consider subdirectories in `config` directory for `Mix.Project.config_files/0`
   * [Mix] Allow dynamic configuration in Mix projects by storing config in an agent
-  * [Mix] Support rebar3 style git refs in `rebar.config` files
+  * [Mix] Support rebar3 style Git refs in `rebar.config` files
   * [Mix] Only recompile compile time dependencies in mix projects. This should considerably speed up recompilation times in Elixir projects
   * [Mix] Warn when configuring an application that is not available
   * [Mix] Add `mix profile.fprof` for easy code profiling

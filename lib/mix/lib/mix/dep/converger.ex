@@ -77,7 +77,7 @@ defmodule Mix.Dep.Converger do
     # dependencies had no conflicts, they are removed now.
     {deps, _} = Mix.Dep.Loader.partition_by_env(deps, opts)
 
-    # Run remote converger if one is available and rerun mix's
+    # Run remote converger if one is available and rerun Mix's
     # converger with the new information
     if converger = Mix.RemoteConverger.get do
       # If there is a lock, it means we are doing a get/update
@@ -115,7 +115,7 @@ defmodule Mix.Dep.Converger do
   # fashion. The reason for this is that we converge
   # dependencies, but allow the parent to override any
   # dependency in the child. Consider this tree with
-  # dependencies `a`, `b`, etc and the order they are
+  # dependencies "a", "b", etc and the order they are
   # converged:
   #
   #     * project
@@ -127,10 +127,10 @@ defmodule Mix.Dep.Converger do
   #         6) f
   #           7) d
   #
-  # Notice that the `d` dependency exists as a child of `b`
-  # and child of `f`. In case the dependency is the same,
+  # Notice that the "d" dependency exists as a child of "b"
+  # and child of "f". In case the dependency is the same,
   # we proceed. However, if there is a conflict, for instance
-  # different git repositories is used as source in each, we
+  # different Git repositories are used as source in each, we
   # raise an exception.
   #
   # In order to solve such dependencies, we allow the project
@@ -147,7 +147,7 @@ defmodule Mix.Dep.Converger do
   #           8) d
   #       4) d
   #
-  # Now, since `d` was specified in a parent project, no
+  # Now, since "d" was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authoritative source.
   defp all([dep|t], acc, upper_breadths, current_breadths, callback, rest, lock, cache) do

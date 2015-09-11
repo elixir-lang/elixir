@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Archive.Install do
   Installs an archive locally.
 
   If no argument is supplied but there is an archive in the root
-  (created with mix archive), then the archive will be installed
+  (created with `mix archive`), then the archive will be installed
   locally. For example:
 
       mix do archive.build, archive.install
@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Archive.Install do
     * `--sha512` - checks the archive matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
 
   """
   @switches [force: :boolean, sha512: :string]
@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Archive.Install do
 
       case Path.extname(path) do
         ".ez" -> install_archive(src, opts)
-        _     -> Mix.raise "mix archive.install doesn't know how to install #{path}"
+        _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect path}"
       end
     else
       src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Archive.Install do
         install_archive(src, opts)
       else
         Mix.raise "Expected local archive to exist or PATH to be given, " <>
-                  "please use `mix archive.install PATH`"
+                  "please use \"mix archive.install PATH\""
       end
     end
   end
@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   defp should_install?(src, []) do
-    Mix.shell.yes?("Are you sure you want to install archive #{src}?")
+    Mix.shell.yes?("Are you sure you want to install archive #{inspect src}?")
   end
 
   defp should_install?(_src, previous_files) do

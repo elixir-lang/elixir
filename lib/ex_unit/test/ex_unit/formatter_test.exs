@@ -158,8 +158,8 @@ defmodule ExUnit.FormatterTest do
   test "inspect failure" do
     failure = {:error, catch_assertion(assert :will_fail == %BadInspect{}), []}
 
-    message = "got FunctionClauseError with message `no function clause matching " <>
-              "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2` while inspecting " <>
+    message = "got FunctionClauseError with message \"no function clause matching " <>
+              "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2\" while inspecting " <>
               "%{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}"
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
@@ -168,7 +168,7 @@ defmodule ExUnit.FormatterTest do
          Assertion with == failed
          code: :will_fail == %BadInspect{}
          lhs:  :will_fail
-         rhs:  %Inspect.Error{message: \"#{message}\"}
+         rhs:  %Inspect.Error{message: #{inspect message}}
     """
   end
 
@@ -182,7 +182,7 @@ defmodule ExUnit.FormatterTest do
 
   test "message failure" do
     failure = {:error, catch_error(raise BadMessage), []}
-    message = "got RuntimeError with message `oops` while retrieving Exception.message/1 " <>
+    message = "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
               "for %ExUnit.FormatterTest.BadMessage{key: 0}"
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)

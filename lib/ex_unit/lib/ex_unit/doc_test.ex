@@ -135,10 +135,10 @@ defmodule ExUnit.DocTest do
   or a no-op line with documentation. Thus, multiline messages are not
   supported.
 
-  ## When not to use `doctest`
+  ## When not to use doctest
 
   In general, doctests are not recommended when your code examples contain
-  side effects. For example, if a doctest prints to standard output, `doctest`
+  side effects. For example, if a doctest prints to standard output, doctest
   will not try to capture the output.
 
   Similarly, doctests do not run in any kind of sandbox. So any module

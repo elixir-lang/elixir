@@ -145,7 +145,7 @@ defmodule Inspect.Algebra do
   @nesting 1
   @break " "
 
-  # Functional interface to `doc` records
+  # Functional interface to "doc" records
 
   @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
 
@@ -220,7 +220,7 @@ defmodule Inspect.Algebra do
 
               exception = Inspect.Error.exception(
                 message: "got #{inspect e.__struct__} with message " <>
-                         "`#{Exception.message(e)}` while inspecting #{res}"
+                         "#{inspect Exception.message(e)} while inspecting #{res}"
               )
 
               if opts.safe do

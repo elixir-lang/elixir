@@ -47,7 +47,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run []
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
-      assert_received {:mix_shell, :info, ["  the dependency is not available, run `mix deps.get`"]}
+      assert_received {:mix_shell, :info, ["  the dependency is not available, run \"mix deps.get\""]}
       assert_received {:mix_shell, :info, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :info, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :info, ["* invalidapp (deps/invalidapp)"]}
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.DepsTest do
 
       Mix.Tasks.Deps.Compile.run [:ok]
 
-      msg = "warning: the dependency ok requires Elixir \"~> 0.1.0\" " <>
+      msg = "warning: the dependency :ok requires Elixir \"~> 0.1.0\" " <>
             "but you are running on v#{System.version}"
       assert_received {:mix_shell, :error, [^msg]}
 
@@ -111,7 +111,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert_received {:mix_shell, :info, ["* ok (https://github.com/elixir-lang/ok.git)"]}
       assert_received {:mix_shell, :info, ["  locked at abcdefg"]}
-      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"]}
+      assert_received {:mix_shell, :info, ["  lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"]}
 
       Mix.Dep.Lock.write %{ok: {:git, "git://github.com/elixir-lang/another.git", "abcdefghi", []}}
       Mix.Tasks.Deps.run []
@@ -140,7 +140,7 @@ defmodule Mix.Tasks.DepsTest do
       end
 
       assert_received {:mix_shell, :error, ["* ok (https://github.com/elixir-lang/ok.git)"]}
-      assert_received {:mix_shell, :error, ["  the dependency is not available, run `mix deps.get`"]}
+      assert_received {:mix_shell, :error, ["  the dependency is not available, run \"mix deps.get\""]}
       assert_received {:mix_shell, :error, ["* invalidvsn (deps/invalidvsn)"]}
       assert_received {:mix_shell, :error, ["  the app file contains an invalid version: :ok"]}
       assert_received {:mix_shell, :error, ["* invalidapp (deps/invalidapp)"]}
@@ -467,7 +467,7 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<\"the_future\">>, scm}.))
       Mix.Task.clear
 
-      msg = "  the dependency was built with an out-of-date Elixir version, run `mix deps.compile`"
+      msg = "  the dependency was built with an out-of-date Elixir version, run \"mix deps.compile\""
 
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
@@ -491,7 +491,7 @@ defmodule Mix.Tasks.DepsTest do
       File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<"#{System.version}">>, scm}.))
       Mix.Task.clear
 
-      msg = "  the dependency was built with another SCM, run `mix deps.compile`"
+      msg = "  the dependency was built with another SCM, run \"mix deps.compile\""
 
       Mix.Tasks.Deps.run []
       assert_received {:mix_shell, :info, [^msg]}
@@ -575,7 +575,7 @@ defmodule Mix.Tasks.DepsTest do
       File.mkdir_p!("_build/dev/lib/git_repo")
       File.mkdir_p!("_build/test/lib/git_repo")
 
-      message = "mix deps.clean expects dependencies as arguments or " <>
+      message = "\"mix deps.clean\" expects dependencies as arguments or " <>
                 "a flag indicating which dependencies to clean. " <>
                 "The --all option will clean all dependencies while " <>
                 "the --unused option cleans unused dependencies"

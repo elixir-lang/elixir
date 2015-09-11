@@ -28,7 +28,7 @@ defmodule Task do
   with the result.
 
   `Task.await/2` is used to read the message sent by the task.
-  `await` will check the monitor setup by the call to `async/1' to
+  `await` will check the monitor setup by the call to `async/1` to
   verify if the process exited for any abnormal reason (or in case
   exits are being trapped by the caller).
 
