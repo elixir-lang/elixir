@@ -306,6 +306,13 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
+    {_, pins} =
+      Macro.prewalk(expected, [], fn
+        {:^, _, [var]} = form, acc ->
+          {form, [var | acc]}
+        form, acc ->
+          {form, acc}
+      end)
 
     pattern =
       case expected do
@@ -322,8 +329,8 @@ defmodule ExUnit.Assertions do
             received
         after
           timeout ->
-            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms"
-            flunk(message <> ExUnit.Assertions.__mailbox__(self()))
+            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            flunk(message <> unquote(pinned_vars(pins)) <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
@@ -339,17 +346,32 @@ defmodule ExUnit.Assertions do
   def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join("\n", &inspect/1)
-    mailbox_message(length, mailbox)
+    indent = "\n  "
+    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join(indent, &inspect/1)
+    mailbox_message(length, indent <> mailbox)
   end
 
-  defp mailbox_message(0, _mailbox), do: ". The process mailbox is empty."
+  defp pinned_vars([]), do: ""
+  defp pinned_vars(pins) do
+    content = Enum.map(pins, fn(var) ->
+      binary = Macro.to_string(var)
+      quote do
+        "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
+      end
+    end)
+
+    quote do
+      "\nThe following variables were pinned:" <> unquote_splicing(content)
+    end
+  end
+
+  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    ". Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
       <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
   defp mailbox_message(_length, mailbox) do
-    ". Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
   end
 
   @doc """
