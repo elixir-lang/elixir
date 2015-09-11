@@ -1471,7 +1471,7 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Evaluates the expression corresponding to the first clause that
-  evaluates to truth value.
+  evaluates to a truthy value.
 
   Raises an error if all conditions evaluate to `nil` or `false`.
 

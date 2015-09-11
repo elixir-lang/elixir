@@ -66,7 +66,7 @@ defmodule ExUnit.Assertions do
 
   Keep in mind that `assert` does not change its semantics
   based on the expression. In other words, the expression
-  is still required to return a truth value. For example,
+  is still required to return a truthy value. For example,
   the following will fail:
 
       assert nil = some_function_that_returns_nil()
