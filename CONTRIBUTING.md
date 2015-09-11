@@ -82,9 +82,9 @@ the `lib` folder:
 
 * `ex_unit` - Simple test framework that ships with Elixir
 
-* `iex` — IEx, Elixir's interactive shell
+* `iex` - IEx, Elixir's interactive shell
 
-* `mix` — Elixir's build tool
+* `mix` - Elixir's build tool
 
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{NAME}`, for example,

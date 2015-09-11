@@ -181,9 +181,9 @@ defmodule Float do
 
   ## Options
 
-    * `:decimals`   — number of decimal points to show
-    * `:scientific` — number of decimal points to show, in scientific format
-    * `:compact`    — when `true`, use the most compact representation (ignored
+    * `:decimals`   - number of decimal points to show
+    * `:scientific` - number of decimal points to show, in scientific format
+    * `:compact`    - when `true`, use the most compact representation (ignored
       with the `scientific` option)
 
   ## Examples
@@ -220,9 +220,9 @@ defmodule Float do
 
   ## Options
 
-    * `:decimals` — number of decimal points to show
-    * `:scientific` — number of decimal points to show, in scientific format
-    * `:compact` — when `true`, use the most compact representation (ignored
+    * `:decimals`   - number of decimal points to show
+    * `:scientific` - number of decimal points to show, in scientific format
+    * `:compact`    - when `true`, use the most compact representation (ignored
       with the `scientific` option)
 
   ## Examples
