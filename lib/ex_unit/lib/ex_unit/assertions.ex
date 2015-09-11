@@ -20,7 +20,7 @@ defmodule ExUnit.Assertions do
   imported by default into your test cases.
 
   In general, a developer will want to use the general
-  `assert` macro in tests. This macro tries to be smart
+  `assert` macro in tests. This macro introspects your code
   and provide good reporting whenever there is a failure.
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
@@ -31,27 +31,17 @@ defmodule ExUnit.Assertions do
       rhs:  10
 
   This module also provides other convenience functions
-  like `assert_in_delta` and `assert_raise` to easily handle other
-  common cases such as checking a floating point number or handling exceptions.
+  like `assert_in_delta` and `assert_raise` to easily handle
+  other common cases such as checking a floating point number
+  or handling exceptions.
   """
 
   @doc """
-  Asserts its argument is `true`.
+  Asserts its argument is a truth value.
 
-  `assert` tries to be smart and provide good
-  reporting whenever there is a failure. In particular, if
-  given a match expression, it will report any failure in terms
-  of that match. Given
-
-      assert [one] = [two]
-
-  you'll see:
-
-      match (=) failed
-      code: [one] = [two]
-      rhs:  [2]
-
-  If the expression is a comparison operator, the message
+  `assert` instrospects the underlying expression and provide
+  good  reporting whenever there is a failure. For example,
+  if the expression uses the comparison operator, the message
   will show the values of the two sides. The assertion
 
       assert 1+2+3+4 > 15
@@ -62,6 +52,28 @@ defmodule ExUnit.Assertions do
       code: 1+2+3+4 > 15
       lhs:  10
       rhs:  15
+
+  Similarly, if a match expression is given, it will report
+  any failure in terms of that match. Given
+
+      assert [one] = [two]
+
+  you'll see:
+
+      match (=) failed
+      code: [one] = [two]
+      rhs:  [2]
+
+  Keep in mind that `assert` does not change its semantics
+  based on the expression. In other words, the expression
+  is still required to return a truth value. For example,
+  the following will fail:
+
+      assert nil = some_function_that_returns_nil()
+
+  Even though the match works, `assert` still expects a truth
+  value. In such cases, simply use `Kernel.==/2` or
+  `Kernel.match?/2`.
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
@@ -134,8 +146,20 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  This is a negative assertion, failing if its parameter
-  is truthy.
+  A negative assertion, expects the expression to be `false` or `nil`.
+
+  Keep in mind that `refute` does not change the semantics of
+  the given expression. In other words, the following will fail:
+
+      refute {:ok, _} = some_function_that_returns_error_tuple()
+
+  The code above will fail because the `=` operator always fails
+  when the sides do not match and `refute/2` does not change it.
+
+  The correct way to write the refutation above is to use
+  `Kernel.match?/2`:
+
+      refute match? {:ok, _}, some_function_that_returns_error_tuple()
 
   ## Examples
 
