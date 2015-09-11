@@ -428,7 +428,7 @@ defmodule Supervisor do
 
     * `type` - `:worker` or `:supervisor` as defined in the child specification
 
-    * `modules` – as defined in the child specification
+    * `modules` - as defined in the child specification
   """
   @spec which_children(supervisor) ::
         [{Supervisor.Spec.child_id | :undefined,
