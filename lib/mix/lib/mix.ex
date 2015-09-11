@@ -1,7 +1,7 @@
 defmodule Mix do
   @moduledoc ~S"""
   Mix is a build tool that provides tasks for creating, compiling,
-  testing Elixir projects, as well as handle dependencies, and more.
+  and testing Elixir projects, managing its dependencies, and more.
 
   ## Mix.Project
 
