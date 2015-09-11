@@ -322,31 +322,32 @@ defmodule ExUnit.Assertions do
   def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join("\n", &inspect/1)
-    mailbox_message(length, mailbox)
+    indent = "\n  "
+    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join(indent, &inspect/1)
+    mailbox_message(length, indent <> mailbox)
   end
 
-  defp pinned_vars([]), do: "\n"
+  defp pinned_vars([]), do: ""
   defp pinned_vars(pins) do
     content = Enum.map(pins, fn(var) ->
       binary = Macro.to_string(var)
       quote do
-        unquote(binary) <> " = " <> inspect(unquote(var)) <> "\n"
+        "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
       end
     end)
 
     quote do
-      "\nThe following variables were pinned:\n" <> unquote_splicing(content)
+      "\nThe following variables were pinned:" <> unquote_splicing(content)
     end
   end
 
-  defp mailbox_message(0, _mailbox), do: "The process mailbox is empty."
+  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    "Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
       <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
   defp mailbox_message(_length, mailbox) do
-    "Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
   end
 
   @doc """
