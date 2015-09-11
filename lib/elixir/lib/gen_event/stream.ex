@@ -22,15 +22,20 @@ defmodule GenEvent.Stream do
 
   @doc false
   def handle_event(event, _state) do
-    exit({:bad_event, event})
+    # We do this to trick dialyzer to not complain about non-local returns.
+    case :erlang.phash2(1, 1) do
+      0 -> exit({:bad_event, event})
+      1 -> :remove_handler
+    end
   end
 
   @doc false
   def handle_call(msg, _state) do
     # We do this to trick dialyzer to not complain about non-local returns.
-    case :random.uniform(1) do
-      1 -> exit({:bad_call, msg})
-      2 -> {:remove_handler, :ok}
+    reason = {:bad_call, msg}
+    case :erlang.phash2(1, 1) do
+      0 -> exit(reason)
+      1 -> {:remove_handler, reason}
     end
   end
 
