@@ -240,6 +240,11 @@ defmodule KernelTest do
     assert binding(:foo) == [x: 4]
   end
 
+  test "binding/0 doesn't warn on underscored vars" do
+    _x = 1
+    assert binding() == [_x: 1]
+  end
+
   defmodule User do
     assert is_map defstruct name: "john"
   end
