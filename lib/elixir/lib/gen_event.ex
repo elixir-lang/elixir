@@ -67,37 +67,6 @@ defmodule GenEvent do
   all 6 callbacks for you, leaving it up to you to implement the ones
   you want to customize.
 
-    * `handle_call(msg, state)` - invoked when a `call/3` is done to a specific
-      handler.
-
-      It must return:
-
-      -  `{:ok, reply, new_state}`
-      -  `{:ok, reply, new_state, :hibernate}`
-      -  `{:remove_handler, reply}`
-
-    * `handle_info(msg, state)` - invoked to handle all other messages which
-      are received by the process. Must return the same values as
-      `handle_event/2`.
-
-    * `terminate(reason, state)` - called when the event handler is removed or
-      the event manager is terminating. It can return any term.
-
-      The reason is one of:
-
-      -  `:stop` - manager is terminating
-      -  `{:stop, reason}` - monitored process terminated (for monitored handlers)
-      -  `:remove_handler` - handler is being removed
-      -  `{:error, term}` - handler crashed or returned a bad value
-      -  `term` - any term passed to functions like `GenEvent.remove_handler/3`
-
-    * `code_change(old_vsn, state, extra)` - called when the application
-      code is being upgraded live (hot code swapping).
-
-      It must return:
-
-      -  `{:ok, new_state}`
-
   ## Name Registration
 
   A GenEvent is bound to the same name registration rules as a `GenServer`.
