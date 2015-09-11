@@ -377,10 +377,13 @@ defmodule GenServer do
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Options used by the `start*` functions"
-  @type options :: [debug: debug,
-                    name: name,
-                    timeout: timeout,
-                    spawn_opt: Process.spawn_opt]
+  @type options :: [option]
+
+  @typedoc "Option values used by the `start*` functions"
+  @type option :: {:debug, debug} |
+                  {:name, name} |
+                  {:timeout, timeout} |
+                  {:spawn_opt, Process.spawn_opt}
 
   @typedoc "debug options supported by the `start*` functions"
   @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t}]
