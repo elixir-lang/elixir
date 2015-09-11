@@ -12,7 +12,7 @@ defmodule Float do
   otherwise, `:error`.
 
   If a float formatted string wants to be directly converted to a float,
-  `String.to_float/1" can be used instead.
+  `String.to_float/1` can be used instead.
 
   ## Examples
 

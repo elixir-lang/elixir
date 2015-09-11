@@ -1692,7 +1692,7 @@ defmodule Kernel.SpecialForms do
         _, _ -> :failed
       end
 
-      x #=> unbound variable `x`
+      x #=> unbound variable "x"
 
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause. A common practice to address this issue
