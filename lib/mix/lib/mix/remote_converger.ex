@@ -2,7 +2,7 @@ defmodule Mix.RemoteConverger do
   @moduledoc false
 
   # A remote converger returns updated dependencies with
-  # extra information that can be used during mix's converging.
+  # extra information that can be used during Mix's converging.
   # Useful for things like external package managers
 
   @doc """

@@ -70,7 +70,7 @@ defmodule Record.Extractor do
 
   # Read a file and return its abstract syntax form that also
   # includes record but with macros and other attributes expanded,
-  # such as `-include(...)` and `-include_lib(...)`. This is done
+  # such as "-include(...)" and "-include_lib(...)". This is done
   # by using Erlang's epp.
   defp read_file(file) do
     case :epp.parse_file(file, []) do

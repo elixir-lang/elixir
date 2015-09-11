@@ -1319,7 +1319,7 @@ defmodule Kernel do
   """
   defmacro raise(msg) do
     # Try to figure out the type at compilation time
-    # to avoid dead code and make dialyzer happy.
+    # to avoid dead code and make Dialyzer happy.
     msg = case not is_binary(msg) and bootstraped?(Macro) do
       true  -> Macro.expand(msg, __CALLER__)
       false -> msg
@@ -1404,7 +1404,7 @@ defmodule Kernel do
   """
   defmacro reraise(msg, stacktrace) do
     # Try to figure out the type at compilation time
-    # to avoid dead code and make dialyzer happy.
+    # to avoid dead code and make Dialyzer happy.
 
     case Macro.expand(msg, __CALLER__) do
       msg when is_binary(msg) ->
@@ -2309,8 +2309,8 @@ defmodule Kernel do
   end
 
   defp build_if(_condition, _arguments) do
-    raise(ArgumentError, "invalid or duplicate keys for if, only `do` " <>
-      "and an optional `else` are permitted")
+    raise(ArgumentError, "invalid or duplicate keys for if, only \"do\" " <>
+      "and an optional \"else\" are permitted")
   end
 
   @doc """
@@ -2353,8 +2353,8 @@ defmodule Kernel do
   end
 
   defp build_unless(_condition, _arguments) do
-    raise(ArgumentError, "invalid or duplicate keys for unless, only `do` " <>
-      "and an optional `else` are permitted")
+    raise(ArgumentError, "invalid or duplicate keys for unless, only \"do\" " <>
+      "and an optional \"else\" are permitted")
   end
 
   @doc """
@@ -2822,7 +2822,7 @@ defmodule Kernel do
 
       defmodule Foo do
         alias Foo.Bar
-        # code here can refer to `Foo.Bar` as just `Bar`
+        # code here can refer to "Foo.Bar" as just "Bar"
       end
 
   ## Module names
@@ -3327,7 +3327,7 @@ defmodule Kernel do
         def blank?(_),  do: false
       end
 
-      # The only blank atoms are `false` and `nil`
+      # The only blank atoms are "false" and "nil"
       defimpl Blank, for: Atom do
         def blank?(false), do: true
         def blank?(nil),   do: true

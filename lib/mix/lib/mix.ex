@@ -177,7 +177,7 @@ defmodule Mix do
   end
 
   @doc """
-  Returns the mix environment.
+  Returns the Mix environment.
   """
   def env do
     # env is not available on bootstrapping, so set a :dev default
@@ -185,7 +185,7 @@ defmodule Mix do
   end
 
   @doc """
-  Changes the current mix env.
+  Changes the current Mix environment to `env`.
 
   Be careful when invoking this function as any project
   configuration won't be reloaded.
@@ -229,16 +229,16 @@ defmodule Mix do
   end
 
   @doc """
-  Raises a mix error that is nicely formatted.
+  Raises a Mix error that is nicely formatted.
   """
   def raise(message) when is_binary(message) do
     Kernel.raise Mix.Error, mix: true, message: message
   end
 
   @doc """
-  Raises a mix compatible exception.
+  Raises a Mix compatible exception.
 
-  A mix compatible exception has a `mix` field which mix
+  A Mix compatible exception has a `:mix` field which Mix
   uses to store the project or application name which is
   automatically by the formatting tools.
   """

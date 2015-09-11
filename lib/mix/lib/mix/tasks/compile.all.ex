@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Compile.All do
   @moduledoc false
   @recursive true
 
-  # This is an internal task used by mix compile which
+  # This is an internal task used by "mix compile" which
   # is meant to be recursive and be invoked for each child
   # project.
 

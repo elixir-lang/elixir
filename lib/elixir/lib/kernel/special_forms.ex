@@ -601,10 +601,10 @@ defmodule Kernel.SpecialForms do
 
       defmodule Math do
         def some_function do
-          # 1) Disable `if/2` from Kernel
+          # 1) Disable "if/2" from Kernel
           import Kernel, except: [if: 2]
 
-          # 2) Require the new `if` macro from MyMacros
+          # 2) Require the new "if" macro from MyMacros
           import MyMacros
 
           # 3) Use the new macro
@@ -1692,7 +1692,7 @@ defmodule Kernel.SpecialForms do
         _, _ -> :failed
       end
 
-      x #=> unbound variable `x`
+      x #=> unbound variable "x"
 
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause. A common practice to address this issue

@@ -516,8 +516,8 @@ defmodule KernelTest do
     end
 
     test "calling if with invalid keys" do
-      error_message = "invalid or duplicate keys for if, only `do` " <>
-      "and an optional `else` are permitted"
+      error_message = "invalid or duplicate keys for if, only \"do\" " <>
+      "and an optional \"else\" are permitted"
       assert_raise ArgumentError, error_message, fn ->
         Code.eval_string("if true, foo: 7")
       end
@@ -544,8 +544,8 @@ defmodule KernelTest do
     end
 
     test "calling unless with invalid keys" do
-      error_message = "invalid or duplicate keys for unless, only `do` " <>
-        "and an optional `else` are permitted"
+      error_message = "invalid or duplicate keys for unless, only \"do\" " <>
+        "and an optional \"else\" are permitted"
       assert_raise ArgumentError, error_message, fn ->
         Code.eval_string("unless true, foo: 7")
       end

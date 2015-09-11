@@ -131,7 +131,7 @@ defmodule IEx do
 
   Sample contents of a local .iex.exs file:
 
-      # source another `.iex.exs` file
+      # source another ".iex.exs" file
       import_file "~/.iex.exs"
 
       # print something before the shell starts
@@ -225,20 +225,20 @@ defmodule IEx do
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
-    * `:eval_info`    - … various informational messages
-    * `:eval_error`   - … error messages
-    * `:stack_app`    - … the app in stack traces
-    * `:stack_info`   - … the remaining info in stacktraces
-    * `:ls_directory` - … for directory entries (ls helper)
-    * `:ls_device`    - … device entries (ls helper)
+    * `:eval_info`    - ... various informational messages
+    * `:eval_error`   - ... error messages
+    * `:stack_app`    - ... the app in stack traces
+    * `:stack_info`   - ... the remaining info in stacktraces
+    * `:ls_directory` - ... for directory entries (ls helper)
+    * `:ls_device`    - ... device entries (ls helper)
 
   When printing documentation, IEx will convert the markdown
   documentation to ANSI as well. Those can be configured via:
 
-    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
-    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
+    * `:doc_title`       - the overall heading for the output (reverse, yellow, bright)
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 

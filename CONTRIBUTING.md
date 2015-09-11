@@ -190,7 +190,7 @@ not want to merge into the project.
 
 Please adhere to the coding conventions in the project (indentation,
 accurate comments, etc.) and don't forget to add your own tests and
-documentation. When working with git, we recommend the following process
+documentation. When working with Git, we recommend the following process
 in order to craft an excellent pull request:
 
 1. [Fork](https://help.github.com/fork-a-repo/) the project, clone your fork,

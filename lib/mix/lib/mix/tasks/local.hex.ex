@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Local.Hex do
   ## Command line options
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
   """
   @spec run(OptionParser.argv) :: boolean
   def run(args) do

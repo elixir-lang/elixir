@@ -20,7 +20,7 @@ defmodule Mix.Tasks.HelpTest do
 
       {_, _, [output]} =
         assert_received {:mix_shell, :info, [_]}
-      assert output =~ ~r/^mix\s+# Run the default task \(current: mix run\)/m
+      assert output =~ ~r/^mix\s+# Runs the default task \(current: \"mix run\"\)/m
     end
   end
 
@@ -65,7 +65,7 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help --search without pattern" do
-    assert_raise Mix.Error, "Unexpected arguments, expected `mix help --search PATTERN`", fn ->
+    assert_raise Mix.Error, "Unexpected arguments, expected \"mix help --search PATTERN\"", fn ->
       Mix.Tasks.Help.run ["--search"]
     end
   end
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "bad arguments" do
-    assert_raise Mix.Error, "Unexpected arguments, expected `mix help` or `mix help TASK`", fn ->
+    assert_raise Mix.Error, "Unexpected arguments, expected \"mix help\" or \"mix help TASK\"", fn ->
       Mix.Tasks.Help.run ["foo", "bar"]
     end
   end
