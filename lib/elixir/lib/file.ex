@@ -358,12 +358,14 @@ defmodule File do
 
   @doc """
   Updates modification time (mtime) and access time (atime) of
-  the given file. File is created if it doesn’t exist.
+  the given file.
+
+  File is created if it doesn’t exist. Requires datetime in UTC.
   """
   @spec touch(Path.t, :calendar.datetime) :: :ok | {:error, posix}
-  def touch(path, time \\ :calendar.local_time) do
+  def touch(path, time \\ :calendar.universal_time) do
     path = IO.chardata_to_string(path)
-    case F.change_time(path, time) do
+    case :elixir_utils.change_universal_time(path, time) do
       {:error, :enoent} -> touch_new(path, time)
       other -> other
     end
@@ -371,17 +373,18 @@ defmodule File do
 
   defp touch_new(path, time) do
     case write(path, "", [:append]) do
-      :ok -> F.change_time(path, time)
+      :ok -> :elixir_utils.change_universal_time(path, time)
       {:error, _reason} = error -> error
     end
   end
 
   @doc """
   Same as `touch/2` but raises an exception if it fails.
-  Returns `:ok` otherwise.
+
+  Returns `:ok` otherwise. Requires datetime in UTC.
   """
   @spec touch!(Path.t, :calendar.datetime) :: :ok | no_return
-  def touch!(path, time \\ :calendar.local_time) do
+  def touch!(path, time \\ :calendar.universal_time) do
     case touch(path, time) do
       :ok -> :ok
       {:error, reason} ->
@@ -451,8 +454,8 @@ defmodule File do
   It returns `:ok` in case of success, returns `{:error, reason}` otherwise
 
   Note: The command `mv` in Unix systems behaves differently depending
-  if `source` is a file and the `destination` is an existing directory. 
-  We have chosen to explicitly disallow this behaviour. 
+  if `source` is a file and the `destination` is an existing directory.
+  We have chosen to explicitly disallow this behaviour.
 
   ## Examples
 
@@ -460,7 +463,7 @@ defmodule File do
       File.rename "a.txt", "b.txt"
 
       # Rename directory "samples" to "tmp"
-      File.rename "samples", "tmp"  
+      File.rename "samples", "tmp"
   """
   @spec rename(Path.t, Path.t) :: :ok | {:error, posix}
   def rename(source, destination) do
@@ -1198,19 +1201,19 @@ defmodule File do
   is specified. This means any data streamed into the file must be
   converted to `iodata` type. If you pass `[:utf8]` in the modes parameter,
   the underlying stream will use `IO.write/2` and the `String.Chars` protocol
-  to convert the data. See `IO.binwrite/2` and `IO.write/2` . 
+  to convert the data. See `IO.binwrite/2` and `IO.write/2` .
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
 
   ## Examples
-      
+
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", [], 2048)
       #=>  %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
       #=> path: "./test/test.data", raw: true}
 
-  See `Stream.run/1` for an example of streaming into a file. 
+  See `Stream.run/1` for an example of streaming into a file.
 
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
