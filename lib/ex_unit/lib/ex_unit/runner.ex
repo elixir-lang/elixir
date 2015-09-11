@@ -6,6 +6,9 @@ defmodule ExUnit.Runner do
   def run(async, sync, opts, load_us) do
     {opts, config} = configure(opts)
 
+    :erlang.system_flag(:backtrace_depth,
+                        Keyword.fetch!(opts, :stacktrace_depth))
+
     {run_us, _} =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)

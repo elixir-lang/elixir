@@ -153,7 +153,7 @@ defmodule ExUnit do
 
     configure(options)
 
-    if Application.get_env(:ex_unit, :autorun, true) do
+    if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
@@ -203,11 +203,14 @@ defmodule ExUnit do
       filter
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
-      calls. Defaults to 100ms.
+      calls (defaults to 100ms)
 
     * `:seed` - an integer seed value to randomize the test suite
 
-    * `:timeout` - set the timeout for the tests (default 60_000 ms)
+    * `:stacktrace_depth` - configures the stacktrace depth to be used
+      on formatting and reporters (defaults to 20)
+
+    * `:timeout` - set the timeout for the tests (default 60_000ms)
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->
