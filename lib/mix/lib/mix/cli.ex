@@ -50,6 +50,7 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
+      ensure_no_slashes(name)
       Mix.Task.run "loadconfig"
       Mix.Task.run name, args
     rescue
@@ -72,6 +73,12 @@ defmodule Mix.CLI do
     do: :ok
   defp ensure_hex(_task),
     do: Mix.Hex.ensure_updated?()
+
+  defp ensure_no_slashes(task) do
+    if String.contains?(task, "/") do
+      Mix.raise Mix.NoTaskError, task: task
+    end
+  end
 
   defp change_env(task) do
     if is_nil(System.get_env("MIX_ENV")) &&
