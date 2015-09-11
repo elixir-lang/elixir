@@ -341,9 +341,10 @@ defmodule GenEvent do
       @doc false
       def handle_call(msg, state) do
         # We do this to trick dialyzer to not complain about non-local returns.
-        case :random.uniform(1) do
-          1 -> exit({:bad_call, msg})
-          2 -> {:remove_handler, :ok}
+        reason = {:bad_call, msg}
+        case :erlang.phash2(1, 1) do
+          0 -> exit(reason)
+          1 -> {:remove_handler, reason}
         end
       end
 
@@ -376,7 +377,7 @@ defmodule GenEvent do
   section in the `GenServer` module docs.
 
   If the event manager is successfully created and initialized, the function
-  returns `{:ok, pid}`, where pid is the pid of the server. If a process with 
+  returns `{:ok, pid}`, where pid is the pid of the server. If a process with
   the specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 

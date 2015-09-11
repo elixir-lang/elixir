@@ -409,9 +409,10 @@ defmodule GenServer do
       @doc false
       def handle_call(msg, _from, state) do
         # We do this to trick Dialyzer to not complain about non-local returns.
-        case :random.uniform(1) do
-          1 -> exit({:bad_call, msg})
-          2 -> {:noreply, state}
+        reason = {:bad_call, msg}
+        case :erlang.phash2(1, 1) do
+          0 -> exit(reason)
+          1 -> {:stop, reason, state}
         end
       end
 
@@ -423,9 +424,10 @@ defmodule GenServer do
       @doc false
       def handle_cast(msg, state) do
         # We do this to trick Dialyzer to not complain about non-local returns.
-        case :random.uniform(1) do
-          1 -> exit({:bad_cast, msg})
-          2 -> {:noreply, state}
+        reason = {:bad_cast, msg}
+        case :erlang.phash2(1, 1) do
+          0 -> exit(reason)
+          1 -> {:stop, reason, state}
         end
       end
 
@@ -474,7 +476,7 @@ defmodule GenServer do
   ## Return values
 
   If the server is successfully created and initialized, the function returns
-  `{:ok, pid}`, where pid is the pid of the server. If a process with the 
+  `{:ok, pid}`, where pid is the pid of the server. If a process with the
   specified server name already exists, the function returns
   `{:error, {:already_started, pid}}` with the pid of that process.
 
