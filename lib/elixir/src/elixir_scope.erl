@@ -26,7 +26,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
       case Exists andalso ordsets:is_element(Tuple, MatchVars) of
         true ->
-          warn_underscored_var_repeat(Line, S#elixir_scope.file, Name, Kind),
+          warn_underscored_var_repeat(Line, Meta, S#elixir_scope.file, Name, Kind),
           {{var, Line, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
@@ -54,7 +54,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
           {{var, Line, NewVar}, FS}
       end;
     _  when Exists ->
-      warn_underscored_var_access(Line, S#elixir_scope.file, Name),
+      warn_underscored_var_access(Line, Meta, S#elixir_scope.file, Name),
       {{var, Line, Current}, S}
   end.
 
@@ -66,25 +66,30 @@ build_var(Key, S) ->
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
 
-warn_underscored_var_repeat(Line, File, Name, Kind) ->
+warn_underscored_var_repeat(Line, Meta, File, Name, Kind) ->
+  Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
-    "_" ++ _ ->
+    "_" ++ _ when Warn ->
       elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
     _ ->
       ok
   end.
 
-warn_underscored_var_access(Line, File, Name) ->
+warn_underscored_var_access(Line, Meta, File, Name) ->
+  Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
-    "_" ++ _ ->
+    "_" ++ _ when Warn ->
       elixir_errors:form_warn([{line, Line}], File, ?MODULE, {underscore_var_access, Name});
     _ ->
       ok
   end.
+
+should_warn(Meta) ->
+  lists:keyfind(warn, 1, Meta) /= {warn, false}.
 
 %% SCOPE MERGING
 

@@ -2241,7 +2241,7 @@ defmodule Kernel do
   defmacro binding(context \\ nil) do
     in_match? = Macro.Env.in_match?(__CALLER__)
     for {v, c} <- __CALLER__.vars, c == context do
-      {v, wrap_binding(in_match?, {v, [], c})}
+      {v, wrap_binding(in_match?, {v, [warn: false], c})}
     end
   end
 
@@ -2911,8 +2911,8 @@ defmodule Kernel do
   defp module_vars([{key, kind}|vars], counter) do
     var =
       case is_atom(kind) do
-        true  -> {key, [], kind}
-        false -> {key, [counter: kind], nil}
+        true  -> {key, [warn: false], kind}
+        false -> {key, [counter: kind, warn: false], nil}
       end
 
     under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
