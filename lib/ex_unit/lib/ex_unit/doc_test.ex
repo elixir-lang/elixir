@@ -158,13 +158,13 @@ defmodule ExUnit.DocTest do
 
   Options can also be supplied:
 
-    * `:except` — generate tests for all functions except those listed
+    * `:except` - generate tests for all functions except those listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
-    * `:only` — generate tests only for functions listed
+    * `:only`   - generate tests only for functions listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).
 
-    * `:import` — when `true`, one can test a function defined in the module
+    * `:import` - when `true`, one can test a function defined in the module
       without referring to the module name. However, this is not feasible when
       there is a clash with a module like Kernel. In these cases, `import`
       should be set to `false` and a full `M.f` construct should be used.

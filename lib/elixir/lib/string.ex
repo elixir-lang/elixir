@@ -894,10 +894,10 @@ defmodule String do
 
   The trait can be one of two options:
 
-    * `:valid` – the string is split into chunks of valid and invalid character
+    * `:valid`     - the string is split into chunks of valid and invalid character
       sequences
 
-    * `:printable` – the string is split into chunks of printable and
+    * `:printable` - the string is split into chunks of printable and
       non-printable character sequences
 
   Returns a list of binaries each of which contains only one kind of
