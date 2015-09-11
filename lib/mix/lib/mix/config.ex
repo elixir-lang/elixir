@@ -186,15 +186,16 @@ defmodule Mix.Config do
   @doc """
   Persists the given configuration by modifying
   the configured applications environment.
+
+  Returns the configured apps.
   """
   def persist(config) do
     for {app, kw} <- config do
-      Mix.State.append(:configured_application, app)
       for {k, v} <- kw do
         Application.put_env(app, k, v, persistent: true)
       end
+      app
     end
-    :ok
   end
 
   @doc """
