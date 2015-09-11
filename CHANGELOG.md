@@ -94,6 +94,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Allow `assert_receive_timeout` and `refute_receive_timeout` to be configured in the ExUnit application
   * [ExUnit] Allow tests to be skipped with `@tag :skip` or `@tag skip: "reason"`
   * [ExUnit] Add tests without implementation (missing the do block) which automatically fail
+  * [ExUnit] Increase by default stacktrace depth to 20 (this value is also configurable)
 
 #### IEx
 
