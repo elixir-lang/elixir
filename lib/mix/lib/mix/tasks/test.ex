@@ -189,18 +189,17 @@ defmodule Mix.Tasks.Test do
 
     case Mix.Utils.extract_files(test_files, test_pattern) do
       [] ->
-        Mix.raise "Test pattern did not match any file, " <>
-          "the files given to compile: " <> Enum.join(files, ", ")
+        Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
       test_files ->
         _ = Kernel.ParallelRequire.files(test_files)
-    end
 
-    # Run the test suite, coverage tools and register an exit hook
-    %{failures: failures} = ExUnit.run
-    if cover, do: cover.()
+        # Run the test suite, coverage tools and register an exit hook
+        %{failures: failures} = ExUnit.run
+        if cover, do: cover.()
 
-    System.at_exit fn _ ->
-      if failures > 0, do: exit({:shutdown, 1})
+        System.at_exit fn _ ->
+          if failures > 0, do: exit({:shutdown, 1})
+        end
     end
   end
 
