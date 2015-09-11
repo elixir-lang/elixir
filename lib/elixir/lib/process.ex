@@ -256,7 +256,7 @@ defmodule Process do
   the process or port referred to by `pid`. Returns `true` and does not
   fail, even if there is no link or `id` does not exist
 
-  See [`:erlang.unlink/1`](http://www.erlang.org/doc/man/erlang.html#unlink-1] for more info.
+  See [`:erlang.unlink/1`](http://www.erlang.org/doc/man/erlang.html#unlink-1) for more info.
 
   Inlined by the compiler.
   """
