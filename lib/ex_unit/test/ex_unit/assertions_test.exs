@@ -142,7 +142,9 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello after 0ms.\nProcess mailbox:\n{:message, :not_expected, :at_all}" = error.message
+        "No message matching :hello after 0ms.\n" <>
+        "Process mailbox:\n" <>
+        "{:message, :not_expected, :at_all}" = error.message
     end
   end
 
