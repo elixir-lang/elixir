@@ -71,6 +71,10 @@ defmodule Mix.SCM.Git do
       get_lock_opts(opts1) == get_lock_opts(opts2)
   end
 
+  def managers(_opts) do
+    []
+  end
+
   def checkout(opts) do
     assert_git
 

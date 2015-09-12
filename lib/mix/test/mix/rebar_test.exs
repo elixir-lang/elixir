@@ -14,6 +14,28 @@ defmodule Mix.RebarTest do
     end
   end
 
+  defmodule Rebar3AsDep do
+    def project do
+      [ app: :rebar_as_dep,
+        version: "0.1.0",
+        deps: [
+          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false, manager: :rebar3}
+        ]
+      ]
+    end
+  end
+
+  defmodule RebarOverrideAsDep do
+    def project do
+      [ app: :rebar_as_dep,
+        version: "0.1.0",
+        deps: [
+          {:rebar_override, path: MixTest.Case.tmp_path("rebar_override"), app: false, manager: :rebar3}
+        ]
+      ]
+    end
+  end
+
   test "load rebar config" do
     path = MixTest.Case.fixture_path("rebar_dep")
     config = Mix.Rebar.load_config(path)
@@ -28,25 +50,50 @@ defmodule Mix.RebarTest do
   end
 
   test "parse rebar dependencies" do
-    config = [deps: [{:git_rebar, '.*',}]]
-    assert [{:git_rebar, ~r".*", [path: "deps/git_rebar"]}] ==
-           Mix.Rebar.deps(config)
-
-    config = [deps: [{:git_rebar, '.*',}], deps_dir: "other_dir"]
-    assert [{:git_rebar, ~r".*", [path: "other_dir/git_rebar"]}] ==
-           Mix.Rebar.deps(config)
+    config = [deps: [{:git_rebar, '~> 1.0',}]]
+    assert [{:git_rebar, "~> 1.0"}] ==
+           Mix.Rebar.deps(:foo, config, [])
 
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar', :master}}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
-           Mix.Rebar.deps(config)
+           Mix.Rebar.deps(:foo, config, [])
+
+    config = [deps: [{:git_rebar, {:git, '../../test/fixtures/git_rebar', :master}}]]
+    assert [{:git_rebar, ">= 0.0.0", [git: "../../test/fixtures/git_rebar", ref: "master"]}] ==
+           Mix.Rebar.deps(:foo, config, [])
 
     config = [deps: [{:git_rebar, '0.1..*', {:git, '../../test/fixtures/git_rebar'}, [:raw]}]]
     assert [{:git_rebar, ~r"0.1..*", [git: "../../test/fixtures/git_rebar", compile: false]}] ==
-           Mix.Rebar.deps(config)
+           Mix.Rebar.deps(:foo, config, [])
 
     config = [deps: [{:git_rebar, '', {:git, '../../test/fixtures/git_rebar', {:ref, '64691eb'}}}]]
     assert [{:git_rebar, ~r"", [git: "../../test/fixtures/git_rebar", ref: "64691eb"]}] ==
-           Mix.Rebar.deps(config)
+           Mix.Rebar.deps(:foo, config, [])
+
+    config = [deps: {:git_rebar, '~> 2.0'}]
+    overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
+    assert [{:git_rebar, "~> 1.0"}] ==
+           Mix.Rebar.deps(:foo, config, overrides)
+
+    config = [deps: [{:git_rebar, '~> 2.0'}]]
+    overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
+    assert [{:git_rebar, "~> 1.0"}] ==
+           Mix.Rebar.deps(:foo, config, overrides)
+
+    config = [deps: [{:git_rebar, '~> 2.0'}]]
+    overrides = [{:override, :bar, [deps: [{:git_rebar, '~> 1.0'}]]}]
+    assert [{:git_rebar, "~> 2.0"}] ==
+           Mix.Rebar.deps(:foo, config, overrides)
+
+    config = [deps: [{:git_rebar, '~> 2.0'}]]
+    overrides = [{:override, :foo, [deps: [{:git_rebar, '~> 1.0'}]]}]
+    assert [{:git_rebar, "~> 1.0"}] ==
+           Mix.Rebar.deps(:foo, config, overrides)
+
+    config = [deps: [{:git_rebar, '~> 1.0'}]]
+    overrides = [{:add, :foo, [deps: [{:git_rebar2, '~> 2.0'}]]}]
+    assert [{:git_rebar2, "~> 2.0"}, {:git_rebar, "~> 1.0"}] ==
+           Mix.Rebar.deps(:foo, config, overrides)
 
   end
 
@@ -54,7 +101,7 @@ defmodule Mix.RebarTest do
     Mix.Project.push(RebarAsDep)
 
     deps = Mix.Dep.loaded([])
-    assert Enum.find(deps, &match?(%Mix.Dep{app: :rebar_dep}, &1))
+    assert Enum.find(deps, &(&1.app == :rebar_dep))
 
     assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
       if app == :git_rebar do
@@ -63,6 +110,25 @@ defmodule Mix.RebarTest do
         true
       end
     end)
+  end
+
+  test "inherit rebar manager" do
+    Mix.Project.push(Rebar3AsDep)
+
+    deps = Mix.Dep.loaded([])
+    assert Enum.all?(deps, &(&1.manager == :rebar3))
+  end
+
+  test "rebar overrides" do
+    Mix.Project.push(RebarOverrideAsDep)
+
+    in_tmp "rebar overrides", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert Mix.Dep.loaded([]) |> Enum.map(& &1.app) ==
+             [:git_repo, :git_rebar, :rebar_override]
+    end
+  after
+    purge [GitRepo.Mix]
   end
 
   test "recurs over sub dirs" do
@@ -93,6 +159,36 @@ defmodule Mix.RebarTest do
       Mix.Tasks.Deps.Compile.run []
       assert_received {:mix_shell, :run, ["==> git_rebar (compile)\n"]}
       assert_received {:mix_shell, :run, ["==> rebar_dep (compile)\n"]}
+      assert :git_rebar.any_function == :ok
+      assert :rebar_dep.any_function == :ok
+
+      load_paths = Mix.Dep.loaded([])
+        |> Enum.map(&Mix.Dep.load_paths(&1))
+        |> Enum.concat
+
+      assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
+      assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
+
+      # Assert we have no .compile.lock as a .compile.lock
+      # means we check for the Elixir version on every command.
+      refute File.exists?("_build/dev/lib/rebar_dep/.compile.lock")
+      refute File.exists?("_build/dev/lib/git_rebar/.compile.lock")
+
+      assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
+      assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
+    end
+  end
+
+  test "get and compile dependencies for rebar3" do
+    Mix.Project.push(Rebar3AsDep)
+
+    in_tmp "get and compile dependencies for rebar3", fn ->
+      Mix.Tasks.Deps.Get.run []
+      assert_received {:mix_shell, :info, ["* Getting git_rebar (../../test/fixtures/git_rebar)"]}
+
+      Mix.Tasks.Deps.Compile.run []
+      assert_received {:mix_shell, :run, ["\e[0;32m===> Compiling git_rebar\n\e[0m"]}
+      assert_received {:mix_shell, :run, ["\e[0;32m===> Compiling rebar_dep\n\e[0m"]}
       assert :git_rebar.any_function == :ok
       assert :rebar_dep.any_function == :ok
 

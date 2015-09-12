@@ -42,6 +42,10 @@ defmodule Mix.SCM.Path do
     opts1[:dest] == opts2[:dest]
   end
 
+  def managers(_opts) do
+    []
+  end
+
   def checkout(opts) do
     path = Path.relative_to_cwd opts[:dest]
     Mix.raise "Cannot checkout path dependency, expected a dependency at #{path}"
