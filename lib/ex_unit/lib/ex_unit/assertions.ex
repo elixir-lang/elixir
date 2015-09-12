@@ -602,6 +602,42 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
+  Asserts that `expected` and `actual` have the same elements, in any order.
+
+  The `expected` and `actual` can be any `Enumerable` collection.  
+  This function ignores the collection type.  For example, you can compare
+  a List and a Map.  
+
+  ## Examples
+
+      assert_same_elements [1, 2], [2, 1]
+
+  """
+  def assert_same_elements(expected, actual, message \\ nil) do
+    expected = Enum.to_list(expected)
+    actual = Enum.to_list(actual)
+
+    same_elements = true
+    default_msg = "Expected #{inspect actual} to have the same elements as #{inspect expected}"
+
+    missing = expected -- actual
+    if Enum.any?(missing) do
+      same_elements = false
+      default_msg = default_msg <>
+        "\nMissing: #{inspect missing}"
+    end
+
+    extra = actual -- expected
+    if Enum.any?(extra) do
+      same_elements = false
+      default_msg = default_msg <>
+        "\nExtra: #{inspect extra}"
+    end
+
+    assert same_elements, (message || default_msg)
+  end
+
+  @doc """
   Fails with a message.
 
   ## Examples
