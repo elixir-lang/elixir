@@ -122,6 +122,10 @@ defmodule TestOneOfEach do
     end
   end
 
+  test "26. assert two Enumerables have the same elements" do
+    assert_same_elements [1, 2], [1, 2, 3]
+  end
+
   defp blows_up do
     ignite(0) + 1
   end

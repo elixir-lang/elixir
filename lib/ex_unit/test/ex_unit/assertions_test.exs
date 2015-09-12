@@ -410,6 +410,42 @@ defmodule ExUnit.AssertionsTest do
       "test message (difference between 10 and 11 is less than 2)" = error.message
   end
 
+  test "assert_same_elements success" do
+    true = assert_same_elements([1,2], [2,1])
+  end
+
+  test "assert_same_elements failure with missing elements" do
+    "This should never be tested" = assert_same_elements([1,2], [1])
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected [1] to have the same elements as [1, 2]" <>
+        "\nMissing: [2]" = error.message
+  end
+
+  test "assert_same_elements failure with extra elements" do
+    "This should never be tested" = assert_same_elements([1,2], [1,2,3])
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected [1, 2, 3] to have the same elements as [1, 2]" <>
+        "\nExtra: [3]" = error.message
+  end
+
+  test "assert_same_elements failure with missing and extra elements" do
+    "This should never be tested" = assert_same_elements([1,2], [1,3])
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Expected [1, 3] to have the same elements as [1, 2]" <>
+        "\nMissing: [2]" <>
+        "\nExtra: [3]" = error.message
+  end
+
+  test "assert_same_elements failure with a message" do
+    "This should never be tested" = assert_same_elements([1,2], [1], "a message")
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "a message" = error.message
+  end
+
   test "catch_throw with no throw" do
     catch_throw(1)
   rescue
