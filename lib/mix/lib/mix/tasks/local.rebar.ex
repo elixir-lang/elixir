@@ -1,25 +1,32 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @rebar_s3           "http://s3.amazonaws.com/s3.hex.pm"
-  @rebar_list_path    "/installs/rebar-1.x.csv"
-  @rebar_escript_path "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
+  @s3_url             "http://s3.amazonaws.com/s3.hex.pm"
+  @rebar2_list_url     "/installs/rebar-1.x.csv"
+  @rebar2_escript_url  "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
+  @rebar3_list_url     "/installs/rebar3-1.x.csv"
+  @rebar3_escript_url  "/installs/[ELIXIR_VERSION]/rebar3-[REBAR_VERSION]"
 
   @shortdoc  "Installs rebar locally"
 
   @moduledoc """
-  Fetches a copy of `rebar` from the given path or url.
+  Fetches a copy of `rebar` or `rebar3` from the given path or url.
 
-  It defaults to safely download a `rebar` copy from
-  [Amazon S3](https://aws.amazon.com/s3/). However, a URL
-  can be given as argument, usually from an existing local copy of `rebar`.
+  It defaults to safely download a rebar copy from
+  [Amazon S3](https://aws.amazon.com/s3/). However, a URL can be given
+  as argument, usually from an existing local copy of rebar. If not
+  specified both `rebar` and `rebar3` will be fetched.
 
   The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
-  This version of `rebar` will be used as required by `mix deps.compile`.
+  This version of rebar will be used as required by `mix deps.compile`.
 
   ## Command line options
 
     * `--sha512` - checks the archive matches the given sha512 checksum
+
+    * `rebar PATH` - specify a path or url for `rebar`
+
+    * `rebar3 PATH` - specify a path or url for `rebar3`
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
@@ -35,13 +42,18 @@ defmodule Mix.Tasks.Local.Rebar do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
     case argv do
-      [path|_] -> install_from_path(path, opts)
-      []       -> install_from_s3(opts)
+      ["rebar", path | _] ->
+       install_from_path(:rebar, path, opts)
+      ["rebar3", path | _] ->
+       install_from_path(:rebar3, path, opts)
+      [] ->
+        install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
+        install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
     end
   end
 
-  defp install_from_path(path, opts) do
-    local = Mix.Rebar.local_rebar_path
+  defp install_from_path(manager, path, opts) do
+    local = Mix.Rebar.local_rebar_path(manager)
 
     if opts[:force] || Mix.Utils.can_write?(path) do
       case Mix.Utils.read_path(path, opts) do
@@ -58,31 +70,32 @@ defmodule Mix.Tasks.Local.Rebar do
           Mix.raise """
           #{message}
 
-          Could not fetch rebar at:
+          Could not fetch #{manager} at:
 
               #{path}
 
           Please download the file above manually to your current directory and run:
 
-              mix local.rebar ./#{Path.basename(local)}
+              mix local.rebar #{manager} ./#{Path.basename(local)}
           """
       end
     end
 
-    :ok
+    true
   end
 
-  defp install_from_s3(opts) do
-    rebar_mirror = System.get_env("HEX_CDN") || @rebar_s3
+  defp install_from_s3(manager, list_url, escript_url, opts) do
+    rebar_mirror = System.get_env("HEX_CDN") || @s3_url
+    list_url = rebar_mirror <> list_url
 
     {elixir_version, rebar_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", rebar_mirror <> @rebar_list_path)
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
 
     url =
-      (rebar_mirror <> @rebar_escript_path)
+      (rebar_mirror <> escript_url)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
-    install_from_path(url, Keyword.put(opts, :sha512, sha512))
+    install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
   end
 end
