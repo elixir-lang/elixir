@@ -392,8 +392,11 @@ defmodule ExUnit.Assertions do
       Regex.regex?(message) -> Exception.message(error) =~ message
     end
 
-    msg = "Wrong message for #{inspect exception}. " <>
-          "Expected #{inspect message}, got #{inspect Exception.message(error)}"
+    msg = "Wrong message for #{inspect exception}\n" <>
+          "Expected:\n" <>
+          "  #{inspect message}\n" <>
+          "Got:\n" <>
+          "  #{inspect Exception.message(error)}"
     assert is_match, message: msg
 
     error
