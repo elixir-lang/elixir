@@ -1,20 +1,20 @@
 defmodule Mix.Tasks.Deps.Clean do
   use Mix.Task
 
-  @shortdoc "Removes the given dependencies' files"
+  @shortdoc "Deletes the given dependencies' files"
 
   @moduledoc """
-  Removes the given dependencies' files, including build artifacts and fetched
+  Deletes the given dependencies' files, including build artifacts and fetched
   sources.
 
   Since this is a destructive action, cleaning of dependencies
   can only happen by passing arguments/options:
 
-    * `dep1, dep2` - the name of dependencies to be removed
-    * `--all` - removes all dependencies
-    * `--unused` - removes only unused dependencies (no longer mentioned
+    * `dep1, dep2` - the name of dependencies to be deleted
+    * `--all`      - deletes all dependencies
+    * `--unused`   - deletes only unused dependencies (no longer mentioned
       in the `mix.exs` file)
-    * `--unlock` - also unlock the removed dependencies
+    * `--unlock`   - also unlocks the deleted dependencies
 
   By default this task works across all environments, unless `--only`
   is given.
