@@ -2,7 +2,8 @@ defmodule Mix.Dep do
   @moduledoc false
 
   @doc """
-  The Mix.Dep a struct keeps information about your project dependencies.
+  The Mix.Dep struct keeps information about your project dependencies.
+
   It contains:
 
     * `scm` - a module representing the source code management tool (SCM)

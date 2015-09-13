@@ -385,7 +385,7 @@ defmodule GenServer do
                   {:timeout, timeout} |
                   {:spawn_opt, Process.spawn_opt}
 
-  @typedoc "debug options supported by the `start*` functions"
+  @typedoc "Debug options supported by the `start*` functions"
   @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t}]
 
   @typedoc "The server reference"
