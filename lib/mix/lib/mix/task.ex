@@ -10,7 +10,7 @@ defmodule Mix.Task do
       defmodule Mix.Tasks.Hello do
         use Mix.Task
 
-        def run(_) do
+        def run(_args) do
           Mix.shell.info "hello"
         end
       end
@@ -26,6 +26,12 @@ defmodule Mix.Task do
     * `@shortdoc`  - makes the task public with a short description that appears
       on `mix help`
     * `@recursive` - run the task recursively in umbrella projects
+
+  ## Documentation
+
+  Users can read the documentation for public Mix tasks by doing `mix help
+  my_task`. The documentation that will be showed is the `@moduledoc` of the
+  task's module.
 
   """
 
