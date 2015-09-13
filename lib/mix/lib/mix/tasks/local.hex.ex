@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Local.Hex do
   @hex_list_url     @hex_s3 <> "/installs/hex-1.x.csv"
   @hex_archive_url  @hex_s3 <> "/installs/[VERSION]/hex.ez"
 
-  @shortdoc "Installs hex locally"
+  @shortdoc "Installs Hex locally"
 
   @moduledoc """
   Installs Hex locally.
