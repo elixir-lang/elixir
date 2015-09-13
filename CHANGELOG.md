@@ -33,16 +33,19 @@ On the tooling side, ExUnit got the ability to skip tests and a couple
 new configuration options. Mix got improved warnings and error messages,
 faster compilation times and the brand new `mix profile.fprof` task.
 
-Finally, Mix now ships with `local.public_keys` to safely manage the
+Mix now also ships with `local.public_keys` to safely manage the
 installation of Hex and Rebar alongside the ability to checksum
 archive installs. By default, Elixir will always ship with a valid
 public key and this feature should work transparently for users.
+
+Finally, we have added a `CODE_OF_CONDUCT.md` file to our repository.
+If you haven't read it yet, please do it. We are here to help!
 
 Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
-## v1.1.0-beta (2015-09-05)
+## v1.1.0-rc.1 (2015-09-13)
 
 ### 1. Enhancements
 
@@ -71,6 +74,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [List] Add `List.keytake/3`
   * [Module] Improve name inference for function signatures in documentation metadata
   * [Process] Add `Process.hibernate/3`
+  * [Process] Allow a list of specs in `Process.info/2`
   * [Set] Introduce `MapSet` data type. This new data type uses maps behind the scenes and is useful for storing a dozens of items in Erlang 17. In future versions when maps efficiently support large collections, it is meant to be the main Set abstraction in Elixir
   * [Stream] Add `Stream.dedup/1`, `Stream.dedup_by/2` and `Stream.transform/4`
   * [String] Support calculation of the jaro distance between strings (usually names) via `String.jaro_distance/2`. This is used by Mix to support "Did you mean?" feature when a task does not exist
@@ -95,6 +99,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [ExUnit] Allow tests to be skipped with `@tag :skip` or `@tag skip: "reason"`
   * [ExUnit] Add tests without implementation (missing the do block) which automatically fail. Such tests are also automatically tagged as `:not_implemented`, allowing them to be skipped
   * [ExUnit] Increase by default stacktrace depth to 20 (this value is also configurable)
+  * [ExUnit] Improve formatting on `assert_raise` errors for message mismatch
+  * [ExUnit] Improve formatting on `assert_receive` when using pinned variables
 
 #### IEx
 
@@ -134,6 +140,8 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
   * [Code] Store the documentation line in the metadata returned by `Code.get_docs/2`
   * [Exception] Do not fail when calculating an exception message, even if the message is invalid
+  * [File] Ensure `File.touch/2` and `File.touch!/2` work with universal time
+  * [Float] Support complete scientific notation in `Float.parse/1`
   * [Kernel] Do not expand `in/2` argument in module body
   * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
   * [Kernel] Improve error message when we can't compile because the target directory is not writeable
