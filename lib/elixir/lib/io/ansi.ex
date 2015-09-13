@@ -51,7 +51,7 @@ defmodule IO.ANSI do
   @doc "Faint (decreased intensity), not widely supported"
   defsequence :faint, 2
 
-  @doc "Italic: on. Not widely supported. Sometimes treated as inverse."
+  @doc "Italic: on. Not widely supported. Sometimes treated as inverse"
   defsequence :italic, 3
 
   @doc "Underline: Single"
@@ -72,7 +72,7 @@ defmodule IO.ANSI do
   @doc "Conceal. Not widely supported"
   defsequence :conceal, 8
 
-  @doc "Crossed-out. Characters legible, but marked for deletion. Not widely supported."
+  @doc "Crossed-out. Characters legible, but marked for deletion. Not widely supported"
   defsequence :crossed_out, 9
 
   @doc "Sets primary (default) font"
@@ -126,10 +126,10 @@ defmodule IO.ANSI do
   @doc "Not overlined"
   defsequence :not_overlined, 55
 
-  @doc "Send cursor home"
+  @doc "Sends cursor home"
   defsequence :home, "", "H"
 
-  @doc "Clear screen"
+  @doc "Clears screen"
   defsequence :clear, "2", "J"
 
   defp format_sequence(other) do
