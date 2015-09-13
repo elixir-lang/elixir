@@ -369,7 +369,7 @@ defmodule Process do
 
   See [`:erlang.process_info/2`](http://www.erlang.org/doc/man/erlang.html#process_info-2) for more info.
   """
-  @spec info(pid, atom) :: {atom, term} | nil
+  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}]  | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -380,7 +380,7 @@ defmodule Process do
     end
   end
 
-  def info(pid, spec) when is_atom(spec) do
+  def info(pid, spec) when is_atom(spec) or is_list(spec) do
     nillify :erlang.process_info(pid, spec)
   end
 
