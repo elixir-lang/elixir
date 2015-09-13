@@ -268,7 +268,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refresh deps: [{:git_repo, "0.1.0", git: fixture_path("git_repo"), ref: last}]
 
       Mix.Tasks.Deps.run []
-      msg = "  lock outdated: the lock is outdated compared to the options in your mixfile"
+      msg = "  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"
       assert_received {:mix_shell, :info, [^msg]}
 
       # Check an update was triggered
