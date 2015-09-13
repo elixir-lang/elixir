@@ -132,7 +132,12 @@ defmodule ExUnit.Formatter do
       [note: if_value(struct.message, &format_banner(&1, formatter)),
        code: if_value(struct.expr, &code_multiline(&1, width)),
        lhs:  if_value(struct.left,  &inspect_multiline(&1, width)),
-       rhs:  if_value(struct.right, &inspect_multiline(&1, width))]
+       rhs:  if_value(struct.right, &inspect_multiline(&1, width)),
+       diff: if_value(struct.left, fn left ->
+               if_value(struct.right, fn right ->
+                 format_diff(left, right)
+               end)
+             end)]
 
     fields
     |> filter_interesting_fields
@@ -143,6 +148,25 @@ defmodule ExUnit.Formatter do
   defp format_kind_reason(kind, reason, _width, formatter) do
     error_info Exception.format_banner(kind, reason), formatter
   end
+
+  defp format_diff(from, to) do
+    do_format_diff(format_diff_input(from), format_diff_input(to))
+  end
+
+  defp do_format_diff(same, same), do: ExUnit.AssertionError.no_value
+  defp do_format_diff(from, to) do
+    :tdiff.diff(from, to)
+    |> Stream.map(&format_diff_output/1)
+    |> Enum.join
+  end
+
+  defp format_diff_input(value) do
+    :io_lib.format("~p", [value]) |> List.flatten
+  end
+
+  defp format_diff_output({:eq,  fragment}), do: fragment
+  defp format_diff_output({:del, fragment}), do: "\e[31;7m#{fragment}\e[m"
+  defp format_diff_output({:ins, fragment}), do: "\e[32;7m#{fragment}\e[m"
 
   defp filter_interesting_fields(fields) do
     Enum.filter(fields, fn {_, value} ->

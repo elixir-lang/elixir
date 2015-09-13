@@ -4,7 +4,8 @@ defmodule ExUnit.Mixfile do
   def project do
     [app: :ex_unit,
      version: System.version,
-     build_per_environment: false]
+     build_per_environment: false,
+     deps: deps]
   end
 
   def application do
@@ -26,5 +27,9 @@ defmodule ExUnit.Mixfile do
        stacktrace_depth: 20,
        timeout: 60_000,
        trace: false]]
+  end
+
+  defp deps do
+    [{:tdiff, git: "https://github.com/tomas-abrahamsson/tdiff.git"}]
   end
 end

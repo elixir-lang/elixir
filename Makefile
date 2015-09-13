@@ -33,7 +33,7 @@ $(1): lib/$(1)/ebin/Elixir.$(2).beam lib/$(1)/ebin/$(1).app
 lib/$(1)/ebin/$(1).app: lib/$(1)/mix.exs
 	$(Q) mkdir -p lib/$(1)/_build/shared/lib/$(1)
 	$(Q) cp -R lib/$(1)/ebin lib/$(1)/_build/shared/lib/$(1)/
-	$(Q) cd lib/$(1) && ../../bin/elixir -e 'Mix.start(:permanent, [])' -r mix.exs -e 'Mix.Task.run("compile.app")'
+	$(Q) cd lib/$(1) && ../../bin/elixir -e 'Mix.start(:permanent, [])' -r mix.exs -e 'Mix.Task.run("deps.get")' -e 'Mix.Task.run("deps.compile")' -e 'Mix.Task.run("compile.app")'
 	$(Q) cp lib/$(1)/_build/shared/lib/$(1)/ebin/$(1).app lib/$(1)/ebin/$(1).app
 	$(Q) rm -rf lib/$(1)/_build
 
@@ -44,7 +44,7 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
-	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+	$(Q) cd lib/$(1) && ../../bin/elixir -pz deps/*/ebin -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
 #==> Compilation tasks
