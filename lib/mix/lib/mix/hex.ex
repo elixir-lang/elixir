@@ -11,9 +11,9 @@ defmodule Mix.Hex do
       true
     else
       shell = Mix.shell
-      shell.info "Could not find hex, which is needed to build dependency #{inspect app}"
+      shell.info "Could not find Hex, which is needed to build dependency #{inspect app}"
 
-      if shell.yes?("Shall I install hex?") do
+      if shell.yes?("Shall I install Hex?") do
         Mix.Tasks.Local.Hex.run ["--force"]
       else
         false
@@ -31,9 +31,9 @@ defmodule Mix.Hex do
       not Code.ensure_loaded?(Hex) ->
         false
       not Version.match?(Hex.version, @hex_requirement) ->
-        Mix.shell.info "Mix requires hex #{@hex_requirement} but you have #{Hex.version}"
+        Mix.shell.info "Mix requires Hex #{@hex_requirement} but you have #{Hex.version}"
 
-        if Mix.shell.yes?("Shall I abort the current command and update hex?") do
+        if Mix.shell.yes?("Shall I abort the current command and update Hex?") do
           Mix.Tasks.Local.Hex.run ["--force"]
           exit({:shutdown, 0})
         end
