@@ -336,6 +336,32 @@ defmodule ExUnit.AssertionsTest do
       "Expected exception SyntaxError but got FunctionClauseError (no function clause matching in :lists.flatten/1)" = error.message
   end
 
+  test "assert raise comparing messages (for equality)" do
+    assert_raise RuntimeError, "foo", fn ->
+      raise RuntimeError, "bar"
+    end
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Wrong message for RuntimeError" <>
+      "\nExpected:" <>
+      "\n  \"foo\"" <>
+      "\nGot:" <>
+      "\n  \"bar\"" = error.message
+  end
+
+  test "assert raise comparing messages (with a regex)" do
+    assert_raise RuntimeError, ~r/ba[zk]/, fn ->
+      raise RuntimeError, "bar"
+    end
+  rescue
+    error in [ExUnit.AssertionError] ->
+      "Wrong message for RuntimeError" <>
+      "\nExpected:" <>
+      "\n  ~r/ba[zk]/" <>
+      "\nGot:" <>
+      "\n  \"bar\"" = error.message
+  end
+
   test "assert greater than operator" do
     true = assert 2 > 1
   end
