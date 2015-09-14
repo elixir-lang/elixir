@@ -2,7 +2,9 @@
 
 Please take a moment to review this document in order to make the contribution
 process easy and effective for everyone involved!
-Also make sure you follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), so everyone involved in this project feels safe and welcomed.
+
+Also make sure you follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) so we
+continue providing a safe and welcoming environment to everyone.
 
 ## Using the issue tracker
 
