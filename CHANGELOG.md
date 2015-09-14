@@ -140,7 +140,7 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
   * [Code] Store the documentation line in the metadata returned by `Code.get_docs/2`
   * [Exception] Do not fail when calculating an exception message, even if the message is invalid
-  * [File] Ensure `File.touch/2` and `File.touch!/2` work with universal time
+  * [File] Ensure `File.touch/2` and `File.stat/2` receive and return universal times. Previously they would work with local times which are not monotonically increasing, which could present issues on scripts. If the times are being shown to the user, `time: :local` can be given as argument
   * [Float] Support complete scientific notation in `Float.parse/1`
   * [Kernel] Do not expand `in/2` argument in module body
   * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
