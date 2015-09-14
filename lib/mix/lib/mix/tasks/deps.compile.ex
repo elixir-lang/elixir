@@ -125,12 +125,12 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp handle_rebar_not_found(app) do
     shell = Mix.shell
-    shell.info "Could not find \"rebar\", which is needed to build dependency #{inspect String.to_atom(app)}"
+    shell.info "Could not find \"rebar\", which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by Mix"
 
     unless shell.yes?("Shall I install rebar?") do
       Mix.raise "Could not find \"rebar\" to compile " <>
-        "dependency #{inspect String.to_atom(app)}, please ensure \"rebar\" is available"
+        "dependency #{inspect app}, please ensure \"rebar\" is available"
     end
 
     (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd) ||
@@ -158,7 +158,7 @@ defmodule Mix.Tasks.Deps.Compile do
     Mix.Dep.in_dependency dep, fn _ ->
       env = [{"ERL_LIBS", Path.join(config[:build_path], "lib")}]
       if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?, env: env) != 0 do
-        Mix.raise "Could not compile dependency #{inspect String.to_atom(app)}, \"#{command}\" command failed. " <>
+        Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
           "If you want to recompile this dependency, please run: \"mix deps.compile #{app}\""
       end
     end
