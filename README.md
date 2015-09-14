@@ -39,7 +39,7 @@ cd ../elixir && make docs
 
 ## Contributing
 
-We appreciate any contribution to Elixir, that's following our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), so check out our [CONTRIBUTING.md](CONTRIBUTING.md) guide for more information. We usually keep a list of features and bugs [in the issue tracker][2].
+We appreciate any contribution to Elixir. Check our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [CONTRIBUTING.md](CONTRIBUTING.md) guides for more information. We usually keep a list of features and bugs [in the issue tracker][2].
 
 ## Important links
 
