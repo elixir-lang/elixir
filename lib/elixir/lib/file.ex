@@ -260,13 +260,14 @@ defmodule File do
 
   The values for `:time` can be:
 
+    * `:universal` - returns a `{date, time}` tuple in UTC (default)
     * `:local` - returns a `{date, time}` tuple using the machine time
-    * `:universal` - returns a `{date, time}` tuple in UTC
     * `:posix` - returns the time as integer seconds since epoch
 
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     case F.read_file_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
@@ -304,13 +305,14 @@ defmodule File do
 
   The values for `:time` can be:
 
+    * `:universal` - returns a `{date, time}` tuple in UTC (default)
     * `:local` - returns a `{date, time}` tuple using the machine time
-    * `:universal` - returns a `{date, time}` tuple in UTC
     * `:posix` - returns the time as integer seconds since epoch
 
   """
   @spec lstat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def lstat(path, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     case F.read_link_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
@@ -339,6 +341,7 @@ defmodule File do
   """
   @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
   def write_stat(path, stat, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     F.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
   end
 

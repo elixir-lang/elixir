@@ -1527,7 +1527,7 @@ defmodule FileTest do
       refute File.exists?(fixture)
       assert File.touch(fixture, time) == :ok
       assert {:ok, ""} == File.read(fixture)
-      assert File.stat!(fixture, time: :universal).mtime == time
+      assert File.stat!(fixture).mtime == time
     after
       File.rm(fixture)
     end
