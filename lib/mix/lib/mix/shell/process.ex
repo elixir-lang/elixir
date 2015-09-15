@@ -1,24 +1,40 @@
 defmodule Mix.Shell.Process do
   @moduledoc """
-  This is a Mix shell that uses the current process mailbox
-  for communication instead of IO.
+  Mix shell that uses the current process mailbox for communication.
 
-  When a developer calls `info("hello")`, the following
-  message will be sent to the current process:
+
+  This module provides a Mix shell implementation that uses
+  the current process mailbox for communication instead of IO.
+
+  As an example, when `Mix.shell.info("hello")` is called,
+  the following message will be sent to the calling process:
 
       {:mix_shell, :info, ["hello"]}
 
   This is mainly useful in tests, allowing us to assert
-  if given messages were received or not. Since we need
-  to guarantee a clean slate between tests, there
-  is also a `flush/1` function responsible for flushing all
-  `:mix_shell` related messages from the process inbox.
+  if given messages were received or not instead of performing
+  checks on some captured IO. Since we need to guarantee a clean
+  slate between tests, there is also a `flush/1` function
+  responsible for flushing all `:mix_shell` related messages
+  from the process inbox.
+
+  ## Examples
+
+      Mix.shell.info "hello"
+      receive do {:mix_shell, :info, [msg]} -> msg end
+      #=> "hello"
+
+      send self(), {:mix_shell_input, :prompt, "Pretty cool"}
+      Mix.shell.prompt?("How cool was that?!")
+      #=> "Pretty cool"
+
   """
 
   @behaviour Mix.Shell
 
   @doc """
   Flushes all `:mix_shell` and `:mix_shell_input` messages from the current process.
+
   If a callback is given, it is invoked for each received message.
 
   ## Examples
@@ -83,12 +99,23 @@ defmodule Mix.Shell.Process do
 
   @doc """
   Forwards the message to the current process.
+
   It also checks the inbox for an input message matching:
 
       {:mix_shell_input, :prompt, value}
 
   If one does not exist, it will abort since there was no shell
-  process inputs given. Value must be a string.
+  process inputs given. `value` must be a string.
+
+  ## Examples
+
+  The following will answer with `"Meg"` to the prompt
+  `"What's your name?"`:
+
+      # The response is sent before calling prompt/1 so that prompt/1 can read it
+      send self(), {:mix_shell_input, :prompt, "Meg"}
+      Mix.shell.prompt("What's your name?")
+
   """
   def prompt(message) do
     print_app
@@ -103,12 +130,20 @@ defmodule Mix.Shell.Process do
 
   @doc """
   Forwards the message to the current process.
+
   It also checks the inbox for an input message matching:
 
       {:mix_shell_input, :yes?, value}
 
   If one does not exist, it will abort since there was no shell
-  process inputs given. Value must be `true` or `false`.
+  process inputs given. `value` must be `true` or `false`.
+
+  ## Example
+
+      # Send the response to self() first so that yes?/1 will be able to read it
+      send self(), {:mix_shell_input, :yes?, true}
+      Mix.shell.yes?("Are you sure you want to continue?")
+
   """
   def yes?(message) do
     print_app
