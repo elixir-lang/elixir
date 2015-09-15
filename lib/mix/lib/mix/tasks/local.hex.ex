@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Local.Hex do
 
   @hex_s3           "https://s3.amazonaws.com/s3.hex.pm"
   @hex_list_url     @hex_s3 <> "/installs/hex-1.x.csv"
-  @hex_archive_url  @hex_s3 <> "/installs/[VERSION]/hex.ez"
+  @hex_archive_url  @hex_s3 <> "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
 
   @shortdoc "Installs Hex locally"
 
@@ -19,8 +19,14 @@ defmodule Mix.Tasks.Local.Hex do
   """
   @spec run(OptionParser.argv) :: boolean
   def run(args) do
-    {version, sha512} = Mix.Local.find_matching_elixir_version_from_signed_csv!("Hex", @hex_list_url)
-    url = String.replace(@hex_archive_url, "[VERSION]", version)
+    {elixir_version, hex_version, sha512} =
+      Mix.Local.find_matching_versions_from_signed_csv!("Hex", @hex_list_url)
+
+    url =
+      @hex_archive_url
+      |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[HEX_VERSION]", hex_version)
+
     Mix.Tasks.Archive.Install.run [url, "--sha512", sha512 | args]
   end
 end
