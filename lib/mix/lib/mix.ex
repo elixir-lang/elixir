@@ -210,12 +210,15 @@ defmodule Mix do
   end
 
   @doc """
-  The shell is a wrapper for doing IO.
+  Returns the current shell.
 
-  It contains conveniences for asking the user information,
-  printing status and so forth. It is also swappable,
-  allowing developers to use a test shell that simply sends the
-  messages to the current process.
+  `shell/0` can be used as a wrapper for the current shell. It contains
+  conveniences for asking information to the user, printing things and so
+  forth. The Mix shell is swappable (see `shell/1`), allowing developers to use
+  a test shell that simply sends messages to the current process instead of
+  doing IO (see `Mix.Shell.Process`).
+
+  By default, this returns `Mix.Shell.IO`.
   """
   def shell do
     Mix.State.get(:shell, Mix.Shell.IO)
@@ -223,6 +226,9 @@ defmodule Mix do
 
   @doc """
   Sets the current shell.
+
+  After calling this function, `shell` becomes the shell that is returned by
+  `shell/0`.
   """
   def shell(shell) do
     Mix.State.put(:shell, shell)
