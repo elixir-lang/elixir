@@ -63,14 +63,36 @@ defmodule Mix.Tasks.Escript.Install do
   @escript_file_mode 0o555 # only read and execute permissions
 
   defp install_escript(src, opts) do
-    dst = Path.join([Mix.Local.escripts_path, Mix.Local.Utils.basename(src)])
-    if opts[:force] || should_install?(src, File.exists?(dst)) do
-      File.rm(dst)
-      if Mix.Utils.copy_path!(src, dst, opts) do
-        Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst)]
-        File.chmod!(dst, @escript_file_mode)
-        check_discoverability(dst)
+    dirname = Mix.Local.escripts_path
+    dst_path = Path.join(dirname, Mix.Local.Utils.basename(src))
+    if opts[:force] || should_install?(src, File.exists?(dst_path)) do
+      File.rm(dst_path)
+
+      case Mix.Utils.read_path(src, opts) do
+        {:ok, binary} ->
+          File.mkdir_p!(dirname)
+          File.write!(dst_path, binary)
+        :badpath ->
+          Mix.raise "Expected #{inspect src} to be a URL or a local file path"
+        {:local, message} ->
+          Mix.raise message
+        {kind, message} when kind in [:remote, :checksum] ->
+          Mix.raise """
+          #{message}
+
+          Could not fetch escript at:
+
+              #{src}
+
+          Please download the escript above manually to your current directory and run:
+
+              mix escript.install ./#{Path.basename(src)}
+          """
       end
+
+      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst_path)]
+      File.chmod!(dst_path, @escript_file_mode)
+      check_discoverability(dst_path)
     end
   end
 
