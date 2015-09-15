@@ -76,11 +76,11 @@ defmodule Mix.Local do
 
   @doc """
   Fetches the given signed CSV files, verify and return the matching
-  Elixir version with checksum.
+  Elixir version, artifact version and artifact's checksum.
 
   Used to install both Rebar and Hex from S3.
   """
-  def find_matching_elixir_version_from_signed_csv!(name, path) do
+  def find_matching_versions_from_signed_csv!(name, path) do
     csv = read_path!(name, path)
 
     signature =
@@ -96,7 +96,8 @@ defmodule Mix.Local do
       Mix.raise "Could not install #{name} because Mix could not verify authenticity " <>
                 "of metadata file at #{path}. This may happen because a proxy or some " <>
                 "entity is interfering with the download or because you don't have a " <>
-                "public key to verify the download"
+                "public key to verify the download. Add the corresponding public key " <>
+                "or try again later"
     end
   end
 
@@ -125,9 +126,9 @@ defmodule Mix.Local do
     |> Enum.find_value(entries, &find_version(&1, current_version))
   end
 
-  defp find_version([_, digest|versions], current_version) do
+  defp find_version([artifact_version, digest|versions], current_version) do
     if version = Enum.find(versions, &Version.compare(&1, current_version) != :gt) do
-      {version, digest}
+      {version, artifact_version, digest}
     end
   end
 end
