@@ -1,7 +1,7 @@
 Code.require_file "../test_helper.exs", __DIR__
 
 defmodule Mix.LocalTest do
-  use MixTest.Case, async: true
+  use MixTest.Case
 
   # openssl rsa -in elixirest.pem -pubout > elixirest.pub
   @public_key """
@@ -69,7 +69,8 @@ defmodule Mix.LocalTest do
   setup_all do
     File.mkdir_p!(Mix.PublicKey.public_keys_path)
 
-    Path.join(Mix.PublicKey.public_keys_path, "test_key.pub")
+    Mix.PublicKey.public_keys_path
+    |> Path.join("test_key.pub")
     |> File.write!(@public_key)
   end
 
