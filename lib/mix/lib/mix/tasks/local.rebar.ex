@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @rebar_s3           "https://s3.amazonaws.com/s3.hex.pm"
   @rebar_list_url     @rebar_s3 <> "/installs/rebar-1.x.csv"
-  @rebar_escript_url  @rebar_s3 <> "/installs/[VERSION]/rebar"
+  @rebar_escript_url  @rebar_s3 <> "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
 
   @shortdoc  "Installs rebar locally"
 
@@ -68,8 +68,14 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(opts) do
-    {version, sha512} = Mix.Local.find_matching_elixir_version_from_signed_csv!("Rebar", @rebar_list_url)
-    url = String.replace(@rebar_escript_url, "[VERSION]", version)
+    {elixir_version, rebar_version, sha512} =
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", @rebar_list_url)
+
+    url =
+      @rebar_escript_url
+      |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[REBAR_VERSION]", rebar_version)
+
     install_from_path(url, Keyword.put(opts, :sha512, sha512))
   end
 end
