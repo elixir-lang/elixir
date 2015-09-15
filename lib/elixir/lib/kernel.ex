@@ -1590,27 +1590,41 @@ defmodule Kernel do
 
   """
   @spec struct(module | map, Enum.t) :: map
-  def struct(struct, kv \\ [])
-
-  def struct(struct, []) when is_atom(struct) do
-    apply(struct, :__struct__, [])
-  end
-
-  def struct(struct, kv) when is_atom(struct) do
-    struct(apply(struct, :__struct__, []), kv)
-  end
-
-  def struct(%{__struct__: _} = struct, []) do
-    struct
-  end
-
-  def struct(%{__struct__: _} = struct, kv) do
-    Enum.reduce(kv, struct, fn {k, v}, acc ->
-      case :maps.is_key(k, acc) and k != :__struct__ do
-        true  -> :maps.put(k, v, acc)
+  def struct(struct, kv \\ []) do
+    struct(struct, kv, fn({key, val}, acc) ->
+      case :maps.is_key(key, acc) and key != :__struct__ do
+        true  -> :maps.put(key, val, acc)
         false -> acc
       end
     end)
+  end
+
+  @doc """
+  Same as `struct/2` but raises if any of provided keys doesn't exist in the struct.
+  """
+  @spec struct!(module | map, Enum.t) :: map | no_return
+  def struct!(struct, kv \\ []) do
+    struct(struct, kv, fn
+      {:__struct__, _}, acc -> acc
+      {key, val}, acc ->
+        :maps.update(key, val, acc)
+    end)
+  end
+
+  defp struct(struct, [], _fun) when is_atom(struct) do
+    apply(struct, :__struct__, [])
+  end
+
+  defp struct(struct, kv, fun) when is_atom(struct) do
+    struct(apply(struct, :__struct__, []), kv, fun)
+  end
+
+  defp struct(%{__struct__: _} = struct, [], _fun) do
+    struct
+  end
+
+  defp struct(%{__struct__: _} = struct, kv, fun) do
+    Enum.reduce(kv, struct, fun)
   end
 
   @doc """
