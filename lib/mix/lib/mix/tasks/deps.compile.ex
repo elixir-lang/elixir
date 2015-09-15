@@ -106,8 +106,8 @@ defmodule Mix.Tasks.Deps.Compile do
           stacktrace = System.stacktrace
           app = dep.app
           Mix.shell.error "could not compile dependency #{inspect app}, \"mix compile\" failed. " <>
-            "You can recompile this dependency with \"mix deps.compile #{app}\" or " <>
-            "update it with \"mix deps.update #{app}\""
+            "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
+            "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
           :erlang.raise(kind, reason, stacktrace)
       end
     end
@@ -159,7 +159,8 @@ defmodule Mix.Tasks.Deps.Compile do
       env = [{"ERL_LIBS", Path.join(config[:build_path], "lib")}]
       if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?, env: env) != 0 do
         Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
-          "If you want to recompile this dependency, please run: \"mix deps.compile #{app}\""
+          "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
+          "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
       end
     end
     true
