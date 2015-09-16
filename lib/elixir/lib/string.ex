@@ -703,7 +703,7 @@ defmodule String do
   `\g{N}` in the `replacement` string to access a specific capture in the
   regex:
 
-      iex> String.replace("a,b,c", ~r/,(.)/, ",\\1\\1")
+      iex> String.replace("a,b,c", ~r/,(.)/, ",\\1\\g{1}")
       "a,bb,cc"
 
   Notice we had to escape the escape character `\`. By giving `\0`,
