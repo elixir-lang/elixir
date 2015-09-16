@@ -456,6 +456,9 @@ defmodule Regex do
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", "[\\1]")
       "[b][d]"
 
+      iex> Regex.replace(~r/\.(\d)$/, "500.5", ".\\g{1}0")
+      "500.50"
+
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
       "[b][d]"
 
