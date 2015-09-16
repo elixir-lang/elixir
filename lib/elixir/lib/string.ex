@@ -686,10 +686,10 @@ defmodule String do
   Returns a new binary created by replacing occurences of `pattern` in
   `subject` with `replacement`.
 
-  By default, it replaces all occurences, except if the `global` option is
+  By default, it replaces all occurences, unless the `global` option is
   set to `false`.
 
-  A `pattern` may be a string or a regular expression.
+  The `pattern` may be a string or a regular expression.
 
   ## Examples
 
@@ -699,9 +699,9 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
 
-  The pattern can also be a regular expression. In those cases, one can give `\N` or
+  When the pattern is a regular expression, one can give `\N` or
   `\g{N}` in the `replacement` string to access a specific capture in the
-  regex:
+  regular expression:
 
       iex> String.replace("a,b,c", ~r/,(.)/, ",\\1\\g{1}")
       "a,bb,cc"
@@ -709,8 +709,10 @@ defmodule String do
   Notice we had to escape the escape character `\`. By giving `\0`,
   one can inject the whole matched pattern in the replacement string.
 
-  When strings are used as a pattern, a developer can also use the
-  replaced part inside the `replacement` via the `:insert_replaced` option:
+  When the pattern is a string, a developer can use the replaced part inside
+  the `replacement` by using the `:insert_replace` option and specifying the
+  position(s) inside the `replacement` where the string pattern will be
+  inserted:
 
       iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
       "a,[b],c"
@@ -721,6 +723,8 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
+  If any position given in the `:insert_replace` option is larger than the
+  replacement string, or is negative, an `ArgumentError` is raised.
   """
   @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
   def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
