@@ -21,24 +21,11 @@ defmodule MapTest do
     assert (quote do
       %{foo: 1}
     end) == {:%{}, [], [{:foo, 1}]}
-
-    assert (quote do
-      %
-        {foo: 1}
-    end) == {:%{}, [], [{:foo, 1}]}
   end
 
   test "structs when quoted" do
     assert (quote do
       %User{foo: 1}
-    end) == {:%, [], [
-      {:__aliases__, [alias: false], [:User]},
-      {:%{}, [], [{:foo, 1}]}
-    ]}
-
-    assert (quote do
-      %
-        User{foo: 1}
     end) == {:%, [], [
       {:__aliases__, [alias: false], [:User]},
       {:%{}, [], [{:foo, 1}]}

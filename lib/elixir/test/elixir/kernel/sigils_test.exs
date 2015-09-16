@@ -3,19 +3,19 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
 
-  test :sigil_s do
+  test "sigil s" do
     assert ~s(foo) == "foo"
     assert ~s(f#{:o}o) == "foo"
     assert ~s(f\no) == "f\no"
   end
 
-  test :sigil_s_with_heredoc do
+  test "sigil s with heredoc" do
     assert "  foo\n\n" == ~s"""
       f#{:o}o\n
     """
   end
 
-  test :sigil_S do
+  test "sigil S" do
     assert ~S(foo) == "foo"
     assert ~S[foo] == "foo"
     assert ~S{foo} == "foo"
@@ -31,19 +31,19 @@ defmodule Kernel.SigilsTest do
     assert ~S[foo\]] == "foo]"
   end
 
-  test :sigil_S_with_heredoc do
+  test "sigil S with heredoc" do
     assert "  f\#{o}o\\n\n" == ~S"""
       f#{o}o\n
     """
   end
 
-  test :sigil_c do
+  test "sigil c" do
     assert ~c(foo) == 'foo'
     assert ~c(f#{:o}o) == 'foo'
     assert ~c(f\no) == 'f\no'
   end
 
-  test :sigil_C do
+  test "sigil C" do
     assert ~C(foo) == 'foo'
     assert ~C[foo] == 'foo'
     assert ~C{foo} == 'foo'
@@ -54,7 +54,7 @@ defmodule Kernel.SigilsTest do
     assert ~C(f\no) == 'f\\no'
   end
 
-  test :sigil_w do
+  test "sigil w" do
     assert ~w() == []
     assert ~w(foo bar baz) == ["foo", "bar", "baz"]
     assert ~w(foo #{:bar} baz) == ["foo", "bar", "baz"]
@@ -81,7 +81,7 @@ defmodule Kernel.SigilsTest do
     assert Macro.expand(quote(do: ~w(a b c)a), __ENV__) == [:a, :b, :c]
   end
 
-  test :sigil_W do
+  test "sigil W" do
     assert ~W(foo #{bar} baz) == ["foo", "\#{bar}", "baz"]
 
     assert ~W(
@@ -101,7 +101,7 @@ defmodule Kernel.SigilsTest do
     assert ~W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
   end
 
-  test :sigils_matching do
+  test "sigils matching" do
     assert ~s(f\(oo) == "f(oo"
     assert ~s(fo\)o) == "fo)o"
     assert ~s(f\(o\)o) == "f(o)o"

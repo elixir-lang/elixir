@@ -1,13 +1,13 @@
 defmodule Mix.Tasks.Archive.Install do
   use Mix.Task
 
-  @shortdoc "Install an archive locally"
+  @shortdoc "Installs an archive locally"
 
   @moduledoc """
-  Install an archive locally.
+  Installs an archive locally.
 
   If no argument is supplied but there is an archive in the root
-  (created with mix archive), then the archive will be installed
+  (created with `mix archive`), then the archive will be installed
   locally. For example:
 
       mix do archive.build, archive.install
@@ -22,23 +22,23 @@ defmodule Mix.Tasks.Archive.Install do
 
   ## Command line options
 
-    * `--system` - uses one of the system tools (curl, wget or powershell
-      on Windows) to download the archive in case a URL is given
+    * `--sha512` - checks the archive matches the given sha512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
 
   """
+  @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean, system: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
     if src = List.first(argv) do
       %URI{path: path} = URI.parse(src)
 
       case Path.extname(path) do
         ".ez" -> install_archive(src, opts)
-        _     -> Mix.raise "mix archive.install doesn't know how to install #{path}"
+        _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect path}"
       end
     else
       src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
@@ -46,7 +46,8 @@ defmodule Mix.Tasks.Archive.Install do
       if File.exists?(src) do
         install_archive(src, opts)
       else
-        Mix.raise "Expected PATH to be given, please use `mix archive.install PATH`"
+        Mix.raise "Expected local archive to exist or PATH to be given, " <>
+                  "please use \"mix archive.install PATH\""
       end
     end
   end
@@ -63,11 +64,11 @@ defmodule Mix.Tasks.Archive.Install do
         {:ok, binary} ->
           File.mkdir_p!(dirname)
           File.write!(archive, binary)
-        :badname ->
-          Mix.raise "Expected #{inspect src} to be a url or a local file path"
+        :badpath ->
+          Mix.raise "Expected #{inspect src} to be a URL or a local file path"
         {:local, message} ->
           Mix.raise message
-        {:remote, message} ->
+        {kind, message} when kind in [:remote, :checksum] ->
           Mix.raise """
           #{message}
 
@@ -99,7 +100,7 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   defp should_install?(src, []) do
-    Mix.shell.yes?("Are you sure you want to install archive #{src}?")
+    Mix.shell.yes?("Are you sure you want to install archive #{inspect src}?")
   end
 
   defp should_install?(_src, previous_files) do

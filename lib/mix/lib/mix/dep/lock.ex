@@ -15,46 +15,34 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Touches the manifest timestamp unless it is an umbrella application.
+  Touches the manifest storing the current project info unless it is an umbrella application.
   """
-  @spec touch() :: :ok
-  def touch() do
-    _ = unless Mix.Project.umbrella?, do: touch(Mix.Project.manifest_path)
+  @spec touch :: :ok
+  def touch do
+    config = Mix.Project.config
+    unless Mix.Project.umbrella?(config) do
+      manifest_path = Mix.Project.manifest_path(config)
+      data = {:v1, System.version, config[:build_scm]}
+      File.mkdir_p!(manifest_path)
+      File.write!(Path.join(manifest_path, @manifest), :io_lib.format('~p.~n', [data]))
+    end
     :ok
   end
 
   @doc """
-  Touches the manifest timestamp and updates the elixir version.
+  Returns the manifest status with Elixir version and scm.
   """
-  @spec touch(Path.t) :: :ok
-  def touch(manifest_path) do
-    File.mkdir_p!(manifest_path)
-    File.write!(Path.join(manifest_path, @manifest), System.version)
-  end
-
-  @doc """
-  Returns the elixir version in the lock manifest.
-  """
-  @spec elixir_vsn() :: binary | nil
-  def elixir_vsn() do
-    elixir_vsn(Mix.Project.manifest_path)
-  end
-
-  @doc """
-  Returns the elixir version in the lock manifest in the given path.
-  """
-  @spec elixir_vsn(Path.t) :: binary | nil
-  def elixir_vsn(manifest_path) do
-    case File.read(manifest(manifest_path)) do
-      {:ok, contents} ->
-        contents
-      {:error, _} ->
-        nil
+  @spec status(Path.t) :: {:ok, vsn :: String.t, scm :: atom} | :error
+  def status(manifest_path \\ Mix.Project.manifest_path) do
+    case :file.consult(manifest(manifest_path)) do
+      {:ok, [{:v1, vsn, scm}]} -> {:ok, vsn, scm}
+      {:error, {_, :erl_parse, _}} -> {:ok, "1.0.0", nil} # Force old version if file exists but old format
+      _ -> :error
     end
   end
 
   @doc """
-  Read the lockfile, returns a map containing
+  Reads the lockfile, returns a map containing
   each app name and its current lock information.
   """
   @spec read() :: map

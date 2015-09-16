@@ -15,6 +15,7 @@ defmodule Mix.Tasks.DepsPathTest do
     end
   end
 
+  @tag apps: [:raw_sample]
   test "does not mark for compilation on get/update" do
     Mix.Project.push DepsApp
 
@@ -24,6 +25,7 @@ defmodule Mix.Tasks.DepsPathTest do
     end
   end
 
+  @tag apps: [:raw_sample]
   test "compiles ands runs even if lock does not match" do
     Mix.Project.push DepsApp
 

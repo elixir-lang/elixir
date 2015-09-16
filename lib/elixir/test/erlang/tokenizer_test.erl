@@ -105,12 +105,22 @@ dot_keyword_test() ->
   {identifier, {1,5,7}, do}] = tokenize("foo.do").
 
 newline_test() ->
- [{identifier, {1,1,4}, foo},
-  {'.', {2,1,2}},
-  {identifier, {2,2,5}, bar}]  = tokenize("foo\n.bar"),
+  [{identifier, {1,1,4}, foo},
+   {'.', {2,1,2}},
+   {identifier, {2,2,5}, bar}]  = tokenize("foo\n.bar"),
   [{number, {1,1,2}, 1},
    {two_op, {2,1,3}, '++'},
    {number, {2,3,4}, 2}]  = tokenize("1\n++2").
+
+dot_newline_operator_test() ->
+  [{identifier,{1,1,4},foo},
+   {'.',{2,4,5}},
+   {identifier,{2,1,2},'+'},
+   {number,{2,2,3},1}] = tokenize("foo.\n+1"),
+  [{identifier,{1,1,4},foo},
+   {'.',{2,4,5}},
+   {identifier,{2,1,2},'+'},
+   {number,{2,2,3},1}] = tokenize("foo.#bar\n+1").
 
 aliases_test() ->
   [{'aliases', {1,1,4}, ['Foo']}] = tokenize("Foo"),
@@ -136,26 +146,26 @@ space_test() ->
   [{op_identifier, {1,1,4}, foo}, {dual_op, {1,5,6}, '-'}, {number, {1,6,7}, 2}] = tokenize("foo -2"),
   [{op_identifier, {1,1,4}, foo}, {dual_op, {1,6,7}, '-'}, {number, {1,7,8}, 2}] = tokenize("foo  -2").
 
-invalid_space_test() ->
-  {1, "invalid space character U+A0 before: ", "-2"} = tokenize_error("foo" ++ [16#A0] ++"-2").
-
 chars_test() ->
   [{number, {1,1,3}, 97}]      = tokenize("?a"),
   [{number, {1,1,3}, 99}]      = tokenize("?c"),
   [{number, {1,1,4}, 0}]       = tokenize("?\\0"),
   [{number, {1,1,4}, 7}]       = tokenize("?\\a"),
   [{number, {1,1,4}, 10}]      = tokenize("?\\n"),
-  [{number, {1,1,4}, 92}]      = tokenize("?\\\\"),
-  [{number, {1,1,5}, 10}]      = tokenize("?\\xa"),
-  [{number, {1,1,7}, 10}]      = tokenize("?\\x{a}"),
-  [{number, {1,1,8}, 171}]     = tokenize("?\\x{ab}"),
-  [{number, {1,1,9}, 2748}]    = tokenize("?\\x{abc}"),
-  [{number, {1,1,10}, 43981}]   = tokenize("?\\x{abcd}"),
-  [{number, {1,1,11}, 703710}]  = tokenize("?\\x{abcde}"),
-  [{number, {1,1,12}, 1092557}] = tokenize("?\\x{10abcd}").
+  [{number, {1,1,4}, 92}]      = tokenize("?\\\\").
  
 interpolation_test() ->
   [{bin_string, {1,1,9}, [<<"f">>,
     {{1,3,8}, [{identifier, {1,5,7}, oo}]}]},
    {two_op, {1,10,12}, '<>'}, {bin_string, {1,13,15},
     [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
+
+capture_test() ->
+  [{capture_op, {1,1,2}, '&'},
+   {identifier, {1,2,4}, '||'},
+   {mult_op,    {1,4,5}, '/'},
+   {number,     {1,5,6}, 2}] = tokenize("&||/2"),
+  [{capture_op, {1,1,2}, '&'},
+   {identifier, {1,2,4}, 'or'},
+   {mult_op,    {1,4,5}, '/'},
+   {number,     {1,5,6}, 2}] = tokenize("&or/2").

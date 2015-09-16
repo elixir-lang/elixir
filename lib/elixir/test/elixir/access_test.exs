@@ -45,14 +45,4 @@ defmodule AccessTest do
     assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
     assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
   end
-
-  test "for atoms" do
-    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
-      Access.get(:foo, :bar)
-    end
-
-    assert_raise Protocol.UndefinedError, ~r"protocol Access not implemented for :foo", fn ->
-      Access.get_and_update(:foo, :bar, fn _ -> {:ok, :baz} end)
-    end
-  end
 end

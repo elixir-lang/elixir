@@ -2,7 +2,8 @@ defmodule Mix.Dep do
   @moduledoc false
 
   @doc """
-  The Mix.Dep a struct keeps information about your project dependencies.
+  The Mix.Dep struct keeps information about your project dependencies.
+
   It contains:
 
     * `scm` - a module representing the source code management tool (SCM)
@@ -71,7 +72,7 @@ defmodule Mix.Dep do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(otps), to: Mix.Dep.Loader
+  defdelegate children(), to: Mix.Dep.Loader
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` struct.
@@ -121,13 +122,15 @@ defmodule Mix.Dep do
   """
   def in_dependency(dep, post_config \\ [], fun)
 
-  def in_dependency(%Mix.Dep{app: app, opts: opts}, config, fun) do
+  def in_dependency(%Mix.Dep{app: app, opts: opts, scm: scm}, config, fun) do
     # Set the app_path to be the one stored in the dependency.
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs
-    config = Keyword.merge(Mix.Project.deps_config, config)
-    config = Keyword.put(config, :app_path, opts[:build])
+    config =
+      Keyword.merge(Mix.Project.deps_config, config)
+      |> Keyword.put(:app_path, opts[:build])
+      |> Keyword.put(:build_scm, scm)
 
     env = opts[:env] || :prod
     old_env = Mix.env
@@ -162,47 +165,65 @@ defmodule Mix.Dep do
     do: "the dependency does not match the requirement #{inspect req}, got #{inspect vsn}"
 
   def format_status(%Mix.Dep{status: {:lockmismatch, _}}),
-    do: "lock mismatch: the dependency is out of date (run `mix deps.get` to fetch locked version)"
+    do: "lock mismatch: the dependency is out of date (run \"mix deps.get\" to fetch locked version)"
 
   def format_status(%Mix.Dep{status: :lockoutdated}),
-    do: "lock outdated: the lock is outdated compared to the options in your mixfile"
+    do: "lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"
 
   def format_status(%Mix.Dep{status: :nolock}),
-    do: "the dependency is not locked"
+    do: "the dependency is not locked (run \"mix deps.get\" to generate \"mix.lock\" file)"
 
   def format_status(%Mix.Dep{status: :compile}),
-    do: "the dependency build is outdated, please run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency build is outdated, please run \"#{mix_env_var}mix deps.compile\""
 
   def format_status(%Mix.Dep{app: app, status: {:divergedreq, other}} = dep) do
-    "the dependency #{app} defined\n" <>
+    "the dependency #{app}\n" <>
     "#{dep_status(dep)}" <>
     "\n  does not match the requirement specified\n" <>
     "#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+  end
+
+  def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do
+    recommendation =
+      if Keyword.has_key?(other.opts, :only) do
+        "Ensure the parent dependency specifies a superset of the child one in"
+      else
+        "Remove the :only restriction from"
+      end
+
+    "the dependency #{app}\n" <>
+    "#{dep_status(dep)}" <>
+    "\n  does not match the environments calculated for\n" <>
+    "#{dep_status(other)}" <>
+    "\n  #{recommendation} your dep"
   end
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
     "#{dep_status(dep)}#{dep_status(other)}" <>
-    "\n  Ensure they match or specify one of the above in your #{inspect Mix.Project.get} deps and set `override: true`"
+    "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
     if scm.fetchable? do
-      "the dependency is not available, run `mix deps.get`"
+      "the dependency is not available, run \"mix deps.get\""
     else
       "the dependency is not available"
     end
   end
 
   def format_status(%Mix.Dep{status: {:elixirlock, _}}),
-    do: "the dependency is built with an out-of-date elixir version, run `#{mix_env_var}mix deps.compile`"
+    do: "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var}mix deps.compile\""
+
+  def format_status(%Mix.Dep{status: {:scmlock, _}}),
+    do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
     info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
@@ -226,14 +247,23 @@ defmodule Mix.Dep do
           # Don't include the lock in the dependency if it is outdated
           %{dep | status: :lockoutdated}
         :ok ->
-          if vsn = old_elixir_lock(dep) do
-            %{dep | status: {:elixirlock, vsn}, opts: opts}
-          else
-            %{dep | opts: opts}
-          end
+          check_manifest(%{dep | opts: opts}, opts[:build])
       end
     else
       %{dep | opts: opts}
+    end
+  end
+
+  defp check_manifest(%{scm: scm} = dep, build_path) do
+    vsn = System.version
+
+    case Mix.Dep.Lock.status(build_path) do
+      {:ok, old_vsn, _} when old_vsn != vsn ->
+        %{dep | status: {:elixirlock, old_vsn}}
+      {:ok, _, old_scm} when old_scm != scm ->
+        %{dep | status: {:scmlock, old_scm}}
+      _ ->
+        dep
     end
   end
 
@@ -247,10 +277,11 @@ defmodule Mix.Dep do
   Checks if a dependency is available. Available dependencies
   are the ones that can be loaded.
   """
+  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
   def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
   def available?(%Mix.Dep{status: {:diverged, _}}),     do: false
   def available?(%Mix.Dep{status: {:divergedreq, _}}),  do: false
-  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
+  def available?(%Mix.Dep{status: {:divergedonly, _}}), do: false
   def available?(%Mix.Dep{}), do: true
 
   @doc """
@@ -282,7 +313,7 @@ defmodule Mix.Dep do
   Returns all source paths.
 
   Source paths are the directories that contains ebin files for a given
-  dependency. All managers, except rebar, have only one source path.
+  dependency. All managers, except `:rebar`, have only one source path.
   """
   def source_paths(%Mix.Dep{manager: :rebar, opts: opts, extra: extra}) do
     # Add root dir and all sub dirs with ebin/ directory
@@ -301,21 +332,21 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Return `true` if dependency is a mix project.
+  Returns `true` if dependency is a Mix project.
   """
   def mix?(%Mix.Dep{manager: manager}) do
     manager == :mix
   end
 
   @doc """
-  Return `true` if dependency is a rebar project.
+  Returns `true` if dependency is a rebar project.
   """
   def rebar?(%Mix.Dep{manager: manager}) do
     manager == :rebar
   end
 
   @doc """
-  Return `true` if dependency is a make project.
+  Returns `true` if dependency is a make project.
   """
   def make?(%Mix.Dep{manager: manager}) do
     manager == :make
@@ -334,13 +365,6 @@ defmodule Mix.Dep do
   defp to_app_names(given) do
     Enum.map given, fn(app) ->
       if is_binary(app), do: String.to_atom(app), else: app
-    end
-  end
-
-  defp old_elixir_lock(%Mix.Dep{opts: opts}) do
-    old_vsn = Mix.Dep.Lock.elixir_vsn(opts[:build])
-    if old_vsn && old_vsn != System.version do
-      old_vsn
     end
   end
 end

@@ -127,14 +127,14 @@ defmodule URI do
   end
 
   defp pair({k, v}) do
-    encode_www_form(to_string(k)) <>
-    "=" <> encode_www_form(to_string(v))
+    encode_www_form(Kernel.to_string(k)) <>
+    "=" <> encode_www_form(Kernel.to_string(v))
   end
 
   @doc """
   Checks if the character is a "reserved" character in a URI.
 
-  Reserved characters are specified in RFC3986, section 2.2.
+  Reserved characters are specified in [RFC3986, section 2.2](http://tools.ietf.org/html/rfc3986#section-2.2).
   """
   def char_reserved?(c) do
     c in ':/?#[]@!$&\'()*+,;='
@@ -143,7 +143,7 @@ defmodule URI do
   @doc """
   Checks if the character is a "unreserved" character in a URI.
 
-  Unreserved characters are specified in RFC3986, section 2.3.
+  Unreserved characters are specified in [RFC3986, section 2.3](http://tools.ietf.org/html/rfc3986#section-2.3).
   """
   def char_unreserved?(c) do
     c in ?0..?9 or
@@ -264,7 +264,7 @@ defmodule URI do
   can be used to parse a wide range of relative URIs.
 
   This function uses the parsing regular expression as defined
-  in the Appendix B of RFC3986.
+  in the [Appendix B of RFC3986](http://tools.ietf.org/html/rfc3986#appendix-B).
 
   When a URI is given without a port, the values registered via
   `URI.default_port/1` and `URI.default_port/2` are used.
@@ -342,6 +342,14 @@ defmodule URI do
       if byte_size(s) > 0, do: s, else: nil
     end
   end
+
+  @doc """
+  Converts the URI to string.
+
+      iex> URI.to_string(URI.parse("http://google.com"))
+      "http://google.com"
+  """
+  defdelegate to_string(uri), to: String.Chars.URI
 end
 
 defimpl String.Chars, for: URI do

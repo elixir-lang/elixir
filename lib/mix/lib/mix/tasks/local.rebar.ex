@@ -1,31 +1,41 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @rebar_url "http://s3.hex.pm/rebar"
-  @shortdoc  "Install rebar locally"
+  @rebar_s3           "https://s3.amazonaws.com/s3.hex.pm"
+  @rebar_list_url     @rebar_s3 <> "/installs/rebar-1.x.csv"
+  @rebar_escript_url  @rebar_s3 <> "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
+
+  @shortdoc  "Installs rebar locally"
 
   @moduledoc """
-  Fetch a copy of rebar from the given path or url. It defaults to a
-  rebar copy that ships with Elixir source if available or fetches it
-  from #{@rebar_url}.
+  Fetches a copy of `rebar` from the given path or url.
 
-  The local copy is stored in your MIX_HOME (defaults to ~/.mix).
-  This version of rebar will be used as required by `mix deps.compile`.
+  It defaults to safely download a `rebar` copy from
+  [Amazon S3](https://aws.amazon.com/s3/). However, a URL
+  can be given as argument, usually from an existing local copy of `rebar`.
+
+  The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
+  This version of `rebar` will be used as required by `mix deps.compile`.
 
   ## Command line options
 
+    * `--sha512` - checks the archive matches the given sha512 checksum
+
     * `--force` - forces installation without a shell prompt; primarily
-      intended for automation in build systems like make
+      intended for automation in build systems like `make`
   """
+  @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: true
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: [force: :boolean])
+    {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
-    path = case argv do
-      []       -> @rebar_url
-      [path|_] -> path
+    case argv do
+      [path|_] -> install_from_path(path, opts)
+      []       -> install_from_s3(opts)
     end
+  end
 
+  defp install_from_path(path, opts) do
     local = Mix.Rebar.local_rebar_path
 
     if opts[:force] || Mix.Utils.can_write?(path) do
@@ -35,11 +45,11 @@ defmodule Mix.Tasks.Local.Rebar do
           File.write!(local, binary)
           File.chmod!(local, 0o755)
           Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(local)]
-        :badname ->
+        :badpath ->
           Mix.raise "Expected #{inspect path} to be a url or a local file path"
         {:local, message} ->
           Mix.raise message
-        {:remote, message} ->
+        {kind, message} when kind in [:remote, :checksum] ->
           Mix.raise """
           #{message}
 
@@ -55,5 +65,17 @@ defmodule Mix.Tasks.Local.Rebar do
     end
 
     :ok
+  end
+
+  defp install_from_s3(opts) do
+    {elixir_version, rebar_version, sha512} =
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", @rebar_list_url)
+
+    url =
+      @rebar_escript_url
+      |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[REBAR_VERSION]", rebar_version)
+
+    install_from_path(url, Keyword.put(opts, :sha512, sha512))
   end
 end

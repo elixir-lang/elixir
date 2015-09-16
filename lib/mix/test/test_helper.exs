@@ -20,7 +20,11 @@ defmodule MixTest.Case do
     end
   end
 
-  setup do
+  setup config do
+    if apps = config[:apps] do
+      Logger.remove_backend(:console)
+    end
+
     on_exit fn ->
       Application.start(:logger)
       Mix.env(:dev)
@@ -29,6 +33,14 @@ defmodule MixTest.Case do
       Mix.ProjectStack.clear_cache
       Mix.ProjectStack.clear_stack
       delete_tmp_paths
+
+      if apps do
+        for app <- apps do
+          Application.stop(app)
+          Application.unload(app)
+        end
+        Logger.add_backend(:console, flush: true)
+      end
     end
 
     :ok
@@ -125,7 +137,7 @@ defmodule MixTest.Case do
   end
 end
 
-## Set up mix home with rebar
+## Set up Mix home with rebar
 
 home = MixTest.Case.tmp_path(".mix")
 File.mkdir_p!(home)
@@ -140,7 +152,7 @@ dest = MixTest.Case.tmp_path("rebar_dep")
 File.mkdir_p!(dest)
 File.cp_r!(source, dest)
 
-## Generate git repo fixtures
+## Generate Git repo fixtures
 
 # Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
@@ -192,7 +204,7 @@ unless File.dir?(target) do
   end
 end
 
-# Deps on git repo
+# Deps on Git repo
 target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 
 unless File.dir?(target) do
@@ -265,7 +277,6 @@ end
 path = MixTest.Case.tmp_path("beams")
 File.rm_rf!(path)
 File.mkdir_p!(path)
-Code.prepend_path(path)
 
 write_beam = fn {:module, name, bin, _} ->
   path

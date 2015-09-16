@@ -200,7 +200,7 @@ defmodule Mix.Compilers.Elixir do
   defp read_manifest(manifest) do
     case :file.consult(manifest) do
       {:ok, [{:version, @manifest_vsn}|t]} -> t
-      {:error, _} -> []
+      _ -> []
     end
   end
 
@@ -223,11 +223,11 @@ defmodule Mix.Compilers.Elixir do
     File.mkdir_p!(Path.dirname(manifest))
 
     File.open!(manifest, [:write], fn device ->
-      :io.format(device, "~p.~n", [{:version, @manifest_vsn}])
+      :io.format(device, '~p.~n', [{:version, @manifest_vsn}])
 
       Enum.map entries, fn {beam, _, _, _, _, _, binary} = entry ->
         if binary, do: File.write!(beam, binary)
-        :io.format(device, "~p.~n", [put_elem(entry, 6, nil)])
+        :io.format(device, '~p.~n', [put_elem(entry, 6, nil)])
       end
 
       :ok

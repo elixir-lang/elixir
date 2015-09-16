@@ -2,7 +2,7 @@ defmodule Code do
   @moduledoc """
   Utilities for managing code compilation, code evaluation and code loading.
 
-  This module complements [Erlang's code module](http://www.erlang.org/doc/man/code.html)
+  This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
   to add behaviour which is specific to Elixir. Almost all of the functions in this module
   have global side effects on the behaviour of Elixir.
   """
@@ -84,7 +84,7 @@ defmodule Code do
   directories the Erlang VM uses for finding module code.
 
   The path is expanded with `Path.expand/1` before being deleted. If the
-  path does not exist it returns false.
+  path does not exist it returns `false`.
 
   ## Examples
 
@@ -341,11 +341,11 @@ defmodule Code do
 
   ## Examples
 
-  If the code is already loaded, it returns nil:
+  If the code is already loaded, it returns `nil`:
 
       Code.require_file("eex_test.exs","../eex/test") #=> nil
 
-  If the code is not already loaded, it returns the same as `load_file/2`:
+  If the code is not loaded yet, it returns the same as `load_file/2`:
 
       Code.require_file("eex_test.exs","../eex/test") |> List.first
       #=> {EExTest.Compiled, <<70, 79, 82, 49, ...>>}
@@ -582,8 +582,11 @@ defmodule Code do
       which module definition starts and `doc` is the string
       attached to the module using the `@moduledoc` attribute
 
-    * `:behaviour_docs` - list of all docstrings attached to
-      behaviour callbacks using the `@doc` attribute
+    * `:callback_docs` - list of all docstrings attached to
+      `@callbacks` using the `@doc` attribute
+
+    * `:type_docs` - list of all docstrings attached to
+      `@type` callbacks using the `@typedoc` attribute
 
     * `:all` - a keyword list with both `:docs` and `:moduledoc`
 
@@ -626,7 +629,7 @@ defmodule Code do
   # unsupported chunk version
   defp lookup_docs(_, _), do: nil
 
-  @doc_sections [:docs, :moduledoc, :behaviour_docs]
+  @doc_sections [:docs, :moduledoc, :callback_docs, :type_docs]
 
   defp do_lookup_docs(docs, :all), do: docs
   defp do_lookup_docs(docs, kind) when kind in @doc_sections,

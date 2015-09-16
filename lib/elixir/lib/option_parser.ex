@@ -53,8 +53,8 @@ defmodule OptionParser do
   For each switch, the following types are supported:
 
     * `:boolean` - marks the given switch as a boolean. Boolean switches
-                   never consume the following value unless it is `true` or
-                   `false`.
+      never consume the following value unless it is `true` or
+      `false`.
     * `:integer` - parses the switch as an integer.
     * `:float`   - parses the switch as a float.
     * `:string`  - returns the switch as a string.
@@ -88,6 +88,9 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--limit", "3", "--unknown", "xyz"],
       ...>                    switches: [limit: :integer])
       {[limit: 3, unknown: "xyz"], [], []}
+
+      iex> OptionParser.parse(["--unlock", "path/to/file", "--unlock", "path/to/another/file"], strict: [unlock: :keep])
+      {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
   ## Negation switches
 
@@ -277,7 +280,7 @@ defmodule OptionParser do
     do_split(strip_leading_spaces(string), "", [], nil)
   end
 
-  # If we have a escaped quote, simply remove the escape
+  # If we have an escaped quote, simply remove the escape
   defp do_split(<<?\\, quote, t :: binary>>, buffer, acc, quote),
     do: do_split(t, <<buffer::binary, quote>>, acc, quote)
 
@@ -289,7 +292,7 @@ defmodule OptionParser do
   defp do_split(<<quote, t :: binary>>, buffer, acc, quote),
     do: do_split(t, buffer, acc, nil)
 
-  # If we have a escaped quote/space, simply remove the escape as long as we are not inside a quote
+  # If we have an escaped quote/space, simply remove the escape as long as we are not inside a quote
   defp do_split(<<?\\, h, t :: binary>>, buffer, acc, nil) when h in [?\s, ?', ?"],
     do: do_split(t, <<buffer::binary, h>>, acc, nil)
 

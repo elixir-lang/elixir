@@ -1,7 +1,7 @@
 defmodule Mix do
   @moduledoc ~S"""
   Mix is a build tool that provides tasks for creating, compiling,
-  testing Elixir projects, as well as handle dependencies, and more.
+  and testing Elixir projects, managing its dependencies, and more.
 
   ## Mix.Project
 
@@ -177,7 +177,7 @@ defmodule Mix do
   end
 
   @doc """
-  Returns the mix environment.
+  Returns the Mix environment.
   """
   def env do
     # env is not available on bootstrapping, so set a :dev default
@@ -185,7 +185,7 @@ defmodule Mix do
   end
 
   @doc """
-  Changes the current mix env.
+  Changes the current Mix environment to `env`.
 
   Be careful when invoking this function as any project
   configuration won't be reloaded.
@@ -210,12 +210,15 @@ defmodule Mix do
   end
 
   @doc """
-  The shell is a wrapper for doing IO.
+  Returns the current shell.
 
-  It contains conveniences for asking the user information,
-  printing status and so forth. It is also swappable,
-  allowing developers to use a test shell that simply sends the
-  messages to the current process.
+  `shell/0` can be used as a wrapper for the current shell. It contains
+  conveniences for asking information to the user, printing things and so
+  forth. The Mix shell is swappable (see `shell/1`), allowing developers to use
+  a test shell that simply sends messages to the current process instead of
+  doing IO (see `Mix.Shell.Process`).
+
+  By default, this returns `Mix.Shell.IO`.
   """
   def shell do
     Mix.State.get(:shell, Mix.Shell.IO)
@@ -223,24 +226,28 @@ defmodule Mix do
 
   @doc """
   Sets the current shell.
+
+  After calling this function, `shell` becomes the shell that is returned by
+  `shell/0`.
   """
   def shell(shell) do
     Mix.State.put(:shell, shell)
   end
 
   @doc """
-  Raises a mix error that is nicely formatted.
+  Raises a Mix error that is nicely formatted.
   """
   def raise(message) when is_binary(message) do
     Kernel.raise Mix.Error, mix: true, message: message
   end
 
   @doc """
-  Raises a mix compatible exception.
+  Raises a Mix compatible exception.
 
-  A mix compatible exception has a `mix` field which mix
-  uses to store the project or application name which is
-  automatically by the formatting tools.
+  A Mix compatible exception contains a special field called
+  `:mix` that is used to store the current project or application
+  name. This information is used by modules like `Mix.CLI` to
+  properly format and show information to the user.
   """
   def raise(exception, opts) when is_atom(exception) do
     Kernel.raise %{exception.exception(opts) | mix: true}

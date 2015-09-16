@@ -113,9 +113,9 @@ defmodule IEx do
 
   Where "remsh" means "remote shell". In general, Elixir supports:
 
-    * remsh from an elixir node to an elixir node
-    * remsh from a plain erlang node to an elixir node (through the ^G menu)
-    * remsh from an elixir node to a plain erlang node (and get an erl shell there)
+    * remsh from an Elixir node to an Elixir node
+    * remsh from a plain Erlang node to an Elixir node (through the ^G menu)
+    * remsh from an Elixir node to a plain Erlang node (and get an `erl` shell there)
 
   Connecting an Elixir shell to a remote node without Elixir is
   **not** supported.
@@ -131,7 +131,7 @@ defmodule IEx do
 
   Sample contents of a local .iex.exs file:
 
-      # source another `.iex.exs` file
+      # source another ".iex.exs" file
       import_file "~/.iex.exs"
 
       # print something before the shell starts
@@ -225,20 +225,20 @@ defmodule IEx do
 
     * `:enabled`      - boolean value that allows for switching the coloring on and off
     * `:eval_result`  - color for an expression's resulting value
-    * `:eval_info`    - … various informational messages
-    * `:eval_error`   - … error messages
-    * `:stack_app`    - … the app in stack traces
-    * `:stack_info`   - … the remaining info in stacktraces
-    * `:ls_directory` - … for directory entries (ls helper)
-    * `:ls_device`    - … device entries (ls helper)
+    * `:eval_info`    - ... various informational messages
+    * `:eval_error`   - ... error messages
+    * `:stack_app`    - ... the app in stack traces
+    * `:stack_info`   - ... the remaining info in stacktraces
+    * `:ls_directory` - ... for directory entries (ls helper)
+    * `:ls_device`    - ... device entries (ls helper)
 
   When printing documentation, IEx will convert the markdown
   documentation to ANSI as well. Those can be configured via:
 
-    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
-    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
+    * `:doc_title`       - the overall heading for the output (reverse, yellow, bright)
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
@@ -265,7 +265,7 @@ defmodule IEx do
     * `:default_prompt` - used when `Node.alive?` returns `false`
     * `:alive_prompt`   - used when `Node.alive?` returns `true`
 
-  The part of the listed in the following of the prompt string is replaced.
+  The following values in the prompt string will be replaced appropriately:
 
     * `%counter` - the index of the history
     * `%prefix`  - a prefix given by `IEx.Server`
@@ -353,7 +353,7 @@ defmodule IEx do
   ## Examples
 
   Let's suppose you want to investigate what is happening
-  with some particular function. By invoking `IEx.pry` from
+  with some particular function. By invoking `IEx.pry/1` from
   the function, IEx will allow you to access its binding
   (variables), verify its lexical information and access
   the process information. Let's see an example:
@@ -378,7 +378,7 @@ defmodule IEx do
       2
       3
 
-  Keep in mind that `IEx.pry` runs in the caller process,
+  Keep in mind that `IEx.pry/1` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
   process can be freed by calling `respawn`, which starts a
   new IEx evaluation cycle, letting this one go:

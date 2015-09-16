@@ -47,7 +47,7 @@ defmodule ExUnit.Callbacks do
       defmodule AssertionTest do
         use ExUnit.Case, async: true
 
-        # `setup_all` is called once to setup the case before any test is run
+        # "setup_all" is called once to setup the case before any test is run
         setup_all do
           IO.puts "Starting AssertionTest"
 
@@ -55,7 +55,7 @@ defmodule ExUnit.Callbacks do
           :ok
         end
 
-        # `setup` is called before each test is run
+        # "setup" is called before each test is run
         setup do
           IO.puts "This is a setup callback"
 
@@ -67,7 +67,7 @@ defmodule ExUnit.Callbacks do
           {:ok, hello: "world"}
         end
 
-        # Same as `setup`, but receives the context
+        # Same as "setup", but receives the context
         # for the current test
         setup context do
           IO.puts "Setting up: #{context[:test]}"
@@ -147,17 +147,37 @@ defmodule ExUnit.Callbacks do
   ## Helpers
 
   @doc false
-  def __merge__(_mod, other, :ok) do
-    {:ok, other}
+  def __merge__(_mod, context, :ok) do
+    {:ok, context}
   end
 
-  def __merge__(_mod, other, {:ok, data}) do
-    {:ok, Dict.merge(other, data)}
+  def __merge__(mod, context, {:ok, data}) do
+    {:ok, context_merge(mod, context, data)}
   end
 
-  def __merge__(mod, _, failure) do
+  def __merge__(mod, _, data) do
+    raise_merge_failed!(mod, data)
+  end
+
+  defp context_merge(mod, _context, %{__struct__: _} = data) do
+    raise_merge_failed!(mod, data)
+  end
+
+  defp context_merge(_mod, context, %{} = data) do
+    Map.merge(context, data)
+  end
+
+  defp context_merge(_mod, context, data) when is_list(data) do
+    Enum.into(data, context)
+  end
+
+  defp context_merge(mod, _context, data) do
+    raise_merge_failed!(mod, data)
+  end
+
+  defp raise_merge_failed!(mod, data) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          " or {:ok, dict}, got #{inspect failure} instead"
+          " or {:ok, keyword | map}, got #{inspect data} instead"
   end
 
   defp escape(contents) do
@@ -174,12 +194,8 @@ defmodule ExUnit.Callbacks do
         [h|t] ->
           Enum.reduce t, compile_merge(h), fn(callback, acc) ->
             quote do
-              case unquote(acc) do
-                {:ok, context} ->
-                  unquote(compile_merge(callback))
-                other ->
-                  other
-              end
+              {:ok, context} = unquote(acc)
+              unquote(compile_merge(callback))
             end
           end
       end

@@ -31,7 +31,7 @@ end
 defmodule ModuleTest.ToUse do
   32 = __ENV__.line # Moving the next line around can make tests fail
   var = 1
-  var # Not available in callbacks
+  _ = var # Not available in callbacks
   def callback_value(false), do: false
   use ModuleTest.ToBeUsed
 end
@@ -54,32 +54,32 @@ defmodule ModuleTest do
     end
   end
 
-  test :in_memory do
+  test "in memory" do
     assert :code.which(__MODULE__) == :in_memory
   end
 
   ## Eval
 
-  test :eval_quoted do
+  test "eval quoted" do
     assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
   end
 
-  test :line_from_macro do
+  test "line from macro" do
     assert ModuleTest.ToUse.line == 36
   end
 
   ## Callbacks
 
-  test :compile_callback_hook do
+  test "compile callback hook" do
     assert ModuleTest.ToUse.callback_value(true) == true
     assert ModuleTest.ToUse.callback_value(false) == false
   end
 
-  test :before_compile_callback_hook do
+  test "before compile callback hook" do
     assert ModuleTest.ToUse.before_compile == []
   end
 
-  test :on_definition do
+  test "on definition" do
     defmodule OnDefinition do
       @on_definition ModuleTest
 
@@ -101,14 +101,14 @@ defmodule ModuleTest do
     assert {:+, _, [{:foo, _, nil}, {:bar, _, nil}]} = expr
   end
 
-  test :overridable_inside_before_compile do
+  test "overridable inside before compile" do
     defmodule OverridableWithBeforeCompile do
       @before_compile ModuleTest
     end
     assert OverridableWithBeforeCompile.constant == 1
   end
 
-  test :alias_with_raw_atom do
+  test "alias with raw atom" do
     defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
     end
@@ -125,11 +125,11 @@ defmodule ModuleTest do
 
   ## Attributes
 
-  test :reserved_attributes do
+  test "reserved attributes" do
     assert List.keyfind(ExUnit.Server.__info__(:attributes), :behaviour, 0) == {:behaviour, [:gen_server]}
   end
 
-  test :registered_attributes do
+  test "registered attributes" do
     assert [{:register_example, [:it_works]}, {:register_example, [:still_works]}] ==
       Enum.filter __MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)
   end
@@ -137,14 +137,14 @@ defmodule ModuleTest do
   @some_attribute  [1]
   @other_attribute [3, 2, 1]
 
-  test :inside_function_attributes do
+  test "inside function attributes" do
     assert [1] = @some_attribute
     assert [3, 2, 1] = @other_attribute
   end
 
   ## Naming
 
-  test :concat do
+  test "concat" do
     assert Module.concat(Foo, Bar)  == Foo.Bar
     assert Module.concat(Foo, :Bar) == Foo.Bar
     assert Module.concat(Foo, "Bar") == Foo.Bar
@@ -153,14 +153,14 @@ defmodule ModuleTest do
     assert Module.concat(Bar, nil) == Elixir.Bar
   end
 
-  test :safe_concat do
+  test "safe concat" do
     assert Module.safe_concat(Foo, :Bar) == Foo.Bar
     assert_raise ArgumentError, fn ->
       Module.safe_concat SafeConcat, Doesnt.Exist
     end
   end
 
-  test :split do
+  test "split" do
     module = Very.Long.Module.Name.And.Even.Longer
     assert Module.split(module) == ["Very", "Long", "Module", "Name", "And", "Even", "Longer"]
     assert Module.split("Elixir.Very.Long") == ["Very", "Long"]
@@ -173,25 +173,25 @@ defmodule ModuleTest do
     assert Module.concat(Module.split(module)) == module
   end
 
-  test :__MODULE__ do
+  test "  MODULE  " do
     assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
   end
 
   ## Creation
 
-  test :defmodule do
+  test "defmodule" do
     assert match?({:module, Defmodule, binary, 3} when is_binary(binary), defmodule Defmodule do
       1 + 2
     end)
   end
 
-  test :defmodule_with_atom do
+  test "defmodule with atom" do
     assert match?({:module, :root_defmodule, _, _}, defmodule :root_defmodule do
       :ok
     end)
   end
 
-  test :create do
+  test "create" do
     contents =
       quote do
         def world, do: true
@@ -201,7 +201,7 @@ defmodule ModuleTest do
     assert ModuleCreateSample.world
   end
 
-  test :create_with_elixir_as_a_name do
+  test "create with elixir as a name" do
     contents =
       quote do
         def world, do: true
@@ -212,7 +212,7 @@ defmodule ModuleTest do
     end
   end
 
-  test :no_function_in_module_body do
+  test "no function in module body" do
     in_module do
       assert __ENV__.function == nil
     end
@@ -220,7 +220,7 @@ defmodule ModuleTest do
 
   ## Definitions
 
-  test :defines? do
+  test "defines?" do
     in_module do
       refute Module.defines? __MODULE__, {:foo, 0}
       def foo(), do: bar()
@@ -237,7 +237,7 @@ defmodule ModuleTest do
     end
   end
 
-  test :definitions_in do
+  test "definitions in" do
     in_module do
       def foo(1, 2, 3), do: 4
 

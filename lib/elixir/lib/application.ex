@@ -84,8 +84,8 @@ defmodule Application do
   This particular aspect of applications is explained in more detail in the
   OTP documentation:
 
-    * http://www.erlang.org/doc/man/application.html
-    * http://www.erlang.org/doc/design_principles/applications.html
+    * [`:application` module](http://www.erlang.org/doc/man/application.html)
+    * [Applications – OTP Design Principles](http://www.erlang.org/doc/design_principles/applications.html)
 
   A developer may also implement the `stop/1` callback (automatically defined
   by `use Application`) which does any application cleanup. It receives the
@@ -331,6 +331,22 @@ defmodule Application do
   @spec app_dir(app, String.t) :: String.t
   def app_dir(app, path) when is_binary(path) do
     Path.join(app_dir(app), path)
+  end
+
+  @doc """
+  Returns a list with information about the applications which are currently running.
+  """
+  @spec started_applications(timeout) :: [tuple]
+  def started_applications(timeout \\ 5000) do
+    :application.which_applications(timeout)
+  end
+
+  @doc """
+  Returns a list with information about the applications which have been loaded.
+  """
+  @spec loaded_applications :: [tuple]
+  def loaded_applications do
+    :application.loaded_applications
   end
 
   @doc """

@@ -9,25 +9,25 @@ end
 defmodule Kernel.AliasTest do
   use ExUnit.Case, async: true
 
-  test :alias_erlang do
+  test "alias erlang" do
     alias :lists, as: MyList
     assert MyList.flatten([1, [2], 3]) == [1, 2, 3]
     assert Elixir.MyList.Bar == :"Elixir.MyList.Bar"
     assert MyList.Bar == :"Elixir.lists.Bar"
   end
 
-  test :double_alias do
+  test "double alias" do
     alias Kernel.AliasTest.Nested, as: Nested2
     assert Nested.value  == 1
     assert Nested2.value == 1
   end
 
-  test :overwriten_alias do
+  test "overwriten alias" do
     alias List, as: Nested
     assert Nested.flatten([[13]]) == [13]
   end
 
-  test :lexical do
+  test "lexical" do
     if true do
       alias OMG, as: List, warn: false
     else
@@ -41,7 +41,7 @@ defmodule Kernel.AliasTest do
     def sample, do: 1
   end
 
-  test :nested_elixir_alias do
+  test "nested elixir alias" do
     assert Kernel.AliasTest.Elixir.sample == 1
   end
 end
@@ -66,7 +66,7 @@ defmodule Kernel.AliasNestingTest do
   require Kernel.AliasNestingGenerator
   Kernel.AliasNestingGenerator.create
 
-  test :aliases_nesting do
+  test "aliases nesting" do
     assert Parent.a == :a
     assert Parent.Child.b == :a
   end
@@ -75,7 +75,7 @@ defmodule Kernel.AliasNestingTest do
     def value, do: 2
   end
 
-  test :aliases_nesting_with_previous_alias do
+  test "aliases nesting with previous alias" do
     assert Nested.value == 2
   end
 end

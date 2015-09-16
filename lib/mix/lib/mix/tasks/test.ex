@@ -27,11 +27,11 @@ defmodule Mix.Tasks.Test do
 
   use Mix.Task
 
-  @shortdoc "Run a project's tests"
+  @shortdoc "Runs a project's tests"
   @recursive true
 
   @moduledoc """
-  Run the tests for a project.
+  Runs the tests for a project.
 
   This task starts the current application, loads up
   `test/test_helper.exs` and then requires all files matching the
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Test do
   first (either in the test helper or via the `--exclude` option), the
   `--include` flag has no effect.
 
-  For this reason, mix also provides an `--only` option that excludes all
+  For this reason, Mix also provides an `--only` option that excludes all
   tests and includes only the given ones:
 
       mix test --only external
@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Test do
     {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
     unless System.get_env("MIX_ENV") || Mix.env == :test do
-      Mix.raise "mix test is running on environment #{Mix.env}. If you are " <>
+      Mix.raise "\"mix test\" is running on environment \"#{Mix.env}\". If you are " <>
                                 "running tests along another task, please set MIX_ENV explicitly"
     end
 
@@ -167,32 +167,39 @@ defmodule Mix.Tasks.Test do
     Mix.shell.print_app
     Mix.Task.run "app.start", args
 
-    # Ensure ex_unit is loaded.
+    # Ensure ExUnit is loaded.
     case Application.load(:ex_unit) do
       :ok -> :ok
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
+    # Configure ExUnit with command line options before requiring
+    # test helpers so that the configuration is available in helpers.
+    # Then configure ExUnit again so command line options override
     opts = ex_unit_opts(opts)
     ExUnit.configure(opts)
 
     test_paths = project[:test_paths] || ["test"]
     Enum.each(test_paths, &require_test_helper(&1))
-    ExUnit.configure(opts)
+    ExUnit.configure(merge_helper_opts(opts))
 
     # Finally parse, require and load the files
     test_files   = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
 
-    test_files = Mix.Utils.extract_files(test_files, test_pattern)
-    _ = Kernel.ParallelRequire.files(test_files)
+    case Mix.Utils.extract_files(test_files, test_pattern) do
+      [] ->
+        Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
+      test_files ->
+        _ = Kernel.ParallelRequire.files(test_files)
 
-    # Run the test suite, coverage tools and register an exit hook
-    %{failures: failures} = ExUnit.run
-    if cover, do: cover.()
+        # Run the test suite, coverage tools and register an exit hook
+        %{failures: failures} = ExUnit.run
+        if cover, do: cover.()
 
-    System.at_exit fn _ ->
-      if failures > 0, do: exit({:shutdown, 1})
+        System.at_exit fn _ ->
+          if failures > 0, do: exit({:shutdown, 1})
+        end
     end
   end
 
@@ -204,15 +211,20 @@ defmodule Mix.Tasks.Test do
            |> filter_only_opts()
 
     default_opts(opts) ++
-      Dict.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
+      Keyword.take(opts, [:trace, :max_cases, :include, :exclude, :seed, :timeout])
+  end
+
+  defp merge_helper_opts(opts) do
+    opts
+    |> merge_opts(:exclude)
   end
 
   defp default_opts(opts) do
     # Set autorun to false because Mix
     # automatically runs the test suite for us.
-    case Dict.get(opts, :color) do
-      nil -> [autorun: false]
-      enabled? -> [autorun: false, colors: [enabled: enabled?]]
+    case Keyword.fetch(opts, :color) do
+      {:ok, enabled?} -> [autorun: false, colors: [enabled: enabled?]]
+      :error -> [autorun: false]
     end
   end
 
@@ -222,7 +234,7 @@ defmodule Mix.Tasks.Test do
 
   defp parse_files([single_file], _test_paths) do
     # Check if the single file path matches test/path/to_test.exs:123, if it does
-    # apply `--only line:123` and trim the trailing :123 part.
+    # apply "--only line:123" and trim the trailing :123 part.
     {single_file, opts} = ExUnit.Filters.parse_path(single_file)
     ExUnit.configure(opts)
     [single_file]
@@ -244,6 +256,11 @@ defmodule Mix.Tasks.Test do
     else
       opts
     end
+  end
+
+  defp merge_opts(opts, key) do
+    value = Application.get_env(:ex_unit, key, [])
+    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 
   defp filter_only_opts(opts) do

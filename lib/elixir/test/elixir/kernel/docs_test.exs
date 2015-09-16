@@ -3,12 +3,21 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Kernel.DocsTest do
   use ExUnit.Case
 
+  @moduledoc "foo"
+  "foo" = @moduledoc
+
+  @typedoc "foo"
+  "foo" = @typedoc
+  @type foo :: term
+
+  @doc "foo"
+  "foo" = @doc
+
   test "compiled with docs" do
     deftestmodule(SampleDocs)
     docs = Code.get_docs(SampleDocs, :all)
 
-    assert [{{:__behaviour__, 1}, _, :def, [{:atom, [], Elixir}], false},
-            {{:argnames, 5}, _, :def, [
+    assert [{{:argnames, 5}, _, :def, [
               {:list1, [], Elixir},
               {:list2, [], Elixir},
               {:map1, [], Elixir},
@@ -22,11 +31,17 @@ defmodule Kernel.DocsTest do
               {:\\, [], [{:x, [], nil}, 0]},
               {:\\, [], [{:y, [], nil}, 2015]},
               {:\\, [], [{:f, [], nil}, {:&, _, [{:/, _, [{:>=, _, _}, 2]}]}]}], nil}] = docs[:docs]
+
     assert {_, "Hello, I am a module"} = docs[:moduledoc]
-    assert [{{:bar, 1}, _, :def, false}, {{:baz, 2}, _, :def, nil},
-            {{:first, 0}, _, :def, "I should be first."},
-            {{:foo, 1}, _, :def, "Foo"},
-            {{:last, 1}, _, :defmacro, "I should be last."}] = docs[:behaviour_docs]
+
+    assert [{{:bar, 1}, _, :opaque, "Me too."},
+            {{:foo, 1}, _, :type, "I am a type."}] = docs[:type_docs]
+
+    assert [{{:bar, 1}, _, :callback, false},
+            {{:baz, 2}, _, :callback, nil},
+            {{:first, 0}, _, :callback, "I should be first."},
+            {{:foo, 1}, _, :callback, "Foo"},
+            {{:last, 1}, _, :macrocallback, "I should be last."}] = docs[:callback_docs]
   end
 
   test "compiled without docs" do
@@ -36,7 +51,8 @@ defmodule Kernel.DocsTest do
 
     assert Code.get_docs(SampleNoDocs, :docs) == nil
     assert Code.get_docs(SampleNoDocs, :moduledoc) == nil
-    assert Code.get_docs(SampleNoDocs, :behaviour_docs) == nil
+    assert Code.get_docs(SampleNoDocs, :type_docs) == nil
+    assert Code.get_docs(SampleNoDocs, :callback_docs) == nil
   after
     Code.compiler_options(docs: true)
   end
@@ -51,7 +67,7 @@ defmodule Kernel.DocsTest do
 
     assert Code.get_docs(NoDocs, :docs) == nil
     assert Code.get_docs(NoDocs, :moduledoc) == nil
-    assert Code.get_docs(NoDocs, :behaviour_docs) == nil
+    assert Code.get_docs(NoDocs, :callback_docs) == nil
   end
 
   defp deftestmodule(name) do
@@ -60,21 +76,25 @@ defmodule Kernel.DocsTest do
     write_beam(defmodule name do
       @moduledoc "Hello, I am a module"
 
-      use Behaviour
+      @typedoc "I am a type."
+      @type foo(any) :: any
+
+      @typedoc "Me too."
+      @opaque bar(any) :: any
 
       @doc "I should be first."
-      defcallback first :: term
+      @callback first :: term
 
       @doc "Foo"
-      defcallback foo(any) :: any
+      @callback foo(any) :: any
 
       @doc false
-      defcallback bar(true) :: false
+      @callback bar(true) :: false
 
-      defcallback baz(1, binary) :: binary
+      @callback baz(1, binary) :: binary
 
       @doc "I should be last."
-      defmacrocallback last(integer) :: Macro.t
+      @macrocallback last(integer) :: Macro.t
 
       @doc """
       This is fun!

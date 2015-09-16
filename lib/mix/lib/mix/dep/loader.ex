@@ -11,13 +11,26 @@ defmodule Mix.Dep.Loader do
 
   By default, it will filter all dependencies that does not match
   current environment, behaviour can be overridden via options.
-
-  ## Options
-
-    * `:env` - filter dependencies on given environments
   """
-  def children(opts) do
-    mix_children(opts) ++ Mix.Dep.Umbrella.unloaded
+  def children() do
+    mix_children([]) ++ Mix.Dep.Umbrella.unloaded
+  end
+
+  @doc """
+  Partitions loaded dependencies by environment.
+  """
+  def partition_by_env(deps, opts) do
+    if env = opts[:env] do
+      Enum.partition(deps, fn
+        %Mix.Dep{status: {:divergedonly, _}} ->
+          true
+        %Mix.Dep{opts: opts} ->
+          only = opts[:only] |> List.wrap |> validate_only!
+          only == [] or env in List.wrap(only)
+      end)
+    else
+      {deps, []}
+    end
   end
 
   @doc """
@@ -37,7 +50,7 @@ defmodule Mix.Dep.Loader do
         mix?(dest) ->
           mix_dep(dep, children)
 
-        # If not an explicit rebar or mix dependency
+        # If not an explicit rebar or Mix dependency
         # but came from rebar, assume to be a rebar dep.
         rebar?(dest) or manager == :rebar ->
           rebar_dep(dep, children)
@@ -49,7 +62,7 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    %{validate_app(dep) | deps: children}
+    %{validate_app(dep) | deps: attach_only(children, opts)}
   end
 
   @doc """
@@ -85,21 +98,33 @@ defmodule Mix.Dep.Loader do
     %{with_scm_and_app(tuple) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({app, opts}) when is_list(opts) do
-    with_scm_and_app({app, nil, opts})
+  defp with_scm_and_app({app, opts} = original) when is_atom(app) and is_list(opts) do
+    with_scm_and_app(app, nil, opts, original)
   end
 
-  defp with_scm_and_app({app, req}) do
-    with_scm_and_app({app, req, []})
-  end
-
-  defp with_scm_and_app({app, req, opts} = other) when is_atom(app) and is_list(opts) do
-    unless is_binary(req) or Regex.regex?(req) or is_nil(req) do
-      invalid_dep_format(other)
+  defp with_scm_and_app({app, req} = original) when is_atom(app) do
+    if is_binary(req) or Regex.regex?(req) do
+      with_scm_and_app(app, req, [], original)
+    else
+      invalid_dep_format(original)
     end
+  end
 
+  defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts)  do
+    if is_binary(req) or Regex.regex?(req) do
+      with_scm_and_app(app, req, opts, original)
+    else
+      invalid_dep_format(original)
+    end
+  end
+
+  defp with_scm_and_app(original) do
+    invalid_dep_format(original)
+  end
+
+  defp with_scm_and_app(app, req, opts, original) do
     unless Keyword.keyword?(opts) do
-      invalid_dep_format(other)
+      invalid_dep_format(original)
     end
 
     bin_app = Atom.to_string(app)
@@ -112,13 +137,13 @@ defmodule Mix.Dep.Loader do
 
     {scm, opts} = get_scm(app, opts)
 
-    if !scm && Mix.Tasks.Local.Hex.ensure_installed?(app) do
-      _ = Mix.Tasks.Local.Hex.start()
+    if !scm && Mix.Hex.ensure_installed?(app) do
+      _ = Mix.Hex.start()
       {scm, opts} = get_scm(app, opts)
     end
 
     unless scm do
-      Mix.raise "Could not find a SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
+      Mix.raise "Could not find an SCM for dependency #{inspect app} from #{inspect Mix.Project.get}"
     end
 
     %Mix.Dep{
@@ -127,10 +152,6 @@ defmodule Mix.Dep.Loader do
       requirement: req,
       status: scm_status(scm, opts),
       opts: opts}
-  end
-
-  defp with_scm_and_app(other) do
-    invalid_dep_format(other)
   end
 
   defp get_scm(app, opts) do
@@ -187,6 +208,24 @@ defmodule Mix.Dep.Loader do
 
   ## Fetching
 
+  # We need to override the dependencies so they mirror
+  # the :only requirement in the parent. Furthermore, if
+  # a dependency has :only, we must remove it as deps
+  # always run in a given environment (which does not
+  # necessarily mirror the application one unless
+  # configured otherwise).
+  defp attach_only(deps, opts) do
+    if only = opts[:only] do
+      Enum.map(deps, fn %{opts: opts} = dep ->
+        %{dep | opts: Keyword.put(opts, :only, only)}
+      end)
+    else
+      Enum.map(deps, fn %{opts: opts} = dep ->
+        %{dep | opts: Keyword.delete(opts, :only)}
+      end)
+    end
+  end
+
   defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
       if Mix.Project.umbrella? do
@@ -226,19 +265,19 @@ defmodule Mix.Dep.Loader do
     {%{dep | manager: :make}, []}
   end
 
+  defp validate_only!(only) do
+    for entry <- only, not is_atom(entry) do
+      Mix.raise "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect only}"
+    end
+    only
+  end
+
   defp mix_children(opts) do
     from = Path.absname("mix.exs")
-    deps = Enum.map(Mix.Project.config[:deps] || [], &to_dep(&1, from))
-
-    # Filter deps not matching mix environment
-    if env = opts[:env] do
-      Enum.filter(deps, fn %Mix.Dep{opts: opts} ->
-        only = opts[:only]
-        if only, do: env in List.wrap(only), else: true
-      end)
-    else
-      deps
-    end
+    (Mix.Project.config[:deps] || [])
+    |> Enum.map(&to_dep(&1, from))
+    |> partition_by_env(opts)
+    |> elem(0)
   end
 
   defp rebar_children(root_config) do

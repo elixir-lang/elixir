@@ -4,12 +4,10 @@ otp_release:
   - 17.0
   - 17.3
   - 17.4
+  - 17.5
+  - 18.0
 
 sudo: false
-
-env:
-  - ELIXIR_ERL_OPTIONS=""
-  - ELIXIR_ERL_OPTIONS="+T 9"
 
 script: "make compile && rm -rf .git && make test"
 

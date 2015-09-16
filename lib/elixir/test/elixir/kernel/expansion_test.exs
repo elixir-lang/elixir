@@ -18,7 +18,7 @@ defmodule Kernel.ExpansionTest do
   end
 
   test "__block__: is recursive to argument when arity is 1" do
-    assert expand(quote do: __block__(1, __block__(2))) == quote do: __block__(1, 2)
+    assert expand(quote do: __block__(_ = 1, __block__(2))) == quote do: __block__(_ = 1, 2)
   end
 
   test "__block__: accumulates vars" do

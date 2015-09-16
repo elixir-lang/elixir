@@ -3,7 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule FloatTest do
   use ExUnit.Case, async: true
 
-  test :parse do
+  test "parse" do
     assert Float.parse("12") === {12.0, ""}
     assert Float.parse("-12") === {-12.0, ""}
     assert Float.parse("-0.1") === {-0.1, ""}
@@ -24,12 +24,17 @@ defmodule FloatTest do
     assert Float.parse("1.32453e-10") === {1.32453e-10, ""}
     assert Float.parse("1.32.45") === {1.32, ".45"}
     assert Float.parse("1.o") === {1.0, ".o"}
+    assert Float.parse("+12.3E+4") === {1.23e5, ""}
+    assert Float.parse("+12.3E-4x") === {0.00123, "x"}
+    assert Float.parse("-1.23e-0xFF") === {-1.23, "xFF"}
+    assert Float.parse("-1.e2") === {-1.0, ".e2"}
+    assert Float.parse(".12") === :error
     assert Float.parse("--1.2") === :error
     assert Float.parse("++1.2") === :error
     assert Float.parse("pi") === :error
   end
 
-  test :floor do
+  test "floor" do
     assert Float.floor(12.524235) === 12.0
     assert Float.floor(-12.5) === -13.0
     assert Float.floor(-12.524235) === -13.0
@@ -43,7 +48,7 @@ defmodule FloatTest do
     assert Float.floor(1.32453e-10) === 0.0
   end
 
-  test :floor_with_precision do
+  test "floor with precision" do
     assert Float.floor(12.524235, 0) === 12.0
     assert Float.floor(-12.524235, 0) === -13.0
 
@@ -54,7 +59,7 @@ defmodule FloatTest do
     assert Float.floor(-12.524235, 3) === -12.525
   end
 
-  test :ceil do
+  test "ceil" do
     assert Float.ceil(12.524235) === 13.0
     assert Float.ceil(-12.5) === -12.0
     assert Float.ceil(-12.524235) === -12.0
@@ -68,7 +73,7 @@ defmodule FloatTest do
     assert Float.ceil(1.32453e-10) === 1.0
   end
 
-  test :ceil_with_precision do
+  test "ceil with precision" do
     assert Float.ceil(12.524235, 0) === 13.0
     assert Float.ceil(-12.524235, 0) === -12.0
 
@@ -79,7 +84,7 @@ defmodule FloatTest do
     assert Float.ceil(-12.524235, 3) === -12.524
   end
 
-  test :round do
+  test "round" do
     assert Float.round(5.5675, 3) === 5.568
     assert Float.round(-5.5674, 3) === -5.567
     assert Float.round(5.5, 3) === 5.5

@@ -1,19 +1,19 @@
 -module(elixir_try).
--export([clauses/4]).
+-export([clauses/3]).
 -include("elixir.hrl").
 
-clauses(_Meta, Clauses, Return, S) ->
+clauses(_Meta, Clauses, S) ->
   Catch  = elixir_clauses:get_pairs('catch', Clauses, 'catch'),
   Rescue = elixir_clauses:get_pairs(rescue, Clauses, rescue),
-  reduce_clauses(Rescue ++ Catch, [], S, Return, S).
+  reduce_clauses(Rescue ++ Catch, [], S, S).
 
-reduce_clauses([H|T], Acc, SAcc, Return, S) ->
-  {TH, TS} = each_clause(H, Return, SAcc),
-  reduce_clauses(T, TH ++ Acc, elixir_scope:mergec(S, TS), Return, S);
-reduce_clauses([], Acc, SAcc, _Return, _S) ->
+reduce_clauses([H|T], Acc, SAcc, S) ->
+  {TH, TS} = each_clause(H, SAcc),
+  reduce_clauses(T, TH ++ Acc, elixir_scope:mergec(S, TS), S);
+reduce_clauses([], Acc, SAcc, _S) ->
   {lists:reverse(Acc), SAcc}.
 
-each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
+each_clause({'catch', Meta, Raw, Expr}, S) ->
   {Args, Guards} = elixir_clauses:extract_splat_guards(Raw),
 
   Final = case Args of
@@ -23,10 +23,10 @@ each_clause({'catch', Meta, Raw, Expr}, Return, S) ->
 
   Condition = [{'{}', Meta, Final}],
   {TC, TS} = elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
-                                   Condition, Expr, Guards, Return, S),
+                                   Condition, Expr, Guards, S),
   {[TC], TS};
 
-each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, Return, S) ->
+each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
   {VarName, _, CS} = elixir_scope:build_var('_', S),
   Var = {VarName, Meta, nil},
   {Parts, Safe, FS} = rescue_guards(Meta, Var, Right, CS),
@@ -44,22 +44,22 @@ each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, Return, S) ->
         prepend_to_block(Meta, {'=', Meta, [Left, Normalized]}, Expr)
     end,
 
-  build_rescue(Meta, Parts, Body, Return, FS);
+  build_rescue(Meta, Parts, Body, FS);
 
-each_clause({rescue, Meta, _, _}, _Return, S) ->
+each_clause({rescue, Meta, _, _}, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid arguments for rescue in try");
 
-each_clause({Key, Meta, _, _}, _Return, S) ->
+each_clause({Key, Meta, _, _}, S) ->
   elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid key ~ts in try", [Key]).
 
 %% Helpers
 
-build_rescue(Meta, Parts, Body, Return, S) ->
+build_rescue(Meta, Parts, Body, S) ->
   Matches = [Match || {Match, _} <- Parts],
 
   {{clause, Line, TMatches, _, TBody}, TS} =
     elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
-                          Matches, Body, [], Return, S),
+                          Matches, Body, [], S),
 
   TClauses =
     [begin
@@ -201,5 +201,5 @@ prepend_to_block(Meta, Expr, Args) ->
   {'__block__', Meta, [Expr, Args]}.
 
 erl(Meta, Op)      -> {'.', Meta, [erlang, Op]}.
-erl_or(Meta, Left, Right) -> {'__op__', Meta, ['orelse', Left, Right]}.
-erl_and(Meta, Left, Right) -> {'__op__', Meta, ['andalso', Left, Right]}.
+erl_or(Meta, Left, Right) -> {{'.', Meta, [erlang, 'orelse']}, Meta, [Left, Right]}.
+erl_and(Meta, Left, Right) -> {{'.', Meta, [erlang, 'andalso']}, Meta, [Left, Right]}.

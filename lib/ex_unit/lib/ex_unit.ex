@@ -11,13 +11,13 @@ defmodule ExUnit do
       # 1) Start ExUnit.
       ExUnit.start
 
-      # 2) Create a new test module (test case) and use `ExUnit.Case`.
+      # 2) Create a new test module (test case) and use "ExUnit.Case".
       defmodule AssertionTest do
-        # 3) Notice we pass `async: true`, this runs the test case
+        # 3) Notice we pass "async: true", this runs the test case
         #    concurrently with other test cases
         use ExUnit.Case, async: true
 
-        # 4) Use the `test` macro instead of `def` for clarity.
+        # 4) Use the "test" macro instead of "def" for clarity.
         test "the truth" do
           assert true
         end
@@ -112,9 +112,17 @@ defmodule ExUnit do
 
     def message(timeout)
     def message(%{timeout: timeout}) do
-      "test timed out after #{timeout}ms. You can change the timeout globally " <>
-        "via ExUnit.start/1 or per test by setting \"@tag timeout: x\" where x " <>
-        "is an integer in milliseconds)"
+      """
+      test timed out after #{timeout}ms. You can change the timeout:
+
+        1. per test by setting "@tag timeout: x"
+        2. per case by setting "@moduletag timeout: x"
+        3. globally via "ExUnit.start(timeout: x)" configuration
+        4. or set it to infinity per run by calling "mix test --trace"
+           (useful when using IEx.pry)
+
+      Timeouts are given as integers in milliseconds.
+      """
     end
   end
 
@@ -145,7 +153,7 @@ defmodule ExUnit do
 
     configure(options)
 
-    if Application.get_env(:ex_unit, :autorun, true) do
+    if Application.fetch_env!(:ex_unit, :autorun) do
       Application.put_env(:ex_unit, :autorun, false)
 
       System.at_exit fn
@@ -170,6 +178,10 @@ defmodule ExUnit do
     * `:assert_receive_timeout` - the timeout to be used on `assert_receive`
       calls. Defaults to 100ms.
 
+    * `:capture_log` - if ExUnit should default to keeping track of log messages
+      and print them on test failure. Can be overriden for individual tests via
+      `@tag capture_log: false`. Defaults to `false`.
+
     * `:colors` - a keyword list of colors to be used by some formatters.
       The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`
 
@@ -191,11 +203,14 @@ defmodule ExUnit do
       filter
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
-      calls. Defaults to 100ms.
+      calls (defaults to 100ms)
 
     * `:seed` - an integer seed value to randomize the test suite
 
-    * `:timeout` - set the timeout for the tests (default 60_000 ms)
+    * `:stacktrace_depth` - configures the stacktrace depth to be used
+      on formatting and reporters (defaults to 20)
+
+    * `:timeout` - set the timeout for the tests (default 60_000ms)
   """
   def configure(options) do
     Enum.each options, fn {k, v} ->

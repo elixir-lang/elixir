@@ -3,6 +3,19 @@ import Kernel, except: [to_string: 1]
 defmodule Macro do
   @moduledoc """
   Conveniences for working with macros.
+
+  ## Custom Sigils
+
+  To create a custom sigil, define a function with the name
+  `sigil_{identifier}` that takes two arguments. The first argument will be
+  the interpolated string, the second will be a char list containing any
+  modifiers.
+
+  Valid modifiers include only lower and upper case letters. Other characters
+  will cause a syntax error.
+
+  The module containing the custom sigil must be imported before the sigil
+  syntax can be used.
   """
 
   @typedoc "Abstract Syntax Tree (AST)"
@@ -78,6 +91,12 @@ defmodule Macro do
     bad_pipe(expr, call_args)
   end
 
+  def pipe(expr, {call, _, [_, _]} = call_args, _integer)
+      when call in unquote(@binary_ops) do
+    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
+      "the #{to_string call} operator can only take two arguments"
+  end
+
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
     {call, line, List.insert_at([], integer, expr)}
   end
@@ -98,7 +117,7 @@ defmodule Macro do
   @doc """
   Applies the given function to the node metadata if it contains one.
 
-  This is often useful when used with `Macro.prewalk/1` to remove
+  This is often useful when used with `Macro.prewalk/2` to remove
   information like lines and hygienic counters from the expression
   for either storage or comparison.
 
@@ -343,7 +362,7 @@ defmodule Macro do
   defp find_invalid(other), do: {:error, other}
 
   @doc ~S"""
-  Unescape the given chars.
+  Unescapes the given chars.
 
   This is the unescaping behaviour used by default in Elixir
   single- and double-quoted strings. Check `unescape_string/2`
@@ -543,6 +562,17 @@ defmodule Macro do
   def to_string({:when, _, args} = ast, fun) do
     {left, right} = :elixir_utils.split_last(args)
     fun.(ast, "(" <> Enum.map_join(left, ", ", &to_string(&1, fun)) <> ") when " <> to_string(right, fun))
+  end
+
+  # Capture
+  def to_string({:&, _, [{:/, _, [{name, _, ctx}, arity]}]} = ast, fun)
+      when is_atom(name) and is_atom(ctx) and is_integer(arity) do
+    fun.(ast, "&" <> Atom.to_string(name) <> "/" <> to_string(arity, fun))
+  end
+
+  def to_string({:&, _, [{:/, _, [{{:., _, [mod, name]}, _, []}, arity]}]} = ast, fun)
+      when is_atom(name) and is_integer(arity) do
+    fun.(ast, "&" <> to_string(mod, fun) <> "." <> Atom.to_string(name) <> "/" <> to_string(arity, fun))
   end
 
   # Unary ops

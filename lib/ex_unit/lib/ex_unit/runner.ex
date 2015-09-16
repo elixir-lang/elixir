@@ -6,6 +6,9 @@ defmodule ExUnit.Runner do
   def run(async, sync, opts, load_us) do
     {opts, config} = configure(opts)
 
+    :erlang.system_flag(:backtrace_depth,
+                        Keyword.fetch!(opts, :stacktrace_depth))
+
     {run_us, _} =
       :timer.tc fn ->
         EM.suite_started(config.manager, opts)
@@ -26,6 +29,7 @@ defmodule ExUnit.Runner do
 
     config = %{
       async_cases: [],
+      capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
       manager: pid,
@@ -139,7 +143,7 @@ defmodule ExUnit.Runner do
       tags = Map.put(test.tags, :test, test.name)
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok           -> %{test | tags: tags}
-        {:error, tag} -> %{test | state: {:skip, "due to #{tag} filter"}}
+        {:error, msg} -> %{test | state: {:skip, msg}}
       end
     end
   end
@@ -220,7 +224,7 @@ defmodule ExUnit.Runner do
     EM.test_started(config.manager, test)
 
     if is_nil(test.state) do
-      capture_log? = Map.get(tags, :capture_log, false)
+      capture_log? = Map.get(tags, :capture_log, config.capture_log)
       test = run_test(capture_log?, config, test, Map.merge(tags, context))
     end
 

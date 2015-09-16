@@ -146,35 +146,40 @@ inline(?tuple, append, 2) -> {erlang, append_element};
 inline(_, _, _) -> false.
 
 %% Rewrite rules
+%%
 %% Rewrite rules are more complex than regular inlining code.
 %% It receives all remote call arguments and return quoted
 %% expressions with the new environment.
+%%
+%% Notice we use the given Meta in rewritten code so we
+%% get proper coverage report. However, we mark the enclosing
+%% cases as hidden to avoid warnings.
 
 %% Complex rewrite rules
 
 rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(String) ->
   String;
 rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
-  Var   = {'rewrite', ?hidden, 'Elixir'},
-  Guard = {{'.', ?hidden, [erlang, is_binary]}, ?hidden, [Var]},
+  Var   = {'rewrite', Meta, 'Elixir'},
+  Guard = {{'.', Meta, [erlang, is_binary]}, Meta, [Var]},
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
   {'case', ?hidden, [String, [{do,
-    [{'->', ?hidden, [[{'when', ?hidden, [Var, Guard]}], Fast]},
+    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
      {'->', ?hidden, [[Var], Slow]}]
   }]]};
 
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
-  Var   = {'rewrite', ?hidden, 'Elixir'},
-  Guard = {{'.', ?hidden, [erlang, is_list]}, ?hidden, [Var]},
+  Var   = {'rewrite', Meta, 'Elixir'},
+  Guard = {{'.', Meta, [erlang, is_list]}, Meta, [Var]},
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
-  Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
+  Fast  = remote(lists, Meta, 'reverse', Meta, [Var]),
 
   {'case', ?hidden, [List, [{do,
-    [{'->', ?hidden, [[{'when', ?hidden, [Var, Guard]}], Fast]},
+    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
      {'->', ?hidden, [[Var], Slow]}]
   }]]};
 

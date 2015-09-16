@@ -50,6 +50,7 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
+  @tag apps: [:consolidation]
   test "compile a project with protocol consolidation" do
     Mix.Project.push Consolidation
     in_fixture "no_mixfile", fn ->
@@ -86,6 +87,25 @@ defmodule Mix.Tasks.CompileTest do
       refute File.regular?("ebin/Elixir.A.beam")
       refute File.regular?("ebin/Elixir.B.beam")
       refute File.regular?("ebin/Elixir.C.beam")
+    end
+  end
+
+  test "add logger application metadata" do
+    import ExUnit.CaptureLog
+    in_fixture "no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+      require Logger
+      def info, do: Logger.info("hello")
+      end
+      """)
+
+      assert Mix.Tasks.Compile.run([]) == :ok
+      try do
+        assert capture_log([metadata: [:application]], &A.info/0) =~ "application=sample"
+      after
+        purge [A]
+      end
     end
   end
 end

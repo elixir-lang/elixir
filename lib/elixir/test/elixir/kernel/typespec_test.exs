@@ -56,9 +56,15 @@ defmodule Kernel.TypespecTest do
   end
 
   test "invalid function specification" do
-    assert_raise CompileError, ~r"invalid function type specification: myfun = 1", fn ->
+    assert_raise CompileError, ~r"invalid type specification: \"not a spec\"", fn ->
       test_module do
-        @spec myfun = 1
+        @spec "not a spec"
+      end
+    end
+
+    assert_raise CompileError, ~r"invalid type specification: 1 :: 2", fn ->
+      test_module do
+        @spec 1 :: 2
       end
     end
   end
@@ -227,6 +233,22 @@ defmodule Kernel.TypespecTest do
       test_module do
         defstruct [hello: nil, eric: nil]
         @type mytype :: %TestTypespec{no_field: :world}
+      end
+    end
+  end
+
+  test "@type when overriding elixir builtin" do
+    assert_raise CompileError, ~r"type struct\(\) is a builtin type; it cannot be redefined", fn ->
+      test_module do
+        @type struct :: :oops
+      end
+    end
+  end
+
+  test "@type when overriding erlang builtin" do
+    assert_raise CompileError, ~r"type list\(\) is a builtin type; it cannot be redefined", fn ->
+      test_module do
+        @type list :: :oops
       end
     end
   end
@@ -539,6 +561,7 @@ defmodule Kernel.TypespecTest do
       (quote do: @type tuple_type() :: {integer()}),
       (quote do: @type ftype() :: (() -> any()) | (() -> integer()) | ((integer() -> integer()))),
       (quote do: @type cl() :: char_list()),
+      (quote do: @type st() :: struct()),
       (quote do: @type ab() :: as_boolean(term())),
       (quote do: @type vaf() :: (... -> any())),
       (quote do: @type rng() :: 1 .. 10),
@@ -599,30 +622,69 @@ defmodule Kernel.TypespecTest do
     end)
   end
 
-  test "typedoc retrieval" do
-    {:module, _, binary, _} = defmodule T do
-      @typedoc "A"
-      @type a :: any
-      @typep b :: any
-      @typedoc "C"
-      @opaque c(x, y) :: {x, y}
-      @type d :: any
-      @spec uses_b() :: b
-      def uses_b(), do: nil
-    end
-
-    :code.delete(T)
-    :code.purge(T)
-
-    assert [
-      {{:c, 2}, "C"},
-      {{:a, 0}, "A"}
-    ] = Kernel.Typespec.beam_typedocs(binary)
-  end
-
   test "retrieval invalid data" do
-    assert Kernel.Typespec.beam_typedocs(Unknown) == nil
     assert Kernel.Typespec.beam_types(Unknown) == nil
     assert Kernel.Typespec.beam_specs(Unknown) == nil
+  end
+
+  defmodule Sample do
+    @callback first(integer) :: integer
+    @callback foo(atom(), binary) :: binary
+    @callback bar(External.hello, my_var :: binary) :: binary
+    @callback guarded(my_var) :: my_var when my_var: binary
+    @callback orr(atom | integer) :: atom
+    @callback literal(123, {atom}, :atom, [integer], true) :: atom
+    @macrocallback last(integer) :: Macro.t
+  end
+
+  test "callbacks" do
+    assert Sample.behaviour_info(:callbacks) ==
+           [first: 1, guarded: 1, "MACRO-last": 2, literal: 5, orr: 1, foo: 2, bar: 2]
+  end
+
+  test "default is not supported" do
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @callback hello(num \\ 0 :: integer) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @callback hello(num :: integer \\ 0) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @macrocallback hello(num \\ 0 :: integer) :: Macro.t
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @macrocallback hello(num :: integer \\ 0) :: Macro.t
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @spec hello(num \\ 0 :: integer) :: integer
+      end
+    end
+
+    assert_raise ArgumentError, fn ->
+      defmodule WithDefault do
+        @spec hello(num :: integer \\ 0) :: integer
+      end
+    end
+  end
+
+  test "@spec gives a nice error message when return type is missing" do
+    assert_raise CompileError, ~r"type specification missing return type: myfun\(integer\)", fn ->
+      test_module do
+        @spec myfun(integer)
+      end
+    end
   end
 end

@@ -20,7 +20,7 @@ defmodule ExUnit.Assertions do
   imported by default into your test cases.
 
   In general, a developer will want to use the general
-  `assert` macro in tests. This macro tries to be smart
+  `assert` macro in tests. This macro introspects your code
   and provide good reporting whenever there is a failure.
   For example, `assert some_fun() == 10` will fail (assuming
   `some_fun()` returns 13):
@@ -31,27 +31,17 @@ defmodule ExUnit.Assertions do
       rhs:  10
 
   This module also provides other convenience functions
-  like `assert_in_delta` and `assert_raise` to easily handle other
-  common cases such as checking a floating point number or handling exceptions.
+  like `assert_in_delta` and `assert_raise` to easily handle
+  other common cases such as checking a floating point number
+  or handling exceptions.
   """
 
   @doc """
-  Asserts its argument is `true`.
+  Asserts its argument is a truthy value.
 
-  `assert` tries to be smart and provide good
-  reporting whenever there is a failure. In particular, if
-  given a match expression, it will report any failure in terms
-  of that match. Given
-
-      assert [one] = [two]
-
-  you'll see:
-
-      match (=) failed
-      code: [one] = [two]
-      rhs:  [2]
-
-  If the expression is a comparison operator, the message
+  `assert` instrospects the underlying expression and provide
+  good  reporting whenever there is a failure. For example,
+  if the expression uses the comparison operator, the message
   will show the values of the two sides. The assertion
 
       assert 1+2+3+4 > 15
@@ -62,25 +52,76 @@ defmodule ExUnit.Assertions do
       code: 1+2+3+4 > 15
       lhs:  10
       rhs:  15
+
+  Similarly, if a match expression is given, it will report
+  any failure in terms of that match. Given
+
+      assert [one] = [two]
+
+  you'll see:
+
+      match (=) failed
+      code: [one] = [two]
+      rhs:  [2]
+
+  Keep in mind that `assert` does not change its semantics
+  based on the expression. In other words, the expression
+  is still required to return a truthy value. For example,
+  the following will fail:
+
+      assert nil = some_function_that_returns_nil()
+
+  Even though the match works, `assert` still expects a truth
+  value. In such cases, simply use `Kernel.==/2` or
+  `Kernel.match?/2`.
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
+
+    # If the match works, we need to check if the value
+    # is not nil nor false. We need to rewrite the line
+    # to -1 to avoid silly warnings though.
+    {:if, meta, args} =
+        quote do
+          if right do
+            right
+          else
+            raise ExUnit.AssertionError,
+              expr: expr,
+              message: "Expected truthy, got #{inspect right}"
+          end
+        end
+    return = {:if, [line: -1] ++ meta, args}
+
     {:case, meta, args} =
       quote do
         case right do
           unquote(left) ->
-            right
+            unquote(return)
           _ ->
             raise ExUnit.AssertionError,
               right: right,
-              expr: unquote(code),
+              expr: expr,
               message: "match (=) failed"
         end
       end
 
     quote do
       right = unquote(right)
+      expr  = unquote(code)
       unquote({:case, [{:export_head, true}|meta], args})
+    end
+  end
+
+  defmacro assert({:match?, meta, [left, right]} = assertion) do
+    code   = Macro.escape(assertion)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
+    quote do
+      right = unquote(right)
+      assert unquote(match?),
+        right: right,
+        expr: unquote(code),
+        message: "match (match?) failed"
     end
   end
 
@@ -105,32 +146,35 @@ defmodule ExUnit.Assertions do
   end
 
   @doc """
-  This is a negative assertion, failing if its parameter
-  is truthy.
+  A negative assertion, expects the expression to be `false` or `nil`.
+
+  Keep in mind that `refute` does not change the semantics of
+  the given expression. In other words, the following will fail:
+
+      refute {:ok, _} = some_function_that_returns_error_tuple()
+
+  The code above will fail because the `=` operator always fails
+  when the sides do not match and `refute/2` does not change it.
+
+  The correct way to write the refutation above is to use
+  `Kernel.match?/2`:
+
+      refute match? {:ok, _}, some_function_that_returns_error_tuple()
 
   ## Examples
 
       refute age < 0
 
   """
-  defmacro refute({:=, _, [left, right]} = assertion) do
-    code = Macro.escape(assertion)
-    {:case, meta, args} =
-      quote do
-        case right do
-          unquote(left) ->
-            raise ExUnit.AssertionError,
-              right: right,
-              expr: unquote(code),
-              message: "match (=) succeeded, but should have failed"
-          _ ->
-            right
-        end
-      end
-
+  defmacro refute({:match?, meta, [left, right]} = assertion) do
+    code   = Macro.escape(assertion)
+    match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     quote do
       right = unquote(right)
-      unquote({:case, [{:export_head, true}|meta], args})
+      refute unquote(match?),
+        right: right,
+        expr: unquote(code),
+        message: "match (match?) succeeded, but should have failed"
     end
   end
 
@@ -158,12 +202,13 @@ defmodule ExUnit.Assertions do
 
   @operator [:==, :<, :>, :<=, :>=, :===, :=~, :!==, :!=, :in]
 
-  defp translate_assertion({operator, _, [left, right]} = expr) when operator in @operator  do
+  defp translate_assertion({operator, meta, [left, right]} = expr) when operator in @operator  do
     expr = Macro.escape(expr)
+    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert unquote(operator)(left, right),
+      assert unquote(call),
              left: left,
              right: right,
              expr: unquote(expr),
@@ -171,12 +216,13 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_assertion({:!, [], [{operator, _, [left, right]} = expr]}) when operator in @operator do
+  defp translate_assertion({:!, _, [{operator, meta, [left, right]} = expr]}) when operator in @operator do
     expr = Macro.escape(expr)
+    call = {operator, meta, [Macro.var(:left, __MODULE__), Macro.var(:right, __MODULE__)]}
     quote do
       left  = unquote(left)
       right = unquote(right)
-      assert not(unquote(operator)(left, right)),
+      assert not(unquote(call)),
              left: left,
              right: right,
              expr: unquote(expr),
@@ -260,6 +306,13 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
+    {_, pins} =
+      Macro.prewalk(expected, [], fn
+        {:^, _, [var]} = form, acc ->
+          {form, [var | acc]}
+        form, acc ->
+          {form, acc}
+      end)
 
     pattern =
       case expected do
@@ -276,8 +329,8 @@ defmodule ExUnit.Assertions do
             received
         after
           timeout ->
-            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms"
-            flunk(message <> ExUnit.Assertions.__mailbox__(self()))
+            message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
+            flunk(message <> unquote(pinned_vars(pins)) <> ExUnit.Assertions.__mailbox__(self()))
         end
       end
 
@@ -293,17 +346,32 @@ defmodule ExUnit.Assertions do
   def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join("\n", &inspect/1)
-    mailbox_message(length, mailbox)
+    indent = "\n  "
+    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join(indent, &inspect/1)
+    mailbox_message(length, indent <> mailbox)
   end
 
-  defp mailbox_message(0, _mailbox), do: ". The process mailbox is empty."
+  defp pinned_vars([]), do: ""
+  defp pinned_vars(pins) do
+    content = Enum.map(pins, fn(var) ->
+      binary = Macro.to_string(var)
+      quote do
+        "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
+      end
+    end)
+
+    quote do
+      "\nThe following variables were pinned:" <> unquote_splicing(content)
+    end
+  end
+
+  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
-    ". Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
       <> "\nShowing only #{@max_mailbox_length} of #{length} messages."
   end
   defp mailbox_message(_length, mailbox) do
-    ". Process mailbox:\n" <> mailbox
+    "\nProcess mailbox:" <> mailbox
   end
 
   @doc """
@@ -324,8 +392,11 @@ defmodule ExUnit.Assertions do
       Regex.regex?(message) -> Exception.message(error) =~ message
     end
 
-    msg = "Wrong message for #{inspect exception}. " <>
-          "Expected #{inspect message}, got #{inspect Exception.message(error)}"
+    msg = "Wrong message for #{inspect exception}\n" <>
+          "Expected:\n" <>
+          "  #{inspect message}\n" <>
+          "Got:\n" <>
+          "  #{inspect Exception.message(error)}"
     assert is_match, message: msg
 
     error
@@ -356,7 +427,7 @@ defmodule ExUnit.Assertions do
           name == ExUnit.AssertionError ->
             reraise(error, stacktrace)
           true ->
-            flunk "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"
+            reraise ExUnit.AssertionError, [message: "Expected exception #{inspect exception} but got #{inspect name} (#{Exception.message(error)})"], stacktrace
         end
     else
       _ -> flunk "Expected exception #{inspect exception} but nothing was raised"
@@ -423,7 +494,7 @@ defmodule ExUnit.Assertions do
   defp do_catch(kind, expr) do
     quote do
       try do
-        unquote(expr)
+        _ = unquote(expr)
         flunk "Expected to catch #{unquote(kind)}, got nothing"
       rescue
         e in [ExUnit.AssertionError] ->
@@ -456,7 +527,7 @@ defmodule ExUnit.Assertions do
 
       refute_receive :bye
 
-  Refute received with a explicit timeout:
+  Refute received with an explicit timeout:
 
       refute_receive :bye, 1000
 

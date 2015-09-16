@@ -420,7 +420,9 @@ defmodule StreamTest do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
                              fn _ -> Process.put(:stream_transform, true) end)
-    stream = Stream.transform(stream, 0, fn i, acc -> if acc < 3, do: {[i], acc + 1}, else: {:halt, acc} end)
+    stream = Stream.transform(stream, 0, fn i, acc ->
+               if acc < 3, do: {[i], acc + 1}, else: {:halt, acc}
+             end)
 
     Process.put(:stream_transform, false)
     assert Enum.to_list(stream) == [1, 2, 3]
@@ -555,6 +557,109 @@ defmodule StreamTest do
     Process.put(:stream_resource, false)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
     assert Process.get(:stream_resource)
+  end
+
+  test "transform/4" do
+    stream = Stream.transform(1..10, fn -> 0 end,
+                              fn x, acc -> {[x, x + acc], x} end,
+                              fn 10 -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    assert Enum.to_list(stream) ==
+           [1, 1, 2, 3, 3, 5, 4, 7, 5, 9, 6, 11, 7, 13, 8, 15, 9, 17, 10, 19]
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 closes on errors" do
+    stream = Stream.transform(1..10, fn -> 0 end,
+                              fn x, acc -> {[x + acc], x} end,
+                              fn 2 -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 is zippable" do
+    stream = Stream.transform(1..20, fn -> 0 end,
+                              fn 10, acc -> {:halt, acc}
+                                 x, acc -> {[x + acc], x}
+                              end,
+                              fn 9 -> Process.put(:stream_transform, true) end)
+
+    list = Enum.to_list(stream)
+    Process.put(:stream_transform, false)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 halts with inner list" do
+    stream = Stream.transform(1..10, fn -> :acc end,
+                              fn x, acc -> {[x, x+1, x+2], acc} end,
+                              fn :acc -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    assert Enum.take(stream, 5) == [1, 2, 3, 2, 3]
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 closes on errors with inner list" do
+    stream = Stream.transform(1..10, fn -> :acc end,
+                              fn x, acc -> {[x, x+1, x+2], acc} end,
+                              fn :acc -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 is zippable with inner list" do
+    stream = Stream.transform(1..20, fn -> :inner end,
+                              fn 10, acc -> {:halt, acc}
+                                 x, acc -> {[x, x+1, x+2], acc}
+                              end,
+                              fn :inner -> Process.put(:stream_transform, true) end)
+
+    list = Enum.to_list(stream)
+    Process.put(:stream_transform, false)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 halts with inner enum" do
+    stream = Stream.transform(1..10, fn -> :acc end,
+                              fn x, acc -> {x..x+2, acc} end,
+                              fn :acc -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    assert Enum.take(stream, 5) == [1, 2, 3, 2, 3]
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 closes on errors with inner enum" do
+    stream = Stream.transform(1..10, fn -> :acc end,
+                              fn x, acc -> {[x..x+2], acc} end,
+                              fn :acc -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 is zippable with inner enum" do
+    stream = Stream.transform(1..20, fn -> :inner end,
+                              fn 10, acc -> {:halt, acc}
+                                 x, acc -> {[x..x+2], acc}
+                              end,
+                              fn :inner -> Process.put(:stream_transform, true) end)
+
+    list = Enum.to_list(stream)
+    Process.put(:stream_transform, false)
+    assert Enum.zip(list, list) == Enum.zip(stream, stream)
+    assert Process.get(:stream_transform)
   end
 
   test "scan/2" do

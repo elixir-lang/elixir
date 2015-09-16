@@ -4,7 +4,7 @@ defmodule Exception do
 
   Note that stacktraces in Elixir are updated on throw,
   errors and exits. For example, at any given moment,
-  `System.stacktrace` will return the stacktrace for the
+  `System.stacktrace/0` will return the stacktrace for the
   last throw/error/exit that occurred in the current process.
 
   Do not rely on the particular format returned by the `format`
@@ -28,10 +28,8 @@ defmodule Exception do
   @typep arity_or_args :: non_neg_integer | list
   @typep location :: Keyword.t
 
-  use Behaviour
-
-  defcallback exception(term) :: t
-  defcallback message(t) :: String.t
+  @callback exception(term) :: t
+  @callback message(t) :: String.t
 
   @doc """
   Returns `true` if the given `term` is an exception.
@@ -51,12 +49,14 @@ defmodule Exception do
       module.message(exception)
     rescue
       e ->
-        "got #{inspect e.__struct__} with message `#{message(e)}` " <>
+        "got #{inspect e.__struct__} with message #{inspect message(e)} " <>
         "while retrieving Exception.message/1 for #{inspect(exception)}"
     else
       x when is_binary(x) -> x
-      x -> "got #{inspect(x)} while retrieving Exception.message/1 for #{inspect(exception)} " <>
-           "(expected a string)"
+      x ->
+        "got #{inspect(x)} " <>
+        "while retrieving Exception.message/1 for #{inspect(exception)} " <>
+        "(expected a string)"
     end
   end
 
@@ -483,9 +483,9 @@ defmodule Exception do
   end
 end
 
-# Some exceptions implement `message/1` instead of `exception/1` mostly
+# Some exceptions implement "message/1" instead of "exception/1" mostly
 # for bootstrap reasons. It is recommended for applications to implement
-# `exception/1` instead of `message/1` as described in `defexception/1`
+# "exception/1" instead of "message/1" as described in "defexception/1"
 # docs.
 
 defmodule RuntimeError do

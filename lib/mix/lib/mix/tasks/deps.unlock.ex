@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Deps.Unlock do
   use Mix.Task
 
-  @shortdoc "Unlock the given dependencies"
+  @shortdoc "Unlocks the given dependencies"
 
   @moduledoc """
-  Unlock the given dependencies.
+  Unlocks the given dependencies.
 
   Since this is a destructive action, unlocking of dependencies
   can only happen by passing arguments/options:
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         Mix.Dep.Lock.write(lock)
 
       true ->
-        Mix.raise "mix deps.unlock expects dependencies as arguments or " <>
+        Mix.raise "\"mix deps.unlock\" expects dependencies as arguments or " <>
                   "the --all option to unlock all dependencies"
     end
   end

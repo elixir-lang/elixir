@@ -55,7 +55,7 @@ defmodule Logger.Backends.ConsoleTest do
 
     assert capture_log(fn ->
       Logger.debug("hello")
-    end) =~ "line=#{line + 3} module=#{mod} function=#{name}/#{arity}"
+    end) =~ "line=#{line + 3} module=#{inspect(mod)} function=#{name}/#{arity}"
   end
 
   test "can configure level" do

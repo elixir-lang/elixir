@@ -1,6 +1,4 @@
 defmodule Mix.Task do
-  use Behaviour
-
   @moduledoc """
   A simple module that provides conveniences for creating,
   loading and manipulating tasks.
@@ -12,7 +10,7 @@ defmodule Mix.Task do
       defmodule Mix.Tasks.Hello do
         use Mix.Task
 
-        def run(_) do
+        def run(_args) do
           Mix.shell.info "hello"
         end
       end
@@ -26,8 +24,14 @@ defmodule Mix.Task do
   configure them in Mix:
 
     * `@shortdoc`  - makes the task public with a short description that appears
-                     on `mix help`
+      on `mix help`
     * `@recursive` - run the task recursively in umbrella projects
+
+  ## Documentation
+
+  Users can read the documentation for public Mix tasks by doing `mix help
+  my_task`. The documentation that will be showed is the `@moduledoc` of the
+  task's module.
 
   """
 
@@ -38,7 +42,7 @@ defmodule Mix.Task do
   A task needs to implement `run` which receives
   a list of command line args.
   """
-  defcallback run([binary]) :: any
+  @callback run([binary]) :: any
 
   @doc false
   defmacro __using__(_opts) do
@@ -247,13 +251,13 @@ defmodule Mix.Task do
   end
 
   defp run_task(proj, task, args) do
-    module = get(task)
-
-    # If the task is not available, let's try to compile the project
-    unless module do
-      if proj, do: Mix.Project.compile([])
-      module = get!(task)
-    end
+    # 1. If the task is available, we run it.
+    # 2. Otherwise we look for it in dependencies.
+    # 3. Finally, we compile the current project in hope it is available.
+    module =
+      get_task_or_run(proj, task, fn -> deps_loadpaths end) ||
+      get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
+      get!(task)
 
     if recursive(module) and Mix.Project.umbrella? and Mix.ProjectStack.enable_recursion do
       res = recur(fn _ -> run(task, args) end)
@@ -262,6 +266,23 @@ defmodule Mix.Task do
     else
       Mix.TasksServer.put({:task, task, proj})
       module.run(args)
+    end
+  end
+
+  defp deps_loadpaths do
+    Mix.Task.run "deps.check"
+    Mix.Task.run "deps.loadpaths"
+  end
+
+  defp get_task_or_run(proj, task, fun) do
+    cond do
+      module = get(task) ->
+        module
+      proj ->
+        fun.()
+        nil
+      true ->
+        nil
     end
   end
 

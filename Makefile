@@ -1,4 +1,4 @@
-REBAR ?= $(CURDIR)/rebar
+REBAR ?= "$(CURDIR)/rebar"
 PREFIX ?= /usr/local
 DOCS := master
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict
@@ -12,7 +12,7 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 
-.PHONY: install install_man compile erlang elixir build_man build_plt clean_man clean_plt dialyze test clean clean_man docs release_docs release_zip check_erlang_release
+.PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -128,8 +128,9 @@ clean_exbeam:
 
 #==>  Create Documentation
 
+LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" -o doc/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -p http://elixir-lang.org/docs.html
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
@@ -167,17 +168,25 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
 	@ false
 
-#==> Release tasks
+#==> Zips
 
-release_zip: compile
-	rm -rf v$(VERSION).zip
-	$(MAKE) build_man
-	zip -9 -r v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
-	$(MAKE) clean_man
+Docs.zip: docs
+	rm -rf Docs-v$(VERSION).zip
+	zip -9 -r Docs-v$(VERSION).zip doc
+	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
 
-release_docs: docs
+Precompiled.zip: build_man compile
+	rm -rf Precompiled-v$(VERSION).zip
+	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
+	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
+
+#==> Publish
+
+publish_zips: Precompiled.zip Docs.zip
+
+publish_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
-	mv doc/* ../docs/$(DOCS)
+	cp -R doc/* ../docs/$(DOCS)
 
 # This task requires aws-cli to be installed and set up for access to s3.hex.pm
 # See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
@@ -241,22 +250,26 @@ dialyze: compile $(PLT)
 
 #==> Man page tasks
 
-build_man:
+build_man: man/iex.1 man/elixir.1
+
+man/iex.1:
 	$(Q) cp man/iex.1.in man/iex.1
 	$(Q) sed -i.bak "/{COMMON}/r common" man/iex.1
 	$(Q) sed -i.bak "/{COMMON}/d" man/iex.1
+	$(Q) rm man/iex.1.bak
+
+man/elixir.1:
 	$(Q) cp man/elixir.1.in man/elixir.1
 	$(Q) sed -i.bak "/{COMMON}/r common" man/elixir.1
 	$(Q) sed -i.bak "/{COMMON}/d" man/elixir.1
-	$(Q) rm man/*.bak
+	$(Q) rm man/elixir.1.bak
 
 clean_man:
 	rm -f man/elixir.1
 	rm -f man/iex.1
 
-install_man:
+install_man: build_man
 	$(Q) mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	$(MAKE) build_man
 	$(Q) $(INSTALL_DATA) man/elixir.1  $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(PREFIX)/share/man/man1
 	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(PREFIX)/share/man/man1

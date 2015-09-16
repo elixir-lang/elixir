@@ -8,7 +8,7 @@ defmodule String do
 
   The functions in this module act according to the Unicode
   Standard, version 6.3.0. As per the standard, a codepoint is
-  an Unicode Character, which may be represented by one or more
+  a Unicode Character, which may be represented by one or more
   bytes. For example, the character "é" is represented with two
   bytes:
 
@@ -26,7 +26,7 @@ defmodule String do
   the same "é" character written above could be represented
   by the letter "e" followed by the accent ́:
 
-      iex> string = "\x{0065}\x{0301}"
+      iex> string = "\u0065\u0301"
       iex> byte_size(string)
       3
       iex> String.length(string)
@@ -67,7 +67,7 @@ defmodule String do
     * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
     * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type checking function
     * Plus a number of functions for working with binaries (bytes)
-      [in the `:binary` module](http://www.erlang.org/doc/man/binary.html)
+      in the [`:binary` module](http://www.erlang.org/doc/man/binary.html)
 
   There are many situations where using the `String` module can
   be avoided in favor of binary functions or pattern matching.
@@ -151,7 +151,7 @@ defmodule String do
   As we have seen above, codepoints can be inserted into
   a string by their hexadecimal code:
 
-      "ol\x{0061}\x{0301}" #=>
+      "ol\u0061\u0301" #=>
       "olá"
 
   ## Self-synchronization
@@ -358,7 +358,7 @@ defmodule String do
 
   ## Options
 
-    * :trim - when true, does not emit empty patterns
+    * :trim - when `true`, does not emit empty patterns
   """
   @spec splitter(t, pattern, Keyword.t) :: Enumerable.t
   def splitter(string, pattern, options \\ []) do
@@ -505,7 +505,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where trailing Unicode whitespace
+  Returns a string where all trailing Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -518,7 +518,7 @@ defmodule String do
   defdelegate rstrip(binary), to: String.Unicode
 
   @doc """
-  Returns a string where trailing `char` have been removed.
+  Returns a string where all trailing `char`s have been removed.
 
   ## Examples
 
@@ -558,7 +558,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading Unicode whitespace
+  Returns a string where all leading Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -570,7 +570,7 @@ defmodule String do
   defdelegate lstrip(binary), to: String.Unicode
 
   @doc """
-  Returns a string where leading `char` have been removed.
+  Returns a string where all leading `char`s have been removed.
 
   ## Examples
 
@@ -591,7 +591,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading and trailing Unicode whitespace
+  Returns a string where all leading and trailing Unicode whitespaces
   has been removed.
 
   ## Examples
@@ -607,7 +607,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where leading and trailing `char` have been
+  Returns a string where all leading and trailing `char`s have been
   removed.
 
   ## Examples
@@ -849,11 +849,11 @@ defmodule String do
   @spec valid?(t) :: boolean
   def valid?(string)
 
-  noncharacters = Enum.to_list(?\x{FDD0}..?\x{FDEF}) ++
-    [ ?\x{0FFFE}, ?\x{0FFFF}, ?\x{1FFFE}, ?\x{1FFFF}, ?\x{2FFFE}, ?\x{2FFFF},
-      ?\x{3FFFE}, ?\x{3FFFF}, ?\x{4FFFE}, ?\x{4FFFF}, ?\x{5FFFE}, ?\x{5FFFF},
-      ?\x{6FFFE}, ?\x{6FFFF}, ?\x{7FFFE}, ?\x{7FFFF}, ?\x{8FFFE}, ?\x{8FFFF},
-      ?\x{9FFFE}, ?\x{9FFFF}, ?\x{10FFFE}, ?\x{10FFFF} ]
+  noncharacters = Enum.to_list(0xFDD0..0xFDEF) ++
+    [0x0FFFE, 0x0FFFF, 0x1FFFE, 0x1FFFF, 0x2FFFE, 0x2FFFF,
+     0x3FFFE, 0x3FFFF, 0x4FFFE, 0x4FFFF, 0x5FFFE, 0x5FFFF,
+     0x6FFFE, 0x6FFFF, 0x7FFFE, 0x7FFFF, 0x8FFFE, 0x8FFFF,
+     0x9FFFE, 0x9FFFF, 0x10FFFE, 0x10FFFF]
 
   for noncharacter <- noncharacters do
     def valid?(<< unquote(noncharacter) :: utf8, _ :: binary >>), do: false
@@ -870,7 +870,7 @@ defmodule String do
   are not valid characters. They may be reserved, private,
   or other.
 
-  More info at: https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters
+  More info at: [Non-characters – Wikipedia](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters)
 
   ## Examples
 
@@ -880,7 +880,7 @@ defmodule String do
       iex> String.valid_character?("ø")
       true
 
-      iex> String.valid_character?("\x{ffff}")
+      iex> String.valid_character?("\uFFFF")
       false
 
   """
@@ -894,10 +894,10 @@ defmodule String do
 
   The trait can be one of two options:
 
-    * `:valid` – the string is split into chunks of valid and invalid character
+    * `:valid`     - the string is split into chunks of valid and invalid character
       sequences
 
-    * `:printable` – the string is split into chunks of printable and
+    * `:printable` - the string is split into chunks of printable and
       non-printable character sequences
 
   Returns a list of binaries each of which contains only one kind of
@@ -1277,6 +1277,7 @@ defmodule String do
   """
   @spec starts_with?(t, t | [t]) :: boolean
 
+  # TODO: Remove me by 1.3
   def starts_with?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.starts_with?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
@@ -1309,6 +1310,7 @@ defmodule String do
   """
   @spec ends_with?(t, t | [t]) :: boolean
 
+  # TODO: Remove me by 1.3
   def ends_with?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.ends_with?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
@@ -1372,6 +1374,7 @@ defmodule String do
   """
   @spec contains?(t, pattern) :: boolean
 
+  # TODO: Remove me by 1.3
   def contains?(_string, "") do
     IO.puts :stderr, "[deprecation] Calling String.contains?/2 with an empty string is deprecated and " <>
                      "will fail in the future\n" <> Exception.format_stacktrace()
@@ -1444,7 +1447,7 @@ defmodule String do
 
   ## Examples
 
-      iex> :my_atom
+      iex> _ = :my_atom
       iex> String.to_existing_atom("my_atom")
       :my_atom
 

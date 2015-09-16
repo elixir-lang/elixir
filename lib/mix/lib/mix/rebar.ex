@@ -7,14 +7,14 @@ defmodule Mix.Rebar do
   def local_rebar_path, do: Path.join(Mix.Utils.mix_home, "rebar")
 
   @doc """
-  Returns the path to the global copy of rebar, if one exists.
+  Returns the path to the global copy of `rebar`, if one exists.
   """
   def global_rebar_cmd do
     wrap_cmd System.find_executable("rebar")
   end
 
   @doc """
-  Returns the path to the local copy of rebar, if one exists.
+  Returns the path to the local copy of `rebar`, if one exists.
   """
   def local_rebar_cmd do
     rebar = local_rebar_path
@@ -22,14 +22,14 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Returns the path to the available rebar command.
+  Returns the path to the available `rebar` command.
   """
   def rebar_cmd do
     global_rebar_cmd || local_rebar_cmd
   end
 
   @doc """
-  Loads the rebar.config and evaluates rebar.config.script if it
+  Loads `rebar.config` and evaluates `rebar.config.script` if it
   exists in the given directory.
   """
   def load_config(dir) do
@@ -43,7 +43,7 @@ defmodule Mix.Rebar do
         []
       {:error, error} ->
         reason = :file.format_error(error)
-        Mix.raise "Error consulting rebar config #{config_path}: #{reason}"
+        Mix.raise "Error consulting rebar config #{inspect config_path}: #{reason}"
     end
 
     if File.exists?(script_path) do
@@ -54,7 +54,7 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Parses the dependencies in given rebar.config to Mix's dependency format.
+  Parses the dependencies in given `rebar.config` to Mix's dependency format.
   """
   def deps(config) do
     if deps = config[:deps] do
@@ -124,7 +124,7 @@ defmodule Mix.Rebar do
       {:ok, re} ->
         re
       {:error, reason} ->
-        Mix.raise "Unable to compile version regex: \"#{req}\", #{reason}"
+        Mix.raise "Unable to compile version regex: #{inspect req}, #{reason}"
     end
   end
 
@@ -140,8 +140,7 @@ defmodule Mix.Rebar do
         config
       {:error, error} ->
         reason = :file.format_error(error)
-        Mix.shell.error("Error evaluating rebar config script #{script_path}: #{reason}")
-        Mix.shell.error("You may solve this issue by adding rebar as a dependency to your project")
+        Mix.shell.error("Error evaluating rebar config script #{inspect script_path}: #{reason}")
         Mix.shell.error("Any dependency defined in the script won't be available " <>
                         "unless you add them to your Mix project")
         config

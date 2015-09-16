@@ -22,7 +22,7 @@ defmodule IO do
   Elixir provides two shorcuts:
 
     * `:stdio` - a shortcut for `:standard_io`, which maps to
-      to the current `Process.group_leader` in Erlang
+      the current `Process.group_leader/0` in Erlang
 
     * `:stderr` - a shortcut for the named process `:standard_error`
       provided in Erlang
@@ -250,7 +250,7 @@ defmodule IO do
   Reads a line from the IO device. It returns:
 
     * `data` - the characters in the line terminated
-      by a LF (or end of file)
+      by a line-feed (LF) or end of file (EOF)
 
     * `:eof` - end of file was encountered
 

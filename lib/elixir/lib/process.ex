@@ -15,8 +15,8 @@ defmodule Process do
   """
 
   @doc """
-  Returns `true` if the process exists and is alive, that is,
-  is not exiting and has not exited. Otherwise, returns `false`.
+  Returns `true` if the process exists and is alive (i.e. it is not exiting
+  and has not exited yet). Otherwise, returns `false`.
 
   `pid` must refer to a process at the local node.
   """
@@ -167,7 +167,7 @@ defmodule Process do
   just the spawned process pid.
 
   It also accepts extra options, for the list of available options
-  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
+  check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
 
   Inlined by the compiler.
   """
@@ -186,7 +186,7 @@ defmodule Process do
   just the spawned process pid.
 
   It also accepts extra options, for the list of available options
-  check http://www.erlang.org/doc/man/erlang.html#spawn_opt-4
+  check [`:erlang.spawn_opt/4`](http://www.erlang.org/doc/man/erlang.html#spawn_opt-4).
 
   Inlined by the compiler.
   """
@@ -199,7 +199,7 @@ defmodule Process do
   The calling process starts monitoring the item given.
   It returns the monitor reference.
 
-  See http://www.erlang.org/doc/man/erlang.html#monitor-2 for more info.
+  See [`:erlang.monitor/2`](http://www.erlang.org/doc/man/erlang.html#monitor-2) for more info.
 
   Inlined by the compiler.
   """
@@ -213,7 +213,7 @@ defmodule Process do
   obtained by calling `monitor/1`, this monitoring is turned off.
   If the monitoring is already turned off, nothing happens.
 
-  See http://www.erlang.org/doc/man/erlang.html#demonitor-2 for more info.
+  See [`:erlang.demonitor/2`](http://www.erlang.org/doc/man/erlang.html#demonitor-2) for more info.
 
   Inlined by the compiler.
   """
@@ -231,7 +231,7 @@ defmodule Process do
   `alive?/1` will return `false` for a process that is exiting,
   but its process identifier will be part of the result returned.
 
-  See http://www.erlang.org/doc/man/erlang.html#processes-0 for more info.
+  See [`:erlang.processes/0`](http://www.erlang.org/doc/man/erlang.html#processes-0) for more info.
   """
   @spec list :: [pid]
   def list do
@@ -242,7 +242,7 @@ defmodule Process do
   Creates a link between the calling process and another process
   (or port) `pid`, if there is not such a link already.
 
-  See http://www.erlang.org/doc/man/erlang.html#link-1 for more info.
+  See [`:erlang.link/1`](http://www.erlang.org/doc/man/erlang.html#link-1) for more info.
 
   Inlined by the compiler.
   """
@@ -256,7 +256,7 @@ defmodule Process do
   the process or port referred to by `pid`. Returns `true` and does not
   fail, even if there is no link or `id` does not exist
 
-  See http://www.erlang.org/doc/man/erlang.html#unlink-1 for more info.
+  See [`:erlang.unlink/1`](http://www.erlang.org/doc/man/erlang.html#unlink-1) for more info.
 
   Inlined by the compiler.
   """
@@ -282,7 +282,7 @@ defmodule Process do
   @doc """
   Removes the registered name, associated with a pid or a port identifier.
 
-  See http://www.erlang.org/doc/man/erlang.html#unregister-1 for more info.
+  See [`:erlang.unregister/1`](http://www.erlang.org/doc/man/erlang.html#unregister-1) for more info.
   """
   @spec unregister(atom) :: true
   def unregister(name) do
@@ -293,7 +293,7 @@ defmodule Process do
   Returns the pid or port identifier with the registered name.
   Returns `nil` if the name is not registered.
 
-  See http://www.erlang.org/doc/man/erlang.html#whereis-1 for more info.
+  See [`:erlang.whereis/1`](http://www.erlang.org/doc/man/erlang.html#whereis-1) for more info.
   """
   @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
@@ -332,7 +332,7 @@ defmodule Process do
   Sets certain flags for the process which calls this function.
   Returns the old value of the flag.
 
-  See http://www.erlang.org/doc/man/erlang.html#process_flag-2 for more info.
+  See [`:erlang.process_flag/2`](http://www.erlang.org/doc/man/erlang.html#process_flag-2) for more info.
   """
   @spec flag(process_flag, term) :: term
   def flag(flag, value) do
@@ -344,7 +344,7 @@ defmodule Process do
   Returns the old value of the flag. The allowed values for `flag` are
   only a subset of those allowed in `flag/2`, namely: `save_calls`.
 
-  See http://www.erlang.org/doc/man/erlang.html#process_flag-3 for more info.
+  See [`:erlang.process_flag/3`](http://www.erlang.org/doc/man/erlang.html#process_flag-3) for more info.
   """
   @spec flag(pid, :save_calls, non_neg_integer) :: non_neg_integer
   def flag(pid, flag, value) do
@@ -356,7 +356,7 @@ defmodule Process do
   is not alive.
   Use this only for debugging information.
 
-  See http://www.erlang.org/doc/man/erlang.html#process_info-1 for more info.
+  See [`:erlang.process_info/1`](http://www.erlang.org/doc/man/erlang.html#process_info-1) for more info.
   """
   @spec info(pid) :: Keyword.t
   def info(pid) do
@@ -367,9 +367,9 @@ defmodule Process do
   Returns information about the process identified by `pid`
   or `nil` if the process is not alive.
 
-  See http://www.erlang.org/doc/man/erlang.html#process_info-2 for more info.
+  See [`:erlang.process_info/2`](http://www.erlang.org/doc/man/erlang.html#process_info-2) for more info.
   """
-  @spec info(pid, atom) :: {atom, term} | nil
+  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}]  | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -380,7 +380,7 @@ defmodule Process do
     end
   end
 
-  def info(pid, spec) when is_atom(spec) do
+  def info(pid, spec) when is_atom(spec) or is_list(spec) do
     nillify :erlang.process_info(pid, spec)
   end
 
@@ -390,7 +390,7 @@ defmodule Process do
   which is useful if the process does not expect to receive any messages
   in the near future.
 
-  See http://www.erlang.org/doc/man/erlang.html#hibernate-3 for more info.
+  See [`:erlang.hibernate/3`](http://www.erlang.org/doc/man/erlang.html#hibernate-3) for more info.
 
   Inlined by the compiler.
   """

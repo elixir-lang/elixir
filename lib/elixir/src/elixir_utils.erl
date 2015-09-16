@@ -4,7 +4,8 @@
 -export([elixir_to_erl/1, get_line/1, split_last/1, meta_location/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
-  read_file_type/1, read_link_type/1, relative_to_cwd/1, erl_call/4]).
+  read_file_type/1, read_link_type/1, relative_to_cwd/1,
+  change_universal_time/2, erl_call/4]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -42,6 +43,11 @@ read_link_type(File) ->
     {ok, #file_info{type=Type}} -> {ok, Type};
     {error, _} = Error -> Error
   end.
+
+change_universal_time(Name, {{Y, M, D}, {H, Min, Sec}}=Time)
+  when is_integer(Y), is_integer(M), is_integer(D),
+       is_integer(H), is_integer(Min), is_integer(Sec)->
+    file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
 
 relative_to_cwd(Path) ->
   case elixir_compiler:get_opt(internal) of

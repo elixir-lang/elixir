@@ -580,11 +580,19 @@ defmodule Kernel.SpecialForms do
   Notice that calling `except` for a previously declared `import`
   simply filters the previously imported elements. For example:
 
-      import List, only: [flatten: 1, keyfind: 3]
+      import List, only: [flatten: 1, keyfind: 4]
       import List, except: [flatten: 1]
 
-  After the two import calls above, only `List.keyfind/3` will be
+  After the two import calls above, only `List.keyfind/4` will be
   imported.
+
+  ## Underscore functions
+
+  By default functions starting with `_` are not imported. If you really want
+  to import a function starting with `_` you must explicitly include it in the
+  `:only` selector.
+
+      import File.Stream, only: [__build__: 3]
 
   ## Lexical scope
 
@@ -593,10 +601,10 @@ defmodule Kernel.SpecialForms do
 
       defmodule Math do
         def some_function do
-          # 1) Disable `if/2` from Kernel
+          # 1) Disable "if/2" from Kernel
           import Kernel, except: [if: 2]
 
-          # 2) Require the new `if` macro from MyMacros
+          # 2) Require the new "if" macro from MyMacros
           import MyMacros
 
           # 3) Use the new macro
@@ -664,7 +672,7 @@ defmodule Kernel.SpecialForms do
   defmacro __CALLER__
 
   @doc """
-  Accesses an already bound variable in match clauses.
+  Accesses an already bound variable in match clauses. Also known as the pin operator.
 
   ## Examples
 
@@ -676,14 +684,15 @@ defmodule Kernel.SpecialForms do
       2
 
   However, in some situations, it is useful to match against an existing
-  value, instead of rebinding. This can be done with the `^` special form:
+  value, instead of rebinding. This can be done with the `^` special form,
+  colloquially known as the pin operator:
 
       iex> x = 1
       iex> ^x = List.first([1])
       iex> ^x = List.first([2])
       ** (MatchError) no match of right hand side value: 2
 
-  Note that `^` always refers to the value of x prior to the match. The
+  Note that `^x` always refers to the value of `x` prior to the match. The
   following example will match:
 
       iex> x = 0
@@ -896,7 +905,7 @@ defmodule Kernel.SpecialForms do
 
   In the example above, `a` returns 10 even if the macro
   is apparently setting it to 1 because variables defined
-  in the macro does not affect the context the macro is executed in.
+  in the macro do not affect the context the macro is executed in.
   If you want to set or get a variable in the caller's context, you
   can do it with the help of the `var!` macro:
 
@@ -1407,8 +1416,9 @@ defmodule Kernel.SpecialForms do
   defmacro __aliases__(args)
 
   @doc """
-  Calls the overriden function when overriding it with `defoverridable`.
-  See `Kernel.defoverridable` for more information and documentation.
+  Calls the overriden function when overriding it with `Kernel.defoverridable/1`.
+
+  See `Kernel.defoverridable/1` for more information and documentation.
   """
   defmacro super(args)
 
@@ -1461,7 +1471,7 @@ defmodule Kernel.SpecialForms do
 
   @doc """
   Evaluates the expression corresponding to the first clause that
-  evaluates to truth value.
+  evaluates to a truthy value.
 
   Raises an error if all conditions evaluate to `nil` or `false`.
 
@@ -1682,7 +1692,7 @@ defmodule Kernel.SpecialForms do
         _, _ -> :failed
       end
 
-      x #=> unbound variable `x`
+      x #=> unbound variable "x"
 
   In the example above, `x` cannot be accessed since it was defined
   inside the `try` clause. A common practice to address this issue

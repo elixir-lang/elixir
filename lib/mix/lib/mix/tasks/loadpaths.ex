@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Loadpaths do
   ## Command line options
 
     * `--no-deps-check` - do not check dependencies
-    * `--no-elixir-version-check` - do not check elixir version
+    * `--no-elixir-version-check` - do not check Elixir version
 
   """
 
@@ -56,10 +56,20 @@ defmodule Mix.Tasks.Loadpaths do
   end
 
   defp load_project(config, _args) do
-    # Force recompile if we have an app and a version mismatch
-    old_vsn = Mix.Dep.Lock.elixir_vsn
-    if old_vsn && old_vsn != System.version, do: Mix.Dep.Lock.touch
+    vsn = System.version
+    scm = config[:build_scm]
+
+    # Force recompile if we have lock mismatch
+    case Mix.Dep.Lock.status() do
+      {:ok, old_vsn, _} when old_vsn != vsn -> rm_rf_app(config)
+      {:ok, _, old_scm} when old_scm != scm -> rm_rf_app(config)
+      _ -> :ok
+    end
 
     Enum.each Mix.Project.load_paths(config), &Code.prepend_path(&1)
+  end
+
+  defp rm_rf_app(config) do
+    File.rm_rf Mix.Project.app_path(config)
   end
 end

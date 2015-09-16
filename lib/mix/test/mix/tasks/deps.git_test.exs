@@ -160,7 +160,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # mix deps.compile is required...
       Mix.Tasks.Deps.run []
-      msg = "  the dependency build is outdated, please run `mix deps.compile`"
+      msg = "  the dependency build is outdated, please run \"mix deps.compile\""
       assert_received {:mix_shell, :info, [^msg]}
 
       # But also ran automatically
@@ -268,7 +268,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refresh deps: [{:git_repo, "0.1.0", git: fixture_path("git_repo"), ref: last}]
 
       Mix.Tasks.Deps.run []
-      msg = "  lock outdated: the lock is outdated compared to the options in your mixfile"
+      msg = "  lock outdated: the lock is outdated compared to the options in your mixfile (run \"mix deps.get\" to fetch locked version)"
       assert_received {:mix_shell, :info, [^msg]}
 
       # Check an update was triggered
@@ -292,7 +292,7 @@ defmodule Mix.Tasks.DepsGitTest do
       exception = assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Get.run []
       end
-      assert Exception.message(exception) =~ "Command `git clone"
+      assert Exception.message(exception) =~ "Command \"git clone"
     end
   end
 

@@ -1,13 +1,13 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Regular expressions for Elixir built on top of Erlang's `re` module.
+  Regular expressions for Elixir built on top of Erlang's `:re` module.
 
-  As the `re` module, Regex is based on PCRE
+  As the `:re` module, Regex is based on PCRE
   (Perl Compatible Regular Expressions). More information can be
-  found in the [`re` documentation](http://www.erlang.org/doc/man/re.html).
+  found in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
 
   Regular expressions in Elixir can be created using `Regex.compile!/2`
-  or using the special form with [`~r`](Kernel.html#sigil_r/2):
+  or using the special form with [`~r`](Kernel.html#sigil_r/2) or [`~R`](Kernel.html#sigil_R/2):
 
       # A simple regular expressions that matches foo anywhere in the string
       ~r/foo/
@@ -90,7 +90,7 @@ defmodule Regex do
 
   The given options can either be a binary with the characters
   representing the same regex options given to the `~r` sigil,
-  or a list of options, as expected by the [Erlang `re` docs](http://www.erlang.org/doc/man/re.html).
+  or a list of options, as expected by the Erlang's [`:re` module](http://www.erlang.org/doc/man/re.html).
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
@@ -160,7 +160,8 @@ defmodule Regex do
   end
 
   @doc """
-  Returns `true` if the given argument is a regex.
+  Returns `true` if the given `term` is a regex.
+  Otherwise returns `false`.
 
   ## Examples
 
@@ -173,6 +174,7 @@ defmodule Regex do
   """
   @spec regex?(t) :: true
   @spec regex?(any) :: false
+  def regex?(term)
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
 
@@ -184,7 +186,7 @@ defmodule Regex do
 
     * `:return`  - set to `:index` to return indexes. Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
-                   to see the possible capture values.
+      to see the possible capture values.
 
   ## Examples
 

@@ -30,7 +30,7 @@ Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' aliases
-  number signed_number atom atom_safe atom_unsafe bin_string list_string sigil
+  number atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op add_op mult_op two_op pipe_op stab_op when_op assoc_op
@@ -224,7 +224,7 @@ access_expr -> bracket_expr : '$1'.
 access_expr -> at_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> unary_op_eol number : build_unary_op('$1', ?exprs('$2')).
 access_expr -> capture_op_eol number : build_unary_op('$1', ?exprs('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', build_stab(reverse('$2'))).
+access_expr -> fn_eoe stab end_eoe : build_fn('$1', reverse('$2')).
 access_expr -> open_paren stab close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren stab ';' close_paren : build_stab(reverse('$2')).
 access_expr -> open_paren ';' stab ';' close_paren : build_stab(reverse('$3')).
@@ -232,7 +232,6 @@ access_expr -> open_paren ';' stab close_paren : build_stab(reverse('$3')).
 access_expr -> open_paren ';' close_paren : build_stab([]).
 access_expr -> empty_paren : nil.
 access_expr -> number : ?exprs('$1').
-access_expr -> signed_number : {element(4, '$1'), meta('$1'), ?exprs('$1')}.
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
 access_expr -> tuple : '$1'.
@@ -303,7 +302,7 @@ stab_expr -> call_args_no_parens_all stab_op_eol stab_maybe_expr :
 stab_expr -> stab_parens_many stab_op_eol stab_maybe_expr :
                build_op('$2', unwrap_splice('$1'), '$3').
 stab_expr -> stab_parens_many when_op expr stab_op_eol stab_maybe_expr :
-               build_op('$4', [{'when', meta('$2'), unwrap_splice('$1') ++ ['$3']}], '$5').
+               build_op('$4', [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], '$5').
 
 stab_maybe_expr -> 'expr' : '$1'.
 stab_maybe_expr -> '$empty' : nil.
@@ -406,7 +405,7 @@ dot_op -> '.' eol : '$1'.
 dot_identifier -> identifier : '$1'.
 dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 
-dot_alias -> aliases : {'__aliases__', meta('$1', 0), ?exprs('$1')}.
+dot_alias -> aliases : {'__aliases__', meta_from_token('$1', 0), ?exprs('$1')}.
 dot_alias -> matched_expr dot_op aliases : build_dot_alias('$2', '$1', '$3').
 
 dot_op_identifier -> op_identifier : '$1'.
@@ -422,7 +421,7 @@ dot_paren_identifier -> paren_identifier : '$1'.
 dot_paren_identifier -> matched_expr dot_op paren_identifier : build_dot('$2', '$1', '$3').
 
 parens_call -> dot_paren_identifier : '$1'.
-parens_call -> matched_expr dot_call_op : {'.', meta('$2'), ['$1']}. % Fun/local calls
+parens_call -> matched_expr dot_call_op : {'.', meta_from_token('$2'), ['$1']}. % Fun/local calls
 
 % Function calls with no parentheses
 
@@ -564,17 +563,17 @@ map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2',
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', []).
 
 struct_op -> '%' : '$1'.
-struct_op -> '%' eol : '$1'.
 
 map -> map_op map_args : '$2'.
-map -> struct_op map_expr map_args : {'%', meta('$1'), ['$2', '$3']}.
-map -> struct_op map_expr eol map_args : {'%', meta('$1'), ['$2', '$4']}.
+map -> struct_op map_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
+map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
 Erlang code.
 
--define(id(Node), element(1, Node)).
--define(line(Node), element(2, Node)).
--define(exprs(Node), element(3, Node)).
+-define(id(Token), element(1, Token)).
+-define(location(Token), element(2, Token)).
+-define(exprs(Token), element(3, Token)).
+-define(meta(Node), element(2, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
 
 %% The following directive is needed for (significantly) faster
@@ -582,37 +581,39 @@ Erlang code.
 -compile([{hipe, [{regalloc, linear_scan}]}]).
 -import(lists, [reverse/1, reverse/2]).
 
-meta(Line, Counter) -> [{counter, Counter}|meta(Line)].
-meta({Line, Column, EndColumn}) when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}];
-meta(Node) -> meta(?line(Node)).
+meta_from_token(Token, Counter) -> [{counter, Counter}|meta_from_token(Token)].
+meta_from_token(Token) -> meta_from_location(?location(Token)).
+
+meta_from_location({Line, Column, EndColumn})
+  when is_integer(Line), is_integer(Column), is_integer(EndColumn) -> [{line, Line}].
 
 %% Operators
 
-build_op({_Kind, Line, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
-  {UOp, meta(Line), [{'in', meta(Line), [Left, Right]}]};
+build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(UOp) ->
+  {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
 
-build_op({_Kind, Line, Op}, Left, Right) ->
-  {Op, meta(Line), [Left, Right]}.
+build_op({_Kind, Location, Op}, Left, Right) ->
+  {Op, meta_from_location(Location), [Left, Right]}.
 
-build_unary_op({_Kind, Line, Op}, Expr) ->
-  {Op, meta(Line), [Expr]}.
+build_unary_op({_Kind, Location, Op}, Expr) ->
+  {Op, meta_from_location(Location), [Expr]}.
 
 build_list(Marker, Args) ->
-  {Args, ?line(Marker)}.
+  {Args, ?location(Marker)}.
 
 build_tuple(_Marker, [Left, Right]) ->
   {Left, Right};
 build_tuple(Marker, Args) ->
-  {'{}', meta(Marker), Args}.
+  {'{}', meta_from_token(Marker), Args}.
 
 build_bit(Marker, Args) ->
-  {'<<>>', meta(Marker), Args}.
+  {'<<>>', meta_from_token(Marker), Args}.
 
 build_map(Marker, Args) ->
-  {'%{}', meta(Marker), Args}.
+  {'%{}', meta_from_token(Marker), Args}.
 
 build_map_update(Marker, {Pipe, Left, Right}, Extra) ->
-  {'%{}', meta(Marker), [build_op(Pipe, Left, Right ++ Extra)]}.
+  {'%{}', meta_from_token(Marker), [build_op(Pipe, Left, Right ++ Extra)]}.
 
 %% Blocks
 
@@ -625,16 +626,16 @@ build_block(Exprs)                                      -> {'__block__', [], Exp
 %% Dots
 
 build_dot_alias(Dot, {'__aliases__', _, Left}, {'aliases', _, Right}) ->
-  {'__aliases__', meta(Dot), Left ++ Right};
+  {'__aliases__', meta_from_token(Dot), Left ++ Right};
 
-build_dot_alias(_Dot, Atom, {'aliases', {Line, _, _}, _}) when is_atom(Atom) ->
-  throw_bad_atom(Line);
+build_dot_alias(_Dot, Atom, {'aliases', _, _} = Token) when is_atom(Atom) ->
+  throw_bad_atom(Token);
 
 build_dot_alias(Dot, Other, {'aliases', _, Right}) ->
-  {'__aliases__', meta(Dot), [Other|Right]}.
+  {'__aliases__', meta_from_token(Dot), [Other|Right]}.
 
 build_dot(Dot, Left, Right) ->
-  {'.', meta(Dot), [Left, extract_identifier(Right)]}.
+  {'.', meta_from_token(Dot), [Left, extract_identifier(Right)]}.
 
 extract_identifier({Kind, _, Identifier}) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -645,7 +646,7 @@ extract_identifier({Kind, _, Identifier}) when
 
 build_nested_parens(Dot, Args1, Args2) ->
   Identifier = build_identifier(Dot, Args1),
-  Meta = element(2, Identifier),
+  Meta = ?meta(Identifier),
   {Identifier, Meta, Args2}.
 
 build_identifier({'.', Meta, _} = Dot, Args) ->
@@ -655,47 +656,49 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
   end,
   {Dot, Meta, FArgs};
 
-build_identifier({Keyword, Line}, Args) when Keyword == fn ->
-  {fn, meta(Line), Args};
+build_identifier({Keyword, Location}, Args) when Keyword == fn ->
+  {fn, meta_from_location(Location), Args};
 
-build_identifier({op_identifier, Line, Identifier}, [Arg]) ->
-  {Identifier, [{ambiguous_op, nil}|meta(Line)], [Arg]};
+build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
+  {Identifier, [{ambiguous_op, nil}|meta_from_location(Location)], [Arg]};
 
-build_identifier({_, Line, Identifier}, Args) ->
-  {Identifier, meta(Line), Args}.
+build_identifier({_, Location, Identifier}, Args) ->
+  {Identifier, meta_from_location(Location), Args}.
 
 %% Fn
 
-build_fn(Op, Stab) ->
-  {fn, meta(Op), Stab}.
+build_fn(Op, [{'->', _, [_, _]}|_] = Stab) ->
+  {fn, meta_from_token(Op), build_stab(Stab)};
+build_fn(Op, _Stab) ->
+  throw(meta_from_token(Op), "expected clauses to be defined with -> inside: ", "'fn'").
 
 %% Access
 
-build_access(Expr, {List, Line}) ->
-  Meta = meta(Line),
+build_access(Expr, {List, Location}) ->
+  Meta = meta_from_location(Location),
   {{'.', Meta, ['Elixir.Access', get]}, Meta, [Expr, List]}.
 
 %% Interpolation aware
 
-build_sigil({sigil, Line, Sigil, Parts, Modifiers}) ->
-  Meta = meta(Line),
-  {list_to_atom("sigil_" ++ [Sigil]), Meta, [ {'<<>>', Meta, string_parts(Parts)}, Modifiers ]}.
+build_sigil({sigil, Location, Sigil, Parts, Modifiers}) ->
+  Meta = meta_from_location(Location),
+  {list_to_atom("sigil_" ++ [Sigil]), Meta, [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
-build_bin_string({bin_string, _Line, [H]}) when is_binary(H) ->
+build_bin_string({bin_string, _Location, [H]}) when is_binary(H) ->
   H;
-build_bin_string({bin_string, Line, Args}) ->
-  {'<<>>', meta(Line), string_parts(Args)}.
+build_bin_string({bin_string, Location, Args}) ->
+  {'<<>>', meta_from_location(Location), string_parts(Args)}.
 
-build_list_string({list_string, _Line, [H]}) when is_binary(H) ->
+build_list_string({list_string, _Location, [H]}) when is_binary(H) ->
   elixir_utils:characters_to_list(H);
-build_list_string({list_string, Line, Args}) ->
-  Meta = meta(Line),
+build_list_string({list_string, Location, Args}) ->
+  Meta = meta_from_location(Location),
   {{'.', Meta, ['Elixir.String', to_char_list]}, Meta, [{'<<>>', Meta, string_parts(Args)}]}.
 
-build_quoted_atom({_, _Line, [H]}, Safe) when is_binary(H) ->
+build_quoted_atom({_, _Location, [H]}, Safe) when is_binary(H) ->
   Op = binary_to_atom_op(Safe), erlang:Op(H, utf8);
-build_quoted_atom({_, Line, Args}, Safe) ->
-  Meta = meta(Line),
+build_quoted_atom({_, Location, Args}, Safe) ->
+  Meta = meta_from_location(Location),
   {{'.', Meta, [erlang, binary_to_atom_op(Safe)]}, Meta, [{'<<>>', Meta, string_parts(Args)}, utf8]}.
 
 binary_to_atom_op(true)  -> binary_to_existing_atom;
@@ -705,9 +708,9 @@ string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
 string_part(Binary) when is_binary(Binary) ->
   Binary;
-string_part({Line, Tokens}) ->
+string_part({Location, Tokens}) ->
   Form = string_tokens_parse(Tokens),
-  Meta = meta(Line),
+  Meta = meta_from_location(Location),
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}, {binary, Meta, nil}]}.
 
 string_tokens_parse(Tokens) ->
@@ -760,23 +763,25 @@ to_block(Other) -> {'__block__', [], reverse(Other)}.
 
 %% Errors
 
-throw(Line, Error, Token) ->
-  throw({error, {Line, ?MODULE, [Error, Token]}}).
-
-
-throw_no_parens_strict(Token) ->
-  throw(?line(Token), "unexpected parentheses. If you are making a "
-    "function call, do not insert spaces between the function name and the "
-    "opening parentheses. Syntax error before: ", "'('").
-
-throw_no_parens_many_strict(Token) ->
+throw(Meta, Error, Token) ->
   Line =
-    case lists:keyfind(line, 1, element(2, Token)) of
+    case lists:keyfind(line, 1, Meta) of
       {line, L} -> L;
       false -> 0
     end,
+  throw({error, {Line, ?MODULE, [Error, Token]}}).
 
-  throw(Line,
+throw_bad_atom(Token) ->
+  throw(meta_from_token(Token), "atom cannot be followed by an alias. If the '.' was meant to be "
+    "part of the atom's name, the atom name must be quoted. Syntax error before: ", "'.'").
+
+throw_no_parens_strict(Token) ->
+  throw(meta_from_token(Token), "unexpected parentheses. If you are making a "
+    "function call, do not insert spaces between the function name and the "
+    "opening parentheses. Syntax error before: ", "'('").
+
+throw_no_parens_many_strict(Node) ->
+  throw(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity in nested calls.\n\n"
     "This error happens when you have nested function calls without parentheses. "
     "For example:\n\n"
@@ -787,14 +792,8 @@ throw_no_parens_many_strict(Token) ->
     "    one a, two(b, c, d)\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
-throw_no_parens_container_strict(Token) ->
-  Line =
-    case lists:keyfind(line, 1, element(2, Token)) of
-      {line, L} -> L;
-      false -> 0
-    end,
-
-  throw(Line,
+throw_no_parens_container_strict(Node) ->
+  throw(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity inside containers.\n\n"
     "This error may happen when you forget a comma in a list or other container:\n\n"
     "    [a, b c, d]\n\n"
@@ -805,7 +804,3 @@ throw_no_parens_container_strict(Token) ->
     "adding parentheses:\n\n"
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
-
-throw_bad_atom(Line) ->
-  throw(Line, "atom cannot be followed by an alias. If the '.' was meant to be "
-    "part of the atom's name, the atom name must be quoted. Syntax error before: ", "'.'").

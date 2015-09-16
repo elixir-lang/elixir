@@ -25,11 +25,9 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
-  use Behaviour
-
-  defcallback handle_body(Macro.t) :: Macro.t
-  defcallback handle_text(Macro.t, String.t) :: Macro.t
-  defcallback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
+  @callback handle_body(Macro.t) :: Macro.t
+  @callback handle_text(Macro.t, String.t) :: Macro.t
+  @callback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
 
   @doc false
   defmacro __using__(_) do

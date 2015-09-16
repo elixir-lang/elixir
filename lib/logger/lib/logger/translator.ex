@@ -33,12 +33,14 @@ defmodule Logger.Translator do
   def translate(min_level, level, kind, message)
 
   def translate(min_level, :error, :format, message) do
+    opts = Application.get_env(:logger, :translator_inspect_opts)
+
     case message do
       {'** Generic server ' ++ _, [name, last, state, reason]} ->
         msg = ["GenServer #{inspect name} terminating" | format_stop(reason)]
         if min_level == :debug do
-          msg = [msg, "\nLast message: #{inspect last}" |
-                      "\nState: #{inspect state}"]
+          msg = [msg, "\nLast message: #{inspect last, opts}" |
+                      "\nState: #{inspect state, opts}"]
         end
         {:ok, msg}
 
@@ -46,16 +48,16 @@ defmodule Logger.Translator do
         msg = ["GenEvent handler #{inspect name} installed in #{inspect manager} terminating"
           | format_stop(reason)]
         if min_level == :debug do
-          msg = [msg, "\nLast message: #{inspect last}" |
-                      "\nState: #{inspect state}"]
+          msg = [msg, "\nLast message: #{inspect last, opts}" |
+                      "\nState: #{inspect state, opts}"]
         end
         {:ok, msg}
 
       {'** Task ' ++ _, [name, starter, function, args, reason]} ->
         msg = ["Task #{inspect name} started from #{inspect starter} terminating",
                format_stop(reason),
-               "\nFunction: #{inspect function}" |
-               "\n    Args: #{inspect args}"]
+               "\nFunction: #{inspect function, opts}" |
+               "\n    Args: #{inspect args, opts}"]
         {:ok, msg}
 
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->

@@ -11,23 +11,25 @@ defmodule IEx.Helpers do
 
   There are many other helpers available:
 
-    * `c/2`           — compiles a file at the given path
-    * `cd/1`          — changes the current directory
-    * `clear/0`       — clears the screen
-    * `flush/0`       — flushes all messages sent to the shell
-    * `h/0`           — prints this help message
-    * `h/1`           — prints help for the given module, function or macro
-    * `l/1`           — loads the given module's beam code
-    * `ls/0`          — lists the contents of the current directory
-    * `ls/1`          — lists the contents of the specified directory
-    * `pwd/0`         — prints the current working directory
-    * `r/1`           — recompiles and reloads the given module's source file
-    * `respawn/0`     — respawns the current shell
-    * `s/1`           — prints spec information
-    * `t/1`           — prints type information
-    * `v/0`           — retrieves the last value from the history
-    * `v/1`           — retrieves the nth value from the history
-    * `import_file/1` — evaluates the given file in the shell's context
+    * `b/1`           - prints callbacks info and docs for a given module
+    * `c/2`           - compiles a file at the given path
+    * `cd/1`          - changes the current directory
+    * `clear/0`       - clears the screen
+    * `flush/0`       - flushes all messages sent to the shell
+    * `h/0`           - prints this help message
+    * `h/1`           - prints help for the given module, function or macro
+    * `l/1`           - loads the given module's beam code
+    * `ls/0`          - lists the contents of the current directory
+    * `ls/1`          - lists the contents of the specified directory
+    * `pid/3`         - creates a PID with the 3 integer arguments passed
+    * `pwd/0`         - prints the current working directory
+    * `r/1`           - recompiles and reloads the given module's source file
+    * `respawn/0`     - respawns the current shell
+    * `s/1`           - prints spec information
+    * `t/1`           - prints type information
+    * `v/0`           - retrieves the last value from the history
+    * `v/1`           - retrieves the nth value from the history
+    * `import_file/1` - evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -514,7 +516,7 @@ defmodule IEx.Helpers do
     raise ArgumentError, "import_file/1 expects a literal binary as its argument"
   end
 
-  # Compiles and loads an erlang source file, returns {module, binary}
+  # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
     source = Path.relative_to_cwd(source) |> String.to_char_list
     case :compile.file(source, [:binary, :report]) do
@@ -528,4 +530,20 @@ defmodule IEx.Helpers do
   end
 
   defp history, do: Process.get(:iex_history)
+
+  @doc """
+  Creates a PID with 3 non negative integers passed as arguments 
+  to the function.
+
+  ## Examples
+      iex> pid(0, 21, 32)
+      #PID<0.21.32>
+      iex> pid(0, 64, 2048)
+      #PID<0.64.2048>
+  """
+  def pid(x, y, z) when is_integer(x) and x >= 0 and
+                        is_integer(y) and y >= 0 and
+                        is_integer(z) and z >= 0 do
+    :c.pid(x, y, z)
+  end
 end

@@ -72,10 +72,12 @@ end
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
-  documents, as described in ["Strictly Pretty" (2000) by Christian Lindig][0].
+  documents.
 
-  An algebra document is represented by an `Inspect.Algebra` node
-  or a regular string.
+  This module implements the functionality described in
+  ["Strictly Pretty" (2000) by Christian Lindig][0] with small
+  additions, like support for String nodes, and a custom
+  rendering function that maximises horizontal space use. 
 
       iex> Inspect.Algebra.empty
       :doc_nil
@@ -143,7 +145,7 @@ defmodule Inspect.Algebra do
   @nesting 1
   @break " "
 
-  # Functional interface to `doc` records
+  # Functional interface to "doc" records
 
   @type t :: :doc_nil | :doc_line | doc_cons | doc_nest | doc_break | doc_group | binary
 
@@ -218,7 +220,7 @@ defmodule Inspect.Algebra do
 
               exception = Inspect.Error.exception(
                 message: "got #{inspect e.__struct__} with message " <>
-                         "`#{Exception.message(e)}` while inspecting #{res}"
+                         "#{inspect Exception.message(e)} while inspecting #{res}"
               )
 
               if opts.safe do

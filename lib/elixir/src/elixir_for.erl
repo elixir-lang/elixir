@@ -1,5 +1,5 @@
 -module(elixir_for).
--export([expand/3, translate/3]).
+-export([expand/3, translate/4]).
 -include("elixir.hrl").
 
 %% Expansion
@@ -49,8 +49,7 @@ expand(X, E) ->
 
 %% Translation
 
-translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
-  S = RS#elixir_scope{return=true},
+translate(Meta, Args, Return, S) ->
   {AccName, _, SA} = elixir_scope:build_var('_', S),
   {VarName, _, SV} = elixir_scope:build_var('_', SA),
 
@@ -68,7 +67,7 @@ translate(Meta, Args, #elixir_scope{return=Return} = RS) ->
     end,
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
-  {TExpr, SE}  = elixir_translator:translate_block(Expr, Return, SC),
+  {TExpr, SE}  = elixir_translator:translate(Expr, SC),
   SF = elixir_scope:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of

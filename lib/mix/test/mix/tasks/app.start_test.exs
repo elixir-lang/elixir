@@ -25,20 +25,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  setup config do
-    if app = config[:app] do
-      Logger.remove_backend(:console)
-
-      on_exit fn ->
-        Application.stop(app)
-        Application.unload(app)
-        Logger.add_backend(:console, flush: true)
-      end
-    end
-
-    :ok
-  end
-
+  @tag apps: [:app_start_sample]
   test "compiles and starts the project" do
     Mix.Project.push AppStartSample
 
@@ -63,6 +50,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:app_embedded_sample]
   test "compiles and starts a project with build_embedded" do
     Mix.Project.push AppEmbeddedSample
 
@@ -70,12 +58,29 @@ defmodule Mix.Tasks.App.StartTest do
       assert_raise  Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
         Mix.Tasks.App.Start.run []
       end
-
       Mix.Tasks.Compile.run([])
       Mix.Tasks.App.Start.run([])
     end
   end
 
+  @tag apps: [:app_start_sample, :app_loaded_sample]
+  test "start checks for invalid configuration" do
+    Mix.Project.push AppStartSample
+
+    in_fixture "no_mixfile", fn ->
+      :ok = :application.load({:application, :app_loaded_sample, [vsn: '1.0.0', env: []]})
+      Mix.ProjectStack.configured_applications([:app_start_sample, :app_unknown_sample, :app_loaded_sample])
+
+      Mix.Tasks.Compile.run([])
+      Mix.Tasks.App.Start.run([])
+
+      refute_received {:mix_shell, :error, ["You have configured application :app_embedded_sample" <> _]}
+      assert_received {:mix_shell, :error, ["You have configured application :app_unknown_sample" <> _]}
+      refute_received {:mix_shell, :error, ["You have configured application :app_loaded_sample" <> _]}
+    end
+  end
+
+  @tag apps: [:error]
   test "validates Elixir version requirement" do
     Mix.ProjectStack.post_config elixir: "~> ~> 0.8.1"
     Mix.Project.push WrongElixirProject
@@ -87,6 +92,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:error]
   test "validates the Elixir version with requirement" do
     Mix.Project.push WrongElixirProject
 
@@ -97,6 +103,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @tag apps: [:error]
   test "does not validate the Elixir version with requirement when disabled" do
     Mix.Project.push WrongElixirProject
 
@@ -132,7 +139,7 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, return), do: return
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on error" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -149,7 +156,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on exception error" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -169,7 +176,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :return_sample
+  @tag apps: [:return_sample]
   test "start points to report on bad return" do
     Mix.Project.push ReturnSample
     in_fixture "no_mixfile", fn ->
@@ -202,7 +209,7 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, reason), do: exit(reason)
   end
 
-  @tag app: :exit_sample
+  @tag apps: [:exit_sample]
   test "start points to report on exit" do
     Mix.Project.push ExitSample
     in_fixture "no_mixfile", fn ->
@@ -219,7 +226,7 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag app: :exit_sample
+  @tag apps: [:exit_sample]
   test "start points to report on normal exit" do
     Mix.Project.push ExitSample
     in_fixture "no_mixfile", fn ->

@@ -3,10 +3,10 @@ defmodule Mix.Tasks.Deps do
 
   import Mix.Dep, only: [loaded: 1, format_dep: 1, format_status: 1, check_lock: 2]
 
-  @shortdoc "List dependencies and their status"
+  @shortdoc "Lists dependencies and their status"
 
   @moduledoc ~S"""
-  List all dependencies and their status.
+  Lists all dependencies and their status.
 
   Dependencies must be specified in the `mix.exs` file in one of
   the following formats:
@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Deps do
 
   Path and in umbrella dependencies are automatically recompiled by
   the parent project whenever they change. While fetchable dependencies
-  like git are recompiled only when fetched/updated.
+  like the ones using `:git` are recompiled only when fetched/updated.
 
   The dependencies versions are expected to follow Semantic Versioning
   and the requirements must be specified as defined in the `Version`
@@ -55,8 +55,8 @@ defmodule Mix.Tasks.Deps do
 
     * `:env` - the environment to run the dependency on, defaults to :prod
 
-    * `:compile` - a command to compile the dependency, defaults to a mix,
-      rebar or make command
+    * `:compile` - a command to compile the dependency, defaults to a `mix`,
+      `rebar` or `make` command
 
     * `:optional` - the dependency is optional and used only to specify
       requirements
@@ -82,9 +82,9 @@ defmodule Mix.Tasks.Deps do
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
       "../#{app}", sharing the same environment as the current application
 
-  ## mix deps task
+  ## Deps task
 
-  This task lists all dependencies in the following format:
+  `mix deps` task lists all dependencies in the following format:
 
       APP VERSION (SCM)
       [locked at REF]

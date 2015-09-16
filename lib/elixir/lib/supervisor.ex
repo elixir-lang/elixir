@@ -108,7 +108,7 @@ defmodule Supervisor do
   You may want to use a module-based supervisor if:
 
     * You need to do some particular action on supervisor
-      initialization, like setting up a ETS table.
+      initialization, like setting up an ETS table.
 
     * You want to perform partial hot-code swapping of the
       tree. For example, if you add or remove children,
@@ -265,7 +265,7 @@ defmodule Supervisor do
   and will exit not only on crashes but also if the parent process
   exits with `:normal` reason.
   """
-  @spec start_link([tuple], options) :: on_start
+  @spec start_link([Supervisor.Spec.spec], options) :: on_start
   def start_link(children, options) when is_list(children) do
     spec = Supervisor.Spec.supervise(children, options)
     start_link(Supervisor.Default, spec, options)
@@ -291,6 +291,7 @@ defmodule Supervisor do
 
   Other failure conditions are specified in `start_link/2` docs.
   """
+  @spec start_link(module, term) :: on_start
   @spec start_link(module, term, options) :: on_start
   def start_link(module, arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
@@ -427,7 +428,7 @@ defmodule Supervisor do
 
     * `type` - `:worker` or `:supervisor` as defined in the child specification
 
-    * `modules` – as defined in the child specification
+    * `modules` - as defined in the child specification
   """
   @spec which_children(supervisor) ::
         [{Supervisor.Spec.child_id | :undefined,

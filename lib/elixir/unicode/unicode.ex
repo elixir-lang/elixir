@@ -223,8 +223,8 @@ defmodule String.Graphemes do
 
   # There is no codepoint marked as Prepend by Unicode 6.3.0
   if cluster["Prepend"] do
-    raise "It seems this new unicode version has added Prepend items. " <>
-          "Please remove this error and uncomment the code below."
+    raise "it seems this new unicode version has added Prepend items. " <>
+          "Please remove this error and uncomment the code below"
   end
 
   # Don't break CRLF

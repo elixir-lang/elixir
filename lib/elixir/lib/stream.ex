@@ -156,8 +156,8 @@ defmodule Stream do
       [[1, 2, 3], [4, 5, 6]]
 
   """
-  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer) :: Enumerable.t
-  @spec chunk(Enumerable.t, non_neg_integer, non_neg_integer, Enumerable.t | nil) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer, pos_integer) :: Enumerable.t
+  @spec chunk(Enumerable.t, pos_integer, pos_integer, Enumerable.t | nil) :: Enumerable.t
   def chunk(enum, n, step, pad \\ nil) when n > 0 and step > 0 do
     limit = :erlang.max(n, step)
     if is_nil(pad) do
@@ -658,18 +658,36 @@ defmodule Stream do
   @spec transform(Enumerable.t, acc, fun) :: Enumerable.t when
         fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
         acc: any
-  def transform(enum, acc, reducer) do
-    &do_transform(enum, acc, reducer, &1, &2)
+  def transform(enum, acc, reducer) when is_function(reducer, 2) do
+    &do_transform(enum, fn -> acc end, reducer, &1, &2, nil)
   end
 
-  defp do_transform(enumerables, user_acc, user, inner_acc, fun) do
+  @doc """
+  Transforms an existing stream with function-based start and finish.
+
+  The accumulator is only calculated when transformation starts. It also
+  allows an after function to be given which is invoked when the stream
+  halts or completes.
+
+  This function can be seen as a combination of `Stream.resource/3` with
+  `Stream.transform/3`.
+  """
+  @spec transform(Enumerable.t, (() -> acc), fun, (acc -> term)) :: Enumerable.t when
+        fun: (element, acc -> {Enumerable.t, acc} | {:halt, acc}),
+        acc: any
+  def transform(enum, start_fun, reducer, after_fun)
+      when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
+    &do_transform(enum, start_fun, reducer, &1, &2, after_fun)
+  end
+
+  defp do_transform(enumerables, user_acc, user, inner_acc, fun, after_fun) do
     inner = &do_transform_each(&1, &2, fun)
     step  = &do_transform_step(&1, &2)
     next  = &Enumerable.reduce(enumerables, &1, step)
-    do_transform(user_acc, user, fun, [], next, inner_acc, inner)
+    do_transform(user_acc.(), user, fun, [], next, inner_acc, inner, after_fun)
   end
 
-  defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner) do
+  defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
     case next.({:cont, next_acc}) do
       {:suspended, [val|next_acc], next} ->
         try do
@@ -681,63 +699,72 @@ defmodule Stream do
             :erlang.raise(kind, reason, stacktrace)
         else
           {[], user_acc} ->
-            do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner)
+            do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun)
           {list, user_acc} when is_list(list) ->
             do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.List.reduce(list, &1, fun))
-          {:halt, _user_acc} ->
+                              &Enumerable.List.reduce(list, &1, fun), after_fun)
+          {:halt, user_acc} ->
             next.({:halt, next_acc})
+            do_after(after_fun, user_acc)
             {:halted, elem(inner_acc, 1)}
           {other, user_acc} ->
             do_enum_transform(user_acc, user, fun, next_acc, next, inner_acc, inner,
-                              &Enumerable.reduce(other, &1, inner))
+                              &Enumerable.reduce(other, &1, inner), after_fun)
         end
       {reason, _} ->
+        do_after(after_fun, user_acc)
         {reason, elem(inner_acc, 1)}
     end
   end
 
-  defp do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce) do
+  defp do_list_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, reduce, after_fun) do
     try do
       reduce.(inner_acc)
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         next.({:halt, next_acc})
+        do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       {:done, acc} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
+        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
       {:halted, acc} ->
         next.({:halt, next_acc})
+        do_after(after_fun, user_acc)
         {:halted, acc}
       {:suspended, acc, c} ->
-        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_acc, next, &1, inner, c)}
+        {:suspended, acc, &do_list_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
     end
   end
 
-  defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce) do
+  defp do_enum_transform(user_acc, user, fun, next_acc, next, {op, inner_acc}, inner, reduce, after_fun) do
     try do
       reduce.({op, [:outer|inner_acc]})
     catch
       kind, reason ->
         stacktrace = System.stacktrace
         next.({:halt, next_acc})
+        do_after(after_fun, user_acc)
         :erlang.raise(kind, reason, stacktrace)
     else
       # Only take into account outer halts when the op is not halt itself.
       # Otherwise, we were the ones wishing to halt, so we should just stop.
       {:halted, [:outer|acc]} when op != :halt ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
+        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
       {:halted, [_|acc]} ->
         next.({:halt, next_acc})
+        do_after(after_fun, user_acc)
         {:halted, acc}
       {:done, [_|acc]} ->
-        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner)
+        do_transform(user_acc, user, fun, next_acc, next, {:cont, acc}, inner, after_fun)
       {:suspended, [_|acc], c} ->
-        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c)}
+        {:suspended, acc, &do_enum_transform(user_acc, user, fun, next_acc, next, &1, inner, c, after_fun)}
     end
   end
+
+  defp do_after(nil, _user_acc), do: :ok
+  defp do_after(fun, user_acc),  do: fun.(user_acc)
 
   defp do_transform_each(x, [:outer|acc], f) do
     case f.(x, acc) do

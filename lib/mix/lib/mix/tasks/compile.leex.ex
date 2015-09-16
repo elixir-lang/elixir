@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.Leex do
   @manifest ".compile.leex"
 
   @moduledoc """
-  Compile Leex source files.
+  Compiles Leex source files.
 
   When this task runs, it will check the modification time of every file, and
   if it has changed, the file will be compiled. Files will be
@@ -23,9 +23,10 @@ defmodule Mix.Tasks.Compile.Leex do
     * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
     * `:leex_options` - compilation options that apply
-      to Leex's compiler. There are many available options
-      here: http://www.erlang.org/doc/man/leex.html#file-2
+      to Leex's compiler.
 
+      For a list of the many more available options,
+      see [`:leex.file/2`](http://www.erlang.org/doc/man/leex.html#file-2).
   """
 
   @doc """

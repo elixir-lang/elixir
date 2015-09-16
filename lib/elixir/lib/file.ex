@@ -66,7 +66,7 @@ defmodule File do
   and `:delayed_write` are also useful when operating large files or
   working with files in tight loops.
 
-  Check http://www.erlang.org/doc/man/file.html#open-2 for more information
+  Check [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2) for more information
   about such options and other performance considerations.
   """
 
@@ -132,12 +132,12 @@ defmodule File do
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
-       directories of `path`
+      directories of `path`
     * `:eexist`  - there is already a file or directory named `path`
     * `:enoent`  - a component of `path` does not exist
     * `:enospc`  - there is a no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
-       on some platforms, `:enoent` is returned instead
+      on some platforms, `:enoent` is returned instead
   """
   @spec mkdir(Path.t) :: :ok | {:error, posix}
   def mkdir(path) do
@@ -164,7 +164,7 @@ defmodule File do
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
-                   directories of `path`
+      directories of `path`
     * `:enospc`  - there is a no space left on the device
     * `:enotdir` - a component of `path` is not a directory
   """
@@ -218,10 +218,10 @@ defmodule File do
 
     * `:enoent`  - the file does not exist
     * `:eacces`  - missing permission for reading the file,
-                   or for searching one of the parent directories
+      or for searching one of the parent directories
     * `:eisdir`  - the named file is a directory
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, `:enoent` is returned instead
+      on some platforms, `:enoent` is returned instead
     * `:enomem`  - there is not enough memory for the contents of the file
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
@@ -260,13 +260,14 @@ defmodule File do
 
   The values for `:time` can be:
 
+    * `:universal` - returns a `{date, time}` tuple in UTC (default)
     * `:local` - returns a `{date, time}` tuple using the machine time
-    * `:universal` - returns a `{date, time}` tuple in UTC
     * `:posix` - returns the time as integer seconds since epoch
 
   """
   @spec stat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def stat(path, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     case F.read_file_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
@@ -292,8 +293,9 @@ defmodule File do
   @doc """
   Returns information about the `path`. If the file is a symlink sets
   the `type` to `:symlink` and returns `File.Stat` for the link. For any
-  other file, returns exactly the same values as `stat/2`. For more details
-  see http://www.erlang.org/doc/man/file.html#read_link_info-2
+  other file, returns exactly the same values as `stat/2`.
+
+  For more details, see [`:file.read_link_info/2`](http://www.erlang.org/doc/man/file.html#read_link_info-2).
 
   ## Options
 
@@ -303,13 +305,14 @@ defmodule File do
 
   The values for `:time` can be:
 
+    * `:universal` - returns a `{date, time}` tuple in UTC (default)
     * `:local` - returns a `{date, time}` tuple using the machine time
-    * `:universal` - returns a `{date, time}` tuple in UTC
     * `:posix` - returns the time as integer seconds since epoch
 
   """
   @spec lstat(Path.t, stat_options) :: {:ok, File.Stat.t} | {:error, posix}
   def lstat(path, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     case F.read_link_info(IO.chardata_to_string(path), opts) do
       {:ok, fileinfo} ->
         {:ok, File.Stat.from_record(fileinfo)}
@@ -338,6 +341,7 @@ defmodule File do
   """
   @spec write_stat(Path.t, File.Stat.t, stat_options) :: :ok | {:error, posix}
   def write_stat(path, stat, opts \\ []) do
+    opts = Keyword.put_new(opts, :time, :universal)
     F.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
   end
 
@@ -357,12 +361,14 @@ defmodule File do
 
   @doc """
   Updates modification time (mtime) and access time (atime) of
-  the given file. File is created if it doesn’t exist.
+  the given file.
+
+  File is created if it doesn’t exist. Requires datetime in UTC.
   """
   @spec touch(Path.t, :calendar.datetime) :: :ok | {:error, posix}
-  def touch(path, time \\ :calendar.local_time) do
+  def touch(path, time \\ :calendar.universal_time) do
     path = IO.chardata_to_string(path)
-    case F.change_time(path, time) do
+    case :elixir_utils.change_universal_time(path, time) do
       {:error, :enoent} -> touch_new(path, time)
       other -> other
     end
@@ -370,17 +376,18 @@ defmodule File do
 
   defp touch_new(path, time) do
     case write(path, "", [:append]) do
-      :ok -> F.change_time(path, time)
+      :ok -> :elixir_utils.change_universal_time(path, time)
       {:error, _reason} = error -> error
     end
   end
 
   @doc """
   Same as `touch/2` but raises an exception if it fails.
-  Returns `:ok` otherwise.
+
+  Returns `:ok` otherwise. Requires datetime in UTC.
   """
   @spec touch!(Path.t, :calendar.datetime) :: :ok | no_return
-  def touch!(path, time \\ :calendar.local_time) do
+  def touch!(path, time \\ :calendar.universal_time) do
     case touch(path, time) do
       :ok -> :ok
       {:error, reason} ->
@@ -439,6 +446,31 @@ defmodule File do
         raise File.CopyError, reason: reason, action: "copy",
           source: IO.chardata_to_string(source), destination: IO.chardata_to_string(destination)
     end
+  end
+
+  @doc """
+  Renames the `source` file to `destination` file.  If can be used to move files
+  (and directories) between directories.  If moving a file, you must fully
+  specify the `destination` filename, it is not sufficient to simply specify
+  it's directory.
+
+  It returns `:ok` in case of success, returns `{:error, reason}` otherwise
+
+  Note: The command `mv` in Unix systems behaves differently depending
+  if `source` is a file and the `destination` is an existing directory.
+  We have chosen to explicitly disallow this behaviour.
+
+  ## Examples
+
+      # Rename file "a.txt" to "b.txt"
+      File.rename "a.txt", "b.txt"
+
+      # Rename directory "samples" to "tmp"
+      File.rename "samples", "tmp"
+  """
+  @spec rename(Path.t, Path.t) :: :ok | {:error, posix}
+  def rename(source, destination) do
+    F.rename(source, destination)
   end
 
   @doc """
@@ -523,15 +555,15 @@ defmodule File do
 
   ## Examples
 
-      # Copies "a.txt" to "tmp"
-      File.cp_r "a.txt", "tmp.txt"
+      # Copies file "a.txt" to "b.txt"
+      File.cp_r "a.txt", "b.txt"
 
       # Copies all files in "samples" to "tmp"
       File.cp_r "samples", "tmp"
 
       # Same as before, but asks the user how to proceed in case of conflicts
       File.cp_r "samples", "tmp", fn(source, destination) ->
-        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm.") == "y"
+        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end
 
   """
@@ -656,10 +688,10 @@ defmodule File do
 
     * `:enoent`  - a component of the file name does not exist
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, enoent is returned instead
+      on some platforms, enoent is returned instead
     * `:enospc`  - there is a no space left on the device
     * `:eacces`  - missing permission for writing the file or searching one of
-                   the parent directories
+      the parent directories
     * `:eisdir`  - the named file is a directory
 
   Check `File.open/2` for other available options.
@@ -695,7 +727,7 @@ defmodule File do
     * `:eacces`  - missing permission for the file or one of its parents
     * `:eperm`   - the file is a directory and user is not super-user
     * `:enotdir` - a component of the file name is not a directory;
-                   on some platforms, enoent is returned instead
+      on some platforms, enoent is returned instead
     * `:einval`  - filename had an improper type, such as tuple
 
   ## Examples
@@ -930,8 +962,8 @@ defmodule File do
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
-  Check http://www.erlang.org/doc/man/file.html#open-2 for more information about
-  other options like `:read_ahead` and `:delayed_write`.
+  For more information about other options like `:read_ahead` and `:delayed_write`,
+  see [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2).
 
   This function returns:
 
@@ -1169,10 +1201,23 @@ defmodule File do
   device cannot be shared and as such it is convenient to open the file
   in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
-  is specified.
+  is specified. This means any data streamed into the file must be
+  converted to `iodata` type. If you pass `[:utf8]` in the modes parameter,
+  the underlying stream will use `IO.write/2` and the `String.Chars` protocol
+  to convert the data. See `IO.binwrite/2` and `IO.write/2` .
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
+
+  ## Examples
+
+      # Read in 2048 byte chunks rather than lines
+      File.stream!("./test/test.data", [], 2048)
+      #=>  %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
+      #=> path: "./test/test.data", raw: true}
+
+  See `Stream.run/1` for an example of streaming into a file.
+
   """
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = open_defaults(modes, true)

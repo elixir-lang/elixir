@@ -46,14 +46,32 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert System.version == Mix.Dep.Lock.elixir_vsn
+      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
 
       Mix.Task.clear
-      File.write!("_build/dev/lib/sample/.compile.lock", "the_past")
+      File.write!("_build/dev/lib/sample/.compile.lock", ~s({v1, <<"0.0.0">>, nil}.))
       File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
-      assert System.version == Mix.Dep.Lock.elixir_vsn
+      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
+      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
+    end
+  end
+
+  test "recompiles project if scm changed" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Tasks.Compile.run []
+      purge [A, B, C]
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
+
+      Mix.Task.clear
+      File.write!("_build/dev/lib/sample/.compile.lock", ~s({v1, <<"#{System.version}">>, another}.))
+      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Compile.run []
+      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
       assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end

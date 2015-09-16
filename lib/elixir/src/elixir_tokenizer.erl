@@ -87,6 +87,13 @@
 -define(pipe_op(T),
   T == $|).
 
+-define(operator_kw(A),
+  A == 'and';
+  A == 'or';
+  A == 'when';
+  A == 'not';
+  A == 'in').
+
 tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
@@ -110,7 +117,7 @@ tokenize(String, Line, Column, Opts) ->
     file=File,
     existing_atoms_only=Existing,
     check_terminators=Check
- }).
+  }).
 
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
@@ -168,41 +175,49 @@ tokenize([$~, S, H|T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H)
 
 tokenize([$?, $\\, $x, ${,A,B,C,D,E,F,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E), ?is_hex(F) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,B,C,D,E,F,$}]),
   tokenize(T, Line, Column + 11, Scope, [{number, {Line, Column, Column + 11}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, ${,A,B,C,D,E,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D), ?is_hex(E) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,B,C,D,E,$}]),
   tokenize(T, Line, Column + 10, Scope, [{number, {Line, Column, Column + 10}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, ${,A,B,C,D,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C), ?is_hex(D) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,B,C,D,$}]),
   tokenize(T, Line, Column + 9, Scope, [{number, {Line, Column, Column + 9}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, ${,A,B,C,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B), ?is_hex(C) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,B,C,$}]),
   tokenize(T, Line, Column + 8, Scope, [{number, {Line, Column, Column + 8}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, ${,A,B,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,B,$}]),
   tokenize(T, Line, Column + 7, Scope, [{number, {Line, Column, Column + 7}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, ${,A,$}|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, ${,A,$}]),
   tokenize(T, Line, Column + 6, Scope, [{number, {Line, Column, Column + 6}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, A, B|T], Line, Column, Scope, Tokens)
     when ?is_hex(A), ?is_hex(B) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, A, B]),
   tokenize(T, Line, Column + 5, Scope, [{number, {Line, Column, Column + 5}, Char}|Tokens]);
 
 tokenize([$?, $\\, $x, A|T], Line, Column, Scope, Tokens)
     when ?is_hex(A) ->
+  elixir_errors:warn(Line, Scope#elixir_tokenizer.file, "?\\xHEX is deprecated, please use 0xHEX instead"),
   Char = escape_char([$\\, $x, A]),
   tokenize(T, Line, Column + 4, Scope, [{number, {Line, Column, Column + 4}, Char}|Tokens]);
 
@@ -423,14 +438,14 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 % Others
 
+tokenize([$%,${|T], Line, Column, Scope, Tokens) ->
+  tokenize([${|T], Line, Column + 1, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
+
 tokenize([$%|T], Line, Column, Scope, Tokens) ->
-  case strip_space(T, 0, Column + 1) of
-    {[${|_] = Rest, Counter, Offset} -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%{}', {Line, Column, Column + 1}}|Tokens]);
-    {Rest, Counter, Offset}          -> tokenize(Rest, Line + Counter, Offset, Scope, [{'%', {Line, Column, Column + 1}}|Tokens])
-  end;
+  tokenize(T, Line, Column + 1, Scope, [{'%', {Line, Column, Column + 1}}|Tokens]);
 
 tokenize([$.|T], Line, Column, Scope, Tokens) ->
-  {Rest, Counter, Offset} = strip_space(T, 0, Column + 1),
+  {Rest, Counter, Offset} = strip_dot_space(T, 0, Column + 1),
   handle_dot([$.|Rest], Line + Counter, Offset - 1, Column, Scope, Tokens);
 
 % Integers and floats
@@ -471,12 +486,9 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
       handle_space_sensitive_tokens(Remaining, Line, Column + 1 + Stripped, Scope, Tokens)
   end;
 
-tokenize([T|Rest] = Original, Line, _Column, _Scope, Tokens) when ?is_invalid_space(T) ->
-  Message = io_lib:format("invalid space character U+~.16B before: ", [T]),
-  {error, {Line, lists:flatten(Message), until_eol(Rest)}, Original, Tokens};
-
-tokenize(T, Line, _Column, _Scope, Tokens) ->
-  {error, {Line, "invalid token: ", until_eol(T)}, T, Tokens}.
+tokenize([T|Rest], Line, Column, _Scope, Tokens) ->
+  Message = io_lib:format("\"~s\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
+  {error, {Line, "unexpected token: ", Message}, Rest, Tokens}.
 
 strip_horizontal_space(T) ->
   strip_horizontal_space(T, 0).
@@ -486,17 +498,13 @@ strip_horizontal_space([H|T], Counter) when ?is_horizontal_space(H) ->
 strip_horizontal_space(T, Counter) ->
   {T, Counter}.
 
-strip_space(T, Counter, Column) ->
+strip_dot_space(T, Counter, Column) ->
   case strip_horizontal_space(T) of
-    {"\r\n" ++ Rest, _} -> strip_space(Rest, Counter + 1, 1);
-    {"\n" ++ Rest, _}   -> strip_space(Rest, Counter + 1, 1);
+    {"#" ++ Rest, _}    -> strip_dot_space(tokenize_comment(Rest), Counter, 1);
+    {"\r\n" ++ Rest, _} -> strip_dot_space(Rest, Counter + 1, 1);
+    {"\n" ++ Rest, _}   -> strip_dot_space(Rest, Counter + 1, 1);
     {Rest, Length}      -> {Rest, Counter, Column + Length}
   end.
-
-until_eol("\r\n" ++ _) -> [];
-until_eol("\n" ++ _)   -> [];
-until_eol([])          -> [];
-until_eol([H|T])       -> [H|until_eol(T)].
 
 handle_char(7)   -> {"\\a", "alert"};
 handle_char($\b) -> {"\\b", "backspace"};
@@ -673,21 +681,28 @@ extract_heredoc(Line0, Column0, Rest0, Marker) ->
   case extract_heredoc_header(Rest0) of
     {ok, Rest1} ->
       %% We prepend a new line so we can transparently remove
-      %% spaces later. This new line is removed by calling `tl`
+      %% spaces later. This new line is removed by calling "tl"
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n|Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
           {ok, Line1, 1, tl(remove_heredoc_spaces(Body, Spaces)), Rest2};
-        {error, ErrorLine} ->
+        {error, Reason, ErrorLine} ->
           Terminator = [Marker, Marker, Marker],
-          Message = "missing terminator: ~ts (for heredoc starting at line ~B)",
-          {error, {ErrorLine, io_lib:format(Message, [Terminator, Line0]), []}}
+          {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),
+          {error, {ErrorLine, Message, Token}}
       end;
     error ->
       Message = "heredoc start must be followed by a new line after ",
       {error, {Line0, io_lib:format(Message, []), [Marker, Marker, Marker]}}
   end.
 
+heredoc_error_message(eof, Line, Terminator) ->
+  {io_lib:format("missing terminator: ~ts (for heredoc starting at line ~B)",
+                 [Terminator, Line]),
+   []};
+heredoc_error_message(misplacedterminator, _Line, Terminator) ->
+  {"invalid location for heredoc terminator, please escape token or move to its own line: ",
+   Terminator}.
 %% Remove spaces from heredoc based on the position of the final quotes.
 
 remove_heredoc_spaces(Body, 0) ->
@@ -724,19 +739,26 @@ extract_heredoc_body(Line, _Column, Marker, Rest, Buffer) ->
       extract_heredoc_body(Line + 1, 1, Marker, NewRest, NewBuffer);
     {ok, NewBuffer, NewRest, Spaces} ->
       {ok, Line, NewBuffer, NewRest, Spaces};
-    {error, eof} ->
-      {error, Line}
+    {error, Reason} ->
+      {error, Reason, Line}
   end.
 
 %% Extract a line from the heredoc prepending its contents to a buffer.
+%% Allow lazy escaping (e.g. \""")
 
-extract_heredoc_line("\r\n" ++ Rest, Buffer) ->
+extract_heredoc_line(Marker, [$\\, $\\|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [$\\, $\\|Buffer]);
+extract_heredoc_line(Marker, [$\\, Marker|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [Marker, $\\|Buffer]);
+extract_heredoc_line(Marker, [Marker, Marker, Marker|_], _) ->
+  {error, misplacedterminator};
+extract_heredoc_line(_, "\r\n" ++ Rest, Buffer) ->
   {ok, [$\n|Buffer], Rest};
-extract_heredoc_line("\n" ++ Rest, Buffer) ->
+extract_heredoc_line(_, "\n" ++ Rest, Buffer) ->
   {ok, [$\n|Buffer], Rest};
-extract_heredoc_line([H|T], Buffer) ->
-  extract_heredoc_line(T, [H|Buffer]);
-extract_heredoc_line(_, _) ->
+extract_heredoc_line(Marker, [H|T], Buffer) ->
+  extract_heredoc_line(Marker, T, [H|Buffer]);
+extract_heredoc_line(_, _, _) ->
   {error, eof}.
 
 %% Extract each heredoc line trying to find a match according to the marker.
@@ -745,8 +767,8 @@ extract_heredoc_line(Marker, [H|T], Buffer, Counter) when ?is_horizontal_space(H
   extract_heredoc_line(Marker, T, [H|Buffer], Counter + 1);
 extract_heredoc_line(Marker, [Marker, Marker, Marker|T], Buffer, Counter) ->
   {ok, Buffer, T, Counter};
-extract_heredoc_line(_Marker, Rest, Buffer, _Counter) ->
-  extract_heredoc_line(Rest, Buffer).
+extract_heredoc_line(Marker, Rest, Buffer, _Counter) ->
+  extract_heredoc_line(Marker, Rest, Buffer).
 
 %% Integers and floats
 %% At this point, we are at least sure the first digit is a number.
@@ -918,10 +940,8 @@ handle_terminator(Token, #elixir_tokenizer{terminators=Terminators} = Scope) ->
     New -> Scope#elixir_tokenizer{terminators=New}
   end.
 
-check_terminator({S, Line}, Terminators) when S == 'fn' ->
-  [{fn, Line}|Terminators];
-
 check_terminator({S, _} = New, Terminators) when
+    S == 'fn';
     S == 'do';
     S == '(';
     S == '[';
@@ -973,6 +993,8 @@ terminator('<<') -> '>>'.
 
 check_keyword(_Line, _Column, _Length, _Atom, [{'.', _}|_]) ->
   nomatch;
+check_keyword(_Line, _Column, _Length, Atom, [{capture_op, _, _}|_]) when ?operator_kw(Atom) ->
+  nomatch;
 check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndColumn}, Atom}|T]) when Identifier == identifier ->
   {ok, add_token_with_nl({do, {DoLine, DoColumn, DoColumn + 2}},
        [{do_identifier, {Line, Column, EndColumn}, Atom}|T])};
@@ -990,9 +1012,12 @@ check_keyword(Line, Column, Length, Atom, Tokens) ->
     Kind     -> {ok, add_token_with_nl({Kind, {Line, Column, Column + Length}, Atom}, Tokens)}
   end.
 
-%% do is only valid after the end, true, false and nil keywords
+%% Fail early on invalid do syntax. For example, after
+%% most keywords, after comma and so on.
 do_keyword_valid([{Atom, _}|_]) ->
   case Atom of
+    ','   -> false;
+    ';'   -> false;
     'end' -> true;
     nil   -> true;
     true  -> true;

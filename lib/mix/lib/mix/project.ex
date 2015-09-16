@@ -17,7 +17,7 @@ defmodule Mix.Project do
 
   After being defined, the configuration for this project can be read
   as `Mix.Project.config/0`. Notice that `config/0` won't fail if a
-  project is not defined; this allows many mix tasks to work
+  project is not defined; this allows many Mix tasks to work
   without a project.
 
   In case the developer needs a project or wants to access a special
@@ -28,7 +28,7 @@ defmodule Mix.Project do
   ## Erlang projects
 
   Mix can be used to manage Erlang projects that don't have any Elixir code. To
-  ensure mix tasks work correctly for an Erlang project, `language: :erlang`
+  ensure Mix tasks work correctly for an Erlang project, `language: :erlang`
   has to be added to `project`.
 
   The setting also makes sure Elixir is not added as a dependency to the
@@ -121,14 +121,14 @@ defmodule Mix.Project do
   Returns the project configuration.
 
   If there is no project defined, it still returns a keyword
-  list with default values. This allows many mix tasks to work
+  list with default values. This allows many Mix tasks to work
   without the need for an underlying project.
 
   Note this configuration is cached once the project is
   pushed into the stack. Calling it multiple times won't
   cause it to be recomputed.
 
-  Do not use `Mix.Project.config` to rely on runtime configuration.
+  Do not use `Mix.Project.config/0` to rely on runtime configuration.
   Use it only to configure aspects of your project (like
   compilation directories) and not your application runtime.
   """
@@ -310,13 +310,13 @@ defmodule Mix.Project do
 
   It will run the compile task unless the project
   is in build embedded mode, which may fail as a
-  explicit command to "mix compile" is required.
+  explicit command to `mix compile` is required.
   """
   def compile(args, config \\ config()) do
     if config[:build_embedded] do
       if not File.exists?(compile_path(config)) do
         Mix.raise "Cannot execute task because the project was not yet compiled. " <>
-                  "When build_embedded is set to true, `MIX_ENV=#{Mix.env} mix compile` " <>
+                  "When build_embedded is set to true, \"MIX_ENV=#{Mix.env} mix compile\" " <>
                   "must be explicitly executed"
       end
 
@@ -370,7 +370,7 @@ defmodule Mix.Project do
   @doc """
   Ensures the project structure exists.
 
-  In case it does, it is a no-op, otherwise, it is built.
+  In case it does exist, it is a no-op. Otherwise, it is built.
   """
   def ensure_structure(config \\ config(), opts \\ []) do
     if File.exists?(app_path(config)) do

@@ -173,8 +173,15 @@ defmodule TaskTest do
   test "await/1 exits on :noconnection" do
     ref  = make_ref()
     task = %Task{ref: ref, pid: self()}
-    send self(), {:DOWN, ref, self(), self(), :noconnection}
+    send self(), {:DOWN, ref, :process, self(), :noconnection}
     assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+  end
+
+  test "await/1 exits on :noconnection from named monitor" do
+    ref  = make_ref()
+    task = %Task{ref: ref, pid: nil}
+    send self(), {:DOWN, ref, :process, {:name, :node}, :noconnection}
+    assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :node}
   end
 
   test "find/2" do
@@ -238,7 +245,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/1 returns nil on shutting down task" do
-    Process.flag(:trap_exit, true)
     task = Task.async(:timer, :sleep, [:infinity])
     assert Task.shutdown(task) == nil
   end
@@ -272,6 +278,12 @@ defmodule TaskTest do
     send(self(), {:DOWN, task.ref, :process, task.pid, :noconnection})
     assert catch_exit(Task.shutdown(task)) ==
       {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
+  end
+
+  test "shutdown/1 raises if task pid is nil" do
+    task = %Task{ref: make_ref, pid: nil}
+    assert_raise ArgumentError, "task #{inspect task} does not have an associated task process.",
+      fn -> Task.shutdown(task) end
   end
 
   test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do
@@ -327,7 +339,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 exits on killing task after shutdown timeout" do
-    Process.flag(:trap_exit, true)
     caller = self()
 
     task = Task.async(fn() ->
@@ -343,7 +354,6 @@ defmodule TaskTest do
   end
 
   test "shutdown/2 returns nil on killing task" do
-    Process.flag(:trap_exit, true)
     caller = self()
 
     task = Task.async(fn() ->

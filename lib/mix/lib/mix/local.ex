@@ -12,7 +12,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Append archives paths into Erlang code path.
+  Appends archives paths into Erlang code path.
   """
   def append_archives do
     archives = archives_ebin()
@@ -21,7 +21,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Append mix paths into Erlang code path.
+  Appends Mix paths into Erlang code path.
   """
   def append_paths do
     Enum.each(Mix.Utils.mix_paths, &Code.append_path(&1))
@@ -43,7 +43,7 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Check Elixir version requirement stored in the archive and print a warning if it is not satisfied.
+  Checks Elixir version requirement stored in the archive and print a warning if it is not satisfied.
   """
   def check_archive_elixir_version(path) do
     path |> Mix.Archive.ebin |> check_elixir_version_in_ebin()
@@ -71,6 +71,64 @@ defmodule Mix.Local do
         :ok
       :error ->
         :ok
+    end
+  end
+
+  @doc """
+  Fetches the given signed CSV files, verify and return the matching
+  Elixir version, artifact version and artifact's checksum.
+
+  Used to install both Rebar and Hex from S3.
+  """
+  def find_matching_versions_from_signed_csv!(name, path) do
+    csv = read_path!(name, path)
+
+    signature =
+      read_path!(name, path <> ".signed")
+      |> String.replace("\n", "")
+      |> Base.decode64!
+
+    if Mix.PublicKey.verify csv, :sha512, signature do
+      csv
+      |> parse_csv
+      |> find_latest_eligibile_version
+    else
+      Mix.raise "Could not install #{name} because Mix could not verify authenticity " <>
+                "of metadata file at #{path}. This may happen because a proxy or some " <>
+                "entity is interfering with the download or because you don't have a " <>
+                "public key to verify the download. Add the corresponding public key " <>
+                "or try again later"
+    end
+  end
+
+  defp read_path!(name, path) do
+    case Mix.Utils.read_path(path) do
+      {:ok, contents} -> contents
+      {:remote, message} ->
+        Mix.raise """
+        #{message}
+
+        Could not install #{name} because Mix could not download metadata at #{path}.
+        """
+    end
+  end
+
+  defp parse_csv(body) do
+    body
+    |> :binary.split("\n", [:global, :trim])
+    |> Enum.map(&:binary.split(&1, ",", [:global, :trim]))
+  end
+
+  defp find_latest_eligibile_version(entries) do
+    {:ok, current_version} = Version.parse(System.version)
+    entries
+    |> Enum.reverse
+    |> Enum.find_value(entries, &find_version(&1, current_version))
+  end
+
+  defp find_version([artifact_version, digest|versions], current_version) do
+    if version = Enum.find(versions, &Version.compare(&1, current_version) != :gt) do
+      {version, artifact_version, digest}
     end
   end
 end

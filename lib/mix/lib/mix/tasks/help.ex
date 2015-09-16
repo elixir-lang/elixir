@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Help do
   use Mix.Task
 
-  @shortdoc "Print help information for tasks"
+  @shortdoc "Prints help information for tasks"
 
   @moduledoc """
   Lists all tasks or prints the documentation for a given task.
@@ -27,11 +27,11 @@ defmodule Mix.Tasks.Help do
 
   The available color options are:
 
-    * `:enabled`         - show ANSI formatting (defaults to `IO.ANSI.enabled?`)
-    * `:doc_code`        — the attributes for code blocks (cyan, bright)
+    * `:enabled`         - shows ANSI formatting (defaults to `IO.ANSI.enabled?`)
+    * `:doc_code`        - the attributes for code blocks (cyan, bright)
     * `:doc_inline_code` - inline code (cyan)
     * `:doc_headings`    - h1 and h2 (yellow, bright)
-    * `:doc_title`       — the overall heading for the output (reverse, yellow, bright)
+    * `:doc_title`       - the overall heading for the output (reverse, yellow, bright)
     * `:doc_bold`        - (bright)
     * `:doc_underline`   - (underline)
 
@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(["--search"]) do
-    Mix.raise "Unexpected arguments, expected `mix help --search PATTERN`"
+    Mix.raise "Unexpected arguments, expected \"mix help --search PATTERN\""
   end
 
   def run([task]) do
@@ -105,7 +105,7 @@ defmodule Mix.Tasks.Help do
   end
 
   def run(_) do
-    Mix.raise "Unexpected arguments, expected `mix help` or `mix help TASK`"
+    Mix.raise "Unexpected arguments, expected \"mix help\" or \"mix help TASK\""
   end
 
   # Loadpaths without checks because tasks may be defined in deps.
@@ -147,12 +147,12 @@ defmodule Mix.Tasks.Help do
 
   defp display_default_task_doc(max) do
     Mix.shell.info format_task("mix", max,
-                    "Run the default task (current: mix #{Mix.Project.config[:default_task]})")
+                    "Runs the default task (current: \"mix #{Mix.Project.config[:default_task]}\")")
   end
 
   defp display_iex_task_doc(max) do
     Mix.shell.info format_task("iex -S mix", max,
-                    "Start IEx and run the default task")
+                    "Starts IEx and run the default task")
   end
 
   defp display_task_doc_list(docs, max) do

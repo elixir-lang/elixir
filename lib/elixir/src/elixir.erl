@@ -9,8 +9,9 @@
 -include("elixir.hrl").
 
 %% Top level types
--export_type([char_list/0, as_boolean/1]).
+-export_type([char_list/0, struct/0, as_boolean/1]).
 -type char_list() :: string().
+-type struct() :: #{'__struct__' => atom()}.
 -type as_boolean(T) :: T.
 
 %% OTP Application API

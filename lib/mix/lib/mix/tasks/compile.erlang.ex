@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   @manifest ".compile.erlang"
 
   @moduledoc """
-  Compile Erlang source files.
+  Compiles Erlang source files.
 
   When this task runs, it will first check the modification times of
   all files to be compiled and if they haven't been
@@ -39,8 +39,8 @@ defmodule Mix.Tasks.Compile.Erlang do
     * `:erlc_options` - compilation options that apply to Erlang's compiler.
       `:debug_info` is enabled by default.
 
-      There are many available options here:
-      http://www.erlang.org/doc/man/compile.html#file-2
+      For a list of the many more available options,
+      see [`:compile.file/2`](http://www.erlang.org/doc/man/compile.html#file-2).
   """
 
   @doc """

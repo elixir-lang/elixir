@@ -100,12 +100,47 @@ defmodule KernelTest do
   def fun_in(x) when x in 1..3,      do: :range
   def fun_in(x) when x in @at_list,  do: :at_list
   def fun_in(x) when x in @at_range, do: :at_range
+  def fun_in(_), do: :none
 
   test "in/2 in function guard" do
     assert fun_in(0) == :list
+    assert fun_in(1) == :range
     assert fun_in(2) == :range
+    assert fun_in(3) == :range
     assert fun_in(5) == :at_list
+    assert fun_in(6) == :at_range
+    assert fun_in(7) == :at_range
     assert fun_in(8) == :at_range
+
+    assert fun_in(0.0) == :none
+    assert fun_in(1.0) == :none
+    assert fun_in(2.0) == :none
+    assert fun_in(3.0) == :none
+    assert fun_in(6.0) == :none
+    assert fun_in(7.0) == :none
+    assert fun_in(8.0) == :none
+  end
+
+  def fun_in(x, y, z) when x in y..z, do: true
+  def fun_in(_x, _y, _z), do: false
+
+  test "in/2 in dynamic function guard" do
+    assert fun_in(1, 1, 3)
+    assert fun_in(2, 1, 3)
+    assert fun_in(3, 1, 3)
+
+    assert fun_in(1, 3, 1)
+    assert fun_in(2, 3, 1)
+    assert fun_in(3, 3, 1)
+
+    refute fun_in(0, 1, 3)
+    refute fun_in(4, 1, 3)
+    refute fun_in(0, 3, 1)
+    refute fun_in(4, 3, 1)
+
+    refute fun_in(2, 1.0, 3)
+    refute fun_in(2, 1, 3.0)
+    refute fun_in(2.0, 1, 3)
   end
 
   defmacrop case_in(x, y) do
@@ -140,7 +175,7 @@ defmodule KernelTest do
 
   test "paren as nil" do
     assert is_nil(()) == true
-    assert ((); ();) == nil
+    assert (_ = (); ();) == nil
     assert [ 1, (), 3 ] == [1, nil, 3 ]
     assert [do: ()] == [do: nil]
     assert {1, (), 3} == {1, nil, 3}
@@ -160,6 +195,13 @@ defmodule KernelTest do
 
   test "__info__(:functions)" do
     assert not ({:__info__, 1} in Kernel.__info__(:functions))
+  end
+
+  test "__info__(others)" do
+    assert Kernel.__info__(:module) == Kernel
+    assert is_list Kernel.__info__(:compile)
+    assert is_list Kernel.__info__(:attributes)
+    assert is_list Kernel.__info__(:exports)
   end
 
   def exported?,      do: not_exported?
@@ -196,6 +238,11 @@ defmodule KernelTest do
     var!(x, :foo) = 4
     assert binding() == [x: 2, y: 3]
     assert binding(:foo) == [x: 4]
+  end
+
+  test "binding/0 doesn't warn on underscored vars" do
+    _x = 1
+    assert binding() == [_x: 1]
   end
 
   defmodule User do
@@ -277,7 +324,7 @@ defmodule KernelTest do
     assert put_in(users["john"].age, 28) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       put_in(users["dave"].age, 19)
     end
 
@@ -310,7 +357,7 @@ defmodule KernelTest do
     assert update_in(users["john"].age, &(&1 + 1)) ==
            %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       update_in(users["dave"].age, &(&1 + 1))
     end
 
@@ -350,7 +397,7 @@ defmodule KernelTest do
       get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
     end
 
-    assert_raise ArgumentError, "could not put/update key :age. Expected map/struct, got: nil", fn ->
+    assert_raise BadMapError, fn ->
       get_and_update_in(users["dave"].age, &{&1, &1 + 1})
     end
 
@@ -466,6 +513,62 @@ defmodule KernelTest do
       end
 
       assert r == 0
+    end
+
+    test "calling if with invalid keys" do
+      error_message = "invalid or duplicate keys for if, only \"do\" " <>
+      "and an optional \"else\" are permitted"
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, foo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, do: 6, boo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, do: 8, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("if true, []")
+      end
+    end
+
+    test "calling unless with invalid keys" do
+      error_message = "invalid or duplicate keys for unless, only \"do\" " <>
+        "and an optional \"else\" are permitted"
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, foo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 6, boo: 7")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 7, do: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, do: 8, else: 7, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, else: 6")
+      end
+
+      assert_raise ArgumentError, error_message, fn ->
+        Code.eval_string("unless true, []")
+      end
     end
   end
 

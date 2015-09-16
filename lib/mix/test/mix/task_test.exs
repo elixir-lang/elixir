@@ -13,16 +13,45 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
-    assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
+    assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
       Mix.Task.run("unknown")
     end
 
-    assert_raise Mix.NoTaskError, "The task helli could not be found. Did you mean 'hello'?", fn ->
+    assert_raise Mix.NoTaskError, "The task \"helli\" could not be found. Did you mean \"hello\"?", fn ->
       Mix.Task.run("helli")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.run("invalid")
+    end
+  end
+
+  test "try to deps.loadpaths if task is missing" do
+    in_fixture "no_mixfile", fn ->
+      Mix.Project.push(SampleProject, "sample")
+
+      {:module, _, bin, _} =
+        defmodule Elixir.Mix.Tasks.TaskHello do
+          use Mix.Task
+          def run(_), do: "Hello, World"
+        end
+      :code.purge(Mix.Tasks.TaskHello)
+      :code.delete(Mix.Tasks.TaskHello)
+
+      assert_raise Mix.NoTaskError, fn ->
+        Mix.Task.run("task_hello")
+      end
+
+      # Clean up the tasks and copy it into deps
+      Mix.TasksServer.clear
+      File.mkdir_p!("_build/dev/lib/sample/ebin")
+      File.write!("_build/dev/lib/sample/ebin/Elixir.Mix.Tasks.TaskHello.beam", bin)
+
+      # Task was found from deps loadpaths
+      assert Mix.Task.run("task_hello") == "Hello, World"
+
+      # The compile task should not have run yet
+      assert Mix.TasksServer.run({:task, "compile", Mix.Project.get})
     end
   end
 
@@ -78,11 +107,11 @@ defmodule Mix.TaskTest do
   test "get!" do
     assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
-    assert_raise Mix.NoTaskError, "The task unknown could not be found", fn ->
+    assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
       Mix.Task.get!("unknown")
     end
 
-    assert_raise Mix.InvalidTaskError, "The task invalid does not export run/1", fn ->
+    assert_raise Mix.InvalidTaskError, "The task \"invalid\" does not export run/1", fn ->
       Mix.Task.get!("invalid")
     end
   end

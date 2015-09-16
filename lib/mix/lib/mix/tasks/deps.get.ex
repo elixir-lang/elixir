@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
-  @shortdoc "Get all out of date dependencies"
+  @shortdoc "Gets all out of date dependencies"
 
   @moduledoc """
-  Get all out of date dependencies, i.e. dependencies
+  Gets all out of date dependencies, i.e. dependencies
   that are not available or have an invalid lock.
 
   ## Command line options

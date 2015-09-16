@@ -17,7 +17,7 @@ defmodule System do
     end
   end
 
-  # Read and strip the version from the `VERSION` file.
+  # Read and strip the version from the VERSION file.
   defmacrop get_version do
     case read_stripped(:filename.join(__DIR__, "../../../VERSION")) do
       ""   -> raise RuntimeError, message: "could not read the version number from VERSION"
@@ -25,7 +25,7 @@ defmodule System do
     end
   end
 
-  # Tries to run `git describe --always --tags`. In the case of success returns
+  # Tries to run "git describe --always --tags". In the case of success returns
   # the most recent tag. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
   defmacrop get_describe do
@@ -262,7 +262,7 @@ defmodule System do
   Returns the process identifier of the current Erlang emulator
   in the format most commonly used by the operating system environment.
 
-  See http://www.erlang.org/doc/man/os.html#getpid-0 for more info.
+  For more information, see [`:os.getpid/0`](http://www.erlang.org/doc/man/os.html#getpid-0).
   """
   @spec get_pid() :: binary
   def get_pid, do: IO.iodata_to_binary(:os.getpid)
@@ -325,13 +325,13 @@ defmodule System do
     * If `:abort`, the runtime system aborts producing a core dump, if that is
       enabled in the operating system.
 
-    * If a string, an erlang crash dump is produced with status as slogan,
+    * If a string, an Erlang crash dump is produced with status as slogan,
       and then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
 
-  For more information, check: http://www.erlang.org/doc/man/erlang.html#halt-1
+  For more information, see [`:erlang.halt/1`](http://www.erlang.org/doc/man/erlang.html#halt-1).
 
   ## Examples
 
@@ -421,7 +421,7 @@ defmodule System do
 
   If you desire to execute a trusted command inside a shell, with pipes,
   redirecting and so on, please check
-  [Erlang's :os.cmd/1 function](http://www.erlang.org/doc/man/os.html#cmd-1).
+  [`:os.cmd/1`](http://www.erlang.org/doc/man/os.html#cmd-1).
   """
   @spec cmd(binary, [binary], Keyword.t) ::
         {Collectable.t, exit_status :: non_neg_integer}

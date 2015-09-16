@@ -1,5 +1,5 @@
 -module(elixir_exp).
--export([expand/2, expand_args/2, expand_arg/2]).
+-export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
 -import(elixir_errors, [compile_error/3, compile_error/4]).
 -include("elixir.hrl").
 
@@ -26,16 +26,6 @@ expand({'%', Meta, [Left, Right]}, E) ->
 expand({'<<>>', Meta, Args}, E) ->
   elixir_bitstring:expand(Meta, Args, E);
 
-%% Other operators
-
-expand({'__op__', Meta, [_, _] = Args}, E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{'__op__', Meta, EArgs}, EA};
-
-expand({'__op__', Meta, [_, _, _] = Args}, E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{'__op__', Meta, EArgs}, EA};
-
 expand({'->', Meta, _Args}, E) ->
   compile_error(Meta, ?m(E, file), "unhandled operator ->");
 
@@ -46,7 +36,7 @@ expand({'__block__', _Meta, []}, E) ->
 expand({'__block__', _Meta, [Arg]}, E) ->
   expand(Arg, E);
 expand({'__block__', Meta, Args}, E) when is_list(Args) ->
-  {EArgs, EA} = expand_many(Args, E),
+  {EArgs, EA} = expand_block(Args, [], Meta, E),
   {{'__block__', Meta, EArgs}, EA};
 
 %% __aliases__
@@ -381,8 +371,45 @@ expand_list([H|T], Fun, Acc, List) ->
 expand_list([], _Fun, Acc, List) ->
   {lists:reverse(List), Acc}.
 
-expand_many(Args, E) ->
-  lists:mapfoldl(fun expand/2, E, Args).
+expand_block([], Acc, _Meta, E) ->
+  {lists:reverse(Acc), E};
+expand_block([H], Acc, Meta, E) ->
+  {EH, EE} = expand(H, E),
+  expand_block([], [EH|Acc], Meta, EE);
+expand_block([H|T], Acc, Meta, E) ->
+  {EH, EE} = expand(H, E),
+
+  %% Notice checks rely on the code BEFORE expansion
+  %% instead of relying on Erlang checks.
+  %%
+  %% That's because expansion may generate useless
+  %% terms on their own (think compile time removed
+  %% logger calls) and we don't want to catch those.
+  %%
+  %% Or, similarly, the work is all in the expansion
+  %% (for example, to register something) and it is
+  %% simply returning something as replacement.
+  case is_useless_building(H, EH, Meta) of
+    {UselessMeta, UselessTerm} ->
+      elixir_errors:form_warn(UselessMeta, ?m(E, file), ?MODULE, UselessTerm);
+    false ->
+      ok
+  end,
+
+  expand_block(T, [EH|Acc], Meta, EE).
+
+%% Notice we don't handle atoms on purpose. They are common
+%% when unquoting AST and it is unlikely that we would catch
+%% bugs as we don't do binary operations on them like in
+%% strings or numbers.
+is_useless_building(H, _, Meta) when is_binary(H); is_number(H) ->
+  {Meta, {useless_literal, H}};
+is_useless_building({'@', Meta, [{Var, _, Ctx}]}, _, _) when is_atom(Ctx); Ctx == [] ->
+  {Meta, {useless_attr, Var}};
+is_useless_building({Var, Meta, Ctx}, {Var, _, Ctx}, _) when is_atom(Ctx) ->
+  {Meta, {useless_var, Var}};
+is_useless_building(_, _, _) ->
+  false.
 
 %% Variables in arguments are not propagated from one
 %% argument to the other. For instance:
@@ -407,7 +434,7 @@ expand_args([Arg], E) ->
   {EArg, EE} = expand(Arg, E),
   {[EArg], EE};
 expand_args(Args, #{context := match} = E) ->
-  expand_many(Args, E);
+  lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
   {EArgs, {EC, EV}} = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
   {EArgs, elixir_env:mergea(EV, EC)}.
@@ -508,9 +535,14 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
-expand_as({as, true}, _Meta, _IncludeByDefault, Ref, _E) ->
+%% TODO: Remove this by 1.3
+expand_as({as, true}, Meta, _IncludeByDefault, Ref, E) ->
+  elixir_errors:warn(?line(Meta), ?m(E, file), "as: true given to require/alias is deprecated"),
   elixir_aliases:last(Ref);
-expand_as({as, false}, _Meta, _IncludeByDefault, Ref, _E) ->
+expand_as({as, false}, Meta, _IncludeByDefault, Ref, E) ->
+  elixir_errors:warn(?line(Meta), ?m(E, file), "as: false given to require/alias is deprecated"),
+  Ref;
+expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of
@@ -561,8 +593,7 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
-    [{'when', _, [Var, {'__op__', _, [
-      'orelse',
+    [{'when', _, [Var, {{'.', _, [erlang, 'or']}, _, [
       {{'.', _, [erlang, '=:=']}, _, [Var, nil]},
       {{'.', _, [erlang, '=:=']}, _, [Var, false]}
     ]}]}],
@@ -589,3 +620,16 @@ assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
   compile_error(Meta, File, "invalid expression in guard");
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
+
+format_error({useless_literal, Term}) ->
+  io_lib:format("code block starting at line contains unused literal ~ts "
+                "(remove the literal or assign it to _ to avoid warnings)",
+                ['Elixir.Macro':to_string(Term)]);
+format_error({useless_var, Var}) ->
+  io_lib:format("variable ~ts in code block has no effect as it is never returned "
+                "(remove the variable or assign it to _ to avoid warnings)",
+                [Var]);
+format_error({useless_attr, Attr}) ->
+  io_lib:format("module attribute @~ts in code block has no effect as it is never returned "
+                "(remove the attribute or assign it to _ to avoid warnings)",
+                [Attr]).

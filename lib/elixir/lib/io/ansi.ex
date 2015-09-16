@@ -16,10 +16,11 @@ end
 
 defmodule IO.ANSI do
   @moduledoc """
-  Functionality to render ANSI escape sequences
-  (https://en.wikipedia.org/wiki/ANSI_escape_code) —  characters embedded
-  in text used to control formatting, color, and other output options
-  on video text terminals.
+  Functionality to render ANSI escape sequences.
+
+  [ANSI escape sequences](https://en.wikipedia.org/wiki/ANSI_escape_code)
+  are characters embedded in text used to control formatting, color, and
+  other output options on video text terminals.
   """
 
   import IO.ANSI.Sequence
@@ -50,7 +51,7 @@ defmodule IO.ANSI do
   @doc "Faint (decreased intensity), not widely supported"
   defsequence :faint, 2
 
-  @doc "Italic: on. Not widely supported. Sometimes treated as inverse."
+  @doc "Italic: on. Not widely supported. Sometimes treated as inverse"
   defsequence :italic, 3
 
   @doc "Underline: Single"
@@ -71,7 +72,7 @@ defmodule IO.ANSI do
   @doc "Conceal. Not widely supported"
   defsequence :conceal, 8
 
-  @doc "Crossed-out. Characters legible, but marked for deletion. Not widely supported."
+  @doc "Crossed-out. Characters legible, but marked for deletion. Not widely supported"
   defsequence :crossed_out, 9
 
   @doc "Sets primary (default) font"
@@ -125,10 +126,10 @@ defmodule IO.ANSI do
   @doc "Not overlined"
   defsequence :not_overlined, 55
 
-  @doc "Send cursor home"
+  @doc "Sends cursor home"
   defsequence :home, "", "H"
 
-  @doc "Clear screen"
+  @doc "Clears screen"
   defsequence :clear, "2", "J"
 
   defp format_sequence(other) do
@@ -141,7 +142,7 @@ defmodule IO.ANSI do
 
   The named sequences are represented by atoms.
 
-  It will also append an `IO.ANSI.reset` to the chardata when a conversion is
+  It will also append an `IO.ANSI.reset/0` to the chardata when a conversion is
   performed. If you don't want this behaviour, use `format_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable

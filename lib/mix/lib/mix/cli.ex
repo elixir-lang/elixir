@@ -8,12 +8,6 @@ defmodule Mix.CLI do
     Mix.Local.append_archives
     Mix.Local.append_paths
 
-    # Make sure all messages the tests might have sent to the
-    # Logger are printed before we shut down the VM.
-    System.at_exit fn _ ->
-      if Process.whereis(Logger), do: Logger.flush()
-    end
-
     case check_for_shortcuts(args) do
       :help ->
         proceed(["help"])
@@ -41,8 +35,8 @@ defmodule Mix.CLI do
   end
 
   defp get_task(["-" <> _|_]) do
-    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default mix task, " <>
-                    "please invoke instead: mix #{Mix.Project.config[:default_task]}"
+    Mix.shell.error "** (Mix) Cannot implicitly pass flags to default Mix task, " <>
+                    "please invoke instead \"mix #{Mix.Project.config[:default_task]}\""
     exit({:shutdown, 1})
   end
 
@@ -56,10 +50,11 @@ defmodule Mix.CLI do
 
   defp run_task(name, args) do
     try do
+      ensure_no_slashes(name)
       Mix.Task.run "loadconfig"
       Mix.Task.run name, args
     rescue
-      # We only rescue exceptions in the mix namespace, all
+      # We only rescue exceptions in the Mix namespace, all
       # others pass through and will explode on the users face
       exception ->
         stacktrace = System.stacktrace
@@ -77,7 +72,13 @@ defmodule Mix.CLI do
   defp ensure_hex("local.hex"),
     do: :ok
   defp ensure_hex(_task),
-    do: Mix.Tasks.Local.Hex.ensure_updated?()
+    do: Mix.Hex.ensure_updated?()
+
+  defp ensure_no_slashes(task) do
+    if String.contains?(task, "/") do
+      Mix.raise Mix.NoTaskError, task: task
+    end
+  end
 
   defp change_env(task) do
     if is_nil(System.get_env("MIX_ENV")) &&

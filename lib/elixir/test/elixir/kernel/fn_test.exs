@@ -55,6 +55,7 @@ defmodule Kernel.FnTest do
     assert is_function &+/2
     assert is_function &(&&/2)
     assert is_function & &1 + &2, 2
+    assert is_function &and/2
   end
 
   test "capture with variable module" do

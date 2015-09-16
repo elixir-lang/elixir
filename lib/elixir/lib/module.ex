@@ -82,8 +82,8 @@ defmodule Module do
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
 
-      See http://www.erlang.org/doc/man/compile.html for the list of supported
-      options.
+      For the list of supported options, see Erlang's
+      [`:compile` module](http://www.erlang.org/doc/man/compile.html).
 
       Several uses of `@compile` will accumulate instead of overriding
       previous ones.
@@ -118,7 +118,7 @@ defmodule Module do
               end
 
               @doc """
-              Sum.
+              Sums `a` to `b`.
               """
               def sum(a, b) do
                 a + b
@@ -264,12 +264,12 @@ defmodule Module do
     * `@dialyzer`
 
       Defines warnings to request or suppress when using a version of
-      `dialyzer` that supports module attributes.
+      `:dialyzer` that supports module attributes.
 
       Accepts an atom, a tuple, or a list of atoms and tuples.
 
-      See http://www.erlang.org/doc/man/dialyzer.html for the list of supported
-      warnings.
+      For the list of supported warnings, see
+      [`:dialyzer` module](http://www.erlang.org/doc/man/dialyzer.html).
 
       Several uses of `@dialyzer` will accumulate instead of overriding
       previous ones.
@@ -287,11 +287,12 @@ defmodule Module do
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
 
-    * `@type`        - defines a type to be used in `@spec`
-    * `@typep`       - defines a private type to be used in `@spec`
-    * `@opaque`      - defines an opaque type to be used in `@spec`
-    * `@spec`        - provides a specification for a function
-    * `@callback`    - provides a specification for the behaviour callback
+    * `@type`          - defines a type to be used in `@spec`
+    * `@typep`         - defines a private type to be used in `@spec`
+    * `@opaque`        - defines an opaque type to be used in `@spec`
+    * `@spec`          - provides a specification for a function
+    * `@callback`      - provides a specification for a behaviour callback
+    * `@macrocallback` - provides a specification for a macro behaviour callback
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. A custom attribute is any valid identifier prefixed with an
@@ -324,9 +325,10 @@ defmodule Module do
     * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
-  by Erlang's `module_info` function which also gets defined for each compiled
-  module. See http://www.erlang.org/doc/reference_manual/modules.html#id75777 for
-  more information.
+  by [`:erlang.module_info/0`](http://www.erlang.org/doc/man/erlang.html#module_info.html) which also gets defined for each compiled
+  module.
+
+  For more information, see [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html).
   """
   def __info__(kind)
 
@@ -404,13 +406,13 @@ defmodule Module do
 
   ## Differences from `defmodule`
 
-  `Module.create` works similarly to `defmodule` and
+  `Module.create/3` works similarly to `defmodule` and
   return the same results. While one could also use
   `defmodule` to define modules dynamically, this
   function is preferred when the module body is given
   by a quoted expression.
 
-  Another important distinction is that `Module.create`
+  Another important distinction is that `Module.create/3`
   allows you to control the environment variables used
   when defining the module, while `defmodule` automatically
   shares the same environment.
@@ -787,7 +789,7 @@ defmodule Module do
   def put_attribute(module, key, value) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
-    value = normalize_attribute(key, value)
+    value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
     new =
@@ -921,10 +923,11 @@ defmodule Module do
   # is private and must be used only internally.
   def compile_doc(env, kind, name, args, _guards, _body) do
     module = env.module
-    line   = env.line
+    table  = data_table_for(module)
     arity  = length(args)
     pair   = {name, arity}
-    doc    = get_attribute(module, :doc)
+
+    {line, doc} = get_doc_info(table, env)
 
     # Arguments are not expanded for the docs, but we make an exception for
     # module attributes and for structs (aliases to be precise).
@@ -946,7 +949,7 @@ defmodule Module do
           "@doc's are always discarded for private functions"
     end
 
-    delete_attribute(module, :doc)
+    :ok
   end
 
   @doc false
@@ -971,7 +974,8 @@ defmodule Module do
     table = data_table_for(module)
 
     case :ets.lookup(table, key) do
-      [{^key, val}] -> val
+      [{^key, val}] ->
+        postprocess_attribute(key, val)
       [] ->
         acc = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
 
@@ -999,34 +1003,50 @@ defmodule Module do
 
   ## Helpers
 
-  defp normalize_attribute(:on_load, atom) when is_atom(atom) do
+  defp preprocess_attribute(:on_load, atom) when is_atom(atom) do
     {atom, 0}
   end
 
-  defp normalize_attribute(:behaviour, atom) when is_atom(atom) do
+  defp preprocess_attribute(:behaviour, atom) when is_atom(atom) do
     # Attempt to compile behaviour but ignore failure (will warn later)
     _ = Code.ensure_compiled(atom)
     atom
   end
 
-  defp normalize_attribute(:file, file) when is_binary(file) do
+  defp preprocess_attribute(:file, file) when is_binary(file) do
     file
   end
 
-  defp normalize_attribute(:before_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:before_compile, atom) when is_atom(atom),
     do: {atom, :__before_compile__}
-  defp normalize_attribute(:after_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
     do: {atom, :__after_compile__}
-  defp normalize_attribute(:on_definition, atom) when is_atom(atom),
+  defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp normalize_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback] do
-    raise ArgumentError, "attributes type, typep, export_type, opaque and callback " <>
+  defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
+    raise ArgumentError, "attributes type, typep, export_type, opaque, callback and macrocallback " <>
       "must be set via Kernel.Typespec"
   end
 
-  defp normalize_attribute(_key, value) do
+  defp preprocess_attribute(_key, value) do
     value
+  end
+
+  defp postprocess_attribute(:doc, {_line, doc}), do: doc
+  defp postprocess_attribute(:typedoc, {_line, doc}), do: doc
+  defp postprocess_attribute(:moduledoc, {_line, doc}), do: doc
+  defp postprocess_attribute(_, value), do: value
+
+  defp get_doc_info(table, env) do
+    # TODO: Use :ets.take/2 with Erlang 18
+    case :ets.lookup(table, :doc) do
+      [doc: {_, _} = pair] ->
+        :ets.delete(table, :doc)
+        pair
+      [] ->
+        {env.line, nil}
+    end
   end
 
   defp data_table_for(module) do

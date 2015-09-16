@@ -138,7 +138,7 @@ expand_rescue(Meta, [Arg], E) ->
       {[EArg], EA};
     false ->
       compile_error(Meta, ?m(E, file), "invalid rescue clause. The clause should "
-        "match on an alias, a variable or be in the `var in [alias]` format")
+        "match on an alias, a variable or be in the \"var in [alias]\" format")
   end;
 expand_rescue(Meta, _, E) ->
   compile_error(Meta, ?m(E, file), "expected one arg for rescue clauses (->) in try").

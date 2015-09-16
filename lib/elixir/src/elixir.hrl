@@ -7,7 +7,6 @@
   noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked
-  return=true,             %% when true, the return value is used
   module=nil,              %% the current module
   function=nil,            %% the current function
   vars=[],                 %% a dict of defined variables and their alias
@@ -67,4 +66,3 @@
 -define(is_horizontal_space(S), ((S == $\s) orelse (S == $\t))).
 -define(is_vertical_space(S), ((S == $\r) orelse (S == $\n))).
 -define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
--define(is_invalid_space(S), (S == 16#A0)).

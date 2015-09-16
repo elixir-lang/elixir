@@ -39,9 +39,8 @@ defmodule ExUnit.CaptureLogTest do
     end) == ""
   end
 
+  @tag timeout: 2_000
   test "capture removal on exit" do
-    handlers = GenEvent.which_handlers(Logger)
-
     {_pid, ref} = spawn_monitor(fn ->
       capture_log(fn ->
         spawn_link(Kernel, :exit, [:shutdown])
@@ -49,13 +48,8 @@ defmodule ExUnit.CaptureLogTest do
       end)
     end)
 
-    # Assert the process is down then invoke capture_io
-    # to trigger the ExUnit.Server, ensuring the DOWN
-    # message from capture_log has been processed
     assert_receive {:DOWN, ^ref, _, _, :shutdown}
-    ExUnit.CaptureIO.capture_io(fn -> "oops" end)
-
-    assert GenEvent.which_handlers(Logger) == handlers
+    wait_capture_removal()
   end
 
   test "log tracking" do
@@ -84,6 +78,15 @@ defmodule ExUnit.CaptureLogTest do
       {:nested, logged} ->
         assert logged =~ "[error] one\n"
         refute logged =~ "[warn]  two\n"
+    end
+  end
+
+  defp wait_capture_removal() do
+    case GenEvent.which_handlers(Logger) do
+      [Logger.Config] -> :ok
+      _otherwise ->
+        :timer.sleep(20)
+        wait_capture_removal()
     end
   end
 end

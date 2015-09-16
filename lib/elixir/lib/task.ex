@@ -28,11 +28,24 @@ defmodule Task do
   with the result.
 
   `Task.await/2` is used to read the message sent by the task.
-  `await` will check the monitor setup by the call to `async/1' to
+  `await` will check the monitor setup by the call to `async/1` to
   verify if the process exited for any abnormal reason (or in case
   exits are being trapped by the caller).
 
-  `Task.yield/2` is an alternative to `await` where the caller will
+  There are two important things to consider when using async:
+
+    1. If you are using async tasks, you must await for a reply
+       as they are *always* sent. If you are not expecting a reply,
+       consider using `Task.start_link/1` detailed below
+
+    2. async tasks link the caller and the spawned process. This
+       means that, if the caller crashes, the task will crash
+       too and vice-versa. This is on purpose, if the process
+       meant to receive the result no longer exists, there is
+       no purpose in computing the result until the end. If this
+       is not desired, consider using `Task.start_link/1` as well
+
+  `Task.yield/2` is an alternative to `await/2` where the caller will
   temporarily block waiting for a task's result. If the result does not
   arrive within the timeout it can be called again at later moment. This
   allows checking for the result of a task multiple times or to handle
@@ -61,7 +74,7 @@ defmodule Task do
 
   By default, most supervision strategies will try to restart
   a worker after it exits regardless of reason. If you design the
-  task to terminate normally (as in the example with `IO.puts` above),
+  task to terminate normally (as in the example with `IO.puts/2` above),
   consider passing `restart: :transient` in the options to `worker/3`.
 
   ## Dynamically supervised tasks
@@ -126,8 +139,8 @@ defmodule Task do
 
   It contains two fields:
 
-    * `:pid` - the process reference of the task process; it may be a pid
-      or a tuple containing the process and node names
+    * `:pid` - the process reference of the task process; `nil` if the task does
+      not use a task process.
 
     * `:ref` - the task monitor reference
 
@@ -183,6 +196,9 @@ defmodule Task do
   by the caller process. A `Task` struct is returned containing
   the relevant information.
 
+  Read the `Task` module documentation for more info on general
+  usage of `async/1` and `async/3`.
+
   ## Task's message format
 
   The reply sent by the task will be in the format `{ref, msg}`,
@@ -196,8 +212,17 @@ defmodule Task do
   @doc """
   Starts a task that can be awaited on.
 
-  Similar to `async/1`, but the task is specified by the given
-  module, function and arguments.
+  This function spawns a process that is linked to and monitored
+  by the caller process. A `Task` struct is returned containing
+  the relevant information.
+
+  Read the `Task` module documentation for more info on general
+  usage of `async/1` and `async/3`.
+
+  ## Task's message format
+
+  The reply sent by the task will be in the format `{ref, msg}`,
+  where `ref` is the monitoring reference held by the task.
   """
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
@@ -241,8 +266,8 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         reply
-      {:DOWN, ^ref, _, _, reason} ->
-        exit({reason(reason, task), {__MODULE__, :await, [task, timeout]}})
+      {:DOWN, ^ref, _, proc, reason} ->
+        exit({reason(reason, proc), {__MODULE__, :await, [task, timeout]}})
     after
       timeout ->
         Process.demonitor(ref, [:flush])
@@ -305,13 +330,11 @@ defmodule Task do
     end
   end
 
-  def find(tasks, {:DOWN, ref, _, _, reason} = msg) when is_reference(ref) do
+  def find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
     find = fn(%Task{ref: task_ref}) -> task_ref == ref end
     case Enum.find(tasks, find) do
-      %Task{pid: pid} when reason == :noconnection ->
-        exit({{:nodedown, node(pid)}, {__MODULE__, :find, [tasks, msg]}})
       %Task{} ->
-        exit({reason, {__MODULE__, :find, [tasks, msg]}})
+        exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
       nil ->
         nil
     end
@@ -345,8 +368,8 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         {:ok, reply}
-      {:DOWN, ^ref, _, _, reason} ->
-        exit({reason(reason, task), {__MODULE__, :yield, [task, timeout]}})
+      {:DOWN, ^ref, _, proc, reason} ->
+        exit({reason(reason, proc), {__MODULE__, :yield, [task, timeout]}})
     after
       timeout ->
         nil
@@ -354,7 +377,7 @@ defmodule Task do
   end
 
   @doc """
-  Unlink and shutdown the task then check for a reply.
+  Unlinks and shutdowns the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   otherwise `nil`.
@@ -380,6 +403,10 @@ defmodule Task do
   @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | nil
   def shutdown(task, shutdown \\ 5_000)
 
+  def shutdown(%Task{pid: nil} = task, _) do
+    raise ArgumentError, "task #{inspect task} does not have an associated task process."
+  end
+
   def shutdown(%Task{pid: pid} = task, :brutal_kill) do
     exit(pid, :kill)
     case shutdown_receive(task, :brutal_kill, :infinity) do
@@ -391,7 +418,7 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid} = task, timeout) do
-    Process.exit(pid, :shutdown)
+    exit(pid, :shutdown)
     case shutdown_receive(task, :shutdown, timeout) do
       {:error, reason} ->
         exit({reason, {__MODULE__, :shutdown, [task, timeout]}})
@@ -402,8 +429,11 @@ defmodule Task do
 
   ## Helpers
 
-  defp reason(:noconnection, %{pid: pid}), do: {:nodedown, node(pid)}
-  defp reason(reason, _),                  do: reason
+  defp reason(:noconnection, proc), do: {:nodedown, monitor_node(proc)}
+  defp reason(reason, _),           do: reason
+
+  defp monitor_node(pid) when is_pid(pid), do: node(pid)
+  defp monitor_node({_, node}),            do: node
 
   # spawn a process to ensure task gets exit signal if process dies from exit signal
   # between unlink and exit.
@@ -431,8 +461,8 @@ defmodule Task do
         flush_reply(ref)
       {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
         flush_reply(ref)
-      {:DOWN, ^ref, _, _, reason} ->
-        flush_reply(ref) || {:error, reason(reason, task)}
+      {:DOWN, ^ref, _, proc, reason} ->
+        flush_reply(ref) || {:error, reason(reason, proc)}
     after
       timeout ->
         Process.exit(task.pid, :kill)

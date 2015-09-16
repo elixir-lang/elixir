@@ -23,11 +23,13 @@ defmodule Mix.Tasks.CleanTest do
 
   test "cleans the application build" do
     in_fixture "deps_status", fn ->
+      File.mkdir_p! "_build/dev/consolidated"
       File.mkdir_p! "_build/dev/lib/sample"
       File.mkdir_p! "_build/test/lib/sample"
       File.mkdir_p! "_build/dev/lib/ok"
 
       Mix.Tasks.Clean.run []
+      refute File.exists?("_build/dev/consolidated")
       refute File.exists?("_build/dev/lib/sample")
       refute File.exists?("_build/test/lib/sample")
       assert File.exists?("_build/dev/lib/ok")

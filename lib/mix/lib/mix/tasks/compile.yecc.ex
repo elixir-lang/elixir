@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Compile.Yecc do
   @manifest ".compile.yecc"
 
   @moduledoc """
-  Compile Yecc source files.
+  Compiles Yecc source files.
 
   When this task runs, it will check the modification time of every file, and
   if it has changed, the file will be compiled. Files will be
@@ -23,9 +23,10 @@ defmodule Mix.Tasks.Compile.Yecc do
     * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
     * `:yecc_options` - compilation options that apply
-      to Yecc's compiler. There are many other available
-      options here: http://www.erlang.org/doc/man/yecc.html#file-1
+      to Yecc's compiler.
 
+      For a list of the many more available options,
+      see [`:yecc.file/1`](http://www.erlang.org/doc/man/yecc.html#file-1).
   """
 
   @doc """

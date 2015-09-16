@@ -4,7 +4,7 @@ defmodule Mix.Tasks.New do
   import Mix.Generator
   import Mix.Utils, only: [camelize: 1, underscore: 1]
 
-  @shortdoc "Create a new Elixir project"
+  @shortdoc "Creates a new Elixir project"
 
   @moduledoc """
   Creates a new Elixir project.
@@ -49,7 +49,7 @@ defmodule Mix.Tasks.New do
 
     case argv do
       [] ->
-        Mix.raise "Expected PATH to be given, please use `mix new PATH`"
+        Mix.raise "Expected PATH to be given, please use \"mix new PATH\""
       [path|_] ->
         app = opts[:app] || Path.basename(Path.expand(path))
         check_application_name!(app, !!opts[:app])
@@ -98,13 +98,13 @@ defmodule Mix.Tasks.New do
 
     Mix.shell.info """
 
-    Your mix project was created successfully.
-    You can use mix to compile it, test it, and more:
+    Your Mix project was created successfully.
+    You can use "mix" to compile it, test it, and more:
 
         cd #{path}
         mix test
 
-    Run `mix help` for more commands.
+    Run "mix help" for more commands.
     """
   end
 
@@ -139,7 +139,7 @@ defmodule Mix.Tasks.New do
         cd apps
         mix new my_app
 
-    Commands like `mix compile` and `mix test` when executed
+    Commands like "mix compile" and "mix test" when executed
     in the umbrella project root will automatically run
     for each application in the apps/ directory.
     """
@@ -151,7 +151,7 @@ defmodule Mix.Tasks.New do
                 "letters, numbers and underscore, got: #{inspect name}" <>
                 (if !from_app_flag do
                   ". The application name is inferred from the path, if you'd like to " <>
-                  "explicitly name the application then use the `--app APP` option."
+                  "explicitly name the application then use the \"--app APP\" option."
                 else
                   ""
                 end)
@@ -200,7 +200,9 @@ defmodule Mix.Tasks.New do
 
   ## Installation
 
-    1. Add <%= @app %> to your list of dependencies in mix.exs:
+  If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+
+    1. Add <%= @app %> to your list of dependencies in `mix.exs`:
 
           def deps do
             [{:<%= @app %>, "~> 0.0.1"}]
@@ -236,7 +238,7 @@ defmodule Mix.Tasks.New do
 
     # Configuration for the OTP application
     #
-    # Type `mix help compile.app` for more information
+    # Type "mix help compile.app" for more information
     def application do
   <%= @otp_app %>
     end
@@ -249,7 +251,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
-    # Type `mix help deps` for more examples and options
+    # Type "mix help deps" for more examples and options
     defp deps do
       []
     end
@@ -273,7 +275,7 @@ defmodule Mix.Tasks.New do
 
     # Configuration for the OTP application
     #
-    # Type `mix help compile.app` for more information
+    # Type "mix help compile.app" for more information
     def application do
   <%= @otp_app %>
     end
@@ -290,7 +292,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:myapp, in_umbrella: true}
     #
-    # Type `mix help deps` for more examples and options
+    # Type "mix help deps" for more examples and options
     defp deps do
       []
     end
@@ -316,7 +318,7 @@ defmodule Mix.Tasks.New do
     #
     #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
     #
-    # Type `mix help deps` for more examples and options.
+    # Type "mix help deps" for more examples and options.
     #
     # Dependencies listed here are available only for this project
     # and cannot be accessed from applications inside the apps folder
@@ -334,8 +336,8 @@ defmodule Mix.Tasks.New do
   # This configuration is loaded before any dependency and is restricted
   # to this project. If another project depends on this project, this
   # file won't be loaded nor affect the parent project. For this reason,
-  # if you want to provide default values for your application for 3rd-
-  # party users, it should be done in your mix.exs file.
+  # if you want to provide default values for your application for
+  # 3rd-party users, it should be done in your "mix.exs" file.
 
   # You can configure for your application as:
   #

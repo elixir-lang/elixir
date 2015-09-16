@@ -2,6 +2,13 @@ defmodule Range do
   @moduledoc """
   Defines a Range.
 
+  A Range represents a discrete number of values where
+  the first and last values are integers.
+
+  Ranges can be either increasing (first <= last) or
+  decresing (first > last). Ranges are also always
+  inclusive.
+
   A Range is represented internally as a struct. However,
   the most common form of creating and matching on ranges
   is via the `../2` macro, auto-imported from Kernel:
@@ -44,48 +51,34 @@ defmodule Range do
   def range?(_), do: false
 end
 
-defprotocol Range.Iterator do
-  @moduledoc """
-  A protocol used for iterating range elements.
-  """
-
-  @doc """
-  Returns the function that calculates the next item.
-  """
-  def next(first, range)
-
-  @doc """
-  Counts how many items are in the range.
-  """
-  def count(first, range)
-end
-
 defimpl Enumerable, for: Range do
-  def reduce(first .. last = range, acc, fun) do
-    reduce(first, last, acc, fun, Range.Iterator.next(first, range), last >= first)
+  def reduce(first .. last, acc, fun) do
+    validate_range!(first, last)
+    reduce(first, last, acc, fun, last >= first)
   end
 
-  defp reduce(_x, _y, {:halt, acc}, _fun, _next, _up) do
+  defp reduce(_x, _y, {:halt, acc}, _fun, _up) do
     {:halted, acc}
   end
 
-  defp reduce(x, y, {:suspend, acc}, fun, next, up) do
-    {:suspended, acc, &reduce(x, y, &1, fun, next, up)}
+  defp reduce(x, y, {:suspend, acc}, fun, up) do
+    {:suspended, acc, &reduce(x, y, &1, fun, up)}
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, next, true) when x <= y do
-    reduce(next.(x), y, fun.(x, acc), fun, next, true)
+  defp reduce(x, y, {:cont, acc}, fun, true) when x <= y do
+    reduce(x + 1, y, fun.(x, acc), fun, true)
   end
 
-  defp reduce(x, y, {:cont, acc}, fun, next, false) when x >= y do
-    reduce(next.(x), y, fun.(x, acc), fun, next, false)
+  defp reduce(x, y, {:cont, acc}, fun, false) when x >= y do
+    reduce(x - 1, y, fun.(x, acc), fun, false)
   end
 
-  defp reduce(_, _, {:cont, acc}, _fun, _next, _up) do
+  defp reduce(_, _, {:cont, acc}, _fun, _up) do
     {:done, acc}
   end
 
   def member?(first .. last, value) do
+    validate_range!(first, last)
     if first <= last do
       {:ok, first <= value and value <= last}
     else
@@ -93,26 +86,19 @@ defimpl Enumerable, for: Range do
     end
   end
 
-  def count(first .. _ = range) do
-    {:ok, Range.Iterator.count(first, range)}
-  end
-end
-
-defimpl Range.Iterator, for: Integer do
-  def next(first, _ .. last) when is_integer(last) do
-    if last >= first do
-      &(&1 + 1)
+  def count(first .. last) do
+    validate_range!(first, last)
+    if first <= last do
+      {:ok, last - first + 1}
     else
-      &(&1 - 1)
+      {:ok, first - last + 1}
     end
   end
 
-  def count(first, _ .. last) when is_integer(last) do
-    if last >= first do
-      last - first + 1
-    else
-      first - last + 1
-    end
+  defp validate_range!(first, last) when is_integer(first) and is_integer(last), do: :ok
+  defp validate_range!(first, last) do
+    raise ArgumentError,
+          "ranges (left .. right) expect both sides to be integers, got: #{inspect first..last}"
   end
 end
 

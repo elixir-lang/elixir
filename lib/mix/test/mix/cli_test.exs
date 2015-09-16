@@ -36,10 +36,10 @@ defmodule Mix.CLITest do
       """
 
       File.write! "lib/hello.ex", """
-      defmodule Mix.Tasks.Hello do
+      defmodule Mix.Tasks.MyHello do
         use Mix.Task
 
-        @shortdoc "Hello"
+        @shortdoc "Says hello"
 
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
@@ -47,7 +47,7 @@ defmodule Mix.CLITest do
       end
       """
 
-      contents = mix ~w[hello]
+      contents = mix ~w[my_hello]
       assert contents =~ "Hello from MyProject!\n"
       assert contents =~ "Compiled lib/hello.ex\n"
     end
@@ -56,14 +56,21 @@ defmodule Mix.CLITest do
   test "no task error" do
     in_fixture "no_mixfile", fn ->
       contents = mix ~w[no_task]
-      assert contents =~ "** (Mix) The task no_task could not be found"
+      assert contents =~ "** (Mix) The task \"no_task\" could not be found"
+    end
+  end
+
+  test "tasks with slashes in them raise a NoTaskError right away" do
+    in_fixture "no_mixfile", fn ->
+      contents = mix ~w[my/task]
+      assert contents =~ "** (Mix) The task \"my/task\" could not be found"
     end
   end
 
   test "--help smoke test" do
     in_fixture "no_mixfile", fn ->
       output = mix ~w[--help]
-      assert output =~ ~r/mix compile\s+# Compile source files/
+      assert output =~ ~r/mix compile\s+# Compiles source files/
       refute output =~ "mix invalid"
     end
   end
