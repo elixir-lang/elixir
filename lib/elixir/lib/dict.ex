@@ -872,6 +872,13 @@ defmodule Dict do
   @doc """
   Returns a list of key-value pairs stored in `dict`.
   No particular order is enforced.
+  
+  ## Examples
+
+      iex> dict = dict_impl.new
+      iex> dict = Dict.put(dict, :a, 1)
+      iex> Dict.to_list(dict)
+      [a: 1]
   """
   @spec to_list(t) :: list
   def to_list(dict) do
