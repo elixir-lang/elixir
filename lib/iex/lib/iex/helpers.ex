@@ -18,18 +18,19 @@ defmodule IEx.Helpers do
     * `flush/0`       - flushes all messages sent to the shell
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
+    * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
     * `pid/3`         - creates a PID with the 3 integer arguments passed
     * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles and reloads the given module's source file
-    * `respawn/0`     - respawns the current shell
+    * `r/1`           - recompiles and reloads the given module
+    * `recompile/0`   - recompiles the current Mix project (requires iex -S mix)
+    * `respawn/0`     - respawns a new IEx shell
     * `s/1`           - prints spec information
     * `t/1`           - prints type information
     * `v/0`           - retrieves the last value from the history
     * `v/1`           - retrieves the nth value from the history
-    * `import_file/1` - evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -50,7 +51,66 @@ defmodule IEx.Helpers do
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
+  require Logger
   import IEx, only: [dont_display_result: 0]
+
+  @doc """
+  Recompiles the current Mix application.
+
+  This helper only works when IEx is started with a Mix
+  project, for example, `iex -S mix`. Before compiling
+  the code, it will stop the current application, and
+  start it again afterwards. Stopping applications are
+  required so processes in the supervision tree won't
+  crash when code is upgraded multiple times without
+  going through the proper hot-code swapping mechanism.
+
+  Changes to `mix.exs` or configuration files won't be
+  picked up by this helper, only changes to sources.
+  Restarting the shell and Mix is required in such cases.
+
+  If you want to reload a single module, consider using
+  `r ModuleName` instead.
+
+  NOTE: This feature is experimental and may be removed
+  in upcoming releases.
+  """
+  def recompile do
+    if mix_started? do
+      config = Mix.Project.config
+      reenable_tasks(config)
+      stop_apps(config)
+      Mix.Task.run("app.start")
+    else
+      IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
+      dont_display_result
+    end
+  end
+
+  defp mix_started? do
+    List.keyfind(Application.started_applications, :mix, 0) != nil
+  end
+
+  defp reenable_tasks(config) do
+    Mix.Task.reenable("app.start")
+    Mix.Task.reenable("compile")
+    Mix.Task.reenable("compile.all")
+    compilers = config[:compilers] || Mix.compilers
+    Enum.each compilers, &Mix.Task.reenable("compile.#{&1}")
+  end
+
+  defp stop_apps(config) do
+    apps =
+      cond do
+        Mix.Project.umbrella?(config) ->
+          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
+        app = config[:app] ->
+          [app]
+        true ->
+          []
+      end
+    Enum.each apps, &Application.stop/1
+  end
 
   @doc """
   Compiles the given files.
@@ -532,7 +592,7 @@ defmodule IEx.Helpers do
   defp history, do: Process.get(:iex_history)
 
   @doc """
-  Creates a PID with 3 non negative integers passed as arguments 
+  Creates a PID with 3 non negative integers passed as arguments
   to the function.
 
   ## Examples
