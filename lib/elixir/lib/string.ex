@@ -833,7 +833,7 @@ defmodule String do
   defdelegate next_codepoint(string), to: String.Unicode
 
   @doc ~S"""
-  Checks whether `str` contains only valid characters.
+  Checks whether `string` contains only valid characters.
 
   ## Examples
 
@@ -927,20 +927,20 @@ defmodule String do
 
   def chunk("", _), do: []
 
-  def chunk(str, trait) when trait in [:valid, :printable] do
-    {cp, _} = next_codepoint(str)
+  def chunk(string, trait) when trait in [:valid, :printable] do
+    {cp, _} = next_codepoint(string)
     pred_fn = make_chunk_pred(trait)
-    do_chunk(str, pred_fn.(cp), pred_fn)
+    do_chunk(string, pred_fn.(cp), pred_fn)
   end
 
-  defp do_chunk(str, flag, pred_fn), do: do_chunk(str, [], <<>>, flag, pred_fn)
+  defp do_chunk(string, flag, pred_fn), do: do_chunk(string, [], <<>>, flag, pred_fn)
 
   defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
 
   defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
 
-  defp do_chunk(str, acc, chunk, flag, pred_fn) do
-    {cp, rest} = next_codepoint(str)
+  defp do_chunk(string, acc, chunk, flag, pred_fn) do
+    {cp, rest} = next_codepoint(string)
     if pred_fn.(cp) != flag do
       do_chunk(rest, [chunk|acc], cp, not flag, pred_fn)
     else
@@ -1523,7 +1523,7 @@ defmodule String do
   @doc """
   Returns a float value between 0 (equates to no similarity) and 1 (is an exact match)
   representing [Jaro](https://en.wikipedia.org/wiki/Jaro–Winkler_distance)
-  distance between `str1` and `str2`.
+  distance between `string1` and `string2`.
 
   The Jaro distance metric is designed and best suited for short strings such as person names.
 
@@ -1537,15 +1537,15 @@ defmodule String do
   """
 
   @spec jaro_distance(t, t) :: 0..1
-  def jaro_distance(str1, str2)
+  def jaro_distance(string1, string2)
 
-  def jaro_distance(str, str), do: 1.0
-  def jaro_distance(_str, ""), do: 0.0
-  def jaro_distance("", _str), do: 0.0
+  def jaro_distance(string, string), do: 1.0
+  def jaro_distance(_string, ""), do: 0.0
+  def jaro_distance("", _string), do: 0.0
 
-  def jaro_distance(str1, str2) do
-    {chars1, len1} = decompose(str1)
-    {chars2, len2} = decompose(str2)
+  def jaro_distance(string1, string2) do
+    {chars1, len1} = decompose(string1)
+    {chars2, len2} = decompose(string2)
 
     case match(chars1, len1, chars2, len2) do
       {0, _trans} -> 0.0
@@ -1557,8 +1557,8 @@ defmodule String do
   end
 
   @compile {:inline, decompose: 1}
-  defp decompose(str) do
-    chars = graphemes(str)
+  defp decompose(string) do
+    chars = graphemes(string)
     {chars, Kernel.length(chars)}
   end
 
