@@ -51,7 +51,6 @@ defmodule IEx.Helpers do
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
-  require Logger
   import IEx, only: [dont_display_result: 0]
 
   @doc """
@@ -79,11 +78,12 @@ defmodule IEx.Helpers do
     if mix_started? do
       config = Mix.Project.config
       reenable_tasks(config)
-      stop_apps(config)
+      apps = stop_apps(config)
       Mix.Task.run("app.start")
+      {:restarted, apps}
     else
       IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
-      dont_display_result
+      :error
     end
   end
 
@@ -109,7 +109,8 @@ defmodule IEx.Helpers do
         true ->
           []
       end
-    Enum.each apps, &Application.stop/1
+    apps |> Enum.reverse |> Enum.each(&Application.stop/1)
+    apps
   end
 
   @doc """
