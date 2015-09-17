@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 1
+  @manifest_vsn :v1
 
   @doc """
   Compiles stale Elixir files.
@@ -199,7 +199,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp read_manifest(manifest) do
     case :file.consult(manifest) do
-      {:ok, [{:version, @manifest_vsn}|t]} -> t
+      {:ok, [@manifest_vsn|t]} -> t
       _ -> []
     end
   end
@@ -223,7 +223,7 @@ defmodule Mix.Compilers.Elixir do
     File.mkdir_p!(Path.dirname(manifest))
 
     File.open!(manifest, [:write], fn device ->
-      :io.format(device, '~p.~n', [{:version, @manifest_vsn}])
+      :io.format(device, '~p.~n', [@manifest_vsn])
 
       Enum.map entries, fn {beam, _, _, _, _, _, binary} = entry ->
         if binary, do: File.write!(beam, binary)
@@ -236,6 +236,6 @@ defmodule Mix.Compilers.Elixir do
     # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
     # is a dependency itself, we need to touch the lock so the current
     # Elixir version, used to compile the files above, is properly stored.
-    Mix.Dep.Lock.touch
+    Mix.Dep.Lock.update_manifest
   end
 end

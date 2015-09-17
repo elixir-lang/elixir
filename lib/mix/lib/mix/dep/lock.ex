@@ -8,6 +8,9 @@ defmodule Mix.Dep.Lock do
 
   @doc """
   Returns the manifest file for dependencies.
+
+  The manifest is used to check if the lockfile
+  itself is up to date.
   """
   @spec manifest(Path.t) :: Path.t
   def manifest(manifest_path \\ Mix.Project.manifest_path) do
@@ -15,16 +18,29 @@ defmodule Mix.Dep.Lock do
   end
 
   @doc """
-  Touches the manifest storing the current project info unless it is an umbrella application.
+  Updates the lock manifest with the latest metadata.
   """
-  @spec touch :: :ok
-  def touch do
+  @spec update_manifest :: :ok
+  def update_manifest do
     config = Mix.Project.config
     unless Mix.Project.umbrella?(config) do
       manifest_path = Mix.Project.manifest_path(config)
       data = {:v1, System.version, config[:build_scm]}
       File.mkdir_p!(manifest_path)
       File.write!(Path.join(manifest_path, @manifest), :io_lib.format('~p.~n', [data]))
+    end
+    :ok
+  end
+
+  @doc """
+  Touches the manifest file to force recompilation.
+  """
+  @spec touch_manifest :: :ok
+  def touch_manifest do
+    config = Mix.Project.config
+    unless Mix.Project.umbrella?(config) do
+      manifest = manifest()
+      File.exists?(manifest) && File.touch(manifest)
     end
     :ok
   end
@@ -71,7 +87,7 @@ defmodule Mix.Dep.Lock do
           ~s("#{app}": #{inspect rev, limit: :infinity})
         end
       File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
-      touch
+      update_manifest()
     end
     :ok
   end

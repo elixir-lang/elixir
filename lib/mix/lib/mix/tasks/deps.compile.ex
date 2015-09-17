@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled
       end)
 
-    if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch_manifest, else: :ok
   end
 
   defp touch_fetchable(scm, path) do

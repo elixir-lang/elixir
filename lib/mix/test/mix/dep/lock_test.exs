@@ -29,7 +29,9 @@ defmodule Mix.Dep.LockTest do
   test "stores status in manifest" do
     in_fixture "no_mixfile", fn ->
       assert Mix.Dep.Lock.status == :error
-      Mix.Dep.Lock.touch
+      Mix.Dep.Lock.touch_manifest
+      assert Mix.Dep.Lock.status == :error
+      Mix.Dep.Lock.update_manifest
       assert Mix.Dep.Lock.status == {:ok, System.version, nil}
     end
   end
