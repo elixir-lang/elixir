@@ -467,13 +467,13 @@ defmodule StreamTest do
     assert r1 != r2
   end
 
-  test "resource/3 closes on errors" do
+  test "resource/3 closes on outer errors" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {[acc], acc + 1} end,
-                             fn _ -> Process.put(:stream_resource, true) end)
+                             fn 2 -> throw(:error)
+                                acc -> {[acc], acc + 1} end,
+                             fn 2 -> Process.put(:stream_resource, true) end)
 
     Process.put(:stream_resource, false)
-    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
     assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_resource)
   end
@@ -570,13 +570,13 @@ defmodule StreamTest do
     assert Process.get(:stream_transform)
   end
 
-  test "transform/4 closes on errors" do
+  test "transform/4 closes on outer errors" do
     stream = Stream.transform(1..10, fn -> 0 end,
-                              fn x, acc -> {[x + acc], x} end,
+                              fn 3, _ -> throw(:error)
+                                 x, acc -> {[x + acc], x} end,
                               fn 2 -> Process.put(:stream_transform, true) end)
 
     Process.put(:stream_transform, false)
-    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
     assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_transform)
   end
@@ -640,7 +640,7 @@ defmodule StreamTest do
 
   test "transform/4 closes on errors with inner enum" do
     stream = Stream.transform(1..10, fn -> :acc end,
-                              fn x, acc -> {[x..x+2], acc} end,
+                              fn x, acc -> {x..x+2, acc} end,
                               fn :acc -> Process.put(:stream_transform, true) end)
 
     Process.put(:stream_transform, false)
@@ -652,7 +652,7 @@ defmodule StreamTest do
   test "transform/4 is zippable with inner enum" do
     stream = Stream.transform(1..20, fn -> :inner end,
                               fn 10, acc -> {:halt, acc}
-                                 x, acc -> {[x..x+2], acc}
+                                 x, acc -> {x..x+2, acc}
                               end,
                               fn :inner -> Process.put(:stream_transform, true) end)
 
