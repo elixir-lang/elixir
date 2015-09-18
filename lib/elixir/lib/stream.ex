@@ -696,6 +696,7 @@ defmodule Stream do
           kind, reason ->
             stacktrace = System.stacktrace
             next.({:halt, next_acc})
+            do_after(after_fun, user_acc)
             :erlang.raise(kind, reason, stacktrace)
         else
           {[], user_acc} ->
