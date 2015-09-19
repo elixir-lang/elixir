@@ -376,12 +376,17 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts the `exception` is raised during `function` execution with
-  the `expected_message`. Returns the rescued exception, fails otherwise.
+  the expected `message`, which can be a `Regex` or an exact `String`.
+  Returns the rescued exception, fails otherwise.
 
   ## Examples
 
       assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
         1 + "test"
+      end
+      
+      assert_raise RuntimeError, ~r/^Today's lucky number is 0\.\d+!$/, fn ->
+        raise "Today's lucky number is #{:random.uniform}!"
       end
   """
   def assert_raise(exception, message, function) when is_function(function) do
