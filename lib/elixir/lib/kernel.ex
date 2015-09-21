@@ -244,7 +244,7 @@ defmodule Kernel do
   @doc """
   Returns the head of a list; raises `ArgumentError` if the list is empty.
 
-  Inlined by the compiler.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
