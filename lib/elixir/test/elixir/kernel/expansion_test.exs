@@ -326,6 +326,12 @@ defmodule Kernel.ExpansionTest do
            quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
   end
 
+  test "cond: expects at most one do" do
+    assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
+      expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+    end
+  end
+
   ## Case
 
   test "case: expands each clause" do
@@ -351,6 +357,12 @@ defmodule Kernel.ExpansionTest do
   test "case: leaks vars" do
     assert expand_and_clean(quote do: (case w do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
            quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
+  end
+
+  test "case: expects at most one do" do
+    assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
+      expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+    end
   end
 
   ## Receive
@@ -385,6 +397,16 @@ defmodule Kernel.ExpansionTest do
            quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
   end
 
+  test "receive: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
+      expand(quote(do: (receive do: (x -> x), do: (y -> y))))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
+      expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+    end
+  end
+
   ## Try
 
   test "try: expands catch" do
@@ -410,6 +432,28 @@ defmodule Kernel.ExpansionTest do
   test "try: expects more than do" do
     assert_raise CompileError, ~r"missing catch/rescue/after/else keyword in try", fn ->
       expand(quote do: (try do x = y end; x))
+    end
+  end
+
+  test "try: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
+      expand(quote(do: (try do: e, do: f)))
+    end
+
+    assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
+      expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
+      expand(quote(do: (try do e after x = y after x = y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
+      expand(quote(do: (try do e else x -> x else y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
+      expand(quote(do: (try do e catch x -> x catch y -> y end)))
     end
   end
 

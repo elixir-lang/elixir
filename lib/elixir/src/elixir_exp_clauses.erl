@@ -47,6 +47,9 @@ guard(Other, E) ->
 'case'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, ?m(E, file), "invalid arguments for case");
 'case'(Meta, KV, E) ->
+  ok = assert_at_most_once('do', KV, 0, fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for case", [Kind])
+  end),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_case(Meta, X, Acc, EE) end, [], KV),
   {EClauses, elixir_env:mergev(EVars, E)}.
@@ -64,6 +67,9 @@ do_case(Meta, {Key, _}, _Acc, E) ->
 'cond'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, ?m(E, file), "invalid arguments for cond");
 'cond'(Meta, KV, E) ->
+  ok = assert_at_most_once('do', KV, 0, fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for cond", [Kind])
+  end),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_cond(Meta, X, Acc, EE) end, [], KV),
   {EClauses, elixir_env:mergev(EVars, E)}.
@@ -81,6 +87,11 @@ do_cond(Meta, {Key, _}, _Acc, E) ->
 'receive'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, ?m(E, file), "invalid arguments for receive");
 'receive'(Meta, KV, E) ->
+  RaiseError = fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for receive", [Kind])
+  end,
+  ok = assert_at_most_once('do', KV, 0, RaiseError),
+  ok = assert_at_most_once('after', KV, 0, RaiseError),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], KV),
   {EClauses, elixir_env:mergev(EVars, E)}.
@@ -105,8 +116,16 @@ do_receive(Meta, {Key, _}, _Acc, E) ->
 'try'(Meta, [{do, _}], E) ->
   compile_error(Meta, ?m(E, file), "missing catch/rescue/after/else keyword in try");
 'try'(Meta, KV, E) when not is_list(KV) ->
-  elixir_errors:compile_error(Meta, ?m(E, file), "invalid arguments for try");
+  compile_error(Meta, ?m(E, file), "invalid arguments for try");
 'try'(Meta, KV, E) ->
+  RaiseError = fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for try", [Kind])
+  end,
+  ok = assert_at_most_once('do', KV, 0, RaiseError),
+  ok = assert_at_most_once('rescue', KV, 0, RaiseError),
+  ok = assert_at_most_once('catch', KV, 0, RaiseError),
+  ok = assert_at_most_once('else', KV, 0, RaiseError),
+  ok = assert_at_most_once('after', KV, 0, RaiseError),
   {lists:map(fun(X) -> do_try(Meta, X, E) end, KV), E}.
 
 do_try(_Meta, {'do', Expr}, E) ->
@@ -214,3 +233,11 @@ expand_without_export(Meta, Kind, Fun, {Key, Clauses}, E) when is_list(Clauses) 
   {Key, lists:map(Transformer, Clauses)};
 expand_without_export(Meta, Kind, _Fun, {Key, _}, E) ->
   compile_error(Meta, ?m(E, file), "expected -> clauses for ~ts in ~ts", [Key, Kind]).
+
+assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
+assert_at_most_once(Kind, [{Kind, _} | _], 1, ErrorFun) ->
+  ErrorFun(Kind);
+assert_at_most_once(Kind, [{Kind, _} | Rest], Count, Fun) ->
+  assert_at_most_once(Kind, Rest, Count + 1, Fun);
+assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
+  assert_at_most_once(Kind, Rest, Count, Fun).
