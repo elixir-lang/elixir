@@ -359,6 +359,12 @@ defmodule Kernel.ExpansionTest do
            quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
   end
 
+  test "case: expects at most one do" do
+    assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
+      expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+    end
+  end
+
   ## Receive
 
   test "receive: expands each clause" do
