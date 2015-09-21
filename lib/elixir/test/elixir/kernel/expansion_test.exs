@@ -413,6 +413,28 @@ defmodule Kernel.ExpansionTest do
     end
   end
 
+  test "try: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
+      expand(quote(do: try(do: e, do: f)))
+    end
+
+    assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
+      expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
+      expand(quote(do: (try do e after x = y after x = y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
+      expand(quote(do: (try do e else x -> x else y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
+      expand(quote(do: (try do e catch x -> x catch y -> y end)))
+    end
+  end
+
   ## Binaries
 
   test "bitstrings: size * unit" do
