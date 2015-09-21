@@ -105,7 +105,7 @@ do_receive(Meta, {Key, _}, _Acc, E) ->
 'try'(Meta, [{do, _}], E) ->
   compile_error(Meta, ?m(E, file), "missing catch/rescue/after/else keyword in try");
 'try'(Meta, KV, E) when not is_list(KV) ->
-  elixir_errors:compile_error(Meta, ?m(E, file), "invalid arguments for try");
+  compile_error(Meta, ?m(E, file), "invalid arguments for try");
 'try'(Meta, KV, E) ->
   {lists:map(fun(X) -> do_try(Meta, X, E) end, KV), E}.
 
