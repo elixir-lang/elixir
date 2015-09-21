@@ -81,6 +81,11 @@ do_cond(Meta, {Key, _}, _Acc, E) ->
 'receive'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, ?m(E, file), "invalid arguments for receive");
 'receive'(Meta, KV, E) ->
+  RaiseError = fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for receive", [Kind])
+  end,
+  ok = assert_at_most_once('do', KV, 0, RaiseError),
+  ok = assert_at_most_once('after', KV, 0, RaiseError),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_receive(Meta, X, Acc, EE) end, [], KV),
   {EClauses, elixir_env:mergev(EVars, E)}.

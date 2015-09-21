@@ -385,6 +385,16 @@ defmodule Kernel.ExpansionTest do
            quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
   end
 
+  test "receive: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
+      expand(quote(do: (receive do: (x -> x), do: (y -> y))))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
+      expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+    end
+  end
+
   ## Try
 
   test "try: expands catch" do
@@ -415,7 +425,7 @@ defmodule Kernel.ExpansionTest do
 
   test "try: expects at most one clause" do
     assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
-      expand(quote(do: try(do: e, do: f)))
+      expand(quote(do: (try do: e, do: f)))
     end
 
     assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
