@@ -64,6 +64,9 @@ do_case(Meta, {Key, _}, _Acc, E) ->
 'cond'(Meta, KV, E) when not is_list(KV) ->
   compile_error(Meta, ?m(E, file), "invalid arguments for cond");
 'cond'(Meta, KV, E) ->
+  ok = assert_at_most_once('do', KV, 0, fun(Kind) ->
+    compile_error(Meta, ?m(E, file), "duplicated ~ts clauses given for cond", [Kind])
+  end),
   EE = E#{export_vars := []},
   {EClauses, EVars} = lists:mapfoldl(fun(X, Acc) -> do_cond(Meta, X, Acc, EE) end, [], KV),
   {EClauses, elixir_env:mergev(EVars, E)}.
