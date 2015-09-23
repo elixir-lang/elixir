@@ -113,7 +113,8 @@ defmodule Mix.Tasks.App.Start do
     loaded = for {app, _, _} <- :application.loaded_applications(), do: app
     _ = for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
       Mix.shell.error """
-      You have configured application #{inspect app} but it is not available.
+      You have configured application #{inspect app} in your config/config.exs
+      but the application is not available.
 
       This usually means one of:
 
