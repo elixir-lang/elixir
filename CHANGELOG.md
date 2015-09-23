@@ -148,12 +148,14 @@ and is using Erlang 17.1, remember to update to at least Erlang 17.3.
   * [Kernel] Allow capture of non-symbolic operators like `&and/2`, `&not/1` and others
   * [Kernel] Raise if heredoc terminal is accidentally found in the middle of a line without escaping
   * [Kernel] Don't warn on missing imports if nothing was imported
+  * [Kernel] Raise if arity bigger than 255 is given to capture operator
   * [Macro] Properly convert captures in `Macro.to_string/1`
   * [Module] Do not accept non-Elixir module names in `Module.split/1`
   * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
   * [Range] Restrict ranges to integers to fix diverse bugs of values being included in the range when they should not (false positives)
   * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
   * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
+  * [Stream] Ensure suspending `Stream.flat_map/2` and `Stream.transform/3` does not consume unecessary items from the given enumerable
 
 #### EEx
 
