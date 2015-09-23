@@ -136,6 +136,12 @@ defmodule Kernel.FnTest do
       "&:foo"
   end
 
+  test "failure on invalid arity" do
+    assert_compile_fail CompileError,
+      "nofile:1: invalid arity for &, expected a number between 0 and 255, got: 256",
+      "&Mod.fun/256"
+  end
+
   test "failure when no captures" do
     assert_compile_fail CompileError,
       "nofile:1: invalid args for &, expected an expression in the format of &Mod.fun/arity, " <>
