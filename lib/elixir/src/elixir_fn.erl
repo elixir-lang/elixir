@@ -38,10 +38,11 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
 %% Capture
 
 capture(Meta, {'/', _, [{{'.', _, [_, F]} = Dot, RequireMeta, []}, A]}, E) when is_atom(F), is_integer(A) ->
-  Args = [{'&', [], [X]} || X <- lists:seq(1, A)],
+  Args = args_from_arity(Meta, A, E),
   capture_require(Meta, {Dot, RequireMeta, Args}, E, true);
 
 capture(Meta, {'/', _, [{F, _, C}, A]}, E) when is_atom(F), is_integer(A), is_atom(C) ->
+  Args = args_from_arity(Meta, A, E),
   ImportMeta =
     case lists:keyfind(import_fa, 1, Meta) of
       {import_fa, {Receiver, Context}} ->
@@ -51,7 +52,6 @@ capture(Meta, {'/', _, [{F, _, C}, A]}, E) when is_atom(F), is_integer(A), is_at
         );
       false -> Meta
     end,
-  Args = [{'&', [], [X]} || X <- lists:seq(1, A)],
   capture_import(Meta, {F, ImportMeta, Args}, E, true);
 
 capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, E) when is_atom(Fun), is_list(Args) ->
@@ -154,6 +154,12 @@ do_escape(List, Counter, E, Dict) when is_list(List) ->
 
 do_escape(Other, _Counter, _E, Dict) ->
   {Other, Dict}.
+
+args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
+  [{'&', [], [X]} || X <- lists:seq(1, A)];
+args_from_arity(Meta, A, E) ->
+  Message = "invalid arity for &, expected a number between 0 and 255, got: ~b",
+  compile_error(Meta, ?m(E, file), Message, [A]).
 
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).
