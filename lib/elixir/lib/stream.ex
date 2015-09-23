@@ -687,6 +687,15 @@ defmodule Stream do
     do_transform(user_acc.(), user, fun, [], next, inner_acc, inner, after_fun)
   end
 
+  defp do_transform(user_acc, _user, _fun, _next_acc, _next, {:halt, inner_acc}, _inner, after_fun) do
+    do_after(after_fun, user_acc)
+    {:halted, inner_acc}
+  end
+
+  defp do_transform(user_acc, user, fun, next_acc, next, {:suspend, inner_acc}, inner, after_fun) do
+    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_acc, next, &1, inner, after_fun)}
+  end
+
   defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
     case next.({:cont, next_acc}) do
       {:suspended, [val|next_acc], next} ->

@@ -416,6 +416,22 @@ defmodule StreamTest do
     assert Stream.transform(nats, 0, &{[&1, &2], &1 + &2}) |> Enum.take(6) == [1, 0, 2, 1, 3, 3]
   end
 
+  test "transform/3 with early halt" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(nil, &{[&1, &2], &1})
+
+    assert {:halted, nil} =
+      Enumerable.reduce(stream, {:halt, nil}, fn _, _ -> throw(:error) end)
+  end
+
+  test "transform/3 with early suspend" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(nil, &{[&1, &2], &1})
+
+    assert {:suspended, nil, _} =
+      Enumerable.reduce(stream, {:suspend, nil}, fn _, _ -> throw(:error) end)
+  end
+
   test "transform/3 with halt" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
@@ -568,6 +584,27 @@ defmodule StreamTest do
     assert Enum.to_list(stream) ==
            [1, 1, 2, 3, 3, 5, 4, 7, 5, 9, 6, 11, 7, 13, 8, 15, 9, 17, 10, 19]
     assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 with early halt" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(fn -> nil end, &{[&1, &2], &1},
+                                 fn nil -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    assert {:halted, nil} =
+      Enumerable.reduce(stream, {:halt, nil}, fn _, _ -> throw(:error) end)
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 with early suspend" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(fn -> nil end, &{[&1, &2], &1},
+                                 fn nil -> Process.put(:stream_transform, true) end)
+
+    refute Process.get(:stream_transform)
+    assert {:suspended, nil, _} =
+      Enumerable.reduce(stream, {:suspend, nil}, fn _, _ -> throw(:error) end)
   end
 
   test "transform/4 closes on outer errors" do
