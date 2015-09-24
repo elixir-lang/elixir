@@ -515,6 +515,9 @@ no_alias_expansion(Other) ->
   Other.
 
 expand_require(Meta, Ref, KV, E) ->
+  %% We always record requires when they are defined
+  %% as they expect the reference at compile time.
+  elixir_lexical:record_remote(Ref, nil, ?m(E, lexical_tracker)),
   RE = E#{requires := ordsets:add_element(Ref, ?m(E, requires))},
   expand_alias(Meta, false, Ref, KV, RE).
 
