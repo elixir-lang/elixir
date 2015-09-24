@@ -16,7 +16,10 @@ expand_struct(Meta, Left, Right, E) ->
   {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
 
   case is_atom(ELeft) of
-    true  -> ok;
+    true ->
+      %% We always record structs when they are expanded
+      %% as they expect the reference at compile time.
+      elixir_lexical:record_remote(ELeft, nil, ?m(E, lexical_tracker));
     false ->
       compile_error(Meta, ?m(E, file), "expected struct name to be a compile "
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
