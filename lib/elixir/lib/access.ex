@@ -36,35 +36,43 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
-  @callback get(t, key, value) :: value
+  @callback fetch(t, key) :: {:ok, value} | :error
   @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+
+  @doc """
+  Fetches the container's value for the given key.
+  """
+  @spec fetch(t, term) :: {:ok, term} | :error
+  def fetch(container, key)
+
+  def fetch(%{__struct__: struct} = container, key) do
+    struct.fetch(container, key)
+  end
+
+  def fetch(%{} = map, key) do
+    :maps.find(key, map)
+  end
+
+  def fetch(list, key) when is_list(list) do
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> {:ok, value}
+      false -> :error
+    end
+  end
+
+  def fetch(nil, _key) do
+    :error
+  end
 
   @doc """
   Gets the container's value for the given key.
   """
   @spec get(t, term, term) :: term
-  def get(container, key, default \\ nil)
-
-  def get(%{__struct__: struct} = container, key, default) do
-    struct.get(container, key, default)
-  end
-
-  def get(%{} = map, key, default) do
-    case :maps.find(key, map) do
+  def get(container, key, default \\ nil) do
+    case fetch(container, key) do
       {:ok, value} -> value
       :error -> default
     end
-  end
-
-  def get(list, key, default) when is_list(list) do
-    case :lists.keyfind(key, 1, list) do
-      {^key, value} -> value
-      false -> default
-    end
-  end
-
-  def get(nil, _key, default) do
-    default
   end
 
   @doc """
