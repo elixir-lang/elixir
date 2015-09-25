@@ -1038,13 +1038,9 @@ defmodule Module do
   defp postprocess_attribute(_, value), do: value
 
   defp get_doc_info(table, env) do
-    # TODO: Use :ets.take/2 with Erlang 18
-    case :ets.lookup(table, :doc) do
-      [doc: {_, _} = pair] ->
-        :ets.delete(table, :doc)
-        pair
-      [] ->
-        {env.line, nil}
+    case :ets.take(table, :doc) do
+      [doc: {_, _} = pair] -> pair
+      [] -> {env.line, nil}
     end
   end
 

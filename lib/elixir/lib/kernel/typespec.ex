@@ -508,13 +508,9 @@ defmodule Kernel.Typespec do
   end
 
   defp get_doc_info(table, attr, caller) do
-    # TODO: Use :ets.take/2 with Erlang 18
-    case :ets.lookup(table, attr) do
-      [{^attr, {line, doc}}] ->
-        :ets.delete(table, attr)
-        {line, doc}
-      [] ->
-        {caller.line, nil}
+    case :ets.take(table, attr) do
+      [{^attr, {line, doc}}] -> {line, doc}
+      [] -> {caller.line, nil}
     end
   end
 
