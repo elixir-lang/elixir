@@ -896,16 +896,9 @@ defmodule Kernel.Typespec do
 
   defp typespec({:%{}, meta, fields}, vars, caller) do
     fields =
-      # TODO: Remove else once we support only OTP >18
-      if :erlang.system_info(:otp_release) >= '18' do
-        :lists.map(fn {k, v} ->
-          {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
-        end, fields)
-      else
-        :lists.map(fn {k, v} ->
-          {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
-        end, fields)
-      end
+      :lists.map(fn {k, v} ->
+        {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+      end, fields)
 
     {:type, line(meta), :map, fields}
   end
@@ -1068,14 +1061,9 @@ defmodule Kernel.Typespec do
 
   defp typespec({name, meta, arguments}, vars, caller) do
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-
-    if :erlang.system_info(:otp_release) >= '18' do
-      arity = length(arguments)
-      type = if :erl_internal.is_type(name, arity), do: :type, else: :user_type
-      {type, line(meta), name, arguments}
-    else
-      {:type, line(meta), name, arguments}
-    end
+    arity = length(arguments)
+    type = if :erl_internal.is_type(name, arity), do: :type, else: :user_type
+    {type, line(meta), name, arguments}
   end
 
   # Handle literals

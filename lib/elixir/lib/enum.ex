@@ -2033,24 +2033,22 @@ defmodule Enum do
   @spec take_random(t, integer) :: list
   def take_random(_collection, 0), do: []
 
-  if :erlang.system_info(:otp_release) >= '18' do
-    def take_random(collection, count) when count > 128 do
-      reducer = fn(elem, {idx, sample}) ->
-        jdx = random_index(idx)
-        cond do
-          idx < count ->
-            value = Map.get(sample, jdx)
-            {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
-          jdx < count ->
-            {idx + 1, Map.put(sample, jdx, elem)}
-          true ->
-            {idx + 1, sample}
-        end
+  def take_random(collection, count) when count > 128 do
+    reducer = fn(elem, {idx, sample}) ->
+      jdx = random_index(idx)
+      cond do
+        idx < count ->
+          value = Map.get(sample, jdx)
+          {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
+        jdx < count ->
+          {idx + 1, Map.put(sample, jdx, elem)}
+        true ->
+          {idx + 1, sample}
       end
-
-      {size, sample} = reduce(collection, {0, %{}}, reducer)
-      take_random(sample, Kernel.min(count, size), [])
     end
+
+    {size, sample} = reduce(collection, {0, %{}}, reducer)
+    take_random(sample, Kernel.min(count, size), [])
   end
 
   def take_random(collection, count) when count > 0 do
@@ -2073,14 +2071,12 @@ defmodule Enum do
     sample |> Tuple.to_list |> take(Kernel.min(count, size))
   end
 
-  if :erlang.system_info(:otp_release) >= '18' do
-    defp take_random(_sample, 0, acc), do: acc
+  defp take_random(_sample, 0, acc), do: acc
 
-    defp take_random(sample, position, acc) do
-      position = position - 1
-      acc = [Map.get(sample, position) | acc]
-      take_random(sample, position, acc)
-    end
+  defp take_random(sample, position, acc) do
+    position = position - 1
+    acc = [Map.get(sample, position) | acc]
+    take_random(sample, position, acc)
   end
 
   @doc """

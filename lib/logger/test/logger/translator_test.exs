@@ -243,18 +243,16 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Process crashes" do
-    if :erlang.system_info(:otp_release) >= '18' do
-      assert capture_log(:info, fn ->
-        {_, ref} = spawn_monitor(fn() -> raise "oops" end)
-        receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-        # Even though the monitor has been received the emulator may not have
-        # sent the message to the error logger
-        :timer.sleep(200)
-      end) =~ ~r"""
-      \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
-      \*\* \(RuntimeError\) oops
-      """
-    end
+    assert capture_log(:info, fn ->
+      {_, ref} = spawn_monitor(fn() -> raise "oops" end)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+      # Even though the monitor has been received the emulator may not have
+      # sent the message to the error logger
+      :timer.sleep(200)
+    end) =~ ~r"""
+    \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
+    \*\* \(RuntimeError\) oops
+    """
   end
 
   test "translates :proc_lib crashes with name" do
