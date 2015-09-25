@@ -3,9 +3,9 @@
 v1.1 brings enhancements, bug fixes, performance improvements and more
 into Elixir.
 
-Elixir v1.1 supports both Erlang 17 and Erlang 18 and, for this reason,
-it does not introduce any feature that is specific to Erlang 18. Such
-will be tackled on the follow up Elixir v1.2 release.
+Elixir v1.1 supports both Erlang 17 and Erlang 18. This is, however, the
+last release supporting Erlang 17, so upgrading to Erlang 18 is advised.
+Elixir v1.2 will introduce features that are Erlang 18 only.
 
 On the enhancements side, the most notable changes are the new functions
 added to `Enum`, `Dict` and `Task` modules, and a new datatype called `MapSet`.
@@ -19,10 +19,11 @@ some soft deprecations.
 
 The major deprecation relates to the Access protocol. Due to performance
 issues, the access syntax `opts[key]` will no longer be powered by the
-`Access` protocol, instead, it will use the `Dict` module. Therefore this
-release will emit warnings if you attempt to implement the `Access` protocol.
-Note the `Access` module and the `opts[key]` syntax are not affected and
-they are not deprecated, only the underlying protocol dispatch.
+`Access` protocol, instead, it will use a subset of the `Dict` module.
+Therefore this release will emit warnings if you attempt to implement
+the `Access` protocol. Note the `Access` module and the `opts[key]`
+syntax are not affected and they are not deprecated, only the underlying
+protocol dispatch.
 
 The soft deprecations are minor and they won't emit warnings. It simply
 means the documentation has been updated to mention the new best
@@ -45,7 +46,7 @@ Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
-## v1.1.0-rc.0 (2015-09-15)
+## v1.1.0 (2015-09-25)
 
 ### 1. Enhancements
 
