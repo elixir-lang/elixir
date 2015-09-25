@@ -266,6 +266,26 @@ defmodule KernelTest do
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
   end
 
+  test "struct!/1 and struct!/2" do
+    assert struct!(User) == %User{name: "john"}
+
+    user = struct!(User, name: "meg")
+    assert user == %User{name: "meg"}
+
+    exception =
+      if :erlang.system_info(:otp_release) >= '18' do
+        KeyError
+      else
+        ArgumentError
+      end
+    assert_raise exception, fn ->
+      struct!(user, unknown: "key")
+    end
+
+    assert struct!(user, %{name: "john"}) == %User{name: "john"}
+    assert struct!(user, name: "other", __struct__: Post) == %User{name: "other"}
+  end
+
   defdelegate my_flatten(list), to: List, as: :flatten
   defdelegate [map(callback, list)], to: :lists, append_first: true
 
