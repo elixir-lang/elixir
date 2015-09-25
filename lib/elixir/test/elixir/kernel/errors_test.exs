@@ -838,6 +838,20 @@ defmodule Kernel.ErrorsTest do
       '''
   end
 
+  test "bad multi-call" do
+    assert_compile_fail CompileError,
+      "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 42",
+      'alias IO.{ANSI, 42}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: :as option is not supported by multi-alias call",
+      'alias Elixir.{Map}, as: Dict'
+
+    assert_compile_fail UndefinedFunctionError,
+      "undefined function: List.{}/1",
+      '[List.{Chars}, "one"]'
+  end
+
   test "macros error stacktrace" do
     assert [{:erlang, :+, [1, :foo], _},
             {Kernel.ErrorsTest.MacrosErrorStacktrace, :sample, 1, _}|_] =

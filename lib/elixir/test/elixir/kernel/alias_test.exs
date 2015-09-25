@@ -44,6 +44,14 @@ defmodule Kernel.AliasTest do
   test "nested elixir alias" do
     assert Kernel.AliasTest.Elixir.sample == 1
   end
+
+  test "multi-call" do
+    alias unquote(Inspect).{
+      Opts, Algebra,
+    }
+    assert %Opts{} == %Inspect.Opts{}
+    assert Algebra.empty == :doc_nil
+  end
 end
 
 defmodule Kernel.AliasNestingGenerator do
