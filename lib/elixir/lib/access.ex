@@ -112,38 +112,3 @@ defmodule Access do
       "could not put/update key #{inspect key} on a nil value"
   end
 end
-
-# Callbacks invoked when inlining code for *_in in Kernel.
-# TODO: Remove me on 1.2
-defmodule Access.Map do
-  @moduledoc false
-
-  def update!(%{} = map, key, fun) do
-    case :maps.find(key, map) do
-      {:ok, value} ->
-        :maps.put(key, fun.(value), map)
-      :error ->
-        raise KeyError, key: key, term: map
-    end
-  end
-
-  def update!(other, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
-  end
-
-  def get_and_update!(%{} = map, key, fun) do
-    case :maps.find(key, map) do
-      {:ok, value} ->
-        {get, update} = fun.(value)
-        {get, :maps.put(key, update, map)}
-      :error ->
-        raise KeyError, key: key, term: map
-    end
-  end
-
-  def get_and_update!(other, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
-  end
-end
