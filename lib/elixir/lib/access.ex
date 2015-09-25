@@ -112,3 +112,41 @@ defmodule Access do
       "could not put/update key #{inspect key} on a nil value"
   end
 end
+
+# Code compiled with Elixir v1.0 will need Access.Map at
+# runtime when using *_in function with the map syntax.
+# We can remove this later on, but we need to articulate
+# with Hex and other archives.
+# TODO: Remove me on 1.2
+defmodule Access.Map do
+  @moduledoc false
+
+  def update!(%{} = map, key, fun) do
+    case :maps.find(key, map) do
+      {:ok, value} ->
+        :maps.put(key, fun.(value), map)
+      :error ->
+        raise KeyError, key: key, term: map
+    end
+  end
+
+  def update!(other, key, _fun) do
+    raise ArgumentError,
+      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
+
+  def get_and_update!(%{} = map, key, fun) do
+    case :maps.find(key, map) do
+      {:ok, value} ->
+        {get, update} = fun.(value)
+        {get, :maps.put(key, update, map)}
+      :error ->
+        raise KeyError, key: key, term: map
+    end
+  end
+
+  def get_and_update!(other, key, _fun) do
+    raise ArgumentError,
+      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
+  end
+end
