@@ -1,6 +1,6 @@
 defmodule File do
   @moduledoc ~S"""
-  This module contains functions to manipulate files.
+  Provides functions to manipulate files.
 
   Some of those functions are low-level, allowing the user
   to interact with the file or IO devices, like `open/2`,

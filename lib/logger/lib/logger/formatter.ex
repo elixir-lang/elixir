@@ -2,7 +2,7 @@ import Kernel, except: [inspect: 2]
 
 defmodule Logger.Formatter do
   @moduledoc ~S"""
-  Conveniences for formatting data for logs.
+  Convenience functions for formatting data for logs.
 
   This module allows developers to specify a string that
   serves as template for log messages, for example:

@@ -3,9 +3,11 @@ import Inspect.Algebra
 
 defprotocol Inspect do
   @moduledoc """
-  The `Inspect` protocol is responsible for converting any Elixir
-  data structure into an algebra document. This document is then
-  formatted, either in pretty printing format or a regular one.
+  A protocol responsible for converting any Elixir data structure into
+  an algebra document.
+
+  This document is then formatted, either in pretty printing format or a
+  regular one.
 
   The `inspect/2` function receives the entity to be inspected
   followed by the inspecting options, represented by the struct

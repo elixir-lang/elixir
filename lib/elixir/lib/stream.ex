@@ -1,6 +1,6 @@
 defmodule Stream do
   @moduledoc """
-  Module for creating and composing streams.
+  Convenience functions for creating and composing streams.
 
   Streams are composable, lazy enumerables. Any enumerable that generates
   items one by one during enumeration is called a stream. For example,

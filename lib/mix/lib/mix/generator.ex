@@ -1,6 +1,6 @@
 defmodule Mix.Generator do
   @moduledoc """
-  Conveniences for working with paths and generating content.
+  Convenience functions for working with paths and generating content.
 
   All of those functions are verbose, in the sense they log
   the action to be performed via `Mix.shell/0`.

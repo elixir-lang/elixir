@@ -1,6 +1,6 @@
 defmodule Kernel.ParallelCompiler do
   @moduledoc """
-  A module responsible for compiling files in parallel.
+  Convenience functions for compiling files in parallel.
   """
 
   @doc """

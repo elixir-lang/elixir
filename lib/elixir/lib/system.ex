@@ -1,8 +1,7 @@
 defmodule System do
   @moduledoc """
-  The System module provides access to variables used or
-  maintained by the VM and to functions that interact directly
-  with the VM or the host system.
+  Provides access to variables used or maintained by the VM and to
+  functions that interact directly with the VM or the host system.
   """
 
   defp strip_re(iodata, pattern) do

@@ -1,6 +1,6 @@
 defmodule URI do
   @moduledoc """
-  Utilities for working with and creating URIs.
+  Functions for working with and creating URIs.
   """
 
   defstruct scheme: nil, path: nil, query: nil,

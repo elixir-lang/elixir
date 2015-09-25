@@ -1,7 +1,7 @@
 defmodule Path do
   @moduledoc """
-  This module provides conveniences for manipulating or
-  retrieving file system paths.
+  Convenience functions for manipulating or retrieving file system
+  paths.
 
   The functions in this module may receive a char data as
   argument (i.e. a string or a list of characters / string)

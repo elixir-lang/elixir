@@ -1,6 +1,7 @@
 defmodule Process do
   @moduledoc """
-  Conveniences for working with processes and the process dictionary.
+  Convenience functions for working with processes and the process
+  dictionary.
 
   Besides the functions available in this module, the `Kernel` module
   exposes and auto-imports some basic functionality related to processes

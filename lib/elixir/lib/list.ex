@@ -1,8 +1,8 @@
 defmodule List do
   @moduledoc """
   Implements functions that only make sense for lists
-  and cannot be part of the Enum protocol. In general,
-  favor using the Enum API instead of List.
+  and cannot be part of the `Enum` protocol. In general,
+  favor using the `Enum` API instead of `List`.
 
   Some functions in this module expect an index. Index
   access for list is linear. Negative indexes are also

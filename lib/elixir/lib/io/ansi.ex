@@ -16,7 +16,7 @@ end
 
 defmodule IO.ANSI do
   @moduledoc """
-  Functionality to render ANSI escape sequences.
+  Functionalions for rendering ANSI escape sequences.
 
   [ANSI escape sequences](https://en.wikipedia.org/wiki/ANSI_escape_code)
   are characters embedded in text used to control formatting, color, and
