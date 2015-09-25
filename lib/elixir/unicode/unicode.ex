@@ -41,6 +41,23 @@ defmodule String.Unicode do
     :lists.keystore(key, 1, acc, {key, to_binary.(upper), to_binary.(lower), to_binary.(title)})
   end
 
+  decomposition_path = Path.join(__DIR__, "Decomposition.txt")
+
+  decompositions = Enum.reduce File.stream!(decomposition_path), [], fn(line, acc) ->
+    [key, first, second, third, fourth, _] = :binary.split(line, ";", [:global])
+    decomposition = to_binary.(first) <> (to_binary.(second) || "") <>
+                                         (to_binary.(third)  || "") <>
+                                         (to_binary.(fourth) || "")
+    [{to_binary.(key), decomposition} | acc]
+  end
+
+  combining_class_path = Path.join(__DIR__, "CombiningClasses.txt")
+
+  combining_classes = Enum.reduce File.stream!(combining_class_path), [], fn(line, acc) ->
+    [codepoint, class, _] = :binary.split(line, ";", [:global])
+    [{String.to_integer(codepoint, 16), class} | acc]
+  end
+
   # Downcase
 
   def downcase(string), do: downcase(string, "")
@@ -193,6 +210,47 @@ defmodule String.Unicode do
   defp do_codepoints(nil) do
     []
   end
+
+  # Compare
+
+  def is_equivalent(string, another_string) do
+    normalize(string) == normalize(another_string)
+  end
+
+  defp normalize(string) do
+    Enum.reduce String.graphemes(string), "", fn
+      x, acc when byte_size(x) == 1 -> acc <> x
+      x, acc                        -> acc <> decompose(x)
+    end
+  end
+
+  defp decompose(<< codepoint :: utf8, rest :: binary >>) when codepoint >= 44_032 and codepoint <= 55_203 do
+    {base, tcount, ncount, index} = {4_519, 28, 588, codepoint - 44_032}
+    l = 4_352 + div(index, ncount)
+    v = 4_449 + div(rem(index, ncount), tcount)
+    t = base + rem(index, tcount)
+    (t == base && <<l::utf8,v::utf8>> || <<l::utf8, v::utf8, t::utf8>>) <> rest
+    |> canonical_order
+  end
+
+  for {codepoint, decomposition} <- decompositions do
+    defp decompose(unquote(codepoint)), do: unquote(decomposition)
+  end
+
+  defp decompose(grapheme), do: canonical_order(grapheme)
+
+  defp canonical_order(grapheme) do
+    to_char_list(grapheme)
+    |> Enum.map(fn c -> {combining_class(c), c} end)
+    |> Enum.sort
+    |> Enum.reduce("", fn {_, c}, acc -> acc <> <<c::utf8>> end)
+  end
+
+  for {codepoint, class} <- combining_classes do
+    defp combining_class(unquote(codepoint)), do: unquote(class)
+  end
+
+  defp combining_class(_), do: 0
 end
 
 defmodule String.Graphemes do

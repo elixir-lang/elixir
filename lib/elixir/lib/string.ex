@@ -442,6 +442,28 @@ defmodule String do
   end
 
   @doc """
+  Returns `true` if `binary` is canonically equivalent to 'another_binary';
+  otherwise returns `false`.
+
+  ## Examples
+
+      iex> String.is_equivalent("abc", "abc")
+      true
+
+      iex> String.is_equivalent("man\u0303ana", "mañana")
+      true
+
+      iex> String.is_equivalent("abc", "ABC")
+      false
+
+      iex> String.is_equivalent("nø", "nó")
+      false
+
+  """
+  @spec is_equivalent(t, t) :: boolean
+  defdelegate is_equivalent(binary, another_binary), to: String.Unicode
+
+  @doc """
   Converts all characters in the given string to uppercase.
 
   ## Examples
