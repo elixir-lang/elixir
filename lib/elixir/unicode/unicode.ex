@@ -213,7 +213,7 @@ defmodule String.Unicode do
 
   # Compare
 
-  def is_equivalent(string, another_string) do
+  def equivalent?(string, another_string) do
     normalize(string) == normalize(another_string)
   end
 
