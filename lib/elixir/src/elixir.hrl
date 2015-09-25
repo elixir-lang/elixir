@@ -1,5 +1,7 @@
 -define(m(M, K), maps:get(K, M)).
+-define(ann(Opts), elixir_utils:get_ann(Opts)).
 -define(line(Opts), elixir_utils:get_line(Opts)).
+-define(generated, [{generated, true}, {location, 0}]).
 
 -record(elixir_scope, {
   context=nil,             %% can be match, guards or nil

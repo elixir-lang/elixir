@@ -99,7 +99,6 @@ parse_erl_term(Term) ->
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-
 %% Handle warnings and errors from Erlang land (called during module compilation)
 
 %% Ignore on bootstrap
