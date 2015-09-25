@@ -7,11 +7,12 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  `Kernel` provides the default macros and functions
-  Elixir imports into your environment. These macros and functions
-  can be skipped or cherry-picked via the `import` macro. For
-  instance, if you want to tell Elixir not to import the `if`
-  macro, you can do:
+  Provides the default macros and functions Elixir imports into your
+  environment.
+
+  These macros and functions can be skipped or cherry- picked via the
+  `import` macro. For instance, if you want to tell Elixir not to
+  import the `if` macro, you can do:
 
       import Kernel, except: [if: 2]
 

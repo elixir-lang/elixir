@@ -1,6 +1,6 @@
 defmodule Record do
   @moduledoc """
-  Module to work, define and import records.
+  Module to work with, define and import records.
 
   Records are simply tuples where the first element is an atom:
 
