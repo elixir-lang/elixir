@@ -29,14 +29,14 @@ unpack_each(Kind, Name, [{'\\\\', DefMeta, [Expr, _]}|T] = List, Acc, Clauses, S
   {DefArgs, SA}  = elixir_clauses:match(fun elixir_translator:translate_args/2, Base ++ Args, S),
   {DefInvoke, _} = elixir_translator:translate_args(Base ++ Invoke, SA),
 
-  Line = ?line(DefMeta),
+  Ann = ?ann(DefMeta),
 
-  Call = {call, Line,
-    {atom, Line, name_for_kind(Kind, Name)},
+  Call = {call, Ann,
+    {atom, Ann, name_for_kind(Kind, Name)},
     DefInvoke
   },
 
-  Clause = {clause, Line, DefArgs, [], [Call]},
+  Clause = {clause, Ann, DefArgs, [], [Call]},
   unpack_each(Kind, Name, T, [Expr|Acc], [Clause|Clauses], S);
 
 unpack_each(Kind, Name, [H|T], Acc, Clauses, S) ->

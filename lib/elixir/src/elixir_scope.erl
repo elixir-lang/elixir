@@ -11,9 +11,9 @@
 %% VAR HANDLING
 
 translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
-  Line  = ?line(Meta),
+  Ann = ?ann(Meta),
   Tuple = {Name, Kind},
-  Vars  = S#elixir_scope.vars,
+  Vars = S#elixir_scope.vars,
 
   case orddict:find({Name, Kind}, Vars) of
     {ok, {Current, _}} -> Exists = true;
@@ -26,8 +26,8 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
       case Exists andalso ordsets:is_element(Tuple, MatchVars) of
         true ->
-          warn_underscored_var_repeat(Line, Meta, S#elixir_scope.file, Name, Kind),
-          {{var, Line, Current}, S};
+          warn_underscored_var_repeat(Meta, S#elixir_scope.file, Name, Kind),
+          {{var, Ann, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
           %% still use the unused vars warnings from erl_lint.
@@ -51,11 +51,11 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
             end
           },
 
-          {{var, Line, NewVar}, FS}
+          {{var, Ann, NewVar}, FS}
       end;
     _  when Exists ->
-      warn_underscored_var_access(Line, Meta, S#elixir_scope.file, Name),
-      {{var, Line, Current}, S}
+      warn_underscored_var_access(Meta, S#elixir_scope.file, Name),
+      {{var, Ann, Current}, S}
   end.
 
 build_var(Key, S) ->
@@ -66,24 +66,24 @@ build_var(Key, S) ->
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
 
-warn_underscored_var_repeat(Line, Meta, File, Name, Kind) ->
+warn_underscored_var_repeat(Meta, File, Name, Kind) ->
   Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ when Warn ->
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
+      elixir_errors:form_warn(Meta, File, ?MODULE, {unused_match, Name, Kind});
     _ ->
       ok
   end.
 
-warn_underscored_var_access(Line, Meta, File, Name) ->
+warn_underscored_var_access(Meta, File, Name) ->
   Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ when Warn ->
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {underscore_var_access, Name});
+      elixir_errors:form_warn(Meta, File, ?MODULE, {underscore_var_access, Name});
     _ ->
       ok
   end.
