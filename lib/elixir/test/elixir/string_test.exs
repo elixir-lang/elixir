@@ -20,6 +20,8 @@ defmodule StringTest do
     assert String.reverse("") == ""
 
     assert String.upcase("baﬄe") == "BAFFLE"
+
+    assert String.is_equivalent("noël", "noël")
   end
 
   test "split" do
@@ -269,6 +271,15 @@ defmodule StringTest do
     assert String.codepoints("") == []
     assert String.codepoints("ϖͲϥЫݎߟΈټϘለДШव׆ש؇؊صلټܗݎޥޘ߉ऌ૫ሏᶆ℆ℙℱ ⅚Ⅷ↠∈⌘①ﬃ") ==
            ["ϖ", "Ͳ", "ϥ", "Ы", "ݎ", "ߟ", "Έ", "ټ", "Ϙ", "ለ", "Д", "Ш", "व", "׆", "ש", "؇", "؊", "ص", "ل", "ټ", "ܗ", "ݎ", "ޥ", "ޘ", "߉", "ऌ", "૫", "ሏ", "ᶆ", "℆", "ℙ", "ℱ", " ", "⅚", "Ⅷ", "↠", "∈", "⌘", "①", "ﬃ"]
+  end
+
+  test "is_equivalent" do
+    assert String.is_equivalent("", "")
+    assert String.is_equivalent("elixir", "elixir")
+    assert String.is_equivalent("뢴", "뢴")
+    assert String.is_equivalent("ṩ", "ṩ")
+    refute String.is_equivalent("ELIXIR", "elixir")
+    refute String.is_equivalent("døge", "dóge")
   end
 
   test "graphemes" do
