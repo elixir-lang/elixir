@@ -818,11 +818,7 @@ defmodule Kernel.ErrorsTest do
       end
       '''
 
-    if :erlang.system_info(:otp_release) >= '18' do
-      message = "nofile:2: spec for undefined function omg/0"
-    else
-      message = "nofile:2: spec for undefined function Kernel.ErrorsTest.TypespecErrors2.omg/0"
-    end
+    message = "nofile:2: spec for undefined function omg/0"
 
     assert_compile_fail CompileError, message,
       '''
