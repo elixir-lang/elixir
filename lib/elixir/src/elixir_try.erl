@@ -22,7 +22,7 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   end,
 
   Condition = [{'{}', Meta, Final}],
-  {TC, TS} = elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
+  {TC, TS} = elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
                                    Condition, Expr, Guards, S),
   {[TC], TS};
 
@@ -58,13 +58,13 @@ build_rescue(Meta, Parts, Body, S) ->
   Matches = [Match || {Match, _} <- Parts],
 
   {{clause, Line, TMatches, _, TBody}, TS} =
-    elixir_clauses:clause(?line(Meta), fun elixir_translator:translate_args/2,
+    elixir_clauses:clause(Meta, fun elixir_translator:translate_args/2,
                           Matches, Body, [], S),
 
   TClauses =
     [begin
       TArgs   = [{tuple, Line, [{atom, Line, error}, TMatch, {var, Line, '_'}]}],
-      TGuards = elixir_clauses:guards(Line, Guards, [], TS),
+      TGuards = elixir_clauses:guards(Guards, [], TS),
       {clause, Line, TArgs, TGuards, TBody}
      end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
 

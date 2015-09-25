@@ -10,18 +10,18 @@
 
 translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
   {TRight, SR} = translate(Right, S),
-  {{match, ?line(Meta), {var, ?line(Meta), '_'}, TRight}, SR};
+  {{match, ?ann(Meta), {var, ?ann(Meta), '_'}, TRight}, SR};
 
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_clauses:match(fun translate/2, Left, SR),
-  {{match, ?line(Meta), TLeft, TRight}, SL};
+  {{match, ?ann(Meta), TLeft, TRight}, SL};
 
 %% Containers
 
 translate({'{}', Meta, Args}, S) when is_list(Args) ->
   {TArgs, SE} = translate_args(Args, S),
-  {{tuple, ?line(Meta), TArgs}, SE};
+  {{tuple, ?ann(Meta), TArgs}, SE};
 
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   elixir_map:translate_map(Meta, Args, S);
@@ -36,17 +36,17 @@ translate({'<<>>', Meta, Args}, S) when is_list(Args) ->
 
 translate({'__block__', Meta, Args}, S) when is_list(Args) ->
   {TArgs, SA} = translate_block(Args, [], S),
-  {{block, ?line(Meta), TArgs}, SA};
+  {{block, ?ann(Meta), TArgs}, SA};
 
 %% Erlang op
 
 translate({{'.', _, [erlang, 'andalso']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?line(Meta), 'andalso', TLeft, TRight}, NS};
+  {{op, ?ann(Meta), 'andalso', TLeft, TRight}, NS};
 
 translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?line(Meta), 'orelse', TLeft, TRight}, NS};
+  {{op, ?ann(Meta), 'orelse', TLeft, TRight}, NS};
 
 %% Lexical
 
@@ -56,13 +56,13 @@ translate({Lexical, _, [_, _]}, S) when Lexical == import; Lexical == alias; Lex
 %% Pseudo variables
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
-  {{var, ?line(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
+  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
 
 %% Functions
 
 translate({'&', Meta, [{'/', [], [{Fun, [], Atom}, Arity]}]}, S)
     when is_atom(Fun), is_atom(Atom), is_integer(Arity) ->
-  {{'fun', ?line(Meta), {function, Fun, Arity}}, S};
+  {{'fun', ?ann(Meta), {function, Fun, Arity}}, S};
 translate({'&', Meta, [Arg]}, S) when is_integer(Arg) ->
   compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
 
@@ -95,7 +95,7 @@ translate({'case', Meta, [Expr, KV]}, S) ->
   Clauses = elixir_clauses:get_pairs(do, KV, match),
   {TExpr, NS} = translate(Expr, S),
   {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS),
-  {{'case', ?line(Meta), TExpr, TClauses}, TS};
+  {{'case', ?ann(Meta), TExpr, TClauses}, TS};
 
 %% Try
 
@@ -119,7 +119,7 @@ translate({'try', Meta, [Clauses]}, RS) ->
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  {{'try', ?line(Meta), unblock(TDo), TElse, TCatch, TAfter}, SF};
+  {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, SF};
 
 %% Receive
 
@@ -129,13 +129,13 @@ translate({'receive', Meta, [KV]}, S) ->
   case lists:keyfind('after', 1, KV) of
     false ->
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do, S),
-      {{'receive', ?line(Meta), TClauses}, SC};
+      {{'receive', ?ann(Meta), TClauses}, SC};
     _ ->
       After = elixir_clauses:get_pairs('after', KV, expr),
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do ++ After, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,
-      {{'receive', ?line(Meta), FClauses, FExpr, FAfter}, SC}
+      {{'receive', ?ann(Meta), FClauses, FExpr, FAfter}, SC}
   end;
 
 %% Comprehensions
@@ -161,7 +161,7 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
   end,
 
   Super = elixir_def_overridable:name(Module, Function),
-  {{call, ?line(Meta), {atom, ?line(Meta), Super}, TArgs}, TS#elixir_scope{super=true}};
+  {{call, ?ann(Meta), {atom, ?ann(Meta), Super}, TArgs}, TS#elixir_scope{super=true}};
 
 %% Variables
 
@@ -169,13 +169,13 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S
   Tuple = {Name, var_kind(VarMeta, Kind)},
   case orddict:find(Tuple, S#elixir_scope.backup_vars) of
     {ok, {Value, _Counter}} ->
-      {{var, ?line(Meta), Value}, S};
+      {{var, ?ann(Meta), Value}, S};
     error ->
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;
 
 translate({'_', Meta, Kind}, #elixir_scope{context=match} = S) when is_atom(Kind) ->
-  {{var, ?line(Meta), '_'}, S};
+  {{var, ?ann(Meta), '_'}, S};
 
 translate({'_', Meta, Kind}, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
@@ -203,7 +203,7 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
                            [Name, Arity])
       end;
     true ->
-      Line = ?line(Meta),
+      Line = ?ann(Meta),
       {TArgs, NS} = translate_args(Args, S),
       {{call, Line, {atom, Line, Name}, TArgs}, NS}
   end;
@@ -217,7 +217,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   {TLeft, SL}  = translate(Left, S),
   {Var, _, SV} = elixir_scope:build_var('_', SL),
 
-  Line   = ?line(Meta),
+  Line   = ?ann(Meta),
   TRight = {atom, Line, Right},
 
   %% TODO: Consider making this {badkey, _} error
@@ -236,16 +236,16 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
       {atom, Line, term},
       TVar}]},
 
-  {{'case', -1, TLeft, [
-    {clause, -1,
+  {{'case', ?generated, TLeft, [
+    {clause, ?generated,
       [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
       [],
       [TVar]},
-    {clause, -1,
+    {clause, ?generated,
       [{match, Line, TVar, {map, Line, []}}],
       [],
       [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
-    {clause, -1,
+    {clause, ?generated,
       [TVar],
       [],
       [{call, Line, {remote, Line, TVar, TRight}, []}]}
@@ -256,7 +256,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
 
-  Line   = ?line(Meta),
+  Line   = ?ann(Meta),
   Arity  = length(Args),
   TRight = {atom, Line, Right},
   SC = mergev(SL, SA),
@@ -279,7 +279,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
 translate({{'.', _, [Expr]}, Meta, Args}, S) when is_list(Args) ->
   {TExpr, SE} = translate(Expr, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SE)),
-  {{call, ?line(Meta), TExpr, TArgs}, mergev(SE, SA)};
+  {{call, ?ann(Meta), TExpr, TArgs}, mergev(SE, SA)};
 
 %% Literals
 
