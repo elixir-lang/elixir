@@ -42,7 +42,7 @@ defmodule Exception do
   def exception?(_), do: false
 
   @doc """
-  Gets the message for an exception.
+  Gets the message for an `exception`.
   """
   def message(%{__struct__: module, __exception__: true} = exception) when is_atom(module) do
     try do
@@ -95,7 +95,7 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats any throw, error and exit.
+  Normalizes and formats any throw/error/exit.
 
   The message is formatted and displayed in the same
   format as used by Elixir's CLI.
@@ -128,7 +128,7 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats throw/errors/exits and stacktrace.
+  Normalizes and formats throw/errors/exits and stacktraces.
 
   It relies on `format_banner/3` and `format_stacktrace/1`
   to generate the final format.
@@ -155,7 +155,7 @@ defmodule Exception do
   end
 
   @doc """
-  Formats an exit, returns a string.
+  Formats an exit. It returns a string.
 
   Often there are errors/exceptions inside exits. Exits are often
   wrapped by the caller and provide stacktraces too. This function
@@ -447,7 +447,7 @@ defmodule Exception do
   end
 
   @doc """
-  Formats the given file and line as shown in stacktraces.
+  Formats the given `file` and `line` as shown in stacktraces.
   If any of the values are `nil`, they are omitted.
 
   ## Examples

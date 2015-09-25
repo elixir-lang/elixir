@@ -145,7 +145,7 @@ defmodule Enum do
 
   @moduledoc """
   Provides a set of algorithms that enumerate over collections according to the
-  `Enumerable` protocol:
+  `Enumerable` protocol.
 
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
       [2, 4, 6]
