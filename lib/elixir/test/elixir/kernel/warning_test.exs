@@ -21,7 +21,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "useless literal" do
-    message = "warning: code block starting at line contains unused literal \"oops\""
+    message = "warning: code block contains unused literal \"oops\""
 
     assert capture_err(fn ->
       Code.eval_string """
