@@ -1,6 +1,6 @@
 defmodule ExUnit.Formatter do
   @moduledoc """
-  This module holds helper functions related to formatting and contains
+  Provides helper functions related to formatting and contains
   documentation about the formatting protocol.
 
   Formatters are registered at the `ExUnit.EventManager` event manager and

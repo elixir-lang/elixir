@@ -1,6 +1,7 @@
 defmodule Application do
   @moduledoc """
-  A module for working with applications and defining application callbacks.
+  Convenience functions for working with applications and defining
+  application callbacks.
 
   In Elixir (actually, in Erlang/OTP), an application is a component
   implementing some specific functionality, that can be started and stopped

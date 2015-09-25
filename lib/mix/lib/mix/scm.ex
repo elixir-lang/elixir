@@ -1,7 +1,7 @@
 defmodule Mix.SCM do
   @moduledoc """
-  This module provides helper functions and defines the
-  behaviour required by any SCM used by mix.
+  Provides helper functions and defines the behaviour required by any
+  SCM used by `Mix`.
   """
 
   @type opts :: Keyword.t

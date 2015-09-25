@@ -1,6 +1,6 @@
 defmodule Task do
   @moduledoc """
-  Conveniences for spawning and awaiting for tasks.
+  Convenience functions for spawning and awaiting for tasks.
 
   Tasks are processes meant to execute one particular
   action throughout their life-cycle, often with little or no

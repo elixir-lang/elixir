@@ -1,8 +1,8 @@
 defmodule Module do
   @moduledoc ~S'''
-  This module provides many functions to deal with modules during
-  compilation time. It allows a developer to dynamically attach
-  documentation, add, delete and register attributes and so forth.
+  Provides functions to deal with modules during compilation time.
+  Allowing developers to dynamically add, delete and register
+  attributes, attach documentation and so forth.
 
   After a module is compiled, using many of the functions in
   this module will raise errors, since it is out of their scope

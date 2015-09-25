@@ -1,6 +1,6 @@
 defmodule Dict do
   @moduledoc ~S"""
-  This module specifies the Dict API expected to be
+  Specifies the Dict API expected to be
   implemented by different dictionaries.
 
   It also provides functions that redirect to the underlying

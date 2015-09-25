@@ -1,6 +1,6 @@
 defmodule Set do
   @moduledoc ~S"""
-  This module specifies the `Set` behaviour expected to be
+  Specifies the `Set` behaviour expected to be
   implemented by different representations of sets.
 
   It also provides functions that redirect to the

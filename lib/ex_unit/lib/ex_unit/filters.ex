@@ -1,6 +1,6 @@
 defmodule ExUnit.Filters do
   @moduledoc """
-  Conveniences for parsing and evaluating filters.
+  Convenience functions for parsing and evaluating filters.
   """
 
   @type t :: list({atom, Regex.t | String.Chars.t} | atom)

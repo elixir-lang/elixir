@@ -1,6 +1,6 @@
 defmodule Kernel.ParallelRequire do
   @moduledoc """
-  A module responsible for requiring files in parallel.
+  Convenience functions for requiring files in parallel.
   """
 
   defmacrop default_callback, do: quote(do: fn x -> x end)

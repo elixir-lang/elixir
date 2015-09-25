@@ -1,10 +1,13 @@
 defmodule Code do
   @moduledoc """
-  Utilities for managing code compilation, code evaluation and code loading.
+  Convenience functions for managing code compilation, code evaluation
+  and code loading.
 
-  This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
-  to add behaviour which is specific to Elixir. Almost all of the functions in this module
-  have global side effects on the behaviour of Elixir.
+  This module complements Erlang's [`:code`
+  module](http://www.erlang.org/doc/man/code.html) to add behaviour
+  which is specific to Elixir. Almost all of the functions in this
+  module have global side effects on the behaviour of Elixir.
+
   """
 
   @doc """
@@ -212,7 +215,8 @@ defmodule Code do
     valid = is_list(requires) and Enum.all?(requires, &is_atom(&1))
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
+      raise ArgumentError,
+        "expected :#{kind} option given to eval in the format: [module]"
     end
   end
 
@@ -222,7 +226,8 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, module}]"
+      raise ArgumentError,
+        "expected :#{kind} option given to eval in the format: [{module, module}]"
     end
   end
 
@@ -234,7 +239,8 @@ defmodule Code do
     end)
 
     unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
+      raise ArgumentError,
+        "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
     end
   end
 

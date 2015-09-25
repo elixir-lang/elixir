@@ -71,7 +71,7 @@ end
 
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
-  A set of functions for creating and manipulating algebra
+  Convenience functions for creating and manipulating algebra
   documents.
 
   This module implements the functionality described in

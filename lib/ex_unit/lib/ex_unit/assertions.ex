@@ -16,7 +16,7 @@ end
 
 defmodule ExUnit.Assertions do
   @moduledoc """
-  This module contains a set of assertion functions that are
+  Provides a set of assertion functions that are
   imported by default into your test cases.
 
   In general, a developer will want to use the general

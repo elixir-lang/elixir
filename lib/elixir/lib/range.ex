@@ -1,8 +1,8 @@
 defmodule Range do
   @moduledoc """
-  Defines a Range.
+  Defines a range.
 
-  A Range represents a discrete number of values where
+  A range represents a discrete number of values where
   the first and last values are integers.
 
   Ranges can be either increasing (first <= last) or

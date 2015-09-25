@@ -2,7 +2,7 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc """
-  Conveniences for working with macros.
+  Convenience functions for working with macros.
 
   ## Custom Sigils
 

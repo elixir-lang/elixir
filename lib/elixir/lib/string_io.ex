@@ -1,6 +1,6 @@
 defmodule StringIO do
   @moduledoc """
-  This module provides an IO device that wraps a string.
+  Provides an IO device that wraps a string.
 
   ## Examples
 
