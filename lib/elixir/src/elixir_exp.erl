@@ -653,7 +653,7 @@ assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
 format_error({useless_literal, Term}) ->
-  io_lib:format("code block starting at line contains unused literal ~ts "
+  io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
                 ['Elixir.Macro':to_string(Term)]);
 format_error({useless_var, Var}) ->
