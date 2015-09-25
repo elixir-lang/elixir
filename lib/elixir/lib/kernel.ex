@@ -3369,15 +3369,16 @@ defmodule Kernel do
 
   The real benefit of protocols comes when mixed with structs.
   For instance, Elixir ships with many data types implemented as
-  structs, like `HashDict` and `HashSet`. We can implement the
-  `Blank` protocol for those types as well:
+  structs, like `MapSet`. We can implement the `Blank` protocol
+  for those types as well:
 
-      defimpl Blank, for: [HashDict, HashSet] do
+      defimpl Blank, for: MapSet do
         def blank?(enum_like), do: Enum.empty?(enum_like)
       end
 
-  When implementing a protocol for a struct, the `:for` option can be omitted if
-  the `defimpl` call is inside the module that defines the struct:
+  When implementing a protocol for a struct, the `:for` option can
+  be omitted if the `defimpl` call is inside the module that defines
+  the struct:
 
       defmodule User do
         defstruct [:email, :name]

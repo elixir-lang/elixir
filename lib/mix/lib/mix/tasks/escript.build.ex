@@ -203,10 +203,8 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp prepare_beam_paths(paths, dict \\ HashDict.new) do
-    paths
-    |> Enum.map(&{Path.basename(&1), &1})
-    |> Enum.into(dict)
+  defp prepare_beam_paths(paths, map \\ %{}) do
+    Enum.into paths, map, &{Path.basename(&1), &1}
   end
 
   defp read_beams(items) do

@@ -363,11 +363,6 @@ defmodule Inspect.OthersTest do
     assert "#Function<" <> _ = inspect(f)
   end
 
-  test "hash dict set" do
-    assert "#HashDict<" <> _ = inspect(HashDict.new)
-    assert "#HashSet<" <> _ = inspect(HashSet.new)
-  end
-
   test "map set" do
     assert "#MapSet<" <> _ = inspect(MapSet.new)
   end

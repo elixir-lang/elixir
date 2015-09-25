@@ -969,34 +969,34 @@ defmodule Kernel.SpecialForms do
   Consider the following example:
 
       defmodule Hygiene do
-        alias HashDict, as: D
+        alias Map, as: M
 
         defmacro no_interference do
-          quote do: D.new
+          quote do: M.new
         end
       end
 
       require Hygiene
-      Hygiene.no_interference #=> #HashDict<[]>
+      Hygiene.no_interference #=> %{}
 
-  Notice that, even though the alias `D` is not available
+  Notice that, even though the alias `M` is not available
   in the context the macro is expanded, the code above works
-  because `D` still expands to `HashDict`.
+  because `M` still expands to `Map`.
 
   Similarly, even if we defined an alias with the same name
   before invoking a macro, it won't affect the macro's result:
 
       defmodule Hygiene do
-        alias HashDict, as: D
+        alias Map, as: M
 
         defmacro no_interference do
-          quote do: D.new
+          quote do: M.new
         end
       end
 
       require Hygiene
-      alias SomethingElse, as: D
-      Hygiene.no_interference #=> #HashDict<[]>
+      alias SomethingElse, as: M
+      Hygiene.no_interference #=> %{}
 
   In some cases, you want to access an alias or a module defined
   in the caller. For such, you can use the `alias!` macro:

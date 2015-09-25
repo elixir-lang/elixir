@@ -9,7 +9,7 @@ defmodule Mix.ProjectStack do
 
   @spec start_link :: {:ok, pid}
   def start_link() do
-    initial = %{stack: [], post_config: [], cache: HashDict.new}
+    initial = %{stack: [], post_config: [], cache: %{}}
     Agent.start_link fn -> initial end, name: __MODULE__
   end
 
@@ -23,8 +23,7 @@ defmodule Mix.ProjectStack do
 
       config  = Keyword.merge(config, state.post_config)
       project = %{name: module, config: config, file: file, pos: length(stack),
-                  recursing?: false, io_done: io_done?, tasks: HashSet.new,
-                  configured_applications: []}
+                  recursing?: false, io_done: io_done?, configured_applications: []}
 
       cond do
         file = find_project_named(module, stack) ->
@@ -147,14 +146,14 @@ defmodule Mix.ProjectStack do
   @spec write_cache(term, term) :: :ok
   def write_cache(key, value) do
     cast fn state ->
-      %{state | cache: Dict.put(state.cache, key, value)}
+      %{state | cache: Map.put(state.cache, key, value)}
     end
   end
 
   @spec clear_cache :: :ok
   def clear_cache do
     cast fn state ->
-      %{state | cache: HashDict.new}
+      %{state | cache: %{}}
     end
   end
 

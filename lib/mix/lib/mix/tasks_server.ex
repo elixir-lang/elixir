@@ -2,25 +2,25 @@ defmodule Mix.TasksServer do
   @moduledoc false
 
   def start_link() do
-    Agent.start_link(fn -> HashSet.new end, name: __MODULE__)
+    Agent.start_link(fn -> %{} end, name: __MODULE__)
   end
 
   def clear() do
-    update fn _ -> HashSet.new end
+    update fn _ -> %{} end
   end
 
   def run(tuple) do
     get_and_update fn set ->
-      {not(tuple in set), Set.put(set, tuple)}
+      {not Map.has_key?(set, tuple), Map.put(set, tuple, true)}
     end
   end
 
   def put(tuple) do
-    update &Set.put(&1, tuple)
+    update &Map.put(&1, tuple, true)
   end
 
   def delete_many(many) do
-    update &Enum.reduce(many, &1, fn x, acc -> Set.delete(acc, x) end)
+    update &Map.drop(&1, many)
   end
 
   defp get_and_update(fun) do

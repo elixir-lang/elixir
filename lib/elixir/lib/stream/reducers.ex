@@ -187,10 +187,10 @@ defmodule Stream.Reducers do
     quote do
       fn(entry, acc(h, prev, t) = acc) ->
         value = unquote(callback).(entry)
-        if HashSet.member?(prev, value) do
+        if Map.has_key?(prev, value) do
           skip(acc)
         else
-          next_with_acc(unquote(f), entry, h, HashSet.put(prev, value), t)
+          next_with_acc(unquote(f), entry, h, Map.put(prev, value, true), t)
         end
       end
     end
