@@ -2157,11 +2157,11 @@ defmodule Enum do
   @spec uniq_by(t, (element -> term)) :: list
 
   def uniq_by(collection, fun) when is_list(collection) do
-    do_uniq(collection, HashSet.new, fun)
+    do_uniq(collection, %{}, fun)
   end
 
   def uniq_by(collection, fun) do
-    {list, _} = reduce(collection, {[], HashSet.new}, R.uniq(fun))
+    {list, _} = reduce(collection, {[], %{}}, R.uniq(fun))
     :lists.reverse(list)
   end
 
@@ -2557,10 +2557,10 @@ defmodule Enum do
 
   defp do_uniq([h|t], acc, fun) do
     fun_h = fun.(h)
-    if HashSet.member?(acc, fun_h) do
+    if Map.has_key?(acc, fun_h) do
       do_uniq(t, acc, fun)
     else
-      [h|do_uniq(t, HashSet.put(acc, fun_h), fun)]
+      [h|do_uniq(t, Map.put(acc, fun_h, true), fun)]
     end
   end
 

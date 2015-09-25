@@ -17,7 +17,7 @@ defmodule Agent do
 
       defmodule Mix.TasksServer do
         def start_link do
-          Agent.start_link(fn -> HashSet.new end, name: __MODULE__)
+          Agent.start_link(fn -> MapSet.new end, name: __MODULE__)
         end
 
         @doc "Checks if the task has already executed"
@@ -31,13 +31,13 @@ defmodule Agent do
         @doc "Marks a task as executed"
         def put_task(task, project) do
           item = {task, project}
-          Agent.update(__MODULE__, &Set.put(&1, item))
+          Agent.update(__MODULE__, &MapSet.put(&1, item))
         end
 
         @doc "Resets the executed tasks and return the previous list of tasks"
         def take_all() do
           Agent.get_and_update(__MODULE__, fn set ->
-            {Enum.into(set, []), HashSet.new}
+            {Enum.into(set, []), MapSet.new}
           end)
         end
       end

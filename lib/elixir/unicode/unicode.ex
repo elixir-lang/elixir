@@ -209,7 +209,7 @@ defmodule String.Graphemes do
       Enum.map(range, fn(int) -> << int :: utf8 >> end)
   end
 
-  cluster = Enum.reduce File.stream!(cluster_path), HashDict.new, fn(line, dict) ->
+  cluster = Enum.reduce File.stream!(cluster_path), %{}, fn(line, dict) ->
     [_full, first, last, class] = Regex.run(regex, line)
 
     # Skip surrogates

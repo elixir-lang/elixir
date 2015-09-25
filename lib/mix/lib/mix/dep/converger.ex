@@ -90,7 +90,7 @@ defmodule Mix.Dep.Converger do
 
       deps = deps
              |> Enum.reject(&converger.remote?(&1))
-             |> Enum.into(HashDict.new, &{&1.app, &1})
+             |> Enum.into(%{}, &{&1.app, &1})
 
       # In case there is no lock, we will read the current lock
       # which is potentially stale. So converger.deps/2 needs to

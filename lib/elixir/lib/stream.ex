@@ -807,7 +807,7 @@ defmodule Stream do
   @spec uniq(Enumerable.t) :: Enumerable.t
   @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
   def uniq(enum, fun \\ fn x -> x end) do
-    lazy enum, HashSet.new, fn f1 -> R.uniq(fun, f1) end
+    lazy enum, %{}, fn f1 -> R.uniq(fun, f1) end
   end
 
   @doc """
