@@ -464,6 +464,22 @@ defmodule String do
   defdelegate equivalent?(binary, another_binary), to: String.Unicode
 
   @doc """
+  Converts all characters in `binary` to Unicode normalization form identified
+  by `form`.
+
+  ## Examples
+
+      iex> String.normalize("leña", :nfd)
+      "leña"
+
+      iex> String.normalize("yêṩ", :nfd)
+      "yêṩ"
+
+  """
+  @spec normalize(t, atom) :: boolean
+  defdelegate normalize(binary, form), to: String.Unicode
+
+  @doc """
   Converts all characters in the given string to uppercase.
 
   ## Examples
