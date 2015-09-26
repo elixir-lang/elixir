@@ -442,6 +442,46 @@ defmodule String do
   end
 
   @doc """
+  Returns `true` if `binary` is canonically equivalent to 'another_binary';
+  otherwise returns `false`.
+
+  ## Examples
+
+      iex> String.equivalent?("abc", "abc")
+      true
+
+      iex> String.equivalent?("man\u0303ana", "mañana")
+      true
+
+      iex> String.equivalent?("abc", "ABC")
+      false
+
+      iex> String.equivalent?("nø", "nó")
+      false
+
+  """
+  @spec equivalent?(t, t) :: boolean
+  def equivalent?(string, another_string) do
+    normalize(string, :nfd) == normalize(another_string, :nfd)
+  end
+
+  @doc """
+  Converts all characters in `binary` to Unicode normalization form identified
+  by `form`.
+
+  ## Examples
+
+      iex> String.normalize("leña", :nfd)
+      "leña"
+
+      iex> String.normalize("yêṩ", :nfd)
+      "yêṩ"
+
+  """
+  @spec normalize(t, atom) :: boolean
+  defdelegate normalize(binary, form), to: String.Normalizer
+
+  @doc """
   Converts all characters in the given string to uppercase.
 
   ## Examples
