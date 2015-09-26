@@ -127,6 +127,46 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert received with multiple identical pinned variables" do
+    status = :valid
+    send self(), {:status, :invalid, :invalid}
+    try do
+      "This should never be tested" = assert_received {
+        :status,
+        ^status,
+        ^status
+      }
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "No message matching {:status, ^status, ^status} after 0ms.\n" <>
+        "The following variables were pinned:\n" <>
+        "  status = :valid\n" <>
+        "Process mailbox:\n" <>
+        "  {:status, :invalid, :invalid}" = error.message
+    end
+  end
+
+  test "assert received with multiple unique pinned variables" do
+    status = :valid
+    other_status = :invalid
+    send self(), {:status, :invalid, :invalid}
+    try do
+      "This should never be tested" = assert_received {
+        :status,
+        ^status,
+        ^other_status
+      }
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "No message matching {:status, ^status, ^other_status} after 0ms.\n" <>
+        "The following variables were pinned:\n" <>
+        "  status = :valid\n" <>
+        "  other_status = :invalid\n" <>
+        "Process mailbox:\n" <>
+        "  {:status, :invalid, :invalid}" = error.message
+    end
+  end
+
   test "assert received when empty mailbox" do
     try do
       "This should never be tested" = assert_received :hello
