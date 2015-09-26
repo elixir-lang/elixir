@@ -282,6 +282,12 @@ defmodule StringTest do
     refute String.equivalent?("døge", "dóge")
   end
 
+  test "normalize" do
+    assert String.normalize("ḇravô", :nfd) == "ḇravô"
+    assert String.normalize("ṩ", :nfd) == "ṩ"
+    assert String.normalize("뢴", :nfd) == "뢴"
+  end
+
   test "graphemes" do
     # Extended
     assert String.graphemes("Ā̀stute") == ["Ā̀", "s", "t", "u", "t", "e"]

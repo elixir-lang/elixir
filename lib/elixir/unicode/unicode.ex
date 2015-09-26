@@ -211,13 +211,13 @@ defmodule String.Unicode do
     []
   end
 
-  # Compare
+  # Normalize
 
   def equivalent?(string, another_string) do
-    normalize(string) == normalize(another_string)
+    normalize(string, :nfd) == normalize(another_string, :nfd)
   end
 
-  defp normalize(string) do
+  def normalize(string, :nfd) when is_binary(string) do
     Enum.reduce String.graphemes(string), "", fn
       x, acc when byte_size(x) == 1 -> acc <> x
       x, acc                        -> acc <> decompose(x)
