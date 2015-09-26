@@ -64,4 +64,4 @@ We appreciate any contribution to Elixir. Check our [CODE_OF_CONDUCT.md](CODE_OF
 
 Elixir source code is released under Apache 2 License with some parts under Erlang's license (EPL).
 
-Check [LEGAL](LEGAL) and [LICENSE](LICENSE) files for more information.
+Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more information.
