@@ -9,7 +9,7 @@ end
 defmodule EEx do
   @moduledoc ~S"""
   EEx stands for Embedded Elixir. It allows you to embed
-  Elixir code inside a string in a robust way:
+  Elixir code inside a string in a robust way.
 
       iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
       "foo baz"
