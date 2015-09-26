@@ -1,16 +1,16 @@
+to_binary = fn
+  "" ->
+    nil
+  codepoints ->
+    codepoints = :binary.split(codepoints, " ", [:global])
+    Enum.reduce codepoints, "", fn(codepoint, acc) ->
+      acc <> <<String.to_integer(codepoint, 16) :: utf8>>
+    end
+end
+
 defmodule String.Unicode do
   @moduledoc false
   def version, do: {7, 0, 0}
-
-  to_binary = fn
-    "" ->
-      nil
-    codepoints ->
-      codepoints = :binary.split(codepoints, " ", [:global])
-      Enum.reduce codepoints, "", fn(codepoint, acc) ->
-        acc <> << String.to_integer(codepoint, 16) :: utf8 >>
-      end
-  end
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
@@ -25,7 +25,11 @@ defmodule String.Unicode do
 
     cond do
       upper != "" or lower != "" or title != "" ->
-        {[{to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title)} | cacc], wacc}
+        {[{to_binary.(codepoint),
+           to_binary.(upper),
+           to_binary.(lower),
+           to_binary.(title)} | cacc],
+         wacc}
       bidi in ["B", "S", "WS"] ->
         {cacc, [to_binary.(codepoint) | wacc]}
       true ->
@@ -36,9 +40,12 @@ defmodule String.Unicode do
   special_path = Path.join(__DIR__, "SpecialCasing.txt")
 
   codes = Enum.reduce File.stream!(special_path), codes, fn(line, acc) ->
-    [codepoint, lower, title, upper, _comment] = :binary.split(line, "; ", [:global])
+    [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
     key = to_binary.(codepoint)
-    :lists.keystore(key, 1, acc, {key, to_binary.(upper), to_binary.(lower), to_binary.(title)})
+    :lists.keystore(key, 1, acc, {key,
+                                  to_binary.(upper),
+                                  to_binary.(lower),
+                                  to_binary.(title)})
   end
 
   # Downcase
@@ -52,7 +59,7 @@ defmodule String.Unicode do
   end
 
   defp downcase(<<char, rest :: binary>>, acc) do
-    downcase(rest, <<acc::binary, char>>)
+    downcase(rest, <<acc :: binary, char>>)
   end
 
   defp downcase("", acc), do: acc
@@ -68,7 +75,7 @@ defmodule String.Unicode do
   end
 
   defp upcase(<<char, rest :: binary>>, acc) do
-    upcase(rest, <<acc::binary, char>>)
+    upcase(rest, <<acc :: binary, char>>)
   end
 
   defp upcase("", acc), do: acc
@@ -83,8 +90,8 @@ defmodule String.Unicode do
     end
   end
 
-  def titlecase_once(<< char, rest :: binary >>) do
-    {<< char >>, rest}
+  def titlecase_once(<<char, rest :: binary>>) do
+    {<<char>>, rest}
   end
 
   # Strip
@@ -155,8 +162,8 @@ defmodule String.Unicode do
     end
   end
 
-  defp do_split(<< char, rest :: binary >>, buffer, acc) do
-    do_split(rest, << buffer :: binary, char >>, acc)
+  defp do_split(<<char, rest :: binary>>, buffer, acc) do
+    do_split(rest, <<buffer :: binary, char>>, acc)
   end
 
   defp do_split(<<>>, buffer, acc) do
@@ -170,11 +177,11 @@ defmodule String.Unicode do
 
   # Codepoints
 
-  def next_codepoint(<< cp :: utf8, rest :: binary >>) do
+  def next_codepoint(<<cp :: utf8, rest :: binary>>) do
     {<<cp :: utf8>>, rest}
   end
 
-  def next_codepoint(<< cp, rest :: binary >>) do
+  def next_codepoint(<<cp, rest :: binary>>) do
     {<<cp>>, rest}
   end
 
@@ -203,10 +210,10 @@ defmodule String.Graphemes do
 
   to_range = fn
     first, ""   ->
-      [<< String.to_integer(first, 16) :: utf8 >>]
+      [<<String.to_integer(first, 16) :: utf8>>]
     first, last ->
       range = String.to_integer(first, 16)..String.to_integer(last, 16)
-      Enum.map(range, fn(int) -> << int :: utf8 >> end)
+      Enum.map(range, fn(int) -> <<int :: utf8>> end)
   end
 
   cluster = Enum.reduce File.stream!(cluster_path), %{}, fn(line, dict) ->
@@ -402,4 +409,77 @@ defmodule String.Graphemes do
   defp do_split_at(string, acc, desired_pos, desired_pos) do
     {acc, string}
   end
+end
+
+defmodule String.Normalizer do
+  @moduledoc false
+
+  decomposition_path = Path.join(__DIR__, "Decomposition.txt")
+
+  decompositions = Enum.reduce File.stream!(decomposition_path), [], fn(line, acc) ->
+    [key, first, second, third, fourth, _] = :binary.split(line, ";", [:global])
+    decomposition = to_binary.(first) <> (to_binary.(second) || "") <>
+                                        (to_binary.(third)  || "") <>
+                                        (to_binary.(fourth) || "")
+    [{to_binary.(key), decomposition} | acc]
+  end
+
+  combining_class_path = Path.join(__DIR__, "CombiningClasses.txt")
+
+  combining_classes = Enum.reduce File.stream!(combining_class_path), [], fn(line, acc) ->
+    [codepoint, class, _] = :binary.split(line, ";", [:global])
+    [{String.to_integer(codepoint, 16), class} | acc]
+  end
+
+  # Normalize
+
+  def normalize(string, :nfd) when is_binary(string) do
+    normalize_nfd(string, "")
+  end
+
+  defp normalize_nfd("", acc), do: acc
+
+  defp normalize_nfd(<<codepoint :: utf8, rest :: binary>>, acc) when codepoint in 0xAC00..0xD7A3 do
+    {syllable_index, t_count, n_count} = {codepoint - 0xAC00, 28, 588}
+    hangul_l = 0x1100 + div(syllable_index, n_count)
+    hangul_v = 0x1161 + div(rem(syllable_index, n_count), t_count)
+    hangul_t = 0x11A7 + rem(syllable_index, t_count)
+    new =
+      if hangul_t == 0x11A7 do
+        <<hangul_l :: utf8, hangul_v :: utf8>>
+      else
+        <<hangul_l :: utf8, hangul_v :: utf8, hangul_t :: utf8>>
+      end
+    normalize_nfd(rest, acc <> new)
+  end
+
+  for {codepoint, decomposition} <- decompositions do
+    defp normalize_nfd(unquote(codepoint) <> rest, acc) do
+      normalize_nfd(rest, acc <> unquote(decomposition))
+    end
+  end
+
+  defp normalize_nfd(binary, acc), do: canonical_order(binary, acc)
+
+  defp canonical_order(binary, acc) do
+    {n, rest} = String.Graphemes.next_grapheme_size(binary)
+    part = :binary.part(binary, 0, n)
+    case n do
+      1 -> normalize_nfd(rest, acc <> part)
+      _ -> normalize_nfd(rest, acc <> canonical_order(part))
+    end
+  end
+
+  defp canonical_order(binary) do
+    binary
+    |> :unicode.characters_to_list()
+    |> Enum.sort_by(&combining_class/1)
+    |> :unicode.characters_to_binary()
+  end
+
+  for {codepoint, class} <- combining_classes do
+    defp combining_class(unquote(codepoint)), do: unquote(class)
+  end
+
+  defp combining_class(_), do: 0
 end
