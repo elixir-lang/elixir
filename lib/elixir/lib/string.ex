@@ -461,7 +461,9 @@ defmodule String do
 
   """
   @spec equivalent?(t, t) :: boolean
-  defdelegate equivalent?(binary, another_binary), to: String.Unicode
+  def equivalent?(string, another_string) do
+    normalize(string, :nfd) == normalize(another_string, :nfd)
+  end
 
   @doc """
   Converts all characters in `binary` to Unicode normalization form identified
@@ -477,7 +479,7 @@ defmodule String do
 
   """
   @spec normalize(t, atom) :: boolean
-  defdelegate normalize(binary, form), to: String.Unicode
+  defdelegate normalize(binary, form), to: String.Normalizer
 
   @doc """
   Converts all characters in the given string to uppercase.
