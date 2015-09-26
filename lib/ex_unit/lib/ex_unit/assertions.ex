@@ -353,7 +353,9 @@ defmodule ExUnit.Assertions do
 
   defp pinned_vars([]), do: ""
   defp pinned_vars(pins) do
-    content = Enum.map(pins, fn(var) ->
+    content = Enum.reverse(pins)
+    |> Enum.uniq_by(&elem(&1, 0))
+    |> Enum.map(fn(var) ->
       binary = Macro.to_string(var)
       quote do
         "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
@@ -361,7 +363,7 @@ defmodule ExUnit.Assertions do
     end)
 
     quote do
-      "\nThe following variables were pinned:" <> unquote_splicing(content)
+      <<"\nThe following variables were pinned:", unquote_splicing(content)>>
     end
   end
 
@@ -384,7 +386,7 @@ defmodule ExUnit.Assertions do
       assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
         1 + "test"
       end
-      
+
       assert_raise RuntimeError, ~r/^Today's lucky number is 0\.\d+!$/, fn ->
         raise "Today's lucky number is #{:random.uniform}!"
       end
