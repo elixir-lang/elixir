@@ -10,6 +10,10 @@ is therefore recommended before upgrading Elixir.
 
 #### Elixir
 
+* [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
+* [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
+* [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD normalization and equivalent
+
 #### EEx
 
 #### ExUnit

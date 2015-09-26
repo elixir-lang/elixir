@@ -441,9 +441,17 @@ defmodule String do
     {binary_part(string, 0, byte_size), rest || ""}
   end
 
-  @doc """
-  Returns `true` if `binary` is canonically equivalent to 'another_binary';
-  otherwise returns `false`.
+  @doc ~S"""
+  Returns `true` if `binary` is canonically equivalent to 'another_binary'.
+
+  It performs Normalization Form Canonical Decomposition (NFD) on the
+  strings before comparing them. This function is equivalent to:
+
+      String.normalize(left, :nfd) == String.normalize(right, :nfd)
+
+  Therefore, if you plan to compare multiple strings, multiple times
+  in a row, you may normalize them upfront and compare them directly
+  to avoid multiple normalization passes.
 
   ## Examples
 
@@ -461,13 +469,22 @@ defmodule String do
 
   """
   @spec equivalent?(t, t) :: boolean
-  def equivalent?(string, another_string) do
-    normalize(string, :nfd) == normalize(another_string, :nfd)
+  def equivalent?(left, right) do
+    normalize(left, :nfd) == normalize(right, :nfd)
   end
 
   @doc """
-  Converts all characters in `binary` to Unicode normalization form identified
-  by `form`.
+  Converts all characters in `binary` to Unicode normalization
+  form identified by `form`.
+
+  ## Forms
+
+  The supported forms are:
+
+    * `:nfd` - Normalization Form Canonical Decomposition.
+      Characters are decomposed by canonical equivalence, and
+      multiple combining characters are arranged in a specific
+      order.
 
   ## Examples
 
