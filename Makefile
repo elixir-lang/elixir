@@ -170,7 +170,7 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 Docs.zip: docs
 	rm -rf Docs-v$(VERSION).zip
-	zip -9 -r Docs-v$(VERSION).zip doc
+	zip -9 -r Docs-v$(VERSION).zip CHANGELOG.md doc NOTICE LICENSE README.md
 	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
 
 Precompiled.zip: build_man compile
