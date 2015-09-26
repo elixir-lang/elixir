@@ -1,12 +1,11 @@
 defmodule Kernel.SpecialForms do
   @moduledoc """
-  In this module we define Elixir special forms. Special forms
-  cannot be overridden by the developer and are the basic
-  building blocks of Elixir code.
+  Special forms are the basic building blocks of Elixir, and therefore
+  they cannot be overridden by the developer.
 
-  Some of those forms are lexical (like `alias`, `case`, etc).
-  The macros `{}` and `<<>>` are also special forms used to define
-  tuple and binary data structures respectively.
+  We define them in this module. Some of these forms are lexical (like
+  `alias`, `case`, etc). The macros `{}` and `<<>>` are also special
+  forms used to define tuple and binary data structures respectively.
 
   This module also documents Elixir's pseudo variables (`__ENV__`,
   `__MODULE__`, `__DIR__` and `__CALLER__`). Pseudo variables return

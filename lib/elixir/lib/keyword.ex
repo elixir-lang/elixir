@@ -1,5 +1,7 @@
 defmodule Keyword do
   @moduledoc """
+  A set of functions for working with keywords.
+
   A keyword is a list of tuples where the first element
   of the tuple is an atom and the second element can be
   any value.

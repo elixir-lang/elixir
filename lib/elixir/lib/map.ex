@@ -1,6 +1,6 @@
 defmodule Map do
   @moduledoc """
-  A Dict implementation that works on maps.
+  A `Dict` implementation that works on maps.
 
   Maps are key-value stores where keys are compared using
   the match operator (`===`). Maps can be created with
