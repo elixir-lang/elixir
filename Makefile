@@ -175,7 +175,7 @@ Docs.zip: docs
 
 Precompiled.zip: build_man compile
 	rm -rf Precompiled-v$(VERSION).zip
-	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md LEGAL lib/*/ebin LICENSE man README.md VERSION
+	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin LICENSE man NOTICE README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 #==> Publish
