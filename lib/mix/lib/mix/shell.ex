@@ -1,6 +1,6 @@
 defmodule Mix.Shell do
   @moduledoc """
-  Defines Mix.Shell contract.
+  Defines `Mix.Shell` contract.
   """
 
   @doc """
