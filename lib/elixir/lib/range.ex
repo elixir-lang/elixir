@@ -15,7 +15,7 @@ defmodule Range do
 
       iex> range = 1..3
       1..3
-      iex> first .. last = range
+      iex> first..last = range
       iex> first
       1
       iex> last
@@ -108,7 +108,7 @@ defimpl Enumerable, for: Range do
 
   defp validate_range!(first, last) do
     raise ArgumentError,
-      "ranges (first .. last) expect both sides to be integers, " <>
+      "ranges (first..last) expect both sides to be integers, " <>
       "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 end
