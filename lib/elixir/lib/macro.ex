@@ -537,6 +537,12 @@ defmodule Macro do
     fun.(ast, "fn\n  " <> block <> "\nend")
   end
 
+  # Ranges
+  def to_string({:.., _, args} = ast, fun) do
+    range = Enum.map_join(args, "..", &to_string(&1, fun))
+    fun.(ast, range)
+  end
+
   # left -> right
   def to_string([{:->, _, _}|_] = ast, fun) do
     fun.(ast, "(" <> arrow_to_string(ast, fun, true) <> ")")
