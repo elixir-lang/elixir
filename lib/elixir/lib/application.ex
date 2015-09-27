@@ -44,9 +44,6 @@ defmodule Application do
   including new values that are not defined in the environment file (although
   this should be avoided).
 
-  In the future, we plan to support configuration files which allow
-  developers to configure the environment of their dependencies.
-
   Keep in mind that each application is responsible for its environment.
   Do not use the functions in this module for directly accessing or modifying
   the environment of other applications (as it may lead to inconsistent
