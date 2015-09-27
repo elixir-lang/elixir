@@ -272,13 +272,7 @@ defmodule KernelTest do
     user = struct!(User, name: "meg")
     assert user == %User{name: "meg"}
 
-    exception =
-      if :erlang.system_info(:otp_release) >= '18' do
-        KeyError
-      else
-        ArgumentError
-      end
-    assert_raise exception, fn ->
+    assert_raise KeyError, fn ->
       struct!(user, unknown: "key")
     end
 
