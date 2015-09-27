@@ -2444,15 +2444,17 @@ defmodule Kernel do
   defmacro first .. last do
     case is_float(first) or is_float(last) or
          is_atom(first) or is_atom(last) or
-         is_binary(first) or is_binary(last) do
+         is_binary(first) or is_binary(last) or
+         is_list(first) or is_list(last) do
       true ->
         raise ArgumentError,
-          "ranges (left .. right) expect both sides to be integers, " <>
+          "ranges (first .. last) expect both sides to be integers, " <>
           "got: #{Macro.to_string({:.., [], [first, last]})}"
       false ->
         {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
     end
   end
+
 
   @doc """
   Provides a short-circuit operator that evaluates and returns
@@ -2677,7 +2679,7 @@ defmodule Kernel do
       {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ ->
-        raise ArgumentError, <<"invalid args for operator in, it expects a compile time list ",
+        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile time list ",
                                "or range on the right side when used in guard expressions, got: ",
                                Macro.to_string(right) :: binary>>
     end
