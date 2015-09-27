@@ -44,14 +44,16 @@ If you have the correct version and tests still fail, feel free to
 
 Building the documentation requires
 [ExDoc](https://github.com/elixir-lang/ex_doc) to be installed and built
-in the same containing folder as Elixir.
+alongside Elixir.
 
 ```sh
-# After cloning and compiling Elixir
+# After cloning and compiling Elixir, in its parent directory:
 git clone git://github.com/elixir-lang/ex_doc.git
 cd ex_doc && ../elixir/bin/mix do deps.get, compile
 cd ../elixir && make docs
 ```
+
+This will produce documentation sets for `elixir`, `mix`, etc., under the `doc` directory.
 
 ## Contributing
 
