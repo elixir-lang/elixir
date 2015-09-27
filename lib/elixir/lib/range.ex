@@ -31,12 +31,13 @@ defmodule Range do
   @doc """
   Creates a new range.
   """
-  def new(first, last) do
+  @spec new(integer, integer) :: t
+  def new(first, last) when is_integer(first) and is_integer(last) do
     %Range{first: first, last: last}
   end
 
   @doc """
-  Returns `true` if the given argument is a range.
+  Returns `true` if the given `term` is a range.
 
   ## Examples
 
@@ -47,6 +48,12 @@ defmodule Range do
       false
 
   """
+  # @spec range?(term) :: boolean
+  @spec range?(arg) :: false when arg: %Range{first: nil, last: nil}
+  @spec range?(arg) :: true when arg: %Range{}
+  @spec range?(term) :: false 
+  def range?(term)
+  def range?(%Range{first: nil, last: nil}), do: false
   def range?(%Range{}), do: true
   def range?(_), do: false
 end
@@ -95,10 +102,14 @@ defimpl Enumerable, for: Range do
     end
   end
 
-  defp validate_range!(first, last) when is_integer(first) and is_integer(last), do: :ok
+  defp validate_range!(first, last) when is_integer(first)
+    and is_integer(last),
+    do: :ok
+
   defp validate_range!(first, last) do
     raise ArgumentError,
-          "ranges (left .. right) expect both sides to be integers, got: #{inspect first..last}"
+      "ranges (first .. last) expect both sides to be integers, " <>
+      "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 end
 
