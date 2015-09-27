@@ -2448,7 +2448,7 @@ defmodule Kernel do
          is_list(first) or is_list(last) do
       true ->
         raise ArgumentError,
-          "ranges (first .. last) expect both sides to be integers, " <>
+          "ranges (first..last) expect both sides to be integers, " <>
           "got: #{Macro.to_string({:.., [], [first, last]})}"
       false ->
         {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
