@@ -36,8 +36,16 @@ defmodule Range do
     %Range{first: first, last: last}
   end
 
+  def new(first, last) do
+    raise ArgumentError,
+      "ranges (first..last) expect both sides to be integers, " <>
+      "got: #{inspect first}..#{inspect last}"
+  end
+
   @doc """
   Returns `true` if the given `term` is a range.
+
+  It does not check if the range is valid.
 
   ## Examples
 
@@ -48,19 +56,15 @@ defmodule Range do
       false
 
   """
-  # @spec range?(term) :: boolean
-  @spec range?(arg) :: false when arg: %Range{first: nil, last: nil}
-  @spec range?(arg) :: true when arg: %Range{}
+  @spec range?(%Range{}) :: true
   @spec range?(term) :: false
   def range?(term)
-  def range?(%Range{first: nil, last: nil}), do: false
   def range?(%Range{}), do: true
   def range?(_), do: false
 end
 
 defimpl Enumerable, for: Range do
   def reduce(first .. last, acc, fun) do
-    validate_range!(first, last)
     reduce(first, last, acc, fun, last >= first)
   end
 
@@ -85,7 +89,6 @@ defimpl Enumerable, for: Range do
   end
 
   def member?(first .. last, value) do
-    validate_range!(first, last)
     if first <= last do
       {:ok, first <= value and value <= last}
     else
@@ -94,22 +97,11 @@ defimpl Enumerable, for: Range do
   end
 
   def count(first .. last) do
-    validate_range!(first, last)
     if first <= last do
       {:ok, last - first + 1}
     else
       {:ok, first - last + 1}
     end
-  end
-
-  defp validate_range!(first, last) when is_integer(first)
-    and is_integer(last),
-    do: :ok
-
-  defp validate_range!(first, last) do
-    raise ArgumentError,
-      "ranges (first..last) expect both sides to be integers, " <>
-      "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 end
 
