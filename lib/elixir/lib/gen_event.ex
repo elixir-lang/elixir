@@ -290,7 +290,7 @@ defmodule GenEvent do
   @type manager :: pid | name | {atom, node}
 
   @typedoc "Supported values for new handlers"
-  @type handler :: atom | {atom, term} | {pid, reference}
+  @type handler :: atom | {atom, term}
 
   @doc false
   defmacro __using__(_) do
