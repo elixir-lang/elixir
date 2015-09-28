@@ -2111,7 +2111,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.to_list(1 .. 3)
+      iex> Enum.to_list(1..3)
       [1, 2, 3]
 
   """
