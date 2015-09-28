@@ -77,13 +77,17 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
-  def member?(first .. last, value) do
+  def member?(first .. last, value) when is_integer(value) do
     validate_range!(first, last)
     if first <= last do
       {:ok, first <= value and value <= last}
     else
       {:ok, last <= value and value <= first}
     end
+  end
+
+  def member?(_ .. _, _value) do
+    {:ok, false}
   end
 
   def count(first .. last) do

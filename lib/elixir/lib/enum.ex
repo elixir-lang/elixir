@@ -1174,6 +1174,8 @@ defmodule Enum do
 
       iex> Enum.member?(1..10, 5)
       true
+      iex> Enum.member?(1..10, 5.0)
+      false
 
       iex> Enum.member?([:a, :b, :c], :d)
       false
