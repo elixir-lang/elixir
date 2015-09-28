@@ -282,7 +282,7 @@ defmodule Mix.Project do
       app = config[:app] ->
         Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
-        Mix.raise "Trying to access app_path for an umbrella project but umbrellas have no app"
+        raise "Trying to access app_path for an umbrella project but umbrellas have no app"
       true ->
         Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
@@ -314,7 +314,9 @@ defmodule Mix.Project do
   """
   def compile(args, config \\ config()) do
     if config[:build_embedded] do
-      if not File.exists?(compile_path(config)) do
+      path = if umbrella?(config), do: build_path(config), else: compile_path(config)
+
+      unless File.exists?(path) do
         Mix.raise "Cannot execute task because the project was not yet compiled. " <>
                   "When build_embedded is set to true, \"MIX_ENV=#{Mix.env} mix compile\" " <>
                   "must be explicitly executed"
