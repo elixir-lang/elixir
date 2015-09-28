@@ -14,10 +14,17 @@ defmodule Port do
   ## Name
 
   The supported values for `name` are:
-    * `{:spawn, command}` - to run an external program. The first space separated word of `command` will be considered as the name of the program to run, so use `{:spawn_executable, command}` to run a program having spaces in its name.
-    * `{:spawn_driver, command}` - similar to `{:spawn, command}`, but to run a loaded driver.
-    * `{:spawn_executable, filename}` - similar to `{:spawn, filename}`, but to run an external executable. With this option, `filename` in its whole is considered the name of the program to execute. 
-    * `{:fd, fd_in, fd_out}` - to access file descriptors used by Erlang, `fd_in` being used for standard input, `fd_out` for standard output.
+
+    * `{:spawn, command}` - to run an external program. The first space separated
+      word of `command` will be considered as the name of the program to run, so
+      use `{:spawn_executable, command}` to run a program having spaces in its name.
+    * `{:spawn_driver, command}` - similar to `{:spawn, command}`, but to run a
+      loaded driver.
+    * `{:spawn_executable, filename}` - similar to `{:spawn, filename}`, but to run
+      an external executable. With this option, `filename` in its whole is considered
+      the name of the program to execute.
+    * `{:fd, fd_in, fd_out}` - to access file descriptors used by Erlang, `fd_in`
+      being used for standard input, `fd_out` for standard output.
 
   For more information, see [`:erlang.open_port/2`](http://www.erlang.org/doc/man/erlang.html#open_port-2).
 
@@ -65,7 +72,7 @@ defmodule Port do
   end
 
   @doc """
-  Sends a synchronous control command to the `port` and returns its reply as a binary. 
+  Sends a synchronous control command to the `port` and returns its reply as a binary.
 
   Not all port drivers support this feature.
 
@@ -79,7 +86,7 @@ defmodule Port do
   end
 
   @doc """
-  Makes a synchronous call to the `port` and returns its reply as a term. 
+  Makes a synchronous call to the `port` and returns its reply as a term.
 
   Not all port drivers support this control feature.
 
