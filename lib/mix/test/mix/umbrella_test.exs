@@ -34,9 +34,13 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "compiles umbrella with protocol consolidation" do
+  test "compiles umbrella with build embedded (and protocol consolidation)" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [consolidate_protocols: true], fn _ ->
+      Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
+        assert_raise  Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
+          Mix.Tasks.App.Start.run []
+        end
+
         Mix.Task.run "compile"
 
         assert_received {:mix_shell, :info, ["Generated bar app"]}
