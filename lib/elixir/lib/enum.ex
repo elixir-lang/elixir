@@ -510,7 +510,7 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.dedup_by([{1, :a}, {2, :b}, {2, :c}, {1, :a}], fn {x, _} -> x end)
-      [{1, :x}, {2, :y}, {1, :a}]
+      [{1, :a}, {2, :b}, {1, :a}]
 
       iex> Enum.dedup_by([5, 1, 2, 3, 2, 1], fn x -> x > 2 end)
       [5, 1, 3, 2]
@@ -1223,12 +1223,12 @@ defmodule Enum do
 
       iex> Enum.member?(1..10, 5)
       true
-      ...> Enum.member?(1..10, 5.0)
+      iex> Enum.member?(1..10, 5.0)
       false
 
       iex> Enum.member?([1.0, 2.0, 3.0], 2)
       false
-      ...> Enum.member?([1.0, 2.0, 3.0], 2.000)
+      iex> Enum.member?([1.0, 2.0, 3.0], 2.000)
       true
 
       iex> Enum.member?([:a, :b, :c], :d)
@@ -1247,7 +1247,7 @@ defmodule Enum do
       {:error, module} ->
         module.reduce(enumerable, {:cont, false}, fn
           v, _ when v === element -> {:halt, true}
-          _, _                  -> {:cont, false}
+          _, _                    -> {:cont, false}
         end) |> elem(1)
     end
   end
