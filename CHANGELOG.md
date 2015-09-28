@@ -46,6 +46,14 @@ Note: Erlang 17.1 contains a regression in its wildcard implementation that
 causes tools like rebar to fail. If you have a project with rebar dependencies
 and is using Erlang 17.1, remember to update to at least Erlang 17.3.
 
+## v1.1.1 (2015-09-28)
+
+### Bug fixes
+
+  * [Enum] Fix non-integer member checks with ranges
+  * [ExUnit] Fix assertion errors with more than 1 pinned var
+  * [Mix] Ensure umbrella apps can boot with build_embedded is true
+
 ## v1.1.0 (2015-09-25)
 
 ### 1. Enhancements
