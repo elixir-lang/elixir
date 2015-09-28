@@ -2451,7 +2451,10 @@ defmodule Kernel do
           "ranges (first..last) expect both sides to be integers, " <>
           "got: #{Macro.to_string({:.., [], [first, last]})}"
       false ->
-        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+        case __CALLER__.context do
+          nil -> quote do: Elixir.Range.new(unquote(first), unquote(last))
+          _   -> {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+        end
     end
   end
 
