@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
+  # Do not mark this task as recursive as it is
+  # responsible for loading consolidated protocols.
   @shortdoc "Starts all registered apps"
 
   @moduledoc """
