@@ -214,7 +214,7 @@ defmodule Mix.Dep.Converger do
 
   # When in_upper is true
   #
-  # When a parent dependency specifies only that is a subset
+  # When a parent dependency specifies :only that is a subset
   # of a child dependency, we are going to abort as the parent
   # dependency must explicitly outline a superset of child
   # dependencies.
