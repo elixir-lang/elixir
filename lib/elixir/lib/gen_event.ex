@@ -22,6 +22,7 @@ defmodule GenEvent do
   As an example, let's have a GenEvent that accumulates messages until
   they are collected by an explicit call.
 
+      # Define a Event Handler
       defmodule LoggerHandler do
         use GenEvent
 
@@ -36,17 +37,21 @@ defmodule GenEvent do
         end
       end
 
+      # Start a new event manager.
       {:ok, pid} = GenEvent.start_link([])
 
+      # Attach an event handler to the event manager.
       GenEvent.add_handler(pid, LoggerHandler, [])
       #=> :ok
 
+      # Send some events to the event manager.
       GenEvent.notify(pid, {:log, 1})
       #=> :ok
 
       GenEvent.notify(pid, {:log, 2})
       #=> :ok
 
+      # Call functions on specific handlers in the manager.
       GenEvent.call(pid, LoggerHandler, :messages)
       #=> [1, 2]
 
