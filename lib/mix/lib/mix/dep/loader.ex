@@ -209,20 +209,14 @@ defmodule Mix.Dep.Loader do
   ## Fetching
 
   # We need to override the dependencies so they mirror
-  # the :only requirement in the parent. Furthermore, if
-  # a dependency has :only, we must remove it as deps
-  # always run in a given environment (which does not
-  # necessarily mirror the application one unless
-  # configured otherwise).
+  # the :only requirement in the parent.
   defp attach_only(deps, opts) do
     if only = opts[:only] do
       Enum.map(deps, fn %{opts: opts} = dep ->
         %{dep | opts: Keyword.put(opts, :only, only)}
       end)
     else
-      Enum.map(deps, fn %{opts: opts} = dep ->
-        %{dep | opts: Keyword.delete(opts, :only)}
-      end)
+      deps
     end
   end
 
