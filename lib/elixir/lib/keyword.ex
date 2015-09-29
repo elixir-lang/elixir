@@ -65,6 +65,9 @@ defmodule Keyword do
       iex> Keyword.new([{:b, 1}, {:a, 2}])
       [a: 2, b: 1]
 
+      iex> Keyword.new([{:a, 1}, {:a, 2}, {:a, 3}])
+      [a: 3]
+
   """
   @spec new(Enum.t) :: t
   def new(pairs) do
@@ -80,17 +83,16 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end)
-      [b: :b, a: :a]
+      iex> Keyword.new([:a, :b], fn (x) -> {x, x} end) |> Enum.sort
+      [a: :a, b: :b]
 
   """
   @spec new(Enum.t, (term -> {key, value})) :: t
-  def new(pairs, transform) when is_function(transform, 1) do
-    fun = fn el, acc ->
-      {k, v} = transform.(el)
-      put_new(acc, k, v)
+  def new(pairs, transform) do
+    Enum.reduce pairs, [], fn i, keywords ->
+      {k, v} = transform.(i)
+      put(keywords, k, v)
     end
-    :lists.foldr(fun, [], Enum.reverse(pairs))
   end
 
   @doc """
