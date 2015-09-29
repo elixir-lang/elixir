@@ -52,13 +52,13 @@ defmodule BaseTest do
   end
 
   test "decode16! non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: K", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"K\" (byte 75)", fn ->
       decode16!("66KF")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: f", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"f\" (byte 102)", fn ->
       decode16!("66ff")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: F", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"F\" (byte 70)", fn ->
       decode16!("66FF", case: :lower)
     end
   end
@@ -127,7 +127,7 @@ defmodule BaseTest do
   end
 
   test "decode64! non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       decode64!("Zm9)")
     end
   end
@@ -201,7 +201,7 @@ defmodule BaseTest do
   end
 
   test "url_decode64! non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       url_decode64!("Zm9)")
     end
   end
@@ -318,13 +318,13 @@ defmodule BaseTest do
   end
 
   test "decode32! non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       decode32!("MZX)6YTB")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: m", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"m\" (byte 109)", fn ->
       decode32!("mzxw6ytboi======")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: M", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"M\" (byte 77)", fn ->
       decode32!("MZXW6YTBOI======", case: :lower)
     end
   end
@@ -425,13 +425,13 @@ defmodule BaseTest do
   end
 
   test "hex_decode32! non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: )", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
       hex_decode32!("CPN)UOJ1")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: c", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"c\" (byte 99)", fn ->
       hex_decode32!("cpnmuoj1e8======")
     end
-    assert_raise ArgumentError, "non-alphabet digit found: C", fn ->
+    assert_raise ArgumentError, "non-alphabet digit found: \"C\" (byte 67)", fn ->
       hex_decode32!("CPNMUOJ1E8======", case: :lower)
     end
   end

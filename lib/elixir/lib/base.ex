@@ -108,7 +108,7 @@ defmodule Base do
       defp unquote(dec)(unquote(encoding)), do: unquote(value)
     end
     defp unquote(dec)(c) do
-      raise ArgumentError, "non-alphabet digit found: #{<<c>>}"
+      raise ArgumentError, "non-alphabet digit found: \"#{<<c>>}\" (byte #{c})"
     end
   end
 
@@ -134,7 +134,7 @@ defmodule Base do
   defp from_lower(char) when not char in ?A..?Z,
     do: char
   defp from_lower(char),
-    do: raise(ArgumentError, "non-alphabet digit found: #{<<char>>}")
+    do: raise(ArgumentError, "non-alphabet digit found: \"#{<<char>>}\" (byte #{char})")
 
   defp from_mixed(char) when char in ?a..?z,
     do: char - (?a - ?A)
