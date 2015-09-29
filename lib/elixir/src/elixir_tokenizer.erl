@@ -487,7 +487,7 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
   end;
 
 tokenize([T|Rest], Line, Column, _Scope, Tokens) ->
-  Message = io_lib:format("\"~s\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
+  Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
   {error, {Line, "unexpected token: ", Message}, Rest, Tokens}.
 
 strip_horizontal_space(T) ->
