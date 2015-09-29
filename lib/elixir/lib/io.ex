@@ -259,6 +259,12 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  ## Examples
+
+  To display "What is your name?" as a prompt and await user input:
+
+      IO.gets "What is your name?"
   """
   @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
   def gets(device \\ group_leader(), prompt) do
