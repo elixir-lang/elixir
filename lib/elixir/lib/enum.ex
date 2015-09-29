@@ -2484,8 +2484,8 @@ defmodule Enum do
 
   ## shuffle
 
-  defp unwrap([{_, h} | collection], t) do
-    unwrap(collection, [h|t])
+  defp unwrap([{_, h} | enumerable], t) do
+    unwrap(enumerable, [h|t])
   end
 
   defp unwrap([], t), do: t
