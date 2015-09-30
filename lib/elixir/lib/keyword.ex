@@ -91,10 +91,12 @@ defmodule Keyword do
   """
   @spec new(Enum.t, (term -> {key, value})) :: t
   def new(pairs, transform) do
-    Enum.reduce pairs, [], fn i, keywords ->
-      {k, v} = transform.(i)
-      put(keywords, k, v)
+    fun = fn el, acc ->
+      {k, v} = transform.(el)
+      put_new(acc, k, v)
     end
+    keywords = :lists.foldl(fun, [], Enum.reverse(pairs))
+    :lists.reverse(keywords)
   end
 
   @doc """
