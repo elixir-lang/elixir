@@ -48,7 +48,7 @@ defmodule File.Stat do
 
   The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
   time type set in options. `{:time, type}` where type can be `:local`,
-  `:universal`, or `:posix`. Default is `:local`.
+  `:universal`, or `:posix`. Default is `:universal`.
   """
 
   record = Record.extract(:file_info, from_lib: "kernel/include/file.hrl")
