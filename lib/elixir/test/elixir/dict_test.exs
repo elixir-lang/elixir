@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
 # A TestDict implementation used only for testing.
 defmodule TestDict do

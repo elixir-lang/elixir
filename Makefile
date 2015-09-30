@@ -223,9 +223,9 @@ test_stdlib: compile
 	@ echo "==> elixir (exunit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && ../../bin/elixir -r "test/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
 	fi
 
 #==> Dialyzer tasks

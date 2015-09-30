@@ -1,4 +1,4 @@
-Code.require_file "test_helper.exs", __DIR__
+Code.require_file "../test_helper.exs", __DIR__
 
 # A TestSet implementation used only for testing.
 defmodule TestSet do
