@@ -198,7 +198,28 @@ publish_mix: compile
 
 #==> Tests tasks
 
-test: test_erlang test_elixir
+test:
+	$(Q) exec epmd & exit
+	$(Q) if [ -z "$(FILE)" ]; then \
+		$(MAKE) test_erlang test_elixir; \
+	else \
+		set -f; \
+		for F in $(FILE); do \
+		  echo "Test file: $$F"; \
+      PROJECT="$$(echo "$$F" | cut -d'/' -f2)"; \
+      FILE_PATH="$$(echo "$$F" | cut -d'/' -f3-)"; \
+      if [ -e "lib/$${PROJECT}/$${FILE_PATH}" ]; then \
+        echo "==> $$F (exunit)"; \
+        if [ "$(OS)" = "Windows_NT" ]; then \
+          cd lib/"$${PROJECT}" && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" -pr "$${FILE_PATH}" && cd ../../; \
+        else \
+          cd lib/$${PROJECT} && ../../bin/elixir -r "test/test_helper.exs" -pr "$${FILE_PATH}" && cd ../../; \
+        fi \
+       else \
+         echo "Test file not found: lib/$${PROJECT}/$${FILE_PATH}"; \
+      fi \
+		done; \
+	fi
 
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
