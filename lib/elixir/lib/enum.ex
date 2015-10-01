@@ -1039,8 +1039,14 @@ defmodule Enum do
 
   """
   @spec map(t, (element -> any)) :: list
-  def map(collection, fun) when is_list(collection) do
-    for item <- collection, do: fun.(item)
+  def map(enumerable, fun)
+
+  def map([], _fun) do
+    []
+  end
+
+  def map([head | tail], fun) do
+    [fun.(head) | map(tail, fun)]
   end
 
   def map(collection, fun) do
