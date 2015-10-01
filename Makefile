@@ -224,7 +224,7 @@ test:
 	$(Q) if [ -z "$(FILE)" ]; then \
 		$(MAKE) test_erlang test_elixir; \
 	else \
-		$(MAKE) $(TEST_FILES); \
+		$(MAKE) compile $(TEST_FILES); \
 	fi
 
 TEST_ERL = lib/elixir/test/erlang
