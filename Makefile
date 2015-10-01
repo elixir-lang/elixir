@@ -11,6 +11,7 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
+PROJECTS = "elixir eex ex_unit iex logger mix"
 .PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
 #==> Functions
@@ -43,8 +44,8 @@ test_$(1): $(1)
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
 endef
 
-define FILE_TEST
-file_test_$(1):
+define TEST_FILE
+test_file_$(1):
 	$(eval FILES_PATH := $(shell echo "$(FILE)" | sed -e 's/\s\+/\n/g' | sort | uniq | grep "^lib/$(1)/" | cut -d'/' -f3-))
 	$(eval PR := $(shell for f in $(FILES_PATH); do echo " -pr \"$${f}\""; done ))
 	$(Q) if [ -n "$(FILES_PATH)" ]; then \
@@ -107,12 +108,12 @@ $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
 
-$(eval $(call FILE_TEST,elixir))
-$(eval $(call FILE_TEST,eex))
-$(eval $(call FILE_TEST,ex_unit))
-$(eval $(call FILE_TEST,iex))
-$(eval $(call FILE_TEST,logger))
-$(eval $(call FILE_TEST,mix))
+$(eval $(call TEST_FILE,elixir))
+$(eval $(call TEST_FILE,eex))
+$(eval $(call TEST_FILE,ex_unit))
+$(eval $(call TEST_FILE,iex))
+$(eval $(call TEST_FILE,logger))
+$(eval $(call TEST_FILE,mix))
 
 install: compile
 	@ echo "==> elixir (install)"
@@ -223,12 +224,13 @@ test:
 	$(Q) if [ -z "$(FILE)" ]; then \
 		$(MAKE) test_erlang test_elixir; \
 	else \
-		$(MAKE) file_test_elixir file_test_eex file_test_ex_unit file_test_iex file_test_logger file_test_mix; \
+		$(MAKE) $(TEST_FILES); \
 	fi
 
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
+TEST_FILES := $(addprefix test_file_,$(shell for p in $(PROJECTS); do echo "$${p}"; done))
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
