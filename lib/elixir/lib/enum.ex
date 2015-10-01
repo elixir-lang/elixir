@@ -1716,6 +1716,9 @@ defmodule Enum do
 
       :random.seed(:os.timestamp)
 
+  To see what happens if you don't do this, shuffle the same list
+  in two separate IEx sessions. The results will be the same.
+
   ## Examples
 
       iex> Enum.shuffle([1, 2, 3])
