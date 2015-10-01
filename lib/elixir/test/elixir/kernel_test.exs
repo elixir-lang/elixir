@@ -660,10 +660,17 @@ defmodule KernelTest do
       end
     end
 
-    test "invalid argument" do
-      message = "invalid arguments for use, expected an atom or alias as argument"
+    test "invalid argument is literal" do
+      message = "invalid arguments for use, expected a compile time atom or alias, got: 42"
       assert_raise ArgumentError, message, fn ->
         Code.eval_string("use 42")
+      end
+    end
+
+    test "invalid argument is variable" do
+      message = "invalid arguments for use, expected a compile time atom or alias, got: variable"
+      assert_raise ArgumentError, message, fn ->
+        Code.eval_string("use variable")
       end
     end
 
