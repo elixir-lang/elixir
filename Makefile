@@ -11,10 +11,8 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
-
 .PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
-
 #==> Functions
 
 define CHECK_ERLANG_RELEASE
@@ -43,6 +41,21 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 test_$(1): $(1)
 	@ echo "==> $(1) (exunit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+endef
+
+define FILE_TEST
+file_test_$(1):
+	$(eval FILES_PATH := $(shell echo "$(FILE)" | sed -e 's/\s\+/\n/g' | sort | uniq | grep "^lib/$(1)/" | cut -d'/' -f3-))
+	$(eval PR := $(shell for f in $(FILES_PATH); do echo " -pr \"$${f}\""; done ))
+	$(Q) if [ -n "$(FILES_PATH)" ]; then \
+		echo "==> $(1) (exunit)"; \
+		echo "==> files: $(FILES_PATH)"; \
+		if [ "$(OS)" = "Windows_NT" ]; then \
+			cd lib/"$(1)" && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" $(PR) && cd ../../; \
+		else \
+			cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" $(PR) && cd ../../; \
+		fi; \
+	fi
 endef
 
 #==> Compilation tasks
@@ -93,6 +106,13 @@ $(eval $(call APP_TEMPLATE,logger,Logger))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
+
+$(eval $(call FILE_TEST,elixir))
+$(eval $(call FILE_TEST,eex))
+$(eval $(call FILE_TEST,ex_unit))
+$(eval $(call FILE_TEST,iex))
+$(eval $(call FILE_TEST,logger))
+$(eval $(call FILE_TEST,mix))
 
 install: compile
 	@ echo "==> elixir (install)"
@@ -203,22 +223,7 @@ test:
 	$(Q) if [ -z "$(FILE)" ]; then \
 		$(MAKE) test_erlang test_elixir; \
 	else \
-		set -f; \
-		for F in $(FILE); do \
-		  echo "Test file: $$F"; \
-      PROJECT="$$(echo "$$F" | cut -d'/' -f2)"; \
-      FILE_PATH="$$(echo "$$F" | cut -d'/' -f3-)"; \
-      if [ -e "lib/$${PROJECT}/$${FILE_PATH}" ]; then \
-        echo "==> $$F (exunit)"; \
-        if [ "$(OS)" = "Windows_NT" ]; then \
-          cd lib/"$${PROJECT}" && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" -pr "$${FILE_PATH}" && cd ../../; \
-        else \
-          cd lib/$${PROJECT} && ../../bin/elixir -r "test/test_helper.exs" -pr "$${FILE_PATH}" && cd ../../; \
-        fi \
-       else \
-         echo "Test file not found: lib/$${PROJECT}/$${FILE_PATH}"; \
-      fi \
-		done; \
+		$(MAKE) file_test_elixir file_test_eex file_test_ex_unit file_test_iex file_test_logger file_test_mix; \
 	fi
 
 TEST_ERL = lib/elixir/test/erlang
