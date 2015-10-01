@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __DIR__
+Code.require_file "../../test_helper.exs", __DIR__
 
 defmodule Kernel.QuoteTest do
   use ExUnit.Case, async: true

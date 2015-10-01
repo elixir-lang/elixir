@@ -11,10 +11,9 @@ INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
-
+PROJECTS = "elixir eex ex_unit iex logger mix"
 .PHONY: install compile erlang elixir build_plt clean_plt dialyze test clean install_man clean_man docs Docs.zip Precompiled.zip publish_zips publish_docs publish_mix
 .NOTPARALLEL: compile
-
 #==> Functions
 
 define CHECK_ERLANG_RELEASE
@@ -40,9 +39,24 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 	@ rm -rf lib/$(1)/ebin
 	$(Q) cd lib/$(1) && ../../$$(ELIXIRC) "lib/**/*.ex" -o ebin
 
-test_$(1): $(1)
+test_$(1): compile $(1)
 	@ echo "==> $(1) (exunit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+endef
+
+define TEST_FILE
+test_file_$(1):
+	$(eval FILES_PATH := $(shell echo "$(FILE)" | sed -e 's/\s\+/\n/g' | sort | uniq | grep "^lib/$(1)/" | cut -d'/' -f3-))
+	$(eval PR := $(shell for f in $(FILES_PATH); do echo " -pr \"$${f}\""; done ))
+	$(Q) if [ -n "$(FILES_PATH)" ]; then \
+		echo "==> $(1) (exunit)"; \
+		echo "==> files: $(FILES_PATH)"; \
+		if [ "$(OS)" = "Windows_NT" ]; then \
+			cd lib/"$(1)" && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" $(PR) && cd ../../; \
+		else \
+			cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" $(PR) && cd ../../; \
+		fi; \
+	fi
 endef
 
 #==> Compilation tasks
@@ -93,6 +107,13 @@ $(eval $(call APP_TEMPLATE,logger,Logger))
 $(eval $(call APP_TEMPLATE,eex,EEx))
 $(eval $(call APP_TEMPLATE,mix,Mix))
 $(eval $(call APP_TEMPLATE,iex,IEx))
+
+$(eval $(call TEST_FILE,elixir))
+$(eval $(call TEST_FILE,eex))
+$(eval $(call TEST_FILE,ex_unit))
+$(eval $(call TEST_FILE,iex))
+$(eval $(call TEST_FILE,logger))
+$(eval $(call TEST_FILE,mix))
 
 install: compile
 	@ echo "==> elixir (install)"
@@ -198,11 +219,18 @@ publish_mix: compile
 
 #==> Tests tasks
 
-test: test_erlang test_elixir
+test:
+	$(Q) exec epmd & exit
+	$(Q) if [ -z "$(FILE)" ]; then \
+		$(MAKE) test_erlang test_elixir; \
+	else \
+		$(MAKE) compile $(TEST_FILES); \
+	fi
 
 TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
+TEST_FILES := $(addprefix test_file_,$(shell for p in $(PROJECTS); do echo "$${p}"; done))
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
@@ -223,9 +251,9 @@ test_stdlib: compile
 	@ echo "==> elixir (exunit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && ../../bin/elixir -r "test/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
 	fi
 
 #==> Dialyzer tasks
