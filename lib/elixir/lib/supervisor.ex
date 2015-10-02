@@ -161,7 +161,7 @@ defmodule Supervisor do
     * The simple one for one specification can define only one child which
       works as a template for when we call `start_child/2`
 
-    * We have define the child to have restart strategy of transient. This
+    * We have defined the child to have restart strategy of transient. This
       means that, if the child process exits due to a `:normal`, `:shutdown`
       or `{:shutdown, term}` reason, it won't be restarted. This is useful
       as it allows our workers to politely shutdown and be removed from the
