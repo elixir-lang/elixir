@@ -486,13 +486,16 @@ defmodule String do
       multiple combining characters are arranged in a specific
       order.
 
-  ## Examples
+    * `:nfc` - Normalization Form Canonical Composition.
+      Characters are decomposed and then recomposed by canonical equivalence.
 
-      iex> String.normalize("leña", :nfd)
-      "leña"
+  ## Examples
 
       iex> String.normalize("yêṩ", :nfd)
       "yêṩ"
+
+      iex> String.normalize("leña", :nfc)
+      "leña"
 
   """
   @spec normalize(t, atom) :: boolean

@@ -284,8 +284,11 @@ defmodule StringTest do
 
   test "normalize" do
     assert String.normalize("ḇravô", :nfd) == "ḇravô"
-    assert String.normalize("ṩ", :nfd) == "ṩ"
+    assert String.normalize("ṩierra", :nfd) == "ṩierra"
     assert String.normalize("뢴", :nfd) == "뢴"
+    assert String.normalize("êchǭ", :nfc) == "êchǭ"
+    assert String.normalize("거̄", :nfc) == "거̄"
+    assert String.normalize("뢴", :nfc) == "뢴"
   end
 
   test "graphemes" do

@@ -419,9 +419,17 @@ defmodule String.Normalizer do
   decompositions = Enum.reduce File.stream!(decomposition_path), [], fn(line, acc) ->
     [key, first, second, third, fourth, _] = :binary.split(line, ";", [:global])
     decomposition = to_binary.(first) <> (to_binary.(second) || "") <>
-                                        (to_binary.(third)  || "") <>
-                                        (to_binary.(fourth) || "")
+                                         (to_binary.(third)  || "") <>
+                                         (to_binary.(fourth) || "")
     [{to_binary.(key), decomposition} | acc]
+  end
+
+  composition_path = Path.join(__DIR__, "Composition.txt")
+
+  compositions = Enum.reduce File.stream!(composition_path), [], fn(line, acc) ->
+    [first, second, composition, _] = :binary.split(line, ";", [:global])
+    key = to_binary.(first) <> to_binary.(second)
+    [{key, to_binary.(composition)} | acc]
   end
 
   combining_class_path = Path.join(__DIR__, "CombiningClasses.txt")
@@ -437,36 +445,53 @@ defmodule String.Normalizer do
     normalize_nfd(string, "")
   end
 
-  defp normalize_nfd("", acc), do: acc
-
-  defp normalize_nfd(<<codepoint :: utf8, rest :: binary>>, acc) when codepoint in 0xAC00..0xD7A3 do
-    {syllable_index, t_count, n_count} = {codepoint - 0xAC00, 28, 588}
-    hangul_l = 0x1100 + div(syllable_index, n_count)
-    hangul_v = 0x1161 + div(rem(syllable_index, n_count), t_count)
-    hangul_t = 0x11A7 + rem(syllable_index, t_count)
-    new =
-      if hangul_t == 0x11A7 do
-        <<hangul_l :: utf8, hangul_v :: utf8>>
-      else
-        <<hangul_l :: utf8, hangul_v :: utf8, hangul_t :: utf8>>
-      end
-    normalize_nfd(rest, acc <> new)
+  def normalize(string, :nfc) when is_binary(string) do
+    normalize_nfc(string, "")
   end
 
-  for {codepoint, decomposition} <- decompositions do
-    defp normalize_nfd(unquote(codepoint) <> rest, acc) do
+  defp normalize_nfd("", acc), do: acc
+
+  defp normalize_nfd(<<cp :: utf8, rest :: binary>>, acc) when cp in 0xAC00..0xD7A3 do
+    {syllable_index, t_count, n_count} = {cp - 0xAC00, 28, 588}
+    lead  = 0x1100 + div(syllable_index, n_count)
+    vowel = 0x1161 + div(rem(syllable_index, n_count), t_count)
+    trail = 0x11A7 + rem(syllable_index, t_count)
+    binary =
+      if trail == 0x11A7 do
+        <<lead :: utf8, vowel :: utf8>>
+      else
+        <<lead :: utf8, vowel :: utf8, trail :: utf8>>
+      end
+    normalize_nfd(rest, acc <> binary)
+  end
+
+  for {binary, decomposition} <- decompositions do
+    defp normalize_nfd(unquote(binary) <> rest, acc) do
       normalize_nfd(rest, acc <> unquote(decomposition))
     end
   end
 
-  defp normalize_nfd(binary, acc), do: canonical_order(binary, acc)
-
-  defp canonical_order(binary, acc) do
+  defp normalize_nfd(binary, acc) do
     {n, rest} = String.Graphemes.next_grapheme_size(binary)
     part = :binary.part(binary, 0, n)
     case n do
       1 -> normalize_nfd(rest, acc <> part)
       _ -> normalize_nfd(rest, acc <> canonical_order(part))
+    end
+  end
+
+  defp normalize_nfc("", acc), do: acc
+
+  defp normalize_nfc(<<cp :: utf8, rest :: binary>>, acc) when cp in 0xAC00..0xD7A3 do
+    normalize_nfc(rest, acc <> <<cp :: utf8>>)
+  end
+
+  defp normalize_nfc(binary, acc) do
+    {n, rest} = String.Graphemes.next_grapheme_size(binary)
+    part = :binary.part(binary, 0, n)
+    case n do
+      1 -> normalize_nfc(rest, acc <> part)
+      _ -> normalize_nfc(rest, acc <> compose(normalize_nfd(part, "")))
     end
   end
 
@@ -482,4 +507,42 @@ defmodule String.Normalizer do
   end
 
   defp combining_class(_), do: 0
+
+  defp compose(<<_ :: utf8>> = binary), do: binary
+
+  defp compose(<<lead :: utf8, vowel :: utf8, rest :: binary>>) when lead in 0x1100..0x1112 and vowel in 0x1161..0x1175 do
+    codepoint = 0xAC00 + ((lead - 0x1100) * 588) + ((vowel - 0x1161) * 28)
+    case rest do
+      <<trail :: utf8, accents :: binary>> when trail in 0x11A7..0x11C2 ->
+        <<codepoint + trail - 0x11A7 :: utf8, accents :: binary>>
+      _ ->
+        <<codepoint :: utf8, rest :: binary>>
+    end
+  end
+
+  for {binary, composition} <- compositions do
+    defp compose(unquote(binary)), do: unquote(composition)
+  end
+
+  defp compose(<<cp :: utf8, rest :: binary>>) do
+    compose(rest, <<cp :: utf8>>, "", combining_class(cp) - 1)
+  end
+
+  defp compose("", base, accents, _), do: base <> accents
+
+  defp compose(<<cp :: utf8, rest :: binary>>, base, accents, last_class) do
+    part_class = combining_class(cp)
+    combined = <<base :: binary, cp :: utf8>>
+    if last_class < part_class and composable?(combined) do
+      compose(rest, compose(combined), accents, last_class)
+    else
+      compose(rest, base, <<accents :: binary, cp :: utf8>>, part_class)
+    end
+  end
+
+  for {binary, _} <- compositions do
+    defp composable?(unquote(binary)), do: true
+  end
+
+  defp composable?(_), do: false
 end
