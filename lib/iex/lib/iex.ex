@@ -212,8 +212,8 @@ defmodule IEx do
   @doc """
   Configures IEx.
 
-  The supported options are: `:colors`, `:inspect`,
-  `:default_prompt`, `:alive_prompt` and `:history_size`.
+  The supported options are: `:colors`, `:inspect`, `:width`,
+  `:history_size`, `:default_prompt` and `:alive_prompt`.
 
   ## Colors
 
@@ -249,6 +249,15 @@ defmodule IEx do
   pretty formatting with a limit of 50 entries.
 
   See `Inspect.Opts` for the full list of options.
+
+  ## Width
+
+  An integer indicating the number of columns to use in documentation
+  output. Default is 80 columns or result of `:io.columns`, whichever
+  is smaller. The configured value will be used unless it is too large,
+  which in that case `:io.columns` is used. This way you can configure
+  IEx to be your largest screen size and it should always take up the
+  full width of your terminal screen.
 
   ## History size
 
