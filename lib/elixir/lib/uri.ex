@@ -339,7 +339,7 @@ defmodule URI do
   # to replace those with nil for consistency.
   defp nillify(l) do
     for s <- l do
-      if byte_size(s) > 0, do: s, else: nil
+      if byte_size(s) > 0, do: s
     end
   end
 
