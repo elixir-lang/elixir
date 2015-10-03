@@ -79,11 +79,8 @@ We usually keep a list of features and bugs [in the issue tracker][2].
   [6]: http://www.freenode.net
   [7]: http://elixir-lang.org/docs.html
 
-## License
+## Copyright and License
 
-"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+Copyright (c) 2012, Plataformatec.
 
-Elixir source code is released under Apache 2 License.
-
-Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more
-information.
+Elixir source code is licensed under the [Apache 2 License](LICENSE.md).
