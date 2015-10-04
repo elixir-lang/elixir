@@ -550,7 +550,27 @@ defmodule MacroTest do
     assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
   end
 
-  ## pre/postwalk
+  ## traverse/pre/postwalk
+
+  test "traverse" do
+    assert traverse({:foo, [], nil}) ==
+           [{:foo, [], nil}, {:foo, [], nil}]
+
+    assert traverse({:foo, [], [1, 2, 3]}) ==
+           [{:foo, [], [1, 2, 3]}, 1, 1, 2, 2, 3, 3, {:foo, [], [1, 2, 3]}]
+
+    assert traverse({{:., [], [:foo, :bar]}, [], [1, 2, 3]}) ==
+           [{{:., [], [:foo, :bar]}, [], [1, 2, 3]}, {:., [], [:foo, :bar]}, :foo, :foo, :bar, :bar, {:., [], [:foo, :bar]},
+            1, 1, 2, 2, 3, 3, {{:., [], [:foo, :bar]}, [], [1, 2, 3]}]
+
+    assert traverse({[1, 2, 3], [4, 5, 6]}) ==
+           [{[1, 2, 3], [4, 5, 6]}, [1, 2, 3], 1, 1, 2, 2, 3, 3, [1, 2, 3],
+            [4, 5, 6], 4, 4, 5, 5, 6, 6, [4, 5, 6], {[1, 2, 3], [4, 5, 6]}]
+  end
+
+  defp traverse(ast) do
+    Macro.traverse(ast, [], &{&1, [&1|&2]}, &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+  end
 
   test "prewalk" do
     assert prewalk({:foo, [], nil}) ==
