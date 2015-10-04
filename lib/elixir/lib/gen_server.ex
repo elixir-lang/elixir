@@ -76,8 +76,13 @@ defmodule GenServer do
       term using the functions in the `:global` module.
 
     * `{:via, module, term}` - the GenServer is registered with the given
-      mechanism and name. The `:via` option expects a module name to control
-      the registration mechanism alongside a name which can be any term.
+      mechanism and name. The `:via` option expects a module that exports 
+      `register_name/2`, `unregister_name/1`, `whereis_name/1` and `send/2` 
+      functions implemented in `:global` module. These functions are 
+      responsible for keeping the list of names of processes and their 
+      associated pid's that are available globally for a network of Erlang 
+      nodes whereas in the module you could choose to register globally or 
+      local with a custom implementation.
 
   For example, we could start and register our Stack server locally as follows:
 
