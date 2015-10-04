@@ -805,9 +805,9 @@ defmodule StreamTest do
   end
 
   test "unfold/2" do
-    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.take(stream, 5) == [10, 9, 8, 7, 6]
-    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.to_list(stream) == [5, 4, 3, 2, 1]
   end
 
@@ -815,12 +815,12 @@ defmodule StreamTest do
     stream = Stream.unfold(1, fn x -> if x > 0, do: {x, x-1}, else: throw(:boom) end)
     assert Enum.take(stream, 1) == [1]
 
-    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.to_list(Stream.take(stream, 2)) == [5, 4]
   end
 
   test "unfold/2 is zippable" do
-    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1} end)
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
