@@ -320,7 +320,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any)
 
     clauses = for {guard, mod} <- builtin,
                   mod in types,
@@ -334,7 +334,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
