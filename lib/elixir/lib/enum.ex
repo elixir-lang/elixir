@@ -1390,6 +1390,52 @@ defmodule Enum do
   end
 
   @doc """
+  Invokes the given `fun` for each item in the enumerable and returns `true` if
+  exactly one invocation returns a truthy value.
+  Returns `false` otherwise.
+
+  ## Examples
+
+      iex> Enum.one?([1, 2, 3], fn(x) -> rem(x, 2) == 0 end)
+      true
+
+      iex> Enum.one?([1, 3, 5], fn(x) -> rem(x, 2) == 0 end)
+      false
+
+      iex> Enum.one?([2, 4, 6], fn(x) -> rem(x, 2) == 0 end)
+      false
+
+  If no function is given, it defaults to checking if exactly one item in the
+  enumerable is a truthy value.
+
+      iex> Enum.one?([1, 2, 3])
+      false
+
+      iex> Enum.one?([1, nil, false])
+      true
+
+  """
+  @spec one?(t) :: boolean
+  @spec one?(t, (element -> as_boolean(term))) :: boolean
+
+  def one?(enumerable, fun \\ fn(x) -> x end)
+
+  def one?(enumerable, fun) when is_list(enumerable) do
+    do_one?(enumerable, fun)
+  end
+
+  def one?(enumerable, fun) do
+    Enumerable.reduce(enumerable, {:cont, false}, fn(entry, acc) ->
+      result = fun.(entry)
+      cond do
+        acc and result -> {:halt, false}
+        result         -> {:cont, true }
+        true           -> {:cont, false}
+      end
+    end) |> elem(1)
+  end
+
+  @doc """
   Returns the sum of all elements.
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
@@ -2418,6 +2464,22 @@ defmodule Enum do
   defp do_any?([], _) do
     false
   end
+
+  ## one?
+
+  defp do_one?(list, fun, found? \\ false)
+
+  defp do_one?([h|t], fun, false), do: do_one?(t, fun, !!fun.(h))
+
+  defp do_one?([h|t], fun, true) do
+    if fun.(h) do
+      false
+    else
+      do_one?(t, fun, true)
+    end
+  end
+
+  defp do_one?([], _, found?), do: found?
 
   ## fetch
 
