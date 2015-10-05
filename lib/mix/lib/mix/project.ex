@@ -428,6 +428,7 @@ defmodule Mix.Project do
     [aliases: [],
      build_per_environment: true,
      build_embedded: false,
+     consolidate_protocols: true,
      default_task: "run",
      deps: [],
      deps_path: "deps",

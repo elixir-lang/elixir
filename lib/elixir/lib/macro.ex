@@ -166,6 +166,52 @@ defmodule Macro do
   end
 
   @doc """
+  Performs a depth-first, traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec traverse(t, any, (t, any -> {t, any}), (t, any -> {t, any})) :: {t, any}
+  def traverse(ast, acc, pre, post) when is_function(pre, 2) and is_function(post, 2) do
+    {ast, acc} = pre.(ast, acc)
+    do_traverse(ast, acc, pre, post)
+  end
+
+  defp do_traverse({form, meta, args}, acc, pre, post) do
+    unless is_atom(form) do
+      {form, acc} = pre.(form, acc)
+      {form, acc} = do_traverse(form, acc, pre, post)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
+        {x, acc} = pre.(x, acc)
+        do_traverse(x, acc, pre, post)
+      end)
+    end
+
+    post.({form, meta, args}, acc)
+  end
+
+  defp do_traverse({left, right}, acc, pre, post) do
+    {left, acc} = pre.(left, acc)
+    {left, acc} = do_traverse(left, acc, pre, post)
+    {right, acc} = pre.(right, acc)
+    {right, acc} = do_traverse(right, acc, pre, post)
+    post.({left, right}, acc)
+  end
+
+  defp do_traverse(list, acc, pre, post) when is_list(list) do
+    {list, acc} = Enum.map_reduce(list, acc, fn x, acc ->
+      {x, acc} = pre.(x, acc)
+      do_traverse(x, acc, pre, post)
+    end)
+    post.(list, acc)
+  end
+
+  defp do_traverse(x, acc, _pre, post) do
+    post.(x, acc)
+  end
+
+  @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
   """
   @spec prewalk(t, (t -> t)) :: t
@@ -179,43 +225,7 @@ defmodule Macro do
   """
   @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
   def prewalk(ast, acc, fun) when is_function(fun, 2) do
-    {ast, acc} = fun.(ast, acc)
-    do_prewalk(ast, acc, fun)
-  end
-
-  defp do_prewalk({form, meta, args}, acc, fun) do
-    unless is_atom(form) do
-      {form, acc} = fun.(form, acc)
-      {form, acc} = do_prewalk(form, acc, fun)
-    end
-
-    unless is_atom(args) do
-      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
-        {x, acc} = fun.(x, acc)
-        do_prewalk(x, acc, fun)
-      end)
-    end
-
-    {{form, meta, args}, acc}
-  end
-
-  defp do_prewalk({left, right}, acc, fun) do
-    {left, acc} = fun.(left, acc)
-    {left, acc} = do_prewalk(left, acc, fun)
-    {right, acc} = fun.(right, acc)
-    {right, acc} = do_prewalk(right, acc, fun)
-    {{left, right}, acc}
-  end
-
-  defp do_prewalk(list, acc, fun) when is_list(list) do
-    Enum.map_reduce(list, acc, fn x, acc ->
-      {x, acc} = fun.(x, acc)
-      do_prewalk(x, acc, fun)
-    end)
-  end
-
-  defp do_prewalk(x, acc, _fun) do
-    {x, acc}
+    traverse(ast, acc, fun, fn x, a -> {x, a} end)
   end
 
   @doc """
@@ -232,34 +242,7 @@ defmodule Macro do
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
   def postwalk(ast, acc, fun) when is_function(fun, 2) do
-    do_postwalk(ast, acc, fun)
-  end
-
-  defp do_postwalk({form, meta, args}, acc, fun) do
-    unless is_atom(form) do
-      {form, acc} = do_postwalk(form, acc, fun)
-    end
-
-    unless is_atom(args) do
-      {args, acc} = Enum.map_reduce(args, acc, &do_postwalk(&1, &2, fun))
-    end
-
-    fun.({form, meta, args}, acc)
-  end
-
-  defp do_postwalk({left, right}, acc, fun) do
-    {left, acc} = do_postwalk(left, acc, fun)
-    {right, acc} = do_postwalk(right, acc, fun)
-    fun.({left, right}, acc)
-  end
-
-  defp do_postwalk(list, acc, fun) when is_list(list) do
-    {list, acc} = Enum.map_reduce(list, acc, &do_postwalk(&1, &2, fun))
-    fun.(list, acc)
-  end
-
-  defp do_postwalk(x, acc, fun) do
-    fun.(x, acc)
+    traverse(ast, acc, fn x, a -> {x, a} end, fun)
   end
 
   @doc """

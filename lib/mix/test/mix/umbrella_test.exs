@@ -37,7 +37,7 @@ defmodule Mix.UmbrellaTest do
   test "compiles umbrella with build embedded (and protocol consolidation)" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
-        assert_raise  Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
+        assert_raise Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
           Mix.Tasks.App.Start.run []
         end
 
@@ -45,7 +45,6 @@ defmodule Mix.UmbrellaTest do
 
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["Generated foo app"]}
-        assert_received {:mix_shell, :info, ["Consolidated Enumerable"]}
         assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
 
         assert Mix.Task.run "app.start"
@@ -184,17 +183,19 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        consolidated = File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime
         purge [Foo, Bar]
         Mix.Task.clear
 
         # Ensure we can measure a timestamp difference
         ensure_touched("../foo/lib/foo.ex",
-                       File.stat!("_build/dev/lib/bar/.compile.lock").mtime)
+                       File.stat!("_build/dev/.compile.lock").mtime)
 
         Mix.Task.run "compile"
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert consolidated < File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime
         purge [Foo, Bar]
       end)
     end)

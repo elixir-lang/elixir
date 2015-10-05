@@ -66,6 +66,30 @@ defmodule Module do
 
     * `@behaviour`   (notice the British spelling)
 
+      Behaviours can be referenced by modules to ensure they implement
+      required specific function signatures defind by `@callback`.
+
+      For example, you can specify the URI.Parser behaviour as follows:
+
+          defmodule URI.Parser do
+            @doc "Parses the given URL"
+            @callback parse(uri_info :: URI.t) :: URI.t
+
+            @doc "Defines a default port"
+            @callback default_port() :: integer
+          end
+
+          And then a module may use it as:
+
+          defmodule URI.HTTP do
+            @behaviour URI.Parser
+            def default_port(), do: 80
+            def parse(info), do: info
+          end
+
+      If the behaviour changes or URI.HTTP does not implement one of the
+      callbacks, a warning will be raised.
+
       Specifies an OTP or user-defined behaviour.
 
       ### Example

@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn :v1
+  @manifest_vsn :v2
 
   @doc """
   Compiles stale Elixir files.
@@ -21,7 +21,7 @@ defmodule Mix.Compilers.Elixir do
     {all_entries, skip_entries} = parse_manifest(manifest, keep)
 
     removed =
-      for {_b, _m, source, _cd, _rd, _f, _bin} <- all_entries, not(source in all), do: source
+      for {_b, _m, _k, source, _cd, _rd, _f, _bin} <- all_entries, not(source in all), do: source
 
     changed =
       if force do
@@ -35,10 +35,10 @@ defmodule Mix.Compilers.Elixir do
         # Otherwise let's start with the new ones
         # plus the ones that have changed
         for(source <- all,
-            not Enum.any?(all_entries, fn {_b, _m, s, _cd, _rd, _f, _bin} -> s == source end),
+            not Enum.any?(all_entries, fn {_b, _m, _k, s, _cd, _rd, _f, _bin} -> s == source end),
             do: source)
           ++
-        for({_b, _m, source, _cd, _rd, files, _bin} <- all_entries,
+        for({_b, _m, _k, source, _cd, _rd, files, _bin} <- all_entries,
             times = Enum.map([source|files], &Map.fetch!(all_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source)
@@ -60,7 +60,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes(entries) do
-    Enum.reduce(entries, %{}, fn {_b, _m, source, _cd, _rd, files, _bin}, dict ->
+    Enum.reduce(entries, %{}, fn {_b, _m, _k, source, _cd, _rd, files, _bin}, dict ->
       Enum.reduce([source|files], dict, fn file, dict ->
         if Map.has_key?(dict, file) do
           dict
@@ -75,10 +75,19 @@ defmodule Mix.Compilers.Elixir do
   Removes compiled files.
   """
   def clean(manifest) do
-    Enum.map read_manifest(manifest), fn {beam, _, _, _, _, _, _} ->
+    Enum.map read_manifest(manifest), fn {beam, _, _, _, _, _, _, _} ->
       File.rm(beam)
     end
     :ok
+  end
+
+  @doc """
+  Returns protocols and implementations for the given manifest.
+  """
+  def protocols_and_impls(manifest) do
+    for {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
+        match?(:protocol, kind) or match?({:impl, _}, kind),
+        do: {module, kind}
   end
 
   defp compile_manifest(manifest, entries, stale, dest, on_start) do
@@ -126,21 +135,33 @@ defmodule Mix.Compilers.Elixir do
       |> List.delete(module)
       |> Enum.reject(&match?("elixir_" <> _, Atom.to_string(&1)))
 
-    files = for file <- get_external_resources(module),
-                File.regular?(file),
-                relative = Path.relative_to(file, cwd),
-                Path.type(relative) == :relative,
-                do: relative
+    attributes = module.__info__(:attributes)
 
+    kind   = detect_kind(attributes)
     source = Path.relative_to(source, cwd)
-    tuple  = {beam, module, source, compile, runtime, files, binary}
+    files  = get_external_resources(attributes, cwd)
+    tuple  = {beam, module, kind, source, compile, runtime, files, binary}
     Agent.cast pid, &:lists.keystore(beam, 1, &1, tuple)
   end
 
-  defp get_external_resources(module) do
-    for {:external_resource, values} <- module.__info__(:attributes),
-        value <- values,
-        do: value
+  defp detect_kind(attributes) do
+    cond do
+      impl = attributes[:impl] ->
+        {:impl, impl[:protocol]}
+      attributes[:protocol] ->
+        :protocol
+      true ->
+        :module
+    end
+  end
+
+  defp get_external_resources(attributes, cwd) do
+    for {:external_resource, values} <- attributes,
+        file <- values,
+        File.regular?(file),
+        relative = Path.relative_to(file, cwd),
+        Path.type(relative) == :relative,
+        do: relative
   end
 
   defp each_file(file) do
@@ -173,7 +194,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry({beam, module, source, compile, runtime, _f, _bin} = entry,
+  defp remove_stale_entry({beam, module, _kind, source, compile, runtime, _f, _bin} = entry,
                           {rest, stale, removed}) do
     cond do
       # If I changed in disk or have a compile time dependency
@@ -206,7 +227,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp parse_manifest(manifest, keep_paths) do
     Enum.reduce read_manifest(manifest), {[], []}, fn
-      {_, _, source, _, _, _, _} = entry, {keep, skip} ->
+      {_, _, _, source, _, _, _, _} = entry, {keep, skip} ->
         if String.starts_with?(source, keep_paths) do
           {[entry|keep], skip}
         else
@@ -225,17 +246,17 @@ defmodule Mix.Compilers.Elixir do
     File.open!(manifest, [:write], fn device ->
       :io.format(device, '~p.~n', [@manifest_vsn])
 
-      Enum.map entries, fn {beam, _, _, _, _, _, binary} = entry ->
+      Enum.map entries, fn {beam, _, _, _, _, _, _, binary} = entry ->
         if binary, do: File.write!(beam, binary)
-        :io.format(device, '~p.~n', [put_elem(entry, 6, nil)])
+        :io.format(device, '~p.~n', [put_elem(entry, 7, nil)])
       end
 
       :ok
     end)
 
-    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
-    # is a dependency itself, we need to touch the lock so the current
-    # Elixir version, used to compile the files above, is properly stored.
-    Mix.Dep.Lock.update_manifest
+    # Since Elixir is a dependency itself, we need to touch the lock
+    # so the current Elixir version, used to compile the files above,
+    # is properly stored.
+    Mix.Dep.ElixirSCM.update
   end
 end
