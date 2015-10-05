@@ -250,6 +250,22 @@ defmodule EnumTest.List do
     assert Enum.map_reduce([1, 2, 3], 1, fn(x, acc) -> {x * 2, x + acc} end) == {[2, 4, 6], 7}
   end
 
+  test "one?" do
+    assert Enum.one?([2, 4, 7], fn(x) -> rem(x, 2) == 1 end)
+    refute Enum.one?([2, 4, 6], fn(x) -> rem(x, 2) == 1 end)
+    refute Enum.one?([2, 5, 7], fn(x) -> rem(x, 2) == 1 end)
+
+    assert Enum.one?([false, true, false])
+    refute Enum.one?([false, false, false])
+    refute Enum.one?([false, true, true])
+
+    assert Enum.one?([:foo, false, false])
+    refute Enum.one?([:foo, :bar, false])
+    refute Enum.one?([false, nil, false])
+
+    refute Enum.one?([])
+  end
+
   test "partition" do
     assert Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
@@ -883,6 +899,20 @@ defmodule EnumTest.Range do
   test "min by" do
     assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
+  end
+
+  test "one?" do
+    range = 0..5
+    refute Enum.one?(range, &(&1 > 10))
+
+    range = 0..5
+    refute Enum.one?(range, &(&1 > 1))
+
+    range = 0..5
+    assert Enum.one?(range, &(&1 > 4))
+
+    range = 1..0
+    refute Enum.one?(range)
   end
 
   test "partition" do
