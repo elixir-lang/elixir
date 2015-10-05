@@ -87,8 +87,11 @@ defmodule IO.ANSITest do
   end
 
   test "format invalid sequence" do
-    assert_raise ArgumentError, "invalid ANSI sequence specification: brigh", fn ->
+    assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
       IO.ANSI.format([:brigh, "Hello!"], true)
+    end
+    assert_raise ArgumentError, "invalid ANSI sequence specification: nil", fn ->
+      IO.ANSI.format(["Hello!", nil], true)
     end
   end
 end
