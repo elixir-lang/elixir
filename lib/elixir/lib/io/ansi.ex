@@ -131,12 +131,12 @@ defmodule IO.ANSI do
 
   @doc "Clears screen"
   defsequence :clear, "2", "J"
-  
+
   @doc "Clears line"
   defsequence :clear_line, "2", "K"
 
   defp format_sequence(other) do
-    raise ArgumentError, "invalid ANSI sequence specification: #{other}"
+    raise ArgumentError, "invalid ANSI sequence specification: #{inspect other}"
   end
 
   @doc ~S"""
