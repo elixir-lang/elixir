@@ -75,7 +75,7 @@ We usually keep a list of features and bugs [in the issue tracker][2].
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-talk
   [4]: https://groups.google.com/group/elixir-lang-core
-  [5]: irc://chat.freenode.net/elixir-lang
+  [5]: https://webchat.freenode.net/?channels=#elixir-lang
   [6]: http://www.freenode.net
   [7]: http://elixir-lang.org/docs.html
 
