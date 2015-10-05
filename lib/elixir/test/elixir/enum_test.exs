@@ -250,6 +250,19 @@ defmodule EnumTest.List do
     assert Enum.map_reduce([1, 2, 3], 1, fn(x, acc) -> {x * 2, x + acc} end) == {[2, 4, 6], 7}
   end
 
+  test "none?" do
+    assert Enum.none?([2, 4, 6], fn(x) -> rem(x, 2) == 1 end)
+    refute Enum.none?([2, 3, 4], fn(x) -> rem(x, 2) == 1 end)
+
+    assert Enum.none?([false, false, false])
+    refute Enum.none?([false, true, false])
+
+    refute Enum.none?([:foo, false, false])
+    assert Enum.none?([false, nil, false])
+
+    assert Enum.none?([])
+  end
+
   test "partition" do
     assert Enum.partition([1, 2, 3], fn(x) -> rem(x, 2) == 0 end) == {[2], [1, 3]}
     assert Enum.partition([2, 4, 6], fn(x) -> rem(x, 2) == 0 end) == {[2, 4, 6], []}
@@ -883,6 +896,17 @@ defmodule EnumTest.Range do
   test "min by" do
     assert Enum.min_by(1..1, fn(x) -> :math.pow(-2, x) end) == 1
     assert Enum.min_by(1..3, fn(x) -> :math.pow(-2, x) end) == 3
+  end
+
+  test "none?" do
+    range = 0..5
+    assert Enum.none?(range, &(&1 > 10))
+
+    range = 0..5
+    refute Enum.none?(range, &(&1 > 3))
+
+    range = 1..0
+    refute Enum.none?(range)
   end
 
   test "partition" do
