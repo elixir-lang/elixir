@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task
 
+  @manifest ".compile.protocols"
+
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
 
@@ -32,11 +34,13 @@ defmodule Mix.Tasks.Compile.Protocols do
       true
 
   """
+  @switches [output: :string, force: :boolean]
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Task.run "compile", args
-    {opts, _, _} = OptionParser.parse(args, switches: [output: :string], aliases: [o: :output])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches, aliases: [o: :output])
 
+    clean()
     paths = filter_otp(:code.get_path, :code.lib_dir)
     paths
     |> Protocol.extract_protocols
@@ -48,6 +52,9 @@ defmodule Mix.Tasks.Compile.Protocols do
   @doc false
   def default_path, do: Path.join(Mix.Project.build_path, "consolidated")
 
+  @doc false
+  def manifest, do: Path.join(default_path, @manifest)
+
   defp filter_otp(paths, otp) do
     Enum.filter(paths, &(not :lists.prefix(&1, otp)))
   end
@@ -55,28 +62,18 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp consolidate(protocols, paths, output) do
     File.mkdir_p!(output)
 
-    _ = for protocol <- protocols do
-      impls = Protocol.extract_impls(protocol, paths)
-      maybe_reload(protocol)
-      {:ok, binary} = Protocol.consolidate(protocol, impls)
-      File.write!(Path.join(output, "#{protocol}.beam"), binary)
-      Mix.shell.info "Consolidated #{inspect protocol}"
-    end
+    lines =
+      for protocol <- protocols do
+        impls = Protocol.extract_impls(protocol, paths)
+        {:ok, binary} = Protocol.consolidate(protocol, impls)
+        File.write!(Path.join(output, "#{protocol}.beam"), binary)
+        Mix.shell.info "Consolidated #{inspect protocol}"
+        Enum.map_join([protocol|impls], "\t", &Atom.to_string/1) <> "\n"
+      end
 
+    File.write!(manifest, lines)
     relative = Path.relative_to_cwd(output)
     Mix.shell.info "Consolidated protocols written to #{relative}"
-  end
-
-  defp maybe_reload(module) do
-    case :code.which(module) do
-      atom when is_atom(atom) ->
-        # Module is likely in memory, we purge as an attempt to reload it
-        :code.purge(module)
-        :code.delete(module)
-        :ok
-      _file ->
-        :ok
-    end
   end
 
   def clean do
