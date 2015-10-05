@@ -112,6 +112,7 @@ defmodule Kernel.Typespec do
   `no_return()`           | `none()`
   `fun()`                 | `(... -> any)`
   `struct()`              | `%{__struct__: atom()}`
+  `as_boolean(t)`         | `t`
 
   ### Remote types
 
