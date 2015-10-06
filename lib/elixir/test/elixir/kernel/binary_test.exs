@@ -60,22 +60,28 @@ bar \"""
     <<"f", "oo">> <> x = "foobar"
     assert x == "bar"
 
-    <<x :: binary-size(3)>> <> _ = "foobar"
+    <<x::binary-size(3)>> <> _ = "foobar"
     assert x == "foo"
 
     size = 3
-    <<x :: binary-size(size)>> <> _ = "foobar"
+    <<x::binary-size(size)>> <> _ = "foobar"
     assert x == "foo"
 
-    <<x :: 6*4-binary>> <> _ = "foobar"
+    <<x::6*4-binary>> <> _ = "foobar"
+    assert x == "foo"
+
+    <<x::3-bytes>> <> _ = "foobar"
+    assert x == "foo"
+
+    <<x::24-bits>> <> _ = "foobar"
     assert x == "foo"
 
     assert_raise CompileError, fn ->
-      Code.eval_string(~s{<<x :: binary-size(3)-unit(4)>> <> _ = "foobar"})
+      Code.eval_string(~s{<<x::binary-size(3)-unit(4)>> <> _ = "foobar"})
     end
 
     assert_raise CompileError, fn ->
-      Code.eval_string(~s{<<x :: integer-size(4)>> <> _ = "foobar"})
+      Code.eval_string(~s{<<x::integer-size(4)>> <> _ = "foobar"})
     end
   end
 
@@ -108,7 +114,7 @@ bar \"""
   end
 
   test "pattern match with splice" do
-    assert << 1, <<2, 3, 4>>, 5 >> = <<1, 2, 3, 4, 5>>
+    assert <<1, <<2, 3, 4>>, 5>> = <<1, 2, 3, 4, 5>>
   end
 
   test "partial application" do
