@@ -62,10 +62,8 @@ defmodule Mix.Tasks.Compile.Protocols do
         |> consolidate(consolidation_paths(), output, manifest, protocols_and_impls)
 
       true ->
-        :ok
+        :noop
     end
-
-    :ok
   end
 
   @doc """
@@ -89,7 +87,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp consolidate([], _paths, output, manifest, metadata) do
     File.mkdir_p!(output)
     write_manifest(manifest, metadata)
-    :ok
+    :noop
   end
 
   defp consolidate(protocols, paths, output, manifest, metadata) do
@@ -106,9 +104,15 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp consolidate(protocol, paths, output) do
     impls = Protocol.extract_impls(protocol, paths)
+    reload(protocol)
     {:ok, binary} = Protocol.consolidate(protocol, impls)
     File.write!(Path.join(output, "#{protocol}.beam"), binary)
     Mix.shell.info "Consolidated #{inspect protocol}"
+  end
+
+  defp reload(module) do
+    :code.purge(module)
+    :code.delete(module)
   end
 
   defp read_manifest(manifest) do

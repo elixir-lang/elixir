@@ -21,7 +21,9 @@ defmodule Mix.Compilers.Elixir do
     {all_entries, skip_entries} = parse_manifest(manifest, keep)
 
     removed =
-      for {_b, _m, _k, source, _cd, _rd, _f, _bin} <- all_entries, not(source in all), do: source
+      for {_b, _m, _k, source, _cd, _rd, _f, _bin} <- all_entries,
+          not(source in all),
+          do: source
 
     changed =
       if force do
@@ -236,7 +238,8 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp write_manifest(_manifest, []) do
+  defp write_manifest(manifest, []) do
+    File.rm(manifest)
     :ok
   end
 
