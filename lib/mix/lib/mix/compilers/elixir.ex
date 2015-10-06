@@ -81,6 +81,15 @@ defmodule Mix.Compilers.Elixir do
     :ok
   end
 
+  @doc """
+  Returns protocols and implementations for the given manifest.
+  """
+  def protocols_and_impls(manifest) do
+    for {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
+        match?(:protocol, kind) or match?({:impl, _}, kind),
+        do: {module, kind}
+  end
+
   defp compile_manifest(manifest, entries, stale, dest, on_start) do
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
