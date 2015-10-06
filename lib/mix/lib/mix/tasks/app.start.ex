@@ -42,12 +42,7 @@ defmodule Mix.Tasks.App.Start do
 
       if File.dir?(path) do
         Code.prepend_path(path)
-
-        Enum.each(File.ls!(path), fn file ->
-          module = file |> Path.rootname() |> String.to_atom()
-          :code.purge(module)
-          :code.delete(module)
-        end)
+        Enum.each(File.ls!(path), &load_protocol/1)
       end
     end
 
@@ -128,5 +123,16 @@ defmodule Mix.Tasks.App.Start do
       """
     end
     :ok
+  end
+
+  defp load_protocol(file) do
+    case String.split(file, ".") do
+      [module, "beam"] ->
+        module = String.to_atom(module)
+        :code.purge(module)
+        :code.delete(module)
+      _ ->
+        :ok
+    end
   end
 end
