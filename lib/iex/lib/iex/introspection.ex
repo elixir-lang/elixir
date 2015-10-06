@@ -265,7 +265,7 @@ defmodule IEx.Introspection do
     _ = case Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
-      types -> for type <- types, do: print_type(type)
+      types -> Enum.each(types, &print_type/1)
     end
 
     dont_display_result
@@ -280,6 +280,7 @@ defmodule IEx.Introspection do
       types ->
         printed =
           for {_, {t, _, _args}} = typespec <- types, t == type do
+            print_type_doc(module, t)
             print_type(typespec)
             typespec
           end
@@ -301,6 +302,7 @@ defmodule IEx.Introspection do
       types ->
         printed =
           for {_, {t, _, args}} = typespec <- types, t == type, length(args) == arity do
+            print_type_doc(module, t)
             print_type(typespec)
             typespec
           end
@@ -311,6 +313,14 @@ defmodule IEx.Introspection do
     end
 
     dont_display_result
+  end
+
+  defp print_type_doc(module, type) do
+    docs  = Code.get_docs(module, :type_docs)
+    {{_, _}, _, _, description} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
+      type == name
+    end)
+    if description, do: puts_info(description)
   end
 
   @doc """

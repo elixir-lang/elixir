@@ -79,6 +79,21 @@ defmodule IEx.HelpersTest do
 
     assert "@opaque t()\n" = capture_io(fn -> t HashDict.t end)
     assert capture_io(fn -> t HashDict.t end) == capture_io(fn -> t HashDict.t/0 end)
+
+    filename = "typesample.ex"
+    with_file filename, module_with_typespecs, fn ->
+      c(filename)
+      assert capture_io(fn -> t TypeSample.id_with_desc/0 end) == """
+      An id with description.
+      @type id_with_desc() :: {number(), String.t()}
+      """
+      assert capture_io(fn -> t TypeSample.id_with_desc end) == """
+      An id with description.
+      @type id_with_desc() :: {number(), String.t()}
+      """
+    end
+  after
+    cleanup_modules([TypeSample])
   end
 
   test "s helper" do
@@ -363,6 +378,15 @@ defmodule IEx.HelpersTest do
     -module(sample).
     -export([hello/0]).
     hello() -> bye.
+    """
+  end
+
+  def module_with_typespecs do
+    """
+    defmodule TypeSample do
+      @typedoc "An id with description."
+      @type id_with_desc :: {number, String.t}
+    end
     """
   end
 
