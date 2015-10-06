@@ -148,12 +148,12 @@ defmodule IEx.Introspection do
 
   defp callback_module(mod, fun, arity) do
     mod.module_info(:attributes)
-    |> Stream.filter_map(&match?({:behaviour, _}, &1), fn {_, l} -> l end)
+    |> Keyword.get_values(:behaviour)
     |> Stream.concat()
     |> Stream.filter(fn(module)->
       callbacks = module.module_info(:attributes)
       |> Enum.filter_map(&match?({:callback, _}, &1), fn {_, [{t,_}|_]} -> t end)
-      callbacks[fun] == arity
+      for({f, a} <- callbacks, f == fun, a == arity, do: :ok) != []
     end)
     |> Enum.at(0)
   end
