@@ -49,6 +49,18 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
+  test "h helper for delegates" do
+    filename = "delegate.ex"
+    with_file filename, delegator_module <> "\n" <> delegated_module, fn ->
+      assert c(filename) |> Enum.sort == [Delegated, Delegator]
+
+      assert capture_io(fn -> h Delegator.func1 end) == "* def func1()\n\nSee `Delegated.func1/0`.\n"
+      assert capture_io(fn -> h Delegator.func2 end) == "* def func2()\n\nDelegator func2 doc\n"
+    end
+  after
+    cleanup_modules([Delegated, Delegator])
+  end
+
   test "b helper module" do
     assert capture_io(fn -> b Mix end) == "No callbacks for Mix were found\n"
     assert capture_io(fn -> b NoMix end) == "Could not load module NoMix, got: nofile\n"
@@ -346,6 +358,25 @@ defmodule IEx.HelpersTest do
       def hello do
         :world
       end
+    end
+    """
+  end
+
+  defp delegator_module do
+    """
+    defmodule Delegator do
+      defdelegate func1, to: Delegated
+      @doc "Delegator func2 doc"
+      defdelegate func2, to: Delegated
+    end
+    """
+  end
+
+  defp delegated_module do
+    """
+    defmodule Delegated do
+      def func1, do: 1
+      def func2, do: 2
     end
     """
   end
