@@ -61,6 +61,10 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.get!
     Mix.Task.run "loadpaths", args
 
+    if local_deps_changed?() do
+      Mix.Dep.Lock.touch_manifest
+    end
+
     res = Mix.Task.run "compile.all", args
     res = if :ok in List.wrap(res), do: :ok, else: :noop
 
@@ -78,8 +82,18 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp consolidate_protocols? do
-    config = Mix.Project.config
-    Keyword.get(config, :consolidate_protocols, config[:build_embedded])
+    Mix.Project.config[:consolidate_protocols]
+  end
+
+  defp local_deps_changed? do
+    manifest = Path.absname(Mix.Dep.Lock.manifest())
+
+    Enum.any?(Mix.Dep.children(), fn(dep) ->
+      not dep.scm.fetchable? and Mix.Dep.in_dependency(dep, fn(_) ->
+        files = Mix.Project.config_files ++ manifests()
+        Mix.Utils.stale?(files, [manifest])
+      end)
+    end)
   end
 
   @doc """
