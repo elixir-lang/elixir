@@ -53,23 +53,11 @@ defmodule IEx.HelpersTest do
     with_file ["a_behaviour.ex", "impl.ex"], [behaviour_module, impl_module], fn ->
       c("a_behaviour.ex")
       c("impl.ex")
-      assert capture_io(fn -> h Impl.first/1 end) == """
-      No documentation for Impl.first/1 was found.
-      Showing callback documentation of ABehaviour.first/1
-      * @callback first(integer()) :: integer()
-
-      Docs for ABehaviour.first
-      """
+      assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
       assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
       assert capture_io(fn -> h Impl.third/1 end) == "* def third(int)\n\n\n"
 
-      assert capture_io(fn -> h Impl.first end) == """
-      No documentation for Impl.first/1 was found.
-      Showing callback documentation of ABehaviour.first/1
-      * @callback first(integer()) :: integer()
-
-      Docs for ABehaviour.first
-      """
+      assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
       assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second\n"
       assert capture_io(fn -> h Impl.third end) == "* def third(int)\n\n\n"
     end
