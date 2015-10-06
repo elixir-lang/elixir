@@ -236,19 +236,22 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
       {atom, Line, term},
       TVar}]},
 
+  %% TODO: there is a bug in dialyzer that warns about generated matches that
+  %% can never match on line 0. The is_map/1 guard is used instead of matching
+  %% against an empty map to avoid the warning.
   {{'case', ?generated, TLeft, [
     {clause, ?generated,
       [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
       [],
       [TVar]},
     {clause, ?generated,
-      [{match, Line, TVar, {map, Line, []}}],
-      [],
+      [TVar],
+      [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
       [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
     {clause, ?generated,
       [TVar],
       [],
-      [{call, Line, {remote, Line, TVar, TRight}, []}]}
+      [{call, ?generated, {remote, Line, TVar, TRight}, []}]}
   ]}, SV};
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
