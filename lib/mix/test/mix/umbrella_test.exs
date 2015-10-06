@@ -189,7 +189,7 @@ defmodule Mix.UmbrellaTest do
 
         # Ensure we can measure a timestamp difference
         ensure_touched("../foo/lib/foo.ex",
-                       File.stat!("_build/dev/lib/bar/.compile.lock").mtime)
+                       File.stat!("_build/dev/.compile.lock").mtime)
 
         Mix.Task.run "compile"
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop

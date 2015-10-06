@@ -257,7 +257,7 @@ defmodule Mix.Dep do
   defp check_manifest(%{scm: scm} = dep, build_path) do
     vsn = System.version
 
-    case Mix.Dep.Lock.status(build_path) do
+    case Mix.Dep.ElixirSCM.read(build_path) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
         %{dep | status: {:elixirlock, old_vsn}}
       {:ok, _, old_scm} when old_scm != scm ->
