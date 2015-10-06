@@ -12,27 +12,17 @@ defmodule Mix.Dep.LockTest do
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{foo: :bar}
       assert File.regular? "mix.lock"
-      assert File.regular? "_build/dev/lib/sample/.compile.lock"
+      assert File.regular? "_build/dev/.compile.lock"
     end
   end
 
   test "does not touch manifest file there is no change" do
     in_fixture "no_mixfile", fn ->
       Mix.Dep.Lock.write %{foo: :bar, bar: :bat}
-      File.rm! "_build/dev/lib/sample/.compile.lock"
+      File.rm! "_build/dev/.compile.lock"
 
       Mix.Dep.Lock.write %{bar: :bat, foo: :bar}
-      refute File.regular? "_build/dev/lib/sample/.compile.lock"
-    end
-  end
-
-  test "stores status in manifest" do
-    in_fixture "no_mixfile", fn ->
-      assert Mix.Dep.Lock.status == :error
-      Mix.Dep.Lock.touch_manifest
-      assert Mix.Dep.Lock.status == :error
-      Mix.Dep.Lock.update_manifest
-      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
+      refute File.regular? "_build/dev/.compile.lock"
     end
   end
 end

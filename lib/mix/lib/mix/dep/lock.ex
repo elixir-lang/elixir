@@ -4,6 +4,7 @@
 # deps.* tasks. We also keep the Elixir version in the manifest file.
 defmodule Mix.Dep.Lock do
   @moduledoc false
+
   @manifest ".compile.lock"
 
   @doc """
@@ -12,49 +13,17 @@ defmodule Mix.Dep.Lock do
   The manifest is used to check if the lockfile
   itself is up to date.
   """
-  @spec manifest(Path.t) :: Path.t
-  def manifest(manifest_path \\ Mix.Project.manifest_path) do
-    Path.join(manifest_path, @manifest)
-  end
-
-  @doc """
-  Updates the lock manifest with the latest metadata.
-  """
-  @spec update_manifest :: :ok
-  def update_manifest do
-    config = Mix.Project.config
-    unless Mix.Project.umbrella?(config) do
-      manifest_path = Mix.Project.manifest_path(config)
-      data = {:v1, System.version, config[:build_scm]}
-      File.mkdir_p!(manifest_path)
-      File.write!(Path.join(manifest_path, @manifest), :io_lib.format('~p.~n', [data]))
-    end
-    :ok
+  def manifest(path \\ Mix.Project.build_path) do
+    Path.join(path, @manifest)
   end
 
   @doc """
   Touches the manifest file to force recompilation.
   """
-  @spec touch_manifest :: :ok
   def touch_manifest do
-    config = Mix.Project.config
-    unless Mix.Project.umbrella?(config) do
-      manifest = manifest()
-      File.exists?(manifest) && File.touch(manifest)
-    end
-    :ok
-  end
-
-  @doc """
-  Returns the manifest status with Elixir version and scm.
-  """
-  @spec status(Path.t) :: {:ok, vsn :: String.t, scm :: atom} | :error
-  def status(manifest_path \\ Mix.Project.manifest_path) do
-    case :file.consult(manifest(manifest_path)) do
-      {:ok, [{:v1, vsn, scm}]} -> {:ok, vsn, scm}
-      {:error, {_, :erl_parse, _}} -> {:ok, "1.0.0", nil} # Force old version if file exists but old format
-      _ -> :error
-    end
+    path = Mix.Project.build_path
+    File.mkdir_p!(path)
+    File.touch!(manifest(path))
   end
 
   @doc """
@@ -66,10 +35,8 @@ defmodule Mix.Dep.Lock do
     case File.read(lockfile) do
       {:ok, info} ->
         case Code.eval_string(info, [], file: lockfile) do
-          # lock could be a keyword list
-          {lock, _binding} when is_list(lock) -> Enum.into(lock, %{})
           {lock, _binding} when is_map(lock)  -> lock
-          {nil, _binding}                     -> %{}
+          {_, _binding} -> %{}
         end
       {:error, _} ->
         %{}
@@ -87,7 +54,7 @@ defmodule Mix.Dep.Lock do
           ~s("#{app}": #{inspect rev, limit: :infinity})
         end
       File.write! lockfile, "%{" <> Enum.join(lines, ",\n  ") <> "}\n"
-      update_manifest()
+      touch_manifest()
     end
     :ok
   end

@@ -245,9 +245,9 @@ defmodule Mix.Compilers.Elixir do
       :ok
     end)
 
-    # The Mix.Dep.Lock keeps all the project dependencies. Since Elixir
-    # is a dependency itself, we need to touch the lock so the current
-    # Elixir version, used to compile the files above, is properly stored.
-    Mix.Dep.Lock.update_manifest
+    # Since Elixir is a dependency itself, we need to touch the lock
+    # so the current Elixir version, used to compile the files above,
+    # is properly stored.
+    Mix.Dep.ElixirSCM.update
   end
 end
