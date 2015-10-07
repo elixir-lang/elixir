@@ -73,8 +73,6 @@ defmodule Mix.UmbrellaTest do
         assert Protocol.consolidated?(Enumerable)
       end)
     end
-  after
-    System.put_env "MIX_ENV", "dev"
   end
 
   defmodule UmbrellaDeps do
