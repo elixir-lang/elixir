@@ -183,11 +183,13 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        consolidated = File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime
+        assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
         purge [Foo, Bar]
         Mix.Task.clear
 
         # Ensure we can measure a timestamp difference
+        File.touch!("_build/dev/consolidated/Elixir.Enumerable.beam",
+                    {{2010, 1, 1}, {0, 0, 0}})
         ensure_touched("../foo/lib/foo.ex",
                        File.stat!("_build/dev/.compile.lock").mtime)
 
@@ -195,7 +197,8 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        assert consolidated < File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime
+        assert File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime >
+               {{2010, 1, 1}, {0, 0, 0}}
         purge [Foo, Bar]
       end)
     end)

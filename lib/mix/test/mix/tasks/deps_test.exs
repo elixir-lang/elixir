@@ -179,9 +179,9 @@ defmodule Mix.Tasks.DepsTest do
 
   ## deps.unlock
 
-  test "unlocks all deps" do
+  test "unlocks all deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{git_repo: "abcdef"}
       assert Mix.Dep.Lock.read == %{git_repo: "abcdef"}
       Mix.Tasks.Deps.Unlock.run ["--all"]
@@ -189,9 +189,9 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "unlocks unused deps" do
+  test "unlocks unused deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{whatever: "abcdef", ok: "abcdef"}
       assert Mix.Dep.Lock.read == %{whatever: "abcdef", ok: "abcdef"}
       Mix.Tasks.Deps.Unlock.run ["--unused"]
@@ -199,9 +199,9 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "unlocks specific deps" do
+  test "unlocks specific deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{git_repo: "abcdef", another: "hash"}
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Dep.Lock.read == %{another: "hash"}

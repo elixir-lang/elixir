@@ -4,10 +4,10 @@ defmodule Mix.Tasks.LoadconfigTest do
   use MixTest.Case
 
   @tag apps: [:my_app]
-  test "reads and persists project configuration" do
+  test "reads and persists project configuration", context do
     Mix.Project.push MixTest.Case.Sample
 
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       write_config """
       [my_app: [key: :project]]
       """
