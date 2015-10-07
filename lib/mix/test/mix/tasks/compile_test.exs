@@ -42,8 +42,6 @@ defmodule Mix.Tasks.CompileTest do
       assert Mix.Tasks.App.Start.run([]) == :ok
       assert Protocol.consolidated?(Enumerable)
     end
-  after
-    purge [Enumerable]
   end
 
   test "compile a project with multiple compilers and a syntax error in an erlang file" do
