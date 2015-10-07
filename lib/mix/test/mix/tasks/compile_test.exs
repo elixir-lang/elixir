@@ -37,6 +37,7 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
       assert Mix.Tasks.Compile.run([]) == :noop
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      purge [Enumerable]
 
       assert Mix.Tasks.App.Start.run([]) == :ok
       assert Protocol.consolidated?(Enumerable)
