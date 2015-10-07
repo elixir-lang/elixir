@@ -126,9 +126,9 @@ defmodule Mix.Tasks.App.Start do
   end
 
   defp load_protocol(file) do
-    case String.split(file, ".") do
-      [module, "beam"] ->
-        module = String.to_atom(module)
+    case file do
+      "Elixir." <> _ ->
+        module = file |> Path.rootname |> String.to_atom
         :code.purge(module)
         :code.delete(module)
       _ ->

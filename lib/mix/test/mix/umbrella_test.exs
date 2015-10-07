@@ -46,8 +46,9 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["Generated foo app"]}
         assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
+        purge [Enumerable]
 
-        assert Mix.Task.run "app.start"
+        assert Mix.Tasks.App.Start.run []
         assert Protocol.consolidated?(Enumerable)
       end)
     end
