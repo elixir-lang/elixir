@@ -3,7 +3,6 @@ defmodule Mix.Tasks.Escript.Build do
   use Bitwise, only_operators: true
 
   @shortdoc "Builds an escript for the project"
-  @recursive true
 
   @moduledoc ~S"""
   Builds an escript for the project.

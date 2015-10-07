@@ -259,13 +259,20 @@ defmodule Mix.Task do
       get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
       get!(task)
 
-    if recursive(module) and Mix.Project.umbrella? and Mix.ProjectStack.enable_recursion do
-      res = recur(fn _ -> run(task, args) end)
-      Mix.ProjectStack.disable_recursion
-      res
-    else
-      Mix.TasksServer.put({:task, task, proj})
-      module.run(args)
+    recursive = recursive(module)
+
+    cond do
+      recursive == true and Mix.Project.umbrella? ->
+        Mix.ProjectStack.recur fn ->
+          recur(fn _ -> run(task, args) end)
+        end
+
+      recursive == false and Mix.ProjectStack.recursing? ->
+        Mix.ProjectStack.root(fn -> run(task, args) end)
+
+      true ->
+        Mix.TasksServer.put({:task, task, proj})
+        module.run(args)
     end
   end
 
