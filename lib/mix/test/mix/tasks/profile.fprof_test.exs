@@ -13,34 +13,34 @@ defmodule Mix.Tasks.Profile.FprofTest do
     Mix.Project.push MixTest.Case.Sample
   end
 
-  test "profiles evaluated expression" do
-    in_fixture "no_mixfile", fn ->
+  test "profiles evaluated expression", context do
+    in_tmp context.test, fn ->
       assert capture_io(fn ->
         Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
-  test "profiles the script" do
+  test "profiles the script", context do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       assert capture_io(fn ->
         Fprof.run([git_repo])
       end) =~ ~r(:elixir_module\.compile/4 *\d+ *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
-  test "expands callers" do
-    in_fixture "no_mixfile", fn ->
+  test "expands callers", context do
+    in_tmp context.test, fn ->
       assert capture_io(fn ->
         Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--callers"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
     end
   end
 
-  test "expands processes" do
-    in_fixture "no_mixfile", fn ->
+  test "expands processes", context do
+    in_tmp context.test, fn ->
       output = capture_io(fn ->
         Fprof.run(["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> HashSet.new end)", "--details"])
       end)
@@ -51,8 +51,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
     end
   end
 
-  test "sort options" do
-    in_fixture "no_mixfile", fn ->
+  test "sort options", context do
+    in_tmp context.test, fn ->
       assert capture_io(fn ->
         Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort acc"])
       end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
@@ -63,8 +63,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
     end
   end
 
-  test "errors on missing files" do
-    in_fixture "no_mixfile", fn ->
+  test "errors on missing files", context do
+    in_tmp context.test, fn ->
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         capture_io(fn -> Fprof.run ["-r", "non-existent"] end)
       end
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
         capture_io(fn -> Fprof.run ["non-existent"] end)
       end
 
-      assert File.dir?("lib")
+      File.mkdir_p!("lib")
       assert_raise Mix.Error, "No such file: lib", fn ->
         capture_io(fn -> Fprof.run ["lib"] end)
       end

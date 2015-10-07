@@ -17,8 +17,8 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "compiles and invokes simple task from CLI" do
-    in_fixture "no_mixfile", fn ->
+  test "compiles and invokes simple task from CLI", context do
+    in_tmp context.test, fn ->
       File.mkdir_p!("lib")
 
       File.write! "mix.exs", """
@@ -53,37 +53,37 @@ defmodule Mix.CLITest do
     end
   end
 
-  test "no task error" do
-    in_fixture "no_mixfile", fn ->
+  test "no task error", context do
+    in_tmp context.test, fn ->
       contents = mix ~w[no_task]
       assert contents =~ "** (Mix) The task \"no_task\" could not be found"
     end
   end
 
-  test "tasks with slashes in them raise a NoTaskError right away" do
-    in_fixture "no_mixfile", fn ->
+  test "tasks with slashes in them raise a NoTaskError right away", context do
+    in_tmp context.test, fn ->
       contents = mix ~w[my/task]
       assert contents =~ "** (Mix) The task \"my/task\" could not be found"
     end
   end
 
-  test "--help smoke test" do
-    in_fixture "no_mixfile", fn ->
+  test "--help smoke test", context do
+    in_tmp context.test, fn ->
       output = mix ~w[--help]
       assert output =~ ~r/mix compile\s+# Compiles source files/
       refute output =~ "mix invalid"
     end
   end
 
-  test "--version smoke test" do
-    in_fixture "no_mixfile", fn ->
+  test "--version smoke test", context do
+    in_tmp context.test, fn ->
       output = mix ~w[--version]
       assert output =~ ~r/Mix [0-9\.a-z]+/
     end
   end
 
-  test "env config" do
-    in_fixture "no_mixfile", fn ->
+  test "env config", context do
+    in_tmp context.test, fn ->
       File.write! "custom.exs", """
       defmodule P do
         use Mix.Project
@@ -96,8 +96,6 @@ defmodule Mix.CLITest do
 
       output = mix ["run", "-e", "IO.inspect {Mix.env, System.argv}",
                     "--", "1", "2", "3"]
-
-      assert output =~ "Compiled lib/a.ex"
       assert output =~ ~s({:prod, ["1", "2", "3"]})
     end
   after
