@@ -12,7 +12,8 @@ is therefore recommended before upgrading Elixir.
 
 * [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
 * [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
-* [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD normalization and equivalent
+* [Macro] Add `Macro.traverse/4` that performs pre and post-walk at once
+* [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD and NFC normalization
 
 #### EEx
 
@@ -20,11 +21,19 @@ is therefore recommended before upgrading Elixir.
 
 #### IEx
 
+* [IEx] Display type docs for `t(Module.type)` and `t(Module.type/arity)`
+
 #### Logger
 
 #### Mix
 
+* [Mix] Cache and always consolidate protocols
+
 ### 2. Bug fixes
+
+#### Mix
+
+* [Mix] Always run non-recursive tasks at the umbrella root
 
 ### 3. Soft deprecations (no warnings emitted)
 
