@@ -607,4 +607,15 @@ defmodule MacroTest do
   defp postwalk(ast) do
     Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
   end
+
+  # underscore
+
+  test "underscore" do
+    assert "&_%_#_àáâ_ãäå_1_2_ç_æ" == Macro.underscore("& % # ÀÁÂ ÃÄÅ 1 2 Ç Æ")
+    assert "text_underscored" == Macro.underscore("text underscored")
+    assert "camel_case_underscored" == Macro.underscore("CamelCaseUnderscored")
+    assert "pascal_case_underscored" == Macro.underscore("pascalCaseUnderscored")
+    assert "atom_underscored" == Macro.underscore(:atomUnderscored)
+    assert "module_underscored" == Macro.underscore(ModuleUnderscored)
+  end
 end

@@ -373,6 +373,45 @@ defmodule Macro do
   end
 
   @doc ~S"""
+  Underscore the given value.
+
+  This behavior makes an underscored, lowercase form from a string
+  or atom.
+
+  ## Examples
+
+  iex> Macro.underscore("UpperCamelCase")
+  "upper_camel_case"
+
+  iex> Macro.underscore("pascalCase")
+  "pascal_case"
+
+  iex> Macro.underscore(UpperCamelCase)
+  "upper_camel_case"
+
+  iex> Macro.underscore(:pascalCase)
+  "pascal_case"
+
+  """
+  @spec underscore(Atom.t) :: Atom.t
+  def underscore(atom) when is_atom(atom) do
+    case Atom.to_string(atom) do
+      "Elixir." <> rest -> underscore(rest)
+      word -> underscore(word)
+    end
+  end
+
+  @spec underscore(String.t) :: String.t
+  def underscore(chars) do
+    chars
+      |> String.replace(~r/([A-Z]+)([A-Z][a-z])/, "\\1_\\2")
+      |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
+      |> String.replace(~r/-/, "_")
+      |> String.replace(~r/\s/, "_")
+      |> String.downcase
+  end
+
+  @doc ~S"""
   Unescapes the given chars according to the map given.
 
   Check `unescape_string/1` if you want to use the same map
