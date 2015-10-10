@@ -224,6 +224,17 @@ defmodule Supervisor.Spec do
 
   Check `Supervisor.Spec` module docs for more information on
   the options.
+
+  ## Examples
+
+  Here we start a `GenEvent` that is named `MyGenEvent`. We test that the
+  GenEvent is actually created with that name by calling a function that
+  `which_handlers`. As no handlers are added, it returns an empty list.
+
+      iex> genevent_worker = Supervisor.Spec.worker(GenEvent, [[name: MyGenEvent]])
+      iex> {:ok, sup} = Supervisor.start_link([genevent_worker], strategy: :one_for_one)
+      iex> GenEvent.which_handlers(MyGenEvent)
+      []
   """
   @spec supervisor(module, [term], [restart: restart, shutdown: shutdown,
                                     id: term, function: atom, modules: modules]) :: spec
