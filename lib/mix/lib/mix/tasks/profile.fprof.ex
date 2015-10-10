@@ -100,9 +100,6 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   Finally, it's advised to profile your program with the `prod` environment, since
   this should give you a more correct insight into your real bottlenecks.
-  Profiling with other environments might produce some false bottlenecks, such as
-  protocol dispatches, which perform much faster with the `prod` environment when
-  `:build_embedded` is `true` (which is the default for production).
   """
 
   @spec run(OptionParser.argv) :: :ok
