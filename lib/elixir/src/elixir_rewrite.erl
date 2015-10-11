@@ -160,7 +160,7 @@ rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(St
   String;
 rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_binary]}, Meta, [Var]},
+  Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
@@ -173,7 +173,7 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List]) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', ?generated, [erlang, is_list]}, Meta, [Var]},
+  Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
   Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
 
