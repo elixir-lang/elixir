@@ -1,9 +1,8 @@
 -module(elixir_rewrite).
 -export([rewrite/5, inline/3]).
+-include("elixir.hrl").
 
 %% Convenience variables
-
--define(hidden, [{line, -1}]).
 
 -define(atom, 'Elixir.Atom').
 -define(enum, 'Elixir.Enum').
@@ -165,9 +164,9 @@ rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
-  {'case', ?hidden, [String, [{do,
-    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?hidden, [[Var], Slow]}]
+  {'case', ?generated, [String, [{do,
+    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', ?generated, [[Var], Slow]}]
   }]]};
 
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) when is_list(List) ->
@@ -178,9 +177,9 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
   Fast  = remote(lists, Meta, 'reverse', Meta, [Var]),
 
-  {'case', ?hidden, [List, [{do,
-    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?hidden, [[Var], Slow]}]
+  {'case', ?generated, [List, [{do,
+    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', ?generated, [[Var], Slow]}]
   }]]};
 
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->

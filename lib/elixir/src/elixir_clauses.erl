@@ -31,26 +31,27 @@ match(Fun, Args, S) -> Fun(Args, S).
 
 %% Translate clauses with args, guards and expressions
 
-clause(Line, Fun, Args, Expr, Guards, S) when is_integer(Line) ->
+clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_scope{extra_guards=[]}),
   {TExpr, SE} = elixir_translator:translate(Expr, SA#elixir_scope{extra_guards=nil}),
 
   Extra = SA#elixir_scope.extra_guards,
-  TGuards = guards(Line, Guards, Extra, SA),
-  {{clause, Line, TArgs, TGuards, unblock(TExpr)}, SE}.
+  TGuards = guards(Meta, Guards, Extra, SA),
+  {{clause, ?ann(Meta), TArgs, TGuards, unblock(TExpr)}, SE}.
 
 % Translate/Extract guards from the given expression.
 
-guards(Line, Guards, Extra, S) ->
+guards(Meta, Guards, Extra, S) ->
   SG = S#elixir_scope{context=guard, extra_guards=nil},
 
   case Guards of
     [] -> case Extra of [] -> []; _ -> [Extra] end;
-    _  -> [translate_guard(Line, Guard, Extra, SG) || Guard <- Guards]
+    _  -> [translate_guard(Meta, Guard, Extra, SG) || Guard <- Guards]
   end.
 
-translate_guard(Line, Guard, Extra, S) ->
-  [element(1, elixir_translator:translate(elixir_quote:linify(Line, Guard), S))|Extra].
+translate_guard(Meta, Guard, Extra, S) ->
+  %% TODO: Is this linify still required?
+  [element(1, elixir_translator:translate(elixir_quote:linify(?line(Meta), Guard), S))|Extra].
 
 extract_guards({'when', _, [Left, Right]}) -> {Left, extract_or_guards(Right)};
 extract_guards(Else) -> {Else, []}.
@@ -101,14 +102,14 @@ do_clauses(Meta, DecoupledClauses, S) ->
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
-  expand_clauses(?line(Meta), TClauses, CV, FinalVars, [], FS).
+  expand_clauses(?ann(Meta), TClauses, CV, FinalVars, [], FS).
 
-expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
+expand_clauses(Ann, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
   case generate_match_vars(FinalVars, ClauseVars, [], []) of
     {[], []} ->
-      expand_clauses(Line, T, V, FinalVars, [Clause|Acc], S);
+      expand_clauses(Ann, T, V, FinalVars, [Clause|Acc], S);
     {Left, Right} ->
-      MatchExpr   = generate_match(Line, Left, Right),
+      MatchExpr   = generate_match(Ann, Left, Right),
       ClauseExprs = element(5, Clause),
       [Final|RawClauseExprs] = lists:reverse(ClauseExprs),
 
@@ -122,8 +123,8 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
               {[UserVar, MatchExpr, Final|RawClauseExprs], S};
             _ ->
               {VarName, _, SS} = elixir_scope:build_var('_', S),
-              StorageVar  = {var, Line, VarName},
-              StorageExpr = {match, Line, StorageVar, Final},
+              StorageVar  = {var, Ann, VarName},
+              StorageExpr = {match, Ann, StorageVar, Final},
               {[StorageVar, MatchExpr, StorageExpr|RawClauseExprs], SS}
           end;
         false ->
@@ -131,10 +132,10 @@ expand_clauses(Line, [Clause|T], [ClauseVars|V], FinalVars, Acc, S) ->
       end,
 
       FinalClause = setelement(5, Clause, lists:reverse(FinalClauseExprs)),
-      expand_clauses(Line, T, V, FinalVars, [FinalClause|Acc], FS)
+      expand_clauses(Ann, T, V, FinalVars, [FinalClause|Acc], FS)
   end;
 
-expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
+expand_clauses(_Ann, [], [], _FinalVars, Acc, S) ->
   {lists:reverse(Acc), S}.
 
 % Handle each key/value clause pair and translate them accordingly.
@@ -142,12 +143,12 @@ expand_clauses(_Line, [], [], _FinalVars, Acc, S) ->
 each_clause(Export, {match, Meta, [Condition], Expr}, S) ->
   Fun = wrap_export_fun(Export, fun elixir_translator:translate_args/2),
   {Arg, Guards} = extract_guards(Condition),
-  clause(?line(Meta), Fun, [Arg], Expr, Guards, S);
+  clause(?ann(Meta), Fun, [Arg], Expr, Guards, S);
 
 each_clause(Export, {expr, Meta, [Condition], Expr}, S) ->
   {TCondition, SC} = (wrap_export_fun(Export, fun elixir_translator:translate/2))(Condition, S),
   {TExpr, SB} = elixir_translator:translate(Expr, SC),
-  {{clause, ?line(Meta), [TCondition], [], unblock(TExpr)}, SB}.
+  {{clause, ?ann(Meta), [TCondition], [], unblock(TExpr)}, SB}.
 
 wrap_export_fun(Meta, Fun) ->
   case lists:keyfind(export_head, 1, Meta) of
@@ -216,11 +217,11 @@ generate_match_vars([{Key, Value, Expr}|T], ClauseVars, Left, Right) ->
 generate_match_vars([], _ClauseVars, Left, Right) ->
   {Left, Right}.
 
-generate_match(Line, [Left], [Right]) ->
-  {match, Line, Left, Right};
+generate_match(Ann, [Left], [Right]) ->
+  {match, Ann, Left, Right};
 
-generate_match(Line, LeftVars, RightVars) ->
-  {match, Line, {tuple, Line, LeftVars}, {tuple, Line, RightVars}}.
+generate_match(Ann, LeftVars, RightVars) ->
+  {match, Ann, {tuple, Ann, LeftVars}, {tuple, Ann, RightVars}}.
 
 unblock({'block', _, Exprs}) -> Exprs;
 unblock(Exprs) -> [Exprs].

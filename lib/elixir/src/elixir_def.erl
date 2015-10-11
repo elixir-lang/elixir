@@ -34,7 +34,7 @@ delete_definition(Module, Tuple) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
+store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line) ->
   E = (elixir_locals:get_cached_env(Pos))#{line := Line},
   {NameAndArgs, Guards} = elixir_clauses:extract_guards(Call),
 
@@ -156,7 +156,10 @@ translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Li
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
                                 Args, Guards, expr_from_body(Line, Body), E),
 
-  Body == nil andalso check_args_for_bodyless_clause(Line, EArgs, E),
+  case Body of
+    nil -> check_args_for_bodyless_clause(Line, EArgs, E);
+    _ -> ok
+  end,
 
   S = elixir_env:env_to_scope(E),
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
@@ -170,7 +173,7 @@ translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
 translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {missing_do, Kind});
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
-  {TClause, TS} = elixir_clauses:clause(Line,
+  {TClause, TS} = elixir_clauses:clause([{line, Line}],
     fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
   FClause = case is_macro(Kind) of
