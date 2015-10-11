@@ -1,6 +1,6 @@
 Code.require_file "../test_helper.exs", __DIR__
 
-defmodule DialyzerTest do
+defmodule Kernel.DialyzerTest do
   use ExUnit.Case, async: true
 
   @moduletag :dialyzer

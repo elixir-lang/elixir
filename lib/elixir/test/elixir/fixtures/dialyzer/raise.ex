@@ -1,13 +1,12 @@
-defmodule DialyzerRaise do
-
+defmodule Dialyzer.Raise do
   defexception [:message]
 
   def exception_var() do
-    e = %DialyzerRaise{}
+    e = %Dialyzer.Raise{}
     raise e
   end
 
-  def exception_var(e = %DialyzerRaise{}) do
+  def exception_var(e = %Dialyzer.Raise{}) do
     raise e
   end
 
