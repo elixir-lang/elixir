@@ -277,6 +277,24 @@ defmodule Keyword.DuplicatedTest do
     end
   end
 
+  test "size/1" do
+    assert Keyword.size([]) == 0
+    assert Keyword.size([a: 0, b: 1, a: 2]) == 3
+
+    assert_raise ArgumentError, fn ->
+      Keyword.size([1, 2 ,3])
+    end
+  end
+
+  test "to_list/1" do
+    assert Keyword.to_list([]) == []
+    assert Keyword.to_list([a: 0, b: 1, a: 2]) == [a: 0, b: 1, a: 2]
+
+    assert_raise ArgumentError, fn ->
+      Keyword.to_list([1, 2 ,3])
+    end
+  end
+
   defp create_empty_keywords, do: []
   defp create_keywords, do: [first_key: 1, first_key: 2, second_key: 2]
 end
