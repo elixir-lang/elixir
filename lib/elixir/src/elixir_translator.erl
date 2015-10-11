@@ -203,9 +203,9 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
                            [Name, Arity])
       end;
     true ->
-      Line = ?ann(Meta),
+      Ann = ?ann(Meta),
       {TArgs, NS} = translate_args(Args, S),
-      {{call, Line, {atom, Line, Name}, TArgs}, NS}
+      {{call, Ann, {atom, Ann, Name}, TArgs}, NS}
   end;
 
 %% Remote calls
@@ -217,23 +217,23 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   {TLeft, SL}  = translate(Left, S),
   {Var, _, SV} = elixir_scope:build_var('_', SL),
 
-  Line   = ?ann(Meta),
-  TRight = {atom, Line, Right},
+  Ann = ?ann(Meta),
+  TRight = {atom, Ann, Right},
 
   %% TODO: Consider making this {badkey, _} error
-  TVar = {var, Line, Var},
-  TMap = {map, Line, [
-    {map_field_assoc, Line,
-      {atom, Line, '__struct__'},
-      {atom, Line, 'Elixir.KeyError'}},
-    {map_field_assoc, Line,
-      {atom, Line, '__exception__'},
-      {atom, Line, 'true'}},
-    {map_field_assoc, Line,
-      {atom, Line, key},
+  TVar = {var, Ann, Var},
+  TMap = {map, Ann, [
+    {map_field_assoc, Ann,
+      {atom, Ann, '__struct__'},
+      {atom, Ann, 'Elixir.KeyError'}},
+    {map_field_assoc, Ann,
+      {atom, Ann, '__exception__'},
+      {atom, Ann, 'true'}},
+    {map_field_assoc, Ann,
+      {atom, Ann, key},
       TRight},
-    {map_field_assoc, Line,
-      {atom, Line, term},
+    {map_field_assoc, Ann,
+      {atom, Ann, term},
       TVar}]},
 
   %% TODO: there is a bug in dialyzer that warns about generated matches that
@@ -241,17 +241,17 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   %% against an empty map to avoid the warning.
   {{'case', ?generated, TLeft, [
     {clause, ?generated,
-      [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
+      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
       [],
       [TVar]},
     {clause, ?generated,
       [TVar],
       [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
-      [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
+      [elixir_utils:erl_call(?generated, erlang, error, [TMap])]},
     {clause, ?generated,
       [TVar],
       [],
-      [{call, ?generated, {remote, Line, TVar, TRight}, []}]}
+      [{call, ?generated, {remote, ?generated, TVar, TRight}, []}]}
   ]}, SV};
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
@@ -259,9 +259,9 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
 
-  Line   = ?ann(Meta),
+  Ann    = ?ann(Meta),
   Arity  = length(Args),
-  TRight = {atom, Line, Right},
+  TRight = {atom, Ann, Right},
   SC = mergev(SL, SA),
 
   %% Rewrite erlang function calls as operators so they
@@ -269,12 +269,12 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   case (Left == erlang) andalso guard_op(Right, Arity) of
     true ->
       case TArgs of
-        [TOne]       -> {{op, Line, Right, TOne}, SC};
-        [TOne, TTwo] -> {{op, Line, Right, TOne, TTwo}, SC}
+        [TOne]       -> {{op, Ann, Right, TOne}, SC};
+        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
       end;
     false ->
       assert_allowed_in_context(Meta, Left, Right, Arity, S),
-      {{call, Line, {remote, Line, TLeft, TRight}, TArgs}, SC}
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end;
 
 %% Anonymous function calls
