@@ -1,5 +1,4 @@
-defmodule DialyzerRemoteCall do
-
+defmodule Dialyzer.RemoteCall do
   def map_var() do
     map = %{a: 1}
     map.key
