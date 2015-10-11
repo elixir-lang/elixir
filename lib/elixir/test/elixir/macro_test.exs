@@ -618,4 +618,14 @@ defmodule MacroTest do
     assert "atom_underscored" == Macro.underscore(:atomUnderscored)
     assert "module_underscored" == Macro.underscore(ModuleUnderscored)
   end
+
+  # camelize
+
+  test "camelize" do
+    assert "TextCamelCased" == Macro.camelize("text camel cased")
+    assert "textCamelCased" == Macro.camelize("text camel cased", :lower)
+    assert "HyphenatedText" == Macro.camelize("hyphenated-text")
+    assert "UnderscoredText" == Macro.camelize("underscored_text")
+    assert "AtomCamelCased" == Macro.camelize(:atom_camel_cased)
+  end
 end
