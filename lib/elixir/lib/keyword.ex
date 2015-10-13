@@ -747,11 +747,26 @@ defmodule Keyword do
 
   @doc false
   def size(keyword) do
-    length(keyword)
+    do_size(keyword, 0)
   end
+
+  defp do_size([{key, _value} | rest], acc) when is_atom(key) do
+    do_size(rest, acc + 1)
+  end
+
+  defp do_size([], acc), do: acc
+  defp do_size(other, _acc), do: bad_keyword(other)
 
   @doc false
   def to_list(keyword) do
-    keyword
+    if keyword?(keyword) do
+      keyword
+    else
+      bad_keyword(keyword)
+    end
+  end
+
+  defp bad_keyword(keyword) do
+    raise ArgumentError, "expected keyword list, got: #{inspect keyword}"
   end
 end
