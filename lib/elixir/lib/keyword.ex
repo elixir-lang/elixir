@@ -743,6 +743,70 @@ defmodule Keyword do
     end
   end
 
+  @doc """
+  Retrieves a boolean value for `key` from keywords list.
+
+  In case there is no such key, `default` is returned
+  (`default` defaults to `false`).
+
+  In case there is a key and the value is not a boolean,
+  an error is raised.
+
+  ## Examples
+
+      iex> Keyword.bool [a: true, b: false], :a
+      true
+
+      iex> Keyword.bool [a: true, b: false], :b
+      false
+
+      iex> Keyword.bool [a: true], :b
+      false
+
+      iex> Keyword.bool [a: true], :b, true
+      true
+
+      iex> Keyword.bool [a: true, b: 1], :b
+      ** (RuntimeError) key b exists but is not a boolean
+  """
+  def bool(keywords, key, default \\ false) when is_list(keywords) and is_boolean(default) do
+    case get(keywords, key, default) do
+      true -> true
+      false -> false
+      _ -> raise(RuntimeError, message: "key #{key} exists but is not a boolean")
+    end
+  end
+
+  @doc """
+  Retrieves a boolean value for `key` from keywords list.
+
+  In case there is no such key, an error is raised.
+
+  In case there is a key and the value is not a boolean,
+  an error is raised.
+
+  ## Examples
+
+      iex> Keyword.bool! [a: true, b: false], :a
+      true
+
+      iex> Keyword.bool! [a: true, b: false], :b
+      false
+
+      iex> Keyword.bool! [a: true, b: 1], :b
+      ** (RuntimeError) key exists but is not a boolean
+
+      iex> Keyword.bool! [a: true], :b
+      ** (KeyError) key :b not found in: [a: true]
+  """
+  def bool!(keywords, key) when is_list(keywords) do
+    case fetch!(keywords, key) do
+      true -> true
+      false -> false
+      _ -> raise(RuntimeError, message: "key exists but is not a boolean")
+    end
+  end
+
   # Dict callbacks
 
   @doc false
