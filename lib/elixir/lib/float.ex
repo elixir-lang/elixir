@@ -9,7 +9,10 @@ defmodule Float do
   Parses a binary into a float.
 
   If successful, returns a tuple of the form `{float, remainder_of_binary}`;
-  otherwise, `:error`.
+  when the binary cannot be coerced into a valid float, the atom `:error` is
+  returned; otherwise, the exception `ArgumentError` is raised by erlang (for
+  example, when the size of the float exceeds the maximum size of
+  `1.7976931348623157e+308`).
 
   If a float formatted string wants to be directly converted to a float,
   `String.to_float/1` can be used instead.
