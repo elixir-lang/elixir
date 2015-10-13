@@ -743,15 +743,17 @@ defmodule Keyword do
     end
   end
 
-  # Dict callbacks
+  @doc """
+  Returns the keyword list itself.
+  """
+  def to_list(keyword) when is_list(keyword) do
+    keyword
+  end
 
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
   @doc false
   def size(keyword) do
     length(keyword)
-  end
-
-  @doc false
-  def to_list(keyword) do
-    keyword
   end
 end

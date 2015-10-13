@@ -17,7 +17,7 @@ defmodule KeywordTest do
   test "supports optional comma" do
     [a: 1,
      b: 2,
-     c: 3, ]
+     c: 3,]
   end
 
   test "keyword?/1" do
