@@ -860,7 +860,7 @@ defmodule Dict do
         Enumerable.reduce(dict2, {:cont, true}, fn({k, v}, _acc) ->
           case target1.fetch(dict1, k) do
             {:ok, ^v} -> {:cont, true}
-            _           -> {:halt, false}
+            _         -> {:halt, false}
           end
         end) |> elem(1)
 

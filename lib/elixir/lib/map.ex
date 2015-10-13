@@ -13,9 +13,16 @@ defmodule Map do
 
   use Dict
 
-  defdelegate [keys(map), values(map), size(map), merge(map1, map2), to_list(map)], to: :maps
+  defdelegate [keys(map), values(map), merge(map1, map2), to_list(map)], to: :maps
 
   @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
+
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
+  @doc false
+  def size(map) do
+    map_size(map)
+  end
 
   @doc """
   Returns a new empty map.

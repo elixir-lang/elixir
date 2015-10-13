@@ -154,7 +154,7 @@ defmodule DictTest.Common do
         assert Dict.get(dict, "first_key") == 1
       end
 
-      test "put_new/3 with_match" do
+      test "put_new/3 with match" do
         assert Dict.get(Dict.put_new(int_dict, 1, :other), 1)     == 1
         assert Dict.get(Dict.put_new(int_dict, 1.0, :other), 1)   == 1
         assert Dict.get(Dict.put_new(int_dict, 1, :other), 1.0)   == nil
