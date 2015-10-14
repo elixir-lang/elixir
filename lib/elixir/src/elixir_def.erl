@@ -94,15 +94,10 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
 %% @on_definition
 
 run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
-  case elixir_compiler:get_opt(internal) of
-    true ->
-      ok;
-    _ ->
-      Env = elixir_env:linify({Line, E}),
-      Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
-      _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
-      ok
-  end.
+  Env = elixir_env:linify({Line, E}),
+  Callbacks = elixir_module:get_attribute(Module, on_definition),
+  _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
+  ok.
 
 make_struct_available(def, Module, '__struct__', []) ->
   case erlang:get(elixir_compiler_pid) of
@@ -133,10 +128,7 @@ retrieve_location(Location, Module) ->
   end.
 
 get_location_attribute(Module) ->
-  case elixir_compiler:get_opt(internal) of
-    true  -> nil;
-    false -> 'Elixir.Module':get_attribute(Module, file)
-  end.
+  elixir_module:get_attribute(Module, file).
 
 normalize_location(File) ->
   elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)).
