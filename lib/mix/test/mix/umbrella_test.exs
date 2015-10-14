@@ -210,6 +210,11 @@ defmodule Mix.UmbrellaTest do
         # Ensure we can measure a timestamp difference
         File.touch!("_build/dev/consolidated/Elixir.Enumerable.beam",
                     {{2010, 1, 1}, {0, 0, 0}})
+
+        # Touch once to make it up to date
+        File.touch!("../foo/lib/foo.ex")
+
+        # Touch another time to ensure mtime changed
         ensure_touched("../foo/lib/foo.ex",
                        File.stat!("_build/dev/.compile.lock").mtime)
 
