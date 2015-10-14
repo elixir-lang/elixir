@@ -187,7 +187,7 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(merge_helper_opts(opts))
 
     # Finally parse, require and load the files
-    test_files   = parse_files(files, test_paths)
+    test_files = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Test do
 
   defp display_warn_test_pattern(files, pattern) do
     for file <- files do
-      Mix.shell.info "Warning: #{file} does not match \"#{pattern}\" and won't be run"
+      Mix.shell.info "warning: #{file} does not match #{inspect pattern} and won't be loaded"
     end
   end
 
