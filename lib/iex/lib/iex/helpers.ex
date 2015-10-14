@@ -354,7 +354,7 @@ defmodule IEx.Helpers do
   def m() do
     :code.all_loaded
     |> Enum.sort
-    |> Enum.map(fn {module, path} ->m_display(module, path) end)
+    |> Enum.map(fn {module, path} -> m_display(module, path) end)
 
     dont_display_result
   end
@@ -377,11 +377,8 @@ defmodule IEx.Helpers do
     dont_display_result
   end
 
-  # Erlang 18 defines :module, 17 does not.
   defp m_display_info(module) do
-   info = module.module_info
-          |> Keyword.put(:object_file, :code.which(module))
-          |> Keyword.put_new(:module, module)
+   info = [object_file: :code.which(module)] ++ module.module_info
 
    @module_info_labels
    |> Keyword.keys
