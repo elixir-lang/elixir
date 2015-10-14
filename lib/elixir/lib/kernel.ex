@@ -1340,19 +1340,31 @@ defmodule Kernel do
           :erlang.error unquote(alias).exception([])
         end
       _ ->
-        quote do
-          case unquote(msg) do
-            msg when is_binary(msg) ->
-              :erlang.error RuntimeError.exception(msg)
-            atom when is_atom(atom) ->
-              :erlang.error atom.exception([])
-            %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
-              :erlang.error other
-            other ->
-              message = "raise/1 expects an alias, string or exception as the first argument, got: #{inspect other}"
-              :erlang.error ArgumentError.exception(message)
-          end
+        generated = fn fun, var ->
+          {fun, [generated: true], [{var, [], __MODULE__}]}
         end
+
+        {fun, meta, [arg, [do: clauses]]} =
+          quote do
+            case unquote(msg) do
+              msg when unquote(generated.(:is_binary, :msg)) ->
+                :erlang.error RuntimeError.exception(msg)
+              atom when unquote(generated.(:is_atom, :atom)) ->
+                :erlang.error atom.exception([])
+              %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
+                :erlang.error other
+              other ->
+                message = "raise/1 expects an alias, string or exception as the first argument, got: #{inspect other}"
+                :erlang.error ArgumentError.exception(message)
+            end
+          end
+
+        clauses =
+          :lists.map(fn {:->, meta, args} ->
+            {:->, [generated: true] ++ Keyword.delete(meta, :line), args}
+          end, clauses)
+
+        {fun, meta, [arg, [do: clauses]]}
     end
   end
 
