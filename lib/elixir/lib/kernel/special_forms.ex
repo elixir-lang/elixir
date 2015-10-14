@@ -1251,7 +1251,7 @@ defmodule Kernel.SpecialForms do
   Note generators can also be used to filter as it removes any value
   that doesn't match the left side of `<-`:
 
-      iex> for {:user, name} <- [user: "john", admin: "john", user: "meg"] do
+      iex> for {:user, name} <- [user: "john", admin: "james", user: "meg"] do
       ...>   String.upcase(name)
       ...> end
       ["JOHN", "MEG"]
