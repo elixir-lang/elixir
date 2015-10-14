@@ -197,7 +197,7 @@ defmodule Mix.Tasks.New do
   # <%= @mod %>
 
   **TODO: Add description**
-
+  <%= if @app do %>
   ## Installation
 
   If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
@@ -213,6 +213,7 @@ defmodule Mix.Tasks.New do
           def application do
             [applications: [:<%= @app %>]]
           end
+  <% end %>
   """
 
   embed_text :gitignore, """
