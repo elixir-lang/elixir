@@ -1089,8 +1089,7 @@ defmodule Module do
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 
-  defp warn_if_redefining_attribute(warn, table, key) when 
-       key in [:moduledoc, :typedoc, :doc] and is_list(warn) do
+  defp warn_if_redefining_attribute(warn, table, key) when is_list(warn) do
     case :ets.lookup(table, key) do
       [{_, val}] when val != nil ->
         :elixir_errors.warn warn_info(warn), "redefining @#{Atom.to_string(key)} attribute"
