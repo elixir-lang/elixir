@@ -591,7 +591,12 @@ defmodule List do
   """
   @spec to_string(:unicode.charlist) :: String.t
   def to_string(list) when is_list(list) do
-    case :unicode.characters_to_binary(list) do
+    try do
+       :unicode.characters_to_binary(list)
+    rescue
+      ArgumentError ->
+        raise ArgumentError, "cannot convert list to string. The list must contain only integers, strings or nested such lists; got: #{inspect list}"
+    else
       result when is_binary(result) ->
         result
 
