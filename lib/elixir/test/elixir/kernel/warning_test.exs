@@ -602,6 +602,20 @@ defmodule Kernel.WarningTest do
     end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
   end
 
+  test "duplicated docs" do
+    assert capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @doc "Something"
+        @doc "Another"
+        def foo, do: :ok
+      end
+      """
+    end) =~ "nofile:3: warning: redefining @doc attribute"
+  after
+    purge Sample
+  end
+
   test "typedoc on typep" do
     assert capture_err(fn ->
       Code.eval_string """
