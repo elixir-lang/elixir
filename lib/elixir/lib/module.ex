@@ -815,12 +815,12 @@ defmodule Module do
   end
 
   @doc false
-  def put_attribute(module, key, value, warn) when is_atom(key) do
+  def put_attribute(module, key, value, stack) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
-    warn_if_redefining_attribute(warn, table, key)
+    warn_if_redefining_attribute(stack, table, key)
 
     new =
       if :lists.member(key, acc) do
@@ -999,7 +999,7 @@ defmodule Module do
   end
 
   @doc false
-  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or is_nil(warn)) do
+  def get_attribute(module, key, stack) when is_atom(key) and (is_list(stack) or is_nil(stack)) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
@@ -1012,8 +1012,8 @@ defmodule Module do
         cond do
           :lists.member(key, acc) ->
             []
-          is_list(warn) ->
-            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
+          is_list(stack) ->
+            :elixir_errors.warn warn_info(stack), "undefined module attribute @#{key}, " <>
               "please remove access to @#{key} or explicitly set it before access"
             nil
           true ->
@@ -1089,13 +1089,13 @@ defmodule Module do
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 
-  defp warn_if_redefining_attribute(warn, table, key) when is_list(warn) do
+  defp warn_if_redefining_attribute(nil, _table, _key), do: false
+  defp warn_if_redefining_attribute(stack, table, key) do
     case :ets.lookup(table, key) do
       [{_, val}] when val != nil ->
-        :elixir_errors.warn warn_info(warn), "redefining @#{Atom.to_string(key)} attribute"
-      _other -> 
+        :elixir_errors.warn warn_info(stack), "redefining @#{Atom.to_string(key)} attribute"
+      _other ->
         false
     end
   end
-  defp warn_if_redefining_attribute(_caller, _table, _key), do: false
 end
