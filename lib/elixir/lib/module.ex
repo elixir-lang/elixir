@@ -810,11 +810,17 @@ defmodule Module do
       end
 
   """
-  def put_attribute(module, key, value) when is_atom(key) do
+  def put_attribute(module, key, value) do
+    put_attribute(module, key, value, nil)
+  end
+
+  @doc false
+  def put_attribute(module, key, value, warn) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
+    warn_if_redefining_attribute(warn, table, key)
 
     new =
       if :lists.member(key, acc) do
@@ -1082,4 +1088,15 @@ defmodule Module do
       raise ArgumentError,
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
+
+  defp warn_if_redefining_attribute(warn, table, key) when 
+       key in [:moduledoc, :typedoc, :doc] and is_list(warn) do
+    case :ets.lookup(table, key) do
+      [{_, val}] when val != nil ->
+        :elixir_errors.warn warn_info(warn), "redefining @#{Atom.to_string(key)} attribute"
+      _other -> 
+        false
+    end
+  end
+  defp warn_if_redefining_attribute(_caller, _table, _key), do: false
 end
