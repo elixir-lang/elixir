@@ -1341,7 +1341,7 @@ defmodule Kernel do
         end
       _ ->
         generated = fn fun, var ->
-          {fun, [generated: true], [{var, [], __MODULE__}]}
+          {fun, [generated: true, line: -1], [{var, [], __MODULE__}]}
         end
 
         {fun, meta, [arg, [do: clauses]]} =
@@ -1361,7 +1361,7 @@ defmodule Kernel do
 
         clauses =
           :lists.map(fn {:->, meta, args} ->
-            {:->, [generated: true] ++ Keyword.delete(meta, :line), args}
+            {:->, [generated: true] ++ Keyword.put(meta, :line, -1), args}
           end, clauses)
 
         {fun, meta, [arg, [do: clauses]]}
