@@ -22,15 +22,17 @@ defmodule IEx.Helpers do
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
-    * `pid/3`         - creates a PID with the 3 integer arguments passed
-    * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles and reloads the given module
-    * `recompile/0`   - recompiles the current Mix project (requires iex -S mix)
-    * `respawn/0`     - respawns a new IEx shell
-    * `s/1`           - prints spec information
-    * `t/1`           - prints type information
-    * `v/0`           - retrieves the last value from the history
-    * `v/1`           - retrieves the nth value from the history
+    * `m/0`           — list loaded modules and their BEAM file locations
+    * `m/1`           — prints information for the given module
+    * `pid/3`         — creates a PID with the 3 integer arguments passed
+    * `pwd/0`         — prints the current working directory
+    * `r/1`           — recompiles and reloads the given module's source file
+    * `respawn/0`     — respawns the current shell
+    * `s/1`           — prints spec information
+    * `t/1`           — prints type information
+    * `v/0`           — retrieves the last value from the history
+    * `v/1`           — retrieves the nth value from the history
+    * `import_file/1` — evaluates the given file in the shell's context
 
   Help for functions in this module can be consulted
   directly from the command line, as an example, try:
@@ -337,6 +339,114 @@ defmodule IEx.Helpers do
     quote do
       IEx.Introspection.s(unquote_splicing(args))
     end
+  end
+
+  @module_info_labels [module: "Module:",
+                       object_file: "Object File:",
+                       source: "Source File:",
+                       version: "Version:",
+                       compile_time: "Compile Time:",
+                       compile_options: "Compile Options:"]
+
+  @doc """
+  Prints out a list of all modules loaded and their BEAM file paths.
+  """
+  def m() do
+    :code.all_loaded
+    |> Enum.sort
+    |> Enum.map(fn {module, path} ->m_display(module, path) end)
+
+    dont_display_result
+  end
+
+  @doc """
+  Print out available information about a loaded module.
+
+  Includes compile time, object file path, source file path,
+  version number and compile options. More complete information
+  can be found using the Erlang `module_info` function.
+  See http://www.erlang.org/doc/reference_manual/modules.html for more
+  information.
+  """
+  def m(module) when is_atom(module) do
+    case Code.ensure_loaded?(module) do
+      true -> m_display_info(module)
+        _  -> IO.puts IEx.color(:eval_error, "#{inspect(module)} could not be loaded.")
+    end
+
+    dont_display_result
+  end
+
+  # Erlang 18 defines :module, 17 does not.
+  defp m_display_info(module) do
+   info = module.module_info
+          |> Keyword.put(:object_file, :code.which(module))
+          |> Keyword.put_new(:module, module)
+
+   @module_info_labels
+   |> Keyword.keys
+   |> Enum.map(fn key -> m_print(m_label(key), m_info(info, key)) end)
+  end
+
+  defp m_label(key) do
+    Keyword.get(@module_info_labels, key)
+  end
+
+  defp m_info(info, :source) do
+    case info[:compile][:source] do
+      nil  -> "no value found"
+      path -> Path.relative_to_cwd(path)
+    end
+  end
+
+  defp m_info(info, :compile_options) do
+    case info[:compile][:options] do
+      nil -> "no value found"
+      _   -> inspect(info[:compile][:options])
+    end
+  end
+
+  defp m_info(info, :compile_time) do
+    case info[:compile][:time] do
+      nil       -> "no value found"
+      cmpl_time -> m_format_time(cmpl_time)
+    end
+  end
+
+  defp m_info(info, :version) do
+    case info[:attributes][:vsn] do
+      nil     -> "no value found"
+      version -> inspect version
+    end
+  end
+
+  defp m_info(info, :object_file) do
+    case info[:object_file] do
+      nil                     -> "no value found"
+      atom when is_atom(atom) -> inspect atom
+      path                    -> Path.relative_to_cwd(path)
+    end
+  end
+
+  defp m_info(info, key) do
+   inspect Keyword.get(info, key, "no value found")
+  end
+
+  defp m_format_time({year,month,day,hour,min,sec}) do
+    "#{year}-#{month}-#{day} #{hour}:#{min}:#{sec}"
+  end
+
+  defp m_display(module, path) when is_atom(module) and is_atom(path) do
+    m_print(inspect(module), inspect(path))
+  end
+
+  defp m_display(module, path) when is_atom(module) do
+    m_print(inspect(module), Path.relative_to_cwd(path))
+  end
+
+  defp m_print(subject, info) do
+    IO.puts IEx.color(:eval_result, subject)
+    IO.puts IEx.color(:eval_info, "  #{info}")
   end
 
   @doc """
