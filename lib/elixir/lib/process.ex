@@ -199,6 +199,8 @@ defmodule Process do
   The calling process starts monitoring the item given.
   It returns the monitor reference.
 
+  See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
+  for an example.
   See [`:erlang.monitor/2`](http://www.erlang.org/doc/man/erlang.html#monitor-2) for more info.
 
   Inlined by the compiler.
