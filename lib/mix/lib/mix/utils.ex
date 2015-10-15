@@ -163,35 +163,10 @@ defmodule Mix.Utils do
       "SapExample"
 
   """
-  def underscore(atom) when is_atom(atom) do
-    "Elixir." <> rest = Atom.to_string(atom)
-    underscore(rest)
-  end
-
-  def underscore(""), do: ""
-
-  def underscore(<<h, t :: binary>>) do
-    <<to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not (t in ?A..?Z or t == ?.) do
-    <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
-  end
-
-  defp do_underscore(<<h, t :: binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
-    <<?_, to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<?., t :: binary>>, _) do
-    <<?/>> <> underscore(t)
-  end
-
-  defp do_underscore(<<h, t :: binary>>, _) do
-    <<to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<>>, _) do
-    <<>>
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
+  def underscore(value) do
+    Macro.underscore(value)
   end
 
   @doc """
@@ -203,35 +178,11 @@ defmodule Mix.Utils do
       "FooBar"
 
   """
-  @spec camelize(String.t) :: String.t
-  def camelize(string)
-
-  def camelize(""),
-    do: ""
-
-  def camelize(<<?_, t :: binary>>),
-    do: camelize(t)
-
-  def camelize(<<h, t :: binary>>),
-    do: <<to_upper_char(h)>> <> do_camelize(t)
-
-  defp do_camelize(<<?_, ?_, t :: binary>>),
-    do: do_camelize(<< ?_, t :: binary >>)
-
-  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z,
-    do: <<to_upper_char(h)>> <> do_camelize(t)
-
-  defp do_camelize(<<?_>>),
-    do: <<>>
-
-  defp do_camelize(<<?/, t :: binary>>),
-    do: <<?.>> <> camelize(t)
-
-  defp do_camelize(<<h, t :: binary>>),
-    do: <<h>> <> do_camelize(t)
-
-  defp do_camelize(<<>>),
-    do: <<>>
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
+  def camelize(value) do
+    Macro.camelize(value)
+  end
 
   @doc """
   Takes a module and converts it to a command.
