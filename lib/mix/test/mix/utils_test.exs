@@ -68,6 +68,22 @@ defmodule Mix.UtilsTest do
     end
   end
 
+  test "proxy_config reads from env and returns credentials" do
+    assert Mix.Utils.proxy_config("http://example.com") == []
+
+    System.put_env("http_proxy", "http://nopass@example.com")
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'nopass', ''}]
+
+    System.put_env("HTTP_PROXY", "http://my:proxy@example.com")
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'my', 'proxy'}]
+
+    System.put_env("https_proxy", "https://another:proxy@example.com")
+    assert Mix.Utils.proxy_config("https://example.com") == [proxy_auth: {'another', 'proxy'}]
+
+    System.put_env("HTTPS_PROXY", "https://example.com")
+    assert Mix.Utils.proxy_config("https://example.com") == []
+  end
+
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} -> assert Path.expand("_build/archive/ebin") in paths
