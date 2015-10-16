@@ -1126,13 +1126,13 @@ defmodule Enum do
 
   @doc """
   Invokes the given function to each item in the enumerable to reduce
-  it to a sigle element, while keeping an accumulator.
+  it to a single element, while keeping an accumulator.
 
   Returns a tuple where the first element is the mapped enumerable and
   the second one is the final accumulator.
 
-  The function `fun` receives two arguments, the first one is the
-  element, and the second one is the accumulator; and it must return a
+  The function, `fun`, receives two arguments: the first one is the
+  element, and the second one is the accumulator. `fun` must return a
   a tuple with two elements in the form of `{result, accumulator}`.
 
   For dicts, the first tuple element must be a `{key, value}` tuple.
