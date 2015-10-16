@@ -1032,54 +1032,54 @@ defmodule Kernel.SpecialForms do
   following code:
 
       defmodule Hygiene do
-        defmacrop get_size do
+        defmacrop get_length do
           quote do
-            size("hello")
+            length([1,2,3])
           end
         end
 
-        def return_size do
-          import Kernel, except: [size: 1]
-          get_size
+        def return_length do
+          import Kernel, except: [length: 1]
+          get_length
         end
       end
 
-      Hygiene.return_size #=> 5
+      Hygiene.return_length #=> 3
 
-  Notice how `return_size` returns 5 even though the `size/1`
-  function is not imported. In fact, even if `return_size` imported
-  a function from another module, it wouldn't affect the function
-  result:
+  Notice how `return_length` returns 5 even though the `length/1`
+  function is not imported. In fact, even if `return_length`
+  imported a function with the same name and arity from another
+  module, it wouldn't affect the function result:
 
-      def return_size do
-        import Dict, only: [size: 1]
-        get_size
+      def return_length do
+        import String, only: [length: 1]
+        get_length
       end
 
-  Calling this new `return_size` will still return 5 as result.
+  Calling this new `return_length` will still return 3 as result.
 
   Elixir is smart enough to delay the resolution to the latest
-  moment possible. So, if you call `size("hello")` inside quote,
-  but no `size/1` function is available, it is then expanded in
+  moment possible. So, if you call `length([1, 2, 3])` inside quote,
+  but no `length/1` function is available, it is then expanded in
   the caller:
 
       defmodule Lazy do
-        defmacrop get_size do
-          import Kernel, except: [size: 1]
+        defmacrop get_length do
+          import Kernel, except: [length: 1]
 
           quote do
-            size([a: 1, b: 2])
+            length("hello")
           end
         end
 
-        def return_size do
-          import Kernel, except: [size: 1]
-          import Dict, only: [size: 1]
-          get_size
+        def return_length do
+          import Kernel, except: [length: 1]
+          import String, only: [length: 1]
+          get_length
         end
       end
 
-      Lazy.return_size #=> 2
+      Lazy.return_length #=> 5
 
   ## Stacktrace information
 
