@@ -48,7 +48,8 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
-  For more information on tasks, check the `Task` module.
+  The task will still be linked to the caller, see `Task.async/3` for
+  more information and `async_nolink/2` for a non-linked variant.
   """
   @spec async(Supervisor.supervisor, fun) :: Task.t
   def async(supervisor, fun) do
@@ -59,11 +60,40 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
-  For more information on tasks, check the `Task` module.
+  The task will still be linked to the caller, see `Task.async/3` for
+  more information and `async_nolink/2` for a non-linked variant.
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    args = [self, get_info(self), {module, fun, args}]
+    args = [self, :link, get_info(self), {module, fun, args}]
+    {:ok, pid} = Supervisor.start_child(supervisor, args)
+    ref = Process.monitor(pid)
+    send pid, {self(), ref}
+    %Task{pid: pid, ref: ref}
+  end
+
+  @doc """
+  Starts a task that can be awaited on.
+
+  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The task won't be linked to the caller, see `Task.async/3` for
+  more information.
+  """
+  @spec async_nolink(Supervisor.supervisor, fun) :: Task.t
+  def async_nolink(supervisor, fun) do
+    async_nolink(supervisor, :erlang, :apply, [fun, []])
+  end
+
+  @doc """
+  Starts a task that can be awaited on.
+
+  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The task won't be linked to the caller, see `Task.async/3` for
+  more information.
+  """
+  @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
+  def async_nolink(supervisor, module, fun, args) do
+    args = [self, :nolink, get_info(self), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
     send pid, {self(), ref}
@@ -75,7 +105,7 @@ defmodule Task.Supervisor do
   """
   @spec terminate_child(Supervisor.supervisor, pid) :: :ok
   def terminate_child(supervisor, pid) when is_pid(pid) do
-    :supervisor.terminate_child(supervisor, pid)
+    Supervisor.terminate_child(supervisor, pid)
   end
 
   @doc """
@@ -83,7 +113,7 @@ defmodule Task.Supervisor do
   """
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do
-    :supervisor.which_children(supervisor) |> Enum.map(&elem(&1, 1))
+    Supervisor.which_children(supervisor) |> Enum.map(&elem(&1, 1))
   end
 
   @doc """

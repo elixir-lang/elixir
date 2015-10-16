@@ -210,16 +210,59 @@ defmodule Task do
   end
 
   @doc """
-  Starts a task that can be awaited on.
+  Starts a task that must be awaited on.
 
-  This function spawns a process that is linked to and monitored
-  by the caller process. A `Task` struct is returned containing
-  the relevant information.
+  A `Task` struct is returned containing the relevant information.
+  Developers must eventually call `Task.await/2` or `Task.yield/2`
+  followed by `Task.shutdown/2` on the returned task.
 
   Read the `Task` module documentation for more info on general
   usage of `async/1` and `async/3`.
 
-  ## Task's message format
+  ## Linking
+
+  This function spawns a process that is linked to and monitored
+  by the caller process. The linking part is important because it
+  aborts the task if the parent process dies. It also guarantees
+  the code before async/await has the same properties after you
+  add the async call. For example, imagine you have this:
+
+      x = heavy_fun()
+      y = some_fun()
+      x + y
+
+  Now you want to make the `heavy_fun()` async:
+
+      x = Task.async(&heavy_fun/0)
+      y = some_fun()
+      Task.await(x) + y
+
+  As before, if `heavy_fun/0` fails, the whole computation will
+  fail, including the parent process. If you don't want the task
+  to fail then you must change the `heavy_fun/0` code in the
+  same way you would if you didn't have the async call. For
+  example to either return `{:ok, val} | :error` results or,
+  in more extreme cases, by using `try/rescue`. In other words,
+  an asynchronous task should be considered an extension of a
+  process rather than a mechanism to isolate it from all errors.
+
+  If you don't want to link the caller to the task, then you
+  must use a supervised task with `Task.Supervisor` and call
+  `Task.Supervisor.async_nolink/2`.
+
+  In any case, avoid any of the following:
+
+    * Setting `:trap_exit` to true - trapping exists should be
+      used only in special circumstances as it would make your
+      process immune to not only exits from the task but from
+      any other processes.
+
+    * Unlinking the task process started with `async`/`await`.
+      If you unlink the processes and the task does not belong
+      to any supervisor, you may leave dangling tasks in case
+      the parent dies.
+
+  ## Message format
 
   The reply sent by the task will be in the format `{ref, msg}`,
   where `ref` is the monitoring reference held by the task.

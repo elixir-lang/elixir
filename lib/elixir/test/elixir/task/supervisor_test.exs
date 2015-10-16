@@ -63,6 +63,49 @@ defmodule Task.SupervisorTest do
     assert Task.await(task) == :done
   end
 
+  test "async_nolink/1", config do
+    parent = self()
+    fun = fn -> wait_and_send(parent, :done) end
+    task = Task.Supervisor.async_nolink(config[:supervisor], fun)
+
+    assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
+
+    # Assert the struct
+    assert task.__struct__ == Task
+    assert is_pid task.pid
+    assert is_reference task.ref
+
+    # Refute the link
+    {:links, links} = Process.info(self, :links)
+    refute task.pid in links
+
+    receive do: (:ready -> :ok)
+
+    # Assert the initial call
+    {:name, fun_name} = :erlang.fun_info(fun, :name)
+    assert {__MODULE__, fun_name, 0} === :proc_lib.translate_initial_call(task.pid)
+
+    # Run the task
+    send task.pid, true
+
+    # Assert response and monitoring messages
+    ref = task.ref
+    assert_receive {^ref, :done}
+    assert_receive {:DOWN, ^ref, _, _, :normal}
+  end
+
+  test "async_nolink/3", config do
+    task = Task.Supervisor.async_nolink(config[:supervisor], __MODULE__, :wait_and_send, [self(), :done])
+    assert Task.Supervisor.children(config[:supervisor]) == [task.pid]
+
+    receive do: (:ready -> :ok)
+    assert {__MODULE__, :wait_and_send, 2} === :proc_lib.translate_initial_call(task.pid)
+
+    send task.pid, true
+    assert task.__struct__ == Task
+    assert Task.await(task) == :done
+  end
+
   test "start_child/1", config do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end

@@ -9,8 +9,8 @@ defmodule Task.Supervised do
     {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
 
-  def start_link(caller, info, fun) do
-    :proc_lib.start_link(__MODULE__, :reply, [caller, info, fun])
+  def start_link(caller, link, info, fun) do
+    :proc_lib.start_link(__MODULE__, :reply, [caller, link, info, fun])
   end
 
   def async(caller, info, mfa) do
@@ -19,9 +19,12 @@ defmodule Task.Supervised do
     send caller, {ref, do_apply(info, mfa)}
   end
 
-  def reply(caller, info, mfa) do
+  def reply(caller, link, info, mfa) do
     initial_call(mfa)
-    :erlang.link(caller)
+    case link do
+      :link -> :erlang.link(caller)
+      :nolink -> :ok
+    end
     :proc_lib.init_ack({:ok, self()})
 
     ref =
