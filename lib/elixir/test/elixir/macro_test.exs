@@ -607,4 +607,31 @@ defmodule MacroTest do
   defp postwalk(ast) do
     Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
   end
+
+  test "underscore" do
+    assert Macro.underscore("foo") == "foo"
+    assert Macro.underscore("foo_bar") == "foo_bar"
+    assert Macro.underscore("Foo") == "foo"
+    assert Macro.underscore("FooBar") == "foo_bar"
+    assert Macro.underscore("FOOBar") == "foo_bar"
+    assert Macro.underscore("FooBAR") == "foo_bar"
+    assert Macro.underscore("FoBaZa") == "fo_ba_za"
+    assert Macro.underscore("Foo.Bar") == "foo/bar"
+    assert Macro.underscore(Foo.Bar) == "foo/bar"
+    assert Macro.underscore("API.V1.User") == "api/v1/user"
+    assert Macro.underscore("") == ""
+  end
+
+  test "camelize" do
+    assert Macro.camelize("Foo") == "Foo"
+    assert Macro.camelize("FooBar") == "FooBar"
+    assert Macro.camelize("foo") == "Foo"
+    assert Macro.camelize("foo_bar") == "FooBar"
+    assert Macro.camelize("foo_") == "Foo"
+    assert Macro.camelize("_foo") == "Foo"
+    assert Macro.camelize("foo__bar") == "FooBar"
+    assert Macro.camelize("foo/bar") == "Foo.Bar"
+    assert Macro.camelize("") == ""
+  end
+
 end
