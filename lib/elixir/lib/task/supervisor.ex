@@ -67,6 +67,7 @@ defmodule Task.Supervisor do
   def async(supervisor, module, fun, args) do
     args = [self, :link, get_info(self), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
+    Process.link(pid)
     ref = Process.monitor(pid)
     send pid, {self(), ref}
     %Task{pid: pid, ref: ref}
@@ -93,7 +94,7 @@ defmodule Task.Supervisor do
   """
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
-    args = [self, :nolink, get_info(self), {module, fun, args}]
+    args = [self, :monitor, get_info(self), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
     send pid, {self(), ref}
