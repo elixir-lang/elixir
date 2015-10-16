@@ -247,7 +247,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
     {clause, ?generated,
       [TVar],
       [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
-      [elixir_utils:erl_call(?generated, erlang, error, [TMap])]},
+      [elixir_utils:erl_call(Ann, erlang, error, [TMap])]},
     {clause, ?generated,
       [TVar],
       [],
