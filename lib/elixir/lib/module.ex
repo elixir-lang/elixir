@@ -1092,7 +1092,9 @@ defmodule Module do
   defp warn_if_redefining_attribute(nil, _table, _key), do: false
   defp warn_if_redefining_attribute(stack, table, key) do
     case :ets.lookup(table, key) do
-      [{_, v}] when not v in [nil, false] ->
+      [{_, {_, false}}] when key in [:doc, :typedoc, :moduledoc] ->
+        false
+      [{_, val}] when val != nil ->
         :elixir_errors.warn warn_info(stack), "redefining @#{Atom.to_string(key)} attribute"
       _ ->
         false

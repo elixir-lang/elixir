@@ -603,15 +603,21 @@ defmodule Kernel.WarningTest do
   end
 
   test "duplicated docs" do
-    assert capture_err(fn ->
+    output = capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
         @doc "Something"
         @doc "Another"
         def foo, do: :ok
+
+        @doc false
+        @doc "Doc"
+        def bar, do: :ok
       end
       """
-    end) =~ "nofile:3: warning: redefining @doc attribute"
+    end)
+    assert output =~ "nofile:3: warning: redefining @doc attribute"
+    refute output =~ "nofile:7: warning: redefining @doc attribute"
   after
     purge Sample
   end
