@@ -95,8 +95,8 @@ defmodule Kernel.SpecialForms do
   always represented internally as a list of two-items tuples
   for simplicity:
 
-      iex> quote do: %{:a => :b, c: :d}
-      {:%{}, [], [{:a, :b}, {:c, :d}]}
+      iex> quote do: %{"a" => :b, c: :d}
+      {:%{}, [], [{"a", :b}, {:c, :d}]}
 
   """
   defmacro unquote(:%{})(args)
