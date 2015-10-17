@@ -29,18 +29,19 @@ defmodule Mix.Tasks.App.Start do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
+    config = Mix.Project.config
 
     {opts, _, _} = OptionParser.parse args, switches: [permanent: :boolean, temporary: :boolean]
     Mix.Task.run "loadpaths", args
 
     unless "--no-compile" in args do
-      Mix.Project.compile(args)
+      Mix.Project.compile(args, config)
     end
 
     unless "--no-protocols" in args do
-      path = Path.join(Mix.Project.build_path, "consolidated")
+      path = Path.join(Mix.Project.build_path(config), "consolidated")
 
-      if File.dir?(path) do
+      if config[:consolidate_protocols] && File.dir?(path) do
         Code.prepend_path(path)
         Enum.each(File.ls!(path), &load_protocol/1)
       end
