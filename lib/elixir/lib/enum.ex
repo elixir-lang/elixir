@@ -1647,13 +1647,9 @@ defmodule Enum do
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
-  Notice that you need to explicitly call `:random.seed/1` and
-  set a seed value for the random algorithm. Otherwise, the
-  default seed will be set which will always return the same
-  result. For example, one could do the following to set a seed
-  dynamically:
-
-      :random.seed(:os.timestamp)
+  This function uses Erlang's `:rand` module to calculate
+  the random value. Check its documentation for setting a
+  different random algorithm or a different seed.
 
   The implementation is based on the
   [reservoir sampling](https://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
@@ -1663,10 +1659,12 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.random([1, 2, 3])
-      1
+      # Although not necessary, let's seed the random algorithm
+      iex> :rand.seed(:exsplus, {1, 2, 3})
       iex> Enum.random([1, 2, 3])
       2
+      iex> Enum.random([1, 2, 3])
+      1
 
   """
   @spec random(t) :: element | no_return
@@ -1714,29 +1712,24 @@ defmodule Enum do
   @doc """
   Returns a list with the elements of `enumerable` shuffled.
 
-  Notice that you need to explicitly call `:random.seed/1` and
-  set a seed value for the random algorithm. Otherwise, the
-  default seed will be set which will always return the same
-  result. For example, one could do the following to set a seed
-  dynamically:
-
-      :random.seed(:os.timestamp)
-
-  To see what happens if you don't do this, shuffle the same list
-  in two separate IEx sessions. The results will be the same.
+  This function uses Erlang's `:rand` module to calculate
+  the random value. Check its documentation for setting a
+  different random algorithm or a different seed.
 
   ## Examples
 
+      # Although not necessary, let's seed the random algorithm
+      iex> :rand.seed(:exsplus, {1, 2, 3})
       iex> Enum.shuffle([1, 2, 3])
-      [3, 2, 1]
+      [2, 1, 3]
       iex> Enum.shuffle([1, 2, 3])
-      [3, 1, 2]
+      [2, 3, 1]
 
   """
   @spec shuffle(t) :: list
   def shuffle(enumerable) do
     randomized = reduce(enumerable, [], fn x, acc ->
-      [{:random.uniform, x}|acc]
+      [{:rand.uniform, x}|acc]
     end)
     unwrap(:lists.keysort(1, randomized), [])
   end
@@ -2148,10 +2141,12 @@ defmodule Enum do
 
   ## Examples
 
+      # Although not necessary, let's seed the random algorithm
+      iex> :rand.seed(:exsplus, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [1, 5]
+      [5, 8]
       iex> Enum.take_random(?a..?z, 5)
-      'tfesm'
+      'fhjni'
 
   """
   @spec take_random(t, integer) :: list
@@ -2386,7 +2381,7 @@ defmodule Enum do
   defp enum_to_string(entry), do: String.Chars.to_string(entry)
 
   defp random_index(n) do
-    :random.uniform(n + 1) - 1
+    :rand.uniform(n + 1) - 1
   end
 
   ## Implementations

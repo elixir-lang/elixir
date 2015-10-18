@@ -478,7 +478,7 @@ defmodule StreamTest do
   test "repeatedly/1" do
     stream = Stream.repeatedly(fn -> 1 end)
     assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
-    stream = Stream.repeatedly(&:random.uniform/0)
+    stream = Stream.repeatedly(&:rand.uniform/0)
     [r1, r2] = Enum.take(stream, 2)
     assert r1 != r2
   end

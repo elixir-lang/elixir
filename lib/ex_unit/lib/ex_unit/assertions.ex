@@ -388,7 +388,7 @@ defmodule ExUnit.Assertions do
       end
 
       assert_raise RuntimeError, ~r/^Today's lucky number is 0\.\d+!$/, fn ->
-        raise "Today's lucky number is #{:random.uniform}!"
+        raise "Today's lucky number is #{:rand.uniform}!"
       end
   """
   def assert_raise(exception, message, function) when is_function(function) do
