@@ -616,7 +616,7 @@ defmodule Kernel.WarningTest do
       end
       """
     end)
-    assert output =~ "nofile:3: warning: redefining @doc attribute"
+    assert output =~ "nofile:3: warning: redefining @doc attribute previously set at line 2"
     refute output =~ "nofile:7: warning: redefining @doc attribute"
   after
     purge Sample

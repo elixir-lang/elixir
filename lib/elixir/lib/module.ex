@@ -820,7 +820,7 @@ defmodule Module do
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
-    warn_if_redefining_attribute(stack, table, key)
+    warn_if_redefining_doc_attribute(stack, table, key)
 
     new =
       if :lists.member(key, acc) do
@@ -1089,15 +1089,16 @@ defmodule Module do
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
 
-  defp warn_if_redefining_attribute(nil, _table, _key), do: false
-  defp warn_if_redefining_attribute(stack, table, key) do
+  defp warn_if_redefining_doc_attribute(stack, table, key)
+      when is_list(stack) and key in [:doc, :typedoc, :moduledoc] do
     case :ets.lookup(table, key) do
-      [{_, {_, false}}] when key in [:doc, :typedoc, :moduledoc] ->
-        false
-      [{_, val}] when val != nil ->
-        :elixir_errors.warn warn_info(stack), "redefining @#{Atom.to_string(key)} attribute"
+      [{_, {line, val}}] when val != false ->
+        :elixir_errors.warn warn_info(stack),
+                            "redefining @#{key} attribute previously set at line #{line}"
       _ ->
         false
     end
   end
+
+  defp warn_if_redefining_doc_attribute(nil, _table, _key), do: false
 end
