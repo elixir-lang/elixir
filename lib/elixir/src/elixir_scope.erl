@@ -188,7 +188,7 @@ dump_binding(Binding, #elixir_scope{vars=Vars}) ->
       orddict:store(Actual, Value, Acc);
     (_, _, Acc) ->
       Acc
-  end, Binding, Vars).
+  end, [], Vars).
 
 %% Errors
 
