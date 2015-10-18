@@ -15,7 +15,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Tuple = {Name, Kind},
   Vars = S#elixir_scope.vars,
 
-  case orddict:find({Name, Kind}, Vars) of
+  case maps:find({Name, Kind}, Vars) of
     {ok, {Current, _}} -> Exists = true;
     error -> Current = nil, Exists = false
   end,
@@ -43,11 +43,11 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
             end,
 
           FS = NS#elixir_scope{
-            vars=orddict:store(Tuple, {NewVar, Counter}, Vars),
+            vars=maps:put(Tuple, {NewVar, Counter}, Vars),
             match_vars=ordsets:add_element(Tuple, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
               nil -> nil;
-              EV  -> orddict:store(Tuple, {NewVar, Counter}, EV)
+              EV  -> maps:put(Tuple, {NewVar, Counter}, EV)
             end
           },
 
@@ -58,10 +58,15 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
       {{var, Ann, Current}, S}
   end.
 
-build_var(Key, S) ->
-  New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
-  Cnt = orddict:fetch(Key, New),
-  {elixir_utils:atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
+build_var(Key, #elixir_scope{counter=Counter} = S) ->
+  Cnt =
+    case maps:find(Key, Counter) of
+      {ok, Val} -> Val + 1;
+      error -> 1
+    end,
+  {elixir_utils:atom_concat([Key, "@", Cnt]),
+   Cnt,
+   S#elixir_scope{counter=maps:put(Key, Cnt, Counter)}}.
 
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
@@ -124,27 +129,37 @@ mergef(S1, S2) ->
 
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
-  orddict:merge(fun var_merger/3, V1, V2).
+  merge_maps(fun var_merger/3, V1, V2).
 
 merge_opt_vars(nil, _C2) -> nil;
 merge_opt_vars(_C1, nil) -> nil;
 merge_opt_vars(C, C)     -> C;
 merge_opt_vars(C1, C2)   ->
-  orddict:merge(fun var_merger/3, C1, C2).
+  merge_maps(fun var_merger/3, C1, C2).
 
 var_merger(_Var, {_, V1} = K1, {_, V2}) when V1 > V2 -> K1;
 var_merger(_Var, _K1, K2) -> K2.
 
+merge_maps(Fun, Map1, Map2) ->
+  maps:fold(fun(K, V2, Acc) ->
+    V =
+      case maps:find(K, Acc) of
+        {ok, V1} -> Fun(K, V1, V2);
+        error -> V2
+      end,
+    maps:put(K, V, Acc)
+  end, Map1, Map2).
+
 %% BINDINGS
 
 load_binding(Binding, Scope) ->
-  {NewBinding, NewVars, NewCounter} = load_binding(Binding, [], [], 0),
-  {NewBinding, Scope#elixir_scope{
+  {NewBinding, NewKeys, NewVars, NewCounter} = load_binding(Binding, [], [], #{}, 0),
+  {NewBinding, NewKeys, Scope#elixir_scope{
     vars=NewVars,
-    counter=[{'_', NewCounter}]
+    counter=#{'_' => NewCounter}
  }}.
 
-load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
+load_binding([{Key, Value}|T], Binding, Keys, Vars, Counter) ->
   Actual = case Key of
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
@@ -152,23 +167,28 @@ load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
   InternalName = elixir_utils:atom_concat(["_@", Counter]),
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
-    orddict:store(Actual, {InternalName, 0}, Vars), Counter + 1);
-load_binding([], Binding, Vars, Counter) ->
-  {Binding, Vars, Counter}.
+    [Actual|Keys],
+    maps:put(Actual, {InternalName, 0}, Vars), Counter + 1);
+load_binding([], Binding, Keys, Vars, Counter) ->
+  {Binding, Keys, Vars, Counter}.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
-  dump_binding(Vars, Binding, []).
+  maps:fold(fun
+    ({Var, Kind} = Key, {InternalName, _}, Acc) when is_atom(Kind) ->
+      Actual = case Kind of
+        nil -> Var;
+        _   -> Key
+      end,
 
-dump_binding([{{Var, Kind} = Key, {InternalName, _}}|T], Binding, Acc) when is_atom(Kind) ->
-  Actual = case Kind of
-    nil -> Var;
-    _   -> Key
-  end,
-  Value = proplists:get_value(InternalName, Binding, nil),
-  dump_binding(T, Binding, orddict:store(Actual, Value, Acc));
-dump_binding([_|T], Binding, Acc) ->
-  dump_binding(T, Binding, Acc);
-dump_binding([], _Binding, Acc) -> Acc.
+      Value = case orddict:find(InternalName, Binding) of
+        {ok, V} -> V;
+        error -> nil
+      end,
+
+      orddict:store(Actual, Value, Acc);
+    (_, _, Acc) ->
+      Acc
+  end, Binding, Vars).
 
 %% Errors
 

@@ -175,8 +175,8 @@ eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
 eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
-  {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := [K || {K, _} <- ParsedScope#elixir_scope.vars]},
+  {ParsedBinding, ParsedVars, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
+  ParsedEnv = Env#{vars := ParsedVars},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of

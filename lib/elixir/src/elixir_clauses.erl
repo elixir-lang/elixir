@@ -24,7 +24,7 @@ get_pairs(Key, Clauses, As, AllowNil) ->
 match(Fun, Args, #elixir_scope{context=Context, match_vars=MatchVars,
     backup_vars=BackupVars, vars=Vars} = S) when Context /= match ->
   {Result, NewS} = match(Fun, Args, S#elixir_scope{context=match,
-                       match_vars=ordsets:new(), backup_vars=Vars}),
+                         match_vars=ordsets:new(), backup_vars=Vars}),
   {Result, NewS#elixir_scope{context=Context,
       match_vars=MatchVars, backup_vars=BackupVars}};
 match(Fun, Args, S) -> Fun(Args, S).
@@ -69,7 +69,7 @@ extract_splat_guards(Else) ->
 % Function for translating macros with match style like case and receive.
 
 clauses(Meta, Clauses, #elixir_scope{export_vars=CV} = S) ->
-  {TC, TS} = do_clauses(Meta, Clauses, S#elixir_scope{export_vars=[]}),
+  {TC, TS} = do_clauses(Meta, Clauses, S#elixir_scope{export_vars=#{}}),
   {TC, TS#elixir_scope{export_vars=elixir_scope:merge_opt_vars(CV, TS#elixir_scope.export_vars)}}.
 
 do_clauses(_Meta, [], S) ->
@@ -88,7 +88,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
 
   % Now get all the variables defined inside each clause
   CV = lists:reverse(ReverseCV),
-  AllVars = lists:foldl(fun elixir_scope:merge_vars/2, [], CV),
+  AllVars = lists:foldl(fun elixir_scope:merge_vars/2, #{}, CV),
 
   % Create a new scope that contains a list of all variables
   % defined inside all the clauses. It returns this new scope and
@@ -97,7 +97,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % is the old pointer.
   {FinalVars, FS} = lists:mapfoldl(fun({Key, Val}, Acc) ->
     normalize_vars(Key, Val, Acc)
-  end, TS, AllVars),
+  end, TS, maps:to_list(AllVars)),
 
   % Expand all clauses by adding a match operation at the end
   % that defines variables missing in one clause to the others.
@@ -186,11 +186,11 @@ has_match_tuple(_) -> false.
 
 normalize_vars(Key, Value, #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
   VS = S#elixir_scope{
-    vars=orddict:store(Key, Value, Vars),
-    export_vars=orddict:store(Key, Value, ClauseVars)
+    vars=maps:put(Key, Value, Vars),
+    export_vars=maps:put(Key, Value, ClauseVars)
   },
 
-  Expr = case orddict:find(Key, Vars) of
+  Expr = case maps:find(Key, Vars) of
     {ok, {PreValue, _}} -> {var, 0, PreValue};
     error -> {atom, 0, nil}
   end,
@@ -201,7 +201,7 @@ normalize_vars(Key, Value, #elixir_scope{vars=Vars, export_vars=ClauseVars} = S)
 % or not and assigning the previous value.
 
 generate_match_vars([{Key, Value, Expr}|T], ClauseVars, Left, Right) ->
-  case orddict:find(Key, ClauseVars) of
+  case maps:find(Key, ClauseVars) of
     {ok, Value} ->
       generate_match_vars(T, ClauseVars, Left, Right);
     {ok, Clause} ->
