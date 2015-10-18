@@ -15,6 +15,7 @@ defmodule MapSet do
 
   @behaviour Set
 
+  @opaque t :: %__MODULE__{map: map}
   defstruct map: %{}
 
   def new(), do: %MapSet{}

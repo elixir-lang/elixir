@@ -42,15 +42,15 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def exception_test, do: :ok
 
   @doc """
-  iex> Enum.into([a: 0, b: 1, c: 2], HashDict.new)
-  #HashDict<[c: 2, b: 1, a: 0]>
+  iex> Enum.into([:a, :b, :c], MapSet.new)
+  #MapSet<[:a, :b, :c]>
   """
   def inspect1_test, do: :ok
 
   @doc """
-  iex> x = Enum.into([a: 0, b: 1, c: 2], HashDict.new)
+  iex> x = Enum.into([:a, :b, :c], MapSet.new)
   ...> x
-  #HashDict<[c: 2, b: 1, a: 0]>
+  #MapSet<[:a, :b, :c]>
   """
   def inspect2_test, do: :ok
 end |> write_beam
@@ -124,7 +124,7 @@ defmodule ExUnit.DocTestTest.Invalid do
       3
 
       iex> :oops
-      #HashDict<[]>
+      #MapSet<[]>
 
       iex> Hello.world
       :world
@@ -260,7 +260,7 @@ defmodule ExUnit.DocTestTest do
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:231
          Doctest failed
-         code: inspect(:oops) === "#HashDict<[]>"
+         code: inspect(:oops) === "#MapSet<[]>"
          lhs:  ":oops"
          stacktrace:
            test/ex_unit/doc_test_test.exs:126: ExUnit.DocTestTest.Invalid (module)

@@ -16,8 +16,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "profiles evaluated expression", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)"])
-      end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
+      end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 
@@ -34,15 +34,15 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "expands callers", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--callers"])
-      end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--callers"])
+      end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
     end
   end
 
   test "expands processes", context do
     in_tmp context.test, fn ->
       output = capture_io(fn ->
-        Fprof.run(["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> HashSet.new end)", "--details"])
+        Fprof.run(["-e", "spawn(fn -> :ok end); Enum.each(1..5, fn(_) -> MapSet.new end)", "--details"])
       end)
       assert output =~ ~r(#{:erlang.pid_to_list(self)} +\d+ +\d+\.\d{3})
       assert output =~ ~r(spawned by #{:erlang.pid_to_list(self)})
@@ -54,12 +54,12 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "sort options", context do
     in_tmp context.test, fn ->
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort acc"])
-      end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort acc"])
+      end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
 
       assert capture_io(fn ->
-        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> HashSet.new end)", "--sort own"])
-      end) =~ ~r(HashSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+        Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--sort own"])
+      end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end
   end
 

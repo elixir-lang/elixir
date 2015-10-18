@@ -105,8 +105,8 @@ defmodule IEx.HelpersTest do
            = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
 
-    assert "@opaque t()\n" = capture_io(fn -> t HashDict.t end)
-    assert capture_io(fn -> t HashDict.t end) == capture_io(fn -> t HashDict.t/0 end)
+    assert "@opaque t()\n" = capture_io(fn -> t MapSet.t end)
+    assert capture_io(fn -> t MapSet.t end) == capture_io(fn -> t MapSet.t/0 end)
 
     filename = "typesample.ex"
     with_file filename, module_with_typespecs, fn ->
