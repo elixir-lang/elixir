@@ -82,10 +82,10 @@ ensure_loaded(Meta, Ref, E) ->
     error:undef ->
       Kind = case lists:member(Ref, ?m(E, context_modules)) of
         true  ->
-                 case ?m(E, module) of
-                   Ref -> circular_module;
-                   _ -> scheduled_module
-                 end;
+          case ?m(E, module) of
+            Ref -> circular_module;
+            _ -> scheduled_module
+          end;
         false -> unloaded_module
       end,
       elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {Kind, Ref})
@@ -144,9 +144,43 @@ format_error({unloaded_module, Module}) ->
   io_lib:format("module ~ts is not loaded and could not be found", [elixir_aliases:inspect(Module)]);
 
 format_error({scheduled_module, Module}) ->
-  io_lib:format("module ~ts is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+  io_lib:format(
+    "module ~ts is not loaded but was defined. This happens when you depend on "
+    "a module in the same context it is defined. For example:\n"
+    "\n"
+    "    defmodule MyApp do\n"
+    "      defmodule Mod do\n"
+    "      end\n"
+    "\n"
+    "      use Mod\n"
+    "    end\n"
+    "\n"
+    "Try defining the module outside the context that uses it:\n"
+    "\n"
+    "    defmodule MyApp.Mod do\n"
+    "    end\n"
+    "\n"
+    "    defmodule MyApp do\n"
+    "      use MyApp.Mod\n"
+    "    end\n",
     [inspect(Module)]);
 
 format_error({circular_module, Module}) ->
-  io_lib:format("you are trying to use/require the same module that is being currently defined. The current module is ~ts",
+  io_lib:format(
+    "you are trying to use the module ~ts which is being currently defined.\n"
+    "\n"
+    "This may happen if you accidentally override the module you want to use. For example:\n"
+    "\n"
+    "    defmodule MyApp do\n"
+    "      defmodule Supervisor do\n"
+    "        use Supervisor\n"
+    "      end\n"
+    "    end\n"
+    "\n"
+    "In the example above, the new Supervisor conflicts with Elixir's. "
+    "This may be fixed by using the fully qualified name on definition:\n"
+    "\n"
+    "    defmodule MyApp.Supervisor do\n"
+    "      use Supervisor\n"
+    "    end\n",
     [inspect(Module)]).
