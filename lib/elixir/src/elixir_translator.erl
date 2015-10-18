@@ -167,7 +167,7 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
 
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
-  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
+  case maps:find(Tuple, S#elixir_scope.backup_vars) of
     {ok, {Value, _Counter}} ->
       {{var, ?ann(Meta), Value}, S};
     error ->
