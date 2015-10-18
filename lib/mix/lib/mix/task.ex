@@ -29,9 +29,8 @@ defmodule Mix.Task do
 
   ## Documentation
 
-  Users can read the documentation for public Mix tasks by doing `mix help
-  my_task`. The documentation that will be showed is the `@moduledoc` of the
-  task's module.
+  Users can read the documentation for public Mix tasks by doing `mix help my_task`.
+  The documentation that will be shown is the `@moduledoc` of the task's module.
 
   """
 
