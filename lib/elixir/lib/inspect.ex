@@ -16,20 +16,20 @@ defprotocol Inspect do
   ## Examples
 
   Many times, inspecting a structure can be implemented in function
-  of existing entities. For example, here is `HashSet`'s `inspect`
+  of existing entities. For example, here is `MapSet`'s `inspect`
   implementation:
 
-      defimpl Inspect, for: HashSet do
+      defimpl Inspect, for: MapSet do
         import Inspect.Algebra
 
         def inspect(dict, opts) do
-          concat ["#HashSet<", to_doc(HashSet.to_list(dict), opts), ">"]
+          concat ["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"]
         end
       end
 
   The `concat` function comes from `Inspect.Algebra` and it
   concatenates algebra documents together. In the example above,
-  it is concatenating the string `"HashSet<"` (all strings are
+  it is concatenating the string `"MapSet<"` (all strings are
   valid algebra documents that keep their formatting when pretty
   printed), the document returned by `Inspect.Algebra.to_doc/2` and the
   other string `">"`.
@@ -45,10 +45,10 @@ defprotocol Inspect do
   to a raw representation for printing the structure.
 
   You can however access the underlying error by invoking the Inspect
-  implementation directly. For example, to test Inspect.HashSet above,
+  implementation directly. For example, to test Inspect.MapSet above,
   you can invoke it as:
 
-      Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
+      Inspect.MapSet.inspect(MapSet.new, Inspect.Opts.new)
 
   """
 

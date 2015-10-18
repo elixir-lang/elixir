@@ -93,9 +93,9 @@ defmodule ExUnit.DocTest do
   values are treated as comments in Elixir code due to the leading
   `#` sign, they require special care when used in doctests.
 
-  Imagine you have a map with a HashSet inside which is printed as:
+  Imagine you have a map with a MapSet inside which is printed as:
 
-      %{users: #HashSet<[:foo, :bar]>}
+      %{users: #MapSet<[:foo, :bar]>}
 
   If you try to match on such expression, `doctest` will fail to compile.
   You have two options to solve this.
@@ -103,20 +103,20 @@ defmodule ExUnit.DocTest do
   The first one is to rely on the fact that doctest can compare internal
   structures as long as they are at the root. So one could write:
 
-      iex> map = %{users: Enum.into([:foo, :bar], HashSet.new)}
+      iex> map = %{users: Enum.into([:foo, :bar], MapSet.new)}
       iex> map.users
-      #HashSet<[:foo, :bar]>
+      #MapSet<[:foo, :bar]>
 
   Whenever a doctest starts with "#Name<", `doctest` will perform a string
   comparison. For example, the above test will perform the following match:
 
-      inspect(map.users) == "#HashSet<[:foo, :bar]>"
+      inspect(map.users) == "#MapSet<[:foo, :bar]>"
 
   Alternatively, since doctest results are actually evaluated, you can have
-  the HashSet building expression as the doctest result:
+  the MapSet building expression as the doctest result:
 
-      iex> %{users: Enum.into([:foo, :bar], HashSet.new)}
-      %{users: Enum.into([:foo, :bar], HashSet.new)}
+      iex> %{users: Enum.into([:foo, :bar], MapSet.new)}
+      %{users: Enum.into([:foo, :bar], MapSet.new)}
 
   The downside of this approach is that the doctest result is not really
   what users would see in the terminal.
