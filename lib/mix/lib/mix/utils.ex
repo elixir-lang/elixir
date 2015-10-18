@@ -225,12 +225,6 @@ defmodule Mix.Utils do
       Enum.join(".")
   end
 
-  defp to_upper_char(char) when char in ?a..?z, do: char - 32
-  defp to_upper_char(char), do: char
-
-  defp to_lower_char(char) when char in ?A..?Z, do: char + 32
-  defp to_lower_char(char), do: char
-
   @doc """
   Symlinks directory `source` to `target` or copies it recursively
   in case symlink fails.
