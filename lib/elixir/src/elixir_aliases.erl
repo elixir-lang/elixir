@@ -81,7 +81,11 @@ ensure_loaded(Meta, Ref, E) ->
   catch
     error:undef ->
       Kind = case lists:member(Ref, ?m(E, context_modules)) of
-        true  -> scheduled_module;
+        true  ->
+                 case ?m(E, module) of
+                   Ref -> circular_module;
+                   _ -> scheduled_module
+                 end;
         false -> unloaded_module
       end,
       elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, {Kind, Ref})
@@ -141,4 +145,8 @@ format_error({unloaded_module, Module}) ->
 
 format_error({scheduled_module, Module}) ->
   io_lib:format("module ~ts is not loaded but was defined. This happens because you are trying to use a module in the same context it is defined. Try defining the module outside the context that requires it.",
+    [inspect(Module)]);
+
+format_error({circular_module, Module}) ->
+  io_lib:format("you are trying to use/require the same module that is being currently defined. The current module is ~ts",
     [inspect(Module)]).
