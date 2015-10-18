@@ -581,9 +581,7 @@ defmodule Kernel.ErrorsTest do
 
   test "module imported from the context it was defined in" do
     assert_compile_fail CompileError,
-      "nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined. " <>
-      "This happens because you are trying to use a module in the same context it is defined. " <>
-      "Try defining the module outside the context that requires it.",
+      ~r"nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined.",
       '''
       defmodule Kernel.ErrorsTest.ScheduledModule do
         defmodule Hygiene do
@@ -595,8 +593,7 @@ defmodule Kernel.ErrorsTest do
 
   test "module imported from the same module" do
     assert_compile_fail CompileError,
-      "nofile:3: you are trying to use/require the same module that is being currently defined. " <>
-      "The current module is Kernel.ErrorsTest.ScheduledModule.Hygiene",
+      ~r"nofile:3: you are trying to use the module Kernel.ErrorsTest.ScheduledModule.Hygiene which is being currently defined",
       '''
       defmodule Kernel.ErrorsTest.ScheduledModule do
         defmodule Hygiene do
