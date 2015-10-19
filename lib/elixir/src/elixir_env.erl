@@ -9,9 +9,9 @@ new() ->
     file => <<"nofile">>,                  %% the current filename
     line => 1,                             %% the current line
     function => nil,                       %% the current function
-    context => nil,                        %% can be match_vars, guards or nil
+    context => nil,                        %% can be match, guard or nil
     requires => [],                        %% a set with modules required
-    aliases => [],                         %% an orddict with aliases by new -> old names
+    aliases => [],                         %% a list of aliases by new -> old names
     functions => [],                       %% a list with functions imported from module
     macros => [],                          %% a list with macros imported from module
     macro_aliases => [],                   %% keep aliases defined inside a macro

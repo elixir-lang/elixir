@@ -24,7 +24,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
     match ->
       MatchVars = S#elixir_scope.match_vars,
 
-      case Exists andalso ordsets:is_element(Tuple, MatchVars) of
+      case Exists andalso maps:get(Tuple, MatchVars, false) of
         true ->
           warn_underscored_var_repeat(Meta, S#elixir_scope.file, Name, Kind),
           {{var, Ann, Current}, S};
@@ -44,7 +44,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
 
           FS = NS#elixir_scope{
             vars=maps:put(Tuple, {NewVar, Counter}, Vars),
-            match_vars=ordsets:add_element(Tuple, MatchVars),
+            match_vars=maps:put(Tuple, true, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
               nil -> nil;
               EV  -> maps:put(Tuple, {NewVar, Counter}, EV)
@@ -167,7 +167,7 @@ load_binding([{Key, Value}|T], Binding, Keys, Vars, Counter) ->
   InternalName = elixir_utils:atom_concat(["_@", Counter]),
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
-    [Actual|Keys],
+    ordsets:add_element(Actual, Keys),
     maps:put(Actual, {InternalName, 0}, Vars), Counter + 1);
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
