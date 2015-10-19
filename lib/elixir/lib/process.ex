@@ -19,6 +19,8 @@ defmodule Process do
   and has not exited yet). Otherwise, returns `false`.
 
   `pid` must refer to a process at the local node.
+
+  Inlined by the compiler.
   """
   @spec alive?(pid) :: boolean
   def alive?(pid) do
@@ -27,6 +29,8 @@ defmodule Process do
 
   @doc """
   Returns all key-values in the dictionary.
+
+  Inlined by the compiler.
   """
   @spec get :: [{term, term}]
   def get do
@@ -48,7 +52,19 @@ defmodule Process do
   end
 
   @doc """
+  Returns all keys in the process dictionary.
+
+  Inlined by the compiler.
+  """
+  @spec get_keys() :: [term]
+  def get_keys() do
+    :erlang.get_keys()
+  end
+
+  @doc """
   Returns all keys that have the given `value`.
+
+  Inlined by the compiler.
   """
   @spec get_keys(term) :: [term]
   def get_keys(value) do

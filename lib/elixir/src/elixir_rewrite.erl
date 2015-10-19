@@ -117,14 +117,18 @@ inline(?node, spawn, 5) -> {erlang, spawn_opt};
 inline(?node, spawn_link, 2) -> {erlang, spawn_link};
 inline(?node, spawn_link, 4) -> {erlang, spawn_link};
 
+inline(?process, 'alive?', 1) -> {erlang, is_process_alive};
 inline(?process, exit, 2) -> {erlang, exit};
-inline(?process, spawn, 2) -> {erlang, spawn_opt};
-inline(?process, spawn, 4) -> {erlang, spawn_opt};
+inline(?process, get, 0) -> {erlang, get};
+inline(?process, get_keys, 0) -> {erlang, get_keys};
+inline(?process, get_keys, 1) -> {erlang, get_keys};
+inline(?process, hibernate, 3) -> {erlang, hibernate};
 inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, link, 1) -> {erlang, link};
+inline(?process, spawn, 2) -> {erlang, spawn_opt};
+inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
-inline(?process, hibernate, 3) -> {erlang, hibernate};
 
 inline(?port, open, 2) -> {erlang, open_port};
 inline(?port, call, 3) -> {erlang, port_call};
