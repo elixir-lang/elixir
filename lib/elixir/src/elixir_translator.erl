@@ -174,14 +174,16 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;
 
+translate({Name, Meta, Kind}, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->
+  Message = "illegal use of variable ~ts as map key inside match, "
+            "maps can only match on existing variable by using ^~ts",
+  compile_error(Meta, S#elixir_scope.file, Message, [Name, Name]);
+
 translate({'_', Meta, Kind}, #elixir_scope{context=match} = S) when is_atom(Kind) ->
   {{var, ?ann(Meta), '_'}, S};
 
 translate({'_', Meta, Kind}, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
-
-translate({Name, Meta, Kind}, #elixir_scope{extra=map_key} = S) when is_atom(Name), is_atom(Kind) ->
-  compile_error(Meta, S#elixir_scope.file, "illegal use of variable ~ts in map key", [Name]);
 
 translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);

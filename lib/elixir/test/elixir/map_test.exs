@@ -23,19 +23,6 @@ defmodule MapTest do
     end) == {:%{}, [], [{:foo, 1}]}
   end
 
-  test "structs when quoted" do
-    assert (quote do
-      %User{foo: 1}
-    end) == {:%, [], [
-      {:__aliases__, [alias: false], [:User]},
-      {:%{}, [], [{:foo, 1}]}
-    ]}
-
-    assert (quote do
-      %unquote(User){foo: 1}
-    end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
-  end
-
   test "maps keywords and atoms" do
     assert [%{}: :%] == [{:%{}, :%}]
     assert [%: :%{}] == [{:%, :%{}}]
@@ -85,6 +72,12 @@ defmodule MapTest do
     end
   end
 
+  test "variable keys" do
+    x = :key
+    %{^x => :value} = %{x => :value}
+    assert %{x => :value} == %{key: :value}
+  end
+
   defmodule ExternalUser do
     def __struct__ do
       %{__struct__: ThisDoesNotLeak, name: "john", age: 27}
@@ -111,6 +104,19 @@ defmodule MapTest do
     end
   end
 
+  test "structs when quoted" do
+    assert (quote do
+      %User{foo: 1}
+    end) == {:%, [], [
+      {:__aliases__, [alias: false], [:User]},
+      {:%{}, [], [{:foo, 1}]}
+    ]}
+
+    assert (quote do
+      %unquote(User){foo: 1}
+    end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
+  end
+
   test "map from struct" do
     assert Map.from_struct(ExternalUser) == %{name: "john", age: 27}
     assert Map.from_struct(%ExternalUser{name: "meg"}) == %{name: "meg", age: 27}
@@ -122,7 +128,7 @@ defmodule MapTest do
       defstruct []
     end
 
-    defstruct name: "john", nested: struct(NestedUser)
+    defstruct name: "john", nested: struct(NestedUser), context: %{}
 
     def new do
       %LocalUser{}
@@ -135,16 +141,8 @@ defmodule MapTest do
     end
   end
 
-  test "local user" do
+  test "local and nested structs" do
     assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
-  end
-
-  defmodule NilUser do
-    defstruct name: nil, contents: %{}
-  end
-
-  test "nil user" do
-    assert %NilUser{} == %{__struct__: NilUser, name: nil, contents: %{}}
   end
 end
