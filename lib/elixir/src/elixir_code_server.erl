@@ -6,10 +6,10 @@
 
 -define(timeout, 30000).
 -record(elixir_code_server, {
-  loaded=[],
+  loaded=#{},
   mod_pool={[], 0},
-  mod_ets=dict:new(),
-  compilation_status=[]
+  mod_ets=#{},
+  compilation_status=#{}
 }).
 
 call(Args) ->
@@ -42,24 +42,24 @@ handle_call({undefmodule, Ref}, _From, Config) ->
 
 handle_call({acquire, Path}, From, Config) ->
   Current = Config#elixir_code_server.loaded,
-  case orddict:find(Path, Current) of
+  case maps:find(Path, Current) of
     {ok, true} ->
       {reply, loaded, Config};
     {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
-      Queued = orddict:store(Path, {Ref, [From|List]}, Current),
+      Queued = maps:put(Path, {Ref, [From|List]}, Current),
       {reply, {queued, Ref}, Config#elixir_code_server{loaded=Queued}};
     error ->
-      Queued = orddict:store(Path, {make_ref(), []}, Current),
+      Queued = maps:put(Path, {make_ref(), []}, Current),
       {reply, proceed, Config#elixir_code_server{loaded=Queued}}
   end;
 
 handle_call(loaded, _From, Config) ->
-  {reply, [F || {F, true} <- Config#elixir_code_server.loaded], Config};
+  {reply, [F || {F, true} <- maps:to_list(Config#elixir_code_server.loaded)], Config};
 
 handle_call({compilation_status, CompilerPid}, _From, Config) ->
-  CompilationStatusList    = Config#elixir_code_server.compilation_status,
-  CompilationStatusListNew = orddict:erase(CompilerPid, CompilationStatusList),
-  CompilationStatus        = orddict:fetch(CompilerPid, CompilationStatusList),
+  CompilationStatusList = Config#elixir_code_server.compilation_status,
+  CompilationStatusListNew = maps:remove(CompilerPid, CompilationStatusList),
+  CompilationStatus = maps:get(CompilerPid, CompilationStatusList),
   {reply, CompilationStatus,
    Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
 
@@ -76,35 +76,35 @@ handle_call(Request, _From, Config) ->
 
 handle_cast({register_warning, CompilerPid}, Config) ->
   CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
-  CompilationStatusNew     = orddict:store(CompilerPid, error, CompilationStatusCurrent),
-  CompilerOptions          = elixir_config:get(compiler_options),
-  case orddict:find(warnings_as_errors, CompilerOptions) of
+  CompilationStatusNew = maps:put(CompilerPid, error, CompilationStatusCurrent),
+  CompilerOptions = elixir_config:get(compiler_options),
+  case maps:find(warnings_as_errors, CompilerOptions) of
     {ok, true} -> {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
     _ -> {noreply, Config}
   end;
 
 handle_cast({reset_warnings, CompilerPid}, Config) ->
   CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
-  CompilationStatusNew     = orddict:store(CompilerPid, ok, CompilationStatusCurrent),
+  CompilationStatusNew = maps:put(CompilerPid, ok, CompilationStatusCurrent),
   {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
 
 handle_cast({loaded, Path}, Config) ->
   Current = Config#elixir_code_server.loaded,
-  case orddict:find(Path, Current) of
+  case maps:find(Path, Current) of
     {ok, true} ->
       {noreply, Config};
     {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
       _ = [Pid ! {elixir_code_server, Ref, loaded} || {Pid, _Tag} <- lists:reverse(List)],
-      Done = orddict:store(Path, true, Current),
+      Done = maps:put(Path, true, Current),
       {noreply, Config#elixir_code_server{loaded=Done}};
     error ->
-      Done = orddict:store(Path, true, Current),
+      Done = maps:put(Path, true, Current),
       {noreply, Config#elixir_code_server{loaded=Done}}
   end;
 
 handle_cast({unload_files, Files}, Config) ->
   Current  = Config#elixir_code_server.loaded,
-  Unloaded = lists:foldl(fun(File, Acc) -> orddict:erase(File, Acc) end, Current, Files),
+  Unloaded = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{loaded=Unloaded}};
 
 handle_cast({return_module_name, H}, #elixir_code_server{mod_pool={T, Counter}} = Config) ->
@@ -132,13 +132,13 @@ defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),
   Ref = erlang:monitor(process, Pid),
   Mod = erlang:element(1, Tuple),
-  {Ref, Config#elixir_code_server{mod_ets=dict:store(Ref, Mod, ModEts)}}.
+  {Ref, Config#elixir_code_server{mod_ets=maps:put(Ref, Mod, ModEts)}}.
 
 undefmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
-  case dict:find(Ref, ModEts) of
+  case maps:find(Ref, ModEts) of
     {ok, Mod} ->
       ets:delete(elixir_modules, Mod),
-      Config#elixir_code_server{mod_ets=dict:erase(Ref, ModEts)};
+      Config#elixir_code_server{mod_ets=maps:remove(Ref, ModEts)};
     error ->
       Config
   end.

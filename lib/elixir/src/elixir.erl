@@ -58,11 +58,12 @@ start(_Type, _Args) ->
           {<<"https">>, 443},
           {<<"ldap">>, 389}],
   URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
-  CompilerOpts = [{docs, true}, {debug_info, true}, {warnings_as_errors, false}],
+  CompilerOpts = #{docs => true, ignore_module_conflict => false,
+                   debug_info => true, warnings_as_errors => false},
   {ok, [[Home] | _]} = init:get_argument(home),
   Config = [{at_exit, []},
             {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
-            {compiler_options, orddict:from_list(CompilerOpts)}
+            {compiler_options, CompilerOpts}
             | URIConfig],
   Tab = elixir_config:new(Config),
   case elixir_sup:start_link() of
