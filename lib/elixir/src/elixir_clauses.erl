@@ -24,7 +24,7 @@ get_pairs(Key, Clauses, As, AllowNil) ->
 match(Fun, Args, #elixir_scope{context=Context, match_vars=MatchVars,
     backup_vars=BackupVars, vars=Vars} = S) when Context /= match ->
   {Result, NewS} = match(Fun, Args, S#elixir_scope{context=match,
-                         match_vars=ordsets:new(), backup_vars=Vars}),
+                         match_vars=#{}, backup_vars=Vars}),
   {Result, NewS#elixir_scope{context=Context,
       match_vars=MatchVars, backup_vars=BackupVars}};
 match(Fun, Args, S) -> Fun(Args, S).
