@@ -6,10 +6,10 @@
 %% Public API
 
 get_opt(Key) ->
-  Dict = elixir_config:get(compiler_options),
-  case lists:keyfind(Key, 1, Dict) of
-    false -> false;
-    {Key, Value} -> Value
+  Map = elixir_config:get(compiler_options),
+  case maps:find(Key, Map) of
+    {ok, Value} -> Value;
+    error -> false
   end.
 
 %% Compilation entry points.
@@ -207,9 +207,7 @@ no_auto_import() ->
 
 core() ->
   {ok, _} = application:ensure_all_started(elixir),
-  New = orddict:from_list([{docs, false}, {internal, true}]),
-  Merge = fun(_, _, Value) -> Value end,
-  Update = fun(Old) -> orddict:merge(Merge, Old, New) end,
+  Update = fun(Old) -> maps:merge(Old, #{docs => false, internal => true}) end,
   _ = elixir_config:update(compiler_options, Update),
   [core_file(File) || File <- core_main()].
 
