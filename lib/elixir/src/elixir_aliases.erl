@@ -167,7 +167,7 @@ format_error({scheduled_module, Module}) ->
 
 format_error({circular_module, Module}) ->
   io_lib:format(
-    "you are trying to use the module ~ts which is being currently defined.\n"
+    "you are trying to use the module ~ts which is currently being defined.\n"
     "\n"
     "This may happen if you accidentally override the module you want to use. For example:\n"
     "\n"
