@@ -219,22 +219,8 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
 
   Ann = ?ann(Meta),
   TRight = {atom, Ann, Right},
-
-  %% TODO: Consider making this {badkey, _} error
   TVar = {var, Ann, Var},
-  TMap = {map, Ann, [
-    {map_field_assoc, Ann,
-      {atom, Ann, '__struct__'},
-      {atom, Ann, 'Elixir.KeyError'}},
-    {map_field_assoc, Ann,
-      {atom, Ann, '__exception__'},
-      {atom, Ann, 'true'}},
-    {map_field_assoc, Ann,
-      {atom, Ann, key},
-      TRight},
-    {map_field_assoc, Ann,
-      {atom, Ann, term},
-      TVar}]},
+  TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
   %% TODO: there is a bug in dialyzer that warns about generated matches that
   %% can never match on line 0. The is_map/1 guard is used instead of matching
@@ -247,7 +233,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
     {clause, ?generated,
       [TVar],
       [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
-      [elixir_utils:erl_call(Ann, erlang, error, [TMap])]},
+      [elixir_utils:erl_call(Ann, erlang, error, [TError])]},
     {clause, ?generated,
       [TVar],
       [],

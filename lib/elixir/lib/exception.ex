@@ -791,11 +791,17 @@ defmodule ErlangError do
   def normalize({:badkey, key}, stacktrace) do
     term =
       case stacktrace || :erlang.get_stacktrace do
+        [{Map, :get_and_update!, [map, _, _], _}|_] -> map
+        [{Map, :update!, [map, _, _], _}|_] -> map
         [{:maps, :update, [_, _, map], _}|_] -> map
         [{:maps, :get, [_, map], _}|_] -> map
         _ -> nil
       end
     %KeyError{key: key, term: term}
+  end
+
+  def normalize({:badkey, key, map}, _stacktrace) do
+    %KeyError{key: key, term: map}
   end
 
   def normalize({:case_clause, term}, _stacktrace) do
