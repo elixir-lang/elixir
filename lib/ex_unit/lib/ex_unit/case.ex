@@ -154,7 +154,7 @@ defmodule ExUnit.Case do
 
   ## Log Capture
 
-  ExUnit can optionally supress printing of log messages that are generated during a test. Log
+  ExUnit can optionally suppress printing of log messages that are generated during a test. Log
   messages generated while running a test are captured and only if the test fails are they printed
   to aid with debugging.
 
@@ -166,7 +166,7 @@ defmodule ExUnit.Case do
   This default can be overriden by `@tag capture_log: false` or `@moduletag capture_log: false`.
 
   Since `setup_all` blocks don't belong to a specific test, log messages generated in them (or 
-  between tests) are never captured. If you want to supress these messages as well, remove the
+  between tests) are never captured. If you want to suppress these messages as well, remove the
   console backend globally:
 
       config :logger, backends: []
