@@ -61,7 +61,7 @@ defmodule Supervisor.Spec do
 
     * `:function` - the function to invoke on the child to start it
 
-    * `:restart` - defines when the child process should restart
+    * `:restart` - defines when a terminated child process should be restarted
 
     * `:shutdown` - defines how a child process should be terminated
 
