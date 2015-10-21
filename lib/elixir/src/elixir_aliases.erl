@@ -162,7 +162,10 @@ format_error({scheduled_module, Module}) ->
     "\n"
     "    defmodule MyApp do\n"
     "      use MyApp.Mod\n"
-    "    end\n",
+    "    end\n"
+    "\n"
+    "If the module is defined at the top-level and you are trying to "
+    "use it at the top-level, such is not supported by Elixir",
     [inspect(Module)]);
 
 format_error({circular_module, Module}) ->
