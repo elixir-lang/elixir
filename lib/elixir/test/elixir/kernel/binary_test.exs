@@ -155,7 +155,7 @@ bar \"""
 
   @binary "new "
 
-  test "bitsyntax with expansion" do
+  test "bitsyntax expansion" do
     assert <<@binary, "world">> == "new world"
   end
 
@@ -171,6 +171,12 @@ bar \"""
   test "bitsyntax size shorcut" do
     assert << 1 :: 3 >> == << 1 :: size(3) >>
     assert << 1 :: 3*8 >> == << 1 :: size(3)-unit(8) >>
+  end
+
+  test "bitsyntax variable size" do
+    x = 8
+    assert <<_, _::size(x)>> = <<?a, ?b>>
+    assert (fn <<_, _::size(x)>> -> true end).(<<?a, ?b>>)
   end
 
   defmacrop signed_16 do

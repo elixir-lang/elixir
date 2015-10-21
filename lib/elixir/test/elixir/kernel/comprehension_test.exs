@@ -22,7 +22,7 @@ defmodule Kernel.ComprehensionTest do
   end
 
   defp to_bin(x) do
-    << x >>
+    <<x>>
   end
 
   defp nilly, do: nil
@@ -36,6 +36,13 @@ defmodule Kernel.ComprehensionTest do
 
   test "for comprehensions with matching" do
     assert for({_, x} <- 1..3, do: x * 2) == []
+  end
+
+  test "for comprehensions with map key matching" do
+    maps = [%{x: 1}, %{y: 2}, %{x: 3}]
+    assert for(%{x: v} <- maps, do: v * 2) == [2, 6]
+    x = :x
+    assert for(%{^x => v} <- maps, do: v * 2) == [2, 6]
   end
 
   test "for comprehensions with filters" do
@@ -216,6 +223,12 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions into binaries" do
     bin = <<1, 2, 3>>
     assert for(<< x <- bin >>, into: "", do: to_bin(x * 2)) == <<2, 4, 6>>
+  end
+
+  test "binary for comprehensions with variable size" do
+    s = 16
+    bin = <<1, 2, 3, 4, 5, 6>>
+    assert for(<< x::size(s) <- bin >>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
   end
 
   test "binary for comprehensions where value is not used" do
