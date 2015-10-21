@@ -702,6 +702,13 @@ defmodule Kernel.ErrorsTest do
       'for << x :: binary <- "123" >>, do: x'
   end
 
+  test "invalid size in bitstrings" do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot use ^x outside of match clauses",
+      'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
+  end
+
+
   test "unbound cond" do
     assert_compile_fail CompileError,
       "nofile:1: unbound variable _ inside cond. If you want the last clause to always match, " <>

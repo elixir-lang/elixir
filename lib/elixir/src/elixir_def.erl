@@ -166,7 +166,7 @@ translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {missing_do, Kind});
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
   {TClause, TS} = elixir_clauses:clause([{line, Line}],
-    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
+                    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
   FClause = case is_macro(Kind) of
     true ->
