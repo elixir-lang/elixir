@@ -38,6 +38,13 @@ defmodule Kernel.ComprehensionTest do
     assert for({_, x} <- 1..3, do: x * 2) == []
   end
 
+  test "for comprehensions with pin matching" do
+    maps = [x: 1, y: 2, x: 3]
+    assert for({:x, v} <- maps, do: v * 2) == [2, 6]
+    x = :x
+    assert for({^x, v} <- maps, do: v * 2) == [2, 6]
+  end
+
   test "for comprehensions with map key matching" do
     maps = [%{x: 1}, %{y: 2}, %{x: 3}]
     assert for(%{x: v} <- maps, do: v * 2) == [2, 6]

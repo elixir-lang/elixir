@@ -5,7 +5,7 @@
 
 -record(elixir_scope, {
   context=nil,             %% can be match, guards or nil
-  extra=nil,               %% extra information about the context, like fn_match and map_key
+  extra=nil,               %% extra information about the context, like pin_guard and map_key
   noname=false,            %% when true, don't add new names (used by try)
   super=false,             %% when true, it means super was invoked
   caller=false,            %% when true, it means caller was invoked

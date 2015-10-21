@@ -5,10 +5,17 @@ defmodule Kernel.FnTest do
   import CompileAssertion
 
   test "arithmetic constants on match" do
-    assert (fn 1 + 2 -> :ok end).(3)  == :ok
-    assert (fn 1 - 2 -> :ok end).(-1) == :ok
-    assert (fn -1 -> :ok end).(-1) == :ok
-    assert (fn +1 -> :ok end).(1)  == :ok
+    assert (fn 1 + 2 -> true end).(3)
+    assert (fn 1 - 2 -> true end).(-1)
+    assert (fn -1 -> true end).(-1)
+    assert (fn +1 -> true end).(1)
+  end
+
+  test "pin operator on match" do
+    x = 1
+    refute (fn ^x -> true; _ -> false end).(0)
+    assert (fn ^x -> true; _ -> false end).(1)
+    refute (fn ^x -> true; _ -> false end).(1.0)
   end
 
   test "capture with access" do
