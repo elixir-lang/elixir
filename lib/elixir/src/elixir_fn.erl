@@ -6,7 +6,7 @@
 translate(Meta, Clauses, S) ->
   Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->
     {Args, Guards} = elixir_clauses:extract_splat_guards(ArgsWithGuards),
-    {TClause, TS } = elixir_clauses:clause(CMeta, fun elixir_translator:translate_args/2,
+    {TClause, TS } = elixir_clauses:clause(CMeta, fun translate_fn_match/2,
                                             Args, Expr, Guards, Acc),
     {TClause, elixir_scope:mergef(S, TS)}
   end,
@@ -21,6 +21,10 @@ translate(Meta, Clauses, S) ->
       compile_error(Meta, S#elixir_scope.file,
                     "cannot mix clauses with different arities in function definition")
   end.
+
+translate_fn_match(Arg, S) ->
+  {TArg, TS} = elixir_translator:translate_args(Arg, S#elixir_scope{extra=pin_guard}),
+  {TArg, TS#elixir_scope{extra=S#elixir_scope.extra}}.
 
 %% Expansion
 

@@ -169,7 +169,17 @@ translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S
   Tuple = {Name, var_kind(VarMeta, Kind)},
   case maps:find(Tuple, S#elixir_scope.backup_vars) of
     {ok, {Value, _Counter}} ->
-      {{var, ?ann(Meta), Value}, S};
+      PAnn = ?ann(Meta),
+      PVar = {var, PAnn, Value},
+
+      case S#elixir_scope.extra of
+        pin_guard ->
+          {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
+          Guard = {op, PAnn, '=:=', PVar, TVar},
+          {TVar, TS#elixir_scope{extra_guards=[Guard|TS#elixir_scope.extra_guards]}};
+        _ ->
+          {PVar, S}
+      end;
     error ->
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;

@@ -98,9 +98,14 @@ translate_gen(ForMeta, _, _, S) ->
 
 translate_gen(_Meta, Left, Right, T, S) ->
   {TRight, SR} = elixir_translator:translate(Right, S),
-  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, Left, SR),
-  {TT, {TFilters, TS}} = translate_filters(T, SL),
-  {TLeft, TRight, TFilters, TT, TS}.
+  {TLeft, SL} = elixir_clauses:match(fun elixir_translator:translate/2, Left,
+                                     SR#elixir_scope{extra=pin_guard, extra_guards=[]}),
+
+  ExtraGuards = [{nil, X} || X <- SL#elixir_scope.extra_guards],
+  SF = SL#elixir_scope{extra=S#elixir_scope.extra, extra_guards=nil},
+
+  {TT, {TFilters, TS}} = translate_filters(T, SF),
+  {TLeft, TRight, ExtraGuards ++ TFilters, TT, TS}.
 
 translate_filters(T, S) ->
   {Filters, Rest} = collect_filters(T, []),
