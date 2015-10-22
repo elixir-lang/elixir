@@ -80,9 +80,14 @@ defmodule IEx.Helpers do
     if mix_started? do
       config = Mix.Project.config
       reenable_tasks(config)
-      apps = stop_apps(config)
-      Mix.Task.run("app.start")
-      {:restarted, apps}
+      case stop_apps(config) do
+        {true, apps} ->
+          Mix.Task.run("app.start")
+          {:restarted, apps}
+        {false, apps} ->
+          Mix.Task.run("app.start", ["--no-start"])
+          {:recompiled, apps}
+      end
     else
       IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
       :error
@@ -111,8 +116,11 @@ defmodule IEx.Helpers do
         true ->
           []
       end
-    apps |> Enum.reverse |> Enum.each(&Application.stop/1)
-    apps
+    stopped? =
+      Enum.reverse(apps)
+      |> Enum.all?(&match?({:error, {:not_started, &1}}, Application.stop(&1)))
+      |> Kernel.not
+    {stopped?, apps}
   end
 
   @doc """
