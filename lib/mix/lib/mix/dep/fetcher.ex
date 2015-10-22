@@ -83,6 +83,9 @@ defmodule Mix.Dep.Fetcher do
   defp out_of_date?(%Mix.Dep{}),                           do: false
 
   defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
+    {not_ok, _} = Mix.Dep.partition(all_deps)
+    show_not_ok!(not_ok)
+
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
@@ -143,5 +146,21 @@ defmodule Mix.Dep.Fetcher do
     Enum.map(given, fn(app) ->
       if is_binary(app), do: String.to_atom(app), else: app
     end)
+  end
+
+  defp show_not_ok!([]) do
+    :ok
+  end
+
+  defp show_not_ok!(deps) do
+    shell = Mix.shell
+    shell.error "Error fetching dependencies:"
+
+    Enum.each deps, fn(dep) ->
+      shell.error "* #{Mix.Dep.format_dep dep}"
+      shell.error "  #{Mix.Dep.format_status dep}"
+    end
+
+    Mix.raise "Can't continue due to errors on dependencies"
   end
 end
