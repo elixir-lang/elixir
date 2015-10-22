@@ -144,8 +144,10 @@ defmodule Task do
 
     * `:ref` - the task monitor reference
 
+    * `:owner` - the PID of the process that started the task
+
   """
-  defstruct pid: nil, ref: nil
+  defstruct pid: nil, ref: nil, owner: nil
 
   @type t :: %__MODULE__{}
 
@@ -270,10 +272,11 @@ defmodule Task do
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
     mfa = {mod, fun, args}
-    pid = Task.Supervised.spawn_link(self, get_info(self), mfa)
+    owner = self()
+    pid = Task.Supervised.spawn_link(owner, get_info(owner), mfa)
     ref = Process.monitor(pid)
-    send(pid, {self(), ref})
-    %Task{pid: pid, ref: ref}
+    send(pid, {owner, ref})
+    %Task{pid: pid, ref: ref, owner: owner}
   end
 
   defp get_info(self) do
@@ -304,7 +307,14 @@ defmodule Task do
   again. To await the task's reply multiple times use `yield/2` instead.
   """
   @spec await(t, timeout) :: term | no_return
-  def await(%Task{ref: ref}=task, timeout \\ 5000) do
+  def await(task, timeout \\ 5000)
+
+  # TODO: Remove nil check in Elixir 1.3
+  def await(%Task{owner: owner}=task, _) when owner != nil and owner != self() do
+    raise_invalid_owner_error(task)
+  end
+
+  def await(%Task{ref: ref}=task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -406,7 +416,14 @@ defmodule Task do
   awaiting the message.
   """
   @spec yield(t, timeout) :: {:ok, term} | nil
-  def yield(%Task{ref: ref} = task, timeout \\ 5_000) do
+  def yield(task, timeout \\ 5_000)
+
+  # TODO: Remove nil check in Elixir 1.3
+  def yield(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
+    raise_invalid_owner_error(task)
+  end
+
+  def yield(%Task{ref: ref} = task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -448,6 +465,11 @@ defmodule Task do
 
   def shutdown(%Task{pid: nil} = task, _) do
     raise ArgumentError, "task #{inspect task} does not have an associated task process."
+  end
+
+  # TODO: Remove nil check in Elixir 1.3
+  def shutdown(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
+    raise_invalid_owner_error(task)
   end
 
   def shutdown(%Task{pid: pid} = task, :brutal_kill) do
@@ -519,5 +541,10 @@ defmodule Task do
     after
       0 -> nil
     end
+  end
+
+  defp raise_invalid_owner_error(task) do
+    raise ArgumentError,
+      "#{inspect task} must be queried from the owner but was queried from #{inspect self()}."
   end
 end
