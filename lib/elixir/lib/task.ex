@@ -311,7 +311,7 @@ defmodule Task do
 
   # TODO: Remove nil check in Elixir 1.3
   def await(%Task{owner: owner}=task, _) when owner != nil and owner != self() do
-    raise_invalid_owner_error(task)
+    raise ArgumentError, invalid_owner_error(task)
   end
 
   def await(%Task{ref: ref}=task, timeout) do
@@ -420,7 +420,7 @@ defmodule Task do
 
   # TODO: Remove nil check in Elixir 1.3
   def yield(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
-    raise_invalid_owner_error(task)
+    raise ArgumentError, invalid_owner_error(task)
   end
 
   def yield(%Task{ref: ref} = task, timeout) do
@@ -469,7 +469,7 @@ defmodule Task do
 
   # TODO: Remove nil check in Elixir 1.3
   def shutdown(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
-    raise_invalid_owner_error(task)
+    raise ArgumentError, invalid_owner_error(task)
   end
 
   def shutdown(%Task{pid: pid} = task, :brutal_kill) do
@@ -543,8 +543,7 @@ defmodule Task do
     end
   end
 
-  defp raise_invalid_owner_error(task) do
-    raise ArgumentError,
+  defp invalid_owner_error(task) do
       "#{inspect task} must be queried from the owner but was queried from #{inspect self()}."
   end
 end
