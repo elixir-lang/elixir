@@ -89,10 +89,14 @@ defmodule Macro do
     bad_pipe(expr, call_args)
   end
 
+  def pipe(expr, {tuple_or_map, _, _} = call_args, _integer) when tuple_or_map in [:{}, :%{}] do
+    bad_pipe(expr, call_args)
+  end
+
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
       when call in unquote(@binary_ops) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-      "the #{to_string call} operator can only take two arguments"
+                         "the #{to_string call} operator can only take two arguments"
   end
 
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
