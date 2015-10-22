@@ -256,6 +256,19 @@ defmodule Mix.Tasks.DepsTest do
 
   ## Nested dependencies
 
+  defmodule ConflictDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          {:git_repo, "0.1.0", path: "custom/raw_repo"},
+          {:bad_deps_repo, "0.1.0", path: "custom/bad_deps_repo"}
+        ]
+      ]
+    end
+  end
+
   defmodule DivergedDepsApp do
     def project do
       [
@@ -318,7 +331,28 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "fails on diverged dependencies" do
+  test "fails on diverged dependencies on get/update" do
+    Mix.Project.push ConflictDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _ = msg]}
+
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Get.run []
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _ = msg]}
+
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Update.run ["--all"]
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _ = msg]}
+    end
+  end
+
+  test "fails on diverged dependencies on check" do
     Mix.Project.push DivergedDepsApp
 
     in_fixture "deps_status", fn ->
