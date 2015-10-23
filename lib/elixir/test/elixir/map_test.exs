@@ -77,6 +77,9 @@ defmodule MapTest do
     %{^x => :value} = %{x => :value}
     assert %{x => :value} == %{key: :value}
     assert (fn %{^x => :value} -> true end).(%{key: :value})
+
+    map = %{x => :value}
+    assert %{map | x => :new_value} == %{x => :new_value}
   end
 
   defmodule ExternalUser do
