@@ -15,12 +15,6 @@ defmodule EEx.SmartEngineTest do
     assert_eval "1", "<%= @foo %>", assigns: %{foo: 1}
   end
 
-  test "raises an error on missing assigns" do
-    assert_raise ArgumentError, ~r/assign @foo not available in eex template. Available assigns: \[:bar\]/, fn ->
-      EEx.eval_string "<%= @foo %>", assigns: [bar: 1]
-    end
-  end
-
   test "evaluates with loops" do
     assert_eval "1\n2\n3\n", "<%= for x <- [1, 2, 3] do %><%= x %>\n<% end %>"
   end
