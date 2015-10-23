@@ -23,10 +23,6 @@ defmodule Agent.Server do
     {:reply, :ok, run(fun, [state])}
   end
 
-  def handle_call(:stop, _from, state) do
-    {:stop, :normal, :ok, state}
-  end
-
   def handle_call(msg, from, state) do
     super(msg, from, state)
   end
@@ -41,17 +37,6 @@ defmodule Agent.Server do
 
   def code_change(_old, state, fun) do
     {:ok, run(fun, [state])}
-  end
-
-  def terminate(_reason, _state) do
-    # There is a race condition if the agent is
-    # restarted too fast and it is registered.
-    try do
-      self |> :erlang.process_info(:registered_name) |> elem(1) |> Process.unregister
-    rescue
-      _ -> :ok
-    end
-    :ok
   end
 
   defp initial_call(mfa) do
