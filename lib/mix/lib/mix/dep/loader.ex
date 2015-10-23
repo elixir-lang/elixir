@@ -25,7 +25,11 @@ defmodule Mix.Dep.Loader do
         %Mix.Dep{status: {:divergedonly, _}} ->
           true
         %Mix.Dep{opts: opts} ->
-          only = opts[:only] |> List.wrap |> validate_only!
+          only =
+            opts[:only]
+            |> List.wrap
+            |> validate_only!
+
           only == [] or env in List.wrap(only)
       end)
     else

@@ -37,8 +37,17 @@ defmodule ExUnit.Filters do
   """
   @spec normalize(t | nil, t | nil) :: {t, t}
   def normalize(include, exclude) do
-    include = include |> List.wrap |> Enum.uniq
-    exclude = exclude |> List.wrap |> Enum.uniq |> Kernel.--(include)
+    include =
+      include
+      |> List.wrap
+      |> Enum.uniq
+
+    exclude =
+      exclude
+      |> List.wrap
+      |> Enum.uniq
+      |> Kernel.--(include)
+
     {include, exclude}
   end
 

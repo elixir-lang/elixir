@@ -176,22 +176,46 @@ defmodule Kernel.QuoteTest do
 
   test "pipe precedence" do
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo |> bar |> baz)
+      quote do: (
+        foo
+        |> bar
+        |> baz
+      )
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo do end |> bar |> baz)
+      quote do: (
+        foo do end
+        |> bar
+        |> baz
+      )
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo |> bar do end |> baz)
+      quote do: (
+        foo
+        |> bar do end
+        |> baz
+      )
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo |> bar |> baz do end)
+      quote do: (
+        foo
+        |> bar
+        |> baz do end
+      )
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo do end |> bar |> baz do end)
+      quote do: (
+        foo do end
+        |> bar
+        |> baz do end
+      )
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-           quote do: (foo do end |> bar do end |> baz do end)
+      quote do: (
+        foo do end
+        |> bar do end
+        |> baz do end
+      )
   end
 end
 
@@ -221,8 +245,12 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, :add, 2, [file: ^file, line: 202]}|_] = System.stacktrace
+    file =
+      __ENV__.file
+      |> Path.relative_to_cwd
+      |> String.to_char_list
+
+    assert [{^mod, :add, 2, [file: ^file, line: 226]}|_] = System.stacktrace
   end
 
   test "outside function error" do
@@ -231,8 +259,12 @@ defmodule Kernel.QuoteTest.ErrorsTest do
     end
 
     mod  = Kernel.QuoteTest.ErrorsTest
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, _, _, [file: ^file, line: 230]}|_] = System.stacktrace
+    file =
+      __ENV__.file
+      |> Path.relative_to_cwd
+      |> String.to_char_list
+
+    assert [{^mod, _, _, [file: ^file, line: 258]}|_] = System.stacktrace
   end
 end
 

@@ -33,7 +33,9 @@ defmodule Mix.Archive do
 
   """
   def dir(path) do
-    path |> Path.basename |> Path.rootname
+    path
+    |> Path.basename
+    |> Path.rootname
   end
 
   @doc """

@@ -35,10 +35,15 @@ defmodule Mix.Tasks.Deps.Clean do
     cond do
       opts[:all] ->
         checked_deps(build, deps) |> do_clean(build, deps)
+
       opts[:unused] ->
-        checked_deps(build, deps) |> filter_loaded(opts) |> do_clean(build, deps)
+        checked_deps(build, deps)
+        |> filter_loaded(opts)
+        |> do_clean(build, deps)
+
       apps != [] ->
         do_clean(apps, build, deps)
+
       true ->
         Mix.raise "\"mix deps.clean\" expects dependencies as arguments or " <>
                   "a flag indicating which dependencies to clean. " <>

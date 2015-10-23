@@ -162,7 +162,11 @@ defmodule IEx.Helpers do
 
     modules = Enum.map(erls, fn(source) ->
       {module, binary} = compile_erlang(source)
-      base = source |> Path.basename |> Path.rootname
+      base =
+        source
+        |> Path.basename
+        |> Path.rootname
+
       File.write!(Path.join(path, base <> ".beam"), binary)
       module
     end)
@@ -684,7 +688,9 @@ defmodule IEx.Helpers do
     path = Path.expand(path)
 
     if not optional? or File.exists?(path) do
-      path |> File.read! |> Code.string_to_quoted!(file: path)
+      path
+      |> File.read!
+      |> Code.string_to_quoted!(file: path)
     end
   end
 

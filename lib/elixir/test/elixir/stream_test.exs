@@ -64,28 +64,56 @@ defmodule StreamTest do
   end
 
   test "chunk/4 is haltable" do
-    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Enum.to_list ==
-           [[1, 2, 3, 4], [5, 6, 7, 8]]
-    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(3) |> Enum.to_list ==
-           [[1, 2, 3, 4], [5, 6, 7, 8]]
-    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(2) |> Enum.to_list ==
-           [[1, 2, 3, 4], [5, 6, 7, 8]]
-    assert 1..10 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Stream.take(1) |> Enum.to_list ==
-           [[1, 2, 3, 4]]
-    assert 1..6 |> Stream.take(6) |> Stream.chunk(4, 4, [7, 8]) |> Enum.to_list ==
-           [[1, 2, 3, 4], [5, 6, 7, 8]]
+    assert [[1, 2, 3, 4], [5, 6, 7, 8]] ==
+      1..10
+      |> Stream.take(6)
+      |> Stream.chunk(4, 4, [7, 8])
+      |> Enum.to_list
+
+    assert [[1, 2, 3, 4], [5, 6, 7, 8]] ==
+      1..10
+      |> Stream.take(6)
+      |> Stream.chunk(4, 4, [7, 8])
+      |> Stream.take(3)
+      |> Enum.to_list
+
+    assert [[1, 2, 3, 4], [5, 6, 7, 8]] ==
+      1..10
+      |> Stream.take(6)
+      |> Stream.chunk(4, 4, [7, 8])
+      |> Stream.take(2)
+      |> Enum.to_list
+
+    assert [[1, 2, 3, 4]] ==
+      1..10
+      |> Stream.take(6)
+      |> Stream.chunk(4, 4, [7, 8])
+      |> Stream.take(1)
+      |> Enum.to_list
+
+    assert [[1, 2, 3, 4], [5, 6, 7, 8]] ==
+      1..6
+      |> Stream.take(6)
+      |> Stream.chunk(4, 4, [7, 8])
+      |> Enum.to_list
   end
 
   test "chunk_by/2" do
     stream = Stream.chunk_by([1, 2, 2, 3, 4, 4, 6, 7, 7], &(rem(&1, 2) == 1))
 
     assert is_lazy(stream)
-    assert Enum.to_list(stream) ==
-           [[1], [2, 2], [3], [4, 4, 6], [7, 7]]
-    assert stream |> Stream.take(3) |> Enum.to_list ==
-           [[1], [2, 2], [3]]
-    assert 1..10 |> Stream.chunk(2) |> Enum.take(2) ==
-           [[1, 2], [3, 4]]
+
+    assert [[1], [2, 2], [3], [4, 4, 6], [7, 7]] == Enum.to_list(stream)
+
+    assert [[1], [2, 2], [3]] ==
+      stream
+      |> Stream.take(3)
+      |> Enum.to_list
+
+    assert [[1, 2], [3, 4]] ==
+      1..10
+      |> Stream.chunk(2)
+      |> Enum.take(2)
   end
 
   test "chunk_by/2 is zippable" do
@@ -141,8 +169,12 @@ defmodule StreamTest do
     stream = Stream.cycle([1, 2, 3])
     assert is_function(stream)
 
-    assert Stream.cycle([1, 2, 3]) |> Stream.take(5) |> Enum.to_list == [1, 2, 3, 1, 2]
-    assert Enum.take(stream, 5) == [1, 2, 3, 1, 2]
+    assert [1, 2, 3, 1, 2] ==
+      Stream.cycle([1, 2, 3]) |>
+      Stream.take(5) |>
+      Enum.to_list
+
+    assert [1, 2, 3, 1, 2] == Enum.take(stream, 5)
   end
 
   test "cycle/1 is zippable" do
@@ -151,8 +183,11 @@ defmodule StreamTest do
   end
 
   test "cycle/1 with inner stream" do
-    assert [1, 2, 3] |> Stream.take(2) |> Stream.cycle |> Enum.take(4) ==
-           [1, 2, 1, 2]
+    assert [1, 2, 1, 2] ==
+      [1, 2, 3]
+      |> Stream.take(2)
+      |> Stream.cycle
+      |> Enum.take(4)
   end
 
   test "dedup/1 is lazy" do
@@ -463,7 +498,10 @@ defmodule StreamTest do
 
     nats = Stream.iterate(1, &(&1 + 1))
     assert Stream.map(nats, &(&1 * 2)) |> Enum.take(5) == [2, 4, 6, 8, 10]
-    assert Stream.map(nats, &(&1 - 2)) |> Stream.map(&(&1 * 2)) |> Enum.take(3) == [-2, 0, 2]
+    assert [-2, 0, 2] ==
+      Stream.map(nats, &(&1 - 2))
+      |> Stream.map(&(&1 * 2))
+      |> Enum.take(3)
   end
 
   test "reject/2" do
@@ -728,10 +766,18 @@ defmodule StreamTest do
     stream = Stream.drop(1..100, 5)
     assert Stream.take(stream, 5) |> Enum.to_list == [6, 7, 8, 9, 10]
 
-    stream = 1..5 |> Stream.take(10) |> Stream.drop(15)
+    stream =
+      1..5
+      |> Stream.take(10)
+      |> Stream.drop(15)
+
     assert {[], []} = Enum.split(stream, 5)
 
-    stream = 1..20 |> Stream.take(10 + 5) |> Stream.drop(4)
+    stream =
+      1..20
+      |> Stream.take(10 + 5)
+      |> Stream.drop(4)
+
     assert Enum.to_list(stream) == [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
   end
 

@@ -551,7 +551,11 @@ defmodule MacroTest do
   test "unpipe" do
     assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
     assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
+    assert Macro.unpipe(quote do
+      foo
+      |> bar
+      |> baz
+    end) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
   end
 
   ## traverse/pre/postwalk
@@ -573,7 +577,9 @@ defmodule MacroTest do
   end
 
   defp traverse(ast) do
-    Macro.traverse(ast, [], &{&1, [&1|&2]}, &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.traverse(ast, [], &{&1, [&1|&2]}, &{&1, [&1|&2]})
+    |> elem(1)
+    |> Enum.reverse
   end
 
   test "prewalk" do
@@ -591,7 +597,9 @@ defmodule MacroTest do
   end
 
   defp prewalk(ast) do
-    Macro.prewalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.prewalk(ast, [], &{&1, [&1|&2]})
+    |> elem(1)
+    |> Enum.reverse
   end
 
   test "postwalk" do
@@ -609,7 +617,9 @@ defmodule MacroTest do
   end
 
   defp postwalk(ast) do
-    Macro.postwalk(ast, [], &{&1, [&1|&2]}) |> elem(1) |> Enum.reverse
+    Macro.postwalk(ast, [], &{&1, [&1|&2]})
+    |> elem(1)
+    |> Enum.reverse
   end
 
   test "underscore" do

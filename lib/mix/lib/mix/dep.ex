@@ -363,7 +363,11 @@ defmodule Mix.Dep do
     [opts[:dest] | sub_dirs]
     |> Enum.map(&Path.wildcard(&1))
     |> Enum.concat
-    |> Enum.filter(fn p -> p |> Path.join("ebin") |> File.dir? end)
+    |> Enum.filter(fn p ->
+      p
+      |> Path.join("ebin")
+      |> File.dir?
+    end)
   end
 
   def source_paths(%Mix.Dep{opts: opts}) do

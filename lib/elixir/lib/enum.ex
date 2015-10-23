@@ -17,7 +17,10 @@ defprotocol Enumerable do
 
       def map(enum, fun) do
         reducer = fn x, acc -> {:cont, [fun.(x)|acc]} end
-        Enumerable.reduce(enum, {:cont, []}, reducer) |> elem(1) |> :lists.reverse()
+
+        Enumerable.reduce(enum, {:cont, []}, reducer)
+        |> elem(1)
+        |> :lists.reverse()
       end
 
   Notice the user given function is wrapped into a `t:reducer/0` function.
@@ -2188,7 +2191,9 @@ defmodule Enum do
     end
 
     {size, sample} = reduce(enumerable, {0, sample}, reducer)
-    sample |> Tuple.to_list |> take(Kernel.min(count, size))
+    sample
+    |> Tuple.to_list
+    |> take(Kernel.min(count, size))
   end
 
   defp take_random(_sample, 0, acc), do: acc

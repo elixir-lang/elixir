@@ -11,7 +11,12 @@ defmodule ExceptionTest do
         [top|_] = System.stacktrace
         top
       end
-    file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
+
+    file =
+      __ENV__.file
+      |> Path.relative_to_cwd
+      |> String.to_char_list
+
     assert {__MODULE__, :"test raise preserves the stacktrace", _,
            [file: ^file, line: 9]} = stacktrace
   end

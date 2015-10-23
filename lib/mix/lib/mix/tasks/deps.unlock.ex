@@ -26,9 +26,13 @@ defmodule Mix.Tasks.Deps.Unlock do
     cond do
       opts[:all] ->
         Mix.Dep.Lock.write(%{})
+
       opts[:unused] ->
         apps = Mix.Dep.loaded([]) |> Enum.map(& &1.app)
-        Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
+
+        Mix.Dep.Lock.read
+        |> Map.take(apps)
+        |> Mix.Dep.Lock.write
 
       apps != [] ->
         lock =
