@@ -199,11 +199,6 @@ defmodule TaskTest do
     assert_raise ArgumentError, fn -> Task.await(task, 1) end
   end
 
-  test "await/1 skips owner check if owner is nil" do
-    task = %Task{create_task_in_other_process | owner: nil}
-    assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-  end
-
   test "find/2" do
     task = %Task{ref: make_ref}
     assert Task.find([task], {make_ref, :ok}) == nil
@@ -243,11 +238,6 @@ defmodule TaskTest do
   test "yield/1 raises a helpful error when invoked from a non-owner process" do
     task = create_task_in_other_process()
     assert_raise ArgumentError, fn -> Task.yield(task, 1) end
-  end
-
-  test "yield/1 skips owner check if owner is nil" do
-    task = %Task{create_task_in_other_process | owner: nil}
-    assert Task.yield(task, 0) == nil
   end
 
   test "shutdown/1 returns {:ok, result} when reply and abnormal :DOWN in message queue" do
@@ -319,11 +309,6 @@ defmodule TaskTest do
   test "shutdown/1 raises a helpful error when invoked from a non-owner process" do
     task = create_task_in_other_process()
     assert_raise ArgumentError, fn -> Task.shutdown(task) end
-  end
-
-  test "shutdown/1 skips owner check if owner is nil" do
-    task = %Task{Task.async(:timer, :sleep, [:infinity]) | owner: nil}
-    assert Task.shutdown(task, 0) == nil
   end
 
   test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do

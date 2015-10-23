@@ -111,8 +111,8 @@ defmodule Mix.SCM.Git do
   # TODO: make it raise (at v2.0?)
   defp validate_git_options(opts) do
     if Enum.count(opts, fn({key, _}) -> key in [:branch, :ref, :tag] end) > 1 do
-      Mix.shell.error "warning: you should specify only one of branch, ref or tag, and only once." <>
-        "Error on git dependency: #{opts[:git]}"
+      Mix.shell.error "warning: you should specify only one of branch, ref or tag, and only once. " <>
+                      "Error on git dependency: #{opts[:git]}"
     end
     opts
   end
