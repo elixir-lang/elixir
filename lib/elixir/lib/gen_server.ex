@@ -518,6 +518,21 @@ defmodule GenServer do
   end
 
   @doc """
+  Stops the `server` with the given `reason` and waits for it to terminate
+
+  ## Timeouts
+
+  The `timeout` is an integer greater than zero which specifies how many
+  milliseconds to wait for the `server` to terminate, or the atom `:infinity`
+  to wait indefinitely. The default value is `:infinity`. If the `server` has 
+  not terminated within the specified time, a `timeout` exception is raised.
+  """
+  @spec stop(server, term, timeout) :: :ok
+  def stop(server, reason \\ :normal, timeout \\ :infinity) do
+    :gen.stop(server, reason, timeout)
+  end
+
+  @doc """
   Makes a synchronous call to the `server` and waits for its reply.
 
   The client sends the given `request` to the server and waits until a reply
