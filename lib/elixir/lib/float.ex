@@ -90,7 +90,7 @@ defmodule Float do
       iex> Float.floor(-56.5)
       -57.0
 
-      iex> Float.floor(34.253, 2)
+      iex> Float.floor(34.259, 2)
       34.25
 
   """
@@ -120,7 +120,7 @@ defmodule Float do
       iex> Float.ceil(-56.5)
       -56.0
 
-      iex> Float.ceil(34.253, 2)
+      iex> Float.ceil(34.251, 2)
       34.26
 
   """
