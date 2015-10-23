@@ -66,7 +66,7 @@ defmodule Task.Supervisor do
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
     owner = self()
-    args = [self, :link, get_info(owner), {module, fun, args}]
+    args = [owner, :link, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     Process.link(pid)
     ref = Process.monitor(pid)
@@ -96,7 +96,7 @@ defmodule Task.Supervisor do
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
     owner = self()
-    args = [self, :monitor, get_info(owner), {module, fun, args}]
+    args = [owner, :monitor, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
     send pid, {owner, ref}
