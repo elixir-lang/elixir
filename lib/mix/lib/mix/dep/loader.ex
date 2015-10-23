@@ -244,7 +244,7 @@ defmodule Mix.Dep.Loader do
   defp rebar_dep(%Mix.Dep{} = dep, children) do
     Mix.Dep.in_dependency(dep, fn _ ->
       rebar = Mix.Rebar.load_config(".")
-      extra = Dict.take(rebar, [:sub_dirs])
+      extra = Keyword.take(rebar, [:sub_dirs])
       deps  = if children do
         from = Path.absname("rebar.config")
         Enum.map(children, &to_dep(&1, from, :rebar))

@@ -75,6 +75,7 @@ defmodule URI do
       %{"bar" => "2", "foo" => "1"}
 
   """
+  # TODO: Deprecate giving not a map on 1.3
   def decode_query(q, dict \\ %{}) when is_binary(q) do
     case do_decode_query(q) do
       nil         -> dict

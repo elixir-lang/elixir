@@ -226,7 +226,7 @@ defmodule Mix.Dep do
     do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
-    info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
+    info = {app, req, Keyword.drop(opts, [:dest, :lock, :env, :build])}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 

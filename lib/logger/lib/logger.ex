@@ -339,7 +339,7 @@ defmodule Logger do
   @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
 
   def configure(options) do
-    Logger.Config.configure(Dict.take(options, @valid_options))
+    Logger.Config.configure(Keyword.take(options, @valid_options))
   end
 
   @doc """

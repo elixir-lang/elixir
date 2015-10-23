@@ -117,7 +117,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp do_generate_umbrella(_app, mod, path, _opts) do
-    assigns = [mod: mod]
+    assigns = [app: nil, mod: mod]
 
     create_file ".gitignore", gitignore_text
     create_file "README.md", readme_template(assigns)

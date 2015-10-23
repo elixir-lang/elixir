@@ -306,7 +306,7 @@ defmodule ExUnit.Case do
   defp normalize_tags(tags) do
     Enum.reduce Enum.reverse(tags), %{}, fn
       tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
-      tag, acc when is_list(tag) -> Dict.merge(acc, tag)
+      tag, acc when is_list(tag) -> tag |> Enum.into(acc)
     end
   end
 end
