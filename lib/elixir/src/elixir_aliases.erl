@@ -141,7 +141,7 @@ lookup(Else, Dict, Counter) ->
 %% Errors
 
 format_error({unloaded_module, Module}) ->
-  io_lib:format("module ~ts is not loaded and could not be found", [elixir_aliases:inspect(Module)]);
+  io_lib:format("module ~ts is not loaded and could not be found", [inspect(Module)]);
 
 format_error({scheduled_module, Module}) ->
   io_lib:format(
