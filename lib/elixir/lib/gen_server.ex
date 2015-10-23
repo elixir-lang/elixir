@@ -76,7 +76,7 @@ defmodule GenServer do
       term using the functions in the `:global` module.
 
     * `{:via, module, term}` - the GenServer is registered with the given
-      mechanism and name. The `:via` option expects a module that exports 
+      mechanism and name. The `:via` option expects a module that exports
       `register_name/2`, `unregister_name/1`, `whereis_name/1` and `send/2`.
       One such example is the `:global` module which uses these functions
       for keeping the list of names of processes and their  associated pid's
@@ -518,17 +518,19 @@ defmodule GenServer do
   end
 
   @doc """
-  Stops the `server` with the given `reason` and waits for it to terminate
+  Stops the server with the given `reason`.
 
-  ## Timeouts
+  The `terminate/2` callback will be invoked before exiting.
+  It returns `:ok` if the server terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
 
-  The `timeout` is an integer greater than zero which specifies how many
-  milliseconds to wait for the `server` to terminate, or the atom `:infinity`
-  to wait indefinitely. The default value is `:infinity`. If the `server` has 
-  not terminated within the specified time, a `timeout` exception is raised.
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
   """
-  @spec stop(server, term, timeout) :: :ok
-  def stop(server, reason \\ :normal, timeout \\ :infinity) do
+  @spec stop(server, reason :: term, timeout) :: :ok
+  def stop(server, reason \\ :normal, timeout \\ 5_000) do
     :gen.stop(server, reason, timeout)
   end
 

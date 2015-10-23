@@ -612,21 +612,20 @@ defmodule GenEvent do
   end
 
   @doc """
-  Terminates the event `manager` with the given `reason` and waits for it
-  to terminate.
+  Stops the manager with the given `reason`.
 
-  Before terminating, the event manager will call `terminate(:stop, ...)`
-  for each installed event handler.
+  Before terminating, the event manager will call
+  `terminate(:stop, ...)` for each installed event handler.
+  It returns `:ok` if the manager terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
 
-  ## Timeouts
-
-  The `timeout` is an integer greater than zero which specifies how many
-  milliseconds to wait for the `manager` to terminate, or the atom `:infinity`
-  to wait indefinitely. The default value is `:infinity`. If the `manager` has
-  not terminated within the specified time, a `timeout` exception is raised.
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
   """
-  @spec stop(manager, term, timeout) :: :ok
-  def stop(manager, reason \\ :normal, timeout \\ :infinity) do
+  @spec stop(manager, reason :: term, timeout) :: :ok
+  def stop(manager, reason \\ :normal, timeout \\ 5_000) do
     :gen.stop(manager, reason, timeout)
   end
 

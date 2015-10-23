@@ -314,7 +314,13 @@ defmodule Task do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def await(%Task{ref: ref}=task, timeout) do
+  def await(%Task{ref: ref, owner: owner}=task, timeout) do
+    if is_nil(owner) do
+      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
+                        "please ensure the owner field is correctly set to self()\n" <>
+                        Exception.format_stacktrace
+    end
+
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -423,7 +429,13 @@ defmodule Task do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def yield(%Task{ref: ref} = task, timeout) do
+  def yield(%Task{ref: ref, owner: owner} = task, timeout) do
+    if is_nil(owner) do
+      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
+                        "please ensure the owner field is correctly set to self()\n" <>
+                        Exception.format_stacktrace
+    end
+
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -464,7 +476,7 @@ defmodule Task do
   def shutdown(task, shutdown \\ 5_000)
 
   def shutdown(%Task{pid: nil} = task, _) do
-    raise ArgumentError, "task #{inspect task} does not have an associated task process."
+    raise ArgumentError, "task #{inspect task} does not have an associated task process"
   end
 
   # TODO: Remove nil check in Elixir 1.3
@@ -472,8 +484,15 @@ defmodule Task do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
+  def shutdown(%Task{pid: pid, owner: owner} = task, :brutal_kill) do
+    if is_nil(owner) do
+      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
+                        "please ensure the owner field is correctly set to self()\n" <>
+                        Exception.format_stacktrace
+    end
+
     exit(pid, :kill)
+
     case shutdown_receive(task, :brutal_kill, :infinity) do
       {:error, reason} ->
         exit({reason, {__MODULE__, :shutdown, [task, :brutal_kill]}})
