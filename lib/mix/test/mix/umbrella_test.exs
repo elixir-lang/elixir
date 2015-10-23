@@ -205,14 +205,15 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
         assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
 
-        # Touch once to make it up to date
-        File.touch!("../foo/lib/foo.ex")
-
-        # Touch another time to ensure mtime changed
-        ensure_touched("../foo/lib/foo.ex",
-                       File.stat!("_build/dev/.compile.lock").mtime)
-
         # Ensure we can measure a timestamp difference
+        ensure_touched("_build/dev/lib/foo/.compile.elixir",
+                       File.stat!("_build/dev/.compile.lock").mtime)
+        ensure_touched("../foo/mix.exs",
+                       File.stat!("_build/dev/lib/foo/.compile.elixir").mtime)
+
+        # Mark locks and protocols as outdated
+        File.touch!("_build/dev/lib/foo/.compile.elixir",
+                    {{2010, 1, 1}, {0, 0, 0}})
         File.touch!("_build/dev/consolidated/Elixir.Enumerable.beam",
                     {{2010, 1, 1}, {0, 0, 0}})
 
@@ -220,7 +221,7 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear
         Mix.shell.flush
 
-        Mix.Task.run "compile"
+        assert Mix.Task.run("compile") == :ok
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
