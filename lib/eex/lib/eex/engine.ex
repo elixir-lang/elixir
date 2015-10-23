@@ -51,7 +51,10 @@ defmodule EEx.Engine do
   end
 
   @doc """
-  Handles assigns in quoted expressions. An error will be raised on missing assigns.
+  Handles assigns in quoted expressions.
+
+  A warning will be printed on missing assigns.
+  Future versions will raise.
 
   This can be added to any custom engine by invoking
   `handle_assign/1` with `Macro.prewalk/2`:
@@ -71,11 +74,18 @@ defmodule EEx.Engine do
   end
 
   @doc false
+  # TODO: raise on 1.3 or 1.4
   def fetch_assign!(assigns, key) do
-    case Dict.fetch(assigns, key) do
+    case Access.fetch(assigns, key) do
+      {:ok, val} ->
+        val
+
       :error ->
-        raise ArgumentError, message: "assign @#{key} not available in eex template. Available assigns: #{inspect Dict.keys(assigns)}"
-      {:ok, val} -> val
+        IO.write :stderr, "warning: assign @#{key} not available in eex template. " <>
+                          "Please ensure all assigns are given as options. " <>
+                          "Available assigns: #{inspect Dict.keys(assigns)}\n" <>
+                          Exception.format_stacktrace
+        nil
     end
   end
 
