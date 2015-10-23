@@ -8,11 +8,10 @@ defmodule Mix.Dep.Umbrella do
     config = Mix.Project.config
 
     if apps_path = config[:apps_path] do
-      paths = Path.wildcard(Path.join(apps_path, "*"))
+      paths = Path.wildcard(Path.join(apps_path, "*/mix.exs")) |> Enum.map(&Path.dirname/1)
       build = Mix.Project.build_path
 
       paths
-      |> Enum.filter(&File.dir?(&1))
       |> extract_umbrella
       |> filter_umbrella(config[:apps])
       |> to_umbrella_dep(build)
