@@ -65,12 +65,13 @@ defmodule Task.Supervisor do
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    args = [self, :link, get_info(self), {module, fun, args}]
+    owner = self()
+    args = [self, :link, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     Process.link(pid)
     ref = Process.monitor(pid)
-    send pid, {self(), ref}
-    %Task{pid: pid, ref: ref}
+    send pid, {owner, ref}
+    %Task{pid: pid, ref: ref, owner: owner}
   end
 
   @doc """
@@ -94,11 +95,12 @@ defmodule Task.Supervisor do
   """
   @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async_nolink(supervisor, module, fun, args) do
-    args = [self, :monitor, get_info(self), {module, fun, args}]
+    owner = self()
+    args = [self, :monitor, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
-    send pid, {self(), ref}
-    %Task{pid: pid, ref: ref}
+    send pid, {owner, ref}
+    %Task{pid: pid, ref: ref, owner: owner}
   end
 
   @doc """

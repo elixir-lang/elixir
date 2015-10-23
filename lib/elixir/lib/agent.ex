@@ -295,12 +295,25 @@ defmodule Agent do
   end
 
   @doc """
-  Stops the agent.
+  Stops the agent with the given `reason`.
 
-  Returns `:ok` if the agent is stopped within the given `timeout`.
+  It returns `:ok` if the server terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
+
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
   """
-  @spec stop(agent, timeout) :: :ok
-  def stop(agent, timeout \\ 5000) do
-    GenServer.call(agent, :stop, timeout)
+  @spec stop(agent, reason :: term, timeout) :: :ok
+  def stop(agent, reason \\ :normal, timeout \\ 5_000) do
+    if is_integer(reason) or reason == :infinity do
+      IO.write :stderr, "warning: Agent.stop(agent, timeout) is deprecated, " <>
+                        "please use Agent.stop(agent, :normal, timeout) instead\n" <>
+                        Exception.format_stacktrace
+      :gen.stop(agent, :normal, reason)
+    else
+      :gen.stop(agent, reason, timeout)
+    end
   end
 end

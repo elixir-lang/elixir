@@ -113,7 +113,7 @@ defmodule Mix.Compilers.Elixir do
         entries
       end
     after
-      Agent.stop(pid, :infinity)
+      Agent.stop(pid, :normal, :infinity)
     end
 
     :ok

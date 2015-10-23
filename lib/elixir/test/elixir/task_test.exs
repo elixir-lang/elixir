@@ -312,7 +312,7 @@ defmodule TaskTest do
 
   test "shutdown/1 raises if task pid is nil" do
     task = %Task{ref: make_ref, pid: nil}
-    assert_raise ArgumentError, "task #{inspect task} does not have an associated task process.",
+    assert_raise ArgumentError, "task #{inspect task} does not have an associated task process",
       fn -> Task.shutdown(task) end
   end
 

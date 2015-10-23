@@ -6,11 +6,6 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
-    def handle_call(:stop, from, state) do
-      GenServer.reply(from, :ok)
-      {:stop, :normal, state}
-    end
-
     def handle_call(:pop, _from, [h|t]) do
       {:reply, h, t}
     end
