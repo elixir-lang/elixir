@@ -738,13 +738,6 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, mon, name)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, :stop} ->
-        try do
-          server_terminate(:normal, parent, handlers, name)
-        catch
-          :exit, :normal -> :ok
-        end
-        reply(tag, :ok)
       {_from, tag, :which_handlers} ->
         reply(tag, server_which_handlers(handlers))
         loop(parent, name, handlers, debug, false)
