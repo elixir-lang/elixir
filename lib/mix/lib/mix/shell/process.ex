@@ -94,7 +94,9 @@ defmodule Mix.Shell.Process do
   end
 
   defp format(message) do
-    message |> IO.ANSI.format(false) |> IO.iodata_to_binary
+    message
+    |> IO.ANSI.format(false)
+    |> IO.iodata_to_binary
   end
 
   @doc """

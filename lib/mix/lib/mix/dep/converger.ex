@@ -202,7 +202,10 @@ defmodule Mix.Dep.Converger do
           in_upper? && other_opts[:override] ->
             {other |> with_matching_only(dep, in_upper?), true}
           converge?(other, dep) ->
-            {other |> with_matching_only(dep, in_upper?) |> with_matching_req(dep), true}
+            { other
+              |> with_matching_only(dep, in_upper?)
+              |> with_matching_req(dep),
+            true}
           true ->
             tag = if in_upper?, do: :overridden, else: :diverged
             {%{other | status: {tag, dep}}, true}

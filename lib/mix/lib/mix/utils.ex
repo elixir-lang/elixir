@@ -79,7 +79,10 @@ defmodule Mix.Utils do
   end
 
   defp stale_stream(sources, targets) do
-    modified_target = targets |> Enum.map(&last_modified(&1)) |> Enum.min
+    modified_target =
+      targets
+      |> Enum.map(&last_modified(&1))
+      |> Enum.min
 
     Stream.filter(sources, fn(source) ->
       last_modified(source) > modified_target
@@ -206,8 +209,10 @@ defmodule Mix.Utils do
   end
 
   def module_name_to_command(module, nesting) do
-    t = Regex.split(~r/\./, to_string(module))
-    t |> Enum.drop(nesting) |> Enum.map(&underscore(&1)) |> Enum.join(".")
+    Regex.split(~r/\./, to_string(module))
+    |> Enum.drop(nesting)
+    |> Enum.map(&underscore(&1))
+    |> Enum.join(".")
   end
 
   @doc """

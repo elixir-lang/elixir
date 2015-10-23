@@ -128,7 +128,9 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp module_from_artifact(artifact) do
-    artifact |> Path.basename |> Path.rootname
+    artifact
+    |> Path.basename
+    |> Path.rootname
   end
 
   defp interpret_result(file, result) do

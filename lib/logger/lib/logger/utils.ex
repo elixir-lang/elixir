@@ -210,7 +210,12 @@ defmodule Logger.Utils do
       when is_integer(c) and c >= ?0 and c <= ?9 do
     {t, c} = collect_value([c|t], [])
     collect_cc(next, t, args, c ++ used_format, used_args,
-               put_value(opts, current, c |> :lists.reverse |> List.to_integer))
+      put_value(opts, current,
+        c
+        |> :lists.reverse
+        |> List.to_integer
+      )
+    )
   end
 
   defp collect_value(_current, t, args, used_format, used_args, opts, next),

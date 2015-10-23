@@ -2589,7 +2589,9 @@ defmodule Kernel do
 
   Or, even better:
 
-      "Hello" |> String.graphemes |> Enum.reverse
+      "Hello"
+      |> String.graphemes
+      |> Enum.reverse
 
   """
   defmacro left |> right do

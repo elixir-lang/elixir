@@ -122,6 +122,9 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp first_line(doc) do
-    String.split(doc, "\n", parts: 2) |> hd |> String.strip |> String.rstrip(?.)
+    String.split(doc, "\n", parts: 2)
+    |> hd
+    |> String.strip
+    |> String.rstrip(?.)
   end
 end

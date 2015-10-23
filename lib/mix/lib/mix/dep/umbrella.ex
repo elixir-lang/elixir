@@ -39,7 +39,12 @@ defmodule Mix.Dep.Umbrella do
 
   defp extract_umbrella(paths) do
     for path <- paths do
-      app = path |> Path.basename |> String.downcase |> String.to_atom
+      app =
+        path
+        |> Path.basename
+        |> String.downcase
+        |> String.to_atom
+
       {app, path}
     end
   end

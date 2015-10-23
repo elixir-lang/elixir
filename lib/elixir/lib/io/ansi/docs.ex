@@ -43,7 +43,11 @@ defmodule IO.ANSI.Docs do
     options = Keyword.merge(default_options, options)
     width   = options[:width]
     padding = div(width + String.length(heading), 2)
-    heading = heading |> String.rjust(padding) |> String.ljust(width)
+    heading =
+      heading
+      |> String.rjust(padding)
+      |> String.ljust(width)
+
     write(:doc_title, heading, options)
     newline_after_block
   end

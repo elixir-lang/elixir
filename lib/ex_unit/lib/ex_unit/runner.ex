@@ -51,7 +51,7 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:exclude, exclude)
     |> Keyword.put(:include, include)
     |> Keyword.put(:max_cases, max_cases(opts))
-    |> Keyword.put_new(:seed, :os.timestamp |> elem(2))
+    |> Keyword.put_new(:seed, elem(:os.timestamp, 2))
   end
 
   defp max_cases(opts) do

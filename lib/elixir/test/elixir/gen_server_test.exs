@@ -26,7 +26,10 @@ defmodule GenServerTest do
       # There is a race condition if the agent is
       # restarted too fast and it is registered.
       try do
-        self |> Process.info(:registered_name) |> elem(1) |> Process.unregister
+        self
+        |> Process.info(:registered_name)
+        |> elem(1)
+        |> Process.unregister
       rescue
         _ -> :ok
       end

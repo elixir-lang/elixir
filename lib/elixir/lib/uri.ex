@@ -328,7 +328,11 @@ defmodule URI do
 
     destructure [_, _, userinfo, host, _, port], nillify(components)
     port = if port, do: String.to_integer(port)
-    host = if host, do: host |> String.lstrip(?[) |> String.rstrip(?])
+    host = if host do
+      host
+      |> String.lstrip(?[)
+      |> String.rstrip(?])
+    end
 
     {userinfo, host, port}
   end

@@ -459,15 +459,26 @@ defmodule KernelTest do
     end
 
     test "nested pipelines" do
-      assert [1, [2], 3] |> List.flatten |> Enum.map(&(&1 * 2)) == [2, 4, 6]
+      assert [2, 4, 6] ==
+        [1, [2], 3]
+        |> List.flatten
+        |> Enum.map(&(&1 * 2))
     end
 
     test "local call" do
-      assert [1, [2], 3] |> List.flatten |> local == [2, 4, 6]
+      assert [2, 4, 6] ==
+        [1, [2], 3]
+        |> List.flatten
+        |> local
     end
 
     test "pipeline with capture" do
-      assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
+      assert [4, 8, 12] ==
+        Enum.map([1, 2, 3], &(
+          &1
+          |> twice
+          |> twice
+        ))
     end
 
     test "anonymous functions" do
