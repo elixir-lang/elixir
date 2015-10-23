@@ -463,6 +463,22 @@ defmodule Supervisor do
     call(supervisor, :count_children) |> :maps.from_list
   end
 
+  @doc """
+  Stops the supervisor with the given `reason`.
+
+  It returns `:ok` if the supervisor terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
+
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
+  """
+  @spec stop(supervisor, reason :: term, timeout) :: :ok
+  def stop(supervisor, reason \\ :normal, timeout \\ 5_000) do
+    :gen.stop(supervisor, reason, timeout)
+  end
+
   @compile {:inline, call: 2}
 
   defp call(supervisor, req) do
