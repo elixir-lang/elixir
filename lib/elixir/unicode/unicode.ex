@@ -224,7 +224,7 @@ defmodule String.Graphemes do
       dict
     else
       list = to_range.(first, last)
-      Dict.update(dict, class, list, &(&1 ++ list))
+      Map.update(dict, class, list, &(&1 ++ list))
     end
   end
 

@@ -1445,6 +1445,7 @@ defmodule Enum do
 
   """
   @spec group_by(t, dict, (element -> any)) :: dict when dict: Dict.t
+  # TODO: Deprecate giving not a map on 1.3
   def group_by(enumerable, dict \\ %{}, fun) do
     reduce(enumerable, dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry|&1])

@@ -79,11 +79,11 @@ defmodule EEx.Engine do
     case Access.fetch(assigns, key) do
       {:ok, val} ->
         val
-
       :error ->
+        keys = Enum.map(assigns, &elem(&1, 0))
         IO.write :stderr, "warning: assign @#{key} not available in eex template. " <>
                           "Please ensure all assigns are given as options. " <>
-                          "Available assigns: #{inspect Dict.keys(assigns)}\n" <>
+                          "Available assigns: #{inspect keys}\n" <>
                           Exception.format_stacktrace
         nil
     end

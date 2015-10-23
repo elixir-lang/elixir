@@ -106,7 +106,7 @@ defmodule Mix.Dep.Fetcher do
 
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
-    lock = Dict.merge(old_lock, new_lock)
+    lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
 
     mark_as_fetched(deps)

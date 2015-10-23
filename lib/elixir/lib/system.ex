@@ -284,9 +284,9 @@ defmodule System do
   Sets a new value for each environment variable corresponding
   to each key in `dict`.
   """
-  @spec put_env(Dict.t) :: :ok
-  def put_env(dict) do
-    Enum.each dict, fn {key, val} -> put_env key, val end
+  @spec put_env(Enumerable.t) :: :ok
+  def put_env(enum) do
+    Enum.each enum, fn {key, val} -> put_env key, val end
   end
 
   @doc """

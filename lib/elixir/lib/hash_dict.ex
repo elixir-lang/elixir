@@ -236,7 +236,7 @@ end
 defimpl Collectable, for: HashDict do
   def into(original) do
     {original, fn
-      dict, {:cont, {k, v}} -> Dict.put(dict, k, v)
+      dict, {:cont, {k, v}} -> HashDict.put(dict, k, v)
       dict, :done -> dict
       _, :halt -> :ok
     end}

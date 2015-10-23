@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   end
 
   defp set_compiler_opts(project, opts, extra) do
-    opts = Dict.take(opts, Code.available_compiler_options)
+    opts = Keyword.take(opts, Code.available_compiler_options)
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
     Code.compiler_options Keyword.merge(opts, extra)
   end
