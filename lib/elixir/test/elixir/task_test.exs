@@ -311,7 +311,7 @@ defmodule TaskTest do
   test "shutdown/1 raises when invoked from a non-owner process" do
     task = create_task_in_other_process()
     message = "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
-    assert_raise ArgumentError, fn -> Task.shutdown(task) end
+    assert_raise ArgumentError, message, fn -> Task.shutdown(task) end
   end
 
   test "shutdown/2 brutal_ kill returns {:ok, result} when reply and abnormal :DOWN in message queue" do
