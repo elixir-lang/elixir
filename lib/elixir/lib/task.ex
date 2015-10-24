@@ -563,6 +563,6 @@ defmodule Task do
   end
 
   defp invalid_owner_error(task) do
-      "#{inspect task} must be queried from the owner but was queried from #{inspect self()}."
+    "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
   end
 end

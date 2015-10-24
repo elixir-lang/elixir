@@ -26,7 +26,7 @@ is_open(Module) ->
 
 %% Simple version of get_attribute.
 get_attribute(Module, Key) ->
-  case ets:lookup(elixir_module:data_table(Module), Key) of
+  case ets:lookup(data_table(Module), Key) of
     [{Key, Value}] -> Value;
     [] -> nil
   end.

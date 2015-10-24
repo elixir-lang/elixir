@@ -504,8 +504,6 @@ defmodule GenEventTest do
     :ok = GenEvent.add_handler(:my_gen_event_name, ReplyHandler, {self(), true})
     assert GenEvent.stop(:my_gen_event_name, {:error, "some reason"}) == :ok
     assert_receive {:terminate, :stop}
-  after
-    Logger.add_backend(:console, flush: true)
   end
 
   defp hibernating?(pid) do

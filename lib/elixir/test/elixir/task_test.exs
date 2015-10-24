@@ -194,9 +194,10 @@ defmodule TaskTest do
     assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :node}
   end
 
-  test "await/1 raises a helpful error when invoked from a non-owner process" do
+  test "await/1 raises when invoked from a non-owner process" do
     task = create_task_in_other_process()
-    assert_raise ArgumentError, fn -> Task.await(task, 1) end
+    message = "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
+    assert_raise ArgumentError, message, fn -> Task.await(task, 1) end
   end
 
   test "find/2" do
@@ -235,9 +236,10 @@ defmodule TaskTest do
     assert catch_exit(Task.yield(task)) |> elem(0) == {:nodedown, :nonode@nohost}
   end
 
-  test "yield/1 raises a helpful error when invoked from a non-owner process" do
+  test "yield/1 raises when invoked from a non-owner process" do
     task = create_task_in_other_process()
-    assert_raise ArgumentError, fn -> Task.yield(task, 1) end
+    message = "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
+    assert_raise ArgumentError, message, fn -> Task.yield(task, 1) end
   end
 
   test "shutdown/1 returns {:ok, result} when reply and abnormal :DOWN in message queue" do
@@ -306,8 +308,9 @@ defmodule TaskTest do
       fn -> Task.shutdown(task) end
   end
 
-  test "shutdown/1 raises a helpful error when invoked from a non-owner process" do
+  test "shutdown/1 raises when invoked from a non-owner process" do
     task = create_task_in_other_process()
+    message = "task #{inspect task} must be queried from the owner but was queried from #{inspect self()}"
     assert_raise ArgumentError, fn -> Task.shutdown(task) end
   end
 
