@@ -33,10 +33,10 @@ defmodule Stream do
   computations that are executed at a later moment. Let's see another
   example:
 
-      1..3 |>
-        Enum.map(&IO.inspect(&1)) |>
-        Enum.map(&(&1 * 2)) |>
-        Enum.map(&IO.inspect(&1))
+      1..3
+      |> Enum.map(&IO.inspect(&1))
+      |> Enum.map(&(&1 * 2))
+      |> Enum.map(&IO.inspect(&1))
       1
       2
       3
@@ -49,10 +49,10 @@ defmodule Stream do
   element by 2 and finally printed each new value. In this example, the list
   was enumerated three times. Let's see an example with streams:
 
-      stream = 1..3 |>
-        Stream.map(&IO.inspect(&1)) |>
-        Stream.map(&(&1 * 2)) |>
-        Stream.map(&IO.inspect(&1))
+      stream = 1..3
+      |> Stream.map(&IO.inspect(&1)) |>
+      |> Stream.map(&(&1 * 2)) |>
+      |> Stream.map(&IO.inspect(&1))
       Enum.to_list(stream)
       1
       2
