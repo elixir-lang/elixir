@@ -289,8 +289,10 @@ defmodule ExUnit.Case do
             "\"use ExUnit.Case\" in the current module"
     end
 
-    tags = tags ++ Module.get_attribute(mod, :tag) ++ moduletag
-    tags = tags |> normalize_tags |> Map.merge(%{line: env.line, file: env.file})
+    tags =
+      (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
+      |> normalize_tags
+      |> Map.merge(%{line: env.line, file: env.file})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
     test_names = Module.get_attribute(mod, :ex_unit_test_names)

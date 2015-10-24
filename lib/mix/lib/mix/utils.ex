@@ -206,8 +206,10 @@ defmodule Mix.Utils do
   end
 
   def module_name_to_command(module, nesting) do
-    t = Regex.split(~r/\./, to_string(module))
-    t |> Enum.drop(nesting) |> Enum.map(&underscore(&1)) |> Enum.join(".")
+    Regex.split(~r/\./, to_string(module))
+    |> Enum.drop(nesting)
+    |> Enum.map(&underscore(&1))
+    |> Enum.join(".")
   end
 
   @doc """
@@ -220,9 +222,9 @@ defmodule Mix.Utils do
 
   """
   def command_to_module_name(s) do
-    Regex.split(~r/\./, to_string(s)) |>
-      Enum.map(&camelize(&1)) |>
-      Enum.join(".")
+    Regex.split(~r/\./, to_string(s))
+    |> Enum.map(&camelize(&1))
+    |> Enum.join(".")
   end
 
   @doc """
