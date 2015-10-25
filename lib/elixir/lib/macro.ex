@@ -113,7 +113,7 @@ defmodule Macro do
 
   defp bad_pipe(expr, call_args) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-      "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
+      "can only pipe into local calls foo(), remote calls Foo.bar(), or anonymous function calls foo.() or (&(&1 + 1)).()"
   end
 
   @doc """
