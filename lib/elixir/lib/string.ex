@@ -1686,7 +1686,7 @@ defmodule String do
 
   """
 
-  @spec jaro_distance(t, t) :: 0..1
+  @spec jaro_distance(t, t) :: float
   def jaro_distance(string1, string2)
 
   def jaro_distance(string, string), do: 1.0
