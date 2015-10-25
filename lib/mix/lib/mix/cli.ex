@@ -8,6 +8,8 @@ defmodule Mix.CLI do
     Mix.Local.append_archives
     Mix.Local.append_paths
 
+    if System.get_env("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
+
     case check_for_shortcuts(args) do
       :help ->
         proceed(["help"])
