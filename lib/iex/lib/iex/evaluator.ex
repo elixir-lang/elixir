@@ -153,9 +153,8 @@ defmodule IEx.Evaluator do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    message = Exception.format_banner(kind, reason, stacktrace)
-    io_error message
-    io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
+    Exception.format_banner(kind, reason, stacktrace) |> io_error
+    stacktrace |> prune_stacktrace |> format_stacktrace |> io_error
   end
 
   @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,

@@ -121,7 +121,7 @@ defmodule Inspect.AlgebraTest do
   test "formatting with infinity" do
     s = String.duplicate "x", 50
     g = ";"
-    doc = group(glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s))
+    doc = glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s) |> group
 
     assert render(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end
