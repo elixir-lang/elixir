@@ -43,13 +43,15 @@ defmodule Mix.CLITest do
 
         def run(_) do
           IO.puts Mix.Project.get!.hello_world
+          Mix.shell.info("This won't appear")
         end
       end
       """
 
-      contents = mix ~w[my_hello]
+      contents = mix ~w[my_hello], [{"MIX_QUIET", "1"}]
+
       assert contents =~ "Hello from MyProject!\n"
-      assert contents =~ "Compiled lib/hello.ex\n"
+      refute contents =~ "This won't appear"
     end
   end
 
@@ -127,10 +129,11 @@ defmodule Mix.CLITest do
     end
   end
 
-  defp mix(args) when is_list(args) do
+  defp mix(args, envs \\ []) when is_list(args) do
     System.cmd(elixir_executable,
                ["-r", mix_executable, "--"|args],
-               [stderr_to_stdout: true]) |> elem(0)
+               stderr_to_stdout: true, 
+               env: envs) |> elem(0)
   end
 
   defp mix_executable do
