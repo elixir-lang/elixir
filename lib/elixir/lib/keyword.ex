@@ -768,21 +768,21 @@ defmodule Keyword do
 
   ## Examples
 
-    iex> Keyword.bool [a: false], :b, true
+    iex> Keyword.boolean [a: false], :b, true
     true
 
-    iex> Keyword.bool [a: false], :b
+    iex> Keyword.boolean [a: false], :b
     false
 
-    iex> Keyword.bool [a: false], :a, true
+    iex> Keyword.boolean [a: false], :a, true
     false
 
-    iex> Keyword.bool [a: 1], :a, false
+    iex> Keyword.boolean [a: 1], :a, false
     ** (TypeError) value: 1 for key: :a in: [a: 1] is not of type: boolean
 
   """
-  @spec bool(t, key, boolean) :: boolean
-  def bool(dict, key, default \\ false) when is_boolean(default) do
+  @spec boolean(t, key, boolean) :: boolean
+  def boolean(dict, key, default \\ false) when is_boolean(default) do
     value = get(dict, key, default)
     case is_boolean(value) do
       true -> value
