@@ -435,10 +435,16 @@ defmodule ExUnit.DocTest do
     case String.lstrip(line) do
       "" ->
         raise Error, message: "expected non-blank line to follow iex> prompt"
+
       ^stripped_line ->
         :ok
+
       _ ->
-        raise Error, message: "indentation level mismatch: #{inspect line}, should have been #{indent} spaces"
+        n_spaces = if indent == 1,
+          do: "#{indent} space",
+          else: "#{indent} spaces"
+
+        raise Error, message: "indentation level mismatch: #{inspect line}, should have been #{n_spaces}"
     end
 
     if String.starts_with?(stripped_line, @iex_prompt ++ @dot_prompt) do
