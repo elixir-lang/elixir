@@ -13,6 +13,9 @@ defmodule Map do
 
   use Dict
 
+  @type key :: any
+  @type value :: any
+
   defdelegate [keys(map), values(map), merge(map1, map2), to_list(map)], to: :maps
 
   @compile {:inline, fetch: 2, put: 3, delete: 2, has_key?: 2}
@@ -27,7 +30,47 @@ defmodule Map do
   @doc """
   Returns a new empty map.
   """
+  @spec new :: map
   def new, do: %{}
+
+  @doc """
+  Creates a map from an enumerable.
+
+  Duplicated keys are removed; the latest one prevails.
+
+  ## Examples
+
+      iex> Map.new([{:b, 1}, {:a, 2}])
+      %{a: 2, b: 1}
+
+      iex> Map.new([a: 1, a: 2, a: 3])
+      %{a: 3}
+
+  """
+  @spec new(Enum.t) :: map
+  def new(enumerable) do
+    Enum.reduce(enumerable, %{}, fn {k, v}, acc -> put(acc, k, v) end)
+  end
+
+  @doc """
+  Creates a map from an enumerable via the transformation function.
+
+  Duplicated entries are removed; the latest one prevails.
+
+  ## Examples
+
+      iex> Map.new([:a, :b], fn x -> {x, x} end)
+      %{a: :a, b: :b}
+
+  """
+  @spec new(Enum.t, (term -> {key, value})) :: map
+  def new(enumerable, transform) do
+    fun = fn el, acc ->
+      {k, v} = transform.(el)
+      put(acc, k, v)
+    end
+    Enum.reduce(enumerable, %{}, fun)
+  end
 
   def has_key?(map, key), do: :maps.is_key(key, map)
 

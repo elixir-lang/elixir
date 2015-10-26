@@ -23,6 +23,7 @@ defmodule KernelTest do
   doctest List
   doctest Macro
   doctest Map
+  doctest MapSet
   doctest Module
   doctest Node
   doctest OptionParser
