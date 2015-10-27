@@ -18,7 +18,39 @@ defmodule MapSet do
   @opaque t :: %__MODULE__{map: map}
   defstruct map: %{}
 
+  @spec new :: t
   def new(), do: %MapSet{}
+
+  @doc """
+  Creates a mapset from an enumerable.
+
+  ## Examples
+
+      iex> MapSet.new([:b, :a, 3])
+      #MapSet<[3, :a, :b]>
+
+      iex> MapSet.new([3, 3, 3, 2, 2, 1])
+      #MapSet<[1, 2, 3]>
+
+  """
+  @spec new(Enum.t) :: t
+  def new(enumerable) do
+    Enum.reduce(enumerable, %MapSet{}, &put(&2, &1))
+  end
+
+  @doc """
+  Creates a mapset from an enumerable via the transformation function.
+
+  ## Examples
+
+      iex> MapSet.new([1, 2, 1], fn x -> 2 * x end)
+      #MapSet<[2, 4]>
+
+  """
+  @spec new(Enum.t, (term -> term)) :: t
+  def new(enumerable, transform) do
+    Enum.reduce(enumerable, %MapSet{}, &put(&2, transform.(&1)))
+  end
 
   def delete(%MapSet{map: map} = set, term) do
     %{set | map: Map.delete(map, term)}
