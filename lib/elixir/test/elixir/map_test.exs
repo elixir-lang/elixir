@@ -13,6 +13,14 @@ defmodule MapTest do
 
   @map %{a: 1, b: 2}
 
+  test "new/1" do
+    assert Map.new([a: 1, b: 2, c: 3]) == %{a: 1, b: 2, c: 3}
+  end
+
+  test "new/2" do
+    assert Map.new(1..3, fn x -> {x, 2 * x} end) == %{1 => 2, 2 => 4, 3 => 6}
+  end
+
   test "maps in attributes" do
     assert @map == %{a: 1, b: 2}
   end
