@@ -178,7 +178,7 @@ defmodule URI do
   end
 
   @doc """
-  Encodes a string as "x-www-urlencoded".
+  Encodes a string as "x-www-form-urlencoded".
 
   ## Example
 
@@ -223,7 +223,7 @@ defmodule URI do
   end
 
   @doc """
-  Decodes a string as "x-www-urlencoded".
+  Decodes a string as "x-www-form-urlencoded".
 
   ## Examples
 
