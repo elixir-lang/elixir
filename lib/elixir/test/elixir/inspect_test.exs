@@ -196,6 +196,15 @@ defmodule Inspect.ListTest do
     assert inspect([0], char_lists: :infer) == "[0]"
   end
 
+  test "opt friendly" do
+    assert inspect('john' ++ [0] ++ 'doe', char_lists: :friendly) == "[106, 111, 104, 110, 0, 100, 111, 101]"
+    assert inspect('john', char_lists: :friendly) == "'john'"
+    assert inspect('1.3', char_lists: :friendly) == "'1.3'"
+    assert inspect([0], char_lists: :friendly) == "[0]"
+    assert inspect([64, 81, 100], char_lists: :friendly) == "[64, 81, 100]"
+  end
+
+
   test "opt as strings" do
     assert inspect('john' ++ [0] ++ 'doe', char_lists: :as_char_lists) == "'john\\0doe'"
     assert inspect('john', char_lists: :as_char_lists) == "'john'"

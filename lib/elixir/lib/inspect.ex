@@ -276,7 +276,7 @@ defimpl Inspect, for: List do
 
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
-      lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
+      lists == :as_char_lists or convertable?(thing, lists) ->
         << ?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?') :: binary, ?' >>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts, &keyword/2)
@@ -304,6 +304,18 @@ defimpl Inspect, for: List do
 
   ## Private
 
+  defp convertable?(thing,option) do
+    if(printable?(thing)) do
+      case option do
+        :infer -> true
+        :friendly -> readable?(thing)
+        _ -> false
+      end
+    else
+      false
+    end
+  end
+
   defp key_to_binary(key) do
     case Inspect.Atom.inspect(key) do
       ":" <> right -> right
@@ -322,6 +334,20 @@ defimpl Inspect, for: List do
   defp printable?([?\a|cs]), do: printable?(cs)
   defp printable?([]), do: true
   defp printable?(_), do: false
+
+  #@most_common_ascii [69, 84, 65, 79, 73, 101, 116, 97, 111, 105]
+  @ascii_version_number Enum.to_list(48..57) ++ [45, 46]
+  @ascii_lowercase Enum.to_list(97..122)
+  defp readable?(list) when is_list(list) and length(list) < 5 do
+   Enum.all?(list, fn(char) -> :lists.member(char, @ascii_version_number) end) or
+   Enum.all?(list, fn(char) -> :lists.member(char, @ascii_lowercase) end)
+  end
+
+  defp readable?(list) when is_list(list) do
+    true
+    #Enum.any?(@most_common_ascii, fn(char) -> :lists.member(char, list) end)
+  end
+
 end
 
 defimpl Inspect, for: Tuple do

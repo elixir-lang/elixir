@@ -23,6 +23,9 @@ defmodule Inspect.Opts do
       When the default `:infer`, the list will be printed as a char list if it
       is printable, otherwise as list.
 
+      When `:friendly`, the list will be printed as a char list if it is
+      printable and appears to be readable text, otherwise as a list.
+
     * `:limit` - limits the number of items that are printed for tuples,
       bitstrings, and lists, does not apply to strings nor char lists, defaults
       to 50.
@@ -54,7 +57,7 @@ defmodule Inspect.Opts do
   @type t :: %__MODULE__{
                structs: boolean,
                binaries: :infer | :as_binaries | :as_strings,
-               char_lists: :infer | :as_lists | :as_char_lists,
+               char_lists: :infer | :as_lists | :as_char_lists | :friendly,
                limit: pos_integer | :infinity,
                width: pos_integer | :infinity,
                base: :decimal | :binary | :hex | :octal,
@@ -77,7 +80,7 @@ defmodule Inspect.Algebra do
   This module implements the functionality described in
   ["Strictly Pretty" (2000) by Christian Lindig][0] with small
   additions, like support for String nodes, and a custom
-  rendering function that maximises horizontal space use. 
+  rendering function that maximises horizontal space use.
 
       iex> Inspect.Algebra.empty
       :doc_nil
