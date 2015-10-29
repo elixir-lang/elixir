@@ -336,8 +336,8 @@ defimpl Inspect, for: List do
   defp printable?(_), do: false
 
   #@most_common_ascii [69, 84, 65, 79, 73, 101, 116, 97, 111, 105]
-  @ascii_version_number Enum.to_list(48..57) ++ [45, 46]
-  @ascii_lowercase Enum.to_list(97..122)
+  @ascii_version_number [45, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57]
+  @ascii_lowercase [97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122]
   defp readable?(list) when is_list(list) and length(list) < 5 do
    Enum.all?(list, fn(char) -> :lists.member(char, @ascii_version_number) end) or
    Enum.all?(list, fn(char) -> :lists.member(char, @ascii_lowercase) end)
