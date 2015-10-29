@@ -205,8 +205,9 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the enumerable and returns
-  `false` if at least one invocation returns `false` or `nil`.
+  Invokes the given `fun` for each item in the enumerable.
+  It stops the iteration at the first invocation that returns `false` or `nil`.
+  It returns `false` if at least one invocation returns `false` or `nil`.
   Otherwise returns `true`.
 
   ## Examples
@@ -243,9 +244,10 @@ defmodule Enum do
   end
 
   @doc """
-  Invokes the given `fun` for each item in the enumerable and returns
-  `true` if at least one invocation returns a truthy value.
-  Returns `false` otherwise.
+  Invokes the given `fun` for each item in the enumerable.
+  It stops the iteration at the first invocation that returns a truthy value.
+  Returns `true` if at least one invocation returns a truthy value.
+  Otherwise returns `false`.
 
   ## Examples
 
