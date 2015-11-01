@@ -520,6 +520,21 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints information about the given `term`.
+  """
+  def i(term) do
+    info = IEx.Info.info(term)
+    info = ["Term": inspect(term)] ++ info
+    info = Enum.map(info, fn {k, v} -> {k, String.strip(v)} end)
+
+    for {subject, info} <- info do
+      IO.puts IEx.color(:eval_result, to_string(subject))
+      IO.puts IEx.color(:eval_info, "  #{info}")
+    end
+    dont_display_result
+  end
+
+  @doc """
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
