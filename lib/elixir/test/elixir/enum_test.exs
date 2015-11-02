@@ -512,6 +512,11 @@ defmodule EnumTest.List do
     end
   end
 
+  test "max list by" do
+    assert Enum.max_list_by(["a", "b", "aa", "bb", "bbb", "aaa"], fn(x) -> String.length(x) end) == ["bbb", "aaa"]
+    assert Enum.max_list_by([], fn(x) -> String.length(x) end) == []
+  end
+
   test "min" do
     assert Enum.min([1]) == 1
     assert Enum.min([1, 2, 3]) == 1
@@ -528,6 +533,11 @@ defmodule EnumTest.List do
     end
   end
 
+  test "min list by" do
+    assert Enum.min_list_by(["a", "b", "aa", "bb", "bbb", "aaa"], fn(x) -> String.length(x) end) == ["a", "b"]
+    assert Enum.min_list_by([], fn(x) -> String.length(x) end) == []
+  end
+
   test "min max" do
     assert Enum.min_max([1]) == {1, 1}
     assert Enum.min_max([2, 3, 1]) == {1, 3}
@@ -542,6 +552,11 @@ defmodule EnumTest.List do
     assert_raise Enum.EmptyError, fn ->
       Enum.min_max_by([], fn(x) -> String.length(x) end)
     end
+  end
+
+  test "min max list by" do
+    assert Enum.min_max_list_by(["a", "b", "aa", "bb", "bbb", "aaa"], fn(x) -> String.length(x) end) == {["a", "b"], ["bbb", "aaa"]}
+    assert Enum.min_max_list_by([], fn(x) -> String.length(x) end) == {[], []}
   end
 
   test "chunk" do
