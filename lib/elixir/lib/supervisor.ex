@@ -1,5 +1,5 @@
 defmodule Supervisor do
-  @moduledoc """
+  @moduledoc ~S"""
   A behaviour module for implementing supervision functionality.
 
   A supervisor is a process which supervises other processes called
