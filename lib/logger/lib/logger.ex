@@ -517,9 +517,9 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: fun, line: line} = caller
+    %{module: module, function: fun, file: file, line: line} = caller
 
-    caller = [module: module, function: form_fa(fun), line: line]
+    caller = [module: module, function: form_fa(fun), file: file, line: line]
     if app = Application.get_env(:logger, :compile_time_application) do
       caller = [application: app] ++ caller
     end
