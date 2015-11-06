@@ -172,6 +172,19 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
+  In addition to the keys provided by the user via `Logger.metadata/1`,
+  the following default keys available in the `:metadata` list:
+
+    * `:application` - the current application
+
+    * `:module` - the current module
+
+    * `:function` - the current function
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
@@ -517,9 +530,9 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: fun, line: line} = caller
+    %{module: module, function: fun, file: file, line: line} = caller
 
-    caller = [module: module, function: form_fa(fun), line: line]
+    caller = [module: module, function: form_fa(fun), file: file, line: line]
     if app = Application.get_env(:logger, :compile_time_application) do
       caller = [application: app] ++ caller
     end
