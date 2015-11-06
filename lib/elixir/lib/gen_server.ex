@@ -225,7 +225,7 @@ defmodule GenServer do
 
   Returning `{:reply, reply, new_state, timeout}` is similar to
   `{:reply, reply, new_state}` except `handle_info(:timeout, new_state)` will be
-  called after `timeout` milliseconds if no messages are receved.
+  called after `timeout` milliseconds if no messages are received.
 
   Returning `{:reply, reply, new_state, :hibernate}` is similar to
   `{:reply, reply, new_state}` except the process is hibernated and will
