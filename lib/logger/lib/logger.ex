@@ -172,6 +172,19 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
+  In addition to the keys provided by the user via `Logger.metadata/1`,
+  the following default keys available in the `:metadata` list:
+
+    * `:application` - the current application
+
+    * `:module` - the current module
+
+    * `:function` - the current function
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
