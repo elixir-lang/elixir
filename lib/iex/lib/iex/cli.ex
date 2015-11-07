@@ -83,7 +83,8 @@ defmodule IEx.CLI do
           {:badrpc, reason} ->
             abort "Could not contact remote node #{remote}, reason: #{inspect reason}. Aborting..."
           {:module, IEx} ->
-            {remote, :erlang, :apply, [remote_start_function, []]}
+            {mod, fun, args} = remote_start_mfa()
+            {remote, mod, fun, args}
           _ ->
             abort "Could not find IEx on remote node #{remote}. Aborting..."
         end
@@ -108,7 +109,7 @@ defmodule IEx.CLI do
     &local_start/0
   end
 
-  defp remote_start_function do
+  defp remote_start_mfa do
     ref    = make_ref
     opts = options()
 
@@ -120,9 +121,7 @@ defmodule IEx.CLI do
       end
     end
 
-    fn ->
-      IEx.start(opts, {__MODULE__, :remote_start, [parent, ref]})
-    end
+    {IEx, :start, [opts, {__MODULE__, :remote_start, [parent, ref]}]}
   end
 
   defp options do
