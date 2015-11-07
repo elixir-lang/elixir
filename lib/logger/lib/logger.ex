@@ -173,7 +173,7 @@ defmodule Logger do
     * `:colors` - a keyword list of coloring options.
 
   In addition to the keys provided by the user via `Logger.metadata/1`,
-  the following default keys available in the `:metadata` list:
+  the following default keys are available in the `:metadata` list:
 
     * `:application` - the current application
 
