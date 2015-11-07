@@ -1291,6 +1291,42 @@ defmodule Kernel.SpecialForms do
   defmacro for(args)
 
   @doc """
+  Used to combine matching clauses.
+
+  Let's start with an example:
+
+      iex> opts = %{width: 10, height: 15}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, width * height}
+      {:ok, 150}
+
+  If all clauses match, the `do` block is executed, returning its result.
+  Otherwise the chain is aborted and a non-matched value is returned:
+
+      iex> opts = %{width: 10}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, width * height}
+      :error
+
+  Similarly to `for`/1, variables bound inside `with/1` won't leak,
+  and also it allows "bare expressions":
+
+      iex> width = nil
+      iex> opts = %{width: 10, height: 15}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      double_width = width * 2,
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, double_width * height}
+      {:ok, 300}
+      iex> width
+      nil
+
+  """
+  defmacro with(args)
+
+  @doc """
   Defines an anonymous function.
 
   ## Examples
