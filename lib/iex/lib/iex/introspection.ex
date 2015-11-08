@@ -13,7 +13,8 @@ defmodule IEx.Introspection do
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        Enum.map(get_docs(module),
+        {find, helpers} = get_helper_config
+        Enum.map(get_docs(find, helpers,[module]),
           fn {status, doc_list} -> display_doc_list(status, doc_list) end)
       {:error, reason} ->
         puts_error("Could not load module #{inspect module}, got: #{reason}")
@@ -38,23 +39,21 @@ defmodule IEx.Introspection do
   """
   def h(modules, function) when is_list(modules) and is_atom(function) do
     helpers = IEx.Config.doc_helpers(:helpers)
-    result =
-      Enum.find_value(modules,
-        fn(module) ->
-          Enum.find_value(helpers, &found_help(&1, module, function))
-        end)
 
-    case result do
-      {:found, doc_list} -> display_doc_list(:found, doc_list)
-      _ -> print_error(result, "No documentation for #{to_string(function)} was found")
-    end
+    modules
+    |> Enum.find_value({nil, "No documentation for #{to_string(function)} was found"},
+        fn(module) ->
+          Enum.find_value(helpers, fn(helper) -> found_help(helper.documentation(module, function)) end)
+        end)
+    |> display_list_result
 
     dont_display_result
   end
 
   def h(module, function) when is_atom(module) and is_atom(function) do
-    Enum.map(get_docs(module, function),
-      fn {status, doc_list} -> display_doc_list(status, doc_list) end)
+    {find, helpers} = get_helper_config
+    Enum.map(get_docs(find, helpers, [module, function]),
+             fn {status, doc_list} -> display_doc_list(status, doc_list) end)
 
     dont_display_result
   end
@@ -70,118 +69,57 @@ defmodule IEx.Introspection do
   def h(modules, function, arity) when is_list(modules) and is_atom(function) and is_integer(arity) do
     helpers = IEx.Config.doc_helpers(:helpers)
 
-    result =
-      Enum.find_value(modules,
+    modules
+    |> Enum.find_value({nil, "No documentation for #{to_string(function)}/#{inspect(arity)} was found"},
         fn(module) ->
-          Enum.find_value(helpers, &found_help(&1, module, function, arity))
+          Enum.find_value(helpers, fn(helper) -> found_help(helper.documentation(module, function, arity)) end)
         end)
-
-    case result do
-      {:found, doc_list} -> display_doc_list(:found, doc_list)
-      _ ->
-        print_error(result, "No documentation for #{to_string(function)}/#{inspect(arity)} was found")
-    end
+    |> display_list_result
 
     dont_display_result
   end
 
   def h(module, function, arity) when is_atom(module) and is_atom(function) and is_integer(arity) do
-    Enum.map(get_docs(module, function, arity),
+    {find, helpers} = get_helper_config
+    Enum.map(get_docs(find, helpers, [module, function, arity]),
              fn {status, doc_list} -> display_doc_list(status, doc_list) end)
 
     dont_display_result
   end
 
-  defp get_docs(module) do
-    helpers = IEx.Config.doc_helpers(:helpers)
-    opts = IEx.Config.doc_helpers(:find)
-    case opts do
-      :first ->
-        doc_list = Enum.find_value(helpers, fn(mod) -> can_help(mod, module) end)
-        case doc_list do
-          nil -> [IEx.DocHelp.not_found_doc_return(module)]
-          _   -> doc_list
-        end
-      _ ->
-        helpers
-        |> Enum.map(fn(mod) -> mod.documentation(module) end)
-        |> Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
-    end
+  defp get_docs(:first, helpers, args) do
+    helpers
+    |> Enum.find_value(fn(helper) -> can_help(Kernel.apply(helper, :documentation, args)) end)
+    |> check_nil_doclist(args)
   end
 
-  defp get_docs(module, function) do
-    helpers = IEx.Config.doc_helpers(:helpers)
-    opts = IEx.Config.doc_helpers(:find)
-    case opts do
-      :first ->
-        doc_list = Enum.find_value(helpers, fn(mod) -> can_help(mod, module, function) end)
-        case doc_list do
-          nil -> [IEx.DocHelp.not_found_doc_return(module, function)]
-          _   -> doc_list
-        end
-      _ ->
-        helpers
-        |> Enum.map(fn(mod) -> mod.documentation(module, function) end)
-        |> Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
-    end
+  defp get_docs(_, helpers, args) do
+    helpers
+    |> Enum.map(fn(helper) -> Kernel.apply(helper, :documentation, args) end)
+    |> Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
   end
 
-  defp get_docs(module, function, arity) do
-    helpers = IEx.Config.doc_helpers(:helpers)
-    opts = IEx.Config.doc_helpers(:find)
-    case opts do
-      :first ->
-        doc_list = Enum.find_value(helpers, fn(mod) -> can_help(mod, module, function, arity) end)
-        case doc_list do
-          nil -> [IEx.DocHelp.not_found_doc_return(module, function, arity)]
-          _   -> doc_list
-        end
-      _ ->
-        helpers
-        |> Enum.map(fn(mod) -> mod.documentation(module, function, arity) end)
-        |> Enum.filter(fn({status, _doc_list}) -> status != :unknown end)
-    end
+  defp get_helper_config do
+    {IEx.Config.doc_helpers(:find), IEx.Config.doc_helpers(:helpers)}
   end
 
-  defp can_help(mod, module) do
-    {status, doc_list} = mod.documentation(module)
-    case status do
-      :unknown -> nil
-      _        -> [{status, doc_list}]
-    end
+  defp check_nil_doclist(nil, args) do
+    [Kernel.apply(IEx.DocHelp, :not_found_doc_return, args)]
   end
 
-  defp can_help(mod, module, function) do
-    {status, doc_list} = mod.documentation(module, function)
-    case status do
-      :unknown -> nil
-      _        -> [{status, doc_list}]
-    end
+  defp check_nil_doclist(doc_list, _args) do
+    doc_list
   end
 
-  defp can_help(mod, module, function, arity) do
-    {status, doc_list} = mod.documentation(module, function, arity)
-    case status do
-      :unknown -> nil
-      _        -> [{status, doc_list}]
-    end
-  end
+  defp can_help({:unknown, _doc_list}), do:  nil
+  defp can_help({:found, doc_list}), do: [{:found, doc_list}]
+  defp can_help({:not_found, doc_list}), do:  [{:not_found, doc_list}]
 
-  defp found_help(mod, module, function) do
-    {status, doc_list} = mod.documentation(module, function)
-    case status do
-      :found -> {status,doc_list}
-      _      -> nil
-    end
-  end
+  defp found_help({:found, doc_list}), do: {:found, doc_list}
+  defp found_help(_), do: nil
 
-  defp found_help(mod, module, function, arity) do
-    {status, doc_list} = mod.documentation(module, function, arity)
-    case status do
-      :found -> {status,doc_list}
-      _      -> nil
-    end
-  end
+  defp display_list_result({:found, doc_list}), do: display_doc_list(:found, doc_list)
+  defp display_list_result({nil, message}), do: print_error(nil, message)
 
   defp display_doc_list(status, doc_list) do
     case status do
