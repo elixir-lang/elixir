@@ -11,9 +11,35 @@ defmodule Integer do
   Returns `true` if `n` is an odd number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_odd(3)
+      true
+
+      iex> Integer.is_odd(4)
+      false
   """
+  @spec is_odd(integer) :: boolean
   defmacro is_odd(n) do
-    quote do: (unquote(n) &&& 1) == 1
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do: (unquote(n) &&& 1) == 1
+
+      false ->
+        quote bind_quoted: [n: n] do
+          number = fn -> n end
+          case is_integer(number.()) do
+            false ->
+              raise ArgumentError,
+                "Integer.is_odd/1 expects an integer as an argument, " <>
+                "got: #{Macro.to_string(n)}"
+
+            true ->
+              (n &&& 1) == 1
+          end
+        end
+    end
   end
 
   @doc """
@@ -22,9 +48,35 @@ defmodule Integer do
   Returns `true` if `n` is an even number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_even(10)
+      true
+
+      iex> Integer.is_even(5)
+      false
   """
+  @spec is_even(integer) :: boolean
   defmacro is_even(n) do
-    quote do: (unquote(n) &&& 1) == 0
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do: (unquote(n) &&& 1) == 0
+
+      false ->
+        quote bind_quoted: [n: n] do
+          number = fn -> n end
+          case is_integer(number.()) do
+            true ->
+              (n &&& 1) == 0
+
+            false ->
+              raise ArgumentError,
+                "Integer.is_even/1 expects an integer as an argument, " <>
+                "got: #{Macro.to_string(n)}"
+          end
+        end
+    end
   end
 
   @doc """
