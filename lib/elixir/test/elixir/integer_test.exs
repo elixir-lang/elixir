@@ -4,7 +4,17 @@ defmodule IntegerTest do
   use ExUnit.Case, async: true
   require Integer
 
-  test "odd?" do
+  def test_is_odd_in_guards(number) when Integer.is_odd(number),
+    do: number
+  def test_is_odd_in_guards(_number),
+    do: false
+
+  def test_is_even_in_guards(number) when Integer.is_even(number),
+    do: number
+  def test_is_even_in_guards(_number),
+    do: false
+
+  test "is_odd" do
     assert Integer.is_odd(0) == false
     assert Integer.is_odd(1) == true
     assert Integer.is_odd(2) == false
@@ -12,9 +22,16 @@ defmodule IntegerTest do
     assert Integer.is_odd(-1) == true
     assert Integer.is_odd(-2) == false
     assert Integer.is_odd(-3) == true
+    assert test_is_odd_in_guards(10) == false
+    assert test_is_odd_in_guards(11) == 11
+    assert_raise ArgumentError,
+      "Integer.is_odd/1 expects an integer as an argument, got: 1.0", fn ->
+        n = fn -> 1.0 end
+        Integer.is_odd n.()
+      end
   end
 
-  test "even?" do
+  test "is_even" do
     assert Integer.is_even(0) == true
     assert Integer.is_even(1) == false
     assert Integer.is_even(2) == true
@@ -22,6 +39,13 @@ defmodule IntegerTest do
     assert Integer.is_even(-1) == false
     assert Integer.is_even(-2) == true
     assert Integer.is_even(-3) == false
+    assert test_is_even_in_guards(10) == 10
+    assert test_is_even_in_guards(11) == false
+    assert_raise ArgumentError,
+      "Integer.is_even/1 expects an integer as an argument, got: 1.0", fn ->
+        n = fn -> 1.0 end
+        Integer.is_even n.()
+      end
   end
 
   test "digits" do
