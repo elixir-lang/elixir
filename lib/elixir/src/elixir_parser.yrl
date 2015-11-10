@@ -19,7 +19,7 @@ Nonterminals
   call_args_no_parens_one call_args_no_parens_ambig call_args_no_parens_expr
   call_args_no_parens_comma_expr call_args_no_parens_all call_args_no_parens_many
   call_args_no_parens_many_strict
-  stab stab_eoe stab_expr stab_maybe_expr stab_parens_many
+  stab stab_eoe stab_expr stab_op_eol_and_maybe_expr stab_parens_many
   kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_alias_container
   dot_identifier dot_op_identifier dot_do_identifier
@@ -294,19 +294,23 @@ stab -> stab eoe stab_expr : ['$3'|'$1'].
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
 
-stab_expr -> expr : '$1'.
-stab_expr -> stab_op_eol stab_maybe_expr : build_op('$1', [], '$2').
-stab_expr -> empty_paren stab_op_eol stab_maybe_expr :
-               build_op('$2', [], '$3').
-stab_expr -> call_args_no_parens_all stab_op_eol stab_maybe_expr :
-               build_op('$2', unwrap_when(unwrap_splice('$1')), '$3').
-stab_expr -> stab_parens_many stab_op_eol stab_maybe_expr :
-               build_op('$2', unwrap_splice('$1'), '$3').
-stab_expr -> stab_parens_many when_op expr stab_op_eol stab_maybe_expr :
-               build_op('$4', [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], '$5').
+%% Here, `element(1, Token)` is the stab operator, while `element(2, Token)` is
+%% the expression.
+stab_expr -> expr :
+               '$1'.
+stab_expr -> stab_op_eol_and_maybe_expr :
+               build_op(element(1, '$1'), [], element(2, '$1')).
+stab_expr -> empty_paren stab_op_eol_and_maybe_expr :
+               build_op(element(1, '$2'), [], element(2, '$2')).
+stab_expr -> call_args_no_parens_all stab_op_eol_and_maybe_expr :
+               build_op(element(1, '$2'), unwrap_when(unwrap_splice('$1')), element(2, '$2')).
+stab_expr -> stab_parens_many stab_op_eol_and_maybe_expr :
+               build_op(element(1, '$2'), unwrap_splice('$1'), element(2, '$2')).
+stab_expr -> stab_parens_many when_op expr stab_op_eol_and_maybe_expr :
+               build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
-stab_maybe_expr -> 'expr' : '$1'.
-stab_maybe_expr -> '$empty' : nil.
+stab_op_eol_and_maybe_expr -> stab_op_eol expr : {'$1', '$2'}.
+stab_op_eol_and_maybe_expr -> stab_op_eol : throw_empty_stab_clause('$1').
 
 block_item -> block_eoe stab_eoe : {?exprs('$1'), build_stab(reverse('$2'))}.
 block_item -> block_eoe : {?exprs('$1'), nil}.
@@ -813,3 +817,8 @@ throw_no_parens_container_strict(Node) ->
     "adding parentheses:\n\n"
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
+
+throw_empty_stab_clause(StabOpToken) ->
+  throw(meta_from_token(StabOpToken),
+        "no expression after the ->. Syntax error before: ",
+        "'->'").

@@ -38,7 +38,7 @@ defmodule ProcessTest do
   end
 
   test "info/2 with registered name" do
-    pid = spawn fn -> end
+    pid = spawn fn -> nil end
     Process.exit(pid, :kill)
     assert Process.info(pid, :registered_name) ==
            nil
