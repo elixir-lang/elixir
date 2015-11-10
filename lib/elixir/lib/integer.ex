@@ -11,6 +11,14 @@ defmodule Integer do
   Returns `true` if `n` is an odd number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_odd(3)
+      true
+
+      iex> Integer.is_odd(4)
+      false
   """
   defmacro is_odd(n) do
     quote do: (unquote(n) &&& 1) == 1
@@ -22,6 +30,14 @@ defmodule Integer do
   Returns `true` if `n` is an even number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_even(10)
+      true
+
+      iex> Integer.is_even(5)
+      false
   """
   defmacro is_even(n) do
     quote do: (unquote(n) &&& 1) == 0
