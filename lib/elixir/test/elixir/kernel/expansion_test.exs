@@ -500,7 +500,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
-      expand(quote do: unquote({:sample, fn -> end}))
+      expand(quote do: unquote({:sample, fn -> nil end}))
     end
   end
 

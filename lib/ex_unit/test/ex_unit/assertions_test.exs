@@ -332,7 +332,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert raise with no error" do
     "This should never be tested" = assert_raise ArgumentError, fn ->
-      # nothing
+      nil
     end
   rescue
     error in [ExUnit.AssertionError] ->

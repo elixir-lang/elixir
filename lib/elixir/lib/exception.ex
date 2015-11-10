@@ -394,7 +394,7 @@ defmodule Exception do
 
   ## Examples
 
-      Exception.format_fa(fn -> end, 1)
+      Exception.format_fa(fn -> nil end, 1)
       #=> "#Function<...>/1"
 
   """

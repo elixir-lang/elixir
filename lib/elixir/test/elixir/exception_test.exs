@@ -129,7 +129,7 @@ defmodule ExceptionTest do
   end
 
   test "format_fa" do
-    assert Exception.format_fa(fn -> end, 1) =~
+    assert Exception.format_fa(fn -> nil end, 1) =~
            ~r"#Function<\d+\.\d+/0 in ExceptionTest\.test format_fa/1>/1"
   end
 
