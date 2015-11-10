@@ -402,7 +402,7 @@ defmodule Kernel.ErrorsTest do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
     assert_raise ArgumentError, msg, fn ->
       defmodule InvalidAttribute do
-        @foo fn -> end
+        @foo fn -> nil end
         def bar, do: @foo
       end
     end
@@ -412,7 +412,7 @@ defmodule Kernel.ErrorsTest do
     msg = ~r"invalid value for struct field baz, cannot escape "
     assert_raise ArgumentError, msg, fn ->
       defmodule InvaliadStructFieldValue do
-        defstruct baz: fn -> end
+        defstruct baz: fn -> nil end
       end
     end
   end
