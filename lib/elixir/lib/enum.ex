@@ -633,9 +633,7 @@ defmodule Enum do
   end
 
   def empty?(enumerable) do
-    Enumerable.reduce(enumerable, {:cont, true},
-      fn(_, _) -> {:halt, false} end)
-    |> elem(1)
+    count(enumerable) == 0
   end
 
   @doc """
