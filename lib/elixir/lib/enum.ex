@@ -637,7 +637,7 @@ defmodule Enum do
       {:ok, value} when is_integer(value) ->
         value == 0
       {:error, module} ->
-        Enumerable.reduce(enumerable, {:cont, true},
+        module.reduce(enumerable, {:cont, true},
           fn(_, _) -> {:halt, false} end)
         |> elem(1)
     end
