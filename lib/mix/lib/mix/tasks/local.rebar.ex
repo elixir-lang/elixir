@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @rebar_s3           "https://s3.amazonaws.com/s3.hex.pm"
+  @rebar_s3           "http://s3.amazonaws.com/s3.hex.pm"
   @rebar_list_url     @rebar_s3 <> "/installs/rebar-1.x.csv"
   @rebar_escript_url  @rebar_s3 <> "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
 

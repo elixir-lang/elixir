@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
-  @hex_s3           "https://s3.amazonaws.com/s3.hex.pm"
+  @hex_s3           "http://s3.amazonaws.com/s3.hex.pm"
   @hex_list_url     @hex_s3 <> "/installs/hex-1.x.csv"
   @hex_archive_url  @hex_s3 <> "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
 
