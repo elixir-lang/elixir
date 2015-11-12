@@ -633,9 +633,14 @@ defmodule Enum do
   end
 
   def empty?(enumerable) do
-    Enumerable.reduce(enumerable, {:cont, true},
-      fn(_, _) -> {:halt, false} end)
-    |> elem(1)
+    case Enumerable.count(enumerable) do
+      {:ok, value} when is_integer(value) ->
+        value == 0
+      {:error, module} ->
+        module.reduce(enumerable, {:cont, true},
+          fn(_, _) -> {:halt, false} end)
+        |> elem(1)
+    end
   end
 
   @doc """
