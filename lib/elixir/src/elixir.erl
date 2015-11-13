@@ -7,6 +7,7 @@
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
+-define(system, 'Elixir.System').
 
 %% Top level types
 -export_type([char_list/0, struct/0, as_boolean/1]).
@@ -35,6 +36,21 @@ start(_Type, _Args) ->
     _ ->
       io:format(standard_error, "unsupported Erlang version, expected Erlang 18+~n", []),
       erlang:halt(1)
+  end,
+
+  case code:ensure_loaded(?system) of
+    {module, ?system} ->
+      Endianness = ?system:endianness(),
+      case ?system:compiled_endianness() of
+        Endianness -> ok;
+        _ ->
+          io:format(standard_error,
+            "warning: Elixir is running in a system with a different endianness than the one its "
+            "source code was compiled in. Please make sure Elixir and all source files were compiled "
+            "in a machine with the same endianness as the current one: ~ts~n", [Endianness])
+      end;
+    {error, _} ->
+      ok
   end,
 
   ok = io:setopts(standard_io, Opts),
