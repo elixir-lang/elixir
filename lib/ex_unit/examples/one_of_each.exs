@@ -63,7 +63,7 @@ defmodule TestOneOfEach do
   end
 
   test "13. assert an exception with a given message is raised, but no exception" do
-    assert_raise(SomeException, "some message", fn -> end)
+    assert_raise(SomeException, "some message", fn -> nil end)
   end
 
   test "14. assert an exception with a given message is raised" do
@@ -79,7 +79,7 @@ defmodule TestOneOfEach do
   end
 
   test "16. assert an exception is raised" do
-    assert_raise(SomeException, fn -> end)
+    assert_raise(SomeException, fn -> nil end)
   end
 
   test "17. assert two values are within some delta" do
