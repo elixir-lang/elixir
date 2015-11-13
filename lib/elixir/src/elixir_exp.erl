@@ -257,6 +257,11 @@ expand({'try', Meta, [KV]}, E) ->
 expand({for, Meta, [_|_] = Args}, E) ->
   elixir_for:expand(Meta, Args, E);
 
+%% With
+
+expand({with, Meta, [_|_] = Args}, E) ->
+  elixir_with:expand(Meta, Args, E);
+
 %% Super
 
 expand({super, Meta, Args}, E) when is_list(Args) ->

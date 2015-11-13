@@ -259,6 +259,18 @@ defmodule Kernel.ExpansionTest do
            quote do: (for(a <- b(), do: 1, into: c = []); c())
   end
 
+  ## With
+
+  test "variables inside with do not leak" do
+    assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
+           quote do: (with(a <- b(), do: c = 1); c())
+  end
+
+  test "variables inside with are available in blocks" do
+    assert expand(quote do: with(a <- b, c = a, do: c)) ==
+           quote do: (with(a <- b(), c = a, do: c))
+  end
+
   ## Capture
 
   test "&: keeps locals" do
