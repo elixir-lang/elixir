@@ -13,7 +13,7 @@ defmodule Mix.Dep.Lock do
   The manifest is used to check if the lockfile
   itself is up to date.
   """
-  def manifest(path \\ Mix.Project.build_path) do
+  def manifest(path \\ Mix.Project.manifest_path) do
     Path.join(path, @manifest)
   end
 
@@ -21,7 +21,7 @@ defmodule Mix.Dep.Lock do
   Touches the manifest file to force recompilation.
   """
   def touch_manifest do
-    path = Mix.Project.build_path
+    path = Mix.Project.manifest_path
     File.mkdir_p!(path)
     File.touch!(manifest(path))
   end

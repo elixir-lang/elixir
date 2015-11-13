@@ -250,9 +250,10 @@ defmodule Mix.Project do
   @doc """
   The path to store manifests.
 
-  By default they are stored in the app path
-  inside the build directory but it may be changed
-  in future releases.
+  By default they are stored in the app path inside
+  the build directory. Umbrella applications have
+  the manifest path set to the root of the build directory.
+  Directories may be changed in future releases.
 
   The returned path will be expanded.
 
@@ -263,7 +264,12 @@ defmodule Mix.Project do
 
   """
   def manifest_path(config \\ config()) do
-    app_path(config)
+    config[:app_path] ||
+      if app = config[:app] do
+        Path.join([build_path(config), "lib", Atom.to_string(app)])
+      else
+        build_path(config)
+      end
   end
 
   @doc """
@@ -282,7 +288,7 @@ defmodule Mix.Project do
       app = config[:app] ->
         Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
-        raise "Trying to access app_path for an umbrella project but umbrellas have no app"
+        raise "Trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
       true ->
         Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
