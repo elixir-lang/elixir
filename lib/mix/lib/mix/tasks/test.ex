@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Test do
 
     * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`.
 
-    * `:warn_test_pattern` - a pattern to match potentially missed test files 
+    * `:warn_test_pattern` - a pattern to match potentially missed test files
       and display a warning, defaults to `*_test.ex`.
 
     * `:test_coverage` - a set of options to be passed down to the coverage
@@ -141,12 +141,10 @@ defmodule Mix.Tasks.Test do
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+
     {opts, files, _} = OptionParser.parse(args, switches: @switches)
 
-    unless System.get_env("MIX_ENV") || Mix.env == :test do
-      Mix.raise "\"mix test\" is running on environment \"#{Mix.env}\". If you are " <>
-                                "running tests along another task, please set MIX_ENV explicitly"
-    end
+    check_environment
 
     Mix.Task.run "loadpaths", args
 
@@ -192,11 +190,11 @@ defmodule Mix.Tasks.Test do
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
     matched_test_files = Mix.Utils.extract_files(test_files, test_pattern)
-    matched_warn_test_files = 
+    matched_warn_test_files =
       Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
-    
+
     display_warn_test_pattern(matched_warn_test_files, test_pattern)
-    
+
     case matched_test_files do
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
@@ -233,6 +231,24 @@ defmodule Mix.Tasks.Test do
   defp merge_helper_opts(opts) do
     opts
     |> merge_opts(:exclude)
+  end
+
+  defp check_environment do
+    system_env = System.get_env("MIX_ENV")
+
+    unless system_env || Mix.env == :test do
+      Mix.raise """
+      "mix test" is running on environment "#{Mix.env}". If you are
+      running tests along another task, please set MIX_ENV explicitly
+      """
+    end
+
+    if system_env != "test" do
+      Mix.shell.info """
+       "mix test" is running on environment "#{system_env}", if this is
+       not intentional, please check MIX_ENV
+      """
+    end
   end
 
   defp default_opts(opts) do
