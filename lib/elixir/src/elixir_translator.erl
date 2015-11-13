@@ -143,6 +143,11 @@ translate({'receive', Meta, [KV]}, S) ->
 translate({for, Meta, [_|_] = Args}, S) ->
   elixir_for:translate(Meta, Args, true, S);
 
+%% With
+
+translate({with, Meta, [_|_] = Args}, S) ->
+  elixir_with:translate(Meta, Args, S);
+
 %% Super
 
 translate({super, Meta, Args}, S) when is_list(Args) ->
