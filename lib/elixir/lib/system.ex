@@ -48,6 +48,21 @@ defmodule System do
   end
 
   @doc """
+  Returns the endianness.
+  """
+  def endianness do
+    :erlang.system_info(:endian)
+  end
+
+  @doc """
+  Returns the endianness the system was compiled with.
+  """
+  @endianness :erlang.system_info(:endian)
+  def compiled_endianness do
+    @endianness
+  end
+
+  @doc """
   Elixir version information.
 
   Returns Elixir's version as binary.
