@@ -38,6 +38,11 @@ defmodule SystemTest do
     assert is_binary System.tmp_dir!
   end
 
+  test "endianness/0" do
+    assert System.endianness in [:little, :big]
+    assert System.endianness == System.compiled_endianness
+  end
+
   test "argv/0" do
     list = elixir('-e "IO.inspect System.argv" -- -o opt arg1 arg2 --long-opt 10')
     {args, _} = Code.eval_string list, []
