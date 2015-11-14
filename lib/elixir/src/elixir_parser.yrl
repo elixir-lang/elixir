@@ -820,5 +820,5 @@ throw_no_parens_container_strict(Node) ->
 
 throw_empty_stab_clause(StabOpToken) ->
   throw(meta_from_token(StabOpToken),
-    "an expression is required on the right side of ->. Syntax error before: ",
+    "an expression is required on the right side of ->. Syntax error after: ",
     "'->'").
