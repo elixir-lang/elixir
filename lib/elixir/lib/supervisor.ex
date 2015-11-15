@@ -475,7 +475,7 @@ defmodule Supervisor do
   `{:shutdown, _}`, an error report will be logged.
   """
   @spec stop(supervisor, reason :: term, timeout) :: :ok
-  def stop(supervisor, reason \\ :normal, timeout \\ 5_000) do
+  def stop(supervisor, reason \\ :normal, timeout \\ :infinity) do
     :gen.stop(supervisor, reason, timeout)
   end
 
