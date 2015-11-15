@@ -224,9 +224,9 @@ defmodule TaskTest do
     assert Task.yield(task, 0) == nil
   end
 
-  test "yield/1 exits on normal exit" do
+  test "yield/1 return exit on normal exit" do
     task = Task.async(fn -> exit :normal end)
-    assert catch_exit(Task.yield(task)) == {:normal, {Task, :yield, [task, 5000]}}
+    assert Task.yield(task) == {:exit, :normal}
   end
 
   test "yield/1 exits on :noconnection" do
@@ -271,16 +271,16 @@ defmodule TaskTest do
     assert Task.shutdown(task) == nil
   end
 
-  test "shutdown/1 exits on abnormal :DOWN in message queue" do
+  test "shutdown/1 return exit on abnormal :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
-    assert catch_exit(Task.shutdown(task)) == {:abnormal, {Task, :shutdown, [task, 5000]}}
+    assert Task.shutdown(task) == {:exit, :abnormal}
   end
 
-  test "shutdown/1 exits on normal :DOWN in message queue" do
+  test "shutdown/1 return exit on normal :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
-    assert catch_exit(Task.shutdown(task)) == {:normal, {Task, :shutdown, [task, 5000]}}
+    assert Task.shutdown(task) == {:exit, :normal}
   end
 
   test "shutdown/1 returns nil on shutdown :DOWN in message queue" do
@@ -289,10 +289,10 @@ defmodule TaskTest do
     assert Task.shutdown(task) == nil
   end
 
-  test "shutdown/1 exits on killed :DOWN in message queue" do
+  test "shutdown/1 return exit on killed :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :killed})
-    assert catch_exit(Task.shutdown(task)) == {:killed, {Task, :shutdown, [task, 5000]}}
+    assert Task.shutdown(task) == {:exit, :killed}
   end
 
   test "shutdown/1 exits on noconnection :DOWN in message queue" do
@@ -338,25 +338,22 @@ defmodule TaskTest do
     refute_received {:DOWN, _, _, _, _}
   end
 
-  test "shutdown/2 brutal kill exits on abnormal :DOWN in message queue" do
+  test "shutdown/2 brutal kill returns exit on abnormal :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :abnormal})
-    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
-      {:abnormal, {Task, :shutdown, [task, :brutal_kill]}}
+    assert Task.shutdown(task, :brutal_kill) == {:exit, :abnormal}
   end
 
-  test "shutdown/2 brutal kill exits on normal :DOWN in message queue" do
+  test "shutdown/2 brutal kill returns exit on normal :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :normal})
-    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
-      {:normal, {Task, :shutdown, [task, :brutal_kill]}}
+    assert Task.shutdown(task, :brutal_kill) == {:exit, :normal}
   end
 
-  test "shutdown/2 brutal kill exits on shutdown :DOWN in message queue" do
+  test "shutdown/2 brutal kill returns exit on shutdown :DOWN in message queue" do
     task = create_dummy_task()
     send(self(), {:DOWN, task.ref, :process, task.pid, :shutdown})
-    assert catch_exit(Task.shutdown(task, :brutal_kill)) ==
-      {:shutdown, {Task, :shutdown, [task, :brutal_kill]}}
+    assert Task.shutdown(task, :brutal_kill) == {:exit, :shutdown}
   end
 
   test "shutdown/2 brutal kill exits on noconnection :DOWN in message queue" do
@@ -366,7 +363,7 @@ defmodule TaskTest do
       {{:nodedown, node()}, {Task, :shutdown, [task, :brutal_kill]}}
   end
 
-  test "shutdown/2 exits on killing task after shutdown timeout" do
+  test "shutdown/2 returns exit on killing task after shutdown timeout" do
     caller = self()
 
     task = Task.async(fn() ->
@@ -376,9 +373,7 @@ defmodule TaskTest do
     end)
 
     receive do: (:ready -> :ok)
-
-    assert catch_exit(Task.shutdown(task, 1)) ==
-      {:killed, {Task, :shutdown, [task, 1]}}
+    assert Task.shutdown(task, 1) == {:exit, :killed}
   end
 
   test "shutdown/2 returns nil on killing task" do
