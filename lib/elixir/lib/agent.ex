@@ -306,7 +306,7 @@ defmodule Agent do
   `{:shutdown, _}`, an error report will be logged.
   """
   @spec stop(agent, reason :: term, timeout) :: :ok
-  def stop(agent, reason \\ :normal, timeout \\ 5_000) do
+  def stop(agent, reason \\ :normal, timeout \\ :infinity) do
     if is_integer(reason) or reason == :infinity do
       IO.write :stderr, "warning: Agent.stop(agent, timeout) is deprecated, " <>
                         "please use Agent.stop(agent, :normal, timeout) instead\n" <>

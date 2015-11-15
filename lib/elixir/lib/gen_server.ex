@@ -530,7 +530,7 @@ defmodule GenServer do
   `{:shutdown, _}`, an error report will be logged.
   """
   @spec stop(server, reason :: term, timeout) :: :ok
-  def stop(server, reason \\ :normal, timeout \\ 5_000) do
+  def stop(server, reason \\ :normal, timeout \\ :infinity) do
     :gen.stop(server, reason, timeout)
   end
 

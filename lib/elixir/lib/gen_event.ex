@@ -629,7 +629,7 @@ defmodule GenEvent do
   `{:shutdown, _}`, an error report will be logged.
   """
   @spec stop(manager, reason :: term, timeout) :: :ok
-  def stop(manager, reason \\ :normal, timeout \\ 5_000) do
+  def stop(manager, reason \\ :normal, timeout \\ :infinity) do
     :gen.stop(manager, reason, timeout)
   end
 
