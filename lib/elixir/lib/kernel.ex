@@ -2268,7 +2268,7 @@ defmodule Kernel do
   defmacro binding(context \\ nil) do
     in_match? = Macro.Env.in_match?(__CALLER__)
     for {v, c} <- __CALLER__.vars, c == context do
-      {v, wrap_binding(in_match?, {v, [warn: false], c})}
+      {v, wrap_binding(in_match?, {v, [generated: true], c})}
     end
   end
 

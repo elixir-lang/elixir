@@ -79,7 +79,7 @@ do_clauses(Meta, DecoupledClauses, S) ->
   % Transform tree just passing the variables counter forward
   % and storing variables defined inside each clause.
   Transformer = fun(X, {SAcc, VAcc}) ->
-    {TX, TS} = each_clause(Meta, X, SAcc),
+    {TX, TS} = each_clause(X, SAcc),
     {TX, {elixir_scope:mergec(S, TS), [TS#elixir_scope.export_vars|VAcc]}}
   end,
 
@@ -139,26 +139,18 @@ expand_clauses(_Ann, [], [], _FinalVars, Acc, S) ->
 
 % Handle each key/value clause pair and translate them accordingly.
 
-each_clause(Export, {match, Meta, [Condition], Expr}, S) ->
-  Fun = wrap_export_fun(Export, fun elixir_translator:translate_args/2),
+each_clause({match, Meta, [Condition], Expr}, S) ->
   {Arg, Guards} = extract_guards(Condition),
-  clause(Meta, Fun, [Arg], Expr, Guards, S);
+  clause(Meta, fun translate_exports/2, [Arg], Expr, Guards, S);
 
-each_clause(Export, {expr, Meta, [Condition], Expr}, S) ->
-  {TCondition, SC} = (wrap_export_fun(Export, fun elixir_translator:translate/2))(Condition, S),
-  {TExpr, SB} = elixir_translator:translate(Expr, SC),
+each_clause({expr, Meta, [Condition], Expr}, S) ->
+  {TCondition, SC} = elixir_translator:translate(Condition, S),
+  {TExpr, SB} = elixir_translator:translate(Expr, SC#elixir_scope{export_vars = S#elixir_scope.export_vars}),
   {{clause, ?ann(Meta), [TCondition], [], unblock(TExpr)}, SB}.
 
-wrap_export_fun(Meta, Fun) ->
-  case lists:keyfind(export_head, 1, Meta) of
-    {export_head, true} ->
-      Fun;
-    _ ->
-      fun(Args, S) ->
-        {TArgs, TS} = Fun(Args, S),
-        {TArgs, TS#elixir_scope{export_vars = S#elixir_scope.export_vars}}
-      end
-  end.
+translate_exports(Args, S) ->
+  {TArgs, TS} = elixir_translator:translate_args(Args, S),
+  {TArgs, TS#elixir_scope{export_vars = S#elixir_scope.export_vars}}.
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change

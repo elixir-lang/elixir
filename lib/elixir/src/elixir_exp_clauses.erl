@@ -206,14 +206,9 @@ expand_one(Meta, Kind, Key, Fun) ->
 %% Expands all -> pairs in a given key keeping the overall vars.
 expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses) ->
   EFun =
-    case lists:keyfind(export_head, 1, Meta) of
-      {export_head, true} ->
-        Fun;
-      _ ->
-        fun(Args, #{export_vars := ExportVars} = EE) ->
-          {FArgs, FE} = Fun(Args, EE),
-          {FArgs, FE#{export_vars := ExportVars}}
-        end
+    fun(Args, #{export_vars := ExportVars} = EE) ->
+      {FArgs, FE} = Fun(Args, EE),
+      {FArgs, FE#{export_vars := ExportVars}}
     end,
   Transformer = fun(Clause, Vars) ->
     {EClause, EC} = clause(Meta, Kind, EFun, Clause, E),

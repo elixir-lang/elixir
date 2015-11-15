@@ -77,12 +77,13 @@ defmodule ExUnit.Assertions do
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
+    vars = collect_vars(left)
 
     # If the match works, we need to check if the value
-    # is not nil nor false. We need to rewrite the line
-    # to -1 to avoid silly warnings though.
-    {:if, meta, args} =
-        quote do
+    # is not nil nor false. We need to rewrite the if
+    # to avoid silly warnings though.
+    return =
+        no_warning(quote do
           if right do
             right
           else
@@ -90,26 +91,23 @@ defmodule ExUnit.Assertions do
               expr: expr,
               message: "Expected truthy, got #{inspect right}"
           end
-        end
-    return = {:if, [line: -1] ++ meta, args}
+        end)
 
-    {:case, meta, args} =
-      quote do
+    quote do
+      right = unquote(right)
+      expr  = unquote(code)
+      unquote(vars) =
         case right do
           unquote(left) ->
             unquote(return)
+            unquote(vars)
           _ ->
             raise ExUnit.AssertionError,
               right: right,
               expr: expr,
               message: "match (=) failed"
         end
-      end
-
-    quote do
-      right = unquote(right)
-      expr  = unquote(code)
-      unquote({:case, [{:export_head, true}|meta], args})
+      right
     end
   end
 
@@ -306,13 +304,8 @@ defmodule ExUnit.Assertions do
 
   defp do_assert_receive(expected, timeout, message) do
     binary = Macro.to_string(expected)
-    {_, pins} =
-      Macro.prewalk(expected, [], fn
-        {:^, _, [var]} = form, acc ->
-          {form, [var | acc]}
-        form, acc ->
-          {form, acc}
-      end)
+    vars = collect_vars(expected)
+    pins = collect_pins(expected)
 
     pattern =
       case expected do
@@ -322,49 +315,47 @@ defmodule ExUnit.Assertions do
           quote(do: unquote(left) = received)
       end
 
-    {:receive, meta, args} =
-      quote do
+    quote do
+      timeout = unquote(timeout)
+
+      {received, unquote(vars)} =
         receive do
           unquote(pattern) ->
-            received
+            {received, unquote(vars)}
         after
           timeout ->
             message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
-            flunk(message <> unquote(pinned_vars(pins)) <> ExUnit.Assertions.__mailbox__(self()))
+            flunk(message <> ExUnit.Assertions.__pins__(unquote(pins))
+                          <> ExUnit.Assertions.__mailbox__(self()))
         end
-      end
 
-    quote do
-      timeout = unquote(timeout)
-      unquote({:receive, [{:export_head, true}|meta], args})
+      _ = unquote(vars) # Silence warnings
+      received
     end
   end
 
+  @indent "\n  "
   @max_mailbox_length 10
 
   @doc false
   def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    indent = "\n  "
-    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join(indent, &inspect/1)
-    mailbox_message(length, indent <> mailbox)
+    mailbox =
+      messages
+      |> Enum.take(@max_mailbox_length)
+      |> Enum.map_join(@indent, &inspect/1)
+    mailbox_message(length, @indent <> mailbox)
   end
 
-  defp pinned_vars([]), do: ""
-  defp pinned_vars(pins) do
-    content = Enum.reverse(pins)
-    |> Enum.uniq_by(&elem(&1, 0))
-    |> Enum.map(fn(var) ->
-      binary = Macro.to_string(var)
-      quote do
-        "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
-      end
-    end)
-
-    quote do
-      <<"\nThe following variables were pinned:", unquote_splicing(content)>>
-    end
+  @doc false
+  def __pins__([]), do: ""
+  def __pins__(pins) do
+    content =
+      pins
+      |> Enum.reverse()
+      |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
+    "\nThe following variables were pinned:" <> @indent <> content
   end
 
   defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
@@ -374,6 +365,36 @@ defmodule ExUnit.Assertions do
   end
   defp mailbox_message(_length, mailbox) do
     "\nProcess mailbox:" <> mailbox
+  end
+
+  defp collect_pins(expr) do
+    {_, pins} =
+      Macro.prewalk(expr, [], fn
+        {:^, _, [{name, _, _} = var]}, acc ->
+          {:ok, [{name, var}|acc]}
+        form, acc ->
+          {form, acc}
+      end)
+    Enum.uniq_by(pins, &elem(&1, 0))
+  end
+
+  defp collect_vars(expr) do
+    {_, vars} =
+      Macro.prewalk(expr, [], fn
+        {ignore, _, [_|_]}, acc when ignore in [:^, :::] ->
+          {:ok, acc}
+        {:_, _, context}, acc when is_atom(context) ->
+          {:ok, acc}
+        {name, _, context}, acc when is_atom(name) and is_atom(context) ->
+          {:ok, [{name, [generated: true], context}|acc]}
+        node, acc ->
+          {node, acc}
+      end)
+    Enum.uniq(vars)
+  end
+
+  defp no_warning({name, meta, args}) do
+    {name, [line: -1] ++ meta, args}
   end
 
   @doc """
