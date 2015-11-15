@@ -351,33 +351,6 @@ defmodule Task do
   later on. For example, a `GenServer` can spawn tasks,
   store the tasks in a list and later use `Task.find/2`
   to see if incoming messages are from any of the tasks.
-
-  ## Examples
-
-      defmodule TaskFinder do
-        def run do
-          task1 = Task.async fn -> :timer.sleep(1000); 1 end
-          task2 = Task.async fn -> :timer.sleep(5000); 2 end
-          await [task1, task2]
-        end
-
-        # Be careful, this will receive all messages sent
-        # to this process. It will return the first task
-        # reply and the list of tasks that came second.
-        def await(tasks) do
-          receive do
-            message ->
-              case Task.find(tasks, message) do
-                {reply, task} ->
-                  {reply, List.delete(tasks, task)}
-                nil ->
-                  await(tasks)
-              end
-          end
-        end
-      end
-
-      TaskFinder.run
   """
   @spec find([t], any) :: {term, t} | nil | no_return
   def find(tasks, msg)
@@ -404,7 +377,7 @@ defmodule Task do
   end
 
   @doc """
-  Yields, temporarily, for a task reply.
+  Yields for a task reply in the given time interval.
 
   Returns `{:ok, reply}` if the reply is received, `{:exit, reason}`
   if the task exited or `nil` if no reply arrived.
@@ -417,10 +390,10 @@ defmodule Task do
   In case the task process dies, this function will exit with the
   same reason as the task.
 
-  This function assumes the task's monitor is still active or the monitor's
-  `:DOWN` message is in the message queue. If it has been demonitored, or the
-  message already received, this function wait for the duration of the timeout
-  awaiting the message.
+  This function assumes the task's monitor is still active or the
+  monitor's `:DOWN` message is in the message queue. If it has been
+  demonitored, or the message already received, this function waits
+  for the duration of the timeout awaiting the message.
   """
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
   def yield(task, timeout \\ 5_000)
@@ -449,6 +422,99 @@ defmodule Task do
       timeout ->
         nil
     end
+  end
+
+  @doc """
+  Yields to multiple tasks in the given time interval.
+
+  This function receives a list of tasks and await for their
+  replies at once in the given time interval. It returns a list
+  of tuples of two elements, with tasks as the first element and
+  the `yield` result as the second.
+
+  Similar to `yield/2`, if the task replied in the given interval,
+  it will return `{:ok, term}`, `{:exit, reason}`if it crashed or
+  `nil` if it timed out. Check `yield/2` for more information.
+
+  ## Example
+
+  `Task.yield_many/2` allows developers to spawn multiple tasks
+  and retrieve the results received in a given timeframe.
+  If we combine it with `Task.shutdown/2`, it allows us to gather
+  those results and cancel the tasks that have not replied in time.
+  Let's see an example.
+
+      tasks =
+        for i <- 1..10 do
+          Task.async(fn ->
+            :timer.sleep(i * 1000)
+            i
+          end)
+        end
+
+      tasks_with_results = Task.yield_many(tasks, 5000)
+
+      results = Enum.map(tasks_with_results, fn {task, res} ->
+        # Shutdown the tasks that did not reply nor exit
+        res || Task.shutdown(task, :brutal_kill)
+      end)
+
+      # Here we are matching only on {:ok, value} and
+      # ignoring {:exit, _} (crashed tasks) and `nil` (no replies)
+      for {:ok, value} <- results do
+        IO.inspect value
+      end
+
+  In the example above, we create tasks that sleep from 1
+  up to 10 seconds and return the amount of seconds they slept.
+  If you execute the code all at once, you should see 1 up to 5
+  printed, as those were the tasks that have replied in the
+  given time. All other tasks will have been shutdown, according
+  to the `Task.shutdown/2` call.
+  """
+  @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
+  def yield_many(tasks, timeout \\ 5000) do
+    timeout_ref = make_ref()
+    timer_ref = Process.send_after(self(), timeout_ref, timeout)
+    try do
+      yield_many(tasks, timeout_ref, :infinity)
+    catch
+      {:noconnection, reason} ->
+        exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
+    after
+      Process.cancel_timer(timer_ref)
+      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    end
+  end
+
+  defp yield_many([%Task{ref: ref, owner: owner}=task|rest], timeout_ref, timeout) do
+    if owner != self() do
+      raise ArgumentError, invalid_owner_error(task)
+    end
+
+    receive do
+      {^ref, reply} ->
+        Process.demonitor(ref, [:flush])
+        [{task, {:ok, reply}}|yield_many(rest, timeout_ref, timeout)]
+
+      {:DOWN, ^ref, _, proc, :noconnection} ->
+        throw({:noconnection, reason(:noconnection, proc)})
+
+      {:DOWN, ^ref, _, _, reason} ->
+        [{task, {:exit, reason}}|yield_many(rest, timeout_ref, timeout)]
+
+      ^timeout_ref ->
+        [{task, nil}|yield_many(rest, timeout_ref, 0)]
+
+    after
+      timeout ->
+        [{task, nil}|yield_many(rest, timeout_ref, 0)]
+
+    end
+  end
+
+  defp yield_many([], _timeout_ref, _timeout) do
+    []
   end
 
   @doc """
