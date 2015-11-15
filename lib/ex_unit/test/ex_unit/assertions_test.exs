@@ -262,7 +262,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when no match" do
     try do
-      "This should never be tested" = assert {:ok, _} = error(true)
+      assert {:ok, _} = error(true)
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed"       = error.message
@@ -273,7 +273,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when falsy but not match" do
     try do
-      "This should never be tested" = assert {:ok, _x} = nil
+      assert {:ok, _x} = nil
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
@@ -284,7 +284,7 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when falsy" do
     try do
-      "This should never be tested" = assert _x = nil
+      assert _x = nil
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected truthy, got nil" = error.message

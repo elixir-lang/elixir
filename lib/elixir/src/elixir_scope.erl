@@ -94,7 +94,7 @@ warn_underscored_var_access(Meta, File, Name) ->
   end.
 
 should_warn(Meta) ->
-  lists:keyfind(warn, 1, Meta) /= {warn, false}.
+  lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
 %% SCOPE MERGING
 
