@@ -275,7 +275,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp merge_opts(opts, key) do
-    value = Application.get_env(:ex_unit, key, [])
+    value = List.wrap Application.get_env(:ex_unit, key, [])
     Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 
