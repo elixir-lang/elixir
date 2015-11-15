@@ -136,11 +136,10 @@ defmodule Process do
       :noconnect
 
   """
-  @spec send(dest, msg, [option]) ::  result when
+  @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend when
         dest: pid | port | atom | {atom, node},
         msg: any,
-        option: :noconnect | :nosuspend,
-        result: :ok | :noconnect | :nosuspend
+        option: :noconnect | :nosuspend
   def send(dest, msg, options) do
     :erlang.send(dest, msg, options)
   end
@@ -154,8 +153,7 @@ defmodule Process do
   not refer to a process.
 
   This function returns a timer reference, which can be read or canceled with
-  `:erlang.read_timer/1`, `:erlang.start_timer/3` and `:erlang.cancel_timer/1`.
-  Note `time` cannot be greater than `4294967295`.
+  `read_timer/1` and `cancel_timer/1`.
 
   Finally, the timer will be automatically canceled if the given `dest` is a pid
   which is not alive or when the given pid exits. Note that timers will not be
@@ -165,6 +163,42 @@ defmodule Process do
   @spec send_after(pid | atom, term, non_neg_integer) :: reference
   def send_after(dest, msg, time) do
     :erlang.send_after(time, dest, msg)
+  end
+
+  @doc """
+  Cancels a timer created by `send_after/3`.
+
+  When the result is an integer, it represents the time in milli-seconds
+  left until the timer will expire.
+
+  When the result is `false`, a timer corresponding to `timer_ref` could
+  not be found. This can be either because the timer expired, already has
+  been canceled, or because `timer_ref` never corresponded to a timer.
+
+  If the timer has expired, the timeout message has been sent, but it does
+  not tell you whether or not it has arrived at its destination yet.
+  """
+  @spec cancel_timer(reference) :: non_neg_integer | false
+  def cancel_timer(timer_ref) do
+    :erlang.cancel_timer(timer_ref)
+  end
+
+  @doc """
+  Reads a timer created by `send_after/3`.
+
+  When the result is an integer, it represents the time in milli-seconds
+  left until the timer will expire.
+
+  When the result is `false`, a timer corresponding to `timer_ref` could
+  not be found. This can be either because the timer expired, already has
+  been canceled, or because `timer_ref` never corresponded to a timer.
+
+  If the timer has expired, the timeout message has been sent, but it does
+  not tell you whether or not it has arrived at its destination yet.
+  """
+  @spec read_timer(reference) :: non_neg_integer | false
+  def read_timer(timer_ref) do
+    :erlang.read_timer(timer_ref)
   end
 
   @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
