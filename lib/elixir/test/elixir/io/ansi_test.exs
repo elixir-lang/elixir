@@ -86,19 +86,36 @@ defmodule IO.ANSITest do
            "#{IO.ANSI.red}Hello!"
   end
 
-  test "format with color number" do
-    data = [IO.ANSI.color(111), "Hello", IO.ANSI.color_background(222), "World"]
-
-    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
-           "\e[38;5;111mHello\e[48;5;222mWorld"
-  end
-
   test "format invalid sequence" do
     assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
       IO.ANSI.format([:brigh, "Hello!"], true)
     end
     assert_raise ArgumentError, "invalid ANSI sequence specification: nil", fn ->
       IO.ANSI.format(["Hello!", nil], true)
+    end
+  end
+
+  test "color/1" do
+    assert IO.ANSI.color(0) == "\e[38;5;0m"
+    assert IO.ANSI.color(42) == "\e[38;5;42m"
+    assert IO.ANSI.color(255) == "\e[38;5;255m"
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color(-1)
+    end
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color(256)
+    end
+  end
+
+  test "color_background/1" do
+    assert IO.ANSI.color_background(0) == "\e[48;5;0m"
+    assert IO.ANSI.color_background(42) == "\e[48;5;42m"
+    assert IO.ANSI.color_background(255) == "\e[48;5;255m"
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color_background(-1)
+    end
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color_background(256)
     end
   end
 end
