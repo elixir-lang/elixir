@@ -86,6 +86,13 @@ defmodule IO.ANSITest do
            "#{IO.ANSI.red}Hello!"
   end
 
+  test "format with color number" do
+    data = [IO.ANSI.color(111), "Hello", IO.ANSI.color_background(222), "World"]
+
+    assert IO.chardata_to_string(IO.ANSI.format(data, true)) ==
+           "\e[38;5;111mHello\e[48;5;222mWorld"
+  end
+
   test "format invalid sequence" do
     assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
       IO.ANSI.format([:brigh, "Hello!"], true)
