@@ -5,7 +5,8 @@ defmodule Task do
   Tasks are processes meant to execute one particular
   action throughout their life-cycle, often with little or no
   communication with other processes. The most common use case
-  for tasks is to compute a value asynchronously:
+  for tasks is to convert sequential code into concurrent one
+  by computing a value asynchronously:
 
       task = Task.async(fn -> do_some_work() end)
       res  = do_some_other_work()
@@ -22,10 +23,11 @@ defmodule Task do
 
   ## async and await
 
-  The most common way to spawn a task is with `Task.async/1`. A new
-  process will be created, linked and monitored by the caller. Once
-  the task action finishes, a message will be sent to the caller
-  with the result.
+  One of the common uses of tasks is to convert some sequential code
+  into concurrent one with `Task.async/1` while keeping its semantics.
+  When invoked, a new process will be created, linked and monitored
+  by the caller. Once the task action finishes, a message will be sent
+  to the caller with the result.
 
   `Task.await/2` is used to read the message sent by the task.
   `await` will check the monitor setup by the call to `async/1` to
@@ -46,11 +48,11 @@ defmodule Task do
        is not desired, consider using `Task.start_link/1` as well
 
   `Task.yield/2` is an alternative to `await/2` where the caller will
-  temporarily block waiting for a task's result. If the result does not
-  arrive within the timeout it can be called again at later moment. This
-  allows checking for the result of a task multiple times or to handle
-  a timeout. If a reply does not arrive within the desired time, and the
-  caller is not going exit, `Task.shutdown/2` can be used to stop the task.
+  temporarily block waiting until the task replies or crashes. If the
+  result does not arrive within the timeout it can be called again at
+  later moment. This allows checking for the result of a task multiple
+  times or to handle a timeout. If a reply does not arrive within the
+  desired time, `Task.shutdown/2` can be used to stop the task.
 
   ## Supervised tasks
 
@@ -303,8 +305,9 @@ defmodule Task do
   message already received, this function may wait for the duration of the
   timeout awaiting the message.
 
-  This function will always demonitor the task and so the task can not be used
-  again. To await the task's reply multiple times use `yield/2` instead.
+  This function will always exit and demonitor if the task crashes or if
+  it times out, so the task can not be used again. To explicitly handle
+  the timeout or the crash, use `yield/2` instead.
   """
   @spec await(t, timeout) :: term | no_return
   def await(task, timeout \\ 5000)
@@ -340,8 +343,8 @@ defmodule Task do
 
   This function returns a tuple with the returned value
   in case the message matches a task that exited with
-  success alongside the matching task. It raises in case
-  the found task failed or `nil` if no task was found.
+  success alongside the matching task. It returns `nil`
+  if no task was found. It exits if the task has failed.
 
   This function is useful in situations where multiple
   tasks are spawned and their results are collected
@@ -381,21 +384,18 @@ defmodule Task do
 
   def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value tasks, fn
-      %Task{ref: task_ref} = t when ref == task_ref ->
+      %Task{ref: ^ref} = task ->
         Process.demonitor(ref, [:flush])
-        {reply, t}
+        {reply, task}
       %Task{} ->
         nil
     end
   end
 
   def find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
-    find = fn(%Task{ref: task_ref}) -> task_ref == ref end
-    case Enum.find(tasks, find) do
-      %Task{} ->
-        exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
-      nil ->
-        nil
+    find = fn %Task{ref: task_ref} -> task_ref == ref end
+    if Enum.find(tasks, find) do
+      exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
     end
   end
 
@@ -406,7 +406,8 @@ defmodule Task do
   @doc """
   Yields, temporarily, for a task reply.
 
-  Returns `{:ok, reply}` if the reply is received.
+  Returns `{:ok, reply}` if the reply is received, `{:exit, reason}`
+  if the task exited or `nil` if no reply arrived.
 
   A timeout, in milliseconds, can be given with default value
   of `5000`. In case of the timeout, this function will return `nil`
@@ -421,7 +422,7 @@ defmodule Task do
   message already received, this function wait for the duration of the timeout
   awaiting the message.
   """
-  @spec yield(t, timeout) :: {:ok, term} | nil
+  @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
   def yield(task, timeout \\ 5_000)
 
   # TODO: Remove nil check in Elixir 1.3
@@ -440,8 +441,10 @@ defmodule Task do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
         {:ok, reply}
-      {:DOWN, ^ref, _, proc, reason} ->
-        exit({reason(reason, proc), {__MODULE__, :yield, [task, timeout]}})
+      {:DOWN, ^ref, _, proc, :noconnection} ->
+        exit({reason(:noconnection, proc), {__MODULE__, :yield, [task, timeout]}})
+      {:DOWN, ^ref, _, _, reason} ->
+        {:exit, reason}
     after
       timeout ->
         nil
@@ -452,7 +455,7 @@ defmodule Task do
   Unlinks and shutdowns the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
-  otherwise `nil`.
+  `{:exit, reason}` if the task exited abornormally, otherwise `nil`.
 
   The shutdown method is either a timeout or `:brutal_kill`. In the case
   of a `timeout`, a `:shutdown` exit signal is sent to the task process
@@ -472,7 +475,7 @@ defmodule Task do
   `:DOWN` message is in the message queue. If it has been demonitored, or the
   message already received, this function will block forever awaiting the message.
   """
-  @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | nil
+  @spec shutdown(t, timeout | :brutal_kill) :: {:ok, term} | {:exit, term} | nil
   def shutdown(task, shutdown \\ 5_000)
 
   def shutdown(%Task{pid: nil} = task, _) do
@@ -494,8 +497,10 @@ defmodule Task do
     exit(pid, :kill)
 
     case shutdown_receive(task, :brutal_kill, :infinity) do
-      {:error, reason} ->
-        exit({reason, {__MODULE__, :shutdown, [task, :brutal_kill]}})
+      {:down, proc, :noconnection} ->
+        exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, :brutal_kill]}})
+      {:down, _, reason} ->
+        {:exit, reason}
       result ->
         result
     end
@@ -504,8 +509,10 @@ defmodule Task do
   def shutdown(%Task{pid: pid} = task, timeout) do
     exit(pid, :shutdown)
     case shutdown_receive(task, :shutdown, timeout) do
-      {:error, reason} ->
-        exit({reason, {__MODULE__, :shutdown, [task, timeout]}})
+      {:down, proc, :noconnection} ->
+        exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, timeout]}})
+      {:down, _, reason} ->
+        {:exit, reason}
       result ->
         result
     end
@@ -546,7 +553,7 @@ defmodule Task do
       {:DOWN, ^ref, _, _, :killed} when type == :brutal_kill ->
         flush_reply(ref)
       {:DOWN, ^ref, _, proc, reason} ->
-        flush_reply(ref) || {:error, reason(reason, proc)}
+        flush_reply(ref) || {:down, proc, reason}
     after
       timeout ->
         Process.exit(task.pid, :kill)
