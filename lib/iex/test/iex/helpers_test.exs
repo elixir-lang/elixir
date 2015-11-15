@@ -373,18 +373,6 @@ defmodule IEx.HelpersTest do
       capture_iex("pid(0,6,-6)")
   end
 
-  test "m helper" do
-    loaded = capture_iex("m")
-    assert loaded =~ ":erlang\n  :preloaded"
-    assert loaded =~ ~r/IEx\n.*\.beam/
-  end
-
-  test "m module helper" do
-    assert capture_iex("m IEx") =~ ~r/Module\:\n  IEx/
-    assert capture_iex("m Atom") =~ ~r/Compile Time\:\n  \d*\-\d*\-\d* \d*\:\d*\:\d*/
-    assert capture_iex("m :erlang") =~ ~r/\Module\:\n  \:erlang/
-  end
-
   defp test_module_code do
     """
     defmodule Sample do
