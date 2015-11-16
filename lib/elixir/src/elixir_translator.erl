@@ -89,10 +89,10 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, S) ->
+translate({'case', Meta, [Expr, KV]}, #elixir_scope{safe_by_default=Safe} = S) ->
   Clauses = elixir_clauses:get_pairs(do, KV, match),
-  {TExpr, NS} = translate(Expr, S),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS),
+  {TExpr, NS} = translate(Expr, S#elixir_scope{safe_by_default=true}),
+  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{safe_by_default=Safe}),
   {{'case', ?ann(Meta), TExpr, TClauses}, TS};
 
 %% Try
@@ -171,8 +171,9 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
 translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
   case maps:find(Tuple, S#elixir_scope.backup_vars) of
-    {ok, {Value, _Counter}} ->
+    {ok, {Value, _Counter, Safe}} ->
       elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
+      elixir_scope:warn_unsafe_var(VarMeta, File, Name, Safe),
 
       PAnn = ?ann(Meta),
       PVar = {var, PAnn, Value},

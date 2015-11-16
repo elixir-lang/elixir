@@ -134,17 +134,8 @@ defmodule ExUnit.CLIFormatter do
     IO.puts format_time(run_us, load_us)
 
     # singular/plural
-    if config.tests_counter == 1 do
-      test_pl = "test"
-    else
-      test_pl = "tests"
-    end
-
-    if config.failures_counter == 1 do
-      failure_pl = "failure"
-    else
-      failure_pl = "failures"
-    end
+    test_pl = pluralize(config.tests_counter, "test", "tests")
+    failure_pl = pluralize(config.failures_counter, "failure", "failures")
 
     message = "#{config.tests_counter} #{test_pl}, #{config.failures_counter} #{failure_pl}"
 
@@ -209,6 +200,9 @@ defmodule ExUnit.CLIFormatter do
   defp formatter(:extra_info, msg, config),    do: colorize([:cyan], msg, config)
   defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
   defp formatter(_,  msg, _config),            do: msg
+
+  defp pluralize(1, singular, _plural), do: singular
+  defp pluralize(_, _singular, plural), do: plural
 
   defp get_terminal_width do
     case :io.columns do

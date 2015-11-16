@@ -29,20 +29,9 @@ if_else_kv_blocks_test() ->
   {2, _} = eval("if(false) do 1 else 2 end"),
   {2, _} = eval("if(false) do 1;else 2; end").
 
-vars_if_test() ->
-  F = fun() ->
-    {1, [{foo, 1}]} = eval("if foo = 1 do; true; else false; end; foo"),
-    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\nif x do; foo = 2; else foo = foo; end; foo; end\nend"),
-    {1, _} = eval("Bar.bar(false)"),
-    {2, _} = eval("Bar.bar(true)")
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Bar']).
-
 multi_assigned_if_test() ->
   {3, _} = eval("x = 1\nif true do\nx = 2\nx = 3\nelse true\nend\nx"),
-  {3, _} = eval("x = 1\nif true do\n^x = 1\nx = 2\nx = 3\nelse true\nend\nx"),
-  {1, _} = eval("if true do\nx = 1\nelse true\nend\nx"),
-  {nil, _} = eval("if false do\nx = 1\nelse true\nend\nx").
+  {3, _} = eval("x = 1\nif true do\n^x = 1\nx = 2\nx = 3\nelse true\nend\nx").
 
 multi_line_if_test() ->
   {1, _} = eval("if true\ndo\n1\nelse\n2\nend").
@@ -64,12 +53,6 @@ receive_test() ->
   {20, _} = eval("send self(), :bar\nreceive do\n:foo -> 10\n_ -> 20\nend"),
   {30, _} = eval("receive do\nafter 1 -> 30\nend").
 
-vars_receive_test() ->
-  {10, _} = eval("send self(), :foo\nreceive do\n:foo ->\na = 10\n:bar -> nil\nend\na"),
-  {nil, _} = eval("send self(), :bar\nreceive do\n:foo ->\nb = 10\n_ -> 20\nend\nb"),
-  {30, _} = eval("receive do\n:foo -> nil\nafter\n1 -> c = 30\nend\nc"),
-  {30, _} = eval("x = 1\nreceive do\n:foo -> nil\nafter\nx -> c = 30\nend\nc").
-
 % Case
 
 case_test() ->
@@ -88,17 +71,7 @@ case_with_unary_do_ambiguity_test() ->
 
 multi_assigned_case_test() ->
   {3, _} = eval("x = 1\ncase true do\n true ->\nx = 2\nx = 3\n_ -> true\nend\nx"),
-  {3, _} = eval("x = 1\ncase 1 do\n ^x -> x = 2\nx = 3\n_ -> true\nend\nx"),
-  {1, _} = eval("case true do\ntrue -> x = 1\n_ -> true\nend\nx"),
-  {nil, _} = eval("case true do\nfalse -> x = 1\n_ -> true\nend\nx").
-
-vars_case_test() ->
-  F = fun() ->
-    eval("defmodule Bar do\ndef foo, do: 1\ndef bar(x) do\ncase x do\ntrue -> foo = 2\nfalse -> foo = foo\nend\nfoo\nend\nend"),
-    {1, _} = eval("Bar.bar(false)"),
-    {2, _} = eval("Bar.bar(true)")
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Bar']).
+  {3, _} = eval("x = 1\ncase 1 do\n ^x -> x = 2\nx = 3\n_ -> true\nend\nx").
 
 % Comparison
 
