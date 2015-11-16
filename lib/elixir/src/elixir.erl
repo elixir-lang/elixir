@@ -252,6 +252,7 @@ quoted_to_erl(Quoted, Env, Scope) ->
 string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File}|Opts]) of
     {ok, _Line, _Column, Tokens} ->
+      put(elixir_parser_file, File),
       try elixir_parser:parse(Tokens) of
         {ok, Forms} -> {ok, Forms};
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
@@ -259,6 +260,8 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
       catch
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+      after
+        erase(elixir_parser_file)
       end;
     {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
