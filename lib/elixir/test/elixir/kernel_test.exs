@@ -194,7 +194,7 @@ defmodule KernelTest do
   end
 
   test "__info__(:functions)" do
-    assert not ({:__info__, 1} in Kernel.__info__(:functions))
+    refute {:__info__, 1} in Kernel.__info__(:functions)
   end
 
   test "__info__(others)" do
