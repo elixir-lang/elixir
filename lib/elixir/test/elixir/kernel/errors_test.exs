@@ -673,9 +673,16 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid alias expansion" do
     assert_compile_fail CompileError,
-      "nofile:1: an alias must expand to an atom at compilation time, but did not in \"foo.Foo\". " <>
-      "Use Module.concat/2 if you want to dynamically generate aliases",
+      "nofile:1: an alias must expand to an atom at compilation time, but did not in `foo.Foo`.\n" <>
+      "If you wanted to dynamically generate an alias, you can use Module.concat/2 to do so.\n" <>
+      "If you wanted to access a capitalized field of a map, you need to quote the field's name: `foo.\"Foo\"`",
       'foo = :foo; foo.Foo'
+
+    assert_compile_fail CompileError,
+      "nofile:1: an alias must expand to an atom at compilation time, but did not in `foo.bar().Foo`.\n" <>
+      "If you wanted to dynamically generate an alias, you can use Module.concat/2 to do so.\n" <>
+      "If you wanted to access a capitalized field of a map, you need to quote the field's name: `foo.bar().\"Foo\"`",
+      'foo = :foo; foo."bar".Foo'
   end
 
   test "invalid import option" do

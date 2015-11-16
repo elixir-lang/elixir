@@ -619,11 +619,27 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
             elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
+          Stringified = lists:map(fun stringify_uppercase_atoms/1, EAliases),
+          FieldAlias = {'__aliases__', Meta, Stringified},
           compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
-            "at compilation time, but did not in \"~ts\". Use Module.concat/2 "
-            "if you want to dynamically generate aliases", ['Elixir.Macro':to_string(Alias)])
+            "at compilation time, but did not in `~ts`.\n"
+            "If you wanted to dynamically generate an alias, you can use "
+            "Module.concat/2 to do so.\n"
+            "If you wanted to access a capitalized field of a map, you "
+            "need to quote the field's name: `~ts`",
+            ['Elixir.Macro':to_string(Alias), 'Elixir.Macro':to_string(FieldAlias)])
       end
   end.
+
+stringify_uppercase_atoms(Atom) when is_atom(Atom) ->
+  case atom_to_binary(Atom, utf8) of
+    <<First, _/binary>> = Uppercased when First >= $A, First =< $Z ->
+      Uppercased;
+    _ ->
+      Atom
+  end;
+stringify_uppercase_atoms(Other) ->
+    Other.
 
 %% Assertions
 
