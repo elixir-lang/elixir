@@ -72,7 +72,8 @@ translate({fn, Meta, Clauses}, S) ->
 %% Cond
 
 translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]}|T] = lists:reverse(Pairs),
+  [{'->', Meta, [[Condition], Body]} = H|T] = lists:reverse(Pairs),
+
   Case =
     case Condition of
       {'_', _, Atom} when is_atom(Atom) ->
@@ -81,11 +82,8 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
       X when is_atom(X) and (X /= false) and (X /= nil) ->
         build_cond_clauses(T, Body, Meta);
       _ ->
-        {Truthy, Other} = build_truthy_clause(Meta, Condition, Body),
         Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
-        Falsy = {'->', Meta, [[Other], Error]},
-        Acc = {'case', Meta, [Condition, [{do, [Truthy, Falsy]}]]},
-        build_cond_clauses(T, Acc, Meta)
+        build_cond_clauses([H|T], Error, Meta)
     end,
   translate(replace_case_meta(CondMeta, Case), S);
 
@@ -170,10 +168,12 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
 
 %% Variables
 
-translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
   case maps:find(Tuple, S#elixir_scope.backup_vars) of
     {ok, {Value, _Counter}} ->
+      elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
+
       PAnn = ?ann(Meta),
       PVar = {var, PAnn, Value},
 
@@ -375,9 +375,9 @@ translate_block([H|T], Acc, S) ->
 %% Cond
 
 build_cond_clauses([{'->', NewMeta, [[Condition], Body]}|T], Acc, OldMeta) ->
-  {Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
+  {NewCondition, Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
   Falsy = {'->', OldMeta, [[Other], Acc]},
-  Case = {'case', NewMeta, [Condition, [{do, [Truthy, Falsy]}]]},
+  Case = {'case', NewMeta, [NewCondition, [{do, [Truthy, Falsy]}]]},
   build_cond_clauses(T, Case, NewMeta);
 build_cond_clauses([], Acc, _) ->
   Acc.
@@ -388,9 +388,9 @@ replace_case_meta(_Meta, Other) ->
   Other.
 
 build_truthy_clause(Meta, Condition, Body) ->
-  case elixir_utils:returns_boolean(Condition) of
-    true ->
-      {{'->', Meta, [[true], Body]}, false};
+  case returns_boolean(Condition, Body) of
+    {NewCondition, NewBody} ->
+      {NewCondition, {'->', Meta, [[true], NewBody]}, false};
     false ->
       Var  = {'cond', [], 'Elixir'},
       Head = {'when', [], [Var,
@@ -399,7 +399,24 @@ build_truthy_clause(Meta, Condition, Body) ->
           {{'.', [], [erlang, '/=']}, [], [Var, false]}
         ]}
       ]},
-      {{'->', Meta, [[Head], Body]}, {'_', [], nil}}
+      {Condition, {'->', Meta, [[Head], Body]}, {'_', [], nil}}
+  end.
+
+%% In case a variable is defined to match in a condition
+%% but a condition returns boolean, we can replace the
+%% variable directly by the boolean result.
+returns_boolean({'=', _, [{Var, _, Ctx}, Condition]}, {Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true  -> {Condition, true};
+    false -> false
+  end;
+
+%% For all other cases, we check the condition but
+%% return both condition and body untouched.
+returns_boolean(Condition, Body) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true  -> {Condition, Body};
+    false -> false
   end.
 
 %% Assertions

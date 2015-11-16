@@ -4,7 +4,7 @@
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, mergef/2,
   merge_vars/2, merge_opt_vars/2,
-  format_error/1
+  warn_underscored_var_access/3, format_error/1
 ]).
 -include("elixir.hrl").
 
