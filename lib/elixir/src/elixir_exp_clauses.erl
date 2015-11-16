@@ -18,9 +18,9 @@ def(Fun, Args, Guards, Body, E) ->
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, E) when is_function(Fun, 3) ->
   clause(Meta, Kind, fun(X, Acc) -> Fun(ClauseMeta, X, Acc) end, Clause, E);
-clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, E) ->
+clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, #{export_vars := ExportVars} = E) ->
   {ELeft, EL}  = Fun(Left, E),
-  {ERight, ER} = elixir_exp:expand(Right, EL),
+  {ERight, ER} = elixir_exp:expand(Right, EL#{export_vars := ExportVars}),
   {{'->', Meta, [ELeft, ERight]}, ER};
 clause(Meta, Kind, _Fun, _, E) ->
   compile_error(Meta, ?m(E, file), "expected -> clauses in ~ts", [Kind]).
@@ -205,13 +205,8 @@ expand_one(Meta, Kind, Key, Fun) ->
 
 %% Expands all -> pairs in a given key keeping the overall vars.
 expand_with_export(Meta, Kind, Fun, {Key, Clauses}, Acc, E) when is_list(Clauses) ->
-  EFun =
-    fun(Args, #{export_vars := ExportVars} = EE) ->
-      {FArgs, FE} = Fun(Args, EE),
-      {FArgs, FE#{export_vars := ExportVars}}
-    end,
   Transformer = fun(Clause, Vars) ->
-    {EClause, EC} = clause(Meta, Kind, EFun, Clause, E),
+    {EClause, EC} = clause(Meta, Kind, Fun, Clause, E),
     {EClause, elixir_env:merge_vars(Vars, ?m(EC, export_vars))}
   end,
   {EClauses, EVars} = lists:mapfoldl(Transformer, Acc, Clauses),
