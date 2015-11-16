@@ -486,6 +486,8 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test "variables on nested if" do
+      {a, b} = {nil, nil}
+
       if true do
         a = 1
         if true do
@@ -498,6 +500,8 @@ defmodule KernelTest do
     end
 
     test "variables on sibling if" do
+      {a, b, c} = {nil, nil, nil}
+
       if true do
         a = 1
 

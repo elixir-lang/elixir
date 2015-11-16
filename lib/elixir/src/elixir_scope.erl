@@ -4,7 +4,7 @@
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, mergef/2,
   merge_vars/2, merge_opt_vars/2,
-  warn_underscored_var_access/3, format_error/1
+  warn_unsafe_var/4, warn_underscored_var_access/3, format_error/1
 ]).
 -include("elixir.hrl").
 
@@ -15,10 +15,11 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
   Tuple = {Name, Kind},
   Vars = S#elixir_scope.vars,
 
-  case maps:find({Name, Kind}, Vars) of
-    {ok, {Current, _}} -> Exists = true;
-    error -> Current = nil, Exists = false
-  end,
+  {Current, Exists, Safe} =
+    case maps:find({Name, Kind}, Vars) of
+      {ok, {VarC, _, VarS}} -> {VarC, true, VarS};
+      error -> {nil, false, true}
+    end,
 
   case S#elixir_scope.context of
     match ->
@@ -43,11 +44,11 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
             end,
 
           FS = NS#elixir_scope{
-            vars=maps:put(Tuple, {NewVar, Counter}, Vars),
+            vars=maps:put(Tuple, {NewVar, Counter, true}, Vars),
             match_vars=maps:put(Tuple, true, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
               nil -> nil;
-              EV  -> maps:put(Tuple, {NewVar, Counter}, EV)
+              EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
             end
           },
 
@@ -55,6 +56,7 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
       end;
     _  when Exists ->
       warn_underscored_var_access(Meta, S#elixir_scope.file, Name),
+      warn_unsafe_var(Meta, S#elixir_scope.file, Name, Safe),
       {{var, Ann, Current}, S}
   end.
 
@@ -79,6 +81,15 @@ warn_underscored_var_repeat(Meta, File, Name, Kind) ->
     "_" ++ _ when Warn ->
       elixir_errors:form_warn(Meta, File, ?MODULE, {unused_match, Name, Kind});
     _ ->
+      ok
+  end.
+
+warn_unsafe_var(Meta, File, Name, Safe) ->
+  Warn = should_warn(Meta),
+  if
+    (not Safe) and Warn ->
+      elixir_errors:form_warn(Meta, File, ?MODULE, {unsafe_var, Name});
+    true ->
       ok
   end.
 
@@ -137,7 +148,7 @@ merge_opt_vars(C, C)     -> C;
 merge_opt_vars(C1, C2)   ->
   merge_maps(fun var_merger/3, C1, C2).
 
-var_merger(_Var, {_, V1} = K1, {_, V2}) when V1 > V2 -> K1;
+var_merger(_Var, {_, V1, _} = K1, {_, V2, _}) when V1 > V2 -> K1;
 var_merger(_Var, _K1, K2) -> K2.
 
 merge_maps(Fun, Map1, Map2) ->
@@ -168,13 +179,13 @@ load_binding([{Key, Value}|T], Binding, Keys, Vars, Counter) ->
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
     ordsets:add_element(Actual, Keys),
-    maps:put(Actual, {InternalName, 0}, Vars), Counter + 1);
+    maps:put(Actual, {InternalName, 0, true}, Vars), Counter + 1);
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
   maps:fold(fun
-    ({Var, Kind} = Key, {InternalName, _}, Acc) when is_atom(Kind) ->
+    ({Var, Kind} = Key, {InternalName, _, _}, Acc) when is_atom(Kind) ->
       Actual = case Kind of
         nil -> Var;
         _   -> Key
@@ -198,6 +209,21 @@ format_error({unused_match, Name, Kind}) ->
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
                 "give the variables different names", [Name, context_info(Kind), Name]);
+
+format_error({unsafe_var, Name}) ->
+  io_lib:format("the variable \"~ts\" is unsafe as it has been defined in a conditional clause, "
+                "as part of a case/cond/receive/if/&&/||. Please rewrite the clauses so the value is "
+                "explicitly returned. For example:\n\n"
+                "    case int do\n"
+                "      1 -> atom = :one\n"
+                "      2 -> atom = :two\n"
+                "    end\n\n"
+                "Can be rewritten as:\n\n"
+                "    atom =\n"
+                "      case int do\n"
+                "        1 -> :one\n"
+                "        2 -> :two\n"
+                "      end\n", [Name]);
 
 format_error({underscore_var_access, Name}) ->
   io_lib:format("the underscored variable \"~ts\" is used after being set. "

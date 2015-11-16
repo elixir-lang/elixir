@@ -173,16 +173,22 @@ has_match_tuple(_) -> false.
 % by picking one value as reference and retrieving
 % its previous value.
 
-normalize_vars(Key, Value, #elixir_scope{vars=Vars, export_vars=ClauseVars} = S) ->
+normalize_vars(Key, {Ref, Counter, _Safe},
+               #elixir_scope{vars=Vars, export_vars=ClauseVars, safe_by_default=SafeDefault} = S) ->
+  {Expr, Safe} =
+    case maps:find(Key, Vars) of
+      {ok, {PrevRef, _, _}} ->
+        {{var, 0, PrevRef}, true};
+      error ->
+        {{atom, 0, nil}, SafeDefault}
+    end,
+
+  Value = {Ref, Counter, Safe},
+
   VS = S#elixir_scope{
     vars=maps:put(Key, Value, Vars),
     export_vars=maps:put(Key, Value, ClauseVars)
   },
-
-  Expr = case maps:find(Key, Vars) of
-    {ok, {PreValue, _}} -> {var, 0, PreValue};
-    error -> {atom, 0, nil}
-  end,
 
   {{Key, Value, Expr}, VS}.
 
