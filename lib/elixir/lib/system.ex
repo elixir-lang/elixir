@@ -25,15 +25,15 @@ defmodule System do
     end
   end
 
-  # Tries to run "git describe --always --tags". In the case of success returns
-  # the most recent tag. If that is not available, tries to read the commit hash
+  # Tries to run "git rev-parse --short HEAD". In the case of success returns
+  # the short revision hash. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
-  defmacrop get_describe do
+  defmacrop get_revision do
     dirpath = :filename.join(__DIR__, "../../../.git")
     case :file.read_file_info(dirpath) do
       {:ok, _} ->
         if :os.find_executable('git') do
-          data = :os.cmd('git describe --always --tags')
+          data = :os.cmd('git rev-parse --short HEAD')
           strip_re(data, "\n")
         else
           read_stripped(:filename.join(".git", "HEAD"))
@@ -73,11 +73,11 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, git tag info and compilation date.
+  Returns a keyword list with Elixir version, git short revision hash and compilation date.
   """
   @spec build_info() :: map
   def build_info do
-    %{version: version, tag: get_describe, date: get_date}
+    %{version: version, date: get_date, revision: get_revision}
   end
 
   @doc """
