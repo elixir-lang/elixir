@@ -661,6 +661,16 @@ defmodule Kernel.WarningTest do
     purge Sample
   end
 
+  test "pipe without explicit parentheses" do
+    assert capture_err(fn ->
+      Code.eval_string """
+        [5, 6, 7, 3]
+        |> Enum.map_join "", &(Integer.to_string(&1))
+        |> String.to_integer
+      """
+    end) =~ "nofile:2: warning: you are piping into a function call without parentheses"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each list, &purge/1
   end
