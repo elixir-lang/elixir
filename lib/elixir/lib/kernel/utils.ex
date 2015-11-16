@@ -1,10 +1,19 @@
-defmodule Kernel.Def do
+import Kernel, except: [destructure: 2, defdelegate: 2, defstruct: 2]
+
+defmodule Kernel.Utils do
   @moduledoc false
 
-  @doc """
-  Callback invoked at compile time for `defdelegate`.
-  """
-  def delegate(fun, opts) do
+  def destructure(list, count) when is_list(list), do: destructure_list(list, count)
+  def destructure(nil, count), do: destructure_nil(count)
+
+  defp destructure_list(_, 0), do: []
+  defp destructure_list([], count), do: destructure_nil(count)
+  defp destructure_list([h|t], count), do: [h|destructure_list(t, count - 1)]
+
+  defp destructure_nil(0), do: []
+  defp destructure_nil(count), do: [nil|destructure_nil(count - 1)]
+
+  def defdelegate(fun, opts) do
     append_first = Keyword.get(opts, :append_first, false)
 
     {name, args} =
@@ -23,10 +32,7 @@ defmodule Kernel.Def do
     {name, args, as, as_args}
   end
 
-  @doc """
-  Callback invoked at compile time for `defstruct`.
-  """
-  def struct(module, fields) do
+  def defstruct(module, fields) do
     case fields do
       fs when is_list(fs) -> :ok
       other ->
