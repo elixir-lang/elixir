@@ -67,7 +67,7 @@ eval_compilation(Forms, Vars, E) ->
   {Result, EE}.
 
 code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
-  Dict = [{{Name, Kind}, {Value, 0}} || {Name, Kind, Value, _} <- Vars],
+  Dict = [{{Name, Kind}, {Value, 0, true}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
@@ -231,8 +231,8 @@ core_main() ->
    <<"lib/elixir/lib/macro.ex">>,
    <<"lib/elixir/lib/code.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
-   <<"lib/elixir/lib/kernel/def.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
+   <<"lib/elixir/lib/kernel/utils.ex">>,
    <<"lib/elixir/lib/behaviour.ex">>,
    <<"lib/elixir/lib/exception.ex">>,
    <<"lib/elixir/lib/protocol.ex">>,
