@@ -673,8 +673,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid alias expansion" do
     assert_compile_fail CompileError,
-      "nofile:1: an alias must expand to an atom at compilation time, but did not in \"foo.Foo\". " <>
-      "Use Module.concat/2 if you want to dynamically generate aliases",
+      ~r"nofile:1: invalid alias: \"foo\.Foo\"",
       'foo = :foo; foo.Foo'
   end
 
