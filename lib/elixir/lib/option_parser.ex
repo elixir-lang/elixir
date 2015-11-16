@@ -1,6 +1,6 @@
 defmodule OptionParser do
   @moduledoc """
-  This module contains functions to parse command line arguments.
+  This module contains functions to parse command line options.
   """
 
   @type argv    :: [String.t]
