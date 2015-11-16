@@ -77,6 +77,8 @@ defmodule ExUnit.Assertions do
   """
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
+
+    left = Macro.expand(left, __CALLER__)
     vars = collect_vars(left)
 
     # If the match works, we need to check if the value
@@ -278,7 +280,7 @@ defmodule ExUnit.Assertions do
   defmacro assert_receive(expected,
                           timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
                           message \\ nil) do
-    do_assert_receive(expected, timeout, message)
+    do_assert_receive(expected, timeout, message, __CALLER__)
   end
 
   @doc """
@@ -299,11 +301,14 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(expected, message \\ nil) do
-    do_assert_receive(expected, 0, message)
+    do_assert_receive(expected, 0, message, __CALLER__)
   end
 
-  defp do_assert_receive(expected, timeout, message) do
+  defp do_assert_receive(expected, timeout, message, caller) do
     binary = Macro.to_string(expected)
+
+    # Expand before extracting metadata
+    expected = Macro.expand(expected, caller)
     vars = collect_vars(expected)
     pins = collect_pins(expected)
 

@@ -112,6 +112,13 @@ defmodule ExUnit.AssertionsTest do
     :hello = assert_received :hello
   end
 
+  @received :hello
+
+  test "assert received with module attribute" do
+    send self, :hello
+    :hello = assert_received @received
+  end
+
   test "assert received with pinned variable" do
     status = :valid
     send self(), {:status, :invalid}
