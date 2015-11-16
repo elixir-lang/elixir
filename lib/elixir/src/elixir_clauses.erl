@@ -33,7 +33,8 @@ match(Fun, Args, S) -> Fun(Args, S).
 
 clause(Meta, Fun, Args, Expr, Guards, S) when is_list(Meta) ->
   {TArgs, SA} = match(Fun, Args, S#elixir_scope{extra_guards=[]}),
-  {TExpr, SE} = elixir_translator:translate(Expr, SA#elixir_scope{extra_guards=nil}),
+  {TExpr, SE} = elixir_translator:translate(Expr,
+                  SA#elixir_scope{extra_guards=nil, export_vars=S#elixir_scope.export_vars}),
 
   Extra = SA#elixir_scope.extra_guards,
   TGuards = guards(Guards, Extra, SA),
@@ -141,16 +142,12 @@ expand_clauses(_Ann, [], [], _FinalVars, Acc, S) ->
 
 each_clause({match, Meta, [Condition], Expr}, S) ->
   {Arg, Guards} = extract_guards(Condition),
-  clause(Meta, fun translate_exports/2, [Arg], Expr, Guards, S);
+  clause(Meta, fun elixir_translator:translate_args/2, [Arg], Expr, Guards, S);
 
 each_clause({expr, Meta, [Condition], Expr}, S) ->
   {TCondition, SC} = elixir_translator:translate(Condition, S),
   {TExpr, SB} = elixir_translator:translate(Expr, SC#elixir_scope{export_vars = S#elixir_scope.export_vars}),
   {{clause, ?ann(Meta), [TCondition], [], unblock(TExpr)}, SB}.
-
-translate_exports(Args, S) ->
-  {TArgs, TS} = elixir_translator:translate_args(Args, S),
-  {TArgs, TS#elixir_scope{export_vars = S#elixir_scope.export_vars}}.
 
 % Check if the given expression is a match tuple.
 % This is a small optimization to allow us to change
