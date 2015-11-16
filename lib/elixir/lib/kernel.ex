@@ -2417,19 +2417,9 @@ defmodule Kernel do
   do).
   """
   defmacro destructure(left, right) when is_list(left) do
-    Enum.reduce left, right, fn item, acc ->
-      {:case, meta, args} =
-        quote do
-          case unquote(acc) do
-            [h|t] ->
-              unquote(item) = h
-              t
-            other when other == [] or other == nil ->
-              unquote(item) = nil
-              []
-          end
-        end
-      {:case, meta, args}
+    quote do
+      unquote(left) =
+        Kernel.Utils.destructure(unquote(right), unquote(length(left)))
     end
   end
 
@@ -2494,9 +2484,8 @@ defmodule Kernel do
       false
 
 
-  Note that, unlike Erlang's `and` operator,
-  this operator accepts any expression as the first argument,
-  not only booleans.
+  Note that, unlike `and/2`, this operator accepts any expression
+  as the first argument, not only booleans.
   """
   defmacro left && right do
     quote do
@@ -2530,9 +2519,8 @@ defmodule Kernel do
       iex> Enum.empty?([]) || throw(:bad)
       true
 
-  Note that, unlike Erlang's `or` operator,
-  this operator accepts any expression as the first argument,
-  not only booleans.
+  Note that, unlike `or/2`, this operator accepts any expression
+  as the first argument, not only booleans.
   """
   defmacro left || right do
     quote do
@@ -3222,7 +3210,7 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
-      fields = Kernel.Def.struct(__MODULE__, fields)
+      fields = Kernel.Utils.defstruct(__MODULE__, fields)
       @struct fields
 
       case Module.get_attribute(__MODULE__, :derive) do
@@ -3712,7 +3700,7 @@ defmodule Kernel do
         raise ArgumentError, "expected to: to be given as argument"
 
       for fun <- List.wrap(funs) do
-        {name, args, as, as_args} = Kernel.Def.delegate(fun, opts)
+        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
         unless Module.get_attribute(__MODULE__, :doc) do
           @doc "See `#{inspect target}.#{as}/#{:erlang.length as_args}`."
         end
