@@ -11,8 +11,8 @@ defmodule Kernel do
   environment.
 
   These macros and functions can be skipped or cherry-picked via the
-  `import` macro. For instance, if you want to tell Elixir not to
-  import the `if` macro, you can do:
+  `import/2` macro. For instance, if you want to tell Elixir not to
+  import the `if/2` macro, you can do:
 
       import Kernel, except: [if: 2]
 
@@ -2286,7 +2286,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Provides an `if` macro.
+  Provides an `if/2` macro.
 
   This macro expects the first argument to be a condition and the second
   argument to be a keyword list.
@@ -2305,7 +2305,7 @@ defmodule Kernel do
 
   ## Blocks examples
 
-  It's also possible to pass a block to the `if` macro. The first
+  It's also possible to pass a block to the `if/2` macro. The first
   example above would be translated to:
 
       if foo do
@@ -2648,7 +2648,7 @@ defmodule Kernel do
 
   ## Guards
 
-  The `in` operator can be used in guard clauses as long as the
+  The `in/2` operator can be used in guard clauses as long as the
   right-hand side is a range or a list. In such cases, Elixir will expand the
   operator to a valid guard expression. For example:
 
@@ -3328,7 +3328,7 @@ defmodule Kernel do
   ## Examples
 
   In Elixir, only `false` and `nil` are considered falsy values.
-  Everything else evaluates to `true` in `if` clauses. Depending
+  Everything else evaluates to `true` in `if/2` clauses. Depending
   on the application, it may be important to specify a `blank?`
   protocol that returns a boolean for other data types that should
   be considered "blank". For instance, an empty list or an empty
@@ -3560,10 +3560,10 @@ defmodule Kernel do
         end
       end
 
-  By calling `use`, a hook called `__using__` will be invoked in
+  By calling `use/2`, a hook called `__using__/1` will be invoked in
   `ExUnit.Case` which will then do the proper setup.
 
-  Simply put, `use` translates to:
+  Simply put, `use/2` translates to:
 
       defmodule AssertionTest do
         require ExUnit.Case
@@ -3587,11 +3587,11 @@ defmodule Kernel do
 
   ## Best practices
 
-  `__using__` is typically used when there is a need to set some state
+  `__using__/1` is typically used when there is a need to set some state
   (via module attributes) or callbacks (like `@before_compile`)
   into the caller.
 
-  `__using__` may also be used to alias, require or import functionality
+  `__using__/1` may also be used to alias, require or import functionality
   from different modules:
 
       defmodule MyModule do
@@ -3606,7 +3606,7 @@ defmodule Kernel do
         end
       end
 
-  However, do not provide `__using__` if all it does is to import,
+  However, do not provide `__using__/1` if all it does is to import,
   alias or require the module itself. For example, do not:
 
       defmodule MyModule do
@@ -3619,10 +3619,10 @@ defmodule Kernel do
 
   In such cases, developers must just import or alias the module
   directly, allowing developers to customize those as they wish,
-  without the indirection behind `use`.
+  without the indirection behind `use/2`.
 
   Finally, developers should also avoid defining functions inside
-  the `__using__` callback, unless those functions are the default
+  the `__using__/1` callback, unless those functions are the default
   implementation of a previously defined `@callback`. In case you
   want to provide some existing functionality to the user module,
   please define it in a module which will be imported accordingly.
@@ -3660,7 +3660,7 @@ defmodule Kernel do
 
   Functions defined with `defdelegate/2` are public and can be invoked from
   outside the module they're defined in (like if they were defined using
-  `def/2`). When the desire is to delegate as private functions, `import` should
+  `def/2`). When the desire is to delegate as private functions, `import/2` should
   be used.
 
   Delegation only works with functions; delegating macros is not supported.
