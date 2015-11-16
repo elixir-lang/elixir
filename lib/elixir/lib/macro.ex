@@ -291,7 +291,7 @@ defmodule Macro do
   into a syntax tree.
 
   One may pass `unquote: true` to `escape/2`
-  which leaves `unquote` statements unescaped, effectively
+  which leaves `unquote/1` statements unescaped, effectively
   unquoting the contents on escape.
 
   ## Examples

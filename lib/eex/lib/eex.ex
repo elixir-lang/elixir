@@ -65,7 +65,7 @@ defmodule EEx do
   **must** use the equals sign (`=`). Since everything in
   Elixir is an expression, there are no exceptions for this rule.
   For example, while some template languages would special-case
-  `if` clauses, they are treated the same in EEx and
+  `if/2` clauses, they are treated the same in EEx and
   also require `=` in order to have their result printed:
 
       <%= if true do %>
