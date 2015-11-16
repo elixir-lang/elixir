@@ -1,11 +1,11 @@
 Nonterminals
   grammar expr_list
   expr container_expr block_expr access_expr
-  no_parens_expr no_parens_one_expr no_parens_one_ambig_expr
+  no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr max_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
-  add_op_eol mult_op_eol two_op_eol pipe_op_eol stab_op_eol
+  add_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   type_op_eol rel_op_eol
   open_paren close_paren empty_paren eoe
@@ -34,7 +34,7 @@ Terminals
   number atom atom_safe atom_unsafe bin_string list_string sigil
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
-  type_op dual_op add_op mult_op two_op pipe_op stab_op when_op assoc_op
+  type_op dual_op add_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
@@ -62,8 +62,9 @@ Left     130 or_op_eol.       %% ||, |||, or
 Left     140 and_op_eol.      %% &&, &&&, and
 Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
-Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>, ^^^
+Left     170 arrow_op_eol.    %% |>, <<<, >>>, ~>>, <<~, ~>, <~, <~>, <|>
 Left     180 in_op_eol.       %% in
+Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 add_op_eol.      %% +, -
 Left     220 mult_op_eol.     %% *, /
@@ -134,6 +135,7 @@ matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
+matched_expr -> no_parens_zero_expr : '$1'.
 matched_expr -> access_expr : '$1'.
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
@@ -161,6 +163,7 @@ matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> add_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> mult_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> two_op_eol matched_expr : {'$1', '$2'}.
+matched_op_expr -> three_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> and_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> or_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> in_op_eol matched_expr : {'$1', '$2'}.
@@ -171,11 +174,14 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
+%% Warn for no parens subset
+matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> add_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> mult_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> two_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> three_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> and_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> or_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> in_op_eol unmatched_expr : {'$1', '$2'}.
@@ -191,6 +197,7 @@ no_parens_op_expr -> match_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> add_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> mult_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> two_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> three_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> and_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> or_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> in_op_eol no_parens_expr : {'$1', '$2'}.
@@ -201,6 +208,9 @@ no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
+%% Warn for no parens subset
+no_parens_op_expr -> arrow_op_eol no_parens_one_ambig_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
+no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
@@ -213,8 +223,8 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_id
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_identifier('$1', '$2').
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_identifier('$1', '$2').
-no_parens_one_expr -> dot_do_identifier : build_identifier('$1', nil).
-no_parens_one_expr -> dot_identifier : build_identifier('$1', nil).
+no_parens_zero_expr -> dot_do_identifier : build_identifier('$1', nil).
+no_parens_zero_expr -> dot_identifier : build_identifier('$1', nil).
 
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Notice that (dot_)identifier
@@ -294,8 +304,8 @@ stab -> stab eoe stab_expr : ['$3'|'$1'].
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
 
-%% Here, `element(1, Token)` is the stab operator, while `element(2, Token)` is
-%% the expression.
+%% Here, `element(1, Token)` is the stab operator,
+%% while `element(2, Token)` is the expression.
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :
@@ -310,7 +320,7 @@ stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
                build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
-stab_op_eol_and_expr -> stab_op_eol : throw_empty_stab_clause('$1').
+stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', nil}.
 
 block_item -> block_eoe stab_eoe : {?exprs('$1'), build_stab(reverse('$2'))}.
 block_item -> block_eoe : {?exprs('$1'), nil}.
@@ -327,20 +337,20 @@ close_paren -> eol ')' : '$2'.
 
 empty_paren -> open_paren ')' : '$1'.
 
-open_bracket  -> '['         : '$1'.
-open_bracket  -> '[' eol     : '$1'.
-close_bracket -> ']'         : '$1'.
-close_bracket -> eol ']'     : '$2'.
+open_bracket  -> '['     : '$1'.
+open_bracket  -> '[' eol : '$1'.
+close_bracket -> ']'     : '$1'.
+close_bracket -> eol ']' : '$2'.
 
-open_bit  -> '<<'         : '$1'.
-open_bit  -> '<<' eol     : '$1'.
-close_bit -> '>>'         : '$1'.
-close_bit -> eol '>>'     : '$2'.
+open_bit  -> '<<'     : '$1'.
+open_bit  -> '<<' eol : '$1'.
+close_bit -> '>>'     : '$1'.
+close_bit -> eol '>>' : '$2'.
 
 open_curly  -> '{'     : '$1'.
 open_curly  -> '{' eol : '$1'.
-close_curly -> '}'         : '$1'.
-close_curly -> eol '}'     : '$2'.
+close_curly -> '}'     : '$1'.
+close_curly -> eol '}' : '$2'.
 
 % Operators
 
@@ -354,6 +364,9 @@ mult_op_eol -> mult_op eol : '$1'.
 
 two_op_eol -> two_op : '$1'.
 two_op_eol -> two_op eol : '$1'.
+
+three_op_eol -> three_op : '$1'.
+three_op_eol -> three_op eol : '$1'.
 
 pipe_op_eol -> pipe_op : '$1'.
 pipe_op_eol -> pipe_op eol : '$1'.
@@ -579,6 +592,7 @@ map -> struct_op map_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4
 
 Erlang code.
 
+-define(file(), get(elixir_parser_file)).
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
 -define(exprs(Token), element(3, Token)).
@@ -670,6 +684,7 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, FArgs};
 
 build_identifier({Keyword, Location}, Args) when Keyword == fn ->
+  io:format("~p~n", ["oops"]),
   {fn, meta_from_location(Location), Args};
 
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
@@ -774,7 +789,7 @@ unwrap_when(Args) ->
 to_block([One]) -> One;
 to_block(Other) -> {'__block__', [], reverse(Other)}.
 
-%% Errors
+%% Warning and errors
 
 throw(Meta, Error, Token) ->
   Line =
@@ -818,7 +833,22 @@ throw_no_parens_container_strict(Node) ->
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
-throw_empty_stab_clause(StabOpToken) ->
-  throw(meta_from_token(StabOpToken),
-    "an expression is required on the right side of ->. Syntax error after: ",
-    "'->'").
+%% TODO: Make those warnings errors.
+warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
+  elixir_errors:warn(Line, ?file(),
+    "an expression is always required on the right side of ->. "
+    "Please provide a value after ->").
+
+warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_|_], [_|_]}) ->
+  elixir_errors:warn(Line, ?file(),
+    io_lib:format(
+      "you are piping into a function call without parentheses, which is often undesired. "
+      "Please wrap the function you are piping into in parentheses. For example:\n\n"
+      "    foo 1 ~ts bar 2 ~ts baz 3\n\n"
+      "Should be written as:\n\n"
+      "    foo(1) ~ts bar(2) ~ts baz(3)\n",
+      [Op, Op, Op, Op]
+    )
+  );
+warn_pipe(_Token, _) ->
+  ok.
