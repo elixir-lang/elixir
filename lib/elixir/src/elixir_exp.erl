@@ -619,9 +619,11 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
             elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
-            "at compilation time, but did not in \"~ts\". Use Module.concat/2 "
-            "if you want to dynamically generate aliases", ['Elixir.Macro':to_string(Alias)])
+          compile_error(Meta, ?m(E, file),
+            "invalid alias: \"~ts\". If you wanted to define an alias, an alias must expand "
+            "to an atom at compile time but it did not, you may use Module.concat/2 to build "
+            "it at runtime. If instead you wanted to invoke a function or access a field, "
+            "wrap the function or field name in double quotes", ['Elixir.Macro':to_string(Alias)])
       end
   end.
 
