@@ -50,8 +50,8 @@ defmodule Stream do
   was enumerated three times. Let's see an example with streams:
 
       stream = 1..3
-      |> Stream.map(&IO.inspect(&1)) |>
-      |> Stream.map(&(&1 * 2)) |>
+      |> Stream.map(&IO.inspect(&1))
+      |> Stream.map(&(&1 * 2))
       |> Stream.map(&IO.inspect(&1))
       Enum.to_list(stream)
       1
