@@ -684,7 +684,6 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, FArgs};
 
 build_identifier({Keyword, Location}, Args) when Keyword == fn ->
-  io:format("~p~n", ["oops"]),
   {fn, meta_from_location(Location), Args};
 
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
@@ -789,7 +788,7 @@ unwrap_when(Args) ->
 to_block([One]) -> One;
 to_block(Other) -> {'__block__', [], reverse(Other)}.
 
-%% Warning and errors
+%% Warnings and errors
 
 throw(Meta, Error, Token) ->
   Line =
