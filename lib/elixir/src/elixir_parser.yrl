@@ -683,9 +683,6 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
   end,
   {Dot, Meta, FArgs};
 
-build_identifier({Keyword, Location}, Args) when Keyword == fn ->
-  {fn, meta_from_location(Location), Args};
-
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil}|meta_from_location(Location)], [Arg]};
 
