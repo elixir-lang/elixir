@@ -46,13 +46,13 @@ defmodule String do
 
   More information about graphemes can be found in the [Unicode
   Standard Annex #29](http://www.unicode.org/reports/tr29/).
-  This current Elixir version implements Extended Grapheme Cluster
+  The current Elixir version implements Extended Grapheme Cluster
   algorithm.
 
   ## String and binary operations
 
   To act accordingly to the Unicode Standard, many functions
-  in this module runs in linear time, as it needs to traverse
+  in this module run in linear time, as it needs to traverse
   the whole string considering the proper Unicode codepoints.
 
   For example, `String.length/1` is going to take longer as
@@ -711,7 +711,7 @@ defmodule String do
 
   @doc """
   Returns a string where all leading Unicode whitespaces
-  has been removed.
+  have been removed.
 
   ## Examples
 
@@ -897,7 +897,7 @@ defmodule String do
   end
 
   @doc """
-  Reverses the given string. Works on graphemes.
+  Reverses the given string. Also works on graphemes.
 
   ## Examples
 
@@ -1215,7 +1215,7 @@ defmodule String do
   defdelegate length(string), to: String.Graphemes
 
   @doc """
-  Returns the grapheme in the `position` of the given utf8 `string`.
+  Returns the grapheme at the `position` of the given utf8 `string`.
   If `position` is greater than `string` length, then it returns `nil`.
 
   ## Examples
