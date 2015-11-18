@@ -407,10 +407,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp escape_underlines_in_link(text) do
-    case Regex.match?(~r{.*(https?\S*)}, text) do
-      true -> Regex.replace(~r{_}, text, "\\\\_")
-      _    -> text
-    end
+    Regex.replace(~r{https?\S*}, text, &String.replace(&1, "_", "\\_"))
   end
 
   defp remove_square_brackets_in_link(text) do
