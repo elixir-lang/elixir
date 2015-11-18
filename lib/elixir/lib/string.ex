@@ -689,6 +689,8 @@ defmodule String do
 
   A `pattern` may be a string or a regex.
 
+  A `replacement` may be a string or a function.
+
   ## Examples
 
       iex> String.replace("a,b,c", ",", "-")
@@ -719,14 +721,31 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
+  When functions are used as a replacement, the first variable passed into
+  the function is the entire match. Variables N will be the subsequent
+  capture groups defined in the Regex pattern:
+
+      iex> String.replace("elixir", ~r/(i)/, fn _, x -> String.upcase(x) end)
+      "elIxIr"
+
   """
   @spec replace(t, pattern | Regex.t, t, Keyword.t) :: t
-  def replace(subject, pattern, replacement, options \\ []) when is_binary(replacement) do
+  def replace(subject, pattern, replacement, options \\ [])
+
+  def replace(subject, pattern, replacement, options) when is_binary(replacement) do
     if Regex.regex?(pattern) do
       Regex.replace(pattern, subject, replacement, global: options[:global])
     else
       opts = translate_replace_options(options)
       :binary.replace(subject, pattern, replacement, opts)
+    end
+  end
+
+  def replace(subject, pattern, replacement, options) when is_function(replacement) do
+    if Regex.regex?(pattern) do
+      Regex.replace(pattern, subject, replacement, global: options[:global])
+    else
+      raise ArgumentError, message: "pattern must be a Regex when using a function for replacement"
     end
   end
 

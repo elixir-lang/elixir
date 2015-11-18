@@ -240,6 +240,11 @@ defmodule StringTest do
 
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1") == "a,bb,cc"
     assert String.replace("a,b,c", ~r/,(.)/, ",\\1\\1", global: false) == "a,bb,c"
+
+    assert String.replace("a,b,c", ~r/(b)/, fn _, x -> String.upcase(x) end) == "a,B,c"
+    assert_raise ArgumentError, fn ->
+      String.replace("a,b,c", "b", fn _, x -> String.upcase(x) end)
+    end
   end
 
   test :duplicate do
