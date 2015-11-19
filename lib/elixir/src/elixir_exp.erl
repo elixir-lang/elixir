@@ -276,8 +276,8 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
     {{Name, _, Kind} = EArg, EA} when is_atom(Name), is_atom(Kind) ->
       {{'^', Meta, [EArg]}, EA};
     _ ->
-    Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
-    compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
+      Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
+      compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
   end;
 expand({'^', Meta, [Arg]}, E) ->
   compile_error(Meta, ?m(E, file),
