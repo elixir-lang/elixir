@@ -93,7 +93,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
       '"""\nbar'
     assert_compile_fail SyntaxError,
-      "nofile:2: invalid location for heredoc terminator, please escape token or move to its own line: \"\"\"",
+      "nofile:2: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
       '"""\nbar"""'
   end
 
@@ -126,6 +126,16 @@ defmodule Kernel.ErrorsTest do
     max = 1
     assert max == 1
     assert (max 1, 2) == 2
+  end
+
+  test "syntax error with do" do
+    assert_compile_fail SyntaxError,
+                        ~r/nofile:1: unexpected token "do"./,
+                        'if true, do\n'
+
+    assert_compile_fail SyntaxError,
+                        ~r/nofile:1: unexpected keyword "do:"./,
+                        'if true do:\n'
   end
 
   test "syntax error on parens call" do
