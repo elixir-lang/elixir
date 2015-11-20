@@ -83,7 +83,7 @@ characters_to_binary(Data) ->
 %% Meta location.
 %%
 %% Macros add a file+keep pair on location keep
-%% which we should take into account for report
+%% which we should take into account for error
 %% reporting.
 %%
 %% Returns {binary, integer} on location keep or

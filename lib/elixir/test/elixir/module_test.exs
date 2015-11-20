@@ -173,8 +173,17 @@ defmodule ModuleTest do
     assert Module.concat(Module.split(module)) == module
   end
 
-  test "  MODULE  " do
+  test "__MODULE__" do
     assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
+  end
+
+  test "__ENV__.file" do
+    assert Path.basename(__ENV__.file) == "module_test.exs"
+  end
+
+  @file "sample.ex"
+  test "__ENV__.file with module attribute" do
+    assert __ENV__.file == "sample.ex"
   end
 
   ## Creation
