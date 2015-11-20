@@ -137,6 +137,7 @@ matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> no_parens_zero_expr : '$1'.
 matched_expr -> access_expr : '$1'.
+matched_expr -> access_expr kw_identifier : throw_invalid_kw_identifier('$2').
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
 unmatched_expr -> unmatched_expr matched_op_expr : build_op(element(1, '$2'), '$1', element(2, '$2')).
@@ -828,6 +829,11 @@ throw_no_parens_container_strict(Node) ->
     "adding parentheses:\n\n"
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
+
+throw_invalid_kw_identifier({_, _, do} = Token) ->
+  throw(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword \"do:\""), "'do:'");
+throw_invalid_kw_identifier({_, _, KW} = Token) ->
+  throw(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
 
 %% TODO: Make those warnings errors.
 warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
