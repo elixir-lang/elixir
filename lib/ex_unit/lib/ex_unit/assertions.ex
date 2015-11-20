@@ -79,7 +79,7 @@ defmodule ExUnit.Assertions do
     code = Macro.escape(assertion)
 
     left = Macro.expand(left, __CALLER__)
-    vars = collect_vars(left)
+    vars = collect_vars_from_pattern(left)
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -309,8 +309,8 @@ defmodule ExUnit.Assertions do
 
     # Expand before extracting metadata
     expected = Macro.expand(expected, caller)
-    vars = collect_vars(expected)
-    pins = collect_pins(expected)
+    vars = collect_vars_from_pattern(expected)
+    pins = collect_pins_from_pattern(expected)
 
     pattern =
       case expected do
@@ -372,7 +372,7 @@ defmodule ExUnit.Assertions do
     "\nProcess mailbox:" <> mailbox
   end
 
-  defp collect_pins(expr) do
+  defp collect_pins_from_pattern(expr) do
     {_, pins} =
       Macro.prewalk(expr, [], fn
         {:^, _, [{name, _, _} = var]}, acc ->
@@ -383,10 +383,12 @@ defmodule ExUnit.Assertions do
     Enum.uniq_by(pins, &elem(&1, 0))
   end
 
-  defp collect_vars(expr) do
+  defp collect_vars_from_pattern(expr) do
     {_, vars} =
       Macro.prewalk(expr, [], fn
-        {ignore, _, [_|_]}, acc when ignore in [:^, :::] ->
+        {:::, _, [left, _]}, acc ->
+          {[left], acc}
+        {:^, _, [_]}, acc ->
           {:ok, acc}
         {:_, _, context}, acc when is_atom(context) ->
           {:ok, acc}

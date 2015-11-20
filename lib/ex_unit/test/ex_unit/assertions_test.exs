@@ -267,6 +267,11 @@ defmodule ExUnit.AssertionsTest do
     {:ok, true} = assert {:ok, _} = ok(true)
   end
 
+  test "assert match with bitstrings" do
+    "foobar" = assert "foo" <> bar = "foobar"
+    "bar" = bar
+  end
+
   test "assert match when no match" do
     try do
       assert {:ok, _} = error(true)
