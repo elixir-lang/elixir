@@ -52,6 +52,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
   %% we need to linify taking into account keep line numbers.
+  %%
+  %% Line and File will always point to the caller. __ENV__.line
+  %% will always point to the quoted one and __ENV__.file will
+  %% always point to the one at @file or the quoted one.
   {Location, Key} =
     case elixir_utils:meta_location(Meta) of
       {_, _} = KeepLocation -> {KeepLocation, keep};
@@ -70,20 +74,26 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line
 store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation, #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
-  E = ER#{function := Tuple},
+  Location = retrieve_location(KeepLocation, Module),
+
+  E = case Location of
+    {F, _} -> ER#{function := Tuple, file := elixir_utils:characters_to_binary(F)};
+    nil    -> ER#{function := Tuple}
+  end,
+
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_location(KeepLocation, Module),
   {Function, Defaults, Super} = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, expr_from_body(Line, Body), E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
-  File = ?m(E, file),
   compile_super(Module, Super, E),
   check_previous_defaults(Line, Module, Name, Arity, Kind, DefaultsLength, E),
 
+  %% Retrieve the file before we changed it based on @file
+  File = ?m(ER, file),
   store_each(CheckClauses, Kind, File, Location, Module, DefaultsLength, Function),
   [store_each(false, Kind, File, Location, Module, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],

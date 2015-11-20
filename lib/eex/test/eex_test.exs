@@ -236,6 +236,10 @@ foo
     assert_eval expected, string
   end
 
+  test "respects files" do
+    assert_eval "sample.ex", "<%= __ENV__.file %>", [], file: "sample.ex"
+  end
+
   test "properly handle functions" do
     expected = """
 

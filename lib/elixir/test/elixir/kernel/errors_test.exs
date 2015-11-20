@@ -4,9 +4,10 @@ defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
   import CompileAssertion
 
-  defmodule UnproperMacro do
-    defmacro unproper(args), do: args
-    defmacro exit(args), do: args
+  defmacro hello do
+    quote location: :keep do
+      def hello, do: :world
+    end
   end
 
   test "invalid token" do
@@ -529,11 +530,11 @@ defmodule Kernel.ErrorsTest do
 
   test "unrequired macro" do
     assert_compile_fail SyntaxError,
-      "nofile:2: you must require Kernel.ErrorsTest.UnproperMacro before invoking " <>
-      "the macro Kernel.ErrorsTest.UnproperMacro.unproper/1 "
+      "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
+      "the macro Kernel.ErrorsTest.hello/0 "
       '''
       defmodule Kernel.ErrorsTest.UnrequiredMacro do
-        Kernel.ErrorsTest.UnproperMacro.unproper([])
+        Kernel.ErrorsTest.hello()
       end
       '''
   end
@@ -545,6 +546,18 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         def foo(1), do: 1
         defmacro foo(x), do: x
+      end
+      '''
+  end
+
+  test "def defp clause change from another file" do
+    assert_compile_fail CompileError,
+      "nofile:4: def hello/0 already defined as defp",
+      '''
+      defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
+        require Kernel.ErrorsTest
+        defp hello, do: :world
+        Kernel.ErrorsTest.hello()
       end
       '''
   end
