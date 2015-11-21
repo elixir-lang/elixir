@@ -1,6 +1,6 @@
 defmodule IEx.State do
   @moduledoc false
-  defstruct binding: nil, cache: '', counter: 1, prefix: "iex", scope: nil, env: nil
+  defstruct cache: '', counter: 1, prefix: "iex"
   @type t :: %__MODULE__{}
 end
 
@@ -52,7 +52,7 @@ defmodule IEx.Server do
       server ->
         send(server, {:peek_env, self()})
         receive do
-          {:peek, %Macro.Env{} = env} -> env
+          {:peek_env, %Macro.Env{} = env} -> env
         after
           5000 -> %Macro.Env{}
         end
@@ -82,7 +82,7 @@ defmodule IEx.Server do
               {^ref, nil} ->
                 {:error, :refused}
               {^ref, leader} ->
-                IEx.Evaluator.start(server, leader)
+                IEx.Evaluator.start(server, leader, opts)
             end
         after
           timeout ->
@@ -139,9 +139,12 @@ defmodule IEx.Server do
 
   defp run(opts) when is_list(opts) do
     IO.puts "Interactive Elixir (#{System.version}) - press Ctrl+C to exit (type h() ENTER for help)"
-    self_pid    = self
+
+    self_pid = self
     self_leader = Process.group_leader
-    evaluator   = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader) end)
+
+    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader, opts) end)
+
     Process.put(:evaluator, evaluator)
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
   end
@@ -186,7 +189,7 @@ defmodule IEx.Server do
       {:input, ^input, {:error, :terminated}} ->
         exit_loop(evaluator, evaluator_ref)
       {:peek_env, receiver} ->
-        send receiver, {:peek, state.env}
+        send evaluator, {:peek_env, receiver}
         wait_input(state, evaluator, evaluator_ref, input)
       msg ->
         handle_take_over(msg, evaluator, evaluator_ref, input, fn ->
@@ -264,23 +267,9 @@ defmodule IEx.Server do
   ## State
 
   defp run_state(opts) do
-    env =
-      if env = opts[:env] do
-        :elixir.env_for_eval(env, [])
-      else
-        :elixir.env_for_eval(file: "iex")
-      end
+    prefix = Keyword.get(opts, :prefix, "iex")
 
-    {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
-
-    binding = Keyword.get(opts, :binding, [])
-    prefix  = Keyword.get(opts, :prefix, "iex")
-    state  = %IEx.State{binding: binding, scope: scope, prefix: prefix, env: env}
-
-    case opts[:dot_iex_path] do
-      ""   -> state
-      path -> IEx.Evaluator.load_dot_iex(state, path)
-    end
+    %IEx.State{prefix: prefix}
   end
 
   ## IO
