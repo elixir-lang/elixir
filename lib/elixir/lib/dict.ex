@@ -13,6 +13,8 @@ defmodule Dict do
   @type value :: any
   @type t :: list | map
 
+  # TODO: Remove callbacks on 1.3
+  # TODO: Deprecate every function on 1.3
   @callback new :: t
   @callback delete(t, key) :: t
   @callback drop(t, Enum.t) :: t
