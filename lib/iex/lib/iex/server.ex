@@ -82,7 +82,7 @@ defmodule IEx.Server do
               {^ref, nil} ->
                 {:error, :refused}
               {^ref, leader} ->
-                IEx.Evaluator.start(server, leader, opts)
+                IEx.Evaluator.init(server, leader, opts)
             end
         after
           timeout ->
@@ -143,7 +143,7 @@ defmodule IEx.Server do
     self_pid = self
     self_leader = Process.group_leader
 
-    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.start(self_pid, self_leader, opts) end)
+    evaluator = opts[:evaluator] || spawn(fn -> IEx.Evaluator.init(self_pid, self_leader, opts) end)
 
     Process.put(:evaluator, evaluator)
     loop(run_state(opts), evaluator, Process.monitor(evaluator))
@@ -216,8 +216,7 @@ defmodule IEx.Server do
   # re-runs the server OR goes back to the main loop.
   #
   # A take process may also happen if the evaluator dies,
-  # then a new evaluator is created to tackle replace the dead
-  # one.
+  # then a new evaluator is created to replace the dead one.
   defp handle_take_over({:take?, other, ref}, _evaluator, _evaluator_ref, _input, callback) do
     send(other, ref)
     callback.()

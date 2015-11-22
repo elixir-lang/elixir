@@ -10,12 +10,12 @@ defmodule IEx.Evaluator do
     * keeping expression history
 
   """
-  def start(server, leader, opts) do
+  def init(server, leader, opts) do
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server, IEx.History.init, run_state(opts))
+      loop(server, IEx.History.init, loop_state(opts))
     after
       Process.group_leader(self, old_leader)
     end
@@ -35,7 +35,7 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp run_state(opts) do
+  defp loop_state(opts) do
     env =
       if env = opts[:env] do
         :elixir.env_for_eval(env, [])
