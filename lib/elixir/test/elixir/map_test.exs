@@ -5,8 +5,6 @@ defmodule MapTest do
 
   doctest Map
 
-  ## Specific to maps
-
   @sample %{a: 1, b: 2}
 
   test "maps in attributes" do
@@ -140,30 +138,8 @@ defmodule MapTest do
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
 
-  ## Specific map functions
-
   test "implements (almost) all functions in Map" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
            [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
-  end
-
-  test "from_struct/1" do
-    assert Map.from_struct(ExternalUser) == %{name: "john", age: 27}
-    assert Map.from_struct(%ExternalUser{name: "meg"}) == %{name: "meg", age: 27}
-    assert_raise FunctionClauseError, fn -> Map.from_struct(%{name: "meg"}) end
-  end
-
-  ## General tests
-
-  test "new/0" do
-    assert Map.new == %{}
-  end
-
-  test "new/1" do
-    assert Map.new([a: 1, b: 2, c: 3]) == %{a: 1, b: 2, c: 3}
-  end
-
-  test "new/2" do
-    assert Map.new(1..3, fn x -> {x, 2 * x} end) == %{1 => 2, 2 => 4, 3 => 6}
   end
 end
