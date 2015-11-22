@@ -1,17 +1,8 @@
 defmodule HashSet do
   @moduledoc """
-  A set store.
+  WARNING: this module is deprecated.
 
-  The `HashSet` is represented internally as a struct, therefore
-  `%HashSet{}` can be used whenever there is a need to match
-  on any `HashSet`. Note though the struct fields are private and
-  must not be accessed directly. Instead, use the functions on this
-  or in the `Set` module.
-
-  The `HashSet` is implemented using tries, which grows in
-  space as the number of keys grows, working well with both
-  small and large set of keys. For more information about the
-  functions and their APIs, please consult the `Set` module.
+  Use the `MapSet` module instead.
   """
 
   @behaviour Set
@@ -29,9 +20,6 @@ defmodule HashSet do
   @compile :inline_list_funcs
   @compile {:inline, key_hash: 1, key_mask: 1, key_shift: 1}
 
-  @doc """
-  Creates a new empty set.
-  """
   @spec new :: Set.t
   def new do
     %HashSet{}

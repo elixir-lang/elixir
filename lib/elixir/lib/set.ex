@@ -1,29 +1,8 @@
 defmodule Set do
   @moduledoc ~S"""
-  This module specifies the `Set` behaviour expected to be
-  implemented by different representations of sets.
+  WARNING: this module is deprecated.
 
-  It also provides functions that redirect to the
-  underlying implementation, allowing a developer to work with
-  different `Set` implementations using a common API.
-
-  To create a new set, use the `new` function which each set implementation
-  defines:
-
-      HashSet.new  #=> creates an empty HashSet
-
-  In the examples below, `set_impl` means a specific
-  `Set` implementation, for example `HashSet`.
-
-  ## Protocols
-
-  Sets are required to implement both the `Enumerable` and `Collectable`
-  protocols.
-
-  ## Matching
-
-  Sets are required to implement all equality checks using the match (`===`)
-  operator.
+  Use the `MapSet` module instead.
   """
 
   @type value :: any
