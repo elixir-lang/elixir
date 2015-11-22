@@ -3,6 +3,7 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule MapSetTest do
   use ExUnit.Case, async: true
 
+  doctest MapSet
   alias MapSet, as: S
 
   test "new/1" do
