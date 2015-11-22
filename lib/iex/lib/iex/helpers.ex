@@ -523,14 +523,14 @@ defmodule IEx.Helpers do
   Prints information about the given `term`.
   """
   def i(term) do
-    info = IEx.Info.info(term)
-    info = ["Term": inspect(term)] ++ info
-    info = Enum.map(info, fn {k, v} -> {k, String.strip(v)} end)
+    info = ["Term": inspect(term)] ++ IEx.Info.info(term)
 
     for {subject, info} <- info do
+      info = info |> to_string() |> String.strip() |> String.replace("\n", "\n  ")
       IO.puts IEx.color(:eval_result, to_string(subject))
       IO.puts IEx.color(:eval_info, "  #{info}")
     end
+
     dont_display_result
   end
 
