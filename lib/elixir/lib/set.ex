@@ -9,6 +9,8 @@ defmodule Set do
   @type values :: [ value ]
   @type t :: map
 
+  # TODO: Remove callbacks on 1.3
+  # TODO: Deprecate every function on 1.3
   @callback new :: t
   @callback delete(t, value) :: t
   @callback difference(t, t) :: t
@@ -33,42 +35,10 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Deletes `value` from `set`.
-
-  Returns a new set which is a copy of `set` but without `value`.
-
-  ## Examples
-
-      iex> s = Enum.into([1, 2, 3], set_impl.new)
-      iex> Set.delete(s, 4) |> Enum.sort
-      [1, 2, 3]
-
-      iex> s = Enum.into([1, 2, 3], set_impl.new)
-      iex> Set.delete(s, 2) |> Enum.sort
-      [1, 3]
-
-  """
-  @spec delete(t, value) :: t
   def delete(set, value) do
     target(set).delete(set, value)
   end
 
-  @doc """
-  Returns a set that is `set1` without the members of `set2`.
-
-  Note that this function is polymorphic as it calculates the difference for
-  sets of the same type as well as of sets of different types. Each set
-  implementation also provides a `difference` function which only works with
-  sets of that type.
-
-  ## Examples
-
-      iex> Set.difference(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
-      [1]
-
-  """
-  @spec difference(t, t) :: t
   def difference(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
@@ -82,23 +52,6 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Checks if `set1` and `set2` have no members in common.
-
-  Note that this function is polymorphic as it checks for disjoint sets of
-  any type. Each set implementation also provides a `disjoint?` function,
-  but that function can only work with sets of the same type.
-
-  ## Examples
-
-      iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
-      true
-
-      iex> Set.disjoint?(Enum.into([1, 2], set_impl.new), Enum.into([2, 3], set_impl.new))
-      false
-
-  """
-  @spec disjoint?(t, t) :: boolean
   def disjoint?(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
@@ -116,28 +69,10 @@ defmodule Set do
   end
 
   @doc false
-  @spec empty(t) :: t
   def empty(set) do
     target(set).empty(set)
   end
 
-  @doc """
-  Checks if two sets are equal using `===`.
-
-  Note that this function is polymorphic as it compares sets of
-  any type. Each set implementation also provides an `equal?`
-  function, but that function can only work with sets of the same type.
-
-  ## Examples
-
-      iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([2, 1, 1], set_impl.new))
-      true
-
-      iex> Set.equal?(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new))
-      false
-
-  """
-  @spec equal?(t, t) :: boolean
   def equal?(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
@@ -154,23 +89,7 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Returns a set containing only members that `set1` and `set2` have in common.
 
-  Note that this function is polymorphic as it calculates the intersection of
-  any type. Each set implementation also provides an `intersection` function,
-  but that function can only work with sets of the same type.
-
-  ## Examples
-
-      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
-      [2]
-
-      iex> Set.intersection(Enum.into([1, 2], set_impl.new), Enum.into([3, 4], set_impl.new)) |> Enum.sort
-      []
-
-  """
-  @spec intersection(t, t) :: t
   def intersection(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
@@ -184,73 +103,20 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Checks if `set` contains `value`.
 
-  ## Examples
-
-      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 2)
-      true
-
-      iex> Set.member?(Enum.into([1, 2, 3], set_impl.new), 4)
-      false
-
-  """
-  @spec member?(t, value) :: boolean
   def member?(set, value) do
     target(set).member?(set, value)
   end
 
-  @doc """
-  Inserts `value` into `set` if `set` doesn't already contain it.
 
-  ## Examples
-
-      iex> Set.put(Enum.into([1, 2, 3], set_impl.new), 3) |> Enum.sort
-      [1, 2, 3]
-
-      iex> Set.put(Enum.into([1, 2, 3], set_impl.new), 4) |> Enum.sort
-      [1, 2, 3, 4]
-
-  """
-  @spec put(t, value) :: t
   def put(set, value) do
     target(set).put(set, value)
   end
 
-  @doc """
-  Returns the number of elements in `set`.
-
-  ## Examples
-
-      iex> Set.size(Enum.into([1, 2, 3], set_impl.new))
-      3
-
-  """
-  @spec size(t) :: non_neg_integer
   def size(set) do
     target(set).size(set)
   end
 
-  @doc """
-  Checks if `set1`'s members are all contained in `set2`.
-
-  This function checks if `set1` is a subset of `set2`.
-
-  Note that this function is polymorphic as it checks the subset for
-  any type. Each set implementation also provides a `subset?` function,
-  but that function can only work with sets of the same type.
-
-  ## Examples
-
-      iex> Set.subset?(Enum.into([1, 2], set_impl.new), Enum.into([1, 2, 3], set_impl.new))
-      true
-
-      iex> Set.subset?(Enum.into([1, 2, 3], set_impl.new), Enum.into([1, 2], set_impl.new))
-      false
-
-  """
-  @spec subset?(t, t) :: boolean
   def subset?(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
@@ -262,34 +128,10 @@ defmodule Set do
     end
   end
 
-  @doc """
-  Converts `set` to a list.
-
-  ## Examples
-
-      iex> set_impl.to_list(Enum.into([1, 2, 3], set_impl.new)) |> Enum.sort
-      [1, 2, 3]
-
-  """
-  @spec to_list(t) :: list
   def to_list(set) do
     target(set).to_list(set)
   end
 
-  @doc """
-  Returns a set containing all members of `set1` and `set2`.
-
-  Note that this function is polymorphic as it calculates the union of sets of
-  any type. Each set implementation also provides a `union` function,
-  but that function can only work with sets of the same type.
-
-  ## Examples
-
-      iex> Set.union(Enum.into([1, 2], set_impl.new), Enum.into([2, 3, 4], set_impl.new)) |> Enum.sort
-      [1, 2, 3, 4]
-
-  """
-  @spec union(t, t) :: t
   def union(set1, set2) do
     target1 = target(set1)
     target2 = target(set2)
