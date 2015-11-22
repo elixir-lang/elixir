@@ -1,4 +1,6 @@
 defprotocol IEx.Info do
+  @fallback_to_any true
+
   @spec info(term) :: [{atom, String.t}]
   def info(term)
 end
@@ -230,5 +232,13 @@ defimpl IEx.Info, for: Reference do
   def info(ref) do
     ["Data type": "Reference",
      "Reference modules": "Port"]
+  end
+end
+
+defimpl IEx.Info, for: Any do
+  def info(%{__struct__: mod} = struct) do
+    ["Data type": inspect(mod),
+     "Description": "This is a struct.",
+     "Reference modules": inspect(mod)]
   end
 end
