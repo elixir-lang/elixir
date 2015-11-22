@@ -16,13 +16,50 @@ defimpl IEx.Info, for: Atom do
     ["Data type": "Atom"] ++ specific_info
   end
 
-  defp info_module(_mod) do
-    ["Reference modules": "Atom, Module"]
+  defp info_module(mod) do
+    mod_info = mod.module_info()
+    ["Object file": module_object_file(mod),
+     "Version": module_version(mod_info),
+     "Source": module_source_file(mod_info),
+     "Compile options": module_compile_options(mod_info),
+     "Compile time": module_compile_time(mod_info),
+     "Description": "Call #{inspect mod}.module_info() for detailed information.",
+     "Reference modules": "Atom, Module"]
   end
 
   defp info_atom(_atom) do
     ["Reference modules": "Atom"]
   end
+
+  defp module_object_file(mod) do
+    default_or_apply :code.which(mod), fn
+      atom when is_atom(atom) -> inspect(atom)
+      path                    -> Path.relative_to_cwd(path)
+    end
+  end
+
+  defp module_version(mod_info) do
+    default_or_apply(mod_info[:attributes][:vsn], &inspect/1)
+  end
+
+  defp module_source_file(mod_info) do
+    default_or_apply(mod_info[:compile][:source], &Path.relative_to_cwd/1)
+  end
+
+  defp module_compile_options(mod_info) do
+    default_or_apply(mod_info[:compile][:options], &inspect/1)
+  end
+
+  defp module_compile_time(mod_info) do
+    default_or_apply(mod_info[:compile][:time], &format_time/1)
+  end
+
+  defp format_time({year, month, day, hour, min, sec}) do
+    "#{year}-#{month}-#{day} #{hour}:#{min}:#{sec}"
+  end
+
+  defp default_or_apply(nil, _), do: "no value found"
+  defp default_or_apply(data, fun), do: fun.(data)
 end
 
 defimpl IEx.Info, for: List do
