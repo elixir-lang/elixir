@@ -8,8 +8,8 @@ defmodule Keyword do
 
   A keyword may have duplicated keys so it is not strictly
   a dictionary. However most of the functions in this module
-  behave exactly as a dictionary and mimic the API defined
-  by the `Dict` behaviour.
+  behave exactly as a dictionary so they work similar to
+  the functions you would find in the `Map` module.
 
   For example, `Keyword.get/3` will get the first entry matching
   the given key, regardless if duplicated entries exist.
@@ -211,7 +211,7 @@ defmodule Keyword do
       {nil, [b: "new value!", a: 1]}
 
   """
-  @spec get_and_update(t, key, (value -> {value, value})) :: {value, t}
+  @spec get_and_update(t, key, (value -> {get, value})) :: {get, t} when get: term
   def get_and_update(keywords, key, fun)
     when is_list(keywords) and is_atom(key),
     do: get_and_update(keywords, [], key, fun)
