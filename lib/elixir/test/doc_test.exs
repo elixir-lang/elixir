@@ -19,11 +19,8 @@ defmodule KernelTest do
   doctest IO.ANSI
   doctest Kernel
   doctest Kernel.SpecialForms
-  doctest Keyword
   doctest List
   doctest Macro
-  doctest Map
-  doctest MapSet
   doctest Module
   doctest Node
   doctest OptionParser

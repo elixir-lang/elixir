@@ -22,16 +22,16 @@ defmodule Mix.ConfigTest do
     assert config() == [lager: [key: :value, other: :value]]
 
     config :lager, key: :other
-    assert config() == [lager: [key: :other, other: :value]]
+    assert config() == [lager: [other: :value, key: :other]]
 
     # Works inside functions too...
     f = fn -> config(:lager, key: :fn) end
     f.()
-    assert config() == [lager: [key: :fn, other: :value]]
+    assert config() == [lager: [other: :value, key: :fn]]
 
     # ...and in for comprehensions.
     for _ <- 0..0, do: config(:lager, key: :for)
-    assert config() == [lager: [key: :for, other: :value]]
+    assert config() == [lager: [other: :value, key: :for]]
   end
 
   test "config/3" do
@@ -44,16 +44,16 @@ defmodule Mix.ConfigTest do
     assert config() == [app: [{Repo, key: :value, other: :value}]]
 
     config :app, Repo, key: :other
-    assert config() == [app: [{Repo, key: :other, other: :value}]]
+    assert config() == [app: [{Repo, other: :value, key: :other}]]
 
     config :app, Repo, key: [nested: false]
-    assert config() == [app: [{Repo, key: [nested: false], other: :value}]]
+    assert config() == [app: [{Repo, other: :value, key: [nested: false]}]]
 
     config :app, Repo, key: [nested: true]
-    assert config() == [app: [{Repo, key: [nested: true], other: :value}]]
+    assert config() == [app: [{Repo, other: :value, key: [nested: true]}]]
 
     config :app, Repo, key: :other
-    assert config() == [app: [{Repo, key: :other, other: :value}]]
+    assert config() == [app: [{Repo, other: :value, key: :other}]]
   end
 
   test "import_config/1" do
@@ -79,7 +79,7 @@ defmodule Mix.ConfigTest do
     config :app, Repo, key: [nested: false, other: true]
 
     import_config fixture_path("configs/nested.exs")
-    assert config() == [app: [{Repo, key: [nested: true, other: true]}]]
+    assert config() == [app: [{Repo, key: [other: true, nested: true]}]]
   end
 
   test "import_config/1 with bad path" do

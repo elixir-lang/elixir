@@ -911,14 +911,16 @@ defmodule Kernel.Typespec do
         module.__struct__
       end
 
+    struct = struct |> Map.from_struct |> Map.to_list
+
     unless Keyword.keyword?(fields) do
       compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
     end
 
-    struct =
+    types =
       :lists.map(fn {field, _} ->
-        {field, quote do: term()}
-      end, Map.to_list(struct))
+        {field, Keyword.get(fields, field, quote(do: term()))}
+      end, struct)
 
     :lists.foreach(fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
@@ -926,8 +928,7 @@ defmodule Kernel.Typespec do
       end
     end, fields)
 
-    fields = Keyword.merge(struct, [__struct__: module] ++ fields)
-    typespec({:%{}, meta, fields}, vars, caller)
+    typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller)
   end
 
   # Handle records
@@ -938,9 +939,9 @@ defmodule Kernel.Typespec do
   defp typespec({:record, meta, [atom, fields]}, vars, caller) do
     case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
       keyword when is_list(keyword) ->
-        keyword =
+        types =
           :lists.map(fn {field, _} ->
-            {field, quote do: term()}
+            Keyword.get(fields, field, quote(do: term()))
           end, keyword)
 
         :lists.foreach(fn {field, _} ->
@@ -948,9 +949,6 @@ defmodule Kernel.Typespec do
             compile_error(caller, "undefined field #{field} on record #{inspect atom}")
           end
         end, fields)
-
-        fields = Keyword.merge(keyword, fields)
-        types = Keyword.values(fields)
 
         typespec({:{}, meta, [atom|types]}, vars, caller)
       _ ->
