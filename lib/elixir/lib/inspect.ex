@@ -285,6 +285,7 @@ defimpl Inspect, for: List do
     end
   end
 
+  @doc false
   def keyword({key, value}, opts) do
     concat(
       key_to_binary(key) <> ": ",
@@ -292,6 +293,7 @@ defimpl Inspect, for: List do
     )
   end
 
+  @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
     case Atom.to_char_list(key) do
       'Elixir.' ++ _ -> false
@@ -302,6 +304,19 @@ defimpl Inspect, for: List do
   def keyword?([]),     do: true
   def keyword?(_other), do: false
 
+  @doc false
+  def printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
+  def printable?([?\n|cs]), do: printable?(cs)
+  def printable?([?\r|cs]), do: printable?(cs)
+  def printable?([?\t|cs]), do: printable?(cs)
+  def printable?([?\v|cs]), do: printable?(cs)
+  def printable?([?\b|cs]), do: printable?(cs)
+  def printable?([?\f|cs]), do: printable?(cs)
+  def printable?([?\e|cs]), do: printable?(cs)
+  def printable?([?\a|cs]), do: printable?(cs)
+  def printable?([]), do: true
+  def printable?(_), do: false
+
   ## Private
 
   defp key_to_binary(key) do
@@ -310,18 +325,6 @@ defimpl Inspect, for: List do
       other -> other
     end
   end
-
-  defp printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
-  defp printable?([?\n|cs]), do: printable?(cs)
-  defp printable?([?\r|cs]), do: printable?(cs)
-  defp printable?([?\t|cs]), do: printable?(cs)
-  defp printable?([?\v|cs]), do: printable?(cs)
-  defp printable?([?\b|cs]), do: printable?(cs)
-  defp printable?([?\f|cs]), do: printable?(cs)
-  defp printable?([?\e|cs]), do: printable?(cs)
-  defp printable?([?\a|cs]), do: printable?(cs)
-  defp printable?([]), do: true
-  defp printable?(_), do: false
 end
 
 defimpl Inspect, for: Tuple do

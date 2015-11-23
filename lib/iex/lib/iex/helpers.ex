@@ -5,9 +5,20 @@ defmodule IEx.Helpers do
   which provides many helpers to make Elixir's shell
   more joyful to work with.
 
-  This message was triggered by invoking the helper
-  `h()`, usually referred to as `h/0` (since it expects 0
-  arguments).
+  This message was triggered by invoking the helper `h()`,
+  usually referred to as `h/0` (since it expects 0 arguments).
+
+  You can use the `h` function to invoke the documentation
+  for any Elixir module or function:
+
+      h Enum
+      h Enum.map
+      h Enum.reverse/1
+
+  You can also use the `i` function to introspect any value
+  you have in the shell:
+
+      i "hello"
 
   There are many other helpers available:
 
@@ -16,6 +27,7 @@ defmodule IEx.Helpers do
     * `cd/1`          - changes the current directory
     * `clear/0`       - clears the screen
     * `flush/0`       - flushes all messages sent to the shell
+    * `i/1`           - prints information about the given data type
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
     * `import_file/1` - evaluates the given file in the shell's context
@@ -32,21 +44,10 @@ defmodule IEx.Helpers do
     * `v/1`           — retrieves the nth value from the history
     * `import_file/1` — evaluates the given file in the shell's context
 
-  Help for functions in this module can be consulted
-  directly from the command line, as an example, try:
+  Help for all of those functions can be consulted directly from
+  the command line using the `h` helper itself. Try:
 
-      h(c/2)
-
-  You can also retrieve the documentation for any module
-  or function. Try these:
-
-      h(Enum)
-      h(Enum.reverse/1)
-
-  To discover all available functions for a module, type the module name
-  followed by a dot, then press tab to trigger autocomplete. For example:
-
-      Enum.
+      h(v/0)
 
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
@@ -413,7 +414,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Prints information about the given `term`.
+  Prints information about the given data type.
   """
   def i(term) do
     info = ["Term": inspect(term)] ++ IEx.Info.info(term)
