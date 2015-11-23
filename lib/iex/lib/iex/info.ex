@@ -19,16 +19,11 @@ defimpl IEx.Info, for: Atom do
   end
 
   defp info_module(mod) do
-    desc =
-      if function_exported?(mod, :__info__, 0) do
-        """
-        Call #{inspect mod}.__info__() for detailed information.
-        Use h(#{inspect mod}) to access its documentation.
-        """
+    extra =
+      if Code.get_docs(mod, :moduledoc) do
+        "\nUse h(#{inspect mod}) to access its documentation."
       else
-        """
-        Call #{inspect mod}.module_info() for detailed information.
-        """
+        ""
       end
 
     mod_info = mod.module_info()
@@ -37,7 +32,7 @@ defimpl IEx.Info, for: Atom do
      "Source": module_source_file(mod_info),
      "Compile options": module_compile_options(mod_info),
      "Compile time": module_compile_time(mod_info),
-     "Description": desc,
+     "Description": "Call #{inspect mod}.module_info() for detailed information.#{extra}",
      "Reference modules": "Module, Atom"]
   end
 
