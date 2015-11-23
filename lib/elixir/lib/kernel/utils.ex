@@ -22,6 +22,8 @@ defmodule Kernel.Utils do
         _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
       end
 
+    check_defdelegate_args(args)
+
     as_args =
       case append_first and args != [] do
         true  -> tl(args) ++ [hd(args)]
@@ -31,6 +33,13 @@ defmodule Kernel.Utils do
     as = Keyword.get(opts, :as, name)
     {name, args, as, as_args}
   end
+
+  defp check_defdelegate_args([]),
+    do: :ok
+  defp check_defdelegate_args([{var, _, mod}|rest]) when is_atom(var) and is_atom(mod),
+    do: check_defdelegate_args(rest)
+  defp check_defdelegate_args([code|_]),
+    do: raise(ArgumentError, "defdelegate/2 only accepts variable names, got: #{Macro.to_string(code)}")
 
   def defstruct(module, fields) do
     case fields do
