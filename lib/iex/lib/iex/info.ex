@@ -199,10 +199,10 @@ defimpl IEx.Info, for: Function do
     fun_info = :erlang.fun_info(fun)
 
     specific_info =
-      if fun_info[:module] == :erl_eval do
-        info_anon_fun(fun_info)
-      else
+      if fun_info[:type] == :external and fun_info[:env] == [] do
         info_named_fun(fun_info)
+      else
+        info_anon_fun(fun_info)
       end
 
     ["Data type": "Function"] ++ specific_info
@@ -216,7 +216,6 @@ defimpl IEx.Info, for: Function do
 
   defp info_named_fun(fun_info) do
     ["Type": to_string(fun_info[:type]),
-     "Name": "#{inspect fun_info[:module]}.#{inspect fun_info.name}",
      "Arity": fun_info[:arity]]
   end
 end
