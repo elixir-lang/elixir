@@ -21,18 +21,19 @@ defimpl IEx.Info, for: Atom do
   defp info_module(mod) do
     extra =
       if Code.get_docs(mod, :moduledoc) do
-        "\nUse h(#{inspect mod}) to access its documentation."
+        "Use h(#{inspect mod}) to access its documentation.\n"
       else
         ""
       end
 
     mod_info = mod.module_info()
-    ["Object file": module_object_file(mod),
-     "Version": module_version(mod_info),
+    ["Module bytecode": module_object_file(mod),
      "Source": module_source_file(mod_info),
-     "Compile options": module_compile_options(mod_info),
+     "Version": module_version(mod_info),
      "Compile time": module_compile_time(mod_info),
-     "Description": "Call #{inspect mod}.module_info() for detailed information.#{extra}",
+     "Compile options": module_compile_options(mod_info),
+     "Description": "#{extra}Call #{inspect mod}.module_info() to access metadata.",
+     "Raw representation": ":" <> inspect(Atom.to_string(mod)),
      "Reference modules": "Module, Atom"]
   end
 
