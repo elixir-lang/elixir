@@ -15,6 +15,13 @@ defmodule IEx do
   IEx provides a bunch of helpers. They can be accessed by typing
   `h()` into the shell or as a documentation for the `IEx.Helpers` module.
 
+  ## Autocomplete
+
+  To discover all available functions for a module, type the module name
+  followed by a dot, then press tab to trigger autocomplete. For example:
+
+      Enum.
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
