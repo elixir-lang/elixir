@@ -18,12 +18,12 @@ defmodule Task do
   to the caller once the given computation is performed.
 
   Besides `async/1` and `await/2`, tasks can also be
-  started as part of supervision trees and dynamically spawned
+  started as part of supervision tree and dynamically spawned
   in remote nodes. We will explore all three scenarios next.
 
   ## async and await
 
-  One of the common uses of tasks is to convert some sequential code
+  One of the common use of tasks is to convert some sequential code
   into concurrent one with `Task.async/1` while keeping its semantics.
   When invoked, a new process will be created, linked and monitored
   by the caller. Once the task action finishes, a message will be sent
@@ -173,7 +173,7 @@ defmodule Task do
   Starts a task.
 
   This is only used when the task is used for side-effects
-  (i.e. no interest in its return result) and it should not
+  (i.e. no interest in the returned result) and it should not
   be linked to the current process.
   """
   @spec start(fun) :: {:ok, pid}
@@ -185,7 +185,7 @@ defmodule Task do
   Starts a task.
 
   This is only used when the task is used for side-effects
-  (i.e. no interest in its return result) and it should not
+  (i.e. no interest in the returned result) and it should not
   be linked to the current process.
   """
   @spec start(module, atom, [term]) :: {:ok, pid}
@@ -298,7 +298,7 @@ defmodule Task do
 
   If the timeout is exceeded, `await` will exit, however,
   the task will continue to run. When the calling process exits, its
-  exit signal will close the task if it is not trapping exits.
+  exit signal will terminate the task if it is not trapping exits.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
@@ -523,12 +523,11 @@ defmodule Task do
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
   `{:exit, reason}` if the task exited abornormally, otherwise `nil`.
 
-  The shutdown method is either a timeout or `:brutal_kill`. In the case
+  The shutdown method is either a timeout or `:brutal_kill`. In case
   of a `timeout`, a `:shutdown` exit signal is sent to the task process
   and if it does not exit within the timeout it is killed. With `:brutal_kill`
-  the task is killed straight away. In the case that the task exits abnormal,
-  or a timeout shutdown kills the task, this function will exit with the same
-  reason.
+  the task is killed straight away. In case the task exits abnormally, or a 
+  timeout shutdown kills the task, this function will exit with the same reason.
 
   It is not required to call this function when terminating the caller, unless
   exiting with reason `:normal` or the task is trapping exits. If the caller is
