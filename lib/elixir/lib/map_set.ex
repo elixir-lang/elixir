@@ -10,6 +10,7 @@ defmodule MapSet do
   """
 
   @opaque t :: %__MODULE__{map: map}
+  @type value :: term
   defstruct map: %{}
 
   @doc """
@@ -83,10 +84,11 @@ defmodule MapSet do
 
   """
   @spec difference(t, t) :: t
-  def difference(%MapSet{} = set1, %MapSet{} = set2) do
-    reduce(set2, {:cont, set1}, fn value, acc ->
-      {:cont, delete(acc, value)}
-    end) |> elem(1)
+  def difference(%MapSet{map: map1}, %MapSet{map: map2}) do
+    map = :maps.fold(fn value, _, acc ->
+      Map.delete(acc, value)
+    end, map1, map2)
+    %MapSet{map: map}
   end
 
   @doc """
@@ -101,15 +103,17 @@ defmodule MapSet do
 
   """
   @spec disjoint?(t, t) :: boolean
-  def disjoint?(%MapSet{} = set1, %MapSet{} = set2) do
-    if size(set1) > size(set2), do: {set1, set2} = {set2, set1}
-    reduce(set1, {:cont, true}, fn value, _ ->
-      if member?(set2, value) do
-        {:halt, false}
+  def disjoint?(%MapSet{map: map1}, %MapSet{map: map2}) do
+    if map_size(map1) > map_size(map2), do: {map1, map2} = {map2, map1}
+    :maps.fold(fn value, _, _ ->
+      if Map.has_key?(map2, value) do
+        throw({:halt, false})
       else
-        {:cont, true}
+        true
       end
-    end) |> elem(1)
+    end, true, map1)
+  catch
+    {:halt, false} -> false
   end
 
   @doc """
@@ -143,15 +147,16 @@ defmodule MapSet do
 
   """
   @spec intersection(t, t) :: t
-  def intersection(%MapSet{} = set1, %MapSet{} = set2) do
-    if size(set1) > size(set2), do: {set1, set2} = {set2, set1}
-    reduce(set1, {:cont, new}, fn value, acc ->
-      if member?(set2, value) do
-        {:cont, put(acc, value)}
+  def intersection(%MapSet{map: map1}, %MapSet{map: map2}) do
+    if map_size(map1) > map_size(map2), do: {map1, map2} = {map2, map1}
+    map = :maps.fold(fn value, _, acc ->
+      if Map.has_key?(map2, value) do
+        Map.put(acc, value, true)
       else
-        {:cont, acc}
+        acc
       end
-    end) |> elem(1)
+    end, %{}, map1)
+    %MapSet{map: map}
   end
 
   @doc """
@@ -183,7 +188,7 @@ defmodule MapSet do
   """
   @spec put(t, value) :: t
   def put(%MapSet{map: map} = set, value) do
-    %{set | map: Map.put(map, value, nil)}
+    %{set | map: Map.put(map, value, true)}
   end
 
   @doc """
@@ -214,14 +219,20 @@ defmodule MapSet do
 
   """
   @spec subset?(t, t) :: boolean
-  def subset?(%MapSet{} = set1, %MapSet{} = set2) do
-    if size(set1) <= size(set2) do
-      reduce(set1, {:cont, true}, fn value, _ ->
-        if member?(set2, value), do: {:cont, true}, else: {:halt, false}
-      end) |> elem(1)
+  def subset?(%MapSet{map: map1}, %MapSet{map: map2}) do
+    if map_size(map1) <= map_size(map2) do
+      :maps.fold(fn value, _, _ ->
+        if Map.has_key?(map2, value) do
+          true
+        else
+          throw({:halt, false})
+        end
+      end, true, map1)
     else
       false
     end
+  catch
+    {:halt, false} -> false
   end
 
   @doc """
