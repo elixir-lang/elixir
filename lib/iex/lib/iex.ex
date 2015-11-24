@@ -424,6 +424,9 @@ defmodule IEx do
   def pry(binding, env, timeout) do
     meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
+    if env.line > 2 do
+      puts_pry_call_info(env)
+    end
     res  = IEx.Server.take_over("Request to pry #{meta}", opts, timeout)
 
     # We cannot use colors because IEx may be off.
@@ -502,5 +505,10 @@ defmodule IEx do
   defp run_after_spawn do
     _ = for fun <- Enum.reverse(after_spawn), do: fun.()
     :ok
+  end
+
+  defp puts_pry_call_info(env) do
+    file = File.stream!(Path.relative_to_cwd(env.file))
+    Enum.slice(file, env.line - 3, 5) |> IO.puts
   end
 end
