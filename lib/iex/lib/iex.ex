@@ -422,12 +422,16 @@ defmodule IEx do
   (a sensible default is 5000).
   """
   def pry(binding, env, timeout) do
-    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    if env.line > 2 do
-      puts_pry_call_info(env)
-    end
-    res  = IEx.Server.take_over("Request to pry #{meta}", opts, timeout)
+    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    desc =
+      if File.regular?(env.file) do
+        parse_file(env)
+      else
+        ""
+      end
+
+    res = IEx.Server.take_over("Request to pry #{meta}#{desc}", opts, timeout)
 
     # We cannot use colors because IEx may be off.
     case res do
@@ -445,6 +449,14 @@ defmodule IEx do
     end
 
     res
+  end
+
+  defp parse_file(env) do
+    lines =
+      env.file
+      |> File.stream!
+      |> Enum.slice(max(env.line - 3, 0), 5)
+    Enum.intersperse(["\n\n"|lines], "    ")
   end
 
   ## Callbacks
@@ -505,10 +517,5 @@ defmodule IEx do
   defp run_after_spawn do
     _ = for fun <- Enum.reverse(after_spawn), do: fun.()
     :ok
-  end
-
-  defp puts_pry_call_info(env) do
-    file = File.stream!(Path.relative_to_cwd(env.file))
-    Enum.slice(file, env.line - 3, 5) |> IO.puts
   end
 end

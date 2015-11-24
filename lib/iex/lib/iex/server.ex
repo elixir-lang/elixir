@@ -259,7 +259,7 @@ defmodule IEx.Server do
   defp kill_input(input), do: Process.exit(input, :kill)
 
   defp allow_take?(identifier) do
-    message = IEx.color(:eval_interrupt, "#{identifier}. Allow? [Yn] ")
+    message = IEx.color(:eval_interrupt, "#{identifier}\nAllow? [Yn] ")
     IO.gets(:stdio, message) =~ ~r/^(Y(es)?)?$/i
   end
 
