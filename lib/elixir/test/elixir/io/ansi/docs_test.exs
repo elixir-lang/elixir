@@ -312,4 +312,9 @@ defmodule IO.ANSI.DocsTest do
     assert format("a | b | c\nd | e") ==
            "a | b | c\nd | e |  \n\e[0m"
   end
+
+  test "one reference link label per line" do
+    assert format("  [id]: http://example.com\n  [Elixir]:  http://elixir-lang.org") ==
+           "  [id]: http://example.com\n  [Elixir]:  http://elixir-lang.org"
+  end
 end
