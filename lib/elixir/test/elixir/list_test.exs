@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ListTest do
   use ExUnit.Case, async: true
 
+  doctest List
+
   test "cons cell precedence" do
     assert [1|:lists.flatten([2, 3])] == [1, 2, 3]
   end

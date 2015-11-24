@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
+  doctest Exception
+
   test "raise preserves the stacktrace" do
     stacktrace =
       try do
@@ -13,7 +15,7 @@ defmodule ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
     assert {__MODULE__, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 9]} = stacktrace
+           [file: ^file, line: 11]} = stacktrace
   end
 
   test "exception?" do

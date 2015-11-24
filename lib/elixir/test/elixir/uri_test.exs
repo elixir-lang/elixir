@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule URITest do
   use ExUnit.Case, async: true
 
+  doctest URI
+
   test "encode" do
     assert URI.encode("4_test.is-s~") == "4_test.is-s~"
     assert URI.encode("\r\n&<%>\" ゆ", &URI.char_unreserved?/1) ==

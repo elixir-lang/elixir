@@ -39,6 +39,8 @@ end
 defmodule ModuleTest do
   use ExUnit.Case, async: true
 
+  doctest Module
+
   Module.register_attribute __MODULE__, :register_example, accumulate: true, persist: true
   @register_example :it_works
   @register_example :still_works

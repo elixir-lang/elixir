@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringIOTest do
   use ExUnit.Case, async: true
 
+  doctest StringIO
+
   test "open and close" do
     {:ok, pid} = StringIO.open("")
     assert StringIO.close(pid) == {:ok, {"", ""}}

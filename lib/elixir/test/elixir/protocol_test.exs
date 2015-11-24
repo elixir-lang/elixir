@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ProtocolTest do
   use ExUnit.Case, async: true
 
+  doctest Protocol
+
   defprotocol Sample do
     @type t :: any
     @doc "Ok"
@@ -122,10 +124,10 @@ defmodule ProtocolTest do
 
   test "protocol defines callbacks" do
     assert get_callbacks(Sample, :ok, 1) ==
-      [{:type, [9], :fun, [{:type, [9], :product, [{:user_type, [9], :t, []}]}, {:type, [9], :boolean, []}]}]
+      [{:type, [11], :fun, [{:type, [11], :product, [{:user_type, [11], :t, []}]}, {:type, [11], :boolean, []}]}]
 
     assert get_callbacks(WithAny, :ok, 1) ==
-      [{:type, [16], :fun, [{:type, [16], :product, [{:user_type, [16], :t, []}]}, {:type, [16], :term, []}]}]
+      [{:type, [18], :fun, [{:type, [18], :product, [{:user_type, [18], :t, []}]}, {:type, [18], :term, []}]}]
   end
 
   test "protocol defines functions and attributes" do

@@ -2,6 +2,9 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule BaseTest do
   use ExUnit.Case, async: true
+
+  doctest Base
+
   import Base
 
   test "encode16" do

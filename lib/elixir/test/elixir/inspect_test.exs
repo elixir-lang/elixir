@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
+  doctest Inspect
+
   test "basic" do
     assert inspect(:foo) == ":foo"
   end

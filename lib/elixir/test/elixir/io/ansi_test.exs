@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IO.ANSITest do
   use ExUnit.Case, async: true
 
+  doctest IO.ANSI
+
   test "format ansicode" do
     assert IO.chardata_to_string(IO.ANSI.format(:green, true)) ==
            "#{IO.ANSI.green}#{IO.ANSI.reset}"

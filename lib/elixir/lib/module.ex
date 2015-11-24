@@ -496,7 +496,7 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat([Unknown, Module])
+      iex> Module.safe_concat([Module, Unknown])
       ** (ArgumentError) argument error
 
       iex> Module.safe_concat([List, Chars])
@@ -516,7 +516,7 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat(Unknown, Module)
+      iex> Module.safe_concat(Module, Unknown)
       ** (ArgumentError) argument error
 
       iex> Module.safe_concat(List, Chars)

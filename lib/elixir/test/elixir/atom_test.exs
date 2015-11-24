@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule AtomTest do
   use ExUnit.Case, async: true
 
+  doctest Atom
+
   test "to_string/1" do
     assert Atom.to_string(:"héllo") == "héllo"
   end
