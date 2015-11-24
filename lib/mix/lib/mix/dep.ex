@@ -343,8 +343,8 @@ defmodule Mix.Dep do
   """
   def load_paths(%Mix.Dep{opts: opts} = dep) do
     build_path = Path.dirname(opts[:build])
-    Enum.map source_paths(dep), fn path ->
-      Path.join [build_path, Path.basename(path), "ebin"]
+    Enum.map source_paths(dep), fn {_, base} ->
+      Path.join [build_path, base, "ebin"]
     end
   end
 
@@ -354,20 +354,20 @@ defmodule Mix.Dep do
   Source paths are the directories that contains ebin files for a given
   dependency. All managers, except `:rebar`, have only one source path.
   """
-  def source_paths(%Mix.Dep{manager: :rebar, opts: opts, extra: extra}) do
-    # Add root dir and all sub dirs with ebin/ directory
-    sub_dirs = Enum.map(extra[:sub_dirs] || [], fn path ->
-      Path.join(opts[:dest], path)
-    end)
+  def source_paths(%Mix.Dep{manager: :rebar, app: app, opts: opts, extra: extra}) do
+    sub_dirs = extra[:sub_dirs] || []
+    dest = opts[:dest]
 
-    [opts[:dest] | sub_dirs]
-    |> Enum.map(&Path.wildcard(&1))
-    |> Enum.concat
-    |> Enum.filter(fn p -> p |> Path.join("ebin") |> File.dir? end)
+    # Add root dir and all sub dirs with ebin/ directory
+    [{opts[:dest], Atom.to_string(app)}] ++
+      for(sub_dir <- sub_dirs,
+          path <- Path.wildcard(Path.join(dest, sub_dir)),
+          File.dir?(Path.join(path, "ebin")),
+          do: {path, Path.basename(path)})
   end
 
-  def source_paths(%Mix.Dep{opts: opts}) do
-    [opts[:dest]]
+  def source_paths(%Mix.Dep{app: app, opts: opts}) do
+    [{opts[:dest], Atom.to_string(app)}]
   end
 
   @doc """
