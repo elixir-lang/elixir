@@ -210,7 +210,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample\.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample\.run/0", fn ->
       Sample.run
     end
 
@@ -234,7 +234,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper multiple modules" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -249,7 +249,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper list" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -264,7 +264,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper erlang" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -279,7 +279,7 @@ defmodule IEx.HelpersTest do
 
 
   test "c helper skips unknown files" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -295,7 +295,7 @@ defmodule IEx.HelpersTest do
 
 
   test "l helper" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -310,7 +310,7 @@ defmodule IEx.HelpersTest do
       elixirc ["sample.ex"]
 
       assert l(Sample) == {:module, Sample}
-      assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      assert_raise UndefinedFunctionError, "undefined function Sample.run/0", fn ->
         Sample.run
       end
     end
@@ -326,7 +326,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper elixir" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0 \(module Sample is not available\)", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0 \(module Sample is not available\)", fn ->
       Sample.run
     end
 
@@ -338,7 +338,7 @@ defmodule IEx.HelpersTest do
 
         File.write! filename, "defmodule Sample do end"
         assert {:reloaded, Sample, [Sample]} = r(Sample)
-        assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+        assert_raise UndefinedFunctionError, "undefined function Sample.run/0", fn ->
           Sample.run
         end
       end) =~ ~r"^.*?sample\.ex:1: warning: redefining module Sample\n$"
@@ -349,7 +349,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper erlang" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 

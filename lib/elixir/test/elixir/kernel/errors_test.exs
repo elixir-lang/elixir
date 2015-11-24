@@ -199,7 +199,7 @@ defmodule Kernel.ErrorsTest do
       '''
 
     assert_compile_fail CompileError,
-      "nofile:2: function foo/0 undefined",
+      "nofile:2: undefined function foo/0",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
         def hello(foo, bar \\ foo)
@@ -240,7 +240,7 @@ defmodule Kernel.ErrorsTest do
 
   test "bad form" do
     assert_compile_fail CompileError,
-      "nofile:2: function bar/0 undefined",
+      "nofile:2: undefined function bar/0",
       '''
       defmodule Kernel.ErrorsTest.BadForm do
         def foo, do: bar
@@ -477,7 +477,7 @@ defmodule Kernel.ErrorsTest do
 
   test "macro with undefined local" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
+      "undefined function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
       "(function unknown/1 is not available)",
       '''
       defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
@@ -489,7 +489,7 @@ defmodule Kernel.ErrorsTest do
 
   test "private macro" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
+      "undefined function Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
       '''
       defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
@@ -887,7 +887,7 @@ defmodule Kernel.ErrorsTest do
       'alias Elixir.{Map}, as: Dict'
 
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: List.{}/1",
+      "undefined function List.{}/1",
       '[List.{Chars}, "one"]'
   end
 

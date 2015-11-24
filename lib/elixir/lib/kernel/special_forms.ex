@@ -880,7 +880,7 @@ defmodule Kernel.SpecialForms do
 
       import Math
       squared(5)
-      x #=> ** (RuntimeError) undefined function or variable: x
+      x #=> ** (CompileError) undefined variable x or undefined function x/0
 
   We can see that `x` did not leak to the user context. This happens
   because Elixir macros are hygienic, a topic we will discuss at length
@@ -939,7 +939,7 @@ defmodule Kernel.SpecialForms do
 
       Hygiene.write
       Hygiene.read
-      #=> ** (RuntimeError) undefined function or variable: a
+      #=> ** (RuntimeError) undefined variable a or undefined function a/0
 
   For such, you can explicitly pass the current module scope as
   argument:

@@ -54,7 +54,7 @@ defmodule IEx do
   Now, try to access the `hello` variable again:
 
       hello
-      ** (UndefinedFunctionError) undefined function: hello/0
+      ** (UndefinedFunctionError) undefined function hello/0
 
   The command above fails because we have switched shells.
   Since shells are isolated from each other, you can't access the
@@ -98,7 +98,7 @@ defmodule IEx do
   as it was defined only in the other shell:
 
       iex(bar@HOST)1> Hello.world
-      ** (UndefinedFunctionError) undefined function: Hello.world/0
+      ** (UndefinedFunctionError) undefined function Hello.world/0
 
   However, we can connect to the other shell remotely. Open up
   the User Switch prompt (Ctrl+G) and type:
