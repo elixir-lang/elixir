@@ -145,7 +145,7 @@ defmodule Set do
     end
   end
 
-  defp do_subset?(target1, target2, set1, set2) do
+  defp do_subset?(_target1, target2, set1, set2) do
     Enumerable.reduce(set1, {:cont, true}, fn member, acc ->
       case target2.member?(set2, member) do
         true -> {:cont, acc}
