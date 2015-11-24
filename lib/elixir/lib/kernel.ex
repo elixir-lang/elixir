@@ -3729,7 +3729,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_S(term, modifiers)
-  defmacro sigil_S(string, []), do: string
+  defmacro sigil_S({:<<>>, _, [binary]}, []) when is_binary(binary), do: binary
 
   @doc ~S"""
   Handles the sigil `~s`.
@@ -3750,6 +3750,9 @@ defmodule Kernel do
 
   """
   defmacro sigil_s(term, modifiers)
+  defmacro sigil_s({:<<>>, _, [piece]}, []) when is_binary(piece) do
+    Macro.unescape_string(piece)
+  end
   defmacro sigil_s({:<<>>, line, pieces}, []) do
     {:<<>>, line, Macro.unescape_tokens(pieces)}
   end
