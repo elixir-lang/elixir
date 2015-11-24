@@ -73,6 +73,9 @@ defmodule Process do
 
   @doc """
   Stores the given key-value in the process dictionary.
+
+  The return value is the value that was previously stored under the key `key`
+  (or `nil` in case no value was stored under `key`).
   """
   @spec put(term, term) :: term | nil
   def put(key, value) do
