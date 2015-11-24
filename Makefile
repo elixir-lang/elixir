@@ -213,11 +213,7 @@ $(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
 	$(Q) mkdir -p $(TEST_EBIN)
 	$(Q) $(ERLC) -o $(TEST_EBIN) $<
 
-test_elixir: test_stdlib test_ex_unit test_logger test_doc_test test_mix test_eex test_iex
-
-test_doc_test: compile
-	@ echo "==> doctest (exunit)"
-	$(Q) cd lib/elixir && ../../bin/elixir -r "test/doc_test.exs";
+test_elixir: test_stdlib test_ex_unit test_logger test_mix test_eex test_iex
 
 test_stdlib: compile
 	@ echo "==> elixir (exunit)"

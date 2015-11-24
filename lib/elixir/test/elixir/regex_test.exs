@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule RegexTest do
   use ExUnit.Case, async: true
 
+  doctest Regex
+
   test "multiline" do
     refute Regex.match?(~r/^b$/, "a\nb\nc")
     assert Regex.match?(~r/^b$/m, "a\nb\nc")

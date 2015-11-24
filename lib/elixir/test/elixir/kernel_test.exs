@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
+  doctest Kernel
+
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
     assert ("abcd" =~ ~r/e/) == false

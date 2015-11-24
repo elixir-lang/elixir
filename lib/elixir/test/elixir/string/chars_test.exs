@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule String.Chars.AtomTest do
   use ExUnit.Case, async: true
 
+  doctest String.Chars
+
   test "basic" do
     assert to_string(:foo) == "foo"
   end

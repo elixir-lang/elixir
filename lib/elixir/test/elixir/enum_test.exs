@@ -1,5 +1,11 @@
 Code.require_file "test_helper.exs", __DIR__
 
+defmodule EnumTest do
+  use ExUnit.Case, async: true
+
+  doctest Enum
+end
+
 defmodule EnumTest.List do
   use ExUnit.Case, async: true
 

@@ -2,6 +2,9 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule IntegerTest do
   use ExUnit.Case, async: true
+
+  doctest Integer
+
   require Integer
 
   def test_is_odd_in_guards(number) when Integer.is_odd(number),

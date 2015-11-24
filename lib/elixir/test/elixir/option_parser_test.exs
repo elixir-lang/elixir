@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule OptionParserTest do
   use ExUnit.Case, async: true
 
+  doctest OptionParser
+
   test "parses boolean option" do
     assert OptionParser.parse(["--docs"]) == {[docs: true], [], []}
   end

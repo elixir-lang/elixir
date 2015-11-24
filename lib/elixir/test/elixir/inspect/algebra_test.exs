@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Inspect.AlgebraTest do
   use ExUnit.Case, async: true
 
+  doctest Inspect.Algebra
+
   import Inspect.Algebra
 
   def helloabcd do

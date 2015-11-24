@@ -2,6 +2,9 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule CodeTest do
   use ExUnit.Case, async: true
+
+  doctest Code
+
   import PathHelpers
 
   def genmodule(name) do
@@ -151,12 +154,12 @@ defmodule CodeTest do
 
   test "ensure_loaded?" do
     assert Code.ensure_loaded?(__MODULE__)
-    refute Code.ensure_loaded?(Unknown.Module)
+    refute Code.ensure_loaded?(Code.NoFile)
   end
 
   test "ensure_compiled?" do
     assert Code.ensure_compiled?(__MODULE__)
-    refute Code.ensure_compiled?(Unknown.Module)
+    refute Code.ensure_compiled?(Code.NoFile)
   end
 end
 

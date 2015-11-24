@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringTest do
   use ExUnit.Case, async: true
 
+  doctest String
+
   test "next codepoint" do
     assert String.next_codepoint("ésoj") == {"é", "soj"}
     assert String.next_codepoint(<<255>>) == {<<255>>, ""}

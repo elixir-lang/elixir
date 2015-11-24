@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule FloatTest do
   use ExUnit.Case, async: true
 
+  doctest Float
+
   test "parse" do
     assert Float.parse("12") === {12.0, ""}
     assert Float.parse("-12") === {-12.0, ""}
