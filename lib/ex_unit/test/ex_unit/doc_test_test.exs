@@ -270,7 +270,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:231
-         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
+         Doctest failed: got UndefinedFunctionError with message undefined function Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
            Hello.world()

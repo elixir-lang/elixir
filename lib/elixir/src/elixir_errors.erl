@@ -192,6 +192,10 @@ handle_file_error(File, {Line, erl_lint, {unsafe_var, Var, {In, _Where}}}) ->
   Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
+handle_file_error(File, {Line, erl_lint, {undefined_function, {F, A}}}) ->
+  Message = io_lib:format("undefined function ~ts/~B", [F, A]),
+  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+
 handle_file_error(File, {Line, erl_lint, {spec_fun_undefined, {M, F, A}}}) ->
   Message = io_lib:format("spec for undefined function ~ts.~ts/~B", [elixir_aliases:inspect(M), F, A]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));

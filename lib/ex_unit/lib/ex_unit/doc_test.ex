@@ -57,7 +57,7 @@ defmodule ExUnit.DocTest do
       iex> a = 1
       1
 
-      iex> a + 1  # will fail with a "function a/0 undefined" error
+      iex> a + 1  # will fail with a "undefined function a/0" error
       2
 
   If you don't want to assert for every result in a doctest, you can just omit

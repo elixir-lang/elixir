@@ -3056,7 +3056,7 @@ defmodule Kernel do
       end
 
       Foo.bar #=> 3
-      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function: Foo.sum/2
+      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """
   defmacro defp(call, expr \\ nil) do

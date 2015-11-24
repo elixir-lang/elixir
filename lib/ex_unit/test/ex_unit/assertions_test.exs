@@ -366,7 +366,7 @@ defmodule ExUnit.AssertionsTest do
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception ArgumentError but got UndefinedFunctionError " <>
-      "(undefined function: Not.Defined.function/3 (module Not.Defined is not available))" = error.message
+      "(undefined function Not.Defined.function/3 (module Not.Defined is not available))" = error.message
   end
 
   test "assert raise with some other error includes stacktrace from original error" do
