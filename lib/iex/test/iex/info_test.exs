@@ -120,12 +120,10 @@ defmodule IEx.InfoTest do
   end
 
   test "ports" do
-    if cat = System.find_executable("cat") do
-      port = Port.open({:spawn, to_char_list(cat)}, [])
-      assert Info.info(port)[:"Open"] == true
-      Port.close(port)
-      assert Info.info(port)[:"Open"] == false
-    end
+    {:ok, port} = :gen_udp.open(0)
+    assert Info.info(port)[:"Open"] == true
+    :ok = :gen_udp.close(port)
+    assert Info.info(port)[:"Open"] == false
   end
 
   test "references" do
