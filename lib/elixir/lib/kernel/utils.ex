@@ -22,7 +22,7 @@ defmodule Kernel.Utils do
         _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
       end
 
-    check_defdelegate_args(args)
+    :ok = check_defdelegate_args(args)
 
     as_args =
       case append_first and args != [] do
