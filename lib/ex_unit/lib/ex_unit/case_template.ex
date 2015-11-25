@@ -73,7 +73,7 @@ defmodule ExUnit.CaseTemplate do
     
   """
   defmacro using(var \\ quote(do: _), do: block) do
-    quote location: :keep do
+    quote do
       defmacro __using__(unquote(var) = opts) do
         parent = unquote(__MODULE__).__proxy__(__MODULE__, opts)
         result = unquote(block)
