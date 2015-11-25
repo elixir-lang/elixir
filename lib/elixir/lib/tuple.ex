@@ -2,8 +2,8 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  See also `Kernel.elem/2`, `Kernel.is_tuple/1`, `Kernel.put_elem/3`, and
-  `Kernel.tuple_size/1`.
+  See also `Kernel.elem/2`, `Kernel.is_tuple/1`,
+  `Kernel.put_elem/3`, and `Kernel.tuple_size/1`.
   """
 
   @doc """
