@@ -34,19 +34,19 @@ defmodule Mix.Tasks.App.StartTest do
         Mix.Tasks.App.Start.run ["--no-compile"]
       end
 
-      refute List.keyfind(:application.which_applications, :logger, 0)
+      refute List.keyfind(Application.started_applications, :logger, 0)
       Application.start(:logger)
 
       Mix.Tasks.App.Start.run ["--no-start"]
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
 
-      refute List.keyfind(:application.which_applications, :app_start_sample, 0)
-      assert List.keyfind(:application.which_applications, :logger, 0)
+      refute List.keyfind(Application.started_applications, :app_start_sample, 0)
+      assert List.keyfind(Application.started_applications, :logger, 0)
 
       Mix.Tasks.App.Start.run []
-      assert List.keyfind(:application.which_applications, :app_start_sample, 0)
-      assert List.keyfind(:application.which_applications, :logger, 0)
+      assert List.keyfind(Application.started_applications, :app_start_sample, 0)
+      assert List.keyfind(Application.started_applications, :logger, 0)
     end
   end
 

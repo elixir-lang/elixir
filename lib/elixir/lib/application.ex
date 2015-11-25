@@ -109,6 +109,55 @@ defmodule Application do
   @type value :: term
   @type start_type :: :permanent | :transient | :temporary
 
+  @application_keys [:description, :id, :vsn, :modules, :maxP, :maxT, :registered,
+                     :included_applications, :applications, :mod, :start_phases]
+
+  @doc """
+  Returns the spec for `app`.
+
+  The following keys are returned:
+
+    * #{Enum.map_join @application_keys, "\n  * ", &inspect/1}
+
+  Note the environment is not returned as it can be accessed via
+  `fetch_env/2`. Returns `nil` if the application is not loaded.
+  """
+  @spec spec(app) :: [{key, value}] | nil
+  def spec(app) do
+    case :application.get_all_key(app) do
+      {:ok, info} -> :lists.keydelete(:env, 1, info)
+      :undefined  -> nil
+    end
+  end
+
+  @doc """
+  Returns the value for `key` in `app`'s specification.
+
+  See `spec/1` for the supporte keys. If the given
+  specification parameter does not exist, this function
+  will raise.
+  """
+  @spec spec(app, key) :: value
+  def spec(app, key) when key in @application_keys do
+    {:ok, value} = :application.get_key(app, key)
+    value
+  end
+
+  @doc """
+  Get the application for the given module.
+
+  The application is located by analyzing the spec
+  of all loaded applications. Returns `nil` if
+  the module is not listed in any application spec.
+  """
+  @spec get_application(atom) :: atom | nil
+  def get_application(module) when is_atom(module) do
+    case :application.get_application(module) do
+      {:ok, app} -> app
+      :undefined -> nil
+    end
+  end
+
   @doc """
   Returns all key-value pairs for `app`.
   """
@@ -188,45 +237,6 @@ defmodule Application do
   def delete_env(app, key, opts \\ []) do
     :application.unset_env(app, key, opts)
   end
-
-  @doc """
-  Returns the application specification key-value pairs for `app`.
-  """
-  @spec get_all_keys(app) :: [{key, value}]
-  def get_all_keys(app) do
-    case :application.get_all_key(app) do
-      {:ok, dict} -> dict
-      :undefined -> []
-    end
-  end
-
-  @doc """
-  Returns the value for `key` in `app`'s specification.
-
-  If the specification parameter does not exist, the function returns the
-  `default` value.
-  """
-  @spec get_key(app, key, value) :: value
-  def get_key(app, key, default \\ nil) do
-    case fetch_key(app, key) do
-      {:ok, value} -> value
-      :error -> default
-    end
-  end
-
-  @doc """
-  Returns the value for `key` in `app`'s specification in a tuple.
-
-  If the specification parameter does not exist, the function returns `:error`.
-  """
-  @spec fetch_key(app, key) :: {:ok, value} | :error
-  def fetch_key(app, key) do
-    case :application.get_key(app, key) do
-      {:ok, value} -> {:ok, value}
-      :undefined -> :error
-    end
-  end
-
 
   @doc """
   Ensures the given `app` is started.

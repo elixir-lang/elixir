@@ -365,9 +365,10 @@ defmodule Exception do
   end
 
   defp format_application(module) do
-    case :application.get_application(module) do
-      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
-      :undefined   -> ""
+    if app = Application.get_application(module) do
+      "(" <> Atom.to_string(app) <> ") "
+    else
+      ""
     end
   end
 
