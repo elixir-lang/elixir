@@ -1084,12 +1084,8 @@ defmodule Enum do
   @spec map(t, (element -> any)) :: list
   def map(enumerable, fun)
 
-  def map([], _fun) do
-    []
-  end
-
-  def map([head | tail], fun) do
-    [fun.(head) | map(tail, fun)]
+  def map(enumerable, fun) when is_list(enumerable) do
+    :lists.map(fun, enumerable)
   end
 
   def map(enumerable, fun) do
