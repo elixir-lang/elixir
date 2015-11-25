@@ -104,9 +104,16 @@ defmodule IEx.InfoTest do
     info = Info.info(pid)
     assert info[:"Alive"] == true
     assert info[:"Name"] == "not registered"
+    assert info[:"Links"] == "none"
+    assert info[:"Message queue length"] == 0
 
     Process.register(pid, :iex_info_registered_pid)
-    assert Info.info(pid)[:"Name"] == ":iex_info_registered_pid"
+    Process.link(pid)
+    send pid, :oops
+    info = Info.info(pid)
+    assert info[:"Name"] == ":iex_info_registered_pid"
+    assert info[:"Links"] == inspect(self)
+    assert info[:"Message queue length"] == 1
 
     send pid, :die_in_peace
     assert Info.info(pid)[:"Alive"] == false
