@@ -621,14 +621,20 @@ defmodule IEx.Helpers do
   to the function.
 
   ## Examples
+
       iex> pid(0, 21, 32)
       #PID<0.21.32>
       iex> pid(0, 64, 2048)
       #PID<0.64.2048>
+
   """
   def pid(x, y, z) when is_integer(x) and x >= 0 and
                         is_integer(y) and y >= 0 and
                         is_integer(z) and z >= 0 do
-    :c.pid(x, y, z)
+    :erlang.list_to_pid(
+      '<' ++ Integer.to_char_list(x) ++ '.' ++
+             Integer.to_char_list(y) ++ '.' ++
+             Integer.to_char_list(z) ++ '>'
+    )
   end
 end

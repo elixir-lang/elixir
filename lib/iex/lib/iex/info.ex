@@ -222,21 +222,29 @@ defimpl IEx.Info, for: Function do
 end
 
 defimpl IEx.Info, for: PID do
+  @keys [:registered_name, :links, :message_queue_len]
+
   def info(pid) do
-    ["Data type": "PID",
-     "Alive": Process.alive?(pid),
-     "Name": process_name(pid),
-     "Reference modules": "Process, Node",
-     "Description": "Use Process.info/1 for more info about this process"]
+    extra =
+      if info = Process.info(pid, @keys) do
+        ["Alive": true,
+         "Name": process_name(info[:registered_name]),
+         "Links": links(info[:links]),
+         "Message queue length": info[:message_queue_len]]
+      else
+        ["Alive": false]
+      end
+
+    ["Data type": "PID"] ++ extra ++
+      ["Description": "Use Process.info/1 for more info about this process",
+       "Reference modules": "Process, Node"]
   end
 
-  defp process_name(pid) do
-    if name = Process.info(pid)[:registered_name] do
-      inspect(name)
-    else
-      "not registered"
-    end
-  end
+  defp process_name([]), do: "not registered"
+  defp process_name(name), do: inspect(name)
+
+  defp links([]), do: "none"
+  defp links(links), do: Enum.map_join(links, ", ", &inspect/1)
 end
 
 defimpl IEx.Info, for: Map do
