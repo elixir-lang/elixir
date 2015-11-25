@@ -43,8 +43,6 @@ defmodule Mix.Project do
     end
   end
 
-  @private_config [:build_path, :app_path]
-
   # Invoked after each Mix.Project is compiled.
   @doc false
   def __after_compile__(env, _binary) do
@@ -60,7 +58,6 @@ defmodule Mix.Project do
 
     config = ([app: app] ++ default_config)
              |> Keyword.merge(get_project_config(atom))
-             |> Keyword.drop(@private_config)
 
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
@@ -81,10 +78,10 @@ defmodule Mix.Project do
   @doc false
   def deps_config(config \\ config()) do
     [build_embedded: config[:build_embedded],
-     build_path: build_path(config),
      build_per_environment: config[:build_per_environment],
      consolidate_protocols: false,
-     deps_path: deps_path(config)]
+     deps_path: deps_path(config),
+     env_path: build_path(config)]
   end
 
   @doc """
@@ -240,10 +237,10 @@ defmodule Mix.Project do
 
   """
   def build_path(config \\ config()) do
-    config[:build_path] || if config[:build_per_environment] do
-      Path.expand("_build/#{Mix.env}")
+    config[:env_path] || if config[:build_per_environment] do
+      Path.expand("#{config[:build_path]}/#{Mix.env}")
     else
-      Path.expand("_build/shared")
+      Path.expand("#{config[:build_path]}/shared")
     end
   end
 
@@ -432,8 +429,10 @@ defmodule Mix.Project do
 
   defp default_config do
     [aliases: [],
-     build_per_environment: true,
      build_embedded: false,
+     build_path: "_build",
+     build_per_environment: true,
+     build_scm: Mix.SCM.Path,
      consolidate_protocols: true,
      default_task: "run",
      deps: [],
@@ -447,6 +446,7 @@ defmodule Mix.Project do
      start_permanent: false]
   end
 
+  @private_config [:app_path, :build_scm, :env_path]
   defp get_project_config(nil),  do: []
-  defp get_project_config(atom), do: atom.project
+  defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
 end
