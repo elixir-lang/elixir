@@ -81,7 +81,7 @@ defmodule ExceptionTest do
 
   test "format_stacktrace from module" do
     assert_raise ArgumentError, fn ->
-      Code.eval_string("defmodule Foo do raise ArgumentError, ~s(oops) end", [], file: "myfile")
+      Code.eval_string("defmodule FmtStack do raise ArgumentError, ~s(oops) end", [], file: "myfile")
     end
 
     assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (module)"
