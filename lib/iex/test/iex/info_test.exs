@@ -99,23 +99,23 @@ defmodule IEx.InfoTest do
   end
 
   test "pids" do
-    pid = spawn fn -> receive do :die_in_peace -> :ok end end
+    pid = spawn_link(fn -> :timer.sleep(1000) end)
 
     info = Info.info(pid)
     assert info[:"Alive"] == true
     assert info[:"Name"] == "not registered"
-    assert info[:"Links"] == "none"
+    assert info[:"Links"] == inspect(self)
     assert info[:"Message queue length"] == 0
 
     Process.register(pid, :iex_info_registered_pid)
-    Process.link(pid)
+    Process.unlink(pid)
     send pid, :oops
     info = Info.info(pid)
     assert info[:"Name"] == ":iex_info_registered_pid"
-    assert info[:"Links"] == inspect(self)
+    assert info[:"Links"] == "none"
     assert info[:"Message queue length"] == 1
 
-    send pid, :die_in_peace
+    Process.exit(pid, :kill)
     assert Info.info(pid)[:"Alive"] == false
   end
 
