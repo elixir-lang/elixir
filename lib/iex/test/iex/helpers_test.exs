@@ -373,6 +373,18 @@ defmodule IEx.HelpersTest do
       capture_iex("pid(0,6,-6)")
   end
 
+  test "i helper" do
+    output = capture_iex ~s[i(:ok)]
+    assert output == String.rstrip("""
+    Term
+      :ok
+    Data type
+      Atom
+    Reference modules
+      Atom
+    """)
+  end
+
   defp test_module_code do
     """
     defmodule Sample do

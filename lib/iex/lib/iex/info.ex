@@ -176,7 +176,8 @@ defimpl IEx.Info, for: BitString do
     (the number of bytes isn't whole).
     """
 
-    ["bits size": bit_size(bitstring),"Description": desc]
+    ["Bits size": bit_size(bitstring),
+     "Description": desc]
   end
 end
 
