@@ -258,7 +258,7 @@ defimpl IEx.Info, for: Port do
   def info(port) do
     port_info = Port.info(port)
     ["Data type": "Port",
-     "Open": not is_nil(port_info),
+     "Open": port_info != nil,
      "Reference modules": "Port"]
   end
 end
