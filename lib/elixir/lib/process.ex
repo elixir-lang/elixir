@@ -180,6 +180,8 @@ defmodule Process do
 
   If the timer has expired, the timeout message has been sent, but it does
   not tell you whether or not it has arrived at its destination yet.
+
+  Inlined by the compiler.
   """
   @spec cancel_timer(reference) :: non_neg_integer | false
   def cancel_timer(timer_ref) do
@@ -198,6 +200,8 @@ defmodule Process do
 
   If the timer has expired, the timeout message has been sent, but it does
   not tell you whether or not it has arrived at its destination yet.
+
+  Inlined by the compiler.
   """
   @spec read_timer(reference) :: non_neg_integer | false
   def read_timer(timer_ref) do
