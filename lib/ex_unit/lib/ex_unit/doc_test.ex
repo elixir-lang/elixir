@@ -148,6 +148,15 @@ defmodule ExUnit.DocTest do
 
   defmodule Error do
     defexception [:message]
+
+    def exception(opts) do
+      module  = Keyword.fetch!(opts, :module)
+      message = Keyword.fetch!(opts, :message)
+
+      file = module.__info__(:compile)[:source] |> Path.relative_to_cwd
+      info = Exception.format_file_line(file, opts[:line])
+      %__MODULE__{message: info <> " " <> message}
+    end
   end
 
   @doc """
@@ -230,18 +239,18 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(%{exprs: exprs, line: line, fun_arity: fun_arity}, module, do_import) do
-    file     = module.__info__(:compile)[:source] |> List.to_string
-    location = [line: line, file: Path.relative_to_cwd(file)]
+    file     = module.__info__(:compile)[:source] |> Path.relative_to_cwd
+    location = [line: line, file: file]
     stack    = Macro.escape [{module, :__MODULE__, 0, location}]
 
     if multiple_exceptions?(exprs) do
       {fun, arity} = fun_arity
-      raise Error, message: "multiple exceptions in one doctest case are not supported. "
-                            "Invalid doctest for #{inspect module}.#{fun}/#{arity}"
+      raise Error, line: line, module: module,
+                   message: "multiple exceptions in one doctest case are not supported"
     end
 
     tests = Enum.map exprs, fn {expr, expected} ->
-      test_case_content(expr, expected, module, line, file, stack)
+      test_case_content(expr, expected, location, stack)
     end
 
     quote do
@@ -281,9 +290,9 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, {:test, expected}, module, line, file, stack) do
-    expr_ast     = string_to_quoted(module, line, file, expr)
-    expected_ast = string_to_quoted(module, line, file, expected)
+  defp test_case_content(expr, {:test, expected}, location, stack) do
+    expr_ast     = string_to_quoted(location, stack, expr)
+    expected_ast = string_to_quoted(location, stack, expected)
 
     quote do
       expected = unquote(expected_ast)
@@ -299,9 +308,9 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, {:inspect, expected}, module, line, file, stack) do
-    expr_ast     = quote do: inspect(unquote(string_to_quoted(module, line, file, expr)))
-    expected_ast = string_to_quoted(module, line, file, expected)
+  defp test_case_content(expr, {:inspect, expected}, location, stack) do
+    expr_ast     = quote do: inspect(unquote(string_to_quoted(location, stack, expr)))
+    expected_ast = string_to_quoted(location, stack, expected)
 
     quote do
       expected = unquote(expected_ast)
@@ -317,8 +326,8 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(expr, {:error, exception, message}, module, line, file, stack) do
-    expr_ast = string_to_quoted(module, line, file, expr)
+  defp test_case_content(expr, {:error, exception, message}, location, stack) do
+    expr_ast = string_to_quoted(location, stack, expr)
 
     quote do
       stack = unquote(stack)
@@ -352,9 +361,7 @@ defmodule ExUnit.DocTest do
     [quote do: import(unquote(mod))]
   end
 
-  defp string_to_quoted(module, line, file, expr) do
-    location = [line: line, file: Path.relative_to_cwd(file)]
-    stack    = Macro.escape [{module, :__MODULE__, 0, location}]
+  defp string_to_quoted(location, stack, expr) do
     try do
       Code.string_to_quoted!(expr, location)
     rescue
@@ -375,95 +382,99 @@ defmodule ExUnit.DocTest do
     all_docs = Code.get_docs(module, :all)
 
     unless all_docs do
-      raise Error, message:
+      raise Error, module: module, message:
         "could not retrieve the documentation for module #{inspect module}. " <>
         "The module was not compiled with documentation or its beam file cannot be accessed"
     end
 
-    moduledocs = extract_from_moduledoc(all_docs[:moduledoc])
+    moduledocs = extract_from_moduledoc(all_docs[:moduledoc], module)
 
     docs = for doc <- all_docs[:docs],
-               doc <- extract_from_doc(doc),
+               doc <- extract_from_doc(doc, module),
                do: doc
 
     moduledocs ++ docs
   end
 
-  defp extract_from_moduledoc({_, doc}) when doc in [false, nil], do: []
+  defp extract_from_moduledoc({_, doc}, _module) when doc in [false, nil], do: []
 
-  defp extract_from_moduledoc({line, doc}) do
-    for test <- extract_tests(line, doc) do
+  defp extract_from_moduledoc({line, doc}, module) do
+    for test <- extract_tests(line, doc, module) do
       %{test | fun_arity: :moduledoc}
     end
   end
 
-  defp extract_from_doc({_, _, _, _, doc}) when doc in [false, nil], do: []
+  defp extract_from_doc({_, _, _, _, doc}, _module) when doc in [false, nil], do: []
 
-  defp extract_from_doc({fa, line, _, _, doc}) do
-    for test <- extract_tests(line, doc) do
+  defp extract_from_doc({fa, line, _, _, doc}, module) do
+    for test <- extract_tests(line, doc, module) do
       %{test | fun_arity: fa}
     end
   end
 
-  defp extract_tests(line_no, doc) do
-    all_lines = String.split(doc, ~r/\n/, trim: false)  
-    lines = adjust_indent(all_lines, line_no + 1)
+  defp extract_tests(line_no, doc, module) do
+    all_lines = String.split(doc, ~r/\n/, trim: false)
+    lines = adjust_indent(all_lines, line_no + 1, module)
     extract_tests(lines, "", "", [], true)
   end
 
-  defp adjust_indent(lines, line_no) do
-    adjust_indent(lines, line_no, [], 0, :text)
+  defp adjust_indent(lines, line_no, module) do
+    adjust_indent(:text, lines, line_no, [], 0, module)
   end
 
-  defp adjust_indent([], _line_no, adjusted_lines, _indent, _) do
+  defp adjust_indent(_kind, [], _line_no, adjusted_lines, _indent, _module) do
     Enum.reverse adjusted_lines
   end
 
   @iex_prompt ["iex>", "iex("]
   @dot_prompt ["...>", "...("]
 
-  defp adjust_indent([line|rest], line_no, adjusted_lines, indent, :text) do
+  defp adjust_indent(:text, [line|rest], line_no, adjusted_lines, indent, module) do
     case String.starts_with?(String.lstrip(line), @iex_prompt) do
-      true  -> adjust_indent([line|rest], line_no, adjusted_lines, get_indent(line, indent), :prompt)
-      false -> adjust_indent(rest, line_no + 1, adjusted_lines, indent, :text)
+      true  ->
+        adjust_indent(:prompt, [line|rest], line_no, adjusted_lines, get_indent(line, indent), module)
+      false ->
+        adjust_indent(:text, rest, line_no + 1, adjusted_lines, indent, module)
     end
   end
 
-  defp adjust_indent([line|rest], line_no, adjusted_lines, indent, check) when check in [:prompt, :after_prompt] do
+  defp adjust_indent(kind, [line|rest], line_no, adjusted_lines, indent, module) when kind in [:prompt, :after_prompt] do
     stripped_line = strip_indent(line, indent)
 
     case String.lstrip(line) do
       "" ->
-        raise Error, message: "expected non-blank line to follow iex> prompt"
-
+        raise Error, line: line_no, module: module,
+                     message: "expected non-blank line to follow iex> prompt"
       ^stripped_line ->
         :ok
-
       _ ->
         n_spaces = if indent == 1,
           do: "#{indent} space",
           else: "#{indent} spaces"
 
-        raise Error, message: "indentation level mismatch: #{inspect line} at line #{line_no}, should have been #{n_spaces}"
+        raise Error, line: line_no, module: module,
+                     message: "indentation level mismatch: #{inspect line}, should have been #{n_spaces}"
     end
 
+    adjusted_lines = [{stripped_line, line_no}|adjusted_lines]
+
     if String.starts_with?(stripped_line, @iex_prompt ++ @dot_prompt) do
-      adjust_indent(rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], indent, :after_prompt)
+      adjust_indent(:after_prompt, rest, line_no + 1, adjusted_lines, indent, module)
     else
-      next = if check == :prompt, do: :after_prompt, else: :code
-      adjust_indent(rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], indent, next)
+      next = if kind == :prompt, do: :after_prompt, else: :code
+      adjust_indent(next, rest, line_no + 1, adjusted_lines, indent, module)
     end
   end
 
-  defp adjust_indent([line|rest], line_no, adjusted_lines, indent, :code) do
+  defp adjust_indent(:code, [line|rest], line_no, adjusted_lines, indent, module) do
     stripped_line = strip_indent(line, indent)
     cond do
       stripped_line == "" ->
-        adjust_indent(rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], 0, :text)
+        adjust_indent(:text, rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], 0, module)
       String.starts_with?(String.lstrip(line), @iex_prompt) ->
-        adjust_indent([line|rest], line_no, adjusted_lines, indent, :prompt)
+        adjust_indent(:prompt, [line|rest], line_no, adjusted_lines, indent, module)
       true ->
-        adjust_indent(rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], indent, :code)
+        adjust_indent(:code, rest, line_no + 1, [{stripped_line, line_no}|adjusted_lines], indent, module)
     end
   end
 
