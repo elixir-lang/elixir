@@ -356,28 +356,32 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "fails in indentation mismatch" do
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "   iex> bar = 2" at line \d+, should have been 2 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: "   iex> bar = 2", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "    3" at line \d+, should have been 2 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: "    3", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationTooMuch
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: \"  3\" at line \d+, should have been 4 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: \"  3\", should have been 4 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationNotEnough
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/expected non-blank line to follow iex> prompt/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Incomplete
