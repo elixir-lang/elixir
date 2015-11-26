@@ -314,7 +314,7 @@ defmodule IO.ANSI.DocsTest do
   end
 
   test "one reference link label per line" do
-    assert format("  [id]: http://example.com\n  [Elixir]:  http://elixir-lang.org") ==
-           "  [id]: http://example.com\n  [Elixir]:  http://elixir-lang.org"
+    assert format("  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org") ==
+           "  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org"
   end
 end
