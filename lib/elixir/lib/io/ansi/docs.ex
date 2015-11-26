@@ -105,10 +105,10 @@ defmodule IO.ANSI.Docs do
   defp process(all=[line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
     cond do
-      is_link_label?(stripped, count) ->
+      link_label?(stripped, count) ->
         write_text([line], indent, options, true)
         process(rest, text, indent, options)
-      is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) ->
+      table_line?(stripped) and rest != [] and table_line?(hd(rest)) ->
         write_text(text, indent, options)
         process_table(all, indent, options)
       true ->
@@ -262,7 +262,7 @@ defmodule IO.ANSI.Docs do
   ## Tables
 
   defp process_table(lines, indent, options) do
-    {table, rest} = Enum.split_while(lines, &is_table_line?/1)
+    {table, rest} = Enum.split_while(lines, &table_line?/1)
     table_lines(table, options)
     newline_after_block
     process(rest, [], indent, options)
@@ -342,7 +342,7 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  defp is_table_line?(line) do
+  defp table_line?(line) do
     Regex.match?(~r'''
       ( ^ \s{0,3} \| (?: [^|]+ \|)+ \s* $ )
     |
@@ -352,13 +352,13 @@ defmodule IO.ANSI.Docs do
 
   ## Helpers
 
-  defp is_link_label?("[" <> rest, count) when count <= 3, do: is_link_label?(rest)
-  defp is_link_label?(_, _), do: false
+  defp link_label?("[" <> rest, count) when count <= 3, do: link_label?(rest)
+  defp link_label?(_, _), do: false
 
-  defp is_link_label?("]: " <> _), do: true
-  defp is_link_label?("]" <> _), do: false
-  defp is_link_label?(""), do: false
-  defp is_link_label?(<<_, t::binary>>), do: is_link_label?(t)
+  defp link_label?("]: " <> _), do: true
+  defp link_label?("]" <> _), do: false
+  defp link_label?(""), do: false
+  defp link_label?(<<_>> <> rest), do: link_label?(rest)
 
   defp strip_spaces(" " <> line, acc, max) when acc < max,
     do: strip_spaces(line, acc + 1, max)

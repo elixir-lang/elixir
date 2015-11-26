@@ -51,8 +51,8 @@ defmodule Mix.Tasks.Deps.Check do
   defp prune_deps(all) do
     config = Mix.Project.config
 
-    if is_nil(config[:env_path]) &&
-       is_nil(config[:build_path]) &&
+    if is_nil(config[:env_path]) and
+       is_nil(config[:build_path]) and
        config[:build_per_environment] do
       paths = Mix.Project.build_path(config)
               |> Path.join("lib/*/ebin")
