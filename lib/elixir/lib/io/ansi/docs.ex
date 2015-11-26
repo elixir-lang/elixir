@@ -103,23 +103,16 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process(all=[line | rest], text, indent, options) do
-    {stripped, count} = strip_spaces(line, 0, :infinity)
-    if is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) do
-      write_text(text, indent, options)
-      process_table(all, indent, options)
+    if link_label?(line) do
+      write_text([line], indent, options, true)
+      process(rest, text, indent, options)
     else
-      case stripped do
-        <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
-          write_text(text, indent, options)
-          process_list("• ", item, rest, count, indent, options)
-        <<d1, ?., ?\s, item :: binary>> when d1 in ?0..?9 ->
-          write_text(text, indent, options)
-          process_list(<<d1, ?., ?\s>>, item, rest, count, indent, options)
-        <<d1, d2, ?., ?\s, item :: binary>> when d1 in ?0..?9 and d2 in ?0..?9 ->
-          write_text(text, indent, options)
-          process_list(<<d1, d2, ?., ?\s>>, item, rest, count, indent, options)
-        _ ->
-          process(rest, [stripped | text], indent, options)
+      {stripped, count} = strip_spaces(line, 0, :infinity)
+      if is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) do
+        write_text(text, indent, options)
+        process_table(all, indent, options)
+      else
+        process_stripped_line(stripped, rest, count, text, indent, options)
       end
     end
   end
@@ -142,6 +135,22 @@ defmodule IO.ANSI.Docs do
   end
 
   ## Lists
+
+  defp process_stripped_line(stripped, rest, count, text, indent, options) do
+    case stripped do
+      <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
+        write_text(text, indent, options)
+        process_list("• ", item, rest, count, indent, options)
+      <<d1, ?., ?\s, item :: binary>> when d1 in ?0..?9 ->
+        write_text(text, indent, options)
+        process_list(<<d1, ?., ?\s>>, item, rest, count, indent, options)
+      <<d1, d2, ?., ?\s, item :: binary>> when d1 in ?0..?9 and d2 in ?0..?9 ->
+        write_text(text, indent, options)
+        process_list(<<d1, d2, ?., ?\s>>, item, rest, count, indent, options)
+      _ ->
+        process(rest, [stripped | text], indent, options)
+    end
+  end
 
   defp process_list(entry, line, rest, count, indent, options) do
     # The first list always win some extra padding
@@ -343,6 +352,11 @@ defmodule IO.ANSI.Docs do
   end
 
   ## Helpers
+
+  # Anywhere in the document, a link label can be defined on a line by itself
+  def link_label?(line) do
+    Regex.match?(~r/\s{0,3}\[([^\]])+\]:\s+https?:\/\//, line)
+  end
 
   defp strip_spaces(" " <> line, acc, max) when acc < max,
     do: strip_spaces(line, acc + 1, max)
