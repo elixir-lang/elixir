@@ -444,7 +444,7 @@ defmodule ExUnit.DocTest do
           do: "#{indent} space",
           else: "#{indent} spaces"
 
-        raise Error, message: "indentation level mismatch: #{inspect line}, should have been #{n_spaces}"
+        raise Error, message: "indentation level mismatch: #{inspect line} at line #{line_no}, should have been #{n_spaces}"
     end
 
     if String.starts_with?(stripped_line, @iex_prompt ++ @dot_prompt) do
