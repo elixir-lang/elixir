@@ -146,8 +146,18 @@ defmodule Kernel.CLI do
   # Parse shared options
 
   defp parse_shared([opt|_t], _config) when opt in ["-v", "--version"] do
-    IO.puts :erlang.system_info(:system_version)
-    IO.puts "Elixir #{System.version} (#{System.build_info().revision})"
+    if function_exported?(IEx, :started?, 0) and IEx.started? do
+      IO.puts "IEx #{System.version}"
+    else
+      IO.puts :erlang.system_info(:system_version)
+      {:ok, v} = Version.parse(System.version)
+
+      case v.pre do
+        [] -> IO.puts "Elixir #{System.version}"
+        _  -> IO.puts "Elixir #{System.version} (#{System.build_info().revision})"
+      end
+    end
+
     System.halt 0
   end
 
