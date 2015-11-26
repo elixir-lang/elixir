@@ -237,10 +237,16 @@ defmodule Mix.Project do
 
   """
   def build_path(config \\ config()) do
-    config[:env_path] || if config[:build_per_environment] do
-      Path.expand("#{config[:build_path]}/#{Mix.env}")
+    config[:env_path] || env_path(config)
+  end
+
+  defp env_path(config) do
+    build = config[:build_path] || "_build"
+
+    if config[:build_per_environment] do
+      Path.expand("#{build}/#{Mix.env}")
     else
-      Path.expand("#{config[:build_path]}/shared")
+      Path.expand("#{build}/shared")
     end
   end
 
@@ -430,7 +436,6 @@ defmodule Mix.Project do
   defp default_config do
     [aliases: [],
      build_embedded: false,
-     build_path: "_build",
      build_per_environment: true,
      build_scm: Mix.SCM.Path,
      consolidate_protocols: true,

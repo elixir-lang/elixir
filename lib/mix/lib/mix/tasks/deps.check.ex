@@ -42,13 +42,18 @@ defmodule Mix.Tasks.Deps.Check do
   # at all dependencies and remove the builds that no longer
   # have a dependency defined for them.
   #
-  # Notice we require the build_path to be nil. If the build_path
-  # is not nil, it means it was set by a parent application and
-  # the parent application should be the one to do the pruning.
+  # Notice we require the build_path to be nil. If it is not nil,
+  # it means the build_path is shared, so we leave it up to the owner.
+  #
+  # We also expect env_path to be nil. If it is not nil, it means
+  # it was set by a parent application and the parent application
+  # should be the one doing the pruning.
   defp prune_deps(all) do
     config = Mix.Project.config
 
-    if is_nil(config[:env_path]) && config[:build_per_environment] do
+    if is_nil(config[:env_path]) &&
+       is_nil(config[:build_path]) &&
+       config[:build_per_environment] do
       paths = Mix.Project.build_path(config)
               |> Path.join("lib/*/ebin")
               |> Path.wildcard
