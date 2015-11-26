@@ -3700,7 +3700,7 @@ defmodule Kernel do
         raise ArgumentError, "expected to: to be given as argument"
 
       for fun <- List.wrap(funs) do
-        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
+        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts, __ENV__)
         unless Module.get_attribute(__MODULE__, :doc) do
           @doc "See `#{inspect target}.#{as}/#{:erlang.length as_args}`."
         end
