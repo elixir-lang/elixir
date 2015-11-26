@@ -167,6 +167,16 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Compile.run []
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 
+      # Remove the deps but set build_path, deps won't be pruned
+      Mix.ProjectStack.post_config [deps: [], build_path: "_build"]
+      Mix.Project.pop
+      Mix.Project.push SuccessfulDepsApp
+
+      Mix.Tasks.Deps.Check.run []
+      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
+      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
+
+      # Remove the deps without build_path, deps will be pruned
       Mix.ProjectStack.post_config [deps: []]
       Mix.Project.pop
       Mix.Project.push SuccessfulDepsApp

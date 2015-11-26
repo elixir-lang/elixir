@@ -88,10 +88,10 @@ defmodule Mix.Tasks.Compile do
   defp local_deps_changed? do
     manifest = Path.absname(Mix.Dep.Lock.manifest())
 
-    Enum.any?(Mix.Dep.children(), fn %{scm: scm, opts: opts} = dep ->
+    Enum.any?(Mix.Dep.children(), fn %{scm: scm} = dep ->
       # We ignore in_umbrella dependencies because we assume
       # they are sharing the same deps and build path.
-      not scm.fetchable? and !opts[:in_umbrella] and Mix.Dep.in_dependency(dep, fn _ ->
+      not scm.fetchable? and Mix.Dep.in_dependency(dep, fn _ ->
         files = Mix.Project.config_files ++ manifests()
         Mix.Utils.stale?(files, [manifest])
       end)
