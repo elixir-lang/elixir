@@ -53,7 +53,7 @@ defmodule Mix.Dep do
   @type t :: %__MODULE__{
                scm: module,
                app: atom,
-               requirement: String.t | Regex.t,
+               requirement: String.t | Regex.t | nil,
                status: atom,
                opts: Keyword.t,
                top_level: boolean,
