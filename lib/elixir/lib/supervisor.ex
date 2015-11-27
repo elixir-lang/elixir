@@ -187,7 +187,7 @@ defmodule Supervisor do
   strategy for the worker does not restart the child in case it crashes with
   reason `:normal`, `:shutdown` or `{:shutdown, term}`.
 
-  So one may ask: which exit reason should I choose when existing my worker?
+  So one may ask: which exit reason should I choose when exiting my worker?
   There are three options:
 
     * `:normal` - on such cases, the exit won't be logged, there is no restart
