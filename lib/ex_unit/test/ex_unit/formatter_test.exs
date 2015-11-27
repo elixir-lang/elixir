@@ -24,7 +24,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   defp test do
-    %ExUnit.Test{name: :world, case: Hello, tags: [file: __ENV__.file, line: 1]}
+    %ExUnit.Test{name: :world, case: Hello, tags: %{file: __ENV__.file, line: 1}}
   end
 
   test "formats test case filters" do
@@ -76,6 +76,33 @@ defmodule ExUnit.FormatterTest do
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
          ** (EXIT from #{inspect self}) 1
+    """
+  end
+
+  test "formats reports" do
+    test = test()
+    failure = [{:error, catch_error(raise "oops"), []}]
+
+    test = update_in test.tags,
+           &Map.merge(&1, %{user_id: 1, report: :user_id})
+    assert format_test_failure(test, failure, 1, 80, &formatter/2) == """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (RuntimeError) oops
+         tags:
+           user_id: 1
+    """
+
+    test = update_in test.tags,
+           &Map.merge(&1, %{many_ids: Enum.to_list(1..30), report: [:user_id, :many_ids]})
+    assert format_test_failure(test, failure, 1, 80, &formatter/2) == """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+         ** (RuntimeError) oops
+         tags:
+           many_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                      19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+           user_id: 1
     """
   end
 
