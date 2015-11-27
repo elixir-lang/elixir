@@ -13,6 +13,10 @@ defmodule TestOneOfEach do
   @long_data_1  [field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
   @long_data_2  [field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
 
+  setup do
+    {:ok, user_id: 1, post_id: 2, many_ids: Enum.to_list(1..50)}
+  end
+
   test "1. assert with a match" do
     assert [@one] = [@two]
   end
@@ -137,6 +141,11 @@ defmodule TestOneOfEach do
       end
 
     raise ExUnit.MultiError, errors: [error1, error2]
+  end
+
+  @tag report: [:user_id, :post_id, :many_ids]
+  test "27. tag reporting" do
+    flunk "oops"
   end
 
   defp blows_up do

@@ -121,9 +121,18 @@ defmodule ExUnit.Case do
 
   The following tags customize how tests behaves:
 
-    * `:capture_log` - see Log Capture below.
+    * `:capture_log` - see the "Log Capture" section below
     * `:skip` - skips the test with the given reason
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 30000)
+    * `:report` - include the given tags on error reports, see the "Reporting tags" section
+
+  ### Reporting tags
+
+  ExUnit also allows tags to be included in error reports, making
+  it easy for developers to see under which circunstances a test
+  was evaluated. To do so, you use the `:report` tag:
+
+      @moduletag report: [:user_id]
 
   ## Filters
 
@@ -171,6 +180,8 @@ defmodule ExUnit.Case do
 
       config :logger, backends: []
   """
+
+  @reserved [:case, :test, :file, :line]
 
   @doc false
   defmacro __using__(opts) do
@@ -292,6 +303,7 @@ defmodule ExUnit.Case do
     tags =
       (tags ++ Module.get_attribute(mod, :tag) ++ moduletag)
       |> normalize_tags
+      |> validate_tags
       |> Map.merge(%{line: env.line, file: env.file})
 
     test = %ExUnit.Test{name: name, case: mod, tags: tags}
@@ -303,6 +315,14 @@ defmodule ExUnit.Case do
     end
 
     Module.delete_attribute(mod, :tag)
+  end
+
+  defp validate_tags(tags) do
+    for tag <- @reserved,
+        Map.has_key?(tags, tag) do
+      raise "cannot set tag #{inspect tag} because it is reserved by ExUnit"
+    end
+    tags
   end
 
   defp normalize_tags(tags) do

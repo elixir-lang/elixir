@@ -1,6 +1,6 @@
 defmodule ExUnit do
   @moduledoc """
-  Basic unit testing framework for Elixir.
+  Unit testing framework for Elixir.
 
   ## Example
 
@@ -31,12 +31,11 @@ defmodule ExUnit do
 
   ## Case, Callbacks and Assertions
 
-  See `ExUnit.Case` and `ExUnit.Callbacks`
-  for more information about defining test cases.
+  See `ExUnit.Case` and `ExUnit.Callbacks` for more information
+  about defining test cases and setting up callbacks.
 
-  The `ExUnit.Assertions` module contains
-  a set of macros to easily generate assertions with appropriate
-  error messages.
+  The `ExUnit.Assertions` module contains a set of macros to
+  generate assertions with appropriate error messages.
 
   ## Integration with Mix
 

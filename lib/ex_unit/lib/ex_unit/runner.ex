@@ -157,11 +157,11 @@ defmodule ExUnit.Runner do
 
         case exec_case_setup(test_case) do
           {:ok, test_case, context} ->
-            Enum.each(tests, &run_test(config, &1, context))
+            Enum.each tests, &run_test(config, &1, context)
             send parent, {self, :case_finished, test_case, []}
 
           {:error, test_case} ->
-            failed_tests = Enum.map(tests, & %{&1 | state: {:invalid, test_case}})
+            failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_case}}
             send parent, {self, :case_finished, test_case, failed_tests}
         end
 
@@ -241,8 +241,8 @@ defmodule ExUnit.Runner do
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
-              {:ok, test, context} ->
-                exec_test(test, context)
+              {:ok, test} ->
+                exec_test(test)
               {:error, test} ->
                 test
             end
@@ -283,13 +283,13 @@ defmodule ExUnit.Runner do
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
     {:ok, context} = case.__ex_unit__(:setup, context)
-    {:ok, test, context}
+    {:ok, %{test | tags: context}}
   catch
     kind, error ->
       {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
   end
 
-  defp exec_test(%ExUnit.Test{case: case, name: name} = test, context) do
+  defp exec_test(%ExUnit.Test{case: case, name: name, tags: context} = test) do
     apply(case, name, [context])
     test
   catch

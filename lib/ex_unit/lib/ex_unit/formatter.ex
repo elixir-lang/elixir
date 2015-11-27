@@ -115,7 +115,25 @@ defmodule ExUnit.Formatter do
         <> format_kind_reason(kind, reason, width, formatter)
         <> format_stacktrace(stack, case, name, formatter)
        end)
+    <> report(tags, failures, width, formatter)
   end
+
+  defp report(tags, failures, width, formatter) do
+    case Map.take(tags, List.wrap(tags[:report])) do
+      report when map_size(report) == 0 ->
+        ""
+      report ->
+        report_spacing(failures)
+        <> extra_info("tags:", formatter)
+        <> Enum.map_join(report, "", fn {k, v} ->
+            prefix = "       #{k}: "
+            prefix <> inspect_multiline(v, byte_size(prefix), width) <> "\n"
+           end)
+    end
+  end
+
+  defp report_spacing([_]), do: ""
+  defp report_spacing(_), do: "\n"
 
   @doc """
   Receives a test case and formats its failure.
@@ -131,13 +149,13 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
+    padding = byte_size(@inspect_padding)
 
     fields =
       [note: if_value(struct.message, &format_banner(&1, formatter)),
-       code: if_value(struct.expr, &code_multiline(&1, width)),
-       lhs:  if_value(struct.left,  &inspect_multiline(&1, width)),
-       rhs:  if_value(struct.right, &inspect_multiline(&1, width))]
+       code: if_value(struct.expr, &code_multiline(&1, padding)),
+       lhs:  if_value(struct.left,  &inspect_multiline(&1, padding, width)),
+       rhs:  if_value(struct.right, &inspect_multiline(&1, padding, width))]
 
     fields
     |> filter_interesting_fields
@@ -182,19 +200,19 @@ defmodule ExUnit.Formatter do
     formatter.(:error_info, value)
   end
 
-  defp code_multiline(expr, _width) when is_binary(expr) do
-    expr
-    |> String.replace("\n", "\n" <> @inspect_padding)
+  defp code_multiline(expr, padding) when is_binary(expr) do
+    String.replace(expr, "\n", "\n" <> String.duplicate(" ", padding))
   end
 
-  defp code_multiline(expr, width) do
-    code_multiline(expr |> Macro.to_string, width)
+  defp code_multiline(expr, padding) do
+    code_multiline(expr |> Macro.to_string, padding)
   end
 
-  defp inspect_multiline(expr, width) do
+  defp inspect_multiline(expr, padding, width) do
+    width = if width == :infinity, do: width, else: width - padding
     expr
     |> inspect(pretty: true, width: width)
-    |> String.replace("\n", "\n" <> @inspect_padding)
+    |> String.replace("\n", "\n" <> String.duplicate(" ", padding))
   end
 
   defp make_into_lines(reasons, padding) do
