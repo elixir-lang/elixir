@@ -23,6 +23,10 @@ defmodule ExUnit.CLIFormatter do
     {:ok, config}
   end
 
+  def handle_event({:suite_started, _opts}, config) do
+    {:ok, config}
+  end
+
   def handle_event({:suite_finished, run_us, load_us}, config) do
     print_suite(config, run_us, load_us)
     :remove_handler
@@ -90,10 +94,6 @@ defmodule ExUnit.CLIFormatter do
                                          config.width, &formatter(&1, &2, config))
     print_failure(formatted, config)
     {:ok, %{config | failures_counter: config.failures_counter + 1}}
-  end
-
-  def handle_event(_, config) do
-    {:ok, config}
   end
 
   ## Tracing

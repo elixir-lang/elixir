@@ -34,7 +34,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test errors" do
-    failure = {:error, catch_error(raise "oops"), []}
+    failure = [{:error, catch_error(raise "oops"), []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -43,7 +43,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test exits" do
-    failure = {:exit, 1, []}
+    failure = [{:exit, 1, []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -52,7 +52,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test exits with mfa" do
-    failure = {:exit, {:bye, {:m, :f, []}}, []}
+    failure = [{:exit, {:bye, {:m, :f, []}}, []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -62,7 +62,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test throws" do
-    failure = {:throw, 1, []}
+    failure = [{:throw, 1, []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -71,7 +71,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test EXITs" do
-    failure = {{:EXIT, self}, 1, []}
+    failure = [{{:EXIT, self}, 1, []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) == """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -80,7 +80,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats stacktraces" do
-    failure = {:error, catch_error(raise "oops"), [{Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}]}
+    failure = [{:error, catch_error(raise "oops"), [{Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}]}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -91,7 +91,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats assertions" do
-    failure = {:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []}
+    failure = [{:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []}]
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
       1) world (Hello)
          test/ex_unit/formatter_test.exs:1
@@ -100,8 +100,27 @@ defmodule ExUnit.FormatterTest do
     """
   end
 
+  test "formats multiple assertions" do
+    failure = [{:error, catch_assertion(assert ExUnit.FormatterTest.falsy), []},
+               {:error, catch_assertion(assert 1 == 2), []}]
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+      1) world (Hello)
+         test/ex_unit/formatter_test.exs:1
+
+         Failure #1
+         Expected truthy, got false
+         code: ExUnit.FormatterTest.falsy()
+
+         Failure #2
+         Assertion with == failed
+         code: 1 == 2
+         lhs:  1
+         rhs:  2
+    """
+  end
+
   test "formats test case errors" do
-    failure = {:error, catch_error(raise "oops"), []}
+    failure = [{:error, catch_error(raise "oops"), []}]
     assert format_test_case_failure(case(), failure, 1, 80, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          ** (RuntimeError) oops
@@ -109,7 +128,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats assertions with operators with no limit" do
-    failure = {:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}
+    failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
@@ -120,7 +139,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats assertions with operators with column limit" do
-    failure = {:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}
+    failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
     assert format_test_case_failure(case(), failure, 1, 15, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          Assertion with == failed
@@ -136,7 +155,7 @@ defmodule ExUnit.FormatterTest do
 
   test "formats assertions with message with multiple lines" do
     message = "Some meaningful error:\nuseful info\nanother useful info"
-    failure = {:error, catch_assertion(assert(false, message)), []}
+    failure = [{:error, catch_assertion(assert(false, message)), []}]
     assert format_test_case_failure(case(), failure, 1, :infinity, &formatter/2) =~ """
       1) Hello: failure on setup_all callback, tests invalidated
          Some meaningful error:
@@ -156,7 +175,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "inspect failure" do
-    failure = {:error, catch_assertion(assert :will_fail == %BadInspect{}), []}
+    failure = [{:error, catch_assertion(assert :will_fail == %BadInspect{}), []}]
 
     message = "got FunctionClauseError with message \"no function clause matching " <>
               "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2\" while inspecting " <>
@@ -181,7 +200,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "message failure" do
-    failure = {:error, catch_error(raise BadMessage), []}
+    failure = [{:error, catch_error(raise BadMessage), []}]
     message = "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
               "for %ExUnit.FormatterTest.BadMessage{key: 0}"
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """

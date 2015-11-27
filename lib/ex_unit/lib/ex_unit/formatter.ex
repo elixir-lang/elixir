@@ -105,24 +105,29 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test, failure, counter, width, formatter)
-  def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
+  def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
+
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
-      <> test_location(with_location(tags), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stack, case, name, formatter)
+    <> test_location(with_location(tags), formatter)
+    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
+        failure_header(failures, i)
+        <> format_kind_reason(kind, reason, width, formatter)
+        <> format_stacktrace(stack, case, name, formatter)
+       end)
   end
 
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, failure, counter, width, formatter)
-  def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
+  def format_test_case_failure(test_case, failures, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stacktrace, name, nil, formatter)
+    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
+        failure_header(failures, i)
+        <> format_kind_reason(kind, reason, width, formatter)
+        <> format_stacktrace(stack, name, nil, formatter)
+       end)
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
@@ -217,6 +222,9 @@ defmodule ExUnit.Formatter do
   defp with_location(tags) do
     "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
   end
+
+  defp failure_header([_], _), do: ""
+  defp failure_header(_, i), do: "\n#{@counter_padding}Failure ##{i+1}\n"
 
   defp with_counter(counter, msg) when counter < 10  do "  #{counter}) #{msg}" end
   defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end
