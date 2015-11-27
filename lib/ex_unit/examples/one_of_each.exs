@@ -130,14 +130,14 @@ defmodule TestOneOfEach do
       try do
         assert [@one] = [@two]
       rescue e in ExUnit.AssertionError ->
-        e
+        {:error, e, System.stacktrace}
       end
 
     error2 =
       try do
         assert @one * 4 > @two *3
       rescue e in ExUnit.AssertionError ->
-        e
+        {:error, e, System.stacktrace}
       end
 
     raise ExUnit.MultiError, errors: [error1, error2]
