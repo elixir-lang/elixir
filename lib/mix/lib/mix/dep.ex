@@ -268,53 +268,15 @@ defmodule Mix.Dep do
   end
 
   @doc """
-  Partition the given dependencies in "not ok" and "compilable".
-  """
-  def partition(deps) do
-    partition(deps, [], [])
-  end
-
-  defp partition([dep|deps], not_ok, compile) do
-    cond do
-      from_umbrella?(dep)      -> partition(deps, not_ok, compile)
-      compilable?(dep)         -> partition(deps, not_ok, [dep|compile])
-      ok?(dep) and local?(dep) -> partition(deps, not_ok, [dep|compile])
-      ok?(dep)                 -> partition(deps, not_ok, compile)
-      true                     -> partition(deps, [dep|not_ok], compile)
-    end
-  end
-
-  defp partition([], not_ok, compile) do
-    {Enum.reverse(not_ok), Enum.reverse(compile)}
-  end
-
-  # Those are compiled by umbrella.
-  defp from_umbrella?(dep) do
-    dep.opts[:from_umbrella]
-  end
-
-  # Every local dependency (i.e. that are not fetchable)
-  # are automatically recompiled if they are ok.
-  defp local?(dep) do
-    not dep.scm.fetchable?
-  end
-
-  # Can the dependency be compiled automatically without user intervention?
-  defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
-  defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
-  defp compilable?(%Mix.Dep{status: :compile}), do: true
-  defp compilable?(%Mix.Dep{}), do: false
-
-  @doc """
   Returns `true` if the dependency is ok.
   """
   def ok?(%Mix.Dep{status: {:ok, _}}), do: true
   def ok?(%Mix.Dep{}), do: false
 
   @doc """
-  Checks if a dependency is available. Available dependencies
-  are the ones that can be loaded.
+  Checks if a dependency is available.
+
+  Available dependencies are the ones that can be loaded.
   """
   def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
   def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
