@@ -162,14 +162,14 @@ defmodule ExUnitTest do
             try do
               assert 1 = 2
             rescue e in ExUnit.AssertionError ->
-              e
+              {:error, e, System.stacktrace}
             end
 
           error2 =
             try do
-              assert 4 > 3
+              assert 3 > 4
             rescue e in ExUnit.AssertionError ->
-              e
+              {:error, e, System.stacktrace}
             end
 
           raise ExUnit.MultiError, errors: [error1, error2]
@@ -182,13 +182,9 @@ defmodule ExUnitTest do
     end)
 
     assert output =~ "1 test, 1 failure"
-    assert output =~ """
-      1) test multi (ExUnitTest.MultiTest)
-         test/ex_unit_test.exs:160
-
-         Failure #1
-         match (=) failed
-    """
+    assert output =~ "1) test multi (ExUnitTest.MultiTest)"
+    assert output =~ "Failure #1"
+    assert output =~ "Failure #2"
   end
 
   test "it registers only the first test with any given name" do
