@@ -83,6 +83,6 @@ defmodule ExUnit.OnExitHandler do
     nil
   catch
     kind, error ->
-      {kind, Exception.normalize(kind, error), System.stacktrace}
+      {kind, error, System.stacktrace}
   end
 end

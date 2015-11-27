@@ -57,7 +57,7 @@ defmodule ExUnit do
   files. See `Mix.Tasks.Test` for more information.
   """
 
-  @typedoc "The state returned by ExUnit.Test and ExUnit.TestCase"
+  @typedoc "The error state returned by ExUnit.Test and ExUnit.TestCase"
   @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
   @type failed :: {Exception.kind, reason :: term, stacktrace :: [tuple]}
 
@@ -69,14 +69,13 @@ defmodule ExUnit do
 
       * `:name`  - the test name
       * `:case`  - the test case
-      * `:state` - the test state (see ExUnit.state)
+      * `:state` - the test error state (see ExUnit.state)
       * `:time`  - the time to run the test
       * `:tags`  - the test tags
       * `:logs`  - the captured logs
 
     """
-    defstruct [:name, :case, :state,
-               time: 0, tags: %{}, logs: ""]
+    defstruct [:name, :case, :state, time: 0, tags: %{}, logs: ""]
 
     @type t :: %__MODULE__{
                  name: atom,
@@ -93,13 +92,11 @@ defmodule ExUnit do
     It is received by formatters and contains the following fields:
 
       * `:name`  - the test case name
-      * `:state` - the test state (see ExUnit.state)
+      * `:state` - the test error state (see ExUnit.state)
       * `:tests` - all tests for this case
 
     """
-    defstruct name: nil,
-              state: nil,
-              tests: []
+    defstruct [:name, :state, tests: []]
 
     @type t :: %__MODULE__{
                  name: module,

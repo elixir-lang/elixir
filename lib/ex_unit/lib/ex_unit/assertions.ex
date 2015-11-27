@@ -1,4 +1,8 @@
 defmodule ExUnit.AssertionError do
+  @moduledoc """
+  Raised to signal an assertion error.
+  """
+
   @no_value :ex_unit_no_meaningful_value
 
   defexception left:    @no_value,
@@ -11,6 +15,19 @@ defmodule ExUnit.AssertionError do
   """
   def no_value do
     @no_value
+  end
+end
+
+defmodule ExUnit.MultiError do
+  @moduledoc """
+  Raised to signal multiple errors happened in a test case.
+  """
+
+  defexception [errors: []]
+
+  def message(exception) do
+    "got the following errors:\n\n  * " <>
+      Enum.map_join(exception, "\n  * ", &Exception.message/1)
   end
 end
 
@@ -388,7 +405,7 @@ defmodule ExUnit.Assertions do
       Macro.prewalk(expr, [], fn
         {:::, _, [left, _]}, acc ->
           {[left], acc}
-        {:^, _, [_]}, acc ->
+        {skip, _, [_]}, acc when skip in [:^, :@] ->
           {:ok, acc}
         {:_, _, context}, acc when is_atom(context) ->
           {:ok, acc}

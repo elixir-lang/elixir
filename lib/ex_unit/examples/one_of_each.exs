@@ -5,14 +5,13 @@ defmodule TestOneOfEach do
   This module contains one of each type of failing test.
   It is used simply to document the style of each.
   """
-
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   @one 1
   @two 2
 
-  @long_data_1  [ field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
-  @long_data_2  [ field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_1  [field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_2  [field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
 
   test "1. assert with a match" do
     assert [@one] = [@two]
@@ -51,7 +50,7 @@ defmodule TestOneOfEach do
   end
 
   test "10. assert with explicit expected and actual values" do
-    assert @one > @two, @one, @two, "one should be greater than two"
+    assert @one > @two, left: @one, right: @two, message: "one should be greater than two"
   end
 
   test "11. assert that a message is ready to be received" do
@@ -120,6 +119,24 @@ defmodule TestOneOfEach do
     spawn_link fn -> raise "oops" end
     receive do
     end
+  end
+
+  test "26. multi error" do
+    error1 =
+      try do
+        assert [@one] = [@two]
+      rescue e in ExUnit.AssertionError ->
+        e
+      end
+
+    error2 =
+      try do
+        assert @one * 4 > @two *3
+      rescue e in ExUnit.AssertionError ->
+        e
+      end
+
+    raise ExUnit.MultiError, errors: [error1, error2]
   end
 
   defp blows_up do
