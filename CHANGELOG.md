@@ -10,12 +10,14 @@ is therefore recommended before upgrading Elixir.
 
 #### Elixir
 
+  * [Application] Add `spec/1` and `spec/2` to retrieve application specification
   * [Base] Optimize encode and decode operations about 10 times
   * [Enum] Use the faster and auto-seeding `:rand` instead of `:random` in `Enum.shuffle/1` and `Enum.random/1` and `Enum.take_random/2`
   * [GenServer] Add `GenServer.stop/1` for reliably shutting servers down
   * [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
   * [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
   * [Kernel] Warn if `@doc/@typedoc/@moduledoc` attributes are redefined
+  * [Kernel] Warn if non-variables are used in `defdelegate/2` (as they have no effect)
   * [Kernel] Mark quoted expressions as generated avoiding false positives on dialyzer
   * [Kernel] Allow variables as map keys on creation `%{key => value}` and on matches `%{^key => value}`
   * [Kernel] Allow the pin operator `^` in `fn` clauses and on the left side of `<-` in `for` comprehensions
@@ -33,10 +35,16 @@ is therefore recommended before upgrading Elixir.
   * [Task] Introduce `Task.yield_many/2`
   * [Task] Raise an error when a task is queried from a non-owning process (instead of waiting forever)
 
+#### ExUnit
+
+  * [ExUnit] Allow a same test to raise multiple errors. The goal is to enable tools in the ecosystem to emit multiple failure reports from the same test
+  * [ExUnit] Support `@tag report: [:foo, :bar]` which will include the values for tags `:foo` and `:bar` whenever a test fails
+
 #### IEx
 
   * [IEx] Display type docs for `t(Module.type)` and `t(Module.type/arity)`
   * [IEx] Add `i/1` helper that prints information about any data type
+  * [IEx] Show source code snippet whenever there is a request to pry a given process
 
 #### Logger
 
@@ -48,6 +56,7 @@ is therefore recommended before upgrading Elixir.
   * [Mix] Add `warn_test_pattern` to `mix test` that will warn on potentially misconfigured test files
   * [Mix] Introduce `MIX_QUIET` environment variable that configures the underlying Mix task to output only error messages
   * [Mix] Validate git options and warn on conflicting ref, branch or tags
+  * [Mix] New umbrella applications will now share configuration and build files
 
 ### 2. Bug fixes
 
@@ -67,6 +76,11 @@ is therefore recommended before upgrading Elixir.
   * [Mix] Always run non-recursive tasks at the umbrella root
   * [Mix] Ensure rebar projects work on directory names that contain non-latin characters
   * [Mix] Ignore directories inside `apps` in umbrellas that do not have a `mix.exs` file
+  * [Mix] Ensure Mix can be used with path dependencies where the app name is different than the path basename
+
+#### ExUnit
+
+  * [ExUnit] Include file and line in all compilation errors for doctests
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -81,4 +95,3 @@ is therefore recommended before upgrading Elixir.
 
   * [Mix] `Mix.Utils.camelize/1` and `Mix.Utils.underscore/1` are soft deprecated in favor of `Macro.camelize/1` and `Macro.underscore/1`
 
-### 4. Deprecations
