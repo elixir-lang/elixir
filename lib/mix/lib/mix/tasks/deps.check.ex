@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Deps.Check do
   use Mix.Task
 
   import Mix.Dep, only: [loaded: 1, loaded_by_name: 2, format_dep: 1, ok?: 1,
-                         format_status: 1, check_lock: 2, partition: 1]
+                         format_status: 1, check_lock: 2]
 
   @moduledoc """
   Checks if all dependencies are valid and if not, abort.
@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Deps.Check do
     all  = Enum.map(loaded(env: Mix.env), &check_lock(&1, lock))
 
     _ = prune_deps(all)
-    {not_ok, compile} = partition(all)
+    {not_ok, compile} = partition(all, [], [])
 
     cond do
       not_ok != [] ->
@@ -70,6 +70,39 @@ defmodule Mix.Tasks.Deps.Check do
       []
     end
   end
+
+
+  defp partition([dep|deps], not_ok, compile) do
+    cond do
+      from_umbrella?(dep)      -> partition(deps, not_ok, compile)
+      compilable?(dep)         -> partition(deps, not_ok, [dep|compile])
+      ok?(dep) and local?(dep) -> partition(deps, not_ok, [dep|compile])
+      ok?(dep)                 -> partition(deps, not_ok, compile)
+      true                     -> partition(deps, [dep|not_ok], compile)
+    end
+  end
+
+  defp partition([], not_ok, compile) do
+    {Enum.reverse(not_ok), Enum.reverse(compile)}
+  end
+
+  # Those are compiled by umbrella.
+  defp from_umbrella?(dep) do
+    dep.opts[:from_umbrella]
+  end
+
+  # Every local dependency (i.e. that are not fetchable)
+  # are automatically recompiled if they are ok.
+  defp local?(dep) do
+    not dep.scm.fetchable?
+  end
+
+  # Can the dependency be compiled automatically without user intervention?
+  defp compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
+  defp compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
+  defp compilable?(%Mix.Dep{status: :compile}), do: true
+  defp compilable?(%Mix.Dep{}), do: false
 
   defp show_not_ok!([]) do
     :ok
