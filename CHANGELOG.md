@@ -37,7 +37,7 @@ is therefore recommended before upgrading Elixir.
 
 #### ExUnit
 
-  * [ExUnit] Allow a same test to raise multiple errors. The goal is to enable tools in the ecosystem to emit multiple failure reports from the same test
+  * [ExUnit] Allow one test to raise multiple errors. The goal is to enable tools in the ecosystem to emit multiple failure reports from the same test
   * [ExUnit] Support `@tag report: [:foo, :bar]` which will include the values for tags `:foo` and `:bar` whenever a test fails
 
 #### IEx
