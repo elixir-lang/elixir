@@ -482,7 +482,7 @@ defmodule Macro do
     if interpolated?(ast) do
       fun.(ast, interpolate(ast, fun))
     else
-      fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
+      fun.(ast, case Enum.map_join(args, ", ", &bitpart_to_string(&1, fun)) do
         "<" <> rest -> "<< <" <> rest  <> " >>"
         rest -> "<<" <> rest <> ">>"
       end)
@@ -619,6 +619,30 @@ defmodule Macro do
 
   # All other structures
   def to_string(other, fun), do: fun.(other, inspect(other, []))
+
+  defp bitpart_to_string({:::, _, [left, right]} = ast, fun) do
+    result =
+      op_to_string(left, fun, :::, :left) <>
+      "::" <>
+      bitmods_to_string(right, fun, :::, :right)
+    fun.(ast, result)
+  end
+
+  defp bitpart_to_string(ast, fun) do
+    to_string(ast, fun)
+  end
+
+  defp bitmods_to_string({:-, _, [left, right]} = ast, fun, _, _) do
+    result =
+      bitmods_to_string(left, fun, :-, :left) <>
+      "-" <>
+      bitmods_to_string(right, fun, :-, :right)
+    fun.(ast, result)
+  end
+
+  defp bitmods_to_string(other, fun, parent_op, side) do
+    op_to_string(other, fun, parent_op, side)
+  end
 
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]

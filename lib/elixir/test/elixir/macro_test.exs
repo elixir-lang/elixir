@@ -399,8 +399,6 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: %{{1, 2} => [1, 2, 3]})  == "%{{1, 2} => [1, 2, 3]}"
     assert Macro.to_string(quote do: %{map | "a" => "b"})  == "%{map | \"a\" => \"b\"}"
     assert Macro.to_string(quote do: [ 1, 2, 3 ])   == "[1, 2, 3]"
-    assert Macro.to_string(quote do: << 1, 2, 3 >>) == "<<1, 2, 3>>"
-    assert Macro.to_string(quote do: << <<1>> >>) == "<< <<1>> >>"
   end
 
   test "struct to string" do
@@ -440,6 +438,13 @@ defmodule MacroTest do
 
   test "interpolation to string" do
     assert Macro.to_string(quote do: "foo#{bar}baz") == ~S["foo#{bar}baz"]
+  end
+
+  test "bit syntax to string" do
+    ast = quote(do: <<69 - 4::bits-size(8 - 4)-unit(1), 65>>)
+    assert Macro.to_string(ast) == "<<69 - 4::bits-size(8 - 4)-unit(1), 65>>"
+    ast = quote(do: << <<65>>, 65>>)
+    assert Macro.to_string(ast) == "<< <<65>>, 65 >>"
   end
 
   test "charlist to string" do
