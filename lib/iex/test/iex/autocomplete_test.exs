@@ -13,6 +13,7 @@ defmodule IEx.AutocompleteTest do
 
   test "erlang module no completion" do
     assert expand(':unknown') == {:no, '', []}
+    assert expand('Enum:') == {:no, '', []}
   end
 
   test "erlang module multiple values completion" do

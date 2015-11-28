@@ -7,9 +7,9 @@ defmodule IEx.Autocomplete do
 
   def expand([h|t]=expr) do
     cond do
-      h === ?. and t != []->
+      h === ?. and t != [] ->
         expand_dot(reduce(t))
-      h === ?: ->
+      h === ?: and t == [] ->
         expand_erlang_modules()
       identifier?(h) ->
         expand_expr(reduce(expr))
