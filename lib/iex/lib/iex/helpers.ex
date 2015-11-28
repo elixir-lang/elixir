@@ -459,6 +459,7 @@ defmodule IEx.Helpers do
   """
   def pwd do
     IO.puts IEx.color(:eval_info, System.cwd!)
+    dont_display_result
   end
 
   @doc """
