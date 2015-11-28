@@ -478,14 +478,18 @@ defmodule Macro do
   end
 
   # Bits containers
-  def to_string({:<<>>, _, args} = ast, fun) do
+  def to_string({:<<>>, _, parts} = ast, fun) do
     if interpolated?(ast) do
       fun.(ast, interpolate(ast, fun))
     else
-      fun.(ast, case Enum.map_join(args, ", ", &bitpart_to_string(&1, fun)) do
-        "<" <> rest -> "<< <" <> rest  <> " >>"
-        rest -> "<<" <> rest <> ">>"
+      result = Enum.map_join(parts, ", ", fn(part) ->
+        case bitpart_to_string(part, fun) do
+          "<" <> rest ->
+            "(<" <> rest <> ")"
+          other -> other
+        end
       end)
+      fun.(ast, "<<" <> result <> ">>")
     end
   end
 
