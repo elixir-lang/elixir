@@ -27,6 +27,18 @@ defmodule Mix.Tasks.LoadconfigTest do
     end
   end
 
+  @tag apps: [:my_app]
+  test "reads from custom config_path", context do
+    Mix.ProjectStack.post_config [config_path: fixture_path("configs/good_config.exs")]
+    Mix.Project.push MixTest.Case.Sample
+
+    in_tmp context.test, fn ->
+      assert Application.fetch_env(:my_app, :key) == :error
+      Mix.Task.run "loadconfig", []
+      assert Application.fetch_env(:my_app, :key) == {:ok, :value}
+    end
+  end
+
   defp write_config(path \\ "config/config.exs", contents) do
     File.mkdir_p! Path.dirname(path)
     File.write! path, contents

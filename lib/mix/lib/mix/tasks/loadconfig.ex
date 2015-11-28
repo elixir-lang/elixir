@@ -18,11 +18,13 @@ defmodule Mix.Tasks.Loadconfig do
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+    config = Mix.Project.config
+
     cond do
       file = Enum.at(args, 0) ->
         load file
-      File.regular?("config/config.exs") ->
-        load "config/config.exs"
+      File.regular?(config[:config_path]) ->
+        load config[:config_path]
       true ->
         :ok
     end
