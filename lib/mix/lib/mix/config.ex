@@ -71,7 +71,6 @@ defmodule Mix.Config do
 
       [log_level: :info, mode: :truncate, threshold: 1024]
 
-
   This final configuration can be retrieved at run or compile time:
 
       Application.get_all_env(:lager)
