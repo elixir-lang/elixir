@@ -9,7 +9,7 @@ upgrading Elixir.
 
 We have brought many features specific to Erlang 18:
 
-  * Maps can now scale from dozens to million of keys. Therefore, usage of
+  * Maps can now scale from dozens to millions of keys. Therefore, usage of
     the modules `Dict` and `HashDict` is now discouraged and will be
     deprecated in future releases, instead use `Map`. Similarly, `Set` and
     `HashSet` will be deprecated in favor of `MapSet`
