@@ -1,8 +1,76 @@
 # Changelog for Elixir v1.2
 
 v1.2 brings enhancements, bug fixes, performance improvements and more
-into Elixir. Elixir v1.2 supports only Erlang 18. Upgrading to Erlang 18
-is therefore recommended before upgrading Elixir.
+into Elixir. Elixir v1.2 relies on many features in Erlang 18, requiring
+at least Erlang 18+. Upgrading to Erlang 18 is therefore necessary before
+upgrading Elixir.
+
+## Erlang 18 support
+
+We have brought many features specific to Erlang 18:
+
+  * Maps can now scale from dozens to million of keys. Therefore, usage of
+    the modules `Dict` and `HashDict` is now discouraged and will be
+    deprecated in future releases, instead use `Map`. Similarly, `Set` and
+    `HashSet` will be deprecated in favor of `MapSet`
+  * Compilation times are faster due to improvements on both Elixir and
+    Erlang compilers
+  * Dialyzer now emits less false negative warnings thanks to new annotations
+    available in the Erlang compiler
+  * And many more
+
+## Language improvements
+
+This release includes four notable language improvements:
+
+  * The addition of multi aliases/imports/require:
+
+        alias MyApp.{Foo, Bar, Baz}
+
+  * Support for variables in map keys:
+
+        %{key => value}
+
+  * Support for pin operator in map keys and function clauses:
+
+        %{^key => value} = %{key => value}
+        fn ^key -> :ok end
+
+  * Addition of the `with` special form to match on multiple expressions:
+
+        with {:ok, contents} <- File.read("my_file.ex"),
+             {res, binding} <- Code.eval_string(contents),
+             do: {:ok, res}
+
+Those improvements aim to make the language more consistent and expressive.
+
+## Getting started experience
+
+At the same time we improved the language, we have improved both parser and
+compiler to be even more aware of language constructs, emitting warnings
+on common pitfalls like when piping to expressions without parenthesis or
+when defining unsafe variables.
+
+We have also introduced the `i/1` helper in IEx, which allows developers
+to retrieve information about any data type. This will help newcomers
+explore the language values while providing experienced developers with
+crucial information about the value they are introspecting.
+
+## Workflow improvements
+
+Umbrella applications are now able to share both build and configuration files.
+This aims to drastically reduce compilation times in umbrella projects by
+adding the following configuration to each umbrella app's `mix.exs` file:
+
+    build_path: "../../_build",
+    config_path: "../../config/config.exs",
+
+Finally, Mix will now always consolidated protocols as we are now able to
+consolidate in parallel and cache the consolidation results, providing the
+best performance across all environments without affecting compilation times.
+
+Those are great additions on top of the faster compilation times we have
+achieved when migrating to Erlang 18.
 
 ## v1.2.0-dev
 
@@ -11,6 +79,7 @@ is therefore recommended before upgrading Elixir.
 #### Elixir
 
   * [Application] Add `spec/1` and `spec/2` to retrieve application specification
+  * [Application] Add `get_application/1` to retrieve the application a given module belongs to
   * [Base] Optimize encode and decode operations about 10 times
   * [Enum] Use the faster and auto-seeding `:rand` instead of `:random` in `Enum.shuffle/1` and `Enum.random/1` and `Enum.take_random/2`
   * [GenServer] Add `GenServer.stop/1` for reliably shutting servers down
@@ -29,7 +98,7 @@ is therefore recommended before upgrading Elixir.
   * [Macro] Add `Macro.traverse/4` that performs pre and post-walk at once
   * [Macro] Add `Macro.camelize/1` and `Macro.underscore/1`
   * [Process] Add `Process.get_keys/0`
-  * [String] Introduce `String.trim_{prefix,suffix,leading,trailing}/2`. The first two will remove only the first occurrence of the given match in string. The last two will remove all occurrences of the given match
+  * [String] Introduce `String.replace_{prefix,suffix,leading,trailing}/2`. The first two will replace only the first occurrence of the given match in string. The last two will replace all occurrences of the given match
   * [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD and NFC normalization
   * [Task] Add `Task.Supervisor.async_nolink/1/3` that spawns a supervised task without linking to the caller process
   * [Task] Introduce `Task.yield_many/2`
