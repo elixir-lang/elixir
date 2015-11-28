@@ -83,7 +83,13 @@ defmodule Mix.Tasks.App.Start do
 
     type = type(config, opts)
     Enum.each apps, &ensure_all_started(&1, type)
-    check_configured()
+
+    # If there is a build path, we will let the application
+    # that owns the build path do the actual check
+    unless config[:build_path] do
+      check_configured()
+    end
+
     :ok
   end
 

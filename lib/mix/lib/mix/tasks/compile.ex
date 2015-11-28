@@ -20,6 +20,15 @@ defmodule Mix.Tasks.Compile do
     * `:build_embedded` - when `true`, activates protocol
       consolidation and does not generate symlinks in builds
 
+    * `:build_path` - the directory where build artifacts
+      should be written to. This configuration must only be
+      changed to point to a build path of another application.
+      For example, umbrella children can change their `:build_path`
+      configuration to point to the parent application's build
+      path. It is important for one application to not configure
+      the build path at all, as many checks are not performed
+      when the build path is configured (as we assume it is shared)
+
   ## Command line options
 
     * `--list`          - list all enabled compilers
