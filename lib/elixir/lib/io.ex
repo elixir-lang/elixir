@@ -27,6 +27,11 @@ defmodule IO do
     * `:stderr` - a shortcut for the named process `:standard_error`
       provided in Erlang
 
+  IO devices maintain their position, that means subsequent calls to any
+  reading or writing functions will start from the place when the device
+  was last accessed. Position of files can be changed using the
+  `:file.position/2` function.
+
   """
 
   @type device :: atom | pid
