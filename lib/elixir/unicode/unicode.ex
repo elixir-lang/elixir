@@ -4,7 +4,7 @@ to_binary = fn
   codepoints ->
     codepoints = :binary.split(codepoints, " ", [:global])
     Enum.reduce codepoints, "", fn(codepoint, acc) ->
-      acc <> <<String.to_integer(codepoint, 16) :: utf8>>
+      acc <> <<String.to_integer(codepoint, 16)::utf8>>
     end
 end
 
@@ -58,8 +58,8 @@ defmodule String.Unicode do
     end
   end
 
-  defp downcase(<<char, rest :: binary>>, acc) do
-    downcase(rest, <<acc :: binary, char>>)
+  defp downcase(<<char, rest::binary>>, acc) do
+    downcase(rest, <<acc::binary, char>>)
   end
 
   defp downcase("", acc), do: acc
@@ -74,8 +74,8 @@ defmodule String.Unicode do
     end
   end
 
-  defp upcase(<<char, rest :: binary>>, acc) do
-    upcase(rest, <<acc :: binary, char>>)
+  defp upcase(<<char, rest::binary>>, acc) do
+    upcase(rest, <<acc::binary, char>>)
   end
 
   defp upcase("", acc), do: acc
@@ -90,7 +90,7 @@ defmodule String.Unicode do
     end
   end
 
-  def titlecase_once(<<char, rest :: binary>>) do
+  def titlecase_once(<<char, rest::binary>>) do
     {<<char>>, rest}
   end
 
@@ -162,8 +162,8 @@ defmodule String.Unicode do
     end
   end
 
-  defp do_split(<<char, rest :: binary>>, buffer, acc) do
-    do_split(rest, <<buffer :: binary, char>>, acc)
+  defp do_split(<<char, rest::binary>>, buffer, acc) do
+    do_split(rest, <<buffer::binary, char>>, acc)
   end
 
   defp do_split(<<>>, buffer, acc) do
@@ -177,11 +177,11 @@ defmodule String.Unicode do
 
   # Codepoints
 
-  def next_codepoint(<<cp :: utf8, rest :: binary>>) do
-    {<<cp :: utf8>>, rest}
+  def next_codepoint(<<cp::utf8, rest::binary>>) do
+    {<<cp::utf8>>, rest}
   end
 
-  def next_codepoint(<<cp, rest :: binary>>) do
+  def next_codepoint(<<cp, rest::binary>>) do
     {<<cp>>, rest}
   end
 
@@ -210,10 +210,10 @@ defmodule String.Graphemes do
 
   to_range = fn
     first, ""   ->
-      [<<String.to_integer(first, 16) :: utf8>>]
+      [<<String.to_integer(first, 16)::utf8>>]
     first, last ->
       range = String.to_integer(first, 16)..String.to_integer(last, 16)
-      Enum.map(range, fn(int) -> <<int :: utf8>> end)
+      Enum.map(range, fn(int) -> <<int::utf8>> end)
   end
 
   cluster = Enum.reduce File.stream!(cluster_path), %{}, fn(line, dict) ->
@@ -235,48 +235,48 @@ defmodule String.Graphemes do
   end
 
   # Don't break CRLF
-  def next_grapheme_size(<<?\r, ?\n, rest :: binary>>) do
+  def next_grapheme_size(<<?\r, ?\n, rest::binary>>) do
     {2, rest}
   end
 
   # Break on control
   for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
-    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
       {unquote(byte_size(codepoint)), rest}
     end
   end
 
   # Break on Prepend*
   # for codepoint <- cluster["Prepend"] do
-  #   def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+  #   def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
   #     next_prepend_size(rest, unquote(byte_size(codepoint)))
   #   end
   # end
 
   # Handle Hangul L
   for codepoint <- cluster["L"] do
-    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
       next_hangul_l_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Hangul T
   for codepoint <- cluster["T"] do
-    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
       next_hangul_t_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle Regional
   for codepoint <- cluster["Regional_Indicator"] do
-    def next_grapheme_size(<<unquote(codepoint), rest :: binary>>) do
+    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
       next_regional_size(rest, unquote(byte_size(codepoint)))
     end
   end
 
   # Handle extended entries
 
-  def next_grapheme_size(<<cp :: utf8, rest :: binary>>) do
+  def next_grapheme_size(<<cp::utf8, rest::binary>>) do
     case cp do
       x when x <= 0x007F -> next_extend_size(rest, 1)
       x when x <= 0x07FF -> next_extend_size(rest, 2)
@@ -285,7 +285,7 @@ defmodule String.Graphemes do
     end
   end
 
-  def next_grapheme_size(<<_, rest :: binary>>) do
+  def next_grapheme_size(<<_, rest::binary>>) do
     {1, rest}
   end
 
@@ -295,19 +295,19 @@ defmodule String.Graphemes do
 
   # Handle Hangul L
   for codepoint <- cluster["L"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
       next_hangul_l_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LV"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
       next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
 
   for codepoint <- cluster["LVT"] do
-    defp next_hangul_l_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_hangul_l_size(<<unquote(codepoint), rest::binary>>, size) do
       next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
@@ -318,7 +318,7 @@ defmodule String.Graphemes do
 
   # Handle Hangul V
   for codepoint <- cluster["V"] do
-    defp next_hangul_v_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_hangul_v_size(<<unquote(codepoint), rest::binary>>, size) do
       next_hangul_v_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
@@ -329,7 +329,7 @@ defmodule String.Graphemes do
 
   # Handle Hangul T
   for codepoint <- cluster["T"] do
-    defp next_hangul_t_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_hangul_t_size(<<unquote(codepoint), rest::binary>>, size) do
       next_hangul_t_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
@@ -340,7 +340,7 @@ defmodule String.Graphemes do
 
   # Handle regional
   for codepoint <- cluster["Regional_Indicator"] do
-    defp next_regional_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_regional_size(<<unquote(codepoint), rest::binary>>, size) do
       next_regional_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
@@ -351,7 +351,7 @@ defmodule String.Graphemes do
 
   # Handle Extend+SpacingMark
   for codepoint <- cluster["Extend"] ++ cluster["SpacingMark"]  do
-    defp next_extend_size(<<unquote(codepoint), rest :: binary>>, size) do
+    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size) do
       next_extend_size(rest, size + unquote(byte_size(codepoint)))
     end
   end
@@ -362,7 +362,7 @@ defmodule String.Graphemes do
 
   # Handle Prepend
   # for codepoint <- cluster["Prepend"] do
-  #   defp next_prepend_size(<<unquote(codepoint), rest :: binary>>, size) do
+  #   defp next_prepend_size(<<unquote(codepoint), rest::binary>>, size) do
   #     next_prepend_size(rest, size + unquote(byte_size(codepoint)))
   #   end
   # end
@@ -451,16 +451,16 @@ defmodule String.Normalizer do
 
   defp normalize_nfd("", acc), do: acc
 
-  defp normalize_nfd(<<cp :: utf8, rest :: binary>>, acc) when cp in 0xAC00..0xD7A3 do
+  defp normalize_nfd(<<cp::utf8, rest::binary>>, acc) when cp in 0xAC00..0xD7A3 do
     {syllable_index, t_count, n_count} = {cp - 0xAC00, 28, 588}
     lead  = 0x1100 + div(syllable_index, n_count)
     vowel = 0x1161 + div(rem(syllable_index, n_count), t_count)
     trail = 0x11A7 + rem(syllable_index, t_count)
     binary =
       if trail == 0x11A7 do
-        <<lead :: utf8, vowel :: utf8>>
+        <<lead::utf8, vowel::utf8>>
       else
-        <<lead :: utf8, vowel :: utf8, trail :: utf8>>
+        <<lead::utf8, vowel::utf8, trail::utf8>>
       end
     normalize_nfd(rest, acc <> binary)
   end
@@ -482,8 +482,8 @@ defmodule String.Normalizer do
 
   defp normalize_nfc("", acc), do: acc
 
-  defp normalize_nfc(<<cp :: utf8, rest :: binary>>, acc) when cp in 0xAC00..0xD7A3 do
-    normalize_nfc(rest, acc <> <<cp :: utf8>>)
+  defp normalize_nfc(<<cp::utf8, rest::binary>>, acc) when cp in 0xAC00..0xD7A3 do
+    normalize_nfc(rest, acc <> <<cp::utf8>>)
   end
 
   defp normalize_nfc(binary, acc) do
@@ -508,15 +508,15 @@ defmodule String.Normalizer do
 
   defp combining_class(_), do: 0
 
-  defp compose(<<_ :: utf8>> = binary), do: binary
+  defp compose(<<_::utf8>> = binary), do: binary
 
-  defp compose(<<lead :: utf8, vowel :: utf8, rest :: binary>>) when lead in 0x1100..0x1112 and vowel in 0x1161..0x1175 do
+  defp compose(<<lead::utf8, vowel::utf8, rest::binary>>) when lead in 0x1100..0x1112 and vowel in 0x1161..0x1175 do
     codepoint = 0xAC00 + ((lead - 0x1100) * 588) + ((vowel - 0x1161) * 28)
     case rest do
-      <<trail :: utf8, accents :: binary>> when trail in 0x11A7..0x11C2 ->
-        <<codepoint + trail - 0x11A7 :: utf8, accents :: binary>>
+      <<trail::utf8, accents::binary>> when trail in 0x11A7..0x11C2 ->
+        <<codepoint + trail - 0x11A7::utf8, accents::binary>>
       _ ->
-        <<codepoint :: utf8, rest :: binary>>
+        <<codepoint::utf8, rest::binary>>
     end
   end
 
@@ -524,19 +524,19 @@ defmodule String.Normalizer do
     defp compose(unquote(binary)), do: unquote(composition)
   end
 
-  defp compose(<<cp :: utf8, rest :: binary>>) do
-    compose(rest, <<cp :: utf8>>, "", combining_class(cp) - 1)
+  defp compose(<<cp::utf8, rest::binary>>) do
+    compose(rest, <<cp::utf8>>, "", combining_class(cp) - 1)
   end
 
   defp compose("", base, accents, _), do: base <> accents
 
-  defp compose(<<cp :: utf8, rest :: binary>>, base, accents, last_class) do
+  defp compose(<<cp::utf8, rest::binary>>, base, accents, last_class) do
     part_class = combining_class(cp)
-    combined = <<base :: binary, cp :: utf8>>
+    combined = <<base::binary, cp::utf8>>
     if last_class < part_class and composable?(combined) do
       compose(rest, compose(combined), accents, last_class)
     else
-      compose(rest, base, <<accents :: binary, cp :: utf8>>, part_class)
+      compose(rest, base, <<accents::binary, cp::utf8>>, part_class)
     end
   end
 

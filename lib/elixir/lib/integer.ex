@@ -142,14 +142,14 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{base}"
   end
 
-  defp parse_in_base(<< ?-, bin :: binary >>, base) do
+  defp parse_in_base("-" <> bin, base) do
     case do_parse(bin, base) do
       :error -> :error
       {number, remainder} -> {-number, remainder}
     end
   end
 
-  defp parse_in_base(<< ?+, bin :: binary >>, base) do
+  defp parse_in_base("+" <> bin, base) do
     do_parse(bin, base)
   end
 
@@ -157,9 +157,9 @@ defmodule Integer do
     do_parse(bin, base)
   end
 
-  defp do_parse(<< char, bin :: binary >>, base) do
+  defp do_parse(<<char, rest::binary>>, base) do
     if valid_digit_in_base?(char, base) do
-      do_parse(bin, base, parse_digit(char, base))
+      do_parse(rest, base, parse_digit(char, base))
     else
       :error
     end
@@ -167,11 +167,11 @@ defmodule Integer do
 
   defp do_parse(_, _), do: :error
 
-  defp do_parse(<< char, rest :: binary >>, base, acc) do
+  defp do_parse(<<char, rest::binary>>, base, acc) do
     if valid_digit_in_base?(char, base) do
       do_parse(rest, base, base * acc + parse_digit(char, base))
     else
-      {acc, << char, rest :: binary >>}
+      {acc, <<char, rest::binary>>}
     end
   end
 

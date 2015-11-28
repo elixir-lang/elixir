@@ -168,8 +168,8 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> << 1, 2, 3 >>
-      << 1, 2, 3 >>
+      iex> <<1, 2, 3>>
+      <<1, 2, 3>>
 
   ## Types
 
@@ -206,15 +206,15 @@ defmodule Kernel.SpecialForms do
   We can solve this by explicitly tagging it as a binary:
 
       iex> rest = "oo"
-      iex> <<102, rest :: binary>>
+      iex> <<102, rest::binary>>
       "foo"
 
   The utf8, utf16, and utf32 types are for unicode codepoints. They
   can also be applied to literal strings and char lists:
 
-      iex> <<"foo" :: utf16>>
+      iex> <<"foo"::utf16>>
       <<0, 102, 0, 111, 0, 111>>
-      iex> <<"foo" :: utf32>>
+      iex> <<"foo"::utf32>>
       <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
   ## Options
@@ -222,13 +222,13 @@ defmodule Kernel.SpecialForms do
   Many options can be given by using `-` as separator. Order is
   arbitrary, so the following are all equivalent:
 
-      <<102 :: integer-native, rest :: binary>>
-      <<102 :: native-integer, rest :: binary>>
-      <<102 :: unsigned-big-integer, rest :: binary>>
-      <<102 :: unsigned-big-integer-size(8), rest :: binary>>
-      <<102 :: unsigned-big-integer-8, rest :: binary>>
-      <<102 :: 8-integer-big-unsigned, rest :: binary>>
-      <<102, rest :: binary>>
+      <<102::integer-native, rest::binary>>
+      <<102::native-integer, rest::binary>>
+      <<102::unsigned-big-integer, rest::binary>>
+      <<102::unsigned-big-integer-size(8), rest::binary>>
+      <<102::unsigned-big-integer-8, rest::binary>>
+      <<102::8-integer-big-unsigned, rest::binary>>
+      <<102, rest::binary>>
 
   ### Unit and Size
 
@@ -267,9 +267,9 @@ defmodule Kernel.SpecialForms do
   when passing integer values:
 
       iex> x = 1
-      iex> << x :: 8 >> == << x :: size(8) >>
+      iex> <<x::8>> == <<x::size(8)>>
       true
-      iex> << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
+      iex> <<x::8 * 4>> == <<x::size(8)-unit(4)>>
       true
 
   This syntax reflects the fact the effective size is given by
@@ -292,11 +292,11 @@ defmodule Kernel.SpecialForms do
 
   Integers can be `signed` or `unsigned`, defaulting to `unsigned`.
 
-      iex> <<int::integer>> =  <<-100>>
+      iex> <<int::integer>> = <<-100>>
       <<156>>
       iex> int
       156
-      iex> <<int::integer-signed>> =  <<-100>>
+      iex> <<int::integer-signed>> = <<-100>>
       <<156>>
       iex> int
       -100
@@ -304,7 +304,7 @@ defmodule Kernel.SpecialForms do
   `signed` and `unsigned` are only used for matching binaries (see below) and
   are only used for integers.
 
-      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
+      iex> <<-100::signed, _rest::binary>> = <<-100, "foo">>
       <<156, 102, 111, 111>>
 
   ### Endianness

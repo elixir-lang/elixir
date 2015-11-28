@@ -82,7 +82,7 @@ defmodule Mix.Task do
     part = byte_size(base) - @prefix_size - @suffix_size
 
     case base do
-      <<"Elixir.Mix.Tasks.", rest :: binary-size(part), ".beam">> ->
+      <<"Elixir.Mix.Tasks.", rest::binary-size(part), ".beam">> ->
         mod = :"Elixir.Mix.Tasks.#{rest}"
         ensure_task?(mod) && mod
       _ ->

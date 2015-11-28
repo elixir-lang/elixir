@@ -60,9 +60,9 @@ defmodule Kernel.Typespec do
             | 1.0                           ## Floats
 
             | <<>>                          ## Bitstrings
-            | <<_ :: size>>                 # size is 0 or a positive integer
-            | <<_ :: _ * unit>>             # unit is an integer from 1 to 256
-            | <<_ :: size * unit>>
+            | <<_::size>>                 # size is 0 or a positive integer
+            | <<_::_ * unit>>             # unit is an integer from 1 to 256
+            | <<_::size * unit>>
 
             | [type]                        ## Lists
             | []                            # empty list
@@ -92,8 +92,8 @@ defmodule Kernel.Typespec do
   Built-in type           | Defined as
   :---------------------- | :---------
   `term()`                | `any()`
-  `binary()`              | `<< _ :: _ * 8 >>`
-  `bitstring()`           | `<< _ :: _ * 1 >>`
+  `binary()`              | `<<_::_ * 8>>`
+  `bitstring()`           | `<<_::_ * 1>>`
   `boolean()`             | `false` \| `true`
   `byte()`                | `0..255`
   `char()`                | `0..0x10ffff`
@@ -843,9 +843,9 @@ defmodule Kernel.Typespec do
 
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
-      <<"_", c :: binary-size(1), rest :: binary>> ->
+      <<"_", c::binary-1, rest::binary>> ->
         String.to_atom("_#{String.downcase(c)}#{rest}")
-      <<c :: binary-size(1), rest :: binary>> ->
+      <<c::binary-1, rest::binary>> ->
         String.to_atom("#{String.downcase(c)}#{rest}")
     end
   end
