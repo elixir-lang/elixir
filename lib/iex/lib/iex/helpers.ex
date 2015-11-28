@@ -493,7 +493,7 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp expand_home(<<?~, rest :: binary>>) do
+  defp expand_home(<<?~, rest::binary>>) do
     System.user_home! <> rest
   end
 

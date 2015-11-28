@@ -509,41 +509,41 @@ defmodule ExUnit.DocTest do
   end
 
   # We've encountered the next test on an adjacent line. Put them into one group.
-  defp extract_tests([{<< "iex>", _ :: binary>>,_}|_] = list, expr_acc, expected_acc, [test=%{exprs: exprs}|t], newtest)
+  defp extract_tests([{"iex>" <> _, _} | _] = list, expr_acc, expected_acc, [test=%{exprs: exprs}|t], newtest)
   when expr_acc != "" and expected_acc != "" do
     test = %{test | exprs: [{expr_acc, {:test, expected_acc}} | exprs]}
     extract_tests(list, "", "", [test|t], newtest)
   end
 
   # Store expr_acc and start a new test case.
-  defp extract_tests([{<< "iex>", string :: binary>>, line}|lines], "", expected_acc, acc, true) do
+  defp extract_tests([{"iex>" <> string, line} | lines], "", expected_acc, acc, true) do
     acc = reverse_last_test(acc)
     test = %{line: line, fun_arity: nil, exprs: []}
     extract_tests(lines, string, expected_acc, [test|acc], false)
   end
 
   # Store expr_acc.
-  defp extract_tests([{<< "iex>", string :: binary>>, _}|lines], "", expected_acc, acc, false) do
+  defp extract_tests([{"iex>" <> string, _} | lines], "", expected_acc, acc, false) do
     extract_tests(lines, string, expected_acc, acc, false)
   end
 
   # Still gathering expr_acc. Synonym for the next clause.
-  defp extract_tests([{<< "iex>", string :: binary>>, _}|lines], expr_acc, expected_acc, acc, newtest) do
+  defp extract_tests([{"iex>" <> string, _} | lines], expr_acc, expected_acc, acc, newtest) do
     extract_tests(lines, expr_acc <> "\n" <> string, expected_acc, acc, newtest)
   end
 
   # Still gathering expr_acc. Synonym for the previous clause.
-  defp extract_tests([{<< "...>", string :: binary>>, _}|lines], expr_acc, expected_acc, acc, newtest) when expr_acc != "" do
+  defp extract_tests([{"...>" <> string, _} | lines], expr_acc, expected_acc, acc, newtest) when expr_acc != "" do
     extract_tests(lines, expr_acc <> "\n" <> string, expected_acc, acc, newtest)
   end
 
   # Expression numbers are simply skipped.
-  defp extract_tests([{<< "iex(", _ :: 8, string :: binary>>, _}|lines], expr_acc, expected_acc, acc, newtest) do
+  defp extract_tests([{<<"iex(", _ :: 8>> <> string, _} | lines], expr_acc, expected_acc, acc, newtest) do
     extract_tests(["iex" <> skip_iex_number(string)|lines], expr_acc, expected_acc, acc, newtest)
   end
 
   # Expression numbers are simply skipped redux.
-  defp extract_tests([{<< "...(", _ :: 8, string :: binary>>, _}|lines], expr_acc, expected_acc, acc, newtest) do
+  defp extract_tests([{<<"...(", _::8>> <> string, _} | lines], expr_acc, expected_acc, acc, newtest) do
     extract_tests(["..." <> skip_iex_number(string)|lines], expr_acc, expected_acc, acc, newtest)
   end
 
@@ -559,7 +559,7 @@ defmodule ExUnit.DocTest do
   end
 
   # Exception test.
-  defp extract_tests([{<< "** (", string :: binary >>, _}|lines], expr_acc, "", [test=%{exprs: exprs}|t], newtest) do
+  defp extract_tests([{"** (" <> string, _} | lines], expr_acc, "", [test=%{exprs: exprs}|t], newtest) do
     test = %{test | exprs: [{expr_acc, extract_error(string, "")} | exprs]}
     extract_tests(lines, "", "", [test|t], newtest)
   end
@@ -575,19 +575,19 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp extract_error(<< ")", t :: binary >>, acc) do
-    {:error, Module.concat([acc]), String.strip(t)}
+  defp extract_error(")" <> rest, acc) do
+    {:error, Module.concat([acc]), String.strip(rest)}
   end
 
-  defp extract_error(<< h, t :: binary >>, acc) do
-    extract_error(t, << acc :: binary, h >>)
+  defp extract_error(<<char>> <> rest, acc) do
+    extract_error(rest, <<acc::binary, char>>)
   end
 
-  defp skip_iex_number(<< ")", ">", string :: binary >>) do
+  defp skip_iex_number(")>" <> string) do
     ">" <> string
   end
 
-  defp skip_iex_number(<< _ :: 8, string :: binary >>) do
+  defp skip_iex_number(<<_::8>> <> string) do
     skip_iex_number(string)
   end
 

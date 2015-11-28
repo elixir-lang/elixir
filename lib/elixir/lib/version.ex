@@ -24,7 +24,7 @@ defmodule Version do
 
   ## Struct
 
-  The version is represented by the Version struct and fields 
+  The version is represented by the Version struct and fields
   are named according to Semver: `:major`, `:minor`, `:patch`,
   `:pre` and `:build`.
 
@@ -266,8 +266,8 @@ defmodule Version do
 
     defmacro deflexer(char, acc, do: body) do
       quote do
-        def lexer(<< unquote(char) :: utf8, rest :: binary >>, unquote(acc)) do
-          unquote(char) = << unquote(char) :: utf8 >>
+        def lexer(<<unquote(char)::utf8, rest::binary>>, unquote(acc)) do
+          unquote(char) = <<unquote(char)::utf8>>
 
           lexer(rest, unquote(body))
         end
