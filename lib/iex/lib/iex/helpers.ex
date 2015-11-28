@@ -471,6 +471,7 @@ defmodule IEx.Helpers do
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No directory #{directory}")
     end
+    dont_display_result()
   end
 
   @doc """
@@ -491,6 +492,7 @@ defmodule IEx.Helpers do
       {:error, :enotdir} ->
         IO.puts IEx.color(:eval_info, Path.absname(path))
     end
+    dont_display_result()
   end
 
   defp expand_home(<<?~, rest::binary>>) do
