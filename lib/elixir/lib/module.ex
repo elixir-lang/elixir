@@ -644,12 +644,12 @@ defmodule Module do
     length(:lists.filter(fn(el) -> el == key end, list))
   end
 
-  defp camelcase_to_underscore(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z,
-    do: do_camelcase_to_underscore(rest, <<c + 32 :: utf8>>)
-  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc) when c >= ?A and c <= ?Z,
-    do: do_camelcase_to_underscore(rest, <<acc :: binary, ?_, c + 32 :: utf8>>)
-  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc),
-    do: do_camelcase_to_underscore(rest, <<acc :: binary, c>>)
+  defp camelcase_to_underscore(<<c::utf8, rest::binary>>) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<c + 32::utf8>>)
+  defp do_camelcase_to_underscore(<<c::utf8, rest::binary>>, acc) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<acc::binary, ?_, c + 32::utf8>>)
+  defp do_camelcase_to_underscore(<<c::utf8, rest::binary>>, acc),
+    do: do_camelcase_to_underscore(rest, <<acc::binary, c>>)
   defp do_camelcase_to_underscore(<<>>, acc),
     do: acc
 

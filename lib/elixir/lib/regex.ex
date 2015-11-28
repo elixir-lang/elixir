@@ -496,30 +496,30 @@ defmodule Regex do
   defp precompile_replacement(""),
     do: []
 
-  defp precompile_replacement(<<?\\, ?g, ?{, rest :: binary>>) when byte_size(rest) > 0 do
-    {ns, <<?}, rest :: binary>>} = pick_int(rest)
+  defp precompile_replacement(<<?\\, ?g, ?{, rest::binary>>) when byte_size(rest) > 0 do
+    {ns, <<?}, rest::binary>>} = pick_int(rest)
     [List.to_integer(ns) | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<?\\, ?\\, rest :: binary>>) do
+  defp precompile_replacement(<<?\\, ?\\, rest::binary>>) do
     [<<?\\>> | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<?\\, x, rest :: binary>>) when x in ?0..?9 do
+  defp precompile_replacement(<<?\\, x, rest::binary>>) when x in ?0..?9 do
     {ns, rest} = pick_int(rest)
     [List.to_integer([x|ns]) | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<x, rest :: binary>>) do
+  defp precompile_replacement(<<x, rest::binary>>) do
     case precompile_replacement(rest) do
       [head | t] when is_binary(head) ->
-        [<<x, head :: binary>> | t]
+        [<<x, head::binary>> | t]
       other ->
         [<<x>> | other]
     end
   end
 
-  defp pick_int(<<x, rest :: binary>>) when x in ?0..?9 do
+  defp pick_int(<<x, rest::binary>>) when x in ?0..?9 do
     {found, rest} = pick_int(rest)
     {[x|found], rest}
   end
@@ -542,12 +542,12 @@ defmodule Regex do
 
   defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
     length = mpos - pos
-    <<untouched :: binary-size(length), rest :: binary>> = string
+    <<untouched::binary-size(length), rest::binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
   defp apply_list(whole, string, pos, replacement, [[{pos, length} | _] = head | tail]) do
-    <<_ :: size(length)-binary, rest :: binary>> = string
+    <<_::size(length)-binary, rest::binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
   end
@@ -580,7 +580,7 @@ defmodule Regex do
   end
 
   defp get_index(string, {pos, len}) do
-    <<_ :: size(pos)-binary, res :: size(len)-binary, _ :: binary>> = string
+    <<_::size(pos)-binary, res::size(len)-binary, _::binary>> = string
     res
   end
 
@@ -630,17 +630,17 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?u, t :: binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
-  defp translate_options(<<?i, t :: binary>>, acc), do: translate_options(t, [:caseless|acc])
-  defp translate_options(<<?x, t :: binary>>, acc), do: translate_options(t, [:extended|acc])
-  defp translate_options(<<?f, t :: binary>>, acc), do: translate_options(t, [:firstline|acc])
-  defp translate_options(<<?U, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
-  defp translate_options(<<?s, t :: binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
-  defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
+  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
+  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless|acc])
+  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended|acc])
+  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline|acc])
+  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
+  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline|acc])
 
   # TODO: Deprecate by 1.2
   # TODO: Remove by 2.0
-  defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?r, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(rest, _acc), do: {:error, rest}
