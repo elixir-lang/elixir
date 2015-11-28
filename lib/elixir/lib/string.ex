@@ -588,122 +588,150 @@ defmodule String do
   """
   @spec rstrip(t, char) :: t
   def rstrip(string, char) when is_integer(char) do
-    trim_trailing(string, <<char::utf8>>)
+    replace_trailing(string, <<char::utf8>>, "")
   end
 
   @doc """
-  Trims all leading occurences of `match` in `string`.
+  Replaces all leading occurences of `match` by `replacement` of `match` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
   ## Examples
 
-      iex> String.trim_leading "hello world", "hello "
+      iex> String.replace_leading("hello world", "hello ", "")
       "world"
-      iex> String.trim_leading "hello hello world", "hello "
+      iex> String.replace_leading("hello hello world", "hello ", "")
       "world"
+
+      iex> String.replace_leading("hello world", "hello ", "ola ")
+      "ola world"
+      iex> String.replace_leading("hello hello world", "hello ", "ola ")
+      "ola ola world"
 
   """
-  def trim_leading(string, match) when is_binary(string) and is_binary(match) do
+  def replace_leading(string, match, replacement)
+      when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
     suffix_size = byte_size(string) - prefix_size
-    trim_leading(string, match, prefix_size, suffix_size)
+    replace_leading(string, match, replacement, prefix_size, suffix_size)
   end
 
-  defp trim_leading(string, match, prefix_size, suffix_size) when suffix_size > 0 do
+  defp replace_leading(string, match, replacement, prefix_size, suffix_size) when suffix_size > 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
-        trim_leading(suffix, match, prefix_size, suffix_size - prefix_size)
+        replacement <> replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size)
       _ ->
         string
     end
   end
 
-  defp trim_leading(string, _match, _prefix_size, _suffix_size) do
+  defp replace_leading(string, _match, _replacement, _prefix_size, _suffix_size) do
     string
   end
 
   @doc """
-  Trims all trailing occurences of `match` in `string`.
+  Replaces all trailing occurences of `match` by `replacement` in `string`.
 
   Returns the string untouched if there are no occurrences.
 
   ## Examples
 
-      iex> String.trim_trailing "hello world", " world"
+      iex> String.replace_trailing("hello world", " world", "")
       "hello"
-      iex> String.trim_trailing "hello world world", " world"
+      iex> String.replace_trailing("hello world world", " world", "")
       "hello"
+
+      iex> String.replace_trailing("hello world", " world", " mundo")
+      "hello mundo"
+      iex> String.replace_trailing("hello world world", " world", " mundo")
+      "hello mundo mundo"
 
   """
-  def trim_trailing(string, match) when is_binary(string) and is_binary(match) do
+  def replace_trailing(string, match, replacement)
+      when is_binary(string) and is_binary(match) and is_binary(replacement) do
     suffix_size = byte_size(match)
     prefix_size = byte_size(string) - suffix_size
-    trim_trailing(string, match, prefix_size, suffix_size)
+    replace_trailing(string, match, replacement, prefix_size, suffix_size)
   end
 
-  defp trim_trailing(string, match, prefix_size, suffix_size) when prefix_size > 0 do
+  defp replace_trailing(string, match, replacement, prefix_size, suffix_size) when prefix_size > 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
-        trim_trailing(prefix, match, prefix_size - suffix_size, suffix_size)
+        replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size) <> replacement
       _ ->
         string
     end
   end
 
-  defp trim_trailing(string, _match, _prefix_size, _suffix_size) do
+  defp replace_trailing(string, _match, _replacement, _prefix_size, _suffix_size) do
     string
   end
 
   @doc """
-  Trims prefix in `string` if it matches `match`.
+  Replaces prefix in `string` by `replacement` if it matches `match`.
 
   Returns the string untouched if there is no match.
 
   ## Examples
 
-      iex> String.trim_prefix "world", "hello "
+      iex> String.replace_prefix("world", "hello ", "")
       "world"
-      iex> String.trim_prefix "hello world", "hello "
+      iex> String.replace_prefix("hello world", "hello ", "")
       "world"
-      iex> String.trim_prefix "hello hello world", "hello "
+      iex> String.replace_prefix("hello hello world", "hello ", "")
       "hello world"
 
+      iex> String.replace_prefix("world", "hello ", "ola ")
+      "world"
+      iex> String.replace_prefix("hello world", "hello ", "ola ")
+      "ola world"
+      iex> String.replace_prefix("hello hello world", "hello ", "ola ")
+      "ola hello world"
+
   """
-  def trim_prefix(string, match) when is_binary(string) and is_binary(match) do
+  def replace_prefix(string, match, replacement)
+      when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
     suffix_size = byte_size(string) - prefix_size
 
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
-        suffix
+        replacement <> suffix
       _ ->
         string
     end
   end
 
   @doc """
-  Trims suffix in `string` if it matches `match`.
+  Replaces suffix in `string` by `replacement` if it matches `match`.
 
   Returns the string untouched if there is no match.
 
   ## Examples
 
-      iex> String.trim_suffix "hello", " world"
+      iex> String.replace_suffix("hello", " world", "")
       "hello"
-      iex> String.trim_suffix "hello world", " world"
+      iex> String.replace_suffix("hello world", " world", "")
       "hello"
-      iex> String.trim_suffix "hello world world", " world"
+      iex> String.replace_suffix("hello world world", " world", "")
       "hello world"
 
+      iex> String.replace_suffix("hello", " world", " mundo")
+      "hello"
+      iex> String.replace_suffix("hello world", " world", " mundo")
+      "hello mundo"
+      iex> String.replace_suffix("hello world world", " world", " mundo")
+      "hello world mundo"
+
   """
-  def trim_suffix(string, match) when is_binary(string) and is_binary(match) do
+  def replace_suffix(string, match, replacement)
+      when is_binary(string) and is_binary(match) and is_binary(replacement) do
     suffix_size = byte_size(match)
     prefix_size = byte_size(string) - suffix_size
 
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
-        prefix
+        prefix <> replacement
       _ ->
         string
     end
@@ -743,7 +771,7 @@ defmodule String do
 
   @doc """
   Returns a string where all leading and trailing Unicode whitespaces
-  has been removed.
+  have been removed.
 
   ## Examples
 
@@ -833,11 +861,11 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns a new binary created by replacing occurences of `pattern` in
+  Returns a new string created by replacing occurences of `pattern` in
   `subject` with `replacement`.
 
   By default, it replaces all occurences, unless the `global` option is
-  set to `false`.
+  set to `false`, where it will only replace the first one
 
   The `pattern` may be a string or a regular expression.
 
