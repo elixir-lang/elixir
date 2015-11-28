@@ -613,20 +613,20 @@ defmodule String do
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     prefix_size = byte_size(match)
     suffix_size = byte_size(string) - prefix_size
-    replace_leading(string, match, replacement, prefix_size, suffix_size)
+    replace_leading(string, match, replacement, prefix_size, suffix_size, "")
   end
 
-  defp replace_leading(string, match, replacement, prefix_size, suffix_size) when suffix_size > 0 do
+  defp replace_leading(string, match, replacement, prefix_size, suffix_size, acc) when suffix_size > 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when prefix == match ->
-        replacement <> replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size)
+        replace_leading(suffix, match, replacement, prefix_size, suffix_size - prefix_size, acc <> replacement)
       _ ->
         string
     end
   end
 
-  defp replace_leading(string, _match, _replacement, _prefix_size, _suffix_size) do
-    string
+  defp replace_leading(string, _match, _replacement, _prefix_size, _suffix_size, prefix) do
+    prefix <> string
   end
 
   @doc """
@@ -651,20 +651,20 @@ defmodule String do
       when is_binary(string) and is_binary(match) and is_binary(replacement) do
     suffix_size = byte_size(match)
     prefix_size = byte_size(string) - suffix_size
-    replace_trailing(string, match, replacement, prefix_size, suffix_size)
+    replace_trailing(string, match, replacement, prefix_size, suffix_size, "")
   end
 
-  defp replace_trailing(string, match, replacement, prefix_size, suffix_size) when prefix_size > 0 do
+  defp replace_trailing(string, match, replacement, prefix_size, suffix_size, acc) when prefix_size > 0 do
     case string do
       <<prefix::size(prefix_size)-binary, suffix::size(suffix_size)-binary>> when suffix == match ->
-        replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size) <> replacement
+        replace_trailing(prefix, match, replacement, prefix_size - suffix_size, suffix_size, acc <> replacement)
       _ ->
         string
     end
   end
 
-  defp replace_trailing(string, _match, _replacement, _prefix_size, _suffix_size) do
-    string
+  defp replace_trailing(string, _match, _replacement, _prefix_size, _suffix_size, suffix) do
+    string <> suffix
   end
 
   @doc """
