@@ -114,7 +114,7 @@ defmodule String do
 
       iex> take_prefix = fn full, prefix ->
       ...>   base = byte_size(prefix)
-      ...>   <<_ :: binary-size(base), rest :: binary>> = full
+      ...>   <<_::binary-size(base), rest::binary>> = full
       ...>   rest
       ...> end
       iex> take_prefix.("Mr. John", "Mr. ")
@@ -144,7 +144,7 @@ defmodule String do
 
   Or also via pattern matching:
 
-      iex> << eacute :: utf8 >> = "á"
+      iex> <<eacute::utf8>> = "á"
       iex> eacute
       225
 
@@ -211,7 +211,7 @@ defmodule String do
   @spec printable?(t) :: boolean
   def printable?(string)
 
-  def printable?(<< h :: utf8, t :: binary >>)
+  def printable?(<<h::utf8, t::binary >>)
       when h in 0x20..0x7E
       when h in 0xA0..0xD7FF
       when h in 0xE000..0xFFFD
@@ -219,15 +219,15 @@ defmodule String do
     printable?(t)
   end
 
-  def printable?(<<?\n, t :: binary>>), do: printable?(t)
-  def printable?(<<?\r, t :: binary>>), do: printable?(t)
-  def printable?(<<?\t, t :: binary>>), do: printable?(t)
-  def printable?(<<?\v, t :: binary>>), do: printable?(t)
-  def printable?(<<?\b, t :: binary>>), do: printable?(t)
-  def printable?(<<?\f, t :: binary>>), do: printable?(t)
-  def printable?(<<?\e, t :: binary>>), do: printable?(t)
-  def printable?(<<?\d, t :: binary>>), do: printable?(t)
-  def printable?(<<?\a, t :: binary>>), do: printable?(t)
+  def printable?(<<?\n, t::binary>>), do: printable?(t)
+  def printable?(<<?\r, t::binary>>), do: printable?(t)
+  def printable?(<<?\t, t::binary>>), do: printable?(t)
+  def printable?(<<?\v, t::binary>>), do: printable?(t)
+  def printable?(<<?\b, t::binary>>), do: printable?(t)
+  def printable?(<<?\f, t::binary>>), do: printable?(t)
+  def printable?(<<?\e, t::binary>>), do: printable?(t)
+  def printable?(<<?\d, t::binary>>), do: printable?(t)
+  def printable?(<<?\a, t::binary>>), do: printable?(t)
 
   def printable?(<<>>), do: true
   def printable?(binary) when is_binary(binary), do: false
@@ -761,8 +761,8 @@ defmodule String do
   @spec lstrip(t, char) :: t
   def lstrip(string, char)
 
-  def lstrip(<<char :: utf8, rest :: binary>>, char) when is_integer(char) do
-    <<lstrip(rest, char) :: binary>>
+  def lstrip(<<char::utf8, rest::binary>>, char) when is_integer(char) do
+    <<lstrip(rest, char)::binary>>
   end
 
   def lstrip(string, char) when is_integer(char) do
@@ -851,7 +851,7 @@ defmodule String do
       subject_len >= len ->
         subject
       subject_len < len ->
-        fill = duplicate(<<padding :: utf8>>, len - subject_len)
+        fill = duplicate(<<padding::utf8>>, len - subject_len)
 
         case type do
           :left  -> subject <> fill
@@ -1038,10 +1038,10 @@ defmodule String do
      0x9FFFE, 0x9FFFF, 0x10FFFE, 0x10FFFF]
 
   for noncharacter <- noncharacters do
-    def valid?(<< unquote(noncharacter) :: utf8, _ :: binary >>), do: false
+    def valid?(<<unquote(noncharacter)::utf8, _::binary >>), do: false
   end
 
-  def valid?(<<_ :: utf8, t :: binary>>), do: valid?(t)
+  def valid?(<<_::utf8, t::binary>>), do: valid?(t)
   def valid?(<<>>), do: true
   def valid?(_), do: false
 
@@ -1068,7 +1068,7 @@ defmodule String do
   """
   @spec valid_character?(t) :: boolean
 
-  def valid_character?(<<_ :: utf8>> = codepoint), do: valid?(codepoint)
+  def valid_character?(<<_::utf8>> = codepoint), do: valid?(codepoint)
   def valid_character?(_), do: false
 
   @doc ~S"""

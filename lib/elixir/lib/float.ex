@@ -55,16 +55,16 @@ defmodule Float do
   defp parse_unsigned(binary) when is_binary(binary), do:
     :error
 
-  defp parse_unsigned(<<digit, rest :: binary>>, dot?, e?, acc) when digit in ?0..?9, do:
+  defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9, do:
     parse_unsigned(rest, dot?, e?, <<acc::binary, digit>>)
 
-  defp parse_unsigned(<<?., digit, rest :: binary>>, false, false, acc) when digit in ?0..?9, do:
+  defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9, do:
     parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
 
-  defp parse_unsigned(<<exp_marker, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and  digit in ?0..?9, do:
+  defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc) when exp_marker in 'eE' and  digit in ?0..?9, do:
     parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
 
-  defp parse_unsigned(<<exp_marker, sign, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9, do:
+  defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc) when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9, do:
     parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
 
   defp parse_unsigned(rest, dot?, _e?, acc), do:

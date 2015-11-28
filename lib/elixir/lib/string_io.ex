@@ -128,12 +128,12 @@ defmodule StringIO do
   end
 
   defp io_request({:put_chars, chars}, %{output: output} = s) do
-    {:ok, %{s | output: << output :: binary, IO.chardata_to_string(chars) :: binary >>}}
+    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
   end
 
   defp io_request({:put_chars, m, f, as}, %{output: output} = s) do
     chars = apply(m, f, as)
-    {:ok, %{s | output: << output :: binary, IO.chardata_to_string(chars) :: binary >>}}
+    {:ok, %{s | output: <<output::binary, IO.chardata_to_string(chars)::binary>>}}
   end
 
   defp io_request({:put_chars, _encoding, chars}, s) do
@@ -205,7 +205,7 @@ defmodule StringIO do
         {error, s}
       {result, input} ->
         if capture_prompt do
-          output = << output :: binary, IO.chardata_to_string(prompt) :: binary >>
+          output = <<output::binary, IO.chardata_to_string(prompt)::binary>>
         end
 
         {result, %{s | input: input, output: output}}
@@ -221,7 +221,7 @@ defmodule StringIO do
   end
 
   defp do_get_chars(input, :latin1, n) do
-    <<chars :: binary-size(n), rest :: binary>> = input
+    <<chars::binary-size(n), rest::binary>> = input
     {chars, rest}
   end
 
@@ -231,7 +231,7 @@ defmodule StringIO do
         {buf_count, split_pos} when buf_count < n or split_pos == :none ->
           {input, ""}
         {_buf_count, split_pos} ->
-          <<chars :: binary-size(split_pos), rest :: binary>> = input
+          <<chars::binary-size(split_pos), rest::binary>> = input
           {chars, rest}
       end
     catch
@@ -253,7 +253,7 @@ defmodule StringIO do
         {result, input} = do_get_line(chars, encoding)
 
         if capture_prompt do
-          output = << output :: binary, IO.chardata_to_string(prompt) :: binary >>
+          output = <<output::binary, IO.chardata_to_string(prompt)::binary>>
         end
 
         {result, %{s | input: input, output: output}}
@@ -283,7 +283,7 @@ defmodule StringIO do
         {result, input, count} = do_get_until(chars, encoding, mod, fun, args)
 
         if capture_prompt do
-          output = << output :: binary, :binary.copy(IO.chardata_to_string(prompt), count) :: binary >>
+          output = <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
         end
 
         input =

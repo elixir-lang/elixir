@@ -97,9 +97,9 @@ bar \"""
   end
 
   test "match" do
-    assert match?(<< ?a, _ :: binary >>, "ab")
-    refute match?(<< ?a, _ :: binary >>, "cd")
-    assert match?(<< _ :: utf8 >> <> _, "éf")
+    assert match?(<<?a, _::binary>>, "ab")
+    refute match?(<<?a, _::binary>>, "cd")
+    assert match?(<<_::utf8>> <> _, "éf")
   end
 
   test "interpolation" do
@@ -118,34 +118,34 @@ bar \"""
   end
 
   test "partial application" do
-    assert (&<< &1, 2 >>).(1) == << 1, 2 >>
-    assert (&<< &1, &2 >>).(1, 2) == << 1, 2 >>
-    assert (&<< &2, &1 >>).(2, 1) == << 1, 2 >>
+    assert (&<<&1, 2>>).(1) == <<1, 2>>
+    assert (&<<&1, &2>>).(1, 2) == <<1, 2>>
+    assert (&<<&2, &1>>).(2, 1) == <<1, 2>>
   end
 
   test "literal" do
-    assert <<106, 111, 115, 195, 169>> == << "josé" :: binary >>
-    assert <<106, 111, 115, 195, 169>> == << "josé" :: bits >>
-    assert <<106, 111, 115, 195, 169>> == << "josé" :: bitstring >>
-    assert <<106, 111, 115, 195, 169>> == << "josé" :: bytes >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::binary >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bits >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bitstring >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::bytes >>
 
-    assert <<106, 111, 115, 195, 169>> == << "josé" :: utf8 >>
-    assert <<0, 106, 0, 111, 0, 115, 0, 233>> == << "josé" :: utf16 >>
-    assert <<106, 0, 111, 0, 115, 0, 233, 0>> == << "josé" :: little-utf16 >>
-    assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 233>> == << "josé" :: utf32 >>
+    assert <<106, 111, 115, 195, 169>> == <<"josé"::utf8>>
+    assert <<0, 106, 0, 111, 0, 115, 0, 233>> == <<"josé"::utf16>>
+    assert <<106, 0, 111, 0, 115, 0, 233, 0>> == <<"josé"::little-utf16>>
+    assert <<0, 0, 0, 106, 0, 0, 0, 111, 0, 0, 0, 115, 0, 0, 0, 233>> == <<"josé"::utf32>>
   end
 
   test "literal errors" do
     assert_raise CompileError, fn ->
-      Code.eval_string(~s[<< "foo" :: integer >>])
+      Code.eval_string(~s[<<"foo"::integer>>])
     end
 
     assert_raise CompileError, fn ->
-      Code.eval_string(~s[<< "foo" :: float >>])
+      Code.eval_string(~s[<<"foo"::float>>])
     end
 
     assert_raise CompileError, fn ->
-      Code.eval_string(~s[<< 'foo' :: binary >>])
+      Code.eval_string(~s[<<'foo'::binary>>])
     end
 
     assert_raise ArgumentError, fn ->
@@ -162,15 +162,15 @@ bar \"""
   test "bitsyntax translation" do
     refb = "sample"
     sec_data = "another"
-    << byte_size(refb) :: size(1)-big-signed-integer-unit(8),
-       refb :: binary,
-       byte_size(sec_data) :: 1*16-big-signed-integer,
-       sec_data :: binary >>
+    <<byte_size(refb)::size(1)-big-signed-integer-unit(8),
+      refb::binary,
+      byte_size(sec_data)::1*16-big-signed-integer,
+      sec_data::binary>>
   end
 
   test "bitsyntax size shorcut" do
-    assert << 1 :: 3 >> == << 1 :: size(3) >>
-    assert << 1 :: 3*8 >> == << 1 :: size(3)-unit(8) >>
+    assert <<1::3>> == <<1::size(3)>>
+    assert <<1::3 * 8>> == <<1::size(3)-unit(8)>>
   end
 
   test "bitsyntax variable size" do
@@ -194,9 +194,9 @@ bar \"""
   test "bitsyntax macro" do
     refb = "sample"
     sec_data = "another"
-    << byte_size(refb) :: refb_spec,
-       refb :: binary,
-       byte_size(sec_data) :: size(1)-signed_16,
-       sec_data :: binary >>
+    <<byte_size(refb)::refb_spec,
+      refb::binary,
+      byte_size(sec_data)::size(1)-signed_16,
+      sec_data::binary>>
   end
 end

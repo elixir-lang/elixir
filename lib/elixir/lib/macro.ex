@@ -1071,25 +1071,25 @@ defmodule Macro do
 
   def underscore(""), do: ""
 
-  def underscore(<<h, t :: binary>>) do
+  def underscore(<<h, t::binary>>) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<h, t, rest :: binary>>, _)
+  defp do_underscore(<<h, t, rest::binary>>, _)
       when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
 
-  defp do_underscore(<<h, t :: binary>>, prev)
+  defp do_underscore(<<h, t::binary>>, prev)
       when (h >= ?A and h <= ?Z) and not (prev >= ?A and prev <= ?Z) do
     <<?_, to_lower_char(h)>> <> do_underscore(t, h)
   end
 
-  defp do_underscore(<<?., t :: binary>>, _) do
+  defp do_underscore(<<?., t::binary>>, _) do
     <<?/>> <> underscore(t)
   end
 
-  defp do_underscore(<<h, t :: binary>>, _) do
+  defp do_underscore(<<h, t::binary>>, _) do
     <<to_lower_char(h)>> <> do_underscore(t, h)
   end
 
@@ -1112,25 +1112,25 @@ defmodule Macro do
   def camelize(""),
     do: ""
 
-  def camelize(<<?_, t :: binary>>),
+  def camelize(<<?_, t::binary>>),
     do: camelize(t)
 
-  def camelize(<<h, t :: binary>>),
+  def camelize(<<h, t::binary>>),
     do: <<to_upper_char(h)>> <> do_camelize(t)
 
-  defp do_camelize(<<?_, ?_, t :: binary>>),
-    do: do_camelize(<< ?_, t :: binary >>)
+  defp do_camelize(<<?_, ?_, t::binary>>),
+    do: do_camelize(<<?_, t::binary >>)
 
-  defp do_camelize(<<?_, h, t :: binary>>) when h >= ?a and h <= ?z,
+  defp do_camelize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
     do: <<to_upper_char(h)>> <> do_camelize(t)
 
   defp do_camelize(<<?_>>),
     do: <<>>
 
-  defp do_camelize(<<?/, t :: binary>>),
+  defp do_camelize(<<?/, t::binary>>),
     do: <<?.>> <> camelize(t)
 
-  defp do_camelize(<<h, t :: binary>>),
+  defp do_camelize(<<h, t::binary>>),
     do: <<h>> <> do_camelize(t)
 
   defp do_camelize(<<>>),
