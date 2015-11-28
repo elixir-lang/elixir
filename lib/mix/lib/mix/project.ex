@@ -150,7 +150,7 @@ defmodule Mix.Project do
       case Mix.ProjectStack.peek do
         %{config: config, file: file} ->
           configs =
-            (config[:config_path] || "config/config.exs")
+            config[:config_path]
             |> Path.dirname
             |> Path.join("**/*.*")
             |> Path.wildcard
@@ -438,6 +438,7 @@ defmodule Mix.Project do
      build_embedded: false,
      build_per_environment: true,
      build_scm: Mix.SCM.Path,
+     config_path: "config/config.exs",
      consolidate_protocols: true,
      default_task: "run",
      deps: [],

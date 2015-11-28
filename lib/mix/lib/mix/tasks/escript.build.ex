@@ -134,7 +134,7 @@ defmodule Mix.Tasks.Escript.Build do
             |> prepare_beam_paths(beam_paths)
         end
 
-        tuples = gen_main(escript_mod, main, app, language) ++
+        tuples = gen_main(project, escript_mod, main, app, language) ++
                  read_beams(beam_paths)
 
         case :zip.create 'mem', tuples, [:memory] do
@@ -224,10 +224,10 @@ defmodule Mix.Tasks.Escript.Build do
     "%%! -escript main #{escript_mod} #{user_args}\n"
   end
 
-  defp gen_main(name, module, app, language) do
+  defp gen_main(project, name, module, app, language) do
     config =
-      if File.regular?("config/config.exs") do
-        Macro.escape Mix.Config.read!("config/config.exs")
+      if File.regular?(project[:config_path]) do
+        Macro.escape Mix.Config.read!(project[:config_path])
       else
         []
       end
