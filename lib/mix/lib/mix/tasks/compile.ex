@@ -21,13 +21,12 @@ defmodule Mix.Tasks.Compile do
       consolidation and does not generate symlinks in builds
 
     * `:build_path` - the directory where build artifacts
-      should be written to. This configuration must only be
-      changed to point to a build path of another application.
-      For example, umbrella children can change their `:build_path`
-      configuration to point to the parent application's build
-      path. It is important for one application to not configure
-      the build path at all, as many checks are not performed
-      when the build path is configured (as we assume it is shared)
+      should be written to. This option is intended only for
+      child apps within a larger umbrella application so that
+      each child app can use the common `_build` directory of
+      the parent umbrella. In a non-umbrella context, configuring
+      this has undesirable side-effects (such as skipping some
+      compiler checks) and should be avoided.
 
   ## Command line options
 
