@@ -7,7 +7,7 @@ upgrading Elixir.
 
 ## Erlang 18 support
 
-We have brought many features specific to Erlang 18:
+We have brought many features specific to Erlang 18. Here are the highlights:
 
   * Maps can now scale from dozens to millions of keys. Therefore, usage of
     the modules `Dict` and `HashDict` is now discouraged and will be
@@ -17,7 +17,6 @@ We have brought many features specific to Erlang 18:
     Erlang compilers
   * Dialyzer now emits less false negative warnings thanks to new annotations
     available in the Erlang compiler
-  * And many more
 
 ## Language improvements
 
@@ -42,13 +41,13 @@ This release includes four notable language improvements:
              {res, binding} <- Code.eval_string(contents),
              do: {:ok, res}
 
-Those improvements aim to make the language more consistent and expressive.
+These improvements aim to make the language more consistent and expressive.
 
 ## Getting started experience
 
 At the same time we improved the language, we have improved both parser and
 compiler to be even more aware of language constructs, emitting warnings
-on common pitfalls like when piping to expressions without parenthesis or
+on common pitfalls like when piping to expressions without parentheses or
 when defining unsafe variables.
 
 We have also introduced the `i/1` helper in IEx, which allows developers
@@ -65,11 +64,11 @@ adding the following configuration to each umbrella app's `mix.exs` file:
     build_path: "../../_build",
     config_path: "../../config/config.exs",
 
-Finally, Mix will now always consolidated protocols as we are now able to
+Finally, Mix will now always consolidate protocols as we are now able to
 consolidate in parallel and cache the consolidation results, providing the
 best performance across all environments without affecting compilation times.
 
-Those are great additions on top of the faster compilation times we have
+These are great additions on top of the faster compilation times we have
 achieved when migrating to Erlang 18.
 
 ## v1.2.0-dev
@@ -82,19 +81,19 @@ achieved when migrating to Erlang 18.
   * [Application] Add `get_application/1` to retrieve the application a given module belongs to
   * [Base] Optimize encode and decode operations about 10 times
   * [Enum] Use the faster and auto-seeding `:rand` instead of `:random` in `Enum.shuffle/1` and `Enum.random/1` and `Enum.take_random/2`
-  * [GenServer] Add `GenServer.stop/1` for reliably shutting servers down
+  * [GenServer] Add `GenServer.stop/1` for shutting down servers reliably
   * [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
   * [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
   * [Kernel] Warn if `@doc/@typedoc/@moduledoc` attributes are redefined
   * [Kernel] Warn if non-variables are used in `defdelegate/2` (as they have no effect)
-  * [Kernel] Mark quoted expressions as generated avoiding false positives on dialyzer
+  * [Kernel] Mark quoted expressions as generated, avoiding false positives on dialyzer
   * [Kernel] Allow variables as map keys on creation `%{key => value}` and on matches `%{^key => value}`
   * [Kernel] Allow the pin operator `^` in `fn` clauses and on the left side of `<-` in `for` comprehensions
   * [Kernel] Introduce `with` as a special form that allows matching on right side parameters
   * [Kernel] Raise when right hand side of `->` does not provide any expression
   * [Kernel] Warn if the Elixir was compiled with a different endianness than the one currently available at runtime
   * [Kernel] Warn if a variable is used after being defined exclusively in a nested context
-  * [Kernel] Warn if piping into an expression without parenthesis
+  * [Kernel] Warn if piping into an expression without parentheses
   * [Macro] Add `Macro.traverse/4` that performs pre and post-walk at once
   * [Macro] Add `Macro.camelize/1` and `Macro.underscore/1`
   * [Process] Add `Process.get_keys/0`
