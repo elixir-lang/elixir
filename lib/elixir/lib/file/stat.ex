@@ -2,7 +2,7 @@ require Record
 
 defmodule File.Stat do
   @moduledoc """
-  A struct responsible to hold file information.
+  A struct that holds file information.
 
   In Erlang, this struct is represented by a `:file_info` record.
   Therefore this module also provides functions for converting
@@ -41,10 +41,11 @@ defmodule File.Stat do
     * `inode` - gives the inode number. On non-Unix file systems, this field
       will be zero.
 
-    * `uid` - indicates the owner of the file.
+    * `uid` - indicates the owner of the file. Will be zero for non-Unix file
+      systems.
 
-    * `gid` - gives the group that the owner of the file belongs to. Will be
-      zero for non-Unix file systems.
+    * `gid` - indicates the group that owns the file. Will be zero for
+      non-Unix file systems.
 
   The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
   time type set in options. `{:time, type}` where type can be `:local`,
