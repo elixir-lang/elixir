@@ -47,8 +47,8 @@ defmodule Dict do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
 
-    IO.write :stderr, "warning: the Dict module is deprecated\n" <>
-                      Exception.format_stacktrace(Macro.Env.stacktrace(__CALLER__))
+    %{file: file, line: line} = __CALLER__
+    :elixir_errors.warn(line, file, "the Dict module is deprecated")
 
     quote do
       @behaviour Dict
