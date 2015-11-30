@@ -86,11 +86,11 @@ defmodule Macro do
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
-    bad_pipe(expr, call_args)
+    raise ArgumentError, bad_pipe(expr, call_args)
   end
 
   def pipe(expr, {tuple_or_map, _, _} = call_args, _integer) when tuple_or_map in [:{}, :%{}] do
-    bad_pipe(expr, call_args)
+    raise ArgumentError, bad_pipe(expr, call_args)
   end
 
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
@@ -108,12 +108,12 @@ defmodule Macro do
   end
 
   def pipe(expr, call_args, _integer) do
-    bad_pipe(expr, call_args)
+    raise ArgumentError, bad_pipe(expr, call_args)
   end
 
   defp bad_pipe(expr, call_args) do
-    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-      "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
+    "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
+    "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
   end
 
   @doc """
