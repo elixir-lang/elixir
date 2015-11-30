@@ -380,7 +380,7 @@ defmodule Regex do
     end
   end
 
-  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) do
+  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) and is_list(opts) do
     on = Keyword.get(opts, :on, :first)
     case :re.run(string, compiled, [:global, capture: on]) do
       {:match, matches} ->
@@ -470,11 +470,13 @@ defmodule Regex do
   @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
   def replace(regex, string, replacement, options \\ [])
 
-  def replace(regex, string, replacement, options) when is_binary(replacement) do
+  def replace(regex, string, replacement, options)
+      when is_binary(string) and is_binary(replacement) and is_list(options) do
     do_replace(regex, string, precompile_replacement(replacement), options)
   end
 
-  def replace(regex, string, replacement, options) when is_function(replacement) do
+  def replace(regex, string, replacement, options)
+      when is_binary(string) and is_function(replacement) and is_list(options)  do
     {:arity, arity} = :erlang.fun_info(replacement, :arity)
     do_replace(regex, string, {replacement, arity}, options)
   end
