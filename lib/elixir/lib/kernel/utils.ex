@@ -40,8 +40,9 @@ defmodule Kernel.Utils do
   defp check_defdelegate_args([{var, _, mod}|rest], env) when is_atom(var) and is_atom(mod),
     do: check_defdelegate_args(rest, env)
   defp check_defdelegate_args([code|_], env) do
-    IO.write :stderr, "warning: defdelegate/2 will only accept variable names in upcoming versions, " <>
-                      "got: #{Macro.to_string(code)}\n" <> Exception.format_stacktrace(Macro.Env.stacktrace(env))
+    :elixir_errors.warn(env.line, env.file,
+      "defdelegate/2 will only accept variable names in upcoming versions, " <>
+      "got: #{Macro.to_string(code)}")
   end
 
   def defstruct(module, fields) do
