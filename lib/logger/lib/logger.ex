@@ -172,6 +172,19 @@ defmodule Logger do
 
     * `:colors` - a keyword list of coloring options.
 
+  In addition to the keys provided by the user via `Logger.metadata/1`,
+  the following default keys are available in the `:metadata` list:
+
+    * `:application` - the current application
+
+    * `:module` - the current module
+
+    * `:function` - the current function
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
   The supported keys in the `:colors` keyword list are:
 
     * `:enabled` - boolean value that allows for switching the
@@ -219,12 +232,12 @@ defmodule Logger do
 
   The level is one of `:debug`, `:info`, `:warn` or `:error`,
   as previously described, the group leader is the group
-  leader of the process who logged the message, followed by
+  leader of the process which logged the message, followed by
   a tuple starting with the atom `Logger`, the message as
   chardata, the timestamp and a keyword list of metadata.
 
   It is recommended that handlers ignore messages where
-  the group leader is in a different node than the one
+  the group leader is in a different node than the one where
   the handler is installed.
 
   Furthermore, backends can be configured via the
@@ -233,7 +246,7 @@ defmodule Logger do
 
       {:configure, options}
 
-  where options is a keyword list. The result of the call is
+  where `options` is a keyword list. The result of the call is
   the result returned by `configure_backend/2`. The recommended
   return value for successful configuration is `:ok`.
 
@@ -339,7 +352,7 @@ defmodule Logger do
   @valid_options [:compile_time_purge_level, :compile_time_application, :sync_threshold, :truncate, :level, :utc_log]
 
   def configure(options) do
-    Logger.Config.configure(Dict.take(options, @valid_options))
+    Logger.Config.configure(Keyword.take(options, @valid_options))
   end
 
   @doc """
@@ -409,7 +422,7 @@ defmodule Logger do
   @doc """
   Configures the given backend.
 
-  The backends needs to be started and running in order to
+  The backend needs to be started and running in order to
   be configured at runtime.
   """
   @spec configure_backend(backend, Keyword.t) :: term
@@ -507,7 +520,7 @@ defmodule Logger do
   @doc """
   Logs a message.
 
-  Developers should rather use the macros `Logger.debug/2`,
+  Developers should use the macros `Logger.debug/2`,
   `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
   of this macro as they can automatically eliminate
   the Logger call altogether at compile time if desired.
@@ -517,9 +530,9 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: fun, line: line} = caller
+    %{module: module, function: fun, file: file, line: line} = caller
 
-    caller = [module: module, function: form_fa(fun), line: line]
+    caller = [module: module, function: form_fa(fun), file: file, line: line]
     if app = Application.get_env(:logger, :compile_time_application) do
       caller = [application: app] ++ caller
     end

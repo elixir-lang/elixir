@@ -1,5 +1,11 @@
 Code.require_file "test_helper.exs", __DIR__
 
+defmodule EnumTest do
+  use ExUnit.Case, async: true
+
+  doctest Enum
+end
+
 defmodule EnumTest.List do
   use ExUnit.Case, async: true
 
@@ -304,16 +310,16 @@ defmodule EnumTest.List do
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
-    seed2 = {1406, 421106, 567597}
-    :random.seed(seed1)
+    seed2 = {1306, 421106, 567597}
+    :rand.seed(:exsplus, seed1)
+    assert Enum.random([1, 2]) == 1
+    assert Enum.random([1, 2, 3]) == 1
+    assert Enum.random([1, 2, 3, 4]) == 2
+    assert Enum.random([1, 2, 3, 4, 5]) == 4
+    :rand.seed(:exsplus, seed2)
     assert Enum.random([1, 2]) == 2
     assert Enum.random([1, 2, 3]) == 2
-    assert Enum.random([1, 2, 3, 4]) == 4
-    assert Enum.random([1, 2, 3, 4, 5]) == 1
-    :random.seed(seed2)
-    assert Enum.random([1, 2]) == 1
-    assert Enum.random([1, 2, 3]) == 3
-    assert Enum.random([1, 2, 3, 4]) == 1
+    assert Enum.random([1, 2, 3, 4]) == 3
     assert Enum.random([1, 2, 3, 4, 5]) == 5
   end
 
@@ -330,25 +336,21 @@ defmodule EnumTest.List do
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
-    :random.seed(seed1)
-    assert Enum.take_random([1, 2, 3, 4, 5], 1) == [2]
-    assert Enum.take_random([1, 2, 3, 4, 5], 2) == [4, 1]
-    assert Enum.take_random([1, 2, 3, 4, 5], 3) == [1, 3, 5]
-    assert Enum.take_random([1, 2, 3, 4, 5], 4) == [3, 5, 1, 2]
-    assert Enum.take_random([1, 2, 3, 4, 5], 5) == [1, 2, 5, 4, 3]
-    assert Enum.take_random([1, 2, 3, 4, 5], 6) == [2, 4, 5, 3, 1]
-    :random.seed(seed2)
-    assert Enum.take_random([1, 2, 3, 4, 5], 1) == [1]
-    assert Enum.take_random([1, 2, 3, 4, 5], 2) == [1, 5]
-    assert Enum.take_random([1, 2, 3, 4, 5], 3) == [5, 1, 3]
-    assert Enum.take_random([1, 2, 3, 4, 5], 4) == [4, 5, 2, 1]
-    assert Enum.take_random([1, 2, 3, 4, 5], 5) == [4, 3, 1, 5, 2]
-    assert Enum.take_random([1, 2, 3, 4, 5], 6) == [5, 2, 1, 4, 3]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random([1, 2, 3], 1) == [1]
+    assert Enum.take_random([1, 2, 3], 2) == [1, 3]
+    assert Enum.take_random([1, 2, 3], 3) == [2, 1, 3]
+    assert Enum.take_random([1, 2, 3], 4) == [3, 1, 2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random([1, 2, 3], 1) == [3]
+    assert Enum.take_random([1, 2, 3], 2) == [1, 2]
+    assert Enum.take_random([1, 2, 3], 3) == [1, 2, 3]
+    assert Enum.take_random([1, 2, 3], 4) == [1, 2, 3]
 
     # assert that every item in the sample comes from the input list
     list = for _<-1..100, do: make_ref
     for x <- Enum.take_random(list, 50) do
-      assert Enum.find(list, &(&1 == x))
+      assert x in list
     end
   end
 
@@ -362,8 +364,8 @@ defmodule EnumTest.List do
 
   test "shuffle" do
     # set a fixed seed so the test can be deterministic
-    :random.seed(1374, 347975, 449264)
-    assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 4, 1, 5, 3]
+    :rand.seed(:exsplus, {1374, 347975, 449264})
+    assert Enum.shuffle([1, 2, 3, 4, 5]) == [2, 1, 3, 5, 4]
   end
 
   test "sort" do
@@ -611,11 +613,11 @@ defmodule EnumTest.List do
     assert Enum.slice(list, -5..-3) == [1, 2, 3]
     assert Enum.slice(list, -6..-1) == []
     assert Enum.slice(list, -6..-3) == []
-    assert_raise FunctionClauseError, fn ->
+    assert_raise ArgumentError, fn ->
       x = 1.1
       Enum.slice(list, x..2)
     end
-    assert_raise FunctionClauseError, fn ->
+    assert_raise ArgumentError, fn ->
       x = 1.9
       Enum.slice(list, 1..x)
     end
@@ -935,25 +937,13 @@ defmodule EnumTest.Range do
     # set a fixed seed so the test can be deterministic
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
-    seed2 = {1406, 421106, 567597}
-    :random.seed(seed1)
+    seed2 = {1306, 421106, 567597}
+    :rand.seed(:exsplus, seed1)
+    assert Enum.random(1..2) == 1
+    assert Enum.random(1..3) == 1
+    :rand.seed(:exsplus, seed2)
     assert Enum.random(1..2) == 2
     assert Enum.random(1..3) == 2
-    assert Enum.random(1..4) == 4
-    assert Enum.random(1..5) == 1
-    :random.seed(seed1)
-    assert Enum.random(?a..?z) == ?i
-    :random.seed(seed1)
-    assert Enum.random(?0..?9) == ?8
-    :random.seed(seed2)
-    assert Enum.random(1..2) == 1
-    assert Enum.random(1..3) == 3
-    assert Enum.random(1..4) == 1
-    assert Enum.random(1..5) == 5
-    :random.seed(seed2)
-    assert Enum.random(?a..?z) == ?a
-    :random.seed(seed2)
-    assert Enum.random(?0..?9) == ?0
   end
 
   test "take random" do
@@ -967,43 +957,16 @@ defmodule EnumTest.Range do
     # please note the order of following assertions is important
     seed1 = {1406, 407414, 139258}
     seed2 = {1406, 421106, 567597}
-    :random.seed(seed1)
-    assert Enum.take_random(1..5, 1) == [2]
-    assert Enum.take_random(1..5, 2) == [4, 1]
-    assert Enum.take_random(1..5, 3) == [1, 3, 5]
-    assert Enum.take_random(1..5, 4) == [3, 5, 1, 2]
-    assert Enum.take_random(1..5, 5) == [1, 2, 5, 4, 3]
-    assert Enum.take_random(1..5, 6) == [2, 4, 5, 3, 1]
-    :random.seed(seed2)
-    assert Enum.take_random(1..5, 1) == [1]
-    assert Enum.take_random(1..5, 2) == [1, 5]
-    assert Enum.take_random(1..5, 3) == [5, 1, 3]
-    assert Enum.take_random(1..5, 4) == [4, 5, 2, 1]
-    assert Enum.take_random(1..5, 5) == [4, 3, 1, 5, 2]
-    assert Enum.take_random(1..5, 6) == [5, 2, 1, 4, 3]
-
-    :random.seed(seed1)
-    assert Enum.take_random(1..200, 130) == [107, 168, 172, 88, 98, 89, 64, 104, 161,
-      28, 128, 125, 30, 182, 194, 140, 198, 113, 191, 69, 126, 37, 115, 147, 193, 152,
-      154, 145, 127, 99, 148, 52, 17, 63, 59, 54, 38, 80, 100, 188, 122, 19, 41, 108,
-      26, 81, 10, 158, 195, 60, 95, 24, 117, 163, 141, 62, 116, 176, 156, 31, 73, 120,
-      55, 76, 44, 174, 110, 25, 136, 166, 149, 83, 106, 159, 46, 138, 157, 187, 93, 131,
-      180, 109, 162, 67, 22, 5, 170, 18, 143, 177, 146, 153, 34, 167, 137, 160, 175, 16,
-      74, 1, 51, 134, 47, 35, 85, 75, 179, 61, 130, 151, 118, 129, 164, 42, 86, 48, 186,
-      8, 192, 20, 90, 150, 178, 39, 92, 171, 56, 2, 200, 155]
-
-    :random.seed(seed1)
-    assert Enum.take_random(?a..?z, 1) == 'i'
-    assert Enum.take_random(?a..?z, 2) == 'cm'
-    assert Enum.take_random(?a..?z, 3) == 'alp'
-    assert Enum.take_random(?a..?z, 4) == 'tzmd'
-    assert Enum.take_random(?a..?z, 5) == 'cuxvb'
-    :random.seed(seed2)
-    assert Enum.take_random(?a..?z, 1) == 'a'
-    assert Enum.take_random(?a..?z, 2) == 'wk'
-    assert Enum.take_random(?a..?z, 3) == 'ayj'
-    assert Enum.take_random(?a..?z, 4) == 'rbcm'
-    assert Enum.take_random(?a..?z, 5) == 'rhzju'
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(1..3, 1) == [1]
+    assert Enum.take_random(1..3, 2) == [1, 3]
+    assert Enum.take_random(1..3, 3) == [2, 1, 3]
+    assert Enum.take_random(1..3, 4) == [3, 1, 2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(1..3, 1) == [3]
+    assert Enum.take_random(1..3, 2) == [1, 2]
+    assert Enum.take_random(1..3, 3) == [1, 2, 3]
+    assert Enum.take_random(1..3, 4) == [1, 2, 3]
   end
 
   test "scan" do
@@ -1013,8 +976,8 @@ defmodule EnumTest.Range do
 
   test "shuffle" do
     # set a fixed seed so the test can be deterministic
-    :random.seed(1374, 347975, 449264)
-    assert Enum.shuffle(1..5) == [2, 4, 1, 5, 3]
+    :rand.seed(:exsplus, {1374, 347975, 449264})
+    assert Enum.shuffle(1..5) == [2, 1, 3, 5, 4]
   end
 
   test "slice" do

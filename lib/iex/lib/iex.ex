@@ -15,6 +15,13 @@ defmodule IEx do
   IEx provides a bunch of helpers. They can be accessed by typing
   `h()` into the shell or as a documentation for the `IEx.Helpers` module.
 
+  ## Autocomplete
+
+  To discover all available functions for a module, type the module name
+  followed by a dot, then press tab to trigger autocomplete. For example:
+
+      Enum.
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
@@ -47,7 +54,7 @@ defmodule IEx do
   Now, try to access the `hello` variable again:
 
       hello
-      ** (UndefinedFunctionError) undefined function: hello/0
+      ** (UndefinedFunctionError) undefined function hello/0
 
   The command above fails because we have switched shells.
   Since shells are isolated from each other, you can't access the
@@ -91,7 +98,7 @@ defmodule IEx do
   as it was defined only in the other shell:
 
       iex(bar@HOST)1> Hello.world
-      ** (UndefinedFunctionError) undefined function: Hello.world/0
+      ** (UndefinedFunctionError) undefined function Hello.world/0
 
   However, we can connect to the other shell remotely. Open up
   the User Switch prompt (Ctrl+G) and type:
@@ -212,8 +219,8 @@ defmodule IEx do
   @doc """
   Configures IEx.
 
-  The supported options are: `:colors`, `:inspect`,
-  `:default_prompt`, `:alive_prompt` and `:history_size`.
+  The supported options are: `:colors`, `:inspect`, `:width`,
+  `:history_size`, `:default_prompt` and `:alive_prompt`.
 
   ## Colors
 
@@ -249,6 +256,15 @@ defmodule IEx do
   pretty formatting with a limit of 50 entries.
 
   See `Inspect.Opts` for the full list of options.
+
+  ## Width
+
+  An integer indicating the number of columns to use in documentation
+  output. Default is 80 columns or result of `:io.columns`, whichever
+  is smaller. The configured value will be used unless it is too large,
+  which in that case `:io.columns` is used. This way you can configure
+  IEx to be your largest screen size and it should always take up the
+  full width of your terminal screen.
 
   ## History size
 
@@ -406,9 +422,16 @@ defmodule IEx do
   (a sensible default is 5000).
   """
   def pry(binding, env, timeout) do
-    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
     opts = [binding: binding, dot_iex_path: "", env: env, prefix: "pry"]
-    res  = IEx.Server.take_over("Request to pry #{meta}", opts, timeout)
+    meta = "#{inspect self} at #{Path.relative_to_cwd(env.file)}:#{env.line}"
+    desc =
+      if File.regular?(env.file) do
+        parse_file(env)
+      else
+        ""
+      end
+
+    res = IEx.Server.take_over("Request to pry #{meta}#{desc}", opts, timeout)
 
     # We cannot use colors because IEx may be off.
     case res do
@@ -426,6 +449,14 @@ defmodule IEx do
     end
 
     res
+  end
+
+  defp parse_file(env) do
+    lines =
+      env.file
+      |> File.stream!
+      |> Enum.slice(max(env.line - 3, 0), 5)
+    Enum.intersperse(["\n\n"|lines], "    ")
   end
 
   ## Callbacks

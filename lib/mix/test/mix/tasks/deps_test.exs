@@ -167,6 +167,16 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Compile.run []
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 
+      # Remove the deps but set build_path, deps won't be pruned
+      Mix.ProjectStack.post_config [deps: [], build_path: "_build"]
+      Mix.Project.pop
+      Mix.Project.push SuccessfulDepsApp
+
+      Mix.Tasks.Deps.Check.run []
+      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
+      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
+
+      # Remove the deps without build_path, deps will be pruned
       Mix.ProjectStack.post_config [deps: []]
       Mix.Project.pop
       Mix.Project.push SuccessfulDepsApp
@@ -179,9 +189,9 @@ defmodule Mix.Tasks.DepsTest do
 
   ## deps.unlock
 
-  test "unlocks all deps" do
+  test "unlocks all deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{git_repo: "abcdef"}
       assert Mix.Dep.Lock.read == %{git_repo: "abcdef"}
       Mix.Tasks.Deps.Unlock.run ["--all"]
@@ -189,9 +199,9 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "unlocks unused deps" do
+  test "unlocks unused deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{whatever: "abcdef", ok: "abcdef"}
       assert Mix.Dep.Lock.read == %{whatever: "abcdef", ok: "abcdef"}
       Mix.Tasks.Deps.Unlock.run ["--unused"]
@@ -199,9 +209,9 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "unlocks specific deps" do
+  test "unlocks specific deps", context do
     Mix.Project.push DepsApp
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Dep.Lock.write %{git_repo: "abcdef", another: "hash"}
       Mix.Tasks.Deps.Unlock.run ["git_repo", "unknown"]
       assert Mix.Dep.Lock.read == %{another: "hash"}
@@ -255,6 +265,19 @@ defmodule Mix.Tasks.DepsTest do
   end
 
   ## Nested dependencies
+
+  defmodule ConflictDepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          {:git_repo, "0.1.0", path: "custom/raw_repo"},
+          {:bad_deps_repo, "0.1.0", path: "custom/bad_deps_repo"}
+        ]
+      ]
+    end
+  end
 
   defmodule DivergedDepsApp do
     def project do
@@ -318,7 +341,28 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  test "fails on diverged dependencies" do
+  test "fails on diverged dependencies on get/update" do
+    Mix.Project.push ConflictDepsApp
+
+    in_fixture "deps_status", fn ->
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Check.run []
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _]}
+
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Get.run []
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _]}
+
+      assert_raise Mix.Error, fn ->
+        Mix.Tasks.Deps.Update.run ["--all"]
+      end
+      assert_received {:mix_shell, :error, ["  the dependency git_repo in mix.exs is overriding a child dependency" <> _]}
+    end
+  end
+
+  test "fails on diverged dependencies on check" do
     Mix.Project.push DivergedDepsApp
 
     in_fixture "deps_status", fn ->
@@ -464,7 +508,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<\"the_future\">>, scm}.))
+      File.write!("_build/dev/lib/ok/.compile.elixir_scm", ~s({v1, <<\"the_future\">>, scm}.))
       Mix.Task.clear
 
       msg = "  the dependency was built with an out-of-date Elixir version, run \"mix deps.compile\""
@@ -488,7 +532,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Check.run []
 
       File.mkdir_p!("_build/dev/lib/ok/ebin")
-      File.write!("_build/dev/lib/ok/.compile.lock", ~s({v1, <<"#{System.version}">>, scm}.))
+      File.write!("_build/dev/lib/ok/.compile.elixir_scm", ~s({v1, <<"#{System.version}">>, scm}.))
       Mix.Task.clear
 
       msg = "  the dependency was built with another SCM, run \"mix deps.compile\""

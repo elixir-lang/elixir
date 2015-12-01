@@ -4,30 +4,31 @@
   load_binding/2, dump_binding/2,
   mergev/2, mergec/2, mergef/2,
   merge_vars/2, merge_opt_vars/2,
-  format_error/1
+  warn_unsafe_var/4, warn_underscored_var_access/3, format_error/1
 ]).
 -include("elixir.hrl").
 
 %% VAR HANDLING
 
 translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
-  Line  = ?line(Meta),
+  Ann = ?ann(Meta),
   Tuple = {Name, Kind},
-  Vars  = S#elixir_scope.vars,
+  Vars = S#elixir_scope.vars,
 
-  case orddict:find({Name, Kind}, Vars) of
-    {ok, {Current, _}} -> Exists = true;
-    error -> Current = nil, Exists = false
-  end,
+  {Current, Exists, Safe} =
+    case maps:find({Name, Kind}, Vars) of
+      {ok, {VarC, _, VarS}} -> {VarC, true, VarS};
+      error -> {nil, false, true}
+    end,
 
   case S#elixir_scope.context of
     match ->
       MatchVars = S#elixir_scope.match_vars,
 
-      case Exists andalso ordsets:is_element(Tuple, MatchVars) of
+      case Exists andalso maps:get(Tuple, MatchVars, false) of
         true ->
-          warn_underscored_var_repeat(Line, Meta, S#elixir_scope.file, Name, Kind),
-          {{var, Line, Current}, S};
+          warn_underscored_var_repeat(Meta, S#elixir_scope.file, Name, Kind),
+          {{var, Ann, Current}, S};
         false ->
           %% We attempt to give vars a nice name because we
           %% still use the unused vars warnings from erl_lint.
@@ -43,53 +44,68 @@ translate_var(Meta, Name, Kind, S) when is_atom(Kind); is_integer(Kind) ->
             end,
 
           FS = NS#elixir_scope{
-            vars=orddict:store(Tuple, {NewVar, Counter}, Vars),
-            match_vars=ordsets:add_element(Tuple, MatchVars),
+            vars=maps:put(Tuple, {NewVar, Counter, true}, Vars),
+            match_vars=maps:put(Tuple, true, MatchVars),
             export_vars=case S#elixir_scope.export_vars of
               nil -> nil;
-              EV  -> orddict:store(Tuple, {NewVar, Counter}, EV)
+              EV  -> maps:put(Tuple, {NewVar, Counter, true}, EV)
             end
           },
 
-          {{var, Line, NewVar}, FS}
+          {{var, Ann, NewVar}, FS}
       end;
     _  when Exists ->
-      warn_underscored_var_access(Line, Meta, S#elixir_scope.file, Name),
-      {{var, Line, Current}, S}
+      warn_underscored_var_access(Meta, S#elixir_scope.file, Name),
+      warn_unsafe_var(Meta, S#elixir_scope.file, Name, Safe),
+      {{var, Ann, Current}, S}
   end.
 
-build_var(Key, S) ->
-  New = orddict:update_counter(Key, 1, S#elixir_scope.counter),
-  Cnt = orddict:fetch(Key, New),
-  {elixir_utils:atom_concat([Key, "@", Cnt]), Cnt, S#elixir_scope{counter=New}}.
+build_var(Key, #elixir_scope{counter=Counter} = S) ->
+  Cnt =
+    case maps:find(Key, Counter) of
+      {ok, Val} -> Val + 1;
+      error -> 1
+    end,
+  {elixir_utils:atom_concat([Key, "@", Cnt]),
+   Cnt,
+   S#elixir_scope{counter=maps:put(Key, Cnt, Counter)}}.
 
 context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
 context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
 
-warn_underscored_var_repeat(Line, Meta, File, Name, Kind) ->
+warn_underscored_var_repeat(Meta, File, Name, Kind) ->
   Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ when Warn ->
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_match, Name, Kind});
+      elixir_errors:form_warn(Meta, File, ?MODULE, {unused_match, Name, Kind});
     _ ->
       ok
   end.
 
-warn_underscored_var_access(Line, Meta, File, Name) ->
+warn_unsafe_var(Meta, File, Name, Safe) ->
+  Warn = should_warn(Meta),
+  if
+    (not Safe) and Warn ->
+      elixir_errors:form_warn(Meta, File, ?MODULE, {unsafe_var, Name});
+    true ->
+      ok
+  end.
+
+warn_underscored_var_access(Meta, File, Name) ->
   Warn = should_warn(Meta),
   case atom_to_list(Name) of
     "_@" ++ _ ->
       ok; %% Automatically generated variables
     "_" ++ _ when Warn ->
-      elixir_errors:form_warn([{line, Line}], File, ?MODULE, {underscore_var_access, Name});
+      elixir_errors:form_warn(Meta, File, ?MODULE, {underscore_var_access, Name});
     _ ->
       ok
   end.
 
 should_warn(Meta) ->
-  lists:keyfind(warn, 1, Meta) /= {warn, false}.
+  lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
 %% SCOPE MERGING
 
@@ -124,27 +140,37 @@ mergef(S1, S2) ->
 
 merge_vars(V, V) -> V;
 merge_vars(V1, V2) ->
-  orddict:merge(fun var_merger/3, V1, V2).
+  merge_maps(fun var_merger/3, V1, V2).
 
 merge_opt_vars(nil, _C2) -> nil;
 merge_opt_vars(_C1, nil) -> nil;
 merge_opt_vars(C, C)     -> C;
 merge_opt_vars(C1, C2)   ->
-  orddict:merge(fun var_merger/3, C1, C2).
+  merge_maps(fun var_merger/3, C1, C2).
 
-var_merger(_Var, {_, V1} = K1, {_, V2}) when V1 > V2 -> K1;
+var_merger(_Var, {_, V1, _} = K1, {_, V2, _}) when V1 > V2 -> K1;
 var_merger(_Var, _K1, K2) -> K2.
+
+merge_maps(Fun, Map1, Map2) ->
+  maps:fold(fun(K, V2, Acc) ->
+    V =
+      case maps:find(K, Acc) of
+        {ok, V1} -> Fun(K, V1, V2);
+        error -> V2
+      end,
+    maps:put(K, V, Acc)
+  end, Map1, Map2).
 
 %% BINDINGS
 
 load_binding(Binding, Scope) ->
-  {NewBinding, NewVars, NewCounter} = load_binding(Binding, [], [], 0),
-  {NewBinding, Scope#elixir_scope{
+  {NewBinding, NewKeys, NewVars, NewCounter} = load_binding(Binding, [], [], #{}, 0),
+  {NewBinding, NewKeys, Scope#elixir_scope{
     vars=NewVars,
-    counter=[{'_', NewCounter}]
+    counter=#{'_' => NewCounter}
  }}.
 
-load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
+load_binding([{Key, Value}|T], Binding, Keys, Vars, Counter) ->
   Actual = case Key of
     {_Name, _Kind} -> Key;
     Name when is_atom(Name) -> {Name, nil}
@@ -152,23 +178,28 @@ load_binding([{Key, Value}|T], Binding, Vars, Counter) ->
   InternalName = elixir_utils:atom_concat(["_@", Counter]),
   load_binding(T,
     orddict:store(InternalName, Value, Binding),
-    orddict:store(Actual, {InternalName, 0}, Vars), Counter + 1);
-load_binding([], Binding, Vars, Counter) ->
-  {Binding, Vars, Counter}.
+    ordsets:add_element(Actual, Keys),
+    maps:put(Actual, {InternalName, 0, true}, Vars), Counter + 1);
+load_binding([], Binding, Keys, Vars, Counter) ->
+  {Binding, Keys, Vars, Counter}.
 
 dump_binding(Binding, #elixir_scope{vars=Vars}) ->
-  dump_binding(Vars, Binding, []).
+  maps:fold(fun
+    ({Var, Kind} = Key, {InternalName, _, _}, Acc) when is_atom(Kind) ->
+      Actual = case Kind of
+        nil -> Var;
+        _   -> Key
+      end,
 
-dump_binding([{{Var, Kind} = Key, {InternalName, _}}|T], Binding, Acc) when is_atom(Kind) ->
-  Actual = case Kind of
-    nil -> Var;
-    _   -> Key
-  end,
-  Value = proplists:get_value(InternalName, Binding, nil),
-  dump_binding(T, Binding, orddict:store(Actual, Value, Acc));
-dump_binding([_|T], Binding, Acc) ->
-  dump_binding(T, Binding, Acc);
-dump_binding([], _Binding, Acc) -> Acc.
+      Value = case orddict:find(InternalName, Binding) of
+        {ok, V} -> V;
+        error -> nil
+      end,
+
+      orddict:store(Actual, Value, Acc);
+    (_, _, Acc) ->
+      Acc
+  end, [], Vars).
 
 %% Errors
 
@@ -178,6 +209,21 @@ format_error({unused_match, Name, Kind}) ->
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
                 "give the variables different names", [Name, context_info(Kind), Name]);
+
+format_error({unsafe_var, Name}) ->
+  io_lib:format("the variable \"~ts\" is unsafe as it has been defined in a conditional clause, "
+                "as part of a case/cond/receive/if/&&/||. Please rewrite the clauses so the value is "
+                "explicitly returned. For example:\n\n"
+                "    case int do\n"
+                "      1 -> atom = :one\n"
+                "      2 -> atom = :two\n"
+                "    end\n\n"
+                "Can be rewritten as:\n\n"
+                "    atom =\n"
+                "      case int do\n"
+                "        1 -> :one\n"
+                "        2 -> :two\n"
+                "      end\n", [Name]);
 
 format_error({underscore_var_access, Name}) ->
   io_lib:format("the underscored variable \"~ts\" is used after being set. "

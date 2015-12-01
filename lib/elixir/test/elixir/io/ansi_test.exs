@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule IO.ANSITest do
   use ExUnit.Case, async: true
 
+  doctest IO.ANSI
+
   test "format ansicode" do
     assert IO.chardata_to_string(IO.ANSI.format(:green, true)) ==
            "#{IO.ANSI.green}#{IO.ANSI.reset}"
@@ -87,8 +89,35 @@ defmodule IO.ANSITest do
   end
 
   test "format invalid sequence" do
-    assert_raise ArgumentError, "invalid ANSI sequence specification: brigh", fn ->
+    assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
       IO.ANSI.format([:brigh, "Hello!"], true)
+    end
+    assert_raise ArgumentError, "invalid ANSI sequence specification: nil", fn ->
+      IO.ANSI.format(["Hello!", nil], true)
+    end
+  end
+
+  test "color/1" do
+    assert IO.ANSI.color(0) == "\e[38;5;0m"
+    assert IO.ANSI.color(42) == "\e[38;5;42m"
+    assert IO.ANSI.color(255) == "\e[38;5;255m"
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color(-1)
+    end
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color(256)
+    end
+  end
+
+  test "color_background/1" do
+    assert IO.ANSI.color_background(0) == "\e[48;5;0m"
+    assert IO.ANSI.color_background(42) == "\e[48;5;42m"
+    assert IO.ANSI.color_background(255) == "\e[48;5;255m"
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color_background(-1)
+    end
+    assert_raise FunctionClauseError, fn() ->
+      IO.ANSI.color_background(256)
     end
   end
 end

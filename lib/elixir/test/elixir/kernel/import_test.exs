@@ -12,6 +12,24 @@ defmodule Kernel.ImportTest do
     end
   end
 
+  test "multi-call" do
+    import Elixir.{List, unquote(:String)}
+    assert keymember?([a: 1], :a, 0)
+    assert valid_character?("ø")
+  end
+
+  test "blank multi-call" do
+    import List.{}
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
+  test "multi-call with options" do
+    import Elixir.{List}, only: []
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
   test "import all" do
     import :lists
     assert flatten([1, [2], 3]) == [1, 2, 3]

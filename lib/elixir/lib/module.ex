@@ -1,8 +1,9 @@
 defmodule Module do
   @moduledoc ~S'''
-  This module provides many functions to deal with modules during
-  compilation time. It allows a developer to dynamically attach
-  documentation, add, delete and register attributes and so forth.
+  Provides functions to deal with modules during compilation time.
+
+  It allows a developer to dynamically add, delete and register
+  attributes, attach documentation and so forth.
 
   After a module is compiled, using many of the functions in
   this module will raise errors, since it is out of their scope
@@ -65,6 +66,30 @@ defmodule Module do
 
     * `@behaviour`   (notice the British spelling)
 
+      Behaviours can be referenced by modules to ensure they implement
+      required specific function signatures defined by `@callback`.
+
+      For example, you can specify the URI.Parser behaviour as follows:
+
+          defmodule URI.Parser do
+            @doc "Parses the given URL"
+            @callback parse(uri_info :: URI.t) :: URI.t
+
+            @doc "Defines a default port"
+            @callback default_port() :: integer
+          end
+
+          And then a module may use it as:
+
+          defmodule URI.HTTP do
+            @behaviour URI.Parser
+            def default_port(), do: 80
+            def parse(info), do: info
+          end
+
+      If the behaviour changes or URI.HTTP does not implement one of the
+      callbacks, a warning will be raised.
+
       Specifies an OTP or user-defined behaviour.
 
       ### Example
@@ -85,7 +110,7 @@ defmodule Module do
       For the list of supported options, see Erlang's
       [`:compile` module](http://www.erlang.org/doc/man/compile.html).
 
-      Several uses of `@compile` will accumulate instead of overriding
+      Multiple uses of `@compile` will accumulate instead of overriding
       previous ones.
 
       ### Example
@@ -271,7 +296,7 @@ defmodule Module do
       For the list of supported warnings, see
       [`:dialyzer` module](http://www.erlang.org/doc/man/dialyzer.html).
 
-      Several uses of `@dialyzer` will accumulate instead of overriding
+      Multiple uses of `@dialyzer` will accumulate instead of overriding
       previous ones.
 
       ### Example
@@ -325,10 +350,9 @@ defmodule Module do
     * `:module`     - module name (`Module == Module.__info__(:module)`)
 
   In addition to the above, you may also pass to `__info__/1` any atom supported
-  by [`:erlang.module_info/0`](http://www.erlang.org/doc/man/erlang.html#module_info.html) which also gets defined for each compiled
-  module.
+  by `:erlang.module_info/0` which also gets defined for each compiled module.
 
-  For more information, see [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html).
+  For a list of supported attributes and more information, see [Modules – Erlang Reference Manual](http://www.erlang.org/doc/reference_manual/modules.html#id77056).
   """
   def __info__(kind)
 
@@ -472,7 +496,7 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat([Unknown, Module])
+      iex> Module.safe_concat([Module, Unknown])
       ** (ArgumentError) argument error
 
       iex> Module.safe_concat([List, Chars])
@@ -492,7 +516,7 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat(Unknown, Module)
+      iex> Module.safe_concat(Module, Unknown)
       ** (ArgumentError) argument error
 
       iex> Module.safe_concat(List, Chars)
@@ -620,12 +644,12 @@ defmodule Module do
     length(:lists.filter(fn(el) -> el == key end, list))
   end
 
-  defp camelcase_to_underscore(<<c :: utf8, rest :: binary>>) when c >= ?A and c <= ?Z,
-    do: do_camelcase_to_underscore(rest, <<c + 32 :: utf8>>)
-  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc) when c >= ?A and c <= ?Z,
-    do: do_camelcase_to_underscore(rest, <<acc :: binary, ?_, c + 32 :: utf8>>)
-  defp do_camelcase_to_underscore(<<c :: utf8, rest :: binary>>, acc),
-    do: do_camelcase_to_underscore(rest, <<acc :: binary, c>>)
+  defp camelcase_to_underscore(<<c::utf8, rest::binary>>) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<c + 32::utf8>>)
+  defp do_camelcase_to_underscore(<<c::utf8, rest::binary>>, acc) when c >= ?A and c <= ?Z,
+    do: do_camelcase_to_underscore(rest, <<acc::binary, ?_, c + 32::utf8>>)
+  defp do_camelcase_to_underscore(<<c::utf8, rest::binary>>, acc),
+    do: do_camelcase_to_underscore(rest, <<acc::binary, c>>)
   defp do_camelcase_to_underscore(<<>>, acc),
     do: acc
 
@@ -758,11 +782,13 @@ defmodule Module do
             Module.LocalsTracker.yank(module, tuple)
           end
 
-          old    = :elixir_def_overridable.overridable(module)
-          merged = :orddict.update(tuple, fn({count, _, _, _}) ->
-            {count + 1, clause, neighbours, false}
-          end, {1, clause, neighbours, false}, old)
-          :elixir_def_overridable.overridable(module, merged)
+          old   = :elixir_def_overridable.overridable(module)
+          count = case :maps.find(tuple, old) do
+            {:ok, {count, _, _, _}} -> count + 1
+            :error -> 1
+          end
+          new = :maps.put(tuple, {count, clause, neighbours, false}, old)
+          :elixir_def_overridable.overridable(module, new)
       end
     end, tuples)
   end
@@ -771,7 +797,7 @@ defmodule Module do
   Returns `true` if `tuple` in `module` is marked as overridable.
   """
   def overridable?(module, tuple) do
-    !!List.keyfind(:elixir_def_overridable.overridable(module), tuple, 0)
+    :maps.is_key(tuple, :elixir_def_overridable.overridable(module))
   end
 
   @doc """
@@ -786,11 +812,17 @@ defmodule Module do
       end
 
   """
-  def put_attribute(module, key, value) when is_atom(key) do
+  def put_attribute(module, key, value) do
+    put_attribute(module, key, value, nil)
+  end
+
+  @doc false
+  def put_attribute(module, key, value, stack) when is_atom(key) do
     assert_not_compiled!(:put_attribute, module)
     table = data_table_for(module)
     value = preprocess_attribute(key, value)
     acc   = :ets.lookup_element(table, {:elixir, :acc_attributes}, 2)
+    warn_if_redefining_doc_attribute(stack, table, key)
 
     new =
       if :lists.member(key, acc) do
@@ -969,7 +1001,7 @@ defmodule Module do
   end
 
   @doc false
-  def get_attribute(module, key, warn) when is_atom(key) and (is_list(warn) or is_nil(warn)) do
+  def get_attribute(module, key, stack) when is_atom(key) and (is_list(stack) or is_nil(stack)) do
     assert_not_compiled!(:get_attribute, module)
     table = data_table_for(module)
 
@@ -982,8 +1014,8 @@ defmodule Module do
         cond do
           :lists.member(key, acc) ->
             []
-          is_list(warn) ->
-            :elixir_errors.warn warn_info(warn), "undefined module attribute @#{key}, " <>
+          is_list(stack) ->
+            :elixir_errors.warn warn_info(stack), "undefined module attribute @#{key}, " <>
               "please remove access to @#{key} or explicitly set it before access"
             nil
           true ->
@@ -1039,13 +1071,9 @@ defmodule Module do
   defp postprocess_attribute(_, value), do: value
 
   defp get_doc_info(table, env) do
-    # TODO: Use :ets.take/2 with Erlang 18
-    case :ets.lookup(table, :doc) do
-      [doc: {_, _} = pair] ->
-        :ets.delete(table, :doc)
-        pair
-      [] ->
-        {env.line, nil}
+    case :ets.take(table, :doc) do
+      [doc: {_, _} = pair] -> pair
+      [] -> {env.line, nil}
     end
   end
 
@@ -1062,4 +1090,17 @@ defmodule Module do
       raise ArgumentError,
         "could not call #{fun} on module #{inspect module} because it was already compiled"
   end
+
+  defp warn_if_redefining_doc_attribute(stack, table, key)
+      when is_list(stack) and key in [:doc, :typedoc, :moduledoc] do
+    case :ets.lookup(table, key) do
+      [{_, {line, val}}] when val != false ->
+        :elixir_errors.warn warn_info(stack),
+                            "redefining @#{key} attribute previously set at line #{line}"
+      _ ->
+        false
+    end
+  end
+
+  defp warn_if_redefining_doc_attribute(nil, _table, _key), do: false
 end

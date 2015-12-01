@@ -1,12 +1,11 @@
 defmodule Kernel.SpecialForms do
   @moduledoc """
-  In this module we define Elixir special forms. Special forms
-  cannot be overridden by the developer and are the basic
-  building blocks of Elixir code.
+  Special forms are the basic building blocks of Elixir, and therefore
+  they cannot be overridden by the developer.
 
-  Some of those forms are lexical (like `alias`, `case`, etc).
-  The macros `{}` and `<<>>` are also special forms used to define
-  tuple and binary data structures respectively.
+  We define them in this module. Some of these forms are lexical (like
+  `alias`, `case`, etc). The macros `{}` and `<<>>` are also special
+  forms used to define tuple and binary data structures respectively.
 
   This module also documents Elixir's pseudo variables (`__ENV__`,
   `__MODULE__`, `__DIR__` and `__CALLER__`). Pseudo variables return
@@ -88,7 +87,7 @@ defmodule Kernel.SpecialForms do
       %{:a => :c}
 
   Notice the update syntax requires the given keys to exist.
-  Trying to update a key that does not exist will raise an `ArgumentError`.
+  Trying to update a key that does not exist will raise an `KeyError`.
 
   ## AST representation
 
@@ -96,8 +95,8 @@ defmodule Kernel.SpecialForms do
   always represented internally as a list of two-items tuples
   for simplicity:
 
-      iex> quote do: %{:a => :b, c: :d}
-      {:%{}, [], [{:a, :b}, {:c, :d}]}
+      iex> quote do: %{"a" => :b, c: :d}
+      {:%{}, [], [{"a", :b}, {:c, :d}]}
 
   """
   defmacro unquote(:%{})(args)
@@ -169,8 +168,8 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> << 1, 2, 3 >>
-      << 1, 2, 3 >>
+      iex> <<1, 2, 3>>
+      <<1, 2, 3>>
 
   ## Types
 
@@ -193,7 +192,7 @@ defmodule Kernel.SpecialForms do
       <<1, 2, 3>>
 
   Elixir also accepts by default the segment to be a literal
-  string or a literal char list, which are by expanded to integers:
+  string or a literal char list, which are by default expanded to integers:
 
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
@@ -207,15 +206,15 @@ defmodule Kernel.SpecialForms do
   We can solve this by explicitly tagging it as a binary:
 
       iex> rest = "oo"
-      iex> <<102, rest :: binary>>
+      iex> <<102, rest::binary>>
       "foo"
 
   The utf8, utf16, and utf32 types are for unicode codepoints. They
   can also be applied to literal strings and char lists:
 
-      iex> <<"foo" :: utf16>>
+      iex> <<"foo"::utf16>>
       <<0, 102, 0, 111, 0, 111>>
-      iex> <<"foo" :: utf32>>
+      iex> <<"foo"::utf32>>
       <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
   ## Options
@@ -223,13 +222,13 @@ defmodule Kernel.SpecialForms do
   Many options can be given by using `-` as separator. Order is
   arbitrary, so the following are all equivalent:
 
-      <<102 :: integer-native, rest :: binary>>
-      <<102 :: native-integer, rest :: binary>>
-      <<102 :: unsigned-big-integer, rest :: binary>>
-      <<102 :: unsigned-big-integer-size(8), rest :: binary>>
-      <<102 :: unsigned-big-integer-8, rest :: binary>>
-      <<102 :: 8-integer-big-unsigned, rest :: binary>>
-      <<102, rest :: binary>>
+      <<102::integer-native, rest::binary>>
+      <<102::native-integer, rest::binary>>
+      <<102::unsigned-big-integer, rest::binary>>
+      <<102::unsigned-big-integer-size(8), rest::binary>>
+      <<102::unsigned-big-integer-8, rest::binary>>
+      <<102::8-integer-big-unsigned, rest::binary>>
+      <<102, rest::binary>>
 
   ### Unit and Size
 
@@ -268,9 +267,9 @@ defmodule Kernel.SpecialForms do
   when passing integer values:
 
       iex> x = 1
-      iex> << x :: 8 >> == << x :: size(8) >>
+      iex> <<x::8>> == <<x::size(8)>>
       true
-      iex> << x :: 8 * 4 >> == << x :: size(8)-unit(4) >>
+      iex> <<x::8 * 4>> == <<x::size(8)-unit(4)>>
       true
 
   This syntax reflects the fact the effective size is given by
@@ -293,11 +292,11 @@ defmodule Kernel.SpecialForms do
 
   Integers can be `signed` or `unsigned`, defaulting to `unsigned`.
 
-      iex> <<int::integer>> =  <<-100>>
+      iex> <<int::integer>> = <<-100>>
       <<156>>
       iex> int
       156
-      iex> <<int::integer-signed>> =  <<-100>>
+      iex> <<int::integer-signed>> = <<-100>>
       <<156>>
       iex> int
       -100
@@ -305,7 +304,7 @@ defmodule Kernel.SpecialForms do
   `signed` and `unsigned` are only used for matching binaries (see below) and
   are only used for integers.
 
-      iex> <<-100 :: signed, _rest :: binary>> = <<-100, "foo">>
+      iex> <<-100::signed, _rest::binary>> = <<-100, "foo">>
       <<156, 102, 111, 111>>
 
   ### Endianness
@@ -881,7 +880,7 @@ defmodule Kernel.SpecialForms do
 
       import Math
       squared(5)
-      x #=> ** (RuntimeError) undefined function or variable: x
+      x #=> ** (CompileError) undefined variable x or undefined function x/0
 
   We can see that `x` did not leak to the user context. This happens
   because Elixir macros are hygienic, a topic we will discuss at length
@@ -940,7 +939,7 @@ defmodule Kernel.SpecialForms do
 
       Hygiene.write
       Hygiene.read
-      #=> ** (RuntimeError) undefined function or variable: a
+      #=> ** (RuntimeError) undefined variable a or undefined function a/0
 
   For such, you can explicitly pass the current module scope as
   argument:
@@ -969,34 +968,34 @@ defmodule Kernel.SpecialForms do
   Consider the following example:
 
       defmodule Hygiene do
-        alias HashDict, as: D
+        alias Map, as: M
 
         defmacro no_interference do
-          quote do: D.new
+          quote do: M.new
         end
       end
 
       require Hygiene
-      Hygiene.no_interference #=> #HashDict<[]>
+      Hygiene.no_interference #=> %{}
 
-  Notice that, even though the alias `D` is not available
+  Notice that, even though the alias `M` is not available
   in the context the macro is expanded, the code above works
-  because `D` still expands to `HashDict`.
+  because `M` still expands to `Map`.
 
   Similarly, even if we defined an alias with the same name
   before invoking a macro, it won't affect the macro's result:
 
       defmodule Hygiene do
-        alias HashDict, as: D
+        alias Map, as: M
 
         defmacro no_interference do
-          quote do: D.new
+          quote do: M.new
         end
       end
 
       require Hygiene
-      alias SomethingElse, as: D
-      Hygiene.no_interference #=> #HashDict<[]>
+      alias SomethingElse, as: M
+      Hygiene.no_interference #=> %{}
 
   In some cases, you want to access an alias or a module defined
   in the caller. For such, you can use the `alias!` macro:
@@ -1033,54 +1032,54 @@ defmodule Kernel.SpecialForms do
   following code:
 
       defmodule Hygiene do
-        defmacrop get_size do
+        defmacrop get_length do
           quote do
-            size("hello")
+            length([1,2,3])
           end
         end
 
-        def return_size do
-          import Kernel, except: [size: 1]
-          get_size
+        def return_length do
+          import Kernel, except: [length: 1]
+          get_length
         end
       end
 
-      Hygiene.return_size #=> 5
+      Hygiene.return_length #=> 3
 
-  Notice how `return_size` returns 5 even though the `size/1`
-  function is not imported. In fact, even if `return_size` imported
-  a function from another module, it wouldn't affect the function
-  result:
+  Notice how `return_length` returns 5 even though the `length/1`
+  function is not imported. In fact, even if `return_length`
+  imported a function with the same name and arity from another
+  module, it wouldn't affect the function result:
 
-      def return_size do
-        import Dict, only: [size: 1]
-        get_size
+      def return_length do
+        import String, only: [length: 1]
+        get_length
       end
 
-  Calling this new `return_size` will still return 5 as result.
+  Calling this new `return_length` will still return 3 as result.
 
   Elixir is smart enough to delay the resolution to the latest
-  moment possible. So, if you call `size("hello")` inside quote,
-  but no `size/1` function is available, it is then expanded in
+  moment possible. So, if you call `length([1, 2, 3])` inside quote,
+  but no `length/1` function is available, it is then expanded in
   the caller:
 
       defmodule Lazy do
-        defmacrop get_size do
-          import Kernel, except: [size: 1]
+        defmacrop get_length do
+          import Kernel, except: [length: 1]
 
           quote do
-            size([a: 1, b: 2])
+            length("hello")
           end
         end
 
-        def return_size do
-          import Kernel, except: [size: 1]
-          import Dict, only: [size: 1]
-          get_size
+        def return_length do
+          import Kernel, except: [length: 1]
+          import String, only: [length: 1]
+          get_length
         end
       end
 
-      Lazy.return_size #=> 2
+      Lazy.return_length #=> 5
 
   ## Stacktrace information
 
@@ -1252,7 +1251,7 @@ defmodule Kernel.SpecialForms do
   Note generators can also be used to filter as it removes any value
   that doesn't match the left side of `<-`:
 
-      iex> for {:user, name} <- [user: "john", admin: "john", user: "meg"] do
+      iex> for {:user, name} <- [user: "john", admin: "james", user: "meg"] do
       ...>   String.upcase(name)
       ...> end
       ["JOHN", "MEG"]
@@ -1290,6 +1289,42 @@ defmodule Kernel.SpecialForms do
 
   """
   defmacro for(args)
+
+  @doc """
+  Used to combine matching clauses.
+
+  Let's start with an example:
+
+      iex> opts = %{width: 10, height: 15}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, width * height}
+      {:ok, 150}
+
+  If all clauses match, the `do` block is executed, returning its result.
+  Otherwise the chain is aborted and a non-matched value is returned:
+
+      iex> opts = %{width: 10}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, width * height}
+      :error
+
+  Similarly to `for`/1, variables bound inside `with/1` won't leak,
+  and also it allows "bare expressions":
+
+      iex> width = nil
+      iex> opts = %{width: 10, height: 15}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      double_width = width * 2,
+      ...>      {:ok, height} <- Map.fetch(opts, :height),
+      ...>   do: {:ok, double_width * height}
+      {:ok, 300}
+      iex> width
+      nil
+
+  """
+  defmacro with(args)
 
   @doc """
   Defines an anonymous function.
@@ -1676,7 +1711,7 @@ defmodule Kernel.SpecialForms do
   This means the VM no longer needs to keep the stacktrace once inside
   an else clause and so tail recursion is possible when using a `try`
   with a tail call as the final call inside an else clause. The same
-  is `true` for `rescue` and `catch` clauses.
+  is true for `rescue` and `catch` clauses.
 
   ## Variable handling
 

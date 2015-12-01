@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StreamTest do
   use ExUnit.Case, async: true
 
+  doctest Stream
+
   defmodule PDict do
     defstruct []
 
@@ -416,6 +418,22 @@ defmodule StreamTest do
     assert Stream.transform(nats, 0, &{[&1, &2], &1 + &2}) |> Enum.take(6) == [1, 0, 2, 1, 3, 3]
   end
 
+  test "transform/3 with early halt" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(nil, &{[&1, &2], &1})
+
+    assert {:halted, nil} =
+      Enumerable.reduce(stream, {:halt, nil}, fn _, _ -> throw(:error) end)
+  end
+
+  test "transform/3 with early suspend" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(nil, &{[&1, &2], &1})
+
+    assert {:suspended, nil, _} =
+      Enumerable.reduce(stream, {:suspend, nil}, fn _, _ -> throw(:error) end)
+  end
+
   test "transform/3 with halt" do
     stream = Stream.resource(fn -> 1 end,
                              fn acc -> {[acc], acc + 1} end,
@@ -462,18 +480,18 @@ defmodule StreamTest do
   test "repeatedly/1" do
     stream = Stream.repeatedly(fn -> 1 end)
     assert Enum.take(stream, 5) == [1, 1, 1, 1, 1]
-    stream = Stream.repeatedly(&:random.uniform/0)
+    stream = Stream.repeatedly(&:rand.uniform/0)
     [r1, r2] = Enum.take(stream, 2)
     assert r1 != r2
   end
 
-  test "resource/3 closes on errors" do
+  test "resource/3 closes on outer errors" do
     stream = Stream.resource(fn -> 1 end,
-                             fn acc -> {[acc], acc + 1} end,
-                             fn _ -> Process.put(:stream_resource, true) end)
+                             fn 2 -> throw(:error)
+                                acc -> {[acc], acc + 1} end,
+                             fn 2 -> Process.put(:stream_resource, true) end)
 
     Process.put(:stream_resource, false)
-    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
     assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_resource)
   end
@@ -570,13 +588,34 @@ defmodule StreamTest do
     assert Process.get(:stream_transform)
   end
 
-  test "transform/4 closes on errors" do
+  test "transform/4 with early halt" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(fn -> nil end, &{[&1, &2], &1},
+                                 fn nil -> Process.put(:stream_transform, true) end)
+
+    Process.put(:stream_transform, false)
+    assert {:halted, nil} =
+      Enumerable.reduce(stream, {:halt, nil}, fn _, _ -> throw(:error) end)
+    assert Process.get(:stream_transform)
+  end
+
+  test "transform/4 with early suspend" do
+    stream = Stream.repeatedly(fn -> throw(:error) end)
+             |> Stream.transform(fn -> nil end, &{[&1, &2], &1},
+                                 fn nil -> Process.put(:stream_transform, true) end)
+
+    refute Process.get(:stream_transform)
+    assert {:suspended, nil, _} =
+      Enumerable.reduce(stream, {:suspend, nil}, fn _, _ -> throw(:error) end)
+  end
+
+  test "transform/4 closes on outer errors" do
     stream = Stream.transform(1..10, fn -> 0 end,
-                              fn x, acc -> {[x + acc], x} end,
+                              fn 3, _ -> throw(:error)
+                                 x, acc -> {[x + acc], x} end,
                               fn 2 -> Process.put(:stream_transform, true) end)
 
     Process.put(:stream_transform, false)
-    stream = Stream.map(stream, fn x -> if x > 2, do: throw(:error), else: x end)
     assert catch_throw(Enum.to_list(stream)) == :error
     assert Process.get(:stream_transform)
   end
@@ -640,7 +679,7 @@ defmodule StreamTest do
 
   test "transform/4 closes on errors with inner enum" do
     stream = Stream.transform(1..10, fn -> :acc end,
-                              fn x, acc -> {[x..x+2], acc} end,
+                              fn x, acc -> {x..x+2, acc} end,
                               fn :acc -> Process.put(:stream_transform, true) end)
 
     Process.put(:stream_transform, false)
@@ -652,7 +691,7 @@ defmodule StreamTest do
   test "transform/4 is zippable with inner enum" do
     stream = Stream.transform(1..20, fn -> :inner end,
                               fn 10, acc -> {:halt, acc}
-                                 x, acc -> {[x..x+2], acc}
+                                 x, acc -> {x..x+2, acc}
                               end,
                               fn :inner -> Process.put(:stream_transform, true) end)
 
@@ -768,9 +807,9 @@ defmodule StreamTest do
   end
 
   test "unfold/2" do
-    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.take(stream, 5) == [10, 9, 8, 7, 6]
-    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.to_list(stream) == [5, 4, 3, 2, 1]
   end
 
@@ -778,12 +817,12 @@ defmodule StreamTest do
     stream = Stream.unfold(1, fn x -> if x > 0, do: {x, x-1}, else: throw(:boom) end)
     assert Enum.take(stream, 1) == [1]
 
-    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(5, fn x -> if x > 0, do: {x, x-1} end)
     assert Enum.to_list(Stream.take(stream, 2)) == [5, 4]
   end
 
   test "unfold/2 is zippable" do
-    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1}, else: nil end)
+    stream = Stream.unfold(10, fn x -> if x > 0, do: {x, x-1} end)
     list   = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end

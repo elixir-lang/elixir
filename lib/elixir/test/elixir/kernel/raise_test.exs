@@ -226,7 +226,7 @@ defmodule Kernel.RaiseTest do
       x in [UndefinedFunctionError] -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
+    assert result == "undefined function DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   test "function clause error" do
@@ -304,34 +304,32 @@ defmodule Kernel.RaiseTest do
     assert result == "no match of right hand side value: 0"
   end
 
-  if :erlang.system_info(:otp_release) >= '18' do
-    test "bad key error" do
-      result = try do
-        %{%{} | foo: :bar}
-      rescue
-        x in [KeyError] -> Exception.message(x)
-      end
-
-      assert result == "key :foo not found"
-
-      result = try do
-        %{}.foo
-      rescue
-        x in [KeyError] -> Exception.message(x)
-      end
-
-      assert result == "key :foo not found in: %{}"
+  test "bad key error" do
+    result = try do
+      %{%{} | foo: :bar}
+    rescue
+      x in [KeyError] -> Exception.message(x)
     end
 
-    test "bad map error" do
-      result = try do
-        %{zero(0) | foo: :bar}
-      rescue
-        x in [BadMapError] -> Exception.message(x)
-      end
+    assert result == "key :foo not found"
 
-      assert result == "expected a map, got: 0"
+    result = try do
+      %{}.foo
+    rescue
+      x in [KeyError] -> Exception.message(x)
     end
+
+    assert result == "key :foo not found in: %{}"
+  end
+
+  test "bad map error" do
+    result = try do
+      %{zero(0) | foo: :bar}
+    rescue
+      x in [BadMapError] -> Exception.message(x)
+    end
+
+    assert result == "expected a map, got: 0"
   end
 
   test "case clause error" do
@@ -382,7 +380,7 @@ defmodule Kernel.RaiseTest do
       x in [ErlangError] -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
+    assert result == "undefined function DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   defmacrop exceptions do
@@ -396,7 +394,7 @@ defmodule Kernel.RaiseTest do
       x in exceptions -> Exception.message(x)
     end
 
-    assert result == "undefined function: DoNotExist.for_sure/0 (module DoNotExist is not available)"
+    assert result == "undefined function DoNotExist.for_sure/0 (module DoNotExist is not available)"
   end
 
   defp zero(0), do: 0

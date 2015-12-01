@@ -75,6 +75,7 @@ defmodule URI do
       %{"bar" => "2", "foo" => "1"}
 
   """
+  # TODO: Deprecate giving not a map on 1.3
   def decode_query(q, dict \\ %{}) when is_binary(q) do
     case do_decode_query(q) do
       nil         -> dict
@@ -177,7 +178,7 @@ defmodule URI do
   end
 
   @doc """
-  Encodes a string as "x-www-urlencoded".
+  Encodes a string as "x-www-form-urlencoded".
 
   ## Example
 
@@ -222,7 +223,7 @@ defmodule URI do
   end
 
   @doc """
-  Decodes a string as "x-www-urlencoded".
+  Decodes a string as "x-www-form-urlencoded".
 
   ## Examples
 
@@ -339,7 +340,7 @@ defmodule URI do
   # to replace those with nil for consistency.
   defp nillify(l) do
     for s <- l do
-      if byte_size(s) > 0, do: s, else: nil
+      if byte_size(s) > 0, do: s
     end
   end
 
@@ -361,23 +362,24 @@ defimpl String.Chars, for: URI do
     end
 
     # Based on http://tools.ietf.org/html/rfc3986#section-5.3
-
-    if uri.host do
-      authority = uri.host
-      if uri.userinfo, do: authority = uri.userinfo <> "@" <> authority
-      if uri.port, do: authority = authority <> ":" <> Integer.to_string(uri.port)
-    else
-      authority = uri.authority
-    end
+    authority = extract_authority(uri)
 
     result = ""
-
     if uri.scheme,   do: result = result <> uri.scheme <> ":"
     if authority,    do: result = result <> "//" <> authority
     if uri.path,     do: result = result <> uri.path
     if uri.query,    do: result = result <> "?" <> uri.query
     if uri.fragment, do: result = result <> "#" <> uri.fragment
-
     result
+  end
+
+  defp extract_authority(%{host: nil, authority: authority}) do
+    authority
+  end
+  defp extract_authority(%{host: host, userinfo: userinfo, port: port}) do
+    authority = host
+    if userinfo, do: authority = userinfo <> "@" <> authority
+    if port, do: authority = authority <> ":" <> Integer.to_string(port)
+    authority
   end
 end

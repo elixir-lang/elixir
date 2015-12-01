@@ -1,6 +1,9 @@
 defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task
 
+  @manifest ".compile.protocols"
+  @manifest_vsn :v1
+
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
 
@@ -34,52 +37,123 @@ defmodule Mix.Tasks.Compile.Protocols do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
+    config = Mix.Project.config
     Mix.Task.run "compile", args
-    {opts, _, _} = OptionParser.parse(args, switches: [output: :string], aliases: [o: :output])
+    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean])
 
-    paths = filter_otp(:code.get_path, :code.lib_dir)
-    paths
-    |> Protocol.extract_protocols
-    |> consolidate(paths, opts[:output] || default_path())
+    output = default_path()
+    manifest = Path.join(output, @manifest)
+    protocols_and_impls =
+      unless Mix.Project.umbrella?(config) do
+        Mix.Tasks.Compile.Elixir.protocols_and_impls
+      end
 
-    :ok
+    cond do
+      opts[:force] || Mix.Utils.stale?(Mix.Project.config_files, [manifest]) ->
+        clean()
+        paths = consolidation_paths()
+        paths
+        |> Protocol.extract_protocols
+        |> consolidate(paths, output, manifest, protocols_and_impls)
+
+      protocols_and_impls ->
+        manifest
+        |> diff_manifest(protocols_and_impls, output)
+        |> consolidate(consolidation_paths(), output, manifest, protocols_and_impls)
+
+      true ->
+        :noop
+    end
+  end
+
+  @doc """
+  Clean up consolidated protocols.
+  """
+  def clean do
+    File.rm_rf(default_path)
   end
 
   @doc false
   def default_path, do: Path.join(Mix.Project.build_path, "consolidated")
 
+  defp consolidation_paths do
+    filter_otp(:code.get_path, :code.lib_dir)
+  end
+
   defp filter_otp(paths, otp) do
     Enum.filter(paths, &(not :lists.prefix(&1, otp)))
   end
 
-  defp consolidate(protocols, paths, output) do
+  defp consolidate([], _paths, output, manifest, metadata) do
+    File.mkdir_p!(output)
+    write_manifest(manifest, metadata)
+    :noop
+  end
+
+  defp consolidate(protocols, paths, output, manifest, metadata) do
     File.mkdir_p!(output)
 
-    _ = for protocol <- protocols do
-      impls = Protocol.extract_impls(protocol, paths)
-      maybe_reload(protocol)
-      {:ok, binary} = Protocol.consolidate(protocol, impls)
-      File.write!(Path.join(output, "#{protocol}.beam"), binary)
-      Mix.shell.info "Consolidated #{inspect protocol}"
-    end
+    protocols
+    |> Enum.uniq()
+    |> Enum.map(&Task.async(fn -> consolidate(&1, paths, output) end))
+    |> Enum.map(&Task.await(&1, 30_000))
 
-    relative = Path.relative_to_cwd(output)
-    Mix.shell.info "Consolidated protocols written to #{relative}"
+    write_manifest(manifest, metadata)
+    :ok
   end
 
-  defp maybe_reload(module) do
-    case :code.which(module) do
-      atom when is_atom(atom) ->
-        # Module is likely in memory, we purge as an attempt to reload it
-        :code.purge(module)
-        :code.delete(module)
-        :ok
-      _file ->
-        :ok
+  defp consolidate(protocol, paths, output) do
+    impls = Protocol.extract_impls(protocol, paths)
+    reload(protocol)
+    {:ok, binary} = Protocol.consolidate(protocol, impls)
+    File.write!(Path.join(output, "#{protocol}.beam"), binary)
+    Mix.shell.info "Consolidated #{inspect protocol}"
+  end
+
+  defp reload(module) do
+    :code.purge(module)
+    :code.delete(module)
+  end
+
+  defp read_manifest(manifest) do
+    case :file.consult(manifest) do
+      {:ok, [@manifest_vsn|t]} -> t
+      _ -> []
     end
   end
 
-  def clean do
-    File.rm_rf(default_path)
+  defp write_manifest(_manifest, nil), do: :om
+  defp write_manifest(manifest, metadata) do
+    File.open!(manifest, [:write], fn device ->
+      :io.format(device, '~p.~n', [@manifest_vsn])
+      Enum.map metadata, fn entry ->
+        :io.format(device, '~p.~n', [entry])
+      end
+      :ok
+    end)
+  end
+
+  defp diff_manifest(manifest, new_metadata, output) do
+    old_metadata = read_manifest(manifest)
+
+    additions =
+      Enum.flat_map(new_metadata -- old_metadata, fn
+        {_, {:impl, protocol}} -> [protocol]
+        {protocol, :protocol} -> [protocol]
+      end)
+
+    removals =
+      Enum.flat_map(old_metadata -- new_metadata, fn
+        {_, {:impl, protocol}} -> [protocol]
+        {protocol, :protocol} ->
+          remove_consolidated(protocol, output)
+          []
+      end)
+
+    additions ++ removals
+  end
+
+  defp remove_consolidated(protocol, output) do
+    File.rm Path.join(output, "#{protocol}.beam")
   end
 end

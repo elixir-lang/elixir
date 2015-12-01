@@ -1,4 +1,8 @@
 defmodule ExUnit.AssertionError do
+  @moduledoc """
+  Raised to signal an assertion error.
+  """
+
   @no_value :ex_unit_no_meaningful_value
 
   defexception left:    @no_value,
@@ -11,6 +15,19 @@ defmodule ExUnit.AssertionError do
   """
   def no_value do
     @no_value
+  end
+end
+
+defmodule ExUnit.MultiError do
+  @moduledoc """
+  Raised to signal multiple errors happened in a test case.
+  """
+
+  defexception [errors: []]
+
+  def message(exception) do
+    "got the following errors:\n\n  * " <>
+      Enum.map_join(exception, "\n  * ", &Exception.message/1)
   end
 end
 
@@ -78,11 +95,14 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion)
 
+    left = Macro.expand(left, __CALLER__)
+    vars = collect_vars_from_pattern(left)
+
     # If the match works, we need to check if the value
-    # is not nil nor false. We need to rewrite the line
-    # to -1 to avoid silly warnings though.
-    {:if, meta, args} =
-        quote do
+    # is not nil nor false. We need to rewrite the if
+    # to avoid silly warnings though.
+    return =
+        no_warning(quote do
           if right do
             right
           else
@@ -90,26 +110,23 @@ defmodule ExUnit.Assertions do
               expr: expr,
               message: "Expected truthy, got #{inspect right}"
           end
-        end
-    return = {:if, [line: -1] ++ meta, args}
+        end)
 
-    {:case, meta, args} =
-      quote do
+    quote do
+      right = unquote(right)
+      expr  = unquote(code)
+      unquote(vars) =
         case right do
           unquote(left) ->
             unquote(return)
+            unquote(vars)
           _ ->
             raise ExUnit.AssertionError,
               right: right,
               expr: expr,
               message: "match (=) failed"
         end
-      end
-
-    quote do
-      right = unquote(right)
-      expr  = unquote(code)
-      unquote({:case, [{:export_head, true}|meta], args})
+      right
     end
   end
 
@@ -280,7 +297,7 @@ defmodule ExUnit.Assertions do
   defmacro assert_receive(expected,
                           timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
                           message \\ nil) do
-    do_assert_receive(expected, timeout, message)
+    do_assert_receive(expected, timeout, message, __CALLER__)
   end
 
   @doc """
@@ -301,18 +318,16 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(expected, message \\ nil) do
-    do_assert_receive(expected, 0, message)
+    do_assert_receive(expected, 0, message, __CALLER__)
   end
 
-  defp do_assert_receive(expected, timeout, message) do
+  defp do_assert_receive(expected, timeout, message, caller) do
     binary = Macro.to_string(expected)
-    {_, pins} =
-      Macro.prewalk(expected, [], fn
-        {:^, _, [var]} = form, acc ->
-          {form, [var | acc]}
-        form, acc ->
-          {form, acc}
-      end)
+
+    # Expand before extracting metadata
+    expected = Macro.expand(expected, caller)
+    vars = collect_vars_from_pattern(expected)
+    pins = collect_pins_from_pattern(expected)
 
     pattern =
       case expected do
@@ -322,47 +337,47 @@ defmodule ExUnit.Assertions do
           quote(do: unquote(left) = received)
       end
 
-    {:receive, meta, args} =
-      quote do
+    quote do
+      timeout = unquote(timeout)
+
+      {received, unquote(vars)} =
         receive do
           unquote(pattern) ->
-            received
+            {received, unquote(vars)}
         after
           timeout ->
             message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
-            flunk(message <> unquote(pinned_vars(pins)) <> ExUnit.Assertions.__mailbox__(self()))
+            flunk(message <> ExUnit.Assertions.__pins__(unquote(pins))
+                          <> ExUnit.Assertions.__mailbox__(self()))
         end
-      end
 
-    quote do
-      timeout = unquote(timeout)
-      unquote({:receive, [{:export_head, true}|meta], args})
+      _ = unquote(vars) # Silence warnings
+      received
     end
   end
 
+  @indent "\n  "
   @max_mailbox_length 10
 
   @doc false
   def __mailbox__(pid) do
     {:messages, messages} = Process.info(pid, :messages)
     length = length(messages)
-    indent = "\n  "
-    mailbox = Enum.take(messages, @max_mailbox_length) |> Enum.map_join(indent, &inspect/1)
-    mailbox_message(length, indent <> mailbox)
+    mailbox =
+      messages
+      |> Enum.take(@max_mailbox_length)
+      |> Enum.map_join(@indent, &inspect/1)
+    mailbox_message(length, @indent <> mailbox)
   end
 
-  defp pinned_vars([]), do: ""
-  defp pinned_vars(pins) do
-    content = Enum.map(pins, fn(var) ->
-      binary = Macro.to_string(var)
-      quote do
-        "\n  " <> unquote(binary) <> " = " <> inspect(unquote(var))
-      end
-    end)
-
-    quote do
-      "\nThe following variables were pinned:" <> unquote_splicing(content)
-    end
+  @doc false
+  def __pins__([]), do: ""
+  def __pins__(pins) do
+    content =
+      pins
+      |> Enum.reverse()
+      |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
+    "\nThe following variables were pinned:" <> @indent <> content
   end
 
   defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
@@ -374,14 +389,51 @@ defmodule ExUnit.Assertions do
     "\nProcess mailbox:" <> mailbox
   end
 
+  defp collect_pins_from_pattern(expr) do
+    {_, pins} =
+      Macro.prewalk(expr, [], fn
+        {:^, _, [{name, _, _} = var]}, acc ->
+          {:ok, [{name, var}|acc]}
+        form, acc ->
+          {form, acc}
+      end)
+    Enum.uniq_by(pins, &elem(&1, 0))
+  end
+
+  defp collect_vars_from_pattern(expr) do
+    {_, vars} =
+      Macro.prewalk(expr, [], fn
+        {:::, _, [left, _]}, acc ->
+          {[left], acc}
+        {skip, _, [_]}, acc when skip in [:^, :@] ->
+          {:ok, acc}
+        {:_, _, context}, acc when is_atom(context) ->
+          {:ok, acc}
+        {name, _, context}, acc when is_atom(name) and is_atom(context) ->
+          {:ok, [{name, [generated: true], context}|acc]}
+        node, acc ->
+          {node, acc}
+      end)
+    Enum.uniq(vars)
+  end
+
+  defp no_warning({name, meta, args}) do
+    {name, [line: -1] ++ meta, args}
+  end
+
   @doc """
   Asserts the `exception` is raised during `function` execution with
-  the `expected_message`. Returns the rescued exception, fails otherwise.
+  the expected `message`, which can be a `Regex` or an exact `String`.
+  Returns the rescued exception, fails otherwise.
 
   ## Examples
 
       assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
         1 + "test"
+      end
+
+      assert_raise RuntimeError, ~r/^Today's lucky number is 0\.\d+!$/, fn ->
+        raise "Today's lucky number is #{:rand.uniform}!"
       end
   """
   def assert_raise(exception, message, function) when is_function(function) do

@@ -49,13 +49,13 @@ defmodule Logger.Backends.ConsoleTest do
 
   test "metadata defaults" do
     Logger.configure_backend(:console,
-      format: "$metadata", metadata: [:line, :module, :function])
+      format: "$metadata", metadata: [:file, :line, :module, :function])
 
-    %{module: mod, function: {name, arity}, line: line} = __ENV__
+    %{module: mod, function: {name, arity}, file: file, line: line} = __ENV__
 
     assert capture_log(fn ->
       Logger.debug("hello")
-    end) =~ "line=#{line + 3} module=#{inspect(mod)} function=#{name}/#{arity}"
+    end) =~ "file=#{file} line=#{line + 3} module=#{inspect(mod)} function=#{name}/#{arity}"
   end
 
   test "can configure level" do

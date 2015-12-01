@@ -27,32 +27,6 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.command_to_module_name("foo_bar.baz_bing") == "FooBar.BazBing"
   end
 
-  test "underscore" do
-    assert Mix.Utils.underscore("foo") == "foo"
-    assert Mix.Utils.underscore("foo_bar") == "foo_bar"
-    assert Mix.Utils.underscore("Foo") == "foo"
-    assert Mix.Utils.underscore("FooBar") == "foo_bar"
-    assert Mix.Utils.underscore("FOOBar") == "foo_bar"
-    assert Mix.Utils.underscore("FooBAR") == "foo_bar"
-    assert Mix.Utils.underscore("FoBaZa") == "fo_ba_za"
-    assert Mix.Utils.underscore("Foo.Bar") == "foo/bar"
-    assert Mix.Utils.underscore(Foo.Bar) == "foo/bar"
-    assert Mix.Utils.underscore("API.V1.User") == "api/v1/user"
-    assert Mix.Utils.underscore("") == ""
-  end
-
-  test "camelize" do
-    assert Mix.Utils.camelize("Foo") == "Foo"
-    assert Mix.Utils.camelize("FooBar") == "FooBar"
-    assert Mix.Utils.camelize("foo") == "Foo"
-    assert Mix.Utils.camelize("foo_bar") == "FooBar"
-    assert Mix.Utils.camelize("foo_") == "Foo"
-    assert Mix.Utils.camelize("_foo") == "Foo"
-    assert Mix.Utils.camelize("foo__bar") == "FooBar"
-    assert Mix.Utils.camelize("foo/bar") == "Foo.Bar"
-    assert Mix.Utils.camelize("") == ""
-  end
-
   test "extract files" do
     files = Mix.Utils.extract_files [Path.join(fixture_path, "archive")], "*.ex"
     assert length(files) == 1
@@ -92,6 +66,22 @@ defmodule Mix.UtilsTest do
       result = Mix.Utils.symlink_or_copy(Path.expand("ebin"), Path.expand("_build/archive/ebin"))
       assert_ebin_symlinked_or_copied(result)
     end
+  end
+
+  test "proxy_config reads from env and returns credentials" do
+    assert Mix.Utils.proxy_config("http://example.com") == []
+
+    System.put_env("http_proxy", "http://nopass@example.com")
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'nopass', ''}]
+
+    System.put_env("HTTP_PROXY", "http://my:proxy@example.com")
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'my', 'proxy'}]
+
+    System.put_env("https_proxy", "https://another:proxy@example.com")
+    assert Mix.Utils.proxy_config("https://example.com") == [proxy_auth: {'another', 'proxy'}]
+
+    System.put_env("HTTPS_PROXY", "https://example.com")
+    assert Mix.Utils.proxy_config("https://example.com") == []
   end
 
   defp assert_ebin_symlinked_or_copied(result) do

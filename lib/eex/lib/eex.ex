@@ -9,7 +9,7 @@ end
 defmodule EEx do
   @moduledoc ~S"""
   EEx stands for Embedded Elixir. It allows you to embed
-  Elixir code inside a string in a robust way:
+  Elixir code inside a string in a robust way.
 
       iex> EEx.eval_string "foo <%= bar %>", [bar: "baz"]
       "foo baz"
@@ -85,9 +85,9 @@ defmodule EEx do
       iex> EEx.eval_string "<%= @foo %>", assigns: [foo: 1]
       "1"
 
-  In other words, `<%= @foo %>` is simply translated to:
+  In other words, `<%= @foo %>` translates to:
 
-      <%= Dict.get assigns, :foo %>
+      <%= {:ok, v} = Access.fetch(assigns, :foo); v %>
 
   The assigns extension is useful when the number of variables
   required by the template is not specified at compilation time.

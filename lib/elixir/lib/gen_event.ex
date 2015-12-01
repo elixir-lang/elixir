@@ -22,6 +22,7 @@ defmodule GenEvent do
   As an example, let's have a GenEvent that accumulates messages until
   they are collected by an explicit call.
 
+      # Define a Event Handler
       defmodule LoggerHandler do
         use GenEvent
 
@@ -36,17 +37,21 @@ defmodule GenEvent do
         end
       end
 
+      # Start a new event manager.
       {:ok, pid} = GenEvent.start_link([])
 
+      # Attach an event handler to the event manager.
       GenEvent.add_handler(pid, LoggerHandler, [])
       #=> :ok
 
+      # Send some events to the event manager.
       GenEvent.notify(pid, {:log, 1})
       #=> :ok
 
       GenEvent.notify(pid, {:log, 2})
       #=> :ok
 
+      # Call functions on specific handlers in the manager.
       GenEvent.call(pid, LoggerHandler, :messages)
       #=> [1, 2]
 
@@ -81,7 +86,7 @@ defmodule GenEvent do
   asynchronously.
 
   On `GenEvent.sync_notify/2`, the manager acknowledges an event
-  just after it was processed by all event handlers.
+  just after it is processed by all event handlers.
 
   On `GenEvent.notify/2`, all events are processed asynchronously and
   there is no ack (which means there is no backpressure).
@@ -125,7 +130,7 @@ defmodule GenEvent do
   too much kool aid" section of the "Learn you some Erlang" link above. Due
   to those changes, Elixir's GenEvent does not trap exits by default.
 
-  Furthermore, Elixir's also normalizes the `{:error, _}` tuples returned
+  Furthermore, Elixir also normalizes the `{:error, _}` tuples returned
   by many functions, in order to be more consistent with themselves and
   the `GenServer` module.
   """
@@ -290,7 +295,7 @@ defmodule GenEvent do
   @type manager :: pid | name | {atom, node}
 
   @typedoc "Supported values for new handlers"
-  @type handler :: atom | {atom, term} | {pid, reference}
+  @type handler :: atom | {atom, term}
 
   @doc false
   defmacro __using__(_) do
@@ -417,6 +422,10 @@ defmodule GenEvent do
 
   If the given handler was previously installed at the manager, this
   function returns `{:error, :already_present}`.
+
+  For installing multiple instances of the same handler, `{Module, id}` instead
+  of `Module` must be used. The handler could be then referenced with 
+  `{Module, id}` instead of just `Module`.
   """
   @spec add_handler(manager, handler, term) :: :ok | {:error, term}
   def add_handler(manager, handler, args) do
@@ -607,18 +616,24 @@ defmodule GenEvent do
   end
 
   @doc """
-  Terminates the event `manager`.
+  Stops the manager with the given `reason`.
 
-  Before terminating, the event manager will call `terminate(:stop, ...)`
-  for each installed event handler.
+  Before terminating, the event manager will call
+  `terminate(:stop, ...)` for each installed event handler.
+  It returns `:ok` if the manager terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
+
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
   """
-  @spec stop(manager) :: :ok
-  def stop(manager) do
-    rpc(manager, :stop)
+  @spec stop(manager, reason :: term, timeout) :: :ok
+  def stop(manager, reason \\ :normal, timeout \\ :infinity) do
+    :gen.stop(manager, reason, timeout)
   end
 
   defp rpc(module, cmd) do
-    # TODO: Change the tag on OTP 18
     {:ok, reply} = :gen.call(module, self(), cmd, :infinity)
     reply
   end
@@ -727,13 +742,6 @@ defmodule GenEvent do
         {hib, reply, handlers} = server_swap_handler(handler1, args1, handler2, args2, handlers, mon, name)
         reply(tag, reply)
         loop(parent, name, handlers, debug, hib)
-      {_from, tag, :stop} ->
-        try do
-          server_terminate(:normal, parent, handlers, name)
-        catch
-          :exit, :normal -> :ok
-        end
-        reply(tag, :ok)
       {_from, tag, :which_handlers} ->
         reply(tag, server_which_handlers(handlers))
         loop(parent, name, handlers, debug, false)

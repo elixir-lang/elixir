@@ -37,6 +37,11 @@ defmodule Kernel.SigilsTest do
     """
   end
 
+  test "sigil s/S expand to binary when possible" do
+    assert Macro.expand(quote(do: ~s(foo)), __ENV__) == "foo"
+    assert Macro.expand(quote(do: ~S(foo)), __ENV__) == "foo"
+  end
+
   test "sigil c" do
     assert ~c(foo) == 'foo'
     assert ~c(f#{:o}o) == 'foo'

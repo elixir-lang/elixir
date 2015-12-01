@@ -1,9 +1,8 @@
 -module(elixir_rewrite).
 -export([rewrite/5, inline/3]).
+-include("elixir.hrl").
 
 %% Convenience variables
-
--define(hidden, [{line, -1}]).
 
 -define(atom, 'Elixir.Atom').
 -define(enum, 'Elixir.Enum').
@@ -118,14 +117,20 @@ inline(?node, spawn, 5) -> {erlang, spawn_opt};
 inline(?node, spawn_link, 2) -> {erlang, spawn_link};
 inline(?node, spawn_link, 4) -> {erlang, spawn_link};
 
+inline(?process, 'alive?', 1) -> {erlang, is_process_alive};
+inline(?process, cancel_timer, 1) -> {erlang, cancel_timer};
 inline(?process, exit, 2) -> {erlang, exit};
-inline(?process, spawn, 2) -> {erlang, spawn_opt};
-inline(?process, spawn, 4) -> {erlang, spawn_opt};
+inline(?process, get, 0) -> {erlang, get};
+inline(?process, get_keys, 0) -> {erlang, get_keys};
+inline(?process, get_keys, 1) -> {erlang, get_keys};
+inline(?process, hibernate, 3) -> {erlang, hibernate};
 inline(?process, demonitor, 1) -> {erlang, demonitor};
 inline(?process, demonitor, 2) -> {erlang, demonitor};
 inline(?process, link, 1) -> {erlang, link};
+inline(?process, read_timer, 1) -> {erlang, read_timer};
+inline(?process, spawn, 2) -> {erlang, spawn_opt};
+inline(?process, spawn, 4) -> {erlang, spawn_opt};
 inline(?process, unlink, 1) -> {erlang, unlink};
-inline(?process, hibernate, 3) -> {erlang, hibernate};
 
 inline(?port, open, 2) -> {erlang, open_port};
 inline(?port, call, 3) -> {erlang, port_call};
@@ -161,26 +166,26 @@ rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(St
   String;
 rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', Meta, [erlang, is_binary]}, Meta, [Var]},
+  Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
-  {'case', ?hidden, [String, [{do,
-    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?hidden, [[Var], Slow]}]
+  {'case', ?generated, [String, [{do,
+    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', ?generated, [[Var], Slow]}]
   }]]};
 
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
 rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
   Var   = {'rewrite', Meta, 'Elixir'},
-  Guard = {{'.', Meta, [erlang, is_list]}, Meta, [Var]},
+  Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
-  Fast  = remote(lists, Meta, 'reverse', Meta, [Var]),
+  Fast  = remote(lists, DotMeta, 'reverse', Meta, [Var]),
 
-  {'case', ?hidden, [List, [{do,
-    [{'->', ?hidden, [[{'when', Meta, [Var, Guard]}], Fast]},
-     {'->', ?hidden, [[Var], Slow]}]
+  {'case', ?generated, [List, [{do,
+    [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
+     {'->', ?generated, [[Var], Slow]}]
   }]]};
 
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->
@@ -205,6 +210,8 @@ rewrite(?map, delete, [Map, Key]) ->
   {maps, remove, [Key, Map]};
 rewrite(?process, monitor, [Arg]) ->
   {erlang, monitor, [process, Arg]};
+rewrite(?process, send_after, [Dest, Msg, Time]) ->
+  {erlang, send_after, [Time, Dest, Msg]};
 rewrite(?string, to_atom, [Arg]) ->
   {erlang, binary_to_atom, [Arg, utf8]};
 rewrite(?string, to_existing_atom, [Arg]) ->

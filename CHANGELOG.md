@@ -1,199 +1,165 @@
-# Changelog for Elixir v1.1
+# Changelog for Elixir v1.2
 
-v1.1 brings enhancements, bug fixes, performance improvements and more
-into Elixir.
+v1.2 brings enhancements, bug fixes, performance improvements and more
+into Elixir. Elixir v1.2 relies on many features in Erlang 18, requiring
+at least Erlang 18+. Upgrading to Erlang 18 is therefore necessary before
+upgrading Elixir.
 
-Elixir v1.1 supports both Erlang 17 and Erlang 18 and, for this reason,
-it does not introduce any feature that is specific to Erlang 18. Such
-will be tackled on the follow up Elixir v1.2 release.
+## Erlang 18 support
 
-On the enhancements side, the most notable changes are the new functions
-added to `Enum`, `Dict` and `Task` modules, and a new datatype called `MapSet`.
-`MapSet` implements the `Set` API on top of a map and, for Elixir v1.1,
-it is useful for holding only dozens of entries. Future Elixir versions,
-however, will be able to rely on `MapSet` from dozens of keys up to
-millions, with better performance than `HashSet`.
+We have brought many features specific to Erlang 18. Here are the highlights:
 
-On the deprecation side, this release includes one major deprecation and
-some soft deprecations.
+  * Maps can now scale from dozens to millions of keys. Therefore, usage of
+    the modules `Dict` and `HashDict` is now discouraged and will be
+    deprecated in future releases, instead use `Map`. Similarly, `Set` and
+    `HashSet` will be deprecated in favor of `MapSet`
+  * Compilation times are faster due to improvements on both Elixir and
+    Erlang compilers
+  * Dialyzer now emits less false negative warnings thanks to new annotations
+    available in the Erlang compiler
 
-The major deprecation relates to the Access protocol. Due to performance
-issues, the access syntax `opts[key]` will no longer be powered by the
-`Access` protocol, instead, it will use the `Dict` module. Therefore this
-release will emit warnings if you attempt to implement the `Access` protocol.
-Note the `Access` module and the `opts[key]` syntax are not affected and
-they are not deprecated, only the underlying protocol dispatch.
+## Language improvements
 
-The soft deprecations are minor and they won't emit warnings. It simply
-means the documentation has been updated to mention the new best
-practices. Warnings will be emitted in the future though (when they are
-promoted to deprecations).
+This release includes four notable language improvements:
 
-On the tooling side, ExUnit got the ability to skip tests and a couple
-new configuration options. Mix got improved warnings and error messages,
-faster compilation times and the brand new `mix profile.fprof` task.
+  * The addition of multi aliases/imports/require:
 
-Mix now also ships with `local.public_keys` to safely manage the
-installation of Hex and Rebar alongside the ability to checksum
-archive installs. By default, Elixir will always ship with a valid
-public key and this feature should work transparently for users.
+        alias MyApp.{Foo, Bar, Baz}
 
-Finally, we have added a `CODE_OF_CONDUCT.md` file to our repository.
-If you haven't read it yet, please do it. We are here to help!
+  * Support for variables in map keys:
 
-Note: Erlang 17.1 contains a regression in its wildcard implementation that
-causes tools like rebar to fail. If you have a project with rebar dependencies
-and is using Erlang 17.1, remember to update to at least Erlang 17.3.
+        %{key => value}
 
-## v1.1.0-rc.0 (2015-09-15)
+  * Support for pin operator in map keys and function clauses:
+
+        %{^key => value} = %{key => value}
+        fn ^key -> :ok end
+
+  * Addition of the `with` special form to match on multiple expressions:
+
+        with {:ok, contents} <- File.read("my_file.ex"),
+             {res, binding} <- Code.eval_string(contents),
+             do: {:ok, res}
+
+These improvements aim to make the language more consistent and expressive.
+
+## Getting started experience
+
+At the same time we improved the language, we have improved both parser and
+compiler to be even more aware of language constructs, emitting warnings
+on common pitfalls like when piping to expressions without parentheses or
+when defining unsafe variables.
+
+We have also introduced the `i/1` helper in IEx, which allows developers
+to retrieve information about any data type. This will help newcomers
+explore the language values while providing experienced developers with
+crucial information about the value they are introspecting.
+
+## Workflow improvements
+
+Umbrella applications are now able to share both build and configuration files.
+This aims to drastically reduce compilation times in umbrella projects by
+adding the following configuration to each umbrella app's `mix.exs` file:
+
+    build_path: "../../_build",
+    config_path: "../../config/config.exs",
+
+Finally, Mix will now always consolidate protocols as we are now able to
+consolidate in parallel and cache the consolidation results, providing the
+best performance across all environments without affecting compilation times.
+
+These are great additions on top of the faster compilation times we have
+achieved when migrating to Erlang 18.
+
+## v1.2.0-dev
 
 ### 1. Enhancements
 
 #### Elixir
 
-  * [Application] Add `Application.fetch_env!/2`, `Application.loaded_applications/0` and `Application.started_applications/0`
-  * [CLI] Add support for `--werl` in Windows bash-like shells
-  * [Dict] Add `Dict.get_and_update/3` which behaves similar to the now deprecated Access protocol
-  * [Dict] Add `Dict.get_lazy/3`, `Dict.pop_lazy/3` and `Dict.put_new_lazy/3`
-  * [Enum] Add `Enum.random/1`, `Enum.take_random/2`, `Enum.min_max/1`, `Enum.min_max_by/2`, `Enum.reverse_slice/3`, `Enum.reduce_while/3`, `Enum.dedup/1` and `Enum.dedup_by/2`
-  * [Enum] Inline common map usage in `Enum` functions for performance
-  * [File] Add `File.lstat/1` and `File.lstat/1` that works like `File.stat/1` but is able to return symlink information (i.e. it does not traverse symlinks)
-  * [File] Add `File.rename/2`
-  * [Integer] Add `Integer.digits/2` and `Integer.undigits/2`
-  * [Inspect] Add the `:safe` option to `inspect/2` and make it safe by default, meaning failures while inspecting won't trigger other failures. Instead, it will be wrapped in an exception which is properly formatted
-  * [IEx] Support `IEx.pry` with `--remsh` for remote debugging
-  * [IO] Support fenced code blocks on `IO.ANSI.Docs`
-  * [GenServer] Add `GenServer.whereis/1` that expands `GenServer` dispatches into a proper pid
-  * [Kernel] No longer include `:crypto` and `:syntax_tools` as dependencies. The former is only needed if you have encrypted debug info (therefore you can add `:crypto` as a dependency manually) and the latter is no longer used
-  * [Kernel] Raise when `var.Alias` syntax is used and it does not expand to an atom at compile time (previously it emitted warnings)
-  * [Kernel] Improve generation of argument names for function signatures
-  * [Kernel] `::/2` is now a special form
-  * [Kernel] Warn when a variable with underscore is used
-  * [Kernel] Allow underscores in binary, octal and hex literals
-  * [Kernel] Warn when module attributes, variables, strings and numbers are used in code but the expression has no effect
-  * [Kernel] Support `\uXXXX` and `\u{X*}` in strings and char lists to map to Unicode codepoints
-  * [List] Add `List.keytake/3`
-  * [Module] Improve name inference for function signatures in documentation metadata
-  * [Process] Add `Process.hibernate/3`
-  * [Process] Allow a list of specs in `Process.info/2`
-  * [Set] Introduce `MapSet` data type. This new data type uses maps behind the scenes and is useful for storing a dozens of items in Erlang 17. In future versions when maps efficiently support large collections, it is meant to be the main Set abstraction in Elixir
-  * [Stream] Add `Stream.dedup/1`, `Stream.dedup_by/2` and `Stream.transform/4`
-  * [String] Support calculation of the jaro distance between strings (usually names) via `String.jaro_distance/2`. This is used by Mix to support "Did you mean?" feature when a task does not exist
-  * [String] Add `String.splitter/3` that splits strings as a stream
-  * [StringIO] `StringIO.flush/1` was added to flush the output of a StringIO device
-  * [Task] Introduce `Task.yield/2` and `Task.shutdown/2` to check if a task is still executing and shutdown otherwise
-  * [Tuple] Add `Tuple.append/2`
-  * [URI] Default ports were added for "ws" and "wss" schemas
-  * [URI] Add `URI.to_string/1`
-
-#### EEx
-
-  * [EEx] Add `:trim` option to EEx that automatically trims the left side of `<%` and right side `%>` if only spaces and new lines preceed/follow them
+  * [Application] Add `spec/1` and `spec/2` to retrieve application specification
+  * [Application] Add `get_application/1` to retrieve the application a given module belongs to
+  * [Base] Optimize encode and decode operations about 10 times
+  * [Enum] Use the faster and auto-seeding `:rand` instead of `:random` in `Enum.shuffle/1` and `Enum.random/1` and `Enum.take_random/2`
+  * [GenServer] Add `GenServer.stop/1` for shutting down servers reliably
+  * [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
+  * [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
+  * [Kernel] Warn if `@doc/@typedoc/@moduledoc` attributes are redefined
+  * [Kernel] Warn if non-variables are used in `defdelegate/2` (as they have no effect)
+  * [Kernel] Mark quoted expressions as generated, avoiding false positives on dialyzer
+  * [Kernel] Allow variables as map keys on creation `%{key => value}` and on matches `%{^key => value}`
+  * [Kernel] Allow the pin operator `^` in `fn` clauses and on the left side of `<-` in `for` comprehensions
+  * [Kernel] Introduce `with` as a special form that allows matching on right side parameters
+  * [Kernel] Raise when right hand side of `->` does not provide any expression
+  * [Kernel] Warn if the Elixir was compiled with a different endianness than the one currently available at runtime
+  * [Kernel] Warn if a variable is used after being defined exclusively in a nested context
+  * [Kernel] Warn if piping into an expression without parentheses
+  * [Macro] Add `Macro.traverse/4` that performs pre and post-walk at once
+  * [Macro] Add `Macro.camelize/1` and `Macro.underscore/1`
+  * [Process] Add `Process.get_keys/0`
+  * [String] Introduce `String.replace_{prefix,suffix,leading,trailing}/2`. The first two will replace only the first occurrence of the given match in string. The last two will replace all occurrences of the given match
+  * [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD and NFC normalization
+  * [Task] Add `Task.Supervisor.async_nolink/1/3` that spawns a supervised task without linking to the caller process
+  * [Task] Introduce `Task.yield_many/2`
+  * [Task] Raise an error when a task is queried from a non-owning process (instead of waiting forever)
 
 #### ExUnit
 
-  * [ExUnit] Add number of skipped tests to `ExUnit` output
-  * [ExUnit] Make timeout configurable for the whole test suite via the `:timeout` configuration
-  * [ExUnit] Allow moduledoc to be filtered/skipped in doctests
-  * [ExUnit] Provide built-in log capturing functionality
-  * [ExUnit] Allow `assert_receive_timeout` and `refute_receive_timeout` to be configured in the ExUnit application
-  * [ExUnit] Allow tests to be skipped with `@tag :skip` or `@tag skip: "reason"`
-  * [ExUnit] Add tests without implementation (missing the do block) which automatically fail. Such tests are also automatically tagged as `:not_implemented`, allowing them to be skipped
-  * [ExUnit] Increase by default stacktrace depth to 20 (this value is also configurable)
-  * [ExUnit] Improve formatting on `assert_raise` errors for message mismatch
-  * [ExUnit] Improve formatting on `assert_receive` when using pinned variables
+  * [ExUnit] Allow one test to raise multiple errors. The goal is to enable tools in the ecosystem to emit multiple failure reports from the same test
+  * [ExUnit] Support `@tag report: [:foo, :bar]` which will include the values for tags `:foo` and `:bar` whenever a test fails
 
 #### IEx
 
-  * [IEx] Support `IEx.pry` with `--remsh` for remote debugging
-  * [IEx] Add `b/1` helper that shows documentation for behaviour modules and its callback functions
-  * [IEx] Provide tab completion for aliases and allow aliases like `Foo.Bar.Baz` to autocomplete even if `Foo.Bar` is not defined
-  * [IEx] Provide a `pid/3` helper for buildings pids from numbers
+  * [IEx] Display type docs for `t(Module.type)` and `t(Module.type/arity)`
+  * [IEx] Add `i/1` helper that prints information about any data type
+  * [IEx] Show source code snippet whenever there is a request to pry a given process
 
 #### Logger
 
-  * [Logger] Support printing pids and refs in Logger metadata
-  * [Logger] Allow Logger metadata to be removed from pdict by setting it to `nil`
-  * [Logger] Add application configuration `translator_inspect_opts` for logger to customize how state and message are formatted when translating OTP errors and reports
-  * [Logger] Automatically include the current application in metadata when compiled via Mix
+  * [Logger] Add file to logger metadata
 
 #### Mix
 
-  * [Mix] Check Elixir version right after archive installation and provide feedback if there is a mismatch
-  * [Mix] Allow rebar dependencies with `mix.exs` to be compiled with Mix
-  * [Mix] Allow rebar dependencies to be specified via `:path`
-  * [Mix] Also consider subdirectories in `config` directory for `Mix.Project.config_files/0`
-  * [Mix] Allow dynamic configuration in Mix projects by storing config in an agent
-  * [Mix] Support rebar3 style Git refs in `rebar.config` files
-  * [Mix] Only recompile compile time dependencies in mix projects. This should considerably speed up recompilation times in Elixir projects
-  * [Mix] Warn when configuring an application that is not available
-  * [Mix] Add `mix profile.fprof` for easy code profiling
-  * [Mix] Abort when dependencies have conflicting `:only` definitions
-  * [Mix] Fully recompile projects if Elixir or SCM changes
-  * [Mix] Allow checksum to be checked on archive install via `--sha512` option
-  * [Mix] Add `mix local.public_keys` to safely manage installation of Hex and Rebar dependencies
+  * [Mix] Cache and always consolidate protocols
+  * [Mix] Add `warn_test_pattern` to `mix test` that will warn on potentially misconfigured test files
+  * [Mix] Introduce `MIX_QUIET` environment variable that configures the underlying Mix task to output only error messages
+  * [Mix] Validate git options and warn on conflicting ref, branch or tags
+  * [Mix] New umbrella applications will now share configuration and build files
 
 ### 2. Bug fixes
 
-#### Elixir
+#### Kernel
 
-  * [CLI] Ensure Logger messages are flushed when executing commands
-  * [Code] `:delegate_locals_to` failed to delegate to the chosen module in many situations and messed up stacktraces. This option has therefore been replaced by imports
-  * [Code] Store the documentation line in the metadata returned by `Code.get_docs/2`
-  * [Exception] Do not fail when calculating an exception message, even if the message is invalid
-  * [File] Ensure `File.touch/2` and `File.stat/2` receive and return universal times. Previously they would work with local times which are not monotonically increasing, which could present issues on scripts. If the times are being shown to the user, `time: :local` can be given as argument
-  * [Float] Support complete scientific notation in `Float.parse/1`
-  * [Kernel] Do not expand `in/2` argument in module body
-  * [Kernel] Throw syntax error for undefind atom/alias syntax `:foo.Bar`
-  * [Kernel] Improve error message when we can't compile because the target directory is not writeable
-  * [Kernel] Allow capture of non-symbolic operators like `&and/2`, `&not/1` and others
-  * [Kernel] Raise if heredoc terminal is accidentally found in the middle of a line without escaping
-  * [Kernel] Don't warn on missing imports if nothing was imported
-  * [Macro] Properly convert captures in `Macro.to_string/1`
-  * [Module] Do not accept non-Elixir module names in `Module.split/1`
-  * [Protocol] Guarantee that derived protocols go through `Any` instead of `Map`
-  * [Range] Restrict ranges to integers to fix diverse bugs of values being included in the range when they should not (false positives)
-  * [Regex] Fix splitting of empty strings with regexes when trim is set to `true`. Now both `String.split/3` and `Regex.split/3` return an empty list when called with an empty string and trim is enabled
-  * [Regex] Fix `Regex.replace/4` so it doesn't discard escape characters
+  * [Kernel] Change `__ENV__.file` if `@file` is set for the given function
+  * [Kernel] Make `Kernel.ParallelRequire` aware of `:warning_as_errors`
+  * [Kernel] Improve error message for invalid `do`/`do:`
 
-#### EEx
+#### IEx
 
-  * [EEx] Allow EEx interpolation to also apply inside quotations `<%%= ... %>`
-
-#### ExUnit
-
-  * [ExUnit] Skipped tests now correctly count towards the total of tests in the result returned by `ExUnit.run/0`
-  * [ExUnit] Fix a bug where failures when inspecting data structure or retrieving error messages could bring the whole ExUnit runner down
-  * [ExUnit] Do not change the semantics of evaluated code with `assert`/`refute`. For example, from now on, `assert nil = some_expr()` will now raise as expected, as the expression still evaluates to a falsy value
-  * [ExUnit] Report proper line number for doctest failures
-
-#### Logger
-
-  * [Logger] Include metadata in `Logger.log/3`, use `Logger.bare_log/3` for runtime-only, with no metadata behaviour
+  * [IEx] Do not start apps on `recompile` helper if `--no-start` was given
+  * [IEx] Avoid copying of data when evaluating every expression in IEx
 
 #### Mix
 
-  * [Mix] Use the safer `https` protocol instead of `git` for `:github` dependencies
-  * [Mix] Ensure automatic protocol consolidation via `:consolidate_protocols` is triggered in umbrella apps
-  * [Mix] Do not raise if wildcard given to `import_config` does not match any file
-  * [Mix] Applications with `:build_embedded` set to true require explicit compilation step
-  * [Mix] Also remove consolidated protocols on `mix clean`
-  * [Mix] Ensure `--exclude` in `mix test` concatenates with test helper excludes
+  * [Mix] Always run non-recursive tasks at the umbrella root
+  * [Mix] Ensure rebar projects work on directory names that contain non-latin characters
+  * [Mix] Ignore directories inside `apps` in umbrellas that do not have a `mix.exs` file
+  * [Mix] Ensure Mix can be used with path dependencies where the app name is different than the path basename
+
+#### ExUnit
+
+  * [ExUnit] Include file and line in all compilation errors for doctests
 
 ### 3. Soft deprecations (no warnings emitted)
 
-#### Elixir
+#### Kernel
 
-  * [Behaviour] The module `Behaviour` is deprecated. Instead of `defcallback`, one can simply use `@callback`. Instead of `defmacrocallback`, one can simply use `@macrocallback`
-  * [Enum] `Enum.uniq/2` is deprecated in favor of `Enum.uniq_by/2`
-  * [Kernel] `\x` inside strings and charlists is deprecated in favor of `\uXXXX` and `\u{X*}`. The values emitted by `\x` are unfortunately wrong (they should be bytes but currently it emits codepoints). `\u` is meant to correctly map to codepoints and `\x` will be fixed in the future to map to bytes
-  * [Regex] Ungreedy option `r` is deprecated in favor of `U` (which is standard in regular expressions in other languages)
+  * [Dict] `Dict` and `HashDict` are soft deprecated in favor of `Map`
+  * [Keyword] `Keyword.size/1` is deprecated in favor of `length/1`
+  * [Map] `Map.size/1` is deprecated in favor of `map_size/1`
+  * [Set] `Set` and `HashSet` are soft deprecated in favor of `MapSet`
 
-### 4. Deprecations
+#### Mix
 
-#### Elixir
+  * [Mix] `Mix.Utils.camelize/1` and `Mix.Utils.underscore/1` are soft deprecated in favor of `Macro.camelize/1` and `Macro.underscore/1`
 
-  * [Access] Implementing the Access protocol is deprecated. The Access protocol relies on the code server in development and test mode (when protocol consolidation is not applied) and it generated a bottleneck when working with multiple processes and the Access protocol was invoked hundreds of times (which is not uncommon). Note the `Access` module and the `opts[key]` syntax are not affected and they are not deprecated, only the underlying protocol dispatch
-  * [Kernel] `?\xHEX` is deprecated in favor of `0xHEX`. There is no situation where the former should be used in favor of the latter and the latter is always cleaner
-  * [Kernel] Giving `as: true | false` to `alias/2` and `require/2` have been deprecated (it was undocumented behaviour)
-  * [String] Passing an empty string to `starts_with?`, `contains?` and `ends_with?` had dubious behaviour and have been deprecated to help developers identify possible bugs in their source code

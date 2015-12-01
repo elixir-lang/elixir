@@ -88,8 +88,8 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  test "in_project pushes given configuration" do
-    in_fixture "no_mixfile", fn ->
+  test "in_project pushes given configuration", context do
+    in_tmp context.test, fn ->
       Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
         assert Mix.Project.config[:app] == :foo
         assert Mix.Project.config[:hello] == :world
@@ -97,8 +97,8 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  test "in_project prints nice error message if fails to load file" do
-    in_fixture "no_mixfile", fn ->
+  test "in_project prints nice error message if fails to load file", context do
+    in_tmp context.test, fn ->
       File.write "mix.exs", """
       raise "oops"
       """
@@ -113,10 +113,10 @@ defmodule Mix.ProjectTest do
     end
   end
 
-  test "config_files" do
+  test "config_files", context do
     Mix.Project.push(SampleProject)
 
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       File.mkdir_p!("config/sub")
       File.write! "config/config.exs", "[]"
       File.write! "config/dev.exs", "[]"

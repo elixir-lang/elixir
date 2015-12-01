@@ -16,7 +16,10 @@ expand_struct(Meta, Left, Right, E) ->
   {[ELeft, ERight], EE} = elixir_exp:expand_args([Left, Right], E),
 
   case is_atom(ELeft) of
-    true  -> ok;
+    true ->
+      %% We always record structs when they are expanded
+      %% as they expect the reference at compile time.
+      elixir_lexical:record_remote(ELeft, nil, ?m(E, lexical_tracker));
     false ->
       compile_error(Meta, ?m(E, file), "expected struct name to be a compile "
         "time atom or alias, got: ~ts", ['Elixir.Macro':to_string(ELeft)])
@@ -64,20 +67,20 @@ translate_struct(Meta, Name, {'%{}', MapMeta, Args}, S) ->
 
   if
     TUpdate /= nil ->
-      Line  = ?line(Meta),
+      Ann = ?ann(Meta),
       {VarName, _, VS} = elixir_scope:build_var('_', US),
 
-      Var = {var, Line, VarName},
-      Map = {map, Line, [{map_field_exact, Line, {atom, Line, '__struct__'}, {atom, Line, Name}}]},
+      Var = {var, Ann, VarName},
+      Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
 
-      Match = {match, Line, Var, Map},
-      Error = {tuple, Line, [{atom, Line, badstruct}, {atom, Line, Name}, Var]},
+      Match = {match, Ann, Var, Map},
+      Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
 
       {TMap, TS} = translate_map(MapMeta, Assocs, Var, VS),
 
-      {{'case', Line, TUpdate, [
-        {clause, Line, [Match], [], [TMap]},
-        {clause, Line, [Var], [], [elixir_utils:erl_call(Line, erlang, error, [Error])]}
+      {{'case', Ann, TUpdate, [
+        {clause, Ann, [Match], [], [TMap]},
+        {clause, Ann, [Var], [], [elixir_utils:erl_call(Ann, erlang, error, [Error])]}
       ]}, TS};
     S#elixir_scope.context == match ->
       translate_map(MapMeta, Assocs ++ [{'__struct__', Name}], nil, US);
@@ -148,15 +151,15 @@ wait_for_struct(Module) ->
 translate_map(Meta, Assocs, TUpdate, #elixir_scope{extra=Extra} = S) ->
   {Op, KeyFun, ValFun} = extract_key_val_op(TUpdate, S),
 
-  Line = ?line(Meta),
+  Ann = ?ann(Meta),
 
   {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc) ->
     {TKey, Acc1}   = KeyFun(Key, Acc),
     {TValue, Acc2} = ValFun(Value, Acc1#elixir_scope{extra=Extra}),
-    {{Op, ?line(Meta), TKey, TValue}, Acc2}
+    {{Op, ?ann(Meta), TKey, TValue}, Acc2}
   end, S, Assocs),
 
-  build_map(Line, TUpdate, TArgs, SA).
+  build_map(Ann, TUpdate, TArgs, SA).
 
 extract_assoc_update([{'|', _Meta, [Update, Args]}], S) ->
   {TArg, SA} = elixir_translator:translate_arg(Update, S, S),
@@ -174,8 +177,8 @@ extract_key_val_op(TUpdate, S) ->
     fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, KS) end,
     fun(X, Acc) -> elixir_translator:translate_arg(X, Acc, S) end}.
 
-build_map(Line, nil, TArgs, SA) -> {{map, Line, TArgs}, SA};
-build_map(Line, TUpdate, TArgs, SA) -> {{map, Line, TUpdate, TArgs}, SA}.
+build_map(Ann, nil, TArgs, SA) -> {{map, Ann, TArgs}, SA};
+build_map(Ann, TUpdate, TArgs, SA) -> {{map, Ann, TUpdate, TArgs}, SA}.
 
 assert_struct_keys(Meta, Name, Struct, Assocs, S) ->
   [begin

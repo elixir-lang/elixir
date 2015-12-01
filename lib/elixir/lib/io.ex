@@ -9,7 +9,7 @@ defmodule IO do
 
   The majority of the functions expect char data, i.e. strings or
   lists of characters and strings. In case another type is given,
-  it will do a conversion to string via the `String.Chars` protocol
+  functions will convert to string via the `String.Chars` protocol
   (as shown in typespecs).
 
   The functions starting with `bin*` expect iodata as an argument,
@@ -26,6 +26,11 @@ defmodule IO do
 
     * `:stderr` - a shortcut for the named process `:standard_error`
       provided in Erlang
+
+  IO devices maintain their position, that means subsequent calls to any
+  reading or writing functions will start from the place when the device
+  was last accessed. Position of files can be changed using the
+  `:file.position/2` function.
 
   """
 
@@ -247,7 +252,9 @@ defmodule IO do
   end
 
   @doc """
-  Reads a line from the IO device. It returns:
+  Reads a line from the IO device.
+
+  It returns:
 
     * `data` - the characters in the line terminated
       by a line-feed (LF) or end of file (EOF)
@@ -257,6 +264,12 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  ## Examples
+
+  To display "What is your name?" as a prompt and await user input:
+
+      IO.gets "What is your name?"
   """
   @spec gets(device, chardata | String.Chars.t) :: chardata | nodata
   def gets(device \\ group_leader(), prompt) do

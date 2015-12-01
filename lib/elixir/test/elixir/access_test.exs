@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule AccessTest do
   use ExUnit.Case, async: true
 
+  doctest Access
+
   # Test nil at compilation time does not fail
   # and that @config[:foo] has proper precedence.
   @config nil

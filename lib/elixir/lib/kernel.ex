@@ -7,11 +7,12 @@ import :elixir_bootstrap
 
 defmodule Kernel do
   @moduledoc """
-  `Kernel` provides the default macros and functions
-  Elixir imports into your environment. These macros and functions
-  can be skipped or cherry-picked via the `import` macro. For
-  instance, if you want to tell Elixir not to import the `if`
-  macro, you can do:
+  Provides the default macros and functions Elixir imports into your
+  environment.
+
+  These macros and functions can be skipped or cherry-picked via the
+  `import` macro. For instance, if you want to tell Elixir not to
+  import the `if` macro, you can do:
 
       import Kernel, except: [if: 2]
 
@@ -244,7 +245,7 @@ defmodule Kernel do
   @doc """
   Returns the head of a list; raises `ArgumentError` if the list is empty.
 
-  Inlined by the compiler.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1339,19 +1340,31 @@ defmodule Kernel do
           :erlang.error unquote(alias).exception([])
         end
       _ ->
-        quote do
-          case unquote(msg) do
-            msg when is_binary(msg) ->
-              :erlang.error RuntimeError.exception(msg)
-            atom when is_atom(atom) ->
-              :erlang.error atom.exception([])
-            %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
-              :erlang.error other
-            other ->
-              message = "raise/1 expects an alias, string or exception as the first argument, got: #{inspect other}"
-              :erlang.error ArgumentError.exception(message)
-          end
+        generated = fn fun, var ->
+          {fun, [generated: true, line: -1], [{var, [], __MODULE__}]}
         end
+
+        {fun, meta, [arg, [do: clauses]]} =
+          quote do
+            case unquote(msg) do
+              msg when unquote(generated.(:is_binary, :msg)) ->
+                :erlang.error RuntimeError.exception(msg)
+              atom when unquote(generated.(:is_atom, :atom)) ->
+                :erlang.error atom.exception([])
+              %{__struct__: struct, __exception__: true} = other when is_atom(struct) ->
+                :erlang.error other
+              other ->
+                message = "raise/1 expects an alias, string or exception as the first argument, got: #{inspect other}"
+                :erlang.error ArgumentError.exception(message)
+            end
+          end
+
+        clauses =
+          :lists.map(fn {:->, meta, args} ->
+            {:->, [generated: true] ++ Keyword.put(meta, :line, -1), args}
+          end, clauses)
+
+        {fun, meta, [arg, [do: clauses]]}
     end
   end
 
@@ -1590,27 +1603,41 @@ defmodule Kernel do
 
   """
   @spec struct(module | map, Enum.t) :: map
-  def struct(struct, kv \\ [])
-
-  def struct(struct, []) when is_atom(struct) do
-    apply(struct, :__struct__, [])
-  end
-
-  def struct(struct, kv) when is_atom(struct) do
-    struct(apply(struct, :__struct__, []), kv)
-  end
-
-  def struct(%{__struct__: _} = struct, []) do
-    struct
-  end
-
-  def struct(%{__struct__: _} = struct, kv) do
-    Enum.reduce(kv, struct, fn {k, v}, acc ->
-      case :maps.is_key(k, acc) and k != :__struct__ do
-        true  -> :maps.put(k, v, acc)
+  def struct(struct, kv \\ []) do
+    struct(struct, kv, fn({key, val}, acc) ->
+      case :maps.is_key(key, acc) and key != :__struct__ do
+        true  -> :maps.put(key, val, acc)
         false -> acc
       end
     end)
+  end
+
+  @doc """
+  Same as `struct/2` but raises if any of provided keys doesn't exist in the struct.
+  """
+  @spec struct!(module | map, Enum.t) :: map | no_return
+  def struct!(struct, kv \\ []) do
+    struct(struct, kv, fn
+      {:__struct__, _}, acc -> acc
+      {key, val}, acc ->
+        :maps.update(key, val, acc)
+    end)
+  end
+
+  defp struct(struct, [], _fun) when is_atom(struct) do
+    apply(struct, :__struct__, [])
+  end
+
+  defp struct(struct, kv, fun) when is_atom(struct) do
+    struct(apply(struct, :__struct__, []), kv, fun)
+  end
+
+  defp struct(%{__struct__: _} = struct, [], _fun) do
+    struct
+  end
+
+  defp struct(%{__struct__: _} = struct, kv, fun) do
+    Enum.reduce(kv, struct, fun)
   end
 
   @doc """
@@ -2161,17 +2188,17 @@ defmodule Kernel do
       true ->
         raise ArgumentError, "cannot set attribute @#{name} inside function/macro"
       false ->
-        arg = case name do
-          :behavior ->
+        cond do
+          name == :behavior ->
             :elixir_errors.warn env.line, env.file,
                                 "@behavior attribute is not supported, please use @behaviour instead"
-          :doc       -> {env.line, arg}
-          :typedoc   -> {env.line, arg}
-          :moduledoc -> {env.line, arg}
-          _          -> arg
+          :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
+            {stack, _} = :elixir_quote.escape(env_stacktrace(env), false)
+            arg = {env.line, arg}
+            quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(stack))
+          true ->
+            quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
         end
-
-        quote do: Module.put_attribute(__MODULE__, unquote(name), unquote(arg))
     end
   end
 
@@ -2241,7 +2268,7 @@ defmodule Kernel do
   defmacro binding(context \\ nil) do
     in_match? = Macro.Env.in_match?(__CALLER__)
     for {v, c} <- __CALLER__.vars, c == context do
-      {v, wrap_binding(in_match?, {v, [warn: false], c})}
+      {v, wrap_binding(in_match?, {v, [generated: true], c})}
     end
   end
 
@@ -2390,19 +2417,9 @@ defmodule Kernel do
   do).
   """
   defmacro destructure(left, right) when is_list(left) do
-    Enum.reduce left, right, fn item, acc ->
-      {:case, meta, args} =
-        quote do
-          case unquote(acc) do
-            [h|t] ->
-              unquote(item) = h
-              t
-            other when other == [] or other == nil ->
-              unquote(item) = nil
-              []
-          end
-        end
-      {:case, meta, args}
+    quote do
+      unquote(left) =
+        Kernel.Utils.destructure(unquote(right), unquote(length(left)))
     end
   end
 
@@ -2429,15 +2446,20 @@ defmodule Kernel do
   defmacro first .. last do
     case is_float(first) or is_float(last) or
          is_atom(first) or is_atom(last) or
-         is_binary(first) or is_binary(last) do
+         is_binary(first) or is_binary(last) or
+         is_list(first) or is_list(last) do
       true ->
         raise ArgumentError,
-          "ranges (left .. right) expect both sides to be integers, " <>
+          "ranges (first..last) expect both sides to be integers, " <>
           "got: #{Macro.to_string({:.., [], [first, last]})}"
       false ->
-        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+        case __CALLER__.context do
+          nil -> quote do: Elixir.Range.new(unquote(first), unquote(last))
+          _   -> {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+        end
     end
   end
+
 
   @doc """
   Provides a short-circuit operator that evaluates and returns
@@ -2462,9 +2484,8 @@ defmodule Kernel do
       false
 
 
-  Note that, unlike Erlang's `and` operator,
-  this operator accepts any expression as the first argument,
-  not only booleans.
+  Note that, unlike `and/2`, this operator accepts any expression
+  as the first argument, not only booleans.
   """
   defmacro left && right do
     quote do
@@ -2498,9 +2519,8 @@ defmodule Kernel do
       iex> Enum.empty?([]) || throw(:bad)
       true
 
-  Note that, unlike Erlang's `or` operator,
-  this operator accepts any expression as the first argument,
-  not only booleans.
+  Note that, unlike `or/2`, this operator accepts any expression
+  as the first argument, not only booleans.
   """
   defmacro left || right do
     quote do
@@ -2662,7 +2682,7 @@ defmodule Kernel do
       {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]} ->
         in_range(left, Macro.expand(first, __CALLER__), Macro.expand(last, __CALLER__))
       _ ->
-        raise ArgumentError, <<"invalid args for operator in, it expects a compile time list ",
+        raise ArgumentError, <<"invalid args for operator \"in\", it expects a compile time list ",
                                "or range on the right side when used in guard expressions, got: ",
                                Macro.to_string(right) :: binary>>
     end
@@ -3036,7 +3056,7 @@ defmodule Kernel do
       end
 
       Foo.bar #=> 3
-      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function: Foo.sum/2
+      Foo.sum(1, 2) #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """
   defmacro defp(call, expr \\ nil) do
@@ -3190,7 +3210,7 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
-      fields = Kernel.Def.struct(__MODULE__, fields)
+      fields = Kernel.Utils.defstruct(__MODULE__, fields)
       @struct fields
 
       case Module.get_attribute(__MODULE__, :derive) do
@@ -3355,15 +3375,16 @@ defmodule Kernel do
 
   The real benefit of protocols comes when mixed with structs.
   For instance, Elixir ships with many data types implemented as
-  structs, like `HashDict` and `HashSet`. We can implement the
-  `Blank` protocol for those types as well:
+  structs, like `MapSet`. We can implement the `Blank` protocol
+  for those types as well:
 
-      defimpl Blank, for: [HashDict, HashSet] do
+      defimpl Blank, for: MapSet do
         def blank?(enum_like), do: Enum.empty?(enum_like)
       end
 
-  When implementing a protocol for a struct, the `:for` option can be omitted if
-  the `defimpl` call is inside the module that defines the struct:
+  When implementing a protocol for a struct, the `:for` option can
+  be omitted if the `defimpl` call is inside the module that defines
+  the struct:
 
       defmodule User do
         defstruct [:email, :name]
@@ -3599,17 +3620,31 @@ defmodule Kernel do
   please define it a module which will be imported accordingly.
   """
   defmacro use(module, opts \\ []) do
-    expanded = Macro.expand(module, __CALLER__)
-
-    case is_atom(expanded) do
-      false ->
-        raise ArgumentError, "invalid arguments for use, expected an atom or alias as argument"
-      true ->
+    calls = Enum.map(expand_aliases(module, __CALLER__), fn
+      expanded when is_atom(expanded) ->
         quote do
           require unquote(expanded)
           unquote(expanded).__using__(unquote(opts))
         end
-    end
+      _otherwise ->
+        raise ArgumentError, "invalid arguments for use, expected a compile time atom or alias, got: #{Macro.to_string(module)}"
+    end)
+    quote(do: (unquote_splicing calls))
+  end
+
+  defp expand_aliases({{:., _, [base, :{}]}, _, refs}, env) do
+    base = Macro.expand(base, env)
+    Enum.map(refs, fn
+      {:__aliases__, _, ref} ->
+        Module.concat([base | ref])
+      ref when is_atom(ref) ->
+        Module.concat(base, ref)
+      other -> other
+    end)
+  end
+
+  defp expand_aliases(module, env) do
+    [Macro.expand(module, env)]
   end
 
   @doc """
@@ -3665,7 +3700,10 @@ defmodule Kernel do
         raise ArgumentError, "expected to: to be given as argument"
 
       for fun <- List.wrap(funs) do
-        {name, args, as, as_args} = Kernel.Def.delegate(fun, opts)
+        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts, __ENV__)
+        unless Module.get_attribute(__MODULE__, :doc) do
+          @doc "See `#{inspect target}.#{as}/#{:erlang.length as_args}`."
+        end
         def unquote(name)(unquote_splicing(args)) do
           unquote(target).unquote(as)(unquote_splicing(as_args))
         end
@@ -3691,7 +3729,7 @@ defmodule Kernel do
 
   """
   defmacro sigil_S(term, modifiers)
-  defmacro sigil_S(string, []), do: string
+  defmacro sigil_S({:<<>>, _, [binary]}, []) when is_binary(binary), do: binary
 
   @doc ~S"""
   Handles the sigil `~s`.
@@ -3712,6 +3750,9 @@ defmodule Kernel do
 
   """
   defmacro sigil_s(term, modifiers)
+  defmacro sigil_s({:<<>>, _, [piece]}, []) when is_binary(piece) do
+    Macro.unescape_string(piece)
+  end
   defmacro sigil_s({:<<>>, line, pieces}, []) do
     {:<<>>, line, Macro.unescape_tokens(pieces)}
   end

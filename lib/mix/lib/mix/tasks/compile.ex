@@ -20,6 +20,14 @@ defmodule Mix.Tasks.Compile do
     * `:build_embedded` - when `true`, activates protocol
       consolidation and does not generate symlinks in builds
 
+    * `:build_path` - the directory where build artifacts
+      should be written to. This option is intended only for
+      child apps within a larger umbrella application so that
+      each child app can use the common `_build` directory of
+      the parent umbrella. In a non-umbrella context, configuring
+      this has undesirable side-effects (such as skipping some
+      compiler checks) and should be avoided.
+
   ## Command line options
 
     * `--list`          - list all enabled compilers
@@ -61,6 +69,10 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.get!
     Mix.Task.run "loadpaths", args
 
+    if local_deps_changed?() do
+      Mix.Dep.Lock.touch_manifest
+    end
+
     res = Mix.Task.run "compile.all", args
     res = if :ok in List.wrap(res), do: :ok, else: :noop
 
@@ -78,8 +90,20 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp consolidate_protocols? do
-    config = Mix.Project.config
-    Keyword.get(config, :consolidate_protocols, config[:build_embedded])
+    Mix.Project.config[:consolidate_protocols]
+  end
+
+  defp local_deps_changed? do
+    manifest = Path.absname(Mix.Dep.Lock.manifest())
+
+    Enum.any?(Mix.Dep.children(), fn %{scm: scm} = dep ->
+      # We ignore in_umbrella dependencies because we assume
+      # they are sharing the same deps and build path.
+      not scm.fetchable? and Mix.Dep.in_dependency(dep, fn _ ->
+        files = Mix.Project.config_files ++ manifests()
+        Mix.Utils.stale?(files, [manifest])
+      end)
+    end)
   end
 
   @doc """

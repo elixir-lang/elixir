@@ -104,23 +104,15 @@ defmodule IO.ANSI.Docs do
 
   defp process(all=[line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
-    if is_table_line?(stripped) and rest != [] and is_table_line?(hd(rest)) do
-      write_text(text, indent, options)
-      process_table(all, indent, options)
-    else
-      case stripped do
-        <<bullet, ?\s, item :: binary>> when bullet in @bullets ->
-          write_text(text, indent, options)
-          process_list("• ", item, rest, count, indent, options)
-        <<d1, ?., ?\s, item :: binary>> when d1 in ?0..?9 ->
-          write_text(text, indent, options)
-          process_list(<<d1, ?., ?\s>>, item, rest, count, indent, options)
-        <<d1, d2, ?., ?\s, item :: binary>> when d1 in ?0..?9 and d2 in ?0..?9 ->
-          write_text(text, indent, options)
-          process_list(<<d1, d2, ?., ?\s>>, item, rest, count, indent, options)
-        _ ->
-          process(rest, [stripped | text], indent, options)
-      end
+    cond do
+      link_label?(stripped, count) ->
+        write_text([line], indent, options, true)
+        process(rest, text, indent, options)
+      table_line?(stripped) and rest != [] and table_line?(hd(rest)) ->
+        write_text(text, indent, options)
+        process_table(all, indent, options)
+      true ->
+        process_rest(stripped, rest, count, text, indent, options)
     end
   end
 
@@ -142,6 +134,22 @@ defmodule IO.ANSI.Docs do
   end
 
   ## Lists
+
+  defp process_rest(stripped, rest, count, text, indent, options) do
+    case stripped do
+      <<bullet, ?\s, item::binary>> when bullet in @bullets ->
+        write_text(text, indent, options)
+        process_list("• ", item, rest, count, indent, options)
+      <<d1, ?., ?\s, item::binary>> when d1 in ?0..?9 ->
+        write_text(text, indent, options)
+        process_list(<<d1, ?., ?\s>>, item, rest, count, indent, options)
+      <<d1, d2, ?., ?\s, item::binary>> when d1 in ?0..?9 and d2 in ?0..?9 ->
+        write_text(text, indent, options)
+        process_list(<<d1, d2, ?., ?\s>>, item, rest, count, indent, options)
+      _ ->
+        process(rest, [stripped | text], indent, options)
+    end
+  end
 
   defp process_list(entry, line, rest, count, indent, options) do
     # The first list always win some extra padding
@@ -170,11 +178,11 @@ defmodule IO.ANSI.Docs do
 
   defp process_list_next_kind(stripped, rest, count, next_count) do
     case {stripped, rest} do
-      {<<bullet, ?\s, _ :: binary>>, _} when bullet in @bullets and next_count <= count ->
+      {<<bullet, ?\s, _::binary>>, _} when bullet in @bullets and next_count <= count ->
         :list
-      {<<d1, ?., ?\s, _ :: binary>>, _} when d1 in ?0..?9 and next_count <= count ->
+      {<<d1, ?., ?\s, _::binary>>, _} when d1 in ?0..?9 and next_count <= count ->
         :list
-      {<<d1, d2, ?., ?\s, _ :: binary>>, _} when d1 in ?0..?9 and d2 in ?0..?9 and next_count <= count ->
+      {<<d1, d2, ?., ?\s, _::binary>>, _} when d1 in ?0..?9 and d2 in ?0..?9 and next_count <= count ->
         :list
       {"", [" " <> _ | _]} ->
         :next
@@ -254,7 +262,7 @@ defmodule IO.ANSI.Docs do
   ## Tables
 
   defp process_table(lines, indent, options) do
-    {table, rest} = Enum.split_while(lines, &is_table_line?/1)
+    {table, rest} = Enum.split_while(lines, &table_line?/1)
     table_lines(table, options)
     newline_after_block
     process(rest, [], indent, options)
@@ -334,7 +342,7 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  defp is_table_line?(line) do
+  defp table_line?(line) do
     Regex.match?(~r'''
       ( ^ \s{0,3} \| (?: [^|]+ \|)+ \s* $ )
     |
@@ -343,6 +351,14 @@ defmodule IO.ANSI.Docs do
   end
 
   ## Helpers
+
+  defp link_label?("[" <> rest, count) when count <= 3, do: link_label?(rest)
+  defp link_label?(_, _), do: false
+
+  defp link_label?("]: " <> _), do: true
+  defp link_label?("]" <> _), do: false
+  defp link_label?(""), do: false
+  defp link_label?(<<_>> <> rest), do: link_label?(rest)
 
   defp strip_spaces(" " <> line, acc, max) when acc < max,
     do: strip_spaces(line, acc + 1, max)
@@ -385,11 +401,11 @@ defmodule IO.ANSI.Docs do
     {Enum.reverse(acc), []}
   end
 
-  defp length_without_escape(<< ?\e, ?[, _, _, ?m, rest :: binary >>, count) do
+  defp length_without_escape(<<?\e, ?[, _, _, ?m>> <> rest, count) do
     length_without_escape(rest, count)
   end
 
-  defp length_without_escape(<< ?\e, ?[, _, ?m, rest :: binary >>, count) do
+  defp length_without_escape(<<?\e, ?[, _, ?m>> <> rest, count) do
     length_without_escape(rest, count)
   end
 
@@ -407,10 +423,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp escape_underlines_in_link(text) do
-    case Regex.match?(~r{.*(https?\S*)}, text) do
-      true -> Regex.replace(~r{_}, text, "\\\\_")
-      _    -> text
-    end
+    Regex.replace(~r{https?\S*}, text, &String.replace(&1, "_", "\\_"))
   end
 
   defp remove_square_brackets_in_link(text) do
@@ -437,11 +450,11 @@ defmodule IO.ANSI.Docs do
 
   # Inline start
 
-  defp handle_inline(<<?*, ?*, rest :: binary>>, options) do
+  defp handle_inline(<<?*, ?*, rest::binary>>, options) do
     handle_inline(rest, ?d, ["**"], [], options)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, options) when mark in @single do
+  defp handle_inline(<<mark, rest::binary>>, options) when mark in @single do
     handle_inline(rest, mark, [<<mark>>], [], options)
   end
 
@@ -451,72 +464,72 @@ defmodule IO.ANSI.Docs do
 
   # Inline delimiters
 
-  defp handle_inline(<<delimiter, ?*, ?*, rest :: binary>>, nil, buffer, acc, options)
+  defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters do
     handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer)|acc], options)
   end
 
-  defp handle_inline(<<delimiter, mark, rest :: binary>>, nil, buffer, acc, options)
+  defp handle_inline(<<delimiter, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and delimiter in @delimiters and mark in @single do
     handle_inline(rest, mark, [<<mark>>], [delimiter, Enum.reverse(buffer)|acc], options)
   end
 
-  defp handle_inline(<<?`, rest :: binary>>, nil, buffer, acc, options)
+  defp handle_inline(<<?`, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
     handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer)|acc], options)
   end
 
   # Clauses for handling escape
 
-  defp handle_inline(<<?\\, ?\\, ?*, ?*, rest :: binary>>, nil, buffer, acc, options)
+  defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
       when rest != "" do
     handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer)|acc], options)
   end
 
-  defp handle_inline(<<?\\, ?\\, mark, rest :: binary>>, nil, buffer, acc, options)
+  defp handle_inline(<<?\\, ?\\, mark, rest::binary>>, nil, buffer, acc, options)
       when rest != "" and mark in @single do
     handle_inline(rest, mark, [<<mark>>], [?\\, Enum.reverse(buffer)|acc], options)
   end
 
-  defp handle_inline(<<?\\, ?\\, rest :: binary>>, limit, buffer, acc, options) do
+  defp handle_inline(<<?\\, ?\\, rest::binary>>, limit, buffer, acc, options) do
     handle_inline(rest, limit, [?\\|buffer], acc, options)
   end
 
   # An escape is not valid inside `
-  defp handle_inline(<<?\\, mark, rest :: binary>>, limit, buffer, acc, options)
+  defp handle_inline(<<?\\, mark, rest::binary>>, limit, buffer, acc, options)
       when not(mark == limit and mark == ?`) do
     handle_inline(rest, limit, [mark|buffer], acc, options)
   end
 
   # Inline end
 
-  defp handle_inline(<<?*, ?*, delimiter, rest :: binary>>, ?d, buffer, acc, options)
+  defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
       when delimiter in @delimiters do
-    handle_inline(<<delimiter, rest :: binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<mark, delimiter, rest :: binary>>, mark, buffer, acc, options)
+  defp handle_inline(<<mark, delimiter, rest::binary>>, mark, buffer, acc, options)
       when delimiter in @delimiters and mark in @single do
-    handle_inline(<<delimiter, rest :: binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
+    handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<?*, ?*, rest:: binary>>, ?d, buffer, acc, options)
+  defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options)
       when rest == "" do
     handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<mark, rest :: binary>>, mark, buffer, acc, options)
+  defp handle_inline(<<mark, rest::binary>>, mark, buffer, acc, options)
       when rest == "" and mark in @single do
     handle_inline(<<>>, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
-  defp handle_inline(<<?`, rest :: binary>>, ?`, buffer, acc, options) do
+  defp handle_inline(<<?`, rest::binary>>, ?`, buffer, acc, options) do
     handle_inline(rest, nil, [], [inline_buffer(buffer, options)|acc], options)
   end
 
   # Catch all
 
-  defp handle_inline(<<char, rest :: binary>>, mark, buffer, acc, options) do
+  defp handle_inline(<<char, rest::binary>>, mark, buffer, acc, options) do
     handle_inline(rest, mark, [char|buffer], acc, options)
   end
 

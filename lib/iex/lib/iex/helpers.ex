@@ -5,9 +5,20 @@ defmodule IEx.Helpers do
   which provides many helpers to make Elixir's shell
   more joyful to work with.
 
-  This message was triggered by invoking the helper
-  `h()`, usually referred to as `h/0` (since it expects 0
-  arguments).
+  This message was triggered by invoking the helper `h()`,
+  usually referred to as `h/0` (since it expects 0 arguments).
+
+  You can use the `h` function to invoke the documentation
+  for any Elixir module or function:
+
+      h Enum
+      h Enum.map
+      h Enum.reverse/1
+
+  You can also use the `i` function to introspect any value
+  you have in the shell:
+
+      i "hello"
 
   There are many other helpers available:
 
@@ -16,41 +27,100 @@ defmodule IEx.Helpers do
     * `cd/1`          - changes the current directory
     * `clear/0`       - clears the screen
     * `flush/0`       - flushes all messages sent to the shell
+    * `i/1`           - prints information about the given data type
     * `h/0`           - prints this help message
     * `h/1`           - prints help for the given module, function or macro
+    * `import_file/1` - evaluates the given file in the shell's context
     * `l/1`           - loads the given module's beam code
     * `ls/0`          - lists the contents of the current directory
     * `ls/1`          - lists the contents of the specified directory
-    * `pid/3`         - creates a PID with the 3 integer arguments passed
-    * `pwd/0`         - prints the current working directory
-    * `r/1`           - recompiles and reloads the given module's source file
-    * `respawn/0`     - respawns the current shell
-    * `s/1`           - prints spec information
-    * `t/1`           - prints type information
-    * `v/0`           - retrieves the last value from the history
-    * `v/1`           - retrieves the nth value from the history
-    * `import_file/1` - evaluates the given file in the shell's context
+    * `pid/3`         — creates a PID with the 3 integer arguments passed
+    * `pwd/0`         — prints the current working directory
+    * `r/1`           — recompiles and reloads the given module's source file
+    * `respawn/0`     — respawns the current shell
+    * `s/1`           — prints spec information
+    * `t/1`           — prints type information
+    * `v/0`           — retrieves the last value from the history
+    * `v/1`           — retrieves the nth value from the history
+    * `import_file/1` — evaluates the given file in the shell's context
 
-  Help for functions in this module can be consulted
-  directly from the command line, as an example, try:
+  Help for all of those functions can be consulted directly from
+  the command line using the `h` helper itself. Try:
 
-      h(c/2)
-
-  You can also retrieve the documentation for any module
-  or function. Try these:
-
-      h(Enum)
-      h(Enum.reverse/1)
-
-  To discover all available functions for a module, type the module name
-  followed by a dot, then press tab to trigger autocomplete. For example:
-
-      Enum.
+      h(v/0)
 
   To learn more about IEx as a whole, just type `h(IEx)`.
   """
 
   import IEx, only: [dont_display_result: 0]
+
+  @doc """
+  Recompiles the current Mix application.
+
+  This helper only works when IEx is started with a Mix
+  project, for example, `iex -S mix`. Before compiling
+  the code, it will stop the current application, and
+  start it again afterwards. Stopping applications are
+  required so processes in the supervision tree won't
+  crash when code is upgraded multiple times without
+  going through the proper hot-code swapping mechanism.
+
+  Changes to `mix.exs` or configuration files won't be
+  picked up by this helper, only changes to sources.
+  Restarting the shell and Mix is required in such cases.
+
+  If you want to reload a single module, consider using
+  `r ModuleName` instead.
+
+  NOTE: This feature is experimental and may be removed
+  in upcoming releases.
+  """
+  def recompile do
+    if mix_started? do
+      config = Mix.Project.config
+      reenable_tasks(config)
+      case stop_apps(config) do
+        {true, apps} ->
+          Mix.Task.run("app.start")
+          {:restarted, apps}
+        {false, apps} ->
+          Mix.Task.run("app.start", ["--no-start"])
+          {:recompiled, apps}
+      end
+    else
+      IO.puts IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix")
+      :error
+    end
+  end
+
+  defp mix_started? do
+    List.keyfind(Application.started_applications, :mix, 0) != nil
+  end
+
+  defp reenable_tasks(config) do
+    Mix.Task.reenable("app.start")
+    Mix.Task.reenable("compile")
+    Mix.Task.reenable("compile.all")
+    compilers = config[:compilers] || Mix.compilers
+    Enum.each compilers, &Mix.Task.reenable("compile.#{&1}")
+  end
+
+  defp stop_apps(config) do
+    apps =
+      cond do
+        Mix.Project.umbrella?(config) ->
+          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.loaded, do: app
+        app = config[:app] ->
+          [app]
+        true ->
+          []
+      end
+    stopped? =
+      Enum.reverse(apps)
+      |> Enum.all?(&match?({:error, {:not_started, &1}}, Application.stop(&1)))
+      |> Kernel.not
+    {stopped?, apps}
+  end
 
   @doc """
   Compiles the given files.
@@ -344,6 +414,21 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  Prints information about the given data type.
+  """
+  def i(term) do
+    info = ["Term": inspect(term)] ++ IEx.Info.info(term)
+
+    for {subject, info} <- info do
+      info = info |> to_string() |> String.strip() |> String.replace("\n", "\n  ")
+      IO.puts IEx.color(:eval_result, to_string(subject))
+      IO.puts IEx.color(:eval_info, "  #{info}")
+    end
+
+    dont_display_result
+  end
+
+  @doc """
   Flushes all messages sent to the shell and prints them out.
   """
   def flush do
@@ -374,6 +459,7 @@ defmodule IEx.Helpers do
   """
   def pwd do
     IO.puts IEx.color(:eval_info, System.cwd!)
+    dont_display_result
   end
 
   @doc """
@@ -385,6 +471,7 @@ defmodule IEx.Helpers do
       {:error, :enoent} ->
         IO.puts IEx.color(:eval_error, "No directory #{directory}")
     end
+    dont_display_result()
   end
 
   @doc """
@@ -405,9 +492,10 @@ defmodule IEx.Helpers do
       {:error, :enotdir} ->
         IO.puts IEx.color(:eval_info, Path.absname(path))
     end
+    dont_display_result()
   end
 
-  defp expand_home(<<?~, rest :: binary>>) do
+  defp expand_home(<<?~, rest::binary>>) do
     System.user_home! <> rest
   end
 
@@ -532,18 +620,24 @@ defmodule IEx.Helpers do
   defp history, do: Process.get(:iex_history)
 
   @doc """
-  Creates a PID with 3 non negative integers passed as arguments 
+  Creates a PID with 3 non negative integers passed as arguments
   to the function.
 
   ## Examples
+
       iex> pid(0, 21, 32)
       #PID<0.21.32>
       iex> pid(0, 64, 2048)
       #PID<0.64.2048>
+
   """
   def pid(x, y, z) when is_integer(x) and x >= 0 and
                         is_integer(y) and y >= 0 and
                         is_integer(z) and z >= 0 do
-    :c.pid(x, y, z)
+    :erlang.list_to_pid(
+      '<' ++ Integer.to_char_list(x) ++ '.' ++
+             Integer.to_char_list(y) ++ '.' ++
+             Integer.to_char_list(z) ++ '>'
+    )
   end
 end

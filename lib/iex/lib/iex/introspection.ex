@@ -110,7 +110,12 @@ defmodule IEx.Introspection do
             || find_default_doc(docs, fun, arity)
 
       if doc do
-        print_doc(doc)
+        if match?({_, _, _, _, nil}, doc) && (callback_module = callback_module(mod, fun, arity)) do
+          filter = &match?({^fun, _}, elem(&1, 0))
+          print_callback_docs(callback_module, filter, &print_doc/2)
+        else
+          print_doc(doc)
+        end
         :ok
       else
         :not_found
@@ -139,6 +144,18 @@ defmodule IEx.Introspection do
           false
       end
     end
+  end
+
+  defp callback_module(mod, fun, arity) do
+    mod.module_info(:attributes)
+    |> Keyword.get_values(:behaviour)
+    |> Stream.concat()
+    |> Stream.filter(fn(module)->
+      module.module_info(:attributes)
+      |> Enum.filter_map(&match?({:callback, _}, &1), fn {_, [{t,_}|_]} -> t end)
+      |> Enum.any?(&match?({^fun, ^arity}, &1))
+    end)
+    |> Enum.at(0)
   end
 
   defp print_doc({{fun, _}, _line, kind, args, doc}) do
@@ -265,7 +282,7 @@ defmodule IEx.Introspection do
     _ = case Typespec.beam_types(module) do
       nil   -> nobeam(module)
       []    -> notypes(inspect module)
-      types -> for type <- types, do: print_type(type)
+      types -> Enum.each(types, &print_type/1)
     end
 
     dont_display_result
@@ -280,6 +297,7 @@ defmodule IEx.Introspection do
       types ->
         printed =
           for {_, {t, _, _args}} = typespec <- types, t == type do
+            print_type_doc(module, t)
             print_type(typespec)
             typespec
           end
@@ -301,6 +319,7 @@ defmodule IEx.Introspection do
       types ->
         printed =
           for {_, {t, _, args}} = typespec <- types, t == type, length(args) == arity do
+            print_type_doc(module, t)
             print_type(typespec)
             typespec
           end
@@ -311,6 +330,14 @@ defmodule IEx.Introspection do
     end
 
     dont_display_result
+  end
+
+  defp print_type_doc(module, type) do
+    docs  = Code.get_docs(module, :type_docs)
+    {{_, _}, _, _, description} = Enum.find(docs, fn({{name, _}, _, _, _}) ->
+      type == name
+    end)
+    if description, do: puts_info(description)
   end
 
   @doc """

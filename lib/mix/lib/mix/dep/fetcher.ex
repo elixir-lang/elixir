@@ -82,7 +82,11 @@ defmodule Mix.Dep.Fetcher do
   defp out_of_date?(%Mix.Dep{status: {:unavailable, _}}),  do: true
   defp out_of_date?(%Mix.Dep{}),                           do: false
 
+
   defp do_finalize({all_deps, apps, new_lock}, old_lock, opts) do
+    not_available = Enum.filter(all_deps, &not Mix.Dep.available?(&1))
+    show_not_available!(not_available)
+
     # Let's get the loaded versions of deps
     deps = Mix.Dep.loaded_by_name(apps, all_deps, opts)
 
@@ -103,7 +107,7 @@ defmodule Mix.Dep.Fetcher do
 
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
-    lock = Dict.merge(old_lock, new_lock)
+    lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
 
     mark_as_fetched(deps)
@@ -143,5 +147,21 @@ defmodule Mix.Dep.Fetcher do
     Enum.map(given, fn(app) ->
       if is_binary(app), do: String.to_atom(app), else: app
     end)
+  end
+
+  defp show_not_available!([]) do
+    :ok
+  end
+
+  defp show_not_available!(deps) do
+    shell = Mix.shell
+    shell.error "Error fetching dependencies:"
+
+    Enum.each deps, fn(dep) ->
+      shell.error "* #{Mix.Dep.format_dep dep}"
+      shell.error "  #{Mix.Dep.format_status dep}"
+    end
+
+    Mix.raise "Can't continue due to errors on dependencies"
   end
 end

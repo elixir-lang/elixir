@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule FloatTest do
   use ExUnit.Case, async: true
 
+  doctest Float
+
   test "parse" do
     assert Float.parse("12") === {12.0, ""}
     assert Float.parse("-12") === {-12.0, ""}
@@ -32,6 +34,10 @@ defmodule FloatTest do
     assert Float.parse("--1.2") === :error
     assert Float.parse("++1.2") === :error
     assert Float.parse("pi") === :error
+    assert Float.parse("1.7976931348623157e308") === {1.7976931348623157e308, ""}
+    assert_raise ArgumentError, fn ->
+      Float.parse("1.7976931348623159e308")
+    end
   end
 
   test "floor" do

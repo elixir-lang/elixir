@@ -9,9 +9,11 @@ defmodule Kernel.MacrosTest.Nested do
 end
 
 defmodule Kernel.MacrosTest do
-  require Kernel.MacrosTest.Nested, as: Nested
-
   use ExUnit.Case, async: true
+
+  doctest Macro
+
+  require Kernel.MacrosTest.Nested, as: Nested
 
   defmacro my_macro do
     quote do: 1 + 1

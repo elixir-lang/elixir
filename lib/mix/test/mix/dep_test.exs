@@ -273,7 +273,35 @@ defmodule Mix.DepTest do
     end
   end
 
+  test "nested deps on only matching" do
+    # deps_repo wants git_repo for test, git_repo is restricted to only test
+    # We assert the dependencies match as expected, happens in umbrella apps
+    Process.put(:custom_deps_git_repo_opts, [only: :test])
+
+    # We need to pass env: :test so the child dependency is loaded
+    # in the first place (otherwise only :prod deps are loaded)
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", env: :test},
+            {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}]
+
+    with_deps deps, fn ->
+      in_fixture "deps_status", fn ->
+        loaded = Mix.Dep.loaded([])
+        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :dev])
+        assert [:deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [noappfile: _] = Enum.map(loaded, &(&1.status))
+
+        loaded = Mix.Dep.loaded([env: :test])
+        assert [:git_repo, :deps_repo] = Enum.map(loaded, &(&1.app))
+        assert [unavailable: _, noappfile: _] = Enum.map(loaded, &(&1.status))
+      end
+    end
+  end
+
   test "nested deps on only conflict" do
+    # deps_repo wants all git_repo, git_repo is restricted to only test
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}]
 
@@ -300,6 +328,7 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with valid only subset" do
+    # deps_repo wants git_repo for prod, git_repo is restricted to only prod and test
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :prod},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: [:prod, :test]}]
 
@@ -324,6 +353,7 @@ defmodule Mix.DepTest do
   end
 
   test "nested deps with invalid only subset" do
+    # deps_repo wants git_repo for dev, git_repo is restricted to only test
     deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo", only: :dev},
             {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: [:test]}]
 
@@ -349,7 +379,7 @@ defmodule Mix.DepTest do
     end
   end
 
-  test "nested deps on only diverged" do
+  test "nested deps converge and diverge only not in_upper" do
     loaded_only = fn deps ->
       with_deps deps, fn ->
         in_fixture "deps_status", fn ->

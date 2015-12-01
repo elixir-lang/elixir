@@ -52,10 +52,10 @@ do_linify_meta(Line, line, Meta) ->
     _ ->
       keystore(line, Meta, Line)
   end;
-do_linify_meta(Line, Key, Meta) ->
-  case keyfind(Key, Meta) of
-    {Key, Int} when is_integer(Int), Int /= 0 ->
-      keyreplace(Key, Meta, {line, Int});
+do_linify_meta(Line, keep, Meta) ->
+  case keyfind(keep, Meta) of
+    {keep, Int} when is_integer(Int), Int /= 0 ->
+      keyreplace(keep, keydelete(line, Meta), {line, Int});
     _ ->
       do_linify_meta(Line, line, Meta)
   end.

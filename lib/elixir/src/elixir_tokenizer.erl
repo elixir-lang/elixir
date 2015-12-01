@@ -1,6 +1,6 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
--export([tokenize/3, tokenize/4]).
+-export([tokenize/3, tokenize/4, invalid_do_error/1]).
 -import(elixir_interpolation, [unescape_tokens/1]).
 
 -define(at_op(T),
@@ -22,6 +22,9 @@
   T1 == $<, T2 == $>;
   T1 == $., T2 == $.).
 
+-define(three_op(T1, T2, T3),
+  T1 == $^, T2 == $^, T3 == $^).
+
 -define(mult_op(T),
   T == $* orelse T == $/).
 
@@ -34,8 +37,7 @@
   T1 == $~, T2 == $>, T3 == $>;
   T1 == $<, T2 == $<, T3 == $~;
   T1 == $<, T2 == $~, T3 == $>;
-  T1 == $<, T2 == $|, T3 == $>;
-  T1 == $^, T2 == $^, T3 == $^).
+  T1 == $<, T2 == $|, T3 == $>).
 
 -define(arrow_op(T1, T2),
   T1 == $|, T2 == $>;
@@ -302,7 +304,7 @@ tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3|Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
   tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, Column + 4}, list_to_atom([T1, T2, T3])}|Tokens]);
 
 % ## Two Token Operators
@@ -368,6 +370,9 @@ tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?and_op3(T1, T2, T
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+
+tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?three_op(T1, T2, T3) ->
+  handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3|Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
@@ -487,7 +492,7 @@ tokenize([T|Rest], Line, Column, Scope, Tokens) when ?is_horizontal_space(T) ->
   end;
 
 tokenize([T|Rest], Line, Column, _Scope, Tokens) ->
-  Message = io_lib:format("\"~s\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
+  Message = io_lib:format("\"~ts\" (column ~p, codepoint U+~4.16.0B)", [[T], Column, T]),
   {error, {Line, "unexpected token: ", Message}, Rest, Tokens}.
 
 strip_horizontal_space(T) ->
@@ -579,7 +584,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3|Rest], Line, Column, DotColumn, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, Column + 1, DotColumn, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
@@ -701,7 +706,7 @@ heredoc_error_message(eof, Line, Terminator) ->
                  [Terminator, Line]),
    []};
 heredoc_error_message(misplacedterminator, _Line, Terminator) ->
-  {"invalid location for heredoc terminator, please escape token or move to its own line: ",
+  {"invalid location for heredoc terminator, please escape token or move it to its own line: ",
    Terminator}.
 %% Remove spaces from heredoc based on the position of the final quotes.
 
@@ -896,8 +901,8 @@ tokenize_kw_or_other(Rest, Kind, Line, Column, Length, Atom, Tokens) ->
       {identifier, Rest, check_call_identifier(Kind, Line, Column, Length, Atom, Rest)};
     {ok, [Check|T]} ->
       {keyword, Rest, Check, T};
-    {error, Token} ->
-      {error, {Line, "syntax error before: ", Token}, atom_to_list(Atom) ++ Rest, Tokens}
+    {error, Message, Token} ->
+      {error, {Line, Message, Token}, atom_to_list(Atom) ++ Rest, Tokens}
   end.
 
 %% Check if it is a call identifier (paren | bracket | do)
@@ -1001,7 +1006,7 @@ check_keyword(DoLine, DoColumn, _Length, do, [{Identifier, {Line, Column, EndCol
 check_keyword(Line, Column, _Length, do, Tokens) ->
   case do_keyword_valid(Tokens) of
     true  -> {ok, add_token_with_nl({do, {Line, Column, Column + 2}}, Tokens)};
-    false -> {error, "do"}
+    false -> {error, invalid_do_error("unexpected token \"do\""), "do"}
   end;
 check_keyword(Line, Column, Length, Atom, Tokens) ->
   case keyword(Atom) of
@@ -1051,3 +1056,17 @@ keyword(_) -> false.
 
 invalid_character_error(Char) ->
   "invalid character '" ++ [Char] ++ "' in identifier: ".
+
+invalid_do_error(Prefix) ->
+  Prefix ++ ". In case you wanted to write a \"do\" expression, "
+  "you must either separate the keyword argument with comma or use do-blocks. "
+  "For example, the following construct:\n\n"
+  "    if some_condition? do\n"
+  "      :this\n"
+  "    else\n"
+  "      :that\n"
+  "    end\n\n"
+  "is syntax sugar for the Elixir construct:\n\n"
+  "    if(some_condition?, do: :this, else: :that)\n\n"
+  "where \"some_condition?\" is the first argument and the second argument is a keyword list.\n\n"
+  "Syntax error before: ".

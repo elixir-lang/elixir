@@ -11,8 +11,8 @@ defmodule Mix.Tasks.RunTest do
     Mix.Project.push MixTest.Case.Sample
   end
 
-  test "loads configuration" do
-    in_fixture "no_mixfile", fn ->
+  test "loads configuration", context do
+    in_tmp context.test, fn ->
       assert capture_io(fn ->
         Mix.Task.run "run",
           ["--config", fixture_path("configs/good_config.exs"),
@@ -23,10 +23,10 @@ defmodule Mix.Tasks.RunTest do
     Application.delete_env(:my_app, :key)
   end
 
-  test "run requires files before evaling commands" do
+  test "run requires files before evaling commands", context do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Tasks.Run.run ["-r", git_repo, "-e", "send self, {:hello, GitRepo.hello}"]
       assert_received {:hello, "World"}
 
@@ -37,8 +37,8 @@ defmodule Mix.Tasks.RunTest do
     purge [GitRepo]
   end
 
-  test "run errors on missing files" do
-    in_fixture "no_mixfile", fn ->
+  test "run errors on missing files", context do
+    in_tmp context.test, fn ->
       assert_raise Mix.Error, "No files matched pattern \"non-existent\" given to --require", fn ->
         Mix.Tasks.Run.run ["-r", "non-existent"]
       end
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.RunTest do
         Mix.Tasks.Run.run ["non-existent"]
       end
 
-      assert File.dir?("lib")
+      File.mkdir_p!("lib")
       assert_raise Mix.Error, "No such file: lib", fn ->
         Mix.Tasks.Run.run ["lib"]
       end
@@ -60,8 +60,8 @@ defmodule Mix.Tasks.RunTest do
     purge [GitRepo]
   end
 
-  test "run rewrites System.argv" do
-    in_fixture "no_mixfile", fn ->
+  test "run rewrites System.argv", context do
+    in_tmp context.test, fn ->
       file = "argv.exs"
 
       File.write! file, "send self, {:argv, System.argv}"

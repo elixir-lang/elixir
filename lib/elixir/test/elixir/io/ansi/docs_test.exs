@@ -278,6 +278,11 @@ defmodule IO.ANSI.DocsTest do
     assert result == "ANSI escape code (https://en.wikipedia.org/wiki/ANSI_escape_code)\n\e[0m"
   end
 
+  test "escaping of underlines within links does not escape surrounding text" do
+    result = format("_emphasis_ (https://en.wikipedia.org/wiki/ANSI_escape_code) more _emphasis_")
+    assert result == "\e[4memphasis\e[0m (https://en.wikipedia.org/wiki/ANSI_escape_code) more \e[4memphasis\e[0m\n\e[0m"
+  end
+
   test "lone thing that looks like a table line isn't" do
     assert format("one\n2 | 3\ntwo\n") ==
            "one 2 | 3 two\n\e[0m"
@@ -306,5 +311,10 @@ defmodule IO.ANSI.DocsTest do
   test "table with variable number of columns" do
     assert format("a | b | c\nd | e") ==
            "a | b | c\nd | e |  \n\e[0m"
+  end
+
+  test "one reference link label per line" do
+    assert format("  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org") ==
+           "  [id]: //example.com\n  [Elixir]:  http://elixir-lang.org"
   end
 end

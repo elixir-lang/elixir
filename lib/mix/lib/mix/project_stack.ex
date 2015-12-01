@@ -9,7 +9,7 @@ defmodule Mix.ProjectStack do
 
   @spec start_link :: {:ok, pid}
   def start_link() do
-    initial = %{stack: [], post_config: [], cache: HashDict.new}
+    initial = %{stack: [], post_config: [], cache: %{}}
     Agent.start_link fn -> initial end, name: __MODULE__
   end
 
@@ -23,8 +23,7 @@ defmodule Mix.ProjectStack do
 
       config  = Keyword.merge(config, state.post_config)
       project = %{name: module, config: config, file: file, pos: length(stack),
-                  recursing?: false, io_done: io_done?, tasks: HashSet.new,
-                  configured_applications: []}
+                  recursing?: false, io_done: io_done?, configured_applications: []}
 
       cond do
         file = find_project_named(module, stack) ->
@@ -73,6 +72,25 @@ defmodule Mix.ProjectStack do
     end
   end
 
+  @doc """
+  Runs the given function in the recursing root.
+  """
+  def root(fun) do
+    {top, file} =
+      get_and_update fn %{stack: stack} = state ->
+        {top, [mid|bottom]} = Enum.split_while(stack, &(not &1.recursing?))
+        {{top, mid.file}, %{state | stack: [%{mid | recursing?: false}|bottom]}}
+      end
+
+    try do
+      File.cd! Path.dirname(file), fun
+    after
+      cast fn %{stack: [mid|bottom]} = state ->
+        %{state | stack: top ++ [%{mid | recursing?: true}|bottom]}
+      end
+    end
+  end
+
   @spec post_config(config) :: :ok
   def post_config(config) do
     cast fn state ->
@@ -104,36 +122,32 @@ defmodule Mix.ProjectStack do
   end
 
   @doc """
-  Enables the recursion for the project at the top of the stack.
-  Returns `true` if recursion was enabled or `false` if the project
-  already had recursion enabled or there is no project in the stack.
+  Enables the recursion for the project at the top of the stack
+  during the given function.
   """
-  @spec enable_recursion :: boolean
-  def enable_recursion do
-    get_and_update fn %{stack: stack} = state ->
-      case stack do
-        [h|t] ->
-          {not h.recursing?, %{state | stack: [%{h | recursing?: true}|t]}}
-        _ ->
-          {false, state}
+  @spec recur((... -> result)) :: result when result: var
+  def recur(fun) do
+    cast fn %{stack: [h|t]} = state ->
+      %{state | stack: [%{h | recursing?: true}|t]}
+    end
+
+    try do
+      fun.()
+    after
+      cast fn %{stack: [h|t]} = state ->
+        %{state | stack: [%{h | recursing?: false}|t]}
       end
     end
   end
 
   @doc """
-  Disables the recursion for the project in the stack.
-  Returns `true` if recursion was disabled or `false` if there
-  is no project or recursion was not enabled.
+  Returns true if any of the projects in the stack is
+  recursing.
   """
-  @spec disable_recursion :: boolean
-  def disable_recursion do
-    get_and_update fn %{stack: stack} = state ->
-      case stack do
-        [h|t] ->
-          {h.recursing?, %{state | stack: [%{h | recursing?: false}|t]}}
-        _ ->
-          {false, state}
-      end
+  @spec recursing? :: boolean
+  def recursing? do
+    get fn %{stack: stack} ->
+      Enum.any? stack, & &1.recursing?
     end
   end
 
@@ -147,14 +161,14 @@ defmodule Mix.ProjectStack do
   @spec write_cache(term, term) :: :ok
   def write_cache(key, value) do
     cast fn state ->
-      %{state | cache: Dict.put(state.cache, key, value)}
+      %{state | cache: Map.put(state.cache, key, value)}
     end
   end
 
   @spec clear_cache :: :ok
   def clear_cache do
     cast fn state ->
-      %{state | cache: HashDict.new}
+      %{state | cache: %{}}
     end
   end
 

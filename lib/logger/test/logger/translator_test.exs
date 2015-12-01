@@ -137,7 +137,7 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
-    \*\* \(UndefinedFunctionError\) undefined function: :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
+    \*\* \(UndefinedFunctionError\) undefined function :module_does_not_exist.undef/0 \(module :module_does_not_exist is not available\)
     .*
     Function: &:module_does_not_exist.undef/0
         Args: \[\]
@@ -151,7 +151,7 @@ defmodule Logger.TranslatorTest do
       receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
     end) =~ ~r"""
     \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
-    \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
+    \*\* \(UndefinedFunctionError\) undefined function Logger.TranslatorTest.undef/0
     .*
     Function: &Logger.TranslatorTest.undef/0
         Args: \[\]
@@ -243,18 +243,16 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Process crashes" do
-    if :erlang.system_info(:otp_release) >= '18' do
-      assert capture_log(:info, fn ->
-        {_, ref} = spawn_monitor(fn() -> raise "oops" end)
-        receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
-        # Even though the monitor has been received the emulator may not have
-        # sent the message to the error logger
-        :timer.sleep(200)
-      end) =~ ~r"""
-      \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
-      \*\* \(RuntimeError\) oops
-      """
-    end
+    assert capture_log(:info, fn ->
+      {_, ref} = spawn_monitor(fn() -> raise "oops" end)
+      receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+      # Even though the monitor has been received the emulator may not have
+      # sent the message to the error logger
+      :timer.sleep(200)
+    end) =~ ~r"""
+    \[error\] Process #PID<\d+\.\d+\.\d+>\ raised an exception
+    \*\* \(RuntimeError\) oops
+    """
   end
 
   test "translates :proc_lib crashes with name" do
@@ -471,7 +469,7 @@ defmodule Logger.TranslatorTest do
     end) =~ ~r"""
     \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
     \*\* \(exit\) an exception was raised:
-        \*\* \(UndefinedFunctionError\) undefined function: Logger.TranslatorTest.undef/0
+        \*\* \(UndefinedFunctionError\) undefined function Logger.TranslatorTest.undef/0
         .*
     Start Call: Logger.TranslatorTest.undef\(\)
     """s

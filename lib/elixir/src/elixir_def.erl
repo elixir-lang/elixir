@@ -34,7 +34,7 @@ delete_definition(Module, Tuple) ->
 % Invoked by the wrap definition with the function abstract tree.
 % Each function is then added to the function table.
 
-store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
+store_definition(Line, Kind, CheckClauses, Call, Body, Pos) when is_integer(Line) ->
   E = (elixir_locals:get_cached_env(Pos))#{line := Line},
   {NameAndArgs, Guards} = elixir_clauses:extract_guards(Call),
 
@@ -52,6 +52,10 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
   %% we need to linify taking into account keep line numbers.
+  %%
+  %% Line and File will always point to the caller. __ENV__.line
+  %% will always point to the quoted one and __ENV__.file will
+  %% always point to the one at @file or the quoted one.
   {Location, Key} =
     case elixir_utils:meta_location(Meta) of
       {_, _} = KeepLocation -> {KeepLocation, keep};
@@ -70,20 +74,26 @@ store_definition(Line, Kind, CheckClauses, Call, Body, Pos) ->
 store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocation, #{module := Module} = ER) ->
   Arity = length(Args),
   Tuple = {Name, Arity},
-  E = ER#{function := Tuple},
+  Location = retrieve_location(KeepLocation, Module),
+
+  E = case Location of
+    {F, _} -> ER#{function := Tuple, file := elixir_utils:characters_to_binary(F)};
+    nil    -> ER#{function := Tuple}
+  end,
+
   elixir_locals:record_definition(Tuple, Kind, Module),
 
-  Location = retrieve_location(KeepLocation, Module),
   {Function, Defaults, Super} = translate_definition(Kind, Line, Name, Args, Guards, Body, E),
   run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, expr_from_body(Line, Body), E),
 
   DefaultsLength = length(Defaults),
   elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength),
 
-  File = ?m(E, file),
   compile_super(Module, Super, E),
   check_previous_defaults(Line, Module, Name, Arity, Kind, DefaultsLength, E),
 
+  %% Retrieve the file before we changed it based on @file
+  File = ?m(ER, file),
   store_each(CheckClauses, Kind, File, Location, Module, DefaultsLength, Function),
   [store_each(false, Kind, File, Location, Module, 0,
     default_function_for(Kind, Name, Default)) || Default <- Defaults],
@@ -94,15 +104,10 @@ store_definition(Line, Kind, CheckClauses, Name, Args, Guards, Body, KeepLocatio
 %% @on_definition
 
 run_on_definition_callbacks(Kind, Line, Module, Name, Args, Guards, Expr, E) ->
-  case elixir_compiler:get_opt(internal) of
-    true ->
-      ok;
-    _ ->
-      Env = elixir_env:linify({Line, E}),
-      Callbacks = 'Elixir.Module':get_attribute(Module, on_definition),
-      _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
-      ok
-  end.
+  Env = elixir_env:linify({Line, E}),
+  Callbacks = elixir_module:get_attribute(Module, on_definition),
+  _ = [Mod:Fun(Env, Kind, Name, Args, Guards, Expr) || {Mod, Fun} <- Callbacks],
+  ok.
 
 make_struct_available(def, Module, '__struct__', []) ->
   case erlang:get(elixir_compiler_pid) of
@@ -133,10 +138,7 @@ retrieve_location(Location, Module) ->
   end.
 
 get_location_attribute(Module) ->
-  case elixir_compiler:get_opt(internal) of
-    true  -> nil;
-    false -> 'Elixir.Module':get_attribute(Module, file)
-  end.
+  elixir_module:get_attribute(Module, file).
 
 normalize_location(File) ->
   elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)).
@@ -156,7 +158,10 @@ translate_definition(Kind, Line, Name, Args, Guards, Body, E) when is_integer(Li
   {EArgs, EGuards, EBody, _} = elixir_exp_clauses:def(fun elixir_def_defaults:expand/2,
                                 Args, Guards, expr_from_body(Line, Body), E),
 
-  Body == nil andalso check_args_for_bodyless_clause(Line, EArgs, E),
+  case Body of
+    nil -> check_args_for_bodyless_clause(Line, EArgs, E);
+    _ -> ok
+  end,
 
   S = elixir_env:env_to_scope(E),
   {Unpacked, Defaults} = elixir_def_defaults:unpack(Kind, Name, EArgs, S),
@@ -170,8 +175,8 @@ translate_clause(nil, _Line, _Kind, _Args, [], _Body, _S) ->
 translate_clause(nil, Line, Kind, _Args, _Guards, _Body, #elixir_scope{file=File}) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {missing_do, Kind});
 translate_clause(_, Line, Kind, Args, Guards, Body, S) ->
-  {TClause, TS} = elixir_clauses:clause(Line,
-    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
+  {TClause, TS} = elixir_clauses:clause([{line, Line}],
+                    fun elixir_translator:translate_args/2, Args, Body, Guards, S),
 
   FClause = case is_macro(Kind) of
     true ->

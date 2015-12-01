@@ -36,35 +36,43 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
-  @callback get(t, key, value) :: value
+  @callback fetch(t, key) :: {:ok, value} | :error
   @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
+
+  @doc """
+  Fetches the container's value for the given key.
+  """
+  @spec fetch(t, term) :: {:ok, term} | :error
+  def fetch(container, key)
+
+  def fetch(%{__struct__: struct} = container, key) do
+    struct.fetch(container, key)
+  end
+
+  def fetch(%{} = map, key) do
+    :maps.find(key, map)
+  end
+
+  def fetch(list, key) when is_list(list) do
+    case :lists.keyfind(key, 1, list) do
+      {^key, value} -> {:ok, value}
+      false -> :error
+    end
+  end
+
+  def fetch(nil, _key) do
+    :error
+  end
 
   @doc """
   Gets the container's value for the given key.
   """
   @spec get(t, term, term) :: term
-  def get(container, key, default \\ nil)
-
-  def get(%{__struct__: struct} = container, key, default) do
-    struct.get(container, key, default)
-  end
-
-  def get(%{} = map, key, default) do
-    case :maps.find(key, map) do
+  def get(container, key, default \\ nil) do
+    case fetch(container, key) do
       {:ok, value} -> value
       :error -> default
     end
-  end
-
-  def get(list, key, default) when is_list(list) do
-    case :lists.keyfind(key, 1, list) do
-      {^key, value} -> value
-      false -> default
-    end
-  end
-
-  def get(nil, _key, default) do
-    default
   end
 
   @doc """
@@ -102,40 +110,5 @@ defmodule Access do
   def get_and_update(nil, key, _fun) do
     raise ArgumentError,
       "could not put/update key #{inspect key} on a nil value"
-  end
-end
-
-# Callbacks invoked when inlining code for *_in in Kernel.
-# TODO: Remove me on 1.2
-defmodule Access.Map do
-  @moduledoc false
-
-  def update!(%{} = map, key, fun) do
-    case :maps.find(key, map) do
-      {:ok, value} ->
-        :maps.put(key, fun.(value), map)
-      :error ->
-        raise KeyError, key: key, term: map
-    end
-  end
-
-  def update!(other, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
-  end
-
-  def get_and_update!(%{} = map, key, fun) do
-    case :maps.find(key, map) do
-      {:ok, value} ->
-        {get, update} = fun.(value)
-        {get, :maps.put(key, update, map)}
-      :error ->
-        raise KeyError, key: key, term: map
-    end
-  end
-
-  def get_and_update!(other, key, _fun) do
-    raise ArgumentError,
-      "could not put/update key #{inspect key}. Expected map/struct, got: #{inspect other}"
   end
 end

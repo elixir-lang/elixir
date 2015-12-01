@@ -42,7 +42,7 @@ defmodule Exception do
   def exception?(_), do: false
 
   @doc """
-  Gets the message for an exception.
+  Gets the message for an `exception`.
   """
   def message(%{__struct__: module, __exception__: true} = exception) when is_atom(module) do
     try do
@@ -95,7 +95,7 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats any throw, error and exit.
+  Normalizes and formats any throw/error/exit.
 
   The message is formatted and displayed in the same
   format as used by Elixir's CLI.
@@ -128,7 +128,7 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats throw/errors/exits and stacktrace.
+  Normalizes and formats throw/errors/exits and stacktraces.
 
   It relies on `format_banner/3` and `format_stacktrace/1`
   to generate the final format.
@@ -155,7 +155,7 @@ defmodule Exception do
   end
 
   @doc """
-  Formats an exit, returns a string.
+  Formats an exit. It returns a string.
 
   Often there are errors/exceptions inside exits. Exits are often
   wrapped by the caller and provide stacktraces too. This function
@@ -365,9 +365,10 @@ defmodule Exception do
   end
 
   defp format_application(module) do
-    case :application.get_application(module) do
-      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
-      :undefined   -> ""
+    if app = Application.get_application(module) do
+      "(" <> Atom.to_string(app) <> ") "
+    else
+      ""
     end
   end
 
@@ -394,7 +395,7 @@ defmodule Exception do
 
   ## Examples
 
-      Exception.format_fa(fn -> end, 1)
+      Exception.format_fa(fn -> nil end, 1)
       #=> "#Function<...>/1"
 
   """
@@ -447,7 +448,7 @@ defmodule Exception do
   end
 
   @doc """
-  Formats the given file and line as shown in stacktraces.
+  Formats the given `file` and `line` as shown in stacktraces.
   If any of the values are `nil`, they are omitted.
 
   ## Examples
@@ -626,17 +627,17 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
-    "undefined function: " <> Exception.format_mfa(module, function, arity) <>
+    "undefined function " <> Exception.format_mfa(module, function, arity) <>
       " (module #{inspect module} is not available)"
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "undefined function: " <> Exception.format_mfa(module, function, arity)
+    "undefined function " <> Exception.format_mfa(module, function, arity)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
     "nil." <> fa = Exception.format_mfa(nil, function, arity)
-    "undefined function: " <> Exception.format_mfa(module, function, arity) <>
+    "undefined function " <> Exception.format_mfa(module, function, arity) <>
       " (function #{fa} is not available)"
   end
 end
@@ -791,11 +792,17 @@ defmodule ErlangError do
   def normalize({:badkey, key}, stacktrace) do
     term =
       case stacktrace || :erlang.get_stacktrace do
+        [{Map, :get_and_update!, [map, _, _], _}|_] -> map
+        [{Map, :update!, [map, _, _], _}|_] -> map
         [{:maps, :update, [_, _, map], _}|_] -> map
         [{:maps, :get, [_, map], _}|_] -> map
         _ -> nil
       end
     %KeyError{key: key, term: term}
+  end
+
+  def normalize({:badkey, key, map}, _stacktrace) do
+    %KeyError{key: key, term: map}
   end
 
   def normalize({:case_clause, term}, _stacktrace) do

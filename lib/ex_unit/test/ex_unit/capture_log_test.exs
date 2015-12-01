@@ -13,7 +13,7 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   test "no output" do
-    assert capture_log(fn -> end) == ""
+    assert capture_log(fn -> nil end) == ""
   end
 
   test "assert inside" do

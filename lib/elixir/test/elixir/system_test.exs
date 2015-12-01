@@ -6,9 +6,9 @@ defmodule SystemTest do
 
   test "build_info/0" do
     assert is_map System.build_info
-    assert not is_nil(System.build_info[:version])
-    assert not is_nil(System.build_info[:tag])
-    assert not is_nil(System.build_info[:date])
+    assert is_binary System.build_info[:version]
+    assert is_binary System.build_info[:revision]
+    assert is_binary System.build_info[:date]
   end
 
   test "cwd/0" do
@@ -36,6 +36,11 @@ defmodule SystemTest do
   test "tmp_dir/0" do
     assert is_binary System.tmp_dir
     assert is_binary System.tmp_dir!
+  end
+
+  test "endianness/0" do
+    assert System.endianness in [:little, :big]
+    assert System.endianness == System.compiled_endianness
   end
 
   test "argv/0" do

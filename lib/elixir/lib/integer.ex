@@ -11,6 +11,14 @@ defmodule Integer do
   Returns `true` if `n` is an odd number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_odd(3)
+      true
+
+      iex> Integer.is_odd(4)
+      false
   """
   defmacro is_odd(n) do
     quote do: (unquote(n) &&& 1) == 1
@@ -22,6 +30,14 @@ defmodule Integer do
   Returns `true` if `n` is an even number, otherwise `false`.
 
   Allowed in guard clauses.
+
+  ## Examples
+
+      iex> Integer.is_even(10)
+      true
+
+      iex> Integer.is_even(5)
+      false
   """
   defmacro is_even(n) do
     quote do: (unquote(n) &&& 1) == 0
@@ -126,14 +142,14 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{base}"
   end
 
-  defp parse_in_base(<< ?-, bin :: binary >>, base) do
+  defp parse_in_base("-" <> bin, base) do
     case do_parse(bin, base) do
       :error -> :error
       {number, remainder} -> {-number, remainder}
     end
   end
 
-  defp parse_in_base(<< ?+, bin :: binary >>, base) do
+  defp parse_in_base("+" <> bin, base) do
     do_parse(bin, base)
   end
 
@@ -141,9 +157,9 @@ defmodule Integer do
     do_parse(bin, base)
   end
 
-  defp do_parse(<< char, bin :: binary >>, base) do
+  defp do_parse(<<char, rest::binary>>, base) do
     if valid_digit_in_base?(char, base) do
-      do_parse(bin, base, parse_digit(char, base))
+      do_parse(rest, base, parse_digit(char, base))
     else
       :error
     end
@@ -151,11 +167,11 @@ defmodule Integer do
 
   defp do_parse(_, _), do: :error
 
-  defp do_parse(<< char, rest :: binary >>, base, acc) do
+  defp do_parse(<<char, rest::binary>>, base, acc) do
     if valid_digit_in_base?(char, base) do
       do_parse(rest, base, base * acc + parse_digit(char, base))
     else
-      {acc, << char, rest :: binary >>}
+      {acc, <<char, rest::binary>>}
     end
   end
 

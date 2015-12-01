@@ -3,7 +3,6 @@ defmodule Mix.Tasks.Escript.Build do
   use Bitwise, only_operators: true
 
   @shortdoc "Builds an escript for the project"
-  @recursive true
 
   @moduledoc ~S"""
   Builds an escript for the project.
@@ -128,13 +127,14 @@ defmodule Mix.Tasks.Escript.Build do
           |> Stream.concat
           |> prepare_beam_paths
 
-        if Keyword.get(project, :consolidate_protocols, project[:build_embedded]) do
+        if project[:consolidate_protocols] do
           beam_paths =
-            Path.wildcard(consolidated_path <> "/*")
+            consolidated_path <> "/*"
+            |> Path.wildcard()
             |> prepare_beam_paths(beam_paths)
         end
 
-        tuples = gen_main(escript_mod, main, app, language) ++
+        tuples = gen_main(project, escript_mod, main, app, language) ++
                  read_beams(beam_paths)
 
         case :zip.create 'mem', tuples, [:memory] do
@@ -203,10 +203,8 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp prepare_beam_paths(paths, dict \\ HashDict.new) do
-    paths
-    |> Enum.map(&{Path.basename(&1), &1})
-    |> Enum.into(dict)
+  defp prepare_beam_paths(paths, map \\ %{}) do
+    Enum.into paths, map, &{Path.basename(&1), &1}
   end
 
   defp read_beams(items) do
@@ -226,10 +224,10 @@ defmodule Mix.Tasks.Escript.Build do
     "%%! -escript main #{escript_mod} #{user_args}\n"
   end
 
-  defp gen_main(name, module, app, language) do
+  defp gen_main(project, name, module, app, language) do
     config =
-      if File.regular?("config/config.exs") do
-        Macro.escape Mix.Config.read!("config/config.exs")
+      if File.regular?(project[:config_path]) do
+        Macro.escape Mix.Config.read!(project[:config_path])
       else
         []
       end
@@ -286,10 +284,10 @@ defmodule Mix.Tasks.Escript.Build do
       erl_version = :erlang.system_info(:otp_release)
 
       case :string.to_integer(erl_version) do
-        {num, _} when num >= 17 -> nil
+        {num, _} when num >= 18 -> nil
         _ ->
           io_error ["Incompatible Erlang/OTP release: ", erl_version,
-                    ".\nThis escript requires at least Erlang/OTP 17.0.\n"]
+                    ".\nThis escript requires at least Erlang/OTP 18.0.\n"]
           :erlang.halt(1)
       end
 

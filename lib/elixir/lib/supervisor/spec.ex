@@ -52,7 +52,7 @@ defmodule Supervisor.Spec do
 
   ## Supervisor and worker options
 
-  In the example above, we have defined workers and supervisors
+  In the example above, we defined workers and supervisors
   and each accepts the following options:
 
     * `:id` - a name used to identify the child specification
@@ -61,7 +61,7 @@ defmodule Supervisor.Spec do
 
     * `:function` - the function to invoke on the child to start it
 
-    * `:restart` - defines when the child process should restart
+    * `:restart` - defines when a terminated child process should be restarted
 
     * `:shutdown` - defines how a child process should be terminated
 
@@ -90,11 +90,11 @@ defmodule Supervisor.Spec do
     * `:brutal_kill` - the child process is unconditionally terminated
       using `exit(child, :kill)`.
 
-    * `:infinity` - if the child process is a supervisor, it is a mechanism
+    * `:infinity` - if the child process is a supervisor, this is a mechanism
       to give the subtree enough time to shutdown. It can also be used with
       workers with care.
 
-    * Finally, it can also be any integer meaning that the supervisor tells
+    * Finally, the value can also be any integer meaning that the supervisor tells
       the child process to terminate by calling `Process.exit(child, :shutdown)`
       and then waits for an exit signal back. If no exit signal is received
       within the specified time (in milliseconds), the child process is

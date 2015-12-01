@@ -99,12 +99,7 @@ defmodule Mix.Tasks.Deps do
   def run(args) do
     Mix.Project.get!
     {opts, _, _} = OptionParser.parse(args)
-
-    if opts[:all] do
-      loaded_opts = []
-    else
-      loaded_opts = [env: Mix.env]
-    end
+    loaded_opts  = if opts[:all], do: [], else: [env: Mix.env]
 
     shell = Mix.shell
     lock  = Mix.Dep.Lock.read

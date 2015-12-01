@@ -6,10 +6,10 @@
 %% Public API
 
 get_opt(Key) ->
-  Dict = elixir_config:get(compiler_options),
-  case lists:keyfind(Key, 1, Dict) of
-    false -> false;
-    {Key, Value} -> Value
+  Map = elixir_config:get(compiler_options),
+  case maps:find(Key, Map) of
+    {ok, Value} -> Value;
+    error -> false
   end.
 
 %% Compilation entry points.
@@ -67,7 +67,7 @@ eval_compilation(Forms, Vars, E) ->
   {Result, EE}.
 
 code_loading_compilation(Forms, Vars, #{line := Line} = E) ->
-  Dict = [{{Name, Kind}, {Value, 0}} || {Name, Kind, Value, _} <- Vars],
+  Dict = [{{Name, Kind}, {Value, 0, true}} || {Name, Kind, Value, _} <- Vars],
   S = elixir_env:env_to_scope_with_vars(E, Dict),
   {Expr, EE, _S} = elixir:quoted_to_erl(Forms, E, S),
 
@@ -207,9 +207,7 @@ no_auto_import() ->
 
 core() ->
   {ok, _} = application:ensure_all_started(elixir),
-  New = orddict:from_list([{docs, false}, {internal, true}]),
-  Merge = fun(_, _, Value) -> Value end,
-  Update = fun(Old) -> orddict:merge(Merge, Old, New) end,
+  Update = fun(Old) -> maps:merge(Old, #{docs => false, internal => true}) end,
   _ = elixir_config:update(compiler_options, Update),
   [core_file(File) || File <- core_main()].
 
@@ -233,8 +231,8 @@ core_main() ->
    <<"lib/elixir/lib/macro.ex">>,
    <<"lib/elixir/lib/code.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
-   <<"lib/elixir/lib/kernel/def.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
+   <<"lib/elixir/lib/kernel/utils.ex">>,
    <<"lib/elixir/lib/behaviour.ex">>,
    <<"lib/elixir/lib/exception.ex">>,
    <<"lib/elixir/lib/protocol.ex">>,

@@ -1,6 +1,8 @@
 defmodule Task.Supervised do
   @moduledoc false
 
+  @ref_timeout 5_000
+
   def start(info, fun) do
     {:ok, :proc_lib.spawn(__MODULE__, :noreply, [info, fun])}
   end
@@ -9,24 +11,38 @@ defmodule Task.Supervised do
     {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [info, fun])}
   end
 
-  def start_link(caller, info, fun) do
-    :proc_lib.start_link(__MODULE__, :reply, [caller, info, fun])
+  def start_link(caller, link, info, fun) do
+    {:ok, spawn_link(caller, link, info, fun)}
   end
 
-  def async(caller, info, mfa) do
-    initial_call(mfa)
-    ref = receive do: ({^caller, ref} -> ref)
-    send caller, {ref, do_apply(info, mfa)}
+  def spawn_link(caller, link \\ :nolink, info, fun) do
+    :proc_lib.spawn_link(__MODULE__, :reply, [caller, link, info, fun])
   end
 
-  def reply(caller, info, mfa) do
+  def reply(caller, link, info, mfa) do
     initial_call(mfa)
-    :erlang.link(caller)
-    :proc_lib.init_ack({:ok, self()})
+    case link do
+      :link ->
+        Process.link(caller)
+        reply(caller, nil, @ref_timeout, info, mfa)
+      :monitor ->
+        mref = Process.monitor(caller)
+        reply(caller, mref, @ref_timeout, info, mfa)
+      :nolink ->
+        reply(caller, nil, :infinity, info, mfa)
+    end
+  end
 
-    ref =
+  defp reply(caller, mref, timeout, info, mfa) do
+    receive do
+      {^caller, ref} ->
+        _ = if mref, do: Process.demonitor(mref, [:flush])
+        send caller, {ref, do_apply(info, mfa)}
+      {:DOWN, ^mref, _, _, reason} when is_reference(mref) ->
+        exit(reason)
+    after
       # There is a race condition on this operation when working across
-      # node that manifests if a "Task.Supervisor.async/1" call is made
+      # node that manifests if a "Task.Supervisor.async/2" call is made
       # while the supervisor is busy spawning previous tasks.
       #
       # Imagine the following workflow:
@@ -41,13 +57,12 @@ defmodule Task.Supervised do
       # Given no work is done in the client between the task start and
       # sending the reference, 5000 should be enough to not raise false
       # negatives unless the nodes are indeed not available.
-      receive do
-        {^caller, ref} -> ref
-      after
-        5000 -> exit(:timeout)
-      end
-
-    send caller, {ref, do_apply(info, mfa)}
+      #
+      # The same situation could occur with "Task.Supervisor.async_nolink/2",
+      # except a monitor is used instead of a link.
+      timeout ->
+        exit(:timeout)
+    end
   end
 
   def noreply(info, mfa) do

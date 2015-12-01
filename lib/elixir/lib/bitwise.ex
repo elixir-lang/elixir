@@ -1,8 +1,9 @@
 defmodule Bitwise do
   @moduledoc """
   This module provides macro-based operators that perform calculations
-  on (sets of) bits. In general, you should `use` the Bitwise module
-  as a whole:
+  on (sets of) bits.
+
+  In general, you should `use` the Bitwise module as a whole:
 
       iex> use Bitwise
       iex> bnot 1

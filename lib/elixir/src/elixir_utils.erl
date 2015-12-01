@@ -1,11 +1,11 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([elixir_to_erl/1, get_line/1, split_last/1, meta_location/1,
+-export([elixir_to_erl/1, get_ann/1, get_line/1, split_last/1,
   characters_to_list/1, characters_to_binary/1, macro_name/1,
   convert_to_boolean/4, returns_boolean/1, atom_concat/1,
   read_file_type/1, read_link_type/1, relative_to_cwd/1,
-  change_universal_time/2, erl_call/4]).
+  change_universal_time/2, erl_call/4, meta_location/1]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
@@ -15,9 +15,9 @@ macro_name(Macro) ->
 atom_concat(Atoms) ->
   list_to_atom(lists:concat(Atoms)).
 
-erl_call(Line, Module, Function, Args) ->
-  {call, Line,
-    {remote, Line, {atom, Line, Module}, {atom, Line, Function}},
+erl_call(Ann, Module, Function, Args) ->
+  {call, Ann,
+    {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}},
     Args
   }.
 
@@ -26,6 +26,15 @@ get_line(Opts) when is_list(Opts) ->
     {line, Line} when is_integer(Line) -> Line;
     false -> 0
   end.
+
+get_ann(Opts) when is_list(Opts) ->
+  get_ann(Opts, [], 0).
+
+get_ann([{generated,Gen}|T], Acc, Line) -> get_ann(T, [{generated,Gen}|Acc], Line);
+get_ann([{line,Line}|T], Acc, _) -> get_ann(T, Acc, Line);
+get_ann([_|T], Acc, Line) -> get_ann(T, Acc, Line);
+get_ann([], [], Line) -> Line;
+get_ann([], Acc, Line) -> [{location,Line}|Acc].
 
 split_last([])         -> {[], []};
 split_last(List)       -> split_last(List, []).
@@ -74,7 +83,7 @@ characters_to_binary(Data) ->
 %% Meta location.
 %%
 %% Macros add a file+keep pair on location keep
-%% which we should take into account for report
+%% which we should take into account for error
 %% reporting.
 %%
 %% Returns {binary, integer} on location keep or
@@ -83,10 +92,11 @@ characters_to_binary(Data) ->
 meta_location(Meta) ->
   case lists:keyfind(file, 1, Meta) of
     {file, MetaFile} when is_binary(MetaFile) ->
-      case lists:keyfind(keep, 1, Meta) of
-        {keep, MetaLine} when is_integer(MetaLine) -> ok;
-        _ -> MetaLine = 0
-      end,
+      MetaLine =
+        case lists:keyfind(keep, 1, Meta) of
+          {keep, Keep} when is_integer(Keep) -> Keep;
+          _ -> 0
+        end,
       {MetaFile, MetaLine};
     _ ->
       nil

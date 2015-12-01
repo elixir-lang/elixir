@@ -1,6 +1,6 @@
 defmodule Mix.Shell do
   @moduledoc """
-  Defines Mix.Shell contract.
+  Defines `Mix.Shell` contract.
   """
 
   @doc """
@@ -111,11 +111,11 @@ defmodule Mix.Shell do
       {:unix, _} ->
         command = command
           |> String.replace("\"", "\\\"")
-          |> :binary.bin_to_list
+          |> String.to_char_list
         'sh -c "' ++ command ++ '"'
 
       {:win32, osname} ->
-        command = :binary.bin_to_list(command)
+        command = String.to_char_list(command)
         case {System.get_env("COMSPEC"), osname} do
           {nil, :windows} -> 'command.com /c ' ++ command
           {nil, _}        -> 'cmd /c ' ++ command

@@ -10,7 +10,7 @@ defmodule Version do
 
   ## Versions
 
-  In a nutshell, a version is given by three numbers:
+  In a nutshell, a version is represented by three numbers:
 
       MAJOR.MINOR.PATCH
 
@@ -24,8 +24,8 @@ defmodule Version do
 
   ## Struct
 
-  The version is represented by the Version struct and it has its
-  fields named according to Semver: `:major`, `:minor`, `:patch`,
+  The version is represented by the Version struct and fields
+  are named according to Semver: `:major`, `:minor`, `:patch`,
   `:pre` and `:build`.
 
   ## Requirements
@@ -105,7 +105,7 @@ defmodule Version do
 
   Returns `true` if `version` satisfies `requirement`, `false` otherwise.
   Raises a `Version.InvalidRequirementError` exception if `requirement` is not
-  parseable, or `Version.InvalidVersionError` if `version` is not parseable.
+  parsable, or `Version.InvalidVersionError` if `version` is not parsable.
   If given an already parsed version and requirement this function won't
   raise.
 
@@ -144,7 +144,7 @@ defmodule Version do
   the second and `:lt` for vice versa. If the two versions are equal `:eq`
   is returned
 
-  Raises a `Version.InvalidVersionError` exception if `version` is not parseable.
+  Raises a `Version.InvalidVersionError` exception if `version` is not parsable.
   If given an already parsed version this function won't raise.
 
   ## Examples
@@ -266,8 +266,8 @@ defmodule Version do
 
     defmacro deflexer(char, acc, do: body) do
       quote do
-        def lexer(<< unquote(char) :: utf8, rest :: binary >>, unquote(acc)) do
-          unquote(char) = << unquote(char) :: utf8 >>
+        def lexer(<<unquote(char)::utf8, rest::binary>>, unquote(acc)) do
+          unquote(char) = <<unquote(char)::utf8>>
 
           lexer(rest, unquote(body))
         end

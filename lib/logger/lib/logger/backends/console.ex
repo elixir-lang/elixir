@@ -86,12 +86,12 @@ defmodule Logger.Backends.Console do
   end
 
   defp take_metadata(metadata, keys) do
-    Enum.reduce(keys, [], fn key, acc ->
+    List.foldr keys, [], fn key, acc ->
       case Keyword.fetch(metadata, key) do
         {:ok, val} -> [{key, val} | acc]
         :error     -> acc
       end
-    end) |> Enum.reverse()
+    end
   end
 
   defp color_event(data, _level, %{enabled: false}), do: data

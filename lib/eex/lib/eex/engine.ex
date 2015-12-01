@@ -53,6 +53,9 @@ defmodule EEx.Engine do
   @doc """
   Handles assigns in quoted expressions.
 
+  A warning will be printed on missing assigns.
+  Future versions will raise.
+
   This can be added to any custom engine by invoking
   `handle_assign/1` with `Macro.prewalk/2`:
 
@@ -64,11 +67,26 @@ defmodule EEx.Engine do
   """
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
-    quote line: line, do: Dict.get(var!(assigns), unquote(name))
+    quote line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name))
   end
-
   def handle_assign(arg) do
     arg
+  end
+
+  @doc false
+  # TODO: raise on 1.3 or 1.4
+  def fetch_assign!(assigns, key) do
+    case Access.fetch(assigns, key) do
+      {:ok, val} ->
+        val
+      :error ->
+        keys = Enum.map(assigns, &elem(&1, 0))
+        IO.write :stderr, "warning: assign @#{key} not available in eex template. " <>
+                          "Please ensure all assigns are given as options. " <>
+                          "Available assigns: #{inspect keys}\n" <>
+                          Exception.format_stacktrace
+        nil
+    end
   end
 
   @doc """

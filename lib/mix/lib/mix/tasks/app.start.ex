@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
+  # Do not mark this task as recursive as it is
+  # responsible for loading consolidated protocols.
   @shortdoc "Starts all registered apps"
 
   @moduledoc """
@@ -27,25 +29,21 @@ defmodule Mix.Tasks.App.Start do
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
     Mix.Project.get!
+    config = Mix.Project.config
 
     {opts, _, _} = OptionParser.parse args, switches: [permanent: :boolean, temporary: :boolean]
     Mix.Task.run "loadpaths", args
 
     unless "--no-compile" in args do
-      Mix.Project.compile(args)
+      Mix.Project.compile(args, config)
     end
 
     unless "--no-protocols" in args do
-      path = Path.join(Mix.Project.build_path, "consolidated")
+      path = Path.join(Mix.Project.build_path(config), "consolidated")
 
-      if File.dir?(path) do
+      if config[:consolidate_protocols] && File.dir?(path) do
         Code.prepend_path(path)
-
-        Enum.each(File.ls!(path), fn file ->
-          module = file |> Path.rootname() |> String.to_atom()
-          :code.purge(module)
-          :code.delete(module)
-        end)
+        Enum.each(File.ls!(path), &load_protocol/1)
       end
     end
 
@@ -85,7 +83,13 @@ defmodule Mix.Tasks.App.Start do
 
     type = type(config, opts)
     Enum.each apps, &ensure_all_started(&1, type)
-    check_configured()
+
+    # If there is a build path, we will let the application
+    # that owns the build path do the actual check
+    unless config[:build_path] do
+      check_configured()
+    end
+
     :ok
   end
 
@@ -110,10 +114,12 @@ defmodule Mix.Tasks.App.Start do
 
   defp check_configured() do
     configured = Mix.ProjectStack.configured_applications
-    loaded = for {app, _, _} <- :application.loaded_applications(), do: app
-    _ = for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
+    loaded = for {app, _, _} <- Application.loaded_applications(), do: app
+    _ = for app <- configured -- loaded,
+           :code.lib_dir(app) == {:error, :bad_name} do
       Mix.shell.error """
-      You have configured application #{inspect app} but it is not available.
+      You have configured application #{inspect app} in your configuration
+      file but the application is not available.
 
       This usually means one of:
 
@@ -125,5 +131,16 @@ defmodule Mix.Tasks.App.Start do
       """
     end
     :ok
+  end
+
+  defp load_protocol(file) do
+    case file do
+      "Elixir." <> _ ->
+        module = file |> Path.rootname |> String.to_atom
+        :code.purge(module)
+        :code.delete(module)
+      _ ->
+        :ok
+    end
   end
 end

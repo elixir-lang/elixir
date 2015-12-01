@@ -2,6 +2,9 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule PathTest do
   use ExUnit.Case, async: true
+
+  doctest Path
+
   import PathHelpers
 
   if :file.native_name_encoding == :utf8 do
@@ -137,8 +140,9 @@ defmodule PathTest do
     assert (Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows)== "/foo/bar"
     assert (Path.expand("../bar/../bar", "/foo/../foo/../foo") |> strip_drive_letter_if_windows) == "/bar"
 
-    assert (Path.expand(['..', ?/, "bar/../bar"], '/foo/../foo/../foo') |>
-            strip_drive_letter_if_windows) == "/bar"
+    assert "/bar" ==
+      (Path.expand(['..', ?/, "bar/../bar"], '/foo/../foo/../foo') |> strip_drive_letter_if_windows)
+
     assert (Path.expand("/..") |> strip_drive_letter_if_windows) == "/"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")

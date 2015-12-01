@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.Compile do
         compiled
       end)
 
-    if Enum.any?(compiled), do: Mix.Dep.Lock.touch, else: :ok
+    if Enum.any?(compiled), do: Mix.Dep.Lock.touch_manifest, else: :ok
   end
 
   defp touch_fetchable(scm, path) do
@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar(%Mix.Dep{app: app} = dep, config) do
-    lib_path = Path.join(config[:build_path], "lib")
+    lib_path = Path.join(config[:env_path], "lib")
     do_command dep, config, rebar_cmd(app), false,
                "compile skip_deps=true deps_dir=#{inspect lib_path}"
   end
@@ -156,7 +156,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, extra \\ "") do
     Mix.Dep.in_dependency dep, fn _ ->
-      env = [{"ERL_LIBS", Path.join(config[:build_path], "lib")}]
+      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}]
       if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?, env: env) != 0 do
         Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
           "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
@@ -168,8 +168,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
     build_path = Path.dirname(opts[:build])
-    Enum.each Mix.Dep.source_paths(dep), fn source ->
-      app = Path.join(build_path, Path.basename(source))
+    Enum.each Mix.Dep.source_paths(dep), fn {source, base} ->
+      app = Path.join(build_path, base)
       build_structure(source, app, config)
       Code.prepend_path(Path.join(app, "ebin"))
     end

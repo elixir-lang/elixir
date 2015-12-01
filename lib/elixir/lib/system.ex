@@ -25,15 +25,15 @@ defmodule System do
     end
   end
 
-  # Tries to run "git describe --always --tags". In the case of success returns
-  # the most recent tag. If that is not available, tries to read the commit hash
+  # Tries to run "git rev-parse --short HEAD". In the case of success returns
+  # the short revision hash. If that is not available, tries to read the commit hash
   # from .git/HEAD. If that fails, returns an empty string.
-  defmacrop get_describe do
+  defmacrop get_revision do
     dirpath = :filename.join(__DIR__, "../../../.git")
     case :file.read_file_info(dirpath) do
       {:ok, _} ->
         if :os.find_executable('git') do
-          data = :os.cmd('git describe --always --tags')
+          data = :os.cmd('git rev-parse --short HEAD')
           strip_re(data, "\n")
         else
           read_stripped(:filename.join(".git", "HEAD"))
@@ -48,6 +48,21 @@ defmodule System do
   end
 
   @doc """
+  Returns the endianness.
+  """
+  def endianness do
+    :erlang.system_info(:endian)
+  end
+
+  @doc """
+  Returns the endianness the system was compiled with.
+  """
+  @endianness :erlang.system_info(:endian)
+  def compiled_endianness do
+    @endianness
+  end
+
+  @doc """
   Elixir version information.
 
   Returns Elixir's version as binary.
@@ -58,11 +73,11 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a keyword list with Elixir version, git tag info and compilation date.
+  Returns a keyword list with Elixir version, git short revision hash and compilation date.
   """
   @spec build_info() :: map
   def build_info do
-    %{version: version, tag: get_describe, date: get_date}
+    %{version: version, date: get_date, revision: get_revision}
   end
 
   @doc """
@@ -284,9 +299,9 @@ defmodule System do
   Sets a new value for each environment variable corresponding
   to each key in `dict`.
   """
-  @spec put_env(Dict.t) :: :ok
-  def put_env(dict) do
-    Enum.each dict, fn {key, val} -> put_env key, val end
+  @spec put_env(Enumerable.t) :: :ok
+  def put_env(enum) do
+    Enum.each enum, fn {key, val} -> put_env key, val end
   end
 
   @doc """

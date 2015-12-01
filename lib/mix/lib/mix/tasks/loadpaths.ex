@@ -59,8 +59,11 @@ defmodule Mix.Tasks.Loadpaths do
     vsn = System.version
     scm = config[:build_scm]
 
-    # Force recompile if we have lock mismatch
-    case Mix.Dep.Lock.status() do
+    # Erase the app build if we have lock mismatch.
+    # We do this to force full recompilation when
+    # any of SCM or Elixir version changes. Applies
+    # to dependencies and the main project alike.
+    case Mix.Dep.ElixirSCM.read() do
       {:ok, old_vsn, _} when old_vsn != vsn -> rm_rf_app(config)
       {:ok, _, old_scm} when old_scm != scm -> rm_rf_app(config)
       _ -> :ok

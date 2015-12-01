@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule StringIOTest do
   use ExUnit.Case, async: true
 
+  doctest StringIO
+
   test "open and close" do
     {:ok, pid} = StringIO.open("")
     assert StringIO.close(pid) == {:ok, {"", ""}}
@@ -53,9 +55,9 @@ defmodule StringIOTest do
   end
 
   test "IO.read :line with invalid utf8" do
-    pid = start(<< 130, 227, 129, 132, 227, 129, 134 >>)
+    pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.read(pid, :line) == {:error, :collect_line}
-    assert contents(pid) == {<< 130, 227, 129, 132, 227, 129, 134 >>, ""}
+    assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.read count" do
@@ -75,9 +77,9 @@ defmodule StringIOTest do
   end
 
   test "IO.read count with invalid utf8" do
-    pid = start(<< 130, 227, 129, 132, 227, 129, 134 >>)
+    pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.read(pid, 2) == {:error, :invalid_unicode}
-    assert contents(pid) == {<< 130, 227, 129, 132, 227, 129, 134 >>, ""}
+    assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.binread :line with \\n" do
@@ -111,8 +113,8 @@ defmodule StringIOTest do
 
   test "IO.binread count with utf8" do
     pid = start("あいう")
-    assert IO.binread(pid, 2) == << 227, 129 >>
-    assert IO.binread(pid, 8) == << 130, 227, 129, 132, 227, 129, 134 >>
+    assert IO.binread(pid, 2) == <<227, 129>>
+    assert IO.binread(pid, 8) == <<130, 227, 129, 132, 227, 129, 134>>
     assert IO.binread(pid, 1) == :eof
     assert contents(pid) == {"", ""}
   end
@@ -166,9 +168,9 @@ defmodule StringIOTest do
   end
 
   test "IO.getn with invalid utf8" do
-    pid = start(<< 130, 227, 129, 132, 227, 129, 134 >>)
+    pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.getn(pid, ">", 2) == {:error, :invalid_unicode}
-    assert contents(pid) == {<< 130, 227, 129, 132, 227, 129, 134 >>, ""}
+    assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.getn with capture_prompt" do
@@ -196,9 +198,9 @@ defmodule StringIOTest do
   end
 
   test "IO.gets with invalid utf8" do
-    pid = start(<< 130, 227, 129, 132, 227, 129, 134 >>)
+    pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert IO.gets(pid, ">") == {:error, :collect_line}
-    assert contents(pid) == {<< 130, 227, 129, 132, 227, 129, 134 >>, ""}
+    assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.gets with capture_prompt" do
@@ -220,11 +222,11 @@ defmodule StringIOTest do
   end
 
   test "IO.stream with invalid utf8" do
-    pid = start(<< 130, 227, 129, 132, 227, 129, 134 >>)
+    pid = start(<<130, 227, 129, 132, 227, 129, 134>>)
     assert_raise IO.StreamError, fn->
       IO.stream(pid, 2) |> Enum.to_list
     end
-    assert contents(pid) == {<< 130, 227, 129, 132, 227, 129, 134 >>, ""}
+    assert contents(pid) == {<<130, 227, 129, 132, 227, 129, 134>>, ""}
   end
 
   test "IO.binstream" do

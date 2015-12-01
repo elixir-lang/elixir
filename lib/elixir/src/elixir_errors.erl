@@ -99,7 +99,6 @@ parse_erl_term(Term) ->
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-
 %% Handle warnings and errors from Erlang land (called during module compilation)
 
 %% Ignore on bootstrap
@@ -191,6 +190,10 @@ handle_file_error(File, {Line, erl_lint, {unsafe_var, Var, {In, _Where}}}) ->
     _ -> In
   end,
   Message = io_lib:format("cannot define variable ~ts inside ~ts", [format_var(Var), Translated]),
+  do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
+
+handle_file_error(File, {Line, erl_lint, {undefined_function, {F, A}}}) ->
+  Message = io_lib:format("undefined function ~ts/~B", [F, A]),
   do_raise(Line, File, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message));
 
 handle_file_error(File, {Line, erl_lint, {spec_fun_undefined, {M, F, A}}}) ->

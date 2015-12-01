@@ -374,7 +374,8 @@ defmodule Code do
   ## Examples
 
       Code.compiler_options
-      #=> [debug_info: true, docs: true, warnings_as_errors: false]
+      #=> %{debug_info: true, docs: true,
+            warnings_as_errors: false, ignore_module_conflict: false}
 
   """
   def compiler_options do
@@ -421,17 +422,18 @@ defmodule Code do
   ## Examples
 
       Code.compiler_options(debug_info: true)
-      #=> [debug_info: true, docs: true, warnings_as_errors: false]
+      #=> %{debug_info: true, docs: true,
+            warnings_as_errors: false, ignore_module_conflict: false}
 
   """
   def compiler_options(opts) do
-    {opts, bad} = Keyword.split(opts, available_compiler_options)
-    if bad != [] do
-      bad = bad |> Keyword.keys |> Enum.join(", ")
-      raise ArgumentError, message: "unknown compiler options: #{bad}"
-    end
-    update = &:orddict.merge(fn(_, _, value) -> value end, &1, opts)
-    :elixir_config.update :compiler_options, update
+    available = available_compiler_options()
+
+    for {k, _} <- opts,
+        not k in available,
+        do: raise "unknown compiler options: #{k}"
+
+    :elixir_config.update :compiler_options, &Enum.into(opts, &1)
   end
 
   @doc """
@@ -588,7 +590,10 @@ defmodule Code do
     * `:type_docs` - list of all docstrings attached to
       `@type` callbacks using the `@typedoc` attribute
 
-    * `:all` - a keyword list with both `:docs` and `:moduledoc`
+    * `:all` - a keyword list with `:docs` and `:moduledoc`, `:callback_docs`,
+      and `:type_docs`.
+
+  If the module cannot be found, it returns `nil`.
 
   ## Examples
 
@@ -598,8 +603,14 @@ defmodule Code do
       iex> String.split(text, "\n") |> Enum.at(0)
       "Converts an atom to a char list."
 
+      # Module doesn't exist
+      iex> Code.get_docs(ModuleNotGood, :all)
+      nil
+
   """
-  def get_docs(module, kind) when is_atom(module) do
+  @doc_kinds [:docs, :moduledoc, :callback_docs, :type_docs, :all]
+
+  def get_docs(module, kind) when is_atom(module) and kind in @doc_kinds do
     case :code.get_object_code(module) do
       {_module, bin, _beam_path} ->
         do_get_docs(bin, kind)
@@ -608,7 +619,7 @@ defmodule Code do
     end
   end
 
-  def get_docs(binpath, kind) when is_binary(binpath) do
+  def get_docs(binpath, kind) when is_binary(binpath) and kind in @doc_kinds do
     do_get_docs(String.to_char_list(binpath), kind)
   end
 
@@ -629,10 +640,8 @@ defmodule Code do
   # unsupported chunk version
   defp lookup_docs(_, _), do: nil
 
-  @doc_sections [:docs, :moduledoc, :callback_docs, :type_docs]
-
   defp do_lookup_docs(docs, :all), do: docs
-  defp do_lookup_docs(docs, kind) when kind in @doc_sections,
+  defp do_lookup_docs(docs, kind),
     do: Keyword.get(docs, kind)
 
   ## Helpers

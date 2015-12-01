@@ -20,8 +20,6 @@ defmodule Macro do
 
   @typedoc "Abstract Syntax Tree (AST)"
   @type t :: expr | {t, t} | atom | number | binary | pid | fun | [t]
-
-  @typedoc "Expr node (remaining ones are literals)"
   @type expr :: {expr | atom, Keyword.t, atom | [t]}
 
   @binary_ops [:===, :!==,
@@ -88,13 +86,17 @@ defmodule Macro do
   def pipe(expr, call_args, position)
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
-    bad_pipe(expr, call_args)
+    raise ArgumentError, bad_pipe(expr, call_args)
+  end
+
+  def pipe(expr, {tuple_or_map, _, _} = call_args, _integer) when tuple_or_map in [:{}, :%{}] do
+    raise ArgumentError, bad_pipe(expr, call_args)
   end
 
   def pipe(expr, {call, _, [_, _]} = call_args, _integer)
       when call in unquote(@binary_ops) do
     raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-      "the #{to_string call} operator can only take two arguments"
+                         "the #{to_string call} operator can only take two arguments"
   end
 
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do
@@ -106,12 +108,12 @@ defmodule Macro do
   end
 
   def pipe(expr, call_args, _integer) do
-    bad_pipe(expr, call_args)
+    raise ArgumentError, bad_pipe(expr, call_args)
   end
 
   defp bad_pipe(expr, call_args) do
-    raise ArgumentError, "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
-      "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
+    "cannot pipe #{to_string expr} into #{to_string call_args}, " <>
+    "can only pipe into local calls foo(), remote calls Foo.bar() or anonymous functions calls foo.()"
   end
 
   @doc """
@@ -166,6 +168,52 @@ defmodule Macro do
   end
 
   @doc """
+  Performs a depth-first, traversal of quoted expressions
+  using an accumulator.
+  """
+  @spec traverse(t, any, (t, any -> {t, any}), (t, any -> {t, any})) :: {t, any}
+  def traverse(ast, acc, pre, post) when is_function(pre, 2) and is_function(post, 2) do
+    {ast, acc} = pre.(ast, acc)
+    do_traverse(ast, acc, pre, post)
+  end
+
+  defp do_traverse({form, meta, args}, acc, pre, post) do
+    unless is_atom(form) do
+      {form, acc} = pre.(form, acc)
+      {form, acc} = do_traverse(form, acc, pre, post)
+    end
+
+    unless is_atom(args) do
+      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
+        {x, acc} = pre.(x, acc)
+        do_traverse(x, acc, pre, post)
+      end)
+    end
+
+    post.({form, meta, args}, acc)
+  end
+
+  defp do_traverse({left, right}, acc, pre, post) do
+    {left, acc} = pre.(left, acc)
+    {left, acc} = do_traverse(left, acc, pre, post)
+    {right, acc} = pre.(right, acc)
+    {right, acc} = do_traverse(right, acc, pre, post)
+    post.({left, right}, acc)
+  end
+
+  defp do_traverse(list, acc, pre, post) when is_list(list) do
+    {list, acc} = Enum.map_reduce(list, acc, fn x, acc ->
+      {x, acc} = pre.(x, acc)
+      do_traverse(x, acc, pre, post)
+    end)
+    post.(list, acc)
+  end
+
+  defp do_traverse(x, acc, _pre, post) do
+    post.(x, acc)
+  end
+
+  @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
   """
   @spec prewalk(t, (t -> t)) :: t
@@ -179,43 +227,7 @@ defmodule Macro do
   """
   @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
   def prewalk(ast, acc, fun) when is_function(fun, 2) do
-    {ast, acc} = fun.(ast, acc)
-    do_prewalk(ast, acc, fun)
-  end
-
-  defp do_prewalk({form, meta, args}, acc, fun) do
-    unless is_atom(form) do
-      {form, acc} = fun.(form, acc)
-      {form, acc} = do_prewalk(form, acc, fun)
-    end
-
-    unless is_atom(args) do
-      {args, acc} = Enum.map_reduce(args, acc, fn x, acc ->
-        {x, acc} = fun.(x, acc)
-        do_prewalk(x, acc, fun)
-      end)
-    end
-
-    {{form, meta, args}, acc}
-  end
-
-  defp do_prewalk({left, right}, acc, fun) do
-    {left, acc} = fun.(left, acc)
-    {left, acc} = do_prewalk(left, acc, fun)
-    {right, acc} = fun.(right, acc)
-    {right, acc} = do_prewalk(right, acc, fun)
-    {{left, right}, acc}
-  end
-
-  defp do_prewalk(list, acc, fun) when is_list(list) do
-    Enum.map_reduce(list, acc, fn x, acc ->
-      {x, acc} = fun.(x, acc)
-      do_prewalk(x, acc, fun)
-    end)
-  end
-
-  defp do_prewalk(x, acc, _fun) do
-    {x, acc}
+    traverse(ast, acc, fun, fn x, a -> {x, a} end)
   end
 
   @doc """
@@ -232,34 +244,7 @@ defmodule Macro do
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
   def postwalk(ast, acc, fun) when is_function(fun, 2) do
-    do_postwalk(ast, acc, fun)
-  end
-
-  defp do_postwalk({form, meta, args}, acc, fun) do
-    unless is_atom(form) do
-      {form, acc} = do_postwalk(form, acc, fun)
-    end
-
-    unless is_atom(args) do
-      {args, acc} = Enum.map_reduce(args, acc, &do_postwalk(&1, &2, fun))
-    end
-
-    fun.({form, meta, args}, acc)
-  end
-
-  defp do_postwalk({left, right}, acc, fun) do
-    {left, acc} = do_postwalk(left, acc, fun)
-    {right, acc} = do_postwalk(right, acc, fun)
-    fun.({left, right}, acc)
-  end
-
-  defp do_postwalk(list, acc, fun) when is_list(list) do
-    {list, acc} = Enum.map_reduce(list, acc, &do_postwalk(&1, &2, fun))
-    fun.(list, acc)
-  end
-
-  defp do_postwalk(x, acc, fun) do
-    fun.(x, acc)
+    traverse(ast, acc, fn x, a -> {x, a} end, fun)
   end
 
   @doc """
@@ -493,14 +478,18 @@ defmodule Macro do
   end
 
   # Bits containers
-  def to_string({:<<>>, _, args} = ast, fun) do
+  def to_string({:<<>>, _, parts} = ast, fun) do
     if interpolated?(ast) do
       fun.(ast, interpolate(ast, fun))
     else
-      fun.(ast, case Enum.map_join(args, ", ", &to_string(&1, fun)) do
-        "<" <> rest -> "<< <" <> rest  <> " >>"
-        rest -> "<<" <> rest <> ">>"
+      result = Enum.map_join(parts, ", ", fn(part) ->
+        case bitpart_to_string(part, fun) do
+          "<" <> rest ->
+            "(<" <> rest <> ")"
+          other -> other
+        end
       end)
+      fun.(ast, "<<" <> result <> ">>")
     end
   end
 
@@ -535,6 +524,12 @@ defmodule Macro do
   def to_string({:fn, _, block} = ast, fun) do
     block = adjust_new_lines block_to_string(block, fun), "\n  "
     fun.(ast, "fn\n  " <> block <> "\nend")
+  end
+
+  # Ranges
+  def to_string({:.., _, args} = ast, fun) do
+    range = Enum.map_join(args, "..", &to_string(&1, fun))
+    fun.(ast, range)
   end
 
   # left -> right
@@ -628,6 +623,30 @@ defmodule Macro do
 
   # All other structures
   def to_string(other, fun), do: fun.(other, inspect(other, []))
+
+  defp bitpart_to_string({:::, _, [left, right]} = ast, fun) do
+    result =
+      op_to_string(left, fun, :::, :left) <>
+      "::" <>
+      bitmods_to_string(right, fun, :::, :right)
+    fun.(ast, result)
+  end
+
+  defp bitpart_to_string(ast, fun) do
+    to_string(ast, fun)
+  end
+
+  defp bitmods_to_string({:-, _, [left, right]} = ast, fun, _, _) do
+    result =
+      bitmods_to_string(left, fun, :-, :left) <>
+      "-" <>
+      bitmods_to_string(right, fun, :-, :right)
+    fun.(ast, result)
+  end
+
+  defp bitmods_to_string(other, fun, parent_op, side) do
+    op_to_string(other, fun, parent_op, side)
+  end
 
   # Block keywords
   @kw_keywords [:do, :catch, :rescue, :after, :else]
@@ -1017,4 +1036,109 @@ defmodule Macro do
   defp expand_until({tree, false}, _env) do
     tree
   end
+
+  @doc """
+  Converts the given atom or binary to underscore format.
+
+  If an atom is given, it is assumed to be an Elixir module,
+  so it is converted to a binary and then processed.
+
+  ## Examples
+
+      iex> Macro.underscore "FooBar"
+      "foo_bar"
+
+      iex> Macro.underscore "Foo.Bar"
+      "foo/bar"
+
+      iex> Macro.underscore Foo.Bar
+      "foo/bar"
+
+  In general, `underscore` can be thought of as the reverse of
+  `camelize`, however, in some cases formatting may be lost:
+
+      iex> Macro.underscore "SAPExample"
+      "sap_example"
+
+      iex> Macro.camelize "sap_example"
+      "SapExample"
+
+  """
+  def underscore(atom) when is_atom(atom) do
+    "Elixir." <> rest = Atom.to_string(atom)
+    underscore(rest)
+  end
+
+  def underscore(""), do: ""
+
+  def underscore(<<h, t::binary>>) do
+    <<to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<h, t, rest::binary>>, _)
+      when (h >= ?A and h <= ?Z) and not (t >= ?A and t <= ?Z) and t != ?. do
+    <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
+  end
+
+  defp do_underscore(<<h, t::binary>>, prev)
+      when (h >= ?A and h <= ?Z) and not (prev >= ?A and prev <= ?Z) do
+    <<?_, to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<?., t::binary>>, _) do
+    <<?/>> <> underscore(t)
+  end
+
+  defp do_underscore(<<h, t::binary>>, _) do
+    <<to_lower_char(h)>> <> do_underscore(t, h)
+  end
+
+  defp do_underscore(<<>>, _) do
+    <<>>
+  end
+
+  @doc """
+  Converts the given string to CamelCase format.
+
+  ## Examples
+
+      iex> Macro.camelize "foo_bar"
+      "FooBar"
+
+  """
+  @spec camelize(String.t) :: String.t
+  def camelize(string)
+
+  def camelize(""),
+    do: ""
+
+  def camelize(<<?_, t::binary>>),
+    do: camelize(t)
+
+  def camelize(<<h, t::binary>>),
+    do: <<to_upper_char(h)>> <> do_camelize(t)
+
+  defp do_camelize(<<?_, ?_, t::binary>>),
+    do: do_camelize(<<?_, t::binary >>)
+
+  defp do_camelize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
+    do: <<to_upper_char(h)>> <> do_camelize(t)
+
+  defp do_camelize(<<?_>>),
+    do: <<>>
+
+  defp do_camelize(<<?/, t::binary>>),
+    do: <<?.>> <> camelize(t)
+
+  defp do_camelize(<<h, t::binary>>),
+    do: <<h>> <> do_camelize(t)
+
+  defp do_camelize(<<>>),
+    do: <<>>
+
+  defp to_upper_char(char) when char >= ?a and char <= ?z, do: char - 32
+  defp to_upper_char(char), do: char
+
+  defp to_lower_char(char) when char >= ?A and char <= ?Z, do: char + 32
+  defp to_lower_char(char), do: char
 end

@@ -494,6 +494,18 @@ defmodule GenEventTest do
     :ok = :sys.resume(pid)
   end
 
+  test "stop/3" do
+    {:ok, pid} = GenEvent.start()
+    :ok = GenEvent.add_handler(pid, ReplyHandler, {self(), true})
+    assert GenEvent.stop(pid, :normal) == :ok
+    assert_receive {:terminate, :stop}
+
+    {:ok, _} = GenEvent.start(name: :my_gen_event_name)
+    :ok = GenEvent.add_handler(:my_gen_event_name, ReplyHandler, {self(), true})
+    assert GenEvent.stop(:my_gen_event_name, {:error, "some reason"}) == :ok
+    assert_receive {:terminate, :stop}
+  end
+
   defp hibernating?(pid) do
     Process.info(pid, :current_function) ==
       {:current_function, {:erlang, :hibernate, 3}}

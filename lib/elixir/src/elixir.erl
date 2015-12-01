@@ -7,6 +7,7 @@
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2, quoted_to_erl/3,
   eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
+-define(system, 'Elixir.System').
 
 %% Top level types
 -export_type([char_list/0, struct/0, as_boolean/1]).
@@ -29,13 +30,31 @@ start(_Type, _Args) ->
       error   -> [binary]
     end,
 
-  ok = io:setopts(standard_io, Opts),
-
-  %% TODO: Remove this once we support only OTP >18
-  ok = case io:setopts(standard_error, [{encoding, utf8}]) of
-    ok         -> ok;
-    {error, _} -> io:setopts(standard_error, [{unicode, true}]) %% OTP 17.3 and earlier
+  case string:to_integer(erlang:system_info(otp_release)) of
+    {Num, _} when Num >= 18 ->
+      ok;
+    _ ->
+      io:format(standard_error, "unsupported Erlang version, expected Erlang 18+~n", []),
+      erlang:halt(1)
   end,
+
+  case code:ensure_loaded(?system) of
+    {module, ?system} ->
+      Endianness = ?system:endianness(),
+      case ?system:compiled_endianness() of
+        Endianness -> ok;
+        _ ->
+          io:format(standard_error,
+            "warning: Elixir is running in a system with a different endianness than the one its "
+            "source code was compiled in. Please make sure Elixir and all source files were compiled "
+            "in a machine with the same endianness as the current one: ~ts~n", [Endianness])
+      end;
+    {error, _} ->
+      ok
+  end,
+
+  ok = io:setopts(standard_io, Opts),
+  ok = io:setopts(standard_error, [{encoding, utf8}]),
 
   Encoding = file:native_name_encoding(),
   case Encoding of
@@ -55,11 +74,12 @@ start(_Type, _Args) ->
           {<<"https">>, 443},
           {<<"ldap">>, 389}],
   URIConfig = [{{uri, Scheme}, Port} || {Scheme, Port} <- URIs],
-  CompilerOpts = [{docs, true}, {debug_info, true}, {warnings_as_errors, false}],
+  CompilerOpts = #{docs => true, ignore_module_conflict => false,
+                   debug_info => true, warnings_as_errors => false},
   {ok, [[Home] | _]} = init:get_argument(home),
   Config = [{at_exit, []},
             {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
-            {compiler_options, orddict:from_list(CompilerOpts)}
+            {compiler_options, CompilerOpts}
             | URIConfig],
   Tab = elixir_config:new(Config),
   case elixir_sup:start_link() of
@@ -72,7 +92,6 @@ start(_Type, _Args) ->
 
 stop(Tab) ->
   elixir_config:delete(Tab).
-
 
 config_change(_Changed, _New, _Remove) ->
   ok.
@@ -173,8 +192,8 @@ eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
 eval_forms(Tree, Binding, E) ->
   eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
 eval_forms(Tree, Binding, Env, Scope) ->
-  {ParsedBinding, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
-  ParsedEnv = Env#{vars := [K || {K, _} <- ParsedScope#elixir_scope.vars]},
+  {ParsedBinding, ParsedVars, ParsedScope} = elixir_scope:load_binding(Binding, Scope),
+  ParsedEnv = Env#{vars := ParsedVars},
   {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
 
   case Erl of
@@ -233,6 +252,7 @@ quoted_to_erl(Quoted, Env, Scope) ->
 string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, [{file, File}|Opts]) of
     {ok, _Line, _Column, Tokens} ->
+      put(elixir_parser_file, File),
       try elixir_parser:parse(Tokens) of
         {ok, Forms} -> {ok, Forms};
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
@@ -240,6 +260,8 @@ string_to_quoted(String, StartLine, File, Opts) when is_integer(StartLine), is_b
       catch
         {error, {{Line, _, _}, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}};
         {error, {Line, _, [Error, Token]}} -> {error, {Line, to_binary(Error), to_binary(Token)}}
+      after
+        erase(elixir_parser_file)
       end;
     {error, {Line, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};

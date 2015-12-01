@@ -42,6 +42,14 @@ defmodule IO.ANSI do
     Application.get_env(:elixir, :ansi_enabled, false)
   end
 
+  @doc "Sets foreground color"
+  @spec color(0..255) :: String.t
+  def color(code) when code in 0..255, do: "\e[38;5;#{code}m"
+
+  @doc "Sets background color"
+  @spec color_background(0..255) :: String.t
+  def color_background(code) when code in 0..255, do: "\e[48;5;#{code}m"
+
   @doc "Resets all attributes"
   defsequence :reset, 0
 
@@ -132,8 +140,11 @@ defmodule IO.ANSI do
   @doc "Clears screen"
   defsequence :clear, "2", "J"
 
+  @doc "Clears line"
+  defsequence :clear_line, "2", "K"
+
   defp format_sequence(other) do
-    raise ArgumentError, "invalid ANSI sequence specification: #{other}"
+    raise ArgumentError, "invalid ANSI sequence specification: #{inspect other}"
   end
 
   @doc ~S"""

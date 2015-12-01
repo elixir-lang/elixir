@@ -61,8 +61,7 @@ defmodule Mix.Tasks.Help do
 
     aliases =
       Mix.Project.config[:aliases]
-      |> Dict.keys
-      |> Enum.map(&Atom.to_string/1)
+      |> Enum.map(fn {k, _} -> Atom.to_string(k) end)
 
     for info <- Enum.sort(aliases ++ tasks) do
       Mix.shell.info info

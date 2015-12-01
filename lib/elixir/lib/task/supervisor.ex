@@ -1,6 +1,6 @@
 defmodule Task.Supervisor do
   @moduledoc """
-  A tasks supervisor.
+  A task supervisor.
 
   This module defines a supervisor which can be used to dynamically
   supervise tasks. Behind the scenes, this module is implemented as a
@@ -12,7 +12,7 @@ defmodule Task.Supervisor do
   ## Name Registration
 
   A `Task.Supervisor` is bound to the same name registration rules as a
-  `GenServer`. Read more about it in the `GenServer` docs.
+  `GenServer`. Read more about them in the `GenServer` docs.
   """
 
   @doc """
@@ -26,7 +26,7 @@ defmodule Task.Supervisor do
 
   * `:restart` - the restart strategy, may be `:temporary` (the default),
     `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
-    Defaults to temporary as most tasks can't be effectively restarted after
+    Defaults to `:temporary` as most tasks can't be effectively restarted after
     a crash;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
@@ -48,7 +48,8 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
-  For more information on tasks, check the `Task` module.
+  The task will still be linked to the caller, see `Task.async/3` for
+  more information and `async_nolink/2` for a non-linked variant.
   """
   @spec async(Supervisor.supervisor, fun) :: Task.t
   def async(supervisor, fun) do
@@ -59,15 +60,47 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Task.Supervisor`.
-  For more information on tasks, check the `Task` module.
+  The task will still be linked to the caller, see `Task.async/3` for
+  more information and `async_nolink/2` for a non-linked variant.
   """
   @spec async(Supervisor.supervisor, module, atom, [term]) :: Task.t
   def async(supervisor, module, fun, args) do
-    args = [self, get_info(self), {module, fun, args}]
+    owner = self()
+    args = [owner, :link, get_info(owner), {module, fun, args}]
+    {:ok, pid} = Supervisor.start_child(supervisor, args)
+    Process.link(pid)
+    ref = Process.monitor(pid)
+    send pid, {owner, ref}
+    %Task{pid: pid, ref: ref, owner: owner}
+  end
+
+  @doc """
+  Starts a task that can be awaited on.
+
+  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The task won't be linked to the caller, see `Task.async/3` for
+  more information.
+  """
+  @spec async_nolink(Supervisor.supervisor, fun) :: Task.t
+  def async_nolink(supervisor, fun) do
+    async_nolink(supervisor, :erlang, :apply, [fun, []])
+  end
+
+  @doc """
+  Starts a task that can be awaited on.
+
+  The `supervisor` must be a reference as defined in `Task.Supervisor`.
+  The task won't be linked to the caller, see `Task.async/3` for
+  more information.
+  """
+  @spec async_nolink(Supervisor.supervisor, module, atom, [term]) :: Task.t
+  def async_nolink(supervisor, module, fun, args) do
+    owner = self()
+    args = [owner, :monitor, get_info(owner), {module, fun, args}]
     {:ok, pid} = Supervisor.start_child(supervisor, args)
     ref = Process.monitor(pid)
-    send pid, {self(), ref}
-    %Task{pid: pid, ref: ref}
+    send pid, {owner, ref}
+    %Task{pid: pid, ref: ref, owner: owner}
   end
 
   @doc """
@@ -75,7 +108,7 @@ defmodule Task.Supervisor do
   """
   @spec terminate_child(Supervisor.supervisor, pid) :: :ok
   def terminate_child(supervisor, pid) when is_pid(pid) do
-    :supervisor.terminate_child(supervisor, pid)
+    Supervisor.terminate_child(supervisor, pid)
   end
 
   @doc """
@@ -83,7 +116,7 @@ defmodule Task.Supervisor do
   """
   @spec children(Supervisor.supervisor) :: [pid]
   def children(supervisor) do
-    :supervisor.which_children(supervisor) |> Enum.map(&elem(&1, 1))
+    Supervisor.which_children(supervisor) |> Enum.map(&elem(&1, 1))
   end
 
   @doc """

@@ -51,8 +51,7 @@ defmodule SupervisorTest do
 
     wait_until_registered(:dyn_stack)
     assert GenServer.call(:dyn_stack, :pop) == :hello
-
-    Process.exit(pid, :normal)
+    Supervisor.stop(pid)
   end
 
   test "start_link/3" do
@@ -60,7 +59,7 @@ defmodule SupervisorTest do
     wait_until_registered(:stack_sup)
 
     assert GenServer.call(:stat_stack, :pop) == :hello
-    Process.exit(pid, :normal)
+    Supervisor.stop(pid)
   end
 
   test "*_child functions" do
@@ -86,8 +85,7 @@ defmodule SupervisorTest do
 
     assert Supervisor.terminate_child(pid, Stack) == :ok
     assert Supervisor.delete_child(pid, Stack) == :ok
-
-    Process.exit(pid, :normal)
+    Supervisor.stop(pid)
   end
 
   defp wait_until_registered(name) do

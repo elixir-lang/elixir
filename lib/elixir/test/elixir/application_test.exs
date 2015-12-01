@@ -21,7 +21,7 @@ defmodule ApplicationTest do
     assert Application.get_env(:elixir, :unknown, :default) == :default
   end
 
-  test "application information" do
+  test "loaded and started applications" do
     started = Application.started_applications
     assert is_list(started)
     assert {:elixir, 'elixir', _} = List.keyfind(started, :elixir, 0)
@@ -33,6 +33,20 @@ defmodule ApplicationTest do
     loaded = Application.loaded_applications
     assert is_list(loaded)
     assert {:elixir, 'elixir', _} = List.keyfind(loaded, :elixir, 0)
+  end
+
+  test "application specification" do
+    assert is_list Application.spec(:elixir)
+    assert Application.spec(:unknown) == nil
+
+    assert Application.spec(:elixir, :description) == 'elixir'
+    assert_raise FunctionClauseError, fn -> Application.spec(:elixir, :unknown) end
+  end
+
+  test "application module" do
+    assert Application.get_application(String) == :elixir
+    assert Application.get_application(__MODULE__) == nil
+    assert Application.get_application(__MODULE__.Unknown) == nil
   end
 
   test "application directory" do

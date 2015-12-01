@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule Inspect.AlgebraTest do
   use ExUnit.Case, async: true
 
+  doctest Inspect.Algebra
+
   import Inspect.Algebra
 
   def helloabcd do
@@ -121,7 +123,7 @@ defmodule Inspect.AlgebraTest do
   test "formatting with infinity" do
     s = String.duplicate "x", 50
     g = ";"
-    doc = group(glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s))
+    doc = glue(s, g, s) |>  glue(g, s) |>  glue(g, s) |> glue(g, s) |> group
 
     assert render(doc, :infinity) == s <> g <> s <> g <> s <> g <> s <> g <> s
   end

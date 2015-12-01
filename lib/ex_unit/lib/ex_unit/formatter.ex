@@ -105,34 +105,57 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
-  def format_test_failure(test, failure, counter, width, formatter)
-  def format_test_failure(test, {kind, reason, stack}, counter, width, formatter) do
+  def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, case: case, tags: tags} = test
+
     test_info(with_counter(counter, "#{name} (#{inspect case})"), formatter)
-      <> test_location(with_location(tags), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stack, case, name, formatter)
+    <> test_location(with_location(tags), formatter)
+    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
+        failure_header(failures, i)
+        <> format_kind_reason(kind, reason, width, formatter)
+        <> format_stacktrace(stack, case, name, formatter)
+       end)
+    <> report(tags, failures, width, formatter)
   end
+
+  defp report(tags, failures, width, formatter) do
+    case Map.take(tags, List.wrap(tags[:report])) do
+      report when map_size(report) == 0 ->
+        ""
+      report ->
+        report_spacing(failures)
+        <> extra_info("tags:", formatter)
+        <> Enum.map_join(report, "", fn {k, v} ->
+            prefix = "       #{k}: "
+            prefix <> inspect_multiline(v, byte_size(prefix), width) <> "\n"
+           end)
+    end
+  end
+
+  defp report_spacing([_]), do: ""
+  defp report_spacing(_), do: "\n"
 
   @doc """
   Receives a test case and formats its failure.
   """
-  def format_test_case_failure(test_case, failure, counter, width, formatter)
-  def format_test_case_failure(test_case, {kind, reason, stacktrace}, counter, width, formatter) do
+  def format_test_case_failure(test_case, failures, counter, width, formatter) do
     %ExUnit.TestCase{name: name} = test_case
     test_case_info(with_counter(counter, "#{inspect name}: "), formatter)
-      <> format_kind_reason(kind, reason, width, formatter)
-      <> format_stacktrace(stacktrace, name, nil, formatter)
+    <> Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, i} ->
+        failure_header(failures, i)
+        <> format_kind_reason(kind, reason, width, formatter)
+        <> format_stacktrace(stack, name, nil, formatter)
+       end)
   end
 
   defp format_kind_reason(:error, %ExUnit.AssertionError{} = struct, width, formatter) do
-    width = if width == :infinity, do: width, else: width - byte_size(@inspect_padding)
+    padding = byte_size(@inspect_padding)
 
     fields =
       [note: if_value(struct.message, &format_banner(&1, formatter)),
-       code: if_value(struct.expr, &code_multiline(&1, width)),
-       lhs:  if_value(struct.left,  &inspect_multiline(&1, width)),
-       rhs:  if_value(struct.right, &inspect_multiline(&1, width))]
+       code: if_value(struct.expr, &code_multiline(&1, padding)),
+       lhs:  if_value(struct.left,  &inspect_multiline(&1, padding, width)),
+       rhs:  if_value(struct.right, &inspect_multiline(&1, padding, width))]
 
     fields
     |> filter_interesting_fields
@@ -177,19 +200,19 @@ defmodule ExUnit.Formatter do
     formatter.(:error_info, value)
   end
 
-  defp code_multiline(expr, _width) when is_binary(expr) do
-    expr
-    |> String.replace("\n", "\n" <> @inspect_padding)
+  defp code_multiline(expr, padding) when is_binary(expr) do
+    String.replace(expr, "\n", "\n" <> String.duplicate(" ", padding))
   end
 
-  defp code_multiline(expr, width) do
-    code_multiline(expr |> Macro.to_string, width)
+  defp code_multiline(expr, padding) do
+    code_multiline(expr |> Macro.to_string, padding)
   end
 
-  defp inspect_multiline(expr, width) do
+  defp inspect_multiline(expr, padding, width) do
+    width = if width == :infinity, do: width, else: width - padding
     expr
     |> inspect(pretty: true, width: width)
-    |> String.replace("\n", "\n" <> @inspect_padding)
+    |> String.replace("\n", "\n" <> String.duplicate(" ", padding))
   end
 
   defp make_into_lines(reasons, padding) do
@@ -217,6 +240,9 @@ defmodule ExUnit.Formatter do
   defp with_location(tags) do
     "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
   end
+
+  defp failure_header([_], _), do: ""
+  defp failure_header(_, i), do: "\n#{@counter_padding}Failure ##{i+1}\n"
 
   defp with_counter(counter, msg) when counter < 10  do "  #{counter}) #{msg}" end
   defp with_counter(counter, msg) when counter < 100 do  " #{counter}) #{msg}" end

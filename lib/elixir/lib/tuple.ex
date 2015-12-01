@@ -2,14 +2,14 @@ defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
 
-  See also `Kernel.elem/2`, `Kernel.is_tuple/1`, `Kernel.put_elem/3`, and
-  `Kernel.tuple_size/1`.
+  See also `Kernel.elem/2`, `Kernel.is_tuple/1`,
+  `Kernel.put_elem/3`, and `Kernel.tuple_size/1`.
   """
 
   @doc """
   Creates a new tuple.
 
-  Creates a tuple of size `size` containing the
+  Creates a tuple of `size` containing the
   given `data` at every position.
 
   Inlined by the compiler.
@@ -28,9 +28,9 @@ defmodule Tuple do
   @doc """
   Inserts an element into a tuple.
 
-  Inserts `value` into `tuple` at the given zero-based `index`.
+  Inserts `value` into `tuple` at the given `index`.
   Raises an `ArgumentError` if `index` is negative or greater than the
-  length of `tuple`.
+  length of `tuple`. Index is zero-based.
 
   Inlined by the compiler.
 
@@ -49,9 +49,9 @@ defmodule Tuple do
   end
 
   @doc """
-  Inserts an element into the end of a tuple.
+  Inserts an element at the end of a tuple.
 
-  Returns a new tuple which has one element more than `tuple`, and contains
+  Returns a new tuple with the element appended at the end, and contains
   the elements in `tuple` followed by `value` as the last element.
 
   Inlined by the compiler.
@@ -70,9 +70,9 @@ defmodule Tuple do
   @doc """
   Removes an element from a tuple.
 
-  Deletes the element at the zero-based `index` from `tuple`.
+  Deletes the element at the given `index` from `tuple`.
   Raises an `ArgumentError` if `index` is negative or greater than
-  or equal to the length of `tuple`.
+  or equal to the length of `tuple`. Index is zero-based.
 
   Inlined by the compiler.
 
@@ -90,6 +90,8 @@ defmodule Tuple do
 
   @doc """
   Converts a tuple to a list.
+
+  Returns a new list with all the tuple elements.
 
   Inlined by the compiler.
 

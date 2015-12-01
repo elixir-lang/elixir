@@ -1,7 +1,7 @@
 defmodule Mix.SCM do
   @moduledoc """
   This module provides helper functions and defines the
-  behaviour required by any SCM used by mix.
+  behaviour required by any SCM used by Mix.
   """
 
   @type opts :: Keyword.t
@@ -82,7 +82,9 @@ defmodule Mix.SCM do
   @doc """
   This behaviour function checks the status of the lock. In
   particular, it checks if the revision stored in the lock
-  is the same as the repository it is currently in. It may return:
+  is the same as the repository it is currently in.
+
+  It may return:
 
     * `:mismatch` - if the lock doesn't match and we need to
       simply move to the latest lock

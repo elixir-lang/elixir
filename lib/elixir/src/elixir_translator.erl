@@ -10,18 +10,18 @@
 
 translate({'=', Meta, [{'_', _, Atom}, Right]}, S) when is_atom(Atom) ->
   {TRight, SR} = translate(Right, S),
-  {{match, ?line(Meta), {var, ?line(Meta), '_'}, TRight}, SR};
+  {{match, ?ann(Meta), {var, ?ann(Meta), '_'}, TRight}, SR};
 
 translate({'=', Meta, [Left, Right]}, S) ->
   {TRight, SR} = translate(Right, S),
   {TLeft, SL} = elixir_clauses:match(fun translate/2, Left, SR),
-  {{match, ?line(Meta), TLeft, TRight}, SL};
+  {{match, ?ann(Meta), TLeft, TRight}, SL};
 
 %% Containers
 
 translate({'{}', Meta, Args}, S) when is_list(Args) ->
   {TArgs, SE} = translate_args(Args, S),
-  {{tuple, ?line(Meta), TArgs}, SE};
+  {{tuple, ?ann(Meta), TArgs}, SE};
 
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   elixir_map:translate_map(Meta, Args, S);
@@ -36,17 +36,17 @@ translate({'<<>>', Meta, Args}, S) when is_list(Args) ->
 
 translate({'__block__', Meta, Args}, S) when is_list(Args) ->
   {TArgs, SA} = translate_block(Args, [], S),
-  {{block, ?line(Meta), TArgs}, SA};
+  {{block, ?ann(Meta), TArgs}, SA};
 
 %% Erlang op
 
 translate({{'.', _, [erlang, 'andalso']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?line(Meta), 'andalso', TLeft, TRight}, NS};
+  {{op, ?ann(Meta), 'andalso', TLeft, TRight}, NS};
 
 translate({{'.', _, [erlang, 'orelse']}, Meta, [Left, Right]}, S) ->
   {[TLeft, TRight], NS}  = translate_args([Left, Right], S),
-  {{op, ?line(Meta), 'orelse', TLeft, TRight}, NS};
+  {{op, ?ann(Meta), 'orelse', TLeft, TRight}, NS};
 
 %% Lexical
 
@@ -56,13 +56,13 @@ translate({Lexical, _, [_, _]}, S) when Lexical == import; Lexical == alias; Lex
 %% Pseudo variables
 
 translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
-  {{var, ?line(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
+  {{var, ?ann(Meta), '__CALLER__'}, S#elixir_scope{caller=true}};
 
 %% Functions
 
 translate({'&', Meta, [{'/', [], [{Fun, [], Atom}, Arity]}]}, S)
     when is_atom(Fun), is_atom(Atom), is_integer(Arity) ->
-  {{'fun', ?line(Meta), {function, Fun, Arity}}, S};
+  {{'fun', ?ann(Meta), {function, Fun, Arity}}, S};
 translate({'&', Meta, [Arg]}, S) when is_integer(Arg) ->
   compile_error(Meta, S#elixir_scope.file, "unhandled &~B outside of a capture", [Arg]);
 
@@ -72,7 +72,8 @@ translate({fn, Meta, Clauses}, S) ->
 %% Cond
 
 translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
-  [{'->', Meta, [[Condition], Body]}|T] = lists:reverse(Pairs),
+  [{'->', Meta, [[Condition], Body]} = H|T] = lists:reverse(Pairs),
+
   Case =
     case Condition of
       {'_', _, Atom} when is_atom(Atom) ->
@@ -81,21 +82,18 @@ translate({'cond', CondMeta, [[{do, Pairs}]]}, S) ->
       X when is_atom(X) and (X /= false) and (X /= nil) ->
         build_cond_clauses(T, Body, Meta);
       _ ->
-        {Truthy, Other} = build_truthy_clause(Meta, Condition, Body),
         Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
-        Falsy = {'->', Meta, [[Other], Error]},
-        Acc = {'case', Meta, [Condition, [{do, [Truthy, Falsy]}]]},
-        build_cond_clauses(T, Acc, Meta)
+        build_cond_clauses([H|T], Error, Meta)
     end,
   translate(replace_case_meta(CondMeta, Case), S);
 
 %% Case
 
-translate({'case', Meta, [Expr, KV]}, S) ->
+translate({'case', Meta, [Expr, KV]}, #elixir_scope{safe_by_default=Safe} = S) ->
   Clauses = elixir_clauses:get_pairs(do, KV, match),
-  {TExpr, NS} = translate(Expr, S),
-  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS),
-  {{'case', ?line(Meta), TExpr, TClauses}, TS};
+  {TExpr, NS} = translate(Expr, S#elixir_scope{safe_by_default=true}),
+  {TClauses, TS} = elixir_clauses:clauses(Meta, Clauses, NS#elixir_scope{safe_by_default=Safe}),
+  {{'case', ?ann(Meta), TExpr, TClauses}, TS};
 
 %% Try
 
@@ -119,7 +117,7 @@ translate({'try', Meta, [Clauses]}, RS) ->
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
 
   SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  {{'try', ?line(Meta), unblock(TDo), TElse, TCatch, TAfter}, SF};
+  {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, SF};
 
 %% Receive
 
@@ -129,19 +127,24 @@ translate({'receive', Meta, [KV]}, S) ->
   case lists:keyfind('after', 1, KV) of
     false ->
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do, S),
-      {{'receive', ?line(Meta), TClauses}, SC};
+      {{'receive', ?ann(Meta), TClauses}, SC};
     _ ->
       After = elixir_clauses:get_pairs('after', KV, expr),
       {TClauses, SC} = elixir_clauses:clauses(Meta, Do ++ After, S),
       {FClauses, TAfter} = elixir_utils:split_last(TClauses),
       {_, _, [FExpr], _, FAfter} = TAfter,
-      {{'receive', ?line(Meta), FClauses, FExpr, FAfter}, SC}
+      {{'receive', ?ann(Meta), FClauses, FExpr, FAfter}, SC}
   end;
 
 %% Comprehensions
 
 translate({for, Meta, [_|_] = Args}, S) ->
   elixir_for:translate(Meta, Args, true, S);
+
+%% With
+
+translate({with, Meta, [_|_] = Args}, S) ->
+  elixir_with:translate(Meta, Args, S);
 
 %% Super
 
@@ -161,27 +164,42 @@ translate({super, Meta, Args}, S) when is_list(Args) ->
   end,
 
   Super = elixir_def_overridable:name(Module, Function),
-  {{call, ?line(Meta), {atom, ?line(Meta), Super}, TArgs}, TS#elixir_scope{super=true}};
+  {{call, ?ann(Meta), {atom, ?ann(Meta), Super}, TArgs}, TS#elixir_scope{super=true}};
 
 %% Variables
 
-translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', Meta, [{Name, VarMeta, Kind}]}, #elixir_scope{context=match, file=File} = S) when is_atom(Name), is_atom(Kind) ->
   Tuple = {Name, var_kind(VarMeta, Kind)},
-  case orddict:find(Tuple, S#elixir_scope.backup_vars) of
-    {ok, {Value, _Counter}} ->
-      {{var, ?line(Meta), Value}, S};
+  case maps:find(Tuple, S#elixir_scope.backup_vars) of
+    {ok, {Value, _Counter, Safe}} ->
+      elixir_scope:warn_underscored_var_access(VarMeta, File, Name),
+      elixir_scope:warn_unsafe_var(VarMeta, File, Name, Safe),
+
+      PAnn = ?ann(Meta),
+      PVar = {var, PAnn, Value},
+
+      case S#elixir_scope.extra of
+        pin_guard ->
+          {TVar, TS} = elixir_scope:translate_var(VarMeta, Name, var_kind(VarMeta, Kind), S),
+          Guard = {op, PAnn, '=:=', PVar, TVar},
+          {TVar, TS#elixir_scope{extra_guards=[Guard|TS#elixir_scope.extra_guards]}};
+        _ ->
+          {PVar, S}
+      end;
     error ->
       compile_error(Meta, S#elixir_scope.file, "unbound variable ^~ts", [Name])
   end;
 
+translate({Name, Meta, Kind}, #elixir_scope{extra=map_key, context=match} = S) when is_atom(Name), is_atom(Kind) ->
+  Message = "illegal use of variable ~ts as map key inside match, "
+            "maps can only match on existing variable by using ^~ts",
+  compile_error(Meta, S#elixir_scope.file, Message, [Name, Name]);
+
 translate({'_', Meta, Kind}, #elixir_scope{context=match} = S) when is_atom(Kind) ->
-  {{var, ?line(Meta), '_'}, S};
+  {{var, ?ann(Meta), '_'}, S};
 
 translate({'_', Meta, Kind}, S) when is_atom(Kind) ->
   compile_error(Meta, S#elixir_scope.file, "unbound variable _");
-
-translate({Name, Meta, Kind}, #elixir_scope{extra=map_key} = S) when is_atom(Name), is_atom(Kind) ->
-  compile_error(Meta, S#elixir_scope.file, "illegal use of variable ~ts in map key", [Name]);
 
 translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
   elixir_scope:translate_var(Meta, Name, var_kind(Meta, Kind), S);
@@ -203,9 +221,9 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
                            [Name, Arity])
       end;
     true ->
-      Line = ?line(Meta),
+      Ann = ?ann(Meta),
       {TArgs, NS} = translate_args(Args, S),
-      {{call, Line, {atom, Line, Name}, TArgs}, NS}
+      {{call, Ann, {atom, Ann, Name}, TArgs}, NS}
   end;
 
 %% Remote calls
@@ -217,44 +235,27 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S)
   {TLeft, SL}  = translate(Left, S),
   {Var, _, SV} = elixir_scope:build_var('_', SL),
 
-  Line   = ?line(Meta),
-  TRight = {atom, Line, Right},
+  Ann = ?ann(Meta),
+  TRight = {atom, Ann, Right},
+  TVar = {var, Ann, Var},
+  TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
-  %% TODO: Consider making this {badkey, _} error
-  TVar = {var, Line, Var},
-  TMap = {map, Line, [
-    {map_field_assoc, Line,
-      {atom, Line, '__struct__'},
-      {atom, Line, 'Elixir.KeyError'}},
-    {map_field_assoc, Line,
-      {atom, Line, '__exception__'},
-      {atom, Line, 'true'}},
-    {map_field_assoc, Line,
-      {atom, Line, key},
-      TRight},
-    {map_field_assoc, Line,
-      {atom, Line, term},
-      TVar}]},
-
-  %% TODO: There is a bug in dialyzer that makes it fail on
-  %% empty maps. We work around the bug below by using
-  %% the is_map/1 guard instead of matching on map. Hopefully
-  %% we can use a match on 17.1.
-  %%
-  %% http://erlang.org/pipermail/erlang-bugs/2014-April/004338.html
-  {{'case', -1, TLeft, [
-    {clause, -1,
-      [{map, Line, [{map_field_exact, Line, TRight, TVar}]}],
+  %% TODO: there is a bug in dialyzer that warns about generated matches that
+  %% can never match on line 0. The is_map/1 guard is used instead of matching
+  %% against an empty map to avoid the warning.
+  {{'case', ?generated, TLeft, [
+    {clause, ?generated,
+      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
       [],
       [TVar]},
-    {clause, -1,
+    {clause, ?generated,
       [TVar],
-      [[elixir_utils:erl_call(Line, erlang, is_map, [TVar])]],
-      [elixir_utils:erl_call(Line, erlang, error, [TMap])]},
-    {clause, -1,
+      [[elixir_utils:erl_call(?generated, erlang, is_map, [TVar])]],
+      [elixir_utils:erl_call(Ann, erlang, error, [TError])]},
+    {clause, ?generated,
       [TVar],
       [],
-      [{call, Line, {remote, Line, TVar, TRight}, []}]}
+      [{call, ?generated, {remote, ?generated, TVar, TRight}, []}]}
   ]}, SV};
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
@@ -262,9 +263,9 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SL)),
 
-  Line   = ?line(Meta),
+  Ann    = ?ann(Meta),
   Arity  = length(Args),
-  TRight = {atom, Line, Right},
+  TRight = {atom, Ann, Right},
   SC = mergev(SL, SA),
 
   %% Rewrite erlang function calls as operators so they
@@ -272,12 +273,12 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
   case (Left == erlang) andalso guard_op(Right, Arity) of
     true ->
       case TArgs of
-        [TOne]       -> {{op, Line, Right, TOne}, SC};
-        [TOne, TTwo] -> {{op, Line, Right, TOne, TTwo}, SC}
+        [TOne]       -> {{op, Ann, Right, TOne}, SC};
+        [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SC}
       end;
     false ->
       assert_allowed_in_context(Meta, Left, Right, Arity, S),
-      {{call, Line, {remote, Line, TLeft, TRight}, TArgs}, SC}
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SC}
   end;
 
 %% Anonymous function calls
@@ -285,7 +286,7 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
 translate({{'.', _, [Expr]}, Meta, Args}, S) when is_list(Args) ->
   {TExpr, SE} = translate(Expr, S),
   {TArgs, SA} = translate_args(Args, mergec(S, SE)),
-  {{call, ?line(Meta), TExpr, TArgs}, mergev(SE, SA)};
+  {{call, ?ann(Meta), TExpr, TArgs}, mergev(SE, SA)};
 
 %% Literals
 
@@ -375,9 +376,9 @@ translate_block([H|T], Acc, S) ->
 %% Cond
 
 build_cond_clauses([{'->', NewMeta, [[Condition], Body]}|T], Acc, OldMeta) ->
-  {Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
+  {NewCondition, Truthy, Other} = build_truthy_clause(NewMeta, Condition, Body),
   Falsy = {'->', OldMeta, [[Other], Acc]},
-  Case = {'case', NewMeta, [Condition, [{do, [Truthy, Falsy]}]]},
+  Case = {'case', NewMeta, [NewCondition, [{do, [Truthy, Falsy]}]]},
   build_cond_clauses(T, Case, NewMeta);
 build_cond_clauses([], Acc, _) ->
   Acc.
@@ -388,9 +389,9 @@ replace_case_meta(_Meta, Other) ->
   Other.
 
 build_truthy_clause(Meta, Condition, Body) ->
-  case elixir_utils:returns_boolean(Condition) of
-    true ->
-      {{'->', Meta, [[true], Body]}, false};
+  case returns_boolean(Condition, Body) of
+    {NewCondition, NewBody} ->
+      {NewCondition, {'->', Meta, [[true], NewBody]}, false};
     false ->
       Var  = {'cond', [], 'Elixir'},
       Head = {'when', [], [Var,
@@ -399,7 +400,24 @@ build_truthy_clause(Meta, Condition, Body) ->
           {{'.', [], [erlang, '/=']}, [], [Var, false]}
         ]}
       ]},
-      {{'->', Meta, [[Head], Body]}, {'_', [], nil}}
+      {Condition, {'->', Meta, [[Head], Body]}, {'_', [], nil}}
+  end.
+
+%% In case a variable is defined to match in a condition
+%% but a condition returns boolean, we can replace the
+%% variable directly by the boolean result.
+returns_boolean({'=', _, [{Var, _, Ctx}, Condition]}, {Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true  -> {Condition, true};
+    false -> false
+  end;
+
+%% For all other cases, we check the condition but
+%% return both condition and body untouched.
+returns_boolean(Condition, Body) ->
+  case elixir_utils:returns_boolean(Condition) of
+    true  -> {Condition, Body};
+    false -> false
   end.
 
 %% Assertions

@@ -1,17 +1,8 @@
 defmodule HashDict do
   @moduledoc """
-  A key-value store.
+  WARNING: this module is deprecated.
 
-  The `HashDict` is represented internally as a struct, therefore
-  `%HashDict{}` can be used whenever there is a need to match
-  on any `HashDict`. Note though the struct fields are private and
-  must not be accessed directly. Instead, use the functions on this
-  or in the `Dict` module.
-
-  Implementation-wise, `HashDict` is implemented using tries, which
-  grows in space as the number of keys grows, working well with both
-  small and large set of keys. For more information about the
-  functions and their APIs, please consult the `Dict` module.
+  Use the `Map` module instead.
   """
 
   use Dict
@@ -236,7 +227,7 @@ end
 defimpl Collectable, for: HashDict do
   def into(original) do
     {original, fn
-      dict, {:cont, {k, v}} -> Dict.put(dict, k, v)
+      dict, {:cont, {k, v}} -> HashDict.put(dict, k, v)
       dict, :done -> dict
       _, :halt -> :ok
     end}

@@ -46,15 +46,15 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
+      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
 
       Mix.Task.clear
-      File.write!("_build/dev/lib/sample/.compile.lock", ~s({v1, <<"0.0.0">>, nil}.))
-      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
+      File.write!("_build/dev/lib/sample/.compile.elixir_scm", ~s({v1, <<"0.0.0">>, nil}.))
+      File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
-      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
-      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
+      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end
 
@@ -64,15 +64,15 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       purge [A, B, C]
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
+      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
 
       Mix.Task.clear
-      File.write!("_build/dev/lib/sample/.compile.lock", ~s({v1, <<"#{System.version}">>, another}.))
-      File.touch!("_build/dev/lib/sample/.compile.lock", {{2010, 1, 1}, {0, 0, 0}})
+      File.write!("_build/dev/lib/sample/.compile.elixir_scm", ~s({v1, <<"#{System.version}">>, another}.))
+      File.touch!("_build/dev/lib/sample/.compile.elixir_scm", {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.run []
-      assert Mix.Dep.Lock.status == {:ok, System.version, nil}
-      assert File.stat!("_build/dev/lib/sample/.compile.lock").mtime > {{2010, 1, 1}, {0, 0, 0}}
+      assert Mix.Dep.ElixirSCM.read == {:ok, System.version, Mix.SCM.Path}
+      assert File.stat!("_build/dev/lib/sample/.compile.elixir_scm").mtime > {{2010, 1, 1}, {0, 0, 0}}
     end
   end
 

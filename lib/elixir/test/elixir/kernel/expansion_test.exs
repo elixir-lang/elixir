@@ -259,6 +259,18 @@ defmodule Kernel.ExpansionTest do
            quote do: (for(a <- b(), do: 1, into: c = []); c())
   end
 
+  ## With
+
+  test "variables inside with do not leak" do
+    assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
+           quote do: (with(a <- b(), do: c = 1); c())
+  end
+
+  test "variables inside with are available in blocks" do
+    assert expand(quote do: with(a <- b, c = a, do: c)) ==
+           quote do: (with(a <- b(), c = a, do: c))
+  end
+
   ## Capture
 
   test "&: keeps locals" do
@@ -326,6 +338,12 @@ defmodule Kernel.ExpansionTest do
            quote do: (cond do 1 -> x = 1; 2 -> y = 2 end; :erlang.+(x, y))
   end
 
+  test "cond: expects at most one do" do
+    assert_raise CompileError, ~r"duplicated do clauses given for cond", fn ->
+      expand(quote(do: (cond do: (x -> x), do: (y -> y))))
+    end
+  end
+
   ## Case
 
   test "case: expands each clause" do
@@ -351,6 +369,12 @@ defmodule Kernel.ExpansionTest do
   test "case: leaks vars" do
     assert expand_and_clean(quote do: (case w do x -> x = x; y -> y = y end; :erlang.+(x, y))) ==
            quote do: (case w() do x -> x = x; y -> y = y end; :erlang.+(x, y))
+  end
+
+  test "case: expects at most one do" do
+    assert_raise CompileError, ~r"duplicated do clauses given for case", fn ->
+      expand(quote(do: (case e, do: (x -> x), do: (y -> y))))
+    end
   end
 
   ## Receive
@@ -385,6 +409,16 @@ defmodule Kernel.ExpansionTest do
            quote do: (receive do x -> x = x after y() -> y(); w = y() end; :erlang.+(x, w))
   end
 
+  test "receive: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for receive", fn ->
+      expand(quote(do: (receive do: (x -> x), do: (y -> y))))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for receive", fn ->
+      expand(quote(do: (receive do x -> x after y -> y after z -> z end)))
+    end
+  end
+
   ## Try
 
   test "try: expands catch" do
@@ -413,39 +447,61 @@ defmodule Kernel.ExpansionTest do
     end
   end
 
+  test "try: expects at most one clause" do
+    assert_raise CompileError, ~r"duplicated do clauses given for try", fn ->
+      expand(quote(do: (try do: e, do: f)))
+    end
+
+    assert_raise CompileError, ~r"duplicated rescue clauses given for try", fn ->
+      expand(quote(do: (try do e rescue x -> x rescue y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated after clauses given for try", fn ->
+      expand(quote(do: (try do e after x = y after x = y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated else clauses given for try", fn ->
+      expand(quote(do: (try do e else x -> x else y -> y end)))
+    end
+
+    assert_raise CompileError, ~r"duplicated catch clauses given for try", fn ->
+      expand(quote(do: (try do e catch x -> x catch y -> y end)))
+    end
+  end
+
   ## Binaries
 
   test "bitstrings: size * unit" do
     import Kernel, except: [-: 2]
 
-    assert expand(quote do: << x :: 13 >>) ==
-           quote do: << x() :: size(13) >>
+    assert expand(quote do: <<x::13>>) ==
+           quote do: <<x()::size(13)>>
 
-    assert expand(quote do: << x :: 13 * 6 >>) ==
-           quote do: << x() :: unit(6)-size(13) >>
+    assert expand(quote do: <<x::13 * 6>>) ==
+           quote do: <<x()::unit(6)-size(13)>>
 
-    assert expand(quote do: << x :: _ * 6 >>) ==
-           quote do: << x() :: unit(6) >>
+    assert expand(quote do: <<x::_ * 6>>) ==
+           quote do: <<x()::unit(6)>>
 
-    assert expand(quote do: << x :: 13 * 6 - binary >>) ==
-           quote do: << x() :: unit(6)-binary()-size(13) >>
+    assert expand(quote do: <<x::13 * 6-binary>>) ==
+           quote do: <<x()::unit(6)-binary()-size(13) >>
 
-    assert expand(quote do: << x :: binary - 13 * 6 >>) ==
-           quote do: << x() :: binary()-unit(6)-size(13) >>
+    assert expand(quote do: <<x::binary-13 * 6>>) ==
+           quote do: <<x()::binary()-unit(6)-size(13)>>
   end
 
   test "bitstrings: expands modifiers" do
-    assert expand(quote do: (import Kernel.ExpansionTarget; << x :: seventeen >>)) ==
-           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; << x() :: size(17) >>)
+    assert expand(quote do: (import Kernel.ExpansionTarget; <<x::seventeen>>)) ==
+           quote do: (import :"Elixir.Kernel.ExpansionTarget", []; <<x()::size(17)>>)
 
-    assert expand(quote do: (import Kernel.ExpansionTarget; << seventeen :: seventeen, x :: size(seventeen) >> = 1)) ==
+    assert expand(quote do: (import Kernel.ExpansionTarget; <<seventeen::seventeen, x::size(seventeen)>> = 1)) ==
            quote do: (import :"Elixir.Kernel.ExpansionTarget", [];
-                      << seventeen :: size(17), x :: size(seventeen) >> = 1)
+                      <<seventeen::size(17), x::size(seventeen)>> = 1)
   end
 
   test "bitstrings: expands modifiers args" do
-    assert expand(quote do: (require Kernel.ExpansionTarget; << x :: size(Kernel.ExpansionTarget.seventeen) >>)) ==
-           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; << x() :: size(17) >>)
+    assert expand(quote do: (require Kernel.ExpansionTarget; <<x::size(Kernel.ExpansionTarget.seventeen)>>)) ==
+           quote do: (require :"Elixir.Kernel.ExpansionTarget", []; <<x()::size(17)>>)
   end
 
   ## Invalid
@@ -456,7 +512,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
-      expand(quote do: unquote({:sample, fn -> end}))
+      expand(quote do: unquote({:sample, fn -> nil end}))
     end
   end
 

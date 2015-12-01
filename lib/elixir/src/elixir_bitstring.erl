@@ -147,7 +147,7 @@ translate(Meta, Args, S) ->
 
 build_bitstr(Fun, Exprs, Meta, S) ->
   {Final, FinalS} = build_bitstr_each(Fun, Exprs, Meta, S, []),
-  {{bin, ?line(Meta), lists:reverse(Final)}, FinalS}.
+  {{bin, ?ann(Meta), lists:reverse(Final)}, FinalS}.
 
 build_bitstr_each(_Fun, [], _Meta, S, Acc) ->
   {Acc, S};
@@ -165,11 +165,11 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, default, Types) when is_binary(H) ->
       true ->
         %% See explanation in elixir_utils:elixir_to_erl/1 to know
         %% why we can simply convert the binary to a list.
-        {bin_element, ?line(Meta), {string, 0, binary_to_list(H)}, default, default};
+        {bin_element, ?ann(Meta), {string, 0, binary_to_list(H)}, default, default};
       false ->
         case types_require_conversion(Types) of
           true ->
-            {bin_element, ?line(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types};
+            {bin_element, ?ann(Meta), {string, 0, elixir_utils:characters_to_list(H)}, default, Types};
           false ->
             elixir_errors:compile_error(Meta, S#elixir_scope.file, "invalid types for literal string in <<>>. "
               "Accepted types are: little, big, utf8, utf16, utf32, bits, bytes, binary, bitstring")
@@ -192,10 +192,10 @@ build_bitstr_each(Fun, T, Meta, S, Acc, H, Size, Types) ->
     {bin, _, Elements} ->
       case (Size == default) andalso types_allow_splice(Types, Elements) of
         true  -> build_bitstr_each(Fun, T, Meta, NS, lists:reverse(Elements, Acc));
-        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?line(Meta), Expr, Size, Types}|Acc])
+        false -> build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types}|Acc])
       end;
     _ ->
-      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?line(Meta), Expr, Size, Types}|Acc])
+      build_bitstr_each(Fun, T, Meta, NS, [{bin_element, ?ann(Meta), Expr, Size, Types}|Acc])
   end.
 
 types_require_conversion([End|T]) when End == little; End == big -> types_require_conversion(T);
@@ -224,6 +224,7 @@ elem_size({bin_element, _, _, {integer, _, Size}, Types}) -> {Size, unit_size(Ty
 elem_size({bin_element, _, _, _Size, Types})            -> {unknown, unit_size(Types, 1)}.
 
 unit_size([binary|T], _)       -> unit_size(T, 8);
+unit_size([bytes|T], _)        -> unit_size(T, 8);
 unit_size([{unit, Size}|_], _) -> Size;
 unit_size([_|T], Guess)        -> unit_size(T, Guess);
 unit_size([], Guess)           -> Guess.

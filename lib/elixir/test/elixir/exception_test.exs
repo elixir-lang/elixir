@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
+  doctest Exception
+
   test "raise preserves the stacktrace" do
     stacktrace =
       try do
@@ -13,7 +15,7 @@ defmodule ExceptionTest do
       end
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
     assert {__MODULE__, :"test raise preserves the stacktrace", _,
-           [file: ^file, line: 9]} = stacktrace
+           [file: ^file, line: 11]} = stacktrace
   end
 
   test "exception?" do
@@ -79,7 +81,7 @@ defmodule ExceptionTest do
 
   test "format_stacktrace from module" do
     assert_raise ArgumentError, fn ->
-      Code.eval_string("defmodule Foo do raise ArgumentError, ~s(oops) end", [], file: "myfile")
+      Code.eval_string("defmodule FmtStack do raise ArgumentError, ~s(oops) end", [], file: "myfile")
     end
 
     assert Exception.format_stacktrace(System.stacktrace) =~ "myfile:1: (module)"
@@ -129,7 +131,7 @@ defmodule ExceptionTest do
   end
 
   test "format_fa" do
-    assert Exception.format_fa(fn -> end, 1) =~
+    assert Exception.format_fa(fn -> nil end, 1) =~
            ~r"#Function<\d+\.\d+/0 in ExceptionTest\.test format_fa/1>/1"
   end
 
@@ -330,11 +332,11 @@ defmodule ExceptionTest do
   test "undefined function message" do
     assert %UndefinedFunctionError{} |> message == "undefined function"
     assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
-           "undefined function: Kernel.bar/1"
+           "undefined function Kernel.bar/1"
     assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
-           "undefined function: Foo.bar/1 (module Foo is not available)"
+           "undefined function Foo.bar/1 (module Foo is not available)"
     assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
-           "undefined function: nil.bar/0"
+           "undefined function nil.bar/0"
   end
 
   test "function clause message" do

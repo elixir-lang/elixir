@@ -9,7 +9,11 @@ defmodule Float do
   Parses a binary into a float.
 
   If successful, returns a tuple of the form `{float, remainder_of_binary}`;
-  otherwise, `:error`.
+  when the binary cannot be coerced into a valid float, the atom `:error` is
+  returned.
+
+  If the size of float exceeds the maximum size of `1.7976931348623157e+308`,
+  the `ArgumentError` exception is raised.
 
   If a float formatted string wants to be directly converted to a float,
   `String.to_float/1` can be used instead.
@@ -51,16 +55,16 @@ defmodule Float do
   defp parse_unsigned(binary) when is_binary(binary), do:
     :error
 
-  defp parse_unsigned(<<digit, rest :: binary>>, dot?, e?, acc) when digit in ?0..?9, do:
+  defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9, do:
     parse_unsigned(rest, dot?, e?, <<acc::binary, digit>>)
 
-  defp parse_unsigned(<<?., digit, rest :: binary>>, false, false, acc) when digit in ?0..?9, do:
+  defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9, do:
     parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
 
-  defp parse_unsigned(<<exp_marker, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and  digit in ?0..?9, do:
+  defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc) when exp_marker in 'eE' and  digit in ?0..?9, do:
     parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
 
-  defp parse_unsigned(<<exp_marker, sign, digit, rest :: binary>>, dot?, false, acc) when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9, do:
+  defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc) when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9, do:
     parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
 
   defp parse_unsigned(rest, dot?, _e?, acc), do:
@@ -86,7 +90,7 @@ defmodule Float do
       iex> Float.floor(-56.5)
       -57.0
 
-      iex> Float.floor(34.253, 2)
+      iex> Float.floor(34.259, 2)
       34.25
 
   """
@@ -100,7 +104,7 @@ defmodule Float do
   end
 
   @doc """
-  Rounds a float to the largest integer greater than or equal to `num`.
+  Rounds a float to the smallest integer greater than or equal to `num`.
 
   `ceil/2` also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).
@@ -116,7 +120,7 @@ defmodule Float do
       iex> Float.ceil(-56.5)
       -56.0
 
-      iex> Float.ceil(34.253, 2)
+      iex> Float.ceil(34.251, 2)
       34.26
 
   """

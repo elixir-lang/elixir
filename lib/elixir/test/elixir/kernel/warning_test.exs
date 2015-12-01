@@ -21,7 +21,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "useless literal" do
-    message = "warning: code block starting at line contains unused literal \"oops\""
+    message = "warning: code block contains unused literal \"oops\""
 
     assert capture_err(fn ->
       Code.eval_string """
@@ -569,7 +569,7 @@ defmodule Kernel.WarningTest do
     purge [Sample1, Sample1.Atom]
   end
 
-  test "overidden def" do
+  test "overridden def" do
     assert capture_err(fn ->
       Code.eval_string """
       defmodule Sample do
@@ -600,6 +600,26 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
       Code.eval_string "? "
     end) =~ "nofile:1: warning: found ? followed by codepoint 0x20 (space), please use \\s instead"
+  end
+
+  test "duplicated docs" do
+    output = capture_err(fn ->
+      Code.eval_string """
+      defmodule Sample do
+        @doc "Something"
+        @doc "Another"
+        def foo, do: :ok
+
+        @doc false
+        @doc "Doc"
+        def bar, do: :ok
+      end
+      """
+    end)
+    assert output =~ "nofile:3: warning: redefining @doc attribute previously set at line 2"
+    refute output =~ "nofile:7: warning: redefining @doc attribute"
+  after
+    purge Sample
   end
 
   test "typedoc on typep" do
@@ -639,6 +659,16 @@ defmodule Kernel.WarningTest do
     end) =~ "nofile:1: warning: @doc provided but no definition follows it"
   after
     purge Sample
+  end
+
+  test "pipe without explicit parentheses" do
+    assert capture_err(fn ->
+      Code.eval_string """
+        [5, 6, 7, 3]
+        |> Enum.map_join "", &(Integer.to_string(&1))
+        |> String.to_integer
+      """
+    end) =~ "nofile:2: warning: you are piping into a function call without parentheses"
   end
 
   defp purge(list) when is_list(list) do

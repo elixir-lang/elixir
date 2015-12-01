@@ -4,15 +4,16 @@ defmodule Kernel.ErrorsTest do
   use ExUnit.Case, async: true
   import CompileAssertion
 
-  defmodule UnproperMacro do
-    defmacro unproper(args), do: args
-    defmacro exit(args), do: args
+  defmacro hello do
+    quote location: :keep do
+      def hello, do: :world
+    end
   end
 
   test "invalid token" do
     assert_compile_fail SyntaxError,
-      "nofile:1: unexpected token: \" \" (column 7, codepoint U+00A0)",
-      '[foo: \u00A0]\noops'
+      "nofile:1: unexpected token: \"\u200B\" (column 7, codepoint U+200B)",
+      '[foo: \u200B]\noops'
   end
 
   test "invalid quoted token" do
@@ -93,7 +94,7 @@ defmodule Kernel.ErrorsTest do
       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
       '"""\nbar'
     assert_compile_fail SyntaxError,
-      "nofile:2: invalid location for heredoc terminator, please escape token or move to its own line: \"\"\"",
+      "nofile:2: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
       '"""\nbar"""'
   end
 
@@ -126,6 +127,16 @@ defmodule Kernel.ErrorsTest do
     max = 1
     assert max == 1
     assert (max 1, 2) == 2
+  end
+
+  test "syntax error with do" do
+    assert_compile_fail SyntaxError,
+                        ~r/nofile:1: unexpected token "do"./,
+                        'if true, do\n'
+
+    assert_compile_fail SyntaxError,
+                        ~r/nofile:1: unexpected keyword "do:"./,
+                        'if true do:\n'
   end
 
   test "syntax error on parens call" do
@@ -188,7 +199,7 @@ defmodule Kernel.ErrorsTest do
       '''
 
     assert_compile_fail CompileError,
-      "nofile:2: function foo/0 undefined",
+      "nofile:2: undefined function foo/0",
       ~C'''
       defmodule Kernel.ErrorsTest.ClauseWithDefaults3 do
         def hello(foo, bar \\ foo)
@@ -229,7 +240,7 @@ defmodule Kernel.ErrorsTest do
 
   test "bad form" do
     assert_compile_fail CompileError,
-      "nofile:2: function bar/0 undefined",
+      "nofile:2: undefined function bar/0",
       '''
       defmodule Kernel.ErrorsTest.BadForm do
         def foo, do: bar
@@ -294,11 +305,11 @@ defmodule Kernel.ErrorsTest do
 
   test "unbound map key var" do
     assert_compile_fail CompileError,
-      "nofile:1: illegal use of variable x in map key",
+      ~r"nofile:1: illegal use of variable x as map key inside match,",
       '%{x => 1} = %{}'
 
     assert_compile_fail CompileError,
-      "nofile:1: illegal use of variable x in map key",
+      ~r"nofile:1: illegal use of variable x as map key inside match,",
       '%{x = 1 => 1}'
   end
 
@@ -402,7 +413,7 @@ defmodule Kernel.ErrorsTest do
     msg = ~r"cannot inject attribute @foo into function/macro because cannot escape "
     assert_raise ArgumentError, msg, fn ->
       defmodule InvalidAttribute do
-        @foo fn -> end
+        @foo fn -> nil end
         def bar, do: @foo
       end
     end
@@ -412,7 +423,7 @@ defmodule Kernel.ErrorsTest do
     msg = ~r"invalid value for struct field baz, cannot escape "
     assert_raise ArgumentError, msg, fn ->
       defmodule InvaliadStructFieldValue do
-        defstruct baz: fn -> end
+        defstruct baz: fn -> nil end
       end
     end
   end
@@ -466,7 +477,7 @@ defmodule Kernel.ErrorsTest do
 
   test "macro with undefined local" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
+      "undefined function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 " <>
       "(function unknown/1 is not available)",
       '''
       defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
@@ -478,7 +489,7 @@ defmodule Kernel.ErrorsTest do
 
   test "private macro" do
     assert_compile_fail UndefinedFunctionError,
-      "undefined function: Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
+      "undefined function Kernel.ErrorsTest.PrivateMacro.foo/0 (function foo/0 is not available)",
       '''
       defmodule Kernel.ErrorsTest.PrivateMacro do
         defmacrop foo, do: 1
@@ -519,11 +530,11 @@ defmodule Kernel.ErrorsTest do
 
   test "unrequired macro" do
     assert_compile_fail SyntaxError,
-      "nofile:2: you must require Kernel.ErrorsTest.UnproperMacro before invoking " <>
-      "the macro Kernel.ErrorsTest.UnproperMacro.unproper/1 "
+      "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
+      "the macro Kernel.ErrorsTest.hello/0 "
       '''
       defmodule Kernel.ErrorsTest.UnrequiredMacro do
-        Kernel.ErrorsTest.UnproperMacro.unproper([])
+        Kernel.ErrorsTest.hello()
       end
       '''
   end
@@ -535,6 +546,18 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         def foo(1), do: 1
         defmacro foo(x), do: x
+      end
+      '''
+  end
+
+  test "def defp clause change from another file" do
+    assert_compile_fail CompileError,
+      "nofile:4: def hello/0 already defined as defp",
+      '''
+      defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
+        require Kernel.ErrorsTest
+        defp hello, do: :world
+        Kernel.ErrorsTest.hello()
       end
       '''
   end
@@ -579,16 +602,26 @@ defmodule Kernel.ErrorsTest do
       'import Certainly.Doesnt.Exist'
   end
 
-  test "scheduled module" do
+  test "module imported from the context it was defined in" do
     assert_compile_fail CompileError,
-      "nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined. " <>
-      "This happens because you are trying to use a module in the same context it is defined. " <>
-      "Try defining the module outside the context that requires it.",
+      ~r"nofile:4: module Kernel.ErrorsTest.ScheduledModule.Hygiene is not loaded but was defined.",
       '''
       defmodule Kernel.ErrorsTest.ScheduledModule do
         defmodule Hygiene do
         end
         import Kernel.ErrorsTest.ScheduledModule.Hygiene
+      end
+      '''
+  end
+
+  test "module imported from the same module" do
+    assert_compile_fail CompileError,
+      ~r"nofile:3: you are trying to use the module Kernel.ErrorsTest.ScheduledModule.Hygiene which is currently being defined",
+      '''
+      defmodule Kernel.ErrorsTest.ScheduledModule do
+        defmodule Hygiene do
+          import Kernel.ErrorsTest.ScheduledModule.Hygiene
+        end
       end
       '''
   end
@@ -663,8 +696,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid alias expansion" do
     assert_compile_fail CompileError,
-      "nofile:1: an alias must expand to an atom at compilation time, but did not in \"foo.Foo\". " <>
-      "Use Module.concat/2 if you want to dynamically generate aliases",
+      ~r"nofile:1: invalid alias: \"foo\.Foo\"",
       'foo = :foo; foo.Foo'
   end
 
@@ -691,6 +723,13 @@ defmodule Kernel.ErrorsTest do
       "nofile:1: bitstring fields without size are not allowed in bitstring generators",
       'for << x :: binary <- "123" >>, do: x'
   end
+
+  test "invalid size in bitstrings" do
+    assert_compile_fail CompileError,
+      "nofile:1: cannot use ^x outside of match clauses",
+      'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
+  end
+
 
   test "unbound cond" do
     assert_compile_fail CompileError,
@@ -818,11 +857,7 @@ defmodule Kernel.ErrorsTest do
       end
       '''
 
-    if :erlang.system_info(:otp_release) >= '18' do
-      message = "nofile:2: spec for undefined function omg/0"
-    else
-      message = "nofile:2: spec for undefined function Kernel.ErrorsTest.TypespecErrors2.omg/0"
-    end
+    message = "nofile:2: spec for undefined function omg/0"
 
     assert_compile_fail CompileError, message,
       '''
@@ -840,6 +875,20 @@ defmodule Kernel.ErrorsTest do
         def range(unquote({:foo, 0, 1})), do: :ok
       end
       '''
+  end
+
+  test "bad multi-call" do
+    assert_compile_fail CompileError,
+      "nofile:1: invalid argument for alias, expected a compile time atom or alias, got: 42",
+      'alias IO.{ANSI, 42}'
+
+    assert_compile_fail CompileError,
+      "nofile:1: :as option is not supported by multi-alias call",
+      'alias Elixir.{Map}, as: Dict'
+
+    assert_compile_fail UndefinedFunctionError,
+      "undefined function List.{}/1",
+      '[List.{Chars}, "one"]'
   end
 
   test "macros error stacktrace" do

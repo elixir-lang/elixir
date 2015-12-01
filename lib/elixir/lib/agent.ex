@@ -17,7 +17,7 @@ defmodule Agent do
 
       defmodule Mix.TasksServer do
         def start_link do
-          Agent.start_link(fn -> HashSet.new end, name: __MODULE__)
+          Agent.start_link(fn -> MapSet.new end, name: __MODULE__)
         end
 
         @doc "Checks if the task has already executed"
@@ -31,13 +31,13 @@ defmodule Agent do
         @doc "Marks a task as executed"
         def put_task(task, project) do
           item = {task, project}
-          Agent.update(__MODULE__, &Set.put(&1, item))
+          Agent.update(__MODULE__, &MapSet.put(&1, item))
         end
 
-        @doc "Resets the executed tasks and return the previous list of tasks"
+        @doc "Resets the executed tasks and returns the previous list of tasks"
         def take_all() do
           Agent.get_and_update(__MODULE__, fn set ->
-            {Enum.into(set, []), HashSet.new}
+            {Enum.into(set, []), MapSet.new}
           end)
         end
       end
@@ -295,12 +295,25 @@ defmodule Agent do
   end
 
   @doc """
-  Stops the agent.
+  Stops the agent with the given `reason`.
 
-  Returns `:ok` if the agent is stopped within the given `timeout`.
+  It returns `:ok` if the server terminates with the given
+  reason, if it terminates with another reason, the call will
+  exit.
+
+  This function keeps OTP semantics regarding error reporting.
+  If the reason is any other than `:normal`, `:shutdown` or
+  `{:shutdown, _}`, an error report will be logged.
   """
-  @spec stop(agent, timeout) :: :ok
-  def stop(agent, timeout \\ 5000) do
-    GenServer.call(agent, :stop, timeout)
+  @spec stop(agent, reason :: term, timeout) :: :ok
+  def stop(agent, reason \\ :normal, timeout \\ :infinity) do
+    if is_integer(reason) or reason == :infinity do
+      IO.write :stderr, "warning: Agent.stop(agent, timeout) is deprecated, " <>
+                        "please use Agent.stop(agent, :normal, timeout) instead\n" <>
+                        Exception.format_stacktrace
+      :gen.stop(agent, :normal, reason)
+    else
+      :gen.stop(agent, reason, timeout)
+    end
   end
 end

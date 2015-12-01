@@ -14,7 +14,7 @@ This document simply outlines the release process:
 
 5. Run `make clean test` to ensure all tests pass from scratch and the CI is green
 
-6. Ensure minimum supported Hex works with new release (check Mix.Tasks.Local.Hex)
+6. Recompile an existing project (for example, Ecto) to ensure manifests can be upgraded
 
 7. Push branch and the new tag
 
@@ -30,7 +30,7 @@ This document simply outlines the release process:
 
 12. Create a new branch "vMAJOR.MINOR"
 
-13. Move docs generation to `docs/vMAJOR.MINOR` and copy them from `docs/stable`
+13. Move docs generation to `docs/vMAJOR.MINOR` in Makefile and copy them from `docs/stable`
 
 14. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
 

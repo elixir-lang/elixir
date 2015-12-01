@@ -59,7 +59,7 @@ defmodule MixTest.Case do
   end
 
   def tmp_path(extension) do
-    Path.join tmp_path, extension
+    Path.join tmp_path, to_string(extension)
   end
 
   def purge(modules) do

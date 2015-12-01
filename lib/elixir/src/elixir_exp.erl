@@ -46,6 +46,20 @@ expand({'__aliases__', _, _} = Alias, E) ->
 
 %% alias
 
+expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
+    when Kind == alias; Kind == require; Kind == import ->
+  case Rest of
+    [] ->
+      expand_multi_alias_call(Kind, Meta, Base, Refs, [], E);
+    [Opts] ->
+      case lists:keymember(as, 1, Opts) of
+        true ->
+          compile_error(Meta, ?m(E, file),
+            ":as option is not supported by multi-alias call");
+        false ->
+          expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E)
+      end
+  end;
 expand({alias, Meta, [Ref]}, E) ->
   expand({alias, Meta, [Ref, []]}, E);
 expand({alias, Meta, [Ref, KV]}, E) ->
@@ -243,6 +257,11 @@ expand({'try', Meta, [KV]}, E) ->
 expand({for, Meta, [_|_] = Args}, E) ->
   elixir_for:expand(Meta, Args, E);
 
+%% With
+
+expand({with, Meta, [_|_] = Args}, E) ->
+  elixir_with:expand(Meta, Args, E);
+
 %% Super
 
 expand({super, Meta, Args}, E) when is_list(Args) ->
@@ -257,8 +276,8 @@ expand({'^', Meta, [Arg]}, #{context := match} = E) ->
     {{Name, _, Kind} = EArg, EA} when is_atom(Name), is_atom(Kind) ->
       {{'^', Meta, [EArg]}, EA};
     _ ->
-    Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
-    compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
+      Msg = "invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
+      compile_error(Meta, ?m(E, file), Msg, ['Elixir.Macro':to_string(Arg)])
   end;
 expand({'^', Meta, [Arg]}, E) ->
   compile_error(Meta, ?m(E, file),
@@ -361,6 +380,20 @@ expand(Other, E) ->
     "invalid quoted expression: ~ts", ['Elixir.Kernel':inspect(Other)]).
 
 %% Helpers
+
+expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
+  {BaseRef, EB} = expand_without_aliases_report(Base, E),
+  Fun = fun
+    ({'__aliases__', _, Ref}, ER) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, ER);
+    (Ref, ER) when is_atom(Ref) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, ER);
+    (Other, _ER) ->
+      compile_error(Meta, ?m(E, file),
+        "invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
+        [atom_to_list(Kind), 'Elixir.Macro':to_string(Other)])
+  end,
+  lists:mapfoldl(Fun, EB, Refs).
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->
   {EArgs, EAcc} = lists:mapfoldl(Fun, Acc, Args),
@@ -515,6 +548,9 @@ no_alias_expansion(Other) ->
   Other.
 
 expand_require(Meta, Ref, KV, E) ->
+  %% We always record requires when they are defined
+  %% as they expect the reference at compile time.
+  elixir_lexical:record_remote(Ref, nil, ?m(E, lexical_tracker)),
   RE = E#{requires := ordsets:add_element(Ref, ?m(E, requires))},
   expand_alias(Meta, false, Ref, KV, RE).
 
@@ -583,9 +619,11 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
             elixir_lexical:record_remote(Receiver, ?m(E, function), ?m(E, lexical_tracker)),
           {Receiver, EA};
         false ->
-          compile_error(Meta, ?m(E, file), "an alias must expand to an atom "
-            "at compilation time, but did not in \"~ts\". Use Module.concat/2 "
-            "if you want to dynamically generate aliases", ['Elixir.Macro':to_string(Alias)])
+          compile_error(Meta, ?m(E, file),
+            "invalid alias: \"~ts\". If you wanted to define an alias, an alias must expand "
+            "to an atom at compile time but it did not, you may use Module.concat/2 to build "
+            "it at runtime. If instead you wanted to invoke a function or access a field, "
+            "wrap the function or field name in double quotes", ['Elixir.Macro':to_string(Alias)])
       end
   end.
 
@@ -622,7 +660,7 @@ assert_no_guard_scope(Meta, _Kind, #{context := guard, file := File}) ->
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
 
 format_error({useless_literal, Term}) ->
-  io_lib:format("code block starting at line contains unused literal ~ts "
+  io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",
                 ['Elixir.Macro':to_string(Term)]);
 format_error({useless_var, Var}) ->

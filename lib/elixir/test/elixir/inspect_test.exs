@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
+  doctest Inspect
+
   test "basic" do
     assert inspect(:foo) == ":foo"
   end
@@ -361,11 +363,6 @@ defmodule Inspect.OthersTest do
   test "other funs" do
     assert "#Function<" <> _ = inspect(fn(x) -> x + 1 end)
     assert "#Function<" <> _ = inspect(f)
-  end
-
-  test "hash dict set" do
-    assert "#HashDict<" <> _ = inspect(HashDict.new)
-    assert "#HashSet<" <> _ = inspect(HashSet.new)
   end
 
   test "map set" do

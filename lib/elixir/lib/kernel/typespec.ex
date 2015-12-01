@@ -3,10 +3,10 @@ defmodule Kernel.Typespec do
   Provides macros and functions for working with typespecs.
 
   Elixir comes with a notation for declaring types and specifications. Elixir is
-  dynamically typed, as such typespecs are never used by the compiler to
+  dynamically typed, and as such, typespecs are never used by the compiler to
   optimize or modify code. Still, using typespecs is useful as documentation and
   tools such as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html) can
-  analyze the code with typespecs to find bugs.
+  analyze code with typespecs to find bugs.
 
   The attributes `@type`, `@opaque`, `@typep`, `@spec`, `@callback` and
   `@macrocallback` available in modules are handled by the equivalent macros
@@ -60,9 +60,9 @@ defmodule Kernel.Typespec do
             | 1.0                           ## Floats
 
             | <<>>                          ## Bitstrings
-            | <<_ :: size>>                 # size is 0 or a positive integer
-            | <<_ :: _ * unit>>             # unit is an integer from 1 to 256
-            | <<_ :: size * unit>>
+            | <<_::size>>                 # size is 0 or a positive integer
+            | <<_::_ * unit>>             # unit is an integer from 1 to 256
+            | <<_::size * unit>>
 
             | [type]                        ## Lists
             | []                            # empty list
@@ -86,14 +86,14 @@ defmodule Kernel.Typespec do
 
   ### Built-in types
 
-  Those types are also provided by Elixir as shortcuts on top of the
+  These types are also provided by Elixir as shortcuts on top of the
   basic and literal types.
 
   Built-in type           | Defined as
   :---------------------- | :---------
   `term()`                | `any()`
-  `binary()`              | `<< _ :: _ * 8 >>`
-  `bitstring()`           | `<< _ :: _ * 1 >>`
+  `binary()`              | `<<_::_ * 8>>`
+  `bitstring()`           | `<<_::_ * 1>>`
   `boolean()`             | `false` \| `true`
   `byte()`                | `0..255`
   `char()`                | `0..0x10ffff`
@@ -112,10 +112,11 @@ defmodule Kernel.Typespec do
   `no_return()`           | `none()`
   `fun()`                 | `(... -> any)`
   `struct()`              | `%{__struct__: atom()}`
+  `as_boolean(t)`         | `t`
 
   ### Remote types
 
-  Any module is also able to define their own type and the modules in
+  Any module is also able to define its own type and the modules in
   Elixir are no exception. For example, a string is `String.t`, a
   range is `Range.t`, any enumerable can be `Enum.t` and so on.
 
@@ -508,13 +509,9 @@ defmodule Kernel.Typespec do
   end
 
   defp get_doc_info(table, attr, caller) do
-    # TODO: Use :ets.take/2 with Erlang 18
-    case :ets.lookup(table, attr) do
-      [{^attr, {line, doc}}] ->
-        :ets.delete(table, attr)
-        {line, doc}
-      [] ->
-        {caller.line, nil}
+    case :ets.take(table, attr) do
+      [{^attr, {line, doc}}] -> {line, doc}
+      [] -> {caller.line, nil}
     end
   end
 
@@ -846,9 +843,9 @@ defmodule Kernel.Typespec do
 
   defp erl_to_ex_var(var) do
     case Atom.to_string(var) do
-      <<"_", c :: binary-size(1), rest :: binary>> ->
+      <<"_", c::binary-1, rest::binary>> ->
         String.to_atom("_#{String.downcase(c)}#{rest}")
-      <<c :: binary-size(1), rest :: binary>> ->
+      <<c::binary-1, rest::binary>> ->
         String.to_atom("#{String.downcase(c)}#{rest}")
     end
   end
@@ -896,16 +893,9 @@ defmodule Kernel.Typespec do
 
   defp typespec({:%{}, meta, fields}, vars, caller) do
     fields =
-      # TODO: Remove else once we support only OTP >18
-      if :erlang.system_info(:otp_release) >= '18' do
-        :lists.map(fn {k, v} ->
-          {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
-        end, fields)
-      else
-        :lists.map(fn {k, v} ->
-          {:type, line(meta), :map_field_assoc, typespec(k, vars, caller), typespec(v, vars, caller)}
-        end, fields)
-      end
+      :lists.map(fn {k, v} ->
+        {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+      end, fields)
 
     {:type, line(meta), :map, fields}
   end
@@ -921,14 +911,16 @@ defmodule Kernel.Typespec do
         module.__struct__
       end
 
+    struct = struct |> Map.from_struct |> Map.to_list
+
     unless Keyword.keyword?(fields) do
       compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
     end
 
-    struct =
+    types =
       :lists.map(fn {field, _} ->
-        {field, quote do: term()}
-      end, Map.to_list(struct))
+        {field, Keyword.get(fields, field, quote(do: term()))}
+      end, struct)
 
     :lists.foreach(fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
@@ -936,8 +928,7 @@ defmodule Kernel.Typespec do
       end
     end, fields)
 
-    fields = Keyword.merge(struct, [__struct__: module] ++ fields)
-    typespec({:%{}, meta, fields}, vars, caller)
+    typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller)
   end
 
   # Handle records
@@ -948,9 +939,9 @@ defmodule Kernel.Typespec do
   defp typespec({:record, meta, [atom, fields]}, vars, caller) do
     case Macro.expand({atom, [], [{atom, [], []}]}, caller) do
       keyword when is_list(keyword) ->
-        keyword =
+        types =
           :lists.map(fn {field, _} ->
-            {field, quote do: term()}
+            Keyword.get(fields, field, quote(do: term()))
           end, keyword)
 
         :lists.foreach(fn {field, _} ->
@@ -958,9 +949,6 @@ defmodule Kernel.Typespec do
             compile_error(caller, "undefined field #{field} on record #{inspect atom}")
           end
         end, fields)
-
-        fields = Keyword.merge(keyword, fields)
-        types = Keyword.values(fields)
 
         typespec({:{}, meta, [atom|types]}, vars, caller)
       _ ->
@@ -1068,14 +1056,9 @@ defmodule Kernel.Typespec do
 
   defp typespec({name, meta, arguments}, vars, caller) do
     arguments = for arg <- arguments, do: typespec(arg, vars, caller)
-
-    if :erlang.system_info(:otp_release) >= '18' do
-      arity = length(arguments)
-      type = if :erl_internal.is_type(name, arity), do: :type, else: :user_type
-      {type, line(meta), name, arguments}
-    else
-      {:type, line(meta), name, arguments}
-    end
+    arity = length(arguments)
+    type = if :erl_internal.is_type(name, arity), do: :type, else: :user_type
+    {type, line(meta), name, arguments}
   end
 
   # Handle literals

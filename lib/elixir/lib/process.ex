@@ -19,6 +19,8 @@ defmodule Process do
   and has not exited yet). Otherwise, returns `false`.
 
   `pid` must refer to a process at the local node.
+
+  Inlined by the compiler.
   """
   @spec alive?(pid) :: boolean
   def alive?(pid) do
@@ -27,6 +29,8 @@ defmodule Process do
 
   @doc """
   Returns all key-values in the dictionary.
+
+  Inlined by the compiler.
   """
   @spec get :: [{term, term}]
   def get do
@@ -48,7 +52,19 @@ defmodule Process do
   end
 
   @doc """
+  Returns all keys in the process dictionary.
+
+  Inlined by the compiler.
+  """
+  @spec get_keys() :: [term]
+  def get_keys() do
+    :erlang.get_keys()
+  end
+
+  @doc """
   Returns all keys that have the given `value`.
+
+  Inlined by the compiler.
   """
   @spec get_keys(term) :: [term]
   def get_keys(value) do
@@ -57,6 +73,9 @@ defmodule Process do
 
   @doc """
   Stores the given key-value in the process dictionary.
+
+  The return value is the value that was previously stored under the key `key`
+  (or `nil` in case no value was stored under `key`).
   """
   @spec put(term, term) :: term | nil
   def put(key, value) do
@@ -120,11 +139,10 @@ defmodule Process do
       :noconnect
 
   """
-  @spec send(dest, msg, [option]) ::  result when
+  @spec send(dest, msg, [option]) :: :ok | :noconnect | :nosuspend when
         dest: pid | port | atom | {atom, node},
         msg: any,
-        option: :noconnect | :nosuspend,
-        result: :ok | :noconnect | :nosuspend
+        option: :noconnect | :nosuspend
   def send(dest, msg, options) do
     :erlang.send(dest, msg, options)
   end
@@ -138,8 +156,7 @@ defmodule Process do
   not refer to a process.
 
   This function returns a timer reference, which can be read or canceled with
-  `:erlang.read_timer/1`, `:erlang.start_timer/3` and `:erlang.cancel_timer/1`.
-  Note `time` cannot be greater than `4294967295`.
+  `read_timer/1` and `cancel_timer/1`.
 
   Finally, the timer will be automatically canceled if the given `dest` is a pid
   which is not alive or when the given pid exits. Note that timers will not be
@@ -149,6 +166,46 @@ defmodule Process do
   @spec send_after(pid | atom, term, non_neg_integer) :: reference
   def send_after(dest, msg, time) do
     :erlang.send_after(time, dest, msg)
+  end
+
+  @doc """
+  Cancels a timer created by `send_after/3`.
+
+  When the result is an integer, it represents the time in milli-seconds
+  left until the timer will expire.
+
+  When the result is `false`, a timer corresponding to `timer_ref` could
+  not be found. This can be either because the timer expired, already has
+  been canceled, or because `timer_ref` never corresponded to a timer.
+
+  If the timer has expired, the timeout message has been sent, but it does
+  not tell you whether or not it has arrived at its destination yet.
+
+  Inlined by the compiler.
+  """
+  @spec cancel_timer(reference) :: non_neg_integer | false
+  def cancel_timer(timer_ref) do
+    :erlang.cancel_timer(timer_ref)
+  end
+
+  @doc """
+  Reads a timer created by `send_after/3`.
+
+  When the result is an integer, it represents the time in milli-seconds
+  left until the timer will expire.
+
+  When the result is `false`, a timer corresponding to `timer_ref` could
+  not be found. This can be either because the timer expired, already has
+  been canceled, or because `timer_ref` never corresponded to a timer.
+
+  If the timer has expired, the timeout message has been sent, but it does
+  not tell you whether or not it has arrived at its destination yet.
+
+  Inlined by the compiler.
+  """
+  @spec read_timer(reference) :: non_neg_integer | false
+  def read_timer(timer_ref) do
+    :erlang.read_timer(timer_ref)
   end
 
   @type spawn_opt  :: :link | :monitor | {:priority, :low | :normal | :high} |
@@ -199,6 +256,8 @@ defmodule Process do
   The calling process starts monitoring the item given.
   It returns the monitor reference.
 
+  See [the need for monitoring](http://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
+  for an example.
   See [`:erlang.monitor/2`](http://www.erlang.org/doc/man/erlang.html#monitor-2) for more info.
 
   Inlined by the compiler.

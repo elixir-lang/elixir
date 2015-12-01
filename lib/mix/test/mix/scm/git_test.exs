@@ -34,6 +34,20 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.equal?([git: "foo", lock: 1], [git: "foo", lock: 2])
   end
 
+  test "warns about conflicting git checkout options" do
+    msg = "warning: you should specify only one of branch, ref or tag, and only once. " <>
+          "Error on git dependency: /repo"
+
+    Mix.SCM.Git.accepts_options(nil, [git: "/repo", branch: "master", tag: "0.1.0"])
+    assert_received {:mix_shell, :error, [^msg]}
+
+    Mix.SCM.Git.accepts_options(nil, [git: "/repo", branch: "master", branch: "develop"])
+    assert_received {:mix_shell, :error, [^msg]}
+
+    Mix.SCM.Git.accepts_options(nil, [git: "/repo", ref: "abcdef01234", branch: "develop"])
+    assert_received {:mix_shell, :error, [^msg]}
+  end
+
   defp lock(opts \\ []) do
     [lock: {:git, "/repo", "abcdef0123456789", opts}]
   end

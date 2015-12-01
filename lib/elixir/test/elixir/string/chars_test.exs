@@ -3,6 +3,8 @@ Code.require_file "../test_helper.exs", __DIR__
 defmodule String.Chars.AtomTest do
   use ExUnit.Case, async: true
 
+  doctest String.Chars
+
   test "basic" do
     assert to_string(:foo) == "foo"
   end
@@ -105,7 +107,7 @@ defmodule String.Chars.ErrorsTest do
 
   test "function" do
     assert_raise Protocol.UndefinedError, ~r"^protocol String\.Chars not implemented for #Function<.+?>$", fn ->
-      to_string(fn -> end)
+      to_string(fn -> nil end)
     end
   end
 

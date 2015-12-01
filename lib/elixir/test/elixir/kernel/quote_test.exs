@@ -131,12 +131,6 @@ defmodule Kernel.QuoteTest do
   end
 
   test "stab" do
-    assert [{:->, _, [[], nil]}] = (quote do -> end)
-    assert [{:->, _, [[], nil]}] = (quote do: (->))
-
-    assert [{:->, _, [[1], nil]}] = (quote do 1 -> end)
-    assert [{:->, _, [[1], nil]}] = (quote do: (1 ->))
-
     assert [{:->, _, [[], 1]}] = (quote do -> 1 end)
     assert [{:->, _, [[], 1]}] = (quote do: (-> 1))
   end
@@ -222,7 +216,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, :add, 2, [file: ^file, line: 202]}|_] = System.stacktrace
+    assert [{^mod, :add, 2, [file: ^file, line: 196]}|_] = System.stacktrace
   end
 
   test "outside function error" do
@@ -232,7 +226,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
 
     mod  = Kernel.QuoteTest.ErrorsTest
     file = __ENV__.file |> Path.relative_to_cwd |> String.to_char_list
-    assert [{^mod, _, _, [file: ^file, line: 230]}|_] = System.stacktrace
+    assert [{^mod, _, _, [file: ^file, line: 224]}|_] = System.stacktrace
   end
 end
 

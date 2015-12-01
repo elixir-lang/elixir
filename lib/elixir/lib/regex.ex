@@ -1,6 +1,7 @@
 defmodule Regex do
   @moduledoc ~S"""
-  Regular expressions for Elixir built on top of Erlang's `:re` module.
+  Provides regular expressions for Elixir. Built on top of Erlang's `:re`
+  module.
 
   As the `:re` module, Regex is based on PCRE
   (Perl Compatible Regular Expressions). More information can be
@@ -22,7 +23,7 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like `\p` and changes
+    * `unicode` (u) - enables unicode specific patterns like `\p` and change
       modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
       It expects valid unicode strings to be given on match
 
@@ -55,7 +56,7 @@ defmodule Regex do
 
   ## Captures
 
-  Many functions in this module allows what to capture in a regex
+  Many functions in this module handle what to capture in a regex
   match via the `:capture` option. The supported values are:
 
     * `:all` - all captured subpatterns including the complete matching string
@@ -379,7 +380,7 @@ defmodule Regex do
     end
   end
 
-  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) do
+  def split(%Regex{re_pattern: compiled}, string, opts) when is_binary(string) and is_list(opts) do
     on = Keyword.get(opts, :on, :first)
     case :re.run(string, compiled, [:global, capture: on]) do
       {:match, matches} ->
@@ -456,6 +457,9 @@ defmodule Regex do
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", "[\\1]")
       "[b][d]"
 
+      iex> Regex.replace(~r/\.(\d)$/, "500.5", ".\\g{1}0")
+      "500.50"
+
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
       "[b][d]"
 
@@ -466,11 +470,13 @@ defmodule Regex do
   @spec replace(t, String.t, String.t | (... -> String.t), [term]) :: String.t
   def replace(regex, string, replacement, options \\ [])
 
-  def replace(regex, string, replacement, options) when is_binary(replacement) do
+  def replace(regex, string, replacement, options)
+      when is_binary(string) and is_binary(replacement) and is_list(options) do
     do_replace(regex, string, precompile_replacement(replacement), options)
   end
 
-  def replace(regex, string, replacement, options) when is_function(replacement) do
+  def replace(regex, string, replacement, options)
+      when is_binary(string) and is_function(replacement) and is_list(options)  do
     {:arity, arity} = :erlang.fun_info(replacement, :arity)
     do_replace(regex, string, {replacement, arity}, options)
   end
@@ -492,30 +498,30 @@ defmodule Regex do
   defp precompile_replacement(""),
     do: []
 
-  defp precompile_replacement(<<?\\, ?g, ?{, rest :: binary>>) when byte_size(rest) > 0 do
-    {ns, <<?}, rest :: binary>>} = pick_int(rest)
+  defp precompile_replacement(<<?\\, ?g, ?{, rest::binary>>) when byte_size(rest) > 0 do
+    {ns, <<?}, rest::binary>>} = pick_int(rest)
     [List.to_integer(ns) | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<?\\, ?\\, rest :: binary>>) do
+  defp precompile_replacement(<<?\\, ?\\, rest::binary>>) do
     [<<?\\>> | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<?\\, x, rest :: binary>>) when x in ?0..?9 do
+  defp precompile_replacement(<<?\\, x, rest::binary>>) when x in ?0..?9 do
     {ns, rest} = pick_int(rest)
     [List.to_integer([x|ns]) | precompile_replacement(rest)]
   end
 
-  defp precompile_replacement(<<x, rest :: binary>>) do
+  defp precompile_replacement(<<x, rest::binary>>) do
     case precompile_replacement(rest) do
       [head | t] when is_binary(head) ->
-        [<<x, head :: binary>> | t]
+        [<<x, head::binary>> | t]
       other ->
         [<<x>> | other]
     end
   end
 
-  defp pick_int(<<x, rest :: binary>>) when x in ?0..?9 do
+  defp pick_int(<<x, rest::binary>>) when x in ?0..?9 do
     {found, rest} = pick_int(rest)
     {[x|found], rest}
   end
@@ -538,12 +544,12 @@ defmodule Regex do
 
   defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list) when mpos > pos do
     length = mpos - pos
-    <<untouched :: binary-size(length), rest :: binary>> = string
+    <<untouched::binary-size(length), rest::binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
   defp apply_list(whole, string, pos, replacement, [[{pos, length} | _] = head | tail]) do
-    <<_ :: size(length)-binary, rest :: binary>> = string
+    <<_::size(length)-binary, rest::binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
   end
@@ -576,7 +582,7 @@ defmodule Regex do
   end
 
   defp get_index(string, {pos, len}) do
-    <<_ :: size(pos)-binary, res :: size(len)-binary, _ :: binary>> = string
+    <<_::size(pos)-binary, res::size(len)-binary, _::binary>> = string
     res
   end
 
@@ -626,17 +632,17 @@ defmodule Regex do
 
   # Private Helpers
 
-  defp translate_options(<<?u, t :: binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
-  defp translate_options(<<?i, t :: binary>>, acc), do: translate_options(t, [:caseless|acc])
-  defp translate_options(<<?x, t :: binary>>, acc), do: translate_options(t, [:extended|acc])
-  defp translate_options(<<?f, t :: binary>>, acc), do: translate_options(t, [:firstline|acc])
-  defp translate_options(<<?U, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
-  defp translate_options(<<?s, t :: binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
-  defp translate_options(<<?m, t :: binary>>, acc), do: translate_options(t, [:multiline|acc])
+  defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp|acc])
+  defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless|acc])
+  defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended|acc])
+  defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline|acc])
+  defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
+  defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline|acc])
 
   # TODO: Deprecate by 1.2
   # TODO: Remove by 2.0
-  defp translate_options(<<?r, t :: binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?r, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(rest, _acc), do: {:error, rest}

@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
+  doctest Kernel
+
   test "=~/2" do
     assert ("abcd" =~ ~r/c(d)/) == true
     assert ("abcd" =~ ~r/e/) == false
@@ -194,7 +196,7 @@ defmodule KernelTest do
   end
 
   test "__info__(:functions)" do
-    assert not ({:__info__, 1} in Kernel.__info__(:functions))
+    refute {:__info__, 1} in Kernel.__info__(:functions)
   end
 
   test "__info__(others)" do
@@ -266,6 +268,20 @@ defmodule KernelTest do
     assert struct(user, name: "other", __struct__: Post) == %User{name: "other"}
   end
 
+  test "struct!/1 and struct!/2" do
+    assert struct!(User) == %User{name: "john"}
+
+    user = struct!(User, name: "meg")
+    assert user == %User{name: "meg"}
+
+    assert_raise KeyError, fn ->
+      struct!(user, unknown: "key")
+    end
+
+    assert struct!(user, %{name: "john"}) == %User{name: "john"}
+    assert struct!(user, name: "other", __struct__: Post) == %User{name: "other"}
+  end
+
   defdelegate my_flatten(list), to: List, as: :flatten
   defdelegate [map(callback, list)], to: :lists, append_first: true
 
@@ -283,6 +299,27 @@ defmodule KernelTest do
   test "defdelegate/2 with unquote" do
     assert dynamic_flatten([[1]]) == [1]
   end
+
+  # TODO: Bring those tests back on 1.3
+  # test "defdelegate/2 raises with non-variable arguments" do
+  #   code = quote do
+  #     defmodule Foo do
+  #       defdelegate foo(1), to: List
+  #     end
+  #   end
+  #
+  #   msg = "defdelegate/2 only accepts variable names, got: 1"
+  #   assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
+  #
+  #   code = quote do
+  #     defmodule Foo do
+  #       defdelegate foo(a \\ 1), to: List
+  #     end
+  #   end
+  #
+  #   msg = "defdelegate/2 only accepts variable names, got: a \\\\ 1"
+  #   assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
+  # end
 
   test "get_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
@@ -472,6 +509,8 @@ defmodule KernelTest do
     use ExUnit.Case, async: true
 
     test "variables on nested if" do
+      {a, b} = {nil, nil}
+
       if true do
         a = 1
         if true do
@@ -484,6 +523,8 @@ defmodule KernelTest do
     end
 
     test "variables on sibling if" do
+      {a, b, c} = {nil, nil, nil}
+
       if true do
         a = 1
 
@@ -626,5 +667,65 @@ defmodule KernelTest do
 
     defp a_list, do: [1, 2, 3]
     defp a_nil, do: nil
+  end
+
+  defmodule UseMacro do
+    use ExUnit.Case, async: true
+
+    import ExUnit.CaptureIO
+
+    defmodule SampleA do
+      defmacro __using__(opts) do
+        prefix = Keyword.get(opts, :prefix, "")
+        IO.puts(prefix <> "A")
+      end
+    end
+
+    defmodule SampleB do
+      defmacro __using__(_) do
+        IO.puts("B")
+      end
+    end
+
+    test "invalid argument is literal" do
+      message = "invalid arguments for use, expected a compile time atom or alias, got: 42"
+      assert_raise ArgumentError, message, fn ->
+        Code.eval_string("use 42")
+      end
+    end
+
+    test "invalid argument is variable" do
+      message = "invalid arguments for use, expected a compile time atom or alias, got: variable"
+      assert_raise ArgumentError, message, fn ->
+        Code.eval_string("use variable")
+      end
+    end
+
+    test "multi-call" do
+      assert capture_io(fn ->
+        Code.eval_string("use UseMacro.{SampleA, SampleB,}", [], __ENV__)
+      end) == "A\nB\n"
+    end
+
+    test "multi-call with options" do
+      assert capture_io(fn ->
+        Code.eval_string(~S|use UseMacro.{SampleA}, prefix: "-"|, [], __ENV__)
+      end) == "-A\n"
+    end
+
+    test "multi-call with unquote" do
+      assert capture_io(fn ->
+        Code.eval_string("""
+          defmodule TestMod do
+            def main() do
+              use UseMacro.{SampleB, unquote(:SampleA)}
+            end
+          end
+          """, [], __ENV__)
+      end) == "B\nA\n"
+    after
+      :code.purge(UseMacro.TestMod)
+      :code.delete(UseMacro.TestMod)
+    end
   end
 end

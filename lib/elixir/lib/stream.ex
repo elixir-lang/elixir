@@ -22,7 +22,7 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done yet. Just when `Enum.map/2` is called we
+  computation was done. Only when `Enum.map/2` is called we actually
   enumerate over each item in the range, multiplying it by 2 and adding 1.
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.
@@ -33,10 +33,10 @@ defmodule Stream do
   computations that are executed at a later moment. Let's see another
   example:
 
-      1..3 |>
-        Enum.map(&IO.inspect(&1)) |>
-        Enum.map(&(&1 * 2)) |>
-        Enum.map(&IO.inspect(&1))
+      1..3
+      |> Enum.map(&IO.inspect(&1))
+      |> Enum.map(&(&1 * 2))
+      |> Enum.map(&IO.inspect(&1))
       1
       2
       3
@@ -49,10 +49,10 @@ defmodule Stream do
   element by 2 and finally printed each new value. In this example, the list
   was enumerated three times. Let's see an example with streams:
 
-      stream = 1..3 |>
-        Stream.map(&IO.inspect(&1)) |>
-        Stream.map(&(&1 * 2)) |>
-        Stream.map(&IO.inspect(&1))
+      stream = 1..3
+      |> Stream.map(&IO.inspect(&1))
+      |> Stream.map(&(&1 * 2))
+      |> Stream.map(&IO.inspect(&1))
       Enum.to_list(stream)
       1
       2
@@ -66,10 +66,10 @@ defmodule Stream do
   printed changed! With streams, we print the first item and then print
   its double. In this example, the list was enumerated just once!
 
-  That's what we meant when we first said that streams are composable,
+  That's what we meant when we said earlier that streams are composable,
   lazy enumerables. Notice we could call `Stream.map/2` multiple times,
-  effectively composing the streams and they are lazy. The computations
-  are performed only when you call a function from the `Enum` module.
+  effectively composing the streams and keeping them lazy. The computations
+  are only performed when you call a function from the `Enum` module.
 
   ## Creating Streams
 
@@ -85,7 +85,7 @@ defmodule Stream do
   Note the functions in this module are guaranteed to return enumerables.
   Since enumerables can have different shapes (structs, anonymous functions,
   and so on), the functions in this module may return any of those shapes
-  and that it may change at any time. For example, a function that today
+  and that this may change at any time. For example, a function that today
   returns an anonymous function may return a struct in future releases.
   """
 
@@ -96,7 +96,7 @@ defmodule Stream do
   @type element :: any
   @type index   :: non_neg_integer
   @type default :: any
-  @type t       :: %__MODULE__{}
+  @opaque t     :: %__MODULE__{}
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
@@ -687,6 +687,15 @@ defmodule Stream do
     do_transform(user_acc.(), user, fun, [], next, inner_acc, inner, after_fun)
   end
 
+  defp do_transform(user_acc, _user, _fun, _next_acc, _next, {:halt, inner_acc}, _inner, after_fun) do
+    do_after(after_fun, user_acc)
+    {:halted, inner_acc}
+  end
+
+  defp do_transform(user_acc, user, fun, next_acc, next, {:suspend, inner_acc}, inner, after_fun) do
+    {:suspended, inner_acc, &do_transform(user_acc, user, fun, next_acc, next, &1, inner, after_fun)}
+  end
+
   defp do_transform(user_acc, user, fun, next_acc, next, inner_acc, inner, after_fun) do
     case next.({:cont, next_acc}) do
       {:suspended, [val|next_acc], next} ->
@@ -696,6 +705,7 @@ defmodule Stream do
           kind, reason ->
             stacktrace = System.stacktrace
             next.({:halt, next_acc})
+            do_after(after_fun, user_acc)
             :erlang.raise(kind, reason, stacktrace)
         else
           {[], user_acc} ->
@@ -797,7 +807,7 @@ defmodule Stream do
   @spec uniq(Enumerable.t) :: Enumerable.t
   @spec uniq(Enumerable.t, (element -> term)) :: Enumerable.t
   def uniq(enum, fun \\ fn x -> x end) do
-    lazy enum, HashSet.new, fn f1 -> R.uniq(fun, f1) end
+    lazy enum, %{}, fn f1 -> R.uniq(fun, f1) end
   end
 
   @doc """
@@ -1013,8 +1023,10 @@ defmodule Stream do
 
   ## Examples
 
-      iex> Stream.repeatedly(&:random.uniform/0) |> Enum.take(3)
-      [0.4435846174457203, 0.7230402056221108, 0.94581636451987]
+      # Although not necessary, let's seed the random algorithm
+      iex> :rand.seed(:exsplus, {1, 2, 3})
+      iex> Stream.repeatedly(&:rand.uniform/0) |> Enum.take(3)
+      [0.40502929729990744, 0.45336720247823126, 0.04094511692041057]
 
   """
   @spec repeatedly((() -> element)) :: Enumerable.t

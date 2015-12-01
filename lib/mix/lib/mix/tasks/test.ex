@@ -108,6 +108,9 @@ defmodule Mix.Tasks.Test do
 
     * `:test_pattern` - a pattern to load test files, defaults to `*_test.exs`.
 
+    * `:warn_test_pattern` - a pattern to match potentially missed test files 
+      and display a warning, defaults to `*_test.ex`.
+
     * `:test_coverage` - a set of options to be passed down to the coverage
       mechanism.
 
@@ -184,10 +187,17 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(merge_helper_opts(opts))
 
     # Finally parse, require and load the files
-    test_files   = parse_files(files, test_paths)
+    test_files = parse_files(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
+    warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
-    case Mix.Utils.extract_files(test_files, test_pattern) do
+    matched_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    matched_warn_test_files = 
+      Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
+    
+    display_warn_test_pattern(matched_warn_test_files, test_pattern)
+    
+    case matched_test_files do
       [] ->
         Mix.shell.error "Test patterns did not match any file: " <> Enum.join(files, ", ")
       test_files ->
@@ -200,6 +210,12 @@ defmodule Mix.Tasks.Test do
         System.at_exit fn _ ->
           if failures > 0, do: exit({:shutdown, 1})
         end
+    end
+  end
+
+  defp display_warn_test_pattern(files, pattern) do
+    for file <- files do
+      Mix.shell.info "warning: #{file} does not match #{inspect pattern} and won't be loaded"
     end
   end
 
@@ -259,7 +275,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp merge_opts(opts, key) do
-    value = Application.get_env(:ex_unit, key, [])
+    value = List.wrap Application.get_env(:ex_unit, key, [])
     Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 

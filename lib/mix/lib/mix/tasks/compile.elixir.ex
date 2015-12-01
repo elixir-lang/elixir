@@ -60,9 +60,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     manifest = manifest()
     configs  = Mix.Project.config_files ++ Mix.Tasks.Compile.Erlang.manifests
-
-    force = opts[:force] || local_deps_changed?(manifest)
-              || Mix.Utils.stale?(configs, [manifest])
+    force    = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     Mix.Compilers.Elixir.compile(manifest, srcs, skip, [:ex], dest, force, fn ->
       set_compiler_opts(project, opts, [])
@@ -82,20 +80,14 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest())
   end
 
-  defp set_compiler_opts(project, opts, extra) do
-    opts = Dict.take(opts, Code.available_compiler_options)
-    opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    Code.compiler_options Keyword.merge(opts, extra)
+  @doc false
+  def protocols_and_impls do
+    Mix.Compilers.Elixir.protocols_and_impls(manifest())
   end
 
-  defp local_deps_changed?(manifest) do
-    manifest = Path.absname(manifest)
-
-    Enum.any?(Mix.Dep.children(), fn(dep) ->
-      not dep.scm.fetchable? and Mix.Dep.in_dependency(dep, fn(_) ->
-        files = Mix.Project.config_files ++ Mix.Tasks.Compile.manifests
-        Mix.Utils.stale?(files, [manifest])
-      end)
-    end)
+  defp set_compiler_opts(project, opts, extra) do
+    opts = Keyword.take(opts, Code.available_compiler_options)
+    opts = Keyword.merge(project[:elixirc_options] || [], opts)
+    Code.compiler_options Keyword.merge(opts, extra)
   end
 end

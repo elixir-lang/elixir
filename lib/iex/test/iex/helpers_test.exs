@@ -49,6 +49,34 @@ defmodule IEx.HelpersTest do
     assert capture_io(fn -> h __info__ end) == "No documentation for __info__ was found\n"
   end
 
+  test "h helper for callbacks" do
+    with_file ["a_behaviour.ex", "impl.ex"], [behaviour_module, impl_module], fn ->
+      c("a_behaviour.ex")
+      c("impl.ex")
+      assert capture_io(fn -> h Impl.first/1 end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
+      assert capture_io(fn -> h Impl.second/1 end) == "* def second(int)\n\nDocs for Impl.second\n"
+      assert capture_io(fn -> h Impl.third/1 end) == "* def third(int)\n\n\n"
+
+      assert capture_io(fn -> h Impl.first end) == "* @callback first(integer()) :: integer()\n\nDocs for ABehaviour.first\n"
+      assert capture_io(fn -> h Impl.second end) == "* def second(int)\n\nDocs for Impl.second\n"
+      assert capture_io(fn -> h Impl.third end) == "* def third(int)\n\n\n"
+    end
+  after
+    cleanup_modules([ABehaviour, Impl])
+  end
+
+  test "h helper for delegates" do
+    filename = "delegate.ex"
+    with_file filename, delegator_module <> "\n" <> delegated_module, fn ->
+      assert c(filename) |> Enum.sort == [Delegated, Delegator]
+
+      assert capture_io(fn -> h Delegator.func1 end) == "* def func1()\n\nSee `Delegated.func1/0`.\n"
+      assert capture_io(fn -> h Delegator.func2 end) == "* def func2()\n\nDelegator func2 doc\n"
+    end
+  after
+    cleanup_modules([Delegated, Delegator])
+  end
+
   test "b helper module" do
     assert capture_io(fn -> b Mix end) == "No callbacks for Mix were found\n"
     assert capture_io(fn -> b NoMix end) == "Could not load module NoMix, got: nofile\n"
@@ -77,8 +105,23 @@ defmodule IEx.HelpersTest do
            = capture_io(fn -> t Enum.t end)
     assert capture_io(fn -> t Enum.t end) == capture_io(fn -> t Enum.t/0 end)
 
-    assert "@opaque t()\n" = capture_io(fn -> t HashDict.t end)
-    assert capture_io(fn -> t HashDict.t end) == capture_io(fn -> t HashDict.t/0 end)
+    assert "@opaque t()\n" = capture_io(fn -> t MapSet.t end)
+    assert capture_io(fn -> t MapSet.t end) == capture_io(fn -> t MapSet.t/0 end)
+
+    filename = "typesample.ex"
+    with_file filename, module_with_typespecs, fn ->
+      c(filename)
+      assert capture_io(fn -> t TypeSample.id_with_desc/0 end) == """
+      An id with description.
+      @type id_with_desc() :: {number(), String.t()}
+      """
+      assert capture_io(fn -> t TypeSample.id_with_desc end) == """
+      An id with description.
+      @type id_with_desc() :: {number(), String.t()}
+      """
+    end
+  after
+    cleanup_modules([TypeSample])
   end
 
   test "s helper" do
@@ -167,7 +210,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample\.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample\.run/0", fn ->
       Sample.run
     end
 
@@ -191,7 +234,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper multiple modules" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -206,7 +249,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper list" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -221,7 +264,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "c helper erlang" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -236,7 +279,7 @@ defmodule IEx.HelpersTest do
 
 
   test "c helper skips unknown files" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -252,7 +295,7 @@ defmodule IEx.HelpersTest do
 
 
   test "l helper" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0", fn ->
       Sample.run
     end
 
@@ -267,7 +310,7 @@ defmodule IEx.HelpersTest do
       elixirc ["sample.ex"]
 
       assert l(Sample) == {:module, Sample}
-      assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+      assert_raise UndefinedFunctionError, "undefined function Sample.run/0", fn ->
         Sample.run
       end
     end
@@ -283,7 +326,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper elixir" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: Sample.run/0 \(module Sample is not available\)", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function Sample.run/0 \(module Sample is not available\)", fn ->
       Sample.run
     end
 
@@ -295,7 +338,7 @@ defmodule IEx.HelpersTest do
 
         File.write! filename, "defmodule Sample do end"
         assert {:reloaded, Sample, [Sample]} = r(Sample)
-        assert_raise UndefinedFunctionError, "undefined function: Sample.run/0", fn ->
+        assert_raise UndefinedFunctionError, "undefined function Sample.run/0", fn ->
           Sample.run
         end
       end) =~ ~r"^.*?sample\.ex:1: warning: redefining module Sample\n$"
@@ -306,7 +349,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "r helper erlang" do
-    assert_raise UndefinedFunctionError, ~r"undefined function: :sample.hello/0", fn ->
+    assert_raise UndefinedFunctionError, ~r"undefined function :sample.hello/0", fn ->
       :sample.hello
     end
 
@@ -330,6 +373,18 @@ defmodule IEx.HelpersTest do
       capture_iex("pid(0,6,-6)")
   end
 
+  test "i helper" do
+    output = capture_iex ~s[i(:ok)]
+    assert output == String.rstrip("""
+    Term
+      :ok
+    Data type
+      Atom
+    Reference modules
+      Atom
+    """)
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
@@ -350,6 +405,48 @@ defmodule IEx.HelpersTest do
     """
   end
 
+  defp behaviour_module do
+    """
+    defmodule ABehaviour do
+      use Behaviour
+      @doc "Docs for ABehaviour.first"
+      defcallback first(integer) :: integer
+      defcallback second(integer) :: integer
+    end
+    """
+  end
+
+  defp impl_module do
+    """
+    defmodule Impl do
+      @behaviour ABehaviour
+      def first(0), do: 0
+      @doc "Docs for Impl.second"
+      def second(0), do: 0
+      def third(0), do: 0
+    end
+    """
+  end
+
+  defp delegator_module do
+    """
+    defmodule Delegator do
+      defdelegate func1, to: Delegated
+      @doc "Delegator func2 doc"
+      defdelegate func2, to: Delegated
+    end
+    """
+  end
+
+  defp delegated_module do
+    """
+    defmodule Delegated do
+      def func1, do: 1
+      def func2, do: 2
+    end
+    """
+  end
+
   defp erlang_module_code do
     """
     -module(sample).
@@ -363,6 +460,15 @@ defmodule IEx.HelpersTest do
     -module(sample).
     -export([hello/0]).
     hello() -> bye.
+    """
+  end
+
+  def module_with_typespecs do
+    """
+    defmodule TypeSample do
+      @typedoc "An id with description."
+      @type id_with_desc :: {number, String.t}
+    end
     """
   end
 

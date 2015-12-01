@@ -163,35 +163,10 @@ defmodule Mix.Utils do
       "SapExample"
 
   """
-  def underscore(atom) when is_atom(atom) do
-    "Elixir." <> rest = Atom.to_string(atom)
-    underscore(rest)
-  end
-
-  def underscore(""), do: ""
-
-  def underscore(<<h, t :: binary>>) do
-    <<to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<h, t, rest :: binary>>, _) when h in ?A..?Z and not (t in ?A..?Z or t == ?.) do
-    <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
-  end
-
-  defp do_underscore(<<h, t :: binary>>, prev) when h in ?A..?Z and not prev in ?A..?Z do
-    <<?_, to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<?., t :: binary>>, _) do
-    <<?/>> <> underscore(t)
-  end
-
-  defp do_underscore(<<h, t :: binary>>, _) do
-    <<to_lower_char(h)>> <> do_underscore(t, h)
-  end
-
-  defp do_underscore(<<>>, _) do
-    <<>>
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
+  def underscore(value) do
+    Macro.underscore(value)
   end
 
   @doc """
@@ -203,35 +178,11 @@ defmodule Mix.Utils do
       "FooBar"
 
   """
-  @spec camelize(String.t) :: String.t
-  def camelize(string)
-
-  def camelize(""),
-    do: ""
-
-  def camelize(<<?_, t :: binary>>),
-    do: camelize(t)
-
-  def camelize(<<h, t :: binary>>),
-    do: <<to_upper_char(h)>> <> do_camelize(t)
-
-  defp do_camelize(<<?_, ?_, t :: binary>>),
-    do: do_camelize(<< ?_, t :: binary >>)
-
-  defp do_camelize(<<?_, h, t :: binary>>) when h in ?a..?z,
-    do: <<to_upper_char(h)>> <> do_camelize(t)
-
-  defp do_camelize(<<?_>>),
-    do: <<>>
-
-  defp do_camelize(<<?/, t :: binary>>),
-    do: <<?.>> <> camelize(t)
-
-  defp do_camelize(<<h, t :: binary>>),
-    do: <<h>> <> do_camelize(t)
-
-  defp do_camelize(<<>>),
-    do: <<>>
+  # TODO: Deprecate by 1.3
+  # TODO: Remove by 1.4
+  def camelize(value) do
+    Macro.camelize(value)
+  end
 
   @doc """
   Takes a module and converts it to a command.
@@ -255,8 +206,10 @@ defmodule Mix.Utils do
   end
 
   def module_name_to_command(module, nesting) do
-    t = Regex.split(~r/\./, to_string(module))
-    t |> Enum.drop(nesting) |> Enum.map(&underscore(&1)) |> Enum.join(".")
+    Regex.split(~r/\./, to_string(module))
+    |> Enum.drop(nesting)
+    |> Enum.map(&underscore(&1))
+    |> Enum.join(".")
   end
 
   @doc """
@@ -269,16 +222,10 @@ defmodule Mix.Utils do
 
   """
   def command_to_module_name(s) do
-    Regex.split(~r/\./, to_string(s)) |>
-      Enum.map(&camelize(&1)) |>
-      Enum.join(".")
+    Regex.split(~r/\./, to_string(s))
+    |> Enum.map(&camelize(&1))
+    |> Enum.join(".")
   end
-
-  defp to_upper_char(char) when char in ?a..?z, do: char - 32
-  defp to_upper_char(char), do: char
-
-  defp to_lower_char(char) when char in ?A..?Z, do: char + 32
-  defp to_lower_char(char), do: char
 
   @doc """
   Symlinks directory `source` to `target` or copies it recursively
@@ -416,17 +363,15 @@ defmodule Mix.Utils do
     headers = [{'user-agent', 'Mix/#{System.version}'}]
     request = {:binary.bin_to_list(path), headers}
 
-    # If a proxy environment variable was supplied add a proxy to httpc
-    http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
-    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
-    if http_proxy,  do: proxy(:proxy, http_proxy)
-    if https_proxy, do: proxy(:https_proxy, https_proxy)
-
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
     # cause the request to fail with {:error, :no_scheme} unless :relaxed
     # is given.
-    case :httpc.request(:get, request, [relaxed: true], [body_format: :binary], :mix) do
+    #
+    # If a proxy environment variable was supplied add a proxy to httpc.
+    http_options = [relaxed: true] ++ proxy_config(path)
+
+    case :httpc.request(:get, request, http_options, [body_format: :binary], :mix) do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         {:ok, body}
       {:ok, {{_, status, _}, _, _}} ->
@@ -446,12 +391,52 @@ defmodule Mix.Utils do
     URI.parse(path).scheme in ["http", "https"]
   end
 
-  defp proxy(proxy_scheme, proxy) do
-    uri  = URI.parse(proxy)
+  def proxy_config(url) do
+    {http_proxy, https_proxy} = proxy_env
+
+    proxy_auth(URI.parse(url), http_proxy, https_proxy)
+  end
+
+  defp proxy_env do
+    http_proxy  = System.get_env("HTTP_PROXY")  || System.get_env("http_proxy")
+    https_proxy = System.get_env("HTTPS_PROXY") || System.get_env("https_proxy")
+
+    {proxy_setup(:http, http_proxy), proxy_setup(:https, https_proxy)}
+  end
+
+  defp proxy_setup(scheme, proxy) do
+    uri = URI.parse(proxy || "")
 
     if uri.host && uri.port do
       host = String.to_char_list(uri.host)
-      :httpc.set_options([{proxy_scheme, {{host, uri.port}, []}}], :mix)
+      :httpc.set_options([{proxy_scheme(scheme), {{host, uri.port}, []}}], :mix)
     end
+
+    uri
+  end
+
+  defp proxy_scheme(scheme) do
+    case scheme do
+      :http  -> :proxy
+      :https -> :https_proxy
+    end
+  end
+
+  defp proxy_auth(%URI{scheme: "http"}, http_proxy, _https_proxy),
+    do: proxy_auth(http_proxy)
+  defp proxy_auth(%URI{scheme: "https"}, _http_proxy, https_proxy),
+    do: proxy_auth(https_proxy)
+
+  defp proxy_auth(nil),
+    do: []
+  defp proxy_auth(%URI{userinfo: nil}),
+    do: []
+  defp proxy_auth(%URI{userinfo: auth}) do
+    destructure [user, pass], String.split(auth, ":", parts: 2)
+
+    user = String.to_char_list(user)
+    pass = String.to_char_list(pass || "")
+
+    [proxy_auth: {user, pass}]
   end
 end

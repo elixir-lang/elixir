@@ -9,14 +9,6 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  defmodule Consolidation do
-    def project do
-      [app: :consolidation,
-       version: "0.1.0",
-       consolidate_protocols: true]
-    end
-  end
-
   setup do
     Mix.Project.push MixTest.Case.Sample
     :ok
@@ -24,20 +16,14 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compile --list with mixfile" do
     Mix.Tasks.Compile.run ["--list"]
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app"]}
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"]}
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
   test "compile --list with custom mixfile" do
     Mix.Project.push CustomCompilers
     Mix.Tasks.Compile.run ["--list"]
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom"]}
-  end
-
-  test "compile --list with consolidation" do
-    Mix.Project.push Consolidation
-    Mix.Tasks.Compile.run ["--list"]
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"]}
+    assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
   end
 
   test "compile a project with mixfile" do
@@ -47,26 +33,15 @@ defmodule Mix.Tasks.CompileTest do
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Generated sample app"]}
-    end
-  end
 
-  @tag apps: [:consolidation]
-  test "compile a project with protocol consolidation" do
-    Mix.Project.push Consolidation
-    in_fixture "no_mixfile", fn ->
-      assert Mix.Tasks.Compile.run([]) == :ok
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Consolidated Enumerable"]}
       assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
-
       assert Mix.Tasks.Compile.run([]) == :noop
-      refute_received {:mix_shell, :info, ["Consolidated Enumerable"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      purge [Enumerable]
 
       assert Mix.Tasks.App.Start.run([]) == :ok
       assert Protocol.consolidated?(Enumerable)
     end
-  after
-    purge [Enumerable]
   end
 
   test "compile a project with multiple compilers and a syntax error in an erlang file" do

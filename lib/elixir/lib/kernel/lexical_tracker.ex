@@ -1,4 +1,4 @@
-# This is a module Elixir responsible for tracking
+# This is an Elixir module responsible for tracking
 # the usage of aliases, imports and requires in the Elixir scope.
 #
 # The implementation simply stores dispatch information in an

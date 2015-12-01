@@ -5,8 +5,8 @@ defmodule Mix.Tasks.HelpTest do
 
   import ExUnit.CaptureIO
 
-  test "help lists all tasks" do
-    in_fixture "no_mixfile", fn ->
+  test "help lists all tasks", context do
+    in_tmp context.test, fn ->
       Mix.Tasks.Help.run []
       assert_received {:mix_shell, :info, ["mix" <> _]}
       assert_received {:mix_shell, :info, ["mix help" <> _]}
@@ -14,8 +14,8 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help list default task" do
-    in_fixture "no_mixfile", fn ->
+  test "help list default task", context do
+    in_tmp context.test, fn ->
       Mix.Tasks.Help.run []
 
       {_, _, [output]} =
@@ -30,10 +30,10 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help --names" do
+  test "help --names", context do
     Mix.Project.push Aliases
 
-    in_fixture "no_mixfile", fn ->
+    in_tmp context.test, fn ->
       Mix.Tasks.Help.run ["--names"]
       assert_received {:mix_shell, :info, ["c"]}
       assert_received {:mix_shell, :info, ["compile"]}
@@ -43,8 +43,8 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help TASK" do
-    in_fixture "no_mixfile", fn ->
+  test "help TASK", context do
+    in_tmp context.test, fn ->
       output =
         capture_io fn ->
           Mix.Tasks.Help.run ["compile"]
@@ -56,8 +56,8 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help --search PATTERN" do
-    in_fixture "no_mixfile", fn ->
+  test "help --search PATTERN", context do
+    in_tmp context.test, fn ->
       Mix.Tasks.Help.run ["--search", "deps"]
       assert_received {:mix_shell, :info, ["mix deps" <> _]}
       assert_received {:mix_shell, :info, ["mix deps.clean" <> _]}
@@ -70,8 +70,8 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help --search without results" do
-    in_fixture "no_mixfile", fn ->
+  test "help --search without results", context do
+    in_tmp context.test, fn ->
       output =
         capture_io fn ->
           Mix.Tasks.Help.run ["--search", "foo"]

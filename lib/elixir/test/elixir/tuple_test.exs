@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule TupleTest do
   use ExUnit.Case, async: true
 
+  doctest Tuple
+
   test "elem" do
     assert elem({:a, :b, :c}, 1) == :b
   end

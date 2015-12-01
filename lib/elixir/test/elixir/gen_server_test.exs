@@ -6,11 +6,6 @@ defmodule GenServerTest do
   defmodule Stack do
     use GenServer
 
-    def handle_call(:stop, from, state) do
-      GenServer.reply(from, :ok)
-      {:stop, :normal, state}
-    end
-
     def handle_call(:pop, _from, [h|t]) do
       {:reply, h, t}
     end
@@ -48,7 +43,7 @@ defmodule GenServerTest do
     assert GenServer.call(pid, :pop) == :hello
     assert GenServer.cast(pid, {:push, :world}) == :ok
     assert GenServer.call(pid, :pop) == :world
-    assert GenServer.call(pid, :stop) == :ok
+    assert GenServer.stop(pid) == :ok
 
     assert GenServer.cast({:global, :foo}, {:push, :world}) == :ok
     assert GenServer.cast({:via, :foo, :bar}, {:push, :world}) == :ok
@@ -66,7 +61,7 @@ defmodule GenServerTest do
     {:ok, pid} = GenServer.start(Stack, [:hello])
     {:links, links} = Process.info(self, :links)
     refute pid in links
-    GenServer.call(pid, :stop)
+    GenServer.stop(pid)
   end
 
   test "abcast/3" do
@@ -78,7 +73,7 @@ defmodule GenServerTest do
     assert GenServer.abcast([node, :foo@bar], :stack, {:push, :world}) == :abcast
     assert GenServer.call(:stack, :pop) == :world
 
-    GenServer.call(:stack, :stop)
+    GenServer.stop(:stack)
   end
 
   test "multi_call/4" do
@@ -89,7 +84,7 @@ defmodule GenServerTest do
     assert GenServer.multi_call([node, :foo@bar], :stack, :pop) ==
            {[{node, :world}], [:foo@bar]}
 
-    GenServer.call(:stack, :stop)
+    GenServer.stop(:stack)
   end
 
   test "whereis/1" do
@@ -107,5 +102,13 @@ defmodule GenServerTest do
     assert GenServer.whereis({:global, :whereis_bad_server}) == nil
     assert GenServer.whereis({:via, :global, name}) == pid
     assert GenServer.whereis({:via, :global, :whereis_bad_server}) == nil
+  end
+
+  test "stop/3" do
+    {:ok, pid} = GenServer.start(Stack, [])
+    assert GenServer.stop(pid, :normal) == :ok
+
+    {:ok, _} = GenServer.start(Stack, [], name: :stack)
+    assert GenServer.stop(:stack, :normal) == :ok
   end
 end

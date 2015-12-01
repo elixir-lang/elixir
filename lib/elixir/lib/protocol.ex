@@ -217,15 +217,6 @@ defmodule Protocol do
     end
   end
 
-  defmacrop if_ok(expr, call) do
-    quote do
-      case unquote(expr) do
-        {:ok, var} -> unquote(Macro.pipe(quote(do: var), call, 0))
-        other -> other
-      end
-    end
-  end
-
   @doc """
   Returns `true` if the protocol was consolidated.
   """
@@ -263,9 +254,9 @@ defmodule Protocol do
     {:error, :not_a_protocol} |
     {:error, :no_beam_info}
   def consolidate(protocol, types) when is_atom(protocol) do
-    beam_protocol(protocol)
-    |> if_ok(change_debug_info types)
-    |> if_ok(compile)
+    with {:ok, info} <- beam_protocol(protocol),
+         {:ok, code, docs} <- change_debug_info(info, types),
+         do: compile(code, docs)
   end
 
   @docs_chunk 'ExDc'
@@ -302,7 +293,7 @@ defmodule Protocol do
     all     = [Any] ++ for {_guard, mod} <- builtin, do: mod
     structs = types -- all
     case change_impl_for(code, protocol, types, structs, false, []) do
-      {:ok, ret} -> {:ok, {ret, docs}}
+      {:ok, ret} -> {:ok, ret, docs}
       other      -> other
     end
   end
@@ -320,7 +311,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any)
 
     clauses = for {guard, mod} <- builtin,
                   mod in types,
@@ -334,7 +325,7 @@ defmodule Protocol do
   end
 
   defp change_impl_for([{:function, line, :struct_impl_for, 1, _}|t], protocol, types, structs, is_protocol, acc) do
-    fallback = if Any in types, do: load_impl(protocol, Any), else: nil
+    fallback = if Any in types, do: load_impl(protocol, Any)
     clauses = for struct <- structs, do: each_struct_clause_for(struct, protocol, line)
     clauses = clauses ++ [fallback_clause_for(fallback, protocol, line)]
 
@@ -393,7 +384,7 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile({{protocol, code}, docs}) do
+  defp compile({protocol, code}, docs) do
     opts = if Code.compiler_options[:debug_info], do: [:debug_info], else: []
     {:ok, ^protocol, binary, _warnings} = :compile.forms(code, [:return|opts])
     unless docs == :missing_chunk do

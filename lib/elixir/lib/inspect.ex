@@ -16,20 +16,20 @@ defprotocol Inspect do
   ## Examples
 
   Many times, inspecting a structure can be implemented in function
-  of existing entities. For example, here is `HashSet`'s `inspect`
+  of existing entities. For example, here is `MapSet`'s `inspect`
   implementation:
 
-      defimpl Inspect, for: HashSet do
+      defimpl Inspect, for: MapSet do
         import Inspect.Algebra
 
         def inspect(dict, opts) do
-          concat ["#HashSet<", to_doc(HashSet.to_list(dict), opts), ">"]
+          concat ["#MapSet<", to_doc(MapSet.to_list(dict), opts), ">"]
         end
       end
 
   The `concat` function comes from `Inspect.Algebra` and it
   concatenates algebra documents together. In the example above,
-  it is concatenating the string `"HashSet<"` (all strings are
+  it is concatenating the string `"MapSet<"` (all strings are
   valid algebra documents that keep their formatting when pretty
   printed), the document returned by `Inspect.Algebra.to_doc/2` and the
   other string `">"`.
@@ -45,10 +45,10 @@ defprotocol Inspect do
   to a raw representation for printing the structure.
 
   You can however access the underlying error by invoking the Inspect
-  implementation directly. For example, to test Inspect.HashSet above,
+  implementation directly. For example, to test Inspect.MapSet above,
   you can invoke it as:
 
-      Inspect.HashSet.inspect(HashSet.new, Inspect.Opts.new)
+      Inspect.MapSet.inspect(MapSet.new, Inspect.Opts.new)
 
   """
 
@@ -88,7 +88,7 @@ defimpl Inspect, for: Atom do
       atom in Macro.binary_ops or atom in Macro.unary_ops ->
         ":" <> binary
       true ->
-        << ?:, ?", Inspect.BitString.escape(binary, ?") :: binary, ?" >>
+        <<?:, ?", Inspect.BitString.escape(binary, ?")::binary, ?">>
     end
   end
 
@@ -104,7 +104,7 @@ defimpl Inspect, for: Atom do
 
   defp valid_ref_identifier?(_), do: false
 
-  defp valid_ref_piece?(<<?., h, t :: binary>>) when h in ?A..?Z do
+  defp valid_ref_piece?(<<?., h, t::binary>>) when h in ?A..?Z do
     valid_ref_piece? valid_identifier?(t)
   end
 
@@ -113,7 +113,7 @@ defimpl Inspect, for: Atom do
 
   # Detect if atom
 
-  defp valid_atom_identifier?(<<h, t :: binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
+  defp valid_atom_identifier?(<<h, t::binary>>) when h in ?a..?z or h in ?A..?Z or h == ?_ do
     valid_atom_piece?(t)
   end
 
@@ -129,7 +129,7 @@ defimpl Inspect, for: Atom do
     end
   end
 
-  defp valid_identifier?(<<h, t :: binary>>)
+  defp valid_identifier?(<<h, t::binary>>)
       when h in ?a..?z
       when h in ?A..?Z
       when h in ?0..?9
@@ -143,7 +143,7 @@ end
 defimpl Inspect, for: BitString do
   def inspect(thing, %Inspect.Opts{binaries: bins} = opts) when is_binary(thing) do
     if bins == :as_strings or (bins == :infer and String.printable?(thing)) do
-      <<?", escape(thing, ?") :: binary, ?">>
+      <<?", escape(thing, ?")::binary, ?">>
     else
       inspect_bitstring(thing, opts)
     end
@@ -160,54 +160,54 @@ defimpl Inspect, for: BitString do
     escape(other, char, <<>>)
   end
 
-  defp escape(<< char, t :: binary >>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, char >>)
+  defp escape(<<char, t::binary >>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, char>>)
   end
-  defp escape(<<?#, ?{, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?#, ?{>>)
+  defp escape(<<?#, ?{, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?#, ?{>>)
   end
-  defp escape(<<?\a, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?a >>)
+  defp escape(<<?\a, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?a>>)
   end
-  defp escape(<<?\b, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?b >>)
+  defp escape(<<?\b, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?b>>)
   end
-  defp escape(<<?\d, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?d >>)
+  defp escape(<<?\d, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?d>>)
   end
-  defp escape(<<?\e, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?e >>)
+  defp escape(<<?\e, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?e>>)
   end
-  defp escape(<<?\f, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?f >>)
+  defp escape(<<?\f, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?f>>)
   end
-  defp escape(<<?\n, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?n >>)
+  defp escape(<<?\n, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?n>>)
   end
-  defp escape(<<?\r, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?r >>)
+  defp escape(<<?\r, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?r>>)
   end
-  defp escape(<<?\\, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?\\ >>)
+  defp escape(<<?\\, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?\\>>)
   end
-  defp escape(<<?\t, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?t >>)
+  defp escape(<<?\t, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?t>>)
   end
-  defp escape(<<?\v, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, ?\\, ?v >>)
+  defp escape(<<?\v, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, ?\\, ?v>>)
   end
-  defp escape(<<h :: utf8, t :: binary>>, char, binary) do
-    head = << h :: utf8 >>
+  defp escape(<<h::utf8, t::binary>>, char, binary) do
+    head = <<h::utf8 >>
     if String.printable?(head) do
       escape(t, char, append(head, binary))
     else
-      << byte :: size(8), h :: binary >> = head
-      t = << h :: binary, t :: binary >>
-      escape(t, char, << binary :: binary, escape_char(byte) :: binary >>)
+      <<byte::8, h::binary >> = head
+      t = <<h::binary, t::binary>>
+      escape(t, char, <<binary::binary, escape_char(byte)::binary>>)
     end
   end
-  defp escape(<<h, t :: binary>>, char, binary) do
-    escape(t, char, << binary :: binary, escape_char(h) :: binary >>)
+  defp escape(<<h, t::binary>>, char, binary) do
+    escape(t, char, <<binary::binary, escape_char(h)::binary>>)
   end
   defp escape(<<>>, _char, binary), do: binary
 
@@ -218,17 +218,17 @@ defimpl Inspect, for: BitString do
   end
 
   def escape_char(char) when char < 0x100 do
-    <<a::4, b::4>> = <<char::size(8)>>
+    <<a::4, b::4>> = <<char::8>>
     <<?\\, ?x, to_hex(a), to_hex(b)>>
   end
 
   def escape_char(char) when char < 0x10000 do
-    <<a::4, b::4, c::4, d::4>> = <<char::size(16)>>
+    <<a::4, b::4, c::4, d::4>> = <<char::16>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
   end
 
   def escape_char(char) when char < 0x1000000 do
-    <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::size(24)>>
+    <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
     <<?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c),
                    to_hex(d), to_hex(e), to_hex(f), ?}>>
   end
@@ -236,7 +236,7 @@ defimpl Inspect, for: BitString do
   defp to_hex(c) when c in 0..9, do: ?0+c
   defp to_hex(c) when c in 10..15, do: ?A+c-10
 
-  defp append(<<h, t :: binary>>, binary), do: append(t, << binary :: binary, h >>)
+  defp append(<<h, t::binary>>, binary), do: append(t, <<binary::binary, h>>)
   defp append(<<>>, binary), do: binary
 
   ## Bitstrings
@@ -249,11 +249,11 @@ defimpl Inspect, for: BitString do
     acc <> "..."
   end
 
-  defp each_bit(<<h, t :: bitstring>>, counter, acc) when t != <<>> do
+  defp each_bit(<<h, t::bitstring>>, counter, acc) when t != <<>> do
     each_bit(t, decrement(counter), acc <> Integer.to_string(h) <> ", ")
   end
 
-  defp each_bit(<<h :: size(8)>>, _counter, acc) do
+  defp each_bit(<<h::8>>, _counter, acc) do
     acc <> Integer.to_string(h)
   end
 
@@ -263,7 +263,7 @@ defimpl Inspect, for: BitString do
 
   defp each_bit(bitstring, _counter, acc) do
     size = bit_size(bitstring)
-    <<h :: size(size)>> = bitstring
+    <<h::size(size)>> = bitstring
     acc <> Integer.to_string(h) <> "::size(" <> Integer.to_string(size) <> ")"
   end
 
@@ -277,7 +277,7 @@ defimpl Inspect, for: List do
   def inspect(thing, %Inspect.Opts{char_lists: lists} = opts) do
     cond do
       lists == :as_char_lists or (lists == :infer and printable?(thing)) ->
-        << ?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?') :: binary, ?' >>
+        <<?', Inspect.BitString.escape(IO.chardata_to_string(thing), ?')::binary, ?'>>
       keyword?(thing) ->
         surround_many("[", thing, "]", opts, &keyword/2)
       true ->
@@ -285,6 +285,7 @@ defimpl Inspect, for: List do
     end
   end
 
+  @doc false
   def keyword({key, value}, opts) do
     concat(
       key_to_binary(key) <> ": ",
@@ -292,6 +293,7 @@ defimpl Inspect, for: List do
     )
   end
 
+  @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
     case Atom.to_char_list(key) do
       'Elixir.' ++ _ -> false
@@ -302,6 +304,19 @@ defimpl Inspect, for: List do
   def keyword?([]),     do: true
   def keyword?(_other), do: false
 
+  @doc false
+  def printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
+  def printable?([?\n|cs]), do: printable?(cs)
+  def printable?([?\r|cs]), do: printable?(cs)
+  def printable?([?\t|cs]), do: printable?(cs)
+  def printable?([?\v|cs]), do: printable?(cs)
+  def printable?([?\b|cs]), do: printable?(cs)
+  def printable?([?\f|cs]), do: printable?(cs)
+  def printable?([?\e|cs]), do: printable?(cs)
+  def printable?([?\a|cs]), do: printable?(cs)
+  def printable?([]), do: true
+  def printable?(_), do: false
+
   ## Private
 
   defp key_to_binary(key) do
@@ -310,18 +325,6 @@ defimpl Inspect, for: List do
       other -> other
     end
   end
-
-  defp printable?([c|cs]) when is_integer(c) and c in 32..126, do: printable?(cs)
-  defp printable?([?\n|cs]), do: printable?(cs)
-  defp printable?([?\r|cs]), do: printable?(cs)
-  defp printable?([?\t|cs]), do: printable?(cs)
-  defp printable?([?\v|cs]), do: printable?(cs)
-  defp printable?([?\b|cs]), do: printable?(cs)
-  defp printable?([?\f|cs]), do: printable?(cs)
-  defp printable?([?\e|cs]), do: printable?(cs)
-  defp printable?([?\a|cs]), do: printable?(cs)
-  defp printable?([]), do: true
-  defp printable?(_), do: false
 end
 
 defimpl Inspect, for: Tuple do

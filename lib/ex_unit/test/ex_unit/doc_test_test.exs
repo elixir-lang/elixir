@@ -42,15 +42,15 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def exception_test, do: :ok
 
   @doc """
-  iex> Enum.into([a: 0, b: 1, c: 2], HashDict.new)
-  #HashDict<[c: 2, b: 1, a: 0]>
+  iex> Enum.into([:a, :b, :c], MapSet.new)
+  #MapSet<[:a, :b, :c]>
   """
   def inspect1_test, do: :ok
 
   @doc """
-  iex> x = Enum.into([a: 0, b: 1, c: 2], HashDict.new)
+  iex> x = Enum.into([:a, :b, :c], MapSet.new)
   ...> x
-  #HashDict<[c: 2, b: 1, a: 0]>
+  #MapSet<[:a, :b, :c]>
   """
   def inspect2_test, do: :ok
 end |> write_beam
@@ -124,7 +124,7 @@ defmodule ExUnit.DocTestTest.Invalid do
       3
 
       iex> :oops
-      #HashDict<[]>
+      #MapSet<[]>
 
       iex> Hello.world
       :world
@@ -260,7 +260,7 @@ defmodule ExUnit.DocTestTest do
       3) test moduledoc at ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:231
          Doctest failed
-         code: inspect(:oops) === "#HashDict<[]>"
+         code: inspect(:oops) === "#MapSet<[]>"
          lhs:  ":oops"
          stacktrace:
            test/ex_unit/doc_test_test.exs:126: ExUnit.DocTestTest.Invalid (module)
@@ -270,7 +270,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
       4) test moduledoc at ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
          test/ex_unit/doc_test_test.exs:231
-         Doctest failed: got UndefinedFunctionError with message undefined function: Hello.world/0 (module Hello is not available)
+         Doctest failed: got UndefinedFunctionError with message undefined function Hello.world/0 (module Hello is not available)
          code:  Hello.world
          stacktrace:
            Hello.world()
@@ -356,28 +356,32 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "fails in indentation mismatch" do
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "   iex> bar = 2", should have been 2 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: "   iex> bar = 2", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationMismatchedPrompt
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: "    3", should have been 2 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: "    3", should have been 2 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationTooMuch
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/indentation level mismatch: \"  3\", should have been 4 spaces/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: indentation level mismatch: \"  3\", should have been 4 spaces], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationNotEnough
       end
     end
 
-    assert_raise ExUnit.DocTest.Error, ~r/expected non-blank line to follow iex> prompt/, fn ->
+    assert_raise ExUnit.DocTest.Error,
+      ~r[test/ex_unit/doc_test_test.exs:\d+: expected non-blank line to follow iex> prompt], fn ->
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.Incomplete

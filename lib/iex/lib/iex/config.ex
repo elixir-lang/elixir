@@ -3,7 +3,7 @@ defmodule IEx.Config do
 
   @table __MODULE__
   @agent __MODULE__
-  @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt]
+  @keys [:colors, :inspect, :history_size, :default_prompt, :alive_prompt, :width]
   @colors [:eval_interrupt, :eval_result, :eval_error, :eval_info, :stack_app,
     :stack_info, :ls_directory, :ls_device]
 
@@ -46,6 +46,7 @@ defmodule IEx.Config do
   defp merge_option(:history_size, _old, new) when is_integer(new), do: new
   defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
+  defp merge_option(:width, _old, new) when is_integer(new), do: new
 
   defp merge_option(k, _old, new) do
     raise ArgumentError, "invalid configuration or value for pair #{inspect k} - #{inspect new}"
@@ -136,8 +137,14 @@ defmodule IEx.Config do
   end
 
   def width() do
+    columns = columns()
+    value = Application.get_env(:iex, :width) || min(columns, 80)
+    min(value, columns)
+  end
+
+  defp columns() do
     case :io.columns() do
-      {:ok, width} -> min(width, 80)
+      {:ok, width} -> width
       {:error, _}  -> 80
     end
   end

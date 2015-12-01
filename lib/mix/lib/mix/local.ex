@@ -1,6 +1,8 @@
 defmodule Mix.Local do
   @moduledoc false
 
+  @public_keys_html "https://s3.amazonaws.com/s3.hex.pm/installs/public_keys.html"
+
   @doc """
   The path for local archives.
 
@@ -96,8 +98,8 @@ defmodule Mix.Local do
       Mix.raise "Could not install #{name} because Mix could not verify authenticity " <>
                 "of metadata file at #{path}. This may happen because a proxy or some " <>
                 "entity is interfering with the download or because you don't have a " <>
-                "public key to verify the download. Add the corresponding public key " <>
-                "or try again later"
+                "public key to verify the download.\n\nYou may try again later or check " <>
+                "if a new public key has been released in our public keys page: #{@public_keys_html}"
     end
   end
 

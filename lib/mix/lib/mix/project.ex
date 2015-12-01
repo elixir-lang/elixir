@@ -43,8 +43,6 @@ defmodule Mix.Project do
     end
   end
 
-  @private_config [:build_path, :app_path]
-
   # Invoked after each Mix.Project is compiled.
   @doc false
   def __after_compile__(env, _binary) do
@@ -60,7 +58,6 @@ defmodule Mix.Project do
 
     config = ([app: app] ++ default_config)
              |> Keyword.merge(get_project_config(atom))
-             |> Keyword.drop(@private_config)
 
     case Mix.ProjectStack.push(atom, config, file) do
       :ok ->
@@ -81,10 +78,10 @@ defmodule Mix.Project do
   @doc false
   def deps_config(config \\ config()) do
     [build_embedded: config[:build_embedded],
-     build_path: build_path(config),
      build_per_environment: config[:build_per_environment],
      consolidate_protocols: false,
-     deps_path: deps_path(config)]
+     deps_path: deps_path(config),
+     env_path: build_path(config)]
   end
 
   @doc """
@@ -153,7 +150,7 @@ defmodule Mix.Project do
       case Mix.ProjectStack.peek do
         %{config: config, file: file} ->
           configs =
-            (config[:config_path] || "config/config.exs")
+            config[:config_path]
             |> Path.dirname
             |> Path.join("**/*.*")
             |> Path.wildcard
@@ -240,19 +237,26 @@ defmodule Mix.Project do
 
   """
   def build_path(config \\ config()) do
-    config[:build_path] || if config[:build_per_environment] do
-      Path.expand("_build/#{Mix.env}")
+    config[:env_path] || env_path(config)
+  end
+
+  defp env_path(config) do
+    build = config[:build_path] || "_build"
+
+    if config[:build_per_environment] do
+      Path.expand("#{build}/#{Mix.env}")
     else
-      Path.expand("_build/shared")
+      Path.expand("#{build}/shared")
     end
   end
 
   @doc """
   The path to store manifests.
 
-  By default they are stored in the app path
-  inside the build directory but it may be changed
-  in future releases.
+  By default they are stored in the app path inside
+  the build directory. Umbrella applications have
+  the manifest path set to the root of the build directory.
+  Directories may be changed in future releases.
 
   The returned path will be expanded.
 
@@ -263,7 +267,12 @@ defmodule Mix.Project do
 
   """
   def manifest_path(config \\ config()) do
-    app_path(config)
+    config[:app_path] ||
+      if app = config[:app] do
+        Path.join([build_path(config), "lib", Atom.to_string(app)])
+      else
+        build_path(config)
+      end
   end
 
   @doc """
@@ -282,7 +291,7 @@ defmodule Mix.Project do
       app = config[:app] ->
         Path.join([build_path(config), "lib", Atom.to_string(app)])
       config[:apps_path] ->
-        Mix.raise "Trying to access app_path for an umbrella project but umbrellas have no app"
+        raise "Trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
       true ->
         Mix.raise "Cannot access build without an application name, " <>
           "please ensure you are in a directory with a mix.exs file and it defines " <>
@@ -314,7 +323,9 @@ defmodule Mix.Project do
   """
   def compile(args, config \\ config()) do
     if config[:build_embedded] do
-      if not File.exists?(compile_path(config)) do
+      path = if umbrella?(config), do: build_path(config), else: compile_path(config)
+
+      unless File.exists?(path) do
         Mix.raise "Cannot execute task because the project was not yet compiled. " <>
                   "When build_embedded is set to true, \"MIX_ENV=#{Mix.env} mix compile\" " <>
                   "must be explicitly executed"
@@ -424,8 +435,11 @@ defmodule Mix.Project do
 
   defp default_config do
     [aliases: [],
-     build_per_environment: true,
      build_embedded: false,
+     build_per_environment: true,
+     build_scm: Mix.SCM.Path,
+     config_path: "config/config.exs",
+     consolidate_protocols: true,
      default_task: "run",
      deps: [],
      deps_path: "deps",
@@ -438,6 +452,7 @@ defmodule Mix.Project do
      start_permanent: false]
   end
 
+  @private_config [:app_path, :build_scm, :env_path]
   defp get_project_config(nil),  do: []
-  defp get_project_config(atom), do: atom.project
+  defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
 end

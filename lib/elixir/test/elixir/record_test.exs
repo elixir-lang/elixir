@@ -3,6 +3,8 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule RecordTest do
   use ExUnit.Case, async: true
 
+  doctest Record
+
   require Record
 
   test "extract/2 extracts information from an Erlang file" do

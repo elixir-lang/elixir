@@ -5,14 +5,17 @@ defmodule TestOneOfEach do
   This module contains one of each type of failing test.
   It is used simply to document the style of each.
   """
-
-  use ExUnit.Case, async: false
+  use ExUnit.Case
 
   @one 1
   @two 2
 
-  @long_data_1  [ field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
-  @long_data_2  [ field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_1  [field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_2  [field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
+
+  setup do
+    {:ok, user_id: 1, post_id: 2, many_ids: Enum.to_list(1..50)}
+  end
 
   test "1. assert with a match" do
     assert [@one] = [@two]
@@ -51,7 +54,7 @@ defmodule TestOneOfEach do
   end
 
   test "10. assert with explicit expected and actual values" do
-    assert @one > @two, @one, @two, "one should be greater than two"
+    assert @one > @two, left: @one, right: @two, message: "one should be greater than two"
   end
 
   test "11. assert that a message is ready to be received" do
@@ -63,7 +66,7 @@ defmodule TestOneOfEach do
   end
 
   test "13. assert an exception with a given message is raised, but no exception" do
-    assert_raise(SomeException, "some message", fn -> end)
+    assert_raise(SomeException, "some message", fn -> nil end)
   end
 
   test "14. assert an exception with a given message is raised" do
@@ -79,7 +82,7 @@ defmodule TestOneOfEach do
   end
 
   test "16. assert an exception is raised" do
-    assert_raise(SomeException, fn -> end)
+    assert_raise(SomeException, fn -> nil end)
   end
 
   test "17. assert two values are within some delta" do
@@ -120,6 +123,29 @@ defmodule TestOneOfEach do
     spawn_link fn -> raise "oops" end
     receive do
     end
+  end
+
+  test "26. multi error" do
+    error1 =
+      try do
+        assert [@one] = [@two]
+      rescue e in ExUnit.AssertionError ->
+        {:error, e, System.stacktrace}
+      end
+
+    error2 =
+      try do
+        assert @one * 4 > @two *3
+      rescue e in ExUnit.AssertionError ->
+        {:error, e, System.stacktrace}
+      end
+
+    raise ExUnit.MultiError, errors: [error1, error2]
+  end
+
+  @tag report: [:user_id, :post_id, :many_ids]
+  test "27. tag reporting" do
+    flunk "oops"
   end
 
   defp blows_up do

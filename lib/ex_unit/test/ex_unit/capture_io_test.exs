@@ -48,8 +48,7 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "with no output" do
-    assert capture_io(fn ->
-    end) == ""
+    assert capture_io(fn -> nil end) == ""
   end
 
   test "with put chars" do
@@ -321,7 +320,7 @@ defmodule ExUnit.CaptureIOTest do
     # message from previous capture_io has been processed
     assert_receive {:DOWN, ^ref, _, _, :shutdown}
     _ = capture_io(fn -> "trigger" end)
-    assert capture_io(:stderr, fn -> end)
+    assert capture_io(:stderr, fn -> nil end)
   end
 
   test "with assert inside" do
@@ -339,7 +338,7 @@ defmodule ExUnit.CaptureIOTest do
     spawn(fn -> capture_io(:stderr, fn -> :timer.sleep(100) end) end)
     :timer.sleep(10)
     assert_raise RuntimeError, "IO device registered at :standard_error is already captured", fn ->
-      capture_io(:stderr, fn -> end)
+      capture_io(:stderr, fn -> nil end)
     end
     :timer.sleep(100)
   end

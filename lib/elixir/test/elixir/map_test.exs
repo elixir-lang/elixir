@@ -3,37 +3,18 @@ Code.require_file "test_helper.exs", __DIR__
 defmodule MapTest do
   use ExUnit.Case, async: true
 
-  defp empty_map do
-    %{}
-  end
+  doctest Map
 
-  defp two_items_map do
-    %{a: 1, b: 2}
-  end
-
-  @map %{a: 1, b: 2}
+  @sample %{a: 1, b: 2}
 
   test "maps in attributes" do
-    assert @map == %{a: 1, b: 2}
+    assert @sample == %{a: 1, b: 2}
   end
 
   test "maps when quoted" do
     assert (quote do
       %{foo: 1}
     end) == {:%{}, [], [{:foo, 1}]}
-  end
-
-  test "structs when quoted" do
-    assert (quote do
-      %User{foo: 1}
-    end) == {:%, [], [
-      {:__aliases__, [alias: false], [:User]},
-      {:%{}, [], [{:foo, 1}]}
-    ]}
-
-    assert (quote do
-      %unquote(User){foo: 1}
-    end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
 
   test "maps keywords and atoms" do
@@ -48,13 +29,13 @@ defmodule MapTest do
   end
 
   test "is_map/1" do
-    assert is_map empty_map
-    refute is_map(Enum.to_list(empty_map))
+    assert is_map(Map.new)
+    refute is_map(Enum.to_list(%{}))
   end
 
   test "map_size/1" do
-    assert map_size(empty_map) == 0
-    assert map_size(two_items_map) == 2
+    assert map_size(%{}) == 0
+    assert map_size(@sample) == 2
   end
 
   test "maps with optional comma" do
@@ -70,27 +51,29 @@ defmodule MapTest do
   end
 
   test "update maps" do
-    assert %{two_items_map | a: 3} == %{a: 3, b: 2}
+    assert %{@sample | a: 3} == %{a: 3, b: 2}
 
-    # TODO: proper handling of API changes in different Erlang/OTP releases
-    case :erlang.system_info(:otp_release) do
-      '17' ->
-        assert_raise ArgumentError, fn ->
-          %{two_items_map | c: 3}
-        end
-      _ ->
-        assert_raise KeyError, fn ->
-          %{two_items_map | c: 3}
-        end
+    assert_raise KeyError, fn ->
+      %{@sample | c: 3}
     end
   end
 
   test "map access" do
-    assert two_items_map.a == 1
+    assert @sample.a == 1
 
     assert_raise KeyError, fn ->
-      two_items_map.c
+      @sample.c
     end
+  end
+
+  test "variable keys" do
+    x = :key
+    %{^x => :value} = %{x => :value}
+    assert %{x => :value} == %{key: :value}
+    assert (fn %{^x => :value} -> true end).(%{key: :value})
+
+    map = %{x => :value}
+    assert %{map | x => :new_value} == %{x => :new_value}
   end
 
   defmodule ExternalUser do
@@ -119,10 +102,17 @@ defmodule MapTest do
     end
   end
 
-  test "map from struct" do
-    assert Map.from_struct(ExternalUser) == %{name: "john", age: 27}
-    assert Map.from_struct(%ExternalUser{name: "meg"}) == %{name: "meg", age: 27}
-    assert_raise FunctionClauseError, fn -> Map.from_struct(%{name: "meg"}) end
+  test "structs when quoted" do
+    assert (quote do
+      %User{foo: 1}
+    end) == {:%, [], [
+      {:__aliases__, [alias: false], [:User]},
+      {:%{}, [], [{:foo, 1}]}
+    ]}
+
+    assert (quote do
+      %unquote(User){foo: 1}
+    end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
 
   defmodule LocalUser do
@@ -130,7 +120,7 @@ defmodule MapTest do
       defstruct []
     end
 
-    defstruct name: "john", nested: struct(NestedUser)
+    defstruct name: "john", nested: struct(NestedUser), context: %{}
 
     def new do
       %LocalUser{}
@@ -143,16 +133,13 @@ defmodule MapTest do
     end
   end
 
-  test "local user" do
+  test "local and nested structs" do
     assert LocalUser.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
     assert LocalUser.Context.new == %LocalUser{name: "john", nested: %LocalUser.NestedUser{}}
   end
 
-  defmodule NilUser do
-    defstruct name: nil, contents: %{}
-  end
-
-  test "nil user" do
-    assert %NilUser{} == %{__struct__: NilUser, name: nil, contents: %{}}
+  test "implements (almost) all functions in Map" do
+    assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
+           [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
   end
 end

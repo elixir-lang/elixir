@@ -1,5 +1,6 @@
 -module(elixir_module).
 -export([data_table/1, defs_table/1, clas_table/1, is_open/1,
+         get_attribute/2, delete_doc/6,
          compile/4, expand_callback/6, add_beam_chunk/3, format_error/1]).
 -include("elixir.hrl").
 
@@ -22,6 +23,18 @@ clas_table(Module) ->
 
 is_open(Module) ->
   ets:lookup(elixir_modules, Module) /= [].
+
+%% Simple version of get_attribute.
+get_attribute(Module, Key) ->
+  case ets:lookup(data_table(Module), Key) of
+    [{Key, Value}] -> Value;
+    [] -> nil
+  end.
+
+%% Delete docs to avoid warnings.
+delete_doc(#{module := Module}, _, _, _, _, _) ->
+  ets:delete(data_table(Module), doc),
+  ok.
 
 %% Compilation hook
 
@@ -145,7 +158,7 @@ build(Line, File, Module, Docs, Lexical) ->
   OnDefinition =
     case Docs of
       true -> [{'Elixir.Module', compile_doc}];
-      _    -> []
+      _    -> [{elixir_module, delete_doc}]
     end,
   ets:insert(Data, {on_definition, OnDefinition}),
 

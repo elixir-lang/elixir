@@ -157,11 +157,11 @@ defmodule ExUnit.Runner do
 
         case exec_case_setup(test_case) do
           {:ok, test_case, context} ->
-            Enum.each(tests, &run_test(config, &1, context))
+            Enum.each tests, &run_test(config, &1, context)
             send parent, {self, :case_finished, test_case, []}
 
           {:error, test_case} ->
-            failed_tests = Enum.map(tests, & %{&1 | state: {:invalid, test_case}})
+            failed_tests = Enum.map tests, & %{&1 | state: {:invalid, test_case}}
             send parent, {self, :case_finished, test_case, failed_tests}
         end
 
@@ -176,7 +176,7 @@ defmodule ExUnit.Runner do
           end
           {test_case, tests}
         {:DOWN, ^case_ref, :process, ^case_pid, error} ->
-          test_case = %{test_case | state: {:failed, {{:EXIT, case_pid}, error, []}}}
+          test_case = %{test_case | state: failed({:EXIT, case_pid}, error, [])}
           {test_case, []}
       end
 
@@ -188,7 +188,7 @@ defmodule ExUnit.Runner do
     {:ok, test_case, context}
   catch
     kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace}}
+      failed = failed(kind, error, pruned_stacktrace())
       {:error, %{test_case | state: failed}}
   end
 
@@ -211,7 +211,7 @@ defmodule ExUnit.Runner do
         message =
           "could not run test, it uses @tag :capture_log" <>
           " but the :logger application is not running"
-        %{test | state: {:failed, {:error, RuntimeError.exception(message), []}}}
+        %{test | state: failed(:error, RuntimeError.exception(message), [])}
     else
       logged ->
         receive do
@@ -241,8 +241,8 @@ defmodule ExUnit.Runner do
         {us, test} =
           :timer.tc(fn ->
             case exec_test_setup(test, context) do
-              {:ok, test, context} ->
-                exec_test(test, context)
+              {:ok, test} ->
+                exec_test(test)
               {:error, test} ->
                 test
             end
@@ -262,7 +262,7 @@ defmodule ExUnit.Runner do
           end
           test
         {:DOWN, ^test_ref, :process, ^test_pid, error} ->
-          %{test | state: {:failed, {{:EXIT, test_pid}, error, []}}}
+          %{test | state: failed({:EXIT, test_pid}, error, [])}
       after
         timeout ->
           stacktrace =
@@ -275,7 +275,7 @@ defmodule ExUnit.Runner do
             end
           Process.exit(test_pid, :kill)
           Process.demonitor(test_ref, [:flush])
-          %{test | state: {:failed, {:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace}}}
+          %{test | state: failed(:error, %ExUnit.TimeoutError{timeout: timeout}, stacktrace)}
       end
 
     exec_on_exit(test, test_pid)
@@ -283,20 +283,18 @@ defmodule ExUnit.Runner do
 
   defp exec_test_setup(%ExUnit.Test{case: case} = test, context) do
     {:ok, context} = case.__ex_unit__(:setup, context)
-    {:ok, test, context}
+    {:ok, %{test | tags: context}}
   catch
-    kind2, error2 ->
-      failed = {:failed, {kind2, Exception.normalize(kind2, error2), pruned_stacktrace()}}
-      {:error, %{test | state: failed}}
+    kind, error ->
+      {:error, %{test | state: failed(kind, error, pruned_stacktrace())}}
   end
 
-  defp exec_test(%ExUnit.Test{case: case, name: name} = test, context) do
+  defp exec_test(%ExUnit.Test{case: case, name: name, tags: context} = test) do
     apply(case, name, [context])
     test
   catch
     kind, error ->
-      failed = {:failed, {kind, Exception.normalize(kind, error), pruned_stacktrace()}}
-      %{test | state: failed}
+      %{test | state: failed(kind, error, pruned_stacktrace())}
   end
 
   defp exec_on_exit(test_or_case, pid) do
@@ -304,7 +302,7 @@ defmodule ExUnit.Runner do
       :ok ->
         test_or_case
       {kind, reason, stack} ->
-        state = test_or_case.state || {:failed, {kind, reason, prune_stacktrace(stack)}}
+        state = test_or_case.state || failed(kind, reason, prune_stacktrace(stack))
         %{test_or_case | state: state}
     end
   end
@@ -324,7 +322,7 @@ defmodule ExUnit.Runner do
   end
 
   defp shuffle(%{seed: seed}, list) do
-    _ = :random.seed(3172, 9814, seed)
+    _ = :rand.seed(:exsplus, {3172, 9814, seed})
     Enum.shuffle(list)
   end
 
@@ -342,6 +340,17 @@ defmodule ExUnit.Runner do
       [h|t] -> {%{config | sync_cases: t}, [h]}
       []    -> nil
     end
+  end
+
+  defp failed(:error, %ExUnit.MultiError{errors: errors}, _stack) do
+    {:failed,
+     Enum.map(errors, fn {kind, reason, stack} ->
+       {kind, Exception.normalize(kind, reason), prune_stacktrace(stack)}
+     end)}
+  end
+
+  defp failed(kind, reason, stack) do
+    {:failed, [{kind, Exception.normalize(kind, reason), stack}]}
   end
 
   defp pruned_stacktrace, do: prune_stacktrace(System.stacktrace)

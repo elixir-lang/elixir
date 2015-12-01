@@ -34,22 +34,45 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
-  test "compiles umbrella with protocol consolidation" do
+  test "compiles umbrella with protocol consolidation (via build embedded)" do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", [consolidate_protocols: true], fn _ ->
+      Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
+        assert_raise Mix.Error, ~r"Cannot execute task because the project was not yet compiled", fn ->
+          Mix.Tasks.App.Start.run []
+        end
+
         Mix.Task.run "compile"
 
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert_received {:mix_shell, :info, ["Generated foo app"]}
-        assert_received {:mix_shell, :info, ["Consolidated Enumerable"]}
         assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
+        purge [Enumerable]
 
-        assert Mix.Task.run "app.start"
+        assert Mix.Tasks.App.Start.run []
         assert Protocol.consolidated?(Enumerable)
       end)
     end
-  after
-    purge [Enumerable]
+  end
+
+  test "recursive compiles umbrella with protocol consolidation" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", [build_embedded: true], fn _ ->
+        defmodule Elixir.Mix.Tasks.Umbrella.Recur do
+          use Mix.Task
+          @recursive true
+          def run(_), do: Mix.Task.run "compile"
+        end
+
+        Mix.Task.run "umbrella.recur"
+        assert_received {:mix_shell, :info, ["Generated bar app"]}
+        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert File.regular? "_build/dev/consolidated/Elixir.Enumerable.beam"
+        purge [Enumerable]
+
+        assert Mix.Tasks.App.Start.run []
+        assert Protocol.consolidated?(Enumerable)
+      end)
+    end
   end
 
   defmodule UmbrellaDeps do
@@ -180,17 +203,30 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-        purge [Foo, Bar]
-        Mix.Task.clear
+        assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
 
         # Ensure we can measure a timestamp difference
-        ensure_touched("../foo/lib/foo.ex",
+        ensure_touched("_build/dev/lib/foo/.compile.elixir",
                        File.stat!("_build/dev/lib/bar/.compile.lock").mtime)
+        ensure_touched("../foo/mix.exs",
+                       File.stat!("_build/dev/lib/foo/.compile.elixir").mtime)
 
-        Mix.Task.run "compile"
+        # Mark locks and protocols as outdated
+        File.touch!("_build/dev/lib/foo/.compile.elixir",
+                    {{2010, 1, 1}, {0, 0, 0}})
+        File.touch!("_build/dev/consolidated/Elixir.Enumerable.beam",
+                    {{2010, 1, 1}, {0, 0, 0}})
+
+        purge [Foo, Bar]
+        Mix.Task.clear
+        Mix.shell.flush
+
+        assert Mix.Task.run("compile") == :ok
         assert Mix.Tasks.Compile.Elixir.run([]) == :noop
         assert_receive {:mix_shell, :info, ["Compiled lib/foo.ex"]}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert File.stat!("_build/dev/consolidated/Elixir.Enumerable.beam").mtime >
+               {{2010, 1, 1}, {0, 0, 0}}
         purge [Foo, Bar]
       end)
     end)

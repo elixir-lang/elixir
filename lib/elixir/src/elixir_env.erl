@@ -9,9 +9,9 @@ new() ->
     file => <<"nofile">>,                  %% the current filename
     line => 1,                             %% the current line
     function => nil,                       %% the current function
-    context => nil,                        %% can be match_vars, guards or nil
+    context => nil,                        %% can be match, guard or nil
     requires => [],                        %% a set with modules required
-    aliases => [],                         %% an orddict with aliases by new -> old names
+    aliases => [],                         %% a list of aliases by new -> old names
     functions => [],                       %% a list with functions imported from module
     macros => [],                          %% a list with macros imported from module
     macro_aliases => [],                   %% keep aliases defined inside a macro
@@ -27,10 +27,10 @@ env_to_scope(#{module := Module, file := File, function := Function, context := 
   #elixir_scope{module=Module, file=File, function=Function, context=Context}.
 
 env_to_scope_with_vars(Env, Vars) ->
+  Map = maps:from_list(Vars),
   (env_to_scope(Env))#elixir_scope{
-    vars=orddict:from_list(Vars),
-    counter=[{'_', length(Vars)}]
- }.
+    vars=Map, counter=#{'_' => map_size(Map)}
+  }.
 
 %% SCOPE MERGING
 
@@ -40,12 +40,12 @@ mergev(E1, E2) when is_list(E1) ->
   E2#{
     vars := merge_vars(E1, ?m(E2, vars)),
     export_vars := merge_opt_vars(E1, ?m(E2, export_vars))
- };
+  };
 mergev(E1, E2) ->
   E2#{
     vars := merge_vars(?m(E1, vars), ?m(E2, vars)),
     export_vars := merge_opt_vars(?m(E1, export_vars), ?m(E2, export_vars))
- }.
+  }.
 
 %% Receives two scopes and return the later scope
 %% keeping the variables from the first (imports

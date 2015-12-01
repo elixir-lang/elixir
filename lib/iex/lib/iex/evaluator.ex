@@ -10,33 +10,51 @@ defmodule IEx.Evaluator do
     * keeping expression history
 
   """
-  def start(server, leader) do
+  def init(server, leader, opts) do
     old_leader = Process.group_leader
     Process.group_leader(self, leader)
 
     try do
-      loop(server, IEx.History.init)
+      loop(server, IEx.History.init, loop_state(opts))
     after
       Process.group_leader(self, old_leader)
     end
   end
 
-  defp loop(server, history) do
+  defp loop(server, history, state) do
     receive do
-      {:eval, ^server, code, state} ->
-        {result, history} = eval(code, state, history)
+      {:eval, ^server, code, iex_state} ->
+        {result, history, state} = eval(code, iex_state, history, state)
         send server, {:evaled, self, result}
-        loop(server, history)
+        loop(server, history, state)
+      {:peek_env, receiver} ->
+        send receiver, {:peek_env, state.env}
+        loop(server, history, state)
       {:done, ^server} ->
         :ok
     end
   end
 
-  @doc """
-  Locates and loads an .iex.exs file from one of predefined locations.
-  Returns the new state.
-  """
-  def load_dot_iex(state, path \\ nil) do
+  defp loop_state(opts) do
+    env =
+      if env = opts[:env] do
+        :elixir.env_for_eval(env, [])
+      else
+        :elixir.env_for_eval(file: "iex")
+      end
+
+    {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
+
+    binding = Keyword.get(opts, :binding, [])
+    state  = %{binding: binding, scope: scope, env: env}
+
+    case opts[:dot_iex_path] do
+      ""   -> state
+      path -> load_dot_iex(state, path)
+    end
+  end
+
+  defp load_dot_iex(state, path) do
     candidates = if path do
       [path]
     else
@@ -85,51 +103,56 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp eval(code, state, history) do
+  defp eval(code, iex_state, history, state) do
     try do
-      do_eval(String.to_char_list(code), state, history)
+      do_eval(String.to_char_list(code), iex_state, history, state)
     catch
       kind, error ->
         print_error(kind, error, System.stacktrace)
-        {%{state | cache: ''}, history}
+        {%{iex_state | cache: ''}, history, state}
     end
   end
 
-  defp do_eval(@break_trigger, %IEx.State{cache: ''} = state, history) do
-    {state, history}
+  defp do_eval(@break_trigger, %IEx.State{cache: ''} = iex_state, history, state) do
+    {iex_state, history, state}
   end
 
-  defp do_eval(@break_trigger, state, _history) do
-    :elixir_errors.parse_error(state.counter, "iex", "incomplete expression", "")
+  defp do_eval(@break_trigger, iex_state, _history, _state) do
+    :elixir_errors.parse_error(iex_state.counter, "iex", "incomplete expression", "")
   end
 
-  defp do_eval(latest_input, state, history) do
-    code = state.cache ++ latest_input
-    line = state.counter
+  defp do_eval(latest_input, iex_state, history, state) do
+    code = iex_state.cache ++ latest_input
+    line = iex_state.counter
     Process.put(:iex_history, history)
-    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history)
+    handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, iex_state, history, state)
   after
     Process.delete(:iex_history)
   end
 
-  defp handle_eval({:ok, forms}, code, line, state, history) do
+  defp handle_eval({:ok, forms}, code, line, iex_state, history, state) do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
     unless result == IEx.dont_display_result, do: io_inspect(result)
+    iex_state =
+      %{iex_state | cache: '',
+                    counter: iex_state.counter + 1}
+
     state =
-      %{state | env: env, cache: '',
-                scope: scope, binding: binding,
-                counter: state.counter + 1}
-    {state, update_history(history, line, code, result)}
+      %{state | env: env,
+                scope: scope,
+                binding: binding}
+
+    {iex_state, update_history(history, line, code, result), state}
   end
 
-  defp handle_eval({:error, {_, _, ""}}, code, _line, state, history) do
-    # Update state.cache so that IEx continues to add new input to
+  defp handle_eval({:error, {_, _, ""}}, code, _line, iex_state, history, state) do
+    # Update iex_state.cache so that IEx continues to add new input to
     # the unfinished expression in "code"
-    {%{state | cache: code}, history}
+    {%{iex_state | cache: code}, history, state}
   end
 
-  defp handle_eval({:error, {line, error, token}}, _code, _line, _state, _) do
+  defp handle_eval({:error, {line, error, token}}, _code, _line, _iex_state, _, _state) do
     # Encountered malformed expression
     :elixir_errors.parse_error(line, "iex", error, token)
   end
@@ -153,9 +176,8 @@ defmodule IEx.Evaluator do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    message = Exception.format_banner(kind, reason, stacktrace)
-    io_error message
-    io_error (stacktrace |> prune_stacktrace |> format_stacktrace)
+    Exception.format_banner(kind, reason, stacktrace) |> io_error
+    stacktrace |> prune_stacktrace |> format_stacktrace |> io_error
   end
 
   @elixir_internals [:elixir, :elixir_exp, :elixir_compiler, :elixir_module, :elixir_clauses,

@@ -44,9 +44,6 @@ defmodule Application do
   including new values that are not defined in the environment file (although
   this should be avoided).
 
-  In the future, we plan to support configuration files which allow
-  developers to configure the environment of their dependencies.
-
   Keep in mind that each application is responsible for its environment.
   Do not use the functions in this module for directly accessing or modifying
   the environment of other applications (as it may lead to inconsistent
@@ -111,6 +108,55 @@ defmodule Application do
   @type key :: atom
   @type value :: term
   @type start_type :: :permanent | :transient | :temporary
+
+  @application_keys [:description, :id, :vsn, :modules, :maxP, :maxT, :registered,
+                     :included_applications, :applications, :mod, :start_phases]
+
+  @doc """
+  Returns the spec for `app`.
+
+  The following keys are returned:
+
+    * #{Enum.map_join @application_keys, "\n  * ", &inspect/1}
+
+  Note the environment is not returned as it can be accessed via
+  `fetch_env/2`. Returns `nil` if the application is not loaded.
+  """
+  @spec spec(app) :: [{key, value}] | nil
+  def spec(app) do
+    case :application.get_all_key(app) do
+      {:ok, info} -> :lists.keydelete(:env, 1, info)
+      :undefined  -> nil
+    end
+  end
+
+  @doc """
+  Returns the value for `key` in `app`'s specification.
+
+  See `spec/1` for the supporte keys. If the given
+  specification parameter does not exist, this function
+  will raise.
+  """
+  @spec spec(app, key) :: value
+  def spec(app, key) when key in @application_keys do
+    {:ok, value} = :application.get_key(app, key)
+    value
+  end
+
+  @doc """
+  Get the application for the given module.
+
+  The application is located by analyzing the spec
+  of all loaded applications. Returns `nil` if
+  the module is not listed in any application spec.
+  """
+  @spec get_application(atom) :: atom | nil
+  def get_application(module) when is_atom(module) do
+    case :application.get_application(module) do
+      {:ok, app} -> app
+      :undefined -> nil
+    end
+  end
 
   @doc """
   Returns all key-value pairs for `app`.

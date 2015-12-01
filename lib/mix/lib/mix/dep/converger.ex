@@ -90,7 +90,7 @@ defmodule Mix.Dep.Converger do
 
       deps = deps
              |> Enum.reject(&converger.remote?(&1))
-             |> Enum.into(HashDict.new, &{&1.app, &1})
+             |> Enum.into(%{}, &{&1.app, &1})
 
       # In case there is no lock, we will read the current lock
       # which is potentially stale. So converger.deps/2 needs to
@@ -214,7 +214,7 @@ defmodule Mix.Dep.Converger do
 
   # When in_upper is true
   #
-  # When a parent dependency specifies only that is a subset
+  # When a parent dependency specifies :only that is a subset
   # of a child dependency, we are going to abort as the parent
   # dependency must explicitly outline a superset of child
   # dependencies.

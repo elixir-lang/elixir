@@ -53,7 +53,7 @@ defmodule Mix.Dep do
   @type t :: %__MODULE__{
                scm: module,
                app: atom,
-               requirement: String.t | Regex.t,
+               requirement: String.t | Regex.t | nil,
                status: atom,
                opts: Keyword.t,
                top_level: boolean,
@@ -226,7 +226,7 @@ defmodule Mix.Dep do
     do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
 
   defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
-    info = {app, req, Dict.drop(opts, [:dest, :lock, :env, :build])}
+    info = {app, req, Keyword.drop(opts, [:dest, :lock, :env, :build])}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
@@ -257,7 +257,7 @@ defmodule Mix.Dep do
   defp check_manifest(%{scm: scm} = dep, build_path) do
     vsn = System.version
 
-    case Mix.Dep.Lock.status(build_path) do
+    case Mix.Dep.ElixirSCM.read(build_path) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
         %{dep | status: {:elixirlock, old_vsn}}
       {:ok, _, old_scm} when old_scm != scm ->
@@ -274,8 +274,9 @@ defmodule Mix.Dep do
   def ok?(%Mix.Dep{}), do: false
 
   @doc """
-  Checks if a dependency is available. Available dependencies
-  are the ones that can be loaded.
+  Checks if a dependency is available.
+
+  Available dependencies are the ones that can be loaded.
   """
   def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
   def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
@@ -304,8 +305,8 @@ defmodule Mix.Dep do
   """
   def load_paths(%Mix.Dep{opts: opts} = dep) do
     build_path = Path.dirname(opts[:build])
-    Enum.map source_paths(dep), fn path ->
-      Path.join [build_path, Path.basename(path), "ebin"]
+    Enum.map source_paths(dep), fn {_, base} ->
+      Path.join [build_path, base, "ebin"]
     end
   end
 
@@ -315,20 +316,20 @@ defmodule Mix.Dep do
   Source paths are the directories that contains ebin files for a given
   dependency. All managers, except `:rebar`, have only one source path.
   """
-  def source_paths(%Mix.Dep{manager: :rebar, opts: opts, extra: extra}) do
-    # Add root dir and all sub dirs with ebin/ directory
-    sub_dirs = Enum.map(extra[:sub_dirs] || [], fn path ->
-      Path.join(opts[:dest], path)
-    end)
+  def source_paths(%Mix.Dep{manager: :rebar, app: app, opts: opts, extra: extra}) do
+    sub_dirs = extra[:sub_dirs] || []
+    dest = opts[:dest]
 
-    [opts[:dest] | sub_dirs]
-    |> Enum.map(&Path.wildcard(&1))
-    |> Enum.concat
-    |> Enum.filter(fn p -> p |> Path.join("ebin") |> File.dir? end)
+    # Add root dir and all sub dirs with ebin/ directory
+    [{opts[:dest], Atom.to_string(app)}] ++
+      for(sub_dir <- sub_dirs,
+          path <- Path.wildcard(Path.join(dest, sub_dir)),
+          File.dir?(Path.join(path, "ebin")),
+          do: {path, Path.basename(path)})
   end
 
-  def source_paths(%Mix.Dep{opts: opts}) do
-    [opts[:dest]]
+  def source_paths(%Mix.Dep{app: app, opts: opts}) do
+    [{opts[:dest], Atom.to_string(app)}]
   end
 
   @doc """
