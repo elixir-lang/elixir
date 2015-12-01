@@ -9,7 +9,7 @@ defmodule IO do
 
   The majority of the functions expect char data, i.e. strings or
   lists of characters and strings. In case another type is given,
-  it will do a conversion to string via the `String.Chars` protocol
+  functions will convert to string via the `String.Chars` protocol
   (as shown in typespecs).
 
   The functions starting with `bin*` expect iodata as an argument,

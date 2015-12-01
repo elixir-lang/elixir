@@ -67,7 +67,7 @@ defmodule Module do
     * `@behaviour`   (notice the British spelling)
 
       Behaviours can be referenced by modules to ensure they implement
-      required specific function signatures defind by `@callback`.
+      required specific function signatures defined by `@callback`.
 
       For example, you can specify the URI.Parser behaviour as follows:
 
@@ -110,7 +110,7 @@ defmodule Module do
       For the list of supported options, see Erlang's
       [`:compile` module](http://www.erlang.org/doc/man/compile.html).
 
-      Several uses of `@compile` will accumulate instead of overriding
+      Multiple uses of `@compile` will accumulate instead of overriding
       previous ones.
 
       ### Example
@@ -296,7 +296,7 @@ defmodule Module do
       For the list of supported warnings, see
       [`:dialyzer` module](http://www.erlang.org/doc/man/dialyzer.html).
 
-      Several uses of `@dialyzer` will accumulate instead of overriding
+      Multiple uses of `@dialyzer` will accumulate instead of overriding
       previous ones.
 
       ### Example

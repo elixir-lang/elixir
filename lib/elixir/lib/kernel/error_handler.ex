@@ -14,7 +14,7 @@ defmodule Kernel.ErrorHandler do
   end
 
   def release() do
-    # On release, no further allow elixir_ensure_compiled
+    # On release, no longer allow elixir_ensure_compiled
     # directives and revert to the original error handler.
     # Note we should not delete the elixir_compiler_pid though,
     # as we still want to send notifications to the compiler.

@@ -104,7 +104,7 @@ defmodule Float do
   end
 
   @doc """
-  Rounds a float to the largest integer greater than or equal to `num`.
+  Rounds a float to the smallest integer greater than or equal to `num`.
 
   `ceil/2` also accepts a precision to round a floating point value down
   to an arbitrary number of fractional digits (between 0 and 15).

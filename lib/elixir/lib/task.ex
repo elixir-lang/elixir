@@ -1,19 +1,19 @@
 defmodule Task do
   @moduledoc """
-  Conveniences for spawning and awaiting for tasks.
+  Conveniences for spawning and awaiting tasks.
 
   Tasks are processes meant to execute one particular
   action throughout their life-cycle, often with little or no
   communication with other processes. The most common use case
-  for tasks is to convert sequential code into concurrent one
+  for tasks is to convert sequential code into concurrent code
   by computing a value asynchronously:
 
       task = Task.async(fn -> do_some_work() end)
       res  = do_some_other_work()
       res + Task.await(task)
 
-  Tasks spawned with `async` can be awaited on by its caller
-  process (and only its caller) as shown in the example above.
+  Tasks spawned with `async` can be waited on by their caller
+  process (and only their caller) as shown in the example above.
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
@@ -23,8 +23,8 @@ defmodule Task do
 
   ## async and await
 
-  One of the common use of tasks is to convert some sequential code
-  into concurrent one with `Task.async/1` while keeping its semantics.
+  One of the common use of tasks is to convert sequential code
+  into concurrent code with `Task.async/1` while keeping its semantics.
   When invoked, a new process will be created, linked and monitored
   by the caller. Once the task action finishes, a message will be sent
   to the caller with the result.
@@ -36,7 +36,7 @@ defmodule Task do
 
   There are two important things to consider when using async:
 
-    1. If you are using async tasks, you must await for a reply
+    1. If you are using async tasks, you must await a reply
        as they are *always* sent. If you are not expecting a reply,
        consider using `Task.start_link/1` detailed below
 
@@ -44,12 +44,12 @@ defmodule Task do
        means that, if the caller crashes, the task will crash
        too and vice-versa. This is on purpose, if the process
        meant to receive the result no longer exists, there is
-       no purpose in computing the result until the end. If this
+       no purpose in completing computation of the result. If this
        is not desired, consider using `Task.start_link/1` as well
 
   `Task.yield/2` is an alternative to `await/2` where the caller will
-  temporarily block waiting until the task replies or crashes. If the
-  result does not arrive within the timeout it can be called again at
+  temporarily block, waiting until the task replies or crashes. If the
+  result does not arrive within the timeout it can be called again at a
   later moment. This allows checking for the result of a task multiple
   times or to handle a timeout. If a reply does not arrive within the
   desired time, `Task.shutdown/2` can be used to stop the task.
@@ -70,7 +70,7 @@ defmodule Task do
       ]
 
   Since these tasks are supervised and not directly linked to
-  the caller, they cannot be awaited on. Note `start_link/1`,
+  the caller, they cannot be waited on. Note `start_link/1`,
   unlike `async/1`, returns `{:ok, pid}` (which is
   the result expected by supervision trees).
 

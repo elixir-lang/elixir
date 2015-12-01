@@ -10,7 +10,7 @@ end
 
 defmodule IO.Stream do
   @moduledoc """
-  Defines a `IO.Stream` struct returned by `IO.stream/2` and `IO.binstream/2`.
+  Defines an `IO.Stream` struct returned by `IO.stream/2` and `IO.binstream/2`.
 
   The following fields are public:
 
