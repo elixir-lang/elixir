@@ -560,6 +560,17 @@ defmodule System do
   end
 
   @doc """
+  Converts `time` from time unit `from_unit` to time unit `to_unit`. The result
+  is rounded via the floor function.
+
+  Inlined by the compiler into `:erlang.convert_time_unit/3`.
+  """
+  @spec convert_time_unit(integer, :erlang.time_unit, :erlang.time_unit) :: integer
+  def convert_time_unit(time, from_unit, to_unit) do
+    :erlang.convert_time_unit(time, from_unit, to_unit)
+  end
+
+  @doc """
   Generates and returns an integer that is unique in the current runtime
   instance.
 
