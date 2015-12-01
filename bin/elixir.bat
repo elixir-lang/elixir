@@ -1,4 +1,4 @@
-@echo off
+IF DEFINED EX_DEBUG (@echo on) ELSE (@echo off)
 setlocal
 if ""%1""==""""       goto :documentation
 if ""%1""==""--help"" goto :documentation

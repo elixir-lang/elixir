@@ -1,4 +1,4 @@
-@echo off
+IF DEFINED EX_DEBUG (@echo on) ELSE (@echo off)
 set argc=0
 for %%A in (%*) do (
     if "%%A"=="--help" goto documentation
