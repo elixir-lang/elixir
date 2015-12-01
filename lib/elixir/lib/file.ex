@@ -3,35 +3,35 @@ defmodule File do
   This module contains functions to manipulate files.
 
   Some of those functions are low-level, allowing the user
-  to interact with the file or IO devices, like `open/2`,
+  to interact with files or IO devices, like `open/2`,
   `copy/3` and others. This module also provides higher
   level functions that work with filenames and have their naming
   based on UNIX variants. For example, one can copy a file
   via `cp/3` and remove files and directories recursively
-  via `rm_rf/1`
+  via `rm_rf/1`.
 
   ## Encoding
 
   In order to write and read files, one must use the functions
-  in the `IO` module. By default, a file is opened in binary mode
+  in the `IO` module. By default, a file is opened in binary mode,
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file, then the slower `IO.read/2` and
   `IO.write/2` functions must be used as they are responsible for
-  doing the proper conversions and data guarantees.
+  doing the proper conversions and providing the proper data guarantees.
 
   Note that filenames when given as char lists in Elixir are
   always treated as UTF-8. In particular, we expect that the
-  shell and the operating system are configured to use UTF8
-  encoding. Binary filenames are considering raw and passed
+  shell and the operating system are configured to use UTF-8
+  encoding. Binary filenames are considered raw and passed
   to the OS as is.
 
   ## API
 
   Most of the functions in this module return `:ok` or
   `{:ok, result}` in case of success, `{:error, reason}`
-  otherwise. Those function are also followed by a variant
-  that ends with `!` which returns the result (without the
+  otherwise. Those functions also have a variant
+  that ends with `!` which returns the result (instead of the
   `{:ok, result}` tuple) in case of success or raises an
   exception in case it fails. For example:
 
@@ -55,7 +55,7 @@ defmodule File do
   ## Processes and raw files
 
   Every time a file is opened, Elixir spawns a new process. Writing
-  to a file is equivalent to sending messages to that process that
+  to a file is equivalent to sending messages to the process that
   writes to the file descriptor.
 
   This means files can be passed between nodes and message passing
@@ -63,7 +63,7 @@ defmodule File do
 
   However, you may not always want to pay the price for this abstraction.
   In such cases, a file can be opened in `:raw` mode. The options `:read_ahead`
-  and `:delayed_write` are also useful when operating large files or
+  and `:delayed_write` are also useful when operating on large files or
   working with files in tight loops.
 
   Check [`:file.open/2`](http://www.erlang.org/doc/man/file.html#open-2) for more information
@@ -232,7 +232,7 @@ defmodule File do
   end
 
   @doc """
-  Returns binary with the contents of the given filename or raises
+  Returns a binary with the contents of the given filename or raises
   `File.Error` if an error occurs.
   """
   @spec read!(Path.t) :: binary | no_return
@@ -261,7 +261,8 @@ defmodule File do
   The values for `:time` can be:
 
     * `:universal` - returns a `{date, time}` tuple in UTC (default)
-    * `:local` - returns a `{date, time}` tuple using the machine time
+    * `:local` - returns a `{date, time}` tuple using the same time zone as the
+      machine
     * `:posix` - returns the time as integer seconds since epoch
 
   """
@@ -291,8 +292,8 @@ defmodule File do
   end
 
   @doc """
-  Returns information about the `path`. If the file is a symlink sets
-  the `type` to `:symlink` and returns `File.Stat` for the link. For any
+  Returns information about the `path`. If the file is a symlink, sets
+  the `type` to `:symlink` and returns a `File.Stat` struct for the link. For any
   other file, returns exactly the same values as `stat/2`.
 
   For more details, see [`:file.read_link_info/2`](http://www.erlang.org/doc/man/file.html#read_link_info-2).
@@ -322,7 +323,7 @@ defmodule File do
   end
 
   @doc """
-  Same as `lstat/2` but returns the `File.Stat` directly and
+  Same as `lstat/2` but returns the `File.Stat` struct directly and
   throws `File.Error` if an error is returned.
   """
   @spec lstat!(Path.t, stat_options) :: File.Stat.t | no_return
@@ -363,7 +364,7 @@ defmodule File do
   Updates modification time (mtime) and access time (atime) of
   the given file.
 
-  File is created if it doesn’t exist. Requires datetime in UTC.
+  The file is created if it doesn’t exist. Requires datetime in UTC.
   """
   @spec touch(Path.t, :calendar.datetime) :: :ok | {:error, posix}
   def touch(path, time \\ :calendar.universal_time) do
@@ -452,9 +453,9 @@ defmodule File do
   Renames the `source` file to `destination` file.  It can be used to move files
   (and directories) between directories.  If moving a file, you must fully
   specify the `destination` filename, it is not sufficient to simply specify
-  it's directory.
+  its directory.
 
-  It returns `:ok` in case of success, returns `{:error, reason}` otherwise
+  It returns `:ok` in case of success, returns `{:error, reason}` otherwise.
 
   Note: The command `mv` in Unix systems behaves differently depending
   if `source` is a file and the `destination` is an existing directory.
@@ -478,9 +479,9 @@ defmodule File do
 
   If a file already exists in the destination, it invokes a
   callback which should return `true` if the existing file
-  should be overwritten, `false` otherwise. It defaults to return `true`.
+  should be overwritten, `false` otherwise. The callback defaults to return `true`.
 
-  It returns `:ok` in case of success, returns
+  The function returns `:ok` in case of success, returns
   `{:error, reason}` otherwise.
 
   If you want to copy contents from an io device to another device
@@ -534,20 +535,20 @@ defmodule File do
   If a file already exists in the destination,
   it invokes a callback which should return
   `true` if the existing file should be overwritten,
-  `false` otherwise. It defaults to return `true`.
+  `false` otherwise. The callback defaults to return `true`.
 
   If a directory already exists in the destination
-  where a file is meant to be (or otherwise), this
+  where a file is meant to be (or vice versa), this
   function will fail.
 
   This function may fail while copying files,
   in such cases, it will leave the destination
-  directory in a dirty state, where already
-  copied files won't be removed.
+  directory in a dirty state, where file which have already been copied
+  won't be removed.
 
-  It returns `{:ok, files_and_directories}` in case of
-  success with all files and directories copied in no
-  specific order, `{:error, reason, file}` otherwise.
+  The function returns `{:ok, files_and_directories}` in case of
+  success, `files_and_directories` lists all files and directories copied in no
+  specific order. It returns `{:error, reason, file}` otherwise.
 
   Note: The command `cp` in Unix systems behaves differently
   depending if `destination` is an existing directory or not.
@@ -682,13 +683,13 @@ defmodule File do
   and a new process is spawned to write to the file. For this reason, if you are
   doing multiple writes in a loop, opening the file via `File.open/2` and using
   the functions in `IO` to write to the file will yield much better performance
-  then calling this function multiple times.
+  than calling this function multiple times.
 
   Typical error reasons are:
 
     * `:enoent`  - a component of the file name does not exist
     * `:enotdir` - a component of the file name is not a directory;
-      on some platforms, enoent is returned instead
+      on some platforms, `:enoent` is returned instead
     * `:enospc`  - there is a no space left on the device
     * `:eacces`  - missing permission for writing the file or searching one of
       the parent directories
@@ -727,7 +728,7 @@ defmodule File do
     * `:eacces`  - missing permission for the file or one of its parents
     * `:eperm`   - the file is a directory and user is not super-user
     * `:enotdir` - a component of the file name is not a directory;
-      on some platforms, enoent is returned instead
+      on some platforms, `:enoent` is returned instead
     * `:einval`  - filename had an improper type, such as tuple
 
   ## Examples
@@ -921,7 +922,7 @@ defmodule File do
   Opens the given `path` according to the given list of modes.
 
   In order to write and read files, one must use the functions
-  in the `IO` module. By default, a file is opened in binary mode
+  in the `IO` module. By default, a file is opened in binary mode,
   which requires the functions `IO.binread/2` and `IO.binwrite/2`
   to interact with the file. A developer may pass `:utf8` as an
   option when opening the file and then all other functions from
@@ -955,10 +956,10 @@ defmodule File do
 
     * `:utf8` - this option denotes how data is actually stored in the disk
       file and makes the file perform automatic translation of characters to
-      and from utf-8.
+      and from UTF-8.
 
       If data is sent to a file in a format that cannot be converted to the
-      utf-8 or if data is read by a function that returns data in a format that
+      UTF-8 or if data is read by a function that returns data in a format that
       cannot cope with the character range of the data, an error occurs and the
       file will be closed.
 
@@ -999,9 +1000,9 @@ defmodule File do
   end
 
   @doc """
-  Similar to `open/2` but expects a function as last argument.
+  Similar to `open/2` but expects a function as its last argument.
 
-  The file is opened, given to the function as argument and
+  The file is opened, given to the function as an argument and
   automatically closed after the function returns, regardless
   if there was an error when executing the function.
 
@@ -1065,7 +1066,7 @@ defmodule File do
   Gets the current working directory.
 
   In rare circumstances, this function can fail on Unix. It may happen
-  if read permission does not exist for the parent directories of the
+  if read permissions do not exist for the parent directories of the
   current directory. For this reason, returns `{:ok, cwd}` in case
   of success, `{:error, reason}` otherwise.
   """
@@ -1123,8 +1124,8 @@ defmodule File do
 
   @doc """
   Changes the current directory to the given `path`,
-  executes the given function and then revert back
-  to the previous path regardless if there is an exception.
+  executes the given function and then reverts back
+  to the previous path regardless of whether there is an exception.
 
   Raises an error if retrieving or changing the current
   directory fails.
@@ -1141,7 +1142,7 @@ defmodule File do
   end
 
   @doc """
-  Returns list of files in the given directory.
+  Returns the list of files in the given directory.
 
   It returns `{:ok, [files]}` in case of success,
   `{:error, reason}` otherwise.
@@ -1191,9 +1192,9 @@ defmodule File do
   streaming, by `:line` (default) or by a given number of bytes.
 
   Operating the stream can fail on open for the same reasons as
-  `File.open!/2`. Note that the file is automatically opened only and
-  every time streaming begins. There is no need to pass `:read` and
-  `:write` modes, as those are automatically set by Elixir.
+  `File.open!/2`. Note that the file is automatically opened each time streaming
+  begins. There is no need to pass `:read` and `:write` modes, as those are
+  automatically set by Elixir.
 
   ## Raw files
 
@@ -1267,7 +1268,7 @@ defmodule File do
   end
 
   @doc """
-  Changes the user group given by the group id `gid`
+  Changes the group given by the group id `gid`
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
   """

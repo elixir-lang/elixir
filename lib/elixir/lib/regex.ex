@@ -23,7 +23,7 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables unicode specific patterns like `\p` and changes
+    * `unicode` (u) - enables unicode specific patterns like `\p` and change
       modifiers like `\w`, `\W`, `\s` and friends to also match on unicode.
       It expects valid unicode strings to be given on match
 
@@ -56,7 +56,7 @@ defmodule Regex do
 
   ## Captures
 
-  Many functions in this module allows what to capture in a regex
+  Many functions in this module handle what to capture in a regex
   match via the `:capture` option. The supported values are:
 
     * `:all` - all captured subpatterns including the complete matching string

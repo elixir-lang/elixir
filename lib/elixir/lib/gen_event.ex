@@ -86,7 +86,7 @@ defmodule GenEvent do
   asynchronously.
 
   On `GenEvent.sync_notify/2`, the manager acknowledges an event
-  just after it was processed by all event handlers.
+  just after it is processed by all event handlers.
 
   On `GenEvent.notify/2`, all events are processed asynchronously and
   there is no ack (which means there is no backpressure).
@@ -130,7 +130,7 @@ defmodule GenEvent do
   too much kool aid" section of the "Learn you some Erlang" link above. Due
   to those changes, Elixir's GenEvent does not trap exits by default.
 
-  Furthermore, Elixir's also normalizes the `{:error, _}` tuples returned
+  Furthermore, Elixir also normalizes the `{:error, _}` tuples returned
   by many functions, in order to be more consistent with themselves and
   the `GenServer` module.
   """

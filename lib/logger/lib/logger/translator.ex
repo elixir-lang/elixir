@@ -12,7 +12,7 @@ defmodule Logger.Translator do
   message above the minimum log level with four arguments:
 
     * `min_level` - the current Logger level
-    * `level` - the level of the message being translator
+    * `level` - the level of the message being translated
     * `kind` - if the message is a report or a format
     * `message` - the message to format. If it is a report, it is a tuple
       with `{report_type, report_data}`, if it is a format, it is a
@@ -325,7 +325,7 @@ defmodule Logger.Translator do
     ["\n** (stop) " | Exception.format_exit(reason)]
   end
 
-  # OTP process rewrite the :undef error to these reasons when logging
+  # OTP processes rewrite the :undef error to these reasons when logging
   @gen_undef [:"module could not be loaded", :"function not exported"]
 
   defp format_stop_banner(undef, [{mod, fun, args, _info} | _ ]  = stacktrace)
