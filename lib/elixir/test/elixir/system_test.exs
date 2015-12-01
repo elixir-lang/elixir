@@ -119,6 +119,11 @@ defmodule SystemTest do
     assert abs(System.system_time(:micro_seconds)) < abs(System.system_time(:nano_seconds))
   end
 
+  test "time_offset/0 and time_offset/1" do
+    assert is_integer(System.time_offset())
+    assert is_integer(System.time_offset(:seconds))
+  end
+
   test "unique_integer/0 and unique_integer/1" do
     assert is_integer(System.unique_integer())
     assert System.unique_integer([:positive]) > 0
