@@ -45,7 +45,7 @@ defmodule OptionParser do
     * `:strict` - the switches are strict. Any switch that does not
       exist in the switch list is treated as an error.
 
-    * `:switches` - defines some switches. Switches that does not
+    * `:switches` - defines some switches. Switches that do not
       exist in the switch list are still attempted to be parsed.
 
   Note only `:strict` or `:switches` may be given at once.
