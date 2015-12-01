@@ -1,4 +1,4 @@
-@echo off
+IF DEFINED EX_DEBUG (@echo on) ELSE (@echo off)
 setlocal
 if ""%1""==""""       goto :documentation
 if ""%1""==""--help"" goto :documentation
@@ -100,7 +100,5 @@ IF NOT %runMode% == "iex" (
 IF %useWerl% EQU 1 (
   start werl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) ELSE (
-  erl.exe %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+    erl %ext_libs% -noshell %ELIXIR_ERL_OPTIONS% %parsErlang% -s elixir start_cli %beforeExtra% -extra %*
 )
-:end
-endlocal
