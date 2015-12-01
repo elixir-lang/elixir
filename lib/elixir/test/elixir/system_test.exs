@@ -100,4 +100,33 @@ defmodule SystemTest do
     assert is_binary System.find_executable("erl")
     assert !System.find_executable("does-not-really-exist-from-elixir")
   end
+
+  test "monotonic_time/0" do
+    assert is_integer(System.monotonic_time())
+  end
+
+  test "monotonic_time/1" do
+    assert is_integer(System.monotonic_time(:nano_seconds))
+    assert abs(System.monotonic_time(:micro_seconds)) < abs(System.monotonic_time(:nano_seconds))
+  end
+
+  test "system_time/0" do
+    assert is_integer(System.system_time())
+  end
+
+  test "system_time/1" do
+    assert is_integer(System.system_time(:nano_seconds))
+    assert abs(System.system_time(:micro_seconds)) < abs(System.system_time(:nano_seconds))
+  end
+
+  test "unique_integer/0 and unique_integer/1" do
+    assert is_integer(System.unique_integer())
+    assert System.unique_integer([:positive]) > 0
+    assert System.unique_integer([:positive, :monotonic]) < System.unique_integer([:positive, :monotonic])
+  end
+
+  test "convert_time_unit/3" do
+    time = System.monotonic_time(:nano_seconds)
+    assert abs(System.convert_time_unit(time, :nano_seconds, :micro_seconds)) < abs(time)
+  end
 end
