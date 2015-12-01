@@ -1,4 +1,4 @@
-@echo off
+@if defined ELIXIR_CLI_ECHO (@echo on) else  (@echo off)
 setlocal
 if ""%1""==""""       goto :documentation
 if ""%1""==""--help"" goto :documentation
