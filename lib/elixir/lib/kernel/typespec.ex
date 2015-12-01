@@ -3,10 +3,10 @@ defmodule Kernel.Typespec do
   Provides macros and functions for working with typespecs.
 
   Elixir comes with a notation for declaring types and specifications. Elixir is
-  dynamically typed, as such typespecs are never used by the compiler to
+  dynamically typed, and as such, typespecs are never used by the compiler to
   optimize or modify code. Still, using typespecs is useful as documentation and
   tools such as [Dialyzer](http://www.erlang.org/doc/man/dialyzer.html) can
-  analyze the code with typespecs to find bugs.
+  analyze code with typespecs to find bugs.
 
   The attributes `@type`, `@opaque`, `@typep`, `@spec`, `@callback` and
   `@macrocallback` available in modules are handled by the equivalent macros
@@ -86,7 +86,7 @@ defmodule Kernel.Typespec do
 
   ### Built-in types
 
-  Those types are also provided by Elixir as shortcuts on top of the
+  These types are also provided by Elixir as shortcuts on top of the
   basic and literal types.
 
   Built-in type           | Defined as
@@ -116,7 +116,7 @@ defmodule Kernel.Typespec do
 
   ### Remote types
 
-  Any module is also able to define their own type and the modules in
+  Any module is also able to define its own type and the modules in
   Elixir are no exception. For example, a string is `String.t`, a
   range is `Range.t`, any enumerable can be `Enum.t` and so on.
 

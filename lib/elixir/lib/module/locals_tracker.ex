@@ -1,15 +1,15 @@
-# This is a module Elixir responsible for tracking
+# This is an Elixir module responsible for tracking
 # calls in order to extract Elixir modules' behaviour
 # during compilation time.
 #
 # ## Implementation
 #
 # The implementation uses the digraph module to track
-# all dependencies. The graph starts with one main vertice:
+# all dependencies. The graph starts with one main vertex:
 #
 # * `:local` - points to local functions
 #
-# We also have can the following vertices:
+# We can also have the following vertices:
 #
 # * `Module` - a module that was invoked via an import
 # * `{name, arity}` - a local function/arity pair

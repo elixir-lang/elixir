@@ -10,7 +10,7 @@ defmodule Kernel do
   Provides the default macros and functions Elixir imports into your
   environment.
 
-  These macros and functions can be skipped or cherry- picked via the
+  These macros and functions can be skipped or cherry-picked via the
   `import` macro. For instance, if you want to tell Elixir not to
   import the `if` macro, you can do:
 

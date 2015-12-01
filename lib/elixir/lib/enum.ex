@@ -8,7 +8,7 @@ defprotocol Enumerable do
 
       Enum.map([1, 2, 3], &(&1 * 2))
 
-  invokes underneath `Enumerable.reduce/3` to perform the reducing
+  invokes `Enumerable.reduce/3` to perform the reducing
   operation that builds a mapped list by calling the mapping function
   `&(&1 * 2)` on every element in the collection and consuming the
   element with an accumulated list.
@@ -20,13 +20,13 @@ defprotocol Enumerable do
         Enumerable.reduce(enum, {:cont, []}, reducer) |> elem(1) |> :lists.reverse()
       end
 
-  Notice the user given function is wrapped into a `t:reducer/0` function.
+  Notice the user-supplied function is wrapped into a `t:reducer/0` function.
   The `t:reducer/0` function must return a tagged tuple after each step,
   as described in the `t:acc/0` type.
 
   The reason the accumulator requires a tagged tuple is to allow the
-  `t:reducer/0` function to communicate to the underlying enumerable the
-  end of enumeration, allowing any open resource to be properly closed.
+  `t:reducer/0` function to communicate the end of enumeration to the underlying
+  enumerable, allowing any open resources to be properly closed.
   It also allows suspension of the enumeration, which is useful when
   interleaving between many enumerables is required (as in zip).
 

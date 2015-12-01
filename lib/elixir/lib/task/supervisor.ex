@@ -1,6 +1,6 @@
 defmodule Task.Supervisor do
   @moduledoc """
-  A tasks supervisor.
+  A task supervisor.
 
   This module defines a supervisor which can be used to dynamically
   supervise tasks. Behind the scenes, this module is implemented as a
@@ -12,7 +12,7 @@ defmodule Task.Supervisor do
   ## Name Registration
 
   A `Task.Supervisor` is bound to the same name registration rules as a
-  `GenServer`. Read more about it in the `GenServer` docs.
+  `GenServer`. Read more about them in the `GenServer` docs.
   """
 
   @doc """
@@ -26,7 +26,7 @@ defmodule Task.Supervisor do
 
   * `:restart` - the restart strategy, may be `:temporary` (the default),
     `:transient` or `:permanent`. Check `Supervisor.Spec` for more info.
-    Defaults to temporary as most tasks can't be effectively restarted after
+    Defaults to `:temporary` as most tasks can't be effectively restarted after
     a crash;
 
   * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown

@@ -22,7 +22,7 @@ defmodule Stream do
 
   Notice we started with a range and then we created a stream that is
   meant to multiply each item in the range by 2. At this point, no
-  computation was done yet. Just when `Enum.map/2` is called we
+  computation was done. Only when `Enum.map/2` is called we actually
   enumerate over each item in the range, multiplying it by 2 and adding 1.
   We say the functions in `Stream` are *lazy* and the functions in `Enum`
   are *eager*.
@@ -66,10 +66,10 @@ defmodule Stream do
   printed changed! With streams, we print the first item and then print
   its double. In this example, the list was enumerated just once!
 
-  That's what we meant when we first said that streams are composable,
+  That's what we meant when we said earlier that streams are composable,
   lazy enumerables. Notice we could call `Stream.map/2` multiple times,
-  effectively composing the streams and they are lazy. The computations
-  are performed only when you call a function from the `Enum` module.
+  effectively composing the streams and keeping them lazy. The computations
+  are only performed when you call a function from the `Enum` module.
 
   ## Creating Streams
 
@@ -85,7 +85,7 @@ defmodule Stream do
   Note the functions in this module are guaranteed to return enumerables.
   Since enumerables can have different shapes (structs, anonymous functions,
   and so on), the functions in this module may return any of those shapes
-  and that it may change at any time. For example, a function that today
+  and that this may change at any time. For example, a function that today
   returns an anonymous function may return a struct in future releases.
   """
 
