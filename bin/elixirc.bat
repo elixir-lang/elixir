@@ -1,5 +1,4 @@
-if defined Elixir_CLI_Echo (@echo on) else  (@echo off)
-@echo off
+@if defined Elixir_CLI_Echo (@echo on) else  (@echo off)
 set argc=0
 for %%A in (%*) do (
     if "%%A"=="--help" goto documentation
