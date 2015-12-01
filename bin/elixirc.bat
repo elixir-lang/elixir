@@ -1,3 +1,4 @@
+if defined Ex_Debug (@echo on) else  (@echo off)
 @echo off
 set argc=0
 for %%A in (%*) do (
