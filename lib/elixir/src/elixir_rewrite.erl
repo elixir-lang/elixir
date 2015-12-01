@@ -151,6 +151,8 @@ inline(?system, monotonic_time, 0) -> {erlang, monotonic_time};
 inline(?system, monotonic_time, 1) -> {erlang, monotonic_time};
 inline(?system, system_time, 0) -> {erlang, system_time};
 inline(?system, system_time, 1) -> {erlang, system_time};
+inline(?system, time_offset, 0) -> {erlang, time_offset};
+inline(?system, time_offset, 1) -> {erlang, time_offset};
 inline(?system, unique_integer, 0) -> {erlang, unique_integer};
 inline(?system, unique_integer, 1) -> {erlang, unique_integer};
 

@@ -571,6 +571,40 @@ defmodule System do
   end
 
   @doc """
+  Returns the current time offset between the Erlang monotonic time and the
+  Erlang system time.
+
+  The result is returned in the `:native` time unit.
+
+  See `time_offset/1` for more information.
+
+  Inlined by the compiler into `:erlang.time_offset/0`.
+  """
+  @spec time_offset() :: integer
+  def time_offset do
+    :erlang.time_offset()
+  end
+
+  @doc """
+  Returns the current time offset between the Erlang monotonic time and the
+  Erlang system time.
+
+  The result is returned in the given time unit `unit`. The returned offset,
+  added to an Erlang monotonic time (e.g., obtained with `monotonic_time/1`),
+  gives the Erlang system time that corresponds to that monotonic time.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:erlang.time_offset/1`.
+  """
+  @spec time_offset(:erlang.time_unit) :: integer
+  def time_offset(unit) do
+    :erlang.time_offset(unit)
+  end
+
+  @doc """
   Generates and returns an integer that is unique in the current runtime
   instance.
 
