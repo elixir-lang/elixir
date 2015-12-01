@@ -382,13 +382,13 @@ defmodule System do
   and the command exit status.
 
   ## Examples
-  
+
       iex> System.cmd "echo", ["hello"]
       {"hello\n", 0}
 
       iex> System.cmd "echo", ["hello"], env: [{"MIX_ENV", "test"}]
       {"hello\n", 0}
-      
+
       iex> System.cmd "echo", ["hello"], into: IO.stream(:stdio, :line)
       hello
       {%IO.Stream{}, 0}
@@ -498,5 +498,92 @@ defmodule System do
       other ->
         raise ArgumentError, "invalid environment key-value #{inspect other}"
     end
+  end
+
+  @doc """
+  Returns the current monotonic time in the `:native` time unit.
+
+  This time is monotonically increasing and starts in an unspecified point in
+  time.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:erlang.monotonic_time/0`.
+  """
+  @spec monotonic_time() :: integer
+  def monotonic_time do
+    :erlang.monotonic_time()
+  end
+
+  @doc """
+  Returns the current monotonic time in the given time unit.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:erlang.monotonic_time/1`.
+  """
+  @spec monotonic_time(:erlang.time_unit) :: integer
+  def monotonic_time(unit) do
+    :erlang.monotonic_time(unit)
+  end
+
+  @doc """
+  Returns the current system time in the `:native` time unit.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:erlang.system_time/0`.
+  """
+  @spec system_time() :: integer
+  def system_time do
+    :erlang.system_time()
+  end
+
+  @doc """
+  Returns the current system time in the given time unit.
+
+  For more information, see the [chapter on time and time
+  correction](http://www.erlang.org/doc/apps/erts/time_correction.html) in the
+  Erlang docs.
+
+  Inlined by the compiler into `:erlang.system_time/1`.
+  """
+  @spec system_time(:erlang.time_unit) :: integer
+  def system_time(unit) do
+    :erlang.system_time(unit)
+  end
+
+  @doc """
+  Generates and returns an integer that is unique in the current runtime
+  instance.
+
+  "Unique" means that this function, called with the same list of `modifiers`,
+  will never return the same integer more than once on the current runtime
+  instance.
+
+  If `modifiers` is `[]`, then an unique integer (that can be positive or negative) is returned.
+  Other modifiers can be passed to change the properties of the returned integer:
+
+    * `:positive` - the returned integer is guaranteed to be positive.
+    * `:monotonic` - the returned integer is monotonically increasing. This
+      means that, on the same runtime instance (but even on different
+      processes), integers returned using the `:monotonic` modifier will always
+      be strictly less than integers returned by successive calls with the
+      `:monotonic` modifier.
+
+  All modifiers listed above can be combined; repeated modifiers in `modifiers`
+  will be ignored.
+
+  Inlined by the compiler into `:erlang.unique_integer/1`.
+  """
+  @spec unique_integer([:positive | :monotonic]) :: integer
+  def unique_integer(modifiers \\ []) do
+    :erlang.unique_integer(modifiers)
   end
 end

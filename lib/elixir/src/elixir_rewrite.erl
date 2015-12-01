@@ -144,7 +144,15 @@ inline(?port, list, 0) -> {erlang, ports};
 inline(?string, to_float, 1) -> {erlang, binary_to_float};
 inline(?string, to_integer, 1) -> {erlang, binary_to_integer};
 inline(?string, to_integer, 2) -> {erlang, binary_to_integer};
+
 inline(?system, stacktrace, 0) -> {erlang, get_stacktrace};
+inline(?system, monotonic_time, 0) -> {erlang, monotonic_time};
+inline(?system, monotonic_time, 1) -> {erlang, monotonic_time};
+inline(?system, system_time, 0) -> {erlang, system_time};
+inline(?system, system_time, 1) -> {erlang, system_time};
+inline(?system, unique_integer, 0) -> {erlang, unique_integer};
+inline(?system, unique_integer, 1) -> {erlang, unique_integer};
+
 inline(?tuple, to_list, 1) -> {erlang, tuple_to_list};
 inline(?tuple, append, 2) -> {erlang, append_element};
 
