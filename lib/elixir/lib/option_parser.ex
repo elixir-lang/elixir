@@ -8,6 +8,10 @@ defmodule OptionParser do
   @type errors  :: [{String.t, String.t | nil}]
   @type options :: [switches: Keyword.t, strict: Keyword.t, aliases: Keyword.t]
 
+  defmodule InvalidOptionError do
+    defexception [:message]
+  end
+
   @doc """
   Parses `argv` into a keywords list.
 
@@ -139,6 +143,36 @@ defmodule OptionParser do
   end
 
   @doc """
+  The same as `parse/2` but raises an `OptionParser.InvalidOptionError`
+  exception if any invalid options are given.
+
+  If there weren't any errors, returns a three-element tuple as follows:
+
+      1. parsed options,
+      2. remaining arguments,
+      3. empty list.
+
+  ## Examples
+
+      iex> OptionParser.parse!(["--limit", "xyz"], strict: [limit: :integer])
+      ** (OptionParser.InvalidOptionError) 1 error found! Option --limit is of the wrong type, expected a integer, given "xyz"
+
+      iex> OptionParser.parse!(["--unknown", "xyz"], strict: [])
+      ** (OptionParser.InvalidOptionError) 1 error found! Unknown option --unknown
+
+      iex> OptionParser.parse!(["-l", "xyz", "-f", "bar"], strict: [limit: :integer, foo: :integer], aliases: [l: :limit, f: :foo])
+      ** (OptionParser.InvalidOptionError) 2 errors found! Option -l is of the wrong type, expected a integer, given "xyz". Option -f is of the wrong type, expected a integer, given "bar"
+
+  """
+  @spec parse!(argv, options) :: {parsed, argv, errors} | no_return
+  def parse!(argv, opts \\ []) when is_list(argv) and is_list(opts) do
+    case parse(argv, opts) do
+      {_parsed, _argv, []} = result -> result
+      {_parsed, _argv, errors} -> raise InvalidOptionError, message: format_errors(errors, opts)
+    end
+  end
+
+  @doc """
   Similar to `parse/2` but only parses the head of `argv`;
   as soon as it finds a non-switch, it stops parsing.
 
@@ -158,6 +192,32 @@ defmodule OptionParser do
     do_parse(argv, compile_config(opts), [], [], [], false)
   end
 
+  @doc """
+  The same as `parse_head/2` but raises an `OptionParser.InvalidOptionError`
+  exception if any invalid options are given.
+
+  If there weren't any errors, returns a three-element tuple as follows:
+
+      1. parsed options,
+      2. remaining arguments,
+      3. empty list.
+
+  ## Examples
+
+      iex> OptionParser.parse_head!(["--number", "lib", "test/enum_test.exs", "--verbose"], strict: [number: :integer])
+      ** (OptionParser.InvalidOptionError) 1 error found! Option --number is of the wrong type, expected a integer, given "lib"
+
+      iex> OptionParser.parse_head!(["--verbose", "true", "--source", "lib", "test/enum_test.exs", "--unlock"], strict: [verbose: :integer, source: :integer])
+      ** (OptionParser.InvalidOptionError) 2 errors found! Option --verbose is of the wrong type, expected a integer, given "true". Option --source is of the wrong type, expected a integer, given "lib"
+  """
+  @spec parse_head!(argv, options) :: {parsed, argv, errors} | no_return
+  def parse_head!(argv, opts \\ []) when is_list(argv) and is_list(opts) do
+    case parse_head(argv, opts) do
+      {_parsed, _argv, []} = result -> result
+      {_parsed, _argv, errors} -> raise InvalidOptionError, message: format_errors(errors, opts)
+    end
+  end
+
   defp do_parse([], _config, opts, args, invalid, _all?) do
     {Enum.reverse(opts), Enum.reverse(args), Enum.reverse(invalid)}
   end
@@ -165,7 +225,7 @@ defmodule OptionParser do
   defp do_parse(argv, {aliases, switches, strict}=config, opts, args, invalid, all?) do
     case next(argv, aliases, switches, strict) do
       {:ok, option, value, rest} ->
-        # the option exist and it was successfully parsed
+        # the option exists and it was successfully parsed
         kinds = List.wrap Keyword.get(switches, option)
         new_opts = do_store_option(opts, option, value, kinds)
         do_parse(rest, config, new_opts, args, invalid, all?)
@@ -525,5 +585,29 @@ defmodule OptionParser do
 
   defp negative_number?(arg) do
     match?({_, ""}, Float.parse(arg))
+  end
+
+  defp format_errors(errors, opts) do
+    details = Enum.map_join(errors, ". ", &format_error(&1, opts))
+    total = Enum.count(errors)
+    error = if total == 1, do: "error", else: "errors"
+    "#{total} #{error} found! #{details}"
+  end
+
+  defp format_error({option, nil}, _) do
+    "Unknown option #{option}"
+  end
+
+  defp format_error({option, value}, opts) do
+    option_key = option |> String.lstrip(?-) |> String.to_atom()
+
+    type =
+      if option_alias = opts[:aliases][option_key] do
+        opts[:strict][option_alias]
+      else
+        opts[:strict][option_key]
+      end
+
+    "Option #{option} is of the wrong type, expected a #{type}, given #{inspect value}"
   end
 end
