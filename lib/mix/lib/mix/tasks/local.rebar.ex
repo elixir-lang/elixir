@@ -2,8 +2,8 @@ defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
   @rebar_s3           "http://s3.amazonaws.com/s3.hex.pm"
-  @rebar_list_url     @rebar_s3 <> "/installs/rebar-1.x.csv"
-  @rebar_escript_url  @rebar_s3 <> "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
+  @rebar_list_path    "/installs/rebar-1.x.csv"
+  @rebar_escript_path "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
 
   @shortdoc  "Installs rebar locally"
 
@@ -23,6 +23,11 @@ defmodule Mix.Tasks.Local.Rebar do
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
+
+  ## Mirrors
+
+  If you want to change the [default mirror](http://s3.amazonaws.com/s3.hex.pm)
+  to use for fetching `rebar` please set the `HEX_CDN` environment variable.
   """
   @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: true
@@ -68,11 +73,13 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(opts) do
+    rebar_mirror = System.get_env("HEX_CDN") || @rebar_s3
+
     {elixir_version, rebar_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", @rebar_list_url)
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", rebar_mirror <> @rebar_list_path)
 
     url =
-      @rebar_escript_url
+      (rebar_mirror <> @rebar_escript_path)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
