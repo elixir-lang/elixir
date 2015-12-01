@@ -1,12 +1,12 @@
 defmodule List do
   @moduledoc """
-  Specialized functions that works only on lists.
+  Specialized functions that only work on lists.
 
   In general, favor using the `Enum` API instead of `List`.
 
   Index access for list is linear. Negative indexes are also
   supported but they imply the list will be iterated twice,
-  one to calculate the proper index and another to the
+  one to calculate the proper index and another to perform the
   operation.
 
   A decision was taken to delegate most functions to
@@ -16,7 +16,7 @@ defmodule List do
 
   ## Char lists
 
-  If a list is made of non negative integers, it can also
+  If a list is made of non-negative integers, it can also
   be called as a char list. Elixir uses single quotes to
   define char lists:
 
@@ -24,7 +24,7 @@ defmodule List do
       [104, 233, 108, 108, 111]
 
   In particular, char lists may be printed back in single
-  quotes if it contains only ASCII printable codepoints:
+  quotes if they contain only ASCII-printable codepoints:
 
       iex> 'abc'
       'abc'

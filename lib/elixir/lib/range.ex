@@ -6,7 +6,7 @@ defmodule Range do
   the first and last values are integers.
 
   Ranges can be either increasing (first <= last) or
-  decresing (first > last). Ranges are also always
+  decreasing (first > last). Ranges are also always
   inclusive.
 
   A Range is represented internally as a struct. However,

@@ -2,7 +2,7 @@ defmodule GenServer do
   @moduledoc """
   A behaviour module for implementing the server of a client-server relation.
 
-  A GenServer is a process as any other Elixir process and it can be used
+  A GenServer is a process like any other Elixir process and it can be used
   to keep state, execute code asynchronously and so on. The advantage of using
   a generic server process (GenServer) implemented using this module is that it
   will have a standard set of interface functions and include functionality for

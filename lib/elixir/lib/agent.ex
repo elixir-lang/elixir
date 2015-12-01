@@ -34,7 +34,7 @@ defmodule Agent do
           Agent.update(__MODULE__, &MapSet.put(&1, item))
         end
 
-        @doc "Resets the executed tasks and return the previous list of tasks"
+        @doc "Resets the executed tasks and returns the previous list of tasks"
         def take_all() do
           Agent.get_and_update(__MODULE__, fn set ->
             {Enum.into(set, []), MapSet.new}

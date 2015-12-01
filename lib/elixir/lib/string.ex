@@ -51,11 +51,11 @@ defmodule String do
 
   ## String and binary operations
 
-  To act accordingly to the Unicode Standard, many functions
-  in this module run in linear time, as it needs to traverse
+  To act according to the Unicode Standard, many functions
+  in this module run in linear time, as they need to traverse
   the whole string considering the proper Unicode codepoints.
 
-  For example, `String.length/1` is going to take longer as
+  For example, `String.length/1` will take longer as
   the input grows. On the other hand, `Kernel.byte_size/1` always runs
   in constant time (i.e. regardless of the input size).
 
@@ -88,7 +88,7 @@ defmodule String do
   fully, so we traverse both `prefix` and `full` strings, then
   slice the `full` one, traversing it again.
 
-  A first attempting at improving it could be with ranges:
+  A first attempt at improving it could be with ranges:
 
       iex> take_prefix = fn full, prefix ->
       ...>   base = String.length(prefix)
@@ -123,7 +123,7 @@ defmodule String do
   On the other hand, if you want to dynamically slice a string
   based on an integer value, then using `String.slice/3` is the
   best option as it guarantees we won't incorrectly split a valid
-  codepoint in multiple bytes.
+  codepoint into multiple bytes.
 
   ## Integer codepoints
 
@@ -162,12 +162,12 @@ defmodule String do
   codepoint needs to be rejected.
 
   This module relies on this behaviour to ignore such invalid
-  characters. For example, `length/1` is going to return
+  characters. For example, `length/1` will return
   a correct result even if an invalid codepoint is fed into it.
 
   In other words, this module expects invalid data to be detected
   when retrieving data from the external source. For example, a
-  driver that reads strings from a database will be the one
+  driver that reads strings from a database will be
   responsible to check the validity of the encoding.
 
   ## Patterns

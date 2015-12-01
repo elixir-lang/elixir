@@ -10,7 +10,7 @@ defmodule Record do
   This module provides conveniences for working with records at
   compilation time, where compile-time field names are used to
   manipulate the tuples, providing fast operations on top of
-  the tuples compact structure.
+  the tuples' compact structure.
 
   In Elixir, records are used mostly in two situations:
 
