@@ -11,8 +11,11 @@ defmodule OptionParser do
   @doc """
   Parses `argv` into a keywords list.
 
-  It returns the parsed values, remaining arguments and the
-  invalid options.
+  It returns a three-element tuple as follows:
+
+     1. parsed switches,
+     2. remaining arguments,
+     3. invalid options.
 
   ## Examples
 
@@ -25,30 +28,30 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--source-path", "lib", "test/enum_test.exs", "--verbose"])
       {[source_path: "lib", verbose: true], ["test/enum_test.exs"], []}
 
-  By default, Elixir will try to automatically parse switches.
+  By default, Elixir will try to automatically parse all switches.
+  Switches followed by a value will be assigned the value, as a string.
   Switches without an argument, like `--debug` will automatically
-  be set to `true`. Switches followed by a value will be assigned
-  to the value, always as strings.
+  be set to `true`.
 
-  Note Elixir also converts the switches to underscore atoms, as
+  Note: Elixir also converts the switches to underscore atoms, so
   `--source-path` becomes `:source_path`, to better suit Elixir
   conventions. This means that option names on the command line cannot contain
-  underscores; such options will be reported as `:undefined` (in strict mode)
-  or `:invalid` (in basic mode).
+  underscores; such options will be put in the invalid options list.
 
-  ## Switches
+  ## Switch Definitions
 
-  Many times though, it is better to explicitly list the available
+  Often it is better to explicitly list the known
   switches and their formats. The switches can be specified via two
-  different options:
+  alternative options:
 
-    * `:strict` - the switches are strict. Any switch that does not
-      exist in the switch list is treated as an error.
+    * `:switches` - defines some switches. An attempt is still made to parse
+      switches that do not appear in the list.
 
-    * `:switches` - defines some switches. Switches that do not
-      exist in the switch list are still attempted to be parsed.
+    * `:strict` - the switches are strict. Any switch that is not specified
+      in the list is returned in the invalid options list.
 
-  Note only `:strict` or `:switches` may be given at once.
+  Note that you should only supply the `:switches` or `:strict` option. If you
+  supply both, the `:strict` option will be ignored.
 
   For each switch, the following types are supported:
 
@@ -59,13 +62,14 @@ defmodule OptionParser do
     * `:float`   - parses the switch as a float.
     * `:string`  - returns the switch as a string.
 
-  If a switch can't be parsed or is not specified in the strict case,
-  the option is returned in the invalid options list (third element
-  of the returned tuple).
+  If a switch can't be parsed, it is returned in the invalid options list.
 
   The following extra "types" are supported:
 
-    * `:keep` - keeps duplicated items in the list instead of overriding
+    * `:keep` - keeps duplicated items in the list instead of overriding them.
+
+  Note: if you want to use `:keep` with a non-string type, use a list, e.g.
+  `[foo: [:integer, :keep]]`.
 
   Examples:
 
@@ -181,7 +185,7 @@ defmodule OptionParser do
       command line)
 
     * `{:undefined, key, value, rest}` - the option `key` is undefined
-      (returned on strict cases and the switch is unknown)
+      (returned in strict mode when the switch is unknown)
 
     * `{:error, rest}` - there are no switches at the top of the given argv
   """
@@ -235,7 +239,7 @@ defmodule OptionParser do
   end
 
   @doc """
-  Receives a key-value enumerable and convert it to argv.
+  Receives a key-value enumerable and converts it to argv.
 
   Keys must be atoms. Keys with nil value are discarded,
   boolean values are converted to `--key` or `--no-key`
