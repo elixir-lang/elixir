@@ -339,6 +339,21 @@ defmodule ExceptionTest do
            "undefined function nil.bar/0"
   end
 
+  test "undefined function message suggestions" do
+    assert %UndefinedFunctionError{module: Enum, function: :map, arity: 1} |> message == """
+           undefined function Enum.map/1. Perhaps you meant one of:
+
+                 * map/2
+           """
+    assert %UndefinedFunctionError{module: Enum, function: :man, arity: 1} |> message == """
+           undefined function Enum.man/1. Perhaps you meant one of:
+
+                 * min/1
+                 * max/1
+                 * map/2
+           """
+  end
+
   test "function clause message" do
     assert %FunctionClauseError{} |> message ==
            "no function clause matches"

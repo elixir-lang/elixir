@@ -640,7 +640,7 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity)
+    "undefined function " <> Exception.format_mfa(module, function, arity) <> perhaps(module, function, arity)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do
@@ -651,6 +651,55 @@ defmodule UndefinedFunctionError do
 
   def message(%{reason: reason,  module: module, function: function, arity: arity}) do
     "undefined function " <> Exception.format_mfa(module, function, arity) <> " (#{reason})"
+  end
+
+  @function_threshold 0.77
+  @max_suggestions 5
+
+  defp perhaps(module, function, arity) do
+    exports = exports_for(module)
+
+    distances =
+      case Keyword.take(exports, [function]) do
+        [] ->
+          base = Atom.to_string(function)
+          for {k, v} <- exports,
+              d = String.jaro_distance(base, Atom.to_string(k)),
+              d >= @function_threshold,
+              do: {d, k, v}
+        arities ->
+          for {k, v} <- arities, do: {1.0, k, v}
+      end
+
+    distances
+    |> Enum.sort(&elem(&1, 0) >= elem(&2, 0))
+    |> Enum.take(@max_suggestions)
+    |> Enum.sort(&elem(&1, 1) >= elem(&2, 1))
+    |> case do
+        []          -> ""
+        suggestions -> ". Perhaps you meant one of:\n\n#{Enum.map(suggestions, &format_fa/1)}"
+       end
+  end
+
+  defp format_fa({_d, f, a}) do
+    f =
+      case inspect(f) do
+        ":" <> f -> f
+        f -> f
+      end
+
+    "      * " <> f <> "/" <> Integer.to_string(a) <> "\n"
+  end
+
+  defp exports_for(module) do
+    if function_exported?(module, :__info__, 1) do
+      module.__info__(:functions) ++ module.__info__(:macros)
+    else
+      module.module_info(:exports)
+    end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError -> []
   end
 end
 
