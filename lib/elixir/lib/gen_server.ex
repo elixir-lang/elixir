@@ -553,7 +553,7 @@ defmodule GenServer do
   failure and continues running, and the server is just late with the reply,
   it may arrive at any time later into the caller's message queue. The caller
   must in this case be prepared for this and discard any such garbage messages
-  that are two element tuples with a reference as the first element.
+  that are two-element tuples with a reference as the first element.
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000) do
