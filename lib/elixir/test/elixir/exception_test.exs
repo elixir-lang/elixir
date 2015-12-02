@@ -331,8 +331,8 @@ defmodule ExceptionTest do
 
   test "undefined function message" do
     assert %UndefinedFunctionError{} |> message == "undefined function"
-    assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message ==
-           "undefined function Kernel.bar/1"
+    assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1} |> message =~
+           ~r{^undefined function Kernel\.bar/1}
     assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1} |> message ==
            "undefined function Foo.bar/1 (module Foo is not available)"
     assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0} |> message ==
@@ -342,7 +342,7 @@ defmodule ExceptionTest do
   test "function clause message" do
     assert %FunctionClauseError{} |> message ==
            "no function clause matches"
-    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message ==
+    assert %FunctionClauseError{module: Foo, function: :bar, arity: 1} |> message =~
            "no function clause matching in Foo.bar/1"
   end
 

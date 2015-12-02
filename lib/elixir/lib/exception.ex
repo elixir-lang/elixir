@@ -627,12 +627,20 @@ defmodule UndefinedFunctionError do
   end
 
   def message(%{reason: :"module could not be loaded", module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity) <>
+    msg = "undefined function " <> Exception.format_mfa(module, function, arity) <>
       " (module #{inspect module} is not available)"
+
+    matches = ExceptionHelpers.find_modules(module, function, arity)
+
+    ExceptionHelpers.perhaps(msg, module, matches)
   end
 
   def message(%{reason: :"function not exported",  module: module, function: function, arity: arity}) do
-    "undefined function " <> Exception.format_mfa(module, function, arity)
+    msg = "undefined function " <> Exception.format_mfa(module, function, arity)
+
+    matches = ExceptionHelpers.find_functions(module, function, arity)
+
+    ExceptionHelpers.perhaps(msg, module, matches)
   end
 
   def message(%{reason: :"function not available", module: module, function: function, arity: arity}) do

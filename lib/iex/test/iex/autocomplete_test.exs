@@ -46,7 +46,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('Str') == {:yes, [], ['Stream', 'String', 'StringIO']}
     assert expand('Ma') == {:yes, '', ['Macro', 'Map', 'MapSet', 'MatchError']}
     assert expand('Dic') == {:yes, 't.', []}
-    assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception']}
+    assert expand('Ex')  == {:yes, [], ['ExUnit', 'Exception', 'ExceptionHelpers']}
   end
 
   test "elixir no completion" do
