@@ -9,7 +9,7 @@ goto parseopts
 :documentation
 echo Usage: %~nx0 [options] [.exs file] [data]
 echo.
-echo   -v                Prints version and exit
+echo   -v                Prints version and exits
 echo   -e command        Evaluates the given command (*)
 echo   -r file           Requires the given files/patterns (*)
 echo   -S script         Finds and executes the given script

@@ -13,7 +13,7 @@ We have brought many features specific to Erlang 18. Here are the highlights:
     the modules `Dict` and `HashDict` is now discouraged and will be
     deprecated in future releases, instead use `Map`. Similarly, `Set` and
     `HashSet` will be deprecated in favor of `MapSet`
-  * Compilation times are faster due to improvements on both Elixir and
+  * Compilation times are faster due to improvements in both the Elixir and
     Erlang compilers
   * Dialyzer now emits less false negative warnings thanks to new annotations
     available in the Erlang compiler
@@ -30,7 +30,7 @@ This release includes four notable language improvements:
 
         %{key => value}
 
-  * Support for pin operator in map keys and function clauses:
+  * Support for the pin operator in map keys and function clauses:
 
         %{^key => value} = %{key => value}
         fn ^key -> :ok end
@@ -45,7 +45,7 @@ These improvements aim to make the language more consistent and expressive.
 
 ## Getting started experience
 
-At the same time we improved the language, we have improved both parser and
+While we were improving the language, we also improved both the parser and
 compiler to be even more aware of language constructs, emitting warnings
 on common pitfalls like when piping to expressions without parentheses or
 when defining unsafe variables.
@@ -76,8 +76,8 @@ achieved when migrating to Erlang 18.
 With Rebar 3 support gaining more adoption in the Erlang community, Mix is
 now able to fetch and compile Rebar 3 dependencies. This feature is currently
 experimental and therefore opt-in: if you have a Rebar 3 dependency, you can
-ask Mix to use Rebar 3 compile it by passing the `manager: :rebar3` option.
-Once you configured, Mix will prompt you to install Rebar 3 if one is not yet
+ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
+Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
 ## v1.2.0-dev

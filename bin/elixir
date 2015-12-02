@@ -2,7 +2,7 @@
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
   echo "Usage: `basename $0` [options] [.exs file] [data]
 
-  -v                Prints version and exit
+  -v                Prints version and exits
   -e \"command\"      Evaluates the given command (*)
   -r \"file\"         Requires the given files/patterns (*)
   -S \"script\"       Finds and executes the given script
