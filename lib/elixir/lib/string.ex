@@ -924,8 +924,8 @@ defmodule String do
     opts
   end
 
-  @doc """
-  Reverses the given string. Also works on graphemes.
+  @doc ~S"""
+  Reverses the graphemes in given string.
 
   ## Examples
 
@@ -938,6 +938,21 @@ defmodule String do
       iex> String.reverse("hello ∂og")
       "go∂ olleh"
 
+  Keep in mind reversing the same string twice does
+  not necessarily yield the original string:
+
+      iex> "̀e"
+      "̀e"
+      iex(12)> String.reverse("̀e")
+      "è"
+      iex(13)> String.reverse String.reverse("̀e")
+      "è"
+
+  In the first example the accent is before the vowel, so
+  it is considered two graphemes. However, when you reverse
+  it once, you have the vowel followed by the accent, which
+  becomes one grapheme. Reversing it again will keep it as
+  one single grapheme.
   """
   @spec reverse(t) :: t
   def reverse(string) do
