@@ -71,6 +71,15 @@ best performance across all environments without affecting compilation times.
 These are great additions on top of the faster compilation times we have
 achieved when migrating to Erlang 18.
 
+## Rebar 3 support
+
+With Rebar 3 support gaining more adoption in the Erlang community, Mix is
+now able to fetch and compile Rebar 3 dependencies. This feature is currently
+experimental and therefore opt-in: if you have a Rebar 3 dependency, you can
+ask Mix to use Rebar 3 compile it by passing the `manager: :rebar3` option.
+Once you configured, Mix will prompt you to install Rebar 3 if one is not yet
+available.
+
 ## v1.2.0-dev
 
 ### 1. Enhancements
@@ -99,6 +108,7 @@ achieved when migrating to Erlang 18.
   * [Process] Add `Process.get_keys/0`
   * [String] Introduce `String.replace_{prefix,suffix,leading,trailing}/2`. The first two will replace only the first occurrence of the given match in string. The last two will replace all occurrences of the given match
   * [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD and NFC normalization
+  * [System] Add `System.time_offset`, `System.monotonic_time`, `System.system_time`, `System.convert_time_unit` and `System.unique_integer`
   * [Task] Add `Task.Supervisor.async_nolink/1/3` that spawns a supervised task without linking to the caller process
   * [Task] Introduce `Task.yield_many/2`
   * [Task] Raise an error when a task is queried from a non-owning process (instead of waiting forever)
@@ -125,6 +135,7 @@ achieved when migrating to Erlang 18.
   * [Mix] Introduce `MIX_QUIET` environment variable that configures the underlying Mix task to output only error messages
   * [Mix] Validate git options and warn on conflicting ref, branch or tags
   * [Mix] New umbrella applications will now share configuration and build files
+  * [Mix] Add experimental support for Rebar 3
 
 ### 2. Bug fixes
 
