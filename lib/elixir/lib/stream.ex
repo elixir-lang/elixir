@@ -820,10 +820,15 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [{1, 0}, {2, 1}, {3, 2}]
 
+      iex> stream = Stream.with_index([1, 2, 3], 3)
+      iex> Enum.to_list(stream)
+      [{1, 3}, {2, 4}, {3, 5}]
+
   """
   @spec with_index(Enumerable.t) :: Enumerable.t
-  def with_index(enum) do
-    lazy enum, 0, fn(f1) -> R.with_index(f1) end
+  @spec with_index(Enumerable.t, integer) :: Enumerable.t
+  def with_index(enum, offset \\ 0) do
+    lazy enum, offset, fn(f1) -> R.with_index(f1) end
   end
 
   ## Combiners

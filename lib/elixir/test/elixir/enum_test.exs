@@ -500,6 +500,7 @@ defmodule EnumTest.List do
   test "with index" do
     assert Enum.with_index([]) == []
     assert Enum.with_index([1, 2, 3]) == [{1, 0}, {2, 1}, {3, 2}]
+    assert Enum.with_index([1, 2, 3], 10) == [{1, 10}, {2, 11}, {3, 12}]
   end
 
   test "max" do

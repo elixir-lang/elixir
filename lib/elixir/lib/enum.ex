@@ -2358,13 +2358,17 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.with_index [:a, :b, :c]
+      iex> Enum.with_index([:a, :b, :c])
       [a: 0, b: 1, c: 2]
 
+      iex> Enum.with_index([:a, :b, :c], 3)
+      [a: 3, b: 4, c: 5]
+
   """
-  @spec with_index(t) :: [{element, non_neg_integer}]
-  def with_index(enumerable) do
-    map_reduce(enumerable, 0, fn x, acc ->
+  @spec with_index(t) :: [{element, integer}]
+  @spec with_index(t, integer) :: [{element, integer}]
+  def with_index(enumerable, offset \\ 0) do
+    map_reduce(enumerable, offset, fn x, acc ->
       {{x, acc}, acc + 1}
     end) |> elem(0)
   end
