@@ -51,7 +51,7 @@ defmodule OptionParser do
       in the list is returned in the invalid options list.
 
   Note that you should only supply the `:switches` or `:strict` option. If you
-  supply both, the `:strict` option will be ignored.
+  supply both, an error will be raised.
 
   For each switch, the following types are supported:
 
@@ -330,6 +330,8 @@ defmodule OptionParser do
     aliases = opts[:aliases] || []
 
     {switches, strict} = cond do
+      opts[:switches] && opts[:strict] ->
+        raise ArgumentError, ":switches and :strict cannot be supplied together"
       s = opts[:switches] ->
         {s, false}
       s = opts[:strict] ->
