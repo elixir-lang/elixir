@@ -102,7 +102,7 @@ defmodule Mix.SCM do
   structural check is required. A structural mismatch should always
   return `:outdated`.
   """
-  @callback lock_status(opts) :: :mismatch | :outdated | :ok
+  @callback lock_status(opts) :: :mismatch | :outdated | :nolock | :ok
 
   @doc """
   Receives two options and must return `true` if they refer to the
@@ -110,6 +110,13 @@ defmodule Mix.SCM do
   same SCM.
   """
   @callback equal?(opts1 :: opts, opts2 :: opts) :: boolean
+
+  @doc """
+  Returns the usable managers for the dependency. This can be used
+  if the SCM has extra knowledge of the dependency, otherwise it
+  should return an empty list.
+  """
+  @callback managers(opts) :: [atom]
 
   @doc """
   Returns all available SCMs. Each SCM is tried in order

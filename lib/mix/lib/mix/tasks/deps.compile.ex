@@ -58,10 +58,12 @@ defmodule Mix.Tasks.Deps.Compile do
             do_compile dep, config
           mix?(dep) ->
             do_mix dep, config
-          rebar?(dep) ->
-            do_rebar dep, config
           make?(dep) ->
             do_make dep, config
+          dep.manager == :rebar ->
+            do_rebar dep, config
+          dep.manager == :rebar3 ->
+            do_rebar3 dep, config
           true ->
             shell.error "Could not compile #{inspect app}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
               "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
@@ -113,28 +115,40 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_rebar(%Mix.Dep{app: app} = dep, config) do
+  defp do_rebar(dep, config) do
     lib_path = Path.join(config[:env_path], "lib")
-    do_command dep, config, rebar_cmd(app), false,
-               "compile skip_deps=true deps_dir=#{inspect lib_path}"
+    cmd      = "#{rebar_cmd(dep)} compile skip_deps=true deps_dir=#{inspect lib_path}"
+    do_command dep, config, cmd, false
   end
 
-  defp rebar_cmd(app) do
-    Mix.Rebar.rebar_cmd || handle_rebar_not_found(app)
+  defp do_rebar3(dep, config) do
+    dep_path     = Path.join([config[:env_path], "lib", Atom.to_string(dep.app)])
+    config_path  = Path.join(dep_path, "mix.rebar.config")
+    env          = [{"REBAR_CONFIG", Path.expand(config_path)}]
+    lib_wildcard = Path.join(["deps", "*", "ebin"]) |> Path.expand
+    cmd          = "#{rebar_cmd(dep)} bare compile --paths \"#{lib_wildcard}\""
+
+    File.mkdir_p!(dep_path)
+    File.write!(config_path, Mix.Rebar.serialize_config(dep.extra))
+    do_command dep, config, cmd, false, env
   end
 
-  defp handle_rebar_not_found(app) do
+  defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
+    Mix.Rebar.rebar_cmd(manager) || handle_rebar_not_found(dep)
+  end
+
+  defp handle_rebar_not_found(%Mix.Dep{app: app, manager: manager}) do
     shell = Mix.shell
-    shell.info "Could not find \"rebar\", which is needed to build dependency #{inspect app}"
+    shell.info "Could not find \"#{manager}\", which is needed to build dependency #{inspect app}"
     shell.info "I can install a local copy which is just used by Mix"
 
-    unless shell.yes?("Shall I install rebar?") do
-      Mix.raise "Could not find \"rebar\" to compile " <>
-        "dependency #{inspect app}, please ensure \"rebar\" is available"
+    unless shell.yes?("Shall I install #{manager}?") do
+      Mix.raise "Could not find \"#{manager}\" to compile " <>
+        "dependency #{inspect app}, please ensure \"#{manager}\" is available"
     end
 
-    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd) ||
-      Mix.raise "\"rebar\" installation failed"
+    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd(manager)) ||
+      Mix.raise "\"#{manager}\" installation failed"
   end
 
   defp do_make(dep, config) do
@@ -154,10 +168,10 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, extra \\ "") do
+  defp do_command(%Mix.Dep{app: app} = dep, config, command, print_app?, env \\ []) do
     Mix.Dep.in_dependency dep, fn _ ->
-      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}]
-      if Mix.shell.cmd("#{command} #{extra}", print_app: print_app?, env: env) != 0 do
+      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")}] ++ env
+      if Mix.shell.cmd(command, print_app: print_app?, env: env) != 0 do
         Mix.raise "Could not compile dependency #{inspect app}, \"#{command}\" command failed. " <>
           "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
           "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
