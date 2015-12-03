@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Deps do
 
   Below we provide a more detailed look into the available options.
 
-  ## Mix options
+  ## Dependency definition options
 
     * `:app` - when set to `false`, does not read the app file for this
       dependency
@@ -66,6 +66,11 @@ defmodule Mix.Tasks.Deps do
 
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
+
+    * `:manager` - Mix can also compile rebar, rebar3 and makefile projects
+      and can fetch sub dependencies of rebar and rebar3 projects. Mix will
+      try to infer the type of project but it can be overridden with this
+      option by setting it to `:mix`, `:rebar`, `:rebar3` or `:make`
 
   ## Git options (`:git`)
 

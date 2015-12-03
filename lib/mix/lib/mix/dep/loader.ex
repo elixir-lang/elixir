@@ -4,6 +4,8 @@
 defmodule Mix.Dep.Loader do
   @moduledoc false
 
+  import Mix.Dep, only: [ok?: 1, mix?: 1, rebar?: 1, make?: 1]
+
   @doc """
   Gets all direct children of the current `Mix.Project`
   as a `Mix.Dep` struct. Umbrella project dependencies
@@ -37,25 +39,27 @@ defmodule Mix.Dep.Loader do
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(dep, children) do
-    %Mix.Dep{manager: manager, scm: scm, opts: opts} = dep
-    dep  = %{dep | status: scm_status(scm, opts)}
-    dest = opts[:dest]
+  def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
+    manager = opts[:manager] ||
+              scm_manager(scm, opts) ||
+              select_manager(manager, opts[:dest])
+
+    dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
     {dep, children} =
       cond do
-        not ok?(dep.status) ->
+        not ok?(dep) ->
           {dep, []}
 
-        mix?(dest) ->
+        mix?(dep) ->
           mix_dep(dep, children)
 
         # If not an explicit rebar or Mix dependency
         # but came from rebar, assume to be a rebar dep.
-        rebar?(dest) or manager == :rebar ->
-          rebar_dep(dep, children)
+        rebar?(dep) ->
+          rebar_dep(dep, children, manager)
 
-        make?(dest) ->
+        make?(dep) ->
           make_dep(dep)
 
         true ->
@@ -155,9 +159,16 @@ defmodule Mix.Dep.Loader do
   end
 
   defp get_scm(app, opts) do
-    Enum.find_value Mix.SCM.available, {nil, opts}, fn(scm) ->
+    Enum.find_value Mix.SCM.available, {nil, opts}, fn scm ->
       (new = scm.accepts_options(app, opts)) && {scm, new}
     end
+  end
+
+  @managers ~w(mix rebar rebar3 make)a
+
+  defp scm_manager(scm, opts) do
+    managers = scm.managers(opts)
+    Enum.find(@managers, &(&1 in managers))
   end
 
   defp scm_status(scm, opts) do
@@ -168,19 +179,21 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp ok?({:ok, _}), do: true
-  defp ok?(_), do: false
-
-  defp mix?(dest) do
-    any_of?(dest, ["mix.exs"])
+  defp select_manager(nil, dest) do
+    cond do
+      any_of?(dest, ["mix.exs"]) ->
+        :mix
+      any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"]) ->
+        :rebar
+      any_of?(dest, ["Makefile", "Makefile.win"]) ->
+        :make
+      true ->
+        nil
+    end
   end
 
-  defp rebar?(dest) do
-    any_of?(dest, ["rebar", "rebar.config", "rebar.config.script"])
-  end
-
-  defp make?(dest) do
-    any_of?(dest, ["Makefile", "Makefile.win"])
+  defp select_manager(manager, _dest) do
+    manager
   end
 
   defp any_of?(dest, files) do
@@ -227,7 +240,7 @@ defmodule Mix.Dep.Loader do
       end
 
       deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
-      {%{dep | manager: :mix, opts: opts}, deps}
+      {%{dep | opts: opts}, deps}
     end)
   end
 
@@ -238,25 +251,28 @@ defmodule Mix.Dep.Loader do
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
     deps = Enum.map(children, &to_dep(&1, from))
-    {%{dep | manager: :mix}, deps}
+    {dep, deps}
   end
 
-  defp rebar_dep(%Mix.Dep{} = dep, children) do
+  defp rebar_dep(%Mix.Dep{app: app} = dep, children, manager) do
     Mix.Dep.in_dependency(dep, fn _ ->
-      rebar = Mix.Rebar.load_config(".")
-      extra = Keyword.take(rebar, [:sub_dirs])
-      deps  = if children do
+      config = Mix.Rebar.load_config(".")
+      extra = Mix.Rebar.merge_config(dep.extra, config)
+      deps   = if children do
         from = Path.absname("rebar.config")
-        Enum.map(children, &to_dep(&1, from, :rebar))
+        # Pass the manager because deps of a rebar project need
+        # to default to rebar if we cannot chose a manager from
+        # files in the dependency
+        Enum.map(children, &to_dep(&1, from, manager))
       else
-        rebar_children(rebar)
+        rebar_children(app, config, extra, manager)
       end
-      {%{dep | manager: :rebar, extra: extra}, deps}
+      {%{dep | extra: extra}, deps}
     end)
   end
 
   defp make_dep(dep) do
-    {%{dep | manager: :make}, []}
+    {dep, []}
   end
 
   defp validate_only!(only) do
@@ -274,18 +290,21 @@ defmodule Mix.Dep.Loader do
     |> elem(0)
   end
 
-  defp rebar_children(root_config) do
+  defp rebar_children(app, root_config, extra, manager) do
     from = Path.absname("rebar.config")
     Mix.Rebar.recur(root_config, fn config ->
-      Mix.Rebar.deps(config) |> Enum.map(&to_dep(&1, from, :rebar))
+      deps = Mix.Rebar.deps(app, config, extra[:overrides] || [])
+      Enum.map(deps, fn dep ->
+        %{to_dep(dep, from, manager) | extra: extra}
+      end)
     end) |> Enum.concat
   end
 
-  defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app, status: status} = dep) do
+  defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app} = dep) do
     opts_app = opts[:app]
 
     cond do
-      not ok?(status) ->
+      not ok?(dep) ->
         dep
       recently_fetched?(dep) ->
         %{dep | status: :compile}
