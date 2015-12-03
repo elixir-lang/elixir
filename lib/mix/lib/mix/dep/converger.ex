@@ -194,7 +194,7 @@ defmodule Mix.Dep.Converger do
   # also check for the override option and mark the dependency
   # as overridden instead of diverged.
   defp diverged_deps(list, upper_breadths, dep) do
-    %Mix.Dep{app: app} = dep
+    %Mix.Dep{app: app, opts: opts} = dep
     in_upper? = app in upper_breadths
 
     {acc, match} =
@@ -206,6 +206,8 @@ defmodule Mix.Dep.Converger do
             {other, match}
           in_upper? && other_opts[:override] ->
             {other |> with_matching_only(dep, in_upper?), true}
+          opts[:optional] ->
+            {other |> with_matching_req(dep), true}
           converge?(other, dep) ->
             {other |> with_matching_only(dep, in_upper?) |> with_matching_req(dep), true}
           true ->
