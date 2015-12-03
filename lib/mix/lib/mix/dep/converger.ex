@@ -59,12 +59,15 @@ defmodule Mix.Dep.Converger do
     current = Enum.map(deps, &(&1.app))
     {main, only} = Mix.Dep.Loader.partition_by_env(deps, opts)
 
+    # If no lock was given, let's read one to fill in the deps
+    lock_for_local = lock || Mix.Dep.Lock.read
+
     # Run converger for all dependencies, except remote
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
     {deps, rest, lock} =
-      all(main, only, [], current, callback, acc, lock, fn dep ->
+      all(main, only, [], current, callback, acc, lock_for_local, fn dep ->
         if (converger = Mix.RemoteConverger.get) && converger.remote?(dep) do
           {:loaded, dep}
         else
@@ -87,22 +90,21 @@ defmodule Mix.Dep.Converger do
         lock = remote.converge(deps, lock)
       end
 
+      # In case there is no lock, we will use the local lock which
+      # is potentially stale. So remote.deps/2 needs to always
+      # check if the data it finds in the lock is actually valid.
+      lock_for_remote = lock || lock_for_local
+
       deps = deps
              |> Enum.reject(&remote.remote?(&1))
              |> Enum.into(%{}, &{&1.app, &1})
 
-      # In case there is no lock, we will read the current lock
-      # which is potentially stale. So remote.deps/2 needs to
-      # always check if the data it finds in the lock is actually
-      # valid.
-      lock_for_converger = lock || Mix.Dep.Lock.read
-
-      all(main, [], [], Enum.map(main, &(&1.app)), callback, rest, lock, fn dep ->
+      all(main, [], [], Enum.map(main, &(&1.app)), callback, rest, lock_for_remote, fn dep ->
         cond do
           cached = deps[dep.app] ->
             {:loaded, cached}
           true ->
-            {:unloaded, dep, remote.deps(dep, lock_for_converger)}
+            {:unloaded, dep, remote.deps(dep, lock_for_remote)}
         end
       end)
     else
@@ -159,7 +161,7 @@ defmodule Mix.Dep.Converger do
             {:loaded, cached_dep} ->
               cached_dep
             {:unloaded, dep, children} ->
-              {dep, rest, lock} = callback.(dep, rest, lock)
+              {dep, rest, lock} = callback.(put_lock(dep, lock), rest, lock)
 
               # After we invoke the callback (which may actually check out the
               # dependency), we load the dependency including its latest info
@@ -175,6 +177,10 @@ defmodule Mix.Dep.Converger do
 
   defp all([], acc, _upper, _current, _callback, rest, lock, _cache) do
     {acc, rest, lock}
+  end
+
+  defp put_lock(%Mix.Dep{app: app} = dep, lock) do
+    put_in dep.opts[:lock], lock[app]
   end
 
   # Look for divergence in dependencies.

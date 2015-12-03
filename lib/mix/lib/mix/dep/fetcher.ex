@@ -7,7 +7,7 @@
 defmodule Mix.Dep.Fetcher do
   @moduledoc false
 
-  import Mix.Dep, only: [format_dep: 1, check_lock: 2, available?: 1, ok?: 1]
+  import Mix.Dep, only: [format_dep: 1, check_lock: 1, available?: 1, ok?: 1]
 
   @doc """
   Fetches all dependencies.
@@ -46,7 +46,7 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp do_fetch(dep, acc, lock) do
-    %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep, lock)
+    %Mix.Dep{app: app, scm: scm, opts: opts} = dep = check_lock(dep)
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards

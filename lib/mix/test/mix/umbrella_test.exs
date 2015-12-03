@@ -9,8 +9,8 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run "deps"
-        assert_received {:mix_shell, :info, ["* bar (apps/bar)"]}
-        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
+        assert_received {:mix_shell, :info, ["* bar (apps/bar) (mix)"]}
+        assert_received {:mix_shell, :info, ["* foo (apps/foo) (mix)"]}
 
         # Ensure we can compile and run checks
         Mix.Task.run "deps.compile"
@@ -102,8 +102,8 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
         Mix.Task.run "deps"
-        assert_received {:mix_shell, :info, ["* umbrella (deps/umbrella)"]}
-        assert_received {:mix_shell, :info, ["* foo (apps/foo)"]}
+        assert_received {:mix_shell, :info, ["* umbrella (deps/umbrella) (mix)"]}
+        assert_received {:mix_shell, :info, ["* foo (apps/foo) (mix)"]}
       end)
     end)
   end

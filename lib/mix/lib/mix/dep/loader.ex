@@ -164,11 +164,14 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  @managers ~w(mix rebar rebar3 make)a
+  # Notice we ignore make dependencies because the
+  # file based heuristic will always figure it out.
+  # TODO: In the future add rebar3 to the list.
+  @scm_managers ~w(mix rebar)a
 
   defp scm_manager(scm, opts) do
     managers = scm.managers(opts)
-    Enum.find(@managers, &(&1 in managers))
+    Enum.find(@scm_managers, &(&1 in managers))
   end
 
   defp scm_status(scm, opts) do
