@@ -943,10 +943,10 @@ defmodule String do
 
       iex> "̀e"
       "̀e"
-      iex(12)> String.reverse("̀e")
-      "è"
-      iex(13)> String.reverse String.reverse("̀e")
-      "è"
+      iex> String.reverse("̀e")
+      "è"
+      iex> String.reverse String.reverse("̀e")
+      "è"
 
   In the first example the accent is before the vowel, so
   it is considered two graphemes. However, when you reverse
