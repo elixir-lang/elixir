@@ -121,12 +121,13 @@ defmodule Mix.Tasks.Deps.Compile do
     do_command dep, config, cmd, false
   end
 
-  defp do_rebar3(dep, config) do
-    dep_path     = Path.join([config[:env_path], "lib", Atom.to_string(dep.app)])
-    config_path  = Path.join(dep_path, "mix.rebar.config")
-    env          = [{"REBAR_CONFIG", Path.expand(config_path)}]
-    lib_wildcard = Path.join(["deps", "*", "ebin"]) |> Path.expand
-    cmd          = "#{rebar_cmd(dep)} bare compile --paths \"#{lib_wildcard}\""
+  defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
+    dep_path    = opts[:build]
+    config_path = Path.join(dep_path, "mix.rebar.config")
+    lib_path    = Path.join(config[:env_path], "lib/*/ebin")
+
+    env = [{"REBAR_CONFIG", config_path}]
+    cmd = "#{rebar_cmd(dep)} bare compile --paths #{inspect lib_path}"
 
     File.mkdir_p!(dep_path)
     File.write!(config_path, Mix.Rebar.serialize_config(dep.extra))

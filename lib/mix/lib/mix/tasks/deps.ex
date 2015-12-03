@@ -1,7 +1,7 @@
 defmodule Mix.Tasks.Deps do
   use Mix.Task
 
-  import Mix.Dep, only: [loaded: 1, format_dep: 1, format_status: 1, check_lock: 2]
+  import Mix.Dep, only: [loaded: 1, format_dep: 1, format_status: 1, check_lock: 1]
 
   @shortdoc "Lists dependencies and their status"
 
@@ -107,14 +107,16 @@ defmodule Mix.Tasks.Deps do
     loaded_opts  = if opts[:all], do: [], else: [env: Mix.env]
 
     shell = Mix.shell
-    lock  = Mix.Dep.Lock.read
 
-    Enum.each loaded(loaded_opts), fn %Mix.Dep{scm: scm} = dep ->
-      dep = check_lock(dep, lock)
-      shell.info "* #{format_dep(dep)}"
+    Enum.each loaded(loaded_opts), fn %Mix.Dep{scm: scm, manager: manager} = dep ->
+      dep   = check_lock(dep)
+      extra = if manager, do: " (#{manager})", else: ""
+
+      shell.info "* #{format_dep(dep)}#{extra}"
       if formatted = scm.format_lock(dep.opts) do
         shell.info "  locked at #{formatted}"
       end
+
       shell.info "  #{format_status dep}"
     end
   end

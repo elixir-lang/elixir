@@ -233,15 +233,11 @@ defmodule Mix.Dep do
   @doc """
   Checks the lock for the given dependency and update its status accordingly.
   """
-  def check_lock(%Mix.Dep{scm: scm, app: app, opts: opts} = dep, lock) do
-    if rev = lock[app] do
-      opts = Keyword.put(opts, :lock, rev)
-    end
-
+  def check_lock(%Mix.Dep{scm: scm, opts: opts} = dep) do
     if available?(dep) do
       case scm.lock_status(opts) do
         :mismatch ->
-          status = if rev, do: {:lockmismatch, rev}, else: :nolock
+          status = if rev = opts[:lock], do: {:lockmismatch, rev}, else: :nolock
           %{dep | status: status, opts: opts}
         :outdated ->
           # Don't include the lock in the dependency if it is outdated
