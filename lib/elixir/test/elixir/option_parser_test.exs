@@ -198,6 +198,12 @@ defmodule OptionParserTest do
            == {[source: "from_docs/"], [], [{"--doc", nil}]}
   end
 
+  test ":switches with :strict raises" do
+    assert_raise ArgumentError, ":switches and :strict cannot be supplied together", fn ->
+      OptionParser.parse([], strict: [], switches: [])
+    end
+  end
+
   test "parses - as argument" do
     assert OptionParser.parse(["-a", "-", "-", "-b", "-"], aliases: [b: :boo])
            == {[boo: "-"], ["-"], [{"-a", "-"}]}
