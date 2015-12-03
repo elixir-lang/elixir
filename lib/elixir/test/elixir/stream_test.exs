@@ -891,6 +891,9 @@ defmodule StreamTest do
     assert is_lazy(stream)
     assert Enum.to_list(stream) == [{1, 0}, {2, 1}, {3, 2}]
 
+    stream = Stream.with_index([1, 2, 3], 10)
+    assert Enum.to_list(stream) == [{1, 10}, {2, 11}, {3, 12}]
+
     nats = Stream.iterate(1, &(&1 + 1))
     assert Stream.with_index(nats) |> Enum.take(3) == [{1, 0}, {2, 1}, {3, 2}]
   end
