@@ -28,10 +28,12 @@ import(Meta, Ref, Opts, E) ->
   {Functions, Macros}.
 
 import_functions(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?m(E, functions), E, fun() -> get_functions(Ref) end).
+  calculate(Meta, Ref, Opts, ?m(E, functions), ?m(E, file), fun() ->
+    get_functions(Ref)
+  end).
 
 import_macros(Force, Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?m(E, macros), E, fun() ->
+  calculate(Meta, Ref, Opts, ?m(E, macros), ?m(E, file), fun() ->
     case Force of
       true  -> get_macros(Meta, Ref, E);
       false -> get_optional_macros(Ref)
@@ -49,13 +51,14 @@ record_warn(Meta, Ref, Opts, Added, E) ->
 
 %% Calculates the imports based on only and except
 
-calculate(Meta, Key, Opts, Old, E, Existing) ->
+calculate(Meta, Key, Opts, Old, File, Existing) ->
   New = case keyfind(only, Opts) of
     {only, Only} when is_list(Only) ->
+      ensure_keyword_list(Meta, File, Only, only),
       case Only -- get_exports(Key) of
         [{Name, Arity}|_] ->
           Tuple = {invalid_import, {Key, Name, Arity}},
-          elixir_errors:form_error(Meta, ?m(E, file), ?MODULE, Tuple);
+          elixir_errors:form_error(Meta, File, ?MODULE, Tuple);
         _ ->
           intersection(Only, Existing())
       end;
@@ -63,6 +66,7 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
       case keyfind(except, Opts) of
         false -> remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
+          ensure_keyword_list(Meta, File, Except, except),
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
             {Key, OldImports} -> OldImports -- Except
@@ -78,7 +82,7 @@ calculate(Meta, Key, Opts, Old, E, Existing) ->
     [] ->
       {false, keydelete(Key, Old)};
     _  ->
-      ensure_no_special_form_conflict(Meta, ?m(E, file), Key, Final),
+      ensure_no_special_form_conflict(Meta, File, Key, Final),
       {true, [{Key, Final}|keydelete(Key, Old)]}
   end.
 
@@ -130,6 +134,14 @@ ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity}|T]) ->
   end;
 
 ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
+
+ensure_keyword_list(_Meta, _File, [], _Kind) -> ok;
+
+ensure_keyword_list(Meta, File, [{Key, _} | Rest], Kind) when is_atom(Key) ->
+  ensure_keyword_list(Meta, File, Rest, Kind);
+
+ensure_keyword_list(Meta, File, _Other, Kind) ->
+  elixir_errors:compile_error(Meta, File, "invalid :~s option for import, expected a keyword list", [Kind]).
 
 %% ERROR HANDLING
 
