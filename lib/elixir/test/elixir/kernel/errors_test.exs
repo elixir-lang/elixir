@@ -539,9 +539,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "unrequired macro" do
-    assert_compile_fail SyntaxError,
+    assert_compile_fail CompileError,
       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
-      "the macro Kernel.ErrorsTest.hello/0 "
+      "the macro Kernel.ErrorsTest.hello/0",
       '''
       defmodule Kernel.ErrorsTest.UnrequiredMacro do
         Kernel.ErrorsTest.hello()
