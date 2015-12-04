@@ -528,6 +528,16 @@ defmodule Kernel.ErrorsTest do
       'import Kernel, only: [invalid: 1]'
   end
 
+  test "import with invalid options" do
+    assert_compile_fail CompileError,
+      "nofile:1: invalid :only option for import, expected a keyword list",
+      'import Kernel, only: [:invalid]'
+
+    assert_compile_fail CompileError,
+      "nofile:1: invalid :except option for import, expected a keyword list",
+      'import Kernel, except: [:invalid]'
+  end
+
   test "unrequired macro" do
     assert_compile_fail SyntaxError,
       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
