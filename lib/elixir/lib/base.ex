@@ -108,7 +108,7 @@ defmodule Base do
       defp unquote(dec)(unquote(encoding)), do: unquote(value)
     end
     defp unquote(dec)(c) do
-      raise ArgumentError, "non-alphabet digit found: \"#{<<c>>}\" (byte #{c})"
+      raise ArgumentError, "non-alphabet digit found: #{inspect <<c>>, binaries: :as_strings} (byte #{c})"
     end
   end
 
