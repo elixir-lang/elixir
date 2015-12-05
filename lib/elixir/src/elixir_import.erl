@@ -54,7 +54,14 @@ record_warn(Meta, Ref, Opts, Added, E) ->
 calculate(Meta, Key, Opts, Old, File, Existing) ->
   New = case keyfind(only, Opts) of
     {only, Only} when is_list(Only) ->
-      ensure_keyword_list(Meta, File, Only, only),
+      ok = ensure_keyword_list(Meta, File, Only, only),
+      case keyfind(except, Opts) of
+        false -> ok;
+        _ ->
+          elixir_errors:compile_error(Meta, File,
+            ":only and :except can only be given together to import"
+            " when :only is either :functions or :macros")
+      end,
       case Only -- get_exports(Key) of
         [{Name, Arity}|_] ->
           Tuple = {invalid_import, {Key, Name, Arity}},
@@ -66,7 +73,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
       case keyfind(except, Opts) of
         false -> remove_underscored(Existing());
         {except, Except} when is_list(Except) ->
-          ensure_keyword_list(Meta, File, Except, except),
+          ok = ensure_keyword_list(Meta, File, Except, except),
           case keyfind(Key, Old) of
             false -> remove_underscored(Existing()) -- Except;
             {Key, OldImports} -> OldImports -- Except
