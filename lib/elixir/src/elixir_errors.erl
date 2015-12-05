@@ -219,6 +219,11 @@ file_format(Line, File) ->
 format_var(Var) ->
   list_to_atom(lists:takewhile(fun(X) -> X /= $@ end, atom_to_list(Var))).
 
+%% TODO: Remove this clause when we depend only on Erlang 19.
+format_error(erl_lint, {bittype_mismatch, Val1, Val2, Kind}) ->
+  Desc = "conflict in ~s specification for bit field: '~p' and '~p'",
+  io_lib:format(Desc, [Kind, Val1, Val2]);
+
 format_error([], Desc) ->
   io_lib:format("~p", [Desc]);
 
