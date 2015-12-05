@@ -209,6 +209,7 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
+  @spec take(map, [key]) :: map
   def take(map, keys) do
     Enum.reduce(keys, new, fn key, acc ->
       case fetch(map, key) do
@@ -421,6 +422,7 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
+  @spec drop(map, [key]) :: map
   def drop(map, keys) do
     Enum.reduce(keys, map, &delete(&2, &1))
   end
@@ -439,6 +441,7 @@ defmodule Map do
       {%{a: 1, c: 3}, %{b: 2}}
 
   """
+  @spec split(map, [key]) :: {map, map}
   def split(map, keys) do
     Enum.reduce(keys, {new, map}, fn key, {inc, exc} = acc ->
       case fetch(exc, key) do
