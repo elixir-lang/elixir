@@ -165,7 +165,7 @@ defmodule ExUnit.DocTest do
   Calling `doctest(Module)` will generate tests for all doctests found
   in the module `Module`
 
-  Options can also be supplied:
+  Options can also be given:
 
     * `:except` - generate tests for all functions except those listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).

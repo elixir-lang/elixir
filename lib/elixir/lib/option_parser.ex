@@ -331,7 +331,7 @@ defmodule OptionParser do
 
     {switches, strict} = cond do
       opts[:switches] && opts[:strict] ->
-        raise ArgumentError, ":switches and :strict cannot be supplied together"
+        raise ArgumentError, ":switches and :strict cannot be given together"
       s = opts[:switches] ->
         {s, false}
       s = opts[:strict] ->

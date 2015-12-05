@@ -199,7 +199,7 @@ defmodule OptionParserTest do
   end
 
   test ":switches with :strict raises" do
-    assert_raise ArgumentError, ":switches and :strict cannot be supplied together", fn ->
+    assert_raise ArgumentError, ":switches and :strict cannot be given together", fn ->
       OptionParser.parse([], strict: [], switches: [])
     end
   end
