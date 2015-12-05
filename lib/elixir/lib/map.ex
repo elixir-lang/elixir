@@ -209,6 +209,7 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
+  @spec take(map, [key]) :: map
   def take(map, keys) do
     Enum.reduce(keys, new, fn key, acc ->
       case fetch(map, key) do
