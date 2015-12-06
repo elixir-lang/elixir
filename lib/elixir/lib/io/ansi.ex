@@ -29,6 +29,12 @@ defmodule IO.ANSI do
   @typep ansilist :: maybe_improper_list(char() | ansicode() | binary() | ansilist(), binary() | ansicode() | [])
   @type  ansidata :: ansilist() | ansicode() | binary()
 
+  defmacro valid_rgb216(r, g, b) do
+    quote do
+      unquote(r) in (0..5) and unquote(g) in (0..5) and unquote(b) in (0..5)
+    end
+  end
+
   @doc """
   Checks if ANSI coloring is supported and enabled on this machine.
 
@@ -46,9 +52,29 @@ defmodule IO.ANSI do
   @spec color(0..255) :: String.t
   def color(code) when code in 0..255, do: "\e[38;5;#{code}m"
 
+  @doc ~S"""
+  Sets the foreground color from individual RGB values.
+
+  Valid values for each color are in the range 0 to 5.
+  """
+  @spec color(0..5, 0..5, 0..5) :: String.t
+  def color(r, g, b) when valid_rgb216(r, g, b) do
+    color(16 + (36 * r) + (6 * g) + b)
+  end
+
   @doc "Sets background color"
   @spec color_background(0..255) :: String.t
   def color_background(code) when code in 0..255, do: "\e[48;5;#{code}m"
+
+  @doc ~S"""
+  Sets the background color from individual RGB values.
+
+  Valid values for each color are in the range 0 to 5.
+  """
+  @spec color_background(0..5, 0..5, 0..5) :: String.t
+  def color_background(r, g, b) when valid_rgb216(r, g, b) do
+    color_background(16 + (36 * r) + (6 * g) + b)
+  end
 
   @doc "Resets all attributes"
   defsequence :reset, 0
