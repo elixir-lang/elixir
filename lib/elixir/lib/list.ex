@@ -511,7 +511,7 @@ defmodule List do
   end
 
   @doc """
-  Converts a char list to an existing atom. Raises an `ArguementError`
+  Converts a char list to an existing atom. Raises an `ArgumentError`
   if the atom does not exist.
 
   Currently Elixir does not support conversions from char lists
