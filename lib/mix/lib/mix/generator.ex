@@ -2,7 +2,7 @@ defmodule Mix.Generator do
   @moduledoc """
   Conveniences for working with paths and generating content.
 
-  All of those functions are verbose, in the sense they log
+  All of these functions are verbose, in the sense they log
   the action to be performed via `Mix.shell/0`.
   """
 
@@ -13,7 +13,15 @@ defmodule Mix.Generator do
   ## Options
 
     * `:force` - forces installation without a shell prompt.
+
+  ## Examples
+
+      iex> Mix.Generator.create_file ".gitignore", "_build\ndeps\n"
+      * creating .gitignore
+      :ok
+
   """
+  @spec create_file(Path.t, iodata, Keyword.t) :: any
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
 
@@ -25,7 +33,18 @@ defmodule Mix.Generator do
 
   @doc """
   Creates a directory if one does not exist yet.
+
+  This function does nothing if the given directory already exists; in this
+  case, it still logs the directory creation.
+
+  ## Examples
+
+      iex> Mix.Generator.create_directory "path/to/dir"
+      * creating path/to/dir
+      :ok
+
   """
+  @spec create_directory(Path.t) :: any
   def create_directory(path) when is_binary(path) do
     Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(path)]
     File.mkdir_p! path
@@ -42,6 +61,17 @@ defmodule Mix.Generator do
   template using the `@` macro.
 
   For more information, check `EEx.SmartEngine`.
+
+  ## Examples
+
+      defmodule Mix.Tasks.MyTask do
+        require Mix.Generator
+        Mix.Generator.embed_template(:log, "Log: <%= @log %>")
+      end
+
+      Mix.Tasks.MyTask.log_template(log: "creating directory")
+      #=> "Log: creating directory"
+
   """
   defmacro embed_template(name, contents) do
     quote bind_quoted: binding do
@@ -66,7 +96,18 @@ defmodule Mix.Generator do
   Embeds a text given by `contents` into the current module.
 
   It will define a private function with the `name` followed by
-  `_text` that expects no argument.
+  `_text` that expects no arguments.
+
+  ## Examples
+
+      defmodule Mix.Tasks.MyTask do
+        require Mix.Generator
+        Mix.Generator.embed_text(:error, "There was an error!")
+      end
+
+      Mix.Tasks.MyTask.error_text()
+      #=> "There was an error!"
+
   """
   defmacro embed_text(name, contents) do
     quote bind_quoted: binding do
