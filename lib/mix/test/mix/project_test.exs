@@ -90,10 +90,13 @@ defmodule Mix.ProjectTest do
 
   test "in_project pushes given configuration", context do
     in_tmp context.test, fn ->
-      Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
+      result = Mix.Project.in_project :foo, ".", [hello: :world], fn _ ->
         assert Mix.Project.config[:app] == :foo
         assert Mix.Project.config[:hello] == :world
+        :result
       end
+
+      assert result == :result
     end
   end
 

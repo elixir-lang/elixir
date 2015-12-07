@@ -94,6 +94,7 @@ defmodule Mix.Project do
   requirement of the current task, you should call
   `get!/0` instead.
   """
+  @spec get() :: module | nil
   def get do
     case Mix.ProjectStack.peek do
       %{name: name} -> name
@@ -110,6 +111,7 @@ defmodule Mix.Project do
   function raises `Mix.NoProjectError` in case no project
   is available.
   """
+  @spec get!() :: module | no_return
   def get! do
     get || Mix.raise Mix.NoProjectError, []
   end
@@ -129,6 +131,7 @@ defmodule Mix.Project do
   Use it only to configure aspects of your project (like
   compilation directories) and not your application runtime.
   """
+  @spec config() :: Keyword.t
   def config do
     case Mix.ProjectStack.peek do
       %{config: config} -> config
@@ -145,6 +148,7 @@ defmodule Mix.Project do
   By default it includes the mix.exs file, the lock manifest and
   all config files in the `config` directory.
   """
+  @spec config_files() :: [Path.t]
   def config_files do
     [Mix.Dep.Lock.manifest] ++
       case Mix.ProjectStack.peek do
@@ -164,11 +168,12 @@ defmodule Mix.Project do
   @doc """
   Returns `true` if project is an umbrella project.
   """
+  @spec umbrella?() :: boolean
   def umbrella?(config \\ config()) do
     config[:apps_path] != nil
   end
 
-  @doc """
+  @doc ~S"""
   Runs the given `fun` inside the given project.
 
   This function changes the current working directory and
@@ -177,7 +182,20 @@ defmodule Mix.Project do
 
   A `post_config` can be passed that will be merged into
   the project configuration.
+
+  `fun` is called with the `Mixfile` of the given project as
+  its argument. The return value of this function is the return
+  value of `fun`.
+
+  ## Examples
+
+      Mix.Project.in_project :my_app, "/path/to/my_app", fn mixfile ->
+        "Mixfile is: #{inspect mixfile}"
+      end
+      #=> "Mixfile is: MyApp.Mixfile"
+
   """
+  @spec in_project(atom, Path.t, Keyword.t, (module -> result)) :: result when result: term
   def in_project(app, path, post_config \\ [], fun)
 
   def in_project(app, ".", post_config, fun) do
@@ -213,6 +231,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/deps"
 
   """
+  @spec deps_path(Keyword.t) :: Path.t
   def deps_path(config \\ config()) do
     Path.expand config[:deps_path]
   end
@@ -236,6 +255,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/dev"
 
   """
+  @spec build_path(Keyword.t) :: Path.t
   def build_path(config \\ config()) do
     config[:env_path] || env_path(config)
   end
@@ -266,6 +286,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
+  @spec manifest_path(Keyword.t) :: Path.t
   def manifest_path(config \\ config()) do
     config[:app_path] ||
       if app = config[:app] do
@@ -286,6 +307,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app"
 
   """
+  @spec app_path(Keyword.t) :: Path.t
   def app_path(config \\ config()) do
     config[:app_path] || cond do
       app = config[:app] ->
@@ -310,6 +332,7 @@ defmodule Mix.Project do
       #=> "/path/to/project/_build/shared/lib/app/ebin"
 
   """
+  @spec compile_path(Keyword.t) :: Path.t
   def compile_path(config \\ config()) do
     Path.join(app_path(config), "ebin")
   end
@@ -321,6 +344,7 @@ defmodule Mix.Project do
   is in build embedded mode, which may fail as a
   explicit command to `mix compile` is required.
   """
+  @spec compile([term], Keyword.t) :: term
   def compile(args, config \\ config()) do
     if config[:build_embedded] do
       path = if umbrella?(config), do: build_path(config), else: compile_path(config)
@@ -345,6 +369,7 @@ defmodule Mix.Project do
     * `:symlink_ebin` - symlink ebin instead of copying it
 
   """
+  @spec build_structure(Keyword.t, Keyword.t) :: :ok
   def build_structure(config \\ config(), opts \\ []) do
     app = app_path(config)
     File.mkdir_p!(app)
@@ -383,6 +408,7 @@ defmodule Mix.Project do
 
   In case it does exist, it is a no-op. Otherwise, it is built.
   """
+  @spec ensure_structure(Keyword.t, Keyword.t) :: :ok
   def ensure_structure(config \\ config(), opts \\ []) do
     if File.exists?(app_path(config)) do
       :ok
@@ -394,6 +420,7 @@ defmodule Mix.Project do
   @doc """
   Returns all load paths for this project.
   """
+  @spec load_paths(Keyword.t) :: [Path.t]
   def load_paths(config \\ config()) do
     if umbrella?(config) do
       []
