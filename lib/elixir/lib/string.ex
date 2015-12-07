@@ -988,6 +988,8 @@ defmodule String do
   @doc """
   Returns all codepoints in the string.
 
+  For details about codepoints and graphemes, see the `String` module documentation.
+
   ## Examples
 
       iex> String.codepoints("olá")
@@ -1148,6 +1150,8 @@ defmodule String do
   Returns Unicode graphemes in the string as per Extended Grapheme
   Cluster algorithm outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
+
+  For details about codepoints and graphemes, see the `String` module documentation.
 
   ## Examples
 
