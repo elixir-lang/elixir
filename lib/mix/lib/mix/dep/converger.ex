@@ -51,6 +51,7 @@ defmodule Mix.Dep.Converger do
   defp all(acc, lock, opts, callback) do
     deps = Mix.Dep.Loader.children()
     deps = Enum.map(deps, &(%{&1 | top_level: true}))
+    lock_given? = !!lock
 
     # Filter the dependencies per environment. We pass the ones
     # left out as accumulator and upper breadth to help catch
@@ -60,14 +61,14 @@ defmodule Mix.Dep.Converger do
     {main, only} = Mix.Dep.Loader.partition_by_env(deps, opts)
 
     # If no lock was given, let's read one to fill in the deps
-    lock_for_local = lock || Mix.Dep.Lock.read
+    lock = lock || Mix.Dep.Lock.read
 
     # Run converger for all dependencies, except remote
     # dependencies. Since the remote converger may be
     # lazily loaded, we need to check for it on every
     # iteration.
     {deps, rest, lock} =
-      all(main, only, [], current, callback, acc, lock_for_local, fn dep ->
+      all(main, only, [], current, callback, acc, lock, fn dep ->
         if (converger = Mix.RemoteConverger.get) && converger.remote?(dep) do
           {:loaded, dep}
         else
@@ -86,25 +87,23 @@ defmodule Mix.Dep.Converger do
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.check, deps and so
       # on, there is no lock, so we won't hit this branch.
-      if lock do
+      if lock_given? do
         lock = remote.converge(deps, lock)
       end
-
-      # In case there is no lock, we will use the local lock which
-      # is potentially stale. So remote.deps/2 needs to always
-      # check if the data it finds in the lock is actually valid.
-      lock_for_remote = lock || lock_for_local
 
       deps = deps
              |> Enum.reject(&remote.remote?(&1))
              |> Enum.into(%{}, &{&1.app, &1})
 
-      all(main, [], [], Enum.map(main, &(&1.app)), callback, rest, lock_for_remote, fn dep ->
+      # In case no lock was given, we will use the local lock
+      # which is potentially stale. So remote.deps/2 needs to always
+      # check if the data it finds in the lock is actually valid.
+      all(main, [], [], Enum.map(main, &(&1.app)), callback, rest, lock, fn dep ->
         cond do
           cached = deps[dep.app] ->
             {:loaded, cached}
           true ->
-            {:unloaded, dep, remote.deps(dep, lock_for_remote)}
+            {:unloaded, dep, remote.deps(dep, lock)}
         end
       end)
     else
