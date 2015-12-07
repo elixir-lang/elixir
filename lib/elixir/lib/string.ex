@@ -1306,8 +1306,8 @@ defmodule String do
 
   If the offset is greater than string length, then it returns `""`.
 
-  Remember this function works with Unicode codepoints and considers
-  the slices to represent codepoint offsets. If you want to split
+  Remember this function works with Unicode graphemes and considers
+  the slices to represent grapheme offsets. If you want to split
   on raw bytes, check `Kernel.binary_part/3` instead.
 
   ## Examples
