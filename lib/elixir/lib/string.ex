@@ -294,7 +294,7 @@ defmodule String do
       iex> String.split(" a b c ", ~r{\s}, trim: true)
       ["a", "b", "c"]
 
-  Splitting on empty patterns returns codepoints:
+  Splitting on empty patterns returns graphemes:
 
       iex> String.split("abc", ~r{})
       ["a", "b", "c", ""]
