@@ -7,10 +7,12 @@ defmodule String do
   ## Codepoints and graphemes
 
   The functions in this module act according to the Unicode
-  Standard, version 6.3.0. As per the standard, a codepoint is
-  a Unicode Character, which may be represented by one or more
-  bytes. For example, the character "é" is represented with two
-  bytes:
+  Standard, version 6.3.0.
+  
+  As per the standard, a codepoint is a single Unicode Character,
+  which may be represented by one or more bytes.
+  
+  For example, the codepoint "é" is two bytes:
 
       iex> byte_size("é")
       2
@@ -21,16 +23,21 @@ defmodule String do
       1
 
   Furthermore, this module also presents the concept of
-  graphemes, which are multiple characters that may be
-  "perceived as a single character" by readers. For example,
-  the same "é" character written above could be represented
-  by the letter "e" followed by the accent ́:
+  graphemes. A single grapheme can consist of multiple codepoints
+  that may be perceived as a single character by readers. For example,
+  the "é" grapheme can be represented either as a single "e with acute"
+  codepoint (like above), or as the letter "e" followed by a
+  "combining acute accent" (two codepoints):
 
       iex> string = "\u0065\u0301"
       iex> byte_size(string)
       3
       iex> String.length(string)
       1
+      iex> String.codepoints(string)
+      ["e", "́"]
+      iex> String.graphemes(string)
+      ["é"]
 
   Although the example above is made of two characters, it is
   perceived by users as one.
