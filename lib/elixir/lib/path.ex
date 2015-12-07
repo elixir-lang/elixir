@@ -628,38 +628,28 @@ defmodule Path do
     end
   end
 
-  defp expand_dot(<<"/../", rest::binary>>),
-    do: expand_dot("/" <> rest)
-  defp expand_dot(<<letter, ":/../", rest::binary>>) when letter in ?a..?z,
-    do: expand_dot(<<letter, ":/", rest::binary>>)
-  defp expand_dot("/.."),
-    do: "/"
-  defp expand_dot(<<letter, ":/..">>) when letter in ?a..?z,
-    do: expand_dot(<<letter, ":/">>)
+  defp expand_dot(<<"/", rest::binary>>),
+    do: "/" <> do_expand_dot(rest)
+  defp expand_dot(<<letter, ":/", rest::binary>>) when letter in ?a..?z,
+    do: <<letter, ":/">> <> do_expand_dot(rest)
   defp expand_dot(path),
-    do: expand_dot(:binary.split(path, "/", [:global]), [])
+    do: do_expand_dot(path)
 
-  defp expand_dot([".."|t], ["/", ""] = acc) do
-    expand_dot t, acc
-  end
+  defp do_expand_dot(path),
+    do: do_expand_dot(:binary.split(path, "/", [:global]), [])
 
-  defp expand_dot([".."|t], [_, _|acc]) do
-    expand_dot t, acc
-  end
-
-  defp expand_dot(["."|t], acc) do
-    expand_dot t, acc
-  end
-
-  defp expand_dot([h|t], acc) do
-    expand_dot t, ["/", h|acc]
-  end
-
-  defp expand_dot([], ["/", ""]),
-    do: "/"
-  defp expand_dot([], ["/"|acc]) do
-    IO.iodata_to_binary(:lists.reverse(acc))
-  end
+  defp do_expand_dot([".."|t], [_, _|acc]),
+    do: do_expand_dot(t, acc)
+  defp do_expand_dot([".."|t], []),
+    do: do_expand_dot(t, [])
+  defp do_expand_dot(["."|t], acc),
+    do: do_expand_dot(t, acc)
+  defp do_expand_dot([h|t], acc),
+    do: do_expand_dot(t, ["/", h|acc])
+  defp do_expand_dot([], []),
+    do: ""
+  defp do_expand_dot([], ["/"|acc]),
+    do: IO.iodata_to_binary(:lists.reverse(acc))
 
   defp major_os_type do
     :os.type |> elem(0)
