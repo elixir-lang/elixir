@@ -538,6 +538,13 @@ defmodule Kernel.ErrorsTest do
       'import Kernel, except: [:invalid]'
   end
 
+  test "import with conflicting options" do
+    assert_compile_fail CompileError,
+      "nofile:1: :only and :except can only be given together to import" <>
+      " when :only is either :functions or :macros",
+      'import Kernel, only: [], except: []'
+  end
+
   test "unrequired macro" do
     assert_compile_fail CompileError,
       "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
