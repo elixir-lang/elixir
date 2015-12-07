@@ -639,6 +639,10 @@ defmodule Path do
   defp expand_dot(path),
     do: expand_dot(:binary.split(path, "/", [:global]), [])
 
+  defp expand_dot([".."|t], ["/", ""] = acc) do
+    expand_dot t, acc
+  end
+
   defp expand_dot([".."|t], [_, _|acc]) do
     expand_dot t, acc
   end
@@ -651,6 +655,8 @@ defmodule Path do
     expand_dot t, ["/", h|acc]
   end
 
+  defp expand_dot([], ["/", ""]),
+    do: "/"
   defp expand_dot([], ["/"|acc]) do
     IO.iodata_to_binary(:lists.reverse(acc))
   end
