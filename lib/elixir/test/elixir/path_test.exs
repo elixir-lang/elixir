@@ -130,6 +130,7 @@ defmodule PathTest do
     assert (Path.expand("/foo/../..") |> strip_drive_letter_if_windows) == "/"
     assert (Path.expand("/foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.expand("/./foo") |> strip_drive_letter_if_windows) == "/foo"
+    assert (Path.expand("/../foo") |> strip_drive_letter_if_windows) == "/foo"
     assert (Path.expand("/foo/bar") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/") |> strip_drive_letter_if_windows) == "/foo/bar"
     assert (Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows)== "/foo/bar"
