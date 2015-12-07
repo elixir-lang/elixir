@@ -173,7 +173,7 @@ defmodule Mix.Project do
     config[:apps_path] != nil
   end
 
-  @doc """
+  @doc ~S"""
   Runs the given `fun` inside the given project.
 
   This function changes the current working directory and
@@ -182,6 +182,18 @@ defmodule Mix.Project do
 
   A `post_config` can be passed that will be merged into
   the project configuration.
+
+  `fun` is called with the `Mixfile` of the given project as
+  its argument. The return value of this function is the return
+  value of `fun`.
+
+  ## Examples
+
+      Mix.Project.in_project :my_app, "/path/to/my_app", fn mixfile ->
+        "Mixfile is: #{inspect mixfile}"
+      end
+      #=> "Mixfile is: MyApp.Mixfile"
+
   """
   @spec in_project(atom, Path.t, Keyword.t, (module -> result)) :: result when result: term
   def in_project(app, path, post_config \\ [], fun)
