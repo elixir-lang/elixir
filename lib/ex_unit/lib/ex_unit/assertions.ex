@@ -274,7 +274,8 @@ defmodule ExUnit.Assertions do
   Asserts a message was or is going to be received.
 
   Unlike `assert_received`, it has a default timeout
-  of 100 milliseconds.
+  of 100 milliseconds (configurable via the `:assert_receive_timeout`
+  option on `:ex_unit`).
 
   The `expected` argument is a pattern.
 
@@ -348,7 +349,8 @@ defmodule ExUnit.Assertions do
           timeout ->
             message = unquote(message) || "No message matching #{unquote(binary)} after #{timeout}ms."
             flunk(message <> ExUnit.Assertions.__pins__(unquote(pins))
-                          <> ExUnit.Assertions.__mailbox__(self()))
+                          <> ExUnit.Assertions.__mailbox__(self())
+                          <> ExUnit.Assertions.__linked_processes__(self()))
         end
 
       _ = unquote(vars) # Silence warnings
@@ -380,6 +382,17 @@ defmodule ExUnit.Assertions do
     "\nThe following variables were pinned:" <> @indent <> content
   end
 
+  @doc false
+  def __linked_processes__(pid) do
+    {:links, links} = Process.info(pid, :links)
+    link_info = if links == [] do
+      ""
+    else
+      "\n\n" <> Enum.map_join(links, "\n\n", &linked_process_info/1)
+    end
+    "\nLinks: " <> inspect(links) <> link_info
+  end
+
   defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
   defp mailbox_message(length, mailbox) when length > 10 do
     "\nProcess mailbox:" <> mailbox
@@ -387,6 +400,14 @@ defmodule ExUnit.Assertions do
   end
   defp mailbox_message(_length, mailbox) do
     "\nProcess mailbox:" <> mailbox
+  end
+
+  defp linked_process_info(pid) do
+    {:current_stacktrace, current_stacktrace} = Process.info(pid, :current_stacktrace)
+    current_stacktrace = Exception.format_stacktrace(current_stacktrace)
+    "#{inspect pid}: " <> ExUnit.Assertions.__mailbox__(pid)
+      <> "\nInitial call: #{inspect(:proc_lib.initial_call(pid))}"
+      <> "\nStacktrace:\n" <> current_stacktrace
   end
 
   defp collect_pins_from_pattern(expr) do
