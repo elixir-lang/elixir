@@ -64,9 +64,11 @@ adding the following configuration to each umbrella app's `mix.exs` file:
     build_path: "../../_build",
     config_path: "../../config/config.exs",
 
-Finally, Mix will now always consolidate protocols as we are now able to
+Finally, Mix will now consolidate protocols by default as we are now able to
 consolidate in parallel and cache the consolidation results, providing the
 best performance across all environments without affecting compilation times.
+This can still be disabled by setting `consolidate_protocols: false` in the
+project config.
 
 These are great additions on top of the faster compilation times we have
 achieved when migrating to Erlang 18.
