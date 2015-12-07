@@ -58,6 +58,7 @@ defmodule Mix.Rebar do
   @doc """
   Merges a rebar3 parent config with a child config.
   """
+  # From https://github.com/rebar/rebar3/blob/b1da2ec0674df89599564252734bd4d794436425/src/rebar_opts.erl#L103
   def merge_config(old, new) do
     Keyword.merge(old, new, fn
       :deps, old, _new               -> old
@@ -81,39 +82,71 @@ defmodule Mix.Rebar do
     end)
   end
 
+  # From https://github.com/rebar/rebar3/blob/b1da2ec0674df89599564252734bd4d794436425/src/rebar_utils.erl#L282
   defp tuple_merge(old, new),
     do: do_tuple_merge(tuple_sort(old), tuple_sort(new))
 
   defp do_tuple_merge(old, []),
     do: old
   defp do_tuple_merge(olds, [new|news]),
-    do: Enum.reverse(umerge(olds, news, [], new))
+    do: do_tuple_umerge_dedup(umerge(:new, olds, [], news, new), [])
 
-  defp umerge([old|olds], news, merged, cmp)
-      when elem(cmp, 0) == elem(old, 0) or
-           elem(cmp, 0) == Old or
-           cmp == elem(old, 0) or
-           cmp <= old,
-    do: umerge(olds, news, [cmp|merged], cmp, old)
-  defp umerge([old|olds], news, merged, cmp),
-    do: umerge(olds, news, [old|merged], cmp)
-  defp umerge([], news, merged, cmp),
-    do: Enum.reverse(news, [cmp|merged])
+  defp umerge(_, [], [], acc, current),
+    do: [current|acc]
+  defp umerge(:new, [], news, acc, current),
+    do: Enum.reverse(news, [current|acc])
+  defp umerge(:old, olds, [], acc, current),
+    do: Enum.reverse(olds, [current|acc])
+  defp umerge(:new, [old|olds], news, acc, current) do
+    {dir, merged, new_current} = compare({:new, current}, {:old, old})
+    umerge(dir, olds, news, [merged|acc], new_current)
+  end
+  defp umerge(:old, olds, [new|news], acc, current) do
+    {dir, merged, new_current} = compare({:new, new}, {:old, current})
+    umerge(dir, olds, news, [merged|acc], new_current)
+  end
 
-  defp umerge(olds, [new|news], merged, cmp_merged, cmp) when cmp_merged == cmp,
-    do: umerge(olds, news, merged, new)
-  defp umerge(olds, [new|news], merged, _cmp_merged, cmp)
-      when elem(new, 0) == elem(cmp, 0) or
-           elem(new, 0) == cmp or
-           new == elem(cmp, 0) or
-           new <= cmp,
-    do: umerge(olds, news, [new|merged], new, cmp)
-  defp umerge(olds, [new|news], merged, _cmp_merged, cmp),
-    do: umerge(olds, news, [cmp|merged], new)
-  defp umerge(olds, [], merged, cmp_merged, cmp) when cmp_merged == cmp,
-    do: Enum.reverse(olds, merged)
-  defp umerge(olds, [], merged, _cmp_merged, cmp),
-    do: Enum.reverse(olds, [cmp|merged])
+  defp compare({priority, a}, {secondary, b}) when is_tuple(a) and is_tuple(b) do
+    ka = elem(a, 0)
+    kb = elem(b, 0)
+    cond do
+      ka == kb -> {secondary, a, b}
+      ka  < kb -> {secondary, a, b}
+      ka  > kb -> {priority, b, a}
+    end
+  end
+  defp compare({priority, a}, {secondary, b}) when not is_tuple(a) and not is_tuple(b) do
+    cond do
+      a == b -> {secondary, a, b}
+      a  < b -> {secondary, a, b}
+      a  > b -> {priority, b, a}
+    end
+  end
+  defp compare({priority, a}, {secondary, b}) when is_tuple(a) and not is_tuple(b) do
+    ka = elem(a, 0)
+    cond do
+      ka == b -> {secondary, a, b}
+      ka  < b -> {secondary, a, b}
+      ka  > b -> {priority, b, a}
+    end
+  end
+  defp compare({priority, a}, {secondary, b}) when not is_tuple(a) and is_tuple(b) do
+    kb = elem(b, 0)
+    cond do
+      a == kb -> {secondary, a, b}
+      a  < kb -> {secondary, a, b}
+      a  > kb -> {priority, b, a}
+    end
+  end
+
+  defp do_tuple_umerge_dedup([], acc), do: acc
+  defp do_tuple_umerge_dedup([h|t], acc) do
+    if h in t do
+      do_tuple_umerge_dedup(t, acc)
+    else
+      do_tuple_umerge_dedup(t, [h|acc])
+    end
+  end
 
   defp tuple_sort(list) do
     Enum.sort(list, fn
