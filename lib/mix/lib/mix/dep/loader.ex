@@ -40,9 +40,9 @@ defmodule Mix.Dep.Loader do
   latest status and children.
   """
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
-    manager = opts[:manager] ||
+    manager = manager ||
               scm_manager(scm, opts) ||
-              select_manager(manager, opts[:dest])
+              infer_manager(opts[:dest])
 
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
@@ -96,7 +96,8 @@ defmodule Mix.Dep.Loader do
   ## Helpers
 
   def to_dep(tuple, from, manager \\ nil) do
-    %{with_scm_and_app(tuple) | from: from, manager: manager}
+    %{opts: opts} = dep = with_scm_and_app(tuple)
+    %{dep | from: from, manager: opts[:manager] || manager}
   end
 
   defp with_scm_and_app({app, opts} = original) when is_atom(app) and is_list(opts) do
@@ -179,7 +180,7 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp select_manager(nil, dest) do
+  defp infer_manager(dest) do
     cond do
       any_of?(dest, ["mix.exs"]) ->
         :mix
@@ -190,10 +191,6 @@ defmodule Mix.Dep.Loader do
       true ->
         nil
     end
-  end
-
-  defp select_manager(manager, _dest) do
-    manager
   end
 
   defp any_of?(dest, files) do
