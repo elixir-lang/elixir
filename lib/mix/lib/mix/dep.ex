@@ -230,8 +230,10 @@ defmodule Mix.Dep do
   def format_status(%Mix.Dep{status: {:scmlock, _}}),
     do: "the dependency was built with another SCM, run \"#{mix_env_var}mix deps.compile\""
 
-  defp dep_status(%Mix.Dep{app: app, requirement: req, opts: opts, from: from}) do
-    info = {app, req, Keyword.drop(opts, [:dest, :lock, :env, :build])}
+  defp dep_status(%Mix.Dep{app: app, requirement: req, manager: manager, opts: opts, from: from}) do
+    opts = Keyword.drop(opts, [:dest, :env, :build, :lock, :manager])
+    opts = opts ++ (if manager, do: [manager: manager], else: [])
+    info = {app, req, opts}
     "\n  > In #{Path.relative_to_cwd(from)}:\n    #{inspect info}\n"
   end
 
