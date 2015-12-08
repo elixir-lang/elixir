@@ -1001,6 +1001,12 @@ defmodule String do
       iex> String.codepoints("ἅἪῼ")
       ["ἅ", "Ἢ", "ῼ"]
 
+      iex> String.codepoints("\u00e9")
+      ["é"]
+
+      iex> String.codepoints("\u0065\u0301")
+      ["e", "́"]
+
   """
   @spec codepoints(t) :: [codepoint]
   defdelegate codepoints(string), to: String.Unicode
@@ -1157,6 +1163,12 @@ defmodule String do
 
       iex> String.graphemes("Ńaïve")
       ["Ń", "a", "ï", "v", "e"]
+
+      iex> String.graphemes("\u00e9")
+      ["é"]
+
+      iex> String.graphemes("\u0065\u0301")
+      ["é"]
 
   """
   @spec graphemes(t) :: [grapheme]
