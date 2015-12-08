@@ -275,10 +275,6 @@ unless File.dir?(target) do
   end
 end
 
-Enum.each [:invalidapp, :invalidvsn, :noappfile, :ok], fn(dep) ->
-  File.mkdir_p! Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__)
-end
-
 ## Generate helper modules
 
 path = MixTest.Case.tmp_path("beams")
