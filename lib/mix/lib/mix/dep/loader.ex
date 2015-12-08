@@ -73,25 +73,22 @@ defmodule Mix.Dep.Loader do
   Checks if a requirement from a dependency matches
   the given version.
   """
-  def vsn_match?(nil, _actual, _app),
-    do: true
-  def vsn_match?(req, actual, app) do
+  def vsn_match(nil, _actual, _app),
+    do: {:ok, true}
+  def vsn_match(req, actual, app) do
     if Regex.regex?(req) do
-      actual =~ req
+      {:ok, actual =~ req}
     else
       case Version.parse(actual) do
         {:ok, version} ->
           case Version.parse_requirement(req) do
             {:ok, req} ->
-              Version.match?(version, req)
+              {:ok, Version.match?(version, req)}
             :error ->
               Mix.raise "Invalid requirement #{req} for app #{app}"
           end
-
         :error ->
-          Mix.raise "The application #{app} specified a non Semantic Version #{actual}. " <>
-            "Mix can only match the requirement #{req} against Semantic Versions, to match against any " <>
-            "version, please use a regex as requirement"
+          {:error, :nosemver}
       end
     end
   end
@@ -332,10 +329,10 @@ defmodule Mix.Dep.Loader do
         case List.keyfind(config, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
             actual = IO.iodata_to_binary(actual)
-            if vsn_match?(req, actual, app) do
-              {:ok, actual}
-            else
-              {:nomatchvsn, actual}
+            case vsn_match(req, actual, app) do
+              {:ok, true} -> {:ok, actual}
+              {:ok, false} -> {:nomatchvsn, actual}
+              {:error, error} -> {error, actual}
             end
           {:vsn, actual} ->
             {:invalidvsn, actual}

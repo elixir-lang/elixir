@@ -281,10 +281,9 @@ defmodule Mix.Dep.Converger do
   defp with_matching_req(%Mix.Dep{} = other, %Mix.Dep{} = dep) do
     case other.status do
       {:ok, vsn} when not is_nil(vsn) ->
-        if Mix.Dep.Loader.vsn_match?(dep.requirement, vsn, dep.app) do
-          other
-        else
-          %{other | status: {:divergedreq, dep}}
+        case Mix.Dep.Loader.vsn_match(dep.requirement, vsn, dep.app) do
+          {:ok, true} -> other
+          _ -> %{other | status: {:divergedreq, dep}}
         end
       _ ->
         other

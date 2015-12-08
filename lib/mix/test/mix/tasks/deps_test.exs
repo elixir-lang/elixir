@@ -11,6 +11,7 @@ defmodule Mix.Tasks.DepsTest do
           {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
           {:invalidapp, "0.1.0", path: "deps/invalidapp"},
           {:noappfile, "0.1.0",  path: "deps/noappfile"},
+          {:nosemver, "~> 0.1",  path: "deps/nosemver"},
         ]
       ]
     end
@@ -54,6 +55,8 @@ defmodule Mix.Tasks.DepsTest do
       assert_received {:mix_shell, :info, ["  the app file at _build/dev/lib/invalidapp/ebin/invalidapp.app is invalid"]}
       assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
       assert_received {:mix_shell, :info, ["  could not find an app file at _build/dev/lib/noappfile/ebin/noappfile.app" <> _]}
+      assert_received {:mix_shell, :info, ["* nosemver (deps/nosemver)"]}
+      assert_received {:mix_shell, :info, ["  the app file specified a non Semantic Version: \"0.7\"" <> _]}
     end
   end
 
