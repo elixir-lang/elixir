@@ -995,6 +995,8 @@ defmodule String do
   @doc """
   Returns all codepoints in the string.
 
+  For details about codepoints and graphemes, see the `String` module documentation.
+
   ## Examples
 
       iex> String.codepoints("olá")
@@ -1005,6 +1007,12 @@ defmodule String do
 
       iex> String.codepoints("ἅἪῼ")
       ["ἅ", "Ἢ", "ῼ"]
+
+      iex> String.codepoints("\u00e9")
+      ["é"]
+
+      iex> String.codepoints("\u0065\u0301")
+      ["e", "́"]
 
   """
   @spec codepoints(t) :: [codepoint]
@@ -1156,10 +1164,18 @@ defmodule String do
   Cluster algorithm outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 
+  For details about codepoints and graphemes, see the `String` module documentation.
+
   ## Examples
 
       iex> String.graphemes("Ńaïve")
       ["Ń", "a", "ï", "v", "e"]
+
+      iex> String.graphemes("\u00e9")
+      ["é"]
+
+      iex> String.graphemes("\u0065\u0301")
+      ["é"]
 
   """
   @spec graphemes(t) :: [grapheme]
