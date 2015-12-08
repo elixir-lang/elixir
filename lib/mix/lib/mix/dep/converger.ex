@@ -205,8 +205,6 @@ defmodule Mix.Dep.Converger do
             {other, match}
           in_upper? && other_opts[:override] ->
             {other |> with_matching_only(dep, in_upper?), true}
-          opts[:optional] ->
-            {other |> with_matching_req(dep), true}
           converge?(other, dep) ->
             {other |> with_matching_only(dep, in_upper?) |> with_matching_req(dep), true}
           true ->
@@ -216,6 +214,14 @@ defmodule Mix.Dep.Converger do
       end
 
     if match, do: acc
+  end
+
+  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, in_upper?) do
+    if opts[:optional] do
+      other
+    else
+      with_matching_only(other, other_opts, dep, opts, in_upper?)
+    end
   end
 
   # When in_upper is true
@@ -230,7 +236,7 @@ defmodule Mix.Dep.Converger do
   # file, we decided to go with a more explicit approach of
   # asking them to change it to avoid later surprises and
   # headaches.
-  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts} = dep, true) do
+  defp with_matching_only(other, other_opts, dep, opts, true) do
     case Keyword.fetch(other_opts, :only) do
       {:ok, other_only} ->
         case Keyword.fetch(opts, :only) do
@@ -253,7 +259,7 @@ defmodule Mix.Dep.Converger do
   # only solution is to merge the environments. We have decided to
   # perform it explicitly as, opposite to in_upper above, the
   # dependencies are never really laid out in the parent tree.
-  defp with_matching_only(%{opts: other_opts} = other, %{opts: opts}, false) do
+  defp with_matching_only(other, other_opts, dep, opts, false) do
     other_only = Keyword.get(other_opts, :only)
     only = Keyword.get(opts, :only)
     if other_only && only do
