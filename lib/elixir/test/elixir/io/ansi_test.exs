@@ -144,5 +144,4 @@ defmodule IO.ANSITest do
       IO.ANSI.color_background(256)
     end
   end
-
 end
