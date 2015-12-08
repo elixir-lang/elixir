@@ -585,6 +585,11 @@ defmodule Macro do
   end
 
   # Access
+  def to_string({{:., _, [Access, :get]}, _, [{op, _, [_|_]} = left, right]} = ast, fun)
+      when op in unquote(@binary_ops) do
+    fun.(ast, "(" <> to_string(left, fun) <> ")" <> to_string([right], fun))
+  end
+
   def to_string({{:., _, [Access, :get]}, _, [left, right]} = ast, fun) do
     fun.(ast, to_string(left, fun) <> to_string([right], fun))
   end
