@@ -429,7 +429,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: a[b]) == "a[b]"
     assert Macro.to_string(quote do: a[1 + 2]) == "a[1 + 2]"
     assert Macro.to_string(quote do: (a || [a: 1])[:a]) == "(a || [a: 1])[:a]"
-    assert Macro.to_string(quote do: Dict.put(%{}, :a, 1)[:a]) == "Dict.put(%{}, :a, 1)[:a]"
+    assert Macro.to_string(quote do: Map.put(%{}, :a, 1)[:a]) == "Map.put(%{}, :a, 1)[:a]"
   end
 
   test "kw list to string" do
