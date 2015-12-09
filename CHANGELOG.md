@@ -75,7 +75,7 @@ achieved when migrating to Erlang 18.
 
 ## Rebar 3 support
 
-With Rebar 3 support gaining more adoption in the Erlang community, Mix is
+With Rebar 3 gaining more adoption in the Erlang community, Mix is
 now able to fetch and compile Rebar 3 dependencies. This feature is currently
 experimental and therefore opt-in: if you have a Rebar 3 dependency, you can
 ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
