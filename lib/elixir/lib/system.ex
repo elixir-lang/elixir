@@ -493,7 +493,7 @@ defmodule System do
 
   defp validate_env(enum) do
     Enum.map enum, fn
-      {k, false} ->
+      {k, nil} ->
         {String.to_char_list(k), false}
       {k, v} ->
         {String.to_char_list(k), String.to_char_list(v)}
