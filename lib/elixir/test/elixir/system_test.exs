@@ -70,7 +70,7 @@ defmodule SystemTest do
 
   test "cmd/3 (with options)" do
     assert {["hello\n"], 0} = System.cmd "echo", ["hello"],
-                                into: [], cd: System.cwd!, env: %{"foo" => "bar"},
+                                into: [], cd: System.cwd!, env: %{"foo" => "bar", "baz" => false},
                                 arg0: "echo", stderr_to_stdout: true, parallelism: true
   end
 
