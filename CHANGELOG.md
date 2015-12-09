@@ -82,7 +82,7 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
-## v1.2.0-dev
+## v1.2.0-rc.0 (2015-12-09)
 
 ### 1. Enhancements
 
@@ -92,7 +92,9 @@ available.
   * [Application] Add `get_application/1` to retrieve the application a given module belongs to
   * [Base] Optimize encode and decode operations about 10 times
   * [Enum] Use the faster and auto-seeding `:rand` instead of `:random` in `Enum.shuffle/1` and `Enum.random/1` and `Enum.take_random/2`
+  * [Enum] Add `Enum.with_index/2`
   * [GenServer] Add `GenServer.stop/1` for shutting down servers reliably
+  * [IO] Add `color` related functions to `IO.ANSI`
   * [Kernel] Support multiple aliases in `alias`, `import`, `require` and `use`. For example, `alias MyApp.{Foo, Bar, Baz}`
   * [Kernel] Add `struct!/2`. Similar to `struct/2` but raises on invalid keys
   * [Kernel] Warn if `@doc/@typedoc/@moduledoc` attributes are redefined
@@ -108,9 +110,11 @@ available.
   * [Macro] Add `Macro.traverse/4` that performs pre and post-walk at once
   * [Macro] Add `Macro.camelize/1` and `Macro.underscore/1`
   * [Process] Add `Process.get_keys/0`
+  * [Stream] Add `Stream.with_index/2`
   * [String] Introduce `String.replace_{prefix,suffix,leading,trailing}/2`. The first two will replace only the first occurrence of the given match in string. The last two will replace all occurrences of the given match
   * [String] Support `String.normalize/2` and `String.equivalent?/2` that perform NFD and NFC normalization
   * [System] Add `System.time_offset`, `System.monotonic_time`, `System.system_time`, `System.convert_time_unit` and `System.unique_integer`
+  * [System] Allow `System.cmd/3` to remove variables by specifying nil values
   * [Task] Add `Task.Supervisor.async_nolink/1/3` that spawns a supervised task without linking to the caller process
   * [Task] Introduce `Task.yield_many/2`
   * [Task] Raise an error when a task is queried from a non-owning process (instead of waiting forever)
@@ -138,14 +142,18 @@ available.
   * [Mix] Validate git options and warn on conflicting ref, branch or tags
   * [Mix] New umbrella applications will now share configuration and build files
   * [Mix] Add experimental support for Rebar 3
+  * [Mix] Do not warn when an optional dependency has a conflicting `:only` option with another dependency
 
 ### 2. Bug fixes
 
 #### Kernel
 
+  * [Kernel] Raise when conflicting `:only` and `:except` are given to import
   * [Kernel] Change `__ENV__.file` if `@file` is set for the given function
   * [Kernel] Make `Kernel.ParallelRequire` aware of `:warning_as_errors`
   * [Kernel] Improve error message for invalid `do`/`do:`
+  * [Macro] Ensure `Macro.to_string/2` respects operator precedence when using the access operator
+  * [Path] Do not crash when expanding paths that go beyond the root, for example, `Path.expand("/../..")`
 
 #### IEx
 
@@ -158,6 +166,7 @@ available.
   * [Mix] Ensure rebar projects work on directory names that contain non-latin characters
   * [Mix] Ignore directories inside `apps` in umbrellas that do not have a `mix.exs` file
   * [Mix] Ensure Mix can be used with path dependencies where the app name is different than the path basename
+  * [Mix] Ensure dependencies won't crash when updating from a git repository to a hex repository and the git version did not respect SemVer
 
 #### ExUnit
 
