@@ -363,6 +363,8 @@ translate_block([], Acc, S) ->
 translate_block([H], Acc, S) ->
   {TH, TS} = translate(H, S),
   translate_block([], [TH|Acc], TS);
+translate_block([{'__block__', _Meta, Args}|T], Acc, S) when is_list(Args) ->
+  translate_block(Args ++ T, Acc, S);
 translate_block([{for, Meta, [_|_] = Args}|T], Acc, S) ->
   {TH, TS} = elixir_for:translate(Meta, Args, false, S),
   translate_block(T, [TH|Acc], TS);

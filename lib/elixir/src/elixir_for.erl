@@ -67,7 +67,7 @@ translate(Meta, Args, Return, S) ->
     end,
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
-  {TExpr, SE}  = elixir_translator:translate(Expr, SC),
+  {TExpr, SE}  = elixir_translator:translate(wrap_expr(Expr, TInto), SC),
   SF = elixir_scope:mergec(SI, SE),
 
   case comprehension_expr(TInto, TExpr) of
@@ -76,6 +76,11 @@ translate(Meta, Args, Return, S) ->
     {into, TIntoExpr} ->
       build_into(Ann, TCases, TIntoExpr, TInto, Var, Acc, SF)
   end.
+
+%% In case we have no return, we wrap the expression
+%% in a block that returns nil.
+wrap_expr(Expr, false) -> {'__block__', [], [Expr, nil]};
+wrap_expr(Expr, _)  -> Expr.
 
 translate_gen(ForMeta, [{'<-', Meta, [Left, Right]}|T], Acc, S) ->
   {TLeft, TRight, TFilters, TT, TS} = translate_gen(Meta, Left, Right, T, S),
@@ -253,10 +258,7 @@ no_var_expr({var, Ann, _}) ->
   {var, Ann, '_'}.
 
 build_comprehension(Ann, Clauses, Expr, false) ->
-  {block, Ann, [
-    build_comprehension(Ann, Clauses, Expr, {nil, Ann}),
-    {nil, Ann}
-  ]};
+  {lc, Ann, Expr, comprehension_clause(Clauses)};
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
