@@ -35,4 +35,8 @@ defmodule ExceptionHelpersTest do
              File
       """
   end
+
+  test "will find unloaded modules" do
+    assert "OptionParser" in ExceptionHelpers.find_modules(OptionParse, :foo, 1)
+  end
 end

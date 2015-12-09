@@ -1,4 +1,7 @@
 defmodule ExceptionHelpers do
+  @function_similarity_threshold 0.8
+  @module_similarity_threshold   0.9
+
   def module_functions(module) do
     try do
       module.module_info(:exports)
@@ -23,17 +26,21 @@ defmodule ExceptionHelpers do
 
   def similar_functions(module, function) do
     functions = module_functions(module)
-
     matching_names = functions
                 |> Keyword.keys
-                |> within_distance_from(0.8, function)
+                |> Enum.map(&Atom.to_string/1)
+                |> within_distance_from(@function_similarity_threshold, function)
+                |> Enum.map(&String.to_atom/1)
     functions |> Keyword.take(matching_names)
   end
 
   def find_modules(module, _function, _arity) do
-    :code.all_loaded
-    |> Enum.map(&elem(&1, 0))
-    |> within_distance_from(0.8, module)
+    IEx.Autocomplete.get_modules_from_applications
+    |> within_distance_from(@module_similarity_threshold, module)
+    |> Enum.map(fn
+      "Elixir." <> module -> module
+      module              -> module
+    end)
   end
 
   def get_call_signature(module, name, args) do
@@ -67,7 +74,7 @@ defmodule ExceptionHelpers do
 
     list
     |> Enum.map(fn(mod) ->
-      { mod, String.jaro_distance(name, Atom.to_string(mod)) }
+      { mod, String.jaro_distance(name, (mod)) }
     end)
     |> Enum.filter(fn({ _func, dist }) ->
       dist >= min_distance
@@ -82,7 +89,7 @@ defmodule ExceptionHelpers do
     extra = list
             |> Enum.map(fn
               { fun, arity } -> Exception.format_mfa(module, fun, arity)
-              module         -> inspect(module)
+              module         -> module
             end)
             |> Enum.join(indent)
 
