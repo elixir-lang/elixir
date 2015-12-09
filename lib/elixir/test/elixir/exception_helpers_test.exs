@@ -20,8 +20,8 @@ defmodule ExceptionHelpersTest do
           \e[1mPerhaps you meant one of:\e[0m
 
              File.open/1
-             File.open/3                   File.open(path, modes, function)
-             File.open/2                   File.open(path, modes \\\\ [])
+             File.open/3
+             File.open/2
       """
   end
 
