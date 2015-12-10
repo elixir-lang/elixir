@@ -222,7 +222,7 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  def get_modules_from_applications do
+  defp get_modules_from_applications do
     for [app] <- loaded_applications(),
         {:ok, modules} = :application.get_key(app, :modules),
         module <- modules do

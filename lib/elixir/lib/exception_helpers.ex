@@ -1,6 +1,6 @@
 defmodule ExceptionHelpers do
-  @function_similarity_threshold 2
-  @module_similarity_threshold   2
+  @function_similarity_threshold 1.5
+  @module_similarity_threshold   1.5
 
   def module_functions(module) do
     try do
@@ -21,16 +21,6 @@ defmodule ExceptionHelpers do
          # Check for a function with the same name but different signature
          list -> list
        end
-
-    # # Check for a function with the same name but different signature
-    # matches = module_functions(module) |> Keyword.take([function])
-
-    # if Enum.empty?(matches) do
-    #   # No function with this name, check for a typo
-    #   matches = similar_functions(module, function)
-    # end
-
-    # matches |> Enum.take(6)
   end
 
   def similar_functions(module, function) do
@@ -44,7 +34,7 @@ defmodule ExceptionHelpers do
   end
 
   def find_modules(module, _function, _arity) do
-    IEx.Autocomplete.get_modules_from_applications
+    get_modules_from_applications
     |> within_distance_from(@module_similarity_threshold, module)
     |> Enum.map(fn
       "Elixir." <> module -> module
@@ -149,5 +139,25 @@ defmodule ExceptionHelpers do
         min = :lists.min([l1, l2, l3]) + 1
         {min, Dict.put(c3, {string_1,string_2}, min)}
     end
+  end
+
+  # =========================
+  # = From IEx.Autocomplete =
+  # =========================
+  defp get_modules_from_applications do
+    for [app] <- loaded_applications(),
+        {:ok, modules} = :application.get_key(app, :modules),
+        module <- modules do
+      Atom.to_string(module)
+    end
+  end
+
+  defp loaded_applications do
+    # If we invoke :application.loaded_applications/0,
+    # it can error if we don't call safe_fixtable before.
+    # Since in both cases we are reaching over the
+    # application controller internals, we choose to match
+    # for performance.
+    :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 end
