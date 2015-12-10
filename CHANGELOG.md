@@ -103,7 +103,7 @@ available.
   * [Kernel] Allow variables as map keys on creation `%{key => value}` and on matches `%{^key => value}`
   * [Kernel] Allow the pin operator `^` in `fn` clauses and on the left side of `<-` in `for` comprehensions
   * [Kernel] Introduce `with` as a special form that allows matching on right side parameters
-  * [Kernel] Raise when right hand side of `->` does not provide any expression
+  * [Kernel] Warn when right hand side of `->` does not provide any expression
   * [Kernel] Warn if the Elixir was compiled with a different endianness than the one currently available at runtime
   * [Kernel] Warn if a variable is used after being defined exclusively in a nested context
   * [Kernel] Warn if piping into an expression without parentheses
