@@ -67,8 +67,11 @@ adding the following configuration to each umbrella app's `mix.exs` file:
 Finally, Mix will now consolidate protocols by default as we are now able to
 consolidate in parallel and cache the consolidation results, providing the
 best performance across all environments without affecting compilation times.
-This can still be disabled by setting `consolidate_protocols: false` in the
-project config.
+The only downside of this change is that, if you have been implementing
+protocols exclusively as part of your test suite, inside the `test` directory,
+those won't be picked up as it happens after compilation. For such cases,
+consolidation can be disabled by setting `consolidate_protocols: false` in
+the project config.
 
 These are great additions on top of the faster compilation times we have
 achieved when migrating to Erlang 18.
