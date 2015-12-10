@@ -36,6 +36,10 @@ defmodule ExceptionHelpersTest do
       """
   end
 
+  test "works with Erlang modules" do
+    assert ":file" in ExceptionHelpers.find_modules(:filr, :open, 1)
+  end
+
   test "will find unloaded modules" do
     assert "OptionParser" in ExceptionHelpers.find_modules(OptionParse, :foo, 1)
   end
