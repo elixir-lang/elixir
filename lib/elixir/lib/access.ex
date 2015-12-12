@@ -53,7 +53,7 @@ defmodule Access do
     :maps.find(key, map)
   end
 
-  def fetch(list, key) when is_list(list) do
+  def fetch(list, key) when is_list(list) and is_atom(key) do
     case :lists.keyfind(key, 1, list) do
       {^key, value} -> {:ok, value}
       false -> :error

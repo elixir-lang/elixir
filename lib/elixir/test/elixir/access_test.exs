@@ -36,6 +36,10 @@ defmodule AccessTest do
     assert Access.fetch([foo: :bar], :foo) == {:ok, :bar}
     assert Access.fetch([foo: :bar], :bar) == :error
 
+    assert_raise FunctionClauseError, fn ->
+      Access.fetch([{"foo", :bar}], "foo")
+    end
+
     assert Access.get([foo: :bar], :foo) == :bar
     assert Access.get_and_update([], :foo, fn nil -> {:ok, :baz} end) == {:ok, [foo: :baz]}
     assert Access.get_and_update([foo: :bar], :foo, fn :bar -> {:ok, :baz} end) == {:ok, [foo: :baz]}
