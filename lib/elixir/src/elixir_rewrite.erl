@@ -1,10 +1,13 @@
 -module(elixir_rewrite).
--export([rewrite/5, inline/3]).
+-export([rewrite/6, inline/3]).
 -include("elixir.hrl").
+
+-define(is_literal(Arg), (is_binary(Arg) orelse is_number(Arg) orelse is_atom(Arg))).
 
 %% Convenience variables
 
 -define(atom, 'Elixir.Atom').
+-define(access, 'Elixir.Access').
 -define(enum, 'Elixir.Enum').
 -define(float, 'Elixir.Float').
 -define(io, 'Elixir.IO').
@@ -173,9 +176,17 @@ inline(_, _, _) -> false.
 
 %% Complex rewrite rules
 
-rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String]) when is_binary(String) ->
+rewrite(?access, _DotMeta, 'get', _Meta, [nil, Arg], _Env)
+    when ?is_literal(Arg) orelse (is_atom(element(1, Arg)) andalso element(3, Arg) == nil) ->
+  nil;
+rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
+    when ?is_literal(Arg) orelse element(1, Arg) == '{}' orelse element(1, Arg) == '<<>>' ->
+  elixir_errors:compile_error(Meta, ?m(Env, file),
+    "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
+    ['Elixir.Macro':to_string(Arg)]);
+rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _File) when is_binary(String) ->
   String;
-rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
+rewrite(?string_chars, DotMeta, 'to_string', Meta, [String], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
   Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
@@ -186,9 +197,9 @@ rewrite(?string_chars, DotMeta, 'to_string', Meta, [String]) ->
      {'->', ?generated, [[Var], Slow]}]
   }]]};
 
-rewrite(?enum, DotMeta, 'reverse', Meta, [List]) when is_list(List) ->
+rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) when is_list(List) ->
   remote(lists, DotMeta, 'reverse', Meta, [List]);
-rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
+rewrite(?enum, DotMeta, 'reverse', Meta, [List], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
   Guard = {{'.', ?generated, [erlang, is_list]}, ?generated, [Var]},
   Slow  = remote(?enum, DotMeta, 'reverse', Meta, [Var]),
@@ -199,7 +210,7 @@ rewrite(?enum, DotMeta, 'reverse', Meta, [List]) ->
      {'->', ?generated, [[Var], Slow]}]
   }]]};
 
-rewrite(Receiver, DotMeta, Right, Meta, Args) ->
+rewrite(Receiver, DotMeta, Right, Meta, Args, _Env) ->
   {EReceiver, ERight, EArgs} = rewrite(Receiver, Right, Args),
   remote(EReceiver, DotMeta, ERight, Meta, EArgs).
 
