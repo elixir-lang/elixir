@@ -69,7 +69,7 @@ defmodule Mix.Dep.Converger do
     # iteration.
     {deps, rest, lock} =
       all(main, only, [], current, callback, acc, lock, fn dep ->
-        if (converger = Mix.RemoteConverger.get) && converger.remote?(dep) do
+        if (remote = Mix.RemoteConverger.get) && remote.remote?(dep) do
           {:loaded, dep}
         else
           {:unloaded, dep, nil}
@@ -79,10 +79,11 @@ defmodule Mix.Dep.Converger do
     # Filter deps per environment once more. If the filtered
     # dependencies had no conflicts, they are removed now.
     {deps, _} = Mix.Dep.Loader.partition_by_env(deps, opts)
+    diverged? = Enum.any?(deps, &Mix.Dep.diverged?/1)
 
     # Run remote converger if one is available and rerun Mix's
     # converger with the new information
-    if remote = Mix.RemoteConverger.get do
+    if not diverged? && (remote = Mix.RemoteConverger.get) do
       # If there is a lock, it means we are doing a get/update
       # and we need to hit the remote converger which do external
       # requests and what not. In case of deps.check, deps and so

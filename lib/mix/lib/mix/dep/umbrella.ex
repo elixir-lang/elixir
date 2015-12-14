@@ -14,7 +14,7 @@ defmodule Mix.Dep.Umbrella do
       paths
       |> extract_umbrella
       |> filter_umbrella(config[:apps])
-      |> to_umbrella_dep(build)
+      |> to_umbrella_dep(build, Path.absname("mix.exs"))
     else
       []
     end
@@ -48,7 +48,7 @@ defmodule Mix.Dep.Umbrella do
     for {app, _} = pair <- pairs, app in apps, do: pair
   end
 
-  defp to_umbrella_dep(paths, build) do
+  defp to_umbrella_dep(paths, build, from) do
     Enum.map paths, fn({app, path}) ->
       opts = [path: path, dest: Path.expand(path), from_umbrella: true,
               env: Mix.env, build: Path.join([build, "lib", Atom.to_string(app)])]
@@ -58,6 +58,7 @@ defmodule Mix.Dep.Umbrella do
         requirement: nil,
         manager: :mix,
         status: {:ok, nil},
+        from: from,
         opts: opts}
     end
   end

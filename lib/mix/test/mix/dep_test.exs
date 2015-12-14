@@ -208,6 +208,41 @@ defmodule Mix.DepTest do
     Mix.RemoteConverger.register(nil)
   end
 
+  defmodule RaiseRemoteConverger do
+    @behaviour Mix.RemoteConverger
+
+    def remote?(_app), do: false
+
+    def converge(_deps, lock) do
+      Process.put(:remote_converger, true)
+      lock
+    end
+
+    def deps(_deps, _lock) do
+      []
+    end
+  end
+
+  test "remote converger is not invoked if deps diverge" do
+    deps = [{:deps_repo, "0.1.0", path: "custom/deps_repo"},
+            {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test}]
+
+    with_deps deps, fn ->
+      Mix.RemoteConverger.register(RaiseRemoteConverger)
+
+      in_fixture "deps_status", fn ->
+        assert_raise Mix.Error, fn ->
+          Mix.Tasks.Deps.Get.run([])
+        end
+
+        assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
+        refute Process.get(:remote_converger)
+      end
+    end
+  after
+    Mix.RemoteConverger.register(nil)
+  end
+
   ## Only handling
 
   test "only extract deps matching environment" do

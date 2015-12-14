@@ -70,7 +70,6 @@ defmodule Mix.Tasks.Deps.Check do
     end
   end
 
-
   defp partition([dep|deps], not_ok, compile) do
     cond do
       from_umbrella?(dep)      -> partition(deps, not_ok, compile)
