@@ -105,8 +105,11 @@ defmodule Mix.Dep.Fetcher do
     # leave out things that could not be fetched and save it.
     lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
-
     mark_as_fetched(deps)
+
+    # See if any of the deps diverged and abort.
+    show_diverged!(Enum.filter(all_deps, &Mix.Dep.diverged?/1))
+
     {apps, all_deps}
   end
 
@@ -143,5 +146,18 @@ defmodule Mix.Dep.Fetcher do
     Enum.map(given, fn(app) ->
       if is_binary(app), do: String.to_atom(app), else: app
     end)
+  end
+
+  defp show_diverged!([]), do: :ok
+  defp show_diverged!(deps) do
+    shell = Mix.shell
+    shell.error "Dependencies have diverged:"
+
+    Enum.each deps, fn(dep) ->
+      shell.error "* #{Mix.Dep.format_dep dep}"
+      shell.error "  #{Mix.Dep.format_status dep}"
+    end
+
+    Mix.raise "Can't continue due to errors on dependencies"
   end
 end

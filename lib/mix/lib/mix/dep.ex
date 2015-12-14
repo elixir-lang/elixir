@@ -281,12 +281,17 @@ defmodule Mix.Dep do
 
   Available dependencies are the ones that can be loaded.
   """
-  def available?(%Mix.Dep{status: {:unavailable, _}}),  do: false
-  def available?(%Mix.Dep{status: {:overridden, _}}),   do: false
-  def available?(%Mix.Dep{status: {:diverged, _}}),     do: false
-  def available?(%Mix.Dep{status: {:divergedreq, _}}),  do: false
-  def available?(%Mix.Dep{status: {:divergedonly, _}}), do: false
-  def available?(%Mix.Dep{}), do: true
+  def available?(%Mix.Dep{status: {:unavailable, _}}), do: false
+  def available?(dep), do: not diverged?(dep)
+
+  @doc """
+  Checks if a dependency has diverged.
+  """
+  def diverged?(%Mix.Dep{status: {:overridden, _}}),   do: true
+  def diverged?(%Mix.Dep{status: {:diverged, _}}),     do: true
+  def diverged?(%Mix.Dep{status: {:divergedreq, _}}),  do: true
+  def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
+  def diverged?(%Mix.Dep{}), do: false
 
   @doc """
   Formats a dependency for printing.
