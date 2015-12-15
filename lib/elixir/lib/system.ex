@@ -452,7 +452,16 @@ defmodule System do
 
     {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
     {initial, fun} = Collectable.into(into)
-    do_cmd Port.open({:spawn_executable, cmd}, opts), initial, fun
+    try do
+      do_cmd Port.open({:spawn_executable, cmd}, opts), initial, fun
+    catch
+      kind, reason ->
+        stacktrace = System.stacktrace
+        fun.(initial, :halt)
+        :erlang.raise(kind, reason, stacktrace)
+    else
+      {acc, status} -> {fun.(acc, :done), status}
+    end
   end
 
   defp do_cmd(port, acc, fun) do
@@ -460,7 +469,7 @@ defmodule System do
       {^port, {:data, data}} ->
         do_cmd(port, fun.(acc, {:cont, data}), fun)
       {^port, {:exit_status, status}} ->
-        {fun.(acc, :done), status}
+        {acc, status}
     end
   end
 
