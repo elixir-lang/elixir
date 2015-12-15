@@ -1643,7 +1643,7 @@ defmodule Kernel do
   @doc """
   Gets a value from a nested structure.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function.
 
@@ -1662,7 +1662,7 @@ defmodule Kernel do
       27
 
   In case any of entries in the middle returns `nil`, `nil` will be returned
-  as per the Access protocol:
+  as per the Access module:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
@@ -1702,7 +1702,7 @@ defmodule Kernel do
   @doc """
   Puts a value in a nested structure.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function. If the key is a function, it will be invoked
   as specified in `get_and_update_in/3`.
@@ -1724,7 +1724,7 @@ defmodule Kernel do
   @doc """
   Updates a key in a nested structure.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function. If the key is a function, it will be invoked
   as specified in `get_and_update_in/3`.
@@ -1749,7 +1749,7 @@ defmodule Kernel do
   It expects a tuple to be returned, containing the value
   retrieved and the update one.
 
-  Uses the `Access` protocol to traverse the structures
+  Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function.
 

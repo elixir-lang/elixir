@@ -36,8 +36,9 @@ defmodule AccessTest do
     assert Access.fetch([foo: :bar], :foo) == {:ok, :bar}
     assert Access.fetch([foo: :bar], :bar) == :error
 
-    assert_raise FunctionClauseError, fn ->
-      Access.fetch([{"foo", :bar}], "foo")
+    msg = ~r/the Access calls for keywords expect the key to be an atom/
+    assert_raise ArgumentError, msg,  fn ->
+      Access.fetch([], "foo")
     end
 
     assert Access.get([foo: :bar], :foo) == :bar
