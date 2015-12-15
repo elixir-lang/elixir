@@ -60,6 +60,11 @@ defmodule Access do
     end
   end
 
+  def fetch(list, key) when is_list(list) do
+    raise ArgumentError,
+      "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+  end
+
   def fetch(nil, _key) do
     :error
   end
