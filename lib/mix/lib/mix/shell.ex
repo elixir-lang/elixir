@@ -89,25 +89,18 @@ defmodule Mix.Shell do
       end
 
     port = Port.open({:spawn, shell_command(command)},
-                     [:stream, :binary, :exit_status, :hide, :use_stdio, :eof, {:env, env}|args])
+                     [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env}|args])
 
-    do_cmd(port, command, callback)
+    do_cmd(port, callback)
   end
 
-  defp do_cmd(port, command, callback) do
+  defp do_cmd(port, callback) do
     receive do
       {^port, {:data, data}} ->
         callback.(data)
-        do_cmd(port, command, callback)
-      {^port, :eof} ->
-        receive do
-          {^port, {:exit_status, status}} ->
-            status
-        after
-          5_000 ->
-            IO.puts :stderr, "warning: did not receive exit status after command: #{command}"
-            0
-        end
+        do_cmd(port, callback)
+      {^port, {:exit_status, status}} ->
+        status
     end
   end
 
