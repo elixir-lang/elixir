@@ -43,6 +43,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
     Erlang.compile(manifest(), mappings, :yrl, :erl, opts[:force], fn
       input, output ->
+        Erlang.ensure_application!(:parsetools, input)
         options = options ++ [parserfile: Erlang.to_erl_file(output), report: true]
         :yecc.file(Erlang.to_erl_file(input), options)
     end)

@@ -43,6 +43,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     Erlang.compile(manifest(), mappings, :xrl, :erl, opts[:force], fn
       input, output ->
+        Erlang.ensure_application!(:parsetools, input)
         options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
         :leex.file(Erlang.to_erl_file(input), options)
     end)
