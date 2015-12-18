@@ -126,7 +126,7 @@ defmodule Mix.Tasks.New do
     create_directory "apps"
 
     create_directory "config"
-    create_file "config/config.exs", config_template(assigns)
+    create_file "config/config.exs", config_umbrella_template(assigns)
 
     Mix.shell.info """
 
@@ -361,6 +361,26 @@ defmodule Mix.Tasks.New do
   # here (which is why it is important to import them last).
   #
   #     import_config "#{Mix.env}.exs"
+  """
+
+  embed_template :config_umbrella, ~S"""
+  # This file is responsible for configuring your application
+  # and its dependencies with the aid of the Mix.Config module.
+  use Mix.Config
+
+  # By default, the umbrella project as well as each child
+  # application will require this configuration file, ensuring
+  # they all use the same configuration. While one could
+  # configure all applications here, we prefer to delegate
+  # back to each application for organization purposes.
+  import_config "../apps/*/config/config.exs"
+
+  # Sample configuration (overrides the imported configuration above):
+  #
+  #     config :logger, :console,
+  #       level: :info,
+  #       format: "$date $time [$level] $metadata$message\n",
+  #       metadata: [:user_id]
   """
 
   embed_template :lib, """
