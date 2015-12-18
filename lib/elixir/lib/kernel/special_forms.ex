@@ -820,7 +820,7 @@ defmodule Kernel.SpecialForms do
 
       Returning 5
       Returning 5
-      25
+      Got 25
 
   Notice how "Returning 5" was printed twice, instead of just once. This is
   because a macro receives an expression and not a value (which is what we
