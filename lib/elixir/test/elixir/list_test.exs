@@ -158,6 +158,10 @@ defmodule ListTest do
                  "invalid code point 57343", fn ->
       List.to_string([0xDFFF])
     end
+    assert_raise UnicodeConversionError,
+                 "invalid encoding starting at <<216, 0>>", fn ->
+      List.to_string(["a", "b", <<0xD800 :: size(16)>>])
+    end
 
     assert_raise ArgumentError,
                  "cannot convert list to string. The list must contain only integers, strings or nested such lists; got: [:a, :b]", fn ->
