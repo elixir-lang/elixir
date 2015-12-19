@@ -704,8 +704,12 @@ defmodule UnicodeConversionError do
     "encoding starting at #{inspect rest}"
   end
 
-  defp detail([h|_]) do
+  defp detail([h|_]) when is_integer(h) do
     "code point #{h}"
+  end
+
+  defp detail([h|_]) do
+    detail(h)
   end
 end
 
