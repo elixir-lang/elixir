@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Deps.Clean do
     Enum.reject(apps, &(&1 in load_deps))
   end
 
-  defp do_clean(apps, build, deps, build_only) do
+  defp do_clean(apps, build, deps, build_only?) do
     shell = Mix.shell
 
     Enum.each apps, fn(app) ->
@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Deps.Clean do
       |> Path.wildcard
       |> Enum.each(&File.rm_rf!/1)
 
-      unless build_only do
+      unless build_only? do
         deps
         |> Path.join(to_string(app))
         |> File.rm_rf!
