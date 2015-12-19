@@ -474,6 +474,8 @@ defmodule Logger do
       Logger.warn fn -> "expensive to calculate warning" end
 
   """
+  @spec warn(message | (() -> message), Keyword.t) ::
+          :ok | {:error, :noproc} | {:error, term}
   defmacro warn(chardata_or_fn, metadata \\ []) do
     maybe_log(:warn, chardata_or_fn, metadata, __CALLER__)
   end
@@ -487,6 +489,8 @@ defmodule Logger do
       Logger.info fn -> "expensive to calculate info" end
 
   """
+  @spec info(message | (() -> message), Keyword.t) ::
+          :ok | {:error, :noproc} | {:error, term}
   defmacro info(chardata_or_fn, metadata \\ []) do
     maybe_log(:info, chardata_or_fn, metadata, __CALLER__)
   end
@@ -500,6 +504,8 @@ defmodule Logger do
       Logger.error fn -> "expensive to calculate error" end
 
   """
+  @spec error(message | (() -> message), Keyword.t) ::
+          :ok | {:error, :noproc} | {:error, term}
   defmacro error(chardata_or_fn, metadata \\ []) do
     maybe_log(:error, chardata_or_fn, metadata, __CALLER__)
   end
@@ -513,6 +519,8 @@ defmodule Logger do
       Logger.debug fn -> "expensive to calculate debug" end
 
   """
+  @spec debug(message | (() -> message), Keyword.t) ::
+          :ok | {:error, :noproc} | {:error, term}
   defmacro debug(chardata_or_fn, metadata \\ []) do
     maybe_log(:debug, chardata_or_fn, metadata, __CALLER__)
   end
@@ -525,6 +533,8 @@ defmodule Logger do
   of this macro as they can automatically eliminate
   the Logger call altogether at compile time if desired.
   """
+  @spec log(level, message | (() -> message), Keyword.t) ::
+          :ok | {:error, :noproc} | {:error, term}
   defmacro log(level, chardata_or_fn, metadata \\ []) do
     macro_log(level, chardata_or_fn, metadata, __CALLER__)
   end
