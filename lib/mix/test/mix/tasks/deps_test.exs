@@ -659,4 +659,17 @@ defmodule Mix.Tasks.DepsTest do
       assert File.exists?("_build/dev/lib/raw_sample")
     end
   end
+
+  test "cleans dependencies build" do
+    Mix.Project.push CleanDepsApp
+
+    in_fixture "deps_status", fn ->
+      File.mkdir_p!("deps/raw_sample")
+      File.mkdir_p!("_build/dev/lib/raw_sample")
+
+      Mix.Tasks.Deps.Clean.run ["raw_sample", "--build"]
+      assert File.exists?("deps/raw_sample")
+      refute File.exists?("_build/dev/lib/raw_sample")
+    end
+  end
 end
