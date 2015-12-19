@@ -20,7 +20,8 @@ defmodule Mix.Tasks.Deps.Clean do
   is given.
   """
 
-  @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean]
+  @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean,
+             build: :boolean]
 
   @spec run(OptionParser.argv) :: :ok
   def run(args) do
@@ -32,19 +33,18 @@ defmodule Mix.Tasks.Deps.Clean do
             |> Path.join("#{opts[:only] || :*}/lib")
     deps = Mix.Project.deps_path
 
-    cond do
-      opts[:all] ->
-        checked_deps(build, deps) |> do_clean(build, deps)
-      opts[:unused] ->
-        checked_deps(build, deps) |> filter_loaded(opts) |> do_clean(build, deps)
-      apps != [] ->
-        do_clean(apps, build, deps)
+    apps_to_clean = cond do
+      opts[:all] -> checked_deps(build, deps)
+      opts[:unused] -> checked_deps(build, deps) |> filter_loaded(opts)
+      apps != [] -> apps
       true ->
         Mix.raise "\"mix deps.clean\" expects dependencies as arguments or " <>
                   "a flag indicating which dependencies to clean. " <>
                   "The --all option will clean all dependencies while " <>
                   "the --unused option cleans unused dependencies"
     end
+
+    do_clean(apps_to_clean, build, deps, opts[:build])
 
     if opts[:unlock] do
       Mix.Task.run "deps.unlock", args
@@ -69,7 +69,7 @@ defmodule Mix.Tasks.Deps.Clean do
     Enum.reject(apps, &(&1 in load_deps))
   end
 
-  defp do_clean(apps, build, deps) do
+  defp do_clean(apps, build, deps, build_only) do
     shell = Mix.shell
 
     Enum.each apps, fn(app) ->
@@ -80,9 +80,11 @@ defmodule Mix.Tasks.Deps.Clean do
       |> Path.wildcard
       |> Enum.each(&File.rm_rf!/1)
 
-      deps
-      |> Path.join(to_string(app))
-      |> File.rm_rf!
+      unless build_only do
+        deps
+        |> Path.join(to_string(app))
+        |> File.rm_rf!
+      end
     end
   end
 end
