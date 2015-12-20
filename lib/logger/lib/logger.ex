@@ -468,6 +468,8 @@ defmodule Logger do
   @doc """
   Logs a warning.
 
+  Returns the atom `:ok` or an `{:error, reason}` tuple.
+
   ## Examples
 
       Logger.warn "knob turned too far to the right"
@@ -480,6 +482,8 @@ defmodule Logger do
 
   @doc """
   Logs some info.
+
+  Returns the atom `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -494,6 +498,8 @@ defmodule Logger do
   @doc """
   Logs an error.
 
+  Returns the atom `:ok` or an `{:error, reason}` tuple.
+
   ## Examples
 
       Logger.error "oops"
@@ -506,6 +512,8 @@ defmodule Logger do
 
   @doc """
   Logs a debug message.
+  
+  Returns the atom `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
 
@@ -519,6 +527,8 @@ defmodule Logger do
 
   @doc """
   Logs a message.
+  
+  Returns the atom `:ok` or an `{:error, reason}` tuple.
 
   Developers should use the macros `Logger.debug/2`,
   `Logger.warn/2`, `Logger.info/2` or `Logger.error/2` instead
