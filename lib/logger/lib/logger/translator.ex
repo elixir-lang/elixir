@@ -28,6 +28,8 @@ defmodule Logger.Translator do
   and the default messages translated by Logger.
   """
 
+  # The name_or_id checks are required to support old OTP projects.
+
   def translate(min_level, level, kind, message)
 
   def translate(min_level, :error, :format, message) do
@@ -92,8 +94,8 @@ defmodule Logger.Translator do
   defp translate_supervisor(min_level,
                            [supervisor: sup, errorContext: context,
                              reason: reason,
-                             offender: [{:pid, pid}, {:id, name} | offender]])
-                           when is_pid(pid) and context !== :shutdown do
+                             offender: [{:pid, pid}, {name_or_id, name} | offender]])
+                           when is_pid(pid) and context !== :shutdown and name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context),
             "\n** (exit) ", offender_reason(reason, context),
@@ -105,7 +107,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:pid, _pid},
-                                        {:id, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context),
             "\n** (exit) ", offender_reason(reason, context) |
@@ -127,7 +129,7 @@ defmodule Logger.Translator do
                            [supervisor: sup, errorContext: context,
                              reason: reason,
                              offender: [{:nb_children, n},
-                                        {:id, name} | offender]]) do
+                                        {name_or_id, name} | offender]]) when name_or_id in [:name, :id] do
     {:ok, ["Children ", inspect(name), " of Supervisor ",
             sup_name(sup), ?\s, sup_context(context),
             "\n** (exit) ", offender_reason(reason, context),
@@ -144,7 +146,7 @@ defmodule Logger.Translator do
 
   defp translate_progress(min_level,
                           [supervisor: sup,
-                            started: [{:pid, pid}, {:id, name} | started]]) do
+                            started: [{:pid, pid}, {name_or_id, name} | started]]) when name_or_id in [:name, :id] do
     {:ok, ["Child ", inspect(name), " of Supervisor ",
             sup_name(sup), " started",
             "\nPid: ", inspect(pid) |
