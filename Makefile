@@ -128,14 +128,14 @@ clean_exbeam:
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell head="$$(git rev-parse HEAD)" tag="$$(git tag --points-at $$head | tail -1)" ; echo "$${tag:-$$head}\c")
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -p http://elixir-lang.org/docs.html
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -p http://elixir-lang.org/docs.html $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel)
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-e "lib/elixir/pages/Typespecs.md" -e "lib/elixir/pages/Writing Documentation.md")
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
@@ -185,16 +185,6 @@ publish_zips: Precompiled.zip Docs.zip
 publish_docs: docs
 	rm -rf ../docs/$(DOCS)/*/
 	cp -R doc/* ../docs/$(DOCS)
-
-# This task requires aws-cli to be installed and set up for access to s3.hex.pm
-# See: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html
-
-publish_mix: compile
-	cd lib/mix && MIX_ENV=prod mix escript.build
-	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/v$(VERSION)/mix --acl public-read
-	aws s3 cp lib/mix/mix s3://s3.hex.pm/builds/mix/mix --acl public-read
-	rm lib/mix/mix
-	rm -rf lib/mix/_build
 
 #==> Tests tasks
 
