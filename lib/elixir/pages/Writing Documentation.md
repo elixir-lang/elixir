@@ -1,6 +1,6 @@
 # Writing Documentation
 
-Elixir treats documentation as a first-class citizen. This means documentation should be easy to write and easy to erad. In this document you will learn how to write documentation in Elixir, covering constructs like module attributes, style practices and doctests.
+Elixir treats documentation as a first-class citizen. This means documentation should be easy to write and easy to read. In this document you will learn how to write documentation in Elixir, covering constructs like module attributes, style practices and doctests.
 
 ## Markdown
 
