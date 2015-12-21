@@ -15,6 +15,7 @@ defmodule Mix.Tasks.Deps.Clean do
     * `--unused`   - deletes only unused dependencies (no longer mentioned
       in the `mix.exs` file)
     * `--unlock`   - also unlocks the deleted dependencies
+    * `--build`    - deletes only dependencies compiled files (keep the source files)
 
   By default this task works across all environments, unless `--only`
   is given.
