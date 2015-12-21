@@ -72,7 +72,9 @@ defmodule Mix.Dep do
   This function raises an exception if any of the dependencies
   provided in the project are in the wrong format.
   """
-  defdelegate children(), to: Mix.Dep.Loader
+  def children do
+    Mix.Dep.Loader.children(Mix.env)
+  end
 
   @doc """
   Returns loaded dependencies recursively as a `Mix.Dep` struct.
@@ -83,7 +85,7 @@ defmodule Mix.Dep do
   provided in the project are in the wrong format.
   """
   def loaded(opts) do
-    Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
+    Mix.Dep.Converger.converge(children(), nil, nil, opts, &{&1, &2, &3}) |> elem(0)
   end
 
   @doc """

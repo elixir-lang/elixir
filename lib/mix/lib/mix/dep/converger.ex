@@ -43,13 +43,12 @@ defmodule Mix.Dep.Converger do
 
   See `Mix.Dep.Loader.children/1` for options.
   """
-  def converge(acc, lock, opts, callback) do
-    {deps, acc, lock} = all(acc, lock, opts, callback)
+  def converge(deps, acc, lock, opts, callback) do
+    {deps, acc, lock} = all(deps, acc, lock, opts, callback)
     {topsort(deps), acc, lock}
   end
 
-  defp all(acc, lock, opts, callback) do
-    deps = Mix.Dep.Loader.children()
+  defp all(deps, acc, lock, opts, callback) do
     deps = Enum.map(deps, &(%{&1 | top_level: true}))
     lock_given? = !!lock
 
