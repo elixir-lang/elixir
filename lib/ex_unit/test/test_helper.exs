@@ -1,5 +1,5 @@
 Logger.configure_backend(:console, colors: [enabled: false])
-ExUnit.start [trace: "--trace" in System.argv]
+ExUnit.start [trace: "--trace" in System.argv, exclude: :wip]
 
 # Beam files compiled on demand
 path = Path.expand("../tmp/beams", __DIR__)
