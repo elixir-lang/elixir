@@ -540,7 +540,7 @@ defmodule Kernel.SpecialForms do
   defmacro require(module, opts)
 
   @doc """
-  Imports function and macros from other modules.
+  Imports functions and macros from other modules.
 
   `import` allows one to easily access functions or macros from
   others modules without using the qualified name.
