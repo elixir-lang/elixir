@@ -844,7 +844,7 @@ warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
 warn_pipe({arrow_op, {Line, _Begin, _End}, Op}, {_, [_|_], [_|_]}) ->
   elixir_errors:warn(Line, ?file(),
     io_lib:format(
-      "you are piping into a function call without parentheses, which is ambiguous. "
+      "you are piping into a function call without parentheses, which may be ambiguous. "
       "Please wrap the function you are piping into in parentheses. For example:\n\n"
       "    foo 1 ~ts bar 2 ~ts baz 3\n\n"
       "Should be written as:\n\n"
