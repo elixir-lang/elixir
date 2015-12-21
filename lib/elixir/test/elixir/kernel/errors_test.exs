@@ -889,7 +889,6 @@ defmodule Kernel.ErrorsTest do
       '''
 
     message = "nofile:2: spec for undefined function omg/0"
-
     assert_compile_fail CompileError, message,
       '''
       defmodule Kernel.ErrorsTest.TypespecErrors2 do

@@ -281,6 +281,14 @@ defmodule Kernel.TypespecTest do
     end
   end
 
+  test "@type with an invalid map notation" do
+    assert_raise CompileError, ~r"invalid map specification", fn ->
+      test_module do
+        @type content :: %{atom | String.t => term}
+      end
+    end
+  end
+
   test "@type with list shortcuts" do
     module = test_module do
       @type mytype :: []
@@ -662,7 +670,7 @@ defmodule Kernel.TypespecTest do
     end
   end
 
-  test "@spec gives a nice error message when return type is missing" do
+  test "@spec shows readable error message when return type is missing" do
     assert_raise CompileError, ~r"type specification missing return type: myfun\(integer\)", fn ->
       test_module do
         @spec myfun(integer)
