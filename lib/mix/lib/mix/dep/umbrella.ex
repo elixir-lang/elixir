@@ -3,8 +3,13 @@ defmodule Mix.Dep.Umbrella do
 
   @doc """
   Gets all umbrella dependencies in unloaded format.
+
+  The environment is required and usually is set to
+  `Mix.env` (i.e. the same environment as the parent
+  project). However, it may be nil when invoked by
+  the fetcher so all deps are fetched recursively.
   """
-  def unloaded do
+  def unloaded(env) do
     config = Mix.Project.config
 
     if apps_path = config[:apps_path] do
@@ -14,7 +19,7 @@ defmodule Mix.Dep.Umbrella do
       paths
       |> extract_umbrella
       |> filter_umbrella(config[:apps])
-      |> to_umbrella_dep(build, Path.absname("mix.exs"))
+      |> to_umbrella_dep(build, Path.absname("mix.exs"), env)
     else
       []
     end
@@ -24,7 +29,7 @@ defmodule Mix.Dep.Umbrella do
   Gets all umbrella dependencies in the loaded format.
   """
   def loaded do
-    deps = unloaded
+    deps = unloaded(Mix.env)
     apps = Enum.map(deps, &(&1.app))
 
     Enum.map(deps, fn umbrella_dep ->
@@ -48,10 +53,10 @@ defmodule Mix.Dep.Umbrella do
     for {app, _} = pair <- pairs, app in apps, do: pair
   end
 
-  defp to_umbrella_dep(paths, build, from) do
+  defp to_umbrella_dep(paths, build, from, env) do
     Enum.map paths, fn({app, path}) ->
       opts = [path: path, dest: Path.expand(path), from_umbrella: true,
-              env: Mix.env, build: Path.join([build, "lib", Atom.to_string(app)])]
+              env: env, build: Path.join([build, "lib", Atom.to_string(app)])]
       %Mix.Dep{
         scm: Mix.SCM.Path,
         app: app,
