@@ -722,10 +722,16 @@ defmodule Kernel.Typespec do
     {:type, line(meta), :map, :any}
   end
 
-  defp typespec({:%{}, meta, fields}, vars, caller) do
+  defp typespec({:%{}, meta, fields} = map, vars, caller) do
     fields =
-      :lists.map(fn {k, v} ->
-        {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+      :lists.map(fn
+        {k, v} ->
+          {:type, line(meta), :map_field_assoc, [typespec(k, vars, caller), typespec(v, vars, caller)]}
+        {:|, _, [_, _]} ->
+          compile_error(caller, "invalid map specification. When using the | operator in the map key, " <>
+                                "make sure to wrap the key type in parentheses: #{Macro.to_string(map)}")
+        _ ->
+          compile_error(caller, "invalid map specification: #{Macro.to_string(map)}")
       end, fields)
 
     {:type, line(meta), :map, fields}
