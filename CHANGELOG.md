@@ -85,6 +85,23 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.0-rc.1 (2015-12-21)
+
+### 1. Enhancements
+
+  * [Mix] Raise readable error message when parsertools is not available
+  * [Mix] Add `--build` flag to `mix deps.clean` to only clean `--build` artifacts
+  * [Typespec]  Improve error message on invalid maps on typespecs
+
+### 2. Bug fixes
+
+  * [Access] Improve error messages when using Access on non-valid key-value structures
+  * [Mix] Do not run remote converger if dependencies have diverged
+  * [Mix] Generate proper `config/config.exs` for umbrella projects
+  * [Mix] Ensure umbrella dependencies across all environments are loaded on parent deps.get/deps.update
+  * [Logger] Check for :name or :id in Logger translator to support old OTP projects
+  * [String] Ensure `UnicodeConversionError` does not contain invalid string in its error message
+
 ## v1.2.0-rc.0 (2015-12-09)
 
 ### 1. Enhancements
