@@ -54,7 +54,7 @@ Notice doctests have limitations. When you cannot doctest a function, because it
 
 ## Privacy
 
-Elixir allow developers to hide both modules and functions from the documentation by setting the doc attribute to false:
+Elixir allows developers to hide both modules and functions from the documentation by setting the doc attribute to false:
 
     defmodule MyApp.Hidden do
       @moduledoc false
