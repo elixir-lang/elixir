@@ -24,7 +24,8 @@ defmodule IEx do
 
   Such function may not be available on some Windows shells. You may need
   to pass the `--werl` flag when starting iex, as in `iex --werl` for it
-  to work.
+  to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
+  environment variable.
 
   ## The Break command
 
