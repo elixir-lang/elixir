@@ -11,7 +11,7 @@ defmodule Mix.CLITest do
         def project, do: [app: :p, version: "0.1.0"]
       end
       """
-      output = mix ~w[]
+      output = mix ~w()
       assert File.regular?("_build/dev/lib/p/ebin/Elixir.A.beam")
       assert output =~ "Compiled lib/a.ex"
     end
@@ -48,39 +48,39 @@ defmodule Mix.CLITest do
       end
       """
 
-      contents = mix ~w[my_hello], [{"MIX_QUIET", "1"}]
+      contents = mix ~w(my_hello), [{"MIX_QUIET", "1"}]
 
       assert contents =~ "Hello from MyProject!\n"
       refute contents =~ "This won't appear"
 
-      contents = mix ~w[my_hello], [{"MIX_QUIET", "0"}]
+      contents = mix ~w(my_hello), [{"MIX_QUIET", "0"}]
       assert contents =~ "This won't appear"
 
-      contents = mix ~w[my_hello], [{"MIX_DEBUG", "1"}]
+      contents = mix ~w(my_hello), [{"MIX_DEBUG", "1"}]
       assert contents =~ "** Running mix my_hello (inside MyProject)"
 
-      contents = mix ~w[my_hello], [{"MIX_DEBUG", "0"}]
+      contents = mix ~w(my_hello), [{"MIX_DEBUG", "0"}]
       refute contents =~ "** Running mix my_hello (inside MyProject)"
     end
   end
 
   test "no task error", context do
     in_tmp context.test, fn ->
-      contents = mix ~w[no_task]
+      contents = mix ~w(no_task)
       assert contents =~ "** (Mix) The task \"no_task\" could not be found"
     end
   end
 
   test "tasks with slashes in them raise a NoTaskError right away", context do
     in_tmp context.test, fn ->
-      contents = mix ~w[my/task]
+      contents = mix ~w(my/task)
       assert contents =~ "** (Mix) The task \"my/task\" could not be found"
     end
   end
 
   test "--help smoke test", context do
     in_tmp context.test, fn ->
-      output = mix ~w[--help]
+      output = mix ~w(--help)
       assert output =~ ~r/mix compile\s+# Compiles source files/
       refute output =~ "mix invalid"
     end
@@ -88,7 +88,7 @@ defmodule Mix.CLITest do
 
   test "--version smoke test", context do
     in_tmp context.test, fn ->
-      output = mix ~w[--version]
+      output = mix ~w(--version)
       assert output =~ ~r/Mix [0-9\.a-z]+/
     end
   end
@@ -116,10 +116,10 @@ defmodule Mix.CLITest do
 
   test "new with tests" do
     in_tmp "new_with_tests", fn ->
-      output = mix ~w[new .]
+      output = mix ~w(new .)
       assert output =~ "* creating lib/new_with_tests.ex"
 
-      output = mix ~w[test test/new_with_tests_test.exs --cover]
+      output = mix ~w(test test/new_with_tests_test.exs --cover)
       assert File.regular?("_build/test/lib/new_with_tests/ebin/Elixir.NewWithTests.beam")
       assert output =~ "1 test, 0 failures"
       assert output =~ "Generating cover results ..."
@@ -129,10 +129,10 @@ defmodule Mix.CLITest do
 
   test "new --sup with tests" do
     in_tmp "sup_with_tests", fn ->
-      output = mix ~w[new --sup .]
+      output = mix ~w(new --sup .)
       assert output =~ "* creating lib/sup_with_tests.ex"
 
-      output = mix ~w[test]
+      output = mix ~w(test)
       assert File.regular?("_build/test/lib/sup_with_tests/ebin/Elixir.SupWithTests.beam")
       assert output =~ "1 test, 0 failures"
     end
