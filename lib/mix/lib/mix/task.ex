@@ -250,6 +250,8 @@ defmodule Mix.Task do
   end
 
   defp run_task(proj, task, args) do
+    if Mix.debug?, do: output_task_debug_info(task, args, proj)
+
     # 1. If the task is available, we run it.
     # 2. Otherwise we look for it in dependencies.
     # 3. Finally, we compile the current project in hope it is available.
@@ -274,6 +276,16 @@ defmodule Mix.Task do
         module.run(args)
     end
   end
+
+  defp output_task_debug_info(task, args, proj) do
+    Mix.shell.info("** Running mix " <> task_to_string(task, args) <> project_to_string(proj))
+  end
+
+  defp project_to_string(nil), do: ""
+  defp project_to_string(proj), do: " (inside #{inspect proj})"
+
+  defp task_to_string(task, []), do: task
+  defp task_to_string(task, args), do: task <> " " <> Enum.join(args, " ")
 
   defp deps_loadpaths do
     Mix.Task.run "deps.check"
