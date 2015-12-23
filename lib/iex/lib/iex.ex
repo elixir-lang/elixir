@@ -22,6 +22,10 @@ defmodule IEx do
 
       Enum.
 
+  Such function may not be available on some Windows shells. You may need
+  to pass the `--werl` flag when starting iex, as in `iex --werl` for it
+  to work.
+
   ## The Break command
 
   Inside IEx, hitting `Ctrl+C` will open up the `BREAK` menu. In this
