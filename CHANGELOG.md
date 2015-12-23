@@ -90,7 +90,7 @@ available.
 ### 1. Enhancements
 
   * [Mix] Raise readable error message when parsertools is not available
-  * [Mix] Add `--build` flag to `mix deps.clean` to only clean `--build` artifacts
+  * [Mix] Add `--build` flag to `mix deps.clean DEP` to only remove artifacts from `_build`
   * [Typespec]  Improve error message on invalid maps on typespecs
 
 ### 2. Bug fixes
