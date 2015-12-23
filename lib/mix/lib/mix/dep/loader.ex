@@ -236,7 +236,17 @@ defmodule Mix.Dep.Loader do
         opts = Keyword.put_new(opts, :app, false)
       end
 
-      deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
+      child_opts =
+        cond do
+          opts[:from_umbrella] ->
+            []
+          env = opts[:env] ->
+            [env: env]
+          true ->
+            [env: :prod]
+        end
+
+      deps = mix_children(child_opts) ++ Mix.Dep.Umbrella.unloaded
       {%{dep | opts: opts}, deps}
     end)
   end
