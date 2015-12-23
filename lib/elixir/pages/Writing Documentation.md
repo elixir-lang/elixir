@@ -36,6 +36,18 @@ Documentation in Elixir is usually attached to module attributes. Let's see an e
 
 The `@moduledoc` attribute is used to attach documentation to the module. `@doc` is used before a function to attach documentation to it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs.
 
+## Function Arguments
+
+When documenting a function, argument names are inferred by the compiler. For example:
+
+    def size(%HashDict{size: size}) do
+      size
+    end
+
+The compiler will infer this argument as `hash_dict`. Sometimes the inference will be suboptimal, specially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by using a bodyless clause:
+
+    def size(dict)
+
 ## Recommendations
 
 There are a couple tips we recommend developers to follow when writing documentation:
@@ -76,20 +88,6 @@ The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only th
   * Move the private function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. In fact, you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
   * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will tell users to be wary of using it.
-
-## Function Arguments
-
-When documenting a function, argument names are inferred by the compiler. This can be changed by specifying your preferred argument name.  For example:
-
-    def size(%HashDict{size: size}) do
-      size
-    end
-
-The compiler will infer this argument as `hash_dict`, whereas if you'd prefer it to be, for instance, `dict`, you can write it as so:
-
-    def size(%HashDict{size: size} = _dict) do
-      size
-    end
 
 ## Documentation != Comments
 
