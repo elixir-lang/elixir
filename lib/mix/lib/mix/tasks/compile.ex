@@ -6,8 +6,7 @@ defmodule Mix.Tasks.Compile do
   @moduledoc """
   A meta task that compiles source files.
 
-  It simply runs the compilers registered in your project. At
-  the end of compilation it ensures load paths are set.
+  It simply runs the compilers registered in your project.
 
   ## Configuration
 
@@ -27,6 +26,18 @@ defmodule Mix.Tasks.Compile do
       the parent umbrella. In a non-umbrella context, configuring
       this has undesirable side-effects (such as skipping some
       compiler checks) and should be avoided.
+
+  ## Compilers
+
+  To see documentation for each specific compiler, you must
+  invoke `help` directly for the compiler command:
+
+      mix help compile.elixir
+      mix help compile.erlang
+
+  You can get a list of all compilers by running:
+
+      mix compile --list
 
   ## Command line options
 

@@ -41,6 +41,12 @@ defmodule Mix.Tasks.Compile.Erlang do
 
       For a list of the many more available options,
       see [`:compile.file/2`](http://www.erlang.org/doc/man/compile.html#file-2).
+
+  For example, to configure the `erlc_options` for your Erlang project you
+  may run:
+
+      erlc_options: [:debug_info, {:i, 'path/to/include'}]
+
   """
 
   @doc """
