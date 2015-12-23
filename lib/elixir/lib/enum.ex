@@ -1909,7 +1909,7 @@ defmodule Enum do
 
   This function maps each element of the enumerable using the `mapper`
   function.  The enumerable is then sorted by the mapped elements
-  using the `sorter` function, which defaults to `<=/2`
+  using the `sorter` function, which defaults to `Kernel.<=/2`
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
