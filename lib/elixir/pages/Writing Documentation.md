@@ -77,6 +77,20 @@ The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only th
 
   * Start the function name with underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with underscore and the underscore will tell users to be wary of using it.
 
+## Function Arguments
+
+When documenting a function, argument names are inferred by the compiler. This can be changed by specifying your preferred argument name.  For example:
+
+    def size(%HashDict{size: size}) do
+      size
+    end
+
+The compiler will infer this argument as `hash_dict`, whereas if you'd prefer it to be, for instance, `dict`, you can write it as so:
+
+    def size(%HashDict{size: size} = _dict) do
+      size
+    end
+
 ## Documentation != Comments
 
 Elixir makes the difference between documentation and code comments. Documentation are for users of your API, be it your co-worker or your future self. Modules and functions must always be documented if they are part of your application public interface (API).
