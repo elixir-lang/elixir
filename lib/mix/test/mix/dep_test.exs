@@ -85,7 +85,7 @@ defmodule Mix.DepTest do
     Mix.Project.push DepsApp
 
     {_, true, _} =
-      Mix.Dep.Converger.converge(Mix.Dep.children, false, [], nil, fn dep, acc, lock ->
+      Mix.Dep.Converger.converge(false, [], nil, fn dep, acc, lock ->
         assert is_nil(dep.manager)
         {dep, acc or true, lock}
       end)

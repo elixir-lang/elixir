@@ -14,8 +14,8 @@ defmodule Mix.Dep.Loader do
   By default, it will filter all dependencies that does not match
   current environment, behaviour can be overridden via options.
   """
-  def children(env) do
-    mix_children([]) ++ Mix.Dep.Umbrella.unloaded(env)
+  def children() do
+    mix_children([]) ++ Mix.Dep.Umbrella.unloaded
   end
 
   @doc """
@@ -236,10 +236,7 @@ defmodule Mix.Dep.Loader do
         opts = Keyword.put_new(opts, :app, false)
       end
 
-      # env may be nil and we should respect it
-      env  = Keyword.get(opts, :env, :prod)
-      deps = mix_children(env: env) ++ Mix.Dep.Umbrella.unloaded(env)
-
+      deps = mix_children(env: opts[:env] || :prod) ++ Mix.Dep.Umbrella.unloaded
       {%{dep | opts: opts}, deps}
     end)
   end

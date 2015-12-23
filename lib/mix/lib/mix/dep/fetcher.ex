@@ -13,8 +13,7 @@ defmodule Mix.Dep.Fetcher do
   Fetches all dependencies.
   """
   def all(old_lock, new_lock, opts) do
-    deps = Mix.Dep.Loader.children(nil) # We do not use environments on the fetcher
-    result = Mix.Dep.Converger.converge(deps, [], new_lock, opts, &do_fetch/3)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, &do_fetch/3)
     {apps, _deps} = do_finalize(result, old_lock, opts)
     apps
   end
@@ -24,8 +23,7 @@ defmodule Mix.Dep.Fetcher do
   """
   def by_name(names, old_lock, new_lock, opts) do
     fetcher = fetch_by_name(names, new_lock)
-    deps = Mix.Dep.Loader.children(nil) # We do not use environments on the fetcher
-    result = Mix.Dep.Converger.converge(deps, [], new_lock, opts, fetcher)
+    result = Mix.Dep.Converger.converge([], new_lock, opts, fetcher)
     {apps, deps} = do_finalize(result, old_lock, opts)
 
     # Check if all given dependencies are loaded or fail
