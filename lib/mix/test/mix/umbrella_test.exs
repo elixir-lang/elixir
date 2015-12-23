@@ -98,6 +98,63 @@ defmodule Mix.UmbrellaTest do
     end
   end
 
+  test "loads umbrella child dependencies in all environments" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.Mix do
+          use Mix.Project
+
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo"), only: :other}]]
+          end
+        end
+        """
+
+        # Should work across all environments
+        Mix.Tasks.Deps.Get.run []
+        assert_received {:mix_shell, :info, ["* Getting git_repo" <> _]}
+
+        # Works on the current environment only
+        Mix.Tasks.Deps.run []
+        refute_received {:mix_shell, :info, ["* git_repo " <> _]}
+
+        # Works on the other environment only
+        Mix.env(:other)
+        Mix.Tasks.Deps.run []
+        assert_received {:mix_shell, :info, ["* git_repo " <> _]}
+      end
+    end
+  after
+    Mix.env(:test)
+  end
+
+  test "loads umbrella child dependencies in umbrellas" do
+    in_fixture "umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project :umbrella, ".", fn _ ->
+        File.write! "apps/bar/mix.exs", """
+        defmodule Bar.Mix do
+          use Mix.Project
+
+          def project do
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:foo, in_umbrella: true}]]
+          end
+        end
+        """
+
+        # Running from umbrella should not cause conflicts
+        Mix.Tasks.Deps.Get.run []
+        Mix.Tasks.Run.run []
+      end
+    end
+  end
+
+  ## Umbrellas as a dependency
+
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
