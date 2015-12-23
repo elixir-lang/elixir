@@ -26,6 +26,17 @@ defmodule Mix.TaskTest do
     end
   end
 
+  test "output task debug info if Mix.debug? is true" do
+    Mix.shell Mix.Shell.IO
+    Mix.debug(true)
+
+    assert ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("hello") end) =~
+      "** Running mix hello"
+  after
+    Mix.shell(Mix.Shell.Process)
+    Mix.debug(false)
+  end
+
   test "try to deps.loadpaths if task is missing", context do
     in_tmp context.test, fn ->
       Mix.Project.push(SampleProject, "sample")

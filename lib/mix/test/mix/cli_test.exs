@@ -52,6 +52,15 @@ defmodule Mix.CLITest do
 
       assert contents =~ "Hello from MyProject!\n"
       refute contents =~ "This won't appear"
+
+      contents = mix ~w[my_hello], [{"MIX_QUIET", "0"}]
+      assert contents =~ "This won't appear"
+
+      contents = mix ~w[my_hello], [{"MIX_DEBUG", "1"}]
+      assert contents =~ "** Running mix my_hello (inside MyProject)"
+
+      contents = mix ~w[my_hello], [{"MIX_DEBUG", "0"}]
+      refute contents =~ "** Running mix my_hello (inside MyProject)"
     end
   end
 
@@ -132,7 +141,7 @@ defmodule Mix.CLITest do
   defp mix(args, envs \\ []) when is_list(args) do
     System.cmd(elixir_executable,
                ["-r", mix_executable, "--"|args],
-               stderr_to_stdout: true, 
+               stderr_to_stdout: true,
                env: envs) |> elem(0)
   end
 

@@ -235,6 +235,20 @@ defmodule Mix do
   end
 
   @doc """
+  Returns true if Mix is in debug mode.
+  """
+  def debug? do
+    Mix.State.get(:debug, false)
+  end
+
+  @doc """
+  Sets Mix debug mode.
+  """
+  def debug(debug) when is_boolean(debug) do
+    Mix.State.put(:debug, debug)
+  end
+
+  @doc """
   Raises a Mix error that is nicely formatted.
   """
   def raise(message) when is_binary(message) do
