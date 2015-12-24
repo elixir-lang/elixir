@@ -5,6 +5,11 @@ defmodule Mix.Tasks.Compile.Leex do
   @recursive true
   @manifest ".compile.leex"
 
+  # These options can't be controlled with :leex_options.
+  @forced_opts [report: true,
+                return_errors: false,
+                return_warnings: false]
+
   @moduledoc """
   Compiles Leex source files.
 
@@ -27,6 +32,9 @@ defmodule Mix.Tasks.Compile.Leex do
 
       For a list of the many more available options,
       see [`:leex.file/2`](http://www.erlang.org/doc/man/leex.html#file-2).
+      Note that the `:report`, `:return_errors`, and `:return_warnings` options
+      are overridden by this compiler, thus setting them has no effect.
+
   """
 
   @doc """
@@ -44,7 +52,7 @@ defmodule Mix.Tasks.Compile.Leex do
     Erlang.compile(manifest(), mappings, :xrl, :erl, opts[:force], fn
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
-        options = options ++ [scannerfile: Erlang.to_erl_file(output), report: true]
+        options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
         :leex.file(Erlang.to_erl_file(input), options)
     end)
   end
