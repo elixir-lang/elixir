@@ -5,6 +5,11 @@ defmodule Mix.Tasks.Compile.Yecc do
   @recursive true
   @manifest ".compile.yecc"
 
+  # These options can't be controlled with :yecc_options.
+  @forced_opts [report: true,
+                return_errors: false,
+                return_warnings: false]
+
   @moduledoc """
   Compiles Yecc source files.
 
@@ -27,6 +32,9 @@ defmodule Mix.Tasks.Compile.Yecc do
 
       For a list of the many more available options,
       see [`:yecc.file/1`](http://www.erlang.org/doc/man/yecc.html#file-1).
+      Note that the `:report`, `:return_errors`, and `:return_warnings` options
+      are overridden by this compiler, thus setting them has no effect.
+
   """
 
   @doc """
@@ -44,7 +52,7 @@ defmodule Mix.Tasks.Compile.Yecc do
     Erlang.compile(manifest(), mappings, :yrl, :erl, opts[:force], fn
       input, output ->
         Erlang.ensure_application!(:parsetools, input)
-        options = options ++ [parserfile: Erlang.to_erl_file(output), report: true]
+        options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
         :yecc.file(Erlang.to_erl_file(input), options)
     end)
   end
