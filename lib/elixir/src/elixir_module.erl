@@ -431,18 +431,28 @@ add_info_function(Line, File, Module, All, Def, Defmacro) ->
     true  ->
       elixir_errors:form_error([{line, Line}], File, ?MODULE, {internal_function_overridden, Pair});
     false ->
+      AllowedArgs =
+        lists:map(fun(Atom) -> {atom, Line, Atom} end,
+                  [attributes, compile, exports, functions, macros, md5, module, native_addresses]),
       Spec =
         {attribute, Line, spec, {Pair,
           [{type, Line, 'fun', [
             {type, Line, product, [
-              {type, Line, atom, []}
+              {type, Line, union, AllowedArgs}
             ]},
             {type, Line, union, [
               {type, Line, atom, []},
               {type, Line, list, [
-                {type, Line, tuple, [
-                  {type, Line, atom, []},
-                  {type, Line, any, []}
+                {type, Line, union, [
+                  {type, Line, tuple, [
+                    {type, Line, atom, []},
+                    {type, Line, any, []}
+                  ]},
+                  {type, Line, tuple, [
+                    {type, Line, atom, []},
+                    {type, Line, byte, []},
+                    {type, Line, integer, []}
+                  ]}
                 ]}
               ]}
             ]}
