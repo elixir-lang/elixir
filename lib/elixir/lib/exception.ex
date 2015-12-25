@@ -580,6 +580,14 @@ defmodule CaseClauseError do
   end
 end
 
+defmodule WithClauseError do
+  defexception [term: nil]
+
+  def message(exception) do
+    "no with clause matching: #{inspect(exception.term)}"
+  end
+end
+
 defmodule CondClauseError do
   defexception []
 
@@ -811,6 +819,10 @@ defmodule ErlangError do
 
   def normalize({:case_clause, term}, _stacktrace) do
     %CaseClauseError{term: term}
+  end
+
+  def normalize({:with_clause, term}, _stacktrace) do
+    %WithClauseError{term: term}
   end
 
   def normalize({:try_clause, term}, _stacktrace) do

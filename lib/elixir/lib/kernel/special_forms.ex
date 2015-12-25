@@ -1323,6 +1323,21 @@ defmodule Kernel.SpecialForms do
       iex> width
       nil
 
+  An else option can be given to handle adjusting what is being returned from
+  with in the case of a failed match:
+
+      iex> opts = %{width: 10}
+      iex> with {:ok, width} <- Map.fetch(opts, :width),
+      ...>      {:ok, height} <- Map.fetch(opts, :height) do
+      ...>   {:ok, width * height}
+      ...> else
+      ...>   :error ->
+      ...>     {:error, :wrong_data}
+      ...> end
+      {:error, :wrong_data}
+
+  If there is no matching else condition, then `WithClauseError` exception is raised.
+
   """
   defmacro with(args)
 
