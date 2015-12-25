@@ -40,6 +40,10 @@ defmodule Kernel.WithTest do
     assert result == :error
   end
 
+  test "else conditions" do
+    assert with({:ok, res} <- 41, do: res, else: ({:error, error} -> error; res -> res + 1)) == 42
+  end
+
   test "errors in with" do
     assert_raise RuntimeError, fn ->
       with({:ok, res} <- oops(), do: res)
@@ -47,6 +51,12 @@ defmodule Kernel.WithTest do
 
     assert_raise RuntimeError, fn ->
       with({:ok, res} <- ok(42), res = res + oops(), do: res)
+    end
+  end
+
+  test "with clause error" do
+    assert_raise WithClauseError, "no with clause matching: 41",  fn ->
+      with({:ok, res} <- 41, do: res, else: ({:error, error} -> error))
     end
   end
 

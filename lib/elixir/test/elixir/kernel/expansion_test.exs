@@ -274,6 +274,11 @@ defmodule Kernel.ExpansionTest do
            quote do: (with(a <- b(), c = a, do: c))
   end
 
+  test "with: variables inside else do not leak" do
+    assert expand(quote do: (with(a <- b, do: 1, else: (a -> a)); a)) ==
+           quote do: (with(a <- b(), do: 1, else: (a -> a)); a())
+  end
+
   ## Capture
 
   test "&: keeps locals" do
