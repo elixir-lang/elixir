@@ -115,13 +115,13 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @compile {:inline, myfun: 1}
+          defmodule M do
+            @compile {:inline, myfun: 1}
 
-              def myfun(arg) do
-                to_string(arg)
-              end
+            def myfun(arg) do
+              to_string(arg)
             end
+          end
 
     * `@doc`
 
@@ -136,19 +136,19 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @doc "Hello world"
-              def hello do
-                "world"
-              end
-
-              @doc """
-              Sums `a` to `b`.
-              """
-              def sum(a, b) do
-                a + b
-              end
+          defmodule M do
+            @doc "Hello world"
+            def hello do
+              "world"
             end
+
+            @doc """
+            Sums `a` to `b`.
+            """
+            def sum(a, b) do
+              a + b
+            end
+          end
 
     * `@file`
 
@@ -159,13 +159,13 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @doc "Hello world"
-              @file "hello.ex"
-              def hello do
-                "world"
-              end
+          defmodule M do
+            @doc "Hello world"
+            @file "hello.ex"
+            def hello do
+              "world"
             end
+          end
 
     * `@moduledoc`
 
@@ -177,11 +177,11 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @moduledoc """
-              A very useful module
-              """
-            end
+          defmodule M do
+            @moduledoc """
+            A very useful module
+            """
+          end
 
 
     * `@on_definition`
@@ -216,28 +216,28 @@ defmodule Module do
 
       ### Example
 
-            defmodule H do
-              def on_def(_env, kind, name, args, guards, body) do
-                IO.puts "Defining #{kind} named #{name} with args:"
-                IO.inspect args
-                IO.puts "and guards"
-                IO.inspect guards
-                IO.puts "and body"
-                IO.puts Macro.to_string(body)
-              end
+          defmodule H do
+            def on_def(_env, kind, name, args, guards, body) do
+              IO.puts "Defining #{kind} named #{name} with args:"
+              IO.inspect args
+              IO.puts "and guards"
+              IO.inspect guards
+              IO.puts "and body"
+              IO.puts Macro.to_string(body)
+            end
+          end
+
+          defmodule M do
+            @on_definition {H, :on_def}
+
+            def hello(arg) when is_binary(arg) or is_list(arg) do
+              "Hello" <> to_string(arg)
             end
 
-            defmodule M do
-              @on_definition {H, :on_def}
-
-              def hello(arg) when is_binary(arg) or is_list(arg) do
-                "Hello" <> to_string(arg)
-              end
-
-              def hello(_) do
-                :ok
-              end
+            def hello(_) do
+              :ok
             end
+          end
 
     * `@on_load`
 
@@ -249,21 +249,21 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @on_load :load_check
+          defmodule M do
+            @on_load :load_check
 
-              def load_check do
-                if some_condition() do
-                  :ok
-                else
-                  nil
-                end
-              end
-
-              def some_condition do
-                false
+            def load_check do
+              if some_condition() do
+                :ok
+              else
+                nil
               end
             end
+
+            def some_condition do
+              false
+            end
+          end
 
     * `@vsn`
 
@@ -271,9 +271,9 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @vsn "1.0"
-            end
+          defmodule M do
+            @vsn "1.0"
+          end
 
     * `@external_resource`
 
@@ -301,13 +301,13 @@ defmodule Module do
 
       ### Example
 
-            defmodule M do
-              @dialyzer {:nowarn_function, myfun: 1}
+          defmodule M do
+            @dialyzer {:nowarn_function, myfun: 1}
 
-              def myfun(arg) do
-                M.not_a_function(arg)
-              end
+            def myfun(arg) do
+              M.not_a_function(arg)
             end
+          end
 
   The following attributes are part of typespecs and are also reserved by
   Elixir (see `Kernel.Typespec` for more information about typespecs):
@@ -323,9 +323,9 @@ defmodule Module do
   also be added. A custom attribute is any valid identifier prefixed with an
   `@` and followed by a valid Elixir value:
 
-        defmodule M do
-          @custom_attr [some: "stuff"]
-        end
+      defmodule M do
+        @custom_attr [some: "stuff"]
+      end
 
   For more advanced options available when defining custom attributes, see
   `register_attribute/3`.
