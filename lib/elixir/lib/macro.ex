@@ -483,10 +483,11 @@ defmodule Macro do
       fun.(ast, interpolate(ast, fun))
     else
       result = Enum.map_join(parts, ", ", fn(part) ->
-        case bitpart_to_string(part, fun) do
-          "<" <> rest ->
-            "(<" <> rest <> ")"
-          other -> other
+        str = bitpart_to_string(part, fun)
+        if String.first(str) == "<" or String.last(str) == ">" do
+          "(" <> str <> ")"
+        else
+          str
         end
       end)
       fun.(ast, "<<" <> result <> ">>")
