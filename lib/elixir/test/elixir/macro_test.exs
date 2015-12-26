@@ -449,6 +449,8 @@ defmodule MacroTest do
     assert Macro.to_string(ast) == "<<(<<65>>), 65>>"
     ast = quote(do: <<65, <<65>> >>)
     assert Macro.to_string(ast) == "<<65, (<<65>>)>>"
+    ast = quote do: for <<a::4 <- <<1, 2>> >>, do: a
+    assert Macro.to_string(ast) == "for(<<(a :: 4 <- <<1, 2>>)>>) do\n  a\nend"
   end
 
   test "charlist to string" do
