@@ -484,7 +484,7 @@ defmodule Macro do
     else
       result = Enum.map_join(parts, ", ", fn(part) ->
         str = bitpart_to_string(part, fun)
-        if String.first(str) == "<" or String.last(str) == ">" do
+        if :binary.first(str) == ?< or :binary.last(str) == ?> do
           "(" <> str <> ")"
         else
           str
