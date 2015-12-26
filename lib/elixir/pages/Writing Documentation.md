@@ -54,7 +54,7 @@ There are a couple tips we recommend developers to follow when writing documenta
 
   * Keep the first paragraph of the documentation concise and simple. Tools like ExDoc uses the first line to generate a summary.
 
-  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when modules or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never only as `` `Hello` ``. Function names must be references by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``.
+  * Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when modules or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``. Function names must be referenced by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``. Referencing a `@callback` can be done by prepending `c:`, as in `` `c:world/1` ``.
 
   * If using headings, always start from the second heading by using `##`. The first heading is reserved to the module or function name itself.
 
