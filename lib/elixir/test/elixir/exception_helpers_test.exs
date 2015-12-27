@@ -2,7 +2,7 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule ExceptionHelpersTest do
   use ExUnit.Case, async: true
-  import ExceptionHelpers
+  import Exception.Helpers
 
   test "finds functions of the same name with different arity" do
     assert find_functions(IO, :puts, 0) == [puts: 1, puts: 2]
@@ -37,10 +37,10 @@ defmodule ExceptionHelpersTest do
   end
 
   test "works with Erlang modules" do
-    assert ":file" in ExceptionHelpers.find_modules(:filr, :open, 1)
+    assert ":file" in Exception.Helpers.find_modules(:filr, :open, 1)
   end
 
   test "will find unloaded modules" do
-    assert "OptionParser" in ExceptionHelpers.find_modules(OptionParse, :foo, 1)
+    assert "OptionParser" in Exception.Helpers.find_modules(OptionParse, :foo, 1)
   end
 end

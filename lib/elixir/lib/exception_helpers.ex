@@ -1,4 +1,4 @@
-defmodule ExceptionHelpers do
+defmodule Exception.Helpers do
   @function_similarity_threshold 1.5
   @module_similarity_threshold   1.5
 
