@@ -29,6 +29,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
         Fprof.run([git_repo])
       end) =~ ~r(:elixir_module\.compile/4 *\d+ *\d+\.\d{3} *\d+\.\d{3})
     end
+  after
+    purge [GitRepo]
   end
 
   test "expands callers", context do
