@@ -5,34 +5,31 @@ defmodule Mix.RebarTest do
 
   defmodule RebarAsDep do
     def project do
-      [ app: :rebar_as_dep,
-        version: "0.1.0",
-        deps: [
-          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false}
-        ]
-      ]
+      [app: :rebar_as_dep,
+       version: "0.1.0",
+       deps: [
+         {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false}
+       ]]
     end
   end
 
   defmodule Rebar3AsDep do
     def project do
-      [ app: :rebar_as_dep,
-        version: "0.1.0",
-        deps: [
-          {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false, manager: :rebar3}
-        ]
-      ]
+      [app: :rebar_as_dep,
+       version: "0.1.0",
+       deps: [
+         {:rebar_dep, path: MixTest.Case.tmp_path("rebar_dep"), app: false, manager: :rebar3}
+       ]]
     end
   end
 
   defmodule RebarOverrideAsDep do
     def project do
-      [ app: :rebar_as_dep,
-        version: "0.1.0",
-        deps: [
-          {:rebar_override, path: MixTest.Case.tmp_path("rebar_override"), app: false, manager: :rebar3}
-        ]
-      ]
+      [app: :rebar_as_dep,
+       version: "0.1.0",
+       deps: [
+         {:rebar_override, path: MixTest.Case.tmp_path("rebar_override"), app: false, manager: :rebar3}
+       ]]
     end
   end
 
@@ -128,7 +125,7 @@ defmodule Mix.RebarTest do
              [:git_repo, :git_rebar, :rebar_override]
     end
   after
-    purge [GitRepo.Mix]
+    purge [GitRepo.Mixfile]
   end
 
   test "recurs over sub dirs" do

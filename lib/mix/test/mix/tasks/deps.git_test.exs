@@ -130,7 +130,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("_build/dev/lib/deps_on_git_repo/ebin")
     end
   after
-    purge [GitRepo, GitRepo.Mix]
+    purge [GitRepo, GitRepo.Mixfile]
   end
 
   test "recompiles the project when a dep is fetched" do
@@ -171,7 +171,7 @@ defmodule Mix.Tasks.DepsGitTest do
       :ok
     end
   after
-    purge [A, B, C, GitRepo, GitRepo.Mix]
+    purge [A, B, C, GitRepo, GitRepo.Mixfile]
   end
 
   test "all up to date dependencies" do
