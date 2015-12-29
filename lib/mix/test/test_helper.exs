@@ -182,7 +182,7 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule GitRepo.Mix do
+  defmodule GitRepo.Mixfile do
     use Mix.Project
 
     def project do
@@ -219,13 +219,13 @@ unless File.dir?(target) do
 
   File.write! Path.join(target, "mix.exs"), """
   ## Auto-generated fixture
-  defmodule DepsOnGitRepo.Mix do
+  defmodule DepsOnGitRepo.Mixfile do
     use Mix.Project
 
     def project do
-      [ app: :deps_on_git_repo,
-        version: "0.2.0",
-        deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}] ]
+      [app: :deps_on_git_repo,
+       version: "0.2.0",
+       deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]]
     end
   end
   """

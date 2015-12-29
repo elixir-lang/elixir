@@ -102,7 +102,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mix do
+        defmodule Bar.Mixfile do
           use Mix.Project
 
           def project do
@@ -135,7 +135,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mix do
+        defmodule Bar.Mixfile do
           use Mix.Project
 
           def project do
@@ -196,32 +196,32 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/foo/mix.exs", """
-        defmodule Foo.Mix do
+        defmodule Foo.Mixfile do
           use Mix.Project
 
           def project do
             # Ensure we have the proper environment
             :dev = Mix.env
 
-            [ app: :foo,
-              version: "0.1.0",
-              deps: [{:bar, in_umbrella: true}] ]
+            [app: :foo,
+             version: "0.1.0",
+             deps: [{:bar, in_umbrella: true}]]
           end
         end
         """
 
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mix do
+        defmodule Bar.Mixfile do
           use Mix.Project
 
           def project do
             # Ensure we have the proper environment
             :dev = Mix.env
 
-            [ app: :bar,
-              version: "0.1.0",
-              deps: [{:a, path: "deps/a"},
-                     {:b, path: "deps/b"}] ]
+            [app: :bar,
+             version: "0.1.0",
+             deps: [{:a, path: "deps/a"},
+                    {:b, path: "deps/b"}]]
           end
         end
         """
@@ -235,7 +235,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture "umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project :umbrella, ".", fn _ ->
         File.write! "apps/bar/mix.exs", """
-        defmodule Bar.Mix do
+        defmodule Bar.Mixfile do
           use Mix.Project
 
           def project do
