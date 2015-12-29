@@ -97,8 +97,7 @@ translate({'case', Meta, [Expr, KV]}, #elixir_scope{safe_by_default=Safe} = S) -
 
 %% Try
 
-translate({'try', Meta, [Clauses]}, RS) ->
-  S  = RS#elixir_scope{noname=true},
+translate({'try', Meta, [Clauses]}, S) ->
   Do = proplists:get_value('do', Clauses, nil),
   {TDo, SB} = elixir_translator:translate(Do, S),
 
@@ -115,9 +114,7 @@ translate({'try', Meta, [Clauses]}, RS) ->
 
   Else = elixir_clauses:get_pairs(else, Clauses, match),
   {TElse, SE} = elixir_clauses:clauses(Meta, Else, mergec(S, SA)),
-
-  SF = (mergec(S, SE))#elixir_scope{noname=RS#elixir_scope.noname},
-  {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, SF};
+  {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, mergec(S, SE)};
 
 %% Receive
 
