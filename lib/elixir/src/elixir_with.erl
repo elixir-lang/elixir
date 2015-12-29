@@ -48,7 +48,7 @@ translate(_Meta, Args, S) ->
   {TC, elixir_scope:mergec(S, TS)}.
 
 build_cases([{'<-', Meta, [Left, Right]} | Rest], DoExpr) ->
-  Other = {'other', Meta, nil},
+  Other = {'other', Meta, ?MODULE},
   Clauses = [
     {'->', Meta, [[Left], build_cases(Rest, DoExpr)]},
     {'->', Meta, [[Other], Other]}
