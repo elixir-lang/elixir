@@ -264,6 +264,9 @@ defmodule Kernel.ExpansionTest do
   test "variables inside with do not leak" do
     assert expand(quote do: (with(a <- b, do: c = 1); c)) ==
            quote do: (with(a <- b(), do: c = 1); c())
+
+    assert expand(quote do: (with(a = b, do: a); a)) ==
+           quote do: (with(a = b(), do: a); a())
   end
 
   test "variables inside with are available in blocks" do

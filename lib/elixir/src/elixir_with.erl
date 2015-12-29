@@ -44,7 +44,8 @@ expand(X, E) ->
 translate(_Meta, Args, S) ->
   {Parts, [{do, Expr} | _Opts]} = elixir_utils:split_last(Args),
   Cases = build_cases(Parts, Expr),
-  elixir_translator:translate(Cases, S).
+  {TC, TS} = elixir_translator:translate(Cases, S),
+  {TC, elixir_scope:mergec(S, TS)}.
 
 build_cases([{'<-', Meta, [Left, Right]} | Rest], DoExpr) ->
   Other = {'other', Meta, nil},
