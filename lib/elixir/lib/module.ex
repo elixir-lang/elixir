@@ -489,9 +489,10 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates a list of aliases and returns a new alias only
-  if the alias was already referenced. If the alias was not
-  referenced yet, fails with `ArgumentError`.
+  Concatenates a list of aliases and returns a new alias only if the alias
+  was already referenced.
+
+  If the alias was not referenced yet, fails with `ArgumentError`.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -509,9 +510,10 @@ defmodule Module do
   end
 
   @doc """
-  Concatenates two aliases and returns a new alias only
-  if the alias was already referenced. If the alias was not
-  referenced yet, fails with `ArgumentError`.
+  Concatenates two aliases and returns a new alias only if the alias was
+  already referenced.
+
+  If the alias was not referenced yet, fails with `ArgumentError`.
   It handles char lists, binaries and atoms.
 
   ## Examples
@@ -529,9 +531,10 @@ defmodule Module do
   end
 
   @doc """
-  Attaches documentation to a given function or type. It expects
-  the module the function/type belongs to, the line (a non negative
-  integer), the kind (`def` or `defmacro`), a tuple representing
+  Attaches documentation to a given function or type.
+
+  It expects the module the function/type belongs to, the line (a non
+  negative integer), the kind (`def` or `defmacro`), a tuple representing
   the function and its arity, the function signature (the signature
   should be omitted for types) and the documentation, which should
   be either a binary or a boolean.
@@ -683,6 +686,7 @@ defmodule Module do
 
   @doc """
   Checks if the module defines the given function or macro.
+
   Use `defines?/3` to assert for a specific type.
 
   ## Examples
@@ -702,8 +706,9 @@ defmodule Module do
 
   @doc """
   Checks if the module defines a function or macro of the
-  given `kind`. `kind` can be any of `:def`, `:defp`,
-  `:defmacro` or `:defmacrop`.
+  given `kind`.
+
+  `kind` can be any of `:def`, `:defp`, `:defmacro` or `:defmacrop`.
 
   ## Examples
 
@@ -761,6 +766,7 @@ defmodule Module do
 
   @doc """
   Makes the given functions in `module` overridable.
+
   An overridable function is lazily defined, allowing a
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
@@ -802,7 +808,9 @@ defmodule Module do
 
   @doc """
   Puts an Erlang attribute to the given module with the given
-  key and value. The semantics of putting the attribute depends
+  key and value.
+  
+  The semantics of putting the attribute depends
   if the attribute was registered or not via `register_attribute/3`.
 
   ## Examples
@@ -838,9 +846,12 @@ defmodule Module do
   end
 
   @doc """
-  Gets the given attribute from a module. If the attribute
-  was marked with `accumulate` with `Module.register_attribute/3`,
-  a list is always returned.
+  Gets the given attribute from a module.
+
+  If the attribute was marked with `accumulate` with
+  `Module.register_attribute/3`, a list is always returned. `nil` is returned
+  if the attribute has not been marked with `accumulate` and has not been set
+  to any value.
 
   The `@` macro compiles to a call to this function. For example,
   the following code:
