@@ -151,7 +151,7 @@ defmodule Mix.Tasks.DepsGitTest do
       File.rm("deps/git_repo/.fetch")
       Mix.Task.clear
       Mix.shell.flush
-      purge [A, B, C, GitRepo, GitRepo.Mixfile]
+      purge [A, B, C, GitRepo]
 
       # Update will mark the update required
       Mix.Tasks.Deps.Update.run ["git_repo"]
