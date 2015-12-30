@@ -1,6 +1,6 @@
-defmodule Mix.Local.Utils do
+defmodule Mix.Local.Installer do
   @moduledoc """
-  This module collects pieces of common functionality utilized by archive- and escript-related
+  This module implements pieces of functionality shared by the archive- and escript-related
   tasks.
   """
 

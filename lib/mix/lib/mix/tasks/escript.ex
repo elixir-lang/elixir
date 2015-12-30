@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Escript do
       |> list_dir()
       |> Enum.filter(fn filename -> executable?(Path.join([escripts_path, filename])) end)
 
-    Mix.Local.Utils.print_list(escripts,
+    Mix.Local.Installer.print_list(escripts,
       empty_message: "No escripts currently installed.",
       footnote: "Escripts installed at: #{escripts_path}")
   end

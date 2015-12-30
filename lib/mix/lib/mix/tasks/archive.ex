@@ -23,7 +23,7 @@ defmodule Mix.Tasks.Archive do
       |> Path.wildcard()
       |> Enum.map(&Path.basename/1)
 
-    Mix.Local.Utils.print_list(archives,
+    Mix.Local.Installer.print_list(archives,
       empty_message: "No archives currently installed.",
       footnote: "Archives installed at: #{Mix.Local.archives_path}")
   end
