@@ -509,13 +509,13 @@ defmodule Task do
   Unlinks and shuts down the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
-  `{:exit, reason}` if the task exited abornormally, otherwise `nil`.
+  `{:exit, reason}` if the task died, otherwise `nil`.
 
   The shutdown method is either a timeout or `:brutal_kill`. In case
   of a `timeout`, a `:shutdown` exit signal is sent to the task process
-  and if it does not exit within the timeout it is killed. With `:brutal_kill`
-  the task is killed straight away. In case the task exits abnormally, or a
-  timeout shutdown kills the task, this function will exit with the same reason.
+  and if it does not exit within the timeout, it is killed. With `:brutal_kill`
+  the task is killed straight away. In case the task terminates abnormally
+  (possibly killed by another process), this function will exit with the same reason.
 
   It is not required to call this function when terminating the caller, unless
   exiting with reason `:normal` or if the task is trapping exits. If the caller is
