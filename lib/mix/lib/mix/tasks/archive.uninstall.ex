@@ -11,8 +11,6 @@ defmodule Mix.Tasks.Archive.Uninstall do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    Mix.Local.Installer.uninstall(argv, Mix.Local.archives_path,
-      item_name: "archive",
-      item_plural: "archives")
+    Mix.Local.Installer.uninstall(:archive, argv)
   end
 end

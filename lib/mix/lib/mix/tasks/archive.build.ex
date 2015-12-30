@@ -57,11 +57,12 @@ defmodule Mix.Tasks.Archive.Build do
           "please pass -i as an option"
     end
 
+    project_config = Mix.Project.config
     target = cond do
       output = opts[:output] ->
         output
-      app = Mix.Project.config[:app] ->
-        Mix.Archive.name(app, Mix.Project.config[:version])
+      project_config[:app] ->
+        Mix.Local.name_for(:archive, project_config)
       true ->
         Mix.raise "Cannot create archive without output file, " <>
           "please pass -o as an option"

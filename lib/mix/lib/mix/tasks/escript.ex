@@ -14,16 +14,12 @@ defmodule Mix.Tasks.Escript do
 
   @spec run(OptionParser.argv) :: :ok
   def run(_) do
-    escripts_path = Mix.Local.escripts_path
-
+    escripts_path = Mix.Local.path_for(:escript)
     escripts =
       escripts_path
       |> list_dir()
-      |> Enum.filter(fn filename -> executable?(Path.join([escripts_path, filename])) end)
-
-    Mix.Local.Installer.print_list(escripts,
-      empty_message: "No escripts currently installed.",
-      footnote: "Escripts installed at: #{escripts_path}")
+      |> Enum.filter(fn filename -> executable?(Path.join(escripts_path, filename)) end)
+    Mix.Local.Installer.print_list(:escript, escripts)
   end
 
   defp list_dir(path) do

@@ -104,7 +104,7 @@ defmodule Mix.Tasks.Escript.Build do
   defp escriptize(project, language, force) do
     escript_opts = project[:escript] || []
 
-    script_name  = Mix.Escript.escript_name(project)
+    script_name  = Mix.Local.name_for(:escript, project)
     filename     = escript_opts[:path] || script_name
     main         = escript_opts[:main_module]
     app          = Keyword.get(escript_opts, :app, project[:app])
