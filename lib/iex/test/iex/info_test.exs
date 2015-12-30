@@ -66,7 +66,7 @@ defmodule IEx.InfoTest do
 
   test "bitstring: binary" do
     info = Info.info(<<255, 255>>)
-    assert info[:"Description"] =~ "This is a binary: a bunch of bytes"
+    assert info[:"Description"] =~ "This is a binary: a collection of bytes"
   end
 
   test "bitstring: bitstring" do
