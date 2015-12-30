@@ -31,23 +31,34 @@ defmodule Mix.Tasks.Archive.Install do
   @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
+    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
 
-    if src = List.first(argv) do
-      case Path.extname(Mix.Local.Installer.basename(src)) do
-        ".ez" -> install_archive(src, opts)
-        _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect src}"
-      end
-    else
-      src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
+    case args do
+      [src] ->
+        case Path.extname(Mix.Local.Installer.basename(src)) do
+          ".ez" ->
+            install_archive(src, opts)
+          _ ->
+            Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect src}.\n" <>
+                      "Expected a path or a URL ending in .ez."
+        end
+      [] ->
+        src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
 
-      if File.exists?(src) do
-        install_archive(src, opts)
-      else
-        Mix.raise "Expected local archive to exist or PATH to be given, " <>
-                  "please use \"mix archive.install PATH\""
-      end
+        if File.exists?(src) do
+          install_archive(src, opts)
+        else
+          Mix.raise "Expected an archive to exist in the current directory " <>
+                    "or an argument to be given.\n#{usage}"
+        end
+
+      _ ->
+        Mix.raise "Unexpected arguments.\n#{usage}"
     end
+  end
+
+  defp usage do
+    "Usage: mix archive.install <path or url>"
   end
 
   defp install_archive(src, opts) do
