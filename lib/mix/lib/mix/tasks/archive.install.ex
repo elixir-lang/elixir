@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Archive.Install do
     {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
 
     if src = List.first(argv) do
-      case Path.extname(Mix.Local.Utils.basename(src)) do
+      case Path.extname(Mix.Local.Installer.basename(src)) do
         ".ez" -> install_archive(src, opts)
         _     -> Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect src}"
       end
@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Archive.Install do
 
     if opts[:force] || should_install?(src, previous) do
       dirname = Mix.Local.archives_path
-      archive = Path.join(dirname, Mix.Local.Utils.basename(src))
+      archive = Path.join(dirname, Mix.Local.Installer.basename(src))
       check_file_exists!(src, archive)
 
       case Mix.Utils.read_path(src, opts) do

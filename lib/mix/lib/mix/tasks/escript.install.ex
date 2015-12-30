@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Escript.Install do
 
   defp install_escript(src, opts) do
     dirname = Mix.Local.escripts_path
-    dst_path = Path.join(dirname, Mix.Local.Utils.basename(src))
+    dst_path = Path.join(dirname, Mix.Local.Installer.basename(src))
     if opts[:force] || should_install?(src, File.exists?(dst_path)) do
       File.rm(dst_path)
 
@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   defp should_install?(src, true) do
-    Mix.shell.yes?("Found existing escript: #{Mix.Local.Utils.basename(src)}.\n" <>
+    Mix.shell.yes?("Found existing escript: #{Mix.Local.Installer.basename(src)}.\n" <>
                    "Are you sure you want to replace it?")
   end
 
