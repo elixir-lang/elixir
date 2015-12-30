@@ -11,8 +11,6 @@ defmodule Mix.Tasks.Escript.Uninstall do
   """
   @spec run(OptionParser.argv) :: :ok
   def run(argv) do
-    Mix.Local.Installer.uninstall(argv, Mix.Local.escripts_path,
-      item_name: "escript",
-      item_plural: "escripts")
+    Mix.Local.Installer.uninstall(:escript, argv)
   end
 end

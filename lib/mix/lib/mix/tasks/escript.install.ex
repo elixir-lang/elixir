@@ -31,99 +31,44 @@ defmodule Mix.Tasks.Escript.Install do
 
   """
 
-  @switches [force: :boolean]
-  @spec run(OptionParser.argv) :: boolean
-  def run(argv) do
-    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
-
-    case args do
-      [url_or_path] ->
-        if local_path?(url_or_path) or file_url?(url_or_path) do
-          install_escript(url_or_path, opts)
-        else
-          Mix.raise "Expected a local file path or a file URL.\n#{usage}"
-        end
-
-      [] ->
-        project = Mix.Project.config
-        src = Mix.Escript.escript_name(project)
-        if File.exists?(src) do
-          install_escript(src, opts)
-        else
-          Mix.raise "Expected an escript to exist in the current directory " <>
-                    "or an argument to be given.\n#{usage}"
-        end
-
-      _ ->
-        Mix.raise "Unexpected arguments.\n#{usage}"
-    end
-  end
-
-  defp usage do
-    "Usage: mix escript.install <path or url>"
-  end
+  @behaviour Mix.Local.Installer
 
   @escript_file_mode 0o555 # only read and execute permissions
 
-  defp install_escript(src, opts) do
-    dirname = Mix.Local.escripts_path
-    dst_path = Path.join(dirname, Mix.Local.Installer.basename(src))
-    if opts[:force] || should_install?(src, File.exists?(dst_path)) do
-      File.rm(dst_path)
-
-      case Mix.Utils.read_path(src, opts) do
-        {:ok, binary} ->
-          File.mkdir_p!(dirname)
-          File.write!(dst_path, binary)
-        :badpath ->
-          Mix.raise "Expected #{inspect src} to be a URL or a local file path"
-        {:local, message} ->
-          Mix.raise message
-        {kind, message} when kind in [:remote, :checksum] ->
-          Mix.raise """
-          #{message}
-
-          Could not fetch escript at:
-
-              #{src}
-
-          Please download the escript above manually to your current directory and run:
-
-              mix escript.install ./#{Path.basename(src)}
-          """
-      end
-
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(dst_path)]
-      File.chmod!(dst_path, @escript_file_mode)
-      check_discoverability(dst_path)
-    end
+  @switches [force: :boolean]
+  @spec run(OptionParser.argv) :: boolean
+  def run(argv) do
+    Mix.Local.Installer.install({__MODULE__, :escript}, argv, @switches)
   end
 
-  defp local_path?(url_or_path) do
-    File.regular?(url_or_path)
+  ### Mix.Local.Installer callbacks
+
+  def check_path_or_url(_), do: :ok
+
+  def find_previous_versions(_src, dst) do
+    if File.exists?(dst), do: [dst], else: []
   end
 
-  defp file_url?(url_or_path) do
-    URI.parse(url_or_path).scheme in ["http", "https"]
+  def before_install(_src, dst_path) do
+    File.rm(dst_path)
+    :ok
   end
 
-  defp should_install?(src, false) do
-    Mix.shell.yes?("Are you sure you want to install escript #{src}?")
+  def after_install(dst, _previous) do
+    File.chmod!(dst, @escript_file_mode)
+    check_discoverability(dst)
   end
 
-  defp should_install?(src, true) do
-    Mix.shell.yes?("Found existing escript: #{Mix.Local.Installer.basename(src)}.\n" <>
-                   "Are you sure you want to replace it?")
-  end
+  ### Private helpers
 
   defp check_discoverability(path) do
     executable = Path.basename(path)
     sys_path = System.find_executable(executable)
     if sys_path != path do
       # FIXME: come up with a better error message? If the user already has a utility with the
-      # same name installed at a path that comes before escripts_path, the warning will seem
+      # same name installed at a path that comes before the escript path, the warning will seem
       # confusing
-      Mix.shell.info "\nConsider adding #{Mix.Local.escripts_path} to your PATH\n"
+      Mix.shell.info "\nConsider adding #{Mix.Local.path_for(:escript)} to your PATH\n"
                   <> "to be able to invoke escripts by name."
     end
   end

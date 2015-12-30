@@ -28,90 +28,47 @@ defmodule Mix.Tasks.Archive.Install do
       intended for automation in build systems like `make`
 
   """
+
+  @behaviour Mix.Local.Installer
+
   @switches [force: :boolean, sha512: :string]
   @spec run(OptionParser.argv) :: boolean
   def run(argv) do
-    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
-
-    case args do
-      [src] ->
-        case Path.extname(Mix.Local.Installer.basename(src)) do
-          ".ez" ->
-            install_archive(src, opts)
-          _ ->
-            Mix.raise "\"mix archive.install\" doesn't know how to install #{inspect src}.\n" <>
-                      "Expected a path or a URL ending in .ez."
-        end
-      [] ->
-        src = Mix.Archive.name(Mix.Project.config[:app], Mix.Project.config[:version])
-
-        if File.exists?(src) do
-          install_archive(src, opts)
-        else
-          Mix.raise "Expected an archive to exist in the current directory " <>
-                    "or an argument to be given.\n#{usage}"
-        end
-
-      _ ->
-        Mix.raise "Unexpected arguments.\n#{usage}"
-    end
+    Mix.Local.Installer.install({__MODULE__, :archive}, argv, @switches)
   end
 
-  defp usage do
-    "Usage: mix archive.install <path or url>"
-  end
+  ### Mix.Local.Installer callbacks
 
-  defp install_archive(src, opts) do
-    previous = previous_versions(src)
-
-    if opts[:force] || should_install?(src, previous) do
-      dirname = Mix.Local.archives_path
-      archive = Path.join(dirname, Mix.Local.Installer.basename(src))
-      check_file_exists!(src, archive)
-
-      case Mix.Utils.read_path(src, opts) do
-        {:ok, binary} ->
-          File.mkdir_p!(dirname)
-          File.write!(archive, binary)
-        :badpath ->
-          Mix.raise "Expected #{inspect src} to be a URL or a local file path"
-        {:local, message} ->
-          Mix.raise message
-        {kind, message} when kind in [:remote, :checksum] ->
-          Mix.raise """
-          #{message}
-
-          Could not fetch archive at:
-
-              #{src}
-
-          Please download the archive above manually to your current directory and run:
-
-              mix archive.install ./#{Path.basename(archive)}
-          """
-      end
-
-      Mix.shell.info [:green, "* creating ", :reset, Path.relative_to_cwd(archive)]
-      Mix.Local.check_archive_elixir_version archive
-      unless archive in previous, do: remove_previous_versions(previous)
-      true = Code.append_path(Mix.Archive.ebin(archive))
+  def check_path_or_url(path_or_url) do
+    if Path.extname(path_or_url) == ".ez" do
+      :ok
     else
-      false
+      {:error, "Expected a local file path or a file URL ending in .ez."}
     end
   end
 
-  defp should_install?(src, []) do
-    Mix.shell.yes?("Are you sure you want to install archive #{inspect src}?")
+  def find_previous_versions(src, _dst) do
+    app = src
+          |> Mix.Archive.dir
+          |> String.split("-")
+          |> List.first
+
+    if app, do: Mix.Local.archive_files(app), else: []
   end
 
-  defp should_install?(_src, previous_files) do
-    files = Enum.map_join(previous_files, ", ", &Path.basename/1)
-
-    Mix.shell.yes?("Found existing archive(s): #{files}.\n" <>
-                   "Are you sure you want to replace them?")
+  def before_install(src, dst_path) do
+    check_file_exists(src, dst_path)
   end
 
-  defp check_file_exists!(src, path) do
+  def after_install(dst, previous) do
+    Mix.Local.check_archive_elixir_version(dst)
+    unless dst in previous, do: remove_previous_versions(previous)
+    true = Code.append_path(Mix.Archive.ebin(dst))
+  end
+
+  ### Private helpers
+
+  defp check_file_exists(src, path) do
     # OTP keeps loaded archives open, this leads to unfortunate behaviour on
     # Windows when trying overwrite loaded archives. remove_previous_versions
     # completes successfully even though the file will be first removed after
@@ -119,23 +76,13 @@ defmodule Mix.Tasks.Archive.Install do
     # command, which should complete successfully at that time
 
     if File.exists?(path) and match?({:win32, _}, :os.type) do
-      Mix.raise "Unable to overwrite open archives on Windows. Please manually remove " <>
+      message = "Unable to overwrite open archives on Windows. Please manually remove " <>
                 "the existing archive at #{inspect path} and run this command again. In " <>
                 "case re-running the command still does not work, please fetch the archive " <>
                 "at #{inspect src} and manually copy it to #{inspect path}."
-    end
-  end
-
-  defp previous_versions(src) do
-    app = src
-          |> Mix.Archive.dir
-          |> String.split("-")
-          |> List.first
-
-    if app do
-      Mix.Local.archive_files(app)
+      {:error, message}
     else
-      []
+      :ok
     end
   end
 
