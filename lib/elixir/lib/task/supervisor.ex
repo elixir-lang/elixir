@@ -120,7 +120,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Starts a task as child of the given `supervisor`.
+  Starts a task as a child of the given `supervisor`.
 
   Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
@@ -133,7 +133,7 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Starts a task as child of the given `supervisor`.
+  Starts a task as a child of the given `supervisor`.
 
   Similar to `start_child/2` except the task is specified
   by the given `module`, `fun` and `args`.
