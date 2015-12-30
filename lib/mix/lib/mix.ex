@@ -159,13 +159,13 @@ defmodule Mix do
 
   Mix responds to the following variables:
 
-    * `MIX_ARCHIVE` - allows specifying the directory into which the archives should be installed
-    * `MIX_DEBUG`   - outputs debug information about each task before running it
-    * `MIX_ENV`     - allows specifying which environment should be used. see Environments
-    * `MIX_EXS`     - allows changing the full path to the `mix.exs` file
-    * `MIX_HOME`    - stores configuration files and scripts shared by multiple implementations
-    * `MIX_PATH`    - allows expanding the code path
-    * `MIX_QUIET`   - does not print information messages to the terminal
+    * `MIX_ARCHIVES` - allows specifying the directory into which the archives should be installed
+    * `MIX_DEBUG`    - outputs debug information about each task before running it
+    * `MIX_ENV`      - allows specifying which environment should be used. see Environments
+    * `MIX_EXS`      - allows changing the full path to the `mix.exs` file
+    * `MIX_HOME`     - stores configuration files and scripts shared by multiple implementations
+    * `MIX_PATH`     - allows expanding the code path
+    * `MIX_QUIET`    - does not print information messages to the terminal
 
   Variables which do not take a value should be set to either `1` or `true`, for example:
 
