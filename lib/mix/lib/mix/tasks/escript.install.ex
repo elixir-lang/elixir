@@ -31,15 +31,17 @@ defmodule Mix.Tasks.Escript.Install do
 
   """
 
-  def run(args) do
-    {opts, args, _} = OptionParser.parse(args, switches: [force: :boolean])
+  @switches [force: :boolean]
+  @spec run(OptionParser.argv) :: boolean
+  def run(argv) do
+    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
 
     case args do
       [url_or_path] ->
         if local_path?(url_or_path) or file_url?(url_or_path) do
           install_escript(url_or_path, opts)
         else
-          Mix.raise "Expected PATH to be a local file path or a file URL."
+          Mix.raise "Expected a local file path or a file URL.\n#{usage}"
         end
 
       [] ->
@@ -48,16 +50,17 @@ defmodule Mix.Tasks.Escript.Install do
         if File.exists?(src) do
           install_escript(src, opts)
         else
-          Mix.raise "Expected PATH to be given.\n#{usage}"
+          Mix.raise "Expected an escript to exist in the current directory " <>
+                    "or an argument to be given.\n#{usage}"
         end
 
       _ ->
-          Mix.raise "Unexpected arguments.\n#{usage}"
+        Mix.raise "Unexpected arguments.\n#{usage}"
     end
   end
 
   defp usage do
-    "Usage: mix escript.install PATH"
+    "Usage: mix escript.install <path or url>"
   end
 
   @escript_file_mode 0o555 # only read and execute permissions
