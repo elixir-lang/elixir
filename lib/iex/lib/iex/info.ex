@@ -87,10 +87,11 @@ defimpl IEx.Info, for: List do
 
   defp info_char_list(char_list) do
     desc = """
-    This is a list of integers that is printed as a sequence of codepoints
+    This is a list of integers that is printed as a sequence of characters
     delimited by single quotes because all the integers in it represent valid
-    ascii characters. Conventionally, such lists of integers are referred to as
-    "char lists".
+    ASCII characters. Conventionally, such lists of integers are referred to as
+    "char lists" (more precisely, a char list is a list of Unicode codepoints,
+    and ASCII is a subset of Unicode).
     """
 
     ["Description": desc,
@@ -129,7 +130,7 @@ defimpl IEx.Info, for: BitString do
   defp info_string(bitstring) do
     desc = """
     This is a string: a UTF-8 encoded binary. It's printed surrounded by
-    "double quotes" because all UTF-8 codepoints in it are printable.
+    "double quotes" because all UTF-8 encoded codepoints in it are printable.
     """
     ["Byte size": byte_size(bitstring),
      "Description": desc,
@@ -146,7 +147,7 @@ defimpl IEx.Info, for: BitString do
     desc = """
     This is a string: a UTF-8 encoded binary. It's printed with the `<<>>`
     syntax (as opposed to double quotes) because it contains non-printable
-    UTF-8 codepoints (the first non-printable codepoint being `#{inspect first_non_printable}`)
+    UTF-8 encoded codepoints (the first non-printable codepoint being `#{inspect first_non_printable}`)
     """
     ["Byte size": byte_size(bitstring),
      "Description": desc,
@@ -160,9 +161,9 @@ defimpl IEx.Info, for: BitString do
       |> Enum.find(fn cp -> not String.valid?(cp) end)
 
     desc = """
-    This is a binary: a bunch of bytes. It's printed with the `<<>>`
-    syntax (as opposed to double quotes) because it contains non-valid
-    UTF-8 codepoints (the first non-valid codepoint being `#{inspect first_non_valid}`)
+    This is a binary: a collection of bytes. It's printed with the `<<>>`
+    syntax (as opposed to double quotes) because it is not a
+    UTF-8 encoded binary (the first invalid byte being `#{inspect first_non_valid}`)
     """
 
     ["Byte size": byte_size(bitstring),
@@ -236,7 +237,7 @@ defimpl IEx.Info, for: PID do
       end
 
     ["Data type": "PID"] ++ extra ++
-      ["Description": "Use Process.info/1 for more info about this process",
+      ["Description": "Use Process.info/1 to get more info about this process",
        "Reference modules": "Process, Node"]
   end
 
