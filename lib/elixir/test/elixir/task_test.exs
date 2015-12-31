@@ -279,6 +279,8 @@ defmodule TaskTest do
     task3 = Task.async(fn -> exit :normal end)
 
     send(self(), {task1.ref, :result})
+    ref = Process.monitor(task3.pid)
+    assert_receive {:DOWN, ^ref, _, _, :normal}
 
     assert Task.yield_many([task1, task2, task3], 0) ==
            [{task1, {:ok, :result}}, {task2, nil}, {task3, {:exit, :normal}}]
