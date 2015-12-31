@@ -85,7 +85,6 @@ defmodule Mix.Tasks.ArchiveTest do
 
       # Try to install a missing version does not remove archive
       assert_raise Mix.Error, fn ->
-        send self, {:mix_shell_input, :yes?, true}
         Mix.Tasks.Archive.Install.run ["./archive-0.0.0.ez"]
       end
 
