@@ -364,19 +364,20 @@ defmodule Task do
   end
 
   @doc """
-  Yields for a task reply in the given time interval.
+  Temporarily blocks the current process waiting for a task reply.
 
-  Returns `{:ok, reply}` if the reply is received, `{:exit, reason}`
-  if the task exited or `nil` if no reply arrived.
+  Returns `{:ok, reply}` if the reply is received, `nil` if
+  no reply has arrived, or `{:exit, reason}` if the task exited.
+  Keep in mind that normally this function will exit if the task
+  process terminates abnormally. `{:exit, reason}` can only be
+  returned if the task process exited with the reason `:normal`
+  or if it isn't linked to the caller.
 
   A timeout, in milliseconds, can be given with default value
   of `5000`. If the time runs out before a message from
   the task is received, this function will return `nil`
   and the monitor will remain active. Therefore `yield/2` can be
   called multiple times on the same task.
-
-  In case the task process dies, this function will exit with the
-  same reason as the task.
 
   This function assumes the task's monitor is still active or the
   monitor's `:DOWN` message is in the message queue. If it has been
