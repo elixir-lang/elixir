@@ -307,6 +307,12 @@ defmodule Task do
   This function can only be called once for any given task. If you want
   to be able to check multiple times if a long-running task has finished
   its computation, use `yield/2` instead.
+
+  ## Compatibility with OTP behaviours
+
+  It is not recommended to `await` a long-running task inside an OTP
+  behaviour such as `GenServer`. Instead, you should match on the message
+  coming from a task inside your `handle_info` callback.
   """
   @spec await(t, timeout) :: term | no_return
   def await(task, timeout \\ 5000)
