@@ -411,14 +411,15 @@ defmodule Task do
 
   This function receives a list of tasks and waits for their
   replies in the given time interval. It returns a list
-  of tuples of two elements, with tasks as the first element and
-  the yielded result as the second.
+  of tuples of two elements, with the task as the first element
+  and the yielded result as the second.
 
-  Similar to `yield/2`, each task's result will be
+  Similarly to `yield/2`, each task's result will be
 
-    * `{:ok, term}` if it succeeds in the given time interval
-    * `{:exit, reason}` if it crashes
-    * `nil` if it keeps running past the timeout
+    * `{:ok, term}` if the task has successfully reported its
+      result back in the given time interval
+    * `{:exit, reason}` if the task has died
+    * `nil` if the task keeps running past the timeout
 
   Check `yield/2` for more information.
 
@@ -428,6 +429,7 @@ defmodule Task do
   and retrieve the results received in a given timeframe.
   If we combine it with `Task.shutdown/2`, it allows us to gather
   those results and cancel the tasks that have not replied in time.
+
   Let's see an example.
 
       tasks =
