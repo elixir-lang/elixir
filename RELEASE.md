@@ -24,17 +24,13 @@ This document simply outlines the release process:
 
 10. Add the release to `elixir.csv` file in `elixir-lang/elixir-lang.github.com`
 
-11. Build and push standalone Mix with `make publish_mix` (requires AWS credentials)
-
 ## New vMAJOR.MINOR releases
 
-12. Create a new branch "vMAJOR.MINOR"
+11. Create a new branch "vMAJOR.MINOR"
 
-13. Move docs generation to `docs/vMAJOR.MINOR` in Makefile and copy them from `docs/stable`
+12. Move docs generation to `docs/vMAJOR.MINOR` in Makefile and copy them from `docs/stable` (change index.html accordingly)
 
-14. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
-
-15. `make release_docs` and push it to `elixir-lang/docs`
+13. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
 
 ## Places where version is mentioned
 
