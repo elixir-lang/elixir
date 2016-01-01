@@ -1480,8 +1480,11 @@ defmodule String do
   end
 
   @doc """
-  Returns `true` if `string` starts with any of the prefixes given, otherwise
-  returns `false`. `prefixes` can be either a single prefix or a list of prefixes.
+  Returns `true` if `string` starts with any of the prefixes given.
+
+  `prefixes` can be either a single prefix or a list of prefixes.
+
+  Raises argument error if an empty string is given.
 
   ## Examples
 
@@ -1496,14 +1499,6 @@ defmodule String do
 
   """
   @spec starts_with?(t, t | [t]) :: boolean
-
-  # TODO: Remove me by 1.3
-  def starts_with?(_string, "") do
-    IO.puts :stderr, "[deprecation] Calling String.starts_with?/2 with an empty string is deprecated and " <>
-                     "will fail in the future\n" <> Exception.format_stacktrace()
-    true
-  end
-
   def starts_with?(_string, []) do
     false
   end
@@ -1513,8 +1508,11 @@ defmodule String do
   end
 
   @doc """
-  Returns `true` if `string` ends with any of the suffixes given, otherwise
-  returns `false`. `suffixes` can be either a single suffix or a list of suffixes.
+  Returns `true` if `string` ends with any of the suffixes given.
+
+  `suffixes` can be either a single suffix or a list of suffixes.
+
+  Raises argument error if an empty string is given.
 
   ## Examples
 
@@ -1529,14 +1527,6 @@ defmodule String do
 
   """
   @spec ends_with?(t, t | [t]) :: boolean
-
-  # TODO: Remove me by 1.3
-  def ends_with?(_string, "") do
-    IO.puts :stderr, "[deprecation] Calling String.ends_with?/2 with an empty string is deprecated and " <>
-                     "will fail in the future\n" <> Exception.format_stacktrace()
-    true
-  end
-
   def ends_with?(string, suffixes) when is_list(suffixes) do
     Enum.any?(suffixes, &do_ends_with(string, &1))
   end
@@ -1574,6 +1564,8 @@ defmodule String do
 
   `contents` can be either a single string or a list of strings.
 
+  Raises argument error if an empty string is given.
+
   ## Examples
 
       iex> String.contains? "elixir of life", "of"
@@ -1593,14 +1585,6 @@ defmodule String do
 
   """
   @spec contains?(t, pattern) :: boolean
-
-  # TODO: Remove me by 1.3
-  def contains?(_string, "") do
-    IO.puts :stderr, "[deprecation] Calling String.contains?/2 with an empty string is deprecated and " <>
-                     "will fail in the future\n" <> Exception.format_stacktrace()
-    true
-  end
-
   def contains?(_string, []) do
     false
   end

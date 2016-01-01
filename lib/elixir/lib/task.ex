@@ -337,25 +337,14 @@ defmodule Task do
     end
   end
 
-  @doc """
-  Receives a group of tasks and a message and finds
-  a task that matches the given message.
+  @doc false
+  def find(tasks, msg) do
+    IO.write :stderr, "warning: Task.find/2 is deprecated, please match on the message directly\n" <>
+                      Exception.format_stacktrace
+    do_find(tasks, msg)
+  end
 
-  This function returns a tuple with the returned value
-  in case the message matches a task that exited with
-  success alongside the matching task. It returns `nil`
-  if no task was found. It exits if the task has failed.
-
-  This function is useful in situations where multiple
-  tasks are spawned and their results are collected
-  later on. For example, a `GenServer` can spawn tasks,
-  store the tasks in a list and later use `Task.find/2`
-  to see if incoming messages are from any of the tasks.
-  """
-  @spec find([t], any) :: {term, t} | nil | no_return
-  def find(tasks, msg)
-
-  def find(tasks, {ref, reply}) when is_reference(ref) do
+  defp do_find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value tasks, fn
       %Task{ref: ^ref} = task ->
         Process.demonitor(ref, [:flush])
@@ -365,14 +354,14 @@ defmodule Task do
     end
   end
 
-  def find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
+  defp do_find(tasks, {:DOWN, ref, _, proc, reason} = msg) when is_reference(ref) do
     find = fn %Task{ref: task_ref} -> task_ref == ref end
     if Enum.find(tasks, find) do
       exit({reason(reason, proc), {__MODULE__, :find, [tasks, msg]}})
     end
   end
 
-  def find(_tasks, _msg) do
+  defp do_find(_tasks, _msg) do
     nil
   end
 

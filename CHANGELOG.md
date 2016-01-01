@@ -19,3 +19,7 @@
 ### 3. Soft deprecations (no warnings emitted)
 
 ### 4. Deprecations
+
+#### Elixir
+
+* [Task] `Task.find/2` is deprecated in favor of explicit message matching
