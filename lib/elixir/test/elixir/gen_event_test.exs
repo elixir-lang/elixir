@@ -330,6 +330,7 @@ defmodule GenEventTest do
     GenEvent.add_handler(pid, ReplyHandler, {self(), false})
     assert GenEvent.notify(pid, :raise) == :ok
     assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+    assert GenEvent.which_handlers(pid) == []
   after
     Logger.add_backend(:console, flush: true)
   end
@@ -364,6 +365,7 @@ defmodule GenEventTest do
     GenEvent.add_handler(pid, ReplyHandler, {self(), false})
     assert GenEvent.ack_notify(pid, :raise) == :ok
     assert_receive {:terminate, {:error, {%RuntimeError{}, _}}}
+    assert GenEvent.which_handlers(pid) == []
   after
     Logger.add_backend(:console, flush: true)
   end
