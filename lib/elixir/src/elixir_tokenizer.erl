@@ -475,10 +475,6 @@ handle_char($\t) -> {"\\t", "tab"};
 handle_char($\v) -> {"\\v", "vertical tab"};
 handle_char(_)  -> false.
 
-escape_char(List) ->
-  <<Char/utf8>> = elixir_interpolation:unescape_chars(list_to_binary(List)),
-  Char.
-
 %% Handlers
 
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
