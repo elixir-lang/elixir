@@ -30,11 +30,9 @@ This document simply outlines the release process:
 
 12. Create a new branch "vMAJOR.MINOR"
 
-13. Move docs generation to `docs/vMAJOR.MINOR` in Makefile and copy them from `docs/stable`
+13. Move docs generation to `docs/vMAJOR.MINOR` in Makefile and copy them from `docs/stable` (change index.html accordingly)
 
 14. In master, bump versions, start new CHANGELOG, add `-dev` back and commit "Start vVERSION+1"
-
-15. `make release_docs` and push it to `elixir-lang/docs`
 
 ## Places where version is mentioned
 
