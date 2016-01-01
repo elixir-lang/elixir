@@ -307,13 +307,6 @@ defmodule Agent do
   """
   @spec stop(agent, reason :: term, timeout) :: :ok
   def stop(agent, reason \\ :normal, timeout \\ :infinity) do
-    if is_integer(reason) or reason == :infinity do
-      IO.write :stderr, "warning: Agent.stop(agent, timeout) is deprecated, " <>
-                        "please use Agent.stop(agent, :normal, timeout) instead\n" <>
-                        Exception.format_stacktrace
-      :gen.stop(agent, :normal, reason)
-    else
-      :gen.stop(agent, reason, timeout)
-    end
+    :gen.stop(agent, reason, timeout)
   end
 end

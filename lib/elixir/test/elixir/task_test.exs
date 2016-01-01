@@ -200,17 +200,6 @@ defmodule TaskTest do
     assert_raise ArgumentError, message, fn -> Task.await(task, 1) end
   end
 
-  test "find/2" do
-    task = %Task{ref: make_ref}
-    assert Task.find([task], {make_ref, :ok}) == nil
-    assert Task.find([task], {task.ref, :ok}) == {:ok, task}
-
-    assert Task.find([task], {:DOWN, make_ref, :process, self, :kill}) == nil
-    msg = {:DOWN, task.ref, :process, self, :kill}
-    assert catch_exit(Task.find([task], msg)) ==
-           {:kill, {Task, :find, [[task], msg]}}
-  end
-
   test "yield/2 returns {:ok, result} when reply and :DOWN in message queue" do
     task = %Task{ref: make_ref, owner: self()}
     send(self(), {task.ref, :result})
