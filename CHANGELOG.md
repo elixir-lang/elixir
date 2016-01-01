@@ -85,24 +85,7 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
-## v1.2.0-rc.1 (2015-12-21)
-
-### 1. Enhancements
-
-  * [Mix] Raise readable error message when parsertools is not available
-  * [Mix] Add `--build` flag to `mix deps.clean DEP` to only remove artifacts from `_build`
-  * [Typespec]  Improve error message on invalid maps on typespecs
-
-### 2. Bug fixes
-
-  * [Access] Improve error messages when using Access on non-valid key-value structures
-  * [Mix] Do not run remote converger if dependencies have diverged
-  * [Mix] Generate proper `config/config.exs` for umbrella projects
-  * [Mix] Ensure umbrella dependencies across all environments are loaded on parent deps.get/deps.update
-  * [Logger] Check for :name or :id in Logger translator to support old OTP projects
-  * [String] Ensure `UnicodeConversionError` does not contain invalid string in its error message
-
-## v1.2.0-rc.0 (2015-12-09)
+## v1.2.0 (2016-01-01)
 
 ### 1. Enhancements
 
@@ -146,6 +129,7 @@ available.
 
 #### IEx
 
+  * [IEx] Allow `IEX_WITH_WERL` to be set on Windows to always run on WERL mode
   * [IEx] Display type docs for `t(Module.type)` and `t(Module.type/arity)`
   * [IEx] Add `i/1` helper that prints information about any data type
   * [IEx] Show source code snippet whenever there is a request to pry a given process
@@ -159,21 +143,26 @@ available.
   * [Mix] Cache and always consolidate protocols
   * [Mix] Add `warn_test_pattern` to `mix test` that will warn on potentially misconfigured test files
   * [Mix] Introduce `MIX_QUIET` environment variable that configures the underlying Mix task to output only error messages
+  * [Mix] Introduce `MIX_DEBUG` environment variable that prints information about the task being run
   * [Mix] Validate git options and warn on conflicting ref, branch or tags
   * [Mix] New umbrella applications will now share configuration and build files
   * [Mix] Add experimental support for Rebar 3
   * [Mix] Do not warn when an optional dependency has a conflicting `:only` option with another dependency
+  * [Mix] Raise readable error message when parsertools is not available
+  * [Mix] Add `--build` flag to `mix deps.clean DEP` to only remove artifacts from `_build`
 
 ### 2. Bug fixes
 
 #### Kernel
 
+  * [Access] Improve error messages when using Access on non-valid key-value structures
   * [Kernel] Raise when conflicting `:only` and `:except` are given to import
   * [Kernel] Change `__ENV__.file` if `@file` is set for the given function
   * [Kernel] Make `Kernel.ParallelRequire` aware of `:warning_as_errors`
   * [Kernel] Improve error message for invalid `do`/`do:`
   * [Macro] Ensure `Macro.to_string/2` respects operator precedence when using the access operator
   * [Path] Do not crash when expanding paths that go beyond the root, for example, `Path.expand("/../..")`
+  * [String] Ensure `UnicodeConversionError` does not contain invalid string in its error message
 
 #### IEx
 
@@ -187,6 +176,8 @@ available.
   * [Mix] Ignore directories inside `apps` in umbrellas that do not have a `mix.exs` file
   * [Mix] Ensure Mix can be used with path dependencies where the app name is different than the path basename
   * [Mix] Ensure dependencies won't crash when updating from a git repository to a hex repository and the git version did not respect SemVer
+  * [Mix] Do not run remote converger if dependencies have diverged
+  * [Mix] Ensure umbrella dependencies across all environments are loaded on parent deps.get/deps.update
 
 #### ExUnit
 
