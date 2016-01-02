@@ -15,7 +15,7 @@ defmodule Kernel.ImportTest do
   test "multi-call" do
     import Elixir.{List, unquote(:String)}
     assert keymember?([a: 1], :a, 0)
-    assert valid_character?("ø")
+    assert valid?("ø")
   end
 
   test "blank multi-call" do

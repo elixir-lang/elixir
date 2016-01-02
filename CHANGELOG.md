@@ -23,3 +23,4 @@
 #### Elixir
 
 * [Task] `Task.find/2` is deprecated in favor of explicit message matching
+* [Task] `String.valid_character?/1` is deprecated in favor of `valid?/1` with pattern matching
