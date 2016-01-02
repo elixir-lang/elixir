@@ -77,6 +77,12 @@ defmodule URI do
   """
   def decode_query(q, map \\ %{})
 
+  def decode_query(q, %{__struct__: _} = dict) when is_binary(q) do
+    IO.write :stderr, "warning: URI.decode_query/2 is deprecated, please use URI.decode_query/1\n" <>
+                      Exception.format_stacktrace
+    decode_query_dict(q, dict)
+  end
+
   def decode_query(q, map) when is_binary(q) and is_map(map) do
     decode_query_map(q, map)
   end

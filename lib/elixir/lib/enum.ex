@@ -1449,6 +1449,10 @@ defmodule Enum do
   @spec group_by(t, (element -> any)) :: map
   def group_by(enumerable, map \\ %{}, fun)
 
+  def group_by(enumerable, %{__struct__: _} = dict, fun) do
+    group_by_dict(enumerable, dict, fun)
+  end
+
   def group_by(enumerable, map, fun) when is_map(map) do
     reduce(reverse(enumerable), map, fn entry, categories ->
       Map.update(categories, fun.(entry), [entry], &[entry|&1])
@@ -1456,6 +1460,10 @@ defmodule Enum do
   end
 
   def group_by(enumerable, dict, fun) do
+    group_by_dict(enumerable, dict, fun)
+  end
+
+  defp group_by_dict(enumerable, dict, fun) do
     IO.write :stderr, "warning: Enum.group_by/3 with a dictionary is deprecated, please use a map instead\n" <>
                       Exception.format_stacktrace
     reduce(reverse(enumerable), dict, fn(entry, categories) ->
