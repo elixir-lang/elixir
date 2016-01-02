@@ -93,7 +93,7 @@ Note that type checks that are not valid in guard clauses do not follow this con
 
 ## Special names
 
-Some names have specific semantics in Elixir. We details those cases below.
+Some names have specific meaning in Elixir. We detail those cases below.
 
 ### `length` and `size`
 
