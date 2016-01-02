@@ -139,7 +139,7 @@ defmodule Task do
   @doc """
   The Task struct.
 
-  It contains two fields:
+  It contains these fields:
 
     * `:pid` - the process reference of the task process; `nil` if the task does
       not use a task process.
