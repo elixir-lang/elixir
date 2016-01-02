@@ -300,26 +300,25 @@ defmodule KernelTest do
     assert dynamic_flatten([[1]]) == [1]
   end
 
-  # TODO: Bring those tests back on 1.3
-  # test "defdelegate/2 raises with non-variable arguments" do
-  #   code = quote do
-  #     defmodule Foo do
-  #       defdelegate foo(1), to: List
-  #     end
-  #   end
-  #
-  #   msg = "defdelegate/2 only accepts variable names, got: 1"
-  #   assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
-  #
-  #   code = quote do
-  #     defmodule Foo do
-  #       defdelegate foo(a \\ 1), to: List
-  #     end
-  #   end
-  #
-  #   msg = "defdelegate/2 only accepts variable names, got: a \\\\ 1"
-  #   assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
-  # end
+  test "defdelegate/2 raises with non-variable arguments" do
+    code = quote do
+      defmodule Foo do
+        defdelegate foo(1), to: List
+      end
+    end
+
+    msg = "defdelegate/2 only accepts variable names, got: 1"
+    assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
+
+    code = quote do
+      defmodule Foo do
+        defdelegate foo(a \\ 1), to: List
+      end
+    end
+
+    msg = "defdelegate/2 only accepts variable names, got: a \\\\ 1"
+    assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
+  end
 
   test "get_in/2" do
     users = %{"john" => %{age: 27}, "meg" => %{age: 23}}

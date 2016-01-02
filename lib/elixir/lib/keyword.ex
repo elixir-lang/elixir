@@ -845,10 +845,10 @@ defmodule Keyword do
     keyword
   end
 
-  # TODO: Deprecate by 1.3
-  # TODO: Remove by 1.4
   @doc false
   def size(keyword) do
+    IO.write :stderr, "warning: Keyword.size/1 is deprecated, please use Kernel.length/1\n" <>
+                      Exception.format_stacktrace
     length(keyword)
   end
 end

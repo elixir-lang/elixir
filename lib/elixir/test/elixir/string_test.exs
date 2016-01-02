@@ -441,7 +441,7 @@ defmodule StringTest do
 
     assert String.chunk("ødskfjあska", :printable)
            == ["ødskfjあska"]
-    assert String.chunk("abc\x{0ffff}def", :printable)
+    assert String.chunk("abc\u{0ffff}def", :printable)
            == ["abc", <<0x0ffff::utf8>>, "def"]
     assert String.chunk("\x06ab\x05cdef\x03\0", :printable)
            == [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]

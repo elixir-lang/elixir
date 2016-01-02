@@ -215,7 +215,6 @@ defmodule RegexTest do
   test "ungreedy" do
     assert Regex.run(~r/[\d ]+/, "1 2 3 4 5"), ["1 2 3 4 5"]
     assert Regex.run(~r/[\d ]?+/, "1 2 3 4 5"), ["1"]
-    assert Regex.run(~r/[\d ]+/r, "1 2 3 4 5"), ["1"]
     assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
   end
 
@@ -240,7 +239,7 @@ defmodule RegexTest do
     assert matches_escaped?("  x    x ") # unicode spaces here
     assert matches_escaped?("# lol")
 
-    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\xff\\z #hello\u202F\u205F")
+    assert matches_escaped?("\\A.^$*+?()[{\\| \t\n\x20\\z #hello\u202F\u205F")
   end
 
   defp matches_escaped?(string) do

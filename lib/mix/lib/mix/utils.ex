@@ -163,8 +163,7 @@ defmodule Mix.Utils do
       "SapExample"
 
   """
-  # TODO: Deprecate by 1.3
-  # TODO: Remove by 1.4
+  # TODO: Deprecate by 1.4
   def underscore(value) do
     Macro.underscore(value)
   end
@@ -178,8 +177,7 @@ defmodule Mix.Utils do
       "FooBar"
 
   """
-  # TODO: Deprecate by 1.3
-  # TODO: Remove by 1.4
+  # TODO: Deprecate by 1.4
   def camelize(value) do
     Macro.camelize(value)
   end

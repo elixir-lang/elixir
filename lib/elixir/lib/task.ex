@@ -312,18 +312,11 @@ defmodule Task do
   @spec await(t, timeout) :: term | no_return
   def await(task, timeout \\ 5000)
 
-  # TODO: Remove nil check in Elixir 1.3
-  def await(%Task{owner: owner}=task, _) when owner != nil and owner != self() do
+  def await(%Task{owner: owner} = task, _) when owner != self() do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def await(%Task{ref: ref, owner: owner}=task, timeout) do
-    if is_nil(owner) do
-      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
-                        "please ensure the owner field is correctly set to self()\n" <>
-                        Exception.format_stacktrace
-    end
-
+  def await(%Task{ref: ref}=task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -387,18 +380,11 @@ defmodule Task do
   @spec yield(t, timeout) :: {:ok, term} | {:exit, term} | nil
   def yield(task, timeout \\ 5_000)
 
-  # TODO: Remove nil check in Elixir 1.3
-  def yield(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
+  def yield(%Task{owner: owner} = task, _) when owner != self() do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def yield(%Task{ref: ref, owner: owner} = task, timeout) do
-    if is_nil(owner) do
-      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
-                        "please ensure the owner field is correctly set to self()\n" <>
-                        Exception.format_stacktrace
-    end
-
+  def yield(%Task{ref: ref} = task, timeout) do
     receive do
       {^ref, reply} ->
         Process.demonitor(ref, [:flush])
@@ -536,18 +522,11 @@ defmodule Task do
     raise ArgumentError, "task #{inspect task} does not have an associated task process"
   end
 
-  # TODO: Remove nil check in Elixir 1.3
-  def shutdown(%Task{owner: owner} = task, _) when owner != nil and owner != self() do
+  def shutdown(%Task{owner: owner} = task, _) when owner != self() do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def shutdown(%Task{pid: pid, owner: owner} = task, :brutal_kill) do
-    if is_nil(owner) do
-      IO.write :stderr, "warning: a Task was created with the :owner field no set, " <>
-                        "please ensure the owner field is correctly set to self()\n" <>
-                        Exception.format_stacktrace
-    end
-
+  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
     exit(pid, :kill)
 
     case shutdown_receive(task, :brutal_kill, :infinity) do

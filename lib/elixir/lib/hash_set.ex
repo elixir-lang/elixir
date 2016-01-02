@@ -5,8 +5,6 @@ defmodule HashSet do
   Use the `MapSet` module instead.
   """
 
-  @behaviour Set
-
   @node_bitmap 0b111
   @node_shift 3
   @node_size 8

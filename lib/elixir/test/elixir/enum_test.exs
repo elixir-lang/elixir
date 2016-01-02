@@ -203,10 +203,10 @@ defmodule EnumTest.List do
   test "group by" do
     assert Enum.group_by([], fn -> nil end) == %{}
     assert Enum.group_by(1..6, &rem(&1, 3)) ==
-           %{0 => [6, 3], 1 => [4, 1], 2 => [5, 2]}
+           %{0 => [3, 6], 1 => [1, 4], 2 => [2, 5]}
 
     result = Enum.group_by(1..6, %{3 => :default}, &rem(&1, 3))
-    assert result[0] == [6, 3]
+    assert result[0] == [3, 6]
     assert result[3] == :default
   end
 
@@ -474,7 +474,6 @@ defmodule EnumTest.List do
 
   test "uniq" do
     assert Enum.uniq([5, 1, 2, 3, 2, 1]) == [5, 1, 2, 3]
-    assert Enum.uniq([1, 2, 3, 2, 1], fn x -> x end) == [1, 2, 3]
   end
 
   test "zip" do
@@ -1099,7 +1098,10 @@ defmodule EnumTest.Range do
 
   test "uniq" do
     assert Enum.uniq(1..3) == [1, 2, 3]
-    assert Enum.uniq(1..3, fn x -> x end) == [1, 2, 3]
+  end
+
+  test "uniq by" do
+    assert Enum.uniq_by(1..3, fn x -> x end) == [1, 2, 3]
   end
 
   test "zip" do

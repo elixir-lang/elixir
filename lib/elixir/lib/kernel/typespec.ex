@@ -205,10 +205,10 @@ defmodule Kernel.Typespec do
     quote do: unquote(name)(unquote_splicing(args)) :: unquote(typespec_to_ast(type))
   end
 
-  # TODO: Deprecate by 1.2
-  # TODO: Remove by 2.0
   @doc false
   def beam_typedocs(module) when is_atom(module) or is_binary(module) do
+    IO.write :stderr, "Kernel.Typespec.beam_typedocs/1 is deprecated, please use Code.get_docs/2 instead\n" <>
+                      Exception.format_stacktrace
     if docs = Code.get_docs(module, :type_docs) do
       for {tuple, _, _, doc} <- docs, do: {tuple, doc}
     end
