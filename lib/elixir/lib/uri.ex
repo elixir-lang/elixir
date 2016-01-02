@@ -78,7 +78,7 @@ defmodule URI do
   def decode_query(q, map \\ %{})
 
   def decode_query(q, map) when is_binary(q) and is_map(map) do
-    decode_query_map(q, %{})
+    decode_query_map(q, map)
   end
 
   def decode_query(q, dict) when is_binary(q) do
