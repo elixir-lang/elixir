@@ -9,7 +9,7 @@ Elixir developers must use `snake_case` when defining variables, function names,
     some_map = %{this_is_a_key: "and a value"}
     is_map(some_map)
 
-Aliases are an exception as they must be capitalized and written in `CamelCase`, like `OptionParser`. For aliases, capital letters are kept in abbreviations, like `ExUnit.CaptureIO` or `Mix.SCM`.
+Aliases, commonly used as module names, are an exception as they must be capitalized and written in `CamelCase`, like `OptionParser`. For aliases, capital letters are kept in abbreviations, like `ExUnit.CaptureIO` or `Mix.SCM`.
 
 Atoms can be written either in `:snake_case` or `:CamelCase`, although the convention is to use the snake case version throughout Elixir.
 
@@ -40,7 +40,7 @@ Due to this property, Elixir relies on functions starting with underscore to att
     iex> String.__info__(:functions)
     [at: 2, capitalize: 1, chunk: 2, ...]
 
-Elixir also includes 4 special variables that follow the double underscore format. Those forms retrieve compile-time information about the current environment: `__MODULE__`, `__DIR__`, `__ENV__` and `__CALLER__`.
+Elixir also includes 4 special variables that follow the double underscore format. These forms retrieve compile-time information about the current environment: `__MODULE__`, `__DIR__`, `__ENV__` and `__CALLER__`.
 
 ## Trailing bang (`foo!`)
 
@@ -79,7 +79,7 @@ Functions that return a boolean are named with a trailing question mark.
 
 Examples: `Keyword.keyword?/1`, `Mix.debug?/0`, `String.contains?/2`
 
-However, functions that returns booleans and are valid in guards follow another convention, described next.
+However, functions that return booleans and are valid in guards follow another convention, described next.
 
 ## `is_` prefix (`is_foo`)
 

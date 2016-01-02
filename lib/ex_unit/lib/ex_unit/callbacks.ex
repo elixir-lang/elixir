@@ -29,11 +29,11 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If you return `{:ok, keyword}` from `setup_all`, the keyword
+  If you return `{:ok, keywords}` from `setup_all`, the keyword
   will be merged into the current context and be available in all
   subsequent `setup_all`, `setup` and the test itself.
 
-  Similarly, returning `{:ok, keyword}` from `setup`, the keyword
+  Similarly, returning `{:ok, keywords}` from `setup`, the keyword
   returned will be merged into the current context and be available
   in all subsequent `setup` and the `test` itself.
 
@@ -177,7 +177,7 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, data) do
     raise "expected ExUnit callback in #{inspect mod} to return :ok " <>
-          " or {:ok, keyword | map}, got #{inspect data} instead"
+          " or {:ok, keywords | map}, got #{inspect data} instead"
   end
 
   defp escape(contents) do
