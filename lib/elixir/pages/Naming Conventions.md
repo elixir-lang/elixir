@@ -1,34 +1,48 @@
 # Naming Conventions
 
-## Naming modules
+This document covers some naming conventions in Elixir code, from casing to punctuation characters.
 
-Elixir module names are written in "upper camel case", like `OptionParser`.
+## Casing
 
-Capital letters are kept in abbreviations, like `ExUnit.CaptureIO` or `Mix.SCM`.
+Elixir developers must use `snake_case` when defining variables, function names, module attributes, etc:
 
-When you refer to Erlang modules from Elixir code, you follow their Erlang naming, which is usually "lower snake case". For example: `:file_sorter`, `:io_lib`
+    some_map = %{this_is_a_key: "and a value"}
+    is_map(some_map)
 
-Behind the scenes, Erlang modules are represented as plain atoms (e.g. `:binary`) and Elixir modules are represented as prefixed and uppercased atoms (e.g. `:"Elixir.String"`).
+Aliases are an exception as they must be capitalized and written in `CamelCase`, like `OptionParser`. For aliases, capital letters are kept in abbreviations, like `ExUnit.CaptureIO` or `Mix.SCM`.
 
-## Naming variables, module attributes and functions
+Atoms can be written either in `:snake_case` or `:CamelCase`, although the convention is to use the snake case version throughout Elixir.
 
-Variables, module attributes and function names are written in "lower snake case":
+Generally speaking, filenames follow the `snake_case` convention of the module they define. For example, `MyApp` should be defined inside the `my_app.ex` file. However this only a convention. At the end of the day any filename can be used as they do not affect the compiled code in any way.
 
-    def MyModule do
-      @my_attribute 123
+## Underscore (`_foo`)
 
-      def my_function(my_argument) do
-        my_argument + @my_attribute
-      end
-    end
+Elixir relies on underscores in different situations.
 
-There are rare exceptions, like uppercase sigils (for example `Kernel.sigil_S/2`) or current-environment functions like `Kernel.__CALLER__/0`.
+For example, a value that is not meant to be used must be assigned to `_` or to a variable starting with underscore:
 
-## Function and macro conventions
+    iex> {:ok, _contents} = File.read("README.md")
 
-Knowing these conventions can help you to understand some properties of a function or macro by its name alone, and to follow the conventions in your own naming.
+Function names may also start with an underscore. Such functions are never imported by default:
 
-### Trailing bang (`foo!`)
+    iex> defmodule Example do
+    ...>  def _wont_be_imported do
+    ...>    :oops
+    ...>  end
+    ...> end
+
+    iex> import Example
+    iex> _wont_be_imported()
+    ** (CompileError) iex:1: undefined function _wont_be_imported/0
+
+Due to this property, Elixir relies on functions starting with underscore to attach compile-time metadata to modules. Such functions are most often in the `__foo__` format. For example, every module in Elixir has an `__info__` function:
+
+    iex> String.__info__(:functions)
+    [at: 2, capitalize: 1, chunk: 2, ...]
+
+Elixir also includes 4 special variables that follow the double underscore format. Those forms retrieve compile-time information about the current environment: `__MODULE__`, `__DIR__`, `__ENV__` and `__CALLER__`.
+
+## Trailing bang (`foo!`)
 
 A trailing bang (exclamation mark) signifies a function or macro where failure cases raise an exception.
 
@@ -59,15 +73,15 @@ There are also some non-paired functions, with no non-bang variant. The bang sti
 
 In macro code, the bang on `Kernel.alias!/1` and `Kernel.var!/1` signifies that [macro hygiene](http://elixir-lang.org/getting-started/meta/macros.html#macros-hygiene) is set aside.
 
-### Trailing question mark (`foo?`)
+## Trailing question mark (`foo?`)
 
 Functions that return a boolean are named with a trailing question mark.
 
 Examples: `Keyword.keyword?/1`, `Mix.debug?/0`, `String.contains?/2`
 
-However, functions that are valid in guards follow another convention, described next.
+However, functions that returns booleans and are valid in guards follow another convention, described next.
 
-### `is_` prefix (`is_foo`)
+## `is_` prefix (`is_foo`)
 
 Type checks and other boolean checks that are allowed in guard clauses are named with an `is_` prefix.
 
@@ -76,6 +90,10 @@ Examples: `Integer.is_even/1`, `Kernel.is_list/1`
 These functions and macros follow the Erlang convention of an `is_` prefix, instead of a trailing question mark, precisely to indicate that they are allowed in guard clauses.
 
 Note that type checks that are not valid in guard clauses do not follow this convention. Examples: `Keyword.keyword?/1`, `Regex.regex?/1`
+
+## Special names
+
+Some names have specific semantics in Elixir. We details those cases below.
 
 ### `length` and `size`
 

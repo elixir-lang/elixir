@@ -28,7 +28,7 @@ defmodule Process do
   end
 
   @doc """
-  Returns all key-values in the dictionary.
+  Returns all key-values in the process dictionary.
 
   Inlined by the compiler.
   """
@@ -83,7 +83,7 @@ defmodule Process do
   end
 
   @doc """
-  Deletes the given `key` from the dictionary.
+  Deletes the given `key` from the process dictionary.
   """
   @spec delete(term) :: term | nil
   def delete(key) do

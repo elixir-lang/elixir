@@ -13,7 +13,7 @@ defprotocol Collectable do
   The `Enumerable` protocol is useful to take values out of a collection.
   In order to support a wide range of values, the functions provided by
   the `Enumerable` protocol do not keep shape. For example, passing a
-  dictionary to `Enum.map/2` always returns a list.
+  map to `Enum.map/2` always returns a list.
 
   This design is intentional. `Enumerable` was designed to support infinite
   collections, resources and other structures with fixed shape. For example,

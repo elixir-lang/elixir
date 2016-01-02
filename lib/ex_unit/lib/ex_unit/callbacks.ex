@@ -29,13 +29,13 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If you return `{:ok, <dict>}` from `setup_all`, the dictionary
+  If you return `{:ok, keyword}` from `setup_all`, the keyword
   will be merged into the current context and be available in all
   subsequent `setup_all`, `setup` and the test itself.
 
-  Similarly, returning `{:ok, <dict>}` from `setup`, the dict returned
-  will be merged into the current context and be available in all
-  subsequent `setup` and the `test` itself.
+  Similarly, returning `{:ok, keyword}` from `setup`, the keyword
+  returned will be merged into the current context and be available
+  in all subsequent `setup` and the `test` itself.
 
   Returning `:ok` leaves the context unchanged in both cases.
 

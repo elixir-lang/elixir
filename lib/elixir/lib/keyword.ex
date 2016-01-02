@@ -7,7 +7,7 @@ defmodule Keyword do
   can be any value.
 
   A keyword may have duplicated keys so it is not strictly
-  a dictionary. However most of the functions in this module
+  a key-value store. However most of the functions in this module
   behave exactly as a dictionary so they work similarly to
   the functions you would find in the `Map` module.
 
