@@ -30,6 +30,9 @@ defmodule URITest do
   test "decode query" do
     assert URI.decode_query("", %{}) == %{}
 
+    assert URI.decode_query("safe=off", %{"cookie" => "foo"}) ==
+           %{"safe" => "off", "cookie" => "foo"}
+
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==
            %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
 
