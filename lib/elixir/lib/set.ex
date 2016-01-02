@@ -9,21 +9,7 @@ defmodule Set do
   @type values :: [ value ]
   @type t :: map
 
-  # TODO: Remove callbacks on 1.3
-  # TODO: Deprecate every function on 1.3
-  @callback new :: t
-  @callback delete(t, value) :: t
-  @callback difference(t, t) :: t
-  @callback disjoint?(t, t) :: boolean
-  @callback equal?(t, t) :: boolean
-  @callback intersection(t, t) :: t
-  @callback member?(t, value) :: boolean
-  @callback put(t, value) :: t
-  @callback size(t) :: non_neg_integer
-  @callback subset?(t, t) :: boolean
-  @callback to_list(t) :: list()
-  @callback union(t, t) :: t
-
+  # TODO: Deprecate every function on 1.4
   defmacrop target(set) do
     quote do
       case unquote(set) do

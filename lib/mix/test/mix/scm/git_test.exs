@@ -18,7 +18,6 @@ defmodule Mix.SCM.GitTest do
     refute Mix.SCM.Git.equal?([git: "foo", branch: "master"], [git: "foo", branch: "other"])
   end
 
-  # TODO: remove this in Elixir v2.0 when this functionality is removed
   test "considers two GitHub dep equals if they are the same repo and opts match, just different protocols" do
     git_url = "git://github.com/elixir-lang/elixir.git"
     https_url = "https://github.com/elixir-lang/elixir.git"

@@ -571,16 +571,9 @@ expand_alias(Meta, IncludeByDefault, Ref, KV, #{context_modules := Context} = E)
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
-%% TODO: Remove this by 1.3
-expand_as({as, true}, Meta, _IncludeByDefault, Ref, E) ->
-  elixir_errors:warn(?line(Meta), ?m(E, file), "as: true given to require/alias is deprecated"),
-  elixir_aliases:last(Ref);
-expand_as({as, false}, Meta, _IncludeByDefault, Ref, E) ->
-  elixir_errors:warn(?line(Meta), ?m(E, file), "as: false given to require/alias is deprecated"),
-  Ref;
 expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
-expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom) ->
+expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
   case length(string:tokens(atom_to_list(Atom), ".")) of
     1 -> compile_error(Meta, ?m(E, file),
            "invalid value for keyword :as, expected an alias, got: ~ts", [elixir_aliases:inspect(Atom)]);

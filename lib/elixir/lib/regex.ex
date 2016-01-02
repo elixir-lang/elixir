@@ -640,9 +640,11 @@ defmodule Regex do
   defp translate_options(<<?s, t::binary>>, acc), do: translate_options(t, [:dotall, {:newline, :anycrlf}|acc])
   defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline|acc])
 
-  # TODO: Deprecate by 1.2
-  # TODO: Remove by 2.0
-  defp translate_options(<<?r, t::binary>>, acc), do: translate_options(t, [:ungreedy|acc])
+  defp translate_options(<<?r, t::binary>>, acc) do
+    IO.write :stderr, "warning: the /r modified in regular expressions is deprecated, please use /U instead\n" <>
+                      Exception.format_stacktrace
+    translate_options(t, [:ungreedy|acc])
+  end
 
   defp translate_options(<<>>, acc), do: acc
   defp translate_options(rest, _acc), do: {:error, rest}

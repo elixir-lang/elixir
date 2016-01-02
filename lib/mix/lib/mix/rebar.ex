@@ -291,7 +291,7 @@ defmodule Mix.Rebar do
       Enum.reduce(overrides, config, fn
         {:override, overrides}, config ->
           Enum.reduce(overrides, config, fn {key, value}, config ->
-            Dict.put(config, key, value)
+            Keyword.put(config, key, value)
           end)
         _, config ->
           config
@@ -301,7 +301,7 @@ defmodule Mix.Rebar do
       Enum.reduce(overrides, config, fn
         {:override, oapp, overrides}, config when oapp == app ->
           Enum.reduce(overrides, config, fn {key, value}, config ->
-            Dict.put(config, key, value)
+            Keyword.put(config, key, value)
           end)
         _, config ->
           config
@@ -310,8 +310,8 @@ defmodule Mix.Rebar do
     Enum.reduce(overrides, config, fn
       {:add, oapp, overrides}, config when oapp == app ->
         Enum.reduce(overrides, config, fn {key, value}, config ->
-          old_value = Dict.get(config, key, [])
-          Dict.put(config, key, value ++ old_value)
+          old_value = Keyword.get(config, key, [])
+          Keyword.put(config, key, value ++ old_value)
       end)
       _, config ->
         config

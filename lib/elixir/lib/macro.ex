@@ -354,8 +354,9 @@ defmodule Macro do
   for information on how to customize the escaping map.
 
   In this setup, Elixir will escape the following: `\0`, `\a`, `\b`,
-  `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Unicode codepoints
-  can be given as hexadecimals via `\xNN` and `\x{NN...}` escapes.
+  `\d`, `\e`, `\f`, `\n`, `\r`, `\s`, `\t` and `\v`. Bytes can be
+  given as hexadecimals via `\xNN` and Unicode Codepoints as
+  `\uNNNN` escapes.
 
   This function is commonly used on sigil implementations
   (like `~r`, `~s` and others) which receive a raw, unescaped

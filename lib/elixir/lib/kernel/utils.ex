@@ -13,7 +13,7 @@ defmodule Kernel.Utils do
   defp destructure_nil(0), do: []
   defp destructure_nil(count), do: [nil|destructure_nil(count - 1)]
 
-  def defdelegate(fun, opts, env) do
+  def defdelegate(fun, opts) do
     append_first = Keyword.get(opts, :append_first, false)
 
     {name, args} =
@@ -22,7 +22,7 @@ defmodule Kernel.Utils do
         _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
       end
 
-    :ok = check_defdelegate_args(args, env)
+    :ok = check_defdelegate_args(args)
 
     as_args =
       case append_first and args != [] do
@@ -34,15 +34,13 @@ defmodule Kernel.Utils do
     {name, args, as, as_args}
   end
 
-  # TODO: Convert this to an error on 1.3
-  defp check_defdelegate_args([], _env),
+  defp check_defdelegate_args([]),
     do: :ok
-  defp check_defdelegate_args([{var, _, mod}|rest], env) when is_atom(var) and is_atom(mod),
-    do: check_defdelegate_args(rest, env)
-  defp check_defdelegate_args([code|_], env) do
-    :elixir_errors.warn(env.line, env.file,
-      "defdelegate/2 will only accept variable names in upcoming versions, " <>
-      "got: #{Macro.to_string(code)}")
+  defp check_defdelegate_args([{var, _, mod}|rest]) when is_atom(var) and is_atom(mod),
+    do: check_defdelegate_args(rest)
+  defp check_defdelegate_args([code|_]) do
+    raise ArgumentError,
+      "defdelegate/2 only accepts variable names, got: #{Macro.to_string(code)}"
   end
 
   def defstruct(module, fields) do

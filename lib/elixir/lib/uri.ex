@@ -61,7 +61,7 @@ defmodule URI do
   def encode_query(l), do: Enum.map_join(l, "&", &pair/1)
 
   @doc """
-  Decodes a query string into a dictionary (by default uses a map).
+  Decodes a query string into a map.
 
   Given a query string of the form "key1=value1&key2=value2...", produces a
   map with one entry for each key-value pair. Each key and value will be a
@@ -75,11 +75,29 @@ defmodule URI do
       %{"bar" => "2", "foo" => "1"}
 
   """
-  # TODO: Deprecate giving not a map on 1.3
-  def decode_query(q, dict \\ %{}) when is_binary(q) do
+  def decode_query(q, map \\ %{})
+
+  def decode_query(q, map) when is_binary(q) and is_map(map) do
+    decode_query_map(q, %{})
+  end
+
+  def decode_query(q, dict) when is_binary(q) do
+    IO.write :stderr, "warning: URI.decode_query/2 is deprecated, please use URI.decode_query/1\n" <>
+                      Exception.format_stacktrace
+    decode_query_dict(q, dict)
+  end
+
+  defp decode_query_map(q, map) do
+    case do_decode_query(q) do
+      nil         -> map
+      {{k, v}, q} -> decode_query_map(q, Map.put(map, k, v))
+    end
+  end
+
+  defp decode_query_dict(q, dict) do
     case do_decode_query(q) do
       nil         -> dict
-      {{k, v}, q} -> decode_query(q, Dict.put(dict, k, v))
+      {{k, v}, q} -> decode_query_dict(q, Dict.put(dict, k, v))
     end
   end
 

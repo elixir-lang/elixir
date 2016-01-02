@@ -98,7 +98,7 @@ defmodule Mix.Dep.Fetcher do
     if Enum.all?(all_deps, &available?/1) do
       deps = (with_depending(deps, all_deps) ++
               Enum.filter(all_deps, fn dep -> not ok?(dep) end))
-             |> Enum.uniq(&(&1.app))
+             |> Enum.uniq_by(&(&1.app))
     end
 
     # Merge the new lock on top of the old to guarantee we don't

@@ -28,7 +28,6 @@ defmodule URITest do
   end
 
   test "decode query" do
-    assert URI.decode_query("", []) == []
     assert URI.decode_query("", %{}) == %{}
 
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==

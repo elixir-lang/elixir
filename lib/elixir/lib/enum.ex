@@ -156,11 +156,11 @@ defmodule Enum do
       iex> Enum.map([1, 2, 3], fn(x) -> x * 2 end)
       [2, 4, 6]
 
-  Some particular types, like dictionaries, yield a specific format on
-  enumeration. For dicts, the argument is always a `{key, value}` tuple:
+  Some particular types, like maps, yield a specific format on enumeration.
+  For example, the argument is always a `{key, value}` tuple for maps:
 
-      iex> dict = %{a: 1, b: 2}
-      iex> Enum.map(dict, fn {k, v} -> {k, v * 2} end)
+      iex> map = %{a: 1, b: 2}
+      iex> Enum.map(map, fn {k, v} -> {k, v * 2} end)
       [a: 2, b: 4]
 
   Note that the functions in the `Enum` module are eager: they always
@@ -1070,7 +1070,7 @@ defmodule Enum do
   Returns a list where each item is the result of invoking
   `fun` on each corresponding item of `enumerable`.
 
-  For dicts, the function expects a key-value tuple.
+  For maps, the function expects a key-value tuple.
 
   ## Examples
 
@@ -1138,7 +1138,7 @@ defmodule Enum do
   element, and the second one is the accumulator. `fun` must return a
   a tuple with two elements in the form of `{result, accumulator}`.
 
-  For dicts, the first tuple element must be a `{key, value}` tuple.
+  For maps, the first tuple element must be a `{key, value}` tuple.
 
   ## Examples
 
@@ -1436,21 +1436,29 @@ defmodule Enum do
   @doc """
   Splits the enumerable into groups based on `fun`.
 
-  The result is a dict (by default a map) where each key is
-  a group and each value is a list of elements from enumerable
-  for which `fun` returned that group. Ordering is not necessarily
-  preserved.
+  The result is a map where each key is a group and each value is
+  a list of elements from enumerable for which `fun` returned that
+  group. Ordering is preserved.
 
   ## Examples
 
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1)
-      %{3 => ["cat", "ant"], 7 => ["buffalo"], 5 => ["dingo"]}
+      %{3 => ["ant", "cat"], 7 => ["buffalo"], 5 => ["dingo"]}
 
   """
-  @spec group_by(t, dict, (element -> any)) :: dict when dict: Dict.t
-  # TODO: Deprecate giving not a map on 1.3
-  def group_by(enumerable, dict \\ %{}, fun) do
-    reduce(enumerable, dict, fn(entry, categories) ->
+  @spec group_by(t, (element -> any)) :: map
+  def group_by(enumerable, map \\ %{}, fun)
+
+  def group_by(enumerable, map, fun) when is_map(map) do
+    reduce(reverse(enumerable), map, fn entry, categories ->
+      Map.update(categories, fun.(entry), [entry], &[entry|&1])
+    end)
+  end
+
+  def group_by(enumerable, dict, fun) do
+    IO.write :stderr, "warning: Enum.group_by/3 with a dictionary is deprecated, please use a map instead\n" <>
+                      Exception.format_stacktrace
+    reduce(reverse(enumerable), dict, fn(entry, categories) ->
       Dict.update(categories, fun.(entry), [entry], &[entry|&1])
     end)
   end
@@ -2262,10 +2270,10 @@ defmodule Enum do
     uniq_by(enumerable, fn x -> x end)
   end
 
-  # TODO: Deprecate by 1.2
-  # TODO: Remove by 2.0
   @doc false
   def uniq(enumerable, fun) do
+    IO.write :stderr, "warning: Enum.uniq/2 is deprecated, please use Enum.uniq_by/2 instead\n" <>
+                      Exception.format_stacktrace
     uniq_by(enumerable, fun)
   end
 

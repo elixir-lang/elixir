@@ -598,10 +598,10 @@ defmodule Map do
   @spec equal?(map, map) :: boolean
   def equal?(%{} = map1, %{} = map2), do: map1 === map2
 
-  # TODO: Deprecate by 1.3
-  # TODO: Remove by 1.4
   @doc false
   def size(map) do
+    IO.write :stderr, "warning: Map.size/1 is deprecated, please use Kernel.map_size/1\n" <>
+                      Exception.format_stacktrace
     map_size(map)
   end
 end
