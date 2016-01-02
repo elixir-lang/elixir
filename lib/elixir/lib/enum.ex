@@ -287,6 +287,10 @@ defmodule Enum do
 
   Returns `default` if `index` is out of bounds.
 
+  A negative `index` can be passed, which means the `enumerable` is
+  enumerated once and the `index` is counted from the end (e.g.
+  `-1` finds the last element).
+
   Note this operation takes linear time. In order to access
   the element at index `index`, it will need to traverse `index`
   previous elements.
