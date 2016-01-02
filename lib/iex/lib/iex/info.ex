@@ -227,13 +227,14 @@ defimpl IEx.Info, for: PID do
 
   def info(pid) do
     extra =
-      if info = Process.info(pid, @keys) do
-        ["Alive": true,
-         "Name": process_name(info[:registered_name]),
-         "Links": links(info[:links]),
-         "Message queue length": info[:message_queue_len]]
-      else
-        ["Alive": false]
+      case :rpc.pinfo(pid, @keys) do
+        [_|_] = info ->
+          ["Alive": true,
+           "Name": process_name(info[:registered_name]),
+           "Links": links(info[:links]),
+           "Message queue length": info[:message_queue_len]]
+        _ ->
+          ["Alive": false]
       end
 
     ["Data type": "PID"] ++ extra ++
@@ -257,9 +258,10 @@ end
 
 defimpl IEx.Info, for: Port do
   def info(port) do
-    port_info = Port.info(port)
+    connected = :rpc.call(node(port), :erlang, :port_info, [port, :connected])
+
     ["Data type": "Port",
-     "Open": port_info != nil,
+     "Open": match?({:connected, _}, connected),
      "Reference modules": "Port"]
   end
 end
