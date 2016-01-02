@@ -206,8 +206,7 @@ defmodule String do
   @type pattern :: t | [t] | :binary.cp
 
   @doc """
-  Checks if a string is printable considering it is encoded
-  as UTF-8. Returns `true` if so, `false` otherwise.
+  Checks if a string contains only printable characters.
 
   ## Examples
 
@@ -353,10 +352,10 @@ defmodule String do
   end
 
   @doc """
-  Splits a string on demand.
+  Returns an enumerable that splits a string on demand.
 
-  Returns an enumerable that splits the string on
-  demand, instead of splitting all data upfront.
+  This is in contrast to `split/3` which splits all
+  the string upfront.
 
   Note splitter does not support regular expressions
   (as it is often more efficient to have the regular
@@ -449,12 +448,12 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns `true` if `binary` is canonically equivalent to 'another_binary'.
+  Returns `true` if `string1` is canonically equivalent to 'string2'.
 
   It performs Normalization Form Canonical Decomposition (NFD) on the
   strings before comparing them. This function is equivalent to:
 
-      String.normalize(left, :nfd) == String.normalize(right, :nfd)
+      String.normalize(string1, :nfd) == String.normalize(string2, :nfd)
 
   Therefore, if you plan to compare multiple strings, multiple times
   in a row, you may normalize them upfront and compare them directly
@@ -476,12 +475,12 @@ defmodule String do
 
   """
   @spec equivalent?(t, t) :: boolean
-  def equivalent?(left, right) do
-    normalize(left, :nfd) == normalize(right, :nfd)
+  def equivalent?(string1, string2) do
+    normalize(string1, :nfd) == normalize(string2, :nfd)
   end
 
   @doc """
-  Converts all characters in `binary` to Unicode normalization
+  Converts all characters in `string` to Unicode normalization
   form identified by `form`.
 
   ## Forms
@@ -506,7 +505,7 @@ defmodule String do
 
   """
   @spec normalize(t, atom) :: boolean
-  defdelegate normalize(binary, form), to: String.Normalizer
+  defdelegate normalize(string, form), to: String.Normalizer
 
   @doc """
   Converts all characters in the given string to uppercase.
@@ -973,7 +972,7 @@ defmodule String do
   defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
 
   @doc """
-  Returns a binary `subject` duplicated `n` times.
+  Returns a string `subject` duplicated `n` times.
 
   ## Examples
 
@@ -1019,7 +1018,7 @@ defmodule String do
   defdelegate codepoints(string), to: String.Unicode
 
   @doc """
-  Returns the next codepoint in a String.
+  Returns the next codepoint in a string.
 
   The result is a tuple with the codepoint and the
   remainder of the string or `nil` in case
@@ -1075,31 +1074,15 @@ defmodule String do
   def valid?(<<>>), do: true
   def valid?(_), do: false
 
-  @doc ~S"""
-  Checks whether `string` is a valid character.
-
-  All characters are codepoints, but some codepoints
-  are not valid characters. They may be reserved, private,
-  or other.
-
-  More info at: [Non-characters – Wikipedia](https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Non-characters)
-
-  ## Examples
-
-      iex> String.valid_character?("a")
-      true
-
-      iex> String.valid_character?("ø")
-      true
-
-      iex> String.valid_character?("\uFFFF")
-      false
-
-  """
-  @spec valid_character?(t) :: boolean
-
-  def valid_character?(<<_::utf8>> = codepoint), do: valid?(codepoint)
-  def valid_character?(_), do: false
+  @doc false
+  def valid_character?(string) do
+    IO.write :stderr, "warning: String.valid_character?/1 is deprecated, please use valid?/1 instead\n" <>
+                      Exception.format_stacktrace
+    case string do
+      <<_::utf8>> -> valid?(string)
+      _ -> false
+    end
+  end
 
   @doc ~S"""
   Splits the string into chunks of characters that share a common trait.
@@ -1161,7 +1144,9 @@ defmodule String do
 
   @doc """
   Returns Unicode graphemes in the string as per Extended Grapheme
-  Cluster algorithm outlined in the [Unicode Standard Annex #29,
+  Cluster algorithm.
+
+  The algorithm is outlined in the [Unicode Standard Annex #29,
   Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
 
   For details about codepoints and graphemes, see the `String` module documentation.

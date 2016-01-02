@@ -423,15 +423,6 @@ defmodule StringTest do
     refute String.valid?("asd" <> <<0xffff :: 16>>)
   end
 
-  test "valid_character?" do
-    assert String.valid_character?("a")
-    assert String.valid_character?("ø")
-    assert String.valid_character?("あ")
-
-    refute String.valid_character?("\uFFFF")
-    refute String.valid_character?("ab")
-  end
-
   test "chunk valid" do
     assert String.chunk("", :valid) == []
 
