@@ -13,7 +13,7 @@ Aliases, commonly used as module names, are an exception as they must be capital
 
 Atoms can be written either in `:snake_case` or `:CamelCase`, although the convention is to use the snake case version throughout Elixir.
 
-Generally speaking, filenames follow the `snake_case` convention of the module they define. For example, `MyApp` should be defined inside the `my_app.ex` file. However this only a convention. At the end of the day any filename can be used as they do not affect the compiled code in any way.
+Generally speaking, filenames follow the `snake_case` convention of the module they define. For example, `MyApp` should be defined inside the `my_app.ex` file. However, this is only a convention. At the end of the day, any filename can be used as they do not affect the compiled code in any way.
 
 ## Underscore (`_foo`)
 
