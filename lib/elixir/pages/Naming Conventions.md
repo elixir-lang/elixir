@@ -9,7 +9,7 @@ Elixir developers must use `snake_case` when defining variables, function names,
     some_map = %{this_is_a_key: "and a value"}
     is_map(some_map)
 
-Aliases, commonly used as module names, are an exception as they must be capitalized and written in `CamelCase`, like `OptionParser`. For aliases, capital letters are kept in abbreviations, like `ExUnit.CaptureIO` or `Mix.SCM`.
+Aliases, commonly used as module names, are an exception as they must be capitalized and written in `CamelCase`, like `OptionParser`. For aliases, capital letters are kept in acronyms, like `ExUnit.CaptureIO` or `Mix.SCM`.
 
 Atoms can be written either in `:snake_case` or `:CamelCase`, although the convention is to use the snake case version throughout Elixir.
 
