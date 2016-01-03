@@ -65,11 +65,14 @@ defimpl IEx.Info, for: Atom do
   end
 
   defp format_time({year, month, day, hour, min, sec}) do
-    "#{year}-#{month}-#{day} #{hour}:#{min}:#{sec}"
+    "#{year}-#{zeropad(month)}-#{zeropad(day)} #{zeropad(hour)}:#{zeropad(min)}:#{zeropad(sec)}"
   end
 
   defp default_or_apply(nil, _), do: "no value found"
   defp default_or_apply(data, fun), do: fun.(data)
+
+  defp zeropad(number) when number < 10, do: "0#{number}"
+  defp zeropad(number), do: "#{number}"
 end
 
 defimpl IEx.Info, for: List do
