@@ -310,3 +310,8 @@ end |> write_beam.()
 
 defmodule Mix.Tasks.Invalid do
 end |> write_beam.()
+
+defmodule Mix.Tasks.Acronym.HTTP do
+  use Mix.Task
+  def run(_), do: "An HTTP Task"
+end |> write_beam.()
