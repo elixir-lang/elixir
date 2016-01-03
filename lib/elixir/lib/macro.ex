@@ -168,7 +168,7 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, traversal of quoted expressions
+  Performs a depth-first traversal of quoted expressions
   using an accumulator.
   """
   @spec traverse(t, any, (t, any -> {t, any}), (t, any -> {t, any})) :: {t, any}
