@@ -25,11 +25,10 @@ defmodule Mix.TaskTest do
       Mix.Task.run("invalid")
     end
 
-    misnamed_message = """
-    The task "acronym.http" could not be found because the module is named
-    `Mix.Tasks.Acronym.HTTP` instead of `Mix.Tasks.Acronym.Http` as expected.
-    Please rename it and try again.
-    """ |> String.replace("\n", " ") |> String.rstrip
+    misnamed_message =
+      "The task \"acronym.http\" could not be found because the module is named " <>
+      "Mix.Tasks.Acronym.HTTP instead of Mix.Tasks.Acronym.Http as expected. " <>
+      "Please rename it and try again"
     assert_raise Mix.NoTaskError, misnamed_message, fn ->
       Mix.Task.run("acronym.http")
     end

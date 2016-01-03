@@ -10,9 +10,9 @@ defmodule Mix.NoTaskError do
     msg = "The task #{inspect task} could not be found"
     case did_you_mean(task) do
       {mod, ^task, _score} ->
-        msg <> " because the module is named `#{inspect mod}` instead of " <>
-               "`#{expected_mod_name(task)}` as expected. " <>
-               "Please rename it and try again."
+        msg <> " because the module is named #{inspect mod} instead of " <>
+               "#{expected_mod_name(task)} as expected. " <>
+               "Please rename it and try again"
 
       {_mod, similar, score} when score > 0.8 ->
         msg <> ". Did you mean #{inspect similar}?"
@@ -34,7 +34,7 @@ defmodule Mix.NoTaskError do
   end
 
   defp expected_mod_name(task) do
-    "Mix.Tasks.#{Mix.Utils.command_to_module_name(task)}"
+    "Mix.Tasks." <> Mix.Utils.command_to_module_name(task)
   end
 end
 

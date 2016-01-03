@@ -287,7 +287,7 @@ defmodule Mix.Tasks.Escript.Build do
         {num, _} when num >= 18 -> nil
         _ ->
           io_error ["Incompatible Erlang/OTP release: ", erl_version,
-                    ".\nThis escript requires at least Erlang/OTP 18.0.\n"]
+                    ".\nThis escript requires at least Erlang/OTP 18.0\n"]
           :erlang.halt(1)
       end
 
