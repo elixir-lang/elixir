@@ -115,6 +115,19 @@ defmodule MapTest do
     end) == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
 
+  test "defstruct can only be used once in a module" do
+    message = "defstruct has already been called for TestMod, " <>
+      "defstruct can only be called once per module"
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string("""
+        defmodule TestMod do
+          defstruct [:foo]
+          defstruct [:foo]
+        end
+        """)
+    end
+  end
+
   defmodule LocalUser do
     defmodule NestedUser do
       defstruct []
