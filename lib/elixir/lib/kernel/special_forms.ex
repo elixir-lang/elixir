@@ -1409,13 +1409,13 @@ defmodule Kernel.SpecialForms do
 
   The only restrictions when creating anonymous functions is that at
   least one placeholder must be present, i.e. it must contain at least
-  `&1`:
+  `&1`, and that block expressions are not supported:
 
-      # No placeholder fails to compile
-      &var
+      # No placeholder, fails to compile.
+      &(:foo)
 
-      # Block expressions are also not supported
-      &(foo(&1, &2); &3 + &4)
+      # Block expression, fails to compile.
+      &(&1; &2)
 
   """
   defmacro unquote(:&)(expr)
@@ -1445,7 +1445,7 @@ defmodule Kernel.SpecialForms do
 
     2. The tail elements of aliases are guaranteed to always be atoms.
 
-    3. When the head element of aliases is the atom `:Elixir`, no expansion happen.
+    3. When the head element of aliases is the atom `:Elixir`, no expansion happens.
 
   """
   defmacro __aliases__(args)
