@@ -16,6 +16,7 @@ defmodule Bitwise do
     * `:only_operators` - include only operators
     * `:skip_operators` - skip operators
 
+
       iex> use Bitwise, only_operators: true
       iex> 1 &&& 1
       1
