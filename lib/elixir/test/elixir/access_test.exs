@@ -59,4 +59,20 @@ defmodule AccessTest do
     assert Access.get_and_update(%{}, :foo, fn nil -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
     assert Access.get_and_update(%{foo: :bar}, :foo, fn :bar -> {:ok, :baz} end) == {:ok, %{foo: :baz}}
   end
+
+  test "for struct" do
+    defmodule Sample do
+      defstruct [:name]
+    end
+
+    assert_raise UndefinedFunctionError,
+                 "undefined function AccessTest.Sample.fetch/2 (AccessTest.Sample does not implement the Access behaviour)", fn ->
+      Access.fetch(struct(Sample, []), :name)
+    end
+
+    assert_raise UndefinedFunctionError,
+                 "undefined function AccessTest.Sample.get_and_update/3 (AccessTest.Sample does not implement the Access behaviour)", fn ->
+      Access.get_and_update(struct(Sample, []), :name, fn nil -> {:ok, :baz} end)
+    end
+  end
 end

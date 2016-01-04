@@ -1,15 +1,16 @@
 defmodule Access do
   @moduledoc """
-  Dictionary-like access to data structures via the `foo[bar]` syntax.
+  Key-based access to data structures via the `foo[bar]` syntax.
 
-  This module also empowers `Kernel`s nested update functions
-  `Kernel.get_in/2`, `Kernel.put_in/3`, `Kernel.update_in/3` and
-  `Kernel.get_and_update_in/3`.
+  Elixir provides two syntaxes for accessing values. `user[:name]`
+  is used by dynamic structures, like maps and keywords, while
+  `user.name` is used by structs. The main difference is that
+  `user[:name]` won't raise if the key `:name` is missing but
+  `user.name` will raise if there is no `:name` key.
 
-  ## Examples
+  ## Key-based lookups
 
-  Out of the box, Access works with built-in dictionaries: `Keyword`
-  and `Map`:
+  Out of the box, Access works with `Keyword` and `Map`:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -23,13 +24,67 @@ defmodule Access do
       iex> star_ratings[1.5]
       "★☆"
 
+  Access can be combined with `Kernel.put_in/3` to put a value
+  in a given key:
+
+      iex> map = %{a: 1, b: 2}
+      iex> put_in map[:a], 3
+      %{a: 3, b: 2}
+
+  This syntax is very convenient as it can be nested arbitrarily:
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in users["john"][:age], 28
+      %{"john" => %{age: 28}, "meg" => %{age: 23}}
+
   Furthermore, Access transparently ignores `nil` values:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:c][:unknown]
       nil
 
-  The key comparison must be implemented using the `===` operator.
+  Since Access is a behaviour, it can be implemented to key-value
+  data structures. Access requires the key comparison to be
+  implemented using the `===` operator.
+
+  ## Field-based lookups
+
+  The Access syntax (`foo[bar]`) cannot be used to access fields in
+  structs. That's by design, as Access is meant to be used for
+  dynamic key-value structures, like maps and keywords, and not
+  by static ones like structs.
+
+  However Elixir already provides a field-based lookup for structs.
+  Imagine a struct named `User` with name and age fields. The
+  following would raise:
+
+      user = %User{name: "john"}
+      user[:name]
+      ** (UndefinedFunctionError) undefined function User.fetch/2
+         (User does not implement the Access behaviour)
+
+  Structs instead use the `user.name` syntax:
+
+      user.name
+      #=> "john"
+
+  The same `user.name` syntax can also be used by `Kernel.put_in/2`
+  to for updating structs fields:
+
+      put_in user.name, "mary"
+      %User{name: "mary"}
+
+  Differently from `user[:name]`, `user.name` cannot be extended by
+  the developers, and will be always restricted to only maps and
+  structs.
+
+  Summing up:
+
+    * `user[:name]` is used by dynamic structures, is extensible and
+      does not raise on missing keys
+    * `user.name` is used by static structures, it is not extensible
+      and it will raise on missing keys
+
   """
 
   @type t :: list | map | nil
@@ -39,6 +94,20 @@ defmodule Access do
   @callback fetch(t, key) :: {:ok, value} | :error
   @callback get_and_update(t, key, (value -> {value, value})) :: {value, t}
 
+  defmacrop raise_undefined_behaviour(e, struct, top) do
+    quote do
+      stacktrace = System.stacktrace
+      e =
+        case stacktrace do
+          [unquote(top)|_] ->
+            %{unquote(e) | reason: "#{inspect unquote(struct)} does not implement the Access behaviour"}
+          _ ->
+            unquote(e)
+        end
+      reraise e, stacktrace
+    end
+  end
+
   @doc """
   Fetches the container's value for the given key.
   """
@@ -47,6 +116,9 @@ defmodule Access do
 
   def fetch(%{__struct__: struct} = container, key) do
     struct.fetch(container, key)
+  rescue
+    e in UndefinedFunctionError ->
+      raise_undefined_behaviour e, struct, {^struct, :fetch, [^container, ^key], _}
   end
 
   def fetch(%{} = map, key) do
@@ -96,6 +168,9 @@ defmodule Access do
 
   def get_and_update(%{__struct__: struct} = container, key, fun) do
     struct.get_and_update(container, key, fun)
+  rescue
+    e in UndefinedFunctionError ->
+      raise_undefined_behaviour e, struct, {^struct, :get_and_update, [^container, ^key, ^fun], _}
   end
 
   def get_and_update(%{} = map, key, fun) do

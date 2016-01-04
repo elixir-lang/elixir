@@ -640,6 +640,10 @@ defmodule UndefinedFunctionError do
     "undefined function " <> Exception.format_mfa(module, function, arity) <>
       " (function #{fa} is not available)"
   end
+
+  def message(%{reason: reason,  module: module, function: function, arity: arity}) do
+    "undefined function " <> Exception.format_mfa(module, function, arity) <> " (#{reason})"
+  end
 end
 
 defmodule FunctionClauseError do
