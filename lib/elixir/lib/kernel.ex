@@ -3210,6 +3210,10 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
+      if Module.get_attribute(__MODULE__, :struct) do
+        raise ArgumentError, "defstruct has already been called for " <>
+          "#{inspect(__MODULE__)}, defstruct can only be called once per module"
+      end
       fields = Kernel.Utils.defstruct(__MODULE__, fields)
       @struct fields
 
