@@ -3621,7 +3621,7 @@ defmodule Kernel do
   the `__using__` callback, unless those functions are the default
   implementation of a previously defined `@callback`. In case you
   want to provide some existing functionality to the user module,
-  please define it a module which will be imported accordingly.
+  please define it in a module which will be imported accordingly.
   """
   defmacro use(module, opts \\ []) do
     calls = Enum.map(expand_aliases(module, __CALLER__), fn
