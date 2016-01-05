@@ -63,6 +63,7 @@ defmodule IEx.Config do
   defp default_option(:colors), do: [{:enabled, IO.ANSI.enabled?} | default_colors()]
   defp default_option(:inspect), do: []
   defp default_option(:history_size), do: 20
+  defp default_option(:width), do: width()
 
   defp default_option(prompt) when prompt in [:default_prompt, :alive_prompt] do
     "%prefix(%counter)>"
