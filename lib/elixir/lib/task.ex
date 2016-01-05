@@ -98,7 +98,7 @@ defmodule Task do
       import Supervisor.Spec
 
       children = [
-        supervisor(Task.Supervisor, [[name: MyApp.TaskSupervisor]])
+        supervisor(Task.Supervisor, [], name: MyApp.TaskSupervisor)
       ]
 
   Now you can dynamically start supervised tasks:
