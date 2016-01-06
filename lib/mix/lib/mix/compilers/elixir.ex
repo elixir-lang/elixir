@@ -15,10 +15,45 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, skip, exts, dest, force, on_start) do
+  def compile(manifest_map, srcs, skip, exts, dest, force, on_start) do
     keep = srcs -- skip
-    all  = Mix.Utils.extract_files(keep, exts)
-    {all_entries, skip_entries} = parse_manifest(manifest, keep)
+
+    universe_files_map = for(path <- srcs,
+      files = Mix.Utils.extract_files([path], exts),
+      into: %{},
+      do: {path, files}) |> dedupe_files_map
+
+    all_files_map = Map.take(universe_files_map, keep)
+
+    all = for {_, files} <- all_files_map,
+      file <- files,
+      do: file
+
+    keep_manifest_map = Map.take(manifest_map, keep)
+
+    all_entries = entries_from_manifest_map(keep_manifest_map)
+
+    universe_entries = entries_from_manifest_map(manifest_map)
+
+    universe_file_manifest = for {_, manifest} <- manifest_map,
+                          file <- read_manifest(manifest),
+                          into: %{},
+                          do: {elem(file,3), manifest}
+
+    universe_module_map = for {_, module, _, file, _, _, _, _} <- universe_entries,
+                          into: %{},
+                          do: {module, file}
+
+    file_manifest_path_map = for {path, files} <- all_files_map,
+                          file <- files,
+                          manifest = Map.fetch!(manifest_map, path),
+                          into: %{},
+                          do: {file, {path, manifest}}
+
+    file_manifest_modified_map = for {file, {_, manifest}} <- file_manifest_path_map,
+                          mtime = Mix.Utils.last_modified(manifest),
+                          into: %{},
+                          do: {file, mtime}
 
     removed =
       for {_b, _m, _k, source, _cd, _rd, _f, _bin} <- all_entries,
@@ -31,19 +66,26 @@ defmodule Mix.Compilers.Elixir do
         # changed, let's just compile everything
         all
       else
-        modified   = Mix.Utils.last_modified(manifest)
-        all_mtimes = mtimes(all_entries)
+        all_mtimes = mtimes(universe_entries)
 
         # Otherwise let's start with the new ones
         # plus the ones that have changed
-        for(source <- all,
+        new = for(source <- all,
             not Enum.any?(all_entries, fn {_b, _m, _k, s, _cd, _rd, _f, _bin} -> s == source end),
             do: source)
-          ++
-        for({_b, _m, _k, source, _cd, _rd, files, _bin} <- all_entries,
-            times = Enum.map([source|files], &Map.fetch!(all_mtimes, &1)),
-            Mix.Utils.stale?(times, [modified]),
+        modified = for({_b, _m, _k, source, compile, _rd, files, _bin} <- all_entries,
+            not(source in removed),
+            source_mtimes = Enum.map([source|files], &Map.fetch!(all_mtimes, &1)),
+            # Some compile time dependencies might be outside of `elixirc_paths`
+            compile_dependency_manifests_mtimes = for(
+              {module, file} <- universe_module_map,
+              module in compile,
+              manifest = Dict.fetch!(universe_file_manifest, file),
+              do: Mix.Utils.last_modified(manifest)),
+            times = source_mtimes ++ compile_dependency_manifests_mtimes,
+            Mix.Utils.stale?(times, [Map.fetch!(file_manifest_modified_map, source)]),
             do: source)
+        new ++ modified
       end
 
     {entries, changed} = remove_stale_entries(all_entries, removed ++ changed)
@@ -51,10 +93,10 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, entries ++ skip_entries, stale, dest, on_start)
+        compile_manifest({keep_manifest_map, file_manifest_path_map}, entries, stale, dest, on_start)
         :ok
       removed != [] ->
-        write_manifest(manifest, entries ++ skip_entries)
+        write_manifests({keep_manifest_map, file_manifest_path_map}, entries)
         :ok
       true ->
         :noop
@@ -86,13 +128,14 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Returns protocols and implementations for the given manifest.
   """
-  def protocols_and_impls(manifest) do
-    for {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
+  def protocols_and_impls(manifests) do
+    for manifest <- manifests,
+      {_, module, kind, _, _, _, _, _} <- read_manifest(manifest),
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind}
   end
 
-  defp compile_manifest(manifest, entries, stale, dest, on_start) do
+  defp compile_manifest(file_manifest_path_map, entries, stale, dest, on_start) do
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
 
@@ -109,7 +152,7 @@ defmodule Mix.Compilers.Elixir do
         each_file: &each_file(&1),
         dest: dest
       Agent.cast pid, fn entries ->
-        write_manifest(manifest, entries)
+        write_manifests(file_manifest_path_map, entries)
         entries
       end
     after
@@ -227,20 +270,13 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp parse_manifest(manifest, keep_paths) do
-    Enum.reduce read_manifest(manifest), {[], []}, fn
-      {_, _, _, source, _, _, _, _} = entry, {keep, skip} ->
-        if String.starts_with?(source, keep_paths) do
-          {[entry|keep], skip}
-        else
-          {keep, [entry|skip]}
-        end
-    end
-  end
-
-  defp write_manifest(manifest, []) do
-    File.rm(manifest)
-    :ok
+  defp write_manifests({manifest_map, file_manifest_path_map}, entries) do
+    files_by_manifest = Enum.group_by(entries, fn (entry) ->
+      Map.fetch!(file_manifest_path_map, elem(entry,3)) |> elem(1)
+    end)
+    for {_, manifest} <- manifest_map,
+        entries = Map.get(files_by_manifest, manifest, []),
+        do: write_manifest(manifest, entries)
   end
 
   defp write_manifest(manifest, entries) do
@@ -261,5 +297,25 @@ defmodule Mix.Compilers.Elixir do
     # so the current Elixir version, used to compile the files above,
     # is properly stored.
     Mix.Dep.ElixirSCM.update
+  end
+
+  defp entries_from_manifest_map(manifest_map) do
+    for {_, manifest} <- manifest_map,
+        entry <- read_manifest(manifest),
+        do: entry
+  end
+
+  # Since we can have nested paths, we might have duplicates here.
+  defp dedupe_files_map(map) do
+    dupes = for {path, files} <- map,
+        {path2, files2} <- map,
+        file <- files,
+        file2 <- files2,
+        file == file2, # same file
+        String.length(path) < String.length(path2), # dupe if there's a path that's longer
+        do: {path, file}
+    Enum.reduce(dupes, map, fn {path, file}, map ->
+      Map.update!(map, path, &List.delete(&1, file))
+    end)
   end
 end

@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == :ok
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
-      refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir"), "Elixir.A")
+      refute String.contains?(File.read!("_build/dev/lib/sample/.compile.elixir.lib"), "Elixir.A")
     end
   end
 
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      File.touch!("_build/dev/lib/sample/.compile.elixir", future)
+      File.touch!("_build/dev/lib/sample/.compile.elixir.lib", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == :noop
     end
   end
@@ -236,6 +236,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      # Compiling just web and then just lib should recompile lib
+      # if both are modified
+      :timer.sleep(1000)
+      File.touch!("lib/a.ex")
+      File.touch!("web/ab.ex")
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      assert_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "lib"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end
+  end
+
+  test "use custom source paths with compile time deps" do
+    Mix.Project.push SourcePathsProject
+
+    in_fixture "no_mixfile", fn ->
+      File.mkdir_p! "web"
+      File.write! "web/ab.ex", """
+      defmodule AB, do: :ok
+      """
+      File.write! "lib/d.ex", """
+      defmodule D do
+        def foo, do: :ok
+      end
+      """
+
+      assert Mix.Tasks.Compile.Elixir.run([])
+
+      :timer.sleep(1000)
+      File.touch!("lib/d.ex")
+      assert Mix.Tasks.Compile.Elixir.run(["--elixirc-paths", "web"])
+      assert_received {:mix_shell, :info, ["Compiled web/ab.ex"]}
     end
   end
 
