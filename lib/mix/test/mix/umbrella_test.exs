@@ -113,15 +113,19 @@ defmodule Mix.UmbrellaTest do
         end
         """
 
-        # Should work across all environments
+        # Does not fetch when filtered
+        Mix.Tasks.Deps.Get.run ["--only", "dev"]
+        refute_received {:mix_shell, :info, ["* Getting git_repo" <> _]}
+
+        # But works across all environments
         Mix.Tasks.Deps.Get.run []
         assert_received {:mix_shell, :info, ["* Getting git_repo" <> _]}
 
-        # Works on the current environment only
+        # Does not show by default
         Mix.Tasks.Deps.run []
-        refute_received {:mix_shell, :info, ["* git_repo " <> _]}
+        refute_received {:mix_shell, :info, ["* git_repo" <> _]}
 
-        # Works on the other environment only
+        # But shows on proper environment
         Mix.env(:other)
         Mix.Tasks.Deps.run []
         assert_received {:mix_shell, :info, ["* git_repo " <> _]}
