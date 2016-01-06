@@ -401,20 +401,19 @@ defmodule ExUnit.Assertions do
   end
 
   defp collect_vars_from_pattern(expr) do
-    {_, vars} =
-      Macro.prewalk(expr, [], fn
-        {:::, _, [left, _]}, acc ->
-          {[left], acc}
-        {skip, _, [_]}, acc when skip in [:^, :@] ->
-          {:ok, acc}
-        {:_, _, context}, acc when is_atom(context) ->
-          {:ok, acc}
-        {name, _, context}, acc when is_atom(name) and is_atom(context) ->
-          {:ok, [{name, [generated: true], context}|acc]}
-        node, acc ->
-          {node, acc}
-      end)
-    Enum.uniq(vars)
+    Macro.prewalk(expr, [], fn
+      {:::, _, [left, _]}, acc ->
+        {[left], acc}
+      {skip, _, [_]}, acc when skip in [:^, :@] ->
+        {:ok, acc}
+      {:_, _, context}, acc when is_atom(context) ->
+        {:ok, acc}
+      {name, _, context}, acc when is_atom(name) and is_atom(context) ->
+        {:ok, [{name, [generated: true], context}|acc]}
+      node, acc ->
+        {node, acc}
+    end)
+    |> elem(1)
   end
 
   defp no_warning({name, meta, args}) do
