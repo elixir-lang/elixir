@@ -255,9 +255,8 @@ defmodule Mix.DepTest do
         deps = Mix.Dep.loaded([])
         assert length(deps) == 2
 
-        deps = Mix.Dep.loaded([env: :prod])
-        assert length(deps) == 1
-        assert Enum.find deps, &match?(%Mix.Dep{app: :foo}, &1)
+        assert [dep] = Mix.Dep.loaded([env: :prod])
+        assert dep.app == :foo
       end
     end
   end
