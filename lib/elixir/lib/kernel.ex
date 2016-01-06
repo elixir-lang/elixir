@@ -1575,12 +1575,13 @@ defmodule Kernel do
   emits two-item tuples (key-value pairs) during enumeration.
 
   Keys in the `Enumerable` that don't exist in the struct are automatically
-  discarded.
+  discarded. Note that keys must be atoms, as only atoms are allowed when
+  defining a struct.
 
-  This function is useful for dynamically creating and updating
-  structs, as well as for converting maps to structs; in the latter case, just
-  inserting the appropriate `:__struct__` field into the map may not be enough
-  and `struct/2` should be used instead.
+  This function is useful for dynamically creating and updating structs, as
+  well as for converting maps to structs; in the latter case, just inserting
+  the appropriate `:__struct__` field into the map may not be enough and
+  `struct/2` should be used instead.
 
   ## Examples
 
@@ -1600,6 +1601,10 @@ defmodule Kernel do
 
       struct(User, %{name: "meg"})
       #=> %User{name: "meg"}
+
+      # String keys are ignored
+      struct(User, %{"name" => "meg"})
+      #=> %User{name: "john"}
 
   """
   @spec struct(module | map, Enum.t) :: map
