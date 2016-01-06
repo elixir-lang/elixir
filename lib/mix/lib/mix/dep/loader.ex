@@ -21,18 +21,18 @@ defmodule Mix.Dep.Loader do
   @doc """
   Partitions loaded dependencies by environment.
   """
-  def partition_by_env(deps, opts) do
-    if env = opts[:env] do
-      Enum.partition(deps, fn
-        %Mix.Dep{status: {:divergedonly, _}} ->
-          true
-        %Mix.Dep{opts: opts} ->
-          only = opts[:only] |> List.wrap |> validate_only!
-          only == [] or env in List.wrap(only)
-      end)
-    else
-      {deps, []}
-    end
+  def partition_by_env(deps, nil), do: {deps, []}
+  def partition_by_env(deps, env), do: Enum.partition(deps, &not skip?(&1, env))
+
+  @doc """
+  Check if a dependency must be skipped according to the environment.
+  """
+  def skip?(_dep, nil), do: false
+  def skip?(%Mix.Dep{status: {:divergedonly, _}}, _), do: false
+  def skip?(%Mix.Dep{opts: opts}, env) do
+    only = opts[:only]
+    validate_only!(only)
+    only != nil and not env in List.wrap(only)
   end
 
   @doc """
@@ -283,7 +283,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp validate_only!(only) do
-    for entry <- only, not is_atom(entry) do
+    for entry <- List.wrap(only), not is_atom(entry) do
       Mix.raise "Expected :only in dependency to be an atom or a list of atoms, got: #{inspect only}"
     end
     only
@@ -293,7 +293,7 @@ defmodule Mix.Dep.Loader do
     from = Path.absname("mix.exs")
     (Mix.Project.config[:deps] || [])
     |> Enum.map(&to_dep(&1, from))
-    |> partition_by_env(opts)
+    |> partition_by_env(opts[:env])
     |> elem(0)
   end
 
