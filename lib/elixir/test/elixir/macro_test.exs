@@ -387,6 +387,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: &foo/0) == "&foo/0"
     assert Macro.to_string(quote do: &Foo.foo/0) == "&Foo.foo/0"
     assert Macro.to_string(quote do: & &1 + &2) == "&(&1 + &2)"
+    assert Macro.to_string(quote do: & &1) == "&(&1)"
   end
 
   test "containers to string" do
@@ -422,7 +423,6 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: !(foo > bar)) == "!(foo > bar)"
     assert Macro.to_string(quote do: @foo(bar)) == "@foo(bar)"
     assert Macro.to_string(quote do: identity(&1)) == "identity(&1)"
-    assert Macro.to_string(quote do: identity(&foo)) == "identity(&foo)"
   end
 
   test "access to string" do

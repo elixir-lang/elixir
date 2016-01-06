@@ -8,10 +8,10 @@ defmodule String do
 
   The functions in this module act according to the Unicode
   Standard, version 6.3.0.
-  
+
   As per the standard, a codepoint is a single Unicode Character,
   which may be represented by one or more bytes.
-  
+
   For example, the codepoint "é" is two bytes:
 
       iex> byte_size("é")
