@@ -572,6 +572,10 @@ defmodule Macro do
     fun.(ast, "&" <> to_string(mod, fun) <> "." <> Atom.to_string(name) <> "/" <> to_string(arity, fun))
   end
 
+  def to_string({:&, _, [arg]} = ast, fun) when not is_integer(arg) do
+    fun.(ast, "&(" <> to_string(arg, fun) <> ")")
+  end
+
   # Unary ops
   def to_string({unary, _, [{binary, _, [_, _]} = arg]} = ast, fun)
       when unary in unquote(@unary_ops) and binary in unquote(@binary_ops) do
