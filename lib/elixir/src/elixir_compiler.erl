@@ -169,13 +169,17 @@ allows_fast_compilation(_) -> false.
 %% executes the callback in case of success. This automatically
 %% handles errors and warnings. Used by this module and elixir_module.
 module(Forms, Opts, E, Callback) ->
-  Final =
-    case (get_opt(debug_info) == true) orelse
-         lists:member(debug_info, Opts) of
-      true  -> [debug_info] ++ options();
-      false -> options()
+  Extra =
+    case proplists:get_value(debug_info, Opts) of
+      true -> [debug_info];
+      false -> [];
+      undefined ->
+        case get_opt(debug_info) of
+          true  -> [debug_info];
+          false -> []
+        end
     end,
-  inner_module(Forms, Final, false, E, Callback).
+  inner_module(Forms, Extra ++ options(), false, E, Callback).
 
 inner_module(Forms, Options, Bootstrap, #{file := File} = E, Callback) when
     is_list(Forms), is_list(Options), is_boolean(Bootstrap), is_function(Callback) ->

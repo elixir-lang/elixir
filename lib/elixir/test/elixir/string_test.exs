@@ -530,4 +530,10 @@ defmodule StringTest do
     assert String.jaro_distance("jon", "john") == 0.9166666666666666
     assert String.jaro_distance("jon", "jan") == 0.7777777777777777
   end
+
+  test "skip debug_info in metadata modules" do
+    assert String.Unicode.__info__(:compile)[:options] == []
+    assert String.Graphemes.__info__(:compile)[:options] == []
+    assert String.Normalizer.__info__(:compile)[:options] == []
+  end
 end
