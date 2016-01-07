@@ -2,14 +2,15 @@ Code.require_file "test_helper.exs", __DIR__
 
 defmodule ExceptionHelpersTest do
   use ExUnit.Case, async: true
-  import Exception.Helpers
 
   test "finds functions of the same name with different arity" do
-    assert find_functions(IO, :puts, 0) == [puts: 1, puts: 2]
+    assert_found &IO.puts/0, [puts: 1, puts: 2]
   end
 
   test "finds similar functions when no name matches" do
-    assert find_functions(IO, :put, 0) == [puts: 1, puts: 2]
+    assert_found &IO.put/1, [puts: 1, puts: 2]
+    assert_found &Enum.man/0, [min: 1, max: 1, map: 2]
+    assert_found &String.capitalise/1, [capitalize: 1]
   end
 
   test "undefined function exception message" do
@@ -42,5 +43,12 @@ defmodule ExceptionHelpersTest do
 
   test "will find unloaded modules" do
     assert "OptionParser" in Exception.Helpers.find_modules(OptionParse, :foo, 1)
+  end
+
+  def assert_found(function, expected) do
+    info = :erlang.fun_info(function)
+    result = Exception.Helpers.find_functions(info[:module], info[:name], info[:arity])
+
+    assert result == expected
   end
 end

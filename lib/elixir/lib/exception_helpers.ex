@@ -1,6 +1,6 @@
 defmodule Exception.Helpers do
-  @function_similarity_threshold 1.5
-  @module_similarity_threshold   1.5
+  @function_similarity_threshold 0.77
+  @module_similarity_threshold   0.9
 
   def module_functions(module) do
     try do
@@ -73,10 +73,10 @@ defmodule Exception.Helpers do
 
     list
     |> Enum.map(fn(mod) ->
-      { mod, edit_distance(name, mod) }
+      { mod, String.jaro_distance(name, (mod)) }
     end)
     |> Enum.filter(fn({ _func, dist }) ->
-      dist <= min_distance
+      dist >= min_distance
     end)
     |> Keyword.keys
   end
@@ -95,50 +95,6 @@ defmodule Exception.Helpers do
 
     [msg, "\n\n    ", IO.ANSI.bright, "Perhaps you meant one of:", IO.ANSI.reset, "\n", indent, extra, "\n"]
     |> Enum.join
-  end
-
-  # ================================================================
-  # = Edit distance using levenshtein, taken from discussion here: =
-  # = https://github.com/elixir-lang/elixir/issues/672             =
-  # ================================================================
-  defp store_result(key, result, cache) do
-    {result, Dict.put(cache, key, result)}
-  end
-
-  defp edit_distance(string_1, string_2) when is_binary(string_1) and is_binary(string_2) do
-    string_1 = String.to_char_list(string_1)
-    string_2 = String.to_char_list(string_2)
-    edit_distance(string_1, string_2)
-  end
-
-  defp edit_distance(string_1, string_2) do
-    {list, _} = edit_distance(string_1, string_2, HashDict.new)
-    list
-  end
-
-  defp edit_distance(string_1, []=string_2, cache) do
-    store_result({string_1, string_2}, length(string_1), cache)
-  end
-
-  defp edit_distance([]=string_1, string_2, cache) do
-    store_result({string_1, string_2}, length(string_2), cache)
-  end
-
-  defp edit_distance([x|rest1], [x|rest2], cache) do
-    edit_distance(rest1, rest2, cache)
-  end
-
-  defp edit_distance([_|rest1]=string_1, [_|rest2]=string_2, cache) do
-    case Dict.has_key?(cache, {string_1, string_2}) do
-      true -> {Dict.get(cache, {string_1, string_2}), cache}
-      false ->
-        {l1, c1} = edit_distance(string_1, rest2, cache)
-        {l2, c2} = edit_distance(rest1, string_2, c1)
-        {l3, c3} = edit_distance(rest1, rest2, c2)
-
-        min = :lists.min([l1, l2, l3]) + 1
-        {min, Dict.put(c3, {string_1,string_2}, min)}
-    end
   end
 
   # =========================
