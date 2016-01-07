@@ -10,6 +10,7 @@ end
 
 defmodule String.Unicode do
   @moduledoc false
+  @compile {:debug_info, false}
   def version, do: {7, 0, 0}
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
@@ -204,6 +205,7 @@ end
 
 defmodule String.Graphemes do
   @moduledoc false
+  @compile {:debug_info, false}
 
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
@@ -413,6 +415,7 @@ end
 
 defmodule String.Normalizer do
   @moduledoc false
+  @compile {:debug_info, false}
 
   decomposition_path = Path.join(__DIR__, "Decomposition.txt")
 
