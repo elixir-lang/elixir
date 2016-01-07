@@ -274,10 +274,10 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor module with the given `arg`.
 
-  To start the supervisor, the `init/1` callback will be invoked
-  in the given module. The `init/1` callback must return a
-  supervision specification which can be created with the help
-  of `Supervisor.Spec` module.
+  To start the supervisor, the `init/1` callback will be invoked in the given
+  module, with `arg` passed to it. The `init/1` callback must return a
+  supervision specification which can be created with the help of the
+  `Supervisor.Spec` module.
 
   If the `init/1` callback returns `:ignore`, this function returns
   `:ignore` as well and the supervisor terminates with reason `:normal`.
