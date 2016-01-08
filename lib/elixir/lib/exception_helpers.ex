@@ -1,6 +1,6 @@
 defmodule Exception.Helpers do
-  @function_similarity_threshold 0.77
-  @module_similarity_threshold   0.9
+  @function_similarity_threshold 0.8
+  @module_similarity_threshold   0.8
 
   def module_functions(module) do
     try do
@@ -54,17 +54,22 @@ defmodule Exception.Helpers do
     end
   end
 
-
-  def within_distance_from(list, min_distance, atom) do
+  def within_distance_from(list, min_distance, atom) when is_atom(atom) do
     name = Atom.to_string(atom)
+    within_distance_from(list, min_distance, name)
+  end
 
+  def within_distance_from(list, min_distance, name) do
     list
-    |> Enum.map(fn(mod) ->
-      { mod, String.jaro_distance(name, (mod)) }
+    |> Enum.map(fn(str) ->
+      { str, compare(name, str) }
     end)
     |> Enum.filter(fn({ _func, dist }) ->
       dist >= min_distance
     end)
+    |> Enum.sort_by(fn { _func, dist } ->
+      dist
+    end, &>=/2)
     |> Keyword.keys
   end
 
@@ -111,5 +116,35 @@ defmodule Exception.Helpers do
     # application controller internals, we choose to match
     # for performance.
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
+  end
+
+  # Implementation taken from lexmag’s simetric:
+  # https://github.com/lexmag/simetric/blob/master/lib/simetric/jaro/winkler.ex
+  def compare(str1, str2) do
+    case String.jaro_distance(str1, str2) do
+      0.0 -> 0.0
+      1.0 -> 1.0
+      dist ->
+        dist + (prefix(str1, str2) * 0.1 * (1 - dist))
+    end
+  end
+
+  defp prefix(str1, str2) do
+    prefix(str1, str2, 0, 4)
+  end
+
+  defp prefix(_str1, _str2, count, 0), do: count
+  defp prefix(_str, "", count, _lim),  do: count
+  defp prefix("", _str, count, _lim),  do: count
+
+  defp prefix(str1, str2, count, lim) do
+    {char, rest1} = String.next_grapheme(str1)
+
+    case String.next_grapheme(str2) do
+      {^char, rest2} ->
+        prefix(rest1, rest2, count + 1, lim - 1)
+
+      {_, _} -> count
+    end
   end
 end
