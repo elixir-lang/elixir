@@ -60,13 +60,11 @@ defmodule Exception.Helpers do
   end
 
   def within_distance_from(list, min_distance, name) do
-    list
-    |> Enum.map(fn(str) ->
-      { str, compare(name, str) }
-    end)
-    |> Enum.filter(fn({ _func, dist }) ->
-      dist >= min_distance
-    end)
+    for str <- list,
+        {str, distance} = { str, compare(name, str) },
+        distance >= min_distance do
+      {str, distance}
+    end
     |> Enum.sort_by(fn { _func, dist } ->
       dist
     end, &>=/2)
