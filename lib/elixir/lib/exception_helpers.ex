@@ -1,5 +1,5 @@
 defmodule Exception.Helpers do
-  @function_similarity_threshold 0.8
+  @function_similarity_threshold 0.77
   @module_similarity_threshold   0.8
 
   def module_functions(module) do
@@ -37,8 +37,10 @@ defmodule Exception.Helpers do
   end
 
   def find_modules(module, _function, _arity) do
+    module = module |> Atom.to_string |> String.replace_leading("Elixir.", "")
+
     get_modules_from_applications
-    |> within_distance_from(@module_similarity_threshold, module)
+    |> within_distance_from(@module_similarity_threshold, module, &String.replace_leading(&1, "Elixir.", ""))
     |> Enum.map(fn
       "Elixir." <> module -> module
       module              -> ":" <> module
@@ -57,15 +59,24 @@ defmodule Exception.Helpers do
     end
   end
 
-  def within_distance_from(list, min_distance, atom) when is_atom(atom) do
-    name = Atom.to_string(atom)
-    within_distance_from(list, min_distance, name)
+  @doc """
+  Returns the strings in `list` which are at within `threshold` of `name`,
+  calculated using `String.jaro_distance/2`.
+
+  If `transform` is present it will be used to transform each item
+  when passed to `jaro_distance`, but items will be returned unchanged.
+  """
+  def within_distance_from(list, threshold, name, transform \\ &(&1))
+
+  def within_distance_from(list, threshold, name, transform) when is_atom(name) do
+    name = Atom.to_string(name)
+    within_distance_from(list, threshold, name, transform)
   end
 
-  def within_distance_from(list, min_distance, name) do
+  def within_distance_from(list, threshold, name, transform) do
     for str <- list,
-        {str, distance} = { str, compare(name, str) },
-        distance >= min_distance do
+        {str, distance} = { str, String.jaro_distance(name, transform.(str)) },
+        distance >= threshold do
       {str, distance}
     end
     |> Enum.sort_by(fn { _func, dist } ->
@@ -117,35 +128,5 @@ defmodule Exception.Helpers do
     # application controller internals, we choose to match
     # for performance.
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
-  end
-
-  # Implementation taken from lexmag’s simetric:
-  # https://github.com/lexmag/simetric/blob/master/lib/simetric/jaro/winkler.ex
-  def compare(str1, str2) do
-    case String.jaro_distance(str1, str2) do
-      0.0 -> 0.0
-      1.0 -> 1.0
-      dist ->
-        dist + (prefix(str1, str2) * 0.1 * (1 - dist))
-    end
-  end
-
-  defp prefix(str1, str2) do
-    prefix(str1, str2, 0, 4)
-  end
-
-  defp prefix(_str1, _str2, count, 0), do: count
-  defp prefix(_str, "", count, _lim),  do: count
-  defp prefix("", _str, count, _lim),  do: count
-
-  defp prefix(str1, str2, count, lim) do
-    {char, rest1} = String.next_grapheme(str1)
-
-    case String.next_grapheme(str2) do
-      {^char, rest2} ->
-        prefix(rest1, rest2, count + 1, lim - 1)
-
-      {_, _} -> count
-    end
   end
 end

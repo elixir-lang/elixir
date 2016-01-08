@@ -9,7 +9,7 @@ defmodule ExceptionHelpersTest do
 
   test "finds similar functions when no name matches" do
     assert_found &IO.put/1, [puts: 1, puts: 2]
-    assert_found &Enum.man/0, [max: 1, map: 2]
+    assert_found &Enum.man/0, [min: 1, max: 1, map: 2]
     assert_found &String.capitalise/1, [capitalize: 1]
   end
 
