@@ -15,7 +15,7 @@ defmodule ExceptionHelpersTest do
 
   test "undefined function exception message" do
     assert %UndefinedFunctionError{module: File, function: :open, arity: 0}
-      |> Exception.message == """
+      |> Exception.message =~ """
       undefined function File.open/0
 
           \e[1mPerhaps you meant one of:\e[0m
@@ -28,7 +28,7 @@ defmodule ExceptionHelpersTest do
 
   test "undefined module exception message" do
     assert %UndefinedFunctionError{module: Filr, function: :open, arity: 1}
-      |> Exception.message == """
+      |> Exception.message =~ """
       undefined function Filr.open/1 (module Filr is not available)
 
           \e[1mPerhaps you meant one of:\e[0m
