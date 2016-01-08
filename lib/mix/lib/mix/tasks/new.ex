@@ -201,7 +201,7 @@ defmodule Mix.Tasks.New do
 
   If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
 
-    1. Add <%= @app %> to your list of dependencies in `mix.exs`:
+    1. Add `<%= @app %>` to your list of dependencies in `mix.exs`:
 
       ```elixir
       def deps do
@@ -209,7 +209,7 @@ defmodule Mix.Tasks.New do
       end
       ```
 
-    2. Ensure <%= @app %> is started before your application:
+    2. Ensure `<%= @app %>` is started before your application:
 
       ```elixir
       def application do
