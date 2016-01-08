@@ -25,12 +25,15 @@ defmodule Exception.Helpers do
 
   def similar_functions(module, function) do
     functions = module_functions(module)
-    matching_names = functions
-                |> Keyword.keys
-                |> Enum.map(&Atom.to_string/1)
-                |> within_distance_from(@function_similarity_threshold, function)
-                |> Enum.map(&String.to_atom/1)
-    functions |> Keyword.take(matching_names)
+
+    functions
+    |> Keyword.keys
+    |> Enum.uniq
+    |> Enum.map(&Atom.to_string/1)
+    |> within_distance_from(@function_similarity_threshold, function)
+    |> Enum.flat_map(fn name ->
+      Keyword.take(functions, [String.to_atom(name)])
+    end)
   end
 
   def find_modules(module, _function, _arity) do

@@ -13,6 +13,10 @@ defmodule ExceptionHelpersTest do
     assert_found &String.capitalise/1, [capitalize: 1]
   end
 
+  test "sorts matches based on similarity" do
+    assert_found &IO.binred/1, [binread: 2, binread: 1, binwrite: 2, binwrite: 1, binstream: 2]
+  end
+
   test "undefined function exception message" do
     assert %UndefinedFunctionError{module: File, function: :open, arity: 0}
       |> Exception.message =~ """
