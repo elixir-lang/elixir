@@ -54,19 +54,6 @@ defmodule Exception.Helpers do
     end
   end
 
-  def function_signatures(module, function, arity) do
-    case Code.get_docs(module, :docs) do
-      nil -> []
-      docs ->
-        docs
-        |> Enum.filter(fn {{name, arty}, _doc_line, _type, _signature, _doc} ->
-          name == function and arty == arity
-        end)
-        |> Enum.map(fn {{name, _arity}, _doc_line, _type, signature, _doc} ->
-          get_call_signature(module, name, signature)
-        end)
-    end
-  end
 
   def within_distance_from(list, min_distance, atom) do
     name = Atom.to_string(atom)
