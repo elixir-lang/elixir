@@ -85,15 +85,24 @@ defmodule Exception.Helpers do
 
   def perhaps(msg, module, list) do
     indent = "\n       "
-    extra = list
-            |> Enum.take(6)
-            |> Enum.map(fn
-              { fun, arity } -> Exception.format_mfa(module, fun, arity)
-              module         -> module
-            end)
-            |> Enum.join(indent)
 
-    [msg, "\n\n    ", IO.ANSI.bright, "Perhaps you meant one of:", IO.ANSI.reset, "\n", indent, extra, "\n"]
+    extra =
+      list
+      |> Enum.take(6)
+      |> Enum.map(fn
+        { fun, arity } -> Exception.format_mfa(module, fun, arity)
+        module         -> module
+      end)
+      |> Enum.join(indent)
+
+    [
+      msg,
+      "\n\n    ",
+      IO.ANSI.bright, "Perhaps you meant one of:", IO.ANSI.reset, "\n",
+      indent,
+      extra,
+      "\n"
+    ]
     |> Enum.join
   end
 
