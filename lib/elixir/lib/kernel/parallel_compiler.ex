@@ -192,7 +192,7 @@ defmodule Kernel.ParallelCompiler do
       print_failure(file, reason)
 
       if all_missing?(entries, waiting, queued) do
-        collect_failures(queued, length(queued) - 1)
+        collect_failures(queued, length(queued) - 1, [{file, reason}])
       end
 
       Enum.each queued, fn {child, _, _} ->
@@ -245,16 +245,39 @@ defmodule Kernel.ParallelCompiler do
       length(waiting) == length(queued)
   end
 
-  defp collect_failures(_queued, 0), do: :ok
+  defp collect_failures(_queued, 0, collected) do
+    filtered =
+      for {file, {:failure, :error, :undef, [{mod, _, _, _}|_]}} <- collected, do: {file, mod}
 
-  defp collect_failures(queued, remaining) do
+    if filtered != [] do
+      IO.puts """
+
+      Compilation failed because one or more modules are missing. This may
+      happen when a module does not exist or there are circular dependencies.
+      The following files are missing the following modules:
+      """
+
+      max =
+        filtered
+        |> Enum.map(& &1 |> elem(0) |> String.length)
+        |> Enum.max
+
+      for {file, mod} <- filtered do
+        IO.puts "  " <> String.rjust(file, max) <> " => " <> inspect(mod)
+      end
+
+      IO.puts "\nThe full error reports can be seen above."
+    end
+  end
+
+  defp collect_failures(queued, remaining, collected) do
     receive do
       {:DOWN, down_ref, :process, _down_pid, reason} ->
         if file = find_failure(down_ref, queued) do
           print_failure(file, reason)
-          collect_failures(queued, remaining - 1)
+          collect_failures(queued, remaining - 1, [{file, reason}|collected])
         else
-          collect_failures(queued, remaining)
+          collect_failures(queued, remaining, collected)
         end
     after
       # Give up if no failure appears in 5 seconds

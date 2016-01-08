@@ -159,7 +159,7 @@ defmodule Kernel.CLI.ParallelCompilerTest do
     fixtures = [fixture_path("parallel_compiler/bat.ex")]
     assert capture_io(fn ->
       assert catch_exit(Kernel.ParallelCompiler.files(fixtures)) == {:shutdown, 1}
-    end) =~ "Compilation error"
+    end) =~ "== Compilation error"
   end
 
   test "handles possible deadlocks" do
@@ -170,6 +170,9 @@ defmodule Kernel.CLI.ParallelCompilerTest do
       assert catch_exit(Kernel.ParallelCompiler.files fixtures) == {:shutdown, 1}
     end)
 
+    assert msg =~ "Compilation failed because one or more modules are missing."
+    assert msg =~ "fixtures/parallel_deadlock/foo.ex => Bar"
+    assert msg =~ "fixtures/parallel_deadlock/bar.ex => Foo"
     assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/foo\.ex =="
     assert msg =~ ~r"== Compilation error on file .+parallel_deadlock/bar\.ex =="
   end
