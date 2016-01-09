@@ -11,6 +11,16 @@ alias ExUnit.AssertionsTest.Value
 defmodule ExUnit.AssertionsTest do
   use ExUnit.Case, async: true
 
+  defmacrop assert_ok(arg) do
+    quote do
+      assert {:ok, val} = ok(unquote(arg))
+    end
+  end
+
+  test "assert inside macro" do
+    assert_ok 42
+  end
+
   test "assert with true value" do
     true = assert Value.truthy
   end
