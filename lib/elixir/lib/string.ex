@@ -808,7 +808,7 @@ defmodule String do
 
   @doc ~S"""
   Returns a new string of length `len` with `subject` right justified and
-  padded with `padding`. If `padding` is not present, it defaults to
+  padded with `pad`. If `pad` is not present, it defaults to
   whitespace. When `len` is less than the length of `subject`, `subject` is
   returned.
 
@@ -830,7 +830,7 @@ defmodule String do
 
   @doc ~S"""
   Returns a new string of length `len` with `subject` left justified and padded
-  with `padding`. If `padding` is not present, it defaults to whitespace. When
+  with `pad`. If `pad` is not present, it defaults to whitespace. When
   `len` is less than the length of `subject`, `subject` is returned.
 
   ## Examples
