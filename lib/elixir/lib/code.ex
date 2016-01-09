@@ -60,7 +60,7 @@ defmodule Code do
   end
 
   @doc """
-  Prepends a path to the begining of the Erlang VM code path list.
+  Prepends a path to the beginning of the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for finding
   module code.
