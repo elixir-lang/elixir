@@ -102,15 +102,15 @@ defmodule ExUnit.Assertions do
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
     return =
-        no_warning(quote do
-          if right do
-            right
-          else
-            raise ExUnit.AssertionError,
-              expr: expr,
-              message: "Expected truthy, got #{inspect right}"
-          end
-        end)
+      no_warning(quote do
+        if right do
+          right
+        else
+          raise ExUnit.AssertionError,
+            expr: expr,
+            message: "Expected truthy, got #{inspect right}"
+        end
+      end)
 
     quote do
       right = unquote(right)
@@ -408,8 +408,8 @@ defmodule ExUnit.Assertions do
         {:ok, acc}
       {:_, _, context}, acc when is_atom(context) ->
         {:ok, acc}
-      {name, _, context}, acc when is_atom(name) and is_atom(context) ->
-        {:ok, [{name, [generated: true], context}|acc]}
+      {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
+        {:ok, [{name, [generated: true] ++ meta, context} | acc]}
       node, acc ->
         {node, acc}
     end)
