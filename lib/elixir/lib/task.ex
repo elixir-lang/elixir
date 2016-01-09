@@ -267,8 +267,9 @@ defmodule Task do
 
   ## Message format
 
-  The reply sent by the task will be in the format `{ref, msg}`,
-  where `ref` is the monitor reference held by the task struct.
+  The reply sent by the task will be in the format `{ref, result}`,
+  where `ref` is the monitor reference held by the task struct
+  and `result` is the return value of the task function.
   """
   @spec async(module, atom, [term]) :: t
   def async(mod, fun, args) do
