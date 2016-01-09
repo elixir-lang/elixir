@@ -42,7 +42,6 @@ defmodule IEx.Helpers do
     * `t/1`           — prints type information
     * `v/0`           — retrieves the last value from the history
     * `v/1`           — retrieves the nth value from the history
-    * `import_file/1` — evaluates the given file in the shell's context
 
   Help for all of those functions can be consulted directly from
   the command line using the `h` helper itself. Try:
