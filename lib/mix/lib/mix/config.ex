@@ -26,7 +26,7 @@ defmodule Mix.Config do
   For example, the `:key1` value from application `:plug` (see above) can be
   retrieved with:
 
-      "value1" = Application.fetch!(:plug, :key1)
+      "value1" = Application.fetch_env!(:plug, :key1)
 
   """
 
