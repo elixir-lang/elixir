@@ -4,6 +4,6 @@ defmodule IEx.ConfigTest do
   use ExUnit.Case, async: true
 
   test "configuration sets a default for width" do
-    assert IEx.Config.configuration[:width] == 80
+    assert is_integer(IEx.Config.configuration[:width])
   end
 end
