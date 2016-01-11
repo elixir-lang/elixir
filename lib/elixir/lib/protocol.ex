@@ -540,6 +540,7 @@ defmodule Protocol do
           "the dict[key] syntax, please implement the Dict behaviour instead"
       else
         Protocol.assert_protocol!(protocol)
+        Protocol.__ensure_defimpl__(protocol, for, __ENV__)
       end
 
       defmodule name do
@@ -580,6 +581,7 @@ defmodule Protocol do
   defp derive(protocol, for, struct, opts, env) do
     extra = ", cannot derive #{inspect protocol} for #{inspect for}"
     assert_protocol!(protocol, extra)
+    __ensure_defimpl__(protocol, for, env)
     assert_impl!(protocol, Any, extra)
 
     # Clean up variables from eval context
@@ -606,6 +608,17 @@ defmodule Protocol do
           end, Macro.Env.location(env))
         end
     end)
+  end
+
+  @doc false
+  def __ensure_defimpl__(protocol, for, env) do
+    if Protocol.consolidated?(protocol) do
+      message =
+        "the #{inspect protocol} protocol has already been consolidated" <>
+        ", an implementation for #{inspect for} has no effect"
+      :elixir_errors.warn(env.line, env.file, message)
+    end
+    :ok
   end
 
   @doc false
