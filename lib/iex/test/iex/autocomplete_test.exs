@@ -107,6 +107,12 @@ defmodule IEx.AutocompleteTest do
     assert expand('{:zl') == {:yes, 'ib.', []}
   end
 
+  test "ampersand completion" do
+    assert expand('&Enu') == {:yes, 'm', []}
+    assert expand('&Enum.a') == {:yes, [], ['all?/2', 'any?/2', 'at/3']}
+    assert expand('f = &Enum.a') == {:yes, [], ['all?/2', 'any?/2', 'at/3']}
+  end
+
   defmodule SublevelTest.LevelA.LevelB do
   end
 
