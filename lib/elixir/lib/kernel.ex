@@ -1526,6 +1526,9 @@ defmodule Kernel do
       iex> inspect [1, 2, 3, 4, 5], limit: 3
       "[1, 2, 3, ...]"
 
+      iex> inspect [1, 2, 3], pretty: true, width: 0
+      "[1,\n 2,\n 3]"
+
       iex> inspect("olá" <> <<0>>)
       "<<111, 108, 195, 161, 0>>"
 
