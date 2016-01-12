@@ -835,7 +835,6 @@ throw_invalid_kw_identifier({_, _, do} = Token) ->
 throw_invalid_kw_identifier({_, _, KW} = Token) ->
   throw(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ "':").
 
-%% TODO: Make those warnings errors.
 warn_empty_stab_clause({stab_op, {Line, _Begin, _End}, '->'}) ->
   elixir_errors:warn(Line, ?file(),
     "an expression is always required on the right side of ->. "
