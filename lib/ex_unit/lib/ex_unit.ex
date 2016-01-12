@@ -58,7 +58,7 @@ defmodule ExUnit do
 
   @typedoc "The error state returned by ExUnit.Test and ExUnit.TestCase"
   @type state  :: nil | {:failed, failed} | {:skip, binary} | {:invalid, module}
-  @type failed :: {Exception.kind, reason :: term, stacktrace :: [tuple]}
+  @type failed :: [{Exception.kind, reason :: term, stacktrace :: [tuple]}]
 
   defmodule Test do
     @moduledoc """
