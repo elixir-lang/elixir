@@ -97,6 +97,7 @@ defmodule ExUnit.Assertions do
 
     left = Macro.expand(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
+    pins = collect_pins_from_pattern(left)
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
@@ -124,7 +125,8 @@ defmodule ExUnit.Assertions do
             raise ExUnit.AssertionError,
               right: right,
               expr: expr,
-              message: "match (=) failed"
+              message: "match (=) failed" <>
+                       ExUnit.Assertions.__pins__(unquote(pins))
         end
       right
     end
@@ -133,12 +135,15 @@ defmodule ExUnit.Assertions do
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
+    pins   = collect_pins_from_pattern(left)
+
     quote do
       right = unquote(right)
       assert unquote(match?),
         right: right,
         expr: unquote(code),
-        message: "match (match?) failed"
+        message: "match (match?) failed" <>
+                 ExUnit.Assertions.__pins__(unquote(pins))
     end
   end
 
@@ -186,12 +191,15 @@ defmodule ExUnit.Assertions do
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code   = Macro.escape(assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
+    pins   = collect_pins_from_pattern(left)
+
     quote do
       right = unquote(right)
       refute unquote(match?),
         right: right,
         expr: unquote(code),
-        message: "match (match?) succeeded, but should have failed"
+        message: "match (match?) succeeded, but should have failed" <>
+                 ExUnit.Assertions.__pins__(unquote(pins))
     end
   end
 

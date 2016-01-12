@@ -85,6 +85,21 @@ defmodule ExUnit.AssertionsTest do
     {2, 1} = (assert {2, 1} = Value.tuple)
   end
 
+  test "assert match with pinned variable" do
+    a = 1
+    {2, 1} = (assert {2, ^a} = Value.tuple)
+
+    try do
+      assert {^a, 1} = Value.tuple
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed\n" <>
+        "The following variables were pinned:\n" <>
+        "  a = 1" = error.message
+        "{^a, 1} = Value.tuple()" = Macro.to_string(error.expr)
+    end
+  end
+
   test "assert match?" do
     true = assert match?({2, 1}, Value.tuple)
 
@@ -108,6 +123,32 @@ defmodule ExUnit.AssertionsTest do
         "match (match?) succeeded, but should have failed" = error.message
         "match?({:error, _}, error(true))" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
+    end
+  end
+
+  test "assert match? with pinned variable" do
+    a = 1
+    try do
+      "This should never be tested" = assert(match?({^a, 1}, Value.tuple))
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (match?) failed\n" <>
+        "The following variables were pinned:\n" <>
+        "  a = 1" = error.message
+        "match?({^a, 1}, Value.tuple())" = Macro.to_string(error.expr)
+    end
+  end
+
+  test "refute match? with pinned variable" do
+    a = 2
+    try do
+      "This should never be tested" = refute(match?({^a, 1}, Value.tuple))
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (match?) succeeded, but should have failed\n" <>
+        "The following variables were pinned:\n" <>
+        "  a = 2" = error.message
+        "match?({^a, 1}, Value.tuple())" = Macro.to_string(error.expr)
     end
   end
 
