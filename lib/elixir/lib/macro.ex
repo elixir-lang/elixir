@@ -696,7 +696,7 @@ defmodule Macro do
   defp module_to_string(atom, _fun) when is_atom(atom), do: inspect(atom, [])
   defp module_to_string(other, fun), do: call_to_string(other, fun)
 
-  defp sigil_call({func, _, [{:<<>>, _, _} = bin, args]} = ast, fun) when is_list(args) do
+  defp sigil_call({func, _, [{:<<>>, _, _} = bin, args]} = ast, fun) when is_atom(func) and is_list(args) do
     sigil =
       case Atom.to_string(func) do
         <<"sigil_", name>> ->
