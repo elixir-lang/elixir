@@ -319,6 +319,17 @@ defmodule Protocol.ConsolidationTest do
     refute Protocol.consolidated?(Enumerable)
   end
 
+  test "consolidation prevents new implementations" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      defimpl WithAny, for: Integer do
+        def ok(_any), do: :ok
+      end
+    end) =~ ~r"warning: the .+WithAny protocol has already been consolidated"
+  after
+    :code.purge(WithAny.Atom)
+    :code.delete(WithAny.Atom)
+  end
+
   test "consolidated implementations without any" do
     assert is_nil Sample.impl_for(:foo)
     assert is_nil Sample.impl_for(fn(x) -> x end)
