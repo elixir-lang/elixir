@@ -1310,7 +1310,7 @@ defmodule Kernel.SpecialForms do
       ...>   do: {:ok, width * height}
       :error
 
-  Similarly to `for`/1, variables bound inside `with/1` won't leak,
+  Similarly to `for/1`, variables bound inside `with/1` won't leak,
   and also it allows "bare expressions":
 
       iex> width = nil
