@@ -257,12 +257,8 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo.bar([1, 2, 3])) == "foo.bar([1, 2, 3])"
   end
 
-  test "low atom remote call to string" do
+  test "atom remote call to string" do
     assert Macro.to_string(quote do: :foo.bar(1, 2, 3)) == ":foo.bar(1, 2, 3)"
-  end
-
-  test "big atom remote call to string" do
-    assert Macro.to_string(quote do: Foo.Bar.bar(1, 2, 3)) == "Foo.Bar.bar(1, 2, 3)"
   end
 
   test "remote and fun call to string" do
@@ -270,13 +266,14 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: foo.bar.([1, 2, 3])) == "foo.bar().([1, 2, 3])"
   end
 
-  test "atom call to string" do
+  test "atom fun call to string" do
     assert Macro.to_string(quote do: :foo.(1, 2, 3)) == ":foo.(1, 2, 3)"
   end
 
   test "aliases call to string" do
     assert Macro.to_string(quote do: Foo.Bar.baz(1, 2, 3)) == "Foo.Bar.baz(1, 2, 3)"
     assert Macro.to_string(quote do: Foo.Bar.baz([1, 2, 3])) == "Foo.Bar.baz([1, 2, 3])"
+    assert Macro.to_string(quote do: Foo.bar(<<>>, [])) == "Foo.bar(<<>>, [])"
   end
 
   test "sigil call to string" do
@@ -290,8 +287,6 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: ~R"123") == ~s/~R"123"/
     assert Macro.to_string(quote do: ~R"123"u) == ~s/~R"123"u/
     assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
-
-    assert Macro.to_string(quote do: Foo.bar(<<>>, [])) == "Foo.bar(<<>>, [])"
   end
 
   test "arrow to string" do
@@ -361,7 +356,7 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: Foo.integer..3) == "Foo.integer()..3"
   end
 
-  test "when" do
+  test "when to string" do
     assert Macro.to_string(quote do: (() -> x)) == "(() -> x)"
     assert Macro.to_string(quote do: (x when y -> z)) == "(x when y -> z)"
     assert Macro.to_string(quote do: (x, y when z -> w)) == "((x, y) when z -> w)"
@@ -650,5 +645,4 @@ defmodule MacroTest do
     assert Macro.camelize("foo/bar") == "Foo.Bar"
     assert Macro.camelize("") == ""
   end
-
 end
