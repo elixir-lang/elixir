@@ -290,6 +290,8 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: ~R"123") == ~s/~R"123"/
     assert Macro.to_string(quote do: ~R"123"u) == ~s/~R"123"u/
     assert Macro.to_string(quote do: ~R"\n123") == ~s/~R"\\\\n123"/
+
+    assert Macro.to_string(quote do: Foo.bar(<<>>, [])) == "Foo.bar(<<>>, [])"
   end
 
   test "arrow to string" do
