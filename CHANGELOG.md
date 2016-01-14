@@ -85,6 +85,20 @@ ask Mix to use Rebar 3 to compile it by passing the `manager: :rebar3` option.
 Once configured, Mix will prompt you to install Rebar 3 if it is not yet
 available.
 
+## v1.2.1 (2016-01-14)
+
+### 1. Enhancements
+
+  * [IEx] Support remote pids/ports with IEx helper `i/1`
+  * [Protocol] Warn when `defimpl` is called for a consolidated protocol
+
+### 2. Bug fixes
+
+  * [ExUnit] Ensure `assert` macros can be used from quoted code
+  * [ExUnit] Do not warn in match assertion if variable is reused in pattern
+  * [Macro] Fix a bug in `Macro.to_string/1` where a remote function could be accidentally interpreted as a sigil
+  * [Mix] Ensure dependencies are properly skipped when `--only` option is given to `mix deps.get`
+
 ## v1.2.0 (2016-01-01)
 
 ### 1. Enhancements
