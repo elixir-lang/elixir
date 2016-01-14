@@ -22,25 +22,38 @@ defmodule Kernel.Utils do
         _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
       end
 
-    :ok = check_defdelegate_args(args)
-
-    as_args =
-      case append_first and args != [] do
-        true  -> tl(args) ++ [hd(args)]
-        false -> args
-      end
-
+    as_args_list = normalize_args(args)
     as = Keyword.get(opts, :as, name)
-    {name, args, as, as_args}
+    :lists.map(fn as_args ->
+      formal_args = make_formal_args(as_args)
+      as_args = case append_first do
+        true  -> tl(as_args) ++ [hd(as_args)]
+        false -> as_args
+      end
+      {name, formal_args, as, as_args}
+    end, as_args_list)
   end
 
-  defp check_defdelegate_args([]),
-    do: :ok
-  defp check_defdelegate_args([{var, _, mod}|rest]) when is_atom(var) and is_atom(mod),
-    do: check_defdelegate_args(rest)
-  defp check_defdelegate_args([code|_]) do
+  defp make_formal_args(args) do
+    fun = &match?({name, _, mod} when is_atom(name) and is_atom(mod), &1)
+    :lists.filter(fun, args)
+  end
+
+  defp normalize_args(raw_args) do
+    :lists.foldr(fn
+      ({:\\, _, [arg, default_arg]}, [as_args|_] = as_args_list) ->
+        new_as_args = [default_arg|as_args]
+        [new_as_args|add_arg(as_args_list, arg)]
+      (arg, as_args_list) ->
+        add_arg(as_args_list, arg)
+    end, [[]], raw_args)
+  end
+
+  defp add_arg(as_args_list, {name, _, mod} = arg) when is_atom(name) and is_atom(mod),
+    do: :lists.map(&([arg|&1]), as_args_list)
+  defp add_arg(_, code) do
     raise ArgumentError,
-      "defdelegate/2 only accepts variable names, got: #{Macro.to_string(code)}"
+      "defdelegate/2 only accepts function parameters, got: #{Macro.to_string(code)}"
   end
 
   def defstruct(module, fields) do

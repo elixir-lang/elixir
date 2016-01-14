@@ -3711,14 +3711,14 @@ defmodule Kernel do
       target = Keyword.get(opts, :to) ||
         raise ArgumentError, "expected to: to be given as argument"
 
-      for fun <- List.wrap(funs) do
-        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
-        unless Module.get_attribute(__MODULE__, :doc) do
-          @doc "See `#{inspect target}.#{as}/#{:erlang.length as_args}`."
-        end
-        def unquote(name)(unquote_splicing(args)) do
-          unquote(target).unquote(as)(unquote_splicing(as_args))
-        end
+      for fun <- List.wrap(funs),
+        {name, args, as, as_args} <- Kernel.Utils.defdelegate(fun, opts) do
+          unless Module.get_attribute(__MODULE__, :doc) do
+            @doc "See `#{inspect target}.#{as}/#{:erlang.length args}`."
+          end
+          def unquote(name)(unquote_splicing(args)) do
+            unquote(target).unquote(as)(unquote_splicing(as_args))
+          end
       end
     end
   end
