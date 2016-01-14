@@ -301,23 +301,39 @@ defmodule KernelTest do
   end
 
   test "defdelegate/2 raises with non-variable arguments" do
-    code = quote do
-      defmodule Foo do
+    msg = "defdelegate/2 only accepts function parameters, got: 1"
+
+    assert_raise ArgumentError, msg, fn -> Code.eval_string("""
+      defmodule IntDelegate do
         defdelegate foo(1), to: List
       end
+      """, [], __ENV__)
     end
 
-    msg = "defdelegate/2 only accepts variable names, got: 1"
-    assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
-
-    code = quote do
-      defmodule Foo do
-        defdelegate foo(a \\ 1), to: List
+    assert_raise ArgumentError, msg, fn -> Code.eval_string("""
+      defmodule IntOptionDelegate do
+        defdelegate foo(1 \\\\ 1), to: List
       end
+      """, [], __ENV__)
     end
+  end
 
-    msg = "defdelegate/2 only accepts variable names, got: a \\\\ 1"
-    assert_raise ArgumentError, msg, fn -> Code.compile_quoted(code) end
+  defdelegate my_reverse(list \\ []), to: :lists, as: :reverse
+  defdelegate my_map(enumerable \\ [], fun \\ &(&1)), to: :lists, as: :map, append_first: true
+  defdelegate my_get(map \\ %{}, key, default \\ ""), to: Map, as: :get
+
+  test "defdelegate/2 accepts variable with optional arguments" do
+    assert my_reverse() == []
+    assert my_reverse([1, 2, 3]) == [3, 2, 1]
+
+    assert my_map() == []
+    assert my_map([1, 2, 3]) == [1, 2, 3]
+    assert my_map([2, 3, 4], &(&1 - 1)) == [1, 2, 3]
+
+    assert my_get("foo") == ""
+    assert my_get(%{}, "foo") == ""
+    assert my_get(%{"foo" => "bar"}, "foo") == "bar"
+    assert my_get(%{}, "foo", "not_found") == "not_found"
   end
 
   test "get_in/2" do
