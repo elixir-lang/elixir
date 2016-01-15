@@ -213,6 +213,7 @@ defmodule Mix.Dep.Loader do
         requirement :: String.t | Regex.t
         opts :: Keyword.t
 
+    If you want to skip the requirement (not recommended), use ">= 0.0.0".
     """
   end
 
