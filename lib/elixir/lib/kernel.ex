@@ -3713,13 +3713,14 @@ defmodule Kernel do
 
       %{file: file, line: line} = __ENV__
       if is_list(funs) do
-        :elixir_errors.warn(line, file,"passing a list to Kernel.defdelegate/2 is deprecated, " <>
-                                       "please define each delegate separately\n")
+        :elixir_errors.warn(line, file,
+          "passing a list to Kernel.defdelegate/2 is deprecated, " <>
+          "please define each delegate separately")
       end
 
       if Keyword.has_key?(opts, :append_first) do
-        :elixir_errors.warn(line, file, "Kernel.defdelegate/2 append_first " <>
-                                        "option is deprecated.\n")
+        :elixir_errors.warn(line, file,
+          "Kernel.defdelegate/2 :append_first option is deprecated")
       end
 
       for fun <- List.wrap(funs),
