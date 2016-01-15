@@ -399,13 +399,15 @@ defmodule Macro do
       def unescape_map(?t), do: ?\t
       def unescape_map(?v), do: ?\v
       def unescape_map(?x), do: true
+      def unescape_map(?u), do: true
       def unescape_map(e),  do: e
 
   If the `unescape_map` function returns `false`. The char is
   not escaped and `\` is kept in the char list.
 
-  Hexadecimals will be escaped if the map function returns `true`
-  for `?x`.
+  Hexadecimals and Unicode codepoints will be escaped if the map
+  function returns `true` for `?x`. Unicode codepoints if the map
+  function returns `true` for `?u`.
 
   ## Examples
 
