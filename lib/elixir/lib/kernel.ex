@@ -3711,6 +3711,17 @@ defmodule Kernel do
       target = Keyword.get(opts, :to) ||
         raise ArgumentError, "expected to: to be given as argument"
 
+      %{file: file, line: line} = __ENV__
+      if is_list(funs) do
+        :elixir_errors.warn(line, file,"passing a list to Kernel.defdelegate/2 is deprecated, " <>
+                                       "please define each delegate separately\n")
+      end
+
+      if Keyword.has_key?(opts, :append_first) do
+        :elixir_errors.warn(line, file, "Kernel.defdelegate/2 append_first " <>
+                                        "option is deprecated.\n")
+      end
+
       for fun <- List.wrap(funs),
         {name, args, as, as_args} <- Kernel.Utils.defdelegate(fun, opts) do
           unless Module.get_attribute(__MODULE__, :doc) do
