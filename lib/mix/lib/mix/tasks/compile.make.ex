@@ -44,16 +44,18 @@ defmodule Mix.Tasks.Compile.Make do
     exec      = executable_for_current_os()
 
     args = args_for_makefile(exec, makefile) ++ targets
-
-    exit_status = File.cd!(cwd, fn -> cmd(exec, args) end)
+    exit_status = cmd(exec, args, cwd)
 
     if exit_status == 0, do: :ok, else: build_error(exec, exit_status, error_msg)
   end
 
-  # Runs `exec [args]` and prints the stdout and stderr in real time, as soon as
-  # `exec` prints them (using `IO.Stream`).
-  defp cmd(exec, args) do
-    opts = [into: IO.stream(:stdio, :line), stderr_to_stdout: true]
+  # Runs `exec [args]` in `cwd` and prints the stdout and stderr in real time,
+  # as soon as `exec` prints them (using `IO.Stream`).
+  defp cmd(exec, args, cwd) do
+    opts = [into: IO.stream(:stdio, :line),
+            stderr_to_stdout: true,
+            cd: cwd]
+
     {%IO.Stream{}, status} = System.cmd(executable(exec), args, opts)
     status
   end
