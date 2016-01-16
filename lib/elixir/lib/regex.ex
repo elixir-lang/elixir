@@ -348,6 +348,9 @@ defmodule Regex do
       order. Defaults to `:first` which means captures inside the regex do not
       affect the splitting process.
 
+    * `:include_captures` - when `true`, includes in the result the matches of
+      the regular expression. Defaults to `false`.
+
   ## Examples
 
       iex> Regex.split(~r/-/, "a-b-c")
@@ -368,6 +371,9 @@ defmodule Regex do
       iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
       ["a", "c"]
 
+      iex> Regex.split(~r/(x)/, "Elixir", include_captures: true)
+      ["Eli", "x", "ir"]
+
   """
   @spec split(t, String.t, [term]) :: [String.t]
   def split(regex, string, options \\ [])
@@ -386,7 +392,8 @@ defmodule Regex do
       {:match, matches} ->
         do_split(matches, string, 0,
                  parts_to_index(Keyword.get(opts, :parts, :infinity)),
-                 Keyword.get(opts, :trim, false))
+                 Keyword.get(opts, :trim, false),
+                 Keyword.get(opts, :include_captures, false))
       :match ->
         [string]
       :nomatch ->
@@ -397,30 +404,47 @@ defmodule Regex do
   defp parts_to_index(:infinity),                      do: 0
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
-  defp do_split(_, string, offset, _counter, true) when byte_size(string) <= offset,
+  defp do_split(_, string, offset, _counter, true, _with_captures) when byte_size(string) <= offset,
     do: []
 
-  defp do_split(_, string, offset, 1, _trim),
+  defp do_split(_, string, offset, 1, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([], string, offset, _counter, _trim),
+  defp do_split([], string, offset, _counter, _trim, _with_captures),
     do: [binary_part(string, offset, byte_size(string) - offset)]
 
-  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim) when pos - offset < 0,
-    do: do_split([h|t], string, offset, counter, trim)
+  defp do_split([[{pos, _}|h]|t], string, offset, counter, trim, with_captures) when pos - offset < 0,
+    do: do_split([h|t], string, offset, counter, trim, with_captures)
 
-  defp do_split([[]|t], string, offset, counter, trim),
-    do: do_split(t, string, offset, counter, trim)
+  defp do_split([[]|t], string, offset, counter, trim, with_captures),
+    do: do_split(t, string, offset, counter, trim, with_captures)
 
-  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim) do
+  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, true) do
+    new_offset = pos + length
+    keep = pos - offset
+
+    if keep == 0 and length == 0 do
+      do_split([h|t], string, new_offset, counter, trim, true)
+    else
+      <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> = string
+
+      if keep == 0 and (length == 0 or trim) do
+        [match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+      else
+        [part, match | do_split([h|t], string, new_offset, counter - 1, trim, true)]
+      end
+    end
+  end
+
+  defp do_split([[{pos, length}|h]|t], string, offset, counter, trim, false) do
     new_offset = pos + length
     keep = pos - offset
 
     if keep == 0 and (length == 0 or trim) do
-      do_split([h|t], string, new_offset, counter, trim)
+      do_split([h|t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
-      [part|do_split([h|t], string, new_offset, counter - 1, trim)]
+      [part | do_split([h|t], string, new_offset, counter - 1, trim, false)]
     end
   end
 
