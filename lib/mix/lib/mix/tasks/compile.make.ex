@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.Make do
   ## Configuration
 
     * `:make_makefile` - it's a binary. It's the Makefile to use. Defaults to
-      `"Makefile"`.
+      `"Makefile"` for Unix systems and `"Makefile.win"` for Windows systems.
 
     * `:make_targets` - it's a list of binaries. It's the list of Make targets
       that should be run. Defaults to `[]`, meaning `make` will run the first
@@ -21,6 +21,10 @@ defmodule Mix.Tasks.Compile.Make do
 
     * `:make_cwd` - it's a binary. It's the directory where `make` will be run,
       relative to the root of the project.
+
+    * `:make_error_message` - it's a binary. It's a custom error message that
+      can be used to give instructions as of how to fix the error (e.g., it can
+      be used to suggest installing `gcc` if you're compiling a C dependency).
 
   """
 
@@ -33,18 +37,21 @@ defmodule Mix.Tasks.Compile.Make do
   end
 
   defp build(config) do
-    makefile = Keyword.get(config, :make_makefile)
-    targets  = Keyword.get(config, :make_targets, [])
-    cwd      = Keyword.get(config, :make_cwd, ".")
+    makefile  = Keyword.get(config, :make_makefile, :default)
+    targets   = Keyword.get(config, :make_targets, [])
+    cwd       = Keyword.get(config, :make_cwd, ".")
+    error_msg = Keyword.get(config, :make_error_message, "")
+    exec      = executable_for_current_os()
 
-    exit_status = File.cd! cwd, fn ->
-      targets = if makefile, do: ["-f", makefile] ++ targets, else: targets
-      cmd("make", targets)
-    end
+    args = args_for_makefile(exec, makefile) ++ targets
 
-    if exit_status == 0, do: :ok, else: build_error("make", exit_status)
+    exit_status = File.cd!(cwd, fn -> cmd(exec, args) end)
+
+    if exit_status == 0, do: :ok, else: build_error(exec, exit_status, error_msg)
   end
 
+  # Runs `exec [args]` and prints the stdout and stderr in real time, as soon as
+  # `exec` prints them (using `IO.Stream`).
   defp cmd(exec, args) do
     opts = [into: IO.stream(:stdio, :line), stderr_to_stdout: true]
     {%IO.Stream{}, status} = System.cmd(executable(exec), args, opts)
@@ -65,9 +72,25 @@ defmodule Mix.Tasks.Compile.Make do
     """
   end
 
-  defp build_error(exec, exit_status) do
-    Mix.raise """
+  defp build_error(exec, exit_status, error_msg) do
+    msg = """
     Could not compile with `#{exec}`.
     """
+    Mix.raise(Enum.join([msg, error_msg], "\n"))
   end
+
+  defp executable_for_current_os() do
+    case :os.type() do
+      {:win32, _}                                     -> "nmake"
+      {:unix, type} when type in [:freebsd, :openbsd] -> "gmake"
+      _                                               -> "make"
+    end
+  end
+
+  # Returns a list of command-line args to pass to make (or nmake/gmake) in
+  # order to specify the makefile to use.
+  defp args_for_makefile("nmake", :default), do: ["/F", "Makefile.win"]
+  defp args_for_makefile("nmake", makefile), do: ["/F", makefile]
+  defp args_for_makefile(_, :default),       do: []
+  defp args_for_makefile(_, makefile),       do: ["-f", makefile]
 end

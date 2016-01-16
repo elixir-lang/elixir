@@ -10,17 +10,14 @@ defmodule Mix.Tasks.Compile.MakeTest do
   end
 
   test "running without a makefile" do
-    msg             = ~r/^Could not compile with/
-    expected_output = "*** No targets specified and no makefile found.  Stop.\n"
+    msg = ~r/^Could not compile with/
 
     in_fixture "compile_make", fn ->
       File.rm_rf!("Makefile")
 
-      output = capture_io fn ->
+      capture_io fn ->
         assert_raise Mix.Error, msg, fn -> run() end
       end
-
-      assert output =~ expected_output
     end
   end
 
@@ -64,7 +61,7 @@ defmodule Mix.Tasks.Compile.MakeTest do
       """
 
       with_project_config [make_cwd: "subdir"], fn ->
-        assert capture_io(&run/0) == "subdir\n"
+        assert capture_io(fn -> run() end) == "subdir\n"
       end
     end
   end
@@ -77,7 +74,17 @@ defmodule Mix.Tasks.Compile.MakeTest do
       """
 
       with_project_config [make_makefile: "MyMakefile"], fn ->
-        assert capture_io(&run/0) == "my makefile\n"
+        assert capture_io(fn -> run() end) == "my makefile\n"
+      end
+    end
+  end
+
+  test "specifying a custom error message" do
+    in_fixture "compile_make", fn ->
+      with_project_config [make_error_message: "try harder"], fn ->
+        capture_io fn ->
+          assert_raise Mix.Error, ~r/try harder/, fn -> run() end
+        end
       end
     end
   end
