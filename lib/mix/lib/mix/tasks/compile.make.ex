@@ -12,6 +12,9 @@ defmodule Mix.Tasks.Compile.Make do
 
   ## Configuration
 
+    * `:make_makefile` - it's a binary. It's the Makefile to use. Defaults to
+      `"Makefile"`.
+
     * `:make_targets` - it's a list of binaries. It's the list of Make targets
       that should be run. Defaults to `[]`, meaning `make` will run the first
       target.
@@ -23,17 +26,23 @@ defmodule Mix.Tasks.Compile.Make do
 
   @spec run([binary]) :: :ok | no_return
   def run(_args) do
-    config  = Mix.Project.config()
-    targets = Keyword.get(config, :make_targets, [])
-    cwd     = Keyword.get(config, :make_cwd, ".")
+    config = Mix.Project.config()
+    build(config)
+    Mix.Project.build_structure
+    :ok
+  end
 
-    exit_status = File.cd!(cwd, fn -> cmd("make", targets) end)
+  defp build(config) do
+    makefile = Keyword.get(config, :make_makefile)
+    targets  = Keyword.get(config, :make_targets, [])
+    cwd      = Keyword.get(config, :make_cwd, ".")
 
-    if exit_status == 0 do
-      :ok
-    else
-      Mix.raise "`make` exited with a non-zero status (#{exit_status})"
+    exit_status = File.cd! cwd, fn ->
+      targets = if makefile, do: ["-f", makefile] ++ targets, else: targets
+      cmd("make", targets)
     end
+
+    if exit_status == 0, do: :ok, else: build_error("make", exit_status)
   end
 
   defp cmd(exec, args) do
@@ -46,8 +55,19 @@ defmodule Mix.Tasks.Compile.Make do
     if found = System.find_executable(exec) do
       found
     else
-      Mix.raise "`#{exec}` not found in the current path. It was needed by the"
-                <> " :make compiler."
+      executable_not_found_error(exec)
     end
+  end
+
+  defp executable_not_found_error(exec) do
+    Mix.raise """
+    `#{exec}` not found in the current path.
+    """
+  end
+
+  defp build_error(exec, exit_status) do
+    Mix.raise """
+    Could not compile with `#{exec}`.
+    """
   end
 end

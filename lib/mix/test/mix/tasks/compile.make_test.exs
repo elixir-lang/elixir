@@ -10,8 +10,8 @@ defmodule Mix.Tasks.Compile.MakeTest do
   end
 
   test "running without a makefile" do
-    msg             = ~r/`make` exited with a non-zero status \(\d+\)/
-    expected_output = "make: *** No targets specified and no makefile found.  Stop.\n"
+    msg             = ~r/^Could not compile with/
+    expected_output = "*** No targets specified and no makefile found.  Stop.\n"
 
     in_fixture "compile_make", fn ->
       File.rm_rf!("Makefile")
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Compile.MakeTest do
         assert_raise Mix.Error, msg, fn -> run() end
       end
 
-      assert expected_output == output
+      assert output =~ expected_output
     end
   end
 
@@ -65,6 +65,19 @@ defmodule Mix.Tasks.Compile.MakeTest do
 
       with_project_config [make_cwd: "subdir"], fn ->
         assert capture_io(&run/0) == "subdir\n"
+      end
+    end
+  end
+
+  test "specifying a makefile" do
+    in_fixture "compile_make", fn ->
+      File.write "MyMakefile", """
+      all:
+      \t@echo "my makefile"
+      """
+
+      with_project_config [make_makefile: "MyMakefile"], fn ->
+        assert capture_io(&run/0) == "my makefile\n"
       end
     end
   end
