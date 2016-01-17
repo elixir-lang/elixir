@@ -68,7 +68,7 @@ defmodule IEx.HelpersTest do
   end
 
   test "h helper for callbacks where callback module has func docs corresponding to callback" do
-    assert capture_io(fn -> h HashSet.size end) =~ "* def size(hash_set)\n\nReturns the number of elements in "
+    assert capture_io(fn -> h HashSet.size end) =~ "* def size(hash_set)"
   end
 
   test "h helper for delegates" do
