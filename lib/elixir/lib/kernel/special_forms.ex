@@ -1046,7 +1046,7 @@ defmodule Kernel.SpecialForms do
 
       Hygiene.return_length #=> 3
 
-  Notice how `return_length` returns 5 even though the `length/1`
+  Notice how `return_length` returns 3 even though the `length/1`
   function is not imported. In fact, even if `return_length`
   imported a function with the same name and arity from another
   module, it wouldn't affect the function result:
