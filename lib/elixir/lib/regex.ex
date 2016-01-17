@@ -374,6 +374,9 @@ defmodule Regex do
       iex> Regex.split(~r/(x)/, "Elixir", include_captures: true)
       ["Eli", "x", "ir"]
 
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second], include_captures: true)
+      ["a", "b", "c"]
+
   """
   @spec split(t, String.t, [term]) :: [String.t]
   def split(regex, string, options \\ [])
