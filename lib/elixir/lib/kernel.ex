@@ -3213,8 +3213,7 @@ defmodule Kernel do
   Structs whose internal structure is private to the local module (pattern
   matching them or directly accessing their fields should not be allowed) should
   use the `@opaque` attribute. Structs whose internal structure is public should
-  use `@type`. See `Kernel.Typespec` for more information on opaque types.
-
+  use `@type`.
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields] do
