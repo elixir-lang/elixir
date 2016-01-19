@@ -310,7 +310,7 @@ defmodule Module do
           end
 
   The following attributes are part of typespecs and are also reserved by
-  Elixir (see `Kernel.Typespec` for more information about typespecs):
+  Elixir:
 
     * `@type`          - defines a type to be used in `@spec`
     * `@typep`         - defines a private type to be used in `@spec`
@@ -1069,7 +1069,7 @@ defmodule Module do
 
   defp preprocess_attribute(key, _value) when key in [:type, :typep, :export_type, :opaque, :callback, :macrocallback] do
     raise ArgumentError, "attributes type, typep, export_type, opaque, callback and macrocallback " <>
-      "must be set via Kernel.Typespec"
+      "must be set directly via the @ notation"
   end
 
   defp preprocess_attribute(_key, value) do
