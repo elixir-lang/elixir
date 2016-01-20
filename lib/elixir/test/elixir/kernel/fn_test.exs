@@ -122,12 +122,12 @@ defmodule Kernel.FnTest do
 
   test "failure on non-continuous" do
     assert_compile_fail CompileError, "nofile:1: capture &2 cannot be defined without &1", "&(&2)"
+    assert_compile_fail CompileError, "nofile:1: capture &255 cannot be defined without &1", "&(&255)"
   end
 
   test "failure on integers" do
     assert_compile_fail CompileError, "nofile:1: unhandled &1 outside of a capture", "&1"
     assert_compile_fail CompileError, "nofile:1: capture &0 is not allowed", "&foo(&0)"
-    assert_compile_fail CompileError, "nofile:1: capture &0 is not allowed", "&foo(&255)"
   end
 
   test "failure on block" do
