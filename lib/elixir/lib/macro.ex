@@ -720,6 +720,8 @@ defmodule Macro do
 
   defp call_to_string(atom, _fun) when is_atom(atom),
     do: Atom.to_string(atom)
+  defp call_to_string({:., _, [{:&, _, [val]} = arg]}, fun) when not is_integer(val),
+    do: "(" <> module_to_string(arg, fun) <> ")."
   defp call_to_string({:., _, [arg]}, fun),
     do: module_to_string(arg, fun) <> "."
   defp call_to_string({:., _, [left, right]}, fun),

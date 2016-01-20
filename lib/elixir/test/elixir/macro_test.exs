@@ -385,6 +385,8 @@ defmodule MacroTest do
     assert Macro.to_string(quote do: &Foo.foo/0) == "&Foo.foo/0"
     assert Macro.to_string(quote do: & &1 + &2) == "&(&1 + &2)"
     assert Macro.to_string(quote do: & &1) == "&(&1)"
+    assert Macro.to_string(quote do: &(&1).(:x)) == "&(&1.(:x))"
+    assert Macro.to_string(quote do: (&(&1)).(:x)) == "(&(&1)).(:x)"
   end
 
   test "containers to string" do
