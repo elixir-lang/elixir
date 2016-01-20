@@ -26,6 +26,7 @@ This release deprecates many APIs that have been soft-deprecated in previous Eli
 
 * [Dict] `Dict` is no longer a behaviour and its functions will be deprecated in upcoming releases
 * [Enum] Passing a non-map to `Enum.group_by/3` is deprecated
+* [Enum] `Enum.uniq/2` is deprecated, use `Enum.uniq_by/2` instead
 * [Kernel] `\x{H*}` in strings/sigils/char lists is deprecated
 * [Keyword] `Keyword.size/1` is deprecated in favor of `Kernel.length/1`
 * [Map] `Map.size/1` is deprecated in favor of `Kernel.map_size/1`
