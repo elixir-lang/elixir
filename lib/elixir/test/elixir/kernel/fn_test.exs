@@ -127,6 +127,7 @@ defmodule Kernel.FnTest do
   test "failure on integers" do
     assert_compile_fail CompileError, "nofile:1: unhandled &1 outside of a capture", "&1"
     assert_compile_fail CompileError, "nofile:1: capture &0 is not allowed", "&foo(&0)"
+    assert_compile_fail CompileError, "nofile:1: capture &129 is not allowed", "&foo(&129)"
   end
 
   test "failure on block" do

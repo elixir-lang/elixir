@@ -128,7 +128,7 @@ validate(Meta, [{Pos, _}|_], Expected, E) ->
 validate(_Meta, [], _Pos, _E) ->
   [].
 
-do_escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0 ->
+do_escape({'&', _, [Pos]}, Counter, _E, Dict) when is_integer(Pos), Pos > 0, Pos =< 128 ->
   Var = {list_to_atom([$x, $@+Pos]), [{counter, Counter}], elixir_fn},
   {Var, orddict:store(Pos, Var, Dict)};
 
