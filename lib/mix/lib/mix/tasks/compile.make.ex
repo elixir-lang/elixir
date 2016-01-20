@@ -12,6 +12,10 @@ defmodule Mix.Tasks.Compile.Make do
 
   ## Configuration
 
+    * `:make_executable` - it's a binary. It's the executable to use as the
+      `make` program. By default, it's `"nmake"` on Windows, `"gmake"` on
+      FreeBSD and OpenBSD, and `"make"` on everything else.
+
     * `:make_makefile` - it's a binary. It's the Makefile to use. Defaults to
       `"Makefile"` for Unix systems and `"Makefile.win"` for Windows systems.
 
@@ -28,7 +32,7 @@ defmodule Mix.Tasks.Compile.Make do
 
   """
 
-  @spec run([binary]) :: :ok | no_return
+  @spec run(OptionParser.argv) :: :ok | no_return
   def run(_args) do
     config = Mix.Project.config()
     build(config)
@@ -37,16 +41,20 @@ defmodule Mix.Tasks.Compile.Make do
   end
 
   defp build(config) do
+    exec      = Keyword.get(config, :make_executable, executable_for_current_os())
     makefile  = Keyword.get(config, :make_makefile, :default)
     targets   = Keyword.get(config, :make_targets, [])
     cwd       = Keyword.get(config, :make_cwd, ".")
-    error_msg = Keyword.get(config, :make_error_message, "")
-    exec      = executable_for_current_os()
+    error_msg = Keyword.get(config, :make_error_message, nil)
 
     args = args_for_makefile(exec, makefile) ++ targets
-    exit_status = cmd(exec, args, cwd)
 
-    if exit_status == 0, do: :ok, else: build_error(exec, exit_status, error_msg)
+    case cmd(exec, args, cwd) do
+      0 ->
+        :ok
+      exit_status ->
+        raise_build_error(exec, exit_status, error_msg)
+    end
   end
 
   # Runs `exec [args]` in `cwd` and prints the stdout and stderr in real time,
@@ -61,24 +69,21 @@ defmodule Mix.Tasks.Compile.Make do
   end
 
   defp executable(exec) do
-    if found = System.find_executable(exec) do
-      found
-    else
-      executable_not_found_error(exec)
+    System.find_executable(exec) || raise_executable_not_found(exec)
+  end
+
+  defp raise_executable_not_found(exec) do
+    Mix.raise "`#{exec}` not found in the current path"
+  end
+
+  defp raise_build_error(exec, exit_status, error_msg) do
+    msg = "Could not compile with `#{exec}`"
+
+    if error_msg do
+      msg = msg <> ".\n" <> error_msg
     end
-  end
 
-  defp executable_not_found_error(exec) do
-    Mix.raise """
-    `#{exec}` not found in the current path.
-    """
-  end
-
-  defp build_error(exec, exit_status, error_msg) do
-    msg = """
-    Could not compile with `#{exec}`.
-    """
-    Mix.raise(Enum.join([msg, error_msg], "\n"))
+    Mix.raise msg
   end
 
   defp executable_for_current_os() do

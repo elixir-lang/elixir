@@ -9,8 +9,18 @@ defmodule Mix.Tasks.Compile.MakeTest do
     :ok
   end
 
+  test "running with a specific executable" do
+    in_fixture "compile_make", fn ->
+      with_project_config [make_executable: "nonexistentmake"], fn ->
+        assert_raise Mix.Error, "`nonexistentmake` not found in the current path", fn ->
+          run()
+        end
+      end
+    end
+  end
+
   test "running without a makefile" do
-    msg = ~r/^Could not compile with/
+    msg = ~r/\ACould not compile with/
 
     in_fixture "compile_make", fn ->
       File.rm_rf!("Makefile")
@@ -24,7 +34,7 @@ defmodule Mix.Tasks.Compile.MakeTest do
   test "running with a makefile" do
     in_fixture "compile_make", fn ->
       File.write! "Makefile", """
-      my_target:
+      target:
       \t@echo "hello"
       """
 
@@ -37,13 +47,13 @@ defmodule Mix.Tasks.Compile.MakeTest do
       File.write! "Makefile", """
       useless_target:
       \t@echo "nope"
-      my_target:
+      target:
       \t@echo "target"
-      my_other_target:
+      other_target:
       \t@echo "other target"
       """
 
-      with_project_config [make_targets: ~w(my_target my_other_target)], fn ->
+      with_project_config [make_targets: ~w(target other_target)], fn ->
         output = capture_io(fn -> run() end)
         assert output =~ "target\n"
         assert output =~ "other target\n"
