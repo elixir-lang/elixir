@@ -283,17 +283,12 @@ defmodule KernelTest do
   end
 
   defdelegate my_flatten(list), to: List, as: :flatten
-  defdelegate [map(callback, list)], to: :lists, append_first: true
 
   dynamic = :dynamic_flatten
   defdelegate unquote(dynamic)(list), to: List, as: :flatten
 
   test "defdelegate/2" do
     assert my_flatten([[1]]) == [1]
-  end
-
-  test "defdelegate/2 with :append_first" do
-    assert map([1], fn(x) -> x + 1 end) == [2]
   end
 
   test "defdelegate/2 with unquote" do
@@ -319,16 +314,11 @@ defmodule KernelTest do
   end
 
   defdelegate my_reverse(list \\ []), to: :lists, as: :reverse
-  defdelegate my_map(enumerable \\ [], fun \\ &(&1)), to: :lists, as: :map, append_first: true
   defdelegate my_get(map \\ %{}, key, default \\ ""), to: Map, as: :get
 
   test "defdelegate/2 accepts variable with optional arguments" do
     assert my_reverse() == []
     assert my_reverse([1, 2, 3]) == [3, 2, 1]
-
-    assert my_map() == []
-    assert my_map([1, 2, 3]) == [1, 2, 3]
-    assert my_map([2, 3, 4], &(&1 - 1)) == [1, 2, 3]
 
     assert my_get("foo") == ""
     assert my_get(%{}, "foo") == ""
