@@ -133,14 +133,16 @@ defmodule Application do
   @doc """
   Returns the value for `key` in `app`'s specification.
 
-  See `spec/1` for the supporte keys. If the given
+  See `spec/1` for the supported keys. If the given
   specification parameter does not exist, this function
-  will raise.
+  will raise. Returns `nil` if the application is not loaded.
   """
-  @spec spec(app, key) :: value
+  @spec spec(app, key) :: value | nil
   def spec(app, key) when key in @application_keys do
-    {:ok, value} = :application.get_key(app, key)
-    value
+    case :application.get_key(app, key) do
+      {:ok, value} -> value
+      :undefined -> nil
+    end
   end
 
   @doc """
