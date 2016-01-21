@@ -94,7 +94,7 @@ defmodule ExUnit.CaptureLog do
           {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
         end
       {:error, :not_found} = error ->
-        mfa = {ExUnit.Capture_log, :remove_capture, [pid]}
+        mfa = {ExUnit.CaptureLog, :remove_capture, [pid]}
         receive do
           {:gen_event_EXIT, {Console, ^pid}, reason} -> exit({reason, mfa})
         after
