@@ -748,8 +748,8 @@ defmodule File.CopyError do
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
     location  = if on = exception.on, do: ". #{on}", else: ""
-    "could not #{exception.action} from #{exception.source} to " <>
-      "#{exception.destination}#{location}: #{formatted}"
+    "could not #{exception.action} from #{inspect(exception.source)} to " <>
+    "#{inspect(exception.destination)}#{location}: #{formatted}"
   end
 end
 
