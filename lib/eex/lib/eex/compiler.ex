@@ -17,7 +17,7 @@ defmodule EEx.Compiler do
       {:ok, tokens} ->
         state = %{engine: opts[:engine] || @default_engine,
                   file: file, line: line, quoted: [], start_line: nil}
-        generate_buffer(tokens, "", [], state)
+        generate_buffer(tokens, state.engine.init(opts), [], state)
       {:error, line, message} ->
         raise EEx.SyntaxError, line: line, file: file, message: message
     end

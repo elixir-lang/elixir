@@ -4,6 +4,8 @@ defmodule EEx.Engine do
 
   An engine needs to implement three functions:
 
+    * `init(opts)` - returns the initial buffer
+
     * `handle_body(quoted)` - receives the final built quoted
       expression, should do final post-processing and return a
       quoted expression.
@@ -34,6 +36,10 @@ defmodule EEx.Engine do
     quote do
       @behaviour EEx.Engine
 
+      def init(opts) do
+        ""
+      end
+
       def handle_body(body) do
         EEx.Engine.handle_body(body)
       end
@@ -46,7 +52,7 @@ defmodule EEx.Engine do
         EEx.Engine.handle_expr(buffer, marker, expr)
       end
 
-      defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2]
+      defoverridable [handle_body: 1, handle_expr: 3, handle_text: 2, init: 1]
     end
   end
 
@@ -87,6 +93,13 @@ defmodule EEx.Engine do
                           Exception.format_stacktrace
         nil
     end
+  end
+
+  @doc """
+  Returns an empty string as initial buffer.
+  """
+  def init(_opts) do
+    ""
   end
 
   @doc """
