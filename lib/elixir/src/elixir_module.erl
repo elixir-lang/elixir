@@ -544,9 +544,18 @@ format_error({internal_function_overridden, {Name, Arity}}) ->
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->
-  io_lib:format("redefining module ~ts", [elixir_aliases:inspect(Module)]);
+  Extra =
+    case code:which(Module) of
+      Path when is_list(Path) ->
+        io_lib:format(" (current version loaded from ~ts)", [elixir_utils:relative_to_cwd(Path)]);
+      in_memory ->
+        " (current version defined in memory)";
+      _ ->
+        ""
+    end,
+  io_lib:format("redefining module ~ts~ts", [elixir_aliases:inspect(Module), Extra]);
 format_error({module_reserved, Module}) ->
   io_lib:format("module ~ts is reserved and cannot be defined", [elixir_aliases:inspect(Module)]);
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
-    [elixir_aliases:inspect(Module), 'Elixir.Path':relative_to_cwd(File), Line]).
+    [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]).
