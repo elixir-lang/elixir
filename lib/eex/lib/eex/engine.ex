@@ -27,6 +27,7 @@ defmodule EEx.Engine do
   default implementations for the functions above.
   """
 
+  @callback init(Keyword.t) :: Macro.t
   @callback handle_body(Macro.t) :: Macro.t
   @callback handle_text(Macro.t, String.t) :: Macro.t
   @callback handle_expr(Macro.t, String.t, Macro.t) :: Macro.t
@@ -37,7 +38,7 @@ defmodule EEx.Engine do
       @behaviour EEx.Engine
 
       def init(opts) do
-        ""
+        EEx.Engine.init(opts)
       end
 
       def handle_body(body) do
