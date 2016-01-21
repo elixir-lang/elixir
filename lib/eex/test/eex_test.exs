@@ -396,6 +396,10 @@ foo
   defmodule TestEngine do
     @behaviour EEx.Engine
 
+    def init(_opts) do
+      ""
+    end
+
     def handle_body(body) do
       {:wrapped, body}
     end
