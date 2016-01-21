@@ -426,6 +426,7 @@ defmodule Protocol do
 
   defp after_defprotocol do
     quote bind_quoted: [builtin: builtin] do
+      @doc false
       @spec impl_for(term) :: atom() | nil
       Kernel.def impl_for(data)
 
@@ -449,6 +450,7 @@ defmodule Protocol do
         end
       end, builtin)
 
+      @doc false
       @spec impl_for!(term) :: atom() | no_return()
       Kernel.def impl_for!(data) do
         impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
