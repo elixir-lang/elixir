@@ -430,22 +430,23 @@ defmodule File do
   Typical error reasons are the same as in `open/2`,
   `read/1` and `write/3`.
   """
-  @spec copy(Path.t, Path.t, pos_integer | :infinity) :: {:ok, non_neg_integer} | {:error, posix}
+  @spec copy(Path.t | io_device, Path.t | io_device, pos_integer | :infinity) :: {:ok, non_neg_integer} | {:error, posix}
   def copy(source, destination, bytes_count \\ :infinity) do
-    F.copy(IO.chardata_to_string(source), IO.chardata_to_string(destination), bytes_count)
+    F.copy(maybe_to_string(source), maybe_to_string(destination), bytes_count)
   end
 
   @doc """
   The same as `copy/3` but raises an `File.CopyError` if it fails.
   Returns the `bytes_copied` otherwise.
   """
-  @spec copy!(Path.t, Path.t, pos_integer | :infinity) :: non_neg_integer | no_return
+  @spec copy!(Path.t | io_device, Path.t | io_device, pos_integer | :infinity) :: non_neg_integer | no_return
   def copy!(source, destination, bytes_count \\ :infinity) do
     case copy(source, destination, bytes_count) do
       {:ok, bytes_count} -> bytes_count
       {:error, reason} ->
         raise File.CopyError, reason: reason, action: "copy",
-          source: IO.chardata_to_string(source), destination: IO.chardata_to_string(destination)
+          source: maybe_to_string(source),
+          destination: maybe_to_string(destination)
     end
   end
 
@@ -1335,4 +1336,9 @@ defmodule File do
 
   defp open_defaults([], true),  do: [:binary]
   defp open_defaults([], false), do: []
+
+  defp maybe_to_string(path) when is_pid(path),
+    do: path
+  defp maybe_to_string(path),
+    do: IO.chardata_to_string(path)
 end

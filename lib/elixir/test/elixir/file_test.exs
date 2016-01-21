@@ -441,8 +441,8 @@ defmodule FileTest do
     test "cp! with src dir" do
       src   = fixture_path("cp_r")
       dest  = tmp_path("tmp.file")
-      assert_raise File.CopyError, "could not copy from #{src} to #{dest}: " <>
-          "illegal operation on a directory", fn ->
+      assert_raise File.CopyError, "could not copy from #{inspect(src)} " <>
+          "to #{inspect(dest)}: illegal operation on a directory", fn ->
         File.cp!(src, dest)
       end
     end
@@ -660,7 +660,7 @@ defmodule FileTest do
     test "cp_r with src_unknown!" do
       src  = fixture_path("unknown")
       dest = tmp_path("tmp")
-      assert_raise File.CopyError, "could not copy recursively from #{src} to #{dest}. #{src}: no such file or directory", fn ->
+      assert_raise File.CopyError, "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{src}: no such file or directory", fn ->
         File.cp_r!(src, dest)
       end
     end
@@ -1429,6 +1429,19 @@ defmodule FileTest do
     end
   end
 
+  test "copy with an io_device" do
+    {:ok, src} = File.open(fixture_path("file.txt"))
+    dest = tmp_path("tmp_test.txt")
+    try do
+      refute File.exists?(dest)
+      assert File.copy(src, dest) == {:ok, 4}
+      assert File.read(dest) == {:ok, "FOO\n"}
+    after
+      File.close(src)
+      File.rm(dest)
+    end
+  end
+
   test "copy with bytes count" do
     src  = fixture_path("file.txt")
     dest = tmp_path("tmp_test.txt")
@@ -1474,7 +1487,7 @@ defmodule FileTest do
   test "copy! with invalid file" do
     src  = fixture_path("invalid.txt")
     dest = tmp_path("tmp_test.txt")
-    assert_raise File.CopyError, "could not copy from #{src} to #{dest}: no such file or directory", fn ->
+    assert_raise File.CopyError, "could not copy from #{inspect(src)} to #{inspect(dest)}: no such file or directory", fn ->
       File.copy!(src, dest, 2)
     end
   end
