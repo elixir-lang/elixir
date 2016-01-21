@@ -42,6 +42,7 @@ defmodule EEx do
     * `:file` - the file to be used in the template. Defaults to the given
       file the template is read from or to "nofile" when compiling from a string.
     * `:engine` - the EEx engine to be used for compilation.
+    * `:trim` - trims whitespace left/right of quotation tags
 
   ## Engine
 
