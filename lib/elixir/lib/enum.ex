@@ -1891,8 +1891,8 @@ defmodule Enum do
   @doc """
   Sorts the enumerable by the given function.
 
-  This function uses the merge sort algorithm. The given function
-  must return `false` if the first argument is smaller than second one.
+  This function uses the merge sort algorithm. The given function should compare
+  two arguments, and return `false` if the first argument follows the second one.
 
   ## Examples
 
