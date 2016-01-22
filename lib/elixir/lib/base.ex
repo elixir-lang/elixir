@@ -256,8 +256,6 @@ defmodule Base do
   @doc """
   Decodes a base 64 encoded string into a binary string.
 
-  The following alphabet is used both for encoding and decoding:
-
   An `ArgumentError` exception is raised if the padding is incorrect or
   a non-alphabet character is present in the string.
 
