@@ -77,14 +77,21 @@ defmodule LoggerTest do
 
   test "process metadata" do
     assert Logger.metadata(data: true) == :ok
-    assert Logger.metadata() == [data: true]
+    assert Logger.metadata == [data: true]
     assert Logger.metadata(data: true) == :ok
-    assert Logger.metadata() == [data: true]
+    assert Logger.metadata == [data: true]
     assert Logger.metadata(meta: 1) == :ok
-    metadata = Logger.metadata()
+    metadata = Logger.metadata
     assert Enum.sort(metadata) == [data: true, meta: 1]
     assert Logger.metadata(data: nil) == :ok
-    assert Logger.metadata() == [meta: 1]
+    assert Logger.metadata == [meta: 1]
+
+    assert Logger.reset_metadata([meta: 2]) == :ok
+    assert Logger.metadata == [meta: 2]
+    assert Logger.reset_metadata([data: true, app: nil]) == :ok
+    assert Logger.metadata == [data: true]
+    assert Logger.reset_metadata == :ok
+    assert Logger.metadata == []
   end
 
   test "metadata merge" do
