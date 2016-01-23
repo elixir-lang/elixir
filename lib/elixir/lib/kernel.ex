@@ -2018,9 +2018,6 @@ defmodule Kernel do
       "foo"
 
   """
-  # If it is a binary at compilation time, simply return it.
-  defmacro to_string(arg) when is_binary(arg), do: arg
-
   defmacro to_string(arg) do
     quote do: String.Chars.to_string(unquote(arg))
   end
