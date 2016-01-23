@@ -184,15 +184,17 @@ rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
   elixir_errors:compile_error(Meta, ?m(Env, file),
     "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
     ['Elixir.Macro':to_string(Arg)]);
-rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _File) when is_binary(String) ->
+rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
   String;
-rewrite(?string_chars, DotMeta, 'to_string', Meta, [String], _Env) ->
+rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call], _Env) ->
+  Call;
+rewrite(?string_chars, DotMeta, 'to_string', Meta, [Call], _Env) ->
   Var   = {'rewrite', Meta, 'Elixir'},
   Guard = {{'.', ?generated, [erlang, is_binary]}, ?generated, [Var]},
   Slow  = remote(?string_chars, DotMeta, 'to_string', Meta, [Var]),
   Fast  = Var,
 
-  {'case', ?generated, [String, [{do,
+  {'case', ?generated, [Call, [{do,
     [{'->', ?generated, [[{'when', Meta, [Var, Guard]}], Fast]},
      {'->', ?generated, [[Var], Slow]}]
   }]]};
