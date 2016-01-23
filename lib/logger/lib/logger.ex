@@ -277,14 +277,14 @@ defmodule Logger do
   @doc """
   Adds the given keyword list to the current process metadata.
   """
-  def metadata(dict) do
-    {enabled, metadata} = __metadata__()
+  def metadata(keywords) do
+    {enabled?, metadata} = __metadata__()
     metadata =
-      Enum.reduce(dict, metadata, fn
+      Enum.reduce(keywords, metadata, fn
         {key, nil}, acc -> Keyword.delete(acc, key)
         {key, val}, acc -> Keyword.put(acc, key, val)
       end)
-    Process.put(@metadata, {enabled, metadata})
+    Process.put(@metadata, {enabled?, metadata})
     :ok
   end
 
@@ -293,6 +293,15 @@ defmodule Logger do
   """
   def metadata() do
     __metadata__() |> elem(1)
+  end
+
+  @doc """
+  Resets the current process metadata to the the given keyword list.
+  """
+  def reset_metadata(keywords \\ []) do
+    {enabled?, _metadata} = __metadata__()
+    Process.put(@metadata, {enabled?, []})
+    metadata(keywords)
   end
 
   @doc """
@@ -512,7 +521,7 @@ defmodule Logger do
 
   @doc """
   Logs a debug message.
-  
+
   Returns the atom `:ok` or an `{:error, reason}` tuple.
 
   ## Examples
@@ -527,7 +536,7 @@ defmodule Logger do
 
   @doc """
   Logs a message.
-  
+
   Returns the atom `:ok` or an `{:error, reason}` tuple.
 
   Developers should use the macros `Logger.debug/2`,
