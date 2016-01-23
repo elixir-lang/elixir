@@ -1054,7 +1054,7 @@ defmodule Stream do
   @doc """
   Emits a sequence of values for the given resource.
 
-  Similar to `transform/2` but the initial accumulated value is
+  Similar to `transform/3` but the initial accumulated value is
   computed lazily via `start_fun` and executes an `after_fun` at
   the end of enumeration (both in cases of success and failure).
 
@@ -1079,7 +1079,7 @@ defmodule Stream do
                       fn file -> File.close(file) end)
 
   """
-  @spec resource((() -> acc), (acc -> {element, acc} | nil), (acc -> term)) :: Enumerable.t
+  @spec resource((() -> acc), (acc -> {element, acc} | {:halt, acc}), (acc -> term)) :: Enumerable.t
   def resource(start_fun, next_fun, after_fun) do
     &do_resource(start_fun.(), next_fun, &1, &2, after_fun)
   end
