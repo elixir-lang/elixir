@@ -14,6 +14,7 @@
 -define(integer, 'Elixir.Integer').
 -define(kernel, 'Elixir.Kernel').
 -define(list, 'Elixir.List').
+-define(list_chars, 'Elixir.List.Chars').
 -define(map, 'Elixir.Map').
 -define(node, 'Elixir.Node').
 -define(port, 'Elixir.Port').
@@ -184,6 +185,8 @@ rewrite(?access, _DotMeta, 'get', Meta, [Arg, _], Env)
   elixir_errors:compile_error(Meta, ?m(Env, file),
     "the Access syntax and calls to Access.get/2 are not available for the value: ~ts",
     ['Elixir.Macro':to_string(Arg)]);
+rewrite(?list_chars, _DotMeta, 'to_char_list', _Meta, [List], _Env) when is_list(List) ->
+  List;
 rewrite(?string_chars, _DotMeta, 'to_string', _Meta, [String], _Env) when is_binary(String) ->
   String;
 rewrite(?string_chars, _, 'to_string', _, [{{'.', _, [?kernel, inspect]}, _, _} = Call], _Env) ->
