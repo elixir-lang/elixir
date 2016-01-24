@@ -301,7 +301,7 @@ warn_bodyless_function(_Line, _File, Special, _Kind, _Tuple)
     when Special == 'Elixir.Kernel.SpecialForms'; Special == 'Elixir.Module' ->
   ok;
 warn_bodyless_function(Line, File, _Module, Kind, Tuple) ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {bodyless_fun, Kind, Tuple}),
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {bodyless_clause, Kind, Tuple}),
   ok.
 
 %% Store each definition in the table.
@@ -359,11 +359,11 @@ check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, StoredDefaults, _,
     {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause(s) without defaults
 check_valid_defaults(Line, File, Name, Arity, Kind, Defaults, 0, 0, _) when Defaults > 0 ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {out_of_order_defaults, {Kind, Name, Arity}});
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (body less does not count)
 check_valid_defaults(Line, File, Name, Arity, Kind, 0, _, LastDefaults, true) when LastDefaults > 0 ->
   elixir_errors:form_warn([{line, Line}], File, ?MODULE,
-    {out_of_order_defaults, {Kind, Name, Arity}});
+    {clauses_with_defaults, {Kind, Name, Arity}});
 % Clause without defaults
 check_valid_defaults(_Line, _File, _Name, _Arity, _Kind, 0, _, _, _) -> [].
 
@@ -403,7 +403,7 @@ assert_valid_name(_Line, _Kind, _Name, _Args, _S) ->
 
 %% Format errors
 
-format_error({bodyless_fun, Kind, {Name, Arity}}) ->
+format_error({bodyless_clause, Kind, {Name, Arity}}) ->
   io_lib:format("bodyless clause provided for nonexistent ~ts ~ts/~B", [Kind, Name, Arity]);
 
 format_error({no_module, {Kind, Name, Arity}}) ->
@@ -418,11 +418,18 @@ format_error({defs_with_defaults, Name, {Kind, Arity}, {K, A}}) when Arity < A -
     [Kind, Name, Arity, K, Name, A]);
 
 format_error({clauses_with_defaults, {Kind, Name, Arity}}) ->
-  io_lib:format("~ts ~ts/~B has default values and multiple clauses, "
-    "define a function head with the defaults", [Kind, Name, Arity]);
-
-format_error({out_of_order_defaults, {Kind, Name, Arity}}) ->
-  io_lib:format("multiple clauses with default values should define a function head with the defaults, "
+  io_lib:format(""
+    "definitions with multiple clauses and default values require a function head. Instead of\n"
+    "\n"
+    "    def foo(:first_clause, b \\\\ :default) do ... end\n"
+    "    def foo(:second_clause, b) do ... end\n"
+    "\n"
+    "one should write\n"
+    "\n"
+    "    def foo(a, b \\\\ :default)\n"
+    "    def foo(:first_clause, b) do ... end\n"
+    "    def foo(:second_clause, b) do ... end\n"
+    "\n"
    "~ts ~ts/~B has multiple clauses and defines defaults in a clause with a body", [Kind, Name, Arity]);
 
 format_error({ungrouped_clause, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
@@ -439,7 +446,7 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
 format_error(invalid_args_for_bodyless_clause) ->
-  "can use only variables and \\\\ as arguments of bodyless clause";
+  "can use only variables and \\\\ as arguments in function heads";
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define function named ~ts is_record/2 due to compability "
