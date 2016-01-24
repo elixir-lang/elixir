@@ -117,13 +117,13 @@ defmodule Kernel.CLI.CompileTest do
 
     # Set the .beam file to read-only
     File.chmod!(context[:beam_file_path], 4)
-        
+
     {:ok, %{access: access}} = File.stat(context[:beam_file_path])
-    
+
     # Can only assert when read-only applies to the user
     if access != :read_write do
       output = elixirc(compilation_args)
-      expected = '(File.Error) could not write to ' ++ String.to_char_list(context[:beam_file_path]) ++ ': permission denied'
+      expected = '(File.Error) could not write to "' ++ String.to_char_list(context[:beam_file_path]) ++ '": permission denied'
       assert :string.str(output, expected) > 0, "expected compilation error message due to not having write access"
     end
   end
