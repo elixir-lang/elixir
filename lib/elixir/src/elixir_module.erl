@@ -331,7 +331,7 @@ spec_for_macro(Else) -> Else.
 
 compile_opts(Module) ->
   case ets:lookup(data_table(Module), compile) of
-    [{compile, Opts}] when is_list(Opts) -> Opts;
+    [{compile, Opts}] when is_list(Opts) -> lists:flatten(Opts);
     [] -> []
   end.
 

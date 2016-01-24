@@ -144,6 +144,13 @@ defmodule ModuleTest do
     assert [3, 2, 1] = @other_attribute
   end
 
+  test "@compile autoload attribute" do
+    defmodule NoAutoload do
+      @compile {:autoload, false}
+    end
+    refute :code.is_loaded(NoAutoload)
+  end
+
   ## Naming
 
   test "concat" do
